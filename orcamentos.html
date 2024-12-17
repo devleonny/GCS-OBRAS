@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORÇAMENTOS</title>
+    <link rel="stylesheet" type="text/css" href="gcsobras.css">
+    <link rel="stylesheet" type="text/css" href="checkbox.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.2.1/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <style>
+        table {
+            width: 100%;
+            vertical-align: middle;
+            margin: 0 auto;
+        }
+
+        thead {
+            z-index: 0;
+        }
+
+        textarea {
+            color: #222;
+        }
+
+        h1 {
+            margin-right: 50px;
+        }
+
+        .formato_status {
+            cursor: pointer;
+            display: inline-block;
+            color: white;
+            border-radius: 5px;
+            padding: 5px;
+        }
+
+        input {
+            text-align: center;
+        }
+
+        .quantidade_requisicao {
+            cursor: pointer;
+            height: 20px;
+            background-color: #c8fcc4;
+            border-radius: 5px;
+            color: #151749;
+            font-weight: bold;
+            box-shadow: 1px 1px #151749;
+            text-align: center;
+        }
+
+        th {
+            background-color: transparent;
+        }
+
+        #orcamentos {
+            padding: 10px;
+            border-radius: 5px;
+            height: 70vh;
+            min-width: 60vw;
+            max-height: 70vh;
+            overflow: auto;
+        }
+
+        .label_etiquetas {
+            text-align: center;
+            color: white;
+            border-radius: 5px;
+            padding: 2px;
+            margin: 2px;
+            display: inline-block;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="overlay"></div>
+
+    <div id="content">
+
+        <div
+            style="display: flex; height: 5vh; margin-bottom: 5vh; align-items: center; gap: 25px; justify-content: space-between; width: 100%;">
+
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="./BG.png" style="height: 10vw; margin-right: 5vw; cursor: pointer;">
+                <label class="novo_titulo" id="nome_modulo"></label>
+            </div>
+
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;"
+                onclick="window.location.href='inicial.html'">
+                <img src="voltar.png" style=" cursor: pointer;" onclick="window.location.href='inicial.html'">
+                <label style="color: white;">Voltar</label>
+            </div>
+
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <img src="atualizar_2.png" style="width: max-content; cursor: pointer;" onclick="atualizar_especial()">
+                <label style="color: white;">Atualizar</label>
+            </div>
+
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <img src="reembolso.png" style="width: max-content; cursor: pointer;" onclick="window.location.href='pagamentos.html'">
+                <label style="color: white;">Pagamentos</label>
+            </div>
+
+            <!--CheckBox-->
+            <div class="wrap-check-53">
+                <input class="switch" type="checkbox" id="switch" name="switch" value="private">
+                <label for="switch">
+                    <span class="switch-x-text">Apenas orçamentos próprios? </span>
+                    <span class="switch-x-toggletext">
+                        <span class="switch-x-unchecked"><span class="switch-x-hiddenlabel">Unchecked:
+                            </span>Não</span>
+                        <span class="switch-x-checked"><span class="switch-x-hiddenlabel">Checked:
+                            </span>Sim</span>
+                    </span>
+                </label>
+            </div>
+
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <div id="orcamentos"></div>
+            <div style="display: grid; width: max-content; height: max-content; gap: 20px;">
+                <div class="block" onclick="window.location.href = 'adicionar.html'">
+                    <img src="projeto.png" style="width: 50px;">
+                    <p>CRIAR ORÇAMENTO</p>
+                </div>
+                <div id="painel_direito" class="containerX"
+                    style="width: max-content; height: max-content; grid-template-columns: repeat(1, 1fr);">
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+</body>
+
+<script src="open_menus.js"></script>
+<script src="status.js"></script>
+<script src="orcamentos.js"></script>
+<script src="gerar_excel.js"></script>
+
+</html>

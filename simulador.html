@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora</title>
+    <link rel="stylesheet" type="text/css" href="gcsobras.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        th {
+            background-color: #B12425;
+            border: 1px solid transparent;
+            border-radius: 5px;
+            padding: 5px;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 150;
+        }
+
+        td {
+            background-color: white;
+            border: 1px solid transparent;
+            opacity: 0.9;
+            vertical-align: middle;
+            text-align: center;
+            padding: 10px;
+            font-size: 0.8em;
+        }
+
+        .retangulous {
+            border: 1px solid white;
+            backdrop-filter: blur(10px);
+            text-align: center;
+            font-size: 1.4vw;
+            color: #151749;
+            width: max-content;
+            height: max-content;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        th {
+            font-size: 0.7em;
+        }
+
+        input {
+            text-align: center;
+            width: max-content;
+        }
+
+        table {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            text-align: center;
+        }
+
+        input {
+            border: 1px solid #151749;
+            font-size: 1em;
+            border-radius: 5px;
+            padding: 10px;
+            color: #151749;
+            font-weight: bold;
+            background-color: #e9e9e9;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #2196F3;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(26px);
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 350px;
+            height: 12px;
+            background: #e9e9e9;
+            outline: none;
+            border-radius: 10px;
+            border: 1px solid #151749;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #B12425;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 1px solid #151749;
+        }
+
+        input[type=range]::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #B12425;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 1px solid #151749;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="content" style="margin: 0px;">
+
+        <div style=" width: 80%; display: flex; gap: 10px; align-items: center; justify-content: space-evenly;">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;"
+                onclick="window.location.href='inicial.html'">
+                <img src="voltar.png" style=" cursor: pointer;" onclick="window.location.href='inicial.html'">
+                <label style="color: white;">Voltar</label>
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="./BG.png" style="height: 10vw; margin-right: 5vw; cursor: pointer;">
+                <label class="novo_titulo" id="nome_modulo"></label>
+            </div>
+        </div>
+
+        <div class="retangulous">
+            <h2>Calculadora de Compra com Margem e Retorno</h2>
+
+            <table>
+                <tr>
+                    <th>Valor de Compra no Distribuidor</th>
+                    <td>
+                        <input type="number" id="valor_compra">
+                    </td>
+                </tr>
+                <tr>
+                    <th>Valor da margem %</th>
+                    <td>
+                        <input type="range" id="porcentagem_margem" min="0" max="200" value="0">
+                    </td>
+                    <td id="valor_margem"> </td>
+                    <td id="margem_percentual">0%</td>
+                </tr>
+                <tr>
+                    <th>Valor Total da compra + margem</th>
+                    <td id="compra_mais_margem"></td>
+                </tr>
+                <tr>
+                    <th>Valor Líquido sem ICMS</th>
+                    <td id="valor_liquido"></td>
+                </tr>
+                <tr>
+                    <th>ICMS (Dentro/Fora)</th>
+                    <td style="display: flex; justify-content: space-evenly; align-items: center;">
+                        <label>Dentro (20,5%)</label>
+                        <label class="switch">
+                            <input type="checkbox" id="icms_toggle">
+                            <span class="slider"></span>
+                        </label>
+                        <label>Fora (12%)</label>
+                    </td>
+                    <td id="icms"></td>
+                </tr>
+                <tr>
+                    <th>Valor dos Impostos Federais (8%)</th>
+                    <td id="impostos_federais"></td>
+                </tr>
+                <tr>
+                    <th>Custo Logístico (5%)</th>
+                    <td id="custo_logistico"></td>
+                </tr>
+                <tr>
+                    <th>Retorno da compra do Equipamento</th>
+                    <td id="total_equipamento"></td>
+                    <td id="total_equipamento_porcentagem"></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <script>
+        var valor_compra = document.getElementById('valor_compra')
+        var porcentagem_margem = document.getElementById('porcentagem_margem')
+        var valor_margem = document.getElementById('valor_margem')
+        var margem_percentual = document.getElementById('margem_percentual')
+        var compra_mais_margem = document.getElementById('compra_mais_margem')
+        var icms_toggle = document.getElementById('icms_toggle')
+        var icms = document.getElementById('icms')
+        var valor_liquido = document.getElementById('valor_liquido')
+        var impostos_federais = document.getElementById('impostos_federais')
+        var custo_logistico = document.getElementById('custo_logistico')
+        var total_equipamento = document.getElementById('total_equipamento')
+        var total_equipamento_porcentagem = document.getElementById('total_equipamento_porcentagem')
+
+        // Recupera os dados simulados anteriormente;
+        var dados_simulador = JSON.parse(localStorage.getItem('dados_simulador'))
+        if (dados_simulador) {
+            valor_compra.value = dados_simulador.valor
+            porcentagem_margem.value = dados_simulador.margem
+            icms_toggle.checked = dados_simulador.icms
+            atualizarValores()
+        }
+
+        function atualizarValores() {
+            var icms_taxa = icms_toggle.checked ? 0.12 : 0.205;
+
+            valor_margem.textContent = dinheiro(Number(valor_compra.value) * porcentagem_margem.value / 100)
+            margem_percentual.textContent = porcentagem_margem.value + '%'
+            compra_mais_margem.textContent = dinheiro(Number(valor_compra.value) + conversor(valor_margem.textContent))
+
+            var calculo_icms = conversor(compra_mais_margem.textContent) * icms_taxa
+            icms.textContent = dinheiro(calculo_icms)
+
+            valor_liquido.textContent = dinheiro(conversor(compra_mais_margem.textContent) - conversor(icms.textContent))
+
+            var calculo_impostos_federais = conversor(compra_mais_margem.textContent) * 0.08
+            impostos_federais.textContent = dinheiro(calculo_impostos_federais)
+
+            var calculo_custo_logistico = conversor(compra_mais_margem.textContent) * 0.05
+            custo_logistico.textContent = dinheiro(calculo_custo_logistico)
+
+            var calculo_total_equipamento = conversor(compra_mais_margem.textContent) - Number(valor_compra.value) - calculo_icms - calculo_impostos_federais - calculo_custo_logistico
+            total_equipamento.textContent = dinheiro(calculo_total_equipamento)
+
+            var porcentagem_final = calculo_total_equipamento / conversor(compra_mais_margem.textContent) * 100
+
+            if (calculo_total_equipamento == 0) {
+                total_equipamento_porcentagem.textContent = 0 + ' %'
+            } else {
+                total_equipamento_porcentagem.textContent = porcentagem_final.toFixed(0) + ' %'
+            }
+
+            var dados_simulador = {
+                valor: valor_compra.value,
+                margem: porcentagem_margem.value,
+                icms: icms_toggle.checked
+            }
+
+            localStorage.setItem('dados_simulador', JSON.stringify(dados_simulador))
+        }
+
+        valor_compra.addEventListener('input', atualizarValores)
+        porcentagem_margem.addEventListener('input', atualizarValores)
+        icms_toggle.addEventListener('change', atualizarValores)
+
+        function conversor(stringMonetario) {
+            if (typeof stringMonetario === 'number') {
+                return stringMonetario
+            } else {
+                stringMonetario = stringMonetario.trim();
+                stringMonetario = stringMonetario.replace(/[^\d,]/g, '');
+                stringMonetario = stringMonetario.replace(',', '.');
+                var valorNumerico = parseFloat(stringMonetario);
+
+                if (isNaN(valorNumerico)) {
+                    return 0;
+                }
+
+                return valorNumerico;
+            }
+        }
+
+        function dinheiro(valor) {
+            if (valor === '') {
+                return 'R$ 0,00';
+            } else {
+                valor = Number(valor);
+                return 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+        }
+    </script>
+    <script src="open_menus.js"></script>
+</body>
+
+</html>
