@@ -92,7 +92,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
         gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: "imagens/gerente.png" },
         diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: "imagens/diretoria.png" },
         reprovados: { qtde: 0, valor: 0, termo: 'reprovado', label: 'Reprovados', icone: "imagens/remover.png" },
-        excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: 'alerta.gif' },
+        excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: "gifs/alerta.gif" },
         salvos: { qtde: 0, valor: 0, termo: 'localmente', label: 'Salvo localmente', icone: "imagens/salvo.png" },
         pago: { qtde: 0, valor: 0, termo: 'pago', label: 'Pagamento realizado', icone: "imagens/concluido.png" },
         avencer: { qtde: 0, valor: 0, termo: 'a vencer', label: 'Pagamento será feito outro dia', icone: "imagens/avencer.png" },
@@ -139,7 +139,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
             contadores.excluidos.valor += pg.param[0].valor_documento
             contadores.excluidos.qtde += 1
         } else {
-            icone = 'alerta.gif'
+            icone = "gifs/alerta.gif"
         }
         contadores.todos.qtde += 1
         contadores.todos.valor += pg.param[0].valor_documento
@@ -421,7 +421,7 @@ async function abrir_detalhes(id_pagamento) {
 
             <div style="display: flex; align-items: center; justify-content: center;">
 
-                <img src="alerta.gif">
+                <img src="gifs/alerta.gif">
 
                 <label style="margin: 10px;">Responda a solicitação aqui</label>
 
@@ -570,7 +570,7 @@ async function abrir_detalhes(id_pagamento) {
         <label><strong>Quem recebe? • </strong> ${cliente}</label>
         <div id="centro_de_custo_div" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
             <label><strong>Centro de Custo</strong> • ${cc}</label>
-            <img src="alerta.gif" style="width: 30px; cursor: pointer;" onclick="alterar_centro_de_custo('${id_pagamento}')">
+            <img src="gifs/alerta.gif" style="width: 30px; cursor: pointer;" onclick="alterar_centro_de_custo('${id_pagamento}')">
         </div>
         ${pedido}
         <label><strong>Data de Solicitação</strong> • ${pagamento.data_registro}</label>

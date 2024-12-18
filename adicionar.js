@@ -40,7 +40,7 @@ async function atualizar_precos() {
 
         menu_superior.style.display = 'none'
         document.getElementById('quieto').innerHTML = `
-            <img src="loading.gif" style="width: 5vw;">
+            <img src="gifs/loading.gif" style="width: 5vw;">
             <label class="novo_titulo">Aguarde...</label>        
         `
         menu_superior.style.display = 'flex'
@@ -188,7 +188,7 @@ function enviar_dados() {
     if (!orcamento_v2.dados_orcam) {
         return openPopup_v2(`
         < div style = "display: flex; gap: 10px; align-items: center; justify-content: center;" >
-            <img src="alerta.gif" style="width: 3vw; height: 3vw;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Preencha os dados do Cliente</label>
             </div>
     `)
@@ -199,7 +199,7 @@ function enviar_dados() {
     if (dados_orcam.cliente_selecionado == '') {
         return openPopup_v2(`
         <div style = "display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="alerta.gif" style="width: 3vw; height: 3vw;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Cliente em branco</label>
             </div>
         </div>
@@ -209,7 +209,7 @@ function enviar_dados() {
     if (dados_orcam.contrato == '') {
         return openPopup_v2(`
         <div style = "display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="alerta.gif" style="width: 3vw; height: 3vw;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Chamado em branco</label>
             </div>
         </div>
@@ -219,7 +219,7 @@ function enviar_dados() {
     if (dados_orcam.contrato.slice(0, 1) !== 'D' && dados_orcam.contrato !== 'sequencial' && dados_orcam.contrato.slice(0, 3) !== 'ORC') {
         return openPopup_v2(`
         <div style = "display: flex; gap: 10px; align-items: center; justify-content: center;" >
-            <img src="alerta.gif" style="width: 3vw; height: 3vw;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Chamado deve começar com D</label>
             </div>
         </div>
@@ -229,7 +229,7 @@ function enviar_dados() {
     if (dados_orcam.estado == '') {
         return openPopup_v2(`
         <div style = "display: flex; gap: 10px; align-items: center; justify-content: center;" >
-            <img src="alerta.gif" style="width: 3vw; height: 3vw;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Estado em branco</label>
             </div>
         </div>
@@ -239,7 +239,7 @@ function enviar_dados() {
     if (dados_orcam.cnpj == '') {
         return openPopup_v2(`
         <div style = "display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="alerta.gif" style="width: 3vw; height: 3vw;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>CNPJ em branco</label>
             </div>
         </div>

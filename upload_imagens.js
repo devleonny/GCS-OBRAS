@@ -16,7 +16,7 @@ function ampliar_especial(local_img, codigo) {
             <img id="img" src="${local_img.src}" style="height: 20vw; width: 20vw; margin: auto; border-radius: 8px; border: 1px solid #ddd;">
             
             <div id="carregamento_imagem" style="display: none; align-items: center; justify-content: center; margin-top: 10px;">
-                <img src="loading.gif" style="width: 60px;">
+                <img src="gifs/loading.gif" style="width: 60px;">
                 <label style="color: #222; margin-left: 10px;">Salvando...</label>
             </div>
 
@@ -71,7 +71,7 @@ async function importar_imagem(local_img, codigo) {
         if (responseData.data.error) {
             carregamento_imagem.innerHTML = `
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-                <img src="alerta.gif" style="width: 5vw">
+                <img src="gifs/alerta.gif" style="width: 5vw">
                 <label>Ocorreu um erro aqui, mas tudo bem... tenta de novo!</label>
             </div>
             `
@@ -139,7 +139,7 @@ async function importar_imagem(local_img, codigo) {
 
         carregamento_imagem.innerHTML = `
         <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-            <img src="alerta.gif" style="width: 5vw">
+            <img src="gifs/alerta.gif" style="width: 5vw">
             <label>Ocorreu um erro aqui, mas tudo bem... tenta de novo!</label>
         </div>
         <label>${error}</label>

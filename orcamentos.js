@@ -678,7 +678,7 @@ async function tela_pagamento(chave1) {
             </div>
 
             <div id="aguarde" style="display: none; width: 100%; align-items: center; justify-content: center; gap: 10px;">
-                <img src="loading.gif" style="width: 5vw">
+                <img src="gifs/loading.gif" style="width: 5vw">
                 <label>Aguarde...</label>
             </div>
         </div>
@@ -699,7 +699,7 @@ async function tela_pagamento(chave1) {
                 <label>• Adiantamento de parceiro, o pagamento ocorre em até 8 dias.</label>
             </div>
 
-            <img src="baixo.gif" style="width: 2vw;">
+            <img src="gifs/baixo.gif" style="width: 2vw;">
 
             <div class="central_categorias">
 
@@ -724,7 +724,7 @@ async function tela_pagamento(chave1) {
                     </div>
 
                     <div id="aguarde_2" style="display: none; width: 100%; align-items: center; justify-content: center; gap: 10px;">
-                        <img src="loading.gif" style="width: 5vw">
+                        <img src="gifs/loading.gif" style="width: 5vw">
                         <label>Baixando clientes do Omie...</label>
                     </div>
 
@@ -733,7 +733,7 @@ async function tela_pagamento(chave1) {
                 <div id="container_cnpj_cpf" style="display: none; align-items: center; gap: 10px;">
 
                     <div class="numero" style="background-color: transparent;">
-                        <img src="alerta.gif" style="width: 30px; height: 30px;">
+                        <img src="gifs/alerta.gif" style="width: 30px; height: 30px;">
                     </div>
 
                     <div class="itens_financeiro" style="background-color: #B12425">
@@ -801,7 +801,7 @@ async function tela_pagamento(chave1) {
                     <label id="tempo" class="contorno_botoes" style="background-color: #097fe6"></label>
                     <label> Vai cair em </label>
                     <label id="tempo_real" class="contorno_botoes" style="background-color: #097fe6"></label>
-                    <img src="alerta.gif" style="width: 30px;">
+                    <img src="gifs/alerta.gif" style="width: 30px;">
                 </div>
 
                 <div style="display: flex; width: 100%; justify-content: center; align-items: center;">

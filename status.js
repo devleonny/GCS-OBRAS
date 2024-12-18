@@ -45,7 +45,7 @@ var adicionar_pedido = `
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center; align-items: center;">
             <input type="checkbox" onchange="ocultar_pedido(this)" style="cursor: pointer;">
             <label>Marque aqui caso não tenha o número ainda.</label>
-            <img src="interrogacao.gif" onclick="mostrar_um_aviso()" style="width: 2vw; cursor: pointer;">
+            <img src="gifs/interrogacao.gif" onclick="mostrar_um_aviso()" style="width: 2vw; cursor: pointer;">
         </div>
 
         <div id="conteiner_pedido">
@@ -827,7 +827,7 @@ function salvar_status(chave, operacao, chave2) {
                 if (qtde == '' && (partnumber === '' || requisicao === '--')) {
                     return openPopup_v2(`
                             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                                <img src="alerta.gif" style="width: 3vw; height: 3vw;">
+                                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                                 <label>Se o item tiver quantidade, preencha também o PARTNUMBER e o status de Requisição</label>
                             </div>
                         `);
@@ -864,7 +864,7 @@ function salvar_status(chave, operacao, chave2) {
         if (informacao_no_select == 'Selecione') {
             return openPopup_v2(`
                 <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                    <img src="alerta.gif" style="width: 3vw; height: 3vw;">
+                    <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                     <label>Não deixe o campo de pedido em branco, selecione um pedido.</label>
                 </div>
             `);
@@ -1119,7 +1119,7 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot�
                         <label><strong>Status: </strong>${his.status}</label>
                         <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
                             <label><strong>Número: </strong>${st.pedido}</label>
-                            <img src="alerta.gif" style="width: 2vw; cursor: pointer;" onclick="popup_atualizar_pedido('${chave_pedido}')">
+                            <img src="gifs/alerta.gif" style="width: 2vw; cursor: pointer;" onclick="popup_atualizar_pedido('${chave_pedido}')">
                         </div>
                         <label><strong>Data: </strong> ${his.data}</label>
                         <label><strong>Executor: </strong> ${his.executor}</label>
@@ -1366,7 +1366,7 @@ function abrir_esquema(id) {
                         <img src="imagens/anexo.png" style="width: 25px">
                         <label style="cursor: pointer;" onclick="detalhar_requisicao('${chave_pedido}', true, '${chave2}')"><strong>Requisição disponível</strong> <br> ${todos_os_status[chave_pedido].pedido} - ${todos_os_status[chave_pedido].tipo}</label>
                         <div onclick="detalhar_requisicao('${chave_pedido}', false, '${chave2}')" style="cursor: pointer; display: flex; flex-direction: column; justify-content: left; align-items: center;">    
-                            <img src="alerta.gif" style="width: 2vw">
+                            <img src="gifs/alerta.gif" style="width: 2vw">
                             <label style="text-decoration: underline; cursor: pointer; font-size: 0.8em;">Editar</label>
                         </div>
                     </div>
@@ -1457,7 +1457,7 @@ function abrir_esquema(id) {
                     <label><strong>Data de Saída:</strong> ${conv_data(envio.data_saida)}</label>
                     <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
                         <label><strong>Data da Entrega:</strong> ${conv_data(envio.data_entrega)}</label>
-                        <img src="alerta.gif" style="width: 30px; cursor: pointer;" onclick="pop_alterar_data_recebimento('${id_orcam}', '${chave_pedido}', '${chave2}')">
+                        <img src="gifs/alerta.gif" style="width: 30px; cursor: pointer;" onclick="pop_alterar_data_recebimento('${id_orcam}', '${chave_pedido}', '${chave2}')">
                     </div>
                     `
                 }
@@ -1548,14 +1548,14 @@ function abrir_esquema(id) {
                             <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
                                 <label style="text-align: left;"><strong>Número do pedido:</strong>
                                     ${todos_os_status[chave_pedido].pedido}</label>
-                                <img src="alerta.gif" style="width: 2vw; cursor: pointer;"
+                                <img src="gifs/alerta.gif" style="width: 2vw; cursor: pointer;"
                                     onclick="popup_atualizar_item('${chave_pedido}', 'pedido')">
                             </div>
 
                             <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
                                 <label style="text-align: left;"><strong>Valor deste Pedido</strong>
                                     ${valor_do_pedido}</label>
-                                <img src="alerta.gif" style="width: 2vw; cursor: pointer;"
+                                <img src="gifs/alerta.gif" style="width: 2vw; cursor: pointer;"
                                     onclick="popup_atualizar_item('${chave_pedido}', 'valor')">
                             </div>
                             
@@ -1867,7 +1867,7 @@ function confirmar_exclusao_comentario(id_comentario, chave2) {
 
     openPopup_v2(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="alerta.gif" style="width: 3vw; height: 3vw;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
             <label>Excluir o comentário?</label>
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
             <button onclick="excluir_comentario('${id_comentario}', '${chave2}')" style="background-color: green">Confirmar</button>
@@ -2081,7 +2081,7 @@ function remover_etiqueta(id, id_etiqueta) {
 
     openPopup_v2(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="alerta.gif" style="width: 3vw; height: 3vw;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
             <label>Remover a etiqueta?</label>
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
             <button onclick="remover_mesmo_a_etiqueta('${id}', '${id_etiqueta}')" style="background-color: green">Confirmar</button>
@@ -2116,7 +2116,7 @@ function remover_mesmo_a_etiqueta(id, id_etiqueta) {
 async function atualizar_esquema() {
     openPopup_v2(`
     <div style="display: flex; width: 100%; align-items: center; justify-content: center; gap: 10px; color: #222;">
-        <img src="loading.gif" style="width: 5vw">
+        <img src="gifs/loading.gif" style="width: 5vw">
         <label style="color: white; font-size: 1.5em;">Aguarde...</label>
     </div>
     `)
@@ -2451,7 +2451,7 @@ function atualizar_status_logistico(st, chave, chave2) {
         if (interromper_processo) {
             return openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="alerta.gif" style="width: 3vw; height: 3vw;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Se o item tiver quantidade, preencha também o PARTNUMBER e o status de Requisição</label>
             </div>
         `);
@@ -2469,7 +2469,7 @@ function atualizar_status_logistico(st, chave, chave2) {
     if (informacao_no_select == 'Selecione') {
         return openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="alerta.gif" style="width: 3vw">
+                <img src="gifs/alerta.gif" style="width: 3vw">
                 <label>Não deixe o campo de pedido em branco, selecione um pedido.</label>
             </div>
             `)

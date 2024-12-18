@@ -176,7 +176,7 @@ async function alertas() {
     <div id="alertas_div" class="flutuante">
         <span class="close" onclick="mostrar_ocultar_alertas()">&times;</span>
         <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-            <img src="atencao.gif">
+            <img src="gifs/atencao.gif">
             <label style="font-size: 2.0em;">Notificações</label>
         </div>
         <div style="color: white; background-color: #222; border-radius: 3px;">
@@ -186,7 +186,7 @@ async function alertas() {
     </div>
     
     <div id="icone_alerta" onclick="mostrar_ocultar_alertas()" style="box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); color: #222; display: flex; align-items: center; justify-content: center; cursor: pointer; position: fixed; bottom: 10px; left: 10px; border-radius: 3px; background-color: white; padding: 10px; gap: 10px;">
-        <img src="atencao.gif">
+        <img src="gifs/atencao.gif">
     </div>
     `
 
@@ -578,7 +578,7 @@ async function recuperar_dados_clientes() {
     if (acompanhamento_dados_clientes) {
         acompanhamento_dados_clientes.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: left;">
-        <img src="loading.gif" style="width: 50px"> 
+        <img src="gifs/loading.gif" style="width: 50px"> 
         <label>Aguarde alguns segundos... </label>
         </div>
         `
@@ -602,7 +602,7 @@ async function recuperar_dados_clientes() {
                     dados_clientes_provisorios = data
                     carregar_datalist_clientes()
                     acompanhamento_dados_clientes.innerHTML = `
-                        <img src="alerta.gif" style="width: 30px;">
+                        <img src="gifs/alerta.gif" style="width: 30px;">
                         <label style="text-decoration: underline; cursor: pointer;" onclick="recuperar_dados_clientes()">Clique aqui para sincronizar com o Omie os dados do Cliente...</label>
                     `
                 }
@@ -1073,7 +1073,7 @@ function carregamento(local) {
 
     var elemento = `
     <div id="carregamento" style="display: flex; width: 100%; align-items: center; justify-content: center; gap: 10px;">
-        <img src="loading.gif" style="width: 5vw">
+        <img src="gifs/loading.gif" style="width: 5vw">
         <label style="color: white; font-size: 1.5em;">Aguarde...</label>
     </div>
     `
@@ -1341,7 +1341,7 @@ function consultar_pagamentos(especial) { //True aqui vai retornar o painel de t
         gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: "imagens/gerente.png" },
         diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: "imagens/diretoria.png" },
         reprovados: { qtde: 0, valor: 0, termo: 'reprovado', label: 'Reprovados', icone: "imagens/remover.png" },
-        excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: 'alerta.gif' },
+        excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: "gifs/alerta.gif" },
         salvos: { qtde: 0, valor: 0, termo: 'localmente', label: 'Salvo localmente', icone: "imagens/salvo.png" },
         pago: { qtde: 0, valor: 0, termo: 'pago', label: 'Pagamento realizado', icone: "imagens/concluido.png" },
         avencer: { qtde: 0, valor: 0, termo: 'a vencer', label: 'Pagamento será feito outro dia', icone: "imagens/avencer.png" },
@@ -1388,7 +1388,7 @@ function consultar_pagamentos(especial) { //True aqui vai retornar o painel de t
             contadores.excluidos.valor += pg.param[0].valor_documento
             contadores.excluidos.qtde += 1
         } else {
-            icone = 'alerta.gif'
+            icone = "gifs/alerta.gif"
         }
         contadores.todos.qtde += 1
         contadores.todos.valor += pg.param[0].valor_documento
