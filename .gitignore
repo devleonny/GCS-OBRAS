@@ -1,0 +1,4 @@
+# Ignorar diretórios
+node_modules/
+dist/
+chrome-win64/

@@ -17,7 +17,7 @@ function inserir_elemento(elemento) {
 }
 
 var fluxograma = {
-    'AGUARDANDO': { cor: '#4CAF50', modulos: ['PROJETOS'] },
+    'AGUARDANDO': { cor: '#4CAF50', modulos: ['PROJETOS'], },
     'PEDIDO DE VENDA ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'PEDIDO DE SERVIÇO ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'FATURAMENTO PEDIDO DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'] },
@@ -1398,7 +1398,7 @@ function abrir_esquema(id) {
                         anxsss += `
                     <div style="display: flex; gap: 5px; align-items: center;">
                     <div onclick="abrirArquivo('${arquivo}')" class="anexos">
-                        <img src="${imagem}.png" style="cursor: pointer; width: 30px; height: 30px">
+                        <img src="imagens/${imagem}.png" style="cursor: pointer; width: 30px; height: 30px">
                         <label style="cursor: pointer; font-size: 0.6em"><strong>${anx.nome}</strong></label>
                     </div>
                     <p style="text-decoration: underline; cursor: pointer; padding: 5px;" onclick="chamar_excluir_anexo('${chave_pedido}', '${chave2}', '${key_anx}')">Excluir</p>
@@ -1555,7 +1555,7 @@ function abrir_esquema(id) {
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 10px;">
                             <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-                            <img src="atencao.gif" style="width: 2vw;">
+                            <img src="gifs/atencao.gif" style="width: 2vw;">
                             <label style="text-decoration: underline; cursor: pointer;"
                                 onclick="deseja_apagar('pedido', '${chave_pedido}')">
                                 Excluir este número de Pedido
