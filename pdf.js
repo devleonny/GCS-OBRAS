@@ -89,17 +89,16 @@ async function preencher_v2(parceiro) {
         </div>
         ${elem_parceiro}
     </div>
-`
+    `
     document.getElementById('container').insertAdjacentHTML('beforeend', botoes)
 
     var orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {}
     var dados_composicoes = await recuperarDados('dados_composicoes') || {};
     var pagamento_parceiro = JSON.parse(localStorage.getItem('pagamento_parceiro')) || {}
 
-    orcamento_v2 = conversor_composicoes_orcamento(orcamento_v2)
+    orcamento_v2 = await conversor_composicoes_orcamento(orcamento_v2)
 
     // LÓGICA DOS DADOS
-
     var informacoes = orcamento_v2.dados_orcam
 
     var dados = {
@@ -204,8 +203,8 @@ async function preencher_v2(parceiro) {
         for (it in itens) {
             var item = itens[it]
 
-            if(item.parceiro){
-            console.log(item.parceiro)
+            if (item.parceiro) {
+                console.log(item.parceiro)
             }
             // valor de parceiro no histórico desse item; 
             item.parceiro = {
@@ -217,7 +216,7 @@ async function preencher_v2(parceiro) {
             }
 
             if (dados_composicoes[item.codigo]) {
-                item.descricao = dados_composicoes[item.codigo].descricao 
+                item.descricao = dados_composicoes[item.codigo].descricao
                 if (dados_composicoes[item.codigo].substituto !== '' && carrefour) {
                     item.codigo = dados_composicoes[item.codigo].substituto
                     item.descricao = dados_composicoes[item.codigo].descricaocarrefour
@@ -324,9 +323,9 @@ async function preencher_v2(parceiro) {
     var divs_totais = ''
     for (total in totais) {
 
-        if (totais[total].valor !== 0){
+        if (totais[total].valor !== 0) {
 
-            if(total !== 'ICMS' || (total == 'ICMS' && totais['VENDA'].valor !== 0)){
+            if (total !== 'ICMS' || (total == 'ICMS' && totais['VENDA'].valor !== 0)) {
                 divs_totais += `
                 <div class="totais" style="background-color: ${totais[total].cor}">TOTAL ${total} ${dinheiro(totais[total].valor)}</div>
                 `

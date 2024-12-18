@@ -27,7 +27,9 @@ var fluxograma = {
     'PEDIDO DE VENDA FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'PEDIDO DE SERVIÇO FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'FINALIZADO': { cor: 'blue', modulos: ['RELATÓRIOS'] },
-    'MATERIAL ENVIADO': { cor: '#B3702D', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] }
+    'MATERIAL ENVIADO': { cor: '#B3702D', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
+    'MATERIAL RECEBIDO': { cor: '#B3702D', modulos: ['RELATÓRIOS'] },
+    'FINALIZADO': { cor: '#222', modulos: ['RELATÓRIOS'] }
 }
 
 var adicionar_pedido = `
@@ -1506,9 +1508,6 @@ function abrir_esquema(id) {
 
             });
 
-            var mod = ''
-            fluxograma[todos_os_status[chave_pedido].status].modulos.map(m => mod += ` • ${m}`)
-
             var pags = ''
             Object.keys(pagamentos_painel).forEach(pg => {
                 pags += `
@@ -1528,6 +1527,24 @@ function abrir_esquema(id) {
                 valor_do_pedido = dinheiro(todos_os_status[chave_pedido].valor)
             }
 
+            var ultima_alteracao = ''
+
+            if (todos_os_status[chave_pedido].alterado_por) {
+                var info = todos_os_status[chave_pedido]
+
+                ultima_alteracao = `
+                <label>Alterado por <strong>${info.alterado_por}</strong>, às ${info.alterado_quando}</label>
+                `
+            }
+
+            var opcoes_status = ''
+            var atual_status = todos_os_status[chave_pedido].status
+            for (fluxo in fluxograma) {
+                opcoes_status += `
+                <option ${fluxo == atual_status ? 'selected' : ''}>${fluxo}</option>
+                `
+            }
+
             var linhas = `
                 <div style="display: flex; flex-direction: column; gap: 15px;">
                     <hr style="width: 80%;">
@@ -1537,14 +1554,24 @@ function abrir_esquema(id) {
                             ${contador}
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 10px;">
-                            <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-                                <label style="text-align: left; width: 100%;">${mod}</label>
-                                <p style="text-decoration: underline; cursor: pointer;"
-                                    onclick="deseja_apagar('pedido', '${chave_pedido}')">Excluir este número de Pedido</p>
+                            <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
+                            <img src="atencao.gif" style="width: 2vw;">
+                            <label style="text-decoration: underline; cursor: pointer;"
+                                onclick="deseja_apagar('pedido', '${chave_pedido}')">
+                                Excluir este número de Pedido
+                            </label>
                             </div>
 
-                            <label style="text-align: left; width: 100%;"><strong>Situação atual:</strong>
-                                ${todos_os_status[chave_pedido].status}</label>
+                            <div style="display: flex; flex-direction: column; align-items: start;">
+                                <label>
+                                    <strong>Situação atual: </strong>
+                                </label>
+                                <select onchange="alterar_status_principal(this, '${chave_pedido}')">
+                                    ${opcoes_status}
+                                </select>
+                                ${ultima_alteracao}
+                            </div>
+
                             <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
                                 <label style="text-align: left;"><strong>Número do pedido:</strong>
                                     ${todos_os_status[chave_pedido].pedido}</label>
@@ -1603,6 +1630,38 @@ function abrir_esquema(id) {
     } else {
         openPopup_v2('Não existem dados históricos')
     }
+
+}
+
+function alterar_status_principal(select, chave) {
+
+    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    var orcamento = dados_orcamentos[id_orcam]
+
+    var data = new Date().toLocaleString('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+    });
+
+    orcamento.status[chave].status = select.value
+    orcamento.status[chave].alterado_por = acesso.usuario
+    orcamento.status[chave].alterado_quando = data
+
+    var dados = {
+        tabela: 'status_principal',
+        status: select.value,
+        id: id_orcam,
+        chave: chave,
+        alterado_por: acesso.usuario,
+        alterado_quando: data
+    }
+
+    enviar_dados_generico(dados)
+
+    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
+
+    abrir_esquema(id_orcam)
 
 }
 
@@ -2851,7 +2910,7 @@ async function gerarpdf(cliente, pedido) {
         ${status.innerHTML}
     </body>
     </html>`;
-    
+
     const formData = {
         htmlContent: htmlContent,
         nomeArquivo: `REQUISICAO_${cliente}_${pedido}`

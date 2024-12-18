@@ -648,6 +648,7 @@ function obter_materiais() {
 }
 
 async function recuperar() {
+    obter_materiais()
     await recuperar_dados_composicoes()
     return new Promise((resolve, reject) => {
         var requisicoes = {

@@ -33,16 +33,16 @@ if (document.title == 'ORÇAMENTOS') {
             }
             localStorage.setItem('mostrar_orcamentos_proprios', isChecked ? 'Sim' : 'Não');
 
-            preencher_dados_orcamentos_v2()
+            preencher_orcamentos_v2()
         });
     });
 
-    /*
+
     recuperar_orcamentos()
-    preencher_dados_orcamentos_v2()
+    preencher_orcamentos_v2()
     obter_lista_pagamentos()
     recuperar()
-    */
+
 }
 
 async function atualizar_especial() {
@@ -56,7 +56,7 @@ async function atualizar_especial() {
 function gerar_menu(status, quantidade) {
 
     return `
-    <div class="block" onclick="preencher_dados_orcamentos_v2('${status}')">
+    <div class="block" onclick="preencher_orcamentos_v2('${status}')">
         <label>${quantidade}</label>
         <p>${status}</p>
     </div>
@@ -91,14 +91,14 @@ function pesquisar_v2(coluna, texto) {
     });
 }
 
-preencher_orcamentos_v2()
-
-function preencher_orcamentos_v2() {
+function preencher_orcamentos_v2(st) {
 
     var div_orcamentos = document.getElementById('orcamentos')
+    div_orcamentos.innerHTML = ''
 
     var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
     var mostrar_orcamentos_proprios = localStorage.getItem('mostrar_orcamentos_proprios') || 'Não'
+    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     document.getElementById('nome_modulo').textContent = modulo
 
     // Organizar por data de edição;
@@ -126,34 +126,76 @@ function preencher_orcamentos_v2() {
 
             var exibir_linha = false
             var pedidos = orc.status || {}
+            var label_pedidos = ''
+            var label_notas = ''
 
             for (pedido in pedidos) {
-                var status = pedidos[pedido].status
+                var chave_pedido = pedidos[pedido]
+                var status = chave_pedido.status
+                var num_pedido = chave_pedido.pedido
+                var tipo = chave_pedido.tipo
+                var cor;
 
-                if (fluxograma[status]) {
+                tipo == 'Venda' ? cor = '#ff9c24' : cor = '#00bfb7'
 
-                    if (!status_deste_modulo[status]) {
-                        status_deste_modulo[status] = 0
+                label_pedidos += `
+                    <div class="etiqueta_pedidos" style="background-color: ${cor}">
+                        <label style="font-size: 0.8em;">${tipo}</label>
+                        <label style="font-size: 1.3em;"><strong>${num_pedido}</strong></label>
+                    </div>
+                `
+
+                var historico = chave_pedido.historico
+
+                for (chave2 in historico) {
+                    var chave_historico = historico[chave2]
+                    var cor2;
+
+                    if (chave_historico.notas) {
+                        var nota = chave_historico.notas[0]
+                        nota.modalidade == 'Venda' ? cor2 = '#ff9c24' : cor2 = '#00bfb7'
+                        label_notas += `
+                        <div class="etiqueta_pedidos" style="background-color: ${cor2};">
+                            <label style="font-size: 0.8em;">${nota.modalidade}</label>
+                            <label style="font-size: 1.3em;"><strong>${nota.nota}</strong></label>
+                        </div>
+                        `
                     }
-                    status_deste_modulo[status] += 1
+                }
+
+                if (fluxograma[status] && (st == undefined || st == status)) {
+
+                    var modulos = fluxograma[status].modulos
+                    if (modulos.includes(modulo)) {
+                        exibir_linha = true
+                        if (!status_deste_modulo[status]) {
+                            status_deste_modulo[status] = 0
+                        }
+                        status_deste_modulo[status] += 1
+                    }
+
                 }
             }
 
             if (Object.keys(pedidos).length == 0) {
 
-                if (!status_deste_modulo['AGUARDANDO']) {
-                    status_deste_modulo['AGUARDANDO'] = 0
-                }
+                var aguardando = 'AGUARDANDO'
+                var modulos = fluxograma[aguardando].modulos
 
-                status_deste_modulo['AGUARDANDO'] += 1
+                if (modulos.includes(modulo) && (st == undefined || aguardando == status)) {
+                    exibir_linha = true
+                    if (!status_deste_modulo[aguardando]) {
+                        status_deste_modulo[aguardando] = 0
+                    }
+
+                    status_deste_modulo[aguardando] += 1
+                }
 
             }
 
-            for (mod in status_deste_modulo) {
-
-                var modulos = fluxograma[mod].modulos
-                if (modulos.includes(modulo)) {
-                    exibir_linha = true
+            if (mostrar_orcamentos_proprios == 'Sim') {
+                if (dados_orcam.analista !== acesso.nome_completo) {
+                    exibir_linha = false
                 }
             }
 
@@ -161,8 +203,8 @@ function preencher_orcamentos_v2() {
                 linhas += `
                 <tr class="linha_destacada">
                     <td>${data}</td>
-                    <td><div></div></td>
-                    <td><div></div></td>
+                    <td>${label_pedidos}</td>
+                    <td>${label_notas}</td>
                     <td>${dados_orcam.contrato}</td>
                     <td>${dados_orcam.cliente_selecionado}</td>
                     <td>${dados_orcam.cidade}</td>
@@ -173,7 +215,7 @@ function preencher_orcamentos_v2() {
                         <img src="pesquisar2.png" style="width: 20px; height: 20px;">
                     </td>
                 </tr>
-            `
+                `
             }
         }
 
@@ -210,7 +252,7 @@ function preencher_orcamentos_v2() {
                 <thead>
                     ${ths}
                 </thead>
-                <thead>
+                <thead id="tsh">
                     ${tsh}
                 </thead>
                 <tbody>
@@ -247,26 +289,16 @@ async function recuperar_orcamentos() {
 
                 if (document.title == 'ORÇAMENTOS') {
 
-                    var inputs_ativos = {}
+                    preencher_orcamentos_v2()
 
-                    var tabela = document.getElementById('orcamento_')
-                    var theads;
-                    var inputs;
-                    if (tabela) {
-                        theads = tabela.querySelectorAll('thead')
-                        inputs = theads[1].querySelectorAll('input')
+                    var tsh = document.getElementById('tsh')
+                    var inputs = tsh.querySelectorAll('input')
 
-                        inputs.forEach((input, i) => {
-                            inputs_ativos[i] = input.value
-                        })
+                    for (col in filtrosAtivos) {
+
+                        pesquisar_v2(col, filtrosAtivos[col])
+                        inputs[col].value = filtrosAtivos[col]
                     }
-
-                    preencher_dados_orcamentos_v2(botao_status_ativo)
-
-                    Object.keys(inputs_ativos).forEach(i => {
-                        inputs[i].value = inputs_ativos[i]
-                        pesquisar_v2(i, inputs_ativos[i])
-                    })
 
                 }
 
@@ -864,7 +896,7 @@ function calcular_custo() {
 
 }
 
-function incluir_campos_adicionais() { //29
+function incluir_campos_adicionais() {
 
     var campos = {
         lpu_parceiro: { titulo: 'LPU do parceiro de serviço & material' },

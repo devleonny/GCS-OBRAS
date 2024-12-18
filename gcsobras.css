@@ -41,6 +41,16 @@ body::before {
     margin-right: 10px;
 }
 
+.etiqueta_pedidos {
+    display: flex;
+    flex-direction: column;
+    justify-content: left;
+    border-radius: 3px;
+    padding: 3px;
+    margin: 2px;
+    color: white;
+}
+
 .titulo_paginas {
     width: 5%;
     margin-right: 30px;
@@ -916,6 +926,21 @@ input[type=range]::-moz-range-thumb {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
+.block_reverso {
+    display: flex;
+    gap: 2vw;
+    justify-content: left;
+    align-items: center;
+    background-color: #151749;
+    color: white;
+    border-radius: 5px;
+    padding: 1vw;
+    transition: transform 0.3s ease;
+    cursor: pointer;
+    width: 15vw;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
 .block img {
     width: 3vw;
 }
@@ -940,7 +965,8 @@ input[type=range]::-moz-range-thumb {
 }
 
 .pergunta input,
-.pergunta select, .pergunta textarea {
+.pergunta select,
+.pergunta textarea {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     color: white;
     background-color: #B3702D;

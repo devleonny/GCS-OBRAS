@@ -6,9 +6,9 @@ carregamento_div = document.querySelector("#tela_carregamento")
 
 carregamento('tela_carregamento')
 
-if(!(localStorage.getItem("carimbo_data_hora_pagamentos"))){
+if (!(localStorage.getItem("carimbo_data_hora_pagamentos"))) {
     carimbo_data_hora_pagamentos()
-    }
+}
 recuperar_dados_clientes()
 try {
     consultar_pagamentos()
@@ -730,6 +730,7 @@ function fechar_detalhes() {
         detalhes.remove()
     }
     remover_popup()
+
 }
 
 async function atualizar_pagamentos_menu() {
