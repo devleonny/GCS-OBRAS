@@ -38,12 +38,12 @@ async function atualizar_dados_pdf() {
 
     if (campo_atualizar) {
         campo_atualizar.innerHTML = `
-        <img src="loading.gif" style="width: 5vw;">
+        <img src="gifs/loading.gif" style="width: 5vw;">
         `
         await recuperar()
 
         campo_atualizar.innerHTML = `
-            <img src="atualizar2.png">
+            <img src="imagens/atualizar2.png">
             <label>Atualizar</label>
         `
     }
@@ -60,14 +60,14 @@ async function preencher_v2(parceiro) {
     if (parceiro) {
         elem_parceiro += `
             <div id="m_parceiro" class="icone" onclick="preencher_v2()" style="background-color: #B12425; color: white;">
-                <img src="construcao.png">
+                <img src="imagens/construcao.png">
                 <label>Desativar</label>
             </div>
         `
     } else {
         elem_parceiro += `
         <div id="m_parceiro" class="icone" onclick="preencher_v2(true)" style="background-color: green; color: white;">
-            <img src="construcao.png">
+            <img src="imagens/construcao.png">
             <label>Ativar</label>
         </div>
     `
@@ -76,15 +76,15 @@ async function preencher_v2(parceiro) {
     var botoes = `
     <div id="ocultar">
         <div class="icone" onclick="atualizar_dados_pdf()" id="campo_atualizar">
-            <img src="atualizar2.png">
+            <img src="imagens/atualizar2.png">
             <label>Atualizar</label>
         </div>
         <div class="icone" id="generatePdfButton">
-            <img src="pdf.png">
+            <img src="imagens/pdf.png">
             <label>PDF</label>
         </div>
         <div class="icone" onclick="excel()">
-            <img src="excel.png">
+            <img src="imagens/excel.png">
             <label>Excel</label>
         </div>
         ${elem_parceiro}
@@ -212,7 +212,7 @@ async function preencher_v2(parceiro) {
                 quando: '?',
                 aprovado: '?',
                 valor: 0,
-                icone: 'alerta.gif'
+                icone: "gifs/alerta.gif"
             }
 
             if (dados_composicoes[item.codigo]) {
@@ -229,7 +229,7 @@ async function preencher_v2(parceiro) {
                 item.imagem = item.imagem ? item.imagem : dados.imagem
                 item.unidade = dados.unidade
                 item.custo = conversor(item.custo)
-                item.parceiro.icone = 'concluido.png'
+                item.parceiro.icone = "imagens/concluido.png"
 
             }
 
@@ -381,7 +381,7 @@ function preencher_parceiro(elemento_img) {
             <label><strong>${data_atual('completa')}</strong></label>
             <label><strong>${acesso.usuario}</strong></label>
         </div>
-        <img src="concluido.png" style="width: 25px; cursor: pointer;" onclick="salvar_parceiro(this)">
+        <img src="imagens/concluido.png" style="width: 25px; cursor: pointer;" onclick="salvar_parceiro(this)">
     </div>
     
     `
@@ -417,7 +417,7 @@ async function salvar_parceiro(elemento_img) {
                 <label><strong> ${dados.quando}</strong></label>
                 <label><strong> ${dados.quem}</strong></label>
             </div>
-            <img src="concluido.png" style="width: 25px; cursor: pointer;" onclick="preencher_parceiro(this)">
+            <img src="imagens/concluido.png" style="width: 25px; cursor: pointer;" onclick="preencher_parceiro(this)">
         </div>
     `
 
@@ -463,7 +463,7 @@ function calcular_parceiro() {
         valor_a_pagar = `
         <label style="padding: 5px;"> <strong>${dinheiro(VAPM)}</strong></label>
         <label>${(VAPM / total_itens_validos * 100).toFixed(1)}%</label>
-        <img src="alerta.gif" style="width: 3vw; cursor: pointer;" onclick="confirmar_edicao_valor()">
+        <img src="gifs/alerta.gif" style="width: 3vw; cursor: pointer;" onclick="confirmar_edicao_valor()">
         `
 
         if (total_itens_validos * perc_parceiro < VAPM) {
@@ -471,7 +471,7 @@ function calcular_parceiro() {
             var diferenca = VAPM - total_itens_validos * perc_parceiro
             observacao += `
             <div style="display: flex; align-items: center; justify-content: left;">
-                <img src="acima.png" style="width: 15px;">
+                <img src="imagens/acima.png" style="width: 15px;">
                 <label>Valor acima em ${dinheiro(diferenca)} ${(diferenca / total_itens_validos * 100).toFixed(1)}%</label>
             </div>
             `
@@ -479,7 +479,7 @@ function calcular_parceiro() {
             var diferenca = (VAPM - total_itens_validos * perc_parceiro) * -1
             observacao += `
             <div style="display: flex; align-items: center; justify-content: left;">
-                <img src="abaixo.png" style="width: 15px;">
+                <img src="imagens/abaixo.png" style="width: 15px;">
                 <label>Valor abaixo em ${dinheiro(diferenca)} ${(diferenca / total_itens_validos * 100).toFixed(1)}%</label>
             </div>
             `
@@ -488,7 +488,7 @@ function calcular_parceiro() {
     } else {
         valor_a_pagar = `
             <input type="number" class="numero-bonito" oninput="atualizar_indicadores(this)">
-            <img src="concluido.png" style="width: 3vw; cursor: pointer;" onclick="atualizar_indicadores(this, true)">
+            <img src="imagens/concluido.png" style="width: 3vw; cursor: pointer;" onclick="atualizar_indicadores(this, true)">
         `
     }
 
@@ -519,7 +519,7 @@ function confirmar_edicao_valor() {
 
     openPopup_v2(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="alerta.gif" style="width: 3vw; height: 3vw;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
             <label><strong>ATENÇÃO</strong> <br>Deseja editar o cálculo?</label>
             <button onclick="atualizar_valor()" style="background-color: green;">Sim</button>
             <button onclick="remover_popup()">Não</button>

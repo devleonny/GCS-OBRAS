@@ -180,7 +180,7 @@ async function alertas() {
     <div id="alertas_div" class="flutuante">
         <span class="close" onclick="mostrar_ocultar_alertas()">&times;</span>
         <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-            <img src="atencao.gif">
+            <img src="gifs/atencao.gif">
             <label style="font-size: 2.0em;">Notificações</label>
         </div>
         <div style="color: white; background-color: #222; border-radius: 3px;">
@@ -190,7 +190,7 @@ async function alertas() {
     </div>
     
     <div id="icone_alerta" onclick="mostrar_ocultar_alertas()" style="box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); color: #222; display: flex; align-items: center; justify-content: center; cursor: pointer; position: fixed; bottom: 10px; left: 10px; border-radius: 3px; background-color: white; padding: 10px; gap: 10px;">
-        <img src="atencao.gif">
+        <img src="gifs/atencao.gif">
     </div>
     `
 
@@ -582,7 +582,7 @@ async function recuperar_dados_clientes() {
     if (acompanhamento_dados_clientes) {
         acompanhamento_dados_clientes.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: left;">
-        <img src="loading.gif" style="width: 50px"> 
+        <img src="gifs/loading.gif" style="width: 50px"> 
         <label>Aguarde alguns segundos... </label>
         </div>
         `
@@ -606,7 +606,7 @@ async function recuperar_dados_clientes() {
                     dados_clientes_provisorios = data
                     carregar_datalist_clientes()
                     acompanhamento_dados_clientes.innerHTML = `
-                        <img src="alerta.gif" style="width: 30px;">
+                        <img src="gifs/alerta.gif" style="width: 30px;">
                         <label style="text-decoration: underline; cursor: pointer;" onclick="recuperar_dados_clientes()">Clique aqui para sincronizar com o Omie os dados do Cliente...</label>
                     `
                 }
@@ -969,7 +969,7 @@ function calculadora_reversa() {
         calculadora +=`
         <div id="mini_calculadora">
         <label>Calculadora ICMS</label>
-        <img src="calculadora.png" style="width: 50px; cursor: pointer;" onclick="exibir_calculadora()">
+        <img src="imagens/calculadora.png" style="width: 50px; cursor: pointer;" onclick="exibir_calculadora()">
         </div>
     `
     }
@@ -991,7 +991,7 @@ function calculadora_reversa() {
         <label>Fora <strong>12%</strong></label>
         </div>
 
-        <img src="avanco.png">
+        <img src="imagens/avanco.png">
         <div style="display: grid;">
             <label>Valor Bruto</label>
             <label id="valor_com_imposto">R$ -- </label>
@@ -1078,7 +1078,7 @@ function carregamento(local) {
 
     var elemento = `
     <div id="carregamento" style="display: flex; width: 100%; align-items: center; justify-content: center; gap: 10px;">
-        <img src="loading.gif" style="width: 5vw">
+        <img src="gifs/loading.gif" style="width: 5vw">
         <label style="color: white; font-size: 1.5em;">Aguarde...</label>
     </div>
     `
@@ -1343,15 +1343,15 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
     pagamentosFiltrados.sort((a, b) => parseDate(b.data_previsao) - parseDate(a.data_previsao));
 
     var contadores = {
-        gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: 'gerente.png' },
-        diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: 'diretoria.png' },
-        reprovados: { qtde: 0, valor: 0, termo: 'reprovado', label: 'Reprovados', icone: 'remover.png' },
-        excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: 'alerta.gif' },
-        salvos: { qtde: 0, valor: 0, termo: 'localmente', label: 'Salvo localmente', icone: 'salvo.png' },
-        pago: { qtde: 0, valor: 0, termo: 'pago', label: 'Pagamento realizado', icone: 'concluido.png' },
-        avencer: { qtde: 0, valor: 0, termo: 'a vencer', label: 'Pagamento será feito outro dia', icone: 'avencer.png' },
-        hoje: { qtde: 0, valor: 0, termo: 'hoje', label: 'Pagamento será feito hoje', icone: 'vencehoje.png' },
-        todos: { qtde: 0, valor: 0, termo: '', label: 'Todos os pagamentos', icone: 'voltar.png' }
+        gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: "imagens/gerente.png" },
+        diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: "imagens/diretoria.png" },
+        reprovados: { qtde: 0, valor: 0, termo: 'reprovado', label: 'Reprovados', icone: "imagens/remover.png" },
+        excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: "gifs/alerta.gif" },
+        salvos: { qtde: 0, valor: 0, termo: 'localmente', label: 'Salvo localmente', icone: "imagens/salvo.png" },
+        pago: { qtde: 0, valor: 0, termo: 'pago', label: 'Pagamento realizado', icone: "imagens/concluido.png" },
+        avencer: { qtde: 0, valor: 0, termo: 'a vencer', label: 'Pagamento será feito outro dia', icone: "imagens/avencer.png" },
+        hoje: { qtde: 0, valor: 0, termo: 'hoje', label: 'Pagamento será feito hoje', icone: "imagens/vencehoje.png" },
+        todos: { qtde: 0, valor: 0, termo: '', label: 'Todos os pagamentos', icone: "imagens/voltar.png" }
     }
 
     Object.keys(pagamentosFiltrados).forEach((pagamento, i) => {
@@ -1393,7 +1393,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
             contadores.excluidos.valor += pg.param[0].valor_documento
             contadores.excluidos.qtde += 1
         } else {
-            icone = 'alerta.gif'
+            icone = "gifs/alerta.gif"
         }
         contadores.todos.qtde += 1
         contadores.todos.valor += pg.param[0].valor_documento
@@ -1424,7 +1424,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
                 <td>${pg.criado}</td>
                 <td>${setor_criador}</td>
                 <td>${recebedor}</td>
-                <td style="text-align: center;"><img src="pesquisar2.png" style="width: 30px; cursor: pointer;" onclick="abrir_detalhes('${pg.id}')"></td>
+                <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 30px; cursor: pointer;" onclick="abrir_detalhes('${pg.id}')"></td>
             </tr>
         `
     });
@@ -1442,7 +1442,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
             `
         cabecalho2 += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
-            <img src="pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
+            <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
             <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisar_em_pagamentos(${i}, this.value)">
             </th>
             `
@@ -1483,13 +1483,13 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
                 <div style="display: flex; justify-content: space-evenly; width: 100%; gap:">
                     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;"
                         onclick="window.location.href='inicial.html'">
-                        <img src="voltar.png" style=" cursor: pointer;" onclick="window.location.href='inicial.html'">
+                        <img src="imagens/voltar.png" style=" cursor: pointer;" onclick="window.location.href='inicial.html'">
                         <label style="color: white;">Voltar</label>
                     </div>
                     
 
                     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <img src="atualizar_2.png" style="width: max-content; cursor: pointer;" onclick="atualizar_pagamentos_menu()">
+                        <img src="imagens/atualizar_2.png" style="width: max-content; cursor: pointer;" onclick="atualizar_pagamentos_menu()">
                         <label style="color: white;">Atualizar</label>
                     </div>
                 </div>

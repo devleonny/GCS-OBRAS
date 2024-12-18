@@ -212,7 +212,7 @@ function preencher_orcamentos_v2(st) {
                     <td style="white-space: nowrap;">${orc.total_geral}</td>
                     <td style="white-space: nowrap;">${orc.lpu_ativa}</td>
                     <td style="text-align: center;" onclick="exibir_todos_os_status('${orcamento}')">
-                        <img src="pesquisar2.png" style="width: 20px; height: 20px;">
+                        <img src="imagens/pesquisar2.png" style="width: 20px; height: 20px;">
                     </td>
                 </tr>
                 `
@@ -240,7 +240,7 @@ function preencher_orcamentos_v2(st) {
             tsh += `
             <th style="background-color: white; border-radius: 0px;">
                 <div style="position: relative;">
-                    <img src="pesquisar2.png" style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
+                    <img src="imagens/pesquisar2.png" style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
                     <input placeholder="${cab}" style="margin-left: 25px; text-align: left;" oninput="pesquisar_v2(${i}, this.value)">
                 </div>
             </th>            
@@ -600,7 +600,7 @@ async function criar_pagamento_v2(chave1) {
 
         openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="concluido.png" style="width: 3vw; height: 3vw;">
+                <img src="imagens/concluido.png" style="width: 3vw; height: 3vw;">
                 <label>Pagamento Solicitado</label>
             </div>                
         `);
@@ -705,12 +705,12 @@ async function tela_pagamento(chave1) {
                 </div>
 
                 <div onclick="atualizar_departamentos()" class="botoes_financeiro">
-                    <img src="atualizar_2.png" style="width: 30px;">
+                    <img src="imagens/atualizar_2.png" style="width: 30px;">
                 </div>
             </div>
 
             <div id="aguarde" style="display: none; width: 100%; align-items: center; justify-content: center; gap: 10px;">
-                <img src="loading.gif" style="width: 5vw">
+                <img src="gifs/loading.gif" style="width: 5vw">
                 <label>Aguarde...</label>
             </div>
         </div>
@@ -731,7 +731,7 @@ async function tela_pagamento(chave1) {
                 <label>• Adiantamento de parceiro, o pagamento ocorre em até 8 dias.</label>
             </div>
 
-            <img src="baixo.gif" style="width: 2vw;">
+            <img src="gifs/baixo.gif" style="width: 2vw;">
 
             <div class="central_categorias">
 
@@ -750,13 +750,13 @@ async function tela_pagamento(chave1) {
                         </div>
 
                         <div onclick="atualizar_base_clientes()" class="botoes_financeiro">
-                            <img src="atualizar_2.png" style="width: 30px;">
+                            <img src="imagens/atualizar_2.png" style="width: 30px;">
                         </div>
 
                     </div>
 
                     <div id="aguarde_2" style="display: none; width: 100%; align-items: center; justify-content: center; gap: 10px;">
-                        <img src="loading.gif" style="width: 5vw">
+                        <img src="gifs/loading.gif" style="width: 5vw">
                         <label>Baixando clientes do Omie...</label>
                     </div>
 
@@ -765,7 +765,7 @@ async function tela_pagamento(chave1) {
                 <div id="container_cnpj_cpf" style="display: none; align-items: center; gap: 10px;">
 
                     <div class="numero" style="background-color: transparent;">
-                        <img src="alerta.gif" style="width: 30px; height: 30px;">
+                        <img src="gifs/alerta.gif" style="width: 30px; height: 30px;">
                     </div>
 
                     <div class="itens_financeiro" style="background-color: #B12425">
@@ -773,7 +773,7 @@ async function tela_pagamento(chave1) {
                             <div style="display: flex; align-items: center; gap: 20px;">
                                 <input type="text" id="cnpj_cpf" oninput="calculadora_pagamento()"
                                     placeholder="Digite o CNPJ ou CPF aqui...">
-                                <img src="confirmar.png" onclick="botao_cadastrar_cliente()" id="botao_cadastrar_cliente"
+                                <img src="imagens/confirmar.png" onclick="botao_cadastrar_cliente()" id="botao_cadastrar_cliente"
                                     style="margin: 10px; cursor: pointer; width: 30px;">
                             </div>
 
@@ -833,7 +833,7 @@ async function tela_pagamento(chave1) {
                     <label id="tempo" class="contorno_botoes" style="background-color: #097fe6"></label>
                     <label> Vai cair em </label>
                     <label id="tempo_real" class="contorno_botoes" style="background-color: #097fe6"></label>
-                    <img src="alerta.gif" style="width: 30px;">
+                    <img src="gifs/alerta.gif" style="width: 30px;">
                 </div>
 
                 <div style="display: flex; width: 100%; justify-content: center; align-items: center;">
@@ -1104,7 +1104,7 @@ function nova_categoria() {
             <datalist id="W1">${criar_datalist('categorias')}</datalist>
             <label>Valor</label>
             <input type="number" oninput="calculadora_pagamento()" placeholder="0,00">
-            <label src="remover.png" style="cursor: pointer; width: 25px; font-size: 2.5vw;" onclick="apagar_categoria(this)">&times;</label>
+            <label src="imagens/remover.png" style="cursor: pointer; width: 25px; font-size: 2.5vw;" onclick="apagar_categoria(this)">&times;</label>
         </div>
     `;
     var central_categorias = document.getElementById('central_categorias')
@@ -1393,7 +1393,7 @@ function anexos_parceiros(campo, id_pagamento) {
 
                 var resposta = `
                 <div onclick="abrirArquivo('https://drive.google.com/file/d/${result.fileId}')" class="anexos" style="border: solid 1px green;">
-                    <img src="anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
+                    <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
                     <label style="cursor: pointer; font-size: 0.6em"><strong>${fileName}</strong></label>
                 </div>   
                 `

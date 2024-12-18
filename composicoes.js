@@ -94,14 +94,14 @@ function carregar_tabela_v2(col, ordem) {
                 <label style="font-size: 0.7em;">${cab.toUpperCase()}</label>
 
                 <div style="display: flex; align-items: center; justify-content: center; gap: 2px;">
-                    <img src="a.png" style="width: 15px; cursor: pointer;" onclick="carregar_tabela_v2('${cab}', 'a')">
-                    <img src="z.png" style="width: 15px; cursor: pointer;" onclick="carregar_tabela_v2('${cab}', 'b')">
+                    <img src="imagens/a.png" style="width: 15px; cursor: pointer;" onclick="carregar_tabela_v2('${cab}', 'a')">
+                    <img src="imagens/z.png" style="width: 15px; cursor: pointer;" onclick="carregar_tabela_v2('${cab}', 'b')">
                 </div>
             </div>
             </th>`;
             tsc[cab] = `
             <th style="background-color: white; position: relative; border-radius: 0px;">
-                <img src="pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
+                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
                 <input style="width: 100%;" placeholder="..." oninput="pesquisar_em_composicoes(this)">
             </th>`;
             painel_colunas += `
@@ -188,7 +188,7 @@ function carregar_tabela_v2(col, ordem) {
                 tds[chave] = `<td style="text-align: ${alinhamento}; max-width: 200px;">${conteudo}</td>`;
             });
 
-            tds.editar = `<td style="width: 70px;"><img src="editar.png" style="width: 30px; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')"></td>`;
+            tds.editar = `<td style="width: 70px;"><img src="imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')"></td>`;
 
             var celulas = '';
             colunas.forEach(col => {
@@ -273,8 +273,8 @@ async function abrir_historico_de_precos(codigo, tabela) {
             <td>${historico[cotacao].data}</td>
             <td>${historico[cotacao].usuario}</td>
             <td>${historico[cotacao].fornecedor}</td>
-            <td><img src="editar.png" style="width: 30px; cursor: pointer;"></td>
-            <td><img src="excluir.png" style="width: 30px; cursor: pointer;"></td>
+            <td><img src="imagens/editar.png" style="width: 30px; cursor: pointer;"></td>
+            <td><img src="imagens/excluir.png" style="width: 30px; cursor: pointer;"></td>
             <td><input type="checkbox" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_preco_ativo('${codigo}', '${cotacao}', '${tabela}')" ${marcado}></td>
         </tr>
         `
@@ -331,8 +331,8 @@ function adicionar_nova_cotacao(codigo, lpu) {
         <td>${data_atual('completa')}</td>
         <td>${acesso.usuario}</td>
         <td><input></td>
-        <td><img src="concluido.png" onclick="salvar_cotacao('${codigo}', '${lpu}')" style="width: 30px; cursor: pointer;"></td>
-        <td><img src="excluir.png" style="width: 30px; cursor: pointer;"></td>
+        <td><img src="imagens/concluido.png" onclick="salvar_cotacao('${codigo}', '${lpu}')" style="width: 30px; cursor: pointer;"></td>
+        <td><img src="imagens/excluir.png" style="width: 30px; cursor: pointer;"></td>
         `
         tbody.insertAdjacentHTML('beforeend', linha)
     }
