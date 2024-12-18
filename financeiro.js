@@ -217,7 +217,7 @@ function buscar_pagamentos(termo) {
         let label_anexos = document.createElement('td');
         label_anexos.style.textAlign = 'center'
         let img_anexos = document.createElement('img')
-        img_anexos.src = 'anexo.png'
+        img_anexos.src = "imagens/anexo.png"
         img_anexos.style.width = '25px'
         img_anexos.addEventListener('click', function () {
             abrir_anexos(anexos)
@@ -274,7 +274,7 @@ function buscar_pagamentos(termo) {
         // Excluir
         let label_excluir = document.createElement('td');
         let img_excluir = document.createElement('img');
-        img_excluir.src = 'excluir.png';
+        img_excluir.src = "imagens/excluir.png";
         img_excluir.style.width = '25px';
         label_excluir.style.textAlign = 'center'
         label_excluir.appendChild(img_excluir);
@@ -289,7 +289,7 @@ function buscar_pagamentos(termo) {
         let label_editar = document.createElement('td');
 
         let img_editar = document.createElement('img');
-        img_editar.src = 'editar.png';
+        img_editar.src = "imagens/editar.png";
         img_editar.style.width = '25px';
         label_editar.style.textAlign = 'center'
         label_editar.appendChild(img_editar);
@@ -521,7 +521,7 @@ function add_categoria_departamento(container) {
         total_pagamento()
     })
 
-    img.src = 'excluir.png'
+    img.src = "imagens/excluir.png"
     img.classList = 'img_excluir'
     img.addEventListener('click', function () {
 

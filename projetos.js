@@ -31,7 +31,7 @@ function inicializar() {
         <div class="column">
             <label class="column-header">${qd}</label>
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin: 10px;">
-                <img src="pesquisar.png" style="width: 25px; height: 25px;">
+                <img src="imagens/pesquisar.png" style="width: 25px; height: 25px;">
                 <input id="pesquisar_${qd}" style="padding: 10px; border-radius: 5px;" placeholder="Pesquisar cartão" oninput="pesquisar_orcamento('${qd}')">
             </div>
             <div class="card-list" id="${qd}"></div>

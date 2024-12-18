@@ -964,7 +964,7 @@ function calculadora_reversa() {
         calculadora +=`
         <div id="mini_calculadora">
         <label>Calculadora ICMS</label>
-        <img src="calculadora.png" style="width: 50px; cursor: pointer;" onclick="exibir_calculadora()">
+        <img src="imagens/calculadora.png" style="width: 50px; cursor: pointer;" onclick="exibir_calculadora()">
         </div>
     `
     }
@@ -986,7 +986,7 @@ function calculadora_reversa() {
         <label>Fora <strong>12%</strong></label>
         </div>
 
-        <img src="avanco.png">
+        <img src="imagens/avanco.png">
         <div style="display: grid;">
             <label>Valor Bruto</label>
             <label id="valor_com_imposto">R$ -- </label>
@@ -1338,15 +1338,15 @@ function consultar_pagamentos(especial) { //True aqui vai retornar o painel de t
     pagamentosFiltrados.sort((a, b) => parseDate(b.data_previsao) - parseDate(a.data_previsao));
 
     var contadores = {
-        gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: 'gerente.png' },
-        diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: 'diretoria.png' },
-        reprovados: { qtde: 0, valor: 0, termo: 'reprovado', label: 'Reprovados', icone: 'remover.png' },
+        gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: "imagens/gerente.png" },
+        diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: "imagens/diretoria.png" },
+        reprovados: { qtde: 0, valor: 0, termo: 'reprovado', label: 'Reprovados', icone: "imagens/remover.png" },
         excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: 'alerta.gif' },
-        salvos: { qtde: 0, valor: 0, termo: 'localmente', label: 'Salvo localmente', icone: 'salvo.png' },
-        pago: { qtde: 0, valor: 0, termo: 'pago', label: 'Pagamento realizado', icone: 'concluido.png' },
-        avencer: { qtde: 0, valor: 0, termo: 'a vencer', label: 'Pagamento será feito outro dia', icone: 'avencer.png' },
-        hoje: { qtde: 0, valor: 0, termo: 'hoje', label: 'Pagamento será feito hoje', icone: 'vencehoje.png' },
-        todos: { qtde: 0, valor: 0, termo: '', label: 'Todos os pagamentos', icone: 'voltar.png' }
+        salvos: { qtde: 0, valor: 0, termo: 'localmente', label: 'Salvo localmente', icone: "imagens/salvo.png" },
+        pago: { qtde: 0, valor: 0, termo: 'pago', label: 'Pagamento realizado', icone: "imagens/concluido.png" },
+        avencer: { qtde: 0, valor: 0, termo: 'a vencer', label: 'Pagamento será feito outro dia', icone: "imagens/avencer.png" },
+        hoje: { qtde: 0, valor: 0, termo: 'hoje', label: 'Pagamento será feito hoje', icone: "imagens/vencehoje.png" },
+        todos: { qtde: 0, valor: 0, termo: '', label: 'Todos os pagamentos', icone: "imagens/voltar.png" }
     }
 
     Object.keys(pagamentosFiltrados).forEach((pagamento, i) => {
@@ -1419,7 +1419,7 @@ function consultar_pagamentos(especial) { //True aqui vai retornar o painel de t
                 <td>${pg.criado}</td>
                 <td>${setor_criador}</td>
                 <td>${recebedor}</td>
-                <td style="text-align: center;"><img src="pesquisar2.png" style="width: 30px; cursor: pointer;" onclick="abrir_detalhes('${pg.id}')"></td>
+                <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 30px; cursor: pointer;" onclick="abrir_detalhes('${pg.id}')"></td>
             </tr>
         `
     });
@@ -1437,7 +1437,7 @@ function consultar_pagamentos(especial) { //True aqui vai retornar o painel de t
             `
         cabecalho2 += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
-            <img src="pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
+            <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
             <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisar_em_pagamentos(${i}, this.value)">
             </th>
             `
@@ -1478,13 +1478,13 @@ function consultar_pagamentos(especial) { //True aqui vai retornar o painel de t
                 <div style="display: flex; justify-content: space-evenly; width: 100%; gap:">
                     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;"
                         onclick="window.location.href='inicial.html'">
-                        <img src="voltar.png" style=" cursor: pointer;" onclick="window.location.href='inicial.html'">
+                        <img src="imagens/voltar.png" style=" cursor: pointer;" onclick="window.location.href='inicial.html'">
                         <label style="color: white;">Voltar</label>
                     </div>
                     
 
                     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <img src="atualizar_2.png" style="width: max-content; cursor: pointer;" onclick="atualizar_pagamentos_menu()">
+                        <img src="imagens/atualizar_2.png" style="width: max-content; cursor: pointer;" onclick="atualizar_pagamentos_menu()">
                         <label style="color: white;">Atualizar</label>
                     </div>
                 </div>

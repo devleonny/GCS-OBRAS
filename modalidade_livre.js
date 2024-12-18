@@ -98,7 +98,7 @@ function carregar_layout_modalidade_livre() {
                     </select>
 
                     <div onclick="importar()" style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: center; border-radius: 5px; background-color: #222222bc; padding: 5px;">
-                        <img src="baixar.png" style="width: 30px; cursor: pointer;"> 
+                        <img src="imagens/baixar.png" style="width: 30px; cursor: pointer;"> 
                         <label style="cursor: pointer;">Importar</label>    
                     </div>
 
@@ -252,7 +252,7 @@ function carregar_tabela() {
                     </select>
                 </td>
                 <td><img src="${imagem}" style="width: 50px; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')"></td>
-                <td><img src="excluir.png" onclick="removerLinha_v2('${codigo}')" style="cursor: pointer;"></td>
+                <td><img src="imagens/excluir.png" onclick="removerLinha_v2('${codigo}')" style="cursor: pointer;"></td>
             </tr>
         `;
 
