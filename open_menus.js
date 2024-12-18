@@ -91,6 +91,10 @@ function executarTransacao(db, nome_da_base, dados) {
 
     transaction.oncomplete = function () {
         console.log('Transação concluída com sucesso!');
+        if(document.title == "PAGAMENTOS" && !(localStorage.getItem("first_acess"))){
+            localStorage.setItem("first_acess","true")
+            f5()
+        }
     };
 }
 
@@ -1269,14 +1273,14 @@ function enviar_dados_generico(dados) {
 
 }
 
-function consultar_pagamentos(especial) { //True aqui vai retornar o painel de títulos com as contagens;
+async function consultar_pagamentos(especial) { //True aqui vai retornar o painel de títulos com as contagens;
     var acumulado = ''
     var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
     var orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
     var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
     var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
-    var dados_clientes = JSON.parse(localStorage.getItem('dados_clientes')) || {}
+    var dados_clientes = await recuperarDados('dados_clientes') || {};
     var clientes = {}
     var linhas = ''
     dados_categorias = Object.fromEntries(

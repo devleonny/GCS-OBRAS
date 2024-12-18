@@ -2,6 +2,14 @@ var overlay = document.getElementById('overlay')
 var centros_de_custo = {};
 var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
+carregamento_div = document.querySelector("#tela_carregamento")
+
+carregamento('tela_carregamento')
+
+if(!(localStorage.getItem("carimbo_data_hora_pagamentos"))){
+    carimbo_data_hora_pagamentos()
+    }
+recuperar_dados_clientes()
 try {
     consultar_pagamentos()
 } catch {
@@ -273,6 +281,8 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
     <div>
     `
     document.body.insertAdjacentHTML('beforeend', elementus)
+
+    carregamento_div.remove()
 
 }
 
