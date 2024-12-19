@@ -1,11 +1,15 @@
 let contador = 1;
 
-obter_materiais()
+obter_materiais();
+
+function atualizarQuantidadeItens() {
+    const itemCountElement = document.getElementById("itemCount");
+    const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
+    itemCountElement.textContent = tabela.children.length; // Atualiza o número de linhas na tabela
+}
 
 function adicionarLinha() {
-
     const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
-
     const novaLinha = document.createElement("tr");
 
     const acao = document.createElement("td");
@@ -13,7 +17,10 @@ function adicionarLinha() {
     removeImg.src = "imagens/remover.png";
     removeImg.alt = "Remover";
     removeImg.className = "remove-img";
-    removeImg.onclick = () => tabela.removeChild(novaLinha);
+    removeImg.onclick = () => {
+        tabela.removeChild(novaLinha);
+        atualizarQuantidadeItens(); // Atualiza a quantidade ao remover
+    };
     acao.appendChild(removeImg);
     novaLinha.appendChild(acao);
 
@@ -64,36 +71,30 @@ function adicionarLinha() {
 
     tabela.appendChild(novaLinha);
 
+    atualizarQuantidadeItens(); // Atualiza a quantidade ao adicionar
 }
 
 function mostrarSugestoes(input, partnumberCell, estoqueCell) {
-
     const listaMateriais = JSON.parse(localStorage.getItem("dados_materiais")) || {};
     const valor = input.value.toLowerCase();
     const sugestoes = input.parentElement.querySelector(".autocomplete-suggestions");
-  
-    sugestoes.innerHTML = "";
-  
-    const itensFiltrados = Object.values(listaMateriais)
 
-    .filter(item => item.descricao && item.descricao.toLowerCase().startsWith(valor))
-    .sort((a, b) => a.descricao.localeCompare(b.descricao));
-  
+    sugestoes.innerHTML = "";
+
+    const itensFiltrados = Object.values(listaMateriais)
+        .filter(item => item.descricao && item.descricao.toLowerCase().startsWith(valor))
+        .sort((a, b) => a.descricao.localeCompare(b.descricao));
+
     itensFiltrados.forEach(item => {
-        
         const sugestao = document.createElement("div");
         sugestao.textContent = item.descricao;
         sugestao.onclick = () => {
-        
             input.value = item.descricao;
             partnumberCell.querySelector("input").value = item.partnumber || "";
             estoqueCell.querySelector("input").value = item.estoque ?? 0;
             sugestoes.innerHTML = "";
+        };
 
-      };
-
-      sugestoes.appendChild(sugestao);
-
+        sugestoes.appendChild(sugestao);
     });
-
-  }
+}
