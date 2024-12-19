@@ -91,8 +91,8 @@ function executarTransacao(db, nome_da_base, dados) {
 
     transaction.oncomplete = function () {
         console.log('Transação concluída com sucesso!');
-        if(document.title == "PAGAMENTOS" && !(localStorage.getItem("first_acess"))){
-            localStorage.setItem("first_acess","true")
+        if (document.title == "PAGAMENTOS" && !(localStorage.getItem("first_acess"))) {
+            localStorage.setItem("first_acess", "true")
             f5()
         }
     };
@@ -369,19 +369,20 @@ function fecharPopup() {
 }
 
 function ir_pdf(orcam_) {
+    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
-
-    localStorage.setItem('pdf', JSON.stringify(dados_orcamentos[orcam_]))
+    localStorage.setItem('pdf', JSON.stringify(dados_orcamentos[orcam_]));
 
     try {
         const { ipcRenderer } = require('electron');
-        ipcRenderer.invoke('open-new-window', 'pdf.html');
-    } catch {
-        window.location.href = ('pdf.html');
-    }
+        const pdfUrl = `pdf.html`;
+        ipcRenderer.invoke('open-new-window', pdfUrl);
 
+    } catch {
+        window.location.href = `https://devleonny.github.io/GCS-OBRAS/pdf.html`;
+    }
 }
+
 
 function criar_orcamento_janela() {
 
