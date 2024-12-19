@@ -27,10 +27,12 @@
     "files": [
       "**/*",
       "node_modules/**/*",
-      "chrome-win64/**/*"
+      "Imagens/**/*",
+      "gifs/**/*"
     ],
     "asarUnpack": [
-      "**/chrome-win64/**"
+      "Imagens",
+      "gifs"
     ],
     "publish": [
       {

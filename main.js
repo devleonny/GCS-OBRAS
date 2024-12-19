@@ -196,7 +196,8 @@ appExpress.post('/generate-pdf', async (req, res) => {
 
 async function generatePDF(htmlContent, outputFile) {
     //const chromePath = path.join(__dirname, 'chrome-win64', 'chrome.exe');
-    const chromePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'chrome-win64', 'chrome.exe');
+    //const chromePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'chrome-win64', 'chrome.exe');
+    const chromePath = puppeteer.executablePath();
 
     const browser = await puppeteer.launch({
         headless: true,
