@@ -394,12 +394,12 @@ async function rir(id_orcam) {
     rir_excel(dados, nome_arquivo);
 }
 
-function editar(orcam_) {
+async function editar(orcam_) {
     var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
 
     var orcamento_v2 = dados_orcamentos[orcam_]
 
-    orcamento_v2 = conversor_composicoes_orcamento(orcamento_v2)
+    orcamento_v2 = await conversor_composicoes_orcamento(orcamento_v2)
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 

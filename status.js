@@ -1212,8 +1212,6 @@ function abrir_esquema(id) {
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
     );
 
-    console.log(dados_orcamentos[id])
-
     if (dados_orcamentos[id] && dados_orcamentos[id].status) {
         var todos_os_status = dados_orcamentos[id].status;
 
