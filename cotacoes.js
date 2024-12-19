@@ -24,7 +24,7 @@ function adicionarLinha() {
     const partnumber = document.createElement("td");
     const inputPartnumber = document.createElement("input");
     inputPartnumber.type = "text";
-    inputPartnumber.placeholder = "Digite o Partnumber";
+    inputPartnumber.readOnly = true;
     partnumber.appendChild(inputPartnumber);
     novaLinha.appendChild(partnumber);
 
@@ -32,15 +32,21 @@ function adicionarLinha() {
     const inputNome = document.createElement("input");
     inputNome.type = "text";
     inputNome.placeholder = "Digite o nome do item";
+    inputNome.oninput = () => mostrarSugestoes(inputNome, partnumber, estoque);
     nomeItem.appendChild(inputNome);
+
+    const sugestoes = document.createElement("div");
+    sugestoes.className = "autocomplete-suggestions";
+    nomeItem.appendChild(sugestoes);
     novaLinha.appendChild(nomeItem);
 
     const tipoUnitario = document.createElement("td");
     const inputTipo = document.createElement("input");
     inputTipo.type = "text";
-    inputTipo.placeholder = "Digite o tipo unitário";
+    inputTipo.value = "UND";
     tipoUnitario.appendChild(inputTipo);
     novaLinha.appendChild(tipoUnitario);
+
     const quantidade = document.createElement("td");
     const inputQuantidade = document.createElement("input");
     inputQuantidade.type = "number";
@@ -52,10 +58,42 @@ function adicionarLinha() {
     const estoque = document.createElement("td");
     const inputEstoque = document.createElement("input");
     inputEstoque.type = "text";
-    inputEstoque.placeholder = "Digite o estoque";
+    inputEstoque.readOnly = true;
     estoque.appendChild(inputEstoque);
     novaLinha.appendChild(estoque);
 
     tabela.appendChild(novaLinha);
 
 }
+
+function mostrarSugestoes(input, partnumberCell, estoqueCell) {
+
+    const listaMateriais = JSON.parse(localStorage.getItem("dados_materiais")) || {};
+    const valor = input.value.toLowerCase();
+    const sugestoes = input.parentElement.querySelector(".autocomplete-suggestions");
+  
+    sugestoes.innerHTML = "";
+  
+    const itensFiltrados = Object.values(listaMateriais)
+
+    .filter(item => item.descricao && item.descricao.toLowerCase().startsWith(valor))
+    .sort((a, b) => a.descricao.localeCompare(b.descricao));
+  
+    itensFiltrados.forEach(item => {
+        
+        const sugestao = document.createElement("div");
+        sugestao.textContent = item.descricao;
+        sugestao.onclick = () => {
+        
+            input.value = item.descricao;
+            partnumberCell.querySelector("input").value = item.partnumber || "";
+            estoqueCell.querySelector("input").value = item.estoque ?? 0;
+            sugestoes.innerHTML = "";
+
+      };
+
+      sugestoes.appendChild(sugestao);
+
+    });
+
+  }
