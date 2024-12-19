@@ -2,6 +2,11 @@ let contador = 1;
 
 obter_materiais();
 
+document.addEventListener("DOMContentLoaded", () => {
+    adicionarLinha();
+});
+
+
 function atualizarQuantidadeItens() {
     const itemCountElement = document.getElementById("itemCount");
     const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
@@ -11,6 +16,8 @@ function atualizarQuantidadeItens() {
 function adicionarLinha() {
     const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
     const novaLinha = document.createElement("tr");
+
+    novaLinha.setAttribute("id",`linha-${contador}`)
 
     const acao = document.createElement("td");
     const removeImg = document.createElement("img");
@@ -97,4 +104,70 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
 
         sugestoes.appendChild(sugestao);
     });
+}
+
+let nomeFornecedor = "";
+
+function abrirModal() {
+
+    const modal = document.getElementById("fornecedorModal");
+    modal.style.display = "block";
+
+}
+
+function fecharModal() {
+    const modal = document.getElementById("fornecedorModal");
+    modal.style.display = "none";
+}
+
+function salvarFornecedor() {
+
+    const input = document.getElementById("fornecedorNome");
+    const trNomeFornecedor = document.querySelector(".count-row")
+    const thNomeFornecedor = document.createElement("th")
+    const trTopicostabela = document.querySelector("#topicos-tabela")
+    const thPrecoUnitario = document.createElement("th")
+    const thPrecoTotal = document.createElement("th")
+
+    thPrecoUnitario.textContent = "Preço Unitário"
+    thPrecoTotal.textContent = "Preço Total"
+
+    thNomeFornecedor.colSpan = "2"
+
+    if (input.value.trim() !== "") {
+        nomeFornecedor = input.value.trim();
+        alert(`Fornecedor "${nomeFornecedor}" foi adicionado com sucesso!`);
+
+        for(let i = 1; i < contador; i++){
+
+            let novaTd1 = document.createElement("td")
+            let novaTd2 = document.createElement("td")
+
+            let linhaParaAdicionar = document.querySelector(`#linha-${i}`)
+
+            linhaParaAdicionar.append(novaTd1, novaTd2)
+
+            console.log(i)
+
+        }
+
+        const fornecedoresHeader = document.getElementById("fornecedoresHeader");
+
+        fornecedoresHeader.style.display = "table-cell";
+
+        thNomeFornecedor.textContent = nomeFornecedor
+        trNomeFornecedor.appendChild(thNomeFornecedor)
+        trTopicostabela.append(thPrecoUnitario,thPrecoTotal)
+        fecharModal();
+        console.log("Fornecedor salvo:", nomeFornecedor);
+    } else {
+        alert("Por favor, digite um nome válido.");
+    }
+}
+
+function esconderFornecedores() {
+
+    const fornecedoresHeader = document.getElementById("fornecedoresHeader");
+
+    fornecedoresHeader.style.display = "none";
 }
