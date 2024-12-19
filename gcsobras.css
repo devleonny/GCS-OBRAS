@@ -888,6 +888,13 @@ input[type=range]::-webkit-slider-thumb {
     border: 1px solid #151749;
 }
 
+.indicador {
+    padding: 5px;
+    border-radius: 5px;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
 input[type=range]::-moz-range-thumb {
     width: 25px;
     height: 25px;

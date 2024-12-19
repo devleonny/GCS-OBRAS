@@ -276,11 +276,9 @@ async function carregar_itens(apenas_visualizar, requisicao) {
     var dados_composicoes = await recuperarDados('dados_composicoes') || {}
     var orcamento = dados_orcamentos[id_orcam]
 
-    var orcamento = conversor_composicoes_orcamento(orcamento)
+    var orcamento = await conversor_composicoes_orcamento(orcamento)
 
     var linhas = ''
-
-    console.log(orcamento)
 
     if (!orcamento.dados_composicoes || Object.keys(orcamento.dados_composicoes).length == 0) {
         return ''
@@ -690,6 +688,10 @@ function carregar_status_divs(valor, chave, id) { // "valor" é o último status
 
         acumulado += notas_no_financeiro(chave)
 
+    } else if (String(valor).includes('FATURADO')) { 
+
+        return envio_de_material(chave, id_orcam)
+
     }
 
     acumulado += comentario
@@ -948,7 +950,7 @@ function salvar_status(chave, operacao, chave2) {
         </div>
     `);
 
-    preencher_dados_orcamentos();
+    preencher_orcamentos_v2();
 
     var estrutura = document.getElementById('estrutura')
     if (estrutura) {
@@ -1255,7 +1257,7 @@ function abrir_esquema(id) {
                 levantamentos += `
                 <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                     <div style="align-items: center; width: max-content; font-size: 0.7em; display: flex; justify-content; left; box-shadow: 2px 2px #94a0ab; background-color: #e9e9e9; color: #555; padding: 5px; margin:5px; border-radius: 5px;">
-                        <img src="${imagem}.png" style="width: 25px;">
+                        <img src="imagens/${imagem}.png" style="width: 25px;">
                         <label><strong>${encurtar_texto(levantamento.nome, 10)}</strong></label>
                     </div>
                     <label style="text-decoration: underline; font-size: 0.7em; cursor: pointer;" onclick="excluir_levantamento('${id}', '${chave}')">Excluir</label>
@@ -1399,7 +1401,7 @@ function abrir_esquema(id) {
                     <div style="display: flex; gap: 5px; align-items: center;">
                     <div onclick="abrirArquivo('${arquivo}')" class="anexos">
                         <img src="imagens/${imagem}.png" style="cursor: pointer; width: 30px; height: 30px">
-                        <label style="cursor: pointer; font-size: 0.6em"><strong>${anx.nome}</strong></label>
+                        <label style="cursor: pointer; font-size: 0.6em; white-space: normal;"><strong>${anx.nome}</strong></label>
                     </div>
                     <p style="text-decoration: underline; cursor: pointer; padding: 5px;" onclick="chamar_excluir_anexo('${chave_pedido}', '${chave2}', '${key_anx}')">Excluir</p>
                     </div>
@@ -1409,7 +1411,6 @@ function abrir_esquema(id) {
                 }
 
                 var notas = ''
-
                 if (sst.notas) {
                     notas += `
                 ${sst.notas[0].nota} - ${sst.notas[0].pedido}
@@ -1417,7 +1418,6 @@ function abrir_esquema(id) {
                 }
 
                 var totais = ''
-
                 if (sst.requisicoes) {
 
                     var infos = calcular_quantidades(sst.requisicoes, dados_orcamentos[id].dados_composicoes)
@@ -1508,27 +1508,48 @@ function abrir_esquema(id) {
 
             });
 
-            var pags = ''
-            Object.keys(pagamentos_painel).forEach(pg => {
-                pags += `
-                <label><strong>${pg}</strong> ${dinheiro(pagamentos_painel[pg])}</label>
-                `
-            })
-
-            var div_pags = `
-            <div class="contorno_botoes" style="display: flex; flex-direction: column; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
-                <label>Pagamentos neste Pedido</label>
-                ${pags}
-            </div>            
-            `
-
             var valor_do_pedido = '???'
             if (todos_os_status[chave_pedido].valor) {
-                valor_do_pedido = dinheiro(todos_os_status[chave_pedido].valor)
+                valor_do_pedido = dinheiro(conversor(todos_os_status[chave_pedido].valor))
             }
 
-            var ultima_alteracao = ''
+            var pags = ''
+            var total_pago = 0
+            Object.keys(pagamentos_painel).forEach(pg => {
 
+                pags += `
+                <div style="display: flex; flex-direction: column; align-items: start;">
+                <label style="font-size: 0.7em;"><strong>${pg}</strong></label>
+                <label style="font-size: 1.2em;">${dinheiro(pagamentos_painel[pg])}</label>
+                </div>
+                `
+                if (pg == 'PAGO') {
+                    total_pago += pagamentos_painel[pg]
+                }
+            })
+
+            var resultado = conversor(todos_os_status[chave_pedido].valor) - total_pago
+            var porcentagem = total_pago / conversor(todos_os_status[chave_pedido].valor) * 100
+            var string_porcentagem = `${(porcentagem).toFixed(0)}%`
+            var cor_indicador = 'orangered'
+            if (porcentagem < 35) {
+                cor_indicador = 'green'
+            } else if (porcentagem > 40) {
+                cor_indicador = '#B12425'
+            }
+
+            var div_pags = `
+            <div class="contorno_botoes" style="display: flex; flex-direction: column; align-items: start; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
+                <label>Gestão de Custos</label>
+                ${pags}
+                <hr style="width: 100%;">
+                <label>${valor_do_pedido} <label style="font-size: 0.6em;">Valor do Pedido</label></label>
+                <label>(-) ${dinheiro(total_pago)}  <label class="indicador" style="background-color: ${cor_indicador}">${string_porcentagem}</label></label>
+                <hr style="width: 100%;">
+                <label>${dinheiro(resultado)}</label>
+            </div>
+            `
+            var ultima_alteracao = ''
             if (todos_os_status[chave_pedido].alterado_por) {
                 var info = todos_os_status[chave_pedido]
 
@@ -1777,13 +1798,15 @@ function envio_de_material(chave1, id_orcam) {
             <label>Data da entrega</label>
             <input type="date" id="data_entrega">
         </div>
+
+        <div style="display: flex; gap: 10px; justify-content: center; align-items: center; width: 100%;">
+            <label style="background-color: green;" class="contorno_botoes"
+            onclick="registrar_envio_material('${chave1}', '${id_orcam}')">Salvar</label>
+        </div>
       
     </div>
 
-    <div style="display: flex; gap: 10px; position: absolute; bottom: -50px; left: 0;">
-        <label style="background-color: green; border: 1px solid #888;" class="contorno_botoes"
-        onclick="registrar_envio_material('${chave1}', '${id_orcam}')">Salvar</label>
-    </div>
+
     `
     openPopup_v2(acumulado)
 
@@ -2188,7 +2211,7 @@ async function atualizar_esquema() {
     await recuperar_orcamentos()
     var orcamentos = document.getElementById('orcamentos')
     if (orcamentos) {
-        preencher_dados_orcamentos()
+        preencher_orcamentos_v2()
     }
 
     remover_popup()
@@ -2572,7 +2595,7 @@ function atualizar_status_logistico(st, chave, chave2) {
         </div>
     `);
 
-    preencher_dados_orcamentos();
+    preencher_orcamentos_v2();
 
     var espelho_ocorrencias = document.getElementById('espelho_ocorrencias')
     if (espelho_ocorrencias) {
@@ -2789,7 +2812,7 @@ function apagar_status_historico(campo, chave1, chave2) {
 
     localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
 
-    preencher_dados_orcamentos()
+    preencher_orcamentos_v2()
 
     remover_popup()
 

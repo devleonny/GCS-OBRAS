@@ -93,6 +93,10 @@ function pesquisar_v2(coluna, texto) {
 
 function preencher_orcamentos_v2(st) {
 
+    if (st !== undefined) {
+        botao_status_ativo = st
+    }
+
     var div_orcamentos = document.getElementById('orcamentos')
     div_orcamentos.innerHTML = ''
 
@@ -289,7 +293,11 @@ async function recuperar_orcamentos() {
 
                 if (document.title == 'ORÇAMENTOS') {
 
-                    preencher_orcamentos_v2()
+                    if (botao_status_ativo !== '') {
+                        preencher_orcamentos_v2(botao_status_ativo)
+                    } else {
+                        preencher_orcamentos_v2()
+                    }
 
                     var tsh = document.getElementById('tsh')
                     var inputs = tsh.querySelectorAll('input')
@@ -530,7 +538,8 @@ async function criar_pagamento_v2(chave1) {
         }
 
         var descky = `
-        Solicitante: ${acesso.usuario}
+        Solicitante: ${acesso.usuario} \n
+        Chave PIX | Forma de Pagamento: ${chave_pix}
         \n
         `
         descky += document.getElementById('descricao_pagamento').value
@@ -541,7 +550,6 @@ async function criar_pagamento_v2(chave1) {
         var param = [
             {
                 "codigo_cliente_fornecedor": dados_clientes[cnpj_string].omie,
-                "codigo_barras_ficha_compensacao": chave_pix,
                 "valor_documento": conversor(total),
                 "observacao": descky,
                 "codigo_lancamento_integracao": id_pagamento,
