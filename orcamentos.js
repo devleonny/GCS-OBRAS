@@ -145,7 +145,7 @@ function preencher_orcamentos_v2(st) {
                 label_pedidos += `
                     <div class="etiqueta_pedidos" style="background-color: ${cor}">
                         <label style="font-size: 0.8em;">${tipo}</label>
-                        <label style="font-size: 1.3em;"><strong>${num_pedido}</strong></label>
+                        <label style="font-size: 1.1em;"><strong>${num_pedido}</strong></label>
                     </div>
                 `
 
@@ -161,7 +161,7 @@ function preencher_orcamentos_v2(st) {
                         label_notas += `
                         <div class="etiqueta_pedidos" style="background-color: ${cor2};">
                             <label style="font-size: 0.8em;">${nota.modalidade}</label>
-                            <label style="font-size: 1.3em;"><strong>${nota.nota}</strong></label>
+                            <label style="font-size: 1.1em;"><strong>${nota.nota}</strong></label>
                         </div>
                         `
                     }
