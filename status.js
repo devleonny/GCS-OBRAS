@@ -37,7 +37,7 @@ var adicionar_pedido = `
         <div style="display: grid; gap: 10px;">
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
             <p class="novo_titulo" style="cursor: pointer; color: #222">Escolha o tipo do <strong>Pedido</strong> </p> 
-            <select id="tipo_v2">
+            <select id="tipo">
                 <option>Selecione</option>
                 <option>Serviço</option>
                 <option>Venda</option>
@@ -54,12 +54,12 @@ var adicionar_pedido = `
             <div class="conteiner_pedido">
                 <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                     <label style="white-space: nowrap;"><strong>Número do Pedido</strong></label>
-                    <input type="text" class="pedido" id="num_pedido">
+                    <input type="text" class="pedido" id="pedido">
                 </div>
 
                 <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                     <label style="white-space: nowrap;"><strong>Valor do Pedido</strong></label>
-                    <input type="number" class="pedido" id="valor_pedido">
+                    <input type="number" class="pedido" id="valor">
                 </div>
             </div>
         </div>
@@ -741,8 +741,9 @@ function salvar_status(chave, operacao, chave2) {
     var st = '';
     var interromper_processo = false
 
-    var pedido_selecionado = document.getElementById('pedido_selecionado') || ''
-    if (pedido_selecionado) {
+    var pedido = document.getElementById('pedido_selecionado')
+    var pedido_selecionado = ''
+    if (pedido) {
         pedido_selecionado = String(document.getElementById('pedido_selecionado').value)
     }
 
@@ -756,8 +757,6 @@ function salvar_status(chave, operacao, chave2) {
 
         var novo_lancamento = {
             status: '',
-            pedido: '',
-            tipo: '',
             historico: {}
         };
 
@@ -769,24 +768,22 @@ function salvar_status(chave, operacao, chave2) {
             anexos: anexos,
         };
 
-        var valor_pedido = document.getElementById('valor_pedido')
-        var tipo_v2 = document.getElementById('tipo_v2')
+        var campos = ['valor', 'tipo', 'pedido']
+        campos.forEach(it => {
+            var elemento = document.getElementById(it)
+            if (elemento) {
+                if (elemento.value == '') {
+                    return openPopup_v2('Não deixe campos em branco')
+                }
+                novo_lancamento[it] = elemento.value
 
-        novo_lancamento.pedido = pedido_selecionado
-        novo_lancamento.tipo = tipo_v2.value
-        novo_lancamento.valor = valor_pedido.value
-
-        if (pedido_selecionado == '' || valor_pedido.value == '' || tipo_v2.value == 'Selecione') {
-            return openPopup_v2('Não deixe campos em branco.')
-        }
-
-        st = String(tipo_v2.value).toUpperCase();
-        if (tipo_v2.value == 'Serviço') {
-            st = 'PEDIDO DE SERVIÇO ANEXADO';
-        } else {
-            st = 'PEDIDO DE VENDA ANEXADO';
-        }
-
+                if (it == 'tipo') {
+                    var string_tipo = String(elemento.value).toUpperCase();
+                    st = `PEDIDO DE ${string_tipo} ANEXADO`
+                }
+            }
+        })
+        
         novo_lancamento.status = st;
         novo_lancamento.historico[chave_his].status = st;
 
@@ -864,7 +861,7 @@ function salvar_status(chave, operacao, chave2) {
             tipo = 'VENDA';
         }
 
-        if (pedido_selecionado == 'Selecione' || pedido_selecionado == '') {
+        if (pedido && (pedido_selecionado == 'Selecione' || pedido_selecionado == '')) {
             return openPopup_v2(`
                 <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                     <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
@@ -1095,7 +1092,7 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot�
 
             Object.keys(st.historico).forEach(chave2 => {
                 var his = st.historico[chave2]
-
+                console.log(his)
                 var exibir_label = false;
                 fluxograma[his.status].modulos.forEach(sst => {
                     if (sst === modulo) {
