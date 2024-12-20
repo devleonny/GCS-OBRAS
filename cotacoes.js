@@ -1,4 +1,6 @@
 let contador = 1;
+let linhasAtuais = [];
+let quantidadeFornecedores = 0;
 
 obter_materiais();
 
@@ -10,10 +12,12 @@ document.addEventListener("DOMContentLoaded", () => {
 function atualizarQuantidadeItens() {
     const itemCountElement = document.getElementById("itemCount");
     const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
-    itemCountElement.textContent = tabela.children.length; // Atualiza o número de linhas na tabela
+    itemCountElement.textContent = tabela.children.length;
 }
 
 function adicionarLinha() {
+
+    const fornecedoresHeader = document.getElementById("fornecedoresHeader");
     const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
     const novaLinha = document.createElement("tr");
 
@@ -26,7 +30,8 @@ function adicionarLinha() {
     removeImg.className = "remove-img";
     removeImg.onclick = () => {
         tabela.removeChild(novaLinha);
-        atualizarQuantidadeItens(); // Atualiza a quantidade ao remover
+        atualizarQuantidadeItens();
+        linhasAtuais = linhasAtuais.filter(item => item !== novaLinha)
     };
     acao.appendChild(removeImg);
     novaLinha.appendChild(acao);
@@ -76,9 +81,24 @@ function adicionarLinha() {
     estoque.appendChild(inputEstoque);
     novaLinha.appendChild(estoque);
 
+    linhasAtuais.push(novaLinha)
+    
+    if(fornecedoresHeader.style.display == "table-cell"){
+
+        for(let i = 1; i <= quantidadeFornecedores; i++){
+
+            let novaTd1 = document.createElement("td")
+            let novaTd2 = document.createElement("td")
+            
+            novaLinha.append(novaTd1,novaTd2)
+
+        }
+        
+    }
+
     tabela.appendChild(novaLinha);
 
-    atualizarQuantidadeItens(); // Atualiza a quantidade ao adicionar
+    atualizarQuantidadeItens();
 }
 
 function mostrarSugestoes(input, partnumberCell, estoqueCell) {
@@ -122,6 +142,8 @@ function fecharModal() {
 
 function salvarFornecedor() {
 
+    quantidadeFornecedores++;
+
     const input = document.getElementById("fornecedorNome");
     const trNomeFornecedor = document.querySelector(".count-row")
     const thNomeFornecedor = document.createElement("th")
@@ -138,16 +160,14 @@ function salvarFornecedor() {
         nomeFornecedor = input.value.trim();
         alert(`Fornecedor "${nomeFornecedor}" foi adicionado com sucesso!`);
 
-        for(let i = 1; i < contador; i++){
+        for(linha of linhasAtuais){
 
             let novaTd1 = document.createElement("td")
             let novaTd2 = document.createElement("td")
 
-            let linhaParaAdicionar = document.querySelector(`#linha-${i}`)
+            let linhaParaAdicionar = document.querySelector(`#${linha.id}`)
 
             linhaParaAdicionar.append(novaTd1, novaTd2)
-
-            console.log(i)
 
         }
 
@@ -170,4 +190,5 @@ function esconderFornecedores() {
     const fornecedoresHeader = document.getElementById("fornecedoresHeader");
 
     fornecedoresHeader.style.display = "none";
+
 }
