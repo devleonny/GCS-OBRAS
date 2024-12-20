@@ -29,10 +29,12 @@ function adicionarLinha() {
     removeImg.alt = "Remover";
     removeImg.className = "remove-img";
     removeImg.onclick = () => {
+
         tabela.removeChild(novaLinha);
         atualizarQuantidadeItens();
         linhasAtuais = linhasAtuais.filter(item => item !== novaLinha)
     };
+
     acao.appendChild(removeImg);
     novaLinha.appendChild(acao);
 
@@ -71,6 +73,7 @@ function adicionarLinha() {
     inputQuantidade.type = "number";
     inputQuantidade.min = "1";
     inputQuantidade.placeholder = "Digite a quantidade";
+    inputQuantidade.id = `quantidade-${contador - 1}`
     quantidade.appendChild(inputQuantidade);
     novaLinha.appendChild(quantidade);
 
@@ -85,18 +88,62 @@ function adicionarLinha() {
     
     if(fornecedoresHeader.style.display == "table-cell"){
 
+        linhaAtualQuantidade = inputQuantidade.id[11]
+
         for(let i = 1; i <= quantidadeFornecedores; i++){
 
-            let novaTd1 = document.createElement("td")
-            let novaTd2 = document.createElement("td")
-            
-            novaLinha.append(novaTd1,novaTd2)
+            let tdPrecoUnitario = document.createElement("td")
+            let inputPrecoUnitario = document.createElement("input")
+            inputPrecoUnitario.type = "number"
+            inputPrecoUnitario.placeholder = "Digite o preço unitário"
+            inputPrecoUnitario.id = `precoUnitario-${quantidadeFornecedores}-${linhaAtualQuantidade}`
 
+            let linhaQuantidade = inputPrecoUnitario.id[16]
+            let numeroDoFornecedor = inputPrecoUnitario.id[14]
+            
+            inputQuantidade.addEventListener('input', () =>{
+                
+                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0
+                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0
+                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`)
+
+                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`
+
+            })
+            
+            inputPrecoUnitario.addEventListener('input', () =>{
+                
+                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0
+                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0
+                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`)
+
+                console.log(`#precoTotal-${numeroDoFornecedor}-${linhaAtualQuantidade}`)
+
+                console.log(precoTotalAtual)
+
+                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`
+
+            })
+
+            tdPrecoUnitario.appendChild(inputPrecoUnitario)
+            
+            let tdPrecototal = document.createElement("td")
+            let inputPrecoTotal = document.createElement("input")
+            inputPrecoTotal.type = 'text'
+            inputPrecoTotal.readOnly = "true"
+            
+            inputPrecoTotal.id = `precoTotal-${quantidadeFornecedores}-${linhaAtualQuantidade}`
+
+            tdPrecototal.appendChild(inputPrecoTotal)
+
+            novaLinha.append(tdPrecoUnitario, tdPrecototal)
+            
         }
+        
         
     }
 
-    tabela.appendChild(novaLinha);
+    tabela.appendChild(novaLinha)
 
     atualizarQuantidadeItens();
 }
@@ -160,14 +207,57 @@ function salvarFornecedor() {
         nomeFornecedor = input.value.trim();
         alert(`Fornecedor "${nomeFornecedor}" foi adicionado com sucesso!`);
 
+        let linhaAtualQuantidade = 1
+
         for(linha of linhasAtuais){
 
-            let novaTd1 = document.createElement("td")
-            let novaTd2 = document.createElement("td")
+            let tdPrecoUnitario = document.createElement("td")
+            let inputPrecoUnitario = document.createElement("input")
+            inputPrecoUnitario.type = "number"
+            inputPrecoUnitario.placeholder = "Digite o preço unitário"
+            inputPrecoUnitario.id = `precoUnitario-${quantidadeFornecedores}-${linhaAtualQuantidade}`
+
+            let inputQuantidade = document.querySelector(`#quantidade-${linhaAtualQuantidade}`)
+
+            let linhaQuantidade = inputPrecoUnitario.id[16]
+            let numeroDoFornecedor = inputPrecoUnitario.id[14]
+
+            inputQuantidade.addEventListener('input', () =>{
+                
+                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0
+                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0
+                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`)
+
+                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`
+
+            })
+            
+            inputPrecoUnitario.addEventListener('input', () =>{
+                
+                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0
+                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0
+                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`)
+
+                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`
+
+            })
+
+            tdPrecoUnitario.appendChild(inputPrecoUnitario)
+            
+            let tdPrecototal = document.createElement("td")
+            let inputPrecoTotal = document.createElement("input")
+            inputPrecoTotal.type = 'text'
+            inputPrecoTotal.readOnly = "true"
+            
+            inputPrecoTotal.id = `precoTotal-${quantidadeFornecedores}-${linhaAtualQuantidade}`
+
+            linhaAtualQuantidade++;
+
+            tdPrecototal.append(inputPrecoTotal)
 
             let linhaParaAdicionar = document.querySelector(`#${linha.id}`)
 
-            linhaParaAdicionar.append(novaTd1, novaTd2)
+            linhaParaAdicionar.append(tdPrecoUnitario,tdPrecototal)
 
         }
 
