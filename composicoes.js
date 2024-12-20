@@ -36,6 +36,12 @@ carregar_tabela_v2()
 function carregar_tabela_v2(col, ordem) {
     setTimeout(async function () {
         var dados_composicoes = await recuperarDados('dados_composicoes') || {};
+        var opcoes = ''
+        for(it in dados_composicoes){
+            opcoes += `
+            <option>${dados_composicoes[it].descricao}</option>
+            `
+        }
         var thead = '';
         var tbody = '';
         var tsearch = '';
@@ -176,8 +182,24 @@ function carregar_tabela_v2(col, ordem) {
 
                 } else if (chave == 'agrupamentos') {
 
+                    let agrupamentos = produto[chave]
+                    var info = ''
+
+                    for (item in agrupamentos) {
+                        info += `
+                        <label>código: (${item}) & qtde (${agrupamentos[item]})
+                        `
+                    }
+
                     conteudo = `
-                    <label>${produto[chave]}</label>
+                    <div style="display: flex; flex-direction: column; align-items: start;">
+                        <div style="display: flex; gap: 10px;">
+                            <select>${opcoes}</select>
+                            <input type="number">
+                        </div>
+                    
+                    <label>${info}</label>
+                    </div>
                     `
 
                 } else if (chave == 'material infra') {

@@ -688,7 +688,7 @@ function carregar_status_divs(valor, chave, id) { // "valor" é o último status
 
         acumulado += notas_no_financeiro(chave)
 
-    } else if (String(valor).includes('FATURADO')) { 
+    } else if (String(valor).includes('FATURADO')) {
 
         return envio_de_material(chave, id_orcam)
 
@@ -739,6 +739,12 @@ function salvar_status(chave, operacao, chave2) {
     var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
     var orcamento = dados_orcamentos[id_orcam];
     var st = '';
+    var interromper_processo = false
+
+    var pedido_selecionado = document.getElementById('pedido_selecionado') || ''
+    if (pedido_selecionado) {
+        pedido_selecionado = String(document.getElementById('pedido_selecionado').value)
+    }
 
     if (!orcamento.status) {
         orcamento.status = {};
@@ -763,15 +769,14 @@ function salvar_status(chave, operacao, chave2) {
             anexos: anexos,
         };
 
-        var num_pedido = document.getElementById('num_pedido')
         var valor_pedido = document.getElementById('valor_pedido')
         var tipo_v2 = document.getElementById('tipo_v2')
 
-        novo_lancamento.pedido = num_pedido.value
+        novo_lancamento.pedido = pedido_selecionado
         novo_lancamento.tipo = tipo_v2.value
         novo_lancamento.valor = valor_pedido.value
 
-        if (num_pedido.value == '' || valor_pedido.value == '' || tipo_v2.value == 'Selecione') {
+        if (pedido_selecionado == '' || valor_pedido.value == '' || tipo_v2.value == 'Selecione') {
             return openPopup_v2('Não deixe campos em branco.')
         }
 
@@ -828,13 +833,8 @@ function salvar_status(chave, operacao, chave2) {
                 var tipo = tds[3].querySelector('select')?.value || '';
                 var qtde = tds[4].querySelector('input')?.value || '';
 
-                if (qtde == '' && (partnumber === '' || requisicao === '--')) {
-                    return openPopup_v2(`
-                            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                                <label>Se o item tiver quantidade, preencha também o PARTNUMBER e o status de Requisição</label>
-                            </div>
-                        `);
+                if (qtde !== '' && (partnumber === '' || requisicao === '--')) {
+                    interromper_processo = true
                 }
 
                 if (qtde !== '') {
@@ -857,19 +857,26 @@ function salvar_status(chave, operacao, chave2) {
 
         }
 
-        var informacao_no_select = String(pedido_selecionado.value);
         var tipo = '';
-        if (informacao_no_select.includes('Serviço')) {
+        if (pedido_selecionado.includes('Serviço')) {
             tipo = 'SERVIÇO';
-        } else if (informacao_no_select.includes('Venda')) {
+        } else if (pedido_selecionado.includes('Venda')) {
             tipo = 'VENDA';
         }
 
-        if (informacao_no_select == 'Selecione') {
+        if (pedido_selecionado == 'Selecione' || pedido_selecionado == '') {
             return openPopup_v2(`
                 <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                     <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                     <label>Não deixe o campo de pedido em branco, selecione um pedido.</label>
+                </div>
+            `);
+
+        } else if (interromper_processo) {
+            return openPopup_v2(`
+                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                    <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                    <label>preencha também o PARTNUMBER e o status de Requisição</label>
                 </div>
             `);
 
@@ -879,7 +886,7 @@ function salvar_status(chave, operacao, chave2) {
 
         novo_lancamento.status = st;
         novo_lancamento.historico[chave2].status = st;
-        novo_lancamento.historico[chave2].pedido_selecionado = informacao_no_select;
+        novo_lancamento.historico[chave2].pedido_selecionado = pedido_selecionado;
 
     } else if ((status_tit).includes('FATURAMENTO') || (status_tit).includes('REMESSA')) {
 
@@ -1420,7 +1427,7 @@ function abrir_esquema(id) {
 
                     var infos = calcular_quantidades(sst.requisicoes, dados_orcamentos[id].dados_composicoes)
 
-                    totais += `9
+                    totais += `
                     <div style="display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; flex-direction: column;">
                             <label><strong>Total S/ICMS: </strong><br>${sst.total_sem_icms}</label>

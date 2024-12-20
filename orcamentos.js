@@ -98,6 +98,10 @@ function preencher_orcamentos_v2(st) {
     }
 
     var div_orcamentos = document.getElementById('orcamentos')
+    if (!div_orcamentos) {
+        return
+    }
+
     div_orcamentos.innerHTML = ''
 
     var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}

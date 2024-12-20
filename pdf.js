@@ -582,7 +582,7 @@ document.getElementById('generatePdfButton').addEventListener('click', async () 
         nomeArquivo: `Orcamento_${cliente}_${contrato}`
     };
     try {
-        const response = await fetch('http://localhost:3000/generate-pdf', {
+        const response = await fetch('https://localhost:3000/generate-pdf', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
