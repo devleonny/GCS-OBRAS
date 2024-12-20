@@ -174,6 +174,12 @@ function carregar_tabela_v2(col, ordem) {
                     var estilo = preco_final !== '' ? 'valor_preenchido' : 'valor_zero';
                     conteudo = `<label class="${estilo}" onclick="abrir_historico_de_precos('${codigo}', '${chave}')"> ${dinheiro(conversor(preco_final))}</label>`;
 
+                } else if (chave == 'agrupamentos') {
+
+                    conteudo = `
+                    <label>${produto[chave]}</label>
+                    `
+
                 } else if (chave == 'material infra') {
 
                     var stats = ''

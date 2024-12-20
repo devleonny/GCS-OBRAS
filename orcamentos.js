@@ -663,10 +663,7 @@ async function atualizar_departamentos() {
 
     await obter_departamentos_fixos()
 
-    var centro_de_custo = document.getElementById('centro_de_custo')
-    if (centro_de_custo) {
-        carregar_opcoes(opcoes_centro_de_custo(), 'cc', 'cc_sugestoes') // Carregar os centros de custo;
-    }
+    carregar_opcoes(opcoes_centro_de_custo(), 'cc', 'cc_sugestoes') // Carregar os centros de custo;
 
     departamentos.style.display = 'flex'
     aguarde.style.display = 'none'
