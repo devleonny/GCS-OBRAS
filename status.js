@@ -32,53 +32,206 @@ var fluxograma = {
     'FINALIZADO': { cor: '#222', modulos: ['RELATÓRIOS'] }
 }
 
-var adicionar_pedido = `
-    <hr style="width: 80%">
-        <div style="display: grid; gap: 10px;">
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <p class="novo_titulo" style="cursor: pointer; color: #222">Escolha o tipo do <strong>Pedido</strong> </p> 
-            <select id="tipo">
-                <option>Selecione</option>
-                <option>Serviço</option>
-                <option>Venda</option>
-            </select>
+function painel_adicionar_pedido() {
+
+    var painel_status = document.getElementById('status')
+    if (painel_status) {
+        painel_status.remove()
+    }
+
+    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    var cliente = dados_orcamentos[id_orcam].dados_orcam.cliente_selecionado
+    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    var usuario = acesso.usuario
+    var data = new Date().toLocaleString('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+    });
+
+    var acumulado = `
+    <div id="status" class="status" style="display: flex; width: 100%; overflow: auto;">
+        
+        <span class="close" onclick="fechar_status()">×</span>
+        <div style="display: flex; justify-content: space-evenly; align-items: center;">
+        <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
+        
         </div>
+        <br>
+        <div id="container_status"></div>
+        
+        <hr style="width: 80%">
+            <div style="display: grid; gap: 10px;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <p class="novo_titulo" style="cursor: pointer; color: #222">Escolha o tipo do <strong>Pedido</strong> </p> 
+                <select id="tipo">
+                    <option>Selecione</option>
+                    <option>Serviço</option>
+                    <option>Venda</option>
+                </select>
+            </div>
 
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: center; align-items: center;">
-            <input type="checkbox" onchange="ocultar_pedido(this)" style="cursor: pointer;">
-            <label>Marque aqui caso não tenha o número ainda.</label>
-            <img src="gifs/interrogacao.gif" onclick="mostrar_um_aviso()" style="width: 2vw; cursor: pointer;">
-        </div>
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center; align-items: center;">
+                <input type="checkbox" onchange="ocultar_pedido(this)" style="cursor: pointer;">
+                <label>Marque aqui caso não tenha o número ainda.</label>
+                <img src="gifs/interrogacao.gif" onclick="mostrar_um_aviso()" style="width: 2vw; cursor: pointer;">
+            </div>
 
-        <div id="conteiner_pedido">
-            <div class="conteiner_pedido">
-                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                    <label style="white-space: nowrap;"><strong>Número do Pedido</strong></label>
-                    <input type="text" class="pedido" id="pedido">
-                </div>
+            <div id="conteiner_pedido">
+                <div class="conteiner_pedido">
+                    <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                        <label style="white-space: nowrap;"><strong>Número do Pedido</strong></label>
+                        <input type="text" class="pedido" id="pedido">
+                    </div>
 
-                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                    <label style="white-space: nowrap;"><strong>Valor do Pedido</strong></label>
-                    <input type="number" class="pedido" id="valor">
+                    <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                        <label style="white-space: nowrap;"><strong>Valor do Pedido</strong></label>
+                        <input type="number" class="pedido" id="valor">
+                    </div>
                 </div>
             </div>
         </div>
+
+        <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+            <label><strong>Comentário</strong></label>
+            <textarea rows="10" id="comentario_status" style="width: 80%;"></textarea>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+            <label><strong>Data</strong> </label> <label id="data_status">${data}</label>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+            <label><strong>Executor</strong> </label> <label id="usuario_status">${usuario}</label>
+        </div>
+        
+        <div id="div_anexos" style="display: flex; flex-direction: column; justify-content: right; align-items: center; gap: 10px;">
+        </div>
+
+        <div class="contorno_botoes" style="background-color: #B12425"> 
+            <img src="imagens/anexo2.png" style="width: 15px;">
+            <label for="adicionar_anexo">Anexar arquivos
+                <input type="file" id="adicionar_anexo" style="display: none;" onchange="salvar_anexo()"> 
+            </label>
+        </div>
+        
+        <hr style="width: 80%">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <button onclick="fechar_status()">Cancelar</button>
+            <button style="background-color: green" onclick="salvar_pedido()">Salvar</button>
+        </div>
+
     </div>
-`;
+
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', acumulado)
+}
+
+
+function painel_adicionar_notas(chave) {
+
+    var painel_status = document.getElementById('status')
+    if (painel_status) {
+        painel_status.remove()
+    }
+
+    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    var cliente = dados_orcamentos[id_orcam].dados_orcam.cliente_selecionado
+    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    var usuario = acesso.usuario
+    var data = new Date().toLocaleString('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+    });
+
+    var funcao = `salvar_notas()`
+    if (chave !== undefined) {
+        funcao = `salvar_notas('${chave}')`
+    }
+
+    var acumulado = `
+    <div id="status" class="status" style="display: flex; width: 100%; overflow: auto;">
+    
+    <span class="close" onclick="fechar_status()">×</span>
+    <div style="display: flex; justify-content: space-evenly; align-items: center;">
+    <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
+    
+    </div>
+    <br>
+    <div id="container_status"></div>
+    
+    <hr style="width: 80%">
+    <div style="display: grid; gap: 10px;">
+    <div style="display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center;">
+        <label class="novo_titulo" style="color: #222">Inclua o número das Notas <strong>Remessa</strong>, <strong>Venda</strong> ou <strong>Serviço</strong></label> 
+        <p> Coloque o número da NF e escolha a qual pedido se refere.</p>
+        </div>
+        <div id="conteiner_pedido">
+            <div class="conteiner_pedido">
+                <label><strong>Número da Nota</strong></label>
+                <input type="number" class="pedido">
+                <select>
+                <option>Remessa</option>
+                <option>Venda</option>
+                <option>Serviço</option>
+                </select>
+                <select id="select_dos_pedidos">
+                
+            <option>123 - Serviço</option>
+            
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+        <label><strong>Comentário</strong></label>
+        <textarea rows="10" id="comentario_status" style="width: 80%;"></textarea>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+        <label><strong>Data</strong> </label> <label id="data_status">${data}</label>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+        <label><strong>Executor</strong> </label> <label id="usuario_status">${usuario}</label>
+    </div>
+     
+        <div id="div_anexos" style="display: flex; flex-direction: column; justify-content: right; align-items: center; gap: 10px;">
+        </div>
+
+        <div class="contorno_botoes" style="background-color: #B12425"> 
+            <img src="imagens/anexo2.png" style="width: 15px;">
+            <label for="adicionar_anexo">Anexar arquivos
+                <input type="file" id="adicionar_anexo" style="display: none;" onchange="salvar_anexo()"> 
+            </label>
+        </div>
+    
+    
+    <hr style="width: 80%">
+    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+        <button onclick="fechar_status()">Cancelar</button>
+        <button style="background-color: green" onclick="${funcao}">Salvar</button>
+    </div>
+
+    </div>
+    `
+    document.body.insertAdjacentHTML('beforeend', acumulado)
+}
 
 function ocultar_pedido(elemento) {
 
-    var num_pedido = document.getElementById('num_pedido')
-    var valor_pedido = document.getElementById('valor_pedido')
+    var pedido = document.getElementById('pedido')
+    var valor = document.getElementById('valor')
 
     if (elemento.checked) {
         conteiner_pedido.style.display = 'none'
-        num_pedido.value = '???'
-        valor_pedido.value = 0
+        pedido.value = '???'
+        valor.value = 0
     } else {
         conteiner_pedido.style.display = 'block'
-        num_pedido.value = ''
-        valor_pedido.value = 0
+        pedido.value = ''
+        valor.value = 0
     }
 }
 
@@ -88,21 +241,6 @@ function mostrar_um_aviso() {
         <p>Um aviso será mostrado eventualmente para te lembrar.</p>
     `)
 }
-
-var comentario = `
-    <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-        <label><strong>Comentário</strong></label>
-        <textarea rows="10" id="comentario_status" style="width: 80%;" ></textarea>
-    </div>
-
-    <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-        <label><strong>Data</strong> </label> <label id="data_status">${data_status}</label>
-    </div>
-
-    <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-        <label><strong>Executor</strong> </label> <label id="usuario_status">${acesso.usuario}</label>
-    </div>
-    `
 
 function calcular_requisicao(sincronizar) {
 
@@ -206,9 +344,6 @@ function notas_no_financeiro(chave) {
                 <option>Remessa</option>
                 <option>Venda</option>
                 <option>Serviço</option>
-                </select>
-                <select id="select_dos_pedidos">
-                ${carregar_pedidos(chave)}
                 </select>
             </div>
         </div>
@@ -611,26 +746,6 @@ function mostrar_itens_adicionais() {
     }
 }
 
-function carregar_pedidos(chave) {
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
-
-    if (!id_orcam) {
-        return ''
-    }
-
-    var elementum = ''
-
-    var orc = dados_orcamentos[id_orcam]
-    if (orc && orc.status[chave]) {
-
-        elementum += `
-            <option>${orc.status[chave].pedido} - ${orc.status[chave].tipo}</option>
-            `
-    }
-
-    return elementum
-}
-
 function carregar_status_divs(valor, chave, id) { // "valor" é o último status no array de status que vem do script de orçamentos;
 
     var estrutura = document.getElementById('estrutura')
@@ -639,7 +754,7 @@ function carregar_status_divs(valor, chave, id) { // "valor" é o último status
     }
 
     if (chave == undefined) {
-        chave = unicoID()
+        chave = gerar_id_5_digitos()
     }
 
     overlay.style.display = 'block'
@@ -650,43 +765,17 @@ function carregar_status_divs(valor, chave, id) { // "valor" é o último status
         orcamento = dados_orcamentos[id_orcam]
     }
 
-    var acumulado = ''
-
-    acumulado += `
-    <span class="close" onclick="fechar_status()">&times;</span>
-    <div style="display: flex; justify-content: space-evenly; align-items: center;">
-    <label class="novo_titulo" style="color: #222" id="nome_cliente"></label>
-    `
-
-    if (valor.includes('ANEXADO')) {
-        acumulado += `
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 2.0em;"> 
-            <label>Total <strong>Com ICMS </strong><label id="total_c_icms"></label></label>
-            <label>Total <strong>Sem ICMS  </strong><label id="total_s_icms"></label></label>
-        </div>
-        `
-    }
-
-    acumulado += `
-    </div>
-    <br>
-    <div id="container_status"></div>
-    `
-
     if (!valor || valor == 'AGUARDANDO') {
-        acumulado += adicionar_pedido
+
+        return painel_adicionar_pedido()
 
     } else if (String(valor).includes('ANEXADO')) {
 
         return detalhar_requisicao(chave)
 
-    } else if (String(valor).includes('FATURAMENTO')) {
+    } else if (String(valor).includes('FATURAMENTO') || String(valor).includes('REMESSA')) {
 
-        acumulado += notas_no_financeiro(chave)
-
-    } else if (String(valor).includes('REMESSA')) {
-
-        acumulado += notas_no_financeiro(chave)
+        return painel_adicionar_notas(chave)
 
     } else if (String(valor).includes('FATURADO')) {
 
@@ -694,272 +783,233 @@ function carregar_status_divs(valor, chave, id) { // "valor" é o último status
 
     }
 
-    acumulado += comentario
-
-    acumulado += ` 
-        <div id="div_anexos" style="display: flex; flex-direction: column; justify-content: right; align-items: center; gap: 10px;">
-        </div>
-
-        <div class="contorno_botoes" style="background-color: #B12425"> 
-            <img src="imagens/anexo2.png" style="width: 15px;">
-            <label for="adicionar_anexo">Anexar arquivos
-                <input type="file" id="adicionar_anexo" style="display: none;" onchange="salvar_anexo()"> 
-            </label>
-        </div>
-    `
-
-    var botoes_finais = `
-    <hr style="width: 80%">
-    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-        <button onclick="fechar_status()">Cancelar</button>
-        <button style="background-color: green" onclick="salvar_status('${chave}')">Salvar</button>
-    </div>
-`;
-
-    var elementus = `
-    <div id="status" class="status" style="display: flex; width: 100%; overflow: auto;">
-    ${acumulado}
-    ${botoes_finais}
-    </div>
-    `
-
-    document.body.insertAdjacentHTML('beforeend', elementus)
-
-    calcular_requisicao(true)
-
-    status_tit = valor
-
-    nome_cliente.textContent = orcamento['dados_orcam'].cliente_selecionado
-
 }
 
-function salvar_status(chave, operacao, chave2) {
+function salvar_pedido(chave) {
 
-    // Iniciar o objeto STATUS - PARA TODOS;
     var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
     var orcamento = dados_orcamentos[id_orcam];
     var st = '';
-    var interromper_processo = false
-
-    var pedido = document.getElementById('pedido_selecionado')
-    var pedido_selecionado = ''
-    if (pedido) {
-        pedido_selecionado = String(document.getElementById('pedido_selecionado').value)
+    var interromper_processo_inclusao_pedido = false
+    var chave_his = gerar_id_5_digitos();
+    if (chave == undefined) {
+        chave = gerar_id_5_digitos()
     }
+
+    var novo_lancamento = {
+        status: '',
+        historico: {}
+    };
+
+    novo_lancamento.historico[chave_his] = {
+        status: '',
+        data: data_status,
+        executor: acesso.usuario,
+        comentario: comentario_status.value,
+        anexos: anexos,
+    };
+
+    var campos = ['valor', 'tipo', 'pedido']
+    campos.forEach(it => {
+        var elemento = document.getElementById(it)
+        if (elemento) {
+            if (elemento.value == '') {
+                interromper_processo_inclusao_pedido = true
+            }
+            novo_lancamento[it] = elemento.value
+
+            if (it == 'tipo') {
+
+                if (elemento.value == 'Selecione') {
+                    interromper_processo_inclusao_pedido = true
+                } else {
+                    var string_tipo = String(elemento.value).toUpperCase();
+                    st = `PEDIDO DE ${string_tipo} ANEXADO`
+                }
+
+            }
+        }
+    })
+
+    if (interromper_processo_inclusao_pedido) {
+        return openPopup_v2(`
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Não deixe campos em Branco</label>
+            </div>
+        `);
+
+    }
+
+    novo_lancamento.status = st;
+    novo_lancamento.historico[chave_his].status = st;
+
+    orcamento.status[chave] = novo_lancamento;
+
+    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
+
+    enviar_status_orcamento(orcamento);
+    abrir_esquema(id_orcam)
+
+}
+
+function salvar_notas(chave) {//29
+
+    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+    var orcamento = dados_orcamentos[id_orcam];
+    var st = '';
 
     if (!orcamento.status) {
         orcamento.status = {};
     }
 
-    if (status_tit == 'AGUARDANDO') {
+    var novo_lancamento = orcamento.status[chave];
+    novo_lancamento.notas = [];
+    var chave_his = gerar_id_5_digitos();
 
-        var chave_his = unicoID();
+    novo_lancamento.historico[chave_his] = {
+        status: '',
+        data: data_status,
+        executor: acesso.usuario,
+        comentario: comentario_status.value,
+        anexos: anexos,
+        notas: []
+    };
 
-        var novo_lancamento = {
-            status: '',
-            historico: {}
-        };
+    var divs = document.querySelectorAll('.conteiner_pedido');
 
-        novo_lancamento.historico[chave_his] = {
-            status: '',
-            data: data_status,
-            executor: acesso.usuario,
-            comentario: comentario_status.value,
-            anexos: anexos,
-        };
+    divs.forEach(div => {
+        var input = div.querySelector('input');
+        var selects = div.querySelectorAll('select');
 
-        var campos = ['valor', 'tipo', 'pedido']
-        campos.forEach(it => {
-            var elemento = document.getElementById(it)
-            if (elemento) {
-                if (elemento.value == '') {
-                    return openPopup_v2('Não deixe campos em branco')
-                }
-                novo_lancamento[it] = elemento.value
-
-                if (it == 'tipo') {
-                    var string_tipo = String(elemento.value).toUpperCase();
-                    st = `PEDIDO DE ${string_tipo} ANEXADO`
-                }
-            }
-        })
-        
-        novo_lancamento.status = st;
-        novo_lancamento.historico[chave_his].status = st;
-
-        orcamento.status[chave] = novo_lancamento;
-
-    } else if (operacao == 'requisicao') {
-
-        if (chave2 == undefined) {
-            chave2 = gerar_id_5_digitos()
-        }
-
-        if (!orcamento.status[chave]) {
-            orcamento.status[chave] = { historico: {} };
-        }
-        var novo_lancamento = orcamento.status[chave];
-
-        calcular_requisicao()
-
-        novo_lancamento.historico[chave2] = {
-            status: '',
-            data: data_status,
-            executor: acesso.usuario,
-            comentario: comentario_status.value,
-            anexos: anexos,
-            requisicoes: [],
-            adicionais: itens_adicionais,
-            total_sem_icms: total_s_icms.textContent,
-            total_com_icms: total_c_icms.textContent
-        };
-
-        var tbody = tabela_requisicoes.querySelector('tbody');
-
-        if (tbody) {
-            var trs = tbody.querySelectorAll('tr');
-            var lista_partnumbers = {};
-
-            trs.forEach(tr => {
-
-                var tds = tr.querySelectorAll('td');
-
-                var codigo = tds[0].textContent
-                var partnumber = tds[1].querySelector('input')?.value || '';
-                var requisicao = tds[7].querySelector('select')?.value || '';
-                var tipo = tds[3].querySelector('select')?.value || '';
-                var qtde = tds[4].querySelector('input')?.value || '';
-
-                if (qtde !== '' && (partnumber === '' || requisicao === '--')) {
-                    interromper_processo = true
-                }
-
-                if (qtde !== '') {
-                    novo_lancamento.historico[chave2].requisicoes.push({
-                        codigo: codigo,
-                        partnumber: partnumber,
-                        tipo: tipo,
-                        qtde_enviar: qtde,
-                        requisicao: requisicao
-                    });
-                }
-
-                if (partnumber !== '') {
-                    lista_partnumbers[codigo] = partnumber;
-                }
-
-            });
-
-            atualizar_partnumber(lista_partnumbers);
-
-        }
-
-        var tipo = '';
-        if (pedido_selecionado.includes('Serviço')) {
-            tipo = 'SERVIÇO';
-        } else if (pedido_selecionado.includes('Venda')) {
-            tipo = 'VENDA';
-        }
-
-        if (pedido && (pedido_selecionado == 'Selecione' || pedido_selecionado == '')) {
-            return openPopup_v2(`
-                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                    <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                    <label>Não deixe o campo de pedido em branco, selecione um pedido.</label>
-                </div>
-            `);
-
-        } else if (interromper_processo) {
-            return openPopup_v2(`
-                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                    <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                    <label>preencha também o PARTNUMBER e o status de Requisição</label>
-                </div>
-            `);
-
-        } else {
-            st = `FATURAMENTO PEDIDO DE ${tipo}`;
-        }
-
-        novo_lancamento.status = st;
-        novo_lancamento.historico[chave2].status = st;
-        novo_lancamento.historico[chave2].pedido_selecionado = pedido_selecionado;
-
-    } else if ((status_tit).includes('FATURAMENTO') || (status_tit).includes('REMESSA')) {
-
-        var novo_lancamento = orcamento.status[chave];
-        novo_lancamento.notas = [];
-        var chave_his = unicoID();
-
-        novo_lancamento.historico[chave_his] = {
-            status: '',
-            data: data_status,
-            executor: acesso.usuario,
-            comentario: comentario_status.value,
-            anexos: anexos,
-            notas: []
-        };
-
-        var divs = document.querySelectorAll('.conteiner_pedido');
-
-        divs.forEach(div => {
-            var input = div.querySelector('input');
-            var selects = div.querySelectorAll('select');
-
-            novo_lancamento.historico[chave_his].notas.push({
-                nota: input.value,
-                modalidade: selects[0].value,
-                pedido: selects[1].value
-            });
-
-            if (selects[0].value == 'Venda') {
-                st = `PEDIDO DE VENDA FATURADO`;
-            } else if (selects[0].value == 'Serviço') {
-                st = `PEDIDO DE SERVIÇO FATURADO`;
-            } else if (selects[0].value == 'Remessa') {
-                st = selects[1].value.includes('Serviço') ? `REMESSA DE SERVIÇO` : `REMESSA DE VENDA`;
-            }
+        novo_lancamento.historico[chave_his].notas.push({
+            nota: input.value,
+            modalidade: selects[0].value,
+            pedido: selects[1].value
         });
 
-        novo_lancamento.status = st;
-        novo_lancamento.historico[chave_his].status = st;
+        if (selects[0].value == 'Venda') {
+            st = `PEDIDO DE VENDA FATURADO`;
+        } else if (selects[0].value == 'Serviço') {
+            st = `PEDIDO DE SERVIÇO FATURADO`;
+        } else if (selects[0].value == 'Remessa') {
+            st = selects[1].value.includes('Serviço') ? `REMESSA DE SERVIÇO` : `REMESSA DE VENDA`;
+        }
+    });
+
+    novo_lancamento.status = st;
+    novo_lancamento.historico[chave_his].status = st;
+
+    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
+    enviar_status_orcamento(orcamento);
+    abrir_esquema(id_orcam)
+
+    anexos = {}
+    itens_adicionais = {}
+}
+
+function salvar_requisicao(chave, chave2) {
+
+    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+    var orcamento = dados_orcamentos[id_orcam];
+    var st = '';
+    var interromper_processo = false
+
+    if (!orcamento.status) {
+        orcamento.status = {};
+    }
+
+    if (chave2 == undefined) {
+        chave2 = gerar_id_5_digitos()
+    }
+
+    if (!orcamento.status[chave]) {
+        orcamento.status[chave] = { historico: {} };
+    }
+
+    var pedido = orcamento.status[chave].pedido
+    var novo_lancamento = orcamento.status[chave];
+
+    calcular_requisicao()
+
+    novo_lancamento.historico[chave2] = {
+        status: '',
+        data: data_status,
+        executor: acesso.usuario,
+        comentario: comentario_status.value,
+        anexos: anexos,
+        requisicoes: [],
+        adicionais: itens_adicionais,
+        total_sem_icms: total_s_icms.textContent,
+        total_com_icms: total_c_icms.textContent
+    };
+
+    var tabela_requisicoes = document.getElementById('tabela_requisicoes')
+    var tbody = tabela_requisicoes.querySelector('tbody');
+
+    if (tbody) {
+        var trs = tbody.querySelectorAll('tr');
+        var lista_partnumbers = {};
+
+        trs.forEach(tr => {
+
+            var tds = tr.querySelectorAll('td');
+
+            var codigo = tds[0].textContent
+            var partnumber = tds[1].querySelector('input')?.value || '';
+            var requisicao = tds[7].querySelector('select')?.value || '';
+            var tipo = tds[3].querySelector('select')?.value || '';
+            var qtde = tds[4].querySelector('input')?.value || '';
+
+            if (qtde !== '' && (partnumber === '' || requisicao === '--')) {
+                interromper_processo = true
+            }
+
+            if (qtde !== '') {
+                novo_lancamento.historico[chave2].requisicoes.push({
+                    codigo: codigo,
+                    partnumber: partnumber,
+                    tipo: tipo,
+                    qtde_enviar: qtde,
+                    requisicao: requisicao
+                });
+            }
+
+            if (partnumber !== '') {
+                lista_partnumbers[codigo] = partnumber;
+            }
+
+        });
+
+        atualizar_partnumber(lista_partnumbers);
+
+    }
+
+    var tipo = String(orcamento.status[chave].tipo).toUpperCase()
+
+    if (interromper_processo) {
+        return openPopup_v2(`
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>preencha também o PARTNUMBER e o status de Requisição</label>
+            </div>
+        `);
+
+    } else {
+        st = `FATURAMENTO PEDIDO DE ${tipo}`;
+    }
+
+    novo_lancamento.status = st;
+    novo_lancamento.historico[chave2].status = st;
+    novo_lancamento.historico[chave2].pedido_selecionado = pedido;
+
+    var painel_status = document.getElementById('status')
+    if (painel_status) {
+        painel_status.remove()
     }
 
     localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
-
     enviar_status_orcamento(orcamento);
-
-    fechar_status();
-    fechar_espelho_ocorrencias();
-
-    var mods = '';
-    var concordancia_em_numero = '';
-    fluxograma[st].modulos.map(it => mods += `<p><strong>${it}</strong></p>`);
-
-    if (fluxograma[st].modulos.length == 1) {
-        concordancia_em_numero = `
-        <label>O orçamento foi transferido para o módulo abaixo:</label>
-        `;
-    } else {
-        concordancia_em_numero = `
-        <label>O orçamento foi transferido para os módulos abaixo:</label>
-        `;
-    }
-
-    openPopup_v2(`
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            ${concordancia_em_numero}
-            ${mods}
-            <label>Com status → <strong>${st}</strong></label>
-        </div>
-    `);
-
-    preencher_orcamentos_v2();
-
-    var estrutura = document.getElementById('estrutura')
-    if (estrutura) {
-        estrutura.remove()
-    }
     abrir_esquema(id_orcam)
 
     anexos = {}
@@ -1094,6 +1144,7 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot�
                 var his = st.historico[chave2]
                 console.log(his)
                 var exibir_label = false;
+
                 fluxograma[his.status].modulos.forEach(sst => {
                     if (sst === modulo) {
                         exibir_label = true;
@@ -1103,7 +1154,10 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot�
 
                 if (his.status == status_tit && exibir_label) {
 
-                    var coments = his.comentario.replace(/\n/g, '<br>')
+                    var coments = ''
+                    if (his.comentario) {
+                        coments = his.comentario.replace(/\n/g, '<br>')
+                    }
                     var funcao = ''
 
                     if (String(st.status).includes('REQUISIÇÃO') && (acesso.permissao == 'adm' || acesso.permissao == 'log')) {
@@ -1465,9 +1519,11 @@ function abrir_esquema(id) {
                     </div>
                     `
                 }
-
-                var coments = sst.comentario.replace(/\n/g, '<br>')
-
+                var coments = ''
+                if (sst.comentario) {
+                    var coments = sst.comentario.replace(/\n/g, '<br>')
+                }
+                console.log(sst.status)
                 blocos += `
                 <div class="bloko" style="border: 1px solid ${fluxograma[sst.status].cor}">
                     <div style="display: flex; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-radius: 3px; padding: 3px; height: 100%;">
@@ -2303,7 +2359,18 @@ async function chamar_excluir(id) {
 
 async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
 
+    var painel_status = document.getElementById('status')
+    if (painel_status) {
+        painel_status.remove()
+    }
+
     itens_adicionais = {}
+    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    var usuario = acesso.usuario
+    var data = new Date().toLocaleString('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+    });
 
     var estrutura = document.getElementById('estrutura')
     if (estrutura) {
@@ -2372,24 +2439,29 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
         
         </div>
         `
-        var funcao = `salvar_status('${chave}', 'requisicao', '${chave2}')`
+        var funcao = `salvar_requisicao('${chave}', '${chave2}')`
         if (chave2 == undefined) {
-            funcao = `salvar_status('${chave}', 'requisicao')`
+            funcao = `salvar_requisicao('${chave}')`
         }
 
-        // Aqui é pra substituir mesmo...
         campos = `
-        <div class="contorno">
+        <div class="contorno" style="width: 500px;">
             <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; font-size: 1.0em;">Dados da Requisição</div>
             <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
-                ${comentario}
+                
+                <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+                    <label><strong>Data</strong> </label> <label id="data_status">${data}</label>
+                </div>
 
-                <label><strong>Escolha qual pedido vai se basear esta Requisição</strong></label>
-                <select id="pedido_selecionado">
-                    <option>Selecione</option>
-                    ${carregar_pedidos(chave)}
-                </select>
-        
+                <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+                    <label><strong>Executor</strong> </label> <label id="usuario_status">${usuario}</label>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+                    <label><strong>Comentário</strong></label>
+                    <textarea rows="10" id="comentario_status" style="width: 80%;"></textarea>
+                </div>
+
                 <label class="contorno_botoes" style="background-color: green;" onclick="${funcao}">Salvar Requisição</label>
             </div>
         </div>
