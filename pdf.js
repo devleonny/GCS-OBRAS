@@ -79,7 +79,7 @@ async function preencher_v2(parceiro) {
             <img src="imagens/atualizar2.png">
             <label>Atualizar</label>
         </div>
-        <div class="icone" id="generatePdfButton">
+        <div class="icone" onclick="gerarPDF()">
             <img src="imagens/pdf.png">
             <label>PDF</label>
         </div>
@@ -567,7 +567,7 @@ ipcRenderer.on('open-save-dialog', (event, { htmlContent, nomeArquivo }) => {
     ipcRenderer.send('save-dialog', { htmlContent, nomeArquivo });
 });
 
-document.getElementById('generatePdfButton').addEventListener('click', async () => {
+function gerarPDF() {
 
     preencher_v2()
     ocultar.style.display = 'none'
@@ -593,4 +593,4 @@ document.getElementById('generatePdfButton').addEventListener('click', async () 
     });
 
     ocultar.style.display = 'flex';
-});
+}
