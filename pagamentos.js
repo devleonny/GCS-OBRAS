@@ -31,7 +31,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
     }
     var acumulado = ''
     var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     var orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
     var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
     var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
@@ -50,6 +50,9 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
     var pagamentosFiltrados = Object.keys(lista_pagamentos)
         .map(pagamento => {
             var pg = lista_pagamentos[pagamento];
+            if (pg == 1) { // O indexedDB inclui um item com chave 1 no objeto... 
+                return
+            }
             if (pg.criado !== 'Omie') {
 
                 var continuar = false
@@ -289,7 +292,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
 async function abrir_detalhes(id_pagamento) {
 
     ordem = 0
-    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     var dados_clientes = await recuperarDados('dados_clientes') || {};
     var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
     var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
@@ -658,7 +661,7 @@ function editar_resumo(id_pagamento) {
     }
 }
 
-function atualizar_resumo(id_pagamento) {
+async function atualizar_resumo(id_pagamento) {
 
     var v_pago = conversor(document.getElementById('v_pago').textContent)
     var v_orcado = Number(document.getElementById('v_orcado').value)
@@ -669,7 +672,7 @@ function atualizar_resumo(id_pagamento) {
         resumo: { v_pago, v_orcado }
     }
 
-    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
 
     var pagamento = lista_pagamentos[id_pagamento]
 
@@ -679,7 +682,7 @@ function atualizar_resumo(id_pagamento) {
 
     pagamento.resumo = { v_pago, v_orcado }
 
-    localStorage.setItem('lista_pagamentos', JSON.stringify(lista_pagamentos))
+    inserirDados(lista_pagamentos, 'lista_pagamentos');
     abrir_detalhes(id_pagamento)
 
     enviar_dados_generico(dados)
@@ -752,9 +755,9 @@ async function atualizar_pagamentos_menu() {
 
 }
 
-function atualizar_feedback(resposta, id_pagamento) {
+async function atualizar_feedback(resposta, id_pagamento) {
 
-    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
 
     var pagamento = lista_pagamentos[id_pagamento]
 
@@ -807,15 +810,14 @@ function atualizar_feedback(resposta, id_pagamento) {
 
     enviar_dados_generico(dados)
 
-    localStorage.setItem('lista_pagamentos', JSON.stringify(lista_pagamentos))
+    inserirDados(lista_pagamentos, 'lista_pagamentos');
     fechar_e_abrir(id_pagamento)
 
 }
 
+async function editar_comentario(id) {
 
-function editar_comentario(id) {
-
-    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     var pagamento = lista_pagamentos[id]
     var div_comentario = document.getElementById('comentario')
 
@@ -860,8 +862,8 @@ function alterar_centro_de_custo(id) {
     carregar_opcoes(opcoes_centro_de_custo(), 'cc', 'cc_sugestoes') // Carregar os centros de custo;
 }
 
-function salvar_centro_de_custo(id) {
-    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+async function salvar_centro_de_custo(id) {
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     var pagamento = lista_pagamentos[id]
 
     var cc = document.getElementById('cc')
@@ -893,12 +895,12 @@ function salvar_centro_de_custo(id) {
 
     enviar_dados_generico(dados)
 
-    localStorage.setItem('lista_pagamentos', JSON.stringify(lista_pagamentos))
+    inserirDados(lista_pagamentos, 'lista_pagamentos');
     fechar_e_abrir(id)
 
 }
 
-function salvar_comentario(id) {
+async function salvar_comentario(id) {
 
     var dataFormatada = new Date().toLocaleString('pt-BR', {
         day: '2-digit',
@@ -911,7 +913,7 @@ function salvar_comentario(id) {
 
     var comentario = document.getElementById('comentario').querySelector('textarea').value
 
-    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     var pagamento = lista_pagamentos[id]
 
     pagamento.param[0].observacao = comentario
@@ -928,7 +930,7 @@ function salvar_comentario(id) {
 
     enviar_dados_generico(dados)
 
-    localStorage.setItem('lista_pagamentos', JSON.stringify(lista_pagamentos))
+    inserirDados(lista_pagamentos, 'lista_pagamentos');
     fechar_e_abrir(id)
 
 }

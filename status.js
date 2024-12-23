@@ -856,6 +856,8 @@ function salvar_pedido(chave) {
 
     localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
 
+    fechar_status()
+
     enviar_status_orcamento(orcamento);
     abrir_esquema(id_orcam)
 
@@ -910,7 +912,8 @@ function salvar_notas(chave) {//29
 
     localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
     enviar_status_orcamento(orcamento);
-    abrir_esquema(id_orcam)
+
+    fechar_status()
 
     anexos = {}
     itens_adicionais = {}
@@ -1011,14 +1014,10 @@ function salvar_requisicao(chave, chave2) {
     novo_lancamento.historico[chave2].status = st;
     novo_lancamento.historico[chave2].pedido_selecionado = pedido;
 
-    var painel_status = document.getElementById('status')
-    if (painel_status) {
-        painel_status.remove()
-    }
-
     localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
     enviar_status_orcamento(orcamento);
-    abrir_esquema(id_orcam)
+
+    fechar_status()
 
     anexos = {}
     itens_adicionais = {}
@@ -1261,7 +1260,7 @@ function atulizar_item(chave1, item) {
 
 }
 
-function abrir_esquema(id) {
+async function abrir_esquema(id) {
 
     overlay.style.display = 'block'
     var estrutura = document.getElementById('estrutura')
@@ -1270,7 +1269,7 @@ function abrir_esquema(id) {
     }
 
     var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
-    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {};
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {};
     var dados_etiquetas = JSON.parse(localStorage.getItem('dados_etiquetas')) || {};
 

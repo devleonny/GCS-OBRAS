@@ -604,11 +604,11 @@ async function criar_pagamento_v2(chave1) {
 
         remover_popup()
 
-        var pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos'))
+        var pagamentos = await recuperarDados('lista_pagamentos') || {};
 
         pagamentos[pagamento.id_pagamento] = pagamento
 
-        localStorage.setItem('lista_pagamentos', JSON.stringify(pagamentos))
+        inserirDados(lista_pagamentos, 'lista_pagamentos');
 
         openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
@@ -1217,7 +1217,7 @@ function cadastrarCliente(nome, cnpj_cpf) {
 
 
 
-function salvar_anexo_pagamento(id_pagamento) {
+async function salvar_anexo_pagamento(id_pagamento) {
 
     var elemento = document.getElementById(`adicionar_anexo_pagamento`)
 
@@ -1283,7 +1283,7 @@ function salvar_anexo_pagamento(id_pagamento) {
                     document.getElementById('container_anexos').insertAdjacentHTML('beforeend', resposta)
                 } else {
 
-                    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+                    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
 
                     var anexo = {}
 
@@ -1307,7 +1307,7 @@ function salvar_anexo_pagamento(id_pagamento) {
 
                     enviar_dados_generico(dados)
 
-                    localStorage.setItem('lista_pagamentos', JSON.stringify(lista_pagamentos))
+                    inserirDados(lista_pagamentos, 'lista_pagamentos');
 
                     consultar_pagamentos()
                     abrir_detalhes(id_pagamento)
@@ -1326,7 +1326,7 @@ function salvar_anexo_pagamento(id_pagamento) {
     }
 }
 
-function anexos_parceiros(campo, id_pagamento) {
+async function anexos_parceiros(campo, id_pagamento) {
 
     var elemento = document.getElementById(`anexo_${campo}`)
 
@@ -1383,7 +1383,7 @@ function anexos_parceiros(campo, id_pagamento) {
                         anexo: anx_parceiros[campo]
                     }
 
-                    var pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+                    var pagamentos = await recuperarDados('lista_pagamentos') || {};
                     var pagamento = pagamentos[id_pagamento]
 
                     pagamento.anexos_parceiros = pagamento.anexos_parceiros || {};

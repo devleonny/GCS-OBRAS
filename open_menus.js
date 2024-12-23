@@ -812,7 +812,7 @@ async function obter_lista_pagamentos() {
                 return response.json();
             })
             .then(data => {
-                localStorage.setItem('lista_pagamentos', JSON.stringify(data));
+                inserirDados(data, 'lista_pagamentos')
                 resolve();
             })
             .catch(error => {
@@ -1278,7 +1278,7 @@ function enviar_dados_generico(dados) {
 async function consultar_pagamentos(especial) { //True aqui vai retornar o painel de títulos com as contagens;
     var acumulado = ''
     var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     var orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
     var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
     var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
@@ -1297,6 +1297,9 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
     var pagamentosFiltrados = Object.keys(lista_pagamentos)
         .map(pagamento => {
             var pg = lista_pagamentos[pagamento];
+            if (pg == 1) { // O indexedDB inclui um item com chave 1 no objeto... 
+                return
+            }
             if (pg.criado !== 'Omie') {
 
                 var continuar = false
