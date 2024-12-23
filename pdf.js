@@ -581,22 +581,16 @@ document.getElementById('generatePdfButton').addEventListener('click', async () 
         htmlContent: document.documentElement.outerHTML,
         nomeArquivo: `Orcamento_${cliente}_${contrato}`
     };
-    try {
-        const response = await fetch('http://localhost:3000/generate-pdf', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
 
-        if (!response.ok) {
-            throw new Error('Erro ao gerar PDF: ' + response.status + ' ' + response.statusText);
+    ipcRenderer.send('generate-pdf', formData);
+
+    ipcRenderer.once('generate-pdf-reply', (event, response) => {
+        if (response.success) {
+            console.log('PDF gerado com sucesso!', response.filePath);
+        } else {
+            console.log('Erro ao gerar PDF:', response.error);
         }
-    } catch (err) {
-        console.log(err)
-    } finally {
-        ocultar.style.display = 'flex'
-    }
+    });
 
+    ocultar.style.display = 'flex';
 });
