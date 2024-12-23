@@ -844,10 +844,14 @@ function salvar_pedido(chave) {
     novo_lancamento.status = st;
     novo_lancamento.historico[chave_his].status = st;
 
+    if (!orcamento.status) {
+        orcamento.status = {}
+    }
+
     if (!orcamento.status[chave]) {
         orcamento.status[chave] = {}
     }
-    
+
     orcamento.status[chave] = novo_lancamento;
 
     localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
