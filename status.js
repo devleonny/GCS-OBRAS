@@ -175,11 +175,6 @@ function painel_adicionar_notas(chave) {
                 <option>Venda</option>
                 <option>Serviço</option>
                 </select>
-                <select id="select_dos_pedidos">
-                
-            <option>123 - Serviço</option>
-            
-                </select>
             </div>
         </div>
     </div>
@@ -1374,6 +1369,9 @@ async function abrir_esquema(id) {
 
             Object.keys(lista_pagamentos).forEach(pag => {
                 var pagamento = lista_pagamentos[pag]
+                if (pagamento == 1) {
+                    return
+                }
                 var comentario = 'Sem observação'
                 if (pagamento.param[0].observacao) {
                     comentario = pagamento.param[0].observacao.replace(/\|/g, '<br>')
