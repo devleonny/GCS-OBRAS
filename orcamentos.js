@@ -332,7 +332,7 @@ async function rir(id_orcam) {
 
     var orcamento = dados_orcamentos[id_orcam];
 
-    orcamento = conversor_composicoes_orcamento(orcamento)
+    orcamento = await conversor_composicoes_orcamento(orcamento)
 
     var estado = orcamento.dados_orcam.estado;
     var icms = estado == 'BA' ? 0.205 : 0.12;
