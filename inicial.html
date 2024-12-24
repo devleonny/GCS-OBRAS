@@ -67,8 +67,10 @@
         #popup {
             display: none;
             position: fixed;
-            bottom: 20px; /* Alinhamento inferior */
-            right: 20px; /* Alinhamento à direita */
+            bottom: 20px;
+            /* Alinhamento inferior */
+            right: 20px;
+            /* Alinhamento à direita */
             background-color: #fff;
             padding: 20px;
             border: 1px solid #ccc;
@@ -96,7 +98,7 @@
         #popup .close-btn:hover {
             color: #000;
         }
-        
+
         #popup .payment-btn {
             display: block;
             margin-top: 15px;
@@ -112,17 +114,22 @@
         #popup .payment-btn:hover {
             background-color: #218838;
         }
-
     </style>
 </head>
 
 <body>
 
+    <div id="progress-container" style="display: none;">
+        <div id="progress-bar">
+            <div id="progress">0%</div>
+        </div>
+    </div>
+
     <div id="popup">
         <button class="close-btn" onclick="closePopup()">×</button>
         <p id="popup-message"></p>
         <a href="pagamentos.html" class="payment-btn">Ir para a Página de Pagamento</a>
-      </div>
+    </div>
 
     <div id="content" style="width: 100%; justify-content: center;">
         <div style="display: flex; justify-content: center; align-items: center;">
@@ -183,7 +190,7 @@
     <div id="popup">
         <button class="close-btn" onclick="closePopup()">×</button>
         <p id="popup-message"></p>
-      </div>
+    </div>
 
 </body>
 
