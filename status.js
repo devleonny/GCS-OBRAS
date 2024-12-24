@@ -3017,26 +3017,18 @@ async function gerarpdf(cliente, pedido) {
         htmlContent: htmlContent,
         nomeArquivo: `REQUISICAO_${cliente}_${pedido}`
     };
-    try {
-        const response = await fetch('http://localhost:3000/generate-pdf', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
 
-        if (!response.ok) {
-            console.log(response.status, response.statusText)
-            throw new Error('Erro ao gerar PDF: ' + response.status + ' ' + response.statusText);
+    // Envia para salvar o PDF localmente
+    ipcRenderer.send('generate-pdf-local', formData);
+
+    ipcRenderer.once('generate-pdf-local-reply', (event, response) => {
+        if (response.success) {
+            console.log('PDF gerado com sucesso!', response.filePath);
+        } else {
+            console.error('Erro ao gerar PDF:', response.error);
         }
-    } catch (err) {
-        console.log(err)
-    } finally {
-        if (menu_flutuante && span) {
-            menu_flutuante.style.display = 'flex'
-            span.style.display = 'block'
-        }
-    }
+
+        ocultar.style.display = 'flex';
+    });
 
 }
