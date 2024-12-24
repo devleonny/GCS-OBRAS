@@ -568,29 +568,29 @@ ipcRenderer.on('open-save-dialog', (event, { htmlContent, nomeArquivo }) => {
 });
 
 function gerarPDF() {
+    preencher_v2();
+    ocultar.style.display = 'none';
 
-    preencher_v2()
-    ocultar.style.display = 'none'
+    var orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
 
-    var orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {}
-
-    var contrato = orcamento_v2.dados_orcam.contrato
-    var cliente = orcamento_v2.dados_orcam.cliente_selecionado
+    var contrato = orcamento_v2.dados_orcam.contrato;
+    var cliente = orcamento_v2.dados_orcam.cliente_selecionado;
 
     const formData = {
         htmlContent: document.documentElement.outerHTML,
         nomeArquivo: `Orcamento_${cliente}_${contrato}`
     };
 
-    ipcRenderer.send('generate-pdf', formData);
+    // Envia para salvar o PDF localmente
+    ipcRenderer.send('generate-pdf-local', formData);
 
-    ipcRenderer.once('generate-pdf-reply', (event, response) => {
+    ipcRenderer.once('generate-pdf-local-reply', (event, response) => {
         if (response.success) {
             console.log('PDF gerado com sucesso!', response.filePath);
         } else {
-            console.log('Erro ao gerar PDF:', response.error);
+            console.error('Erro ao gerar PDF:', response.error);
         }
-    });
 
-    ocultar.style.display = 'flex';
+        ocultar.style.display = 'flex';
+    });
 }
