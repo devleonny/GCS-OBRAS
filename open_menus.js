@@ -1275,6 +1275,9 @@ function enviar_dados_generico(dados) {
 async function consultar_pagamentos(especial) { //True aqui vai retornar o painel de títulos com as contagens;
 
     var div_pagamentos = document.getElementById('div_pagamentos')
+    if (!div_pagamentos) {
+        return
+    }
     div_pagamentos.innerHTML = ''
 
     var acumulado = ''

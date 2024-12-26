@@ -1,9 +1,9 @@
-function verificarPagamentos() {
+async function verificarPagamentos() {
 
   let mais_de_um = ""
   let plural = ""
 
-  const listaPagamentos = JSON.parse(localStorage.getItem("lista_pagamentos"));
+  const listaPagamentos = await recuperarDados('lista_pagamentos') || {};
   const acesso = JSON.parse(localStorage.getItem("acesso"));
 
   if (!listaPagamentos || !acesso || !acesso.usuario) {
