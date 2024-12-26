@@ -135,7 +135,7 @@ function adicionarLinha() {
                 decidirMelhorOferta(linhaQuantidade)
 
             })
-            
+
             novaLinha.append(tdPrecoUnitario, tdPrecototal)
 
         }
@@ -264,6 +264,8 @@ function salvarFornecedor() {
 
         }
 
+        adiconarFooter()
+
         const fornecedoresHeader = document.getElementById("fornecedoresHeader");
 
         fornecedoresHeader.style.display = "table-cell";
@@ -323,5 +325,69 @@ function decidirMelhorOferta(linha_quantidade){
         }
 
     }
+
+}
+
+function adiconarFooter(){
+
+    let linhaDesconto = document.querySelector("#linhaDesconto")
+
+    let linhaSubtotal = document.querySelector("#linhaSubtotal")
+
+    let linhaFrete = document.querySelector("#linhaFrete")
+
+    let linhaCondicaoPagar = document.querySelector("#linhaCondicaoPagar")
+
+    let linhaTotal = document.querySelector("#linhaTotal")
+
+    let tdDesconto = document.createElement("td")
+    let inputDesconto = document.createElement("input")
+
+    inputDesconto.id = `input-desconto-${quantidadeFornecedores}`
+    tdDesconto.colSpan = "2"
+    inputDesconto.placeholder = "Digite a % do Desconto"
+
+    tdDesconto.appendChild(inputDesconto)
+    linhaDesconto.appendChild(tdDesconto)
+
+    let tdSubtotal = document.createElement("td")
+    let inputSubtotal = document.createElement("input")
+
+    inputSubtotal.id = `input-subtotal-${quantidadeFornecedores}`
+    tdSubtotal.colSpan = "2"
+    inputSubtotal.readOnly = "true"
+    
+    tdSubtotal.appendChild(inputSubtotal)
+    linhaSubtotal.appendChild(tdSubtotal)
+
+    let tdFrete = document.createElement("td")
+    let inputFrete = document.createElement("input")
+
+    inputFrete.id = `input-frete-${quantidadeFornecedores}`
+    tdFrete.colSpan = "2"
+    inputFrete.placeholder = "Digite o Frete"
+
+    tdFrete.appendChild(inputFrete)
+    linhaFrete.appendChild(tdFrete)
+
+    let tdCondicaoPagar = document.createElement("td")
+    let inputCondicaoPagar = document.createElement("input")
+
+    inputCondicaoPagar.id = `input-condicao-pagar-${quantidadeFornecedores}`
+    tdCondicaoPagar.colSpan = "2"
+    inputCondicaoPagar.placeholder = "Digite a Condição de Pagamento"
+
+    tdCondicaoPagar.appendChild(inputCondicaoPagar)
+    linhaCondicaoPagar.appendChild(tdCondicaoPagar)
+
+    let tdTotal = document.createElement("td")
+    let inputTotal = document.createElement("input")
+
+    inputTotal.id = `input-total-${quantidadeFornecedores}`
+    tdTotal.colSpan = "2"
+    inputTotal.readOnly = "true"
+
+    tdTotal.appendChild(inputTotal)
+    linhaTotal.appendChild(tdTotal)
 
 }
