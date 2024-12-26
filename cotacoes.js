@@ -119,8 +119,9 @@ function adicionarLinha() {
             inputPrecoTotal.readOnly = "true"
             
             inputPrecoTotal.id = `precoTotal-${quantidadeFornecedores}-${linhaAtualQuantidade}`
-            
-            inputPrecoTotal.className = `resultadoPrecoTotal-linha-${linhaAtualQuantidade}`
+
+            inputPrecoTotal.classList.add(`resultadoPrecoTotal-linha-${linhaAtualQuantidade}`)
+            inputPrecoTotal.classList.add(`resultadoPrecoTotal-fornecedor-${quantidadeFornecedores}`)
             
             tdPrecototal.appendChild(inputPrecoTotal)
             
@@ -252,7 +253,9 @@ function salvarFornecedor() {
             inputPrecoTotal.readOnly = "true"
             
             inputPrecoTotal.id = `precoTotal-${quantidadeFornecedores}-${linhaAtualQuantidade}`
-            inputPrecoTotal.className = `resultadoPrecoTotal-linha-${linhaAtualQuantidade}`
+
+            inputPrecoTotal.classList.add(`resultadoPrecoTotal-linha-${linhaAtualQuantidade}`)
+            inputPrecoTotal.classList.add(`resultadoPrecoTotal-fornecedor-${quantidadeFornecedores}`)
 
             linhaAtualQuantidade++;
 
@@ -346,6 +349,11 @@ function adiconarFooter(){
     inputDesconto.id = `input-desconto-${quantidadeFornecedores}`
     tdDesconto.colSpan = "2"
     inputDesconto.placeholder = "Digite a % do Desconto"
+    inputDesconto.type = 'number'
+
+    let numeroFornecedorDesconto = inputDesconto.id[15]
+
+    inputDesconto.addEventListener('input', () => calculoSubtotal(numeroFornecedorDesconto))
 
     tdDesconto.appendChild(inputDesconto)
     linhaDesconto.appendChild(tdDesconto)
@@ -366,6 +374,11 @@ function adiconarFooter(){
     inputFrete.id = `input-frete-${quantidadeFornecedores}`
     tdFrete.colSpan = "2"
     inputFrete.placeholder = "Digite o Frete"
+    inputFrete.type = "number"
+
+    let numeroFornecedorFrete = inputFrete.id[12]
+
+    inputFrete.addEventListener('input', () => calculoTotal(numeroFornecedorFrete))
 
     tdFrete.appendChild(inputFrete)
     linhaFrete.appendChild(tdFrete)
@@ -389,5 +402,44 @@ function adiconarFooter(){
 
     tdTotal.appendChild(inputTotal)
     linhaTotal.appendChild(tdTotal)
+
+}
+
+function calculoSubtotal(numeroFornecedor){
+
+    let tdSubtotal = document.querySelector(`#input-subtotal-${numeroFornecedor}`)
+
+    let quantidadeDesconto = document.querySelector(`#input-desconto-${numeroFornecedor}`).value
+
+    let valorSubtotal = 0
+
+    let listaValores = document.querySelectorAll(`input.resultadoPrecoTotal-fornecedor-${numeroFornecedor}`)
+
+    for(valor of listaValores){
+
+        valorReal = valor.value
+        
+        valorReal = parseFloat(valorReal.slice(3))
+
+        valorSubtotal += valorReal
+
+    }
+
+    valorDesconto = valorSubtotal * (quantidadeDesconto / 100)
+
+    tdSubtotal.value = `R$ ${(valorSubtotal - valorDesconto).toFixed(2)}`
+
+
+}
+
+function calculoTotal(numeroFornecedor){
+
+    let tdFrete = parseFloat(document.querySelector(`#input-frete-${numeroFornecedor}`).value)
+
+    let tdSubtotal = parseFloat(document.querySelector(`#input-subtotal-${numeroFornecedor}`).value.slice(3))
+
+    inputTotal = document.querySelector(`#input-total-${numeroFornecedor}`)
+
+    inputTotal.value = `R$ ${(tdSubtotal + tdFrete).toFixed(2)}`
 
 }
