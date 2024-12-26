@@ -92,10 +92,6 @@ function executarTransacao(db, nome_da_base, dados) {
 
     transaction.oncomplete = function () {
         console.log('Transação concluída com sucesso!');
-        if (document.title == "PAGAMENTOS" && !(localStorage.getItem("first_acess"))) {
-            localStorage.setItem("first_acess", "true")
-            f5()
-        }
     };
 }
 
@@ -1277,6 +1273,11 @@ function enviar_dados_generico(dados) {
 }
 
 async function consultar_pagamentos(especial) { //True aqui vai retornar o painel de títulos com as contagens;
+
+    var div_pagamentos = document.getElementById('div_pagamentos')
+    if (div_pagamentos) {
+        div_pagamentos.remove()
+    }
     var acumulado = ''
     var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
@@ -1359,7 +1360,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
         todos: { qtde: 0, valor: 0, termo: '', label: 'Todos os pagamentos', icone: "imagens/voltar.png" }
     }
 
-    Object.keys(pagamentosFiltrados).forEach((pagamento, i) => {
+    for (pagamento in pagamentosFiltrados) {
 
         var pg = pagamentosFiltrados[pagamento]
 
@@ -1432,9 +1433,15 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
                 <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 30px; cursor: pointer;" onclick="abrir_detalhes('${pg.id}')"></td>
             </tr>
         `
-    });
+    };
 
-    var carimbo_data_hora_pagamentos = JSON.parse(localStorage.getItem('carimbo_data_hora_pagamentos'))[0] || ''
+    var carimbo_data_hora_pagamentos = 'Desatualizado...'
+
+    var carimbo_localstorage = JSON.parse(localStorage.getItem('carimbo_data_hora_pagamentos'))
+
+    if (carimbo_localstorage) {
+        carimbo_data_hora_pagamentos = carimbo_localstorage[0]
+    }
 
     var colunas = ['Data de Previsão', 'Centro de Custo', 'Valor e Categoria', 'Status Pagamento', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
 
@@ -1458,13 +1465,21 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
     for (item in contadores) {
         if (contadores[item].valor !== 0) {
             titulos += `
-            <Label style="display: flex; gap: 10px"><label class="contagem" onclick="pesquisar_em_pagamentos(3, '${contadores[item].termo}')">${contadores[item].qtde}</label> <img src="${contadores[item].icone}" style="width: 25px; height: 25px;"><strong> ${dinheiro(contadores[item].valor)}</strong> • ${contadores[item].label}</label>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1.0vw;" onclick="pesquisar_em_pagamentos(3, '${contadores[item].termo}')">
+                <label class="contagem" style="background-color: #B12425;">${contadores[item].qtde}</label>
+                <img src="${contadores[item].icone}" style="width: 25px; height: 25px;">
+                
+                <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                    <Label style="display: flex; gap: 10px; font-size: 0.8vw;">${contadores[item].label}</label>
+                    <label>${dinheiro(contadores[item].valor)}</label>
+                </div>
+            </div>
             `
         }
     }
 
     var div_titulos = `
-        <div style="display: flex; flex-direction: column; gap: 3px; align-items: start; justify-content: left; margin: 3vw; font-size: 1.2em;">
+        <div class="contorno_botoes" style="background-color: #22222287; display: flex; flex-direction: column; gap: 3px; align-items: start; justify-content: left; margin: 10px;">
         ${titulos}
         </div>
     `
@@ -1473,7 +1488,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
     }
 
     acumulado += `
-    <div>
+    <div id="div_pagamentos">
         <div style="display: flex; gap: 10px; justify-content: space-evenly; align-items: center; width: 100%; color: white;">
             
 
@@ -1483,20 +1498,17 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
 
             ${div_titulos}
 
-            <div style="display: flex; flex-direction: column; gap: 30px; justify-content: space-evenly; align-items: center;">
+            <div style="display: flex; flex-direction: column; gap: 10px; justify-content: space-evenly; align-items: start; background-color: #22222287; border-radius: 5px; padding: 10px; margin: 30px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);">
 
-                <div style="display: flex; justify-content: space-evenly; width: 100%; gap:">
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;"
-                        onclick="window.location.href='inicial.html'">
-                        <img src="imagens/voltar.png" style=" cursor: pointer;" onclick="window.location.href='inicial.html'">
-                        <label style="color: white;">Voltar</label>
-                    </div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
+                    onclick="window.location.href='inicial.html'">
+                    <img src="imagens/voltar.png" style="cursor: pointer; width: 30px;" onclick="window.location.href='inicial.html'">
+                    <label style="color: white;">Voltar</label>
+                </div>
                     
-
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <img src="imagens/atualizar_2.png" style="width: max-content; cursor: pointer;" onclick="atualizar_pagamentos_menu()">
-                        <label style="color: white;">Atualizar</label>
-                    </div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="atualizar_pagamentos_menu()">
+                    <img src="imagens/atualizar_2.png" style="width: max-content; cursor: pointer; width: 30px;">
+                    <label style="color: white;">Atualizar Pagamentos</label>
                 </div>
 
                 <label>Sincronizado: ${carimbo_data_hora_pagamentos}</label>
@@ -1511,7 +1523,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
                 <thead>
                     ${cabecalho1}
                 </thead>
-                <thead>
+                <thead id="thead_pesquisa">
                     ${cabecalho2}
                 </thead>
                 <tbody id="body">
@@ -1521,11 +1533,16 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
         </div>
     </div>
     `
-    var div_status = document.getElementById('status')
+    var elementus = `
+    <div id="pagamentos">
+        ${acumulado}
+    <div>
+    `
+    if(document.title == 'PAGAMENTOS'){
+        document.body.innerHTML = ''
+    }
 
-    div_status.innerHTML = ''
-
-    div_status.innerHTML = acumulado
+    document.body.insertAdjacentHTML('beforeend', elementus)
 
 }
 
