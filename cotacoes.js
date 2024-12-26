@@ -293,41 +293,11 @@ function esconderFornecedores() {
 
 function decidirMelhorOferta(linha_quantidade){
 
-    let menorValor = Infinity
-
     let listaValores = document.querySelectorAll(`input.resultadoPrecoTotal-linha-${linha_quantidade}`)
 
-    for(valor of listaValores){
+    menorValor = descobrirMenorValor(listaValores)
 
-        valorReal = valor.value
-        
-        valorReal = parseFloat(valorReal.slice(3))
-
-        if(valorReal < menorValor){
-
-            menorValor = valorReal
-
-        }
-
-    }
-
-    for(valor of listaValores){
-
-        valorReal = valor.value
-        
-        valorReal = parseFloat(valorReal.slice(3))
-
-        if(menorValor == valorReal){
-
-            valor.style.backgroundColor = "green"
-
-        }else{
-
-            valor.style.backgroundColor = "white"
-
-        }
-
-    }
+    estilizarMelhorPreco(listaValores, menorValor)
 
 }
 
@@ -362,6 +332,7 @@ function adiconarFooter(){
     let inputSubtotal = document.createElement("input")
 
     inputSubtotal.id = `input-subtotal-${quantidadeFornecedores}`
+    inputSubtotal.classList.add("inputs-subtotal")
     tdSubtotal.colSpan = "2"
     inputSubtotal.readOnly = "true"
     
@@ -397,6 +368,7 @@ function adiconarFooter(){
     let inputTotal = document.createElement("input")
 
     inputTotal.id = `input-total-${quantidadeFornecedores}`
+    inputTotal.classList.add("inputs-total")
     tdTotal.colSpan = "2"
     inputTotal.readOnly = "true"
 
@@ -409,30 +381,37 @@ function calculoSubtotal(numeroFornecedor){
 
     let tdSubtotal = document.querySelector(`#input-subtotal-${numeroFornecedor}`)
 
+    let inputsSubtotal = document.querySelectorAll(".inputs-subtotal")
+    
     let quantidadeDesconto = document.querySelector(`#input-desconto-${numeroFornecedor}`).value
-
+    
     let valorSubtotal = 0
-
+    
     let listaValores = document.querySelectorAll(`input.resultadoPrecoTotal-fornecedor-${numeroFornecedor}`)
-
+    
     for(valor of listaValores){
-
+        
         valorReal = valor.value
         
         valorReal = parseFloat(valorReal.slice(3))
-
+        
         valorSubtotal += valorReal
-
+        
     }
-
+    
     valorDesconto = valorSubtotal * (quantidadeDesconto / 100)
-
+    
     tdSubtotal.value = `R$ ${(valorSubtotal - valorDesconto).toFixed(2)}`
+    
+    menorValor = descobrirMenorValor(inputsSubtotal)
 
+    estilizarMelhorPreco(inputsSubtotal, menorValor)
 
 }
 
 function calculoTotal(numeroFornecedor){
+
+    let inputsTotal = document.querySelectorAll(".inputs-total")
 
     let tdFrete = parseFloat(document.querySelector(`#input-frete-${numeroFornecedor}`).value)
 
@@ -441,5 +420,53 @@ function calculoTotal(numeroFornecedor){
     inputTotal = document.querySelector(`#input-total-${numeroFornecedor}`)
 
     inputTotal.value = `R$ ${(tdSubtotal + tdFrete).toFixed(2)}`
+
+    menorValor = descobrirMenorValor(inputsTotal)
+
+    estilizarMelhorPreco(inputsTotal, menorValor)
+
+}
+
+function estilizarMelhorPreco(listaValores, menorValor){
+
+    for(valor of listaValores){
+
+        valorReal = valor.value
+        
+        valorReal = parseFloat(valorReal.slice(3))
+
+        if(menorValor == valorReal){
+
+            valor.style.backgroundColor = "green"
+
+        }else{
+
+            valor.style.backgroundColor = "white"
+
+        }
+
+    }
+
+}
+
+function descobrirMenorValor(listaValores){
+
+    let menorValor = Infinity
+
+    for(valor of listaValores){
+        
+        valorReal = valor.value
+        
+        valorReal = parseFloat(valorReal.slice(3))
+
+        if(valorReal < menorValor){
+
+            menorValor = valorReal
+
+        }
+
+    }
+
+    return menorValor
 
 }
