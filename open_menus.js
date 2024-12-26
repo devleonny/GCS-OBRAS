@@ -1275,9 +1275,8 @@ function enviar_dados_generico(dados) {
 async function consultar_pagamentos(especial) { //True aqui vai retornar o painel de títulos com as contagens;
 
     var div_pagamentos = document.getElementById('div_pagamentos')
-    if (div_pagamentos) {
-        div_pagamentos.remove()
-    }
+    div_pagamentos.innerHTML = ''
+
     var acumulado = ''
     var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
@@ -1538,11 +1537,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
         ${acumulado}
     <div>
     `
-    if(document.title == 'PAGAMENTOS'){
-        document.body.innerHTML = ''
-    }
-
-    document.body.insertAdjacentHTML('beforeend', elementus)
+    div_pagamentos.innerHTML = elementus
 
 }
 

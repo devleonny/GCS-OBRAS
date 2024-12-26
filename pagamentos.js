@@ -6,12 +6,12 @@ carregamento_div = document.querySelector("#tela_carregamento")
 
 async function inicializar_pagamentos() {
 
-    carregamento('tela_carregamento')
+    carregamento('div_pagamentos')
 
     var dados = await recuperarDados('lista_pagamentos')
 
     if (!dados) {
-
+        recuperar_dados_clientes() // Sem precisar esperar... deixado em segundo plano.
         await obter_lista_pagamentos()
         await lista_setores()
         consultar_pagamentos()
@@ -32,6 +32,11 @@ function atualizarAndamento(texto) {
 }
 
 async function abrir_detalhes(id_pagamento) {
+
+    var overlay = document.getElementById('overlay')
+    if (overlay) {
+        overlay.style.display = 'block'
+    }
 
     ordem = 0
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
@@ -444,11 +449,14 @@ function colorir_parceiros() {
                 labels[i].style.backgroundColor = 'green'
             }
         })
-        var v_orcado = document.getElementById('v_orcado')
-        if (v_orcado && conversor(v_orcado.textContent) == 0) {
-            labels[labels.length - 1].style.backgroundColor = '#B12425'
-        } else {
-            labels[labels.length - 1].style.backgroundColor = 'green'
+
+        if (labels.length > 0) {
+            var v_orcado = document.getElementById('v_orcado')
+            if (v_orcado && conversor(v_orcado.textContent) == 0) {
+                labels[labels.length - 1].style.backgroundColor = '#B12425'
+            } else {
+                labels[labels.length - 1].style.backgroundColor = 'green'
+            }
         }
 
     }

@@ -36,12 +36,6 @@ carregar_tabela_v2()
 function carregar_tabela_v2(col, ordem) {
     setTimeout(async function () {
         var dados_composicoes = await recuperarDados('dados_composicoes') || {};
-        var opcoes = ''
-        for(it in dados_composicoes){
-            opcoes += `
-            <option>${dados_composicoes[it].descricao}</option>
-            `
-        }
         var thead = '';
         var tbody = '';
         var tsearch = '';
@@ -182,25 +176,38 @@ function carregar_tabela_v2(col, ordem) {
 
                 } else if (chave == 'agrupamentos') {
 
-                    let agrupamentos = produto[chave]
-                    var info = ''
+                    var info_agrupamentos = ''
 
-                    for (item in agrupamentos) {
-                        info += `
-                        <label>código: (${item}) & qtde (${agrupamentos[item]})
-                        `
+                    if (produto[chave]) {
+                        var agrupamentos = produto[chave]
+
+                        for (item in agrupamentos) {
+
+                            let tipo = dados_composicoes[item].tipo
+
+                            var cor = 'green'
+                            if (tipo == 'VENDA') {
+                                cor = '#B12425'
+                            }
+    
+                            info_agrupamentos += `
+                            <div style="display: flex; gap: 3px; align-items: center; justify-content: left;">
+                                <label class="numero" style="width: 20px; height: 20px; padding: 3px; background-color: ${cor}">${agrupamentos[item]}</label>
+                                <label style="font-size: 0.6em; text-align: left;">${dados_composicoes[item].descricao}</label>
+                            </div>
+                            `
+                        }
                     }
 
                     conteudo = `
-                    <div style="display: flex; flex-direction: column; align-items: start;">
-                        <div style="display: flex; gap: 10px;">
-                            <select>${opcoes}</select>
-                            <input type="number">
+                    <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
+                        <img src="imagens/construcao.png" style="width: 30px; height: 30px; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">
+                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; gap: 2px;">
+                            ${info_agrupamentos}
                         </div>
-                    
-                    <label>${info}</label>
                     </div>
                     `
+                    alinhamento = 'center';
 
                 } else if (chave == 'material infra') {
 
@@ -263,6 +270,295 @@ async function atualizar_status_material(codigo, elemento) {
 
     carregar_tabela_v2()
 
+}
+
+async function abrir_agrupamentos(codigo) {
+
+    var acumulado = ''
+
+    var dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
+    var produto = dados_composicoes[codigo]
+    var imagem = 'https://i.imgur.com/Nb8sPs0.png'
+    var linhas = ''
+
+
+    for (item in dados_composicoes) {
+            var checked = ''
+
+            if(produto.agrupamentos && produto.agrupamentos[item]){
+                checked = 'checked'
+            }
+        var tr = `
+        <tr>
+            <td style="white-space: normal; text-align: center;"><input type="checkbox" style="width: 30px; height: 30px;" onclick="incluir_agrupamento(this)" ${checked}></td>
+            <td style="white-space: normal;">${item}</td>
+            <td style="white-space: normal;">${dados_composicoes[item].descricao}</td>
+            <td style="white-space: normal;">${dados_composicoes[item].modelo}</td>
+            <td style="white-space: normal;">${dados_composicoes[item].unidade}</td>
+            <td style="white-space: normal;">${dados_composicoes[item].tipo}</td>
+        </tr>
+        `
+        linhas += tr
+    }
+
+    if (produto.imagem && produto.imagem !== '') {
+        imagem = produto.imagem
+    }
+
+    acumulado += `
+
+        <span class="close" onclick="remover_popup()">&times;</span>
+        <div class="agrupamentos">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
+                <img src="${imagem}" style="width: 100px">
+                <h2>${produto.descricao}</h2>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-evenly; gap: 10px;">
+                <div id="div_agrupamentos" style="display: flex; flex-direction: column; align-items: start; justify-content: left;">
+                </div>
+                <label class="contorno_botoes" style="background-color: #026CED;" onclick="salvar_agrupamentos('${codigo}')">Salvar Agrupamentos</label>
+            </div>
+
+            <hr style="width: 100%; margin: 10px;">
+
+            <div style="width: 80vw; overflow: auto; height: 500px; border-radius: 3px; background-color: #222; padding: 10px;">
+                <table class="tabela" style="border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th>Marcação</th>
+                            <th>Código</th>
+                            <th>Descrição</th>
+                            <th>Modelo</th>
+                            <th>Unidade</th>
+                            <th>Tipo</th>
+                        <tr>
+                    </thead>
+                    <thead>
+                        <tr>
+                            <th style="background-color: white; position: relative; border-radius: 0px;">
+                                <select onchange="checked_inputs(this)">
+                                    <option>Todos</todos>
+                                    <option>Marcados</todos>
+                                    <option>Não Marcados</todos>
+                                </select>
+                            </th>
+                            <th style="background-color: white; position: relative; border-radius: 0px;">
+                                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
+                                <input style="width: 100%;" placeholder="Código" oninput="pesquisar_em_agrupamentos(this, 1)">
+                            </th>
+                            <th style="background-color: white; position: relative; border-radius: 0px;">
+                                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
+                                <input style="width: 100%;" placeholder="Descrição" oninput="pesquisar_em_agrupamentos(this, 2)">
+                            </th>
+                            <th style="background-color: white; position: relative; border-radius: 0px;">
+                                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
+                                <input style="width: 100%;" placeholder="Modelo" oninput="pesquisar_em_agrupamentos(this, 3)">
+                            </th>
+                            <th style="background-color: white; position: relative; border-radius: 0px;">
+                                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
+                                <input style="width: 100%;" placeholder="Unidade" oninput="pesquisar_em_agrupamentos(this, 4)">
+                            </th>
+                            <th style="background-color: white; position: relative; border-radius: 0px;">
+                                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
+                                <input style="width: 100%;" placeholder="Tipo" oninput="pesquisar_em_agrupamentos(this, 5)">
+                            </th>
+                        <tr>
+                    </thead>
+                    <tbody id="linhas_agrupamentos">
+                        ${linhas}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>    
+    `
+    openPopup_v2(acumulado)
+
+    if (produto.agrupamentos) {
+        var div_agrupamentos = document.getElementById('div_agrupamentos')
+        if (div_agrupamentos) {
+            for (item in produto.agrupamentos) {
+                incluir_agrupamento(undefined, item, produto.agrupamentos[item])
+            }
+        }
+    }
+
+}
+
+async function salvar_agrupamentos(codigo) {
+
+    var div_agrupamentos = document.getElementById('div_agrupamentos')
+    var agrupamentos = div_agrupamentos.querySelectorAll('.agrupado')
+    var dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    var produto = dados_composicoes[codigo]
+
+    if (produto) {
+        produto.agrupamentos = {}
+        agrupamentos.forEach(agrupamento => {
+            var codigo_agrupamento = agrupamento.querySelectorAll('label')[0].textContent
+            produto.agrupamentos[codigo_agrupamento] = Number(agrupamento.querySelector('input').value)
+
+        })
+
+        await inserirDados(dados_composicoes, 'dados_composicoes')
+
+        var requisicao = {
+            tabela: 'composicoes',
+            composicao: produto
+        }
+
+        enviar_dados_generico(requisicao)
+
+        remover_popup()
+
+        carregar_tabela_v2()
+    }
+
+}
+
+function checked_inputs(filtro) {
+    var linhas_agrupamentos = document.getElementById('linhas_agrupamentos')
+    var filtrar = filtro.value
+
+    if (linhas_agrupamentos) {
+
+        var trs = linhas_agrupamentos.querySelectorAll('tr')
+
+        trs.forEach(tr => {
+
+            var tds = tr.querySelectorAll('td')
+
+            var mostrar_linha = false
+
+            var check = tds[0].querySelector('input').checked
+
+            if (filtrar == 'Todos') {
+
+                mostrar_linha = true
+
+            } else if (filtrar == 'Marcados') {
+
+                if (check) {
+                    mostrar_linha = true
+                } else {
+                    mostrar_linha = false
+                }
+
+            } else if (filtrar == 'Não Marcados') {
+
+                if (!check) {
+                    mostrar_linha = true
+                } else {
+                    mostrar_linha = false
+                }
+            }
+
+            if (mostrar_linha) {
+                tr.style.display = 'table-row'
+            } else {
+                tr.style.display = 'none'
+            }
+
+        })
+    }
+}
+
+
+function pesquisar_em_agrupamentos(elemento, coluna) {
+
+    var linhas_agrupamentos = document.getElementById('linhas_agrupamentos')
+
+    if (linhas_agrupamentos) {
+
+        var trs = linhas_agrupamentos.querySelectorAll('tr')
+
+        trs.forEach(tr => {
+
+            var tds = tr.querySelectorAll('td')
+            var mostrar_linha = false
+
+            var texto = String(tds[coluna].textContent).toLocaleLowerCase()
+            var termo = String(elemento.value).toLocaleLowerCase()
+
+            if (texto.includes(termo)) {
+                mostrar_linha = true
+            }
+
+            if (mostrar_linha) {
+                tr.style.display = 'table-row'
+            } else {
+                tr.style.display = 'none'
+            }
+
+        })
+
+    }
+
+}
+
+async function incluir_agrupamento(elemento, cod, qtde) {
+
+    var codigo = ''
+    var descricao = ''
+    var modelo = ''
+    var unidade = ''
+    var tipo = ''
+    var quantidade = 0
+
+    if (cod !== undefined) {
+        var dados_composicoes = await recuperarDados('dados_composicoes') || {}
+        var produto = dados_composicoes[cod]
+        codigo = cod
+        descricao = produto.descricao
+        modelo = produto.modelo
+        unidade = produto.unidade
+        tipo = produto.tipo
+        quantidade = qtde
+    }
+
+    var div_agrupamentos = document.getElementById('div_agrupamentos')
+
+    if (div_agrupamentos) {
+
+        if ((elemento !== undefined && elemento.checked) || cod !== undefined) {
+
+            if (elemento !== undefined && elemento.checked) {
+                var tr = elemento.parentElement.parentElement
+                codigo = tr.querySelectorAll('td')[1].textContent
+                descricao = tr.querySelectorAll('td')[2].textContent
+                modelo = tr.querySelectorAll('td')[3].textContent
+                unidade = tr.querySelectorAll('td')[4].textContent
+                tipo = tr.querySelectorAll('td')[5].textContent
+            }
+
+            var cor = 'green'
+            if (tipo == 'VENDA') {
+                cor = '#B12425'
+            }
+
+            var item = `
+            <div class="agrupado" style="border: solid 1px ${cor};">
+                <img src="imagens/excluir.png" style="width: 30px; cursor: pointer;" onclick="remover_item(this)">
+                <label>${codigo}</label>
+                <label>${descricao} - ${modelo} - ${unidade}</label>
+
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <label>Quantidade</label>
+                    <input style="padding: 5px; background-color: green; color: white; border-radius: 3px; width: 100px; text-align: center;" type="number" value="${quantidade}">
+                </div>
+            </div>
+            `
+            div_agrupamentos.insertAdjacentHTML('beforeend', item)
+        }
+
+    }
+
+}
+
+function remover_item(elemento) {
+    elemento.parentElement.remove()
 }
 
 async function abrir_historico_de_precos(codigo, tabela) {
