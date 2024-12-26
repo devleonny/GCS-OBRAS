@@ -111,20 +111,6 @@ function adicionarLinha() {
 
             })
             
-            inputPrecoUnitario.addEventListener('input', () =>{
-                
-                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0
-                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0
-                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`)
-
-                console.log(`#precoTotal-${numeroDoFornecedor}-${linhaAtualQuantidade}`)
-
-                console.log(precoTotalAtual)
-
-                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`
-
-            })
-
             tdPrecoUnitario.appendChild(inputPrecoUnitario)
             
             let tdPrecototal = document.createElement("td")
@@ -133,11 +119,25 @@ function adicionarLinha() {
             inputPrecoTotal.readOnly = "true"
             
             inputPrecoTotal.id = `precoTotal-${quantidadeFornecedores}-${linhaAtualQuantidade}`
-
-            tdPrecototal.appendChild(inputPrecoTotal)
-
-            novaLinha.append(tdPrecoUnitario, tdPrecototal)
             
+            inputPrecoTotal.className = `resultadoPrecoTotal-linha-${linhaAtualQuantidade}`
+            
+            tdPrecototal.appendChild(inputPrecoTotal)
+            
+            inputPrecoUnitario.addEventListener('input', () =>{
+                
+                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0
+                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0
+                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`)
+
+                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`
+
+                decidirMelhorOferta(linhaQuantidade)
+
+            })
+            
+            novaLinha.append(tdPrecoUnitario, tdPrecototal)
+
         }
         
         
@@ -240,6 +240,8 @@ function salvarFornecedor() {
 
                 precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`
 
+                decidirMelhorOferta(linhaQuantidade)
+
             })
 
             tdPrecoUnitario.appendChild(inputPrecoUnitario)
@@ -250,6 +252,7 @@ function salvarFornecedor() {
             inputPrecoTotal.readOnly = "true"
             
             inputPrecoTotal.id = `precoTotal-${quantidadeFornecedores}-${linhaAtualQuantidade}`
+            inputPrecoTotal.className = `resultadoPrecoTotal-linha-${linhaAtualQuantidade}`
 
             linhaAtualQuantidade++;
 
@@ -280,5 +283,45 @@ function esconderFornecedores() {
     const fornecedoresHeader = document.getElementById("fornecedoresHeader");
 
     fornecedoresHeader.style.display = "none";
+
+}
+
+function decidirMelhorOferta(linha_quantidade){
+
+    let menorValor = Infinity
+
+    let listaValores = document.querySelectorAll(`input.resultadoPrecoTotal-linha-${linha_quantidade}`)
+
+    for(valor of listaValores){
+
+        valorReal = valor.value
+        
+        valorReal = parseFloat(valorReal.slice(3))
+
+        if(valorReal < menorValor){
+
+            menorValor = valorReal
+
+        }
+
+    }
+
+    for(valor of listaValores){
+
+        valorReal = valor.value
+        
+        valorReal = parseFloat(valorReal.slice(3))
+
+        if(menorValor == valorReal){
+
+            valor.style.backgroundColor = "green"
+
+        }else{
+
+            valor.style.backgroundColor = "white"
+
+        }
+
+    }
 
 }
