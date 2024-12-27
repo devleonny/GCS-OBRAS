@@ -139,6 +139,38 @@
             margin-top: 10px;
         }
 
+        .modal-content button {
+            margin: 10px 5px;
+        }
+
+        .modal-content .close {
+            cursor: pointer;
+            color: red;
+            font-size: 20px;
+        }
+
+        #listaFornecedores {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            position: absolute;
+            background: white;
+            width: calc(100% - 20px);
+            z-index: 1000;
+        }
+
+        #listaFornecedores li {
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        #listaFornecedores li:hover {
+            background-color: #f0f0f0;
+        }
+
 
     </style>
 </head>
@@ -216,11 +248,14 @@
         <div class="modal-content">
             <span class="close" onclick="fecharModal()">&times;</span>
             <h2>Adicionar Fornecedor</h2>
-            <label for="fornecedorNome">Nome do Fornecedor:</label>
-            <input type="text" id="fornecedorNome" placeholder="Digite o nome do fornecedor">
+            <label for="pesquisarFornecedor">Pesquisar Fornecedor:</label>
+            <input type="text" id="pesquisarFornecedor" placeholder="Digite o nome ou CNPJ">
+            <ul id="listaFornecedores"></ul>
             <button onclick="salvarFornecedor()">Salvar</button>
+            <button onclick="fecharModal()">Fechar</button>
         </div>
     </div>
+    
     
 
 </body>

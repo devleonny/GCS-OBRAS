@@ -96,7 +96,7 @@ function adicionarLinha() {
             let inputPrecoUnitario = document.createElement("input")
             inputPrecoUnitario.type = "number"
             inputPrecoUnitario.placeholder = "Digite o preço unitário"
-            inputPrecoUnitario.id = `precoUnitario-${quantidadeFornecedores}-${linhaAtualQuantidade}`
+            inputPrecoUnitario.id = `precoUnitario-${i}-${linhaAtualQuantidade}`
 
             let linhaQuantidade = inputPrecoUnitario.id[16]
             let numeroDoFornecedor = inputPrecoUnitario.id[14]
@@ -118,10 +118,10 @@ function adicionarLinha() {
             inputPrecoTotal.type = 'text'
             inputPrecoTotal.readOnly = "true"
             
-            inputPrecoTotal.id = `precoTotal-${quantidadeFornecedores}-${linhaAtualQuantidade}`
+            inputPrecoTotal.id = `precoTotal-${i}-${linhaAtualQuantidade}`
 
             inputPrecoTotal.classList.add(`resultadoPrecoTotal-linha-${linhaAtualQuantidade}`)
-            inputPrecoTotal.classList.add(`resultadoPrecoTotal-fornecedor-${quantidadeFornecedores}`)
+            inputPrecoTotal.classList.add(`resultadoPrecoTotal-fornecedor-${i}`)
             
             tdPrecototal.appendChild(inputPrecoTotal)
             
@@ -192,7 +192,7 @@ function salvarFornecedor() {
 
     quantidadeFornecedores++;
 
-    const input = document.getElementById("fornecedorNome");
+    const input = document.getElementById("pesquisarFornecedor");
     const trNomeFornecedor = document.querySelector(".count-row")
     const thNomeFornecedor = document.createElement("th")
     const trTopicostabela = document.querySelector("#topicos-tabela")
@@ -470,3 +470,60 @@ function descobrirMenorValor(listaValores){
     return menorValor
 
 }
+
+async function carregarFornecedores(){
+
+    const fornecedores = await recuperarDados('dados_clientes');
+    return Object.values(fornecedores);
+
+}
+
+let pesquisarFornecedor = document.getElementById('pesquisarFornecedor')
+
+pesquisarFornecedor.addEventListener("input", async function(){
+
+    const termo = this.value.toLowerCase();
+    const lista = document.getElementById('listaFornecedores');
+    lista.innerHTML = "";
+
+    if (termo.trim() === "") return;
+
+    const fornecedores = await carregarFornecedores();
+
+    const resultados = fornecedores.filter(fornecedor =>{
+
+        if(fornecedor.nome && fornecedor.cnpj){
+
+            return fornecedor.nome.toLowerCase().includes(termo) || fornecedor.cnpj.includes(termo)
+
+        }else if(fornecedor.nome){
+
+            return fornecedor.nome.toLowerCase().includes(termo)
+
+        }else if(fornecedor.cnpj){
+
+            return fornecedor.cnpj.includes(termo)
+
+        }
+
+        
+    }
+
+    
+);
+
+resultados.forEach(fornecedor => {
+    const item = document.createElement('li');
+    item.textContent = fornecedor.nome; // Exibe apenas o nome
+    item.dataset.cnpj = fornecedor.cnpj; // Armazena o CNPJ como dado extra
+
+    // Evento de clique para selecionar o fornecedor
+    item.addEventListener('click', function () {
+        document.getElementById('pesquisarFornecedor').value = fornecedor.nome;
+        lista.innerHTML = ""; // Limpa as sugestões após a seleção
+    });
+
+    lista.appendChild(item);
+});
+
+})
