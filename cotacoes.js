@@ -2,9 +2,9 @@ let contador = 1;
 let linhasAtuais = [];
 let quantidadeFornecedores = 0;
 
-obter_materiais();
 
 document.addEventListener("DOMContentLoaded", () => {
+    obter_materiais();
     adicionarLinha();
 });
 
@@ -88,7 +88,7 @@ function adicionarLinha() {
     
     if(fornecedoresHeader.style.display == "table-cell"){
 
-        linhaAtualQuantidade = inputQuantidade.id[11]
+        let linhaAtualQuantidade = inputQuantidade.id[11]
 
         for(let i = 1; i <= quantidadeFornecedores; i++){
 
@@ -167,12 +167,13 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
             input.value = item.descricao;
             partnumberCell.querySelector("input").value = item.partnumber || "";
             estoqueCell.querySelector("input").value = item.estoque ?? 0;
-            sugestoes.innerHTML = "";
+            sugestoes.innerHTML = ""; // Limpa as sugestões
         };
 
         sugestoes.appendChild(sugestao);
     });
 }
+
 
 let nomeFornecedor = "";
 
@@ -180,6 +181,9 @@ function abrirModal() {
 
     const modal = document.getElementById("fornecedorModal");
     modal.style.display = "block";
+    const input = document.getElementById("pesquisarFornecedor");
+
+    input.addEventListener("input", () => filtroFornecedores())
 
 }
 
@@ -274,12 +278,19 @@ function salvarFornecedor() {
         fornecedoresHeader.style.display = "table-cell";
 
         thNomeFornecedor.textContent = nomeFornecedor
+        
         trNomeFornecedor.appendChild(thNomeFornecedor)
+
         trTopicostabela.append(thPrecoUnitario,thPrecoTotal)
+
         fecharModal();
+
         console.log("Fornecedor salvo:", nomeFornecedor);
+
     } else {
+
         alert("Por favor, digite um nome válido.");
+
     }
 }
 
@@ -399,11 +410,11 @@ function calculoSubtotal(numeroFornecedor){
         
     }
     
-    valorDesconto = valorSubtotal * (quantidadeDesconto / 100)
+    let valorDesconto = valorSubtotal * (quantidadeDesconto / 100)
     
     tdSubtotal.value = `R$ ${(valorSubtotal - valorDesconto).toFixed(2)}`
     
-    menorValor = descobrirMenorValor(inputsSubtotal)
+     let menorValor = descobrirMenorValor(inputsSubtotal)
 
     estilizarMelhorPreco(inputsSubtotal, menorValor)
 
@@ -478,15 +489,18 @@ async function carregarFornecedores(){
 
 }
 
-let pesquisarFornecedor = document.getElementById('pesquisarFornecedor')
-
-pesquisarFornecedor.addEventListener("input", async function(){
-
-    const termo = this.value.toLowerCase();
+async function filtroFornecedores() {
+    
+    const termo = document.getElementById('pesquisarFornecedor').value.toLowerCase();
     const lista = document.getElementById('listaFornecedores');
+    lista.style.display = "block"
     lista.innerHTML = "";
 
-    if (termo.trim() === "") return;
+    if (termo.trim() === "") {
+        
+        lista.style.display = "none"
+
+        return};
 
     const fornecedores = await carregarFornecedores();
 
@@ -514,16 +528,16 @@ pesquisarFornecedor.addEventListener("input", async function(){
 
 resultados.forEach(fornecedor => {
     const item = document.createElement('li');
-    item.textContent = fornecedor.nome; // Exibe apenas o nome
-    item.dataset.cnpj = fornecedor.cnpj; // Armazena o CNPJ como dado extra
+    item.textContent = fornecedor.nome;
+    item.dataset.cnpj = fornecedor.cnpj;
 
-    // Evento de clique para selecionar o fornecedor
     item.addEventListener('click', function () {
         document.getElementById('pesquisarFornecedor').value = fornecedor.nome;
-        lista.innerHTML = ""; // Limpa as sugestões após a seleção
+        lista.style.display = "none"
+        lista.innerHTML = "";
     });
 
     lista.appendChild(item);
 });
 
-})
+}

@@ -7,235 +7,55 @@
     <title>COTAÇÕES</title>
     <link rel="stylesheet" type="text/css" href="gcsobras.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="cotacoes.css">
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-
-        table th, table td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: center;
-        }
-
-        table th {
-            background-color: #007bff;
-            color: #ffffff;
-            font-weight: bold;
-        }
-
-        table td {
-            background-color: #f9f9f9;
-            color: #333;
-        }
-
-        .title-row {
-            font-size: 20px;
-            font-weight: bold;
-            text-align: center;
-            background-color: #e9ecef;
-            color: #007bff;
-        }
-
-        .count-row {
-            font-size: 16px;
-            text-align: center;
-            background-color: #f8f9fa;
-        }
-
-        button {
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        .remove-img {
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-        }
-
-        .remove-img:hover {
-            opacity: 0.7;
-        }
-
-        .autocomplete-suggestions {
-            position: absolute;
-            background-color: white;
-            border: 1px solid #ccc;
-            max-height: 150px;
-            overflow-y: auto;
-            z-index: 1000;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .autocomplete-suggestions div {
-            padding: 8px;
-            cursor: pointer;
-        }
-
-        .autocomplete-suggestions div:hover {
-            background-color: #f4f4f4;
-        }
-
-        .button-container {
-            display: flex;
-            gap: 10px;
-        }
-
-        .modal {
-
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-content {
-            background-color: #fff;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 50%;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: #000;
-            text-decoration: none;
-        }
-
-        button {
-            margin-top: 10px;
-        }
-
-        .modal-content button {
-            margin: 10px 5px;
-        }
-
-        .modal-content .close {
-            cursor: pointer;
-            color: red;
-            font-size: 20px;
-        }
-
-        #listaFornecedores {
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
-            max-height: 150px;
-            overflow-y: auto;
-            border: 1px solid #ccc;
-            position: absolute;
-            background: white;
-            width: calc(100% - 20px);
-            z-index: 1000;
-        }
-
-        #listaFornecedores li {
-            padding: 8px;
-            cursor: pointer;
-        }
-
-        #listaFornecedores li:hover {
-            background-color: #f0f0f0;
-        }
-
-
-    </style>
 </head>
 
 <body>
 
-    <h1>Sistema de Cotações</h1>
+    <label class="novo_titulo" >Sistema de Cotações</label>
 
-    <table id="cotacaoTable">
-        <thead>
-            <tr class="title-row">
-                <th colspan="7">Requisição de Materiais</th>
-                <th id="fornecedoresHeader" colspan="50" style="display: none;">Fornecedor</th>
-            </tr>
-            <tr class="count-row">
-                <th colspan="7">Quantidade de itens: <span id="itemCount">0</span></th>
-            </tr>
-            <tr id="topicos-tabela">
-                <th>Ação</th>
-                <th>Número do Item</th>
-                <th>Partnumber</th>
-                <th>Nome do Item</th>
-                <th>Tipo Unitário</th>
-                <th>Quantidade</th>
-                <th>Estoque</th>
-            </tr>
-        </thead>
-        
-        <tbody></tbody>
-
-        <tfoot>
-
-            <tr id="linhaDesconto">
-
-                <th colspan="7">Desconto (%)</th>
-
-            </tr>
-
-            <tr id="linhaSubtotal">
-
-                <th colspan="7">Subtotal</th>
-
-            </tr>
-
-            <tr id="linhaFrete">
-
-                <th colspan="7">Frete (R$)</th>
-
-            </tr>
-
-            <tr id="linhaCondicaoPagar">
-
-                <th colspan="7">Condição de Pagamento</th>
-
-            </tr>
-
-            <tr id="linhaTotal">
-
-                <th colspan="7">Total</th>
-
-            </tr>
-
-        </tfoot>
-
-    </table>
+    <div class="table-container parent-container">
+        <table id="cotacaoTable">
+            <thead>
+                <tr class="title-row">
+                    <th colspan="7">Requisição de Materiais</th>
+                    <th id="fornecedoresHeader" colspan="50" style="display: none;">Fornecedor</th>
+                </tr>
+                <tr class="count-row">
+                    <th colspan="7">Quantidade de itens: <span id="itemCount">0</span></th>
+                </tr>
+                <tr id="topicos-tabela">
+                    <th>Ação</th>
+                    <th>Número do Item</th>
+                    <th>Partnumber</th>
+                    <th>Nome do Item</th>
+                    <th>Tipo Unitário</th>
+                    <th>Quantidade</th>
+                    <th>Estoque</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+                <tr id="linhaDesconto">
+                    <th colspan="7">Desconto (%)</th>
+                </tr>
+                <tr id="linhaSubtotal">
+                    <th colspan="7">Subtotal</th>
+                </tr>
+                <tr id="linhaFrete">
+                    <th colspan="7">Frete (R$)</th>
+                </tr>
+                <tr id="linhaCondicaoPagar">
+                    <th colspan="7">Condição de Pagamento</th>
+                </tr>
+                <tr id="linhaTotal">
+                    <th colspan="7">Total</th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    
 
     <div class="button-container">
 
@@ -250,7 +70,7 @@
             <h2>Adicionar Fornecedor</h2>
             <label for="pesquisarFornecedor">Pesquisar Fornecedor:</label>
             <input type="text" id="pesquisarFornecedor" placeholder="Digite o nome ou CNPJ">
-            <ul id="listaFornecedores"></ul>
+            <ul style="display: none;" id="listaFornecedores"></ul>
             <button onclick="salvarFornecedor()">Salvar</button>
             <button onclick="fecharModal()">Fechar</button>
         </div>
