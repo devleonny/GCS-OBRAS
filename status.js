@@ -329,7 +329,7 @@ function notas_no_financeiro(chave) {
     <div style="display: grid; gap: 10px;">
     <div style="display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center;">
         <label class="novo_titulo" style="color: #222">Inclua o número das Notas <strong>Remessa</strong>, <strong>Venda</strong> ou <strong>Serviço</strong></label> 
-        <p> Coloque o número da NF e escolha a qual pedido se refere.</p>
+        <p> Coloque o número da NF</p>
         </div>
         <div id="conteiner_pedido">
             <div class="conteiner_pedido">
@@ -889,8 +889,7 @@ function salvar_notas(chave) {//29
 
         novo_lancamento.historico[chave_his].notas.push({
             nota: input.value,
-            modalidade: selects[0].value,
-            pedido: selects[1].value
+            modalidade: selects[0].value
         });
 
         if (selects[0].value == 'Venda') {
@@ -1473,9 +1472,7 @@ async function abrir_esquema(id) {
 
                 var notas = ''
                 if (sst.notas) {
-                    notas += `
-                ${sst.notas[0].nota} - ${sst.notas[0].pedido}
-                `
+                    notas += `${sst.notas[0].nota}`
                 }
 
                 var totais = ''
