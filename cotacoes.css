@@ -1,0 +1,213 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+table th, table td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+}
+
+table th {
+    background-color: #007bff;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+table td {
+    background-color: #f9f9f9;
+    color: #333;
+    position: relative;
+}
+
+.title-row {
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+    background-color: #e9ecef;
+    color: #007bff;
+}
+
+.count-row {
+    font-size: 16px;
+    text-align: center;
+    background-color: #f8f9fa;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.remove-img {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+}
+
+.remove-img:hover {
+    opacity: 0.7;
+}
+
+.parent-container {
+    position: relative; /* Define o contexto de empilhamento para o auto-complete */
+}
+
+.autocomplete-suggestions {
+    position: absolute;
+    top: 100%; /* Move o auto-complete para logo abaixo do input */
+    left: 0;
+    background-color: #fff; /* Fundo sólido */
+    border: 1px solid #ccc; /* Adiciona uma borda */
+    max-height: 150px; /* Limita a altura para rolagem */
+    overflow-y: auto; /* Permite scroll vertical */
+    z-index: 1050; /* Garante que o auto-complete fique acima de outros elementos */
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Sombra leve */
+    width: 100%; /* Faz com que o auto-complete tenha a mesma largura do input */
+}
+
+
+
+.autocomplete-suggestions div {
+    padding: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.3s ease;
+}
+
+.autocomplete-suggestions div:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-suggestions div:hover {
+    background-color: #f4f4f4;
+    color: #000;
+}
+
+
+.button-container {
+    display: flex;
+    gap: 10px;
+}
+
+.modal {
+
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 50%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+    text-decoration: none;
+}
+
+button {
+    margin-top: 10px;
+}
+
+.modal-content button {
+    margin: 10px 5px;
+}
+
+.modal-content .close {
+    cursor: pointer;
+    color: red;
+    font-size: 20px;
+}
+
+#listaFornecedores {
+    list-style-type: none;
+    margin: 5px 0;
+    padding: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: #fff;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    position: absolute;
+    width: calc(100% - 20px);
+    z-index: 1000;
+}
+
+#listaFornecedores li {
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.3s ease;
+}
+
+#listaFornecedores li:last-child {
+    border-bottom: none;
+}
+
+#listaFornecedores li:hover {
+    background-color: #f5f5f5;
+    color: #000;
+}
+
+.table-container {
+    width: 100%; /* O contêiner ocupará 100% da largura disponível */
+    overflow-x: auto; /* Ativa o scroll horizontal */
+    overflow-y: hidden; /* Evita scroll vertical */
+    border-radius: 5px; /* Bordas arredondadas */
+    z-index: 1;
+    position: relative;
+}
+
+table {
+    width: 100%; /* A tabela se ajusta ao contêiner */
+    min-width: 1200px; /* Define uma largura mínima maior para forçar o scroll */
+    border-collapse: collapse; /* Remove espaços entre as bordas */
+    background-color: #ffffff; /* Fundo branco */
+}
+
+table th, table td {
+    text-align: center; /* Centraliza o texto */
+}
+
