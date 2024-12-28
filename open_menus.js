@@ -1,5 +1,5 @@
 var acesso = JSON.parse(localStorage.getItem('acesso'))
-var versao = 'teste_2' //'v3.0.4'
+var versao = 'teste_3' //'v3.0.4'
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F5') {
