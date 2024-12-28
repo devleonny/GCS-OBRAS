@@ -2,9 +2,9 @@ let contador = 1;
 let linhasAtuais = [];
 let quantidadeFornecedores = 0;
 
-obter_materiais();
 
 document.addEventListener("DOMContentLoaded", () => {
+    obter_materiais();
     adicionarLinha();
 });
 
@@ -88,7 +88,7 @@ function adicionarLinha() {
     
     if(fornecedoresHeader.style.display == "table-cell"){
 
-        linhaAtualQuantidade = inputQuantidade.id[11]
+        let linhaAtualQuantidade = inputQuantidade.id[11]
 
         for(let i = 1; i <= quantidadeFornecedores; i++){
 
@@ -96,7 +96,7 @@ function adicionarLinha() {
             let inputPrecoUnitario = document.createElement("input")
             inputPrecoUnitario.type = "number"
             inputPrecoUnitario.placeholder = "Digite o preço unitário"
-            inputPrecoUnitario.id = `precoUnitario-${quantidadeFornecedores}-${linhaAtualQuantidade}`
+            inputPrecoUnitario.id = `precoUnitario-${i}-${linhaAtualQuantidade}`
 
             let linhaQuantidade = inputPrecoUnitario.id[16]
             let numeroDoFornecedor = inputPrecoUnitario.id[14]
@@ -111,20 +111,6 @@ function adicionarLinha() {
 
             })
             
-            inputPrecoUnitario.addEventListener('input', () =>{
-                
-                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0
-                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0
-                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`)
-
-                console.log(`#precoTotal-${numeroDoFornecedor}-${linhaAtualQuantidade}`)
-
-                console.log(precoTotalAtual)
-
-                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`
-
-            })
-
             tdPrecoUnitario.appendChild(inputPrecoUnitario)
             
             let tdPrecototal = document.createElement("td")
@@ -132,12 +118,27 @@ function adicionarLinha() {
             inputPrecoTotal.type = 'text'
             inputPrecoTotal.readOnly = "true"
             
-            inputPrecoTotal.id = `precoTotal-${quantidadeFornecedores}-${linhaAtualQuantidade}`
+            inputPrecoTotal.id = `precoTotal-${i}-${linhaAtualQuantidade}`
 
+            inputPrecoTotal.classList.add(`resultadoPrecoTotal-linha-${linhaAtualQuantidade}`)
+            inputPrecoTotal.classList.add(`resultadoPrecoTotal-fornecedor-${i}`)
+            
             tdPrecototal.appendChild(inputPrecoTotal)
+            
+            inputPrecoUnitario.addEventListener('input', () =>{
+                
+                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0
+                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0
+                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`)
+
+                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`
+
+                decidirMelhorOferta(linhaQuantidade)
+
+            })
 
             novaLinha.append(tdPrecoUnitario, tdPrecototal)
-            
+
         }
         
         
@@ -166,12 +167,13 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
             input.value = item.descricao;
             partnumberCell.querySelector("input").value = item.partnumber || "";
             estoqueCell.querySelector("input").value = item.estoque ?? 0;
-            sugestoes.innerHTML = "";
+            sugestoes.innerHTML = ""; // Limpa as sugestões
         };
 
         sugestoes.appendChild(sugestao);
     });
 }
+
 
 let nomeFornecedor = "";
 
@@ -179,6 +181,9 @@ function abrirModal() {
 
     const modal = document.getElementById("fornecedorModal");
     modal.style.display = "block";
+    const input = document.getElementById("pesquisarFornecedor");
+
+    input.addEventListener("input", () => filtroFornecedores())
 
 }
 
@@ -191,7 +196,7 @@ function salvarFornecedor() {
 
     quantidadeFornecedores++;
 
-    const input = document.getElementById("fornecedorNome");
+    const input = document.getElementById("pesquisarFornecedor");
     const trNomeFornecedor = document.querySelector(".count-row")
     const thNomeFornecedor = document.createElement("th")
     const trTopicostabela = document.querySelector("#topicos-tabela")
@@ -240,6 +245,8 @@ function salvarFornecedor() {
 
                 precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`
 
+                decidirMelhorOferta(linhaQuantidade)
+
             })
 
             tdPrecoUnitario.appendChild(inputPrecoUnitario)
@@ -251,6 +258,9 @@ function salvarFornecedor() {
             
             inputPrecoTotal.id = `precoTotal-${quantidadeFornecedores}-${linhaAtualQuantidade}`
 
+            inputPrecoTotal.classList.add(`resultadoPrecoTotal-linha-${linhaAtualQuantidade}`)
+            inputPrecoTotal.classList.add(`resultadoPrecoTotal-fornecedor-${quantidadeFornecedores}`)
+
             linhaAtualQuantidade++;
 
             tdPrecototal.append(inputPrecoTotal)
@@ -261,17 +271,26 @@ function salvarFornecedor() {
 
         }
 
+        adiconarFooter()
+
         const fornecedoresHeader = document.getElementById("fornecedoresHeader");
 
         fornecedoresHeader.style.display = "table-cell";
 
         thNomeFornecedor.textContent = nomeFornecedor
+        
         trNomeFornecedor.appendChild(thNomeFornecedor)
+
         trTopicostabela.append(thPrecoUnitario,thPrecoTotal)
+
         fecharModal();
+
         console.log("Fornecedor salvo:", nomeFornecedor);
+
     } else {
+
         alert("Por favor, digite um nome válido.");
+
     }
 }
 
@@ -280,5 +299,245 @@ function esconderFornecedores() {
     const fornecedoresHeader = document.getElementById("fornecedoresHeader");
 
     fornecedoresHeader.style.display = "none";
+
+}
+
+function decidirMelhorOferta(linha_quantidade){
+
+    let listaValores = document.querySelectorAll(`input.resultadoPrecoTotal-linha-${linha_quantidade}`)
+
+    menorValor = descobrirMenorValor(listaValores)
+
+    estilizarMelhorPreco(listaValores, menorValor)
+
+}
+
+function adiconarFooter(){
+
+    let linhaDesconto = document.querySelector("#linhaDesconto")
+
+    let linhaSubtotal = document.querySelector("#linhaSubtotal")
+
+    let linhaFrete = document.querySelector("#linhaFrete")
+
+    let linhaCondicaoPagar = document.querySelector("#linhaCondicaoPagar")
+
+    let linhaTotal = document.querySelector("#linhaTotal")
+
+    let tdDesconto = document.createElement("td")
+    let inputDesconto = document.createElement("input")
+
+    inputDesconto.id = `input-desconto-${quantidadeFornecedores}`
+    tdDesconto.colSpan = "2"
+    inputDesconto.placeholder = "Digite a % do Desconto"
+    inputDesconto.type = 'number'
+
+    let numeroFornecedorDesconto = inputDesconto.id[15]
+
+    inputDesconto.addEventListener('input', () => calculoSubtotal(numeroFornecedorDesconto))
+
+    tdDesconto.appendChild(inputDesconto)
+    linhaDesconto.appendChild(tdDesconto)
+
+    let tdSubtotal = document.createElement("td")
+    let inputSubtotal = document.createElement("input")
+
+    inputSubtotal.id = `input-subtotal-${quantidadeFornecedores}`
+    inputSubtotal.classList.add("inputs-subtotal")
+    tdSubtotal.colSpan = "2"
+    inputSubtotal.readOnly = "true"
+    
+    tdSubtotal.appendChild(inputSubtotal)
+    linhaSubtotal.appendChild(tdSubtotal)
+
+    let tdFrete = document.createElement("td")
+    let inputFrete = document.createElement("input")
+
+    inputFrete.id = `input-frete-${quantidadeFornecedores}`
+    tdFrete.colSpan = "2"
+    inputFrete.placeholder = "Digite o Frete"
+    inputFrete.type = "number"
+
+    let numeroFornecedorFrete = inputFrete.id[12]
+
+    inputFrete.addEventListener('input', () => calculoTotal(numeroFornecedorFrete))
+
+    tdFrete.appendChild(inputFrete)
+    linhaFrete.appendChild(tdFrete)
+
+    let tdCondicaoPagar = document.createElement("td")
+    let inputCondicaoPagar = document.createElement("input")
+
+    inputCondicaoPagar.id = `input-condicao-pagar-${quantidadeFornecedores}`
+    tdCondicaoPagar.colSpan = "2"
+    inputCondicaoPagar.placeholder = "Digite a Condição de Pagamento"
+
+    tdCondicaoPagar.appendChild(inputCondicaoPagar)
+    linhaCondicaoPagar.appendChild(tdCondicaoPagar)
+
+    let tdTotal = document.createElement("td")
+    let inputTotal = document.createElement("input")
+
+    inputTotal.id = `input-total-${quantidadeFornecedores}`
+    inputTotal.classList.add("inputs-total")
+    tdTotal.colSpan = "2"
+    inputTotal.readOnly = "true"
+
+    tdTotal.appendChild(inputTotal)
+    linhaTotal.appendChild(tdTotal)
+
+}
+
+function calculoSubtotal(numeroFornecedor){
+
+    let tdSubtotal = document.querySelector(`#input-subtotal-${numeroFornecedor}`)
+
+    let inputsSubtotal = document.querySelectorAll(".inputs-subtotal")
+    
+    let quantidadeDesconto = document.querySelector(`#input-desconto-${numeroFornecedor}`).value
+    
+    let valorSubtotal = 0
+    
+    let listaValores = document.querySelectorAll(`input.resultadoPrecoTotal-fornecedor-${numeroFornecedor}`)
+    
+    for(valor of listaValores){
+        
+        valorReal = valor.value
+        
+        valorReal = parseFloat(valorReal.slice(3))
+        
+        valorSubtotal += valorReal
+        
+    }
+    
+    let valorDesconto = valorSubtotal * (quantidadeDesconto / 100)
+    
+    tdSubtotal.value = `R$ ${(valorSubtotal - valorDesconto).toFixed(2)}`
+    
+     let menorValor = descobrirMenorValor(inputsSubtotal)
+
+    estilizarMelhorPreco(inputsSubtotal, menorValor)
+
+}
+
+function calculoTotal(numeroFornecedor){
+
+    let inputsTotal = document.querySelectorAll(".inputs-total")
+
+    let tdFrete = parseFloat(document.querySelector(`#input-frete-${numeroFornecedor}`).value)
+
+    let tdSubtotal = parseFloat(document.querySelector(`#input-subtotal-${numeroFornecedor}`).value.slice(3))
+
+    inputTotal = document.querySelector(`#input-total-${numeroFornecedor}`)
+
+    inputTotal.value = `R$ ${(tdSubtotal + tdFrete).toFixed(2)}`
+
+    menorValor = descobrirMenorValor(inputsTotal)
+
+    estilizarMelhorPreco(inputsTotal, menorValor)
+
+}
+
+function estilizarMelhorPreco(listaValores, menorValor){
+
+    for(valor of listaValores){
+
+        valorReal = valor.value
+        
+        valorReal = parseFloat(valorReal.slice(3))
+
+        if(menorValor == valorReal){
+
+            valor.style.backgroundColor = "green"
+
+        }else{
+
+            valor.style.backgroundColor = "white"
+
+        }
+
+    }
+
+}
+
+function descobrirMenorValor(listaValores){
+
+    let menorValor = Infinity
+
+    for(valor of listaValores){
+        
+        valorReal = valor.value
+        
+        valorReal = parseFloat(valorReal.slice(3))
+
+        if(valorReal < menorValor){
+
+            menorValor = valorReal
+
+        }
+
+    }
+
+    return menorValor
+
+}
+
+async function carregarFornecedores(){
+
+    const fornecedores = await recuperarDados('dados_clientes');
+    return Object.values(fornecedores);
+
+}
+
+async function filtroFornecedores() {
+    
+    const termo = document.getElementById('pesquisarFornecedor').value.toLowerCase();
+    const lista = document.getElementById('listaFornecedores');
+    lista.style.display = "block"
+    lista.innerHTML = "";
+
+    if (termo.trim() === "") {
+        
+        lista.style.display = "none"
+
+        return};
+
+    const fornecedores = await carregarFornecedores();
+
+    const resultados = fornecedores.filter(fornecedor =>{
+
+        if(fornecedor.nome && fornecedor.cnpj){
+
+            return fornecedor.nome.toLowerCase().includes(termo) || fornecedor.cnpj.includes(termo)
+
+        }else if(fornecedor.nome){
+
+            return fornecedor.nome.toLowerCase().includes(termo)
+
+        }else if(fornecedor.cnpj){
+
+            return fornecedor.cnpj.includes(termo)
+
+        }
+
+        
+    }
+
+    
+);
+
+resultados.forEach(fornecedor => {
+    const item = document.createElement('li');
+    item.textContent = fornecedor.nome;
+    item.dataset.cnpj = fornecedor.cnpj;
+
+    item.addEventListener('click', function () {
+        document.getElementById('pesquisarFornecedor').value = fornecedor.nome;
+        lista.style.display = "none"
+        lista.innerHTML = "";
+    });
+
+    lista.appendChild(item);
+});
 
 }
