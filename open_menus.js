@@ -1,5 +1,5 @@
 var acesso = JSON.parse(localStorage.getItem('acesso'))
-var versao = 'v3.0.3'
+var versao = 'v3.0.4'
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F5') {
@@ -17,7 +17,7 @@ localStorage.removeItem('dados_composicoes')
 localStorage.removeItem('lista_pagamentos')
 
 function inserirDados(dados, nome_da_base) {
-    // Primeiro, abra o banco para verificar a versão e stores existentes
+    // Primeiro, abra o banco para verificar a versão e setores existentes
     const request = indexedDB.open('Bases');
     let novaVersao;
 
