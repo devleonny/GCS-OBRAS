@@ -8,10 +8,9 @@
 
     <title>FINANCEIRO</title>
 
-    <link rel="stylesheet" type="text/css" href="popup.css">
-    <link rel="stylesheet" type="text/css" href="gcsobras.css">
-    <link rel="stylesheet" type="text/css" href="popup.css">
-    <link rel="stylesheet" href="financeiro.css">
+    <link rel="stylesheet" type="text/css" href="/styles/popup.css">
+    <link rel="stylesheet" type="text/css" href="/styles/gcsobras.css">
+    <link rel="stylesheet" href="/styles/financeiro.css">
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
@@ -25,14 +24,14 @@
     <div id="content">
         <div style="display: flex; width: 80%; height: 5vh; margin-bottom: 5vh; align-items: center;">
             <div>
-                <img src="imagens/BG.png" style="height: 10vw; margin-right: 5vw;">
+                <img src="/imagens/BG.png" style="height: 10vw; margin-right: 5vw;">
             </div>
             <input id="campo-pesquisa" placeholder="Digite algum termo aqui..." list="datalist_projetos"></input>
             <datalist id="datalist_projetos"></datalist>
-            <img class="img_botoes" onclick="pesquisar_pagamento()" src="imagens/pesquisar.png">
-            <img class="img_botoes" onclick="atualizar()" src="imagens/atualizar.png">
-            <img class="img_botoes" src="imagens/excel.png" id="excel" onclick="openPopup('No momento não está disponível...')">
-            <img class="img_botoes" src="imagens/add.png" onclick="abrir_pagamentos(true)" id="add_pagamento">
+            <img class="img_botoes" onclick="pesquisar_pagamento()" src="/imagens/pesquisar.png">
+            <img class="img_botoes" onclick="atualizar()" src="/imagens/atualizar.png">
+            <img class="img_botoes" src="/imagens/excel.png" id="excel" onclick="openPopup('No momento não está disponível...')">
+            <img class="img_botoes" src="/imagens/add.png" onclick="abrir_pagamentos(true)" id="add_pagamento">
             <label class="novo_titulo">Financeiro</label>
         </div>
 
@@ -54,7 +53,7 @@
             <button onclick="closePopup_financeiro()" class="close-btn">&times;</button>
 
             <h2 class="titulo_pagamento">
-                <img src="imagens/LG.png" class="img_s">
+                <img src="/imagens/LG.png" class="img_s">
                 Solicitação de Pagamento
             </h2>
 
@@ -79,7 +78,7 @@
                         <label class="label_form_label">CNPJ/CPF</label>
                         <input type="text" class="label_form" id="cnpj_cpf">
                         <button onclick="botao_cadastrar_cliente()" id="botao_cadastrar_cliente">Cadastrar</button>
-                        <img src="gifs/loading.gif" style="width: 20%; display: none;" id="loading_cliente">
+                        <img src="/gifs/loading.gif" style="width: 20%; display: none;" id="loading_cliente">
                     </div>
                 </div>
 
@@ -106,7 +105,7 @@
                     </div>
 
                     <div style="display: flex; justify-content: center; width: 40px; height: 32px; margin-left: 20px;">
-                        <img src="imagens/add.png" id="B_add_categoria" style="cursor: pointer;">
+                        <img src="/imagens/add.png" id="B_add_categoria" style="cursor: pointer;">
                     </div>
                 </div>
 
@@ -118,13 +117,13 @@
                     </div>
 
                     <div style="display: flex; justify-content: center; width: 40px; height: 32px; margin-left: 20px;">
-                        <img src="imagens/add.png" id="B_add_departamento" style="cursor: pointer;">
+                        <img src="/imagens/add.png" id="B_add_departamento" style="cursor: pointer;">
                     </div>
                 </div>
 
                 <div class="contorno_financeiro"
                     style="display: flex; align-items: center; justify-content: space-between;">
-                    <img src="imagens/anexo.png" style="width: 22px; cursor: pointer; margin-right: 20px;">
+                    <img src="/imagens/anexo.png" style="width: 22px; cursor: pointer; margin-right: 20px;">
                     <label>Anexos</label>
                     <label for="adicionar_anexo" class="trello_button">Adicionar
                         <input type="file" id="adicionar_anexo" style="display: none;">
@@ -139,7 +138,7 @@
         </div>
 
         <div id="loading" style="display: none;">
-            <img src="gifs/loading.gif" style="width: 25%;">
+            <img src="/gifs/loading.gif" style="width: 25%;">
         </div>
 
         <table id="tabela">
@@ -172,9 +171,9 @@
 
 </body>
 
-<script src="open_menus.js"></script>
-<script src="popup.js"></script>
-<script src="financeiro.js"></script>
-<script src="gerar_excel.js"></script>
+<script src="/scripts/open_menus.js"></script>
+<script src="/scripts/popup.js"></script>
+<script src="/scripts/financeiro.js"></script>
+<script src="/scripts/gerar_excel.js"></script>
 
 </html>

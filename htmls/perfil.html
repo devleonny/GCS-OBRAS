@@ -2,10 +2,14 @@
 <html lang="pt-BR">
 
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Perfil</title>
-    <link rel="stylesheet" type="text/css" href="gcsobras.css">
+
+    <link rel="stylesheet" type="text/css" href="/styles/gcsobras.css">
+
 </head>
 
 <body>
@@ -13,13 +17,13 @@
     <div id="content">
 
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;"
-            onclick="window.location.href='inicial.html'">
-            <img src="imagens/voltar.png" style=" cursor: pointer;" onclick="window.location.href='inicial.html'">
+            onclick="window.location.href='/htmls/inicial.html'">
+            <img src="/imagens/voltar.png" style=" cursor: pointer;" onclick="window.location.href='/htmls/inicial.html'">
             <label style="color: white;">Voltar</label>
         </div>
 
         <div style="display: flex; justify-content: center; align-items: center;">
-            <img src="imagens/BG.png" style="width: 20vw;">
+            <img src="/imagens/BG.png" style="width: 20vw;">
         </div>
         <div class="retangulo">
             <h3>Perfil</h3>
@@ -45,18 +49,7 @@
 
 </body>
 
-<script src="./open_menus.js"></script>
-
-<script>
-    var dados_usuario = JSON.parse(localStorage.getItem('acesso'))
-
-    var lista = ['usuario', 'nome_completo', 'email', 'telefone']
-
-    lista.forEach(function (item) {
-        document.getElementById(item).textContent = dados_usuario[item]
-    })
-
-
-</script>
+<script src="/scripts/open_menus.js"></script>
+<script src="/scripts/perfil.js"></script>
 
 </html>

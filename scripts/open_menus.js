@@ -359,7 +359,7 @@ function ir_para(modulo) {
 
     localStorage.setItem('modulo_ativo', modulo)
 
-    window.location.href = 'orcamentos.html'
+    window.location.href = '/htmls/orcamentos.html'
 
 }
 
@@ -582,7 +582,7 @@ async function recuperar_dados_clientes() {
     if (acompanhamento_dados_clientes) {
         acompanhamento_dados_clientes.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: left;">
-        <img src="gifs/loading.gif" style="width: 50px"> 
+        <img src="/gifs/loading.gif" style="width: 50px"> 
         <label>Aguarde alguns segundos... </label>
         </div>
         `
@@ -606,7 +606,7 @@ async function recuperar_dados_clientes() {
                     dados_clientes_provisorios = data
                     carregar_datalist_clientes()
                     acompanhamento_dados_clientes.innerHTML = `
-                        <img src="gifs/alerta.gif" style="width: 30px;">
+                        <img src="/gifs/alerta.gif" style="width: 30px;">
                         <label style="text-decoration: underline; cursor: pointer;" onclick="recuperar_dados_clientes()">Clique aqui para sincronizar com o Omie os dados do Cliente...</label>
                     `
                 }
@@ -969,7 +969,7 @@ function calculadora_reversa() {
         calculadora +=`
         <div id="mini_calculadora">
         <label>Calculadora ICMS</label>
-        <img src="imagens/calculadora.png" style="width: 50px; cursor: pointer;" onclick="exibir_calculadora()">
+        <img src="/imagens/calculadora.png" style="width: 50px; cursor: pointer;" onclick="exibir_calculadora()">
         </div>
     `
     }
@@ -1078,7 +1078,7 @@ function carregamento(local) {
 
     var elemento = `
     <div id="carregamento" style="display: flex; width: 100%; align-items: center; justify-content: center; gap: 10px;">
-        <img src="gifs/loading.gif" style="width: 5vw">
+        <img src="/gifs/loading.gif" style="width: 5vw">
         <label style="color: white; font-size: 1.5em;">Aguarde...</label>
     </div>
     `
@@ -1483,13 +1483,13 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
                 <div style="display: flex; justify-content: space-evenly; width: 100%; gap:">
                     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;"
                         onclick="window.location.href='inicial.html'">
-                        <img src="imagens/voltar.png" style=" cursor: pointer;" onclick="window.location.href='inicial.html'">
+                        <img src="/imagens/voltar.png" style=" cursor: pointer;" onclick="window.location.href='inicial.html'">
                         <label style="color: white;">Voltar</label>
                     </div>
                     
 
                     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <img src="imagens/atualizar_2.png" style="width: max-content; cursor: pointer;" onclick="atualizar_pagamentos_menu()">
+                        <img src="/imagens/atualizar_2.png" style="width: max-content; cursor: pointer;" onclick="atualizar_pagamentos_menu()">
                         <label style="color: white;">Atualizar</label>
                     </div>
                 </div>

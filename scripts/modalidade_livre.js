@@ -8,7 +8,7 @@ function retornar_ao_orcamento_tradicional() {
 
     openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <img src="/gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>O orçamento atual será descartado e um novo será aberto na modalidade <strong>tradicional</strong>, tudo bem?</label>
                 <div style="display: flex; justify-content: space-evenly; align-items: center;">
                 <button onclick="carregar_layout_modalidade_tradicional()" style="background-color: green;">Confirmar</button>
@@ -34,7 +34,7 @@ function modalidade_livre_de_orcamento() {
 
     openPopup_v2(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <img src="/gifs/alerta.gif" style="width: 3vw; height: 3vw;">
             <label>O orçamento atual será descartado e um novo será aberto na modalidade <strong>livre</strong>, tudo bem?</label>
             <div style="display: flex; justify-content: space-evenly; align-items: center;">
             <button onclick="carregar_layout_modalidade_livre()" style="background-color: green;">Confirmar</button>
@@ -69,7 +69,7 @@ function carregar_layout_modalidade_livre() {
 
                 <div
                     style="position: relative; display: flex; justify-content: center; align-items: center; border-radius: 3px;">
-                    <img src="imagens/BG.png" style="height: 200px;">
+                    <img src="/imagens/BG.png" style="height: 200px;">
 
                 </div>
 
@@ -110,7 +110,7 @@ function carregar_layout_modalidade_livre() {
 
                 <div onclick="retornar_ao_orcamento_tradicional()"
                     style="position: absolute; right: 10px; top: 3px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 3px; padding: 5px;">
-                    <img src="gifs/alerta.gif" style="width: 25px; cursor: pointer;">
+                    <img src="/gifs/alerta.gif" style="width: 25px; cursor: pointer;">
                     <label style="cursor: pointer;">Orçamento Tradicional?</label>
                 </div>
 

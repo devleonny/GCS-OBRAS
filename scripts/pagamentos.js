@@ -244,12 +244,12 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
 
                 <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
                     onclick="window.location.href='inicial.html'">
-                    <img src="imagens/voltar.png" style="cursor: pointer; width: 30px;" onclick="window.location.href='inicial.html'">
+                    <img src="/imagens/voltar.png" style="cursor: pointer; width: 30px;" onclick="window.location.href='inicial.html'">
                     <label style="color: white;">Voltar</label>
                 </div>
                     
                 <div style="display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="atualizar_pagamentos_menu()">
-                    <img src="imagens/atualizar_2.png" style="width: max-content; cursor: pointer; width: 30px;">
+                    <img src="/imagens/atualizar_2.png" style="width: max-content; cursor: pointer; width: 30px;">
                     <label style="color: white;">Atualizar Pagamentos</label>
                 </div>
 
@@ -345,7 +345,7 @@ async function abrir_detalhes(id_pagamento) {
 
         anexos += `
         <div style="display: flex; gap: 10px; align-items: center; justify-content: left; cursor: pointer;" onclick="abrirArquivo('${arquivo}')">
-        <img src="imagens/anexo.png" style="width: 20px; cursor: pointer;">
+        <img src="/imagens/anexo.png" style="width: 20px; cursor: pointer;">
         <label>${anexo.nome}</label>
         </div>
         `
@@ -431,7 +431,7 @@ async function abrir_detalhes(id_pagamento) {
 
             <div style="display: flex; align-items: center; justify-content: center;">
 
-                <img src="gifs/alerta.gif">
+                <img src="/gifs/alerta.gif">
 
                 <label style="margin: 10px;">Responda a solicitação aqui</label>
 
@@ -471,7 +471,7 @@ async function abrir_detalhes(id_pagamento) {
             if (campo == 'orcamento') {
                 info_existente += `
                 <div class="anexos" onclick="ir_pdf('${pagamento.id_orcamento}')" style="border: solid 1px green;">
-                    <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
+                    <img src="/imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
                     <label style="cursor: pointer; font-size: 0.6em;"><strong>Orçamento disponível</strong></label>
                 </div>
             `
@@ -495,7 +495,7 @@ async function abrir_detalhes(id_pagamento) {
                                 let anexo = anexos[anx]
                                 info_existente += `
                                 <div onclick="abrirArquivo('https://drive.google.com/file/d/${anexo.link}')" class="anexos" style="border: solid 1px green;">
-                                    <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
+                                    <img src="/imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
                                     <label style="cursor: pointer; font-size: 0.6em"><strong>${anexo.nome}</strong></label>
                                 </div>                                
                                 `
@@ -515,7 +515,7 @@ async function abrir_detalhes(id_pagamento) {
                         <div style="display: flex; gap: 5px; align-items: center; justify-content: left; width: 100%;">
                             <label>${label_elemento}</label>
                             <label class="contorno_botoes" for="anexo_${campo}" style="justify-content: center; border-radius: 50%;">
-                                <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
+                                <img src="/imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
                                 <input type="file" id="anexo_${campo}" style="display: none;" onchange="anexos_parceiros('${campo}','${pagamento.id_pagamento}')">
                             </label>
                         </div>   
@@ -580,7 +580,7 @@ async function abrir_detalhes(id_pagamento) {
         <label><strong>Quem recebe? • </strong> ${cliente}</label>
         <div id="centro_de_custo_div" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
             <label><strong>Centro de Custo</strong> • ${cc}</label>
-            <img src="gifs/alerta.gif" style="width: 30px; cursor: pointer;" onclick="alterar_centro_de_custo('${id_pagamento}')">
+            <img src="/gifs/alerta.gif" style="width: 30px; cursor: pointer;" onclick="alterar_centro_de_custo('${id_pagamento}')">
         </div>
         ${pedido}
         <label><strong>Data de Solicitação</strong> • ${pagamento.data_registro}</label>
@@ -633,7 +633,7 @@ async function abrir_detalhes(id_pagamento) {
 
                 var element = `
                 <div onclick="abrirArquivo('https://drive.google.com/file/d/${anexo.link}')" class="anexos" style="border: solid 1px green;">
-                    <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
+                    <img src="/imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
                     <label style="cursor: pointer; font-size: 0.6em;"><strong>${anexo.nome}</strong></label>
                 </div>
                 `

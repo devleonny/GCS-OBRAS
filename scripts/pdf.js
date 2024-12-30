@@ -38,7 +38,7 @@ async function atualizar_dados_pdf() {
 
     if (campo_atualizar) {
         campo_atualizar.innerHTML = `
-        <img src="gifs/loading.gif" style="width: 5vw;">
+        <img src="/gifs/loading.gif" style="width: 5vw;">
         `
         await recuperar()
 
@@ -84,7 +84,7 @@ async function preencher_v2(parceiro) {
             <label>PDF</label>
         </div>
         <div class="icone" onclick="excel()">
-            <img src="imagens/excel.png">
+            <img src="/imagens/excel.png">
             <label>Excel</label>
         </div>
         ${elem_parceiro}
@@ -463,7 +463,7 @@ function calcular_parceiro() {
         valor_a_pagar = `
         <label style="padding: 5px;"> <strong>${dinheiro(VAPM)}</strong></label>
         <label>${(VAPM / total_itens_validos * 100).toFixed(1)}%</label>
-        <img src="gifs/alerta.gif" style="width: 3vw; cursor: pointer;" onclick="confirmar_edicao_valor()">
+        <img src="/gifs/alerta.gif" style="width: 3vw; cursor: pointer;" onclick="confirmar_edicao_valor()">
         `
 
         if (total_itens_validos * perc_parceiro < VAPM) {
@@ -519,7 +519,7 @@ function confirmar_edicao_valor() {
 
     openPopup_v2(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <img src="/gifs/alerta.gif" style="width: 3vw; height: 3vw;">
             <label><strong>ATENÇÃO</strong> <br>Deseja editar o cálculo?</label>
             <button onclick="atualizar_valor()" style="background-color: green;">Sim</button>
             <button onclick="remover_popup()">Não</button>

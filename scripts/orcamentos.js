@@ -705,12 +705,12 @@ async function tela_pagamento(chave1) {
                 </div>
 
                 <div onclick="atualizar_departamentos()" class="botoes_financeiro">
-                    <img src="imagens/atualizar_2.png" style="width: 30px;">
+                    <img src="/imagens/atualizar_2.png" style="width: 30px;">
                 </div>
             </div>
 
             <div id="aguarde" style="display: none; width: 100%; align-items: center; justify-content: center; gap: 10px;">
-                <img src="gifs/loading.gif" style="width: 5vw">
+                <img src="/gifs/loading.gif" style="width: 5vw">
                 <label>Aguarde...</label>
             </div>
         </div>
@@ -750,13 +750,13 @@ async function tela_pagamento(chave1) {
                         </div>
 
                         <div onclick="atualizar_base_clientes()" class="botoes_financeiro">
-                            <img src="imagens/atualizar_2.png" style="width: 30px;">
+                            <img src="/imagens/atualizar_2.png" style="width: 30px;">
                         </div>
 
                     </div>
 
                     <div id="aguarde_2" style="display: none; width: 100%; align-items: center; justify-content: center; gap: 10px;">
-                        <img src="gifs/loading.gif" style="width: 5vw">
+                        <img src="/gifs/loading.gif" style="width: 5vw">
                         <label>Baixando clientes do Omie...</label>
                     </div>
 
@@ -765,7 +765,7 @@ async function tela_pagamento(chave1) {
                 <div id="container_cnpj_cpf" style="display: none; align-items: center; gap: 10px;">
 
                     <div class="numero" style="background-color: transparent;">
-                        <img src="gifs/alerta.gif" style="width: 30px; height: 30px;">
+                        <img src="/gifs/alerta.gif" style="width: 30px; height: 30px;">
                     </div>
 
                     <div class="itens_financeiro" style="background-color: #B12425">
@@ -833,7 +833,7 @@ async function tela_pagamento(chave1) {
                     <label id="tempo" class="contorno_botoes" style="background-color: #097fe6"></label>
                     <label> Vai cair em </label>
                     <label id="tempo_real" class="contorno_botoes" style="background-color: #097fe6"></label>
-                    <img src="gifs/alerta.gif" style="width: 30px;">
+                    <img src="/gifs/alerta.gif" style="width: 30px;">
                 </div>
 
                 <div style="display: flex; width: 100%; justify-content: center; align-items: center;">
@@ -1393,7 +1393,7 @@ function anexos_parceiros(campo, id_pagamento) {
 
                 var resposta = `
                 <div onclick="abrirArquivo('https://drive.google.com/file/d/${result.fileId}')" class="anexos" style="border: solid 1px green;">
-                    <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
+                    <img src="/imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
                     <label style="cursor: pointer; font-size: 0.6em"><strong>${fileName}</strong></label>
                 </div>   
                 `
