@@ -29,7 +29,7 @@ function createWindow() {
         }
     });
 
-    mainWindow.loadFile(path.join(__dirname, 'login.html'));
+    mainWindow.loadFile(path.join(__dirname, '/htmls/login.html'));
 
     mainWindow.on('closed', () => {
         mainWindow = null;
@@ -60,7 +60,7 @@ appExpress.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 appExpress.use(express.static(__dirname));
 
 appExpress.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'inicial.html'));
+    res.sendFile(path.join(__dirname, '/htmls/inicial.html'));
 });
 
 const credentials = {

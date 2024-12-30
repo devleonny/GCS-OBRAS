@@ -212,7 +212,7 @@ function preencher_orcamentos_v2(st) {
                     <td style="white-space: nowrap;">${orc.total_geral}</td>
                     <td style="white-space: nowrap;">${orc.lpu_ativa}</td>
                     <td style="text-align: center;" onclick="exibir_todos_os_status('${orcamento}')">
-                        <img src="imagens/pesquisar2.png" style="width: 20px; height: 20px;">
+                        <img src="/imagens/pesquisar2.png" style="width: 20px; height: 20px;">
                     </td>
                 </tr>
                 `
@@ -240,7 +240,7 @@ function preencher_orcamentos_v2(st) {
             tsh += `
             <th style="background-color: white; border-radius: 0px;">
                 <div style="position: relative;">
-                    <img src="imagens/pesquisar2.png" style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
+                    <img src="/imagens/pesquisar2.png" style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
                     <input placeholder="${cab}" style="margin-left: 25px; text-align: left;" oninput="pesquisar_v2(${i}, this.value)">
                 </div>
             </th>            
@@ -395,7 +395,7 @@ function editar(orcam_) {
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
-    window.location.href = 'adicionar.html'
+    window.location.href = '/htmls/adicionar.html'
 
 }
 
@@ -416,7 +416,7 @@ function duplicar(orcam_) {
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
-    window.location.href = 'adicionar.html'
+    window.location.href = '/htmls/adicionar.html'
 }
 
 function salvar_dados_em_excel() {
@@ -600,7 +600,7 @@ async function criar_pagamento_v2(chave1) {
 
         openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="imagens/concluido.png" style="width: 3vw; height: 3vw;">
+                <img src="/imagens/concluido.png" style="width: 3vw; height: 3vw;">
                 <label>Pagamento Solicitado</label>
             </div>                
         `);
@@ -731,7 +731,7 @@ async function tela_pagamento(chave1) {
                 <label>• Adiantamento de parceiro, o pagamento ocorre em até 8 dias.</label>
             </div>
 
-            <img src="gifs/baixo.gif" style="width: 2vw;">
+            <img src="/gifs/baixo.gif" style="width: 2vw;">
 
             <div class="central_categorias">
 
@@ -773,7 +773,7 @@ async function tela_pagamento(chave1) {
                             <div style="display: flex; align-items: center; gap: 20px;">
                                 <input type="text" id="cnpj_cpf" oninput="calculadora_pagamento()"
                                     placeholder="Digite o CNPJ ou CPF aqui...">
-                                <img src="imagens/confirmar.png" onclick="botao_cadastrar_cliente()" id="botao_cadastrar_cliente"
+                                <img src="/imagens/confirmar.png" onclick="botao_cadastrar_cliente()" id="botao_cadastrar_cliente"
                                     style="margin: 10px; cursor: pointer; width: 30px;">
                             </div>
 
@@ -1104,7 +1104,7 @@ function nova_categoria() {
             <datalist id="W1">${criar_datalist('categorias')}</datalist>
             <label>Valor</label>
             <input type="number" oninput="calculadora_pagamento()" placeholder="0,00">
-            <label src="imagens/remover.png" style="cursor: pointer; width: 25px; font-size: 2.5vw;" onclick="apagar_categoria(this)">&times;</label>
+            <label src="/imagens/remover.png" style="cursor: pointer; width: 25px; font-size: 2.5vw;" onclick="apagar_categoria(this)">&times;</label>
         </div>
     `;
     var central_categorias = document.getElementById('central_categorias')

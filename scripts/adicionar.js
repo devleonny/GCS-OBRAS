@@ -71,7 +71,7 @@ function backtop() {
 }
 
 function fechar_ir_orcamentos() {
-    location.href = 'orcamentos.html'
+    location.href = '/htmls/orcamentos.html'
 }
 
 function apagar_orçamento() {
@@ -81,7 +81,7 @@ function apagar_orçamento() {
 function confirmar_exclusao() {
     localStorage.removeItem('orcamento_v2')
 
-    location.href = 'adicionar.html'
+    location.href = '/htmls/adicionar.html'
     temp_pop.remove()
 }
 
@@ -256,7 +256,7 @@ function enviar_dados() {
 
     openPopup_v2(`
         <div style = "display: flex; gap: 10px; align-items: center; justify-content: center;" >
-            <img src="imagens/concluido.png" style="width: 3vw; height: 3vw;">
+            <img src="/imagens/concluido.png" style="width: 3vw; height: 3vw;">
                 <label>Orcamento salvo... redirecionando...</label>
             </div>
         </div>        
@@ -264,7 +264,7 @@ function enviar_dados() {
 
     setTimeout(function () {
         localStorage.removeItem('orcamento_v2')
-        location.href = 'orcamentos.html'
+        location.href = '/htmls/orcamentos.html'
     }, 2000)
 
 }
@@ -581,7 +581,7 @@ async function incluir_item(codigo, nova_quantidade) {
         colunas_carrefour = `
         <td>
             <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
-                <img src="imagens/carrefour.png" style="width: 3vw;">
+                <img src="/imagens/carrefour.png" style="width: 3vw;">
                 <label>${td_descricao}</label>
             </div>
         </td>        
@@ -600,7 +600,7 @@ async function incluir_item(codigo, nova_quantidade) {
         <td></td>
         <td style="text-align: center;"><label>${item.tipo}</label></td>
         <td style="text-align: center;"><img onclick="ampliar_especial(this, '${item.codigo}')" src="${imagem}" style="width: 50px; cursor: pointer;"></td>
-        <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${item.codigo}')" style="cursor: pointer;"></td>
+        <td style="text-align: center;"><img src="/imagens/excluir.png" onclick="removerItem('${item.codigo}')" style="cursor: pointer;"></td>
     </tr>
     `
 

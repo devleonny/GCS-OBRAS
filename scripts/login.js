@@ -13,7 +13,7 @@ function verificar_login_automatico() {
     try {
         var acesso = JSON.parse(localStorage.getItem('acesso'))
         if (acesso.acesso == 'Autorizado') {
-            window.location.href = 'inicial.html'
+            window.location.href = '/htmls/inicial.html'
         }
     } catch {
         console.log('Usuário deslogado')
@@ -117,7 +117,7 @@ function acesso_login() {
                         break
                     case data.acesso == "Autorizado":
                         localStorage.setItem('acesso', JSON.stringify(data))
-                        window.location.href = 'inicial.html'
+                        window.location.href = '/htmls/inicial.html'
                         break
                     default:
                         openPopup_v2('Falha interna. Entre em contato com o planejamento.')
@@ -173,7 +173,7 @@ function acesso_cadastro() {
                             telefone: telefone,
                             usuario: usuario,
                         }))
-                        window.location.href = 'inicial.html'
+                        window.location.href = '/htmls/inicial.html'
                         break
                     default:
                         openPopup_v2('Falha interna. Entre em contato com o planejamento.', false)

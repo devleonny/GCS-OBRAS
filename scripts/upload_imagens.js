@@ -95,7 +95,7 @@ async function importar_imagem(local_img, codigo) {
 
                     return carregamento_imagem.innerHTML = `
                     <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-                        <img src="imagens/concluido.png" style="width: 5vw">
+                        <img src="/imagens/concluido.png" style="width: 5vw">
                         <label>Imagem salva neste Orçamento Flex</label>
                     </div>
                     `
@@ -129,7 +129,7 @@ async function importar_imagem(local_img, codigo) {
 
             carregamento_imagem.innerHTML = `
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-                <img src="imagens/concluido.png" style="width: 5vw">
+                <img src="/imagens/concluido.png" style="width: 5vw">
                 <label>Imagem salva na memória</label>
             </div>
             `

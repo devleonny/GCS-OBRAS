@@ -53,7 +53,7 @@ function carregar_grupos() {
 
         var td = document.createElement('td')
         var img = document.createElement('img')
-        img.src = "imagens/editar.png"
+        img.src = "/imagens/editar.png"
         img.style.width = '15px'
         img.style.cursor = 'pointer'
         img.addEventListener('click', function () {

@@ -25,7 +25,7 @@ function adicionarLinha() {
 
     const acao = document.createElement("td");
     const removeImg = document.createElement("img");
-    removeImg.src = "imagens/remover.png";
+    removeImg.src = "/imagens/remover.png";
     removeImg.alt = "Remover";
     removeImg.className = "remove-img";
     removeImg.onclick = () => {

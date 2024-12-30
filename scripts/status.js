@@ -47,7 +47,7 @@ var adicionar_pedido = `
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center; align-items: center;">
             <input type="checkbox" onchange="ocultar_pedido(this)" style="cursor: pointer;">
             <label>Marque aqui caso não tenha o número ainda.</label>
-            <img src="gifs/interrogacao.gif" onclick="mostrar_um_aviso()" style="width: 2vw; cursor: pointer;">
+            <img src="/gifs/interrogacao.gif" onclick="mostrar_um_aviso()" style="width: 2vw; cursor: pointer;">
         </div>
 
         <div id="conteiner_pedido">
@@ -324,7 +324,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
         var botao_itens_adicionais = ''
 
         if (dados_composicoes[codigo] && dados_composicoes[codigo]['material infra']) {
-            botao_itens_adicionais = `<img src="imagens/construcao.png" style="width: 30px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`
+            botao_itens_adicionais = `<img src="/imagens/construcao.png" style="width: 30px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`
         }
 
         var quantidade = `
@@ -432,7 +432,7 @@ function adicionar_linha_materiais(descricao, und, qtde) {
 
         var linha = `
         <tr>
-            <td><img src="imagens/excluir.png" onclick="remover_linha_materiais(this)" style="cursor: pointer;"></td>
+            <td><img src="/imagens/excluir.png" onclick="remover_linha_materiais(this)" style="cursor: pointer;"></td>
             <td>?</td>
             <td style="width: 300px;">
             <input list="itens" onchange="mostrar_estoque()" placeholder="Digite o nome do material" style="width: 300px;">
@@ -1022,7 +1022,7 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot�
     if (modulo !== 'PROJETOS' || document.title == 'Projetos' || document.title == 'PAGAMENTOS') {
         acumulado_botoes += `
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="abrir_esquema('${id}')">
-            <img src="imagens/esquema.png" style="width: 48px; height: 48px; margin: 3px;">
+            <img src="/imagens/esquema.png" style="width: 48px; height: 48px; margin: 3px;">
             <label style="cursor: pointer;">Histórico</label>
         </div>           
         `
@@ -1034,7 +1034,7 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot�
             <label style="cursor: pointer;">Duplicar Orçamento</label>
         </div>      
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_pdf('${id}')">
-            <img src="imagens/pdf.png" style="width: 55px;">
+            <img src="/imagens/pdf.png" style="width: 55px;">
             <label style="cursor: pointer;">Abrir Orçamento em PDF</label>
         </div>
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_excel('${id}')">
@@ -1046,7 +1046,7 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot�
     if (orcamento.lpu_ativa == 'LPU CARREFOUR') {
         acumulado_botoes += `
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="rir('${id}')">
-            <img src="imagens/carrefour.png" style="width: 48px; height: 48px; margin: 3px;">
+            <img src="/imagens/carrefour.png" style="width: 48px; height: 48px; margin: 3px;">
             <label style="cursor: pointer;">Itens Reais em Excel</label>
         </div> 
     `}
@@ -1054,11 +1054,11 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot�
     if ((modulo == 'PROJETOS' && document.title !== 'Projetos' && analista == acesso.nome_completo) || (acesso.permissao == 'adm' || acesso.permissao == 'fin')) {
         acumulado_botoes += `
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_excluir('${id}')">
-            <img src="imagens/apagar.png" style="width: 48px; height: 48px; margin: 3px;">
+            <img src="/imagens/apagar.png" style="width: 48px; height: 48px; margin: 3px;">
             <label style="cursor: pointer;">Excluir Orçamento</label>
         </div>    
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_editar('${id}')">
-            <img src="imagens/editar.png" style="width: 48px; height: 48px; margin: 3px;">
+            <img src="/imagens/editar.png" style="width: 48px; height: 48px; margin: 3px;">
             <label style="cursor: pointer;">Editar Orçamento</label>
         </div>         
         `
@@ -1267,7 +1267,7 @@ function abrir_esquema(id) {
         var acumulado = `
         <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
             <div onclick="atualizar_esquema()" style="display: flex; flex-direction: column; justify-content: left; align-items: center; cursor: pointer;">
-                <img src="imagens/atualizar2.png" style="width: 50px;">
+                <img src="/imagens/atualizar2.png" style="width: 50px;">
                 <label>Atualizar</label>
             </div>
             • 
@@ -1276,7 +1276,7 @@ function abrir_esquema(id) {
             <label class="novo_titulo" style="color: #222">${dados_orcamentos[id].dados_orcam.contrato}</label>
             •
             <div onclick="selecionar_etiqueta()" class="contorno_botoes" style="display: flex; gap: 10px; align-items: center; justify-content: center; background-color: #222;"> 
-                <img src="imagens/etiqueta.png" style="width: 20px;">
+                <img src="/imagens/etiqueta.png" style="width: 20px;">
                 <label>Etiqueta</label>
             </div>
             •
@@ -1398,7 +1398,7 @@ function abrir_esquema(id) {
                         anxsss += `
                     <div style="display: flex; gap: 5px; align-items: center;">
                     <div onclick="abrirArquivo('${arquivo}')" class="anexos">
-                        <img src="imagens/${imagem}.png" style="cursor: pointer; width: 30px; height: 30px">
+                        <img src="/imagens/${imagem}.png" style="cursor: pointer; width: 30px; height: 30px">
                         <label style="cursor: pointer; font-size: 0.6em"><strong>${anx.nome}</strong></label>
                     </div>
                     <p style="text-decoration: underline; cursor: pointer; padding: 5px;" onclick="chamar_excluir_anexo('${chave_pedido}', '${chave2}', '${key_anx}')">Excluir</p>
@@ -1486,7 +1486,7 @@ function abrir_esquema(id) {
                                 </label>
                             </div>
                             <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave2}')">
-                                <img src="imagens/comentario.png" style="width: 15px;">
+                                <img src="/imagens/comentario.png" style="width: 15px;">
                                 <label>Comentário</label>
                             </div>
                         </div>
@@ -1555,7 +1555,7 @@ function abrir_esquema(id) {
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 10px;">
                             <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-                            <img src="gifs/atencao.gif" style="width: 2vw;">
+                            <img src="/gifs/atencao.gif" style="width: 2vw;">
                             <label style="text-decoration: underline; cursor: pointer;"
                                 onclick="deseja_apagar('pedido', '${chave_pedido}')">
                                 Excluir este número de Pedido
@@ -2300,7 +2300,7 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
         menu_flutuante = `
         <div class="menu_flutuante" id="menu_flutuante">
             <div class="icone" onclick="gerarpdf('${orcamento.dados_orcam.cliente_selecionado}', '${orcamento.status[chave].pedido}')">
-                <img src="imagens/pdf.png">
+                <img src="/imagens/pdf.png">
                 <label>PDF</label>
             </div>
             <div class="icone" onclick="excel()">

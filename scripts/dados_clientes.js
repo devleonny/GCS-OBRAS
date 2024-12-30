@@ -124,7 +124,7 @@ function toggleTabela() {
 
 function pagina_adicionar() {
     salvar_preenchido()
-    window.location.href = 'adicionar.html'
+    window.location.href = '/htmls/adicionar.html'
 }
 
 function vendedores_analistas() {

@@ -99,7 +99,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
     var contadores = {
         gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: "imagens/gerente.png" },
         diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: "imagens/diretoria.png" },
-        reprovados: { qtde: 0, valor: 0, termo: 'reprovado', label: 'Reprovados', icone: "imagens/remover.png" },
+        reprovados: { qtde: 0, valor: 0, termo: 'reprovado', label: 'Reprovados', icone: "/imagens/remover.png" },
         excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: "gifs/alerta.gif" },
         salvos: { qtde: 0, valor: 0, termo: 'localmente', label: 'Salvo localmente', icone: "imagens/salvo.png" },
         pago: { qtde: 0, valor: 0, termo: 'pago', label: 'Pagamento realizado', icone: "imagens/concluido.png" },
@@ -178,7 +178,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
                 <td>${pg.criado}</td>
                 <td>${setor_criador}</td>
                 <td>${recebedor}</td>
-                <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 30px; cursor: pointer;" onclick="abrir_detalhes('${pg.id}')"></td>
+                <td style="text-align: center;"><img src="/imagens/pesquisar2.png" style="width: 30px; cursor: pointer;" onclick="abrir_detalhes('${pg.id}')"></td>
             </tr>
         `
     };
@@ -196,7 +196,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
             `
         cabecalho2 += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
-            <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
+            <img src="/imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
             <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisar_em_pagamentos(${i}, this.value)">
             </th>
             `
@@ -243,8 +243,8 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
             <div style="display: flex; flex-direction: column; gap: 10px; justify-content: space-evenly; align-items: start;">
 
                 <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                    onclick="window.location.href='inicial.html'">
-                    <img src="/imagens/voltar.png" style="cursor: pointer; width: 30px;" onclick="window.location.href='inicial.html'">
+                    onclick="window.location.href='/htmls/inicial.html'">
+                    <img src="/imagens/voltar.png" style="cursor: pointer; width: 30px;" onclick="window.location.href='/htmls/inicial.html'">
                     <label style="color: white;">Voltar</label>
                 </div>
                     
@@ -357,7 +357,7 @@ async function abrir_detalhes(id_pagamento) {
 
         pagamento.historico.forEach(item => {
 
-            var imagem = "imagens/remover.png"
+            var imagem = "/imagens/remover.png"
             if (item.status.includes('Aprovado')) {
                 cor = '#4CAF50'
                 imagem = "imagens/concluido.png"
@@ -366,7 +366,7 @@ async function abrir_detalhes(id_pagamento) {
                 imagem = "imagens/avencer.png"
             } else if (item.status.includes('Reprovado')) {
                 cor = '#B12425'
-                imagem = "imagens/remover.png"
+                imagem = "/imagens/remover.png"
             } else {
                 cor = '#B12425'
             }
@@ -390,7 +390,7 @@ async function abrir_detalhes(id_pagamento) {
     if (dados_orcamentos[pagamento.id_orcamento]) {
         acoes_orcamento += `
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="exibir_todos_os_status('${pagamento.id_orcamento}')">
-            <img src="imagens/pasta.png" style="width: 48px; height: 48px; margin: 3px;">
+            <img src="/imagens/pasta.png" style="width: 48px; height: 48px; margin: 3px;">
             <label style="cursor: pointer;">Consultar Orçamento</label>
         </div>    
         `
@@ -558,7 +558,7 @@ async function abrir_detalhes(id_pagamento) {
                                 <td style="color: #222; white-space: nowrap;">
                                 <div id="container_resumo" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                                     <label id="v_orcado">${dinheiro(v_orcado)}</label>
-                                    <img src="imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="editar_resumo('${pagamento.id_pagamento}')">
+                                    <img src="/imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="editar_resumo('${pagamento.id_pagamento}')">
                                 </div>
                                 </td>
                                 <td style="color: #222; white-space: nowrap;" id="v_pago">${dinheiro(habilitar_painel_parceiro.valor)}</td>
@@ -652,8 +652,8 @@ function editar_resumo(id_pagamento) {
     if (container_resumo) {
         container_resumo.innerHTML = `
         <input placeholder="R$ 0,00" type="number" oninput="calcular_custo()" id="v_orcado">
-        <img src="imagens/concluido.png" style="width: 30px; cursor: pointer;" onclick="atualizar_resumo('${id_pagamento}')">
-        <img src="imagens/cancel.png" style="width: 30px; cursor: pointer;" onclick=" abrir_detalhes('${id_pagamento}')">
+        <img src="/imagens/concluido.png" style="width: 30px; cursor: pointer;" onclick="atualizar_resumo('${id_pagamento}')">
+        <img src="/imagens/cancel.png" style="width: 30px; cursor: pointer;" onclick=" abrir_detalhes('${id_pagamento}')">
         `
     }
 }
@@ -853,7 +853,7 @@ function alterar_centro_de_custo(id) {
         <div class="autocomplete-list" id="cc_sugestoes"></div>
     </div>
 
-    <img src="imagens/concluido.png" style="width: 20px; cursor: pointer;" onclick="salvar_centro_de_custo('${id}')">
+    <img src="/imagens/concluido.png" style="width: 20px; cursor: pointer;" onclick="salvar_centro_de_custo('${id}')">
     </div>
     `
 
