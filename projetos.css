@@ -1,0 +1,60 @@
+.nome_projeto {
+    font-weight: bold;
+    background-color: #222;
+    color: #94A0AB;
+    border-radius: 5px;
+    padding: 10px;
+    font-size: 2em;
+    border: 1px solid #94A0AB;
+    width: 100%;
+}
+
+.board {
+    display: flex;
+    min-width: 100%;
+    width: 100%;
+    overflow: auto;
+    gap: 10px;
+}
+
+.column {
+    background: #101204;
+    color: rgb(204, 204, 204);
+    border-radius: 5px;
+    width: 250px;
+    height: 500px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    flex: 1 0 200px;
+    max-width: 100%;
+    margin-bottom: 20px;
+}
+
+
+.column-header {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.card-list {
+    background: #101204;
+    max-height: 70vh;
+    border-radius: 5px;
+    padding: 2px;
+    flex-grow: 1;
+    min-height: 200px;
+    overflow-y: auto;
+}
+
+.card {
+    background: #22272B;
+    color: #B2BECA;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+}

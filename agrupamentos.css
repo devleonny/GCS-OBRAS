@@ -1,0 +1,45 @@
+textarea{
+    padding: 0px;
+    margin: 0px;
+}
+
+.tabela {
+    background-color: #B12425;
+    border-collapse: collapse;
+    border-radius: 5px;
+    width: 100%;
+}
+
+td {
+    text-align: left;
+}
+
+#container_grupos {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    height: 80%;
+    width: 50%;
+    border: 1px solid black;
+    color: #151749;
+    background-color: rgba(10, 10, 10, 0.9);
+    border-radius: 10px;
+    padding: 20px;
+    z-index: 2000;
+    overflow-y: auto;
+}
+
+.input_subgrupos{
+    width: 100%;
+    cursor: pointer;
+    color:white;
+    text-align: center;
+    background-color: #151749;
+    border-radius: 5px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+}

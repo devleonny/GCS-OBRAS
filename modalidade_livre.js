@@ -69,7 +69,7 @@ function carregar_layout_modalidade_livre() {
 
                 <div
                     style="position: relative; display: flex; justify-content: center; align-items: center; border-radius: 3px;">
-                    <img src="./BG.png" style="height: 200px;">
+                    <img src="imagens/BG.png" style="height: 200px;">
 
                 </div>
 

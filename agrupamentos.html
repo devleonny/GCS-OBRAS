@@ -2,62 +2,18 @@
 <html lang="pt-BR">
 
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>ITENS</title>
+
     <link rel="stylesheet" type="text/css" href="gcsobras.css">
     <link rel="stylesheet" type="text/css" href="popup.css">
+    <link rel="stylesheet" href="agrupamentos.css">
+    
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
-    <style>
-
-        textarea{
-            padding: 0px;
-            margin: 0px;
-        }
-
-        .tabela {
-            background-color: #B12425;
-            border-collapse: collapse;
-            border-radius: 5px;
-            width: 100%;
-        }
-
-        td {
-            text-align: left;
-        }
-
-        #container_grupos {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            height: 80%;
-            width: 50%;
-            border: 1px solid black;
-            color: #151749;
-            background-color: rgba(10, 10, 10, 0.9);
-            border-radius: 10px;
-            padding: 20px;
-            z-index: 2000;
-            overflow-y: auto;
-        }
-
-        .input_subgrupos{
-            width: 100%;
-            cursor: pointer;
-            color:white;
-            text-align: center;
-            background-color: #151749;
-            border-radius: 5px;
-            padding-top: 10px;
-            padding-bottom: 10px;
-            margin-top: 2px;
-            margin-bottom: 2px;
-        }
-
-    </style>
 </head>
 
 <body>
@@ -65,7 +21,7 @@
     <div id="content">
         <div style="display: flex; width: 80%; height: 5vh; margin-bottom: 5vh; align-items: center;">
             <div>
-                <img src="./BG.png" style="height: 10vw; margin-right: 5vw;">
+                <img src="imagens/BG.png" style="height: 10vw; margin-right: 5vw;">
             </div>
             <img class="img_botoes" onclick="atualizar_grupos()" src="imagens/atualizar.png">
 
