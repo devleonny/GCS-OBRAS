@@ -19,7 +19,9 @@ let mainWindow;
 let otherWindows = [];
 
 function createWindow() {
+
     mainWindow = new BrowserWindow({
+
         width: 1300,
         height: 800,
         autoHideMenuBar: true,
@@ -27,30 +29,43 @@ function createWindow() {
             nodeIntegration: true,
             contextIsolation: false,
         }
+
     });
 
     mainWindow.loadFile(path.join(__dirname, '/htmls/login.html'));
 
     mainWindow.on('closed', () => {
+
         mainWindow = null;
+
     });
+
 
     (async () => {
         const { default: isDevModule } = await import('electron-is-dev');
         const isDev = isDevModule;
 
         if (!isDev) {
+
             autoUpdater.checkForUpdatesAndNotify();
+
         }
+
     })();
+
 }
 
 function closeAllWindows() {
+
     if (mainWindow) {
+
         mainWindow.close();
+
     }
+
     otherWindows.forEach(window => window.close());
     otherWindows = [];
+
 }
 
 const appExpress = express();
@@ -60,10 +75,13 @@ appExpress.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 appExpress.use(express.static(__dirname));
 
 appExpress.get('/', (req, res) => {
+
     res.sendFile(path.join(__dirname, '/htmls/inicial.html'));
+
 });
 
 const credentials = {
+
     "type": "service_account",
     "project_id": "gcs-obras",
     "private_key_id": "4d98f44dcfcc18d50380bca3af5e3bd6f4566743",
@@ -75,25 +93,35 @@ const credentials = {
     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
     "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/upload-arquivos%40gcs-obras.iam.gserviceaccount.com",
     "universe_domain": "googleapis.com"
+
 };
 
 const auth = new google.auth.GoogleAuth({
+
     credentials: credentials,
     scopes: ['https://www.googleapis.com/auth/drive.file']
+
 });
 
 async function authenticate() {
+
     const auth = new google.auth.GoogleAuth({
+
         keyFile: credentials, 
         scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+
     });
+
     return auth;
+
 }
 
 const drive = google.drive({ version: 'v3', auth });
 
 appExpress.post('/upload', async (req, res) => {
+
     try {
+
         const { name, mimeType, base64 } = req.body;
         const buffer = Buffer.from(base64, 'base64');
         const fileStream = new Readable();
@@ -101,137 +129,202 @@ appExpress.post('/upload', async (req, res) => {
         fileStream.push(null);
 
         const fileMetadata = {
+
             name: name,
             parents: ['1fBNan_Gu5eM6pE2ddZU5llEk7bdqUxzi']
+
         };
 
         const media = {
+
             mimeType: mimeType,
             body: fileStream
+
         };
 
         const response = await drive.files.create({
+
             resource: fileMetadata,
             media: media,
             fields: 'id, webViewLink'
+
         });
 
         res.status(200).send({
+
             fileId: response.data.id,
             webViewLink: response.data.webViewLink
+
         });
+
     } catch (error) {
+
         res.status(500).send('Erro ao fazer upload: ' + error.message);
+
     }
+
 });
 
 app.whenReady().then(() => {
+
     appExpress.listen(PORT, () => {
+
         createWindow();
+
     });
+
 });
 
 app.on('window-all-closed', () => {
+
     if (process.platform !== 'darwin') {
+
         app.quit();
+
     }
+
 });
 
 app.on('activate', () => {
+
     if (mainWindow === null) {
+
         createWindow();
+
     }
+
 });
 
 ipcMain.on('save-dialog', async (event, { htmlContent, nomeArquivo }) => {
+
     const { filePath } = await dialog.showSaveDialog(mainWindow, {
+
         title: 'Salvar PDF',
         defaultPath: path.join(app.getPath('desktop'), `${nomeArquivo}_${Date.now()}.pdf`),
         filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
+
     });
 
     if (filePath) {
+
         await generatePDF(htmlContent, filePath);
         event.reply('save-dialog-reply', 'PDF salvo com sucesso.');
         shell.showItemInFolder(filePath);
+
     } else {
+
         event.reply('save-dialog-reply', 'Salvamento cancelado.');
+
     }
+
 });
 
 ipcMain.handle('open-new-window', (event, url) => {
+
     createNewWindow(url);
+
 });
 
 function createNewWindow(url) {
+
     const newWindow = new BrowserWindow({
+
         width: 1200,
         height: 600,
         autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
+
         }
+
     });
 
     if (url) {
+
         const fullUrl = path.join('file://', __dirname, url);
         newWindow.loadURL(fullUrl).catch(err => console.error('Erro ao carregar a URL:', err));
+
     } else {
+
         console.error('URL inválido para carregar');
+
     }
 
 }
 
 appExpress.post('/generate-pdf', async (req, res) => {
+
     const { htmlContent, nomeArquivo } = req.body;
 
     if (mainWindow && !mainWindow.isDestroyed()) {
+
         mainWindow.webContents.send('open-save-dialog', { htmlContent, nomeArquivo });
         res.status(200).send('A janela de diálogo de salvamento foi aberta.');
+
     } else {
+
         res.status(500).send('Erro: Janela principal não está disponível.');
+        
     }
 });
 
 async function generatePDF(htmlContent, outputFile) {
+
     //const chromePath = path.join(__dirname, 'chrome-win64', 'chrome.exe');
     const chromePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'chrome-win64', 'chrome.exe');
 
     const browser = await puppeteer.launch({
+
         headless: true,
         executablePath: chromePath,
         args: ['--no-sandbox']
+
     });
 
     const page = await browser.newPage();
 
     try {
+
         await page.setContent(htmlContent);
         await page.pdf({
+
             path: outputFile,
             printBackground: true,
             width: '300mm',
             height: '400mm'
+
         });
+
     } catch (error) {
+
         console.error('Erro ao gerar PDF:', error);
+
     } finally {
+
         await browser.close();
+
     }
+
 }
 
 autoUpdater.on('update-downloaded', () => {
+
     console.log('Atualização baixada. Pronto para instalar.');
     closeAllWindows();
     autoUpdater.quitAndInstall();
+
 });
 
 autoUpdater.on('download-progress', (progressInfo) => {
+
     const percent = Math.round(progressInfo.percent);
     mainWindow.webContents.send('download-progress', percent);
+
 });
 
 autoUpdater.on('update-available', () => {
+
     mainWindow.webContents.send('update-available');
+    
 });
