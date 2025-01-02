@@ -411,13 +411,13 @@ async function editar(orcam_) {
 
 }
 
-function duplicar(orcam_) {
+async function duplicar(orcam_) {
     let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'))
     let acesso = JSON.parse(localStorage.getItem('acesso'))
 
     var orcamento_v2 = dados_orcamentos[orcam_]
 
-    orcamento_v2 = conversor_composicoes_orcamento(orcamento_v2)
+    orcamento_v2 = await conversor_composicoes_orcamento(orcamento_v2)
 
     delete orcamento_v2.id
 
