@@ -1,42 +1,54 @@
-var status_deste_modulo = [];
-var modulo = localStorage.getItem('modulo_ativo') || ''
-var filtrosAtivos = {};
-var filtrosAtivosPagamentos = {};
-var botao_status_ativo = ''
-var anexos_pagamentos = {};
-var anx_parceiros = {};
-var intervaloCompleto;
-var intervaloCurto;
+let status_deste_modulo = [];
+let modulo = localStorage.getItem('modulo_ativo') || ''
+let filtrosAtivos = {};
+let filtrosAtivosPagamentos = {};
+let botao_status_ativo = ''
+let anexos_pagamentos = {};
+let anx_parceiros = {};
+let intervaloCompleto;
+let intervaloCurto;
 
 if (document.title == 'ORÇAMENTOS') {
 
     document.addEventListener('DOMContentLoaded', function () {
+
         const switchInput = document.getElementById('switch');
         const switchLabel = document.querySelector('.switch-x-checked');
 
         const savedStatus = localStorage.getItem('mostrar_orcamentos_proprios');
 
         if (savedStatus !== null) {
+
             switchInput.checked = (savedStatus === 'Sim');
             switchLabel.innerText = savedStatus;
+
         } else {
+
             localStorage.setItem('mostrar_orcamentos_proprios', switchInput.checked ? 'Sim' : 'Não');
+
         }
 
         switchInput.addEventListener('change', function () {
+
             const isChecked = switchInput.checked;
 
             if (isChecked) {
+
                 switchLabel.innerText = 'Sim';
+
             } else {
+
                 switchLabel.innerText = 'Não';
+
             }
+
             localStorage.setItem('mostrar_orcamentos_proprios', isChecked ? 'Sim' : 'Não');
 
             preencher_orcamentos_v2()
-        });
-    });
 
+        });
+
+    });
 
     recuperar_orcamentos()
     preencher_orcamentos_v2()
@@ -61,146 +73,193 @@ function gerar_menu(status, quantidade) {
         <p>${status}</p>
     </div>
     `
+
 }
 
 function pesquisar_v2(coluna, texto) {
 
     filtrosAtivos[coluna] = texto.toLowerCase();
 
-    var tabela_itens = document.getElementById('orcamentos');
-    var trs = tabela_itens.querySelectorAll('tr');
+    let tabela_itens = document.getElementById('orcamentos');
+    let trs = tabela_itens.querySelectorAll('tr');
 
     trs.forEach(function (tr) {
-        var tds = tr.querySelectorAll('td');
-        var mostrarLinha = true;
 
-        for (var col in filtrosAtivos) {
-            var filtroTexto = filtrosAtivos[col];
+        let tds = tr.querySelectorAll('td');
+        let mostrarLinha = true;
+
+        for (let col in filtrosAtivos) {
+
+            let filtroTexto = filtrosAtivos[col];
 
             if (filtroTexto && col < tds.length) {
-                var conteudoCelula = tds[col].textContent.toLowerCase();
+
+                let conteudoCelula = tds[col].textContent.toLowerCase();
 
                 if (!conteudoCelula.includes(filtroTexto)) {
+
                     mostrarLinha = false;
                     break;
+
                 }
+
             }
+
         }
 
         tr.style.display = mostrarLinha ? '' : 'none';
+
     });
+
 }
 
 function preencher_orcamentos_v2(st) {
 
-    var div_orcamentos = document.getElementById('orcamentos')
+    let div_orcamentos = document.getElementById('orcamentos')
     div_orcamentos.innerHTML = ''
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
-    var mostrar_orcamentos_proprios = localStorage.getItem('mostrar_orcamentos_proprios') || 'Não'
-    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    let mostrar_orcamentos_proprios = localStorage.getItem('mostrar_orcamentos_proprios') || 'Não'
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     document.getElementById('nome_modulo').textContent = modulo
 
-    // Organizar por data de edição;
-    var desordenado = Object.entries(dados_orcamentos);
+    let desordenado = Object.entries(dados_orcamentos);
     desordenado.sort((a, b) => new Date(b[1].dados_orcam.data) - new Date(a[1].dados_orcam.data));
     dados_orcamentos = Object.fromEntries(desordenado);
 
     if (div_orcamentos) {
 
-        var linhas = ''
-        var status_deste_modulo = {}
+        let linhas = ''
+        let status_deste_modulo = {}
 
         for (orcamento in dados_orcamentos) {
 
-            var orc = dados_orcamentos[orcamento]
-            var dados_orcam = orc.dados_orcam
-            var data = new Date(dados_orcam.data).toLocaleString('pt-BR', {
+            let orc = dados_orcamentos[orcamento]
+            let dados_orcam = orc.dados_orcam
+            let data = new Date(dados_orcam.data).toLocaleString('pt-BR', {
+
                 dateStyle: 'short',
                 timeStyle: 'short'
+
             })
 
             if (orc.operacao && orc.operacao == 'excluido') {
+
                 return
+
             }
 
-            var exibir_linha = false
-            var pedidos = orc.status || {}
-            var label_pedidos = ''
-            var label_notas = ''
+            let exibir_linha = false
+            let pedidos = orc.status || {}
+            let label_pedidos = ''
+            let label_notas = ''
 
-            for (pedido in pedidos) {
-                var chave_pedido = pedidos[pedido]
-                var status = chave_pedido.status
-                var num_pedido = chave_pedido.pedido
-                var tipo = chave_pedido.tipo
-                var cor;
+            for (let pedido in pedidos) {
+
+                let chave_pedido = pedidos[pedido]
+                let status = chave_pedido.status
+                let num_pedido = chave_pedido.pedido
+                let tipo = chave_pedido.tipo
+                let cor;
 
                 tipo == 'Venda' ? cor = '#ff9c24' : cor = '#00bfb7'
 
-                label_pedidos += `
+                label_pedidos += 
+                
+                `
+
                     <div class="etiqueta_pedidos" style="background-color: ${cor}">
                         <label style="font-size: 0.8em;">${tipo}</label>
                         <label style="font-size: 1.3em;"><strong>${num_pedido}</strong></label>
                     </div>
+
                 `
 
-                var historico = chave_pedido.historico
+                let historico = chave_pedido.historico
 
-                for (chave2 in historico) {
-                    var chave_historico = historico[chave2]
-                    var cor2;
+                for (let chave2 in historico) {
+
+                    let chave_historico = historico[chave2]
+                    let cor2;
 
                     if (chave_historico.notas) {
-                        var nota = chave_historico.notas[0]
+
+                        let nota = chave_historico.notas[0]
                         nota.modalidade == 'Venda' ? cor2 = '#ff9c24' : cor2 = '#00bfb7'
-                        label_notas += `
+                        label_notas += 
+                        
+                        `
+
                         <div class="etiqueta_pedidos" style="background-color: ${cor2};">
                             <label style="font-size: 0.8em;">${nota.modalidade}</label>
                             <label style="font-size: 1.3em;"><strong>${nota.nota}</strong></label>
                         </div>
+
                         `
+
                     }
+
                 }
 
                 if (fluxograma[status] && (st == undefined || st == status)) {
 
-                    var modulos = fluxograma[status].modulos
+                    let modulos = fluxograma[status].modulos
+
                     if (modulos.includes(modulo)) {
+
                         exibir_linha = true
+
                         if (!status_deste_modulo[status]) {
+
                             status_deste_modulo[status] = 0
+
                         }
+
                         status_deste_modulo[status] += 1
+
                     }
 
                 }
+
             }
 
             if (Object.keys(pedidos).length == 0) {
 
-                var aguardando = 'AGUARDANDO'
-                var modulos = fluxograma[aguardando].modulos
+                let aguardando = 'AGUARDANDO'
+                let modulos = fluxograma[aguardando].modulos
 
                 if (modulos.includes(modulo) && (st == undefined || aguardando == status)) {
+
                     exibir_linha = true
+
                     if (!status_deste_modulo[aguardando]) {
+
                         status_deste_modulo[aguardando] = 0
+
                     }
 
                     status_deste_modulo[aguardando] += 1
+
                 }
 
             }
 
             if (mostrar_orcamentos_proprios == 'Sim') {
+
                 if (dados_orcam.analista !== acesso.nome_completo) {
+
                     exibir_linha = false
+
                 }
+
             }
 
             if (exibir_linha) {
-                linhas += `
+
+                linhas += 
+                
+                `
+
                 <tr class="linha_destacada">
                     <td>${data}</td>
                     <td>${label_pedidos}</td>
@@ -215,39 +274,62 @@ function preencher_orcamentos_v2(st) {
                         <img src="/imagens/pesquisar2.png" style="width: 20px; height: 20px;">
                     </td>
                 </tr>
+
                 `
+
             }
+
         }
 
-        var painel_direito = document.getElementById('painel_direito')
+        let painel_direito = document.getElementById('painel_direito')
+
         if (painel_direito) {
-            var atalhos = ''
-            for (atalho in status_deste_modulo) {
-                var quantidade = status_deste_modulo[atalho]
+
+            let atalhos = ''
+            for (let atalho in status_deste_modulo) {
+
+                let quantidade = status_deste_modulo[atalho]
                 atalhos += gerar_menu(atalho, quantidade)
+
             }
+
             painel_direito.innerHTML = atalhos
+
         }
 
-        var cabecs = ['Última alteração', 'Pedido', 'Notas', 'Chamado', 'Cliente', 'Cidade', 'Analista', 'Valor', 'LPU', 'Status & Ações']
-        var ths = ''
-        var tsh = ''
+        let cabecs = ['Última alteração', 'Pedido', 'Notas', 'Chamado', 'Cliente', 'Cidade', 'Analista', 'Valor', 'LPU', 'Status & Ações']
+        let ths = ''
+        let tsh = ''
+
         cabecs.forEach((cab, i) => {
 
-            ths += `
-            <th>${cab}</th>
+            ths += 
+            
             `
-            tsh += `
+
+            <th>${cab}</th>
+
+            `
+
+            tsh += 
+            
+            `
+
             <th style="background-color: white; border-radius: 0px;">
                 <div style="position: relative;">
                     <img src="/imagens/pesquisar2.png" style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
                     <input placeholder="${cab}" style="margin-left: 25px; text-align: left;" oninput="pesquisar_v2(${i}, this.value)">
                 </div>
-            </th>            
+            </th>      
+
             `
+
         })
 
-        var tabela = `
+        let tabela = 
+        
+        `
+
             <table id="orcamentos_" class="tabela">
                 <thead>
                     ${ths}
@@ -259,30 +341,43 @@ function preencher_orcamentos_v2(st) {
                     ${linhas}
                 </tbody>
             </table>
+
         `
+
         div_orcamentos.insertAdjacentHTML('beforeend', tabela)
+
     }
 
 }
 
 async function recuperar_orcamentos() {
 
-    var orcamentos = document.getElementById('orcamentos')
+    let orcamentos = document.getElementById('orcamentos')
+
     if (orcamentos) {
+
         carregamento('orcamentos')
+
     }
 
     return new Promise((resolve, reject) => {
 
-        var url = 'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=orcamentos';
+        let url = 'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=orcamentos';
 
         fetch(url)
+
             .then(response => {
+
                 if (!response.ok) {
+
                     throw new Error('Erro ao carregar os dados');
+
                 }
+
                 return response.json();
+
             })
+
             .then(data => {
 
                 localStorage.setItem('dados_orcamentos', JSON.stringify(data));
@@ -291,54 +386,69 @@ async function recuperar_orcamentos() {
 
                     preencher_orcamentos_v2()
 
-                    var tsh = document.getElementById('tsh')
-                    var inputs = tsh.querySelectorAll('input')
+                    let tsh = document.getElementById('tsh')
+                    let inputs = tsh.querySelectorAll('input')
 
-                    for (col in filtrosAtivos) {
+                    for (let col in filtrosAtivos) {
 
                         pesquisar_v2(col, filtrosAtivos[col])
                         inputs[col].value = filtrosAtivos[col]
+
                     }
 
                 }
 
             })
+
             .then(() => {
+
                 resolve();
+
             })
+
             .catch(error => {
+
                 console.error('Ocorreu um erro:', error);
                 reject(error);
+
             });
+
     });
+
 }
 
 async function rir(id_orcam) {
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'));
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'));
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
-    var orcamento = dados_orcamentos[id_orcam];
+    let orcamento = dados_orcamentos[id_orcam];
 
     orcamento = conversor_composicoes_orcamento(orcamento)
 
-    var estado = orcamento.dados_orcam.estado;
-    var icms = estado == 'BA' ? 0.205 : 0.12;
+    let estado = orcamento.dados_orcam.estado;
+    let icms = estado == 'BA' ? 0.205 : 0.12;
 
-    var dados = {
+    let dados = {
+
         'SERVIÇO': [],
         'VENDA': []
+
     };
 
-    var itens = orcamento.dados_composicoes
+    let itens = orcamento.dados_composicoes
 
     Object.keys(itens).forEach(it => {
-        var item = itens[it]
+
+        let item = itens[it]
 
         item.descricao_carrefour = dados_composicoes[item.codigo].descricaocarrefour
+
         if (dados_composicoes[item.codigo].substituto !== '') {
-            var substituto = dados_composicoes[item.codigo].substituto
+
+            let substituto = dados_composicoes[item.codigo].substituto
             item.descricao_carrefour = dados_composicoes[substituto].descricaocarrefour
+
         }
 
         item.tipo = dados_composicoes[item.codigo].tipo
@@ -346,17 +456,21 @@ async function rir(id_orcam) {
         item.custo = 0
 
         if (dados_composicoes[item.codigo]['lpu carrefour']) {
-            var ativo = dados_composicoes[item.codigo]['lpu carrefour'].ativo
-            var historico = dados_composicoes[item.codigo]['lpu carrefour'].historico
+
+            let ativo = dados_composicoes[item.codigo]['lpu carrefour'].ativo
+            let historico = dados_composicoes[item.codigo]['lpu carrefour'].historico
             item.custo = historico[ativo].valor
+
         }
 
-        var custo_sem_icms = item.custo - (icms * item.custo)
-        var total_sem_icms = conversor(item.qtde) * custo_sem_icms
-        var total = item.custo * conversor(item.qtde)
+        let custo_sem_icms = item.custo - (icms * item.custo)
+        let total_sem_icms = conversor(item.qtde) * custo_sem_icms
+        let total = item.custo * conversor(item.qtde)
 
         if (item.tipo == 'VENDA') {
+
             dados[item.tipo].push([
+
                 item.codigo,
                 item.descricao_carrefour,
                 item.descricao,
@@ -366,9 +480,13 @@ async function rir(id_orcam) {
                 total_sem_icms,
                 item.custo,
                 total
+
             ])
+
         } else {
+
             dados[item.tipo].push([
+
                 item.codigo,
                 item.descricao_carrefour,
                 item.descricao,
@@ -376,20 +494,24 @@ async function rir(id_orcam) {
                 item.qtde,
                 item.custo,
                 total
+
             ])
+
         }
 
     })
 
-    var nome_arquivo = `RELAÇÃO ITENS REAIS - ${orcamento.dados_orcam.cliente_selecionado} - ${orcamento.dados_orcam.contrato}`;
+    let nome_arquivo = `RELAÇÃO ITENS REAIS - ${orcamento.dados_orcam.cliente_selecionado} - ${orcamento.dados_orcam.contrato}`;
 
     rir_excel(dados, nome_arquivo);
+
 }
 
 function editar(orcam_) {
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
 
-    var orcamento_v2 = dados_orcamentos[orcam_]
+    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+
+    let orcamento_v2 = dados_orcamentos[orcam_]
 
     orcamento_v2 = conversor_composicoes_orcamento(orcamento_v2)
 
@@ -400,10 +522,11 @@ function editar(orcam_) {
 }
 
 function duplicar(orcam_) {
+
     let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'))
     let acesso = JSON.parse(localStorage.getItem('acesso'))
 
-    var orcamento_v2 = dados_orcamentos[orcam_]
+    let orcamento_v2 = dados_orcamentos[orcam_]
 
     orcamento_v2 = conversor_composicoes_orcamento(orcamento_v2)
 
@@ -417,59 +540,77 @@ function duplicar(orcam_) {
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
     window.location.href = '/htmls/adicionar.html'
+
 }
 
 function salvar_dados_em_excel() {
-    var tabela = orcamento_.querySelectorAll('tr');
-    var dados = [];
 
-    // Processa o cabeçalho (primeira linha da tabela)
-    var cabecalho = tabela[0].querySelectorAll('th');
-    var linhaCabecalho = [];
+    let tabela = orcamento_.querySelectorAll('tr');
+    let dados = [];
+
+    let cabecalho = tabela[0].querySelectorAll('th');
+    let linhaCabecalho = [];
+
     cabecalho.forEach(th => {
+
         linhaCabecalho.push(th.textContent);
+
     });
 
-    dados.push(linhaCabecalho); // Adiciona o cabeçalho ao array 'dados'
+    dados.push(linhaCabecalho);
 
-    // Processa o restante das linhas (linhas com dados)
     tabela.forEach((tr, index) => {
-        if (index === 0) return; // Ignora o cabeçalho
 
-        var tds = tr.querySelectorAll('td');
-        var linha = [];
+        if (index === 0) return;
+
+        let tds = tr.querySelectorAll('td');
+        let linha = [];
         tds.forEach(td => {
+
             linha.push(td.textContent);
+
         });
 
-        dados.push(linha); // Adiciona a linha de dados ao array 'dados'
+        dados.push(linha);
+
     });
 
-    // Gera o arquivo Excel com ExcelJS
-    var workbook = new ExcelJS.Workbook();
-    var worksheet = workbook.addWorksheet('Orcamento');
+    let workbook = new ExcelJS.Workbook();
+    let worksheet = workbook.addWorksheet('Orcamento');
 
-    // Adiciona os dados ao worksheet
     dados.forEach((linha, index) => {
+
         worksheet.addRow(linha);
+
     });
 
-    // Define a largura automática para as colunas
     worksheet.columns.forEach(column => {
-        var maxLength = 0;
+
+        let maxLength = 0;
+
         column.eachCell({ includeEmpty: true }, function (cell) {
-            var columnLength = cell.value ? cell.value.toString().length : 10;
+
+            let columnLength = cell.value ? cell.value.toString().length : 10;
+
             if (columnLength > maxLength) {
+
                 maxLength = columnLength;
+
             }
+
         });
+
         column.width = maxLength < 10 ? 10 : 20;
+
     });
 
     workbook.xlsx.writeBuffer().then(function (buffer) {
-        var blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+        let blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         saveAs(blob, 'dados_orcamento.xlsx');
+
     });
+
 }
 
 
@@ -477,69 +618,86 @@ async function criar_pagamento_v2(chave1) {
 
     if (!await calculadora_pagamento()) {
 
-        var cc = document.getElementById('cc')
+        let cc = document.getElementById('cc')
 
         if (cc) {
 
-            var elemento = cc.value
+            let elemento = cc.value
 
-            var cod = elemento.match(/\[(\d+)\]$/)[1];
+            let cod = elemento.match(/\[(\d+)\]$/)[1];
 
             chave1 = centros_de_custo[cod].key_pedido
             id_orcam = centros_de_custo[cod].key_orc
 
         }
 
-        var id_pagamento = unicoID()
-        var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias'))
-        var dados_clientes = await recuperarDados('dados_clientes') || {};
-        var acesso = JSON.parse(localStorage.getItem('acesso'))
+        let id_pagamento = unicoID()
+        let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias'))
+        let dados_clientes = await recuperarDados('dados_clientes') || {};
+        let acesso = JSON.parse(localStorage.getItem('acesso'))
 
-        var total = document.getElementById('total_de_pagamento').textContent
+        let total = document.getElementById('total_de_pagamento').textContent
 
-        var cliente = document.getElementById('cliente_pagamento')
-        var chave_pix = document.getElementById('pix').value
+        let cliente = document.getElementById('cliente_pagamento')
+        let chave_pix = document.getElementById('pix').value
 
-        //Categorias
-        var valores = central_categorias.querySelectorAll('input[type="number"]');
-        var categorias = central_categorias.querySelectorAll('input[type="text"]');
-        var rateio_categorias = [];
-        var categorias_acumuladas = {};
-        var parceiro = ''
+        let valores = central_categorias.querySelectorAll('input[type="number"]');
+        let categorias = central_categorias.querySelectorAll('input[type="text"]');
+        let rateio_categorias = [];
+        let categorias_acumuladas = {};
+        let parceiro = ''
+
         valores.forEach(function (valor, i) {
 
             if (categorias[i].value == 'Pagamento de Parceiros' || categorias[i].value == 'Adiantamento de Parceiros') {
+
                 parceiro = categorias[i].value
+
             }
 
-            var codigo_categoria = dados_categorias[categorias[i].value];
-            var valor_atual = parseFloat(valor.value);
+            let codigo_categoria = dados_categorias[categorias[i].value];
+            let valor_atual = parseFloat(valor.value);
 
             if (categorias_acumuladas[codigo_categoria]) {
+
                 categorias_acumuladas[codigo_categoria] += valor_atual;
+
             } else {
+
                 categorias_acumuladas[codigo_categoria] = valor_atual;
+
             }
         });
 
-        for (var codigo_categoria in categorias_acumuladas) {
+        for (let codigo_categoria in categorias_acumuladas) {
+
             rateio_categorias.push({
+
                 'codigo_categoria': codigo_categoria,
                 'valor': categorias_acumuladas[codigo_categoria]
+
             });
+
         }
 
-        var descky = `
+        let descky = 
+        
+        `
+
         Solicitante: ${acesso.usuario}
         \n
+
         `
+
         descky += document.getElementById('descricao_pagamento').value
 
-        var regex_cliente = regex = /\[(.*?)\]/;
-        var cnpj_string = String(cliente.value).match(regex_cliente)[1]
+        let regex_cliente = regex = /\[(.*?)\]/;
+        let cnpj_string = String(cliente.value).match(regex_cliente)[1]
 
-        var param = [
+        let param = [
+
             {
+
                 "codigo_cliente_fornecedor": dados_clientes[cnpj_string].omie,
                 "codigo_barras_ficha_compensacao": chave_pix,
                 "valor_documento": conversor(total),
@@ -548,19 +706,25 @@ async function criar_pagamento_v2(chave1) {
                 "data_vencimento": data_atual('curta', parceiro),
                 "categorias": rateio_categorias,
                 "data_previsao": data_atual('curta', parceiro),
-                "id_conta_corrente": '6054234828', // Itaú AC
+                "id_conta_corrente": '6054234828',
                 "distribuicao": []
+
             }
+
         ]
 
-        var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+        acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
-        var depart = ''
+        let depart = ''
+
         if (chave1 == '') {
+
             depart = id_orcam
+
         }
 
-        var pagamento = {
+        let pagamento = {
+
             'id_pagamento': id_pagamento,
             'id_pedido': chave1,
             'id_orcamento': id_orcam,
@@ -571,51 +735,70 @@ async function criar_pagamento_v2(chave1) {
             'criado': acesso.usuario,
             'status': 'Pagamento salvo localmente',
             param
+
         }
 
-        var v_orcado = document.getElementById('v_orcado')
+        let v_orcado = document.getElementById('v_orcado')
+
         if (v_orcado) {
-            var v_pago = document.getElementById('v_pago')
+
+            let v_pago = document.getElementById('v_pago')
+
             pagamento.resumo = {
+
                 v_pago: v_pago.textContent,
                 v_orcado: v_orcado.value,
+
             }
+
         }
 
-        var dados = {
+        let dados = {
+
             'tabela': 'lista_pagamentos',
             'operacao': 'incluir',
             pagamento,
+
         }
 
         enviar_lista_pagamentos(dados)
 
         remover_popup()
 
-        var pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos'))
+        let pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos'))
 
         pagamentos[pagamento.id_pagamento] = pagamento
 
         localStorage.setItem('lista_pagamentos', JSON.stringify(pagamentos))
 
-        openPopup_v2(`
+        openPopup_v2(
+            
+            `
+
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="/imagens/concluido.png" style="width: 3vw; height: 3vw;">
                 <label>Pagamento Solicitado</label>
-            </div>                
-        `);
+            </div>   
+
+        `
+    
+    );
 
         anexos_pagamentos = {}
         anx_parceiros = {}
 
-        var esquema = document.getElementById('esquema')
+        let esquema = document.getElementById('esquema')
         if (esquema) {
+
             fechar_esquema()
             abrir_esquema(id_orcam)
+
         }
 
         if (document.title == 'PAGAMENTOS') {
+
             consultar_pagamentos()
+
         }
 
     }
@@ -624,40 +807,51 @@ async function criar_pagamento_v2(chave1) {
 
 function criar_datalist(nome_base) {
 
-    var opcoes = ''
-    var base = {}
-    var elementos = []
+    let opcoes = ''
+    let base = {}
+    let elementos = []
 
     base = JSON.parse(localStorage.getItem('dados_' + nome_base))
     elementos = Object.keys(base)
 
     elementos.forEach(item => {
-        opcoes += `
-        <option>${item}</option>
+
+        opcoes += 
+        
         `
+
+        <option>${item}</option>
+
+        `
+
     })
 
     return opcoes
+
 }
 
 function encerrarIntervalos() {
+
     clearInterval(intervaloCompleto);
     clearInterval(intervaloCurto);
+
 }
 
 async function atualizar_departamentos() {
 
-    var departamentos = document.getElementById('departamentos')
-    var aguarde = document.getElementById('aguarde')
+    let departamentos = document.getElementById('departamentos')
+    let aguarde = document.getElementById('aguarde')
 
     departamentos.style.display = 'none'
     aguarde.style.display = 'flex'
 
     await obter_departamentos_fixos()
 
-    var centro_de_custo = document.getElementById('centro_de_custo')
+    let centro_de_custo = document.getElementById('centro_de_custo')
     if (centro_de_custo) {
-        carregar_opcoes(opcoes_centro_de_custo(), 'cc', 'cc_sugestoes') // Carregar os centros de custo;
+
+        carregar_opcoes(opcoes_centro_de_custo(), 'cc', 'cc_sugestoes')
+
     }
 
     departamentos.style.display = 'flex'
@@ -665,10 +859,13 @@ async function atualizar_departamentos() {
 
 }
 
-var ordem = 0
+let ordem = 0
+
 function ordenar() {
+
     ordem++
     return ordem
+
 }
 
 async function tela_pagamento(chave1) {
@@ -680,17 +877,25 @@ async function tela_pagamento(chave1) {
     anexos_pagamentos = {}
 
     intervaloCompleto = setInterval(function () {
+
         document.getElementById('tempo').textContent = data_atual('completa');
+
     }, 1000);
 
     intervaloCurto = setInterval(function () {
+
         document.getElementById('tempo_real').textContent = data_atual('curta');
+
     }, 1000);
 
-    var datalist = ''
+    let datalist = ''
+
     if (chave1 == undefined) {
 
-        datalist += `
+        datalist += 
+        
+        `
+
         <div class="ordem">
 
             <label id="cc_numero" class="numero">${ordenar()}</label>
@@ -714,10 +919,15 @@ async function tela_pagamento(chave1) {
                 <label>Aguarde...</label>
             </div>
         </div>
+
         `
+
     }
 
-    var acumulado = `
+    let acumulado = 
+    
+    `
+
     <div class="pagamento">
         <h2>Solicitação de Pagamento</h2>
 
@@ -848,6 +1058,7 @@ async function tela_pagamento(chave1) {
         </div>
 
     </div>
+
     `;
 
     openPopup_v2(acumulado)
@@ -858,8 +1069,8 @@ async function tela_pagamento(chave1) {
 
 async function atualizar_base_clientes() {
 
-    var div_recebedor = document.getElementById('div_recebedor')
-    var aguarde_2 = document.getElementById('aguarde_2')
+    let div_recebedor = document.getElementById('div_recebedor')
+    let aguarde_2 = document.getElementById('aguarde_2')
 
     if (div_recebedor) {
 
@@ -877,39 +1088,51 @@ async function atualizar_base_clientes() {
 
     }
 
-
 }
 
 function calcular_custo() {
-    var resultado = document.getElementById('resultado')
+
+    let resultado = document.getElementById('resultado')
+
     if (resultado) {
 
-        var v_pago = conversor(document.getElementById('v_pago').textContent)
-        var v_orcado = document.getElementById('v_orcado')
+        let v_pago = conversor(document.getElementById('v_pago').textContent)
+        let v_orcado = document.getElementById('v_orcado')
 
-        var porcentagem = (v_pago / v_orcado.value * 100).toFixed(0)
+        let porcentagem = (v_pago / v_orcado.value * 100).toFixed(0)
 
-        resultado.innerHTML = `
-        ${porcentagem}%
+        resultado.innerHTML = 
+        
         `
+
+        ${porcentagem}%
+
+        `
+
     }
 
 }
 
 function incluir_campos_adicionais() {
 
-    var campos = {
+    let campos = {
+
         lpu_parceiro: { titulo: 'LPU do parceiro de serviço & material' },
         os: { titulo: 'Ordem de Serviço' },
         relatorio_fotografico: { titulo: 'Relatório de Fotográfico' },
         medicao: { titulo: 'Tem medição para anexar?' },
+
     }
 
-    var campos_div = ''
-    for (campo in campos) {
+    let campos_div = ''
 
-        var conteudo = campos[campo]
-        campos_div += `
+    for (let campo in campos) {
+
+        let conteudo = campos[campo]
+        campos_div += 
+        
+        `
+
             <div class="ordem">
                 <label id="recebedor_numero" class="numero">${ordenar()}</label>
 
@@ -922,10 +1145,15 @@ function incluir_campos_adicionais() {
                     <div id="container_${campo}" style="display: flex; flex-direction: column; justify-content: left; gap: 10px; width: 100%;"></div>
                 </div>
             </div>    
+
             `
+
     }
 
-    var acumulado = `
+    let acumulado = 
+    
+    `
+
     <div id="painel_parceiro" style="display: none; flex-direction: column; align-items: start; justify-content: center; gap: 5px;">
         ${campos_div}
         
@@ -949,29 +1177,34 @@ function incluir_campos_adicionais() {
             </div>
         </div>
     </div>
+
     `
 
     return acumulado
+
 }
 
 async function opcoes_clientes() {
 
-    var dados_clientes = await recuperarDados('dados_clientes') || {};
-    var opcoes = []
+    let dados_clientes = await recuperarDados('dados_clientes') || {};
+    let opcoes = []
 
-    for (cnpj in dados_clientes) {
-        var infos = dados_clientes[cnpj]
+    for (let cnpj in dados_clientes) {
+
+        let infos = dados_clientes[cnpj]
 
         opcoes.push(`[${cnpj}] ${infos.nome}`)
+
     }
 
     return opcoes
+
 }
 
 async function calculadora_pagamento() {
 
-    var central_categorias = document.getElementById('central_categorias')
-    var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
+    let central_categorias = document.getElementById('central_categorias')
+    let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
 
     function colorir(cor, elemento) {
         document.getElementById(elemento).style.backgroundColor = cor
@@ -979,125 +1212,177 @@ async function calculadora_pagamento() {
 
     if (central_categorias) {
 
-        var dados_clientes = await recuperarDados('dados_clientes') || {}
-        var inputs = central_categorias.querySelectorAll('input[type="number"]');
-        var categorias = central_categorias.querySelectorAll('input[type="text"]');
-        var total = 0
-        var cliente = document.getElementById('cliente_pagamento')
-        var descricao = document.getElementById('descricao_pagamento')
-        var bloqueio = false
-        var categoria_invalida = false
+        let dados_clientes = await recuperarDados('dados_clientes') || {}
+        let inputs = central_categorias.querySelectorAll('input[type="number"]');
+        let categorias = central_categorias.querySelectorAll('input[type="text"]');
+        let total = 0
+        let cliente = document.getElementById('cliente_pagamento')
+        let descricao = document.getElementById('descricao_pagamento')
+        let bloqueio = false
+        let categoria_invalida = false
 
-        var pix = document.getElementById('pix')
+        let pix = document.getElementById('pix')
+
         if (pix) {
+
             if (pix.value !== '') {
+
                 colorir('green', 'pix_numero')
+
             } else {
+
                 bloqueio = true
                 colorir('#B12425', 'pix_numero')
+
             }
+
         }
 
-        var cc = document.getElementById('cc');
+        let cc = document.getElementById('cc');
+
         if (cc) {
 
-            var cod = ''
+            let cod = ''
+
             try {
+
                 cod = cc.value.match(/\[(\d+)\]$/)[1]
+
             } catch { }
 
             if (centros_de_custo[cod]) {
+
                 colorir('green', 'cc_numero')
+
             } else {
+
                 bloqueio = true
                 colorir('#B12425', 'cc_numero')
+
             }
+
         }
 
-        var pagamento_parceiros = ''
-        var valor_parceiro = 0
+        let pagamento_parceiros = ''
+        let valor_parceiro = 0
 
         inputs.forEach((input, i) => {
 
             total += Number(input.value)
 
             if (categorias[i].value == 'Pagamento de Parceiros' || categorias[i].value == 'Adiantamento de Parceiros') {
+
                 pagamento_parceiros = categorias[i].value
                 valor_parceiro += Number(input.value)
+
             }
 
             !dados_categorias[categorias[i].value] ? categoria_invalida = true : ''
 
             if (input.value == '' || categorias[i].value == '') {
+
                 colorir('#B12425', 'categoria_numero')
                 bloqueio = true
+
             } else {
+
                 colorir('green', 'categoria_numero')
+
             }
 
             if (!dados_categorias[categorias[i].value]) {
+
                 categorias[i].value = ''
                 bloqueio = true
+
             }
 
         })
 
-        var painel_parceiro = document.getElementById('painel_parceiro')
+        let painel_parceiro = document.getElementById('painel_parceiro')
+
         if (valor_parceiro !== 0 && painel_parceiro) {
+
             painel_parceiro.style.display = 'flex'
             document.getElementById('v_pago').textContent = dinheiro(valor_parceiro)
+
         } else {
+
             painel_parceiro.style.display = 'none'
+
         }
 
         if (pagamento_parceiros !== '') {
+
             clearInterval(intervaloCurto);
+
             intervaloCurto = setInterval(function () {
+
                 tempo_real.textContent = data_atual('curta', pagamento_parceiros);
+
             }, 1000);
 
         } else {
+
             clearInterval(intervaloCurto);
             intervaloCurto = setInterval(function () {
+
                 tempo_real.textContent = data_atual('curta');
+
             }, 1000);
+
         }
 
         document.getElementById('total_de_pagamento').textContent = dinheiro(total)
 
-        var container_cnpj_cpf = document.getElementById('container_cnpj_cpf')
+        let container_cnpj_cpf = document.getElementById('container_cnpj_cpf')
 
         if (total !== 0 && descricao.value !== '' && cliente.value !== '' && !bloqueio && container_cnpj_cpf.style.display !== 'flex') {
+
             document.getElementById('liberar_botao').style.display = 'block'
+
         } else {
+
             document.getElementById('liberar_botao').style.display = 'none'
+
         }
 
         cliente.value == '' ? colorir('#B12425', 'recebedor_numero') : colorir('green', 'recebedor_numero')
         descricao.value == '' ? colorir('#B12425', 'descricao_numero') : colorir('green', 'descricao_numero')
 
-        var div_recebedor = document.getElementById('div_recebedor')
-        var regex_cliente = regex = /\[(.*?)\]/;
-        var cnpj_string = ''
+        let div_recebedor = document.getElementById('div_recebedor')
+        let regex_cliente = regex = /\[(.*?)\]/;
+        let cnpj_string = ''
 
         if (String(cliente.value).match(regex_cliente)) {
+
             cnpj_string = String(cliente.value).match(regex_cliente)[1]
+
         }
 
         if (dados_clientes[cnpj_string] == undefined || (cliente.value !== '' && cnpj_string == '' && div_recebedor.style.display !== 'none')) {
+
             document.getElementById('container_cnpj_cpf').style.display = 'flex'
             colorir('#B12425', 'recebedor_numero')
+
         } else {
+
             document.getElementById('container_cnpj_cpf').style.display = 'none'
+
         }
 
     }
 
     return categoria_invalida
+
 }
 
 function nova_categoria() {
-    var categoria = `
+
+    let categoria = 
+    
+    `
+
         <div class="itens_financeiro" style="font-size: 0.8em;">
             <label>Categoria</label>
             <input list="W1" type="text" onchange="calculadora_pagamento()" placeholder="Categoria" style="width: 300px">
@@ -1106,66 +1391,83 @@ function nova_categoria() {
             <input type="number" oninput="calculadora_pagamento()" placeholder="0,00">
             <label src="/imagens/remover.png" style="cursor: pointer; width: 25px; font-size: 2.5vw;" onclick="apagar_categoria(this)">&times;</label>
         </div>
+
     `;
-    var central_categorias = document.getElementById('central_categorias')
+
+    let central_categorias = document.getElementById('central_categorias')
+
     if (!central_categorias) {
+
         return categoria
+
     } else {
+
         central_categorias.insertAdjacentHTML('beforeend', categoria)
+
     }
+
     calculadora_pagamento()
+
 }
 
 function apagar_categoria(elemento) {
-    var linha = elemento.closest('div');
+
+    let linha = elemento.closest('div');
     linha.parentNode.removeChild(linha);
     calculadora_pagamento()
+
 }
 
 async function botao_cadastrar_cliente() {
-    var cnpj_cpf = document.getElementById('cnpj_cpf')
-    var textarea_nome = document.getElementById('cliente_pagamento')
-    var regex = /Id \[(\d+)\]/;
 
-    var container_cnpj_cpf = document.getElementById('container_cnpj_cpf')
-    var aguarde_2 = document.getElementById('aguarde_2')
-    var div_recebedor = document.getElementById('div_recebedor')
+    let cnpj_cpf = document.getElementById('cnpj_cpf')
+    let textarea_nome = document.getElementById('cliente_pagamento')
+    let regex = /Id \[(\d+)\]/;
+
+    let container_cnpj_cpf = document.getElementById('container_cnpj_cpf')
+    let aguarde_2 = document.getElementById('aguarde_2')
+    let div_recebedor = document.getElementById('div_recebedor')
 
     div_recebedor.style.display = 'none'
     container_cnpj_cpf.style.display = 'none'
     aguarde_2.style.display = 'flex'
 
-    var dados_clientes = await recuperarDados('dados_clientes') || {};
-    var omie_clientes = {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {};
+    let omie_clientes = {}
 
     for (let cliente in dados_clientes) {
-        var infos = dados_clientes[cliente]
+
+        let infos = dados_clientes[cliente]
         omie_clientes[dados_clientes[cliente].omie] = infos
+
     }
 
     if (textarea_nome.value && cnpj_cpf.value) {
 
         await cadastrarCliente(textarea_nome.value, cnpj_cpf.value)
 
-        var resposta_cliente_cadastrado = JSON.parse(localStorage.getItem('resposta_cliente_cadastrado'))
+        let resposta_cliente_cadastrado = JSON.parse(localStorage.getItem('resposta_cliente_cadastrado'))
 
         if (resposta_cliente_cadastrado.cod_status == 0) {
 
             dados_clientes[cnpj_cpf.value] = {
+
                 nome: textarea_nome.value,
                 cnpj: cnpj_cpf.value,
                 omie: resposta_cliente_cadastrado.codigo_cliente_omie
+
             }
 
             inserirDados(dados_clientes, 'dados_clientes')
 
         } else if (resposta_cliente_cadastrado.cod_status == 4) {
 
-            var match = resposta_cliente_cadastrado.status.match(regex);
+            let match = resposta_cliente_cadastrado.status.match(regex);
 
             if (match) {
-                var omie_cod = match[1]
-                textarea_nome.value = `[${omie_clientes[omie_cod].cnpj}] ${omie_clientes[omie_cod].nome}` // Cliente já cadastrado para o CPF informado;
+
+                let omie_cod = match[1]
+                textarea_nome.value = `[${omie_clientes[omie_cod].cnpj}] ${omie_clientes[omie_cod].nome}`
 
             }
 
@@ -1183,117 +1485,164 @@ async function botao_cadastrar_cliente() {
 function cadastrarCliente(nome, cnpj_cpf) {
 
     return new Promise((resolve, reject) => {
-        var bloco = `cdc29_${nome}_${cnpj_cpf}`
 
-        var url = 'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=' + bloco
+        let bloco = `cdc29_${nome}_${cnpj_cpf}`
+
+        let url = 'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=' + bloco
 
         fetch(url)
+
             .then(response => {
+
                 if (!response.ok) {
+
                     throw new Error('Erro ao carregar os dados');
+
                 }
+
                 return response.json();
+
             })
+
             .then(data => {
 
                 localStorage.setItem('resposta_cliente_cadastrado', JSON.stringify(data))
                 resolve();
+
             })
+
             .catch(error => {
+
                 console.error('Ocorreu um erro:', error);
                 reject(error);
+
             });
+
     });
+
 }
 
 
 
 function salvar_anexo_pagamento(id_pagamento) {
 
-    var elemento = document.getElementById(`adicionar_anexo_pagamento`)
+    let elemento = document.getElementById(`adicionar_anexo_pagamento`)
 
-    var file = elemento.files[0];
+    let file = elemento.files[0];
 
     if (file) {
 
-        var fileInput = elemento
-        var file = fileInput.files[0];
-        var fileName = file.name
+        let fileInput = elemento
+        let file = fileInput.files[0];
+        let fileName = file.name
 
         if (!file) {
+
             openPopup_v2('Nenhum arquivo selecionado...');
             return;
+
         }
 
-        var reader = new FileReader();
-        reader.onload = async (e) => {
-            var base64 = e.target.result.split(',')[1];
-            var mimeType = file.type;
+        let reader = new FileReader();
 
-            var response = await fetch('http://localhost:3000/upload', {
+        reader.onload = async (e) => {
+
+            let base64 = e.target.result.split(',')[1];
+            let mimeType = file.type;
+
+            let response = await fetch('http://localhost:3000/upload', {
+
                 method: 'POST',
                 headers: {
+
                     'Content-Type': 'application/json'
+                    
                 },
                 body: JSON.stringify({
+
                     name: fileName,
                     mimeType: mimeType,
                     base64: base64
+
                 })
+
             });
 
-            var result = await response.json();
+            let result = await response.json();
+
             if (response.ok) {
 
                 if (id_pagamento == undefined) {
 
                     anexos_pagamentos[gerar_id_5_digitos()] = {
+
                         nome: fileName,
                         formato: mimeType,
                         link: result.fileId
+
                     }
 
-                    var imagem = ''
+                    let imagem = ''
 
                     if (formato(mimeType) == 'PDF') {
+
                         imagem = 'pdf'
+
                     } else if (formato(mimeType) == 'IMAGEM') {
+
                         imagem = 'imagem'
+
                     } else if (formato(mimeType) == 'PLANILHA') {
+
                         imagem = 'excel2'
+
                     } else {
+
                         imagem = 'anexo'
+
                     }
 
-                    var resposta = `
+                    let resposta = 
+                    
+                    `
+
                 <div style="align-items: center; width: max-content; font-size: 0.7em; display: flex; justify-content; left;">
                     <img src="${imagem}.png" style="width: 20px;">
                     <label><strong>${fileName}</strong></label>
                 </div>
+
                 `
+
                     document.getElementById('container_anexos').insertAdjacentHTML('beforeend', resposta)
+
                 } else {
 
-                    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+                    let lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
 
-                    var anexo = {}
+                    let anexo = {}
 
                     anexo[gerar_id_5_digitos()] = {
+
                         nome: fileName,
                         formato: mimeType,
                         link: result.fileId
+
                     }
 
                     lista_pagamentos[id_pagamento].anexos = {
+
                         ...lista_pagamentos[id_pagamento].anexos,
                         ...anexo
+
                     };
 
-                    var dados = {
+                    let dados = {
+
                         id_pagamento: id_pagamento,
                         tabela: 'atualizacoes_pagamentos',
                         alteracao: 'anexo',
                         anexo: anexo
+
                     }
 
                     enviar_dados_generico(dados)
@@ -1314,74 +1663,94 @@ function salvar_anexo_pagamento(id_pagamento) {
         };
 
         reader.readAsDataURL(file);
+
     }
+
 }
 
 function anexos_parceiros(campo, id_pagamento) {
 
-    var elemento = document.getElementById(`anexo_${campo}`)
+    let elemento = document.getElementById(`anexo_${campo}`)
 
-    var file = elemento.files[0];
+    let file = elemento.files[0];
 
     if (file) {
 
-        var fileInput = elemento
-        var file = fileInput.files[0];
-        var fileName = file.name
+        let fileInput = elemento
+        let file = fileInput.files[0];
+        let fileName = file.name
 
         if (!file) {
+
             openPopup_v2('Nenhum arquivo selecionado...');
             return;
+
         }
 
-        var reader = new FileReader();
-        reader.onload = async (e) => {
-            var base64 = e.target.result.split(',')[1];
-            var mimeType = file.type;
+        let reader = new FileReader();
 
-            var response = await fetch('http://localhost:3000/upload', {
+        reader.onload = async (e) => {
+
+            let base64 = e.target.result.split(',')[1];
+            let mimeType = file.type;
+
+            let response = await fetch('http://localhost:3000/upload', {
+
                 method: 'POST',
                 headers: {
+
                     'Content-Type': 'application/json'
+
                 },
                 body: JSON.stringify({
+
                     name: fileName,
                     mimeType: mimeType,
                     base64: base64
+
                 })
+
             });
 
-            var result = await response.json();
+            let result = await response.json();
+
             if (response.ok) {
 
-                //Verificar estrutura
                 if (!anx_parceiros[campo]) {
+
                     anx_parceiros[campo] = {}
+
                 }
 
                 anx_parceiros[campo][gerar_id_5_digitos()] = {
+
                     nome: fileName,
                     formato: mimeType,
                     link: result.fileId
+
                 }
 
                 if (id_pagamento !== undefined) {
 
-                    var dados = {
+                    let dados = {
+
                         id_pagamento: id_pagamento,
                         campo: campo,
                         tabela: 'anexos_parceiros',
                         anexo: anx_parceiros[campo]
+
                     }
 
-                    var pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
-                    var pagamento = pagamentos[id_pagamento]
+                    let pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+                    let pagamento = pagamentos[id_pagamento]
 
                     pagamento.anexos_parceiros = pagamento.anexos_parceiros || {};
 
                     pagamento.anexos_parceiros[dados.campo] = {
+
                         ...pagamento.anexos_parceiros[dados.campo],
                         ...dados.anexo
+
                     }
 
                     localStorage.setItem('lista_pagamentos', JSON.stringify(pagamentos))
@@ -1389,14 +1758,20 @@ function anexos_parceiros(campo, id_pagamento) {
                     enviar_dados_generico(dados)
 
                     abrir_detalhes(id_pagamento)
+
                 }
 
-                var resposta = `
+                let resposta = 
+                
+                `
+
                 <div onclick="abrirArquivo('https://drive.google.com/file/d/${result.fileId}')" class="anexos" style="border: solid 1px green;">
                     <img src="/imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
                     <label style="cursor: pointer; font-size: 0.6em"><strong>${fileName}</strong></label>
                 </div>   
+
                 `
+
                 document.getElementById(`container_${campo}`).insertAdjacentHTML('beforeend', resposta)
 
             } else {
@@ -1408,6 +1783,7 @@ function anexos_parceiros(campo, id_pagamento) {
         };
 
         reader.readAsDataURL(file);
+
     }
 
 }
