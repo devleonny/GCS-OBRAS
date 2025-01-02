@@ -3,13 +3,15 @@ recuperar()
 carregar_grupos()
 
 function fechar_popup() {
+
     document.getElementById('container_grupos').style.display = 'none'
+
 }
 
 async function atualizar_grupos() {
 
-    var gif = document.getElementById('loading')
-    var tabela = document.getElementById('ocultar')
+    let gif = document.getElementById('loading')
+    let tabela = document.getElementById('ocultar')
 
     tabela.style.display = 'none'
     gif.style.display = 'flex'
@@ -20,63 +22,72 @@ async function atualizar_grupos() {
 
     gif.style.display = 'none'
     tabela.style.display = ''
+
 }
 
 function carregar_grupos() {
 
-    var grupos = JSON.parse(localStorage.getItem('dados_grupos'))
-    var tabela = document.getElementById('tabela')
+    let grupos = JSON.parse(localStorage.getItem('dados_grupos'))
+    let tabela = document.getElementById('tabela')
 
     tabela.innerHTML = ''
 
     Object.keys(grupos).forEach(function (grupo) {
 
-        var tr = document.createElement('tr')
-        var td = document.createElement('td')
+        let tr = document.createElement('tr')
+        let td = document.createElement('td')
 
         td.textContent = grupo
         tr.appendChild(td)
 
-        var td = document.createElement('td')
+        td = document.createElement('td')
 
         if (grupos[grupo]) {
 
             let itens = grupos[grupo].map(function (item, index) {
+
                 return (index + 1) + ". " + (item);
+
             }).join("<br>");
 
             td.innerHTML = itens
+
         } else {
+
             td.textContent = '--'
+
         }
         tr.appendChild(td)
 
-        var td = document.createElement('td')
-        var img = document.createElement('img')
+        td = document.createElement('td')
+        let img = document.createElement('img')
         img.src = "/imagens/editar.png"
         img.style.width = '15px'
         img.style.cursor = 'pointer'
         img.addEventListener('click', function () {
+
             document.getElementById('container_grupos').style.display = 'block'
-            var tbody = document.getElementById('grupos')
+            let tbody = document.getElementById('grupos')
 
             tbody.innerHTML = ''
 
-            var tr = document.createElement('tr')
-            var td = document.createElement('td')
+            let tr = document.createElement('tr')
+            let td = document.createElement('td')
             td.textContent = grupo
             td.id = 'grupo'
             tr.appendChild(td)
 
-            var td = document.createElement('td')
+            td = document.createElement('td')
             td.id = 'subgrupos'
             td.style.display = 'grid'
 
             grupos[grupo].forEach(function (item) {
-                var input = document.createElement('input')
+
+                let input = document.createElement('input')
                 input.classList = 'input_subgrupos'
                 input.value = item
                 td.appendChild(input)
+
             })
 
             tr.appendChild(td)
@@ -84,6 +95,7 @@ function carregar_grupos() {
             tbody.appendChild(tr)
 
         })
+
         td.appendChild(img)
         tr.appendChild(td)
 
@@ -96,9 +108,9 @@ function carregar_grupos() {
 
 function adicionar() {
 
-    var td = document.getElementById('subgrupos')
+    let td = document.getElementById('subgrupos')
 
-    var input = document.createElement('input')
+    let input = document.createElement('input')
 
     input.placeholder = 'Subgrupo'
     input.classList = 'input_subgrupos'
@@ -108,24 +120,31 @@ function adicionar() {
 }
 
 function salvar_subgrupos() {
-    var grupo = document.getElementById('grupo').textContent
 
-    var dados_grupos = JSON.parse(localStorage.getItem('dados_grupos'))
+    let grupo = document.getElementById('grupo').textContent
 
-    var subgrupos = document.getElementById('subgrupos')
+    let dados_grupos = JSON.parse(localStorage.getItem('dados_grupos'))
 
-    var inputs = subgrupos.querySelectorAll('input');
+    let subgrupos = document.getElementById('subgrupos')
 
-    var novos_subgrupos = []
+    let inputs = subgrupos.querySelectorAll('input');
+
+    let novos_subgrupos = []
 
     inputs.forEach(function (input) {
+
         if (input.value !== '') {
+
             novos_subgrupos.push(input.value)
+
         }
+
     })
 
     if (dados_grupos[grupo]) {
+
         dados_grupos[grupo] = novos_subgrupos
+
     }
 
     localStorage.setItem('dados_grupos', JSON.stringify(dados_grupos))
@@ -143,17 +162,25 @@ function salvar_subgrupos() {
 
 function enviar_grupos(grupos) {
 
-    var resposta_api = {
+    let resposta_api = {
+
         'tabela': 'grupos',
         'grupos': grupos
+        
     }
 
     fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec', {
+
         method: 'POST',
         mode: 'no-cors',
         headers: {
+
             'Content-Type': 'application/json'
+
         },
+
         body: JSON.stringify(resposta_api)
+
     })
+
 }
