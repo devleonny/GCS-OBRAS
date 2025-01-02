@@ -1343,15 +1343,15 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
     pagamentosFiltrados.sort((a, b) => parseDate(b.data_previsao) - parseDate(a.data_previsao));
 
     var contadores = {
-        gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: "imagens/gerente.png" },
-        diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: "imagens/diretoria.png" },
+        gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: "/imagens/gerente.png" },
+        diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: "/imagens/diretoria.png" },
         reprovados: { qtde: 0, valor: 0, termo: 'reprovado', label: 'Reprovados', icone: "/imagens/remover.png" },
-        excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: "gifs/alerta.gif" },
-        salvos: { qtde: 0, valor: 0, termo: 'localmente', label: 'Salvo localmente', icone: "imagens/salvo.png" },
-        pago: { qtde: 0, valor: 0, termo: 'pago', label: 'Pagamento realizado', icone: "imagens/concluido.png" },
-        avencer: { qtde: 0, valor: 0, termo: 'a vencer', label: 'Pagamento será feito outro dia', icone: "imagens/avencer.png" },
-        hoje: { qtde: 0, valor: 0, termo: 'hoje', label: 'Pagamento será feito hoje', icone: "imagens/vencehoje.png" },
-        todos: { qtde: 0, valor: 0, termo: '', label: 'Todos os pagamentos', icone: "imagens/voltar.png" }
+        excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: "/gifs/alerta.gif" },
+        salvos: { qtde: 0, valor: 0, termo: 'localmente', label: 'Salvo localmente', icone: "/imagens/salvo.png" },
+        pago: { qtde: 0, valor: 0, termo: 'pago', label: 'Pagamento realizado', icone: "/imagens/concluido.png" },
+        avencer: { qtde: 0, valor: 0, termo: 'a vencer', label: 'Pagamento será feito outro dia', icone: "/imagens/avencer.png" },
+        hoje: { qtde: 0, valor: 0, termo: 'hoje', label: 'Pagamento será feito hoje', icone: "/imagens/vencehoje.png" },
+        todos: { qtde: 0, valor: 0, termo: '', label: 'Todos os pagamentos', icone: "/imagens/voltar.png" }
     }
 
     Object.keys(pagamentosFiltrados).forEach((pagamento, i) => {
@@ -1393,7 +1393,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
             contadores.excluidos.valor += pg.param[0].valor_documento
             contadores.excluidos.qtde += 1
         } else {
-            icone = "gifs/alerta.gif"
+            icone = "/gifs/alerta.gif"
         }
         contadores.todos.qtde += 1
         contadores.todos.valor += pg.param[0].valor_documento

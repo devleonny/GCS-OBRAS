@@ -212,7 +212,7 @@ async function preencher_v2(parceiro) {
                 quando: '?',
                 aprovado: '?',
                 valor: 0,
-                icone: "gifs/alerta.gif"
+                icone: "/gifs/alerta.gif"
             }
 
             if (dados_composicoes[item.codigo]) {
@@ -229,7 +229,7 @@ async function preencher_v2(parceiro) {
                 item.imagem = item.imagem ? item.imagem : dados.imagem
                 item.unidade = dados.unidade
                 item.custo = conversor(item.custo)
-                item.parceiro.icone = "imagens/concluido.png"
+                item.parceiro.icone = "/imagens/concluido.png"
 
             }
 
