@@ -582,7 +582,7 @@ async function total() {
             if (dados_composicoes[sub_ou_cod] && dados_composicoes[sub_ou_cod][lpu] && dados_composicoes[sub_ou_cod][lpu].ativo !== undefined) {
 
                 let ativo = dados_composicoes[sub_ou_cod][lpu].ativo
-                var historico = dados_composicoes[sub_ou_cod][lpu].historico
+                let historico = dados_composicoes[sub_ou_cod][lpu].historico
                 valor_unitario = historico[ativo].valor
 
             }
@@ -648,7 +648,7 @@ async function total() {
 
             }
 
-            var item_salvo = orcamento_v2.dados_composicoes[codigo]
+            let item_salvo = orcamento_v2.dados_composicoes[codigo]
 
             item_salvo.codigo = codigo
             item_salvo.qtde = quantidade

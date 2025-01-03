@@ -476,7 +476,7 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
                 produto[lpu].ativo = id_preco
                 inserirDados(dados_composicoes, 'dados_composicoes')
 
-                var requisicao = {
+                let requisicao = {
 
                     tabela: 'composicoes',
                     composicao: produto
@@ -499,15 +499,15 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
 
 async function salvar_cotacao(codigo, lpu) {
 
-    var historico_preco = document.getElementById('historico_preco')
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    var produto = dados_composicoes[codigo]
+    let historico_preco = document.getElementById('historico_preco')
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let produto = dados_composicoes[codigo]
 
     if (historico_preco) {
 
-        var tabela = historico_preco.querySelector('table')
-        var tbody = tabela.querySelector('tbody')
-        var trs = tbody.querySelectorAll('tr')
+        let tabela = historico_preco.querySelector('table')
+        let tbody = tabela.querySelector('tbody')
+        let trs = tbody.querySelectorAll('tr')
 
         trs.forEach(tr => {
 

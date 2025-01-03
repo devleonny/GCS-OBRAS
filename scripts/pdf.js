@@ -4,12 +4,12 @@ function voltar() {
 
 }
 
-var perc_parceiro = 0.35
+let perc_parceiro = 0.35
 preencher_v2()
 
 function excel() {
 
-    var orcam_ = JSON.parse(localStorage.getItem('pdf')).id
+    let orcam_ = JSON.parse(localStorage.getItem('pdf')).id
     ir_excel(orcam_)
 
 }
@@ -338,7 +338,7 @@ async function preencher_v2(parceiro) {
 
                 }
 
-                var tds = {}
+                let tds = {}
 
                 tds[1] = `<td>${item.codigo}</td>`
                 tds[2] = `<td>${item.sapid}</td>`

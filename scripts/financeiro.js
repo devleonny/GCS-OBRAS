@@ -176,7 +176,7 @@ function criar_arrays() {
 
     }
 
-    var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias'));
+    let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias'));
 
     for (let categoria in dados_categorias) {
 
