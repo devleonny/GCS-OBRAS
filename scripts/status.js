@@ -3486,7 +3486,7 @@ async function excluir_status_na_nuvem(chave1, chave2, chave_anexo) {
 
 async function enviar_status_orcamento(orcamento) {
 
-    let orcamento = {
+    orcamento = {
 
         'id': orcamento.id,
         'tabela': 'orcamento_status',

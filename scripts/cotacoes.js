@@ -278,6 +278,8 @@ function salvarFornecedor() {
         fornecedoresHeader.style.display = "table-cell";
 
         thNomeFornecedor.textContent = nomeFornecedor
+
+
         
         trNomeFornecedor.appendChild(thNomeFornecedor)
 
@@ -541,3 +543,50 @@ resultados.forEach(fornecedor => {
 });
 
 }
+
+function salvarObjeto() {
+    const tabela = document.getElementById("cotacaoTable");
+    const fornecedoresHeaders = document.querySelectorAll(".count-row th");
+    const linhas = tabela.querySelectorAll("tbody tr");
+
+    if (linhas.length === 0) {
+        alert("Não há itens na tabela para salvar.");
+        return;
+    }
+
+    const dados = Array.from(linhas).map(linha => {
+        const celulas = linha.querySelectorAll("td");
+        const item = {
+            numeroItem: linha.querySelector("td:nth-child(2)")?.textContent || "",
+            partnumber: linha.querySelector("td:nth-child(3) input")?.value || "",
+            nomeItem: linha.querySelector("td:nth-child(4) input")?.value || "",
+            tipoUnitario: linha.querySelector("td:nth-child(5) input")?.value || "",
+            quantidade: linha.querySelector("td:nth-child(6) input")?.value || "",
+            estoque: linha.querySelector("td:nth-child(7) input")?.value || "",
+            fornecedores: []
+        };
+
+        fornecedoresHeaders.forEach((th, index) => {
+            if (index === 0) return;
+
+            const nomeFornecedor = th.textContent.trim();
+            const precoUnitarioInput = celulas[7 + (index - 1) * 2]?.querySelector("input");
+            const precoTotalInput = celulas[8 + (index - 1) * 2]?.querySelector("input");
+
+            item.fornecedores.push({
+                nome: nomeFornecedor,
+                precoUnitario: precoUnitarioInput ? precoUnitarioInput.value : "",
+                precoTotal: precoTotalInput ? precoTotalInput.value : ""
+            });
+        });
+
+        return item;
+    });
+
+    console.log("Dados da Tabela Salvos:", dados);
+    alert("Tabela salva com sucesso!");
+
+    return dados;
+}
+
+
