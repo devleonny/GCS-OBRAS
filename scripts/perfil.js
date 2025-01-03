@@ -1,6 +1,6 @@
-var dados_usuario = JSON.parse(localStorage.getItem('acesso'))
+let dados_usuario = JSON.parse(localStorage.getItem('acesso'))
 
-var lista = ['usuario', 'nome_completo', 'email', 'telefone']
+let lista = ['usuario', 'nome_completo', 'email', 'telefone']
 
 lista.forEach(function (item) {
 
