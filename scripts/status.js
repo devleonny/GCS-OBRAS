@@ -1,6 +1,6 @@
 let itens_adicionais = {}
 let overlay = document.getElementById('overlay');
-let acesso = JSON.parse(localStorage.getItem('acesso')) || {};
+acesso = JSON.parse(localStorage.getItem('acesso')) || {};
 let status_tit = ''
 let id_orcam = ''
 let dataAtual = new Date();

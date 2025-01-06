@@ -545,17 +545,73 @@ resultados.forEach(fornecedor => {
 }
 
 function salvarObjeto() {
+    // Obter informações das funções auxiliares
+    const informacoes = salvarInformacoes();
+    const dados = salvarDados();
+    const valorFinal = salvarValorFinal();
+
+    // Criar o objeto final combinando as partes
+    const novaCotacao = {
+        informacoes,
+        dados,
+        valorFinal
+    };
+
+    // Recuperar o array de cotações já existente no localStorage
+    let dadosCotacao = JSON.parse(localStorage.getItem("dados_cotacao")) || [];
+
+    // Adicionar a nova cotação ao array
+    dadosCotacao.push(novaCotacao);
+
+    // Salvar o array atualizado no localStorage
+    localStorage.setItem("dados_cotacao", JSON.stringify(dadosCotacao));
+
+    // Exibir no console
+    console.log("Nova cotação salva no array dados_cotacao:", novaCotacao);
+    console.log("Todas as cotações:", dadosCotacao);
+
+    return novaCotacao;
+}
+
+// Função para salvar as informações gerais (id, data, hora, criador)
+function salvarInformacoes() {
+    const now = new Date();
+    const dia = String(now.getDate()).padStart(2, "0");
+    const mes = String(now.getMonth() + 1).padStart(2, "0");
+    const ano = now.getFullYear();
+    const horas = String(now.getHours()).padStart(2, "0");
+    const minutos = String(now.getMinutes()).padStart(2, "0");
+    const segundos = String(now.getSeconds()).padStart(2, "0");
+
+    const dataFormatada = `${dia}/${mes}/${ano}`;
+    const horaFormatada = `${horas}:${minutos}:${segundos}`;
+
+    // Obter o criador do localStorage
+    const acesso = JSON.parse(localStorage.getItem("acesso"));
+    const criador = acesso?.usuario || "Desconhecido";
+
+    return {
+        id: `Cotacao-${dia}-${mes}-${ano}`,
+        data: dataFormatada,
+        hora: horaFormatada,
+        criador
+    };
+}
+
+// Função para salvar os dados dos itens
+function salvarDados() {
     const tabela = document.getElementById("cotacaoTable");
-    const fornecedoresHeaders = document.querySelectorAll(".count-row th");
     const linhas = tabela.querySelectorAll("tbody tr");
 
     if (linhas.length === 0) {
-        alert("Não há itens na tabela para salvar.");
-        return;
+        console.warn("Não há itens na tabela para salvar.");
+        return [];
     }
 
-    const dados = Array.from(linhas).map(linha => {
+    return Array.from(linhas).map(linha => {
         const celulas = linha.querySelectorAll("td");
+        const fornecedoresHeaders = Array.from(document.querySelectorAll(".count-row th"));
+
         const item = {
             numeroItem: linha.querySelector("td:nth-child(2)")?.textContent || "",
             partnumber: linha.querySelector("td:nth-child(3) input")?.value || "",
@@ -567,8 +623,7 @@ function salvarObjeto() {
         };
 
         fornecedoresHeaders.forEach((th, index) => {
-            if (index === 0) return;
-
+            if (index === 0) return; // Ignorar o título do cabeçalho
             const nomeFornecedor = th.textContent.trim();
             const precoUnitarioInput = celulas[7 + (index - 1) * 2]?.querySelector("input");
             const precoTotalInput = celulas[8 + (index - 1) * 2]?.querySelector("input");
@@ -582,11 +637,29 @@ function salvarObjeto() {
 
         return item;
     });
-
-    console.log("Dados da Tabela Salvos:", dados);
-    alert("Tabela salva com sucesso!");
-
-    return dados;
 }
 
+// Função para salvar os dados dos fornecedores (valorFinal)
+function salvarValorFinal() {
+    const fornecedoresHeaders = Array.from(document.querySelectorAll(".count-row th"));
 
+    return fornecedoresHeaders.slice(1).map((th, fornecedorIndex) => {
+        const nomeFornecedor = th.textContent.trim();
+        const idSuffix = fornecedorIndex + 1;
+
+        const porcentagemDesconto = document.getElementById(`input-desconto-${idSuffix}`)?.value || "";
+        const subtotal = document.getElementById(`input-subtotal-${idSuffix}`)?.value || "";
+        const valorFrete = document.getElementById(`input-frete-${idSuffix}`)?.value || "";
+        const condicaoPagar = document.getElementById(`input-condicao-pagar-${idSuffix}`)?.value || "";
+        const valorTotal = document.getElementById(`input-total-${idSuffix}`)?.value || "";
+
+        return {
+            nome: nomeFornecedor,
+            porcentagemDesconto,
+            subtotal,
+            valorFrete,
+            condicaoPagar,
+            valorTotal
+        };
+    });
+}
