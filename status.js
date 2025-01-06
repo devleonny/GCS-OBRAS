@@ -1,6 +1,6 @@
 let itens_adicionais = {}
 let overlay = document.getElementById('overlay');
-acesso = JSON.parse(localStorage.getItem('acesso')) || {};
+acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 let status_tit = ''
 let id_orcam = ''
 let dataAtual = new Date();
@@ -101,32 +101,29 @@ var comentario = `
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-        <label><strong>Data</strong> </label> <label id="data_status">${data}</label>
+        <label><strong>Data</strong> </label> <label id="data_status">${data_status}</label>
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-        <label><strong>Executor</strong> </label> <label id="usuario_status">${usuario}</label>
+        <label><strong>Executor</strong> </label> <label id="usuario_status">${acesso.usuario}</label>
     </div>
      
-        <div id="div_anexos" style="display: flex; flex-direction: column; justify-content: right; align-items: center; gap: 10px;">
-        </div>
+    <div id="div_anexos" style="display: flex; flex-direction: column; justify-content: right; align-items: center; gap: 10px;">
+    </div>
 
-        <div class="contorno_botoes" style="background-color: #B12425"> 
-            <img src="imagens/anexo2.png" style="width: 15px;">
-            <label for="adicionar_anexo">Anexar arquivos
-                <input type="file" id="adicionar_anexo" style="display: none;" onchange="salvar_anexo()"> 
-            </label>
-        </div>
-    
+    <div class="contorno_botoes" style="background-color: #B12425"> 
+        <img src="imagens/anexo2.png" style="width: 15px;">
+        <label for="adicionar_anexo">Anexar arquivos
+            <input type="file" id="adicionar_anexo" style="display: none;" onchange="salvar_anexo()"> 
+        </label>
+    </div>
     
     <hr style="width: 80%">
     <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
         <button onclick="fechar_status()">Cancelar</button>
-        <button style="background-color: green" onclick="${funcao}">Salvar</button>
+        <button style="background-color: green" onclick="provisorio()">Salvar</button>
     </div>
-
-    </div>
-    `
+`
 
 function calcular_requisicao(sincronizar) {
 
@@ -236,8 +233,8 @@ function calcular_requisicao(sincronizar) {
 
 function notas_no_financeiro(chave) {
 
-    return 
-    
+    return
+
     `
 
     <hr style="width: 80%">
@@ -263,9 +260,9 @@ function notas_no_financeiro(chave) {
 
 }
 
-let nota_mais = 
+let nota_mais =
 
-`
+    `
 
     <div class="conteiner_pedido">
         <label><strong>Número da Nota</strong></label>
@@ -346,7 +343,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento = dados_orcamentos[id_orcam]
 
-    var orcamento = conversor_composicoes_orcamento(orcamento)
+    orcamento = await conversor_composicoes_orcamento(orcamento)
 
     var linhas = ''
 
@@ -374,29 +371,29 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
             if (dados_composicoes[codigo] && dados_composicoes[codigo][item]) {
 
-                elements += 
-                
-                `
+                elements +=
+
+                    `
 
                 <label><strong>${item.toUpperCase()}</strong> <br> ${dados_composicoes[codigo][item]}</label>
 
             `
-        
-        }
+
+            }
 
         })
 
-        let part_number = 
-        
-        `
+        let part_number =
+
+            `
 
             <input value="${dados_composicoes[codigo]?.omie || ''}" class="pedido" style="font-size: 1.2em; width: 100%; height: 40px; padding: 0px; margin: 0px;">
 
         `
 
-        let selectTipo = 
-        
-        `
+        let selectTipo =
+
+            `
 
             <select onchange="calcular_requisicao()">
                 <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
@@ -419,9 +416,9 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
         }
 
-        let quantidade = 
-        
-        `
+        let quantidade =
+
+            `
 
         <div style="display: flex; flex-direction: column; align-items: start; justify-content: space-evenly; gap: 10px;">
 
@@ -444,9 +441,9 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
         `
 
-        let opcoes = 
-        
-        `
+        let opcoes =
+
+            `
 
         <select>
             <option>--</option>
@@ -469,9 +466,9 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
         }
 
-        let linha = 
-        
-        `
+        let linha =
+
+            `
 
             <tr>
             <td style="text-align: center; font-size: 1.2em;">${codigo}</td>
@@ -540,9 +537,9 @@ function adicionar_linha_materiais(descricao, und, qtde) {
 
             let item = materiais[material]
 
-            itens += 
-            
-            `
+            itens +=
+
+                `
 
         <option>${item.descricao}</option>
 
@@ -550,9 +547,9 @@ function adicionar_linha_materiais(descricao, und, qtde) {
 
         }
 
-        let linha = 
-        
-        `
+        let linha =
+
+            `
 
         <tr>
             <td><img src="/imagens/excluir.png" onclick="remover_linha_materiais(this)" style="cursor: pointer;"></td>
@@ -607,9 +604,9 @@ function mostrar_estoque() {
 
 function abrir_adicionais(codigo) {
 
-    let acumulado = 
-    
-    `
+    let acumulado =
+
+        `
 
         <div id="painel_cotacoes" style="background-color: #B12425; border-radius: 5px; font-size: 1.0vw; color: #222;">
 
@@ -736,9 +733,9 @@ function mostrar_itens_adicionais() {
 
                     let adicional = adicionais[ad]
 
-                    div += 
-                    
-                    `
+                    div +=
+
+                        `
 
                     <div style="display: flex; gap: 5px; align-items: center; justify-content: left;">
                         <label>(${adicional.qtde})</label>
@@ -751,9 +748,9 @@ function mostrar_itens_adicionais() {
 
                 }
 
-                let acumulado = 
-                
-                `
+                let acumulado =
+
+                    `
 
                 <div id="container_${codigo}" class="contorno" style="width: 80%;">
                     <div style="padding: 5px; background-color: #99999940; border-radius: 3px; font-size: 0.6vw;">
@@ -897,7 +894,7 @@ function carregar_status_divs(valor, chave, id) {
 
 }
 
-function salvar_status(chave, operacao, chave2) {
+function salvar_status(chave, operacao, chave2) { //29 Variáveis sem uso...
 
     // Iniciar o objeto STATUS - PARA TODOS;
     var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
@@ -947,7 +944,7 @@ function salvar_status(chave, operacao, chave2) {
         } else {
             st = 'PEDIDO DE VENDA ANEXADO';
         }
-    });
+    }
 
     novo_lancamento.status = st;
     novo_lancamento.historico[chave_his].status = st;
@@ -972,73 +969,75 @@ function salvar_requisicao(chave, chave2) {
         orcamento.status = {};
     }
 
-        if (chave2 == undefined) {
-            chave2 = gerar_id_5_digitos()
-        }
+    if (chave2 == undefined) {
+        chave2 = gerar_id_5_digitos()
+    }
 
-        if (!orcamento.status[chave]) {
-            orcamento.status[chave] = { historico: {} };
-        }
-        var novo_lancamento = orcamento.status[chave];
+    if (!orcamento.status[chave]) {
+        orcamento.status[chave] = { historico: {} };
+    }
+    var novo_lancamento = orcamento.status[chave];
 
     calcular_requisicao()
 
-        novo_lancamento.historico[chave2] = {
-            status: '',
-            data: data_status,
-            executor: acesso.usuario,
-            comentario: comentario_status.value,
-            anexos: anexos,
-            requisicoes: [],
-            adicionais: itens_adicionais,
-            total_sem_icms: total_s_icms.textContent,
-            total_com_icms: total_c_icms.textContent
-        };
+    novo_lancamento.historico[chave2] = {
+        status: '',
+        data: data_status,
+        executor: acesso.usuario,
+        comentario: comentario_status.value,
+        anexos: anexos,
+        requisicoes: [],
+        adicionais: itens_adicionais,
+        total_sem_icms: total_s_icms.textContent,
+        total_com_icms: total_c_icms.textContent
+    };
 
-        var tbody = tabela_requisicoes.querySelector('tbody');
+    var tbody = tabela_requisicoes.querySelector('tbody');
 
-        if (tbody) {
-            var trs = tbody.querySelectorAll('tr');
-            var lista_partnumbers = {};
+    if (tbody) {
+        var trs = tbody.querySelectorAll('tr');
+        var lista_partnumbers = {};
 
         trs.forEach(tr => {
 
-                var tds = tr.querySelectorAll('td');
+            var tds = tr.querySelectorAll('td');
 
-                var codigo = tds[0].textContent
-                var partnumber = tds[1].querySelector('input')?.value || '';
-                var requisicao = tds[7].querySelector('select')?.value || '';
-                var tipo = tds[3].querySelector('select')?.value || '';
-                var qtde = tds[4].querySelector('input')?.value || '';
+            var codigo = tds[0].textContent
+            var partnumber = tds[1].querySelector('input')?.value || '';
+            var requisicao = tds[7].querySelector('select')?.value || '';
+            var tipo = tds[3].querySelector('select')?.value || '';
+            var qtde = tds[4].querySelector('input')?.value || '';
 
-                if (qtde == '' && (partnumber === '' || requisicao === '--')) {
-                    return openPopup_v2(`
+            if (qtde == '' && (partnumber === '' || requisicao === '--')) {
+                return openPopup_v2(`
                             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                                 <label>Se o item tiver quantidade, preencha também o PARTNUMBER e o status de Requisição</label>
                             </div>
                         `);
-                }
+            }
 
-                if (qtde !== '') {
-                    novo_lancamento.historico[chave2].requisicoes.push({
-                        codigo: codigo,
-                        partnumber: partnumber,
-                        tipo: tipo,
-                        qtde_enviar: qtde,
-                        requisicao: requisicao
-                    });
-                }
+            if (qtde !== '') {
+                novo_lancamento.historico[chave2].requisicoes.push({
+                    codigo: codigo,
+                    partnumber: partnumber,
+                    tipo: tipo,
+                    qtde_enviar: qtde,
+                    requisicao: requisicao
+                });
+            }
 
-                if (partnumber !== '') {
-                    lista_partnumbers[codigo] = partnumber;
-                }
+            if (partnumber !== '') {
+                lista_partnumbers[codigo] = partnumber;
+            }
 
         });
 
         atualizar_partnumber(lista_partnumbers);
 
     }
+
+    if ((status_tit).includes('AGUARDANDO')) {
 
         var informacao_no_select = String(pedido_selecionado.value);
         var tipo = '';
@@ -1175,7 +1174,7 @@ function fechar_espelho_ocorrencias() {
 }
 
 function botao_novo_pedido(id) {
-    
+
     return `
     <div class="contorno_botoes" style="background-color: ${fluxograma['PEDIDO DE VENDA ANEXADO'].cor}" onclick="carregar_status_divs('AGUARDANDO', undefined, '${id}')">
         <label>Novo Pedido de <strong>Serviço</strong> ou <strong>Venda</strong></label>
@@ -1184,7 +1183,7 @@ function botao_novo_pedido(id) {
 `}
 
 function botao_novo_pagamento(ch_pedido) {
-    
+
     return `
     <div class="contorno_botoes" style="background-color: #097fe6" onclick="tela_pagamento('${ch_pedido}')">
         <label>Novo <strong>Pagamento</strong></label>
@@ -1215,9 +1214,9 @@ function exibir_todos_os_status(id) {
 
     let acumulado = ''
 
-    acumulado += 
-    
-    `
+    acumulado +=
+
+        `
 
     <span class="close" onclick="fechar_espelho_ocorrencias()">&times;</span>
     <div style="display: flex; gap: 10px">
@@ -1232,9 +1231,9 @@ function exibir_todos_os_status(id) {
 
     if (modulo !== 'PROJETOS' || document.title == 'Projetos' || document.title == 'PAGAMENTOS') {
 
-        acumulado_botoes += 
-        
-        `
+        acumulado_botoes +=
+
+            `
 
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="abrir_esquema('${id}')">
             <img src="/imagens/esquema.png" style="width: 48px; height: 48px; margin: 3px;">
@@ -1245,8 +1244,8 @@ function exibir_todos_os_status(id) {
 
     }
 
-    acumulado_botoes += 
-    
+    acumulado_botoes +=
+
         `
 
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_duplicar('${id}')">
@@ -1266,9 +1265,9 @@ function exibir_todos_os_status(id) {
 
     if (orcamento.lpu_ativa == 'LPU CARREFOUR') {
 
-        acumulado_botoes += 
-        
-        `
+        acumulado_botoes +=
+
+            `
 
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="rir('${id}')">
             <img src="/imagens/carrefour.png" style="width: 48px; height: 48px; margin: 3px;">
@@ -1277,13 +1276,13 @@ function exibir_todos_os_status(id) {
 
         `
 
-}
+    }
 
     if ((modulo == 'PROJETOS' && document.title !== 'Projetos' && analista == acesso.nome_completo) || (acesso.permissao == 'adm' || acesso.permissao == 'fin')) {
 
-        acumulado_botoes += 
-        
-        `
+        acumulado_botoes +=
+
+            `
 
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_excluir('${id}')">
             <img src="/imagens/apagar.png" style="width: 48px; height: 48px; margin: 3px;">
@@ -1298,9 +1297,9 @@ function exibir_todos_os_status(id) {
 
     }
 
-    acumulado += 
-    
-    `
+    acumulado +=
+
+        `
 
     <hr style="width: 80%">
     <div style="display: flex; flex-direction: column; justify-content: center;">
@@ -1366,9 +1365,9 @@ function exibir_todos_os_status(id) {
 
                     }
 
-                    acumulado += 
-                    
-                    `
+                    acumulado +=
+
+                        `
 
                     <hr style="width: 80%">
                     <div class="avenida_contorno" style="box-shadow: 3px 3px #222; background-color: #e8e8e8">
@@ -1397,9 +1396,9 @@ function exibir_todos_os_status(id) {
 
     status_tit == '' ? status_tit = 'AGUARDANDO' : ''
 
-    let elementus = 
-    
-    `
+    let elementus =
+
+        `
 
     <div id="espelho_ocorrencias" class="status" style="display: flex;">
     ${acumulado}
@@ -1497,9 +1496,9 @@ async function abrir_esquema(id) {
             Object.keys(etiquetas_orcamento).forEach(et => {
 
                 let etiqueta = dados_etiquetas[et]
-                etiquetas += 
-                
-                `
+                etiquetas +=
+
+                    `
 
                 <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
                     <div class="contorno_botoes" style="background-color: ${etiqueta.cor}" onclick="remover_etiqueta('${id_orcam}', '${et}')">
@@ -1542,9 +1541,9 @@ async function abrir_esquema(id) {
 
                 }
 
-                levantamentos += 
-                
-                `
+                levantamentos +=
+
+                    `
 
                 <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                     <div style="align-items: center; width: max-content; font-size: 0.7em; display: flex; justify-content; left; box-shadow: 2px 2px #94a0ab; background-color: #e9e9e9; color: #555; padding: 5px; margin:5px; border-radius: 5px;">
@@ -1560,9 +1559,9 @@ async function abrir_esquema(id) {
 
         }
 
-        let acumulado = 
-        
-        `
+        let acumulado =
+
+            `
 
         <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
             <div onclick="atualizar_esquema()" style="display: flex; flex-direction: column; justify-content: left; align-items: center; cursor: pointer;">
@@ -1619,8 +1618,8 @@ async function abrir_esquema(id) {
 
                 if (pagamento.id_pedido == chave_pedido || pagamento.pedido == todos_os_status[chave_pedido].pedido) {
 
-                    string_pagamentos += 
-                    
+                    string_pagamentos +=
+
                         `
 
                         <div style="display: flex; flex-direction: column; border-radius: 5px; border: solid 1px white; padding: 10px; background-color: white; color: #222;">
@@ -1635,9 +1634,9 @@ async function abrir_esquema(id) {
 
                         let nome_cat = ''
                         categorias[cat.codigo_categoria] ? nome_cat = categorias[cat.codigo_categoria] : nome_cat = cat.codigo_categoria
-                        string_pagamentos += 
-                        
-                        `
+                        string_pagamentos +=
+
+                            `
 
                         <label><strong>Categoria:</strong> ${nome_cat} • R$ ${dinheiro(cat.valor)}</label>
 
@@ -1653,9 +1652,9 @@ async function abrir_esquema(id) {
 
                     })
 
-                    string_pagamentos += 
-                    
-                    `
+                    string_pagamentos +=
+
+                        `
 
                         </div>
 
@@ -1669,9 +1668,9 @@ async function abrir_esquema(id) {
 
             if (tem_pagamento) {
 
-                blocos += 
-                
-                `
+                blocos +=
+
+                    `
 
                 <div class="bloko" style="background-color: #097fe6">
                     <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
@@ -1684,8 +1683,8 @@ async function abrir_esquema(id) {
                 </div>
 
             `
-        
-        }
+
+            }
 
             Object.keys(lista_interna).forEach(chave2 => {
 
@@ -1695,9 +1694,9 @@ async function abrir_esquema(id) {
 
                 if (String(sst.status).includes('FATURAMENTO') || String(sst.status).includes('REMESSA')) {
 
-                    links_requisicoes += 
-                    
-                    `
+                    links_requisicoes +=
+
+                        `
 
                     <div class="anexos" style="cursor: pointer; display: flex; gap: 10px; justify-content: left; align-items: center;">
                         <img src="/imagens/anexo.png" style="width: 25px">
@@ -1799,9 +1798,9 @@ async function abrir_esquema(id) {
                     }
 
                     let envio = sst.envio
-                    dados_de_envio = 
-                    
-                    `
+                    dados_de_envio =
+
+                        `
 
                     <label><strong>Rastreio:</strong> ${envio.rastreio}</label>
                     <label><strong>Custo do Frete:</strong> ${dinheiro(envio.custo_frete)}</label>
@@ -1816,7 +1815,7 @@ async function abrir_esquema(id) {
                     </div>
 
                     `
-                    
+
                 }
 
                 var coments = sst.comentario.replace(/\n/g, '<br>')
@@ -1894,9 +1893,9 @@ async function abrir_esquema(id) {
 
                 let info = todos_os_status[chave_pedido]
 
-                ultima_alteracao = 
-                
-                `
+                ultima_alteracao =
+
+                    `
 
                 <label>Alterado por <strong>${info.alterado_por}</strong>, às ${info.alterado_quando}</label>
 
@@ -1910,9 +1909,9 @@ async function abrir_esquema(id) {
 
             for (fluxo in fluxograma) {
 
-                opcoes_status += 
-                
-                `
+                opcoes_status +=
+
+                    `
 
                 <option ${fluxo == atual_status ? 'selected' : ''}>${fluxo}</option>
 
@@ -1920,9 +1919,9 @@ async function abrir_esquema(id) {
 
             }
 
-            let linhas = 
-            
-            `
+            let linhas =
+
+                `
 
                 <div style="display: flex; flex-direction: column; gap: 15px;">
                     <hr style="width: 80%;">
@@ -1997,9 +1996,9 @@ async function abrir_esquema(id) {
 
         });
 
-        let estruturaHtml = 
-        
-        `
+        let estruturaHtml =
+
+            `
 
         <div id="estrutura" class="status" style="display: flex; flex-direction: column; gap: 10px; width: 100%; height: 100vh; overflow: auto;">
         <span class="close" onclick="fechar_estrutura()">&times;</span>
@@ -2101,9 +2100,9 @@ function envio_de_material(chave1, id_orcam) {
 
         if (conteudo.requisicoes) {
 
-            itens += 
-            
-            `
+            itens +=
+
+                `
 
             <option>${conteudo.executor} - ${conteudo.total_com_icms}</option>
 
@@ -2114,9 +2113,9 @@ function envio_de_material(chave1, id_orcam) {
 
             conteudo.notas.forEach(nf => {
 
-                nfs += 
-                
-                `
+                nfs +=
+
+                    `
 
                 <option>${nf.nota}</option>
 
@@ -2128,9 +2127,9 @@ function envio_de_material(chave1, id_orcam) {
 
     }
 
-    let acumulado = 
-    
-    `
+    let acumulado =
+
+        `
 
     <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
         <img src="/imagens/logistica.png" style="width: 50px;">
@@ -2432,9 +2431,9 @@ function carregar_comentarios(chave2, div_caixa) {
 
         if (item.chave2 == chave2 && item.operacao !== 'excluir') {
 
-            comentss += 
-            
-            `
+            comentss +=
+
+                `
 
             <div class="anexos" style="width: 95%;">
                 <label>${item.comentario.replace(/\n/g, '<br>')}
@@ -2526,9 +2525,9 @@ function selecionar_etiqueta() {
     Object.keys(dados_etiquetas).forEach(et => {
 
         let etiqueta = dados_etiquetas[et]
-        etiquetas += 
-        
-        `
+        etiquetas +=
+
+            `
 
         <div class="contorno_botoes" style="background-color: ${etiqueta.cor}; font-size: 0.7em;" onclick="associar_etiqueta('${id_orcam}', '${et}')">
         ${etiqueta.nome}
@@ -2538,9 +2537,9 @@ function selecionar_etiqueta() {
 
     })
 
-    let acumulado = 
-    
-    `
+    let acumulado =
+
+        `
 
     <label class="novo_titulo">Etiquetas</label>
     <div class="contorno_botoes" style="background-color: white; display; flex; gap: 10px; justify-content: center; align-items: center;">
@@ -2841,9 +2840,9 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
 
     if (chave2) {
 
-        menu_flutuante = 
-        
-        `
+        menu_flutuante =
+
+            `
 
         <div class="menu_flutuante" id="menu_flutuante">
             <div class="icone" onclick="gerarpdf('${orcamento.dados_orcam.cliente_selecionado}', '${orcamento.status[chave].pedido}')">
@@ -2885,9 +2884,9 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
 
     if (!apenas_visualizar) {
 
-        toolbar += 
-        
-        `
+        toolbar +=
+
+            `
 
         <div style="display: flex; gap: 10px; justify-content: center; align-items: center; background-color: #151749; width: 60vw; margin-left: 2vw; border-top-left-radius: 5px; border-top-right-radius: 5px">
             <img src="/imagens/pesquisar.png" style="width: 25px; height: 25px; padding: 5px;">
@@ -2938,9 +2937,9 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
 
     }
 
-    let elementus = 
-    
-    `   
+    let elementus =
+
+        `   
 
     <span class="close" onclick="fechar_status()" id="span">&times;</span>
 
@@ -3013,9 +3012,9 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
 
     `
 
-    let elementus_tus = 
-    
-    `
+    let elementus_tus =
+
+        `
 
     <div id="status" class="status" style="display: flex; width: 100%; overflow: auto;">
     ${elementus}
@@ -3044,7 +3043,7 @@ function atualizar_status_logistico(st, chave, chave2) {
 
     let tbody = tabela_requisicoes.querySelector('tbody');
 
-    if (tbody) { 
+    if (tbody) {
 
         let trs = tbody.querySelectorAll('tr');
 
@@ -3150,9 +3149,9 @@ function atualizar_status_logistico(st, chave, chave2) {
 
     if (fluxograma[st].modulos.length == 1) {
 
-        concordancia_em_numero = 
-        
-        `
+        concordancia_em_numero =
+
+            `
 
         <label>O orçamento foi transferido para o módulo abaixo:</label>
 
@@ -3160,9 +3159,9 @@ function atualizar_status_logistico(st, chave, chave2) {
 
     } else {
 
-        concordancia_em_numero = 
-        
-        `
+        concordancia_em_numero =
+
+            `
 
         <label>O orçamento foi transferido para os módulos abaixo:</label>
 
@@ -3283,9 +3282,9 @@ function salvar_anexo(chave1, chave2) {
 
                     }
 
-                    let resposta = 
-                    
-                    `
+                    let resposta =
+
+                        `
 
                     <div style="align-items: center; width: max-content; font-size: 0.7em; display: flex; justify-content; left; box-shadow: 2px 2px #94a0ab; background-color: #e9e9e9; color: #555; padding: 5px; margin:5px; border-radius: 5px;">
                         <img src="${imagem}.png" style="width: 3vw;">
@@ -3534,20 +3533,13 @@ ipcRenderer.on('open-save-dialog', (event, { htmlContent, nomeArquivo }) => {
 });
 
 async function gerarpdf(cliente, pedido) {
-
     if (menu_flutuante && span) {
-
-        menu_flutuante.style.display = 'none'
-        span.style.display = 'none'
-
+        menu_flutuante.style.display = 'none';
+        span.style.display = 'none';
     }
 
-    let status = document.getElementById('status')
-
-    let htmlContent = 
-    
-    `
-
+    const status = document.getElementById('status');
+    const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -3574,27 +3566,22 @@ async function gerarpdf(cliente, pedido) {
             padding: 5px;
             margin: 5px;
         }
-            
         .tabela {
             border-collapse: collapse;
             border-radius: 5px;
             overflow: hidden;
         }
-        
         .tabela th {
             background-color: #151749;
             color: white;
         }
-
         .tabela th, .tabela td {
             margin: 5px;
             text-align: left;
         }
-
         .tabela td {
             background-color: #99999940;
         }
-
         label {
             margin: 5px;
         }
@@ -3604,16 +3591,15 @@ async function gerarpdf(cliente, pedido) {
         ${status.innerHTML}
     </body>
     </html>
-    
     `;
 
     const formData = {
-
         htmlContent: htmlContent,
         nomeArquivo: `REQUISICAO_${cliente}_${pedido}`
-
     };
+
     try {
+        // Envia o HTML para gerar o PDF no servidor
         const response = await fetch('http://localhost:3000/generate-pdf', {
             method: 'POST',
             headers: {
@@ -3622,33 +3608,26 @@ async function gerarpdf(cliente, pedido) {
             body: JSON.stringify(formData)
         });
 
-<<<<<<< Updated upstream:scripts/status.js
         if (!response.ok) {
-            console.log(response.status, response.statusText)
-            throw new Error('Erro ao gerar PDF: ' + response.status + ' ' + response.statusText);
-=======
-    // Envia para salvar o PDF localmente;
-    ipcRenderer.send('generate-pdf-local', formData);
-
-    ipcRenderer.once('generate-pdf-local-reply', (event, response) => {
-        if (response.success) {
-            console.log('PDF gerado com sucesso!', response.filePath);
-        } else {
-            console.error('Erro ao gerar PDF:', response.error);
->>>>>>> Stashed changes:status.js
+            throw new Error('Erro na geração do PDF no servidor');
         }
+
+        // Envia os dados para salvar o PDF localmente
+        ipcRenderer.send('generate-pdf-local', formData);
+
+        ipcRenderer.once('generate-pdf-local-reply', (event, response) => {
+            if (response.success) {
+                console.log('PDF gerado com sucesso!', response.filePath);
+            } else {
+                console.error('Erro ao gerar PDF:', response.error);
+            }
+        });
     } catch (err) {
-        console.log(err)
+        console.error('Erro ao gerar o PDF:', err);
     } finally {
         if (menu_flutuante && span) {
-            menu_flutuante.style.display = 'flex'
-            span.style.display = 'block'
+            menu_flutuante.style.display = 'flex';
+            span.style.display = 'block';
         }
     }
-
-    if (menu_flutuante && span) {
-        menu_flutuante.style.display = 'flex'
-        span.style.display = 'block'
-    }
-
 }
