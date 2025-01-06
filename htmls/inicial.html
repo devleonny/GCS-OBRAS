@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Página Inicial</title>
+
+    <link rel="stylesheet" type="text/css" href="/styles/gcsobras.css">
+    <link rel="stylesheet" href="/styles/inicial.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+</head>
+
+<body>
+
+    <div id="progress-container" style="display: none;">
+        <div id="progress-bar">
+            <div id="progress">0%</div>
+        </div>
+    </div>
+
+    <div id="popup">
+        <button class="close-btn" onclick="closePopup()">×</button>
+        <p id="popup-message"></p>
+        <a href="pagamentos.html" class="payment-btn">Ir para a Página de Pagamento</a>
+    </div>
+
+    <div id="content" style="width: 100%; justify-content: center;">
+        <div style="display: flex; justify-content: center; align-items: center;">
+            <img src="imagens/BG.png" style="width: 20vw;">
+        </div>
+
+        <div class="containerX" id="painel_geral">
+            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
+                onclick="ir_para('PROJETOS')">
+                <div class="icon"><img src="imagens/projeto.png" style="width: 50px;"></div>
+                <p>PROJETOS</p>
+            </div>
+            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
+                onclick="ir_para('LOGÍSTICA')">
+                <div class="icon"><img src="imagens/logistica.png" style="width: 50px;"></div>
+                <p>LOGÍSTICA</p>
+            </div>
+            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
+                onclick="ir_para('CHAMADOS')">
+                <div class="icon"><img src="imagens/chamados.png" style="width: 50px;"></div>
+                <p>CHAMADOS</p>
+            </div>
+            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
+                onclick="ir_para('FINANCEIRO')">
+                <div class="icon"><img src="imagens/financeiro.png" style="width: 50px;"></div>
+                <p>FINANCEIRO</p>
+            </div>
+            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
+                onclick="window.location.href='composicoes.html'">
+                <div class="icon"><img src="imagens/composicoes.png" style="width: 50px;"></div>
+                <p>COMPOSIÇÕES</p>
+            </div>
+            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
+                onclick="window.location.href='simulador.html'">
+                <div class="icon"><img src="imagens/calculadora.png" style="width: 50px;"></div>
+                <p>CALCULADORA</p>
+            </div>
+            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
+                onclick="ir_para('RELATÓRIOS')">
+                <div class="icon"><img src="imagens/relatorio.png" style="width: 50px;"></div>
+                <p>RELATÓRIOS</p>
+            </div>
+            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
+                onclick="window.location.href='pagamentos.html'">
+                <div class="icon"><img src="imagens/reembolso.png" style="width: 50px;"></div>
+                <p>REEMBOLSOS & PAGAMENTOS</p>
+            </div>
+            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
+                onclick="window.location.href='projetos.html'">
+                <div class="icon"><img src="imagens/kanban.png" style="width: 50px;"></div>
+                <p>PAINEL KANBAN</p>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div id="popup">
+        <button class="close-btn" onclick="closePopup()">×</button>
+        <p id="popup-message"></p>
+    </div>
+
+</body>
+
+<script src="/scripts/open_menus.js"></script>
+<script src="/scripts/inicial.js"></script>
+
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>COTAÇÕES</title>
+
+    <link rel="stylesheet" type="text/css" href="/styles/gcsobras.css">
+    <link rel="stylesheet" href="/styles/cotacoes.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+</head>
+
+<body>
+
+    <label class="novo_titulo" >Sistema de Cotações</label>
+
+    <div class="table-container parent-container">
+        <table id="cotacaoTable">
+            <thead>
+                <tr class="title-row">
+                    <th colspan="7">Requisição de Materiais</th>
+                    <th id="fornecedoresHeader" colspan="50" style="display: none;">Fornecedor</th>
+                </tr>
+                <tr class="count-row">
+                    <th colspan="7">Quantidade de itens: <span id="itemCount">0</span></th>
+                </tr>
+                <tr id="topicos-tabela">
+                    <th>Ação</th>
+                    <th>Número do Item</th>
+                    <th>Partnumber</th>
+                    <th>Nome do Item</th>
+                    <th>Tipo Unitário</th>
+                    <th>Quantidade</th>
+                    <th>Estoque</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+                <tr id="linhaDesconto">
+                    <th colspan="7">Desconto (%)</th>
+                </tr>
+                <tr id="linhaSubtotal">
+                    <th colspan="7">Subtotal</th>
+                </tr>
+                <tr id="linhaFrete">
+                    <th colspan="7">Frete (R$)</th>
+                </tr>
+                <tr id="linhaCondicaoPagar">
+                    <th colspan="7">Condição de Pagamento</th>
+                </tr>
+                <tr id="linhaTotal">
+                    <th colspan="7">Total</th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    
+
+    <div class="button-container">
+
+        <button onclick="adicionarLinha()">Adicionar Item</button>
+        <button onclick="abrirModal()">Adicionar Fornecedor</button>
+        <button onclick="salvarObjeto()">Salvar</button>
+    
+    </div>
+    
+    
+
+    <div id="fornecedorModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModal()">&times;</span>
+            <h2>Adicionar Fornecedor</h2>
+            <label for="pesquisarFornecedor">Pesquisar Fornecedor:</label>
+            <input type="text" id="pesquisarFornecedor" placeholder="Digite o nome ou CNPJ">
+            <ul style="display: none;" id="listaFornecedores"></ul>
+            <button onclick="salvarFornecedor()">Salvar</button>
+            <button onclick="fecharModal()">Fechar</button>
+        </div>
+    </div>
+    
+    
+
+</body>
+
+<script src="/scripts/open_menus.js"></script>
+<script src="/scripts/cotacoes.js"></script>
+<script src="/scripts/status.js"></script>
+
+</html>

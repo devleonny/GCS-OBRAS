@@ -1,0 +1,48 @@
+body {
+    font-size: 0.8em;
+    background: linear-gradient(45deg, #151749, #B12425);
+    animation: none;
+}
+
+.valor_zero {
+    cursor: pointer;
+    white-space: nowrap;
+    background-color: #b36060;
+    color: white;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.valor_preenchido {
+    cursor: pointer;
+    white-space: nowrap;
+    background-color: green;
+    color: white;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.top {
+    display: flex;
+    width: 100%;
+    margin: 20px;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #222222bf;
+    padding: 10px;
+    border-radius: 5px;
+    gap: 20px;
+}
+
+.tabela {
+    border-collapse: collapse;
+}
+
+.tabela thead {
+    font-size: 0.8em;
+}
+
+.tabela td {
+    white-space: nowrap;
+    background-color: #eaeaea;
+}
