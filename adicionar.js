@@ -77,7 +77,7 @@ function backtop() {
 
 function fechar_ir_orcamentos() {
 
-    location.href = '/htmls/orcamentos.html'
+    location.href = 'orcamentos.html'
 
 }
 
@@ -91,7 +91,7 @@ function confirmar_exclusao() {
 
     localStorage.removeItem('orcamento_v2')
 
-    location.href = '/htmls/adicionar.html'
+    location.href = '/adicionar.html'
     temp_pop.remove()
 
 }
@@ -343,7 +343,7 @@ function enviar_dados() {
     setTimeout(function () {
 
         localStorage.removeItem('orcamento_v2')
-        location.href = '/htmls/orcamentos.html'
+        location.href = 'orcamentos.html'
 
     }, 2000)
 

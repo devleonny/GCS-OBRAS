@@ -29,7 +29,7 @@ function carregar_layout_modalidade_tradicional() {
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
-    location.href = '/htmls/adicionar.html'
+    location.href = '/adicionar.html'
 
 }
 
