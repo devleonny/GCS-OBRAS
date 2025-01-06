@@ -57,8 +57,10 @@ p {
 #popup {
     display: none;
     position: fixed;
-    bottom: 20px; /* Alinhamento inferior */
-    right: 20px; /* Alinhamento à direita */
+    bottom: 20px;
+    /* Alinhamento inferior */
+    right: 20px;
+    /* Alinhamento à direita */
     background-color: #fff;
     padding: 20px;
     border: 1px solid #ccc;

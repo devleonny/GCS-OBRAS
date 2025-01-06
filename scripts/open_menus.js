@@ -1966,7 +1966,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
             </tr>
 
         `
-    });
+    };
 
     var carimbo_data_hora_pagamentos = JSON.parse(localStorage.getItem('carimbo_data_hora_pagamentos'))[0] || ''
 
