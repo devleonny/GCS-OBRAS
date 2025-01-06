@@ -28,7 +28,7 @@
             <a href="#content">Topo</a>
             <a href="#serviço">Serviço</a>
             <a href="#venda">Venda</a>
-            <a href="#campo-pesquisa">Pesquisar</a>
+            <a href="#tabela_itens">Pesquisar</a>
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
                 <label style="color: white;">Calculadora ICMS</label>
                 <img src="/imagens/calculadora.png" style="width: 50px; cursor: pointer;" onclick="exibir_calculadora()">
@@ -213,15 +213,8 @@
 
                         </div>
 
-                        <div
-                            style="color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 3px; padding: 5px;">
-                            <label style="font-size: 1em;">Tabela de preço</label>
-                            <select
-                                style="color: white; background-color: #222222bc; border: none; margin-left: 2vw; padding: 5px; width: max-content;"
-                                id="lpu">
-                                <option>LPU CARREFOUR</option>
-                            </select>
-                        </div>
+                        <div id="div_tabela_de_preco"></div>
+
                     </div>
 
                     <div onclick="modalidade_livre_de_orcamento()"
@@ -278,7 +271,7 @@
 
             <br>
 
-            <div id="serviço" style="display: none; width: 100%;">
+            <div id="serviço" style="display: none; width: 100%; margin-bottom: 100px;">
                 <div style="display: flex; justify-content: right; width: 100%;">
                     <div
                         style="width: max-content; display: flex; align-items: center; justify-content: center; background-color: #222222bc; padding: 5px; border-top-right-radius: 10px; border-top-left-radius: 10px; margin-right: 10px;">
@@ -310,6 +303,7 @@
             <div id="penumbra">
 
                 <div id="tabela_itens"></div>
+
             </div>
 
         </div>

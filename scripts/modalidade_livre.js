@@ -74,7 +74,11 @@ function carregar_layout_modalidade_livre() {
 
                 <div
                     style="position: relative; display: flex; justify-content: center; align-items: center; border-radius: 3px;">
+<<<<<<< Updated upstream:scripts/modalidade_livre.js
                     <img src="/imagens/BG.png" style="height: 200px;">
+=======
+                    <img src="imagens/BG.png" style="height: 200px;">
+>>>>>>> Stashed changes:modalidade_livre.js
 
                 </div>
 

@@ -3622,9 +3622,20 @@ async function gerarpdf(cliente, pedido) {
             body: JSON.stringify(formData)
         });
 
+<<<<<<< Updated upstream:scripts/status.js
         if (!response.ok) {
             console.log(response.status, response.statusText)
             throw new Error('Erro ao gerar PDF: ' + response.status + ' ' + response.statusText);
+=======
+    // Envia para salvar o PDF localmente;
+    ipcRenderer.send('generate-pdf-local', formData);
+
+    ipcRenderer.once('generate-pdf-local-reply', (event, response) => {
+        if (response.success) {
+            console.log('PDF gerado com sucesso!', response.filePath);
+        } else {
+            console.error('Erro ao gerar PDF:', response.error);
+>>>>>>> Stashed changes:status.js
         }
     } catch (err) {
         console.log(err)
@@ -3633,6 +3644,11 @@ async function gerarpdf(cliente, pedido) {
             menu_flutuante.style.display = 'flex'
             span.style.display = 'block'
         }
+    }
+
+    if (menu_flutuante && span) {
+        menu_flutuante.style.display = 'flex'
+        span.style.display = 'block'
     }
 
 }
