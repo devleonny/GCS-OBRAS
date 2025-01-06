@@ -412,7 +412,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
         if (dados_composicoes[codigo] && dados_composicoes[codigo]['material infra']) {
 
-            botao_itens_adicionais = `<img src="/imagens/construcao.png" style="width: 30px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`
+            botao_itens_adicionais = `<img src="imagens/construcao.png" style="width: 30px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`
 
         }
 
@@ -552,7 +552,7 @@ function adicionar_linha_materiais(descricao, und, qtde) {
             `
 
         <tr>
-            <td><img src="/imagens/excluir.png" onclick="remover_linha_materiais(this)" style="cursor: pointer;"></td>
+            <td><img src="imagens/excluir.png" onclick="remover_linha_materiais(this)" style="cursor: pointer;"></td>
             <td>?</td>
             <td style="width: 300px;">
             <input list="itens" onchange="mostrar_estoque()" placeholder="Digite o nome do material" style="width: 300px;">
@@ -1236,7 +1236,7 @@ function exibir_todos_os_status(id) {
             `
 
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="abrir_esquema('${id}')">
-            <img src="/imagens/esquema.png" style="width: 48px; height: 48px; margin: 3px;">
+            <img src="imagens/esquema.png" style="width: 48px; height: 48px; margin: 3px;">
             <label style="cursor: pointer;">Histórico</label>
         </div>  
 
@@ -1249,15 +1249,15 @@ function exibir_todos_os_status(id) {
         `
 
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_duplicar('${id}')">
-            <img src="/imagens/duplicar.png">
+            <img src="imagens/duplicar.png">
             <label style="cursor: pointer;">Duplicar Orçamento</label>
         </div>      
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_pdf('${id}')">
-            <img src="/imagens/pdf.png" style="width: 55px;">
+            <img src="imagens/pdf.png" style="width: 55px;">
             <label style="cursor: pointer;">Abrir Orçamento em PDF</label>
         </div>
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_excel('${id}')">
-            <img src="/imagens/excel.png">
+            <img src="imagens/excel.png">
             <label style="cursor: pointer;">Baixar Orçamento em Excel</label>
         </div>
 
@@ -1270,7 +1270,7 @@ function exibir_todos_os_status(id) {
             `
 
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="rir('${id}')">
-            <img src="/imagens/carrefour.png" style="width: 48px; height: 48px; margin: 3px;">
+            <img src="imagens/carrefour.png" style="width: 48px; height: 48px; margin: 3px;">
             <label style="cursor: pointer;">Itens Reais em Excel</label>
         </div> 
 
@@ -1285,11 +1285,11 @@ function exibir_todos_os_status(id) {
             `
 
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_excluir('${id}')">
-            <img src="/imagens/apagar.png" style="width: 48px; height: 48px; margin: 3px;">
+            <img src="imagens/apagar.png" style="width: 48px; height: 48px; margin: 3px;">
             <label style="cursor: pointer;">Excluir Orçamento</label>
         </div>    
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_editar('${id}')">
-            <img src="/imagens/editar.png" style="width: 48px; height: 48px; margin: 3px;">
+            <img src="imagens/editar.png" style="width: 48px; height: 48px; margin: 3px;">
             <label style="cursor: pointer;">Editar Orçamento</label>
         </div>   
 
@@ -1374,7 +1374,7 @@ function exibir_todos_os_status(id) {
                         <label><strong>Status: </strong>${his.status}</label>
                         <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
                             <label><strong>Número: </strong>${st.pedido}</label>
-                            <img src="/gifs/alerta.gif" style="width: 2vw; cursor: pointer;" onclick="popup_atualizar_pedido('${chave_pedido}')">
+                            <img src="gifs/alerta.gif" style="width: 2vw; cursor: pointer;" onclick="popup_atualizar_pedido('${chave_pedido}')">
                         </div>
                         <label><strong>Data: </strong> ${his.data}</label>
                         <label><strong>Executor: </strong> ${his.executor}</label>
@@ -1565,7 +1565,7 @@ async function abrir_esquema(id) {
 
         <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
             <div onclick="atualizar_esquema()" style="display: flex; flex-direction: column; justify-content: left; align-items: center; cursor: pointer;">
-                <img src="/imagens/atualizar2.png" style="width: 50px;">
+                <img src="imagens/atualizar2.png" style="width: 50px;">
                 <label>Atualizar</label>
             </div>
             • 
@@ -1574,7 +1574,7 @@ async function abrir_esquema(id) {
             <label class="novo_titulo" style="color: #222">${dados_orcamentos[id].dados_orcam.contrato}</label>
             •
             <div onclick="selecionar_etiqueta()" class="contorno_botoes" style="display: flex; gap: 10px; align-items: center; justify-content: center; background-color: #222;"> 
-                <img src="/imagens/etiqueta.png" style="width: 20px;">
+                <img src="imagens/etiqueta.png" style="width: 20px;">
                 <label>Etiqueta</label>
             </div>
             •
@@ -1582,7 +1582,7 @@ async function abrir_esquema(id) {
 
             <div style="display: flex; flex-direction: column; align-items: start;">
                 <div class="contorno_botoes" style="background-color: #222;">
-                    <img src="/imagens/anexo2.png" style="width: 15px;">
+                    <img src="imagens/anexo2.png" style="width: 15px;">
                     <label for="adicionar_levantamento">Anexar levantamento
                         <input type="file" id="adicionar_levantamento" style="display: none;"
                             onchange="salvar_levantamento('${id}')">
@@ -1674,7 +1674,7 @@ async function abrir_esquema(id) {
 
                 <div class="bloko" style="background-color: #097fe6">
                     <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
-                    <img src="/imagens/pesquisar.png" style="width: 25px; height: 25px;">
+                    <img src="imagens/pesquisar.png" style="width: 25px; height: 25px;">
                     <input id="${chave_pedido}" style="padding: 10px; border-radius: 5px;" placeholder="Pesquisar pagamento" oninput="pesquisar_pagamentos('${chave_pedido}')">
                     </div>
                     <div id="div_pagamentos_pesquisa_${chave_pedido}" style="display: flex; flex-direction: column; gap: 10px;">
@@ -1699,10 +1699,10 @@ async function abrir_esquema(id) {
                         `
 
                     <div class="anexos" style="cursor: pointer; display: flex; gap: 10px; justify-content: left; align-items: center;">
-                        <img src="/imagens/anexo.png" style="width: 25px">
+                        <img src="imagens/anexo.png" style="width: 25px">
                         <label style="cursor: pointer;" onclick="detalhar_requisicao('${chave_pedido}', true, '${chave2}')"><strong>Requisição disponível</strong> <br> ${todos_os_status[chave_pedido].pedido} - ${todos_os_status[chave_pedido].tipo}</label>
                         <div onclick="detalhar_requisicao('${chave_pedido}', false, '${chave2}')" style="cursor: pointer; display: flex; flex-direction: column; justify-content: left; align-items: center;">    
-                            <img src="/gifs/alerta.gif" style="width: 2vw">
+                            <img src="gifs/alerta.gif" style="width: 2vw">
                             <label style="text-decoration: underline; cursor: pointer; font-size: 0.8em;">Editar</label>
                         </div>
                     </div>
@@ -1811,7 +1811,7 @@ async function abrir_esquema(id) {
                     <label><strong>Data de Saída:</strong> ${conv_data(envio.data_saida)}</label>
                     <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
                         <label><strong>Data da Entrega:</strong> ${conv_data(envio.data_entrega)}</label>
-                        <img src="/gifs/alerta.gif" style="width: 30px; cursor: pointer;" onclick="pop_alterar_data_recebimento('${id_orcam}', '${chave_pedido}', '${chave2}')">
+                        <img src="gifs/alerta.gif" style="width: 30px; cursor: pointer;" onclick="pop_alterar_data_recebimento('${id_orcam}', '${chave_pedido}', '${chave2}')">
                     </div>
 
                     `
@@ -1834,13 +1834,13 @@ async function abrir_esquema(id) {
                         ${links_requisicoes}
                         <div style="display: flex; justify-content: space-evenly; align-items: center;">
                             <div class="contorno_botoes">
-                                <img src="/imagens/anexo2.png" style="width: 15px;">
+                                <img src="imagens/anexo2.png" style="width: 15px;">
                                 <label for="adicionar_anexo_${chave_pedido}_${chave2}">Anexo
                                     <input type="file" id="adicionar_anexo_${chave_pedido}_${chave2}" style="display: none;" onchange="salvar_anexo('${chave_pedido}', '${chave2}')"> 
                                 </label>
                             </div>
                             <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave2}')">
-                                <img src="/imagens/comentario.png" style="width: 15px;">
+                                <img src="imagens/comentario.png" style="width: 15px;">
                                 <label>Comentário</label>
                             </div>
                         </div>
@@ -1932,7 +1932,7 @@ async function abrir_esquema(id) {
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 10px;">
                             <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-                            <img src="/gifs/atencao.gif" style="width: 2vw;">
+                            <img src="gifs/atencao.gif" style="width: 2vw;">
                             <label style="text-decoration: underline; cursor: pointer;"
                                 onclick="deseja_apagar('pedido', '${chave_pedido}')">
                                 Excluir este número de Pedido
@@ -1952,14 +1952,14 @@ async function abrir_esquema(id) {
                             <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
                                 <label style="text-align: left;"><strong>Número do pedido:</strong>
                                     ${todos_os_status[chave_pedido].pedido}</label>
-                                <img src="/gifs/alerta.gif" style="width: 2vw; cursor: pointer;"
+                                <img src="gifs/alerta.gif" style="width: 2vw; cursor: pointer;"
                                     onclick="popup_atualizar_item('${chave_pedido}', 'pedido')">
                             </div>
 
                             <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
                                 <label style="text-align: left;"><strong>Valor deste Pedido</strong>
                                     ${valor_do_pedido}</label>
-                                <img src="/gifs/alerta.gif" style="width: 2vw; cursor: pointer;"
+                                <img src="gifs/alerta.gif" style="width: 2vw; cursor: pointer;"
                                     onclick="popup_atualizar_item('${chave_pedido}', 'valor')">
                             </div>
                             
@@ -2132,7 +2132,7 @@ function envio_de_material(chave1, id_orcam) {
         `
 
     <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
-        <img src="/imagens/logistica.png" style="width: 50px;">
+        <img src="imagens/logistica.png" style="width: 50px;">
         <label class="novo_titulo">Registrar Envio de Material</label>
     </div>
     <div id="painel_envio_de_material">
@@ -2373,7 +2373,7 @@ function confirmar_exclusao_comentario(id_comentario, chave2) {
 
     openPopup_v2(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="/gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
             <label>Excluir o comentário?</label>
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
             <button onclick="excluir_comentario('${id_comentario}', '${chave2}')" style="background-color: green">Confirmar</button>
@@ -2638,7 +2638,7 @@ function remover_etiqueta(id, id_etiqueta) {
 
     openPopup_v2(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="/gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
             <label>Remover a etiqueta?</label>
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
             <button onclick="remover_mesmo_a_etiqueta('${id}', '${id_etiqueta}')" style="background-color: green">Confirmar</button>
@@ -2680,7 +2680,7 @@ async function atualizar_esquema() {
 
     openPopup_v2(`
     <div style="display: flex; width: 100%; align-items: center; justify-content: center; gap: 10px; color: #222;">
-        <img src="/gifs/loading.gif" style="width: 5vw">
+        <img src="gifs/loading.gif" style="width: 5vw">
         <label style="color: white; font-size: 1.5em;">Aguarde...</label>
     </div>
     `)
@@ -2846,11 +2846,11 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
 
         <div class="menu_flutuante" id="menu_flutuante">
             <div class="icone" onclick="gerarpdf('${orcamento.dados_orcam.cliente_selecionado}', '${orcamento.status[chave].pedido}')">
-                <img src="/imagens/pdf.png">
+                <img src="imagens/pdf.png">
                 <label>PDF</label>
             </div>
             <div class="icone" onclick="excel()">
-                <img src="/imagens/excel.png">
+                <img src="imagens/excel.png">
                 <label>Excel</label>
             </div>
         </div> 
@@ -2889,7 +2889,7 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
             `
 
         <div style="display: flex; gap: 10px; justify-content: center; align-items: center; background-color: #151749; width: 60vw; margin-left: 2vw; border-top-left-radius: 5px; border-top-right-radius: 5px">
-            <img src="/imagens/pesquisar.png" style="width: 25px; height: 25px; padding: 5px;">
+            <img src="imagens/pesquisar.png" style="width: 25px; height: 25px; padding: 5px;">
             <input id="pesquisa1" style="padding: 10px; border-radius: 5px; margin: 10px; width: 50%;" placeholder="Pesquisar" oninput="pesquisar_na_requisicao()">
             <label style="color: white;">Marque todos</label>
             <select onchange="alterar_todos(this.value)">
@@ -3092,7 +3092,7 @@ function atualizar_status_logistico(st, chave, chave2) {
 
             return openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="/gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Se o item tiver quantidade, preencha também o PARTNUMBER e o status de Requisição</label>
             </div>
         `);
@@ -3118,7 +3118,7 @@ function atualizar_status_logistico(st, chave, chave2) {
 
         return openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="/gifs/alerta.gif" style="width: 3vw">
+                <img src="gifs/alerta.gif" style="width: 3vw">
                 <label>Não deixe o campo de pedido em branco, selecione um pedido.</label>
             </div>
             `)
