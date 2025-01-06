@@ -1,12 +1,8 @@
-<<<<<<< Updated upstream:scripts/adicionar.js
 let tabela_atual = undefined
 
-let metaforas = [
-=======
-var tabela_atual = undefined
 var filtros_produtos = {}
->>>>>>> Stashed changes:adicionar.js
 
+let metaforas = [
     "Um monitor sem imagens para exibir",
     "Um sistema de vigilância sem olhos",
     "Uma rede sem nós conectados",
@@ -48,13 +44,8 @@ async function atualizar_precos() {
 
         menu_superior.style.display = 'none'
         document.getElementById('quieto').innerHTML = `
-<<<<<<< Updated upstream:scripts/adicionar.js
             <img src="gifs/loading.gif" style="width: 5vw;">
             <label class="novo_titulo">Aguarde...</label>        
-=======
-            <img src="gifs/loading.gif" style="width: 5vw;">
-            <label class="novo_titulo">Aguarde...</label>
->>>>>>> Stashed changes:adicionar.js
         `
         menu_superior.style.display = 'flex'
         carregar_tabelas()
@@ -76,15 +67,6 @@ async function atualizar_precos() {
 
 }
 
-<<<<<<< Updated upstream:scripts/adicionar.js
-document.getElementById('campo-pesquisa').addEventListener('input', atraso(function () {
-
-    pesquisar_v2()
-
-}, 200));
-
-=======
->>>>>>> Stashed changes:adicionar.js
 document.getElementById('data').textContent = new Date().toLocaleDateString('pt-BR')
 
 function backtop() {
@@ -115,59 +97,6 @@ function confirmar_exclusao() {
 }
 
 async function atualizar_lista_de_lpus() {
-<<<<<<< Updated upstream:scripts/adicionar.js
-
-    let LPUS = [];
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-
-    LPUS = [
-
-        ...new Set(
-
-            Object.values(dados_composicoes)
-                .flatMap(obj => Object.keys(obj))
-                .filter(key => key.toLowerCase().includes('lpu'))
-                .map(key => key.toUpperCase())
-
-        )
-
-    ];
-
-    let select_lpu = document.getElementById('lpu');
-    select_lpu.innerHTML = ''
-
-    LPUS.forEach(function (item) {
-
-        let option = document.createElement('option');
-        option.textContent = item;
-        select_lpu.appendChild(option);
-
-    });
-
-    if (orcamento_v2.lpu_ativa) {
-
-        select_lpu.value = orcamento_v2.lpu_ativa
-
-    }
-
-    if (select_lpu.value !== '') {
-
-        orcamento_v2.lpu_ativa = select_lpu.value
-        localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
-
-    }
-
-    select_lpu.addEventListener('change', function () {
-
-        let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-        orcamento_v2.lpu_ativa = this.value
-        localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
-        tabela_produtos()
-        carregar_tabelas()
-
-    });
-=======
 
     var dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
@@ -237,7 +166,6 @@ function alterar_tabela_lpu(elemento) {
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
     tabela_produtos_v2()
     carregar_tabelas()
->>>>>>> Stashed changes:adicionar.js
 }
 
 function carregar_tabelas() {
@@ -421,19 +349,6 @@ function enviar_dados() {
 
 }
 
-<<<<<<< Updated upstream:scripts/adicionar.js
-function pesquisar_v2() {
-
-    let termo = String(document.getElementById('campo-pesquisa').value).toLocaleLowerCase();
-
-    let tabela_itens = document.getElementById('tabela_itens');
-    let trs = tabela_itens.querySelectorAll('tr');
-
-    trs.forEach(function (tr) {
-
-        let tds = tr.querySelectorAll('td');
-        let ocultar = true;
-=======
 function pesquisar_v2(elemento, col) {
     var termo = String(elemento.value).toLowerCase();
     filtros_produtos[col] = termo;
@@ -445,7 +360,6 @@ function pesquisar_v2(elemento, col) {
     trs.forEach(tr => {
         var tds = tr.querySelectorAll('td');
         var mostrar_linha = true;
->>>>>>> Stashed changes:adicionar.js
 
         for (let filtro_col in filtros_produtos) {
             var termo_salvo = filtros_produtos[filtro_col];
@@ -455,24 +369,7 @@ function pesquisar_v2(elemento, col) {
                 mostrar_linha = false;
                 break;
             }
-<<<<<<< Updated upstream:scripts/adicionar.js
-
-        });
-
-        if (ocultar) {
-
-            tr.style.display = 'none';
-
-        } else {
-
-            tr.style.display = '';
-
         }
-
-    });
-=======
-        }
->>>>>>> Stashed changes:adicionar.js
 
         tr.style.display = mostrar_linha ? 'table-row' : 'none';
     });
@@ -488,34 +385,6 @@ function mudar_tabela_pesquisa(tabela) {
 
 async function tabela_produtos_v2(tipo_tabela) {
 
-<<<<<<< Updated upstream:scripts/adicionar.js
-    let tabela_itens = document.getElementById('tabela_itens')
-    tabela_itens.innerHTML = '';
-
-    let tabela = document.createElement('table')
-    tabela.classList = 'tabela_DD'
-
-    if (tabela_atual == 'SERVIÇO') {
-
-        tabela.style.backgroundColor = 'green'
-
-    } else if (tabela_atual == 'VENDA') {
-
-        tabela.style.backgroundColor = '#B12425'
-
-    } else {
-
-        tabela.style.backgroundColor = 'rgb(179, 116, 0)'
-
-    }
-
-    let cabecalhos = ['Código', 'Descrição', 'Fabricante', 'Modelo', 'Tipo', 'Quantidade', 'Unidade', 'Valor', 'Imagem *Ilustrativa']
-    let thead = document.createElement('thead')
-
-    cabecalhos.forEach(function (item) {
-
-        let th = document.createElement('th')
-=======
     var tabela_itens = document.getElementById('tabela_itens')
 
     if (tabela_itens) {
@@ -527,57 +396,15 @@ async function tabela_produtos_v2(tipo_tabela) {
 
         for (pod in dados_composicoes) {
             var produto = dados_composicoes[pod]
->>>>>>> Stashed changes:adicionar.js
 
             if (tipo_tabela == produto.tipo || tipo_tabela == undefined) {
 
-<<<<<<< Updated upstream:scripts/adicionar.js
-        thead.appendChild(th)
-
-    })
-=======
                 var preco = 0
                 var ativo = 0
                 var historico = 0
->>>>>>> Stashed changes:adicionar.js
 
                 var lpu = String(document.getElementById('lpu').value).toLowerCase()
 
-<<<<<<< Updated upstream:scripts/adicionar.js
-    let colunas = ['descricao', 'fabricante', 'modelo', 'tipo', 'qtde', 'unidade', 'valor', 'imagem'];
-
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-
-    Object.keys(dados_composicoes).forEach(composicao => {
-
-        let tr = document.createElement('tr');
-        let tdCodigo = document.createElement('td');
-
-        tdCodigo.textContent = composicao;
-        tdCodigo.style.whiteSpace = 'nowrap'
-
-        tr.appendChild(tdCodigo);
-
-        let adicionaLinha = true;
-
-        colunas.forEach(function (coluna) {
-
-            let td = document.createElement('td');
-            let valor = dados_composicoes[composicao][coluna] || '';
-            if (coluna == 'valor') {
-
-                let lpuvis = String(document.getElementById('lpu').value).toUpperCase()
-                let valor_da_lpu = ''
-                let dados_do_item = dados_composicoes[composicao][lpuvis.toLowerCase()]
-
-                if (dados_do_item && dados_do_item.ativo && dados_do_item.historico) {
-
-                    valor_da_lpu = dados_do_item.historico[dados_do_item.ativo].valor
-
-                }
-
-                td.style.whiteSpace = 'nowrap'
-=======
                 if (produto[lpu] && produto[lpu].ativo && produto[lpu].historico) {
                     ativo = produto[lpu].ativo
                     historico = produto[lpu].historico
@@ -585,86 +412,12 @@ async function tabela_produtos_v2(tipo_tabela) {
                 }
 
                 if (preco !== 0) {
->>>>>>> Stashed changes:adicionar.js
 
                     var imagem = 'https://i.imgur.com/Nb8sPs0.png'
                     if (produto.imagem) {
                         imagem = produto.imagem
                     }
 
-<<<<<<< Updated upstream:scripts/adicionar.js
-                if (dinheiro(valor_da_lpu) == 'R$ 0,00') {
-
-                    adicionaLinha = false;
-
-                }
-
-            } else if (coluna === 'qtde') {
-
-                let input = document.createElement('input');
-
-                input.type = 'number';
-                input.classList = 'numero-bonito'
-
-                let quantidade_existente = ''
-                let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-
-                if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[composicao]) {
-
-                    quantidade_existente = conversor(orcamento_v2.dados_composicoes[composicao].qtde)
-
-                }
-
-                input.value = quantidade_existente;
-
-                input.addEventListener('input', atraso(function () {
-
-                    incluir_item(composicao, this.value)
-
-                }, 500));
-
-                td.style.textAlign = 'center'
-
-                td.appendChild(input);
-
-            } else if (coluna === 'imagem') {
-
-                let img = document.createElement('img');
-
-                let imagem = 'https://i.imgur.com/Nb8sPs0.png'
-
-                if (dados_composicoes[composicao] && dados_composicoes[composicao].imagem) {
-                    imagem = dados_composicoes[composicao].imagem
-                }
-
-                img.src = imagem
-                img.style.width = '70px';
-                img.style.cursor = 'pointer';
-                img.addEventListener('click', function () {
-
-                    ampliar_especial(img, composicao);
-
-                });
-
-                td.style.textAlign = 'center'
-
-                td.appendChild(img);
-
-            } else {
-
-                td.textContent = valor;
-
-            }
-
-            tr.appendChild(td);
-
-        });
-
-        if (adicionaLinha && (!tabela_atual || tabela_atual == dados_composicoes[composicao].tipo)) {
-
-            tabela.appendChild(tr);
-
-=======
                     linhas += `
                         <tr>
                             <td style="white-space: nowrap;">${pod}</td>
@@ -680,7 +433,6 @@ async function tabela_produtos_v2(tipo_tabela) {
                     `
                 }
             }
->>>>>>> Stashed changes:adicionar.js
         }
 
         var cores = {
@@ -760,12 +512,7 @@ async function total(desativar_especial) {
             let substituto = ''
             let acrescimo = 0
 
-            if (tds.length == 10) {
-
-<<<<<<< Updated upstream:scripts/adicionar.js
-=======
             if (tds.length == 10) { // Quantidade correspondente a mais 1 coluna: CARREFOUR;
->>>>>>> Stashed changes:adicionar.js
                 acrescimo = 1
 
             }
@@ -791,9 +538,6 @@ async function total(desativar_especial) {
 
             }
 
-<<<<<<< Updated upstream:scripts/adicionar.js
-            let quantidade = tds[3 + acrescimo].querySelector('input').value
-=======
             var quantidade = Number(tds[3 + acrescimo].querySelector('input').value)
 
             var inputs_adicionais = tds[3 + acrescimo].querySelectorAll('input.numero')
@@ -814,7 +558,6 @@ async function total(desativar_especial) {
             }
 
             tds[3 + acrescimo].querySelector('input').value = quantidades_adicionais == 0 ? quantidade : quantidades_adicionais
->>>>>>> Stashed changes:adicionar.js
 
             let valor_total = valor_unitario * quantidade
             let label_icms_unitario = ''
@@ -931,37 +674,17 @@ async function total(desativar_especial) {
     }
 
     // Agrupamentos;
-
+    /*
     if (!desativar_especial) {
         incluir_especial()
     }
+    */
 
 }
 
 function mostrar_ocultar_itens(elemento_img) {
     var div = elemento_img.parentElement.parentElement.querySelector('div.agrupados');
 
-<<<<<<< Updated upstream:scripts/adicionar.js
-    let composicoes = await recuperarDados('dados_composicoes') || {}
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-    let item = composicoes[codigo]
-
-    let colunas_carrefour = '';
-    let imagem = composicoes[codigo]?.imagem || 'https://i.imgur.com/Nb8sPs0.png';
-    let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
-
-    if (lpu == 'lpu carrefour') {
-
-        let td_descricao = ''
-        if (composicoes[codigo] && composicoes[codigo].substituto !== '') {
-
-            let substituto = composicoes[codigo].substituto;
-            td_descricao = composicoes[substituto].descricao
-
-        } else {
-
-            td_descricao = composicoes[codigo]?.descricaocarrefour || '?'
-=======
     if (div.style.display == 'none' || div.style.display === '') {
         div.style.display = 'flex';
         elemento_img.style.transform = 'rotate(180deg)';
@@ -1084,7 +807,6 @@ async function incluir_item(codigo, nova_quantidade, especial) {
 
         } else {
             td_descricao = dados_composicoes[codigo]?.descricaocarrefour || '?'
->>>>>>> Stashed changes:adicionar.js
 
         }
 
@@ -1117,15 +839,10 @@ async function incluir_item(codigo, nova_quantidade, especial) {
         <td></td>
         <td></td>
         <td style="text-align: center;"><label>${item.tipo}</label></td>
-<<<<<<< Updated upstream:scripts/adicionar.js
-        <td style="text-align: center;"><img onclick="ampliar_especial(this, '${item.codigo}')" src="${imagem}" style="width: 50px; cursor: pointer;"></td>
-        <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${item.codigo}')" style="cursor: pointer;"></td>
-=======
         <td style="text-align: center;">
             <img onclick="ampliar_especial(this, '${item.codigo}')" src="${imagem}" style="width: 50px; cursor: pointer;">
         </td>
         <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${item.codigo}')" style="cursor: pointer;"></td>
->>>>>>> Stashed changes:adicionar.js
     </tr>
 
     `

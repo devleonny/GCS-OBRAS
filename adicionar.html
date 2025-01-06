@@ -261,7 +261,6 @@
 
         #tabela_itens {
             width: 100%;
-            display: none;
             border-radius: 5px;
             border-collapse: collapse;
         }
@@ -696,20 +695,6 @@
             </div>
 
 
-            <div style="display: flex; justify-content: center; width: 100%; margin-top: 30px; gap: 10px;">
-
-                <label class="menu_top_geral" onclick="mudar_tabela_pesquisa(undefined)">Todos</label>
-                <label class="menu_top_serviço" onclick="mudar_tabela_pesquisa('SERVIÇO')">Serviço</label>
-                <label class="menu_top_venda" onclick="mudar_tabela_pesquisa('VENDA')">Venda</label>
-
-                <div style="position: relative; width: max-content; margin: 5px;">
-                    <input id="campo-pesquisa" style="background-color: #222; color: white;"
-                        placeholder="Digite algum termo aqui...">
-                    <img src="imagens/pesquisar.png"
-                        style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
-                </div>
-
-            </div>
             <div id="penumbra">
 
                 <div id="tabela_itens"></div>
