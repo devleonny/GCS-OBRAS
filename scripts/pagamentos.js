@@ -7,21 +7,13 @@ carregamento_div = document.querySelector("#tela_carregamento")
 carregamento('tela_carregamento')
 
 if (!(localStorage.getItem("carimbo_data_hora_pagamentos"))) {
-
     carimbo_data_hora_pagamentos()
-
 }
-
 recuperar_dados_clientes()
-
 try {
-
     consultar_pagamentos()
-
 } catch {
-
     atualizar_pagamentos_menu()
-
 }
 
 function atualizarAndamento(texto) {
@@ -38,77 +30,52 @@ function atualizarAndamento(texto) {
 
 async function consultar_pagamentos(especial) { //True aqui vai retornar o painel de títulos com as contagens;
 
-    let div_pagamentos = document.getElementById('div_pagamentos')
-
+    var div_pagamentos = document.getElementById('div_pagamentos')
     if (div_pagamentos) {
-
         div_pagamentos.remove()
-
     }
-
-    let acumulado = ''
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    let lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
-    let orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
-    let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
-    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
-    let dados_clientes = await recuperarDados('dados_clientes') || {};
-    let clientes = {}
-    let linhas = ''
-
+    var acumulado = ''
+    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+    var orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
+    var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    var dados_clientes = await recuperarDados('dados_clientes') || {};
+    var clientes = {}
+    var linhas = ''
     dados_categorias = Object.fromEntries(
-
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
-
     );
 
     Object.keys(dados_clientes).forEach(item => {
-
-        let cliente = dados_clientes[item]
+        var cliente = dados_clientes[item]
         clientes[cliente.omie] = cliente
-
     })
 
-    let pagamentosFiltrados = Object.keys(lista_pagamentos)
-
+    var pagamentosFiltrados = Object.keys(lista_pagamentos)
         .map(pagamento => {
-
-            let pg = lista_pagamentos[pagamento];
-
+            var pg = lista_pagamentos[pagamento];
             if (pg.criado !== 'Omie') {
 
-                let continuar = false
-
+                var continuar = false
                 if (acesso.permissao == 'gerente' && dados_setores[acesso.usuario].setor == dados_setores[pg.criado].setor) {
-
                     continuar = true
-
                 } else if (pg.criado === acesso.usuario) {
-
                     continuar = true
-
                 } else if (acesso.permissao == 'diretoria' || acesso.permissao == 'adm' || acesso.permissao == 'fin') {
-
                     continuar = true
-
                 }
 
                 if (continuar) {
-
-                    let valor_categorias = pg.param[0].categorias.map(cat =>
-
+                    var valor_categorias = pg.param[0].categorias.map(cat =>
                         `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
                     ).join('');
-
-                    let nome_orcamento = orcamentos[pg.id_orcamento]
-
+                    var nome_orcamento = orcamentos[pg.id_orcamento]
                         ? orcamentos[pg.id_orcamento].dados_orcam.cliente_selecionado
                         : pg.departamento;
-
-                    let data_registro = pg.data_registro || pg.param[0].data_previsao;
+                    var data_registro = pg.data_registro || pg.param[0].data_previsao;
 
                     return {
-
                         id: pagamento,
                         param: pg.param,
                         data_registro,
@@ -119,135 +86,95 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
                         observacao: pg.param[0].observacao,
                         criado: pg.criado,
                         anexos: pg.anexos
-
                     };
-
                 }
 
             }
-
             return null;
-
         })
         .filter(Boolean);
 
     const parseDate = (data) => {
-
         const [dia, mes, ano] = data.split('/').map(Number);
         return new Date(ano, mes - 1, dia);
-
     };
 
     pagamentosFiltrados.sort((a, b) => parseDate(b.data_previsao) - parseDate(a.data_previsao));
 
-    let contadores = {
-
-        gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: "/imagens/gerente.png" },
-        diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: "/imagens/diretoria.png" },
-        reprovados: { qtde: 0, valor: 0, termo: 'reprovado', label: 'Reprovados', icone: "/imagens/remover.png" },
-        excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: "/gifs/alerta.gif" },
-        salvos: { qtde: 0, valor: 0, termo: 'localmente', label: 'Salvo localmente', icone: "/imagens/salvo.png" },
-        pago: { qtde: 0, valor: 0, termo: 'pago', label: 'Pagamento realizado', icone: "/imagens/concluido.png" },
-        avencer: { qtde: 0, valor: 0, termo: 'a vencer', label: 'Pagamento será feito outro dia', icone: "/imagens/avencer.png" },
-        hoje: { qtde: 0, valor: 0, termo: 'hoje', label: 'Pagamento será feito hoje', icone: "/imagens/vencehoje.png" },
-        todos: { qtde: 0, valor: 0, termo: '', label: 'Todos os pagamentos', icone: "/imagens/voltar.png" }
-
+    var contadores = {
+        gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: "imagens/gerente.png" },
+        diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: "imagens/diretoria.png" },
+        reprovados: { qtde: 0, valor: 0, termo: 'reprovado', label: 'Reprovados', icone: "imagens/remover.png" },
+        excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: "gifs/alerta.gif" },
+        salvos: { qtde: 0, valor: 0, termo: 'localmente', label: 'Salvo localmente', icone: "imagens/salvo.png" },
+        pago: { qtde: 0, valor: 0, termo: 'pago', label: 'Pagamento realizado', icone: "imagens/concluido.png" },
+        avencer: { qtde: 0, valor: 0, termo: 'a vencer', label: 'Pagamento será feito outro dia', icone: "imagens/avencer.png" },
+        hoje: { qtde: 0, valor: 0, termo: 'hoje', label: 'Pagamento será feito hoje', icone: "imagens/vencehoje.png" },
+        todos: { qtde: 0, valor: 0, termo: '', label: 'Todos os pagamentos', icone: "imagens/voltar.png" }
     }
 
     for (pagamento in pagamentosFiltrados) {
 
-        let pg = pagamentosFiltrados[pagamento]
+        var pg = pagamentosFiltrados[pagamento]
 
-        let icone = ''
+        var icone = ''
 
         if (pg.status == 'PAGO') {
-
             icone = contadores.pago.icone
             contadores.pago.qtde += 1
             contadores.pago.valor += pg.param[0].valor_documento
-
         } else if (pg.status == 'Aguardando aprovação da Diretoria') {
-
             icone = contadores.diretoria.icone
             contadores.diretoria.qtde += 1
             contadores.diretoria.valor += pg.param[0].valor_documento
-
         } else if (pg.status == 'A VENCER') {
-
             icone = contadores.avencer.icone
             contadores.avencer.qtde += 1
             contadores.avencer.valor += pg.param[0].valor_documento
-
         } else if (pg.status == 'Aguardando aprovação da Gerência') {
-
             icone = contadores.gerente.icone
             contadores.gerente.qtde += 1
             contadores.gerente.valor += pg.param[0].valor_documento
-
         } else if (pg.status == 'VENCE HOJE') {
-
             icone = contadores.hoje.icone
             contadores.hoje.qtde += 1
             contadores.hoje.valor += pg.param[0].valor_documento
-
         } else if (pg.status.includes('Reprovado')) {
-
             icone = contadores.reprovados.icone
             contadores.reprovados.qtde += 1
             contadores.reprovados.valor += pg.param[0].valor_documento
-
         } else if (pg.status.includes('Pagamento salvo localmente')) {
-
             icone = contadores.salvos.icone
             contadores.salvos.valor += pg.param[0].valor_documento
             contadores.salvos.qtde += 1
-
         } else if (pg.status.includes('Excluído')) {
-
             icone = contadores.excluidos.icone
             contadores.excluidos.valor += pg.param[0].valor_documento
             contadores.excluidos.qtde += 1
-
         } else {
-
-            icone = "/gifs/alerta.gif"
-
+            icone = "gifs/alerta.gif"
         }
-
         contadores.todos.qtde += 1
         contadores.todos.valor += pg.param[0].valor_documento
 
-        let div = 
-        
-        `
-
+        var div = `
         <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
             <img src="${icone}" style="width: 30px;">
             <label>${pg.status}</label>
         </div>
-
         `
-
-        let setor_criador = ''
-
+        var setor_criador = ''
         if (dados_setores[pg.criado]) {
-
             setor_criador = dados_setores[pg.criado].setor
-
         }
 
-        let recebedor = pg.param[0].codigo_cliente_fornecedor
+        var recebedor = pg.param[0].codigo_cliente_fornecedor
 
         if (clientes[recebedor]) {
-
             recebedor = clientes[recebedor].nome
-
         }
 
-        linhas += 
-        
-        `
-
+        linhas += `
             <tr>
                 <td>${pg.data_previsao}</td>
                 <td>${pg.nome_orcamento}</td>
@@ -256,52 +183,35 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
                 <td>${pg.criado}</td>
                 <td>${setor_criador}</td>
                 <td>${recebedor}</td>
-                <td style="text-align: center;"><img src="/imagens/pesquisar2.png" style="width: 30px; cursor: pointer;" onclick="abrir_detalhes('${pg.id}')"></td>
+                <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 30px; cursor: pointer;" onclick="abrir_detalhes('${pg.id}')"></td>
             </tr>
-
         `
-
     };
 
-    let carimbo_data_hora_pagamentos = JSON.parse(localStorage.getItem('carimbo_data_hora_pagamentos'))[0] || ''
+    var carimbo_data_hora_pagamentos = JSON.parse(localStorage.getItem('carimbo_data_hora_pagamentos'))[0] || ''
 
-    let colunas = ['Data de Previsão', 'Centro de Custo', 'Valor e Categoria', 'Status Pagamento', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
+    var colunas = ['Data de Previsão', 'Centro de Custo', 'Valor e Categoria', 'Status Pagamento', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
 
-    let cabecalho1 = ''
-    let cabecalho2 = ''
-
+    var cabecalho1 = ''
+    var cabecalho2 = ''
     colunas.forEach((coluna, i) => {
 
-        cabecalho1 += 
-        
-        `
-
+        cabecalho1 += `
             <th style="background-color: #B12425;">${coluna}</th>
-
             `
-
-        cabecalho2 += 
-        
-        `
+        cabecalho2 += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
-            <img src="/imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
+            <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
             <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisar_em_pagamentos(${i}, this.value)">
             </th>
-
             `
-
     })
 
-    let titulos = ''
+    var titulos = ''
 
     for (item in contadores) {
-
         if (contadores[item].valor !== 0) {
-
-            titulos += 
-            
-            `
-
+            titulos += `
             <div style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1.0vw;" onclick="pesquisar_em_pagamentos(3, '${contadores[item].termo}')">
                 <label class="contagem" style="background-color: #B12425;">${contadores[item].qtde}</label>
                 <img src="${contadores[item].icone}" style="width: 25px; height: 25px;">
@@ -311,33 +221,20 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
                     <label>${dinheiro(contadores[item].valor)}</label>
                 </div>
             </div>
-
             `
-
         }
-
     }
 
-    let div_titulos = 
-    
-    `
-
+    var div_titulos = `
         <div class="contorno_botoes" style="background-color: #22222287; display: flex; flex-direction: column; gap: 3px; align-items: start; justify-content: left; margin: 10px;">
         ${titulos}
         </div>
-
     `
-
     if (especial) {
-
         return div_titulos
-
     }
 
-    acumulado += 
-    
-    `
-
+    acumulado += `
     <div id="div_pagamentos">
         <div style="display: flex; gap: 10px; justify-content: space-evenly; align-items: center; width: 100%; color: white;">
             
@@ -351,13 +248,13 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
             <div style="display: flex; flex-direction: column; gap: 10px; justify-content: space-evenly; align-items: start;">
 
                 <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                    onclick="window.location.href='/htmls/inicial.html'">
-                    <img src="/imagens/voltar.png" style="cursor: pointer; width: 30px;" onclick="window.location.href='/htmls/inicial.html'">
+                    onclick="window.location.href='inicial.html'">
+                    <img src="imagens/voltar.png" style="cursor: pointer; width: 30px;" onclick="window.location.href='inicial.html'">
                     <label style="color: white;">Voltar</label>
                 </div>
                     
                 <div style="display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="atualizar_pagamentos_menu()">
-                    <img src="/imagens/atualizar_2.png" style="width: max-content; cursor: pointer; width: 30px;">
+                    <img src="imagens/atualizar_2.png" style="width: max-content; cursor: pointer; width: 30px;">
                     <label style="color: white;">Atualizar Pagamentos</label>
                 </div>
 
@@ -382,19 +279,12 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
             </table>
         </div>
     </div>
-
     `
-
-    let elementus = 
-    
-    `
-
+    var elementus = `
     <div id="pagamentos">
         ${acumulado}
     <div>
-
     `
-
     document.body.insertAdjacentHTML('beforeend', elementus)
 
     carregamento_div.remove()
@@ -403,16 +293,19 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
 
 async function abrir_detalhes(id_pagamento) {
 
-    let ordem = 0
+    var overlay = document.getElementById('overlay')
+    if (overlay) {
+        overlay.style.display = 'block'
+    }
 
-    let lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
-    let dados_clientes = await recuperarDados('dados_clientes') || {};
-    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
-    let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
-    let cc = 'Erro 404'
-    let pedido = ''
-    let categorias_invertidas = {}
-
+    ordem = 0
+    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+    var dados_clientes = await recuperarDados('dados_clientes') || {};
+    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
+    var cc = 'Erro 404'
+    var pedido = ''
+    var categorias_invertidas = {}
     Object.keys(dados_categorias).forEach(cat => {
 
         categorias_invertidas[dados_categorias[cat]] = cat
@@ -926,7 +819,7 @@ function editar_resumo(id_pagamento) {
 
 }
 
-function atualizar_resumo(id_pagamento) {
+async function atualizar_resumo(id_pagamento) {
 
     let v_pago = conversor(document.getElementById('v_pago').textContent)
     let v_orcado = Number(document.getElementById('v_orcado').value)
@@ -939,7 +832,7 @@ function atualizar_resumo(id_pagamento) {
 
     }
 
-    let lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
 
     let pagamento = lista_pagamentos[id_pagamento]
 
@@ -951,7 +844,7 @@ function atualizar_resumo(id_pagamento) {
 
     pagamento.resumo = { v_pago, v_orcado }
 
-    localStorage.setItem('lista_pagamentos', JSON.stringify(lista_pagamentos))
+    inserirDados(lista_pagamentos, 'lista_pagamentos');
     abrir_detalhes(id_pagamento)
 
     enviar_dados_generico(dados)
@@ -980,17 +873,11 @@ function colorir_parceiros() {
             }
 
         })
-
-        let v_orcado = document.getElementById('v_orcado')
-
+        var v_orcado = document.getElementById('v_orcado')
         if (v_orcado && conversor(v_orcado.textContent) == 0) {
-
             labels[labels.length - 1].style.backgroundColor = '#B12425'
-
         } else {
-
             labels[labels.length - 1].style.backgroundColor = 'green'
-
         }
 
     }
@@ -1051,9 +938,9 @@ async function atualizar_pagamentos_menu() {
 
 }
 
-function atualizar_feedback(resposta, id_pagamento) {
+async function atualizar_feedback(resposta, id_pagamento) {
 
-    let lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
 
     let pagamento = lista_pagamentos[id_pagamento]
 
@@ -1124,17 +1011,18 @@ function atualizar_feedback(resposta, id_pagamento) {
 
     enviar_dados_generico(dados)
 
-    localStorage.setItem('lista_pagamentos', JSON.stringify(lista_pagamentos))
+    inserirDados(lista_pagamentos, 'lista_pagamentos');
     fechar_e_abrir(id_pagamento)
 
 }
 
+async function editar_comentario(id) {
 
 function editar_comentario(id) {
 
-    let lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
-    let pagamento = lista_pagamentos[id]
-    let div_comentario = document.getElementById('comentario')
+    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+    var pagamento = lista_pagamentos[id]
+    var div_comentario = document.getElementById('comentario')
 
     if (div_comentario) {
 
@@ -1190,6 +1078,8 @@ function alterar_centro_de_custo(id) {
 }
 
 function salvar_centro_de_custo(id) {
+    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+    var pagamento = lista_pagamentos[id]
 
     let lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
     let pagamento = lista_pagamentos[id]
@@ -1227,12 +1117,12 @@ function salvar_centro_de_custo(id) {
 
     enviar_dados_generico(dados)
 
-    localStorage.setItem('lista_pagamentos', JSON.stringify(lista_pagamentos))
+    inserirDados(lista_pagamentos, 'lista_pagamentos');
     fechar_e_abrir(id)
 
 }
 
-function salvar_comentario(id) {
+async function salvar_comentario(id) {
 
     let dataFormatada = new Date().toLocaleString('pt-BR', {
 
@@ -1247,8 +1137,8 @@ function salvar_comentario(id) {
 
     let comentario = document.getElementById('comentario').querySelector('textarea').value
 
-    let lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
-    let pagamento = lista_pagamentos[id]
+    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+    var pagamento = lista_pagamentos[id]
 
     pagamento.param[0].observacao = comentario
 
@@ -1266,7 +1156,7 @@ function salvar_comentario(id) {
 
     enviar_dados_generico(dados)
 
-    localStorage.setItem('lista_pagamentos', JSON.stringify(lista_pagamentos))
+    inserirDados(lista_pagamentos, 'lista_pagamentos');
     fechar_e_abrir(id)
 
 }

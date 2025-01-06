@@ -115,7 +115,11 @@ function pesquisar_v2(coluna, texto) {
 
 function preencher_orcamentos_v2(st) {
 
-    let div_orcamentos = document.getElementById('orcamentos')
+    if (st !== undefined) {
+        botao_status_ativo = st
+    }
+
+    var div_orcamentos = document.getElementById('orcamentos')
     div_orcamentos.innerHTML = ''
 
     let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
@@ -170,7 +174,7 @@ function preencher_orcamentos_v2(st) {
 
                     <div class="etiqueta_pedidos" style="background-color: ${cor}">
                         <label style="font-size: 0.8em;">${tipo}</label>
-                        <label style="font-size: 1.3em;"><strong>${num_pedido}</strong></label>
+                        <label style="font-size: 1.1em;"><strong>${num_pedido}</strong></label>
                     </div>
 
                 `
@@ -192,7 +196,7 @@ function preencher_orcamentos_v2(st) {
 
                         <div class="etiqueta_pedidos" style="background-color: ${cor2};">
                             <label style="font-size: 0.8em;">${nota.modalidade}</label>
-                            <label style="font-size: 1.3em;"><strong>${nota.nota}</strong></label>
+                            <label style="font-size: 1.1em;"><strong>${nota.nota}</strong></label>
                         </div>
 
                         `
@@ -384,7 +388,11 @@ async function recuperar_orcamentos() {
 
                 if (document.title == 'ORÇAMENTOS') {
 
-                    preencher_orcamentos_v2()
+                    if (botao_status_ativo !== '') {
+                        preencher_orcamentos_v2(botao_status_ativo)
+                    } else {
+                        preencher_orcamentos_v2()
+                    }
 
                     let tsh = document.getElementById('tsh')
                     let inputs = tsh.querySelectorAll('input')
@@ -424,7 +432,7 @@ async function rir(id_orcam) {
 
     let orcamento = dados_orcamentos[id_orcam];
 
-    orcamento = conversor_composicoes_orcamento(orcamento)
+    orcamento = await conversor_composicoes_orcamento(orcamento)
 
     let estado = orcamento.dados_orcam.estado;
     let icms = estado == 'BA' ? 0.205 : 0.12;
@@ -508,12 +516,13 @@ async function rir(id_orcam) {
 }
 
 function editar(orcam_) {
+    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
 
     let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
 
     let orcamento_v2 = dados_orcamentos[orcam_]
 
-    orcamento_v2 = conversor_composicoes_orcamento(orcamento_v2)
+    orcamento_v2 = await conversor_composicoes_orcamento(orcamento_v2)
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
@@ -522,13 +531,12 @@ function editar(orcam_) {
 }
 
 function duplicar(orcam_) {
-
     let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'))
     let acesso = JSON.parse(localStorage.getItem('acesso'))
 
     let orcamento_v2 = dados_orcamentos[orcam_]
 
-    orcamento_v2 = conversor_composicoes_orcamento(orcamento_v2)
+    orcamento_v2 = await conversor_composicoes_orcamento(orcamento_v2)
 
     delete orcamento_v2.id
 
@@ -680,10 +688,7 @@ async function criar_pagamento_v2(chave1) {
 
         }
 
-        let descky = 
-        
-        `
-
+        var descky = `
         Solicitante: ${acesso.usuario}
         \n
 
@@ -699,7 +704,6 @@ async function criar_pagamento_v2(chave1) {
             {
 
                 "codigo_cliente_fornecedor": dados_clientes[cnpj_string].omie,
-                "codigo_barras_ficha_compensacao": chave_pix,
                 "valor_documento": conversor(total),
                 "observacao": descky,
                 "codigo_lancamento_integracao": id_pagamento,
@@ -765,11 +769,11 @@ async function criar_pagamento_v2(chave1) {
 
         remover_popup()
 
-        let pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos'))
+        var pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos'))
 
         pagamentos[pagamento.id_pagamento] = pagamento
 
-        localStorage.setItem('lista_pagamentos', JSON.stringify(pagamentos))
+        inserirDados(lista_pagamentos, 'lista_pagamentos');
 
         openPopup_v2(
             
@@ -847,11 +851,9 @@ async function atualizar_departamentos() {
 
     await obter_departamentos_fixos()
 
-    let centro_de_custo = document.getElementById('centro_de_custo')
+    var centro_de_custo = document.getElementById('centro_de_custo')
     if (centro_de_custo) {
-
-        carregar_opcoes(opcoes_centro_de_custo(), 'cc', 'cc_sugestoes')
-
+        carregar_opcoes(opcoes_centro_de_custo(), 'cc', 'cc_sugestoes') // Carregar os centros de custo;
     }
 
     departamentos.style.display = 'flex'
@@ -1524,7 +1526,7 @@ function cadastrarCliente(nome, cnpj_cpf) {
 
 
 
-function salvar_anexo_pagamento(id_pagamento) {
+async function salvar_anexo_pagamento(id_pagamento) {
 
     let elemento = document.getElementById(`adicionar_anexo_pagamento`)
 
@@ -1617,7 +1619,7 @@ function salvar_anexo_pagamento(id_pagamento) {
 
                 } else {
 
-                    let lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+                    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
 
                     let anexo = {}
 
@@ -1647,7 +1649,7 @@ function salvar_anexo_pagamento(id_pagamento) {
 
                     enviar_dados_generico(dados)
 
-                    localStorage.setItem('lista_pagamentos', JSON.stringify(lista_pagamentos))
+                    inserirDados(lista_pagamentos, 'lista_pagamentos');
 
                     consultar_pagamentos()
                     abrir_detalhes(id_pagamento)
@@ -1668,7 +1670,7 @@ function salvar_anexo_pagamento(id_pagamento) {
 
 }
 
-function anexos_parceiros(campo, id_pagamento) {
+async function anexos_parceiros(campo, id_pagamento) {
 
     let elemento = document.getElementById(`anexo_${campo}`)
 
@@ -1741,8 +1743,8 @@ function anexos_parceiros(campo, id_pagamento) {
 
                     }
 
-                    let pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
-                    let pagamento = pagamentos[id_pagamento]
+                    var pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+                    var pagamento = pagamentos[id_pagamento]
 
                     pagamento.anexos_parceiros = pagamento.anexos_parceiros || {};
 

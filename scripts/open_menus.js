@@ -1,5 +1,5 @@
-let acesso = JSON.parse(localStorage.getItem('acesso'))
-let versao = 'v2.0.59'
+var acesso = JSON.parse(localStorage.getItem('acesso'))
+var versao = 'v2.0.59'
 
 document.addEventListener('keydown', function (event) {
 
@@ -19,9 +19,10 @@ function f5() {
 
 localStorage.removeItem('dados_cliente')
 localStorage.removeItem('dados_composicoes')
+localStorage.removeItem('lista_pagamentos')
 
 function inserirDados(dados, nome_da_base) {
-
+    // Primeiro, abra o banco para verificar a versão e stores existentes
     const request = indexedDB.open('Bases');
     let novaVersao;
 
@@ -125,14 +126,10 @@ function executarTransacao(db, nome_da_base, dados) {
     transaction.oncomplete = function () {
 
         console.log('Transação concluída com sucesso!');
-
         if(document.title == "PAGAMENTOS" && !(localStorage.getItem("first_acess"))){
-
             localStorage.setItem("first_acess","true")
             f5()
-
         }
-
     };
 
 }
@@ -515,23 +512,21 @@ function fecharPopup() {
 }
 
 function ir_pdf(orcam_) {
+    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
 
-    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
 
     localStorage.setItem('pdf', JSON.stringify(dados_orcamentos[orcam_]))
 
     try {
 
         const { ipcRenderer } = require('electron');
-        ipcRenderer.invoke('open-new-window', '/htmls/pdf.html');
-
+        ipcRenderer.invoke('open-new-window', 'pdf.html');
     } catch {
-
-        window.location.href = ('/htmls/pdf.html');
-
+        window.location.href = ('pdf.html');
     }
-
 }
+
 
 function criar_orcamento_janela() {
 
@@ -1134,7 +1129,6 @@ async function obter_lista_pagamentos() {
             })
 
             .then(data => {
-
                 localStorage.setItem('lista_pagamentos', JSON.stringify(data));
                 resolve();
 
@@ -1760,18 +1754,16 @@ function enviar_dados_generico(dados) {
 
 }
 
-async function consultar_pagamentos(especial) {
-
-    let acumulado = ''
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    let lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
-    let orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
-    let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
-    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
-    let dados_clientes = await recuperarDados('dados_clientes') || {};
-    let clientes = {}
-    let linhas = ''
-
+async function consultar_pagamentos(especial) { //True aqui vai retornar o painel de títulos com as contagens;
+    var acumulado = ''
+    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {}
+    var orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
+    var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    var dados_clientes = await recuperarDados('dados_clientes') || {};
+    var clientes = {}
+    var linhas = ''
     dados_categorias = Object.fromEntries(
 
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
@@ -1788,9 +1780,7 @@ async function consultar_pagamentos(especial) {
     let pagamentosFiltrados = Object.keys(lista_pagamentos)
 
         .map(pagamento => {
-
-            let pg = lista_pagamentos[pagamento];
-
+            var pg = lista_pagamentos[pagamento];
             if (pg.criado !== 'Omie') {
 
                 let continuar = false
@@ -1871,7 +1861,7 @@ async function consultar_pagamentos(especial) {
 
     }
 
-    Object.keys(pagamentosFiltrados).forEach((pagamento, i) => {
+    for (pagamento in pagamentosFiltrados) {
 
         let pg = pagamentosFiltrados[pagamento]
 
@@ -1976,10 +1966,9 @@ async function consultar_pagamentos(especial) {
             </tr>
 
         `
-
     });
 
-    let carimbo_data_hora_pagamentos = JSON.parse(localStorage.getItem('carimbo_data_hora_pagamentos'))[0] || ''
+    var carimbo_data_hora_pagamentos = JSON.parse(localStorage.getItem('carimbo_data_hora_pagamentos'))[0] || ''
 
     let colunas = ['Data de Previsão', 'Centro de Custo', 'Valor e Categoria', 'Status Pagamento', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
 
@@ -2013,23 +2002,15 @@ async function consultar_pagamentos(especial) {
     for (item in contadores) {
 
         if (contadores[item].valor !== 0) {
-
-            titulos += 
-            
-            `
-
+            titulos += `
             <Label style="display: flex; gap: 10px"><label class="contagem" onclick="pesquisar_em_pagamentos(3, '${contadores[item].termo}')">${contadores[item].qtde}</label> <img src="${contadores[item].icone}" style="width: 25px; height: 25px;"><strong> ${dinheiro(contadores[item].valor)}</strong> • ${contadores[item].label}</label>
-
             `
 
         }
 
     }
 
-    let div_titulos = 
-    
-    `
-
+    var div_titulos = `
         <div style="display: flex; flex-direction: column; gap: 3px; align-items: start; justify-content: left; margin: 3vw; font-size: 1.2em;">
         ${titulos}
         </div>
@@ -2041,10 +2022,7 @@ async function consultar_pagamentos(especial) {
 
     }
 
-    acumulado += 
-    
-    `
-
+    acumulado += `
     <div>
         <div style="display: flex; gap: 10px; justify-content: space-evenly; align-items: center; width: 100%; color: white;">
             
@@ -2055,12 +2033,12 @@ async function consultar_pagamentos(especial) {
 
             ${div_titulos}
 
-            <div style="display: flex; flex-direction: column; gap: 30px; justify-content: space-evenly; align-items: center;">
+            <div style="display: flex; flex-direction: column; gap: 10px; justify-content: space-evenly; align-items: start; background-color: #22222287; border-radius: 5px; padding: 10px; margin: 30px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);">
 
                 <div style="display: flex; justify-content: space-evenly; width: 100%; gap:">
                     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;"
-                        onclick="window.location.href='/htmls/inicial.html'">
-                        <img src="/imagens/voltar.png" style=" cursor: pointer;" onclick="window.location.href='/htmls/inicial.html'">
+                        onclick="window.location.href='inicial.html'">
+                        <img src="/imagens/voltar.png" style=" cursor: pointer;" onclick="window.location.href='inicial.html'">
                         <label style="color: white;">Voltar</label>
                     </div>
                     
@@ -2083,7 +2061,7 @@ async function consultar_pagamentos(especial) {
                 <thead>
                     ${cabecalho1}
                 </thead>
-                <thead>
+                <thead id="thead_pesquisa">
                     ${cabecalho2}
                 </thead>
                 <tbody id="body">
@@ -2094,8 +2072,7 @@ async function consultar_pagamentos(especial) {
     </div>
 
     `
-
-    let div_status = document.getElementById('status')
+    var div_status = document.getElementById('status')
 
     div_status.innerHTML = ''
 

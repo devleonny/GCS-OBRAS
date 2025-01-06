@@ -129,7 +129,7 @@ async function preencher_v2(parceiro) {
             <label>Atualizar</label>
         </div>
         <div class="icone" id="generatePdfButton">
-            <img src="/imagens/pdf.png">
+            <img src="imagens/pdf.png">
             <label>PDF</label>
         </div>
         <div class="icone" onclick="excel()">
@@ -744,15 +744,14 @@ ipcRenderer.on('open-save-dialog', (event, { htmlContent, nomeArquivo }) => {
 
 });
 
-document.getElementById('generatePdfButton').addEventListener('click', async () => {
+function gerarPDF() {
+    preencher_v2();
+    ocultar.style.display = 'none';
 
-    preencher_v2()
-    ocultar.style.display = 'none'
+    var orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {}
 
-    let orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {}
-
-    let contrato = orcamento_v2.dados_orcam.contrato
-    let cliente = orcamento_v2.dados_orcam.cliente_selecionado
+    var contrato = orcamento_v2.dados_orcam.contrato
+    var cliente = orcamento_v2.dados_orcam.cliente_selecionado
 
     const formData = {
 
@@ -760,35 +759,22 @@ document.getElementById('generatePdfButton').addEventListener('click', async () 
         nomeArquivo: `Orcamento_${cliente}_${contrato}`
 
     };
-
     try {
-
         const response = await fetch('http://localhost:3000/generate-pdf', {
             method: 'POST',
             headers: {
-
                 'Content-Type': 'application/json'
-
             },
-
             body: JSON.stringify(formData)
-
         });
 
         if (!response.ok) {
-
             throw new Error('Erro ao gerar PDF: ' + response.status + ' ' + response.statusText);
-
         }
-
     } catch (err) {
-
         console.log(err)
-
     } finally {
-
         ocultar.style.display = 'flex'
-        
     }
 
 });
