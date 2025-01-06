@@ -41,6 +41,21 @@ body::before {
     margin-right: 10px;
 }
 
+.agrupados {
+    display: none;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.select_da_lpu {
+    color: white;
+    background-color: #222222bc;
+    border: none;
+    margin-left: 2vw;
+    padding: 5px;
+    width: max-content;
+}
+
 .agrupamentos {
     color: #22272B;
     background-color: white;

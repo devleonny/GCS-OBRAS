@@ -1,46 +1,51 @@
-var orcamento_livre = document.getElementById('orcamento_livre');
-var menu_inferior = document.getElementById('menu_inferior');
-var orcamento_padrao = document.getElementById('orcamento_padrao');
+let orcamento_livre = document.getElementById('orcamento_livre');
+let menu_inferior = document.getElementById('menu_inferior');
+let orcamento_padrao = document.getElementById('orcamento_padrao');
 
-let updateTimeout; // Variável global para armazenar o timeout
+let updateTimeout;
 
 function retornar_ao_orcamento_tradicional() {
 
     openPopup_v2(`
+
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <img src="/gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>O orçamento atual será descartado e um novo será aberto na modalidade <strong>tradicional</strong>, tudo bem?</label>
                 <div style="display: flex; justify-content: space-evenly; align-items: center;">
                 <button onclick="carregar_layout_modalidade_tradicional()" style="background-color: green;">Confirmar</button>
                 <button onclick="remover_popup()">Cancelar</button>
                 </div>
             </div>   
+
         `)
 
 }
 
 function carregar_layout_modalidade_tradicional() {
 
-    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
     delete orcamento_v2.dados_composicoes
     delete orcamento_v2.lpu_ativa
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
-    location.href = 'adicionar.html'
+    location.href = '/htmls/adicionar.html'
+
 }
 
 function modalidade_livre_de_orcamento() {
 
     openPopup_v2(`
+
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <img src="/gifs/alerta.gif" style="width: 3vw; height: 3vw;">
             <label>O orçamento atual será descartado e um novo será aberto na modalidade <strong>livre</strong>, tudo bem?</label>
             <div style="display: flex; justify-content: space-evenly; align-items: center;">
             <button onclick="carregar_layout_modalidade_livre()" style="background-color: green;">Confirmar</button>
             <button onclick="remover_popup()">Cancelar</button>
             </div>
         </div>   
+        
         `)
 
 }
@@ -54,7 +59,7 @@ function carregar_layout_modalidade_livre() {
     orcamento_livre.innerHTML = '';
     content.style = 'border: none'
 
-    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
 
     orcamento_v2.lpu_ativa = 'MODALIDADE LIVRE'
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
@@ -69,7 +74,11 @@ function carregar_layout_modalidade_livre() {
 
                 <div
                     style="position: relative; display: flex; justify-content: center; align-items: center; border-radius: 3px;">
-                    <img src="./BG.png" style="height: 200px;">
+<<<<<<< Updated upstream:scripts/modalidade_livre.js
+                    <img src="/imagens/BG.png" style="height: 200px;">
+=======
+                    <img src="imagens/BG.png" style="height: 200px;">
+>>>>>>> Stashed changes:modalidade_livre.js
 
                 </div>
 
@@ -98,7 +107,7 @@ function carregar_layout_modalidade_livre() {
                     </select>
 
                     <div onclick="importar()" style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: center; border-radius: 5px; background-color: #222222bc; padding: 5px;">
-                        <img src="imagens/baixar.png" style="width: 30px; cursor: pointer;"> 
+                        <img src="/imagens/baixar.png" style="width: 30px; cursor: pointer;"> 
                         <label style="cursor: pointer;">Importar</label>    
                     </div>
 
@@ -110,7 +119,7 @@ function carregar_layout_modalidade_livre() {
 
                 <div onclick="retornar_ao_orcamento_tradicional()"
                     style="position: absolute; right: 10px; top: 3px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 3px; padding: 5px;">
-                    <img src="gifs/alerta.gif" style="width: 25px; cursor: pointer;">
+                    <img src="/gifs/alerta.gif" style="width: 25px; cursor: pointer;">
                     <label style="cursor: pointer;">Orçamento Tradicional?</label>
                 </div>
 
@@ -172,30 +181,38 @@ function carregar_layout_modalidade_livre() {
                 <tbody id="tabela_venda"></tbody>
             </table>
         </div>
+
     `;
 
     carregar_tabela();
+
 }
 
 function importar() {
-    var entradaItens = document.getElementById('entrada_itens').value.trim().split('\n');
-    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
+
+    let entradaItens = document.getElementById('entrada_itens').value.trim().split('\n');
+
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
 
     orcamento_v2.dados_composicoes = orcamento_v2.dados_composicoes || {};
 
-    var tipo = document.getElementById('tipo_importar').value;
+    let tipo = document.getElementById('tipo_importar').value;
 
-    var maxNumeroL = Math.max(
+    let maxNumeroL = Math.max(
+
         0,
         ...Object.keys(orcamento_v2.dados_composicoes)
             .map(chave => parseInt(chave))
             .filter(numero => !isNaN(numero))
+
     );
 
     entradaItens.forEach((linha, i) => {
+
         const [descricao, quantidade, valor] = linha.split(/\t+/).map(item => item.trim());
 
         if (descricao && quantidade && valor) {
+
             maxNumeroL++;
 
             orcamento_v2.dados_composicoes[`${maxNumeroL}L`] = {
@@ -207,37 +224,48 @@ function importar() {
                 tipo: tipo,
                 total: conversor(quantidade) * conversor(valor),
                 imagem: 'https://i.imgur.com/gUcc7iG.png'
+
             };
+
         }
+
     });
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
     carregar_tabela();
+
 }
 
 
 function carregar_tabela() {
-    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
 
     if (!orcamento_v2.dados_composicoes) {
+
         return
+
     }
 
     document.getElementById('tabela_serviço').innerHTML = '';
     document.getElementById('tabela_venda').innerHTML = '';
 
-    var composicoes = orcamento_v2.dados_composicoes
+    let composicoes = orcamento_v2.dados_composicoes
 
-    for (codigo in composicoes) {
+    for (let codigo in composicoes) {
 
-        var item = composicoes[codigo]
+        let item = composicoes[codigo]
 
-        var imagem = 'https://i.imgur.com/gUcc7iG.png'
+        let imagem = 'https://i.imgur.com/gUcc7iG.png'
+
         if (item.imagem) {
+
             imagem = item.imagem
+
         }
 
-        var linha = `
+        let linha = `
+
             <tr>
                 <td>${codigo}</td>
                 <td><textarea oninput="total_v2()" rows="3" style="width: 200px;">${item.descricao}</textarea></td>
@@ -252,8 +280,9 @@ function carregar_tabela() {
                     </select>
                 </td>
                 <td><img src="${imagem}" style="width: 50px; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')"></td>
-                <td><img src="imagens/excluir.png" onclick="removerLinha_v2('${codigo}')" style="cursor: pointer;"></td>
+                <td><img src="/imagens/excluir.png" onclick="removerLinha_v2('${codigo}')" style="cursor: pointer;"></td>
             </tr>
+
         `;
 
         document.getElementById(`tabela_${String(item.tipo).toLowerCase()}`).insertAdjacentHTML('beforeend', linha);
@@ -266,34 +295,41 @@ function carregar_tabela() {
 
 
 function total_v2(recarregar) {
-    var tabelas = ['serviço', 'venda']
-    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+
+    let tabelas = ['serviço', 'venda']
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
 
     if (!orcamento_v2.dados_composicoes) {
+
         orcamento_v2.dados_composicoes = {}
+
     }
 
-    var totais = {
+    let totais = {
+
         SERVIÇO: 0,
         VENDA: 0,
         GERAL: 0
+
     }
 
-    var composicoes = orcamento_v2.dados_composicoes
+    let composicoes = orcamento_v2.dados_composicoes
 
     tabelas.forEach(tabela => {
 
-        var trs = document.getElementById(`tabela_${tabela}`).querySelectorAll('tr')
+        let trs = document.getElementById(`tabela_${tabela}`).querySelectorAll('tr')
 
         trs.forEach(tr => {
 
-            var tds = tr.querySelectorAll('td')
+            let tds = tr.querySelectorAll('td')
 
-            var item = {}
-            var codigo = tds[0].textContent
+            let item = {}
+            let codigo = tds[0].textContent
 
             if (!composicoes[codigo]) {
+
                 composicoes[codigo] = {}
+
             }
 
             item = composicoes[codigo]
@@ -306,7 +342,7 @@ function total_v2(recarregar) {
             item.tipo = tds[6].querySelector('select').value
             item.imagem = tds[7].querySelector('img').src
 
-            var valorTotal = item.qtde * item.custo
+            let valorTotal = item.qtde * item.custo
             tds[5].textContent = dinheiro(valorTotal)
 
             totais[item.tipo] += valorTotal
@@ -316,9 +352,11 @@ function total_v2(recarregar) {
 
     })
 
-    for (tot in totais) {
-        var termo = String(tot).toLowerCase()
+    for (let tot in totais) {
+
+        let termo = String(tot).toLowerCase()
         document.getElementById(`tt_${termo}`).textContent = `${dinheiro(totais[tot])}`
+
     }
 
     orcamento_v2.lpu_ativa = 'MODALIDADE LIVRE'
@@ -326,35 +364,50 @@ function total_v2(recarregar) {
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
     if (recarregar) {
+
         carregar_tabela()
+
     }
+
 }
 
 function adicionarLinha_v2(tipo) {
-    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
 
-    var tamanho = 0
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
+
+    let tamanho = 0
 
     if (orcamento_v2 && orcamento_v2.dados_composicoes) {
+
         tamanho = Object.keys(orcamento_v2.dados_composicoes).length + 1
+
     } else {
+
         orcamento_v2.dados_composicoes = {}
+
     }
 
     orcamento_v2.dados_composicoes[`${tamanho}L`] = { descricao: '', qtde: 1, unidade: 'UND', valor: 0, tipo }
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
+
     carregar_tabela();
+
 }
 
 function removerLinha_v2(codigo) {
-    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
     orcamento_v2.dados_composicoes
 
     if (orcamento_v2.dados_composicoes[codigo]) {
+
         delete orcamento_v2.dados_composicoes[codigo]
+        
     }
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
+    
     carregar_tabela();
+
 }
