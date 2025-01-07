@@ -3042,4 +3042,5 @@ async function gerarpdf(cliente, pedido) {
         menu_flutuante.style.display = 'flex'
         span.style.display = 'block'
     }
+    
 }
