@@ -351,13 +351,6 @@ function notas_no_financeiro(chave) {
 `
 }
 
-var nota_mais = `
-    <div class="conteiner_pedido">
-        <label><strong>Número da Nota</strong></label>
-        <input type="number" class="pedido">
-    </div>
-`
-
 function alterar_todos(valor_ref) {
     var trs = tabela_requisicoes.querySelectorAll('tr')
     trs.forEach(tr => {
@@ -455,7 +448,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
             <input value="${dados_composicoes[codigo]?.omie || ''}" class="pedido" style="font-size: 1.2em; width: 100%; height: 40px; padding: 0px; margin: 0px;">
         `
 
-        // Ajustando o select para ter a opção correta selecionada
+        // Ajustando o select para ter a opção correta selecionada;
         var selectTipo = `
             <select onchange="calcular_requisicao()">
                 <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
@@ -3032,26 +3025,17 @@ async function gerarpdf(cliente, pedido) {
         htmlContent: htmlContent,
         nomeArquivo: `REQUISICAO_${cliente}_${pedido}`
     };
-    try {
-        const response = await fetch('http://localhost:3000/generate-pdf', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(formData)
-        });
 
-        if (!response.ok) {
-            console.log(response.status, response.statusText)
-            throw new Error('Erro ao gerar PDF: ' + response.status + ' ' + response.statusText);
-        }
-    } catch (err) {
-        console.log(err)
-    } finally {
-        if (menu_flutuante && span) {
-            menu_flutuante.style.display = 'flex'
-            span.style.display = 'block'
-        }
-    }
+    // Envia para salvar o PDF localmente
+    ipcRenderer.send('generate-pdf-local', formData);
 
+    ipcRenderer.once('generate-pdf-local-reply', (event, response) => {
+        if (response.success) {
+            console.log('PDF gerado com sucesso!', response.filePath);
+        } else {
+            console.error('Erro ao gerar PDF:', response.error);
+        }
+
+        ocultar.style.display = 'flex';
+    });
 }
