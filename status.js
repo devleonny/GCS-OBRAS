@@ -2956,11 +2956,6 @@ ipcRenderer.on('open-save-dialog', (event, { htmlContent, nomeArquivo }) => {
 
 async function gerarpdf(cliente, pedido) {
 
-    if (menu_flutuante && span) {
-        menu_flutuante.style.display = 'none'
-        span.style.display = 'none'
-    }
-
     var status = document.getElementById('status')
 
     var htmlContent = `
@@ -3036,6 +3031,5 @@ async function gerarpdf(cliente, pedido) {
             console.error('Erro ao gerar PDF:', response.error);
         }
 
-        ocultar.style.display = 'flex';
     });
 }
