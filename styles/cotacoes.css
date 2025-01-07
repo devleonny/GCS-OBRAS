@@ -211,3 +211,79 @@ table th, table td {
     text-align: center; /* Centraliza o texto */
 }
 
+/* Estilo do título */
+.titulo-principal {
+    text-align: center;
+    font-size: 2rem;
+    color: #007bff;
+    margin-bottom: 20px;
+    font-family: 'Poppins', sans-serif;
+    text-transform: uppercase;
+}
+/* Estilo da tabela de cotações salvas */
+#cotacoesSalvasTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+#cotacoesSalvasTable th, #cotacoesSalvasTable td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+}
+
+#cotacoesSalvasTable th {
+    background-color: #007bff;
+    color: #fff;
+    font-weight: bold;
+}
+
+#cotacoesSalvasTable tbody tr:hover {
+    background-color: #f9f9f9;
+    cursor: pointer;
+}
+
+/* Botão de Nova Cotação */
+
+.btn-nova-cotacao {
+    display: block;
+    margin: 20px auto;
+    font-size: 1rem;
+    font-family: 'Poppins', sans-serif;
+}
+
+.btn-nova-cotacao:hover {
+    background-color: #0056b3;
+}
+
+/* Botão Voltar */
+
+.btn-voltar {
+    margin-top: 10px;
+    background-color: #6c757d;
+}
+
+
+.btn-voltar:hover {
+    background-color: #5a6268;
+}
+
+.salvar-aviso {
+    margin-top: 10px;
+    font-size: 14px;
+    color: green;
+    font-weight: bold;
+    text-align: center;
+}
+
+.img-editar {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.img-editar:hover {
+    transform: scale(1.1);
+}

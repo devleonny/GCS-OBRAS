@@ -2,6 +2,7 @@ let contador = 1;
 let linhasAtuais = [];
 let quantidadeFornecedores = 0;
 
+recuperarCotacoes()
 
 document.addEventListener("DOMContentLoaded", () => {
     obter_materiais();
@@ -544,33 +545,39 @@ resultados.forEach(fornecedor => {
 
 }
 
+
 function salvarObjeto() {
-    // Obter informações das funções auxiliares
     const informacoes = salvarInformacoes();
     const dados = salvarDados();
     const valorFinal = salvarValorFinal();
 
-    // Criar o objeto final combinando as partes
-    const novaCotacao = {
-        informacoes,
-        dados,
-        valorFinal
-    };
+    const novaCotacao = { informacoes, dados, valorFinal };
 
-    // Recuperar o array de cotações já existente no localStorage
-    let dadosCotacao = JSON.parse(localStorage.getItem("dados_cotacao")) || [];
+    let cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || [];
+    const indexEditando = localStorage.getItem("cotacaoEditandoIndex");
 
-    // Adicionar a nova cotação ao array
-    dadosCotacao.push(novaCotacao);
+    if (indexEditando !== null && indexEditando !== undefined && cotacoes[indexEditando]) {
+        // Atualiza a cotação existente
+        cotacoes[indexEditando] = novaCotacao;
+        localStorage.removeItem("cotacaoEditandoIndex"); // Remove o estado de edição
+    } else {
+        // Adiciona uma nova cotação
+        cotacoes.push(novaCotacao);
+    }
 
-    // Salvar o array atualizado no localStorage
-    localStorage.setItem("dados_cotacao", JSON.stringify(dadosCotacao));
+    let dadosCotacao = {
 
-    // Exibir no console
-    console.log("Nova cotação salva no array dados_cotacao:", novaCotacao);
-    console.log("Todas as cotações:", dadosCotacao);
+        tabela: "cotacoes",
+        cotacao: novaCotacao
 
-    return novaCotacao;
+    }
+
+    enviar_dados_generico(dadosCotacao)
+
+    const aviso = document.getElementById("salvarAviso");
+    aviso.style.display = "block";
+    setTimeout(() => (aviso.style.display = "none"), 3000);
+
 }
 
 // Função para salvar as informações gerais (id, data, hora, criador)
@@ -590,13 +597,30 @@ function salvarInformacoes() {
     const acesso = JSON.parse(localStorage.getItem("acesso"));
     const criador = acesso?.usuario || "Desconhecido";
 
+    // Recuperar cotações existentes
+    const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || [];
+
+    // Filtrar cotações do mesmo dia e criador
+    const cotacoesDoDia = cotacoes.filter(cotacao => {
+        return (
+            cotacao.informacoes.data === dataFormatada &&
+            cotacao.informacoes.criador === criador
+        );
+    });
+
+    // Determinar o próximo número para o criador no mesmo dia
+    const numero = cotacoesDoDia.length + 1;
+    const id = `Cotacao-${dataFormatada}-N${numero}`;
+
     return {
-        id: `Cotacao-${dia}-${mes}-${ano}`,
+        id,
         data: dataFormatada,
         hora: horaFormatada,
         criador
     };
 }
+
+
 
 // Função para salvar os dados dos itens
 function salvarDados() {
@@ -662,4 +686,375 @@ function salvarValorFinal() {
             valorTotal
         };
     });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    carregarCotacoesSalvas();
+
+    document.getElementById("novaCotacaoButton").addEventListener("click", () => {
+        document.getElementById("cotacoesSalvasContainer").style.display = "none";
+        document.getElementById("novaCotacaoContainer").style.display = "block";
+    });
+});
+
+// Função para carregar cotações salvas do localStorage
+function carregarCotacoesSalvas() {
+    const tabelaBody = document.getElementById("cotacoesSalvasTable").querySelector("tbody");
+    tabelaBody.innerHTML = "";
+
+    const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || [];
+    cotacoes.forEach((cotacao, index) => {
+        const linha = document.createElement("tr");
+
+        linha.innerHTML = `
+            <td>${cotacao.informacoes.id}</td>
+            <td>${cotacao.informacoes.data}</td>
+            <td>${cotacao.informacoes.criador}</td>
+            <td>${cotacao.dados.length}</td>
+            <td>${cotacao.valorFinal.length}</td>
+            <td>
+                <img src="/imagens/pesquisar2.png" alt="Editar" class="img-editar" onclick="editarCotacao(${index})">
+            </td>
+        `;
+
+        tabelaBody.appendChild(linha);
+    });
+}
+
+function editarCotacao(index) {
+    const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || [];
+    const cotacao = cotacoes[index];
+    localStorage.setItem("cotacaoEditandoIndex", index);
+
+    preencherFormularioCotacao(cotacao);
+
+    document.getElementById("cotacoesSalvasContainer").style.display = "none";
+    document.getElementById("novaCotacaoContainer").style.display = "block";
+}
+
+
+function preencherFormularioCotacao(cotacao) {
+    const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
+    tabela.innerHTML = "";
+
+    cotacao.dados.forEach(dado => adicionarLinhaComDados(dado));
+
+    if(cotacao.dados[0].fornecedores.length > 0){
+
+        const linhaTitleRow = document.querySelector(".title-row")
+        const thFornecedores = document.createElement("th")
+
+        thFornecedores.textContent = "Fornecedores"
+
+        thFornecedores.setAttribute("colspan", "999")
+
+        linhaTitleRow.appendChild(thFornecedores)
+
+        cotacao.dados[0].fornecedores.forEach(dado => adicionarNomeFornecedores(dado));
+
+        cotacao.valorFinal.forEach(dado => adicionarValorFinal(dado))
+
+    }
+
+}
+
+
+
+// Função para adicionar uma linha com dados no formulário
+function adicionarLinhaComDados(dado, fornecedores, linhaIndex) {
+    const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
+    const novaLinha = document.createElement("tr");
+
+    // Preenche os dados básicos do item
+    novaLinha.innerHTML = `
+        <td>
+            <img src="/imagens/remover.png" alt="Remover" class="remove-img" onclick="removerLinha(this)">
+        </td>
+        <td>${dado.numeroItem}</td>
+        <td><input type="text" value="${dado.partnumber}" readonly></td>
+        <td><input type="text" value="${dado.nomeItem}"></td>
+        <td><input type="text" value="${dado.tipoUnitario}"></td>
+        <td><input type="number" value="${dado.quantidade}" min="1"></td>
+        <td><input type="text" value="${dado.estoque}" readonly></td>
+    `;
+
+    // Adiciona as colunas para cada fornecedor
+    fornecedores.forEach((fornecedor, fornecedorIndex) => {
+        const tdPrecoUnitario = document.createElement("td");
+        const tdPrecoTotal = document.createElement("td");
+
+        const inputPrecoUnitario = document.createElement("input");
+        const inputPrecoTotal = document.createElement("input");
+
+        inputPrecoUnitario.type = "number";
+        inputPrecoUnitario.value = fornecedor.itens[linhaIndex]?.precoUnitario || ""; // Preenche o preço unitário
+        inputPrecoUnitario.placeholder = "Preço Unitário";
+
+        inputPrecoTotal.type = "text";
+        inputPrecoTotal.value = fornecedor.itens[linhaIndex]?.precoTotal || ""; // Preenche o preço total
+        inputPrecoTotal.readOnly = true;
+
+        // Atualiza o preço total ao modificar o preço unitário
+        inputPrecoUnitario.addEventListener("input", () => {
+            const quantidade = parseFloat(dado.quantidade) || 0;
+            const precoUnitario = parseFloat(inputPrecoUnitario.value) || 0;
+            inputPrecoTotal.value = `R$ ${(quantidade * precoUnitario).toFixed(2)}`;
+        });
+
+        tdPrecoUnitario.appendChild(inputPrecoUnitario);
+        tdPrecoTotal.appendChild(inputPrecoTotal);
+
+        novaLinha.appendChild(tdPrecoUnitario);
+        novaLinha.appendChild(tdPrecoTotal);
+    });
+
+    tabela.appendChild(novaLinha);
+}
+
+function adicionarColunaFornecedor(nome, indice) {
+    const fornecedoresHeader = document.getElementById("fornecedoresHeader");
+    fornecedoresHeader.style.display = "table-cell";
+
+    const trTopicostabela = document.getElementById("topicos-tabela");
+    const thPrecoUnitario = document.createElement("th");
+    const thPrecoTotal = document.createElement("th");
+
+    thPrecoUnitario.textContent = `Preço Unitário - ${nome}`;
+    thPrecoTotal.textContent = `Preço Total - ${nome}`;
+
+    trTopicostabela.append(thPrecoUnitario, thPrecoTotal);
+
+    const linhas = document.querySelectorAll("#cotacaoTable tbody tr");
+    linhas.forEach((linha, linhaIndex) => {
+        const tdPrecoUnitario = document.createElement("td");
+        const tdPrecoTotal = document.createElement("td");
+
+        const precoUnitario = document.createElement("input");
+        const precoTotal = document.createElement("input");
+
+        precoUnitario.type = "number";
+        precoUnitario.value = linhaIndex < nome.length ? nome[linhaIndex].precoUnitario || "" : "";
+        precoTotal.type = "text";
+        precoTotal.value = linhaIndex < nome.length ? nome[linhaIndex].precoTotal || "" : "";
+        precoTotal.readOnly = true;
+
+        tdPrecoUnitario.appendChild(precoUnitario);
+        tdPrecoTotal.appendChild(precoTotal);
+
+        linha.append(tdPrecoUnitario, tdPrecoTotal);
+    });
+}
+
+
+function adicionarLinhaComDados(dado) {
+
+    const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
+    const novaLinha = document.createElement("tr");
+
+    const tdRemover = document.createElement("td")
+    const imgRemover = document.createElement("img")
+
+    imgRemover.setAttribute("src", "/imagens/remover.png")
+    imgRemover.setAttribute("alt", "Remover")
+    imgRemover.classList.add("remove-img")
+
+    tdRemover.appendChild(imgRemover)
+
+    const tdNumeroItem = document.createElement("td")
+    tdNumeroItem.textContent = `${dado.numeroItem}`
+
+    const tdPartnumber = document.createElement("td")
+    const inputPartnumber = document.createElement("input")
+
+    inputPartnumber.setAttribute("value", `${dado.partnumber}`)
+    inputPartnumber.setAttribute("readonly", "true")
+
+    tdPartnumber.appendChild(inputPartnumber)
+
+    const tdNomeItem = document.createElement("td")
+    const inputNomeItem = document.createElement("input")
+
+    inputNomeItem.setAttribute("value", `${dado.nomeItem}`)
+    inputNomeItem.setAttribute("readonly", "true")
+
+    tdNomeItem.appendChild(inputNomeItem)
+
+    const tdTipoUnitario = document.createElement("td")
+    const inputTipoUnitario = document.createElement("input")
+
+    inputTipoUnitario.setAttribute("value", `${dado.tipoUnitario}`)
+    inputTipoUnitario.setAttribute("readonly", "true")
+
+    tdTipoUnitario.appendChild(inputTipoUnitario)
+
+    const tdQuantidade = document.createElement("td")
+    const inputQuantidade = document.createElement("input")
+
+    inputQuantidade.setAttribute("value", `${dado.quantidade}`)
+    inputQuantidade.setAttribute("readonly", "true")
+
+    tdQuantidade.appendChild(inputQuantidade)
+
+    const tdEstoque = document.createElement("td")
+    const inputEstoque = document.createElement("input")
+
+    inputEstoque.setAttribute("value", `${dado.estoque}`)
+    inputEstoque.setAttribute("readonly", "true")
+
+    tdEstoque.appendChild(inputEstoque)
+
+    novaLinha.append(tdRemover, tdNumeroItem, tdPartnumber, tdNomeItem, tdTipoUnitario, tdQuantidade, tdEstoque)
+    
+    if(dado.fornecedores.length > 0){
+        
+        adicionarPrecoUnitarioPrecoTotal(dado.fornecedores, novaLinha)
+        
+    }
+
+    tabela.appendChild(novaLinha);
+
+}
+
+function adicionarNomeFornecedores(dado){
+
+    const linhaCountRow = document.querySelector(".count-row")
+
+    const linhaTopicosTabela = document.querySelector("#topicos-tabela")
+
+    const thTitulofornecedor = document.createElement("th")
+
+    thTitulofornecedor.textContent = dado.nome
+
+    thTitulofornecedor.setAttribute("colspan", "2")
+
+    linhaCountRow.appendChild(thTitulofornecedor)
+
+    const thPrecoUnitario = document.createElement("th")
+    const thPrecoTotal = document.createElement("th")
+
+    thPrecoUnitario.textContent = "Preço Unitário"
+
+    thPrecoTotal.textContent = "Preço Total"
+
+    linhaTopicosTabela.append(thPrecoUnitario, thPrecoTotal)
+
+}
+
+function adicionarPrecoUnitarioPrecoTotal(dado, novaLinha){
+
+    for(let i = 0; i < dado.length; i++){
+
+        const tdPrecoUnitarioVisualizar = document.createElement("td")
+        const inputPrecoUnitarioVisualizar = document.createElement("input")
+
+        inputPrecoUnitarioVisualizar.setAttribute("value", `${dado[i].precoUnitario}`)
+        inputPrecoUnitarioVisualizar.setAttribute("readonly", "true")
+
+        tdPrecoUnitarioVisualizar.appendChild(inputPrecoUnitarioVisualizar)
+
+        const tdPrecoTotalVisualizar = document.createElement("td")
+        const inputPrecoTotalVisualizar = document.createElement("input")
+
+        inputPrecoTotalVisualizar.setAttribute("value", `${dado[i].precoTotal}`)
+        inputPrecoTotalVisualizar.setAttribute("readonly", "true")
+
+        tdPrecoTotalVisualizar.appendChild(inputPrecoTotalVisualizar)
+
+        novaLinha.append(tdPrecoUnitarioVisualizar, tdPrecoTotalVisualizar)
+
+    }
+
+}
+
+function adicionarValorFinal(dado){
+
+    console.log(dado)
+
+    const linhaDescontoVisualizar = document.querySelector("#linhaDesconto")
+    const tdDescontoVisualizar = document.createElement("td")
+    const inputDescontoVisualizar = document.createElement("input")
+
+    tdDescontoVisualizar.setAttribute("colspan", "2")
+
+    inputDescontoVisualizar.setAttribute("value", `${dado.porcentagemDesconto}`)
+    inputDescontoVisualizar.setAttribute("readonly", "true")
+
+    tdDescontoVisualizar.appendChild(inputDescontoVisualizar)
+
+    linhaDescontoVisualizar.appendChild(tdDescontoVisualizar)
+
+    const linhaSubTotalVisualizar = document.querySelector("#linhaSubtotal")
+    const tdSubTotalVisualizar = document.createElement("td")
+    const inputSubTotalVisualizar = document.createElement("input")
+
+    tdSubTotalVisualizar.setAttribute("colspan", "2")
+
+    inputSubTotalVisualizar.setAttribute("value", `${dado.subtotal}`)
+    inputSubTotalVisualizar.setAttribute("readonly", "true")
+
+    tdSubTotalVisualizar.appendChild(inputSubTotalVisualizar)
+
+    linhaSubTotalVisualizar.appendChild(tdSubTotalVisualizar)
+
+    const linhaFreteVisualizar = document.querySelector("#linhaFrete")
+    const tdFreteVisualizar = document.createElement("td")
+    const inputFreteVisualizar = document.createElement("input")
+
+    tdFreteVisualizar.setAttribute("colspan", "2")
+
+    inputFreteVisualizar.setAttribute("value", `${dado.valorFrete}`)
+    inputFreteVisualizar.setAttribute("readonly", "true")
+
+    tdFreteVisualizar.appendChild(inputFreteVisualizar)
+
+    linhaFreteVisualizar.appendChild(tdFreteVisualizar)
+
+    const linhaCondicaoPagarVisualizar = document.querySelector("#linhaCondicaoPagar")
+    const tdCondicaoPagarVisualizar = document.createElement("td")
+    const inputCondicaoPagarVisualizar = document.createElement("input")
+
+    tdCondicaoPagarVisualizar.setAttribute("colspan", "2")
+
+    inputCondicaoPagarVisualizar.setAttribute("value", `${dado.condicaoPagar}`)
+    inputCondicaoPagarVisualizar.setAttribute("readonly", "true")
+
+    tdCondicaoPagarVisualizar.appendChild(inputCondicaoPagarVisualizar)
+
+    linhaCondicaoPagarVisualizar.appendChild(tdCondicaoPagarVisualizar)
+
+    const linhaValorTotalVisualizar = document.querySelector("#linhaTotal")
+    const tdValorTotalVisualizar = document.createElement("td")
+    const inputValorTotalVisualizar = document.createElement("input")
+
+    tdValorTotalVisualizar.setAttribute("colspan", "2")
+
+    inputValorTotalVisualizar.setAttribute("value", `${dado.valorTotal}`)
+    inputValorTotalVisualizar.setAttribute("readonly", "true")
+
+    tdValorTotalVisualizar.appendChild(inputValorTotalVisualizar)
+
+    linhaValorTotalVisualizar.appendChild(tdValorTotalVisualizar)
+    
+}
+
+function removerLinha(elemento) {
+    const linha = elemento.parentElement.parentElement;
+    linha.remove();
+    atualizarQuantidadeItens();
+}
+
+function voltarParaTabela() {
+    f5()
+}
+
+async function recuperarCotacoes() {
+
+    const resposta = await fetch('https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=cotacoes')
+
+    const dados = await resposta.json()
+
+    localStorage.setItem("dados_cotacao", JSON.stringify(dados));
+
+    console.log(dados)
+    
 }
