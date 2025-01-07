@@ -411,7 +411,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
     var dados_composicoes = await recuperarDados('dados_composicoes') || {}
     var orcamento = dados_orcamentos[id_orcam]
 
-    var orcamento = await conversor_composicoes_orcamento(orcamento)
+    orcamento = await conversor_composicoes_orcamento(orcamento)
 
     var linhas = ''
 
@@ -422,21 +422,34 @@ async function carregar_itens(apenas_visualizar, requisicao) {
     Object.keys(orcamento.dados_composicoes).forEach(it => {
 
         var item = orcamento.dados_composicoes[it]
-
         var codigo = item.codigo
         var qtde = item.qtde
         var qtde_na_requisicao = 0
         var tipo = dados_composicoes[codigo]?.tipo || item.tipo
-
-        var infos = ['descricao', 'descricaoCarrefour', 'modelo', 'fabricante']
+        var infos = ['descricao', 'descricaocarrefour', 'modelo', 'fabricante']
         var elements = ''
+        let mod_livre = true
 
         infos.forEach(item => {
+
             if (dados_composicoes[codigo] && dados_composicoes[codigo][item]) {
                 elements += `
-                <label><strong>${item.toUpperCase()}</strong> <br> ${dados_composicoes[codigo][item]}</label>
-            `}
+                <label>
+                <strong>${item.toUpperCase()}</strong> 
+                <br> 
+                ${dados_composicoes[codigo][item]}
+                </label>
+                `
+                mod_livre = false
+            }
+
         })
+
+        if (mod_livre) {
+            elements = `
+            <label>${item.descricao}</label>
+            `
+        }
 
         var part_number = `
             <input value="${dados_composicoes[codigo]?.omie || ''}" class="pedido" style="font-size: 1.2em; width: 100%; height: 40px; padding: 0px; margin: 0px;">
