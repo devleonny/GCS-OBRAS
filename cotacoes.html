@@ -2,39 +2,80 @@
 <html lang="pt-BR">
 
 <head>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>COTAÇÕES</title>
+
     <link rel="stylesheet" type="text/css" href="gcsobras.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="cotacoes.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
 </head>
 
 <body>
 
-    <label class="novo_titulo" >Sistema de Cotações</label>
+    <div class="top-right-container">
+        <div class="action-button" onclick="voltarParaInicio()">
+            <img src="/imagens/voltar.png" alt="Voltar">
+            <span>Voltar</span>
+        </div>
+        <div class="action-button" onclick="recuperarCotacoes()">
+            <img src="/imagens/atualizar_2.png" alt="Atualizar">
+            <span>Atualizar</span>
+        </div>
+    </div>
+    
 
-    <div class="table-container parent-container">
-        <table id="cotacaoTable">
+    <!-- Tabela de Cotações Salvas -->
+    <div id="cotacoesSalvasContainer">
+        <h1 class="titulo-principal">Cotações Salvas</h1>
+        <table id="cotacoesSalvasTable">
             <thead>
-                <tr class="title-row">
-                    <th colspan="7">Requisição de Materiais</th>
-                    <th id="fornecedoresHeader" colspan="50" style="display: none;">Fornecedor</th>
-                </tr>
-                <tr class="count-row">
-                    <th colspan="7">Quantidade de itens: <span id="itemCount">0</span></th>
-                </tr>
-                <tr id="topicos-tabela">
-                    <th>Ação</th>
-                    <th>Número do Item</th>
-                    <th>Partnumber</th>
-                    <th>Nome do Item</th>
-                    <th>Tipo Unitário</th>
-                    <th>Quantidade</th>
-                    <th>Estoque</th>
+                <tr>
+                    <th>ID</th>
+                    <th>Data</th>
+                    <th>Criador</th>
+                    <th>Quantidade de Itens</th>
+                    <th>Quantidade de Fornecedores</th>
+                    <th>Editar</th>
                 </tr>
             </thead>
+            <tbody>
+                <!-- Linhas serão preenchidas dinamicamente -->
+            </tbody>
+        </table>
+        <div class="button-container">
+            <button id="novaCotacaoButton" class="btn-nova-cotacao">Nova Cotação</button>
+        </div>
+    </div>
+
+    <!-- Tela de Criação de Nova Cotação -->
+    <div id="novaCotacaoContainer" style="display: none;">
+        <label class="novo_titulo">Sistema de Cotações</label>
+        <div class="table-container parent-container">
+            <table id="cotacaoTable">
+                <thead>
+                    <tr class="title-row">
+                        <th colspan="7">Requisição de Materiais</th>
+                        <th id="fornecedoresHeader" colspan="50" style="display: none;">Fornecedor</th>
+                    </tr>
+                    <tr class="count-row">
+                        <th colspan="7">Quantidade de itens: <span id="itemCount">0</span></th>
+                    </tr>
+                    <tr id="topicos-tabela">
+                        <th>Ação</th>
+                        <th>Número do Item</th>
+                        <th>Partnumber</th>
+                        <th>Nome do Item</th>
+                        <th>Tipo Unitário</th>
+                        <th>Quantidade</th>
+                        <th>Estoque</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
             <tbody></tbody>
             <tfoot>
                 <tr id="linhaDesconto">
@@ -58,11 +99,14 @@
     
 
     <div class="button-container">
-
         <button onclick="adicionarLinha()">Adicionar Item</button>
         <button onclick="abrirModal()">Adicionar Fornecedor</button>
-
+        <button onclick="salvarObjeto()">Salvar</button>
+        <p id="salvarAviso" class="salvar-aviso" style="display: none;">Cotação salva com sucesso!</p>
     </div>
+    <button onclick="voltarParaTabela()" class="btn-voltar">Voltar</button>
+    
+    
 
     <div id="fornecedorModal" class="modal">
         <div class="modal-content">
