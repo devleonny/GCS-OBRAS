@@ -28,7 +28,7 @@ function adicionarLinha() {
 
     const acao = document.createElement("td");
     const removeImg = document.createElement("img");
-    removeImg.src = "/imagens/remover.png";
+    removeImg.src = "imagens/remover.png";
     removeImg.alt = "Remover";
     removeImg.className = "remove-img";
     removeImg.onclick = () => {
@@ -718,7 +718,7 @@ function carregarCotacoesSalvas() {
             <td>${cotacao.dados.length}</td>
             <td>${cotacao.valorFinal.length}</td>
             <td>
-                <img src="/imagens/pesquisar2.png" alt="Editar" class="img-editar" onclick="editarCotacao(${index})">
+                <img src="imagens/pesquisar2.png" alt="Editar" class="img-editar" onclick="editarCotacao(${index})">
             </td>
         `;
 
@@ -773,7 +773,7 @@ function adicionarLinhaComDados(dado, fornecedores, linhaIndex) {
     // Preenche os dados básicos do item
     novaLinha.innerHTML = `
         <td>
-            <img src="/imagens/remover.png" alt="Remover" class="remove-img" onclick="removerLinha(this)">
+            <img src="imagens/remover.png" alt="Remover" class="remove-img" onclick="removerLinha(this)">
         </td>
         <td>${dado.numeroItem}</td>
         <td><input type="text" value="${dado.partnumber}" readonly></td>
@@ -859,7 +859,7 @@ function adicionarLinhaComDados(dado) {
     const tdRemover = document.createElement("td")
     const imgRemover = document.createElement("img")
 
-    imgRemover.setAttribute("src", "/imagens/remover.png")
+    imgRemover.setAttribute("src", "imagens/remover.png")
     imgRemover.setAttribute("alt", "Remover")
     imgRemover.classList.add("remove-img")
 
