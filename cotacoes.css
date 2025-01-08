@@ -210,16 +210,6 @@ table {
 table th, table td {
     text-align: center; /* Centraliza o texto */
 }
-
-/* Estilo do título */
-.titulo-principal {
-    text-align: center;
-    font-size: 2rem;
-    color: #007bff;
-    margin-bottom: 20px;
-    font-family: 'Poppins', sans-serif;
-    text-transform: uppercase;
-}
 /* Estilo da tabela de cotações salvas */
 #cotacoesSalvasTable {
     width: 100%;
@@ -317,8 +307,34 @@ table th, table td {
 }
 
 .action-button span {
+    color: #ffffff; /* Altera a cor para branco */
     font-size: 14px;
     font-family: 'Poppins', sans-serif;
     font-weight: 600;
 }
 
+.titulo-principal-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Estilo da logo */
+.logo {
+    width: 20rem;
+    height: auto;
+}
+
+/* Títulos */
+.titulo-principal, .novo_titulo {
+    border: 0;
+    font-size: 2rem;
+    color: #ffffff;
+    font-family: 'Poppins', sans-serif;
+    text-transform: uppercase;
+    margin: 0;
+    background-color: transparent;
+    text-align: center;
+}
