@@ -592,13 +592,11 @@ async function abrir_historico_de_precos(codigo, tabela) {
         linhas += `
         <tr>
             <td>${dinheiro(historico[cotacao].custo)}</td>
-            <td>${historico[cotacao].lucro}</td>
+            <td>${historico[cotacao].margem}</td>
             <td>${dinheiro(historico[cotacao].valor)}</td>
             <td>${historico[cotacao].data}</td>
             <td>${historico[cotacao].usuario}</td>
             <td>${historico[cotacao].fornecedor}</td>
-            <td><img src="imagens/editar.png" style="width: 30px; cursor: pointer;"></td>
-            <td><img src="imagens/excluir.png" style="width: 30px; cursor: pointer;"></td>
             <td><input type="checkbox" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_preco_ativo('${codigo}', '${cotacao}', '${tabela}')" ${marcado}></td>
         </tr>
         `
@@ -613,17 +611,15 @@ async function abrir_historico_de_precos(codigo, tabela) {
             <h2 style="white-space: normal;">${dados_composicoes[codigo].descricao}</h2>
         </div>
 
-        <div style="background-color: #222; border-radius: 3px; padding: 3px;">
+        <div style="border-radius: 3px; padding: 3px;">
             <table class="tabela">
                 <thead>
-                    <th>Valor da Cotação</th>
-                    <th>% Lucro</th>
+                    <th>Custo de Compra</th>
+                    <th>% Margem</th>
                     <th>Valor Final</th>
                     <th>Data da Cotação</th>
-                    <th>Feita por</th>
+                    <th>Feito por</th>
                     <th>Fornecedor</th>
-                    <th>Editar</th>
-                    <th>Excluir</th>
                     <th>Ativo</th>
                 </thead>
                 <tbody>${linhas}</tbody>
@@ -656,7 +652,6 @@ function adicionar_nova_cotacao(codigo, lpu) {
         <td>${acesso.usuario}</td>
         <td><input></td>
         <td><img src="imagens/concluido.png" onclick="salvar_cotacao('${codigo}', '${lpu}')" style="width: 30px; cursor: pointer;"></td>
-        <td><img src="imagens/excluir.png" style="width: 30px; cursor: pointer;"></td>
         `
         tbody.insertAdjacentHTML('beforeend', linha)
     }
@@ -692,7 +687,7 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
         trs.forEach(tr => {
 
             var tds = tr.querySelectorAll('td')
-            var checkbox = tds[8].querySelector('input')
+            var checkbox = tds[6].querySelector('input')//29
 
             if (checkbox.checked) {
                 produto[lpu].ativo = id_preco

@@ -90,8 +90,7 @@ function apagar_orçamento() {
 function confirmar_exclusao() {
 
     localStorage.removeItem('orcamento_v2')
-
-    location.href = '/adicionar.html'
+    location.href = 'adicionar.html'
     temp_pop.remove()
 
 }
@@ -481,7 +480,170 @@ async function tabela_produtos_v2(tipo_tabela) {
 
 }
 
-async function total(desativar_especial) {
+function alternar_icones(elemento, funcao, codigo) {
+
+    let icones = elemento.querySelectorAll('img.img_ag')
+    icones.forEach(img => {
+        img.remove()
+    })
+
+    if (funcao !== undefined) {
+        let imagem = funcao == 'incluir' ? 'baixar' : 'cancel'
+        let icone = `<img src="imagens/${imagem}.png" class="img_ag" onclick="funcoes_adicionais('${codigo}', '${funcao}')">`
+        elemento.insertAdjacentHTML('beforeend', icone)
+    }
+
+}
+
+function calcular_equipamentos(precos, retorno_esperado) {
+
+    if (precos == undefined) {
+        return
+    }
+
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let img_difal = 'imagens/cancel.png'
+    let difal = 0
+
+    if (orcamento_v2.dados_orcam && orcamento_v2.dados_orcam.estado) {
+        img_difal = 'imagens/concluido.png'
+        let estado = orcamento_v2.dados_orcam.estado
+        difal = estado == 'BA' ? difal = 20.5 - 4 : difal = 12 - 4
+    }
+
+    let dados = {};
+
+    const calcularDados = () => {
+        dados.valor_difal = precos.custo * (difal / 100);
+        dados.valor_mais_margem = (precos.custo + dados.valor_difal) * (precos.margem / 100 + 1);
+        dados.valor_imp_fed = dados.valor_mais_margem * 0.08;
+        dados.valor_frete = dados.valor_mais_margem * 0.05 < 30 ? 30 : dados.valor_mais_margem * 0.05;
+        dados.calculo = dados.valor_mais_margem + dados.valor_imp_fed + dados.valor_frete;
+        dados.total_custos = dados.valor_difal + dados.valor_imp_fed + dados.valor_frete + precos.custo;
+        dados.margem = dados.calculo - dados.total_custos;
+        dados.retorno = (dados.margem / dados.calculo) * 100;
+        dados.img_difal = img_difal;
+        dados.difal = difal;
+    };
+
+    calcularDados();
+
+    while (dados.retorno < retorno_esperado) {
+        precos.margem += 1;
+        calcularDados();
+    }
+
+    return dados
+
+}
+
+async function ajustar_valores(codigo) {
+
+    let retorno_esperado = 20
+    let input = document.getElementById('retorno')
+    if (input && Number(input.value) > 20) {
+        retorno_esperado = Number(input.value)
+    }
+
+    remover_popup()
+
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let lpu = orcamento_v2.lpu_ativa.toLowerCase()
+
+    let precos = {
+        custo: 0,
+        lucro: 0
+    }
+
+    if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigo] && orcamento_v2.dados_composicoes[codigo].precos) {
+        precos = orcamento_v2.dados_composicoes[codigo].precos
+
+    } else if (dados_composicoes[codigo] && dados_composicoes[codigo][lpu] && dados_composicoes[codigo][lpu].ativo && dados_composicoes[codigo][lpu].historico) {
+        let historico = dados_composicoes[codigo][lpu].historico
+        let ativo = dados_composicoes[codigo][lpu].ativo
+        precos = historico[ativo]
+        precos.margem = conversor(precos.margem) // Atualmente está armazenado como string;
+    }
+
+    let dados = calcular_equipamentos(precos, retorno_esperado)
+
+    let acumulado = `
+    <img src="imagens/BG.png" style="height: 100px; position: absolute; left: 3px; top: 3px;">
+    <label style="font-size: 2vw;">Ajuste de valores</label>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; background-color: white; color: #151749; border-radius: 5px; padding: 5px;">
+
+        <div style="display: flex; justify-content: center; align-items: center;">
+            <label>Defina um percentual de retorno para este item:</label>
+            <input id="retorno" type="numero" class="numero-bonito" value="${dados.retorno.toFixed(0)}">
+            <img src="imagens/concluido.png" style="cursor: pointer;" onclick="ajustar_valores('${codigo}')">
+        </div>
+
+        <div style="display: flex; justify-content: center; align-items: center;">
+            
+            <table class="tabela">
+                <thead>
+                    <tr>
+                        <th>Custo</th>
+                        <th>DIFAL</th>
+                        <th>Margem</th>
+                        <th>Imp. Fed. 8%</th>
+                        <th>Frete 5%</th>
+                        <th>Custo Total</th>
+                        <th>Retorno</th>
+                        <th>Valor de Venda</th>
+                    </tr>
+                <thead>
+                <tbody>
+                    <tr>
+                        <td>${dinheiro(precos.custo)}</td>
+                        <td>
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <label>${conversor(dados.difal)}%</label>
+                            <label>${dinheiro(dados.valor_difal)}</label>
+                            <img src="${dados.img_difal}" style="width: 25px; heigth: 25px;">
+                        </div>
+                        </td>
+                        <td><label>${dados.margem.toFixed(0)}%</label></td>
+                        <td>${dinheiro(dados.valor_imp_fed)}</td>
+                        <td>${dinheiro(dados.valor_frete)}</td>
+                        <td>${dinheiro(dados.total_custos)}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                            <label>${dinheiro(dados.margem)}</label>
+                            <label class="numero" style="width: max-content: heigth: max-content: font-size: 2vw; padding: 5px; background-color: #4CAF50;">${dados.retorno.toFixed(0)}%</label>
+                            </div>
+                        </td>
+                        <td>${dinheiro(dados.calculo)}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+    `
+    openPopup_v2(acumulado)
+
+}
+
+function equipamentos(elemento, incluir, codigo) {
+
+    let imgs = elemento.querySelectorAll('img')
+    imgs.forEach(im => {
+        im.remove()
+    })
+
+    if (incluir) {
+        let im = `
+        <img src="imagens/construcao.png" class="img_ag" onclick="ajustar_valores('${codigo}')">
+        `
+        elemento.insertAdjacentHTML('beforeend', im)
+    }
+
+}
+
+async function total() {
 
     let tabelas = ['serviço', 'venda']
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
@@ -492,8 +654,6 @@ async function total(desativar_especial) {
         venda: { valor: 0, exibir: 'none' },
         geral: { valor: 0, exibir: 'none' }
     }
-
-    var agrupamentos = {}
 
     tabelas.forEach(tabela => {
         let trs = document.getElementById(`linhas_${tabela}`).querySelectorAll('tr')
@@ -514,56 +674,113 @@ async function total(desativar_especial) {
 
             if (tds.length == 10) { // Quantidade correspondente a mais 1 coluna: CARREFOUR;
                 acrescimo = 1
+            }
 
+            if (dados_composicoes[codigo] && dados_composicoes[codigo].agrupamentos) {
+                alternar_icones(tds[1], 'incluir', codigo)
+            }
+
+            let div = tds[1].querySelector('div.agrupados')
+            let total = 0
+            if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigo] && orcamento_v2.dados_composicoes[codigo].agrupamentos) {
+                let agrups = orcamento_v2.dados_composicoes[codigo].agrupamentos
+                div.style.display = 'flex'
+                let elementos = `
+                    <div style="display: flex; justify-content: space-between;">
+                        <label>Código</label>
+                        <label>Descrição</label>
+                        <label>Quantidade</label>
+                        <label>Valor</label>
+                        <label>Remover</label>
+                    </div>
+                    <hr style="width: 100%">
+                `
+
+                for (it in agrups) {
+
+                    let item = dados_composicoes[it]
+                    let valor = 0
+                    
+                    if (item[lpu] && item[lpu].ativo && item[lpu].historico) {
+                        valor = item[lpu].historico[item[lpu].ativo].valor
+                    }
+
+                    total += valor * agrups[it]
+                    let estilo = valor * agrups[it] == 0 ? 'label_zerada' : ''
+                    elementos += `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label>${it}</label>
+                        <div onmouseover="exibir_descricao(this)" onmouseout="ocultar_descricao(this)" style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                            <div style="cursor: pointer; display: none; position: absolute; top: 0; background-color: white; padding: 5px; white-space: nowrap; border-radius: 3px; border: solid 1px #222;">${item.descricao}</div>
+                            <label>${String(item.descricao).slice(0, 10)}...</label>
+                        </div>
+                        <div style="display: flex; justify-content: center;">
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                <img src="imagens/up.png" style="width: 15px; cursor: pointer;" onclick="ajustar_quantidade('${codigo}', '${it}', true)">
+                                <img src="imagens/down.png" style="width: 15px; cursor: pointer;" onclick="ajustar_quantidade('${codigo}', '${it}', false)">
+                            </div>
+                            <label class="numero" style="width: 20px; height: 20px;">${agrups[it]}</label>
+                        </div>
+                        <label class="${estilo}">${dinheiro(valor * agrups[it])}</label>
+                        <img src="imagens/remover.png" style="width: 30px; height: 30px; cursor: pointer;" onclick="remover_adicional('${codigo}', '${it}')">
+                    </div>
+                    `
+                }
+
+                let div_interna = `
+                <div style="display: flex; flex-direction: column; padding: 5px; background-color: #99999940; border-radius: 3px; font-size: 0.8vw;">
+                    ${elementos}
+                    <hr style="width: 100%;">
+                    <div style="display: flex; width: 100%; justify-content: right;">
+                        <label>Total</label>
+                        <label class="total">${dinheiro(total)}</label>
+                    </div>
+                </div>
+                `
+                div.innerHTML = div_interna
+
+                alternar_icones(tds[1], 'remover', codigo)
+
+            } else {
+                div.style.display = 'none'
+                div.innerHTML = ''
             }
 
             if (lpu == 'lpu carrefour') {
 
                 if (dados_composicoes[codigo] && dados_composicoes[codigo].substituto !== '') {
-
                     substituto = dados_composicoes[codigo].substituto
                     tds[1 + acrescimo].querySelector('label').textContent = dados_composicoes[substituto].descricaocarrefour
-
                 }
-
             }
 
             let sub_ou_cod = substituto == '' ? codigo : substituto
+            let precos = {
+                custo: 0,
+                lucro: 0
+            }
 
             if (dados_composicoes[sub_ou_cod] && dados_composicoes[sub_ou_cod][lpu] && dados_composicoes[sub_ou_cod][lpu].ativo !== undefined) {
 
                 let ativo = dados_composicoes[sub_ou_cod][lpu].ativo
                 let historico = dados_composicoes[sub_ou_cod][lpu].historico
-                valor_unitario = historico[ativo].valor
+                precos = historico[ativo]
+                precos.margem = conversor(precos.margem)
+                valor_unitario = precos.valor
 
             }
 
-            var quantidade = Number(tds[3 + acrescimo].querySelector('input').value)
-
-            var inputs_adicionais = tds[3 + acrescimo].querySelectorAll('input.numero')
-            var quantidades_adicionais = 0
-            inputs_adicionais.forEach(input => {
-                let qt = conversor(input.value)
-                quantidades_adicionais += qt
-            })
-
-            if (quantidades_adicionais !== 0 && quantidade !== 0) {
-                quantidade = quantidade - quantidades_adicionais
-            }
-
-            if (quantidades_adicionais !== 0) {
-                tds[3 + acrescimo].querySelector('img').style.display = 'block'
-            } else {
-                tds[3 + acrescimo].querySelector('img').style.display = 'none'
-            }
-
-            tds[3 + acrescimo].querySelector('input').value = quantidades_adicionais == 0 ? quantidade : quantidades_adicionais
-
+            valor_unitario += total // Somando ao total do agrupamento, caso exista;
+            let quantidade = Number(tds[3 + acrescimo].querySelector('input').value)
             let valor_total = valor_unitario * quantidade
             let label_icms_unitario = ''
             let label_icms_total = ''
             let tipo = tds[6 + acrescimo].textContent
             let estilo = 'input_valor'
+
+            if (lpu.includes('equipamentos') && precos.custo > 0) {
+                valor_unitario = calcular_equipamentos(precos, 20).calculo
+            }
 
             if (tipo == 'VENDA' && orcamento_v2.dados_orcam) {
 
@@ -578,7 +795,6 @@ async function total(desativar_especial) {
                     label_icms_total = `
                         <label class="label_imposto_porcentagem">SEM ICMS ${dinheiro(total_sem_icms)}</label>
                     `
-
                 }
 
             }
@@ -604,6 +820,13 @@ async function total(desativar_especial) {
             tds[4 + acrescimo].innerHTML = total_unitario
             tds[5 + acrescimo].innerHTML = total_geral
 
+            //Equipamentos;
+            equipamentos(tds[4 + acrescimo])
+            if (lpu.includes('equipamentos') && valor_unitario !== 0) {
+                equipamentos(tds[4 + acrescimo], true, sub_ou_cod)
+            }
+            //Fim dos equipamentos;
+
             if (!orcamento_v2.dados_composicoes) {
 
                 orcamento_v2.dados_composicoes = {}
@@ -617,19 +840,6 @@ async function total(desativar_especial) {
             }
 
             let item_salvo = orcamento_v2.dados_composicoes[codigo]
-
-            if (dados_composicoes[codigo].agrupamentos && !item_salvo.agrupamentos) {
-
-                if (!agrupamentos[codigo]) {
-                    agrupamentos[codigo] = {}
-                }
-
-                agrupamentos[codigo].agrupamento = dados_composicoes[codigo].agrupamentos
-                agrupamentos[codigo].quantidade_origem = conversor(quantidade)
-
-                item_salvo.agrupamentos = dados_composicoes[codigo].agrupamentos
-
-            }
 
             item_salvo.codigo = codigo
             item_salvo.qtde = quantidade
@@ -666,20 +876,43 @@ async function total(desativar_especial) {
     let aleatorio = Math.floor(Math.random() * metaforas.length)
 
     if (esta_quieto) {
-        
+
         quieto.innerHTML = `
         <label class="novo_titulo">${metaforas[aleatorio]}</label>
         `
-
     }
 
-    // Agrupamentos;
-    /*
-    if (!desativar_especial) {
-        incluir_especial()
-    }
-    */
+}
 
+function exibir_descricao(elemento){
+    let div = elemento.firstElementChild
+    div.style.display = 'flex'
+}
+
+function ocultar_descricao(elemento){
+    let div = elemento.firstElementChild
+    div.style.display = 'none'
+}
+
+function ajustar_quantidade(codigo, sub_item, ajuste) {
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let qt_ajuste = ajuste ? 1 : -1
+
+    orcamento_v2.dados_composicoes[codigo].agrupamentos[sub_item] += qt_ajuste
+
+    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+
+    total()
+}
+
+function remover_adicional(codigo, sub_item) {
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+
+    delete orcamento_v2.dados_composicoes[codigo].agrupamentos[sub_item]
+
+    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+
+    total()
 }
 
 function mostrar_ocultar_itens(elemento_img) {
@@ -692,85 +925,6 @@ function mostrar_ocultar_itens(elemento_img) {
         div.style.display = 'none';
         elemento_img.style.transform = 'rotate(0deg)';
     }
-}
-
-async function incluir_especial() {
-
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-    var itens = orcamento_v2.dados_composicoes
-    var agrupamentos = {}
-    var acrescimo = 0
-
-    for (codigo in itens) {
-        if (itens[codigo].agrupamentos) {
-            if (!agrupamentos[codigo]) {
-                agrupamentos[codigo] = {}
-            }
-            agrupamentos[codigo].agrupamento = itens[codigo].agrupamentos
-            agrupamentos[codigo].quantidade_origem = itens[codigo].qtde
-        }
-    }
-
-    for (codigo in agrupamentos) {
-        var agrupamento = agrupamentos[codigo].agrupamento
-
-        for (sub_item in agrupamento) {
-            incluir_item(sub_item, 0, true)
-        }
-    }
-
-    var tabelas = ['serviço', 'venda']
-    var linhas = {}
-
-    tabelas.forEach(tab => {
-
-        var tbody = document.getElementById(`linhas_${tab}`)
-
-        if (tbody) {
-            var trs = tbody.querySelectorAll('tr')
-            trs.forEach(tr => {
-
-                var tds = tr.querySelectorAll('td')
-
-                if (tds.length == 10) { // Quantidade correspondente a mais 1 coluna: CARREFOUR;
-                    acrescimo = 1
-                }
-                
-                var codigo = tds[0].textContent
-                tds[3 + acrescimo].querySelector('div.agrupados').innerHTML = ''
-                linhas[codigo] = tr
-
-            })
-        }
-    })
-
-    total(true)
-
-    for (codigo in agrupamentos) {
-        var agrupamento = agrupamentos[codigo].agrupamento
-        var quantidade_origem = agrupamentos[codigo].quantidade_origem
-
-        for (sub_item in agrupamento) {
-            var qtde = agrupamento[sub_item] * quantidade_origem
-            var elemento = ''
-            var tds = linhas[sub_item].querySelectorAll('td')
-
-            if (linhas[sub_item]) {
-                var descricao = dados_composicoes[codigo].descricao
-
-                elemento = `
-                <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
-                    <input oninput="atualizar_item_agrupado('${codigo}', '${sub_item}', this)" class="numero" type="number" style="width: 100px; height: max-content; padding: 5px; border-radius: 3px; font-size: 1.2em;" value="${qtde}">
-                    <label style="text-align: left;">${descricao}</label>
-                </div>
-                `
-                tds[3 + acrescimo].querySelector('div.agrupados').insertAdjacentHTML('beforeend', elemento)
-            }
-
-        }
-    }
-
 }
 
 function atualizar_item_agrupado(codigo, sub_item, elemento) {
@@ -823,20 +977,18 @@ async function incluir_item(codigo, nova_quantidade, especial) {
     }
 
     let linha = `
-
     <tr>
         <td>${item.codigo}</td>
-        <td>${dados_composicoes[item.codigo].descricao}</td>
+        <td style="position: relative;">
+            <label>${dados_composicoes[item.codigo].descricao}</label>
+            <div class="agrupados"></div>
+        </td>
         ${colunas_carrefour}
         <td style="text-align: center;">${dados_composicoes[item.codigo].unidade}</td>
         <td style="text-align: center;">
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
-                <input oninput="total()" type="number" class="numero-bonito" value="${nova_quantidade}">
-                <img src="gifs/baixo.gif" style="width: 30px; cursor: pointer;" onclick="mostrar_ocultar_itens(this)">
-            </div>
-            <div class="agrupados"></div>
+            <input oninput="total()" type="number" class="numero-bonito" value="${nova_quantidade}">
         </td>
-        <td></td>
+        <td style="position: relative;"></td>
         <td></td>
         <td style="text-align: center;"><label>${item.tipo}</label></td>
         <td style="text-align: center;">
@@ -844,7 +996,6 @@ async function incluir_item(codigo, nova_quantidade, especial) {
         </td>
         <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${item.codigo}')" style="cursor: pointer;"></td>
     </tr>
-
     `
 
     if (item_existente(item.tipo, codigo, nova_quantidade)) {
@@ -859,6 +1010,31 @@ async function incluir_item(codigo, nova_quantidade, especial) {
 
 }
 
+async function funcoes_adicionais(codigo, funcao) {
+
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+
+    if (dados_composicoes[codigo].agrupamentos) {
+
+        if (!orcamento_v2.dados_composicoes[codigo].agrupamentos) {
+            orcamento_v2.dados_composicoes[codigo].agrupamentos = {}
+        }
+
+        if (funcao == 'incluir') {
+            orcamento_v2.dados_composicoes[codigo].agrupamentos = dados_composicoes[codigo].agrupamentos
+
+        } else if (funcao == 'remover') {
+            delete orcamento_v2.dados_composicoes[codigo].agrupamentos
+        }
+
+        localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+    }
+
+    total()
+
+}
+
 function item_existente(tipo, codigo, quantidade) {
 
     let linhas = document.getElementById(`linhas_${tipo.toLocaleLowerCase()}`)
@@ -869,7 +1045,7 @@ function item_existente(tipo, codigo, quantidade) {
 
         let tds = tr.querySelectorAll('td')
         let acrescimo = 0
-        
+
         tds.length == 10 ? acrescimo = 1 : ''
 
         if (tds[0].textContent == codigo) {
