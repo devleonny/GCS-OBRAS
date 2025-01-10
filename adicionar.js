@@ -48,11 +48,11 @@ async function atualizar_precos() {
             <label class="novo_titulo">Aguarde...</label>        
         `
         menu_superior.style.display = 'flex'
+        tabela_produtos_v2()
         carregar_tabelas()
 
         await recuperar()
         await atualizar_lista_de_lpus() // Esperar carregar a lista de LPUs antes de carregar as tabelas correspondentes;
-        tabela_produtos_v2()
 
         carregar_datalist_clientes()
 
@@ -167,7 +167,7 @@ function alterar_tabela_lpu(elemento) {
     carregar_tabelas()
 }
 
-function carregar_tabelas() {
+async function carregar_tabelas() {
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
 
@@ -198,7 +198,7 @@ function carregar_tabelas() {
         let itens = orcamento_v2.dados_composicoes
         for (codigo in itens) {
 
-            incluir_item(codigo, itens[codigo].qtde)
+            await incluir_item(codigo, itens[codigo].qtde)
 
         }
 
@@ -207,12 +207,15 @@ function carregar_tabelas() {
     total()
 }
 
-
 function removerItem(codigo) {
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
 
     if (orcamento_v2.dados_composicoes[codigo]) {
+
+        if (orcamento_v2.dados_composicoes[codigo].agrupamentos) {
+            alterar_input_tabela(codigo)
+        }
 
         delete orcamento_v2.dados_composicoes[codigo]
         localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
@@ -222,131 +225,132 @@ function removerItem(codigo) {
 
 }
 
-function enviar_dados() {
+async function enviar_dados() {
+    salvar_preenchido();
 
-    salvar_preenchido()
-
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
 
     if (!orcamento_v2.id) {
-
-        orcamento_v2.id = 'ORCA_' + unicoID()
-
+        orcamento_v2.id = 'ORCA_' + unicoID();
     }
 
     if (!orcamento_v2.dados_orcam) {
-
         return openPopup_v2(`
-
-        < div style = "display: flex; gap: 10px; align-items: center; justify-content: center;" >
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Preencha os dados do Cliente</label>
             </div>
-
-    `)
-
+        `);
     }
 
-    let dados_orcam = orcamento_v2.dados_orcam
+    let dados_orcam = orcamento_v2.dados_orcam;
 
-    if (dados_orcam.cliente_selecionado == '') {
-
+    if (dados_orcam.cliente_selecionado === '') {
         return openPopup_v2(`
-
-        <div style = "display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Cliente em branco</label>
             </div>
-        </div>
-
-    `)
-
+        `);
     }
 
-    if (dados_orcam.contrato == '') {
-
+    if (dados_orcam.contrato === '') {
         return openPopup_v2(`
-
-        <div style = "display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Chamado em branco</label>
             </div>
-        </div>
-
-    `)
-
+        `);
     }
 
     if (dados_orcam.contrato.slice(0, 1) !== 'D' && dados_orcam.contrato !== 'sequencial' && dados_orcam.contrato.slice(0, 3) !== 'ORC') {
-
         return openPopup_v2(`
-
-        <div style = "display: flex; gap: 10px; align-items: center; justify-content: center;" >
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Chamado deve começar com D</label>
             </div>
-        </div>
-
-    `)
-
+        `);
     }
 
-    if (dados_orcam.estado == '') {
-
+    if (dados_orcam.estado === '') {
         return openPopup_v2(`
-
-        <div style = "display: flex; gap: 10px; align-items: center; justify-content: center;" >
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Estado em branco</label>
             </div>
-        </div>
-
-    `)
-
+        `);
     }
 
-    if (dados_orcam.cnpj == '') {
-
+    if (dados_orcam.cnpj === '') {
         return openPopup_v2(`
-
-        <div style = "display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>CNPJ em branco</label>
             </div>
-        </div>
-
-    `)
-
+        `);
     }
 
-    orcamento_v2.tabela = 'orcamentos'
+    orcamento_v2.tabela = 'orcamentos';
 
-    if (orcamento_v2.dados_composicoes_orcamento || orcamento_v2.dados_composicoes_orcamento == null) {
-
-        delete orcamento_v2.dados_composicoes_orcamento
-
+    if (orcamento_v2.dados_composicoes_orcamento || orcamento_v2.dados_composicoes_orcamento === null) {
+        delete orcamento_v2.dados_composicoes_orcamento;
     }
 
-    enviar_dados_generico(orcamento_v2)
+    let relancamento = {};
+    let converter = false;
+
+    for (let codigo in orcamento_v2.dados_composicoes) {
+        let produto = orcamento_v2.dados_composicoes[codigo];
+        if (!relancamento[produto.codigo]) {
+            relancamento[produto.codigo] = 0;
+        }
+
+        relancamento[produto.codigo] += produto.qtde;
+
+        if (produto.agrupamentos) {
+            converter = true;
+            let agrupamentos = produto.agrupamentos;
+            for (let agrup in agrupamentos) {
+                if (!relancamento[agrup]) {
+                    relancamento[agrup] = 0;
+                }
+
+                relancamento[agrup] += agrupamentos[agrup];
+            }
+        }
+    }
+
+    if (converter) {
+        if (!orcamento_v2.backup) {
+            orcamento_v2.backup = {};
+        }
+        orcamento_v2.backup = orcamento_v2.dados_composicoes;
+
+        delete orcamento_v2.dados_composicoes;
+        localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
+        await carregar_tabelas();
+
+        for (let codigo in relancamento) {
+            await incluir_item(codigo, relancamento[codigo]);
+        }
+    }
+
+    orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2'));
+    enviar_dados_generico(orcamento_v2);
 
     openPopup_v2(`
-
-        <div style = "display: flex; gap: 10px; align-items: center; justify-content: center;" >
+        <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
             <img src="imagens/concluido.png" style="width: 3vw; height: 3vw;">
-                <label>Orcamento salvo... redirecionando...</label>
-            </div>
-        </div>    
-
-        `)
+            <label>Orcamento salvo... redirecionando...</label>
+        </div>
+    `);
 
     setTimeout(function () {
-
-        localStorage.removeItem('orcamento_v2')
-        location.href = 'orcamentos.html'
-
-    }, 2000)
-
+        localStorage.removeItem('orcamento_v2');
+        location.href = 'orcamentos.html';
+    }, 2000);
 }
+
 
 function pesquisar_v2(elemento, col) {
     var termo = String(elemento.value).toLowerCase();
@@ -385,6 +389,7 @@ function mudar_tabela_pesquisa(tabela) {
 async function tabela_produtos_v2(tipo_tabela) {
 
     var tabela_itens = document.getElementById('tabela_itens')
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
 
     if (tabela_itens) {
         tabela_itens.innerHTML = '';
@@ -401,8 +406,13 @@ async function tabela_produtos_v2(tipo_tabela) {
                 var preco = 0
                 var ativo = 0
                 var historico = 0
+                let lpu;
 
-                var lpu = String(document.getElementById('lpu').value).toLowerCase()
+                if (document.getElementById('lpu')) {
+                    lpu = String(document.getElementById('lpu').value).toLowerCase()
+                } else {
+                    lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
+                }
 
                 if (produto[lpu] && produto[lpu].ativo && produto[lpu].historico) {
                     ativo = produto[lpu].ativo
@@ -411,6 +421,19 @@ async function tabela_produtos_v2(tipo_tabela) {
                 }
 
                 if (preco !== 0) {
+
+                    let td_quantidade = `
+                    <input type="number" class="numero-bonito" oninput="incluir_item('${pod}', this.value)">
+                    `
+                    if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[pod] && orcamento_v2.dados_composicoes[pod].agrupamentos) {
+                        td_quantidade = `
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                            <img src="gifs/lampada.gif" style="width: 25px; heigth: 25px;">
+                            <label>Lançar avulso</label>
+                        </div>
+                        <input type="number" class="numero-bonito" style="background-color: orange;" oninput="incluir_item('[AVULSO] ${pod}', this.value)">
+                        `
+                    }
 
                     var imagem = 'https://i.imgur.com/Nb8sPs0.png'
                     if (produto.imagem) {
@@ -424,7 +447,7 @@ async function tabela_produtos_v2(tipo_tabela) {
                             <td>${produto.fabricante}</td>
                             <td>${produto.modelo}</td>
                             <td>${produto.tipo}</td>
-                            <td style="text-align: center;"><input type="number" class="numero-bonito" oninput="incluir_item('${pod}', this.value)"></td>
+                            <td style="text-align: center;">${td_quantidade}</td>
                             <td>${produto.unidade}</td>
                             <td style="white-space: nowrap;">${dinheiro(preco)}</td>
                             <td style="text-align: center;"><img src="${imagem}" style="width: 70px; cursor: pointer;" onclick="ampliar_especial(this, '${pod}')"></td>
@@ -488,8 +511,8 @@ function alternar_icones(elemento, funcao, codigo) {
     })
 
     if (funcao !== undefined) {
-        let imagem = funcao == 'incluir' ? 'baixar' : 'cancel'
-        let icone = `<img src="imagens/${imagem}.png" class="img_ag" onclick="funcoes_adicionais('${codigo}', '${funcao}')">`
+        let imagem = funcao == 'incluir' ? 'gifs/lampada.gif' : 'gifs/retornar.gif'
+        let icone = `<img src="${imagem}" class="img_ag" onclick="funcoes_adicionais('${codigo}', '${funcao}')">`
         elemento.insertAdjacentHTML('beforeend', icone)
     }
 
@@ -666,7 +689,13 @@ async function total() {
 
         trs.forEach(tr => {
             let tds = tr.querySelectorAll('td')
-            let codigo = tds[0].textContent
+            let codigo_original = tds[0].textContent
+            let codigo = codigo_original
+
+            if (codigo_original.includes('[AVULSO]')) {
+                codigo = codigo.replace('[AVULSO]', '').trim()
+            }
+
             let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
             let valor_unitario = 0
             let substituto = ''
@@ -676,17 +705,17 @@ async function total() {
                 acrescimo = 1
             }
 
-            if (dados_composicoes[codigo] && dados_composicoes[codigo].agrupamentos) {
-                alternar_icones(tds[1], 'incluir', codigo)
+            if (dados_composicoes[codigo_original] && dados_composicoes[codigo_original].agrupamentos) {
+                alternar_icones(tds[1], 'incluir', codigo_original)
             }
 
             let div = tds[1].querySelector('div.agrupados')
             let total = 0
-            if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigo] && orcamento_v2.dados_composicoes[codigo].agrupamentos) {
-                let agrups = orcamento_v2.dados_composicoes[codigo].agrupamentos
+            if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigo_original] && orcamento_v2.dados_composicoes[codigo_original].agrupamentos) {
+                let agrups = orcamento_v2.dados_composicoes[codigo_original].agrupamentos
                 div.style.display = 'flex'
                 let elementos = `
-                    <div style="display: flex; justify-content: space-between;">
+                    <div style="display: flex; justify-content: space-evenly;">
                         <label>Código</label>
                         <label>Descrição</label>
                         <label>Quantidade</label>
@@ -700,7 +729,7 @@ async function total() {
 
                     let item = dados_composicoes[it]
                     let valor = 0
-                    
+
                     if (item[lpu] && item[lpu].ativo && item[lpu].historico) {
                         valor = item[lpu].historico[item[lpu].ativo].valor
                     }
@@ -708,7 +737,7 @@ async function total() {
                     total += valor * agrups[it]
                     let estilo = valor * agrups[it] == 0 ? 'label_zerada' : ''
                     elementos += `
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; justify-content: space-evenly; align-items: center;">
                         <label>${it}</label>
                         <div onmouseover="exibir_descricao(this)" onmouseout="ocultar_descricao(this)" style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                             <div style="cursor: pointer; display: none; position: absolute; top: 0; background-color: white; padding: 5px; white-space: nowrap; border-radius: 3px; border: solid 1px #222;">${item.descricao}</div>
@@ -833,13 +862,11 @@ async function total() {
 
             }
 
-            if (!orcamento_v2.dados_composicoes[codigo]) {
-
-                orcamento_v2.dados_composicoes[codigo] = {}
-
+            if (!orcamento_v2.dados_composicoes[codigo_original]) {
+                orcamento_v2.dados_composicoes[codigo_original] = {}
             }
 
-            let item_salvo = orcamento_v2.dados_composicoes[codigo]
+            let item_salvo = orcamento_v2.dados_composicoes[codigo_original]
 
             item_salvo.codigo = codigo
             item_salvo.qtde = quantidade
@@ -884,12 +911,12 @@ async function total() {
 
 }
 
-function exibir_descricao(elemento){
+function exibir_descricao(elemento) {
     let div = elemento.firstElementChild
     div.style.display = 'flex'
 }
 
-function ocultar_descricao(elemento){
+function ocultar_descricao(elemento) {
     let div = elemento.firstElementChild
     div.style.display = 'none'
 }
@@ -927,25 +954,15 @@ function mostrar_ocultar_itens(elemento_img) {
     }
 }
 
-function atualizar_item_agrupado(codigo, sub_item, elemento) {
-    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-    var itens = orcamento_v2.dados_composicoes
+async function incluir_item(codigo, nova_quantidade, especial) {
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
-    if (itens[codigo] && itens[codigo].agrupamentos) {
-        itens[codigo].agrupamentos[sub_item] = Number(elemento.value)
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let codigo_original = codigo
+    if (String(codigo).includes('[AVULSO]')) {
+        codigo = String(codigo).replace('[AVULSO]', '').trim()
     }
 
-    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
-
-    setTimeout(function () {
-        total()
-    }, 1000)
-}
-
-async function incluir_item(codigo, nova_quantidade, especial) {
-
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
     var item = dados_composicoes[codigo]
 
     var colunas_carrefour = '';
@@ -977,35 +994,35 @@ async function incluir_item(codigo, nova_quantidade, especial) {
     }
 
     let linha = `
-    <tr>
-        <td>${item.codigo}</td>
-        <td style="position: relative;">
-            <label>${dados_composicoes[item.codigo].descricao}</label>
-            <div class="agrupados"></div>
-        </td>
-        ${colunas_carrefour}
-        <td style="text-align: center;">${dados_composicoes[item.codigo].unidade}</td>
-        <td style="text-align: center;">
-            <input oninput="total()" type="number" class="numero-bonito" value="${nova_quantidade}">
-        </td>
-        <td style="position: relative;"></td>
-        <td></td>
-        <td style="text-align: center;"><label>${item.tipo}</label></td>
-        <td style="text-align: center;">
-            <img onclick="ampliar_especial(this, '${item.codigo}')" src="${imagem}" style="width: 50px; cursor: pointer;">
-        </td>
-        <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${item.codigo}')" style="cursor: pointer;"></td>
-    </tr>
-    `
+        <tr>
+            <td>${codigo_original}</td>
+            <td style="position: relative;">
+                <label>${dados_composicoes[item.codigo].descricao}</label>
+                <div class="agrupados"></div>         
+            </td>
+            ${colunas_carrefour}
+            <td style="text-align: center;">${dados_composicoes[item.codigo].unidade}</td>
+            <td style="text-align: center;">
+                <input oninput="total()" type="number" class="numero-bonito" value="${nova_quantidade}">
+            </td>
+            <td style="position: relative;"></td>
+            <td></td>
+            <td style="text-align: center;"><label>${item.tipo}</label></td>
+            <td style="text-align: center;">
+                <img onclick="ampliar_especial(this, '${item.codigo}')" src="${imagem}" style="width: 50px; cursor: pointer;">
+            </td>
+            <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo_original}')" style="cursor: pointer;"></td>
+        </tr>
+        `
 
-    if (item_existente(item.tipo, codigo, nova_quantidade)) {
+    if (item_existente(item.tipo, codigo_original, nova_quantidade)) {
 
         document.getElementById(`linhas_${String(item.tipo).toLowerCase()}`).insertAdjacentHTML('beforeend', linha)
 
     }
 
     if (!especial || especial == undefined) {
-        total()
+        await total()
     }
 
 }
@@ -1025,13 +1042,82 @@ async function funcoes_adicionais(codigo, funcao) {
             orcamento_v2.dados_composicoes[codigo].agrupamentos = dados_composicoes[codigo].agrupamentos
 
         } else if (funcao == 'remover') {
+
             delete orcamento_v2.dados_composicoes[codigo].agrupamentos
+            // Caso exista um avulso, nesse momento ele será preservado como item original e sua versão avulsa será excluída;
+            if (orcamento_v2.dados_composicoes[`[AVULSO] ${codigo}`]) {
+
+                let tipo = String(orcamento_v2.dados_composicoes[`[AVULSO] ${codigo}`].tipo).toLowerCase()
+                let tbody = document.getElementById(`linhas_${tipo}`)
+                let trs = tbody.querySelectorAll('tr')
+                let quantidade = orcamento_v2.dados_composicoes[`[AVULSO] ${codigo}`].qtde
+                let acrescimo = orcamento_v2.lpu_ativa == 'LPU CARREFOUR' ? 1 : 0
+
+                trs.forEach(tr => {
+                    let tds = tr.querySelectorAll('td')
+                    let cod = tds[0].textContent
+
+                    if (cod == `[AVULSO] ${codigo}`) {
+                        tr.remove()
+
+                    } else if (cod == codigo) {
+                        tds[3 + acrescimo].querySelector('input').value = quantidade
+
+                    }
+
+                })
+
+                delete orcamento_v2.dados_composicoes[`[AVULSO] ${codigo}`]
+
+            }
+
         }
 
         localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+
     }
 
     total()
+    alterar_input_tabela(codigo)
+
+}
+
+function alterar_input_tabela(codigo) {
+    let tabela_itens = document.getElementById('tabela_itens')
+
+    if (tabela_itens) {
+        let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+        let table = tabela_itens.querySelector('table')
+        let tbody = table.querySelector('tbody')
+        let trs = tbody.querySelectorAll('tr')
+
+        trs.forEach(tr => {
+
+            let tds = tr.querySelectorAll('td')
+            let cod = tds[0].textContent
+
+            if (cod == codigo && orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigo]) {
+
+                let td_quantidade = `
+                <input type="number" class="numero-bonito" oninput="incluir_item('${codigo}', this.value)">
+                `
+                if (orcamento_v2.dados_composicoes[codigo].agrupamentos) {
+                    td_quantidade = `
+                <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                    <img src="gifs/lampada.gif" style="width: 25px; heigth: 25px;">
+                    <label>Lançar avulso</label>
+                </div>
+                <input type="number" class="numero-bonito" style="background-color: orange;" oninput="incluir_item('[AVULSO] ${codigo}', this.value)">
+                `
+                }
+
+                tds[5].innerHTML = td_quantidade
+
+            }
+
+        })
+
+    }
 
 }
 
