@@ -774,11 +774,31 @@ function carregarCotacoesSalvas() {
 
     const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
 
-    Object.entries(cotacoes).forEach(([id, cotacao]) => {
+    // Verifica se há cotações
+    if (Object.keys(cotacoes).length === 0) {
+        const linhaMensagem = document.createElement("tr");
+        const celulaMensagem = document.createElement("td");
+        celulaMensagem.colSpan = 6; // Número de colunas na tabela
+        celulaMensagem.textContent = "Não existem cotações disponíveis.";
+        celulaMensagem.style.textAlign = "center"; // Centraliza a mensagem
+        celulaMensagem.style.color = "gray"; // Adiciona uma cor para destaque
+        linhaMensagem.appendChild(celulaMensagem);
+        tabelaBody.appendChild(linhaMensagem);
+        return;
+    }
+
+    // Transforma as cotações em um array e ordena pela data e hora
+    const cotacoesOrdenadas = Object.entries(cotacoes).sort((a, b) => {
+        const dataA = new Date(`${a[1].informacoes.data} ${a[1].informacoes.hora}`);
+        const dataB = new Date(`${b[1].informacoes.data} ${b[1].informacoes.hora}`);
+        return dataB - dataA; // Ordem decrescente (mais recente primeiro)
+    });
+
+    cotacoesOrdenadas.forEach(([id, cotacao]) => {
         const linha = document.createElement("tr");
 
         linha.innerHTML = `
-            <td>${cotacao.informacoes.apelidoCotacao || "Sem Apelido"}</td>
+            <td>${cotacao.informacoes.apelidoCotacao || 'Sem Apelido'}</td>
             <td>${cotacao.informacoes.data}</td>
             <td>${cotacao.informacoes.criador}</td>
             <td>${cotacao.dados.length}</td>
@@ -793,8 +813,20 @@ function carregarCotacoesSalvas() {
         tabelaBody.appendChild(linha);
     });
 
-    console.log("Cotações Salvas Carregadas!");
+    // Exibe a mensagem "Cotações Carregadas e Ordenadas!"
+    const mensagemDiv = document.getElementById("mensagemCargasOrdenadas");
+    if (mensagemDiv) {
+        mensagemDiv.textContent = "Cotações Carregadas e Ordenadas!";
+        mensagemDiv.style.display = "block";
+
+        setTimeout(() => {
+            mensagemDiv.style.display = "none";
+        }, 5000);
+    } else {
+        console.warn("Elemento mensagemCargasOrdenadas não encontrado.");
+    }
 }
+
 
 
 
@@ -1119,7 +1151,6 @@ function removerCotacao(elemento) {
 
     const cotacaoParaExcluir = { operacao, status, idCotacao };
 
-    // Envia a nova cotação para a API
     const payload = {
         tabela: "cotacoes",
         cotacao: cotacaoParaExcluir,
@@ -1127,6 +1158,168 @@ function removerCotacao(elemento) {
 
     enviar_dados_generico(payload);
 
+    // Remove a cotação do localStorage
+    let cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+    delete cotacoes[idCotacao];
+    localStorage.setItem("dados_cotacao", JSON.stringify(cotacoes));
+
+    // Verifica se ainda existem cotações
+    if (Object.keys(cotacoes).length === 0) {
+        const tabelaBody = document.getElementById("cotacoesSalvasTable").querySelector("tbody");
+        tabelaBody.innerHTML = "";
+
+        // Adiciona a mensagem de que não existem cotações
+        const linhaMensagem = document.createElement("tr");
+        const celulaMensagem = document.createElement("td");
+        celulaMensagem.colSpan = 6; // Número de colunas na tabela
+        celulaMensagem.textContent = "Não existem cotações disponíveis.";
+        celulaMensagem.style.textAlign = "center"; // Centraliza a mensagem
+        celulaMensagem.style.color = "gray"; // Adiciona uma cor para destaque
+        linhaMensagem.appendChild(celulaMensagem);
+        tabelaBody.appendChild(linhaMensagem);
+    }
+
     console.log(`Cotação removida com ID: ${idCotacao}`);
-    return idCotacao; // Retorna o ID da cotação removida
 }
+
+
+let ordemAtual = {
+    coluna: null,
+    ordem: 'asc' // 'asc' para crescente, 'desc' para decrescente
+};
+
+function ordenarTabela(coluna) {
+    const tabelaBody = document.getElementById("cotacoesSalvasTable").querySelector("tbody");
+    const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+
+    // Converte as cotações para um array e ordena com base na coluna
+    const cotacoesOrdenadas = Object.entries(cotacoes).sort((a, b) => {
+        const cotacaoA = a[1];
+        const cotacaoB = b[1];
+
+        let valorA, valorB;
+
+        switch (coluna) {
+            case 'apelido':
+                valorA = cotacaoA.informacoes.apelidoCotacao?.toLowerCase() || '';
+                valorB = cotacaoB.informacoes.apelidoCotacao?.toLowerCase() || '';
+                break;
+            case 'data':
+                valorA = new Date(`${cotacaoA.informacoes.data} ${cotacaoA.informacoes.hora}`);
+                valorB = new Date(`${cotacaoB.informacoes.data} ${cotacaoB.informacoes.hora}`);
+                break;
+            case 'criador':
+                valorA = cotacaoA.informacoes.criador.toLowerCase();
+                valorB = cotacaoB.informacoes.criador.toLowerCase();
+                break;
+            case 'itens':
+                valorA = cotacaoA.dados.length;
+                valorB = cotacaoB.dados.length;
+                break;
+            case 'fornecedores':
+                valorA = cotacaoA.valorFinal.length;
+                valorB = cotacaoB.valorFinal.length;
+                break;
+            default:
+                return 0;
+        }
+
+        // Alterna a ordem de ordenação
+        if (ordemAtual.coluna === coluna) {
+            ordemAtual.ordem = ordemAtual.ordem === 'asc' ? 'desc' : 'asc';
+        } else {
+            ordemAtual.coluna = coluna;
+            ordemAtual.ordem = 'asc';
+        }
+
+        const comparacao = valorA > valorB ? 1 : valorA < valorB ? -1 : 0;
+        return ordemAtual.ordem === 'asc' ? comparacao : -comparacao;
+    });
+
+    // Atualiza a tabela com os dados ordenados
+    tabelaBody.innerHTML = "";
+    cotacoesOrdenadas.forEach(([id, cotacao]) => {
+        const linha = document.createElement("tr");
+
+        linha.innerHTML = `
+            <td>${cotacao.informacoes.apelidoCotacao || 'Sem Apelido'}</td>
+            <td>${cotacao.informacoes.data}</td>
+            <td>${cotacao.informacoes.criador}</td>
+            <td>${cotacao.dados.length}</td>
+            <td>${cotacao.valorFinal.length}</td>
+            <td>
+                <img src="imagens/editar.png" alt="Editar" class="img-editar" onclick="editarCotacao('${id}')">
+                <img src="imagens/excluir.png" alt="Excluir" class="img-excluir" onclick="removerCotacao(this)">
+            </td>
+            <td style="display:none;" class="cotacao-id">${id}</td> <!-- Adiciona o ID oculto -->
+        `;
+
+        tabelaBody.appendChild(linha);
+    });
+
+    // Atualiza os ícones no cabeçalho
+    atualizarIconesOrdenacao(coluna);
+}
+
+function atualizarIconesOrdenacao(coluna) {
+    // Remove ícones existentes
+    const headers = document.querySelectorAll("th");
+    headers.forEach(header => {
+        header.classList.remove("ordenado");
+        const icone = header.querySelector("span.ordem-icone");
+        if (icone) icone.remove();
+    });
+
+    // Adiciona o ícone ao cabeçalho correspondente
+    const header = document.getElementById(`${coluna}Header`);
+    if (header) {
+        header.classList.add("ordenado");
+        const icone = document.createElement("span");
+        icone.classList.add("ordem-icone");
+        icone.textContent = ordemAtual.ordem === 'asc' ? '▲' : '▼'; // ▲ para crescente, ▼ para decrescente
+        header.appendChild(icone);
+    }
+}
+
+function filtrarTabela(colunaIndex, valorPesquisa) {
+    const tabela = document.getElementById("cotacoesSalvasTable");
+    const linhas = tabela.querySelectorAll("tbody tr");
+
+    // Normaliza o valor de pesquisa (removendo espaços extras e transformando em minúsculas)
+    const valorNormalizado = valorPesquisa.trim().toLowerCase();
+    let encontrouResultados = false;
+
+    linhas.forEach(linha => {
+        const celula = linha.cells[colunaIndex]; // Obtém a célula correspondente à coluna
+        if (celula) {
+            const textoCelula = celula.textContent.trim().toLowerCase();
+            if (textoCelula.includes(valorNormalizado)) {
+                linha.style.display = ""; // Exibe a linha se a pesquisa corresponder
+                encontrouResultados = true;
+            } else {
+                linha.style.display = "none"; // Esconde a linha se não houver correspondência
+            }
+        }
+    });
+
+    // Verifica se encontrou algum resultado
+    const tabelaBody = tabela.querySelector("tbody");
+    if (!encontrouResultados) {
+        // Adiciona a mensagem de que não existem cotações disponíveis
+        const linhaMensagem = document.createElement("tr");
+        const celulaMensagem = document.createElement("td");
+        celulaMensagem.colSpan = tabela.querySelectorAll("thead th").length; // Número de colunas na tabela
+        celulaMensagem.textContent = "Não existem cotações disponíveis.";
+        celulaMensagem.style.textAlign = "center"; // Centraliza a mensagem
+        celulaMensagem.style.color = "gray"; // Adiciona uma cor para destaque
+        linhaMensagem.appendChild(celulaMensagem);
+        tabelaBody.appendChild(linhaMensagem);
+    } else {
+        // Remove a mensagem caso já exista
+        const mensagemExistente = tabelaBody.querySelector("tr td[colspan]");
+        if (mensagemExistente) {
+            mensagemExistente.parentElement.remove();
+        }
+    }
+}
+

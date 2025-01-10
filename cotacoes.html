@@ -30,6 +30,7 @@
     
 
     <div id="cotacoesSalvasContainer">
+        <div id="mensagemCargasOrdenadas" class="cotacoes-ordenadas-mensagem"></div>
         <div class="titulo-principal-container">
             <img src="imagens/BG.png" alt="Logo" class="logo">
             <label class="titulo-principal">Cotações Salvas</label>
@@ -37,13 +38,47 @@
         <table id="cotacoesSalvasTable">
             <thead>
                 <tr>
-                    <th>Apelido</th>
-                    <th>Data</th>
-                    <th>Criador</th>
-                    <th>Quantidade de Itens</th>
-                    <th>Quantidade de Fornecedores</th>
+                    <th id="apelidoHeader" onclick="ordenarTabela('apelido')">Apelido</th>
+                    <th id="dataHeader" onclick="ordenarTabela('data')">Data</th>
+                    <th id="criadorHeader" onclick="ordenarTabela('criador')">Criador</th>
+                    <th id="itensHeader" onclick="ordenarTabela('itens')">Quantidade de Itens</th>
+                    <th id="fornecedoresHeader" onclick="ordenarTabela('fornecedores')">Quantidade de Fornecedores</th>
                     <th>Ações</th>
                 </tr>
+                <tr id="searchRow">
+                    <th>
+                        <div class="input-container">
+                            <input type="text" placeholder="Pesquisar Apelido" oninput="filtrarTabela(0, this.value)">
+                            <img src="imagens/pesquisar2.png" alt="Pesquisar">
+                        </div>
+                    </th>
+                    <th>
+                        <div class="input-container">
+                            <input type="text" placeholder="Pesquisar Data" oninput="filtrarTabela(1, this.value)">
+                            <img src="imagens/pesquisar2.png" alt="Pesquisar">
+                        </div>
+                    </th>
+                    <th>
+                        <div class="input-container">
+                            <input type="text" placeholder="Pesquisar Criador" oninput="filtrarTabela(2, this.value)">
+                            <img src="imagens/pesquisar2.png" alt="Pesquisar">
+                        </div>
+                    </th>
+                    <th>
+                        <div class="input-container">
+                            <input type="text" placeholder="Pesquisar Qtde Itens" oninput="filtrarTabela(3, this.value)">
+                            <img src="imagens/pesquisar2.png" alt="Pesquisar">
+                        </div>
+                    </th>
+                    <th>
+                        <div class="input-container">
+                            <input type="text" placeholder="Pesquisar Qtde Fornecedores" oninput="filtrarTabela(4, this.value)">
+                            <img src="imagens/pesquisar2.png" alt="Pesquisar">
+                        </div>
+                    </th>
+                    <th></th>
+                </tr>
+                
             </thead>
             <tbody>
                 <!-- Linhas serão preenchidas dinamicamente -->

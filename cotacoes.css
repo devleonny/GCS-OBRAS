@@ -8,6 +8,23 @@ body {
     overflow: hidden; /* Evita overflow indesejado */
 }
 
+th {
+    cursor: pointer;
+    position: relative;
+}
+
+th span.ordem-icone {
+    position: absolute;
+    right: 8px; /* Ajuste conforme necessário */
+    font-size: 0.8em;
+    color: #666; /* Cor discreta */
+    pointer-events: none; /* Não interfere no clique do cabeçalho */
+}
+
+th.ordenado span.ordem-icone {
+    color: #000; /* Destaca o ícone do cabeçalho ordenado */
+}
+
 table th, table td {
     border: 1px solid #ccc;
     padding: 8px;
@@ -128,6 +145,7 @@ button {
     background-color: #fff; /* Fundo do modal */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adiciona sombra */
 }
+
 
 
 .close {
@@ -374,4 +392,69 @@ table th, table td {
     margin: 0;
     background-color: transparent;
     text-align: center;
+}
+
+#mensagemCargasOrdenadas {
+    position: absolute;
+    top: 20px; /* Ajuste conforme necessário */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #fff; /* Fundo branco */
+    color: #333; /* Cor do texto */
+    font-size: 14px;
+    font-weight: bold;
+    padding: 10px 20px;
+    border: 1px solid #ccc; /* Borda cinza */
+    border-radius: 10px; /* Bordas arredondadas */
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Sombra suave */
+    z-index: 1000;
+    display: none; /* Escondido por padrão */
+}
+
+#searchRow th {
+    background-color: transparent; /* Remove o fundo azul */
+    color: #333; /* Cor do texto */
+    font-weight: normal; /* Texto normal */
+}
+
+/* Estilo dos inputs dentro da linha de busca */
+#searchRow th input {
+    width: 90%; /* Ajusta a largura do input */
+    padding: 5px; /* Espaçamento interno */
+    border: 1px solid #ccc; /* Borda discreta */
+    border-radius: 4px; /* Bordas arredondadas */
+    background-color: #fff; /* Fundo branco */
+    color: #333; /* Cor do texto */
+}
+
+/* Foco nos inputs da linha de busca */
+#searchRow th input:focus {
+    border-color: #007bff; /* Cor da borda ao focar */
+    outline: none; /* Remove o contorno padrão */
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Sombra suave ao focar */
+}
+
+/* Estilo para o contêiner do input e da imagem */
+.input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* Estilo do input */
+.input-container input {
+    width: 90%; /* Ajusta a largura do input */
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    color: #333;
+}
+
+/* Estilo da imagem da lupa */
+.input-container img {
+    width: 16px; /* Define o tamanho da imagem */
+    height: 16px;
+    margin-left: 5px; /* Espaço entre o input e a imagem */
+    cursor: pointer; /* Adiciona um cursor ao passar o mouse */
 }
