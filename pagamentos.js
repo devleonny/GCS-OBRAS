@@ -4,6 +4,22 @@ var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
 carregamento_div = document.querySelector("#tela_carregamento")
 
+sincronizar_periodico()
+
+async function sincronizar_periodico() {
+    let carimbo_nuvem = await carimbo_data_hora_pagamentos(true)
+    let carimbo_storage = localStorage.getItem('carimbo_data_hora_pagamentos')
+
+    if (carimbo_storage) {
+
+        let carimbo_maquina = JSON.parse(carimbo_storage)
+    
+        console.log(carimbo_maquina == carimbo_nuvem)
+
+    }
+
+}
+
 async function inicializar_pagamentos() {
 
     carregamento('div_pagamentos')
@@ -94,12 +110,15 @@ async function abrir_detalhes(id_pagamento) {
         var arquivo = `https://drive.google.com/file/d/${anexo.link}/view?usp=drivesdk`
 
         anexos += `
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: left; cursor: pointer;" onclick="abrirArquivo('${arquivo}')">
-        <img src="imagens/anexo.png" style="width: 20px; cursor: pointer;">
-        <label>${anexo.nome}</label>
-        </div>
+        <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: left; cursor: pointer;" onclick="abrirArquivo('${arquivo}')">
+                <img src="imagens/anexo3.png" style="width: 20px; cursor: pointer;">
+                <label>${anexo.nome}</label>
+            </div>
+            <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;">
+        </div>    
         `
-    })
+    }) //29
 
     var historico = ''
     var cor = '#222'
@@ -205,7 +224,7 @@ async function abrir_detalhes(id_pagamento) {
 
     var info_adicional_parceiro = ''
 
-    if (habilitar_painel_parceiro.ativar) { //29
+    if (habilitar_painel_parceiro.ativar) {
 
         var campos = {
             pedido: 'PDF do pedido do Cliente',
@@ -244,10 +263,12 @@ async function abrir_detalhes(id_pagamento) {
                             for (anx in anexos) {
                                 let anexo = anexos[anx]
                                 info_existente += `
-                                <div onclick="abrirArquivo('https://drive.google.com/file/d/${anexo.link}')" class="anexos" style="border: solid 1px green;">
-                                    <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
-                                    <label style="cursor: pointer; font-size: 0.6em"><strong>${anexo.nome}</strong></label>
-                                </div>                                
+
+                                <div style="display: flex; align-items: center; justify-content: center;">
+                                    <div onclick="abrirArquivo('https://drive.google.com/file/d/${anexo.link}')" class="anexos" style="border: solid 1px green;">
+                                        <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
+                                        <label style="cursor: pointer; font-size: 0.6em"><strong>${anexo.nome}</strong></label>
+                                    </div>                            
                                 `
                             }
                         }
@@ -340,9 +361,13 @@ async function abrir_detalhes(id_pagamento) {
 
         ${info_adicional_parceiro}
 
-        <div id="comentario" class="contorno"><strong>Observações </strong> •  ${ultima_alteracao} <br> ${pagamento.param[0].observacao.replace(/\n/g, "<br>")}
-            ${botao_editar}
+        <div id="comentario" class="contorno">
+            <div class="contorno_interno">
+                <label><strong>Observações </strong> •  ${ultima_alteracao} <br> ${pagamento.param[0].observacao.replace(/\n/g, "<br>")}</label>
+                ${botao_editar}
+            </div>
         </div>
+
         <label><strong>Anexos </strong> • 
         
             <label for="adicionar_anexo_pagamento" style="text-decoration: underline; cursor: pointer;">
@@ -352,8 +377,12 @@ async function abrir_detalhes(id_pagamento) {
 
         </label>
         
-        ${anexos}
-        
+        <div class="contorno">
+            <div class="contorno_interno">
+            ${anexos}
+            </div>
+        </div>
+
         <label><strong>Histórico </strong> • ${historico}</label>
     </div>
     `

@@ -193,7 +193,7 @@ function carregar_tabela_v2(col, ordem) {
                             info_agrupamentos += `
                             <div style="display: flex; gap: 3px; align-items: center; justify-content: left;">
                                 <label class="numero" style="width: 20px; height: 20px; padding: 3px; background-color: ${cor}">${agrupamentos[item]}</label>
-                                <label style="font-size: 0.6em; text-align: left;">${dados_composicoes[item].descricao}</label>
+                                <label style="font-size: 0.6em; text-align: left;">${String(dados_composicoes[item].descricao).slice(0, 10)}...</label>
                             </div>
                             `
                         }

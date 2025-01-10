@@ -29,7 +29,7 @@ function carregar_layout_modalidade_tradicional() {
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
-    location.href = '/adicionar.html'
+    location.href = 'adicionar.html'
 
 }
 
@@ -128,6 +128,11 @@ function carregar_layout_modalidade_livre() {
 
             </div>
 
+            <div style="position: absolute; top: 40px; right: 5px; display: flex; align-items: center; justify-content: right; margin: 5px; gap: 10px;"
+                onclick="window.location.href='inicial.html'">
+                <label style="color: white;">Voltar</label>
+                <img src="imagens/voltar.png" style="cursor: pointer; width: 30px;">
+            </div>
 
         </div>
 

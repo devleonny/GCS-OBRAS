@@ -290,8 +290,6 @@ async function enviar_dados() {
         `);
     }
 
-    orcamento_v2.tabela = 'orcamentos';
-
     if (orcamento_v2.dados_composicoes_orcamento || orcamento_v2.dados_composicoes_orcamento === null) {
         delete orcamento_v2.dados_composicoes_orcamento;
     }
@@ -336,6 +334,8 @@ async function enviar_dados() {
     }
 
     orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2'));
+    orcamento_v2.tabela = 'orcamentos';
+
     enviar_dados_generico(orcamento_v2);
 
     openPopup_v2(`
@@ -734,10 +734,12 @@ async function total() {
                         valor = item[lpu].historico[item[lpu].ativo].valor
                     }
 
+                    let cor = dados_composicoes[it].tipo == 'SERVIÇO' ? 'green' : '#B12425'
+
                     total += valor * agrups[it]
                     let estilo = valor * agrups[it] == 0 ? 'label_zerada' : ''
                     elementos += `
-                    <div style="display: flex; justify-content: space-evenly; align-items: center;">
+                    <div style="display: flex; justify-content: space-evenly; align-items: center; border: solid 1px ${cor}; margin: 2px; border-radius: 3px; background-color: white;">
                         <label>${it}</label>
                         <div onmouseover="exibir_descricao(this)" onmouseout="ocultar_descricao(this)" style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                             <div style="cursor: pointer; display: none; position: absolute; top: 0; background-color: white; padding: 5px; white-space: nowrap; border-radius: 3px; border: solid 1px #222;">${item.descricao}</div>

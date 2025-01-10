@@ -865,7 +865,7 @@ async function obter_departamentos_fixos() {
     });
 }
 
-async function carimbo_data_hora_pagamentos() {
+async function carimbo_data_hora_pagamentos(retornar) {
     return new Promise((resolve, reject) => {
         var url = 'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=carimbo';
 
@@ -877,6 +877,10 @@ async function carimbo_data_hora_pagamentos() {
                 return response.json();
             })
             .then(data => {
+                if (retornar) {
+                    resolve(data);
+                    return
+                }
                 localStorage.setItem('carimbo_data_hora_pagamentos', JSON.stringify(data));
                 resolve();
             })
@@ -886,7 +890,6 @@ async function carimbo_data_hora_pagamentos() {
             });
     });
 }
-
 
 function fecharTabela(nome_tabela) {
     document.getElementById(nome_tabela).style.display = 'none'
