@@ -37,6 +37,7 @@
         <table id="cotacoesSalvasTable">
             <thead>
                 <tr>
+                    <th>Apelido</th>
                     <th>Data</th>
                     <th>Criador</th>
                     <th>Quantidade de Itens</th>
@@ -110,7 +111,7 @@
     <div class="button-container">
         <button onclick="adicionarLinha()">Adicionar Item</button>
         <button onclick="abrirModal()">Adicionar Fornecedor</button>
-        <button onclick="salvarObjeto()">Salvar</button>
+        <button onclick="abrirModalApelido()">Salvar</button>
         <p id="salvarAviso" class="salvar-aviso" style="display: none;">Cotação salva com sucesso!</p>
         <button onclick="voltarParaTabela()" class="btn-voltar">Voltar</button>
     </div>
@@ -129,7 +130,17 @@
         </div>
     </div>
     
+    <div id="modalApelido" class="modal">
+        <div class="modal-content">
+            <button class="close" onclick="fecharModalApelido()">&times;</button>
+            <h2>Defina um apelido para a cotação</h2>
+            <label for="inputApelido">Apelido:</label>
+            <input type="text" id="inputApelido" placeholder="Digite um apelido para a cotação">
+            <button onclick="salvarObjeto()" id="confirmarApelidoButton">Salvar Apelido</button>
+        </div>
+    </div>
     
+      
 
 </body>
 

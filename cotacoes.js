@@ -626,7 +626,11 @@ function salvarObjeto() {
     aviso.style.display = "block";
     setTimeout(() => (aviso.style.display = "none"), 3000);
 
+    console.log("Cotação salva:", informacoes.apelidoCotacao);
+    
     // Atualiza a tabela com os novos dados
+    fecharModalApelido();
+
     carregarCotacoesSalvas();
 }
 
@@ -646,6 +650,8 @@ function salvarInformacoes() {
     const dataFormatada = `${dia}/${mes}/${ano}`;
     const horaFormatada = `${horas}:${minutos}:${segundos}`;
 
+    const apelidoCotacao = document.getElementById("inputApelido").value;
+
     // Obter o criador do localStorage
     const acesso = JSON.parse(localStorage.getItem("acesso"));
     const criador = acesso?.usuario || "Desconhecido";
@@ -664,7 +670,8 @@ function salvarInformacoes() {
         id,
         data: dataFormatada,
         hora: horaFormatada,
-        criador
+        criador,
+        apelidoCotacao
     };
 }
 // Função para salvar os dados dos itens
@@ -733,6 +740,22 @@ function salvarValorFinal() {
     });
 }
 
+function abrirModalApelido(){
+
+    const modal = document.getElementById("modalApelido");
+    const input = document.getElementById("inputApelido");
+    const button = document.getElementById("confirmarApelidoButton");
+
+    modal.style.display = "block";
+    input.value = "";
+
+}
+
+function fecharModalApelido() {
+    const modal = document.getElementById("modalApelido");
+    modal.style.display = "none";
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     carregarCotacoesSalvas();
 
@@ -755,6 +778,7 @@ function carregarCotacoesSalvas() {
         const linha = document.createElement("tr");
 
         linha.innerHTML = `
+            <td>${cotacao.informacoes.apelidoCotacao || "Sem Apelido"}</td>
             <td>${cotacao.informacoes.data}</td>
             <td>${cotacao.informacoes.criador}</td>
             <td>${cotacao.dados.length}</td>
@@ -775,6 +799,7 @@ function carregarCotacoesSalvas() {
 
 
 
+
 function editarCotacao(id) {
     const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
     const cotacao = cotacoes[id];
@@ -784,37 +809,42 @@ function editarCotacao(id) {
         return;
     }
 
+    // Define a operação como editar
     localStorage.setItem("operacao", "editar");
     localStorage.setItem("cotacaoEditandoID", id);
 
+    // Preenche o formulário com os dados da cotação
     preencherFormularioCotacao(cotacao);
 
+    // Atualiza o valor de "Quantidade de Itens"
+    atualizarQuantidadeItens();
+
+    // Exibe a tela de edição
     document.getElementById("cotacoesSalvasContainer").style.display = "none";
     document.getElementById("novaCotacaoContainer").style.display = "block";
 
-    // Iterar sobre cada linha e chamar decidirMelhorOferta
+    // Itera sobre cada linha da tabela e chama decidirMelhorOferta
     const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
     const linhas = tabela.children;
 
     for (let i = 0; i < linhas.length; i++) {
-        // O índice da linha é o número do item na coluna correspondente
         const numeroItem = linhas[i].querySelector("td:nth-child(2)").textContent;
         decidirMelhorOferta(numeroItem);
     }
 
-    // Decidir melhor subtotal e total
+    // Atualiza os destaques de menor subtotal e menor total
     const inputsSubtotal = document.querySelectorAll(".inputs-subtotal");
     const inputsTotal = document.querySelectorAll(".inputs-total");
 
     const menorSubtotal = descobrirMenorValor(inputsSubtotal);
     const menorTotal = descobrirMenorValor(inputsTotal);
 
-    // Destacar o menor subtotal
     estilizarMelhorPreco(inputsSubtotal, menorSubtotal);
-
-    // Destacar o menor total
     estilizarMelhorPreco(inputsTotal, menorTotal);
+
+    console.log(`Cotação editada: ID ${id}`);
 }
+
 
 // Função para encontrar o menor valor entre uma lista de inputs
 function descobrirMenorValor(inputs) {
@@ -1074,10 +1104,13 @@ function voltarParaInicio() {
 }
 
 function removerCotacao(elemento) {
-    
+    // Encontra a linha associada ao botão clicado
     const linha = elemento.parentElement.parentElement;
 
+    // Obtém o ID da cotação a partir da célula oculta
     const idCotacao = linha.querySelector(".cotacao-id").textContent;
+
+    // Remove a linha da tabela
     linha.remove();
 
     let status = "excluido"
@@ -1095,5 +1128,5 @@ function removerCotacao(elemento) {
     enviar_dados_generico(payload);
 
     console.log(`Cotação removida com ID: ${idCotacao}`);
-    return idCotacao;
+    return idCotacao; // Retorna o ID da cotação removida
 }

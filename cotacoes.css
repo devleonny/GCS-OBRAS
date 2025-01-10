@@ -49,10 +49,6 @@ button {
     cursor: pointer; /* Adiciona ponteiro ao passar o mouse */
 }
 
-button:hover {
-    background-color: #0056b3; /* Cor ao passar o mouse */
-}
-
 .remove-img {
     width: 24px;
     height: 24px;
@@ -119,41 +115,58 @@ button:hover {
     height: 100%;
     overflow: auto;
     background-color: rgba(0, 0, 0, 0.5);
-    /* color: #00ff37; */
+
 }
 
 .modal-content {
-    background-color: #fff;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 50%;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
+    position: relative; /* Garante que o botão .close seja posicionado em relação ao modal */
+    padding: 20px; /* Espaçamento interno */
+    border: 1px solid #888; /* Borda do modal */
+    width: 50%; /* Largura do modal */
+    margin: 15% auto; /* Centraliza o modal */
+    border-radius: 8px; /* Bordas arredondadas */
+    background-color: #fff; /* Fundo do modal */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adiciona sombra */
 }
 
+
 .close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
+    position: absolute; /* Posiciona dentro do modal */
+    top: 10px; /* Ajusta a posição no topo */
+    right: 10px; /* Ajusta a posição à direita */
+    color: white; /* Cor do texto (branco) */
+    font-size: 20px; /* Tamanho da fonte */
+    font-weight: bold; /* Peso da fonte */
+    background-color: red; /* Fundo vermelho */
+    border: none; /* Remove a borda */
+    cursor: pointer; /* Adiciona o cursor de clique */
+    border-radius: 50%; /* Botão arredondado */
+    width: 30px; /* Largura do botão */
+    height: 30px; /* Altura do botão */
+    display: flex; /* Centraliza o conteúdo */
+    justify-content: center; /* Centraliza horizontalmente */
+    align-items: center; /* Centraliza verticalmente */
+    z-index: 1001; /* Garante que fique acima do conteúdo */
+    transition: opacity 0.3s ease; /* Adiciona uma transição suave */
+    box-shadow: none; /* Remove sombra */
 }
+
 
 .close:hover,
 .close:focus {
-    color: #000;
-    text-decoration: none;
+    opacity: 0.8; /* Reduz opacidade ao passar o mouse */
+    outline: none; /* Remove o foco padrão */
 }
+
+
 
 .modal-content button {
-    margin: 10px 5px;
-}
-
-.modal-content .close {
+    margin-top: 15px;
+    padding: 10px 20px;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
     cursor: pointer;
-    color: red;
-    font-size: 20px;
 }
 
 #listaFornecedores {
@@ -247,6 +260,11 @@ table th, table td {
 #cotacoesSalvasTable tbody tr:hover {
     background-color: #f9f9f9;
     cursor: pointer;
+}
+
+#cotacoesSalvasTable th:first-child,
+#cotacoesSalvasTable td:first-child {
+    text-align: left;
 }
 
 /* Botão de Nova Cotação */
