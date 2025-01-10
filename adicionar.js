@@ -48,12 +48,12 @@ async function atualizar_precos() {
             <label class="novo_titulo">Aguarde...</label>        
         `
         menu_superior.style.display = 'flex'
-        tabela_produtos_v2()
-        carregar_tabelas()
 
+        await carregar_tabelas()
         await recuperar()
-        await atualizar_lista_de_lpus() // Esperar carregar a lista de LPUs antes de carregar as tabelas correspondentes;
-
+        await atualizar_lista_de_lpus()
+        
+        tabela_produtos_v2()
         carregar_datalist_clientes()
 
         atualizando.style.display = 'none'
