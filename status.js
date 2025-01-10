@@ -2743,7 +2743,7 @@ function salvar_anexo(chave1, chave2) {
             var result = await response.json();
             if (response.ok) {
 
-                var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+                let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
 
                 if (chave1 == undefined && chave2 == undefined) {
 
@@ -2753,22 +2753,12 @@ function salvar_anexo(chave1, chave2) {
                         link: result.fileId
                     }
 
-                    var imagem = ''
-
-                    if (formato(mimeType) == 'PDF') {
-                        imagem = 'pdf'
-                    } else if (formato(mimeType) == 'IMAGEM') {
-                        imagem = 'imagem'
-                    } else if (formato(mimeType) == 'PLANILHA') {
-                        imagem = 'excel2'
-                    } else {
-                        imagem = 'anexo'
-                    }
-
-                    var resposta = `
-                    <div style="align-items: center; width: max-content; font-size: 0.7em; display: flex; justify-content; left; box-shadow: 2px 2px #94a0ab; background-color: #e9e9e9; color: #555; padding: 5px; margin:5px; border-radius: 5px;">
-                        <img src="${imagem}.png" style="width: 3vw;">
-                        <label><strong>${fileName}</strong></label>
+                    let resposta = `
+                    <div class="contorno">
+                        <div class="contorno_interno">
+                            <img src="imagens/anexo3.png" style="width: 3vw;">
+                            <label><strong>${String(fileName).slice(0,10)} ... ${String(fileName).slice(7)}</strong></label>
+                        </div>
                     </div>
                     `
                     div_anexos.style = 'align-items: normal'

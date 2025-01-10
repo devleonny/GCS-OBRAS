@@ -727,7 +727,7 @@ async function salvar_cotacao(codigo, lpu) {
 
                 var dados = {
                     custo: conversor(inputs[0].value),
-                    lucro: inputs[1].value,
+                    margem: inputs[1].value,
                     valor: conversor(tds[2].textContent),
                     data: tds[3].textContent,
                     usuario: acesso.usuario,
@@ -780,9 +780,9 @@ function calcular() {
 
                 var tds = tr.querySelectorAll('td')
                 var custo = Number(inputs[0].value)
-                var lucro = Number(inputs[1].value)
+                var margem = Number(inputs[1].value)
 
-                tds[2].textContent = dinheiro(custo * (1 + (lucro / 100)))
+                tds[2].textContent = dinheiro(custo * (1 + (margem / 100)))
             }
         })
     }
