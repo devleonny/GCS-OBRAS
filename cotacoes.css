@@ -1,12 +1,11 @@
 body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
+    margin: 0; /* Remove qualquer margem extra */
+    padding: 0; /* Remove padding extra */
+    display: flex;
+    justify-content: center; /* Centraliza o conteúdo horizontalmente */
+    align-items: center; /* Centraliza o conteúdo verticalmente */
+    min-height: 100vh; /* Garante altura total da tela */
+    overflow: hidden; /* Evita overflow indesejado */
 }
 
 table th, table td {
@@ -42,16 +41,16 @@ table td {
 }
 
 button {
-    padding: 10px 20px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+    padding: 10px 20px; /* Tamanho do botão */
+    background-color: #007bff; /* Cor do botão */
+    color: white; /* Cor do texto */
+    border: none; /* Remove bordas padrão */
+    border-radius: 5px; /* Bordas arredondadas */
+    cursor: pointer; /* Adiciona ponteiro ao passar o mouse */
 }
 
 button:hover {
-    background-color: #0056b3;
+    background-color: #0056b3; /* Cor ao passar o mouse */
 }
 
 .remove-img {
@@ -103,8 +102,10 @@ button:hover {
 
 
 .button-container {
-    display: flex;
-    gap: 10px;
+    display: flex; /* Deixa os botões alinhados em linha */
+    justify-content: center; /* Centraliza os botões horizontalmente */
+    gap: 10px; /* Espaçamento entre os botões */
+    margin-top: 10px; /* Espaçamento superior */
 }
 
 .modal {
@@ -118,6 +119,7 @@ button:hover {
     height: 100%;
     overflow: auto;
     background-color: rgba(0, 0, 0, 0.5);
+    /* color: #00ff37; */
 }
 
 .modal-content {
@@ -142,10 +144,6 @@ button:hover {
 .close:focus {
     color: #000;
     text-decoration: none;
-}
-
-button {
-    margin-top: 10px;
 }
 
 .modal-content button {
@@ -192,24 +190,41 @@ button {
 }
 
 .table-container {
-    width: 100%; /* O contêiner ocupará 100% da largura disponível */
+    margin: 0 auto;
+    max-width: 120rem;
+    width: 95%; /* Faz o contêiner ocupar 90% da largura disponível */
     overflow-x: auto; /* Ativa o scroll horizontal */
-    overflow-y: hidden; /* Evita scroll vertical */
+    border: 1px solid #ccc; /* Borda para visualização */
     border-radius: 5px; /* Bordas arredondadas */
-    z-index: 1;
+    background-color: #ffffff; /* Fundo branco */
     position: relative;
+    margin-bottom: 20px;
 }
 
 table {
-    width: 100%; /* A tabela se ajusta ao contêiner */
-    min-width: 1200px; /* Define uma largura mínima maior para forçar o scroll */
-    border-collapse: collapse; /* Remove espaços entre as bordas */
+    width: auto; /* Permite ajuste automático */
+    min-width: 1000px; /* Aumente a largura mínima */
+    border-collapse: collapse; /* Remove espaços entre bordas */
     background-color: #ffffff; /* Fundo branco */
 }
 
 table th, table td {
     text-align: center; /* Centraliza o texto */
+    padding: 8px; /* Adiciona espaçamento interno */
 }
+
+.table-container::-webkit-scrollbar {
+    height: 15px; /* Altura do scroll */
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    border-radius: 5px; /* Bordas arredondadas do scroll */
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: #f1f1f1; /* Fundo do scroll */
+}
+
 /* Estilo da tabela de cotações salvas */
 #cotacoesSalvasTable {
     width: 100%;
@@ -267,16 +282,20 @@ table th, table td {
     text-align: center;
 }
 
-.img-editar {
+.img-editar,
+.img-excluir {
     width: 24px;
     height: 24px;
     cursor: pointer;
-    transition: transform 0.2s;
+    margin: 0 5px;
+    transition: transform 0.2s ease;
 }
 
-.img-editar:hover {
+.img-editar:hover,
+.img-excluir:hover {
     transform: scale(1.1);
 }
+
 
 .top-right-container {
     position: absolute;
