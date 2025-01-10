@@ -30,6 +30,7 @@
     
 
     <div id="cotacoesSalvasContainer">
+        <div id="mensagemCargasOrdenadas" class="cotacoes-ordenadas-mensagem"></div>
         <div class="titulo-principal-container">
             <img src="imagens/BG.png" alt="Logo" class="logo">
             <label class="titulo-principal">Cotações Salvas</label>
@@ -37,14 +38,53 @@
         <table id="cotacoesSalvasTable">
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Data</th>
-                    <th>Criador</th>
-                    <th>Quantidade de Itens</th>
-                    <th>Quantidade de Fornecedores</th>
-                    <th>Editar</th>
+                    <th id="apelidoHeader" onclick="ordenarTabela('apelido')">Apelido</th>
+                    <th id="dataHeader" onclick="ordenarTabela('data')">Data</th>
+                    <th id="criadorHeader" onclick="ordenarTabela('criador')">Criador</th>
+                    <th id="itensHeader" onclick="ordenarTabela('itens')">Quantidade de Itens</th>
+                    <th id="fornecedoresHeader" onclick="ordenarTabela('fornecedores')">Quantidade de Fornecedores</th>
+                    <th>Ações</th>
                 </tr>
+                <tr id="searchRow">
+                    <th>
+                        <div class="input-container">
+                            <input type="text" placeholder="Pesquisar Apelido" oninput="filtrarTabela(0, this.value)">
+                            <img src="imagens/pesquisar2.png" alt="Pesquisar">
+                        </div>
+                    </th>
+                    <th>
+                        <div class="input-container">
+                            <input type="text" placeholder="Pesquisar Data" oninput="filtrarTabela(1, this.value)">
+                            <img src="imagens/pesquisar2.png" alt="Pesquisar">
+                        </div>
+                    </th>
+                    <th>
+                        <div class="input-container">
+                            <input type="text" placeholder="Pesquisar Criador" oninput="filtrarTabela(2, this.value)">
+                            <img src="imagens/pesquisar2.png" alt="Pesquisar">
+                        </div>
+                    </th>
+                    <th>
+                        <div class="input-container">
+                            <input type="text" placeholder="Pesquisar Qtde Itens" oninput="filtrarTabela(3, this.value)">
+                            <img src="imagens/pesquisar2.png" alt="Pesquisar">
+                        </div>
+                    </th>
+                    <th>
+                        <div class="input-container">
+                            <input type="text" placeholder="Pesquisar Qtde Fornecedores" oninput="filtrarTabela(4, this.value)">
+                            <img src="imagens/pesquisar2.png" alt="Pesquisar">
+                        </div>
+                    </th>
+                    <th></th>
+                </tr>
+                
             </thead>
+            <tbody>
+                <!-- Linhas serão preenchidas dinamicamente -->
+            </tbody>
+        </table>
+        
             <tbody>
                 <!-- Linhas serão preenchidas dinamicamente -->
             </tbody>
@@ -60,12 +100,12 @@
             <img src="imagens/BG.png" alt="Logo" class="logo">
             <label class="novo_titulo">Sistema de Cotações</label>
         </div>
-        <div class="table-container parent-container">
+        <div class="table-container">
             <table id="cotacaoTable">
                 <thead>
                     <tr class="title-row">
                         <th colspan="7">Requisição de Materiais</th>
-                        <th id="fornecedoresHeader" colspan="50" style="display: none;">Fornecedor</th>
+                        <th id="fornecedoresHeader" colspan="50" style="display: none;">Fornecedores</th>
                     </tr>
                     <tr class="count-row">
                         <th colspan="7">Quantidade de itens: <span id="itemCount">0</span></th>
@@ -81,35 +121,35 @@
                     </tr>
                 </thead>
                 <tbody></tbody>
-            <tbody></tbody>
-            <tfoot>
-                <tr id="linhaDesconto">
-                    <th colspan="7">Desconto (%)</th>
-                </tr>
-                <tr id="linhaSubtotal">
-                    <th colspan="7">Subtotal</th>
-                </tr>
-                <tr id="linhaFrete">
-                    <th colspan="7">Frete (R$)</th>
-                </tr>
-                <tr id="linhaCondicaoPagar">
-                    <th colspan="7">Condição de Pagamento</th>
-                </tr>
-                <tr id="linhaTotal">
-                    <th colspan="7">Total</th>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
+                <tfoot>
+                    <tr id="linhaDesconto">
+                        <th colspan="7">Desconto (%)</th>
+                    </tr>
+                    <tr id="linhaSubtotal">
+                        <th colspan="7">Subtotal</th>
+                    </tr>
+                    <tr id="linhaFrete">
+                        <th colspan="7">Frete (R$)</th>
+                    </tr>
+                    <tr id="linhaCondicaoPagar">
+                        <th colspan="7">Condição de Pagamento</th>
+                    </tr>
+                    <tr id="linhaTotal">
+                        <th colspan="7">Total</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
     
 
     <div class="button-container">
         <button onclick="adicionarLinha()">Adicionar Item</button>
         <button onclick="abrirModal()">Adicionar Fornecedor</button>
-        <button onclick="salvarObjeto()">Salvar</button>
+        <button onclick="abrirModalApelido()">Salvar</button>
         <p id="salvarAviso" class="salvar-aviso" style="display: none;">Cotação salva com sucesso!</p>
+        <button onclick="voltarParaTabela()" class="btn-voltar">Voltar</button>
     </div>
-    <button onclick="voltarParaTabela()" class="btn-voltar">Voltar</button>
     
     
 
@@ -125,7 +165,17 @@
         </div>
     </div>
     
+    <div id="modalApelido" class="modal">
+        <div class="modal-content">
+            <button class="close" onclick="fecharModalApelido()">&times;</button>
+            <h2>Defina um apelido para a cotação</h2>
+            <label for="inputApelido">Apelido:</label>
+            <input type="text" id="inputApelido" placeholder="Digite um apelido para a cotação">
+            <button onclick="salvarObjeto()" id="confirmarApelidoButton">Salvar Apelido</button>
+        </div>
+    </div>
     
+      
 
 </body>
 

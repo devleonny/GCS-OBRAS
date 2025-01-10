@@ -1,12 +1,28 @@
 body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
+    margin: 0; /* Remove qualquer margem extra */
+    padding: 0; /* Remove padding extra */
+    display: flex;
+    justify-content: center; /* Centraliza o conteúdo horizontalmente */
+    align-items: center; /* Centraliza o conteúdo verticalmente */
+    min-height: 100vh; /* Garante altura total da tela */
+    overflow: hidden; /* Evita overflow indesejado */
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
+th {
+    cursor: pointer;
+    position: relative;
+}
+
+th span.ordem-icone {
+    position: absolute;
+    right: 8px; /* Ajuste conforme necessário */
+    font-size: 0.8em;
+    color: #666; /* Cor discreta */
+    pointer-events: none; /* Não interfere no clique do cabeçalho */
+}
+
+th.ordenado span.ordem-icone {
+    color: #000; /* Destaca o ícone do cabeçalho ordenado */
 }
 
 table th, table td {
@@ -42,16 +58,12 @@ table td {
 }
 
 button {
-    padding: 10px 20px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-button:hover {
-    background-color: #0056b3;
+    padding: 10px 20px; /* Tamanho do botão */
+    background-color: #007bff; /* Cor do botão */
+    color: white; /* Cor do texto */
+    border: none; /* Remove bordas padrão */
+    border-radius: 5px; /* Bordas arredondadas */
+    cursor: pointer; /* Adiciona ponteiro ao passar o mouse */
 }
 
 .remove-img {
@@ -103,8 +115,10 @@ button:hover {
 
 
 .button-container {
-    display: flex;
-    gap: 10px;
+    display: flex; /* Deixa os botões alinhados em linha */
+    justify-content: center; /* Centraliza os botões horizontalmente */
+    gap: 10px; /* Espaçamento entre os botões */
+    margin-top: 10px; /* Espaçamento superior */
 }
 
 .modal {
@@ -118,44 +132,59 @@ button:hover {
     height: 100%;
     overflow: auto;
     background-color: rgba(0, 0, 0, 0.5);
+
 }
 
 .modal-content {
-    background-color: #fff;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 50%;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
+    position: relative; /* Garante que o botão .close seja posicionado em relação ao modal */
+    padding: 20px; /* Espaçamento interno */
+    border: 1px solid #888; /* Borda do modal */
+    width: 50%; /* Largura do modal */
+    margin: 15% auto; /* Centraliza o modal */
+    border-radius: 8px; /* Bordas arredondadas */
+    background-color: #fff; /* Fundo do modal */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adiciona sombra */
 }
 
+
+
 .close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
+    position: absolute; /* Posiciona dentro do modal */
+    top: 10px; /* Ajusta a posição no topo */
+    right: 10px; /* Ajusta a posição à direita */
+    color: white; /* Cor do texto (branco) */
+    font-size: 20px; /* Tamanho da fonte */
+    font-weight: bold; /* Peso da fonte */
+    background-color: red; /* Fundo vermelho */
+    border: none; /* Remove a borda */
+    cursor: pointer; /* Adiciona o cursor de clique */
+    border-radius: 50%; /* Botão arredondado */
+    width: 30px; /* Largura do botão */
+    height: 30px; /* Altura do botão */
+    display: flex; /* Centraliza o conteúdo */
+    justify-content: center; /* Centraliza horizontalmente */
+    align-items: center; /* Centraliza verticalmente */
+    z-index: 1001; /* Garante que fique acima do conteúdo */
+    transition: opacity 0.3s ease; /* Adiciona uma transição suave */
+    box-shadow: none; /* Remove sombra */
 }
+
 
 .close:hover,
 .close:focus {
-    color: #000;
-    text-decoration: none;
+    opacity: 0.8; /* Reduz opacidade ao passar o mouse */
+    outline: none; /* Remove o foco padrão */
 }
 
-button {
-    margin-top: 10px;
-}
+
 
 .modal-content button {
-    margin: 10px 5px;
-}
-
-.modal-content .close {
+    margin-top: 15px;
+    padding: 10px 20px;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
     cursor: pointer;
-    color: red;
-    font-size: 20px;
 }
 
 #listaFornecedores {
@@ -192,24 +221,41 @@ button {
 }
 
 .table-container {
-    width: 100%; /* O contêiner ocupará 100% da largura disponível */
+    margin: 0 auto;
+    max-width: 120rem;
+    width: 95%; /* Faz o contêiner ocupar 90% da largura disponível */
     overflow-x: auto; /* Ativa o scroll horizontal */
-    overflow-y: hidden; /* Evita scroll vertical */
+    border: 1px solid #ccc; /* Borda para visualização */
     border-radius: 5px; /* Bordas arredondadas */
-    z-index: 1;
+    background-color: #ffffff; /* Fundo branco */
     position: relative;
+    margin-bottom: 20px;
 }
 
 table {
-    width: 100%; /* A tabela se ajusta ao contêiner */
-    min-width: 1200px; /* Define uma largura mínima maior para forçar o scroll */
-    border-collapse: collapse; /* Remove espaços entre as bordas */
+    width: auto; /* Permite ajuste automático */
+    min-width: 1000px; /* Aumente a largura mínima */
+    border-collapse: collapse; /* Remove espaços entre bordas */
     background-color: #ffffff; /* Fundo branco */
 }
 
 table th, table td {
     text-align: center; /* Centraliza o texto */
+    padding: 8px; /* Adiciona espaçamento interno */
 }
+
+.table-container::-webkit-scrollbar {
+    height: 15px; /* Altura do scroll */
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    border-radius: 5px; /* Bordas arredondadas do scroll */
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: #f1f1f1; /* Fundo do scroll */
+}
+
 /* Estilo da tabela de cotações salvas */
 #cotacoesSalvasTable {
     width: 100%;
@@ -232,6 +278,11 @@ table th, table td {
 #cotacoesSalvasTable tbody tr:hover {
     background-color: #f9f9f9;
     cursor: pointer;
+}
+
+#cotacoesSalvasTable th:first-child,
+#cotacoesSalvasTable td:first-child {
+    text-align: left;
 }
 
 /* Botão de Nova Cotação */
@@ -267,16 +318,20 @@ table th, table td {
     text-align: center;
 }
 
-.img-editar {
+.img-editar,
+.img-excluir {
     width: 24px;
     height: 24px;
     cursor: pointer;
-    transition: transform 0.2s;
+    margin: 0 5px;
+    transition: transform 0.2s ease;
 }
 
-.img-editar:hover {
+.img-editar:hover,
+.img-excluir:hover {
     transform: scale(1.1);
 }
+
 
 .top-right-container {
     position: absolute;
@@ -337,4 +392,69 @@ table th, table td {
     margin: 0;
     background-color: transparent;
     text-align: center;
+}
+
+#mensagemCargasOrdenadas {
+    position: absolute;
+    top: 20px; /* Ajuste conforme necessário */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #fff; /* Fundo branco */
+    color: #333; /* Cor do texto */
+    font-size: 14px;
+    font-weight: bold;
+    padding: 10px 20px;
+    border: 1px solid #ccc; /* Borda cinza */
+    border-radius: 10px; /* Bordas arredondadas */
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Sombra suave */
+    z-index: 1000;
+    display: none; /* Escondido por padrão */
+}
+
+#searchRow th {
+    background-color: transparent; /* Remove o fundo azul */
+    color: #333; /* Cor do texto */
+    font-weight: normal; /* Texto normal */
+}
+
+/* Estilo dos inputs dentro da linha de busca */
+#searchRow th input {
+    width: 90%; /* Ajusta a largura do input */
+    padding: 5px; /* Espaçamento interno */
+    border: 1px solid #ccc; /* Borda discreta */
+    border-radius: 4px; /* Bordas arredondadas */
+    background-color: #fff; /* Fundo branco */
+    color: #333; /* Cor do texto */
+}
+
+/* Foco nos inputs da linha de busca */
+#searchRow th input:focus {
+    border-color: #007bff; /* Cor da borda ao focar */
+    outline: none; /* Remove o contorno padrão */
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Sombra suave ao focar */
+}
+
+/* Estilo para o contêiner do input e da imagem */
+.input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* Estilo do input */
+.input-container input {
+    width: 90%; /* Ajusta a largura do input */
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    color: #333;
+}
+
+/* Estilo da imagem da lupa */
+.input-container img {
+    width: 16px; /* Define o tamanho da imagem */
+    height: 16px;
+    margin-left: 5px; /* Espaço entre o input e a imagem */
+    cursor: pointer; /* Adiciona um cursor ao passar o mouse */
 }

@@ -1,4 +1,3 @@
-let contador = 1;
 let linhasAtuais = [];
 let quantidadeFornecedores = 0;
 
@@ -19,12 +18,22 @@ function atualizarQuantidadeItens() {
 }
 
 function adicionarLinha() {
-
     const fornecedoresHeader = document.getElementById("fornecedoresHeader");
     const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
     const novaLinha = document.createElement("tr");
+    let operacao = localStorage.getItem("operacao");
 
-    novaLinha.setAttribute("id",`linha-${contador}`)
+    // Obtém o número do item anterior para determinar o próximo número
+    let ultimoNumeroItem = 0;
+    if (tabela.children.length > 0) {
+        ultimoNumeroItem = parseInt(
+            tabela.lastElementChild.querySelector("td:nth-child(2)").textContent
+        );
+    }
+
+    const numeroItemAtual = ultimoNumeroItem + 1
+
+    novaLinha.setAttribute("id", `linha-${numeroItemAtual}`);
 
     const acao = document.createElement("td");
     const removeImg = document.createElement("img");
@@ -32,17 +41,16 @@ function adicionarLinha() {
     removeImg.alt = "Remover";
     removeImg.className = "remove-img";
     removeImg.onclick = () => {
-
         tabela.removeChild(novaLinha);
         atualizarQuantidadeItens();
-        linhasAtuais = linhasAtuais.filter(item => item !== novaLinha)
+        linhasAtuais = linhasAtuais.filter((item) => item !== novaLinha);
     };
 
     acao.appendChild(removeImg);
     novaLinha.appendChild(acao);
 
     const numeroItem = document.createElement("td");
-    numeroItem.textContent = contador++;
+    numeroItem.textContent = numeroItemAtual;
     novaLinha.appendChild(numeroItem);
 
     const partnumber = document.createElement("td");
@@ -76,7 +84,7 @@ function adicionarLinha() {
     inputQuantidade.type = "number";
     inputQuantidade.min = "1";
     inputQuantidade.placeholder = "Digite a quantidade";
-    inputQuantidade.id = `quantidade-${contador - 1}`
+    inputQuantidade.id = `quantidade-${numeroItemAtual}`;
     quantidade.appendChild(inputQuantidade);
     novaLinha.appendChild(quantidade);
 
@@ -87,70 +95,83 @@ function adicionarLinha() {
     estoque.appendChild(inputEstoque);
     novaLinha.appendChild(estoque);
 
-    linhasAtuais.push(novaLinha)
-    
-    if(fornecedoresHeader.style.display == "table-cell"){
+    linhasAtuais.push(novaLinha);
 
-        let linhaAtualQuantidade = inputQuantidade.id[11]
+    if (fornecedoresHeader.style.display == "table-cell") {
+        let linhaAtualQuantidade = numeroItemAtual;
 
-        for(let i = 1; i <= quantidadeFornecedores; i++){
+        const dados = JSON.parse(localStorage.getItem("dados_cotacao"));
+        let cotacaoEditarID = localStorage.getItem("cotacaoEditandoID");
 
-            let tdPrecoUnitario = document.createElement("td")
-            let inputPrecoUnitario = document.createElement("input")
-            inputPrecoUnitario.type = "number"
-            inputPrecoUnitario.placeholder = "Digite o preço unitário"
-            inputPrecoUnitario.id = `precoUnitario-${i}-${linhaAtualQuantidade}`
-
-            let linhaQuantidade = inputPrecoUnitario.id[16]
-            let numeroDoFornecedor = inputPrecoUnitario.id[14]
-            
-            inputQuantidade.addEventListener('input', () =>{
-                
-                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0
-                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0
-                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`)
-
-                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`
-
-            })
-            
-            tdPrecoUnitario.appendChild(inputPrecoUnitario)
-            
-            let tdPrecototal = document.createElement("td")
-            let inputPrecoTotal = document.createElement("input")
-            inputPrecoTotal.type = 'text'
-            inputPrecoTotal.readOnly = "true"
-            
-            inputPrecoTotal.id = `precoTotal-${i}-${linhaAtualQuantidade}`
-
-            inputPrecoTotal.classList.add(`resultadoPrecoTotal-linha-${linhaAtualQuantidade}`)
-            inputPrecoTotal.classList.add(`resultadoPrecoTotal-fornecedor-${i}`)
-            
-            tdPrecototal.appendChild(inputPrecoTotal)
-            
-            inputPrecoUnitario.addEventListener('input', () =>{
-                
-                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0
-                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0
-                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`)
-
-                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`
-
-                decidirMelhorOferta(linhaQuantidade)
-
-            })
-
-            novaLinha.append(tdPrecoUnitario, tdPrecototal)
-
+        if (operacao == "editar") {
+            quantidadeFornecedores = dados[cotacaoEditarID].dados[0].fornecedores.length;
         }
-        
-        
+
+        for (let i = 1; i <= quantidadeFornecedores; i++) {
+            let tdPrecoUnitario = document.createElement("td");
+            let inputPrecoUnitario = document.createElement("input");
+            inputPrecoUnitario.type = "number";
+            inputPrecoUnitario.placeholder = "Digite o preço unitário";
+            inputPrecoUnitario.id = `precoUnitario-${i}-${linhaAtualQuantidade}`;
+
+            let linhaQuantidade = inputPrecoUnitario.id.split("-")[2];
+            let numeroDoFornecedor = inputPrecoUnitario.id.split("-")[1];
+
+            inputQuantidade.addEventListener("input", () => {
+                let quantidadeAtual =
+                    Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) ||
+                    0;
+                let precoUnitarioAtual =
+                    Number(
+                        document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value
+                    ) || 0;
+                let precoTotalAtual = document.querySelector(
+                    `#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`
+                );
+
+                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+            });
+
+            tdPrecoUnitario.appendChild(inputPrecoUnitario);
+
+            let tdPrecototal = document.createElement("td");
+            let inputPrecoTotal = document.createElement("input");
+            inputPrecoTotal.type = "text";
+            inputPrecoTotal.readOnly = true;
+
+            inputPrecoTotal.id = `precoTotal-${i}-${linhaAtualQuantidade}`;
+
+            inputPrecoTotal.classList.add(`resultadoPrecoTotal-linha-${linhaAtualQuantidade}`);
+            inputPrecoTotal.classList.add(`resultadoPrecoTotal-fornecedor-${i}`);
+
+            tdPrecototal.appendChild(inputPrecoTotal);
+
+            inputPrecoUnitario.addEventListener("input", () => {
+                let quantidadeAtual =
+                    Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) ||
+                    0;
+                let precoUnitarioAtual =
+                    Number(
+                        document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value
+                    ) || 0;
+                let precoTotalAtual = document.querySelector(
+                    `#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`
+                );
+
+                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+
+                decidirMelhorOferta(linhaQuantidade);
+            });
+
+            novaLinha.append(tdPrecoUnitario, tdPrecototal);
+        }
     }
 
-    tabela.appendChild(novaLinha)
+    tabela.appendChild(novaLinha);
 
     atualizarQuantidadeItens();
 }
+
 
 function mostrarSugestoes(input, partnumberCell, estoqueCell) {
     const listaMateriais = JSON.parse(localStorage.getItem("dados_materiais")) || {};
@@ -196,110 +217,140 @@ function fecharModal() {
 }
 
 function salvarFornecedor() {
+    // Verifica quantos fornecedores já existem no localStorage se a operação for "editar"
+    let operacao = localStorage.getItem("operacao");
+    let fornecedoresExistentes = 0;
 
-    quantidadeFornecedores++;
+    if (operacao === "editar") {
+        const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+        const cotacaoEditandoID = localStorage.getItem("cotacaoEditandoID");
+
+        if (cotacoes[cotacaoEditandoID] && cotacoes[cotacaoEditandoID].dados.length > 0) {
+            fornecedoresExistentes = cotacoes[cotacaoEditandoID].dados[0].fornecedores.length;
+        }
+    }
+
+    // Atualiza a quantidade de fornecedores
+    quantidadeFornecedores = fornecedoresExistentes + 1;
+
+    // Conta quantas linhas existem atualmente na tabela
+    const tabela = document.querySelector("#cotacaoTable tbody");
+    const numeroLinhas = tabela.querySelectorAll("tr").length; // Total de linhas na tabela
 
     const input = document.getElementById("pesquisarFornecedor");
-    const trNomeFornecedor = document.querySelector(".count-row")
-    const thNomeFornecedor = document.createElement("th")
-    const trTopicostabela = document.querySelector("#topicos-tabela")
-    const thPrecoUnitario = document.createElement("th")
-    const thPrecoTotal = document.createElement("th")
+    const sugestoes = document.getElementById("listaFornecedores");
+    const mensagemErro = document.getElementById("mensagemErro");
 
-    thPrecoUnitario.textContent = "Preço Unitário"
-    thPrecoTotal.textContent = "Preço Total"
+    const trNomeFornecedor = document.querySelector(".count-row");
+    const thNomeFornecedor = document.createElement("th");
+    const trTopicostabela = document.querySelector("#topicos-tabela");
+    const thPrecoUnitario = document.createElement("th");
+    const thPrecoTotal = document.createElement("th");
 
-    thNomeFornecedor.colSpan = "2"
+    thPrecoUnitario.textContent = "Preço Unitário";
+    thPrecoTotal.textContent = "Preço Total";
+
+    thNomeFornecedor.colSpan = "2";
 
     if (input.value.trim() !== "") {
         nomeFornecedor = input.value.trim();
-        alert(`Fornecedor "${nomeFornecedor}" foi adicionado com sucesso!`);
 
-        let linhaAtualQuantidade = 1
+        // Limpa o campo "pesquisarFornecedor" e oculta as sugestões
+        input.value = "";
+        sugestoes.style.display = "none";
 
-        for(linha of linhasAtuais){
+        // Remove mensagem de erro, caso exista
+        if (mensagemErro) mensagemErro.textContent = "";
 
-            let tdPrecoUnitario = document.createElement("td")
-            let inputPrecoUnitario = document.createElement("input")
-            inputPrecoUnitario.type = "number"
-            inputPrecoUnitario.placeholder = "Digite o preço unitário"
-            inputPrecoUnitario.id = `precoUnitario-${quantidadeFornecedores}-${linhaAtualQuantidade}`
+        // Percorre cada linha existente na tabela para criar os inputs necessários
+        for (let linhaAtualQuantidade = 1; linhaAtualQuantidade <= numeroLinhas; linhaAtualQuantidade++) {
+            let tdPrecoUnitario = document.createElement("td");
+            let inputPrecoUnitario = document.createElement("input");
+            inputPrecoUnitario.type = "number";
+            inputPrecoUnitario.placeholder = "Digite o preço unitário";
+            inputPrecoUnitario.id = `precoUnitario-${quantidadeFornecedores}-${linhaAtualQuantidade}`;
 
-            let inputQuantidade = document.querySelector(`#quantidade-${linhaAtualQuantidade}`)
+            let inputQuantidade = document.querySelector(`#quantidade-${linhaAtualQuantidade}`);
 
-            let linhaQuantidade = inputPrecoUnitario.id[16]
-            let numeroDoFornecedor = inputPrecoUnitario.id[14]
+            let linhaQuantidade = linhaAtualQuantidade;
+            let numeroDoFornecedor = quantidadeFornecedores;
 
-            inputQuantidade.addEventListener('input', () =>{
-                
-                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0
-                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0
-                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`)
+            inputQuantidade.addEventListener("input", () => {
+                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
+                let precoUnitarioAtual = Number(
+                    document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value
+                ) || 0;
+                let precoTotalAtual = document.querySelector(
+                    `#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`
+                );
 
-                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`
+                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+            });
 
-            })
-            
-            inputPrecoUnitario.addEventListener('input', () =>{
-                
-                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0
-                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0
-                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`)
+            inputPrecoUnitario.addEventListener("input", () => {
+                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
+                let precoUnitarioAtual = Number(
+                    document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value
+                ) || 0;
+                let precoTotalAtual = document.querySelector(
+                    `#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`
+                );
 
-                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`
+                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
 
-                decidirMelhorOferta(linhaQuantidade)
+                decidirMelhorOferta(linhaQuantidade);
+            });
 
-            })
+            tdPrecoUnitario.appendChild(inputPrecoUnitario);
 
-            tdPrecoUnitario.appendChild(inputPrecoUnitario)
-            
-            let tdPrecototal = document.createElement("td")
-            let inputPrecoTotal = document.createElement("input")
-            inputPrecoTotal.type = 'text'
-            inputPrecoTotal.readOnly = "true"
-            
-            inputPrecoTotal.id = `precoTotal-${quantidadeFornecedores}-${linhaAtualQuantidade}`
+            let tdPrecototal = document.createElement("td");
+            let inputPrecoTotal = document.createElement("input");
+            inputPrecoTotal.type = "text";
+            inputPrecoTotal.readOnly = "true";
 
-            inputPrecoTotal.classList.add(`resultadoPrecoTotal-linha-${linhaAtualQuantidade}`)
-            inputPrecoTotal.classList.add(`resultadoPrecoTotal-fornecedor-${quantidadeFornecedores}`)
+            inputPrecoTotal.id = `precoTotal-${quantidadeFornecedores}-${linhaAtualQuantidade}`;
 
-            linhaAtualQuantidade++;
+            inputPrecoTotal.classList.add(`resultadoPrecoTotal-linha-${linhaAtualQuantidade}`);
+            inputPrecoTotal.classList.add(`resultadoPrecoTotal-fornecedor-${quantidadeFornecedores}`);
 
-            tdPrecototal.append(inputPrecoTotal)
+            tdPrecototal.append(inputPrecoTotal);
 
-            let linhaParaAdicionar = document.querySelector(`#${linha.id}`)
-
-            linhaParaAdicionar.append(tdPrecoUnitario,tdPrecototal)
-
-            input.value = ""
-
+            // Adiciona os novos inputs na linha correspondente
+            let linhaParaAdicionar = document.querySelector(`#linha-${linhaAtualQuantidade}`);
+            linhaParaAdicionar.append(tdPrecoUnitario, tdPrecototal);
         }
 
-        adiconarFooter()
+        adiconarFooter();
 
         const fornecedoresHeader = document.getElementById("fornecedoresHeader");
 
         fornecedoresHeader.style.display = "table-cell";
 
-        thNomeFornecedor.textContent = nomeFornecedor
+        thNomeFornecedor.textContent = nomeFornecedor;
 
+        trNomeFornecedor.appendChild(thNomeFornecedor);
 
-        
-        trNomeFornecedor.appendChild(thNomeFornecedor)
-
-        trTopicostabela.append(thPrecoUnitario,thPrecoTotal)
+        trTopicostabela.append(thPrecoUnitario, thPrecoTotal);
 
         fecharModal();
 
         console.log("Fornecedor salvo:", nomeFornecedor);
-
     } else {
-
-        alert("Por favor, digite um nome válido.");
-
+        // Adiciona ou exibe mensagem de erro em vermelho abaixo do campo
+        if (!mensagemErro) {
+            const novoErro = document.createElement("span");
+            novoErro.id = "mensagemErro";
+            novoErro.style.color = "red";
+            novoErro.style.fontSize = "12px";
+            novoErro.textContent = "Por favor, digite um nome válido.";
+            input.parentElement.appendChild(novoErro);
+        } else {
+            mensagemErro.textContent = "Por favor, digite um nome válido.";
+        }
     }
 }
+
+
 
 function esconderFornecedores() {
 
@@ -435,7 +486,7 @@ function calculoTotal(numeroFornecedor){
 
     let tdSubtotal = parseFloat(document.querySelector(`#input-subtotal-${numeroFornecedor}`).value.slice(3))
 
-    inputTotal = document.querySelector(`#input-total-${numeroFornecedor}`)
+    let inputTotal = document.querySelector(`#input-total-${numeroFornecedor}`)
 
     inputTotal.value = `R$ ${(tdSubtotal + tdFrete).toFixed(2)}`
 
@@ -455,10 +506,13 @@ function estilizarMelhorPreco(listaValores, menorValor){
 
         if(menorValor == valorReal){
 
-            valor.style.backgroundColor = "green"
+            valor.parentElement.style.backgroundColor =  "#00ff37"
+            valor.style.backgroundColor = "#00ff37"
+
 
         }else{
 
+            valor.parentElement.style.backgroundColor =  "white"
             valor.style.backgroundColor = "white"
 
         }
@@ -550,43 +604,41 @@ resultados.forEach(fornecedor => {
 
 }
 
-
 function salvarObjeto() {
     const informacoes = salvarInformacoes();
     const dados = salvarDados();
     const valorFinal = salvarValorFinal();
+    const operacao = localStorage.getItem("operacao");
+    const status = "ativo"
 
-    const novaCotacao = { informacoes, dados, valorFinal };
+    const novaCotacao = { informacoes, dados, valorFinal, operacao, status };
 
-    let cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || [];
-    const indexEditando = localStorage.getItem("cotacaoEditandoIndex");
-
-    if (indexEditando !== null && indexEditando !== undefined && cotacoes[indexEditando]) {
-        // Atualiza a cotação existente
-        cotacoes[indexEditando] = novaCotacao;
-        localStorage.removeItem("cotacaoEditandoIndex"); // Remove o estado de edição
-    } else {
-        // Adiciona uma nova cotação
-        cotacoes.push(novaCotacao);
-    }
-
-    let dadosCotacao = {
-
+    // Envia a nova cotação para a API
+    const payload = {
         tabela: "cotacoes",
-        cotacao: novaCotacao
+        cotacao: novaCotacao,
+    };
 
-    }
+    enviar_dados_generico(payload); // Envia os dados para a API
 
-    enviar_dados_generico(dadosCotacao)
-
+    // Exibe mensagem de sucesso
     const aviso = document.getElementById("salvarAviso");
     aviso.style.display = "block";
     setTimeout(() => (aviso.style.display = "none"), 3000);
 
+    console.log("Cotação salva:", informacoes.apelidoCotacao);
+    
+    // Atualiza a tabela com os novos dados
+    fecharModalApelido();
+
+    carregarCotacoesSalvas();
 }
+
+
 
 // Função para salvar as informações gerais (id, data, hora, criador)
 function salvarInformacoes() {
+    const operacao = localStorage.getItem("operacao");
     const now = new Date();
     const dia = String(now.getDate()).padStart(2, "0");
     const mes = String(now.getMonth() + 1).padStart(2, "0");
@@ -598,35 +650,30 @@ function salvarInformacoes() {
     const dataFormatada = `${dia}/${mes}/${ano}`;
     const horaFormatada = `${horas}:${minutos}:${segundos}`;
 
+    const apelidoCotacao = document.getElementById("inputApelido").value;
+
     // Obter o criador do localStorage
     const acesso = JSON.parse(localStorage.getItem("acesso"));
     const criador = acesso?.usuario || "Desconhecido";
 
-    // Recuperar cotações existentes
-    const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || [];
+    // Geração do ID único usando a função unicoID
+    if(operacao == "incluir"){
 
-    // Filtrar cotações do mesmo dia e criador
-    const cotacoesDoDia = cotacoes.filter(cotacao => {
-        return (
-            cotacao.informacoes.data === dataFormatada &&
-            cotacao.informacoes.criador === criador
-        );
-    });
+        id = unicoID();
 
-    // Determinar o próximo número para o criador no mesmo dia
-    const numero = cotacoesDoDia.length + 1;
-    const id = `Cotacao-${dataFormatada}-N${numero}`;
+    }else if(operacao == "editar"){
+        id =  localStorage.getItem("cotacaoEditandoID");
+
+    }
 
     return {
         id,
         data: dataFormatada,
         hora: horaFormatada,
-        criador
+        criador,
+        apelidoCotacao
     };
 }
-
-
-
 // Função para salvar os dados dos itens
 function salvarDados() {
     const tabela = document.getElementById("cotacaoTable");
@@ -693,12 +740,30 @@ function salvarValorFinal() {
     });
 }
 
+function abrirModalApelido(){
+
+    const modal = document.getElementById("modalApelido");
+    const input = document.getElementById("inputApelido");
+    const button = document.getElementById("confirmarApelidoButton");
+
+    modal.style.display = "block";
+    input.value = "";
+
+}
+
+function fecharModalApelido() {
+    const modal = document.getElementById("modalApelido");
+    modal.style.display = "none";
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     carregarCotacoesSalvas();
 
     document.getElementById("novaCotacaoButton").addEventListener("click", () => {
         document.getElementById("cotacoesSalvasContainer").style.display = "none";
         document.getElementById("novaCotacaoContainer").style.display = "block";
+        localStorage.setItem("operacao", "incluir");
+
     });
 });
 
@@ -707,217 +772,234 @@ function carregarCotacoesSalvas() {
     const tabelaBody = document.getElementById("cotacoesSalvasTable").querySelector("tbody");
     tabelaBody.innerHTML = "";
 
-    const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || [];
-    cotacoes.forEach((cotacao, index) => {
+    const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+
+    // Verifica se há cotações
+    if (Object.keys(cotacoes).length === 0) {
+        const linhaMensagem = document.createElement("tr");
+        const celulaMensagem = document.createElement("td");
+        celulaMensagem.colSpan = 6; // Número de colunas na tabela
+        celulaMensagem.textContent = "Não existem cotações disponíveis.";
+        celulaMensagem.style.textAlign = "center"; // Centraliza a mensagem
+        celulaMensagem.style.color = "gray"; // Adiciona uma cor para destaque
+        linhaMensagem.appendChild(celulaMensagem);
+        tabelaBody.appendChild(linhaMensagem);
+        return;
+    }
+
+    // Transforma as cotações em um array e ordena pela data e hora
+    const cotacoesOrdenadas = Object.entries(cotacoes).sort((a, b) => {
+        const dataA = new Date(`${a[1].informacoes.data} ${a[1].informacoes.hora}`);
+        const dataB = new Date(`${b[1].informacoes.data} ${b[1].informacoes.hora}`);
+        return dataB - dataA; // Ordem decrescente (mais recente primeiro)
+    });
+
+    cotacoesOrdenadas.forEach(([id, cotacao]) => {
         const linha = document.createElement("tr");
 
         linha.innerHTML = `
-            <td>${cotacao.informacoes.id}</td>
+            <td>${cotacao.informacoes.apelidoCotacao || 'Sem Apelido'}</td>
             <td>${cotacao.informacoes.data}</td>
             <td>${cotacao.informacoes.criador}</td>
             <td>${cotacao.dados.length}</td>
             <td>${cotacao.valorFinal.length}</td>
             <td>
-                <img src="imagens/pesquisar2.png" alt="Editar" class="img-editar" onclick="editarCotacao(${index})">
+                <img src="imagens/editar.png" alt="Editar" class="img-editar" onclick="editarCotacao('${id}')">
+                <img src="imagens/excluir.png" alt="Excluir" class="img-excluir" onclick="removerCotacao(this)">
             </td>
+            <td style="display:none;" class="cotacao-id">${id}</td> <!-- Adiciona o ID oculto -->
         `;
 
         tabelaBody.appendChild(linha);
     });
+
+    // Exibe a mensagem "Cotações Carregadas e Ordenadas!"
+    const mensagemDiv = document.getElementById("mensagemCargasOrdenadas");
+    if (mensagemDiv) {
+        mensagemDiv.textContent = "Cotações Carregadas e Ordenadas!";
+        mensagemDiv.style.display = "block";
+
+        setTimeout(() => {
+            mensagemDiv.style.display = "none";
+        }, 5000);
+    } else {
+        console.warn("Elemento mensagemCargasOrdenadas não encontrado.");
+    }
 }
 
-function editarCotacao(index) {
-    const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || [];
-    const cotacao = cotacoes[index];
-    localStorage.setItem("cotacaoEditandoIndex", index);
 
+
+
+
+
+function editarCotacao(id) {
+    const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+    const cotacao = cotacoes[id];
+
+    if (!cotacao) {
+        console.error(`Cotação com ID ${id} não encontrada.`);
+        return;
+    }
+
+    // Define a operação como editar
+    localStorage.setItem("operacao", "editar");
+    localStorage.setItem("cotacaoEditandoID", id);
+
+    // Preenche o formulário com os dados da cotação
     preencherFormularioCotacao(cotacao);
 
+    // Atualiza o valor de "Quantidade de Itens"
+    atualizarQuantidadeItens();
+
+    // Exibe a tela de edição
     document.getElementById("cotacoesSalvasContainer").style.display = "none";
     document.getElementById("novaCotacaoContainer").style.display = "block";
+
+    // Itera sobre cada linha da tabela e chama decidirMelhorOferta
+    const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
+    const linhas = tabela.children;
+
+    for (let i = 0; i < linhas.length; i++) {
+        const numeroItem = linhas[i].querySelector("td:nth-child(2)").textContent;
+        decidirMelhorOferta(numeroItem);
+    }
+
+    // Atualiza os destaques de menor subtotal e menor total
+    const inputsSubtotal = document.querySelectorAll(".inputs-subtotal");
+    const inputsTotal = document.querySelectorAll(".inputs-total");
+
+    const menorSubtotal = descobrirMenorValor(inputsSubtotal);
+    const menorTotal = descobrirMenorValor(inputsTotal);
+
+    estilizarMelhorPreco(inputsSubtotal, menorSubtotal);
+    estilizarMelhorPreco(inputsTotal, menorTotal);
+
+    console.log(`Cotação editada: ID ${id}`);
+}
+
+
+// Função para encontrar o menor valor entre uma lista de inputs
+function descobrirMenorValor(inputs) {
+    let menorValor = Infinity;
+
+    inputs.forEach(input => {
+        const valor = parseFloat(input.value.replace("R$", "").trim()) || Infinity;
+        if (valor < menorValor) {
+            menorValor = valor;
+        }
+    });
+
+    return menorValor;
 }
 
 
 function preencherFormularioCotacao(cotacao) {
+
     const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
     tabela.innerHTML = "";
 
+    // Adicionar as linhas de dados dos itens
     cotacao.dados.forEach(dado => adicionarLinhaComDados(dado));
 
-    if(cotacao.dados[0].fornecedores.length > 0){
+    // Verificar se há fornecedores
+    if (cotacao.dados[0].fornecedores.length > 0) {
 
-        const linhaTitleRow = document.querySelector(".title-row")
-        const thFornecedores = document.createElement("th")
+        const fornecedoresHeader = document.getElementById("fornecedoresHeader");
+        fornecedoresHeader.style.display = "table-cell";
 
-        thFornecedores.textContent = "Fornecedores"
-
-        thFornecedores.setAttribute("colspan", "999")
-
-        linhaTitleRow.appendChild(thFornecedores)
-
+        // Adicionar cabeçalhos de fornecedores
         cotacao.dados[0].fornecedores.forEach(dado => adicionarNomeFornecedores(dado));
 
-        cotacao.valorFinal.forEach(dado => adicionarValorFinal(dado))
-
-    }
-
-}
-
-
-
-// Função para adicionar uma linha com dados no formulário
-function adicionarLinhaComDados(dado, fornecedores, linhaIndex) {
-    const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
-    const novaLinha = document.createElement("tr");
-
-    // Preenche os dados básicos do item
-    novaLinha.innerHTML = `
-        <td>
-            <img src="imagens/remover.png" alt="Remover" class="remove-img" onclick="removerLinha(this)">
-        </td>
-        <td>${dado.numeroItem}</td>
-        <td><input type="text" value="${dado.partnumber}" readonly></td>
-        <td><input type="text" value="${dado.nomeItem}"></td>
-        <td><input type="text" value="${dado.tipoUnitario}"></td>
-        <td><input type="number" value="${dado.quantidade}" min="1"></td>
-        <td><input type="text" value="${dado.estoque}" readonly></td>
-    `;
-
-    // Adiciona as colunas para cada fornecedor
-    fornecedores.forEach((fornecedor, fornecedorIndex) => {
-        const tdPrecoUnitario = document.createElement("td");
-        const tdPrecoTotal = document.createElement("td");
-
-        const inputPrecoUnitario = document.createElement("input");
-        const inputPrecoTotal = document.createElement("input");
-
-        inputPrecoUnitario.type = "number";
-        inputPrecoUnitario.value = fornecedor.itens[linhaIndex]?.precoUnitario || ""; // Preenche o preço unitário
-        inputPrecoUnitario.placeholder = "Preço Unitário";
-
-        inputPrecoTotal.type = "text";
-        inputPrecoTotal.value = fornecedor.itens[linhaIndex]?.precoTotal || ""; // Preenche o preço total
-        inputPrecoTotal.readOnly = true;
-
-        // Atualiza o preço total ao modificar o preço unitário
-        inputPrecoUnitario.addEventListener("input", () => {
-            const quantidade = parseFloat(dado.quantidade) || 0;
-            const precoUnitario = parseFloat(inputPrecoUnitario.value) || 0;
-            inputPrecoTotal.value = `R$ ${(quantidade * precoUnitario).toFixed(2)}`;
+        // Adicionar valores finais para cada fornecedor
+        cotacao.valorFinal.forEach((dado, index) => {
+            adicionarValorFinal(dado, index + 1); // Passa o índice do fornecedor (+1 para iniciar em 1)
         });
-
-        tdPrecoUnitario.appendChild(inputPrecoUnitario);
-        tdPrecoTotal.appendChild(inputPrecoTotal);
-
-        novaLinha.appendChild(tdPrecoUnitario);
-        novaLinha.appendChild(tdPrecoTotal);
-    });
-
-    tabela.appendChild(novaLinha);
-}
-
-function adicionarColunaFornecedor(nome, indice) {
-    const fornecedoresHeader = document.getElementById("fornecedoresHeader");
-    fornecedoresHeader.style.display = "table-cell";
-
-    const trTopicostabela = document.getElementById("topicos-tabela");
-    const thPrecoUnitario = document.createElement("th");
-    const thPrecoTotal = document.createElement("th");
-
-    thPrecoUnitario.textContent = `Preço Unitário - ${nome}`;
-    thPrecoTotal.textContent = `Preço Total - ${nome}`;
-
-    trTopicostabela.append(thPrecoUnitario, thPrecoTotal);
-
-    const linhas = document.querySelectorAll("#cotacaoTable tbody tr");
-    linhas.forEach((linha, linhaIndex) => {
-        const tdPrecoUnitario = document.createElement("td");
-        const tdPrecoTotal = document.createElement("td");
-
-        const precoUnitario = document.createElement("input");
-        const precoTotal = document.createElement("input");
-
-        precoUnitario.type = "number";
-        precoUnitario.value = linhaIndex < nome.length ? nome[linhaIndex].precoUnitario || "" : "";
-        precoTotal.type = "text";
-        precoTotal.value = linhaIndex < nome.length ? nome[linhaIndex].precoTotal || "" : "";
-        precoTotal.readOnly = true;
-
-        tdPrecoUnitario.appendChild(precoUnitario);
-        tdPrecoTotal.appendChild(precoTotal);
-
-        linha.append(tdPrecoUnitario, tdPrecoTotal);
-    });
+    }
 }
 
 
 function adicionarLinhaComDados(dado) {
-
     const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
     const novaLinha = document.createElement("tr");
 
-    const tdRemover = document.createElement("td")
-    const imgRemover = document.createElement("img")
+    // Definir o ID da linha com base no número do item
+    novaLinha.id = `linha-${dado.numeroItem}`;
 
-    imgRemover.setAttribute("src", "imagens/remover.png")
-    imgRemover.setAttribute("alt", "Remover")
-    imgRemover.classList.add("remove-img")
+    const tdRemover = document.createElement("td");
+    const imgRemover = document.createElement("img");
 
-    tdRemover.appendChild(imgRemover)
+    imgRemover.setAttribute("src", "imagens/remover.png");
+    imgRemover.setAttribute("alt", "Remover");
+    imgRemover.classList.add("remove-img");
+    imgRemover.onclick = () => removerLinha(imgRemover);
 
-    const tdNumeroItem = document.createElement("td")
-    tdNumeroItem.textContent = `${dado.numeroItem}`
+    tdRemover.appendChild(imgRemover);
 
-    const tdPartnumber = document.createElement("td")
-    const inputPartnumber = document.createElement("input")
+    const tdNumeroItem = document.createElement("td");
+    tdNumeroItem.textContent = `${dado.numeroItem}`;
 
-    inputPartnumber.setAttribute("value", `${dado.partnumber}`)
-    inputPartnumber.setAttribute("readonly", "true")
+    const tdPartnumber = document.createElement("td");
+    const inputPartnumber = document.createElement("input");
 
-    tdPartnumber.appendChild(inputPartnumber)
+    inputPartnumber.setAttribute("value", `${dado.partnumber}`);
+    inputPartnumber.setAttribute("readonly", "true");
 
-    const tdNomeItem = document.createElement("td")
-    const inputNomeItem = document.createElement("input")
+    tdPartnumber.appendChild(inputPartnumber);
 
-    inputNomeItem.setAttribute("value", `${dado.nomeItem}`)
-    inputNomeItem.setAttribute("readonly", "true")
+    const tdNomeItem = document.createElement("td");
+    const inputNomeItem = document.createElement("input");
 
-    tdNomeItem.appendChild(inputNomeItem)
+    inputNomeItem.setAttribute("value", `${dado.nomeItem}`);
+    tdNomeItem.appendChild(inputNomeItem);
 
-    const tdTipoUnitario = document.createElement("td")
-    const inputTipoUnitario = document.createElement("input")
+    const tdTipoUnitario = document.createElement("td");
+    const inputTipoUnitario = document.createElement("input");
 
-    inputTipoUnitario.setAttribute("value", `${dado.tipoUnitario}`)
-    inputTipoUnitario.setAttribute("readonly", "true")
+    inputTipoUnitario.setAttribute("value", `${dado.tipoUnitario}`);
+    tdTipoUnitario.appendChild(inputTipoUnitario);
 
-    tdTipoUnitario.appendChild(inputTipoUnitario)
+    const tdQuantidade = document.createElement("td");
+    const inputQuantidade = document.createElement("input");
 
-    const tdQuantidade = document.createElement("td")
-    const inputQuantidade = document.createElement("input")
+    // Definir o ID do campo quantidade com base na linha
+    inputQuantidade.id = `quantidade-${dado.numeroItem}`;
+    inputQuantidade.setAttribute("value", `${dado.quantidade}`);
+    inputQuantidade.type = "number";
 
-    inputQuantidade.setAttribute("value", `${dado.quantidade}`)
-    inputQuantidade.setAttribute("readonly", "true")
+    // Adicionar event listener para atualizar os preços totais ao alterar a quantidade
+    inputQuantidade.addEventListener("input", () => {
+        const quantidadeAtual = Number(inputQuantidade.value) || 0;
 
-    tdQuantidade.appendChild(inputQuantidade)
+        // Atualizar todos os preços totais relacionados a este item
+        dado.fornecedores.forEach((fornecedor, index) => {
+            const precoUnitarioInput = document.querySelector(`#precoUnitario-${index + 1}-${dado.numeroItem}`);
+            const precoTotalInput = document.querySelector(`#precoTotal-${index + 1}-${dado.numeroItem}`);
 
-    const tdEstoque = document.createElement("td")
-    const inputEstoque = document.createElement("input")
+            if (precoUnitarioInput && precoTotalInput) {
+                const precoUnitarioAtual = Number(precoUnitarioInput.value) || 0;
+                precoTotalInput.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+            }
+            decidirMelhorOferta(dado.numeroItem);
+        });
+    });
 
-    inputEstoque.setAttribute("value", `${dado.estoque}`)
-    inputEstoque.setAttribute("readonly", "true")
+    tdQuantidade.appendChild(inputQuantidade);
 
-    tdEstoque.appendChild(inputEstoque)
+    const tdEstoque = document.createElement("td");
+    const inputEstoque = document.createElement("input");
 
-    novaLinha.append(tdRemover, tdNumeroItem, tdPartnumber, tdNomeItem, tdTipoUnitario, tdQuantidade, tdEstoque)
-    
-    if(dado.fornecedores.length > 0){
-        
-        adicionarPrecoUnitarioPrecoTotal(dado.fornecedores, novaLinha)
-        
+    inputEstoque.setAttribute("value", `${dado.estoque}`);
+    inputEstoque.setAttribute("readonly", "true");
+
+    tdEstoque.appendChild(inputEstoque);
+
+    novaLinha.append(tdRemover, tdNumeroItem, tdPartnumber, tdNomeItem, tdTipoUnitario, tdQuantidade, tdEstoque);
+
+    if (dado.fornecedores.length > 0) {
+        adicionarPrecoUnitarioPrecoTotal(dado.fornecedores, novaLinha, dado.numeroItem);
     }
 
     tabela.appendChild(novaLinha);
-
 }
 
 function adicionarNomeFornecedores(dado){
@@ -945,101 +1027,74 @@ function adicionarNomeFornecedores(dado){
 
 }
 
-function adicionarPrecoUnitarioPrecoTotal(dado, novaLinha){
+function adicionarPrecoUnitarioPrecoTotal(dado, novaLinha, numeroItem) {
+    for (let i = 0; i < dado.length; i++) {
+        const tdPrecoUnitario = document.createElement("td");
+        const inputPrecoUnitario = document.createElement("input");
 
-    for(let i = 0; i < dado.length; i++){
+        // Definir o ID do input com base no fornecedor e número do item
+        inputPrecoUnitario.id = `precoUnitario-${i + 1}-${numeroItem}`;
+        inputPrecoUnitario.type = "number";
+        inputPrecoUnitario.placeholder = "Digite o preço unitário";
+        inputPrecoUnitario.setAttribute("value", `${dado[i].precoUnitario}`);
 
-        const tdPrecoUnitarioVisualizar = document.createElement("td")
-        const inputPrecoUnitarioVisualizar = document.createElement("input")
+        tdPrecoUnitario.appendChild(inputPrecoUnitario);
 
-        inputPrecoUnitarioVisualizar.setAttribute("value", `${dado[i].precoUnitario}`)
-        inputPrecoUnitarioVisualizar.setAttribute("readonly", "true")
+        const tdPrecoTotal = document.createElement("td");
+        const inputPrecoTotal = document.createElement("input");
 
-        tdPrecoUnitarioVisualizar.appendChild(inputPrecoUnitarioVisualizar)
+        // Definir o ID do input do preço total
+        inputPrecoTotal.id = `precoTotal-${i + 1}-${numeroItem}`;
+        inputPrecoTotal.type = "text";
+        inputPrecoTotal.readOnly = true;
+        inputPrecoTotal.setAttribute("value", `${dado[i].precoTotal}`);
 
-        const tdPrecoTotalVisualizar = document.createElement("td")
-        const inputPrecoTotalVisualizar = document.createElement("input")
+        // Adicionar as classes ao input do preço total
+        inputPrecoTotal.classList.add(`resultadoPrecoTotal-linha-${numeroItem}`);
+        inputPrecoTotal.classList.add(`resultadoPrecoTotal-fornecedor-${i + 1}`);
 
-        inputPrecoTotalVisualizar.setAttribute("value", `${dado[i].precoTotal}`)
-        inputPrecoTotalVisualizar.setAttribute("readonly", "true")
+        tdPrecoTotal.appendChild(inputPrecoTotal);
 
-        tdPrecoTotalVisualizar.appendChild(inputPrecoTotalVisualizar)
+        // Adicionar evento para atualizar preço total ao alterar o preço unitário
+        inputPrecoUnitario.addEventListener("input", () => {
+            const quantidadeAtual = Number(
+                document.querySelector(`#quantidade-${numeroItem}`).value
+            ) || 0;
+            const precoUnitarioAtual = Number(inputPrecoUnitario.value) || 0;
+            inputPrecoTotal.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+            decidirMelhorOferta(numeroItem);
+        });
 
-        novaLinha.append(tdPrecoUnitarioVisualizar, tdPrecoTotalVisualizar)
-
+        novaLinha.append(tdPrecoUnitario, tdPrecoTotal);
     }
-
 }
 
-function adicionarValorFinal(dado){
 
-    console.log(dado)
+function adicionarValorFinal(dado, index) {
+    criarLinhaInput("#linhaDesconto", "input-desconto", index, dado.porcentagemDesconto, "Digite a % do Desconto", () => calculoSubtotal(index));
+    criarLinhaInput("#linhaSubtotal", "input-subtotal", index, dado.subtotal, null, null, true, "inputs-subtotal");
+    criarLinhaInput("#linhaFrete", "input-frete", index, dado.valorFrete, "Digite o Frete", () => calculoTotal(index));
+    criarLinhaInput("#linhaCondicaoPagar", "input-condicao-pagar", index, dado.condicaoPagar, "Digite a Condição de Pagamento");
+    criarLinhaInput("#linhaTotal", "input-total", index, dado.valorTotal, null, null, true, "inputs-total");
+}
 
-    const linhaDescontoVisualizar = document.querySelector("#linhaDesconto")
-    const tdDescontoVisualizar = document.createElement("td")
-    const inputDescontoVisualizar = document.createElement("input")
+function criarLinhaInput(linhaSelector, idPrefix, index, value, placeholder, eventListener = null, readOnly = false, additionalClass = null) {
+    const linha = document.querySelector(linhaSelector);
+    const td = document.createElement("td");
+    const input = document.createElement("input");
 
-    tdDescontoVisualizar.setAttribute("colspan", "2")
+    td.setAttribute("colspan", "2");
+    input.setAttribute("id", `${idPrefix}-${index}`);
+    input.setAttribute("value", value);
 
-    inputDescontoVisualizar.setAttribute("value", `${dado.porcentagemDesconto}`)
-    inputDescontoVisualizar.setAttribute("readonly", "true")
+    if (placeholder) input.setAttribute("placeholder", placeholder);
+    if (readOnly) input.setAttribute("readonly", "true");
+    if (additionalClass) input.classList.add(additionalClass);
 
-    tdDescontoVisualizar.appendChild(inputDescontoVisualizar)
+    if (eventListener) input.addEventListener("input", eventListener);
 
-    linhaDescontoVisualizar.appendChild(tdDescontoVisualizar)
-
-    const linhaSubTotalVisualizar = document.querySelector("#linhaSubtotal")
-    const tdSubTotalVisualizar = document.createElement("td")
-    const inputSubTotalVisualizar = document.createElement("input")
-
-    tdSubTotalVisualizar.setAttribute("colspan", "2")
-
-    inputSubTotalVisualizar.setAttribute("value", `${dado.subtotal}`)
-    inputSubTotalVisualizar.setAttribute("readonly", "true")
-
-    tdSubTotalVisualizar.appendChild(inputSubTotalVisualizar)
-
-    linhaSubTotalVisualizar.appendChild(tdSubTotalVisualizar)
-
-    const linhaFreteVisualizar = document.querySelector("#linhaFrete")
-    const tdFreteVisualizar = document.createElement("td")
-    const inputFreteVisualizar = document.createElement("input")
-
-    tdFreteVisualizar.setAttribute("colspan", "2")
-
-    inputFreteVisualizar.setAttribute("value", `${dado.valorFrete}`)
-    inputFreteVisualizar.setAttribute("readonly", "true")
-
-    tdFreteVisualizar.appendChild(inputFreteVisualizar)
-
-    linhaFreteVisualizar.appendChild(tdFreteVisualizar)
-
-    const linhaCondicaoPagarVisualizar = document.querySelector("#linhaCondicaoPagar")
-    const tdCondicaoPagarVisualizar = document.createElement("td")
-    const inputCondicaoPagarVisualizar = document.createElement("input")
-
-    tdCondicaoPagarVisualizar.setAttribute("colspan", "2")
-
-    inputCondicaoPagarVisualizar.setAttribute("value", `${dado.condicaoPagar}`)
-    inputCondicaoPagarVisualizar.setAttribute("readonly", "true")
-
-    tdCondicaoPagarVisualizar.appendChild(inputCondicaoPagarVisualizar)
-
-    linhaCondicaoPagarVisualizar.appendChild(tdCondicaoPagarVisualizar)
-
-    const linhaValorTotalVisualizar = document.querySelector("#linhaTotal")
-    const tdValorTotalVisualizar = document.createElement("td")
-    const inputValorTotalVisualizar = document.createElement("input")
-
-    tdValorTotalVisualizar.setAttribute("colspan", "2")
-
-    inputValorTotalVisualizar.setAttribute("value", `${dado.valorTotal}`)
-    inputValorTotalVisualizar.setAttribute("readonly", "true")
-
-    tdValorTotalVisualizar.appendChild(inputValorTotalVisualizar)
-
-    linhaValorTotalVisualizar.appendChild(tdValorTotalVisualizar)
-    
+    td.appendChild(input);
+    linha.appendChild(td);
 }
 
 function removerLinha(elemento) {
@@ -1053,17 +1108,218 @@ function voltarParaTabela() {
 }
 
 async function recuperarCotacoes() {
+    const resposta = await fetch(
+        'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=cotacoes'
+    );
 
-    const resposta = await fetch('https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=cotacoes')
+    const dados = await resposta.json();
 
-    const dados = await resposta.json()
+    // Inicializar o objeto para armazenar as cotações
+    let cotacoes = {};
 
-    localStorage.setItem("dados_cotacao", JSON.stringify(dados));
-    
-    carregarCotacoesSalvas()
+    // Transformar a lista de cotações em um objeto com ID como chave
+    dados.forEach((cotacao) => {
+        const id = cotacao.informacoes.id;
+        cotacoes[id] = cotacao;
+    });
 
+    // Salvar no localStorage como um objeto
+    localStorage.setItem("dados_cotacao", JSON.stringify(cotacoes));
+
+    // Recarregar a tabela de cotações salvas
+    carregarCotacoesSalvas();
 }
+
 
 function voltarParaInicio() {
     window.location.href = "inicial.html";
 }
+
+function removerCotacao(elemento) {
+    // Encontra a linha associada ao botão clicado
+    const linha = elemento.parentElement.parentElement;
+
+    // Obtém o ID da cotação a partir da célula oculta
+    const idCotacao = linha.querySelector(".cotacao-id").textContent;
+
+    // Remove a linha da tabela
+    linha.remove();
+
+    let status = "excluido"
+
+    let operacao = "excluir"
+
+    const cotacaoParaExcluir = { operacao, status, idCotacao };
+
+    const payload = {
+        tabela: "cotacoes",
+        cotacao: cotacaoParaExcluir,
+    };
+
+    enviar_dados_generico(payload);
+
+    // Remove a cotação do localStorage
+    let cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+    delete cotacoes[idCotacao];
+    localStorage.setItem("dados_cotacao", JSON.stringify(cotacoes));
+
+    // Verifica se ainda existem cotações
+    if (Object.keys(cotacoes).length === 0) {
+        const tabelaBody = document.getElementById("cotacoesSalvasTable").querySelector("tbody");
+        tabelaBody.innerHTML = "";
+
+        // Adiciona a mensagem de que não existem cotações
+        const linhaMensagem = document.createElement("tr");
+        const celulaMensagem = document.createElement("td");
+        celulaMensagem.colSpan = 6; // Número de colunas na tabela
+        celulaMensagem.textContent = "Não existem cotações disponíveis.";
+        celulaMensagem.style.textAlign = "center"; // Centraliza a mensagem
+        celulaMensagem.style.color = "gray"; // Adiciona uma cor para destaque
+        linhaMensagem.appendChild(celulaMensagem);
+        tabelaBody.appendChild(linhaMensagem);
+    }
+
+    console.log(`Cotação removida com ID: ${idCotacao}`);
+}
+
+
+let ordemAtual = {
+    coluna: null,
+    ordem: 'asc' // 'asc' para crescente, 'desc' para decrescente
+};
+
+function ordenarTabela(coluna) {
+    const tabelaBody = document.getElementById("cotacoesSalvasTable").querySelector("tbody");
+    const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+
+    // Converte as cotações para um array e ordena com base na coluna
+    const cotacoesOrdenadas = Object.entries(cotacoes).sort((a, b) => {
+        const cotacaoA = a[1];
+        const cotacaoB = b[1];
+
+        let valorA, valorB;
+
+        switch (coluna) {
+            case 'apelido':
+                valorA = cotacaoA.informacoes.apelidoCotacao?.toLowerCase() || '';
+                valorB = cotacaoB.informacoes.apelidoCotacao?.toLowerCase() || '';
+                break;
+            case 'data':
+                valorA = new Date(`${cotacaoA.informacoes.data} ${cotacaoA.informacoes.hora}`);
+                valorB = new Date(`${cotacaoB.informacoes.data} ${cotacaoB.informacoes.hora}`);
+                break;
+            case 'criador':
+                valorA = cotacaoA.informacoes.criador.toLowerCase();
+                valorB = cotacaoB.informacoes.criador.toLowerCase();
+                break;
+            case 'itens':
+                valorA = cotacaoA.dados.length;
+                valorB = cotacaoB.dados.length;
+                break;
+            case 'fornecedores':
+                valorA = cotacaoA.valorFinal.length;
+                valorB = cotacaoB.valorFinal.length;
+                break;
+            default:
+                return 0;
+        }
+
+        // Alterna a ordem de ordenação
+        if (ordemAtual.coluna === coluna) {
+            ordemAtual.ordem = ordemAtual.ordem === 'asc' ? 'desc' : 'asc';
+        } else {
+            ordemAtual.coluna = coluna;
+            ordemAtual.ordem = 'asc';
+        }
+
+        const comparacao = valorA > valorB ? 1 : valorA < valorB ? -1 : 0;
+        return ordemAtual.ordem === 'asc' ? comparacao : -comparacao;
+    });
+
+    // Atualiza a tabela com os dados ordenados
+    tabelaBody.innerHTML = "";
+    cotacoesOrdenadas.forEach(([id, cotacao]) => {
+        const linha = document.createElement("tr");
+
+        linha.innerHTML = `
+            <td>${cotacao.informacoes.apelidoCotacao || 'Sem Apelido'}</td>
+            <td>${cotacao.informacoes.data}</td>
+            <td>${cotacao.informacoes.criador}</td>
+            <td>${cotacao.dados.length}</td>
+            <td>${cotacao.valorFinal.length}</td>
+            <td>
+                <img src="imagens/editar.png" alt="Editar" class="img-editar" onclick="editarCotacao('${id}')">
+                <img src="imagens/excluir.png" alt="Excluir" class="img-excluir" onclick="removerCotacao(this)">
+            </td>
+            <td style="display:none;" class="cotacao-id">${id}</td> <!-- Adiciona o ID oculto -->
+        `;
+
+        tabelaBody.appendChild(linha);
+    });
+
+    // Atualiza os ícones no cabeçalho
+    atualizarIconesOrdenacao(coluna);
+}
+
+function atualizarIconesOrdenacao(coluna) {
+    // Remove ícones existentes
+    const headers = document.querySelectorAll("th");
+    headers.forEach(header => {
+        header.classList.remove("ordenado");
+        const icone = header.querySelector("span.ordem-icone");
+        if (icone) icone.remove();
+    });
+
+    // Adiciona o ícone ao cabeçalho correspondente
+    const header = document.getElementById(`${coluna}Header`);
+    if (header) {
+        header.classList.add("ordenado");
+        const icone = document.createElement("span");
+        icone.classList.add("ordem-icone");
+        icone.textContent = ordemAtual.ordem === 'asc' ? '▲' : '▼'; // ▲ para crescente, ▼ para decrescente
+        header.appendChild(icone);
+    }
+}
+
+function filtrarTabela(colunaIndex, valorPesquisa) {
+    const tabela = document.getElementById("cotacoesSalvasTable");
+    const linhas = tabela.querySelectorAll("tbody tr");
+
+    // Normaliza o valor de pesquisa (removendo espaços extras e transformando em minúsculas)
+    const valorNormalizado = valorPesquisa.trim().toLowerCase();
+    let encontrouResultados = false;
+
+    linhas.forEach(linha => {
+        const celula = linha.cells[colunaIndex]; // Obtém a célula correspondente à coluna
+        if (celula) {
+            const textoCelula = celula.textContent.trim().toLowerCase();
+            if (textoCelula.includes(valorNormalizado)) {
+                linha.style.display = ""; // Exibe a linha se a pesquisa corresponder
+                encontrouResultados = true;
+            } else {
+                linha.style.display = "none"; // Esconde a linha se não houver correspondência
+            }
+        }
+    });
+
+    // Verifica se encontrou algum resultado
+    const tabelaBody = tabela.querySelector("tbody");
+    if (!encontrouResultados) {
+        // Adiciona a mensagem de que não existem cotações disponíveis
+        const linhaMensagem = document.createElement("tr");
+        const celulaMensagem = document.createElement("td");
+        celulaMensagem.colSpan = tabela.querySelectorAll("thead th").length; // Número de colunas na tabela
+        celulaMensagem.textContent = "Não existem cotações disponíveis.";
+        celulaMensagem.style.textAlign = "center"; // Centraliza a mensagem
+        celulaMensagem.style.color = "gray"; // Adiciona uma cor para destaque
+        linhaMensagem.appendChild(celulaMensagem);
+        tabelaBody.appendChild(linhaMensagem);
+    } else {
+        // Remove a mensagem caso já exista
+        const mensagemExistente = tabelaBody.querySelector("tr td[colspan]");
+        if (mensagemExistente) {
+            mensagemExistente.parentElement.remove();
+        }
+    }
+}
+
