@@ -238,6 +238,9 @@ function salvarFornecedor() {
     const numeroLinhas = tabela.querySelectorAll("tr").length; // Total de linhas na tabela
 
     const input = document.getElementById("pesquisarFornecedor");
+    const sugestoes = document.getElementById("listaFornecedores");
+    const mensagemErro = document.getElementById("mensagemErro");
+
     const trNomeFornecedor = document.querySelector(".count-row");
     const thNomeFornecedor = document.createElement("th");
     const trTopicostabela = document.querySelector("#topicos-tabela");
@@ -251,7 +254,13 @@ function salvarFornecedor() {
 
     if (input.value.trim() !== "") {
         nomeFornecedor = input.value.trim();
-        alert(`Fornecedor "${nomeFornecedor}" foi adicionado com sucesso!`);
+
+        // Limpa o campo "pesquisarFornecedor" e oculta as sugestões
+        input.value = "";
+        sugestoes.style.display = "none";
+
+        // Remove mensagem de erro, caso exista
+        if (mensagemErro) mensagemErro.textContent = "";
 
         // Percorre cada linha existente na tabela para criar os inputs necessários
         for (let linhaAtualQuantidade = 1; linhaAtualQuantidade <= numeroLinhas; linhaAtualQuantidade++) {
@@ -327,9 +336,20 @@ function salvarFornecedor() {
 
         console.log("Fornecedor salvo:", nomeFornecedor);
     } else {
-        alert("Por favor, digite um nome válido.");
+        // Adiciona ou exibe mensagem de erro em vermelho abaixo do campo
+        if (!mensagemErro) {
+            const novoErro = document.createElement("span");
+            novoErro.id = "mensagemErro";
+            novoErro.style.color = "red";
+            novoErro.style.fontSize = "12px";
+            novoErro.textContent = "Por favor, digite um nome válido.";
+            input.parentElement.appendChild(novoErro);
+        } else {
+            mensagemErro.textContent = "Por favor, digite um nome válido.";
+        }
     }
 }
+
 
 
 function esconderFornecedores() {
@@ -730,7 +750,8 @@ function carregarCotacoesSalvas() {
     tabelaBody.innerHTML = "";
 
     const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
-    Object.values(cotacoes).forEach((cotacao) => {
+
+    Object.entries(cotacoes).forEach(([id, cotacao]) => {
         const linha = document.createElement("tr");
 
         linha.innerHTML = `
@@ -739,15 +760,19 @@ function carregarCotacoesSalvas() {
             <td>${cotacao.dados.length}</td>
             <td>${cotacao.valorFinal.length}</td>
             <td>
-                <img src="imagens/editar.png" alt="Editar" class="img-editar" onclick="editarCotacao('${cotacao.informacoes.id}')">
-                <img src="imagens/excluir.png" alt="Excluir" class="img-excluir">
+                <img src="imagens/editar.png" alt="Editar" class="img-editar" onclick="editarCotacao('${id}')">
+                <img src="imagens/excluir.png" alt="Excluir" class="img-excluir" onclick="removerCotacao(this)">
             </td>
+            <td style="display:none;" class="cotacao-id">${id}</td> <!-- Adiciona o ID oculto -->
         `;
 
         tabelaBody.appendChild(linha);
     });
-    console.log("Cotações Salvas Carregadas!")
+
+    console.log("Cotações Salvas Carregadas!");
 }
+
+
 
 
 function editarCotacao(id) {
@@ -1046,4 +1071,29 @@ async function recuperarCotacoes() {
 
 function voltarParaInicio() {
     window.location.href = "inicial.html";
+}
+
+function removerCotacao(elemento) {
+    
+    const linha = elemento.parentElement.parentElement;
+
+    const idCotacao = linha.querySelector(".cotacao-id").textContent;
+    linha.remove();
+
+    let status = "excluido"
+
+    let operacao = "excluir"
+
+    const cotacaoParaExcluir = { operacao, status, idCotacao };
+
+    // Envia a nova cotação para a API
+    const payload = {
+        tabela: "cotacoes",
+        cotacao: cotacaoParaExcluir,
+    };
+
+    enviar_dados_generico(payload);
+
+    console.log(`Cotação removida com ID: ${idCotacao}`);
+    return idCotacao;
 }
