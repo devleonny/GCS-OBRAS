@@ -1390,10 +1390,7 @@ function abrir_esquema(id) {
                     <div class="anexos" style="cursor: pointer; display: flex; gap: 10px; justify-content: left; align-items: center;">
                         <img src="imagens/anexo.png" style="width: 25px">
                         <label style="cursor: pointer;" onclick="detalhar_requisicao('${chave_pedido}', true, '${chave2}')"><strong>Requisição disponível</strong> <br> ${todos_os_status[chave_pedido].pedido} - ${todos_os_status[chave_pedido].tipo}</label>
-                        <div onclick="detalhar_requisicao('${chave_pedido}', false, '${chave2}')" style="cursor: pointer; display: flex; flex-direction: column; justify-content: left; align-items: center;">    
-                            <img src="gifs/alerta.gif" style="width: 2vw">
-                            <label style="text-decoration: underline; cursor: pointer; font-size: 0.8em;">Editar</label>
-                        </div>
+                        <img src="imagens/editar.png" onclick="detalhar_requisicao('${chave_pedido}', false, '${chave2}')" style="cursor: pointer; width: 25px; height: 25px;">
                     </div>
                     `
                 }
@@ -1420,11 +1417,11 @@ function abrir_esquema(id) {
 
                         anxsss += `
                     <div style="display: flex; gap: 5px; align-items: center;">
-                    <div onclick="abrirArquivo('${arquivo}')" class="anexos">
-                        <img src="imagens/${imagem}.png" style="cursor: pointer; width: 30px; height: 30px">
-                        <label style="cursor: pointer; font-size: 0.6em; white-space: normal;"><strong>${anx.nome}</strong></label>
-                    </div>
-                    <p style="text-decoration: underline; cursor: pointer; padding: 5px;" onclick="chamar_excluir_anexo('${chave_pedido}', '${chave2}', '${key_anx}')">Excluir</p>
+                        <div onclick="abrirArquivo('${arquivo}')" class="anexos">
+                            <img src="imagens/${imagem}.png" style="cursor: pointer; width: 30px; height: 30px">
+                            <label style="cursor: pointer; font-size: 0.6em; white-space: normal;"><strong>${anx.nome}</strong></label>
+                        </div>
+                        <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="chamar_excluir_anexo('${chave_pedido}', '${chave2}', '${key_anx}')">
                     </div>
                     `
                     })
@@ -1505,7 +1502,7 @@ function abrir_esquema(id) {
                             <div class="contorno_botoes">
                                 <img src="imagens/anexo2.png" style="width: 15px;">
                                 <label for="adicionar_anexo_${chave_pedido}_${chave2}">Anexo
-                                    <input type="file" id="adicionar_anexo_${chave_pedido}_${chave2}" style="display: none;" onchange="salvar_anexo('${chave_pedido}', '${chave2}')">  
+                                    <input type="file" id="adicionar_anexo_${chave_pedido}_${chave2}" style="display: none;" onchange="salvar_anexo('${chave_pedido}', '${chave2}')" multiple>  
                                 </label>
                             </div>
                             <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave2}')">
