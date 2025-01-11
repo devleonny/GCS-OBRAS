@@ -2738,7 +2738,7 @@ function salvar_anexo(chave1, chave2) {
                     <div id="${id}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
                         <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                             <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                            <label style="font-size: 0.8em;">${String(fileName).slice(0, 10)} ... ${String(fileName).slice(-7)}</label>
+                            <label style="font-size: 0.8em;">${String(file.name).slice(0, 10)} ... ${String(file.name).slice(-7)}</label>
                         </div>
                         <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="remover_anexo('${id}')>
                     </div>
