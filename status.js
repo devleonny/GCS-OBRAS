@@ -810,6 +810,10 @@ function salvar_pedido(chave) {
 
     localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
 
+    let espelho_ocorrencias = document.getElementById('espelho_ocorrencias')
+    if (espelho_ocorrencias) {
+        espelho_ocorrencias.remove()
+    }
     enviar_status_orcamento(orcamento);
     abrir_esquema(id_orcam)
 
@@ -1628,6 +1632,7 @@ function abrir_esquema(id) {
                             
                             <div style="display: flex; gap: 10px;">
                                 ${botao_novo_pagamento(chave_pedido)}
+                                ${botao_novo_pedido()}
                                 <div class="contorno_botoes" style="background-color: ${fluxograma['FATURAMENTO PEDIDO DE VENDA'].cor}"
                                     onclick="detalhar_requisicao('${chave_pedido}')">
                                     <label>Nova <strong>Requisição</strong></label>
@@ -2740,7 +2745,7 @@ function salvar_anexo(chave1, chave2) {
                             <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
                             <label style="font-size: 0.8em;">${String(file.name).slice(0, 10)} ... ${String(file.name).slice(-7)}</label>
                         </div>
-                        <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="remover_anexo('${id}')>
+                        <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="remover_anexo('${id}')">
                     </div>
                     `;
                     div_anexos.style = 'align-items: normal';
