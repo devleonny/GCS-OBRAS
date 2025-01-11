@@ -9,8 +9,7 @@ async function sincronizar_periodico() {
         setInterval(async () => {
             let carimbo_nuvem = await carimbo_data_hora_pagamentos(true); 
             let carimbo_maquina = JSON.parse(localStorage.getItem('carimbo_data_hora_pagamentos'));
-
-            console.log(carimbo_maquina[0], carimbo_nuvem[0])
+            
             if (carimbo_maquina[0] !== carimbo_nuvem[0]) {
                 await atualizar_pagamentos_menu();
             }
