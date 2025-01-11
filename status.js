@@ -11,10 +11,6 @@ var data_status = dataAtual.toLocaleString('pt-BR', {
 });
 var anexos = {}
 
-function inserir_elemento(elemento) {
-    var conteiner_pedido = document.getElementById('conteiner_pedido');
-    conteiner_pedido.insertAdjacentHTML('beforeend', elemento);
-}
 
 var fluxograma = {
     'AGUARDANDO': { cor: '#4CAF50', modulos: ['PROJETOS'], },
@@ -34,33 +30,41 @@ var fluxograma = {
 
 function painel_adicionar_pedido() {
 
-    var painel_status = document.getElementById('status')
+    let painel_status = document.getElementById('status')
+    let espelho_ocorrencias = document.getElementById('espelho_ocorrencias')
+
     if (painel_status) {
         painel_status.remove()
     }
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
-    var cliente = dados_orcamentos[id_orcam].dados_orcam.cliente_selecionado
-    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    var usuario = acesso.usuario
-    var data = new Date().toLocaleString('pt-BR', {
+    if (espelho_ocorrencias) {
+        espelho_ocorrencias.remove()
+    }
+
+    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    let cliente = dados_orcamentos[id_orcam].dados_orcam.cliente_selecionado
+    let data = new Date().toLocaleString('pt-BR', {
         dateStyle: 'short',
         timeStyle: 'short'
     });
 
     var acumulado = `
-    <div id="status" class="status" style="display: flex; width: 100%; overflow: auto;">
+    <div id="status" class="status" style="display: flex; overflow: auto;">
         
         <span class="close" onclick="fechar_status()">×</span>
+
+        <label style="position: absolute; top: 5px; left: 5px; font-size: 0.6em;" id="data">${data}</label>
+
         <div style="display: flex; justify-content: space-evenly; align-items: center;">
-        <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
-        
+            <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
         </div>
+
         <br>
         <div id="container_status"></div>
         
         <hr style="width: 80%">
-            <div style="display: grid; gap: 10px;">
+
+        <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px;">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <p class="novo_titulo" style="cursor: pointer; color: #222">Escolha o tipo do <strong>Pedido</strong> </p> 
                 <select id="tipo">
@@ -71,53 +75,41 @@ function painel_adicionar_pedido() {
             </div>
 
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center; align-items: center;">
-                <input type="checkbox" onchange="ocultar_pedido(this)" style="cursor: pointer;">
-                <label>Marque aqui caso não tenha o número ainda.</label>
-                <img src="gifs/interrogacao.gif" onclick="mostrar_um_aviso()" style="width: 2vw; cursor: pointer;">
+                <input type="checkbox" onchange="ocultar_pedido(this)" style="cursor: pointer; width: 30px; height: 30px;">
+                <label>Sem Pedido</label>
             </div>
 
-            <div id="conteiner_pedido">
-                <div class="conteiner_pedido">
-                    <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                        <label style="white-space: nowrap;"><strong>Número do Pedido</strong></label>
-                        <input type="text" class="pedido" id="pedido">
-                    </div>
+            <div id="div_pedidos">
+                <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                    <label style="white-space: nowrap;">Número do Pedido</label>
+                    <input type="text" class="pedido" id="pedido">
+                </div>
 
-                    <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                        <label style="white-space: nowrap;"><strong>Valor do Pedido</strong></label>
-                        <input type="number" class="pedido" id="valor">
-                    </div>
+                <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                    <label style="white-space: nowrap;">Valor do Pedido</label>
+                    <input type="number" class="pedido" id="valor">
                 </div>
             </div>
-        </div>
 
-        <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-            <label><strong>Comentário</strong></label>
-            <textarea rows="10" id="comentario_status" style="width: 80%;"></textarea>
-        </div>
+            <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+                <label>Comentário</label>
+                <textarea rows="5" id="comentario_status"></textarea>
+            </div>
 
-        <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-            <label><strong>Data</strong> </label> <label id="data_status">${data}</label>
-        </div>
+            <div id="div_anexos" style="display: flex; flex-direction: column; justify-content: right; align-items: center; gap: 10px;">
+            </div>
 
-        <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-            <label><strong>Executor</strong> </label> <label id="usuario_status">${usuario}</label>
-        </div>
-        
-        <div id="div_anexos" style="display: flex; flex-direction: column; justify-content: right; align-items: center; gap: 10px;">
-        </div>
-
-        <div class="contorno_botoes" style="background-color: #B12425"> 
-            <img src="imagens/anexo2.png" style="width: 15px;">
-            <label for="adicionar_anexo">Anexar arquivos
-                <input type="file" id="adicionar_anexo" style="display: none;" onchange="salvar_anexo()"> 
-            </label>
-        </div>
-        
-        <hr style="width: 80%">
-        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-            <button onclick="fechar_status()">Cancelar</button>
-            <button style="background-color: green" onclick="salvar_pedido()">Salvar</button>
+            <div class="contorno_botoes" style="background-color: #4CAF50"> 
+                <img src="imagens/anexo2.png" style="width: 15px;">
+                <label for="adicionar_anexo">Anexar arquivos
+                    <input type="file" id="adicionar_anexo" style="display: none;" onchange="salvar_anexo()" multiple> 
+                </label>
+            </div>
+            
+            <hr style="width: 80%">
+            <div style="display: flex; justify-content: right; align-items: center; gap: 10px; width: 100%">
+                <label class="contorno_botoes" style="background-color: #4CAF50;" onclick="salvar_pedido()">Salvar</label>
+            </div>
         </div>
 
     </div>
@@ -171,14 +163,9 @@ function painel_adicionar_notas(chave) {
                 <label><strong>Número da Nota</strong></label>
                 <input type="number" class="pedido">
                 <select>
-                <option>Remessa</option>
-                <option>Venda</option>
-                <option>Serviço</option>
-                </select>
-                <select id="select_dos_pedidos">
-                
-            <option>123 - Serviço</option>
-            
+                    <option>Remessa</option>
+                    <option>Venda</option>
+                    <option>Serviço</option>
                 </select>
             </div>
         </div>
@@ -221,25 +208,22 @@ function painel_adicionar_notas(chave) {
 
 function ocultar_pedido(elemento) {
 
-    var pedido = document.getElementById('pedido')
-    var valor = document.getElementById('valor')
+    let pedido = document.getElementById('pedido')
+    let valor = document.getElementById('valor')
+    let div_pedidos = document.getElementById('div_pedidos')
 
-    if (elemento.checked) {
-        conteiner_pedido.style.display = 'none'
-        pedido.value = '???'
-        valor.value = 0
-    } else {
-        conteiner_pedido.style.display = 'block'
-        pedido.value = ''
-        valor.value = 0
+    if (pedido && valor && div_pedidos) {
+
+        if (elemento.checked) {
+            div_pedidos.style.display = 'none'
+            pedido.value = '???'
+            valor.value = 0
+        } else {
+            div_pedidos.style.display = 'block'
+            pedido.value = ''
+            valor.value = 0
+        }
     }
-}
-
-function mostrar_um_aviso() {
-    openPopup_v2(`
-        <p>O número do pedido ficará como provisório e você poderá atualizar depois.</p>
-        <p>Um aviso será mostrado eventualmente para te lembrar.</p>
-    `)
 }
 
 function calcular_requisicao(sincronizar) {
@@ -325,30 +309,6 @@ function calcular_requisicao(sincronizar) {
         }
     }
 
-}
-
-function notas_no_financeiro(chave) {
-
-    return `
-    <hr style="width: 80%">
-    <div style="display: grid; gap: 10px;">
-    <div style="display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center;">
-        <label class="novo_titulo" style="color: #222">Inclua o número das Notas <strong>Remessa</strong>, <strong>Venda</strong> ou <strong>Serviço</strong></label> 
-        <p> Coloque o número da NF e escolha a qual pedido se refere.</p>
-        </div>
-        <div id="conteiner_pedido">
-            <div class="conteiner_pedido">
-                <label><strong>Número da Nota</strong></label>
-                <input type="number" class="pedido">
-                <select>
-                <option>Remessa</option>
-                <option>Venda</option>
-                <option>Serviço</option>
-                </select>
-            </div>
-        </div>
-    </div>
-`
 }
 
 function alterar_todos(valor_ref) {
@@ -793,59 +753,47 @@ function carregar_status_divs(valor, chave, id) { // "valor" é o último status
 
 function salvar_pedido(chave) {
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
-    var orcamento = dados_orcamentos[id_orcam];
-    var st = '';
-    var interromper_processo_inclusao_pedido = false
-    var chave_his = gerar_id_5_digitos();
+    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let orcamento = dados_orcamentos[id_orcam];
+    let st = '';
+    let chave_his = gerar_id_5_digitos();
+    let data = document.getElementById('data')
+    let comentario_status = document.getElementById('comentario_status')
     if (chave == undefined) {
         chave = gerar_id_5_digitos()
     }
 
-    var novo_lancamento = {
+    let novo_lancamento = {
         status: '',
         historico: {}
     };
 
     novo_lancamento.historico[chave_his] = {
         status: '',
-        data: data_status,
+        data: data.textContent,
         executor: acesso.usuario,
         comentario: comentario_status.value,
         anexos: anexos,
     };
 
-    var campos = ['valor', 'tipo', 'pedido']
-    campos.forEach(it => {
-        var elemento = document.getElementById(it)
-        if (elemento) {
-            if (elemento.value == '') {
-                interromper_processo_inclusao_pedido = true
-            }
-            novo_lancamento[it] = elemento.value
+    let valor = document.getElementById('valor')
+    let tipo = document.getElementById('tipo')
+    let pedido = document.getElementById('pedido')
 
-            if (it == 'tipo') {
-
-                if (elemento.value == 'Selecione') {
-                    interromper_processo_inclusao_pedido = true
-                } else {
-                    var string_tipo = String(elemento.value).toUpperCase();
-                    st = `PEDIDO DE ${string_tipo} ANEXADO`
-                }
-
-            }
-        }
-    })
-
-    if (interromper_processo_inclusao_pedido) {
+    if (valor.value == '' || tipo.value == 'Selecione' || pedido.value == '') {
         return openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Não deixe campos em Branco</label>
             </div>
         `);
-
     }
+
+    novo_lancamento.valor = Number(valor.value)
+    novo_lancamento.tipo = tipo.value
+    novo_lancamento.pedido = pedido.value
+    st = `PEDIDO DE ${String(tipo.value).toUpperCase()} ANEXADO`
 
     novo_lancamento.status = st;
     novo_lancamento.historico[chave_his].status = st;
@@ -1553,7 +1501,7 @@ function abrir_esquema(id) {
                             <div class="contorno_botoes">
                                 <img src="imagens/anexo2.png" style="width: 15px;">
                                 <label for="adicionar_anexo_${chave_pedido}_${chave2}">Anexo
-                                    <input type="file" id="adicionar_anexo_${chave_pedido}_${chave2}" style="display: none;" onchange="salvar_anexo('${chave_pedido}', '${chave2}')"> 
+                                    <input type="file" id="adicionar_anexo_${chave_pedido}_${chave2}" style="display: none;" onchange="salvar_anexo('${chave_pedido}', '${chave2}')">  
                                 </label>
                             </div>
                             <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave2}')">
@@ -1680,7 +1628,6 @@ function abrir_esquema(id) {
                             
                             <div style="display: flex; gap: 10px;">
                                 ${botao_novo_pagamento(chave_pedido)}
-                                ${botao_novo_pedido(id)}
                                 <div class="contorno_botoes" style="background-color: ${fluxograma['FATURAMENTO PEDIDO DE VENDA'].cor}"
                                     onclick="detalhar_requisicao('${chave_pedido}')">
                                     <label>Nova <strong>Requisição</strong></label>
@@ -2698,111 +2645,145 @@ function close_chave() {
     document.getElementById('alerta').remove()
 }
 
+function teste_anexo() {
+
+    let fileName = 'dabudbauwidandwiawndawundonodqwidqnfownownfonfsinfibihwfbqw onqwidnwiq.png'
+    let resposta = `
+    <div id="${id}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+        <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+            <label style="font-size: 0.8em;">${String(fileName).slice(0, 10)} ... ${String(fileName).slice(-7)}</label>
+        </div>
+        <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="remover_anexo('${id}')>
+    </div>
+    `
+    div_anexos.style = 'align-items: normal'
+    div_anexos.insertAdjacentHTML('beforeend', resposta)
+}
+
 function salvar_anexo(chave1, chave2) {
-    if (chave1 !== undefined) {
-        var elemento = document.getElementById(`adicionar_anexo_${chave1}_${chave2}`)
-    } else {
-        var elemento = document.getElementById(`adicionar_anexo`)
+    var elemento = chave1 !== undefined
+        ? document.getElementById(`adicionar_anexo_${chave1}_${chave2}`)
+        : document.getElementById(`adicionar_anexo`);
+
+    var files = elemento.files;
+
+    if (!files || files.length === 0) {
+        openPopup_v2('Nenhum arquivo selecionado...');
+        return;
     }
-    var file = elemento.files[0];
 
     openPopup_v2(`
         <div id="carregandhu" style="display: flex; align-items: center; justify-content: center;">
         </div>
-        `)
-    carregamento('carregandhu')
+    `);
 
-    if (file) {
+    carregamento('carregandhu');
 
-        var fileInput = elemento
-        var file = fileInput.files[0];
-        var fileName = file.name
+    let promises = [];
 
-        if (!file) {
-            openPopup_v2('Nenhum arquivo selecionado...');
-            return;
-        }
+    for (let file of files) {
+        let promise = new Promise((resolve, reject) => {
+            var reader = new FileReader();
+            reader.onload = async (e) => {
+                var base64 = e.target.result.split(',')[1];
+                var mimeType = file.type;
 
-        var reader = new FileReader();
-        reader.onload = async (e) => {
-            var base64 = e.target.result.split(',')[1];
-            var mimeType = file.type;
+                try {
+                    var response = await fetch('http://localhost:3000/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: file.name,
+                            mimeType: mimeType,
+                            base64: base64
+                        })
+                    });
 
-            var response = await fetch('http://localhost:3000/upload', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    name: fileName,
-                    mimeType: mimeType,
-                    base64: base64
-                })
-            });
-
-            var result = await response.json();
-            if (response.ok) {
-
-                let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
-
-                if (chave1 == undefined && chave2 == undefined) {
-
-                    anexos[gerar_id_5_digitos()] = {
-                        nome: fileName,
-                        formato: mimeType,
-                        link: result.fileId
+                    if (response.ok) {
+                        var result = await response.json();
+                        resolve({ file, result });
+                    } else {
+                        var errorResult = await response.json();
+                        reject(new Error(errorResult.message || 'Erro desconhecido ao fazer upload.'));
                     }
+                } catch (error) {
+                    reject(error);
+                }
+            };
+
+            reader.readAsDataURL(file);
+        });
+
+        promises.push(promise);
+    }
+
+    Promise.all(promises)
+        .then(results => {
+            let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+
+            results.forEach(({ file, result }) => {
+                if (chave1 === undefined && chave2 === undefined) {
+                    let id = gerar_id_5_digitos();
+
+                    anexos[id] = {
+                        nome: file.name,
+                        formato: file.type,
+                        link: result.fileId
+                    };
 
                     let resposta = `
-                    <div class="contorno">
-                        <div class="contorno_interno">
-                            <img src="imagens/anexo3.png" style="width: 3vw;">
-                            <label><strong>${String(fileName).slice(0,10)} ... ${String(fileName).slice(7)}</strong></label>
+                    <div id="${id}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+                        <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                            <label style="font-size: 0.8em;">${String(fileName).slice(0, 10)} ... ${String(fileName).slice(-7)}</label>
                         </div>
+                        <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="remover_anexo('${id}')>
                     </div>
-                    `
-                    div_anexos.style = 'align-items: normal'
-                    div_anexos.insertAdjacentHTML('beforeend', resposta)
-
+                    `;
+                    div_anexos.style = 'align-items: normal';
+                    div_anexos.insertAdjacentHTML('beforeend', resposta);
                 } else {
-
                     if (Array.isArray(dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos)) {
                         dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos = {};
                     }
 
                     dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos[gerar_id_5_digitos()] = {
-                        nome: fileName,
-                        formato: mimeType,
+                        nome: file.name,
+                        formato: file.type,
                         link: result.fileId
                     };
-
-                    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
-
-                    var estrutura = document.getElementById('estrutura');
-                    if (estrutura) {
-                        estrutura.remove()
-                    }
-
-                    abrir_esquema(id_orcam);
-
                 }
+            });
 
-                enviar_status_orcamento(dados_orcamentos[id_orcam]);
-
-                remover_popup()
-            } else {
-
-                openPopup_v2(`Deu erro por aqui... ${result.message}`)
-
+            if (chave1 !== undefined && chave2 !== undefined) {
+                localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
+                var estrutura = document.getElementById('estrutura');
+                if (estrutura) {
+                    estrutura.remove();
+                }
+                abrir_esquema(id_orcam);
             }
 
-
-        };
-
-        reader.readAsDataURL(file);
-    }
+            enviar_status_orcamento(dados_orcamentos[id_orcam]);
+            remover_popup();
+        })
+        .catch(error => {
+            openPopup_v2(`Erro ao fazer upload: ${error.message}`);
+            console.error(error);
+        });
 }
 
+
+function remover_anexo(id) {
+    let div = document.getElementById(id)
+    if (anexos && div) {
+        div.remove()
+        delete anexos[id]
+    }
+}
 
 // `https://drive.google.com/file/d/${exemplo}/view?usp=drivesdk`
 
@@ -3032,5 +3013,5 @@ async function gerarpdf(cliente, pedido) {
         menu_flutuante.style.display = 'flex'
         span.style.display = 'block'
     }
-    
+
 }

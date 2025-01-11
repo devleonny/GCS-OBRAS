@@ -1151,7 +1151,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 .status {
-    border-radius: 0px;
+    border-radius: 5px;
     font-size: 1.2em;
     display: none;
     flex-direction: column;
