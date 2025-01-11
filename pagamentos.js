@@ -2,23 +2,21 @@ var overlay = document.getElementById('overlay')
 var centros_de_custo = {};
 var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
-carregamento_div = document.querySelector("#tela_carregamento")
-
-sincronizar_periodico()
-
 async function sincronizar_periodico() {
-    let carimbo_nuvem = await carimbo_data_hora_pagamentos(true)
-    let carimbo_storage = localStorage.getItem('carimbo_data_hora_pagamentos')
+    let carimbo_storage = localStorage.getItem('carimbo_data_hora_pagamentos');
 
     if (carimbo_storage) {
+        setInterval(async () => {
+            let carimbo_nuvem = await carimbo_data_hora_pagamentos(true); 
+            let carimbo_maquina = JSON.parse(carimbo_storage);
 
-        let carimbo_maquina = JSON.parse(carimbo_storage)
-    
-        console.log(carimbo_maquina == carimbo_nuvem)
-
+            if (carimbo_maquina[0] !== carimbo_nuvem[0]) {
+                await atualizar_pagamentos_menu();
+            }
+        }, 60000);
     }
-
 }
+
 
 async function inicializar_pagamentos() {
 
@@ -38,6 +36,7 @@ async function inicializar_pagamentos() {
 
 }
 
+sincronizar_periodico()
 inicializar_pagamentos()
 
 function atualizarAndamento(texto) {
@@ -517,15 +516,15 @@ function fechar_detalhes() {
 
 async function atualizar_pagamentos_menu() {
 
+    let andamento = document.getElementById('andamento')
+    if (andamento) {
+        carregamento('andamento')
+    }
     recuperar_orcamentos()
     recuperar()
-    atualizarAndamento('Sincronizando pagamentos...')
     await obter_lista_pagamentos()
-    atualizarAndamento('Verificando hierarquia de setores...')
     await lista_setores()
-
     remover_popup()
-    atualizarAndamento('Processando dados na tabela...')
     await consultar_pagamentos()
 
     for (coluna in filtrosAtivosPagamentos) {

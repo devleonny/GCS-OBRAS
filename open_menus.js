@@ -1503,7 +1503,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
 
             ${div_titulos}
 
-            <div style="display: flex; flex-direction: column; gap: 10px; justify-content: space-evenly; align-items: start; background-color: #22222287; border-radius: 5px; padding: 10px; margin: 30px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);">
+            <div id="andamento" style="display: flex; flex-direction: column; gap: 10px; justify-content: space-evenly; align-items: start; background-color: #22222287; border-radius: 5px; padding: 10px; margin: 30px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);">
 
                 <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
                     onclick="window.location.href='inicial.html'">
@@ -1516,9 +1516,8 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
                     <label style="color: white;">Atualizar Pagamentos</label>
                 </div>
 
-                <label>Sincronizado: ${carimbo_data_hora_pagamentos}</label>
+                <label>Atualizado em ${carimbo_data_hora_pagamentos}</label>
 
-                <label id="andamento">...</label>
             </div>
 
 
