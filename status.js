@@ -11,9 +11,8 @@ var data_status = dataAtual.toLocaleString('pt-BR', {
 });
 var anexos = {}
 
-
 var fluxograma = {
-    'AGUARDANDO': { cor: '#4CAF50', modulos: ['PROJETOS'], },
+    'AGUARDANDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS'], },
     'PEDIDO DE VENDA ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'PEDIDO DE SERVIÇO ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'FATURAMENTO PEDIDO DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'] },
@@ -2645,22 +2644,6 @@ function atualizar_status_logistico(st, chave, chave2) {
 function close_chave() {
     exibir_todos_os_status(id_orcam)
     document.getElementById('alerta').remove()
-}
-
-function teste_anexo() {
-
-    let fileName = 'dabudbauwidandwiawndawundonodqwidqnfownownfonfsinfibihwfbqw onqwidnwiq.png'
-    let resposta = `
-    <div id="${id}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-        <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-            <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-            <label style="font-size: 0.8em;">${String(fileName).slice(0, 10)} ... ${String(fileName).slice(-7)}</label>
-        </div>
-        <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="remover_anexo('${id}')>
-    </div>
-    `
-    div_anexos.style = 'align-items: normal'
-    div_anexos.insertAdjacentHTML('beforeend', resposta)
 }
 
 function salvar_anexo(chave1, chave2) {
