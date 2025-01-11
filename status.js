@@ -810,10 +810,6 @@ function salvar_pedido(chave) {
 
     localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
 
-    let espelho_ocorrencias = document.getElementById('espelho_ocorrencias')
-    if (espelho_ocorrencias) {
-        espelho_ocorrencias.remove()
-    }
     enviar_status_orcamento(orcamento);
     abrir_esquema(id_orcam)
 
@@ -1221,6 +1217,10 @@ function atulizar_item(chave1, item) {
 function abrir_esquema(id) {
 
     overlay.style.display = 'block'
+    var status = document.getElementById('status')
+    if (status) {
+        status.remove()
+    }
     var estrutura = document.getElementById('estrutura')
     if (estrutura) {
         estrutura.remove()
