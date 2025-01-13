@@ -122,7 +122,7 @@ button {
 
 .button-container {
     display: flex; /* Deixa os botões alinhados em linha */
-    justify-content: center; /* Centraliza os botões horizontalmente */
+    justify-content: space-around;
     gap: 10px; /* Espaçamento entre os botões */
     margin-top: 10px; /* Espaçamento superior */
 }
@@ -152,7 +152,43 @@ button {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adiciona sombra */
 }
 
+.modal-content h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
 
+.modal-content p {
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.btn-confirmar {
+    padding: 10px 20px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-confirmar:hover {
+    background-color: #c82333;
+}
+
+.btn-cancelar {
+    padding: 10px 20px;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-cancelar:hover {
+    background-color: #5a6268;
+}
 
 .close {
     position: absolute; /* Posiciona dentro do modal */
@@ -175,14 +211,11 @@ button {
     box-shadow: none; /* Remove sombra */
 }
 
-
 .close:hover,
 .close:focus {
     opacity: 0.8; /* Reduz opacidade ao passar o mouse */
     outline: none; /* Remove o foco padrão */
 }
-
-
 
 .modal-content button {
     margin-top: 15px;

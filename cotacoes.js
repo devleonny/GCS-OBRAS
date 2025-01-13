@@ -841,11 +841,6 @@ function carregarCotacoesSalvas() {
     }
 }
 
-
-
-
-
-
 function editarCotacao(id) {
     const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
     const cotacao = cotacoes[id];
@@ -1150,6 +1145,12 @@ function voltarParaInicio() {
 }
 
 function removerCotacao(elemento) {
+    // Adiciona a confirmação antes de prosseguir
+    const confirmar = confirm("Tem certeza de que deseja excluir esta cotação?");
+    if (!confirmar) {
+        return; // Sai da função caso o usuário cancele
+    }
+
     // Encontra a linha associada ao botão clicado
     const linha = elemento.parentElement.parentElement;
 
@@ -1159,9 +1160,8 @@ function removerCotacao(elemento) {
     // Remove a linha da tabela
     linha.remove();
 
-    let status = "excluido"
-
-    let operacao = "excluir"
+    let status = "excluido";
+    let operacao = "excluir";
 
     const cotacaoParaExcluir = { operacao, status, idCotacao };
 
@@ -1219,8 +1219,12 @@ function ordenarTabela(coluna) {
                 valorB = cotacaoB.informacoes.apelidoCotacao?.toLowerCase() || '';
                 break;
             case 'data':
-                valorA = new Date(`${cotacaoA.informacoes.data} ${cotacaoA.informacoes.hora}`);
-                valorB = new Date(`${cotacaoB.informacoes.data} ${cotacaoB.informacoes.hora}`);
+                valorA = new Date(
+                    cotacaoA.informacoes.data.split('/').reverse().join('-') + 'T' + cotacaoA.informacoes.hora
+                );
+                valorB = new Date(
+                    cotacaoB.informacoes.data.split('/').reverse().join('-') + 'T' + cotacaoB.informacoes.hora
+                );
                 break;
             case 'criador':
                 valorA = cotacaoA.informacoes.criador.toLowerCase();
@@ -1274,6 +1278,7 @@ function ordenarTabela(coluna) {
     // Atualiza os ícones no cabeçalho
     atualizarIconesOrdenacao(coluna);
 }
+
 
 function atualizarIconesOrdenacao(coluna) {
     // Remove ícones existentes
@@ -1336,4 +1341,3 @@ function filtrarTabela(colunaIndex, valorPesquisa) {
         }
     }
 }
-
