@@ -9,8 +9,8 @@ body {
 }
 
 th {
-    cursor: pointer;
-    position: relative;
+    cursor: pointer; /* Adiciona cursor de ponteiro para indicar interatividade */
+    position: relative; /* Necessário para posicionar o ícone */
 }
 
 th span.ordem-icone {
@@ -24,6 +24,7 @@ th span.ordem-icone {
 th.ordenado span.ordem-icone {
     color: #000; /* Destaca o ícone do cabeçalho ordenado */
 }
+
 
 table th, table td {
     border: 1px solid #ccc;

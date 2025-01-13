@@ -383,16 +383,6 @@ function salvarFornecedor() {
     }
 }
 
-
-
-function esconderFornecedores() {
-
-    const fornecedoresHeader = document.getElementById("fornecedoresHeader");
-
-    fornecedoresHeader.style.display = "none";
-
-}
-
 function decidirMelhorOferta(linha_quantidade){
 
     let listaValores = document.querySelectorAll(`input.resultadoPrecoTotal-linha-${linha_quantidade}`)
@@ -1267,7 +1257,7 @@ function ordenarTabela(coluna) {
                 valorA = cotacaoA.dados.length;
                 valorB = cotacaoB.dados.length;
                 break;
-            case 'fornecedores':
+            case 'fornecedor': // Para a coluna de fornecedores
                 valorA = cotacaoA.valorFinal.length;
                 valorB = cotacaoB.valorFinal.length;
                 break;
@@ -1312,26 +1302,31 @@ function ordenarTabela(coluna) {
     atualizarIconesOrdenacao(coluna);
 }
 
-
 function atualizarIconesOrdenacao(coluna) {
-    // Remove ícones existentes
+    // Remove ícones existentes em todos os cabeçalhos
     const headers = document.querySelectorAll("th");
     headers.forEach(header => {
-        header.classList.remove("ordenado");
-        const icone = header.querySelector("span.ordem-icone");
-        if (icone) icone.remove();
+        header.classList.remove("ordenado"); // Remove a classe de cabeçalhos ordenados
+        const iconeExistente = header.querySelector("span.ordem-icone");
+        if (iconeExistente) {
+            iconeExistente.remove(); // Remove o ícone antigo
+        }
     });
 
     // Adiciona o ícone ao cabeçalho correspondente
     const header = document.getElementById(`${coluna}Header`);
     if (header) {
-        header.classList.add("ordenado");
+        header.classList.add("ordenado"); // Adiciona classe ao cabeçalho ordenado
+
         const icone = document.createElement("span");
         icone.classList.add("ordem-icone");
         icone.textContent = ordemAtual.ordem === 'asc' ? '▲' : '▼'; // ▲ para crescente, ▼ para decrescente
+
         header.appendChild(icone);
     }
 }
+
+
 
 function filtrarTabela(colunaIndex, valorPesquisa) {
     const tabela = document.getElementById("cotacoesSalvasTable");
