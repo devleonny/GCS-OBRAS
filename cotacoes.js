@@ -176,27 +176,60 @@ function adicionarLinha() {
 function mostrarSugestoes(input, partnumberCell, estoqueCell) {
     const listaMateriais = JSON.parse(localStorage.getItem("dados_materiais")) || {};
     const valor = input.value.toLowerCase();
-    const sugestoes = input.parentElement.querySelector(".autocomplete-suggestions");
 
-    sugestoes.innerHTML = "";
+    // Verifica se o contêiner global de sugestões já existe, senão cria
+    let sugestoes = document.getElementById("autocomplete-container");
+    if (!sugestoes) {
+        sugestoes = document.createElement("div");
+        sugestoes.id = "autocomplete-container";
+        sugestoes.style.position = "absolute";
+        sugestoes.style.zIndex = "1000";
+        document.body.appendChild(sugestoes);
+    }
 
+    sugestoes.innerHTML = ""; // Limpa as sugestões anteriores
+
+    if (!valor) {
+        sugestoes.style.display = "none"; // Oculta se o valor estiver vazio
+        return;
+    }
+
+    // Filtra os itens baseados no valor digitado
     const itensFiltrados = Object.values(listaMateriais)
         .filter(item => item.descricao && item.descricao.toLowerCase().startsWith(valor))
         .sort((a, b) => a.descricao.localeCompare(b.descricao));
 
+    if (itensFiltrados.length === 0) {
+        sugestoes.style.display = "none"; // Oculta se não houver resultados
+        return;
+    }
+
     itensFiltrados.forEach(item => {
         const sugestao = document.createElement("div");
         sugestao.textContent = item.descricao;
+        sugestao.style.padding = "8px";
+        sugestao.style.cursor = "pointer";
+        sugestao.style.backgroundColor = "#fff";
+        sugestao.style.borderBottom = "1px solid #ccc";
+
         sugestao.onclick = () => {
             input.value = item.descricao;
             partnumberCell.querySelector("input").value = item.partnumber || "";
             estoqueCell.querySelector("input").value = item.estoque ?? 0;
-            sugestoes.innerHTML = ""; // Limpa as sugestões
+            sugestoes.style.display = "none"; // Oculta após seleção
         };
 
         sugestoes.appendChild(sugestao);
     });
+
+    // Define a posição do contêiner em relação ao input
+    const rect = input.getBoundingClientRect();
+    sugestoes.style.left = `${rect.left}px`;
+    sugestoes.style.top = `${rect.bottom + window.scrollY}px`;
+    sugestoes.style.width = `${rect.width}px`;
+    sugestoes.style.display = "block"; // Exibe as sugestões
 }
+
 
 
 let nomeFornecedor = "";
