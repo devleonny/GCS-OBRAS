@@ -53,16 +53,6 @@ async function atualizar_especial() {
 
 }
 
-function gerar_menu(status, quantidade) {
-
-    return `
-    <div class="block" onclick="preencher_orcamentos_v2('${status}')">
-        <label>${quantidade}</label>
-        <p>${status}</p>
-    </div>
-    `
-}
-
 function pesquisar_v2(coluna, texto) {
 
     filtrosAtivos[coluna] = texto.toLowerCase();
@@ -232,7 +222,12 @@ function preencher_orcamentos_v2(st) {
             var atalhos = ''
             for (atalho in status_deste_modulo) {
                 var quantidade = status_deste_modulo[atalho]
-                atalhos += gerar_menu(atalho, quantidade)
+                atalhos += `
+                    <div class="block" onclick="preencher_orcamentos_v2('${status}')">
+                        <label class="numero">${quantidade}</label>
+                        <label style="font-size: 0.8vw;">${status}</label>
+                    </div>
+                `
             }
             painel_direito.innerHTML = atalhos
         }

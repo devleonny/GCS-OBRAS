@@ -230,10 +230,6 @@ async function enviar_dados() {
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
 
-    if (!orcamento_v2.id) {
-        orcamento_v2.id = 'ORCA_' + unicoID();
-    }
-
     if (!orcamento_v2.dados_orcam) {
         return openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
@@ -335,6 +331,9 @@ async function enviar_dados() {
 
     orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2'));
     orcamento_v2.tabela = 'orcamentos';
+    if (!orcamento_v2.id) {
+        orcamento_v2.id = 'ORCA_' + unicoID();
+    }
 
     enviar_dados_generico(orcamento_v2);
 
@@ -350,7 +349,6 @@ async function enviar_dados() {
         location.href = 'orcamentos.html';
     }, 2000);
 }
-
 
 function pesquisar_v2(elemento, col) {
     var termo = String(elemento.value).toLowerCase();
