@@ -162,8 +162,8 @@ function painel_adicionar_notas(chave) {
             <div style="display: flex; flex-direction: column; justify-content: center; align-items: start;"
                 <label><strong>Número da Nota</strong></label>
                 <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
-                    <input type="number" class="pedido">
-                    <select>
+                    <input type="number" class="pedido" id="nota">
+                    <select id="tipo">
                         <option>Remessa</option>
                         <option>Venda</option>
                         <option>Serviço</option>
@@ -830,25 +830,21 @@ function salvar_notas(chave) {//29
         notas: []
     };
 
-    var divs = document.querySelectorAll('.conteiner_pedido');
+    let nota = document.getElementById('nota')
+    let tipo = document.getElementById('tipo')
 
-    divs.forEach(div => {
-        var input = div.querySelector('input');
-        var selects = div.querySelectorAll('select');
-
-        novo_lancamento.historico[chave_his].notas.push({
-            nota: input.value,
-            modalidade: selects[0].value
-        });
-
-        if (selects[0].value == 'Venda') {
-            st = `PEDIDO DE VENDA FATURADO`;
-        } else if (selects[0].value == 'Serviço') {
-            st = `PEDIDO DE SERVIÇO FATURADO`;
-        } else if (selects[0].value == 'Remessa') {
-            st = selects[1].value.includes('Serviço') ? `REMESSA DE SERVIÇO` : `REMESSA DE VENDA`;
-        }
+    novo_lancamento.historico[chave_his].notas.push({
+        nota: nota.value,
+        modalidade: tipo.value
     });
+
+    if (tipo.value == 'Venda') {
+        st = `PEDIDO DE VENDA FATURADO`;
+    } else if (tipo.value == 'Serviço') {
+        st = `PEDIDO DE SERVIÇO FATURADO`;
+    } else if (tipo.value == 'Remessa') {
+        st = tipo.value.includes('Serviço') ? `REMESSA DE SERVIÇO` : `REMESSA DE VENDA`;
+    }
 
     novo_lancamento.status = st;
     novo_lancamento.historico[chave_his].status = st;
@@ -1421,9 +1417,7 @@ function abrir_esquema(id) {
 
                 var notas = ''
                 if (sst.notas) {
-                    notas += `
-                ${sst.notas[0].nota} - ${sst.notas[0].pedido}
-                `
+                    notas += `${sst.notas[0].nota}`
                 }
 
                 var totais = ''
@@ -1461,7 +1455,7 @@ function abrir_esquema(id) {
                     dados_de_envio = `
                     <label><strong>Rastreio:</strong> ${envio.rastreio}</label>
                     <label><strong>Custo do Frete:</strong> ${dinheiro(envio.custo_frete)}</label>
-                    <label><strong>NF </strong> ${envio.nf}</label>
+                    <label><strong>NF: </strong> ${envio.nf}</label>
                     <label><strong>Requisição:</strong> ${envio.requisicao}</label>
                     <label><strong>Transportadora:</strong> ${envio.transportadora}</label>
                     <label><strong>Volumes:</strong> ${envio.volumes}</label>
