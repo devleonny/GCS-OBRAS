@@ -279,7 +279,7 @@ button {
     background-color: #ffffff; /* Fundo branco */
     position: relative;
     margin-bottom: 20px;
-    max-height: 80vh; /* Limita a altura máxima em 80% da altura da janela */
+    max-height: 500px; /* Limita a altura máxima em 80% da altura da janela */
 }
 
 
