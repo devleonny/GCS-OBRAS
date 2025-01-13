@@ -98,7 +98,7 @@ function painel_adicionar_pedido() {
             <div id="div_anexos" style="display: flex; flex-direction: column; justify-content: right; align-items: center; gap: 10px;">
             </div>
 
-            <div class="contorno_botoes" style="background-color: #4CAF50"> 
+            <div class="contorno_botoes"> 
                 <img src="imagens/anexo2.png" style="width: 15px;">
                 <label for="adicionar_anexo">Anexar arquivos
                     <input type="file" id="adicionar_anexo" style="display: none;" onchange="salvar_anexo()" multiple> 
@@ -106,9 +106,9 @@ function painel_adicionar_pedido() {
             </div>
             
             <hr style="width: 80%">
-            <div style="display: flex; justify-content: right; align-items: center; gap: 10px; width: 100%">
-                <label class="contorno_botoes" style="background-color: #4CAF50;" onclick="salvar_pedido()">Salvar</label>
-            </div>
+
+            <button style="background-color: #4CAF50; width: 100%;" onclick="salvar_pedido()">Salvar</button>
+
         </div>
 
     </div>
@@ -128,8 +128,6 @@ function painel_adicionar_notas(chave) {
 
     var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
     var cliente = dados_orcamentos[id_orcam].dados_orcam.cliente_selecionado
-    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    var usuario = acesso.usuario
     var data = new Date().toLocaleString('pt-BR', {
         dateStyle: 'short',
         timeStyle: 'short'
@@ -141,66 +139,59 @@ function painel_adicionar_notas(chave) {
     }
 
     var acumulado = `
-    <div id="status" class="status" style="display: flex; width: 100%; overflow: auto;">
-    
-    <span class="close" onclick="fechar_status()">×</span>
-    <div style="display: flex; justify-content: space-evenly; align-items: center;">
-    <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
-    
-    </div>
-    <br>
-    <div id="container_status"></div>
-    
-    <hr style="width: 80%">
-    <div style="display: grid; gap: 10px;">
-    <div style="display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center;">
-        <label class="novo_titulo" style="color: #222">Inclua o número das Notas <strong>Remessa</strong>, <strong>Venda</strong> ou <strong>Serviço</strong></label> 
-        <p> Coloque o número da NF e escolha a qual pedido se refere.</p>
-        </div>
-        <div id="conteiner_pedido">
-            <div class="conteiner_pedido">
-                <label><strong>Número da Nota</strong></label>
-                <input type="number" class="pedido">
-                <select>
-                    <option>Remessa</option>
-                    <option>Venda</option>
-                    <option>Serviço</option>
-                </select>
+        <div id="status" class="status" style="display: flex; overflow: auto;">
+
+            <span class="close" onclick="fechar_status()">×</span>
+            <label style="position: absolute; top: 5px; left: 5px; font-size: 0.6em;" id="data">${data}</label>
+
+            <div style="display: flex; justify-content: space-evenly; align-items: center;">
+                <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
             </div>
+
+            <br>
+            
+            <div id="container_status"></div>
+
+            <hr style="width: 80%">
+
+            <div style="display: flex; flex-direction: column; align-items: start: justify-content: center; gap: 5px;">
+                <label class="novo_titulo" style="color: #222;">Inclua o número da Nota</label>
+                <label>Remessa, Venda ou Serviço</label>
+            </div>
+
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: start;"
+                <label><strong>Número da Nota</strong></label>
+                <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
+                    <input type="number" class="pedido">
+                    <select>
+                        <option>Remessa</option>
+                        <option>Venda</option>
+                        <option>Serviço</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+                <label><strong>Comentário</strong></label>
+                <textarea rows="5" style="width: 80%;" id="comentario_status"></textarea>
+            </div>
+
+            <div id="div_anexos"
+                style="display: flex; flex-direction: column; justify-content: right; align-items: center; gap: 10px;">
+            </div>
+
+            <div class="contorno_botoes">
+                <img src="imagens/anexo2.png" style="width: 15px;">
+                <label for="adicionar_anexo">Anexar arquivos
+                    <input type="file" id="adicionar_anexo" style="display: none;" onchange="salvar_anexo()">
+                </label>
+            </div>
+
+            <hr style="width: 80%">
+
+            <button style="background-color: #4CAF50" onclick="${funcao}">Salvar</button>
+
         </div>
-    </div>
-
-    <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-        <label><strong>Comentário</strong></label>
-        <textarea rows="10" id="comentario_status" style="width: 80%;"></textarea>
-    </div>
-
-    <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-        <label><strong>Data</strong> </label> <label id="data_status">${data}</label>
-    </div>
-
-    <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-        <label><strong>Executor</strong> </label> <label id="usuario_status">${usuario}</label>
-    </div>
-     
-        <div id="div_anexos" style="display: flex; flex-direction: column; justify-content: right; align-items: center; gap: 10px;">
-        </div>
-
-        <div class="contorno_botoes" style="background-color: #B12425"> 
-            <img src="imagens/anexo2.png" style="width: 15px;">
-            <label for="adicionar_anexo">Anexar arquivos
-                <input type="file" id="adicionar_anexo" style="display: none;" onchange="salvar_anexo()"> 
-            </label>
-        </div>
-    
-    
-    <hr style="width: 80%">
-    <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-        <button onclick="fechar_status()">Cancelar</button>
-        <button style="background-color: green" onclick="${funcao}">Salvar</button>
-    </div>
-
-    </div>
     `
     document.body.insertAdjacentHTML('beforeend', acumulado)
 }
@@ -816,9 +807,11 @@ function salvar_pedido(chave) {
 
 function salvar_notas(chave) {//29
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
-    var orcamento = dados_orcamentos[id_orcam];
-    var st = '';
+    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+    let orcamento = dados_orcamentos[id_orcam];
+    let st = '';
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let data = document.getElementById('data')
 
     if (!orcamento.status) {
         orcamento.status = {};
@@ -830,7 +823,7 @@ function salvar_notas(chave) {//29
 
     novo_lancamento.historico[chave_his] = {
         status: '',
-        data: data_status,
+        data: data.textContent,
         executor: acesso.usuario,
         comentario: comentario_status.value,
         anexos: anexos,
@@ -845,8 +838,7 @@ function salvar_notas(chave) {//29
 
         novo_lancamento.historico[chave_his].notas.push({
             nota: input.value,
-            modalidade: selects[0].value,
-            pedido: selects[1].value
+            modalidade: selects[0].value
         });
 
         if (selects[0].value == 'Venda') {
@@ -1628,7 +1620,7 @@ function abrir_esquema(id) {
                             
                             <div style="display: flex; gap: 10px;">
                                 ${botao_novo_pagamento(chave_pedido)}
-                                ${botao_novo_pedido()}
+                                ${botao_novo_pedido(id)}
                                 <div class="contorno_botoes" style="background-color: ${fluxograma['FATURAMENTO PEDIDO DE VENDA'].cor}"
                                     onclick="detalhar_requisicao('${chave_pedido}')">
                                     <label>Nova <strong>Requisição</strong></label>
