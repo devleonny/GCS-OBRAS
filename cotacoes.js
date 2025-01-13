@@ -740,16 +740,30 @@ function salvarValorFinal() {
     });
 }
 
-function abrirModalApelido(){
-
+function abrirModalApelido() {
     const modal = document.getElementById("modalApelido");
     const input = document.getElementById("inputApelido");
-    const button = document.getElementById("confirmarApelidoButton");
+    const operacao = localStorage.getItem("operacao");
 
+    // Exibe o modal
     modal.style.display = "block";
-    input.value = "";
 
+    // Se a operação for "editar", preenche o apelido com o valor atual
+    if (operacao === "editar") {
+        const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+        const cotacaoEditandoID = localStorage.getItem("cotacaoEditandoID");
+        const cotacaoAtual = cotacoes[cotacaoEditandoID];
+
+        if (cotacaoAtual && cotacaoAtual.informacoes.apelidoCotacao) {
+            input.value = cotacaoAtual.informacoes.apelidoCotacao;
+        } else {
+            input.value = ""; // Deixa em branco caso não tenha apelido
+        }
+    } else {
+        input.value = ""; // Limpa o campo se for uma nova cotação
+    }
 }
+
 
 function fecharModalApelido() {
     const modal = document.getElementById("modalApelido");

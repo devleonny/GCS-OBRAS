@@ -1,3 +1,8 @@
+
+* {
+    box-sizing: border-box; /* Aplicado a todos os elementos para controle de dimensões */
+}
+
 body {
     margin: 0; /* Remove qualquer margem extra */
     padding: 0; /* Remove padding extra */
@@ -6,6 +11,7 @@ body {
     align-items: center; /* Centraliza o conteúdo verticalmente */
     min-height: 100vh; /* Garante altura total da tela */
     overflow: hidden; /* Evita overflow indesejado */
+    box-sizing: border-box;
 }
 
 th {
@@ -223,17 +229,20 @@ button {
 .table-container {
     margin: 0 auto;
     max-width: 120rem;
-    width: 95%; /* Faz o contêiner ocupar 90% da largura disponível */
-    overflow-x: auto; /* Ativa o scroll horizontal */
+    width: 95%; /* Faz o contêiner ocupar 95% da largura disponível */
+    overflow-x: auto; /* Scroll horizontal apenas se necessário */
+    overflow-y: auto; /* Scroll vertical apenas se necessário */
     border: 1px solid #ccc; /* Borda para visualização */
     border-radius: 5px; /* Bordas arredondadas */
     background-color: #ffffff; /* Fundo branco */
     position: relative;
     margin-bottom: 20px;
+    max-height: 80vh; /* Limita a altura máxima em 80% da altura da janela */
 }
 
+
 table {
-    width: auto; /* Permite ajuste automático */
+    width: 100%; /* Permite ajuste automático */
     min-width: 1000px; /* Aumente a largura mínima */
     border-collapse: collapse; /* Remove espaços entre bordas */
     background-color: #ffffff; /* Fundo branco */
