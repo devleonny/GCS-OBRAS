@@ -176,27 +176,60 @@ function adicionarLinha() {
 function mostrarSugestoes(input, partnumberCell, estoqueCell) {
     const listaMateriais = JSON.parse(localStorage.getItem("dados_materiais")) || {};
     const valor = input.value.toLowerCase();
-    const sugestoes = input.parentElement.querySelector(".autocomplete-suggestions");
 
-    sugestoes.innerHTML = "";
+    // Verifica se o contêiner global de sugestões já existe, senão cria
+    let sugestoes = document.getElementById("autocomplete-container");
+    if (!sugestoes) {
+        sugestoes = document.createElement("div");
+        sugestoes.id = "autocomplete-container";
+        sugestoes.style.position = "absolute";
+        sugestoes.style.zIndex = "1000";
+        document.body.appendChild(sugestoes);
+    }
 
+    sugestoes.innerHTML = ""; // Limpa as sugestões anteriores
+
+    if (!valor) {
+        sugestoes.style.display = "none"; // Oculta se o valor estiver vazio
+        return;
+    }
+
+    // Filtra os itens baseados no valor digitado
     const itensFiltrados = Object.values(listaMateriais)
         .filter(item => item.descricao && item.descricao.toLowerCase().startsWith(valor))
         .sort((a, b) => a.descricao.localeCompare(b.descricao));
 
+    if (itensFiltrados.length === 0) {
+        sugestoes.style.display = "none"; // Oculta se não houver resultados
+        return;
+    }
+
     itensFiltrados.forEach(item => {
         const sugestao = document.createElement("div");
         sugestao.textContent = item.descricao;
+        sugestao.style.padding = "8px";
+        sugestao.style.cursor = "pointer";
+        sugestao.style.backgroundColor = "#fff";
+        sugestao.style.borderBottom = "1px solid #ccc";
+
         sugestao.onclick = () => {
             input.value = item.descricao;
             partnumberCell.querySelector("input").value = item.partnumber || "";
             estoqueCell.querySelector("input").value = item.estoque ?? 0;
-            sugestoes.innerHTML = ""; // Limpa as sugestões
+            sugestoes.style.display = "none"; // Oculta após seleção
         };
 
         sugestoes.appendChild(sugestao);
     });
+
+    // Define a posição do contêiner em relação ao input
+    const rect = input.getBoundingClientRect();
+    sugestoes.style.left = `${rect.left}px`;
+    sugestoes.style.top = `${rect.bottom + window.scrollY}px`;
+    sugestoes.style.width = `${rect.width}px`;
+    sugestoes.style.display = "block"; // Exibe as sugestões
 }
+
 
 
 let nomeFornecedor = "";
@@ -740,16 +773,30 @@ function salvarValorFinal() {
     });
 }
 
-function abrirModalApelido(){
-
+function abrirModalApelido() {
     const modal = document.getElementById("modalApelido");
     const input = document.getElementById("inputApelido");
-    const button = document.getElementById("confirmarApelidoButton");
+    const operacao = localStorage.getItem("operacao");
 
+    // Exibe o modal
     modal.style.display = "block";
-    input.value = "";
 
+    // Se a operação for "editar", preenche o apelido com o valor atual
+    if (operacao === "editar") {
+        const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+        const cotacaoEditandoID = localStorage.getItem("cotacaoEditandoID");
+        const cotacaoAtual = cotacoes[cotacaoEditandoID];
+
+        if (cotacaoAtual && cotacaoAtual.informacoes.apelidoCotacao) {
+            input.value = cotacaoAtual.informacoes.apelidoCotacao;
+        } else {
+            input.value = ""; // Deixa em branco caso não tenha apelido
+        }
+    } else {
+        input.value = ""; // Limpa o campo se for uma nova cotação
+    }
 }
+
 
 function fecharModalApelido() {
     const modal = document.getElementById("modalApelido");
@@ -826,11 +873,6 @@ function carregarCotacoesSalvas() {
         console.warn("Elemento mensagemCargasOrdenadas não encontrado.");
     }
 }
-
-
-
-
-
 
 function editarCotacao(id) {
     const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
@@ -1136,6 +1178,12 @@ function voltarParaInicio() {
 }
 
 function removerCotacao(elemento) {
+    // Adiciona a confirmação antes de prosseguir
+    const confirmar = confirm("Tem certeza de que deseja excluir esta cotação?");
+    if (!confirmar) {
+        return; // Sai da função caso o usuário cancele
+    }
+
     // Encontra a linha associada ao botão clicado
     const linha = elemento.parentElement.parentElement;
 
@@ -1145,9 +1193,8 @@ function removerCotacao(elemento) {
     // Remove a linha da tabela
     linha.remove();
 
-    let status = "excluido"
-
-    let operacao = "excluir"
+    let status = "excluido";
+    let operacao = "excluir";
 
     const cotacaoParaExcluir = { operacao, status, idCotacao };
 
@@ -1205,8 +1252,12 @@ function ordenarTabela(coluna) {
                 valorB = cotacaoB.informacoes.apelidoCotacao?.toLowerCase() || '';
                 break;
             case 'data':
-                valorA = new Date(`${cotacaoA.informacoes.data} ${cotacaoA.informacoes.hora}`);
-                valorB = new Date(`${cotacaoB.informacoes.data} ${cotacaoB.informacoes.hora}`);
+                valorA = new Date(
+                    cotacaoA.informacoes.data.split('/').reverse().join('-') + 'T' + cotacaoA.informacoes.hora
+                );
+                valorB = new Date(
+                    cotacaoB.informacoes.data.split('/').reverse().join('-') + 'T' + cotacaoB.informacoes.hora
+                );
                 break;
             case 'criador':
                 valorA = cotacaoA.informacoes.criador.toLowerCase();
@@ -1260,6 +1311,7 @@ function ordenarTabela(coluna) {
     // Atualiza os ícones no cabeçalho
     atualizarIconesOrdenacao(coluna);
 }
+
 
 function atualizarIconesOrdenacao(coluna) {
     // Remove ícones existentes
@@ -1322,4 +1374,3 @@ function filtrarTabela(colunaIndex, valorPesquisa) {
         }
     }
 }
-

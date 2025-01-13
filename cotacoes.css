@@ -80,6 +80,20 @@ button {
     position: relative; /* Define o contexto de empilhamento para o auto-complete */
 }
 
+#autocomplete-container {
+    position: absolute;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+#autocomplete-container div:hover {
+    background-color: #f4f4f4;
+}
+
+
 .autocomplete-suggestions {
     position: absolute;
     top: 100%; /* Move o auto-complete para logo abaixo do input */
@@ -116,7 +130,7 @@ button {
 
 .button-container {
     display: flex; /* Deixa os botões alinhados em linha */
-    justify-content: center; /* Centraliza os botões horizontalmente */
+    justify-content: space-around;
     gap: 10px; /* Espaçamento entre os botões */
     margin-top: 10px; /* Espaçamento superior */
 }
@@ -146,7 +160,43 @@ button {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adiciona sombra */
 }
 
+.modal-content h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
 
+.modal-content p {
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.btn-confirmar {
+    padding: 10px 20px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-confirmar:hover {
+    background-color: #c82333;
+}
+
+.btn-cancelar {
+    padding: 10px 20px;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-cancelar:hover {
+    background-color: #5a6268;
+}
 
 .close {
     position: absolute; /* Posiciona dentro do modal */
@@ -169,14 +219,11 @@ button {
     box-shadow: none; /* Remove sombra */
 }
 
-
 .close:hover,
 .close:focus {
     opacity: 0.8; /* Reduz opacidade ao passar o mouse */
     outline: none; /* Remove o foco padrão */
 }
-
-
 
 .modal-content button {
     margin-top: 15px;
@@ -223,17 +270,20 @@ button {
 .table-container {
     margin: 0 auto;
     max-width: 120rem;
-    width: 95%; /* Faz o contêiner ocupar 90% da largura disponível */
-    overflow-x: auto; /* Ativa o scroll horizontal */
+    width: 95%; /* Faz o contêiner ocupar 95% da largura disponível */
+    overflow-x: auto; /* Scroll horizontal apenas se necessário */
+    overflow-y: auto; /* Scroll vertical apenas se necessário */
     border: 1px solid #ccc; /* Borda para visualização */
     border-radius: 5px; /* Bordas arredondadas */
     background-color: #ffffff; /* Fundo branco */
     position: relative;
     margin-bottom: 20px;
+    max-height: 80vh; /* Limita a altura máxima em 80% da altura da janela */
 }
 
+
 table {
-    width: auto; /* Permite ajuste automático */
+    width: 100%; /* Permite ajuste automático */
     min-width: 1000px; /* Aumente a largura mínima */
     border-collapse: collapse; /* Remove espaços entre bordas */
     background-color: #ffffff; /* Fundo branco */
