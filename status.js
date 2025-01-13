@@ -183,7 +183,7 @@ function painel_adicionar_notas(chave) {
             <div class="contorno_botoes">
                 <img src="imagens/anexo2.png" style="width: 15px;">
                 <label for="adicionar_anexo">Anexar arquivos
-                    <input type="file" id="adicionar_anexo" style="display: none;" onchange="salvar_anexo()">
+                    <input type="file" id="adicionar_anexo" style="display: none;" onchange="salvar_anexo()" multiple>
                 </label>
             </div>
 
