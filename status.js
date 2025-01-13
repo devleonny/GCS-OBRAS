@@ -1479,7 +1479,7 @@ function abrir_esquema(id) {
                         <label><strong>Executor: </strong>${sst.executor}</label>
                         <label><strong>Data: </strong>${sst.data}</label>
                         <label><strong>Comentário: </strong> <br> ${coments}</label>
-                        ${sst.notas ? `<label><strong>NF</strong>${notas}</label>` : ''}
+                        ${sst.notas ? `<label><strong>NF: </strong>${notas}</label>` : ''}
                         ${totais}
                         ${dados_de_envio}
                         ${links_requisicoes}

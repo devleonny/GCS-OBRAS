@@ -650,7 +650,6 @@ async function recuperar() {
     await recuperar_dados_composicoes()
     return new Promise((resolve, reject) => {
         var requisicoes = {
-            'dados_grupos': 'grupos',
             'dados_categorias': 'categorias',
             'dados_pagamentos': 'pagamentos',
             'vendedores': 'vendedores',
