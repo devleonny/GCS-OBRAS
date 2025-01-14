@@ -90,8 +90,10 @@ function adicionarLinha() {
 
     const estoque = document.createElement("td");
     const inputEstoque = document.createElement("input");
-    inputEstoque.type = "text";
-    inputEstoque.readOnly = true;
+    inputEstoque.type = "number";
+
+    inputEstoque.id = `estoque-${numeroItemAtual}`
+
     estoque.appendChild(inputEstoque);
     novaLinha.appendChild(estoque);
 
@@ -99,7 +101,6 @@ function adicionarLinha() {
 
     if (fornecedoresHeader.style.display == "table-cell") {
         let linhaAtualQuantidade = numeroItemAtual;
-
         const dados = JSON.parse(localStorage.getItem("dados_cotacao"));
         let cotacaoEditarID = localStorage.getItem("cotacaoEditandoID");
 
@@ -117,19 +118,40 @@ function adicionarLinha() {
             let linhaQuantidade = inputPrecoUnitario.id.split("-")[2];
             let numeroDoFornecedor = inputPrecoUnitario.id.split("-")[1];
 
-            inputQuantidade.addEventListener("input", () => {
-                let quantidadeAtual =
-                    Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) ||
-                    0;
-                let precoUnitarioAtual =
-                    Number(
-                        document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value
-                    ) || 0;
-                let precoTotalAtual = document.querySelector(
-                    `#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`
-                );
+            inputEstoque.addEventListener("input", () => {
+
+                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
+
+                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
+
+                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
+                    
+                let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
+
+                quantidadeAtual -= valorEstoque
 
                 precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+
+                decidirMelhorOferta(linhaQuantidade);
+
+            });
+
+            inputQuantidade.addEventListener("input", () => {
+
+                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
+
+                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
+
+                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
+                    
+                let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
+
+                quantidadeAtual -= valorEstoque
+
+                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+
+                decidirMelhorOferta(linhaQuantidade);
+
             });
 
             tdPrecoUnitario.appendChild(inputPrecoUnitario);
@@ -147,20 +169,21 @@ function adicionarLinha() {
             tdPrecototal.appendChild(inputPrecoTotal);
 
             inputPrecoUnitario.addEventListener("input", () => {
-                let quantidadeAtual =
-                    Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) ||
-                    0;
-                let precoUnitarioAtual =
-                    Number(
-                        document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value
-                    ) || 0;
-                let precoTotalAtual = document.querySelector(
-                    `#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`
-                );
+
+                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
+
+                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
+
+                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
+                    
+                let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
+
+                quantidadeAtual -= valorEstoque
 
                 precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
 
                 decidirMelhorOferta(linhaQuantidade);
+
             });
 
             novaLinha.append(tdPrecoUnitario, tdPrecototal);
@@ -309,32 +332,64 @@ function salvarFornecedor() {
             let numeroDoFornecedor = quantidadeFornecedores;
 
             inputQuantidade.addEventListener("input", () => {
-                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
-                let precoUnitarioAtual = Number(
-                    document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value
-                ) || 0;
-                let precoTotalAtual = document.querySelector(
-                    `#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`
-                );
 
-                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
-            });
-
-            inputPrecoUnitario.addEventListener("input", () => {
                 let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
-                let precoUnitarioAtual = Number(
-                    document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value
-                ) || 0;
-                let precoTotalAtual = document.querySelector(
-                    `#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`
-                );
+
+                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
+
+                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
+                    
+                let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
+
+                quantidadeAtual -= valorEstoque
 
                 precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
 
                 decidirMelhorOferta(linhaQuantidade);
+
+            });
+
+            inputPrecoUnitario.addEventListener("input", () => {
+
+                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
+
+                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
+
+                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
+                    
+                let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
+
+                quantidadeAtual -= valorEstoque
+
+                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+
+                decidirMelhorOferta(linhaQuantidade);
+
             });
 
             tdPrecoUnitario.appendChild(inputPrecoUnitario);
+
+            let inputEstoque = document.querySelector(`#estoque-${linhaAtualQuantidade}`)
+
+            console.log(inputEstoque)
+
+            inputEstoque.addEventListener("input", () => {
+
+                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
+
+                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
+
+                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
+                    
+                let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
+
+                quantidadeAtual -= valorEstoque
+
+                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+
+                decidirMelhorOferta(linhaQuantidade);
+
+            });
 
             let tdPrecototal = document.createElement("td");
             let inputPrecoTotal = document.createElement("input");
@@ -1000,19 +1055,30 @@ function adicionarLinhaComDados(dado) {
 
     // Adicionar event listener para atualizar os preços totais ao alterar a quantidade
     inputQuantidade.addEventListener("input", () => {
-        const quantidadeAtual = Number(inputQuantidade.value) || 0;
+        let quantidadeAtual = Number(inputQuantidade.value) || 0;
 
         // Atualizar todos os preços totais relacionados a este item
         dado.fornecedores.forEach((fornecedor, index) => {
+
             const precoUnitarioInput = document.querySelector(`#precoUnitario-${index + 1}-${dado.numeroItem}`);
             const precoTotalInput = document.querySelector(`#precoTotal-${index + 1}-${dado.numeroItem}`);
 
             if (precoUnitarioInput && precoTotalInput) {
+
                 const precoUnitarioAtual = Number(precoUnitarioInput.value) || 0;
+                    
+                let valorEstoque = Number(document.querySelector(`#estoque-${dado.numeroItem}`).value) || 0
+
+                quantidadeAtual -= valorEstoque
+
                 precoTotalInput.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+
             }
+
             decidirMelhorOferta(dado.numeroItem);
+
         });
+
     });
 
     tdQuantidade.appendChild(inputQuantidade);
@@ -1021,7 +1087,34 @@ function adicionarLinhaComDados(dado) {
     const inputEstoque = document.createElement("input");
 
     inputEstoque.setAttribute("value", `${dado.estoque}`);
-    inputEstoque.setAttribute("readonly", "true");
+    inputEstoque.id = `estoque-${dado.numeroItem}`
+
+    inputEstoque.addEventListener("input", () => {
+        let quantidadeAtual = Number(inputQuantidade.value) || 0;
+
+        // Atualizar todos os preços totais relacionados a este item
+        dado.fornecedores.forEach((fornecedor, index) => {
+
+            const precoUnitarioInput = document.querySelector(`#precoUnitario-${index + 1}-${dado.numeroItem}`);
+            const precoTotalInput = document.querySelector(`#precoTotal-${index + 1}-${dado.numeroItem}`);
+
+            if (precoUnitarioInput && precoTotalInput) {
+
+                const precoUnitarioAtual = Number(precoUnitarioInput.value) || 0;
+                    
+                let valorEstoque = Number(document.querySelector(`#estoque-${dado.numeroItem}`).value) || 0
+
+                quantidadeAtual -= valorEstoque
+
+                precoTotalInput.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+
+            }
+
+            decidirMelhorOferta(dado.numeroItem);
+
+        });
+
+    });
 
     tdEstoque.appendChild(inputEstoque);
 
@@ -1089,12 +1182,21 @@ function adicionarPrecoUnitarioPrecoTotal(dado, novaLinha, numeroItem) {
 
         // Adicionar evento para atualizar preço total ao alterar o preço unitário
         inputPrecoUnitario.addEventListener("input", () => {
-            const quantidadeAtual = Number(
-                document.querySelector(`#quantidade-${numeroItem}`).value
-            ) || 0;
+
+            let quantidadeAtual = Number(document.querySelector(`#quantidade-${numeroItem}`).value) || 0;
+
             const precoUnitarioAtual = Number(inputPrecoUnitario.value) || 0;
+
+            console.log(document.querySelector(`#estoque-${numeroItem}`))
+
+            let valorEstoque = Number(document.querySelector(`#estoque-${numeroItem}`).value) || 0
+
+            quantidadeAtual -= valorEstoque
+
             inputPrecoTotal.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+            
             decidirMelhorOferta(numeroItem);
+                
         });
 
         novaLinha.append(tdPrecoUnitario, tdPrecoTotal);
@@ -1229,6 +1331,14 @@ function ordenarTabela(coluna) {
     const tabelaBody = document.getElementById("cotacoesSalvasTable").querySelector("tbody");
     const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
 
+    // Alterna a ordem de ordenação
+    if (ordemAtual.coluna === coluna) {
+        ordemAtual.ordem = ordemAtual.ordem === 'asc' ? 'desc' : 'asc';
+    } else {
+        ordemAtual.coluna = coluna;
+        ordemAtual.ordem = 'asc';
+    }
+
     // Converte as cotações para um array e ordena com base na coluna
     const cotacoesOrdenadas = Object.entries(cotacoes).sort((a, b) => {
         const cotacaoA = a[1];
@@ -1265,14 +1375,7 @@ function ordenarTabela(coluna) {
                 return 0;
         }
 
-        // Alterna a ordem de ordenação
-        if (ordemAtual.coluna === coluna) {
-            ordemAtual.ordem = ordemAtual.ordem === 'asc' ? 'desc' : 'asc';
-        } else {
-            ordemAtual.coluna = coluna;
-            ordemAtual.ordem = 'asc';
-        }
-
+        // Realiza a comparação
         const comparacao = valorA > valorB ? 1 : valorA < valorB ? -1 : 0;
         return ordemAtual.ordem === 'asc' ? comparacao : -comparacao;
     });
@@ -1292,7 +1395,7 @@ function ordenarTabela(coluna) {
                 <img src="imagens/editar.png" alt="Editar" class="img-editar" onclick="editarCotacao('${id}')">
                 <img src="imagens/excluir.png" alt="Excluir" class="img-excluir" onclick="removerCotacao(this)">
             </td>
-            <td style="display:none;" class="cotacao-id">${id}</td> <!-- Adiciona o ID oculto -->
+            <td style="display:none;" class="cotacao-id">${id}</td>
         `;
 
         tabelaBody.appendChild(linha);
@@ -1302,29 +1405,31 @@ function ordenarTabela(coluna) {
     atualizarIconesOrdenacao(coluna);
 }
 
+
 function atualizarIconesOrdenacao(coluna) {
     // Remove ícones existentes em todos os cabeçalhos
     const headers = document.querySelectorAll("th");
     headers.forEach(header => {
-        header.classList.remove("ordenado"); // Remove a classe de cabeçalhos ordenados
+        header.classList.remove("ordenado");
         const iconeExistente = header.querySelector("span.ordem-icone");
         if (iconeExistente) {
-            iconeExistente.remove(); // Remove o ícone antigo
+            iconeExistente.remove();
         }
     });
 
     // Adiciona o ícone ao cabeçalho correspondente
     const header = document.getElementById(`${coluna}Header`);
     if (header) {
-        header.classList.add("ordenado"); // Adiciona classe ao cabeçalho ordenado
+        header.classList.add("ordenado");
 
         const icone = document.createElement("span");
         icone.classList.add("ordem-icone");
-        icone.textContent = ordemAtual.ordem === 'asc' ? '▲' : '▼'; // ▲ para crescente, ▼ para decrescente
+        icone.textContent = ordemAtual.ordem === 'asc' ? '▲' : '▼';
 
         header.appendChild(icone);
     }
 }
+
 
 
 
