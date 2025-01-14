@@ -149,6 +149,7 @@
         <button onclick="abrirModalApelido()">Salvar</button>
         <p id="salvarAviso" class="salvar-aviso" style="display: none;">Cotação salva com sucesso!</p>
         <button onclick="voltarParaTabela()" class="btn-voltar">Voltar</button>
+        <button onclick="exportarTabelaParaPDF()">Exportar para PDF</button>
     </div>
     
     
@@ -188,8 +189,11 @@
 
 </body>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
 <script src="open_menus.js"></script>
 <script src="cotacoes.js"></script>
 <script src="status.js"></script>
+
 
 </html>
