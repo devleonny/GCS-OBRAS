@@ -961,6 +961,8 @@ function editarCotacao(id) {
     estilizarMelhorPreco(inputsSubtotal, menorSubtotal);
     estilizarMelhorPreco(inputsTotal, menorTotal);
 
+    const botaoPDF = document.querySelector("#botaoPDF")
+
     console.log(`Cotação editada: ID ${id}`);
 }
 
@@ -1473,4 +1475,182 @@ function filtrarTabela(colunaIndex, valorPesquisa) {
             mensagemExistente.parentElement.remove();
         }
     }
+}
+
+function exportarTabelaParaPDF() {
+    const idCotacao = localStorage.getItem("cotacaoEditandoID");
+    const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+    const cotacao = cotacoes[idCotacao];
+
+    if (!cotacao) {
+        console.error("Cotação não encontrada!");
+        return;
+    }
+
+    const apelido = cotacao.informacoes.apelidoCotacao || "Sem Apelido";
+    const dataCriacao = cotacao.informacoes.data || "Sem Data";
+    const quantidadeItens = cotacao.dados.length || 0;
+    const fornecedores = cotacao.valorFinal;
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('l', 'mm', 'a4'); // Orientação "landscape"
+
+    const margemEsquerda = 10;
+    const larguraMaximaTabela = 277; // Largura total da página (ajustado para margens horizontais)
+    const alturaLinha = 6; // Altura reduzida para compactar
+    const limiteAltura = 190; // Limite de altura da página antes de quebrar
+
+    let posicaoAtualY = 20;
+
+    // Adicionar título e logo
+    pdf.addImage('imagens/LG.png', 'PNG', margemEsquerda, 5, 20, 15);
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Mapa de Cotações', margemEsquerda + 25, 12);
+
+    posicaoAtualY += 20;
+
+    // Informações principais
+    const linhas = [
+        { label: 'Descrição', value: apelido, label2: 'Criação', value2: dataCriacao },
+        { label: 'Qtde. de Itens', value: quantidadeItens, label2: 'Qtde. de Fornecedores', value2: fornecedores.length },
+    ];
+
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'normal');
+
+    linhas.forEach((linha) => {
+        pdf.rect(margemEsquerda, posicaoAtualY, larguraMaximaTabela / 2, alturaLinha);
+        pdf.text(`${linha.label}: ${linha.value}`, margemEsquerda + 2, posicaoAtualY + 4);
+        pdf.rect(margemEsquerda + larguraMaximaTabela / 2, posicaoAtualY, larguraMaximaTabela / 2, alturaLinha);
+        pdf.text(`${linha.label2}: ${linha.value2}`, margemEsquerda + larguraMaximaTabela / 2 + 2, posicaoAtualY + 4);
+        posicaoAtualY += alturaLinha;
+    });
+
+    posicaoAtualY += 10;
+
+    const larguraColunas = {
+        item: 60,
+        unid: 25,
+        qtde: 25,
+        fornecedor: (larguraMaximaTabela - 110) / fornecedores.length, // Ajusta dinamicamente
+    };
+
+    const tamanhoFonte = larguraColunas.fornecedor > 20 ? 8 : 7;
+    pdf.setFontSize(tamanhoFonte);
+
+    const truncarTexto = (texto, limite) =>
+        texto.length > limite ? texto.slice(0, limite) + '...' : texto;
+
+    // Cabeçalhos da tabela
+    pdf.rect(margemEsquerda, posicaoAtualY, larguraColunas.item, alturaLinha * 2);
+    pdf.text('Item', margemEsquerda + 2, posicaoAtualY + 4);
+
+    pdf.rect(margemEsquerda + larguraColunas.item, posicaoAtualY, larguraColunas.unid, alturaLinha * 2);
+    pdf.text('Unid.', margemEsquerda + larguraColunas.item + 2, posicaoAtualY + 4);
+
+    pdf.rect(margemEsquerda + larguraColunas.item + larguraColunas.unid, posicaoAtualY, larguraColunas.qtde, alturaLinha * 2);
+    pdf.text('Qtde.', margemEsquerda + larguraColunas.item + larguraColunas.unid + 2, posicaoAtualY + 4);
+
+    let xPos = margemEsquerda + larguraColunas.item + larguraColunas.unid + larguraColunas.qtde;
+
+    fornecedores.forEach((fornecedor) => {
+        const nomeFornecedor = truncarTexto(fornecedor.nome, 15);
+        pdf.rect(xPos, posicaoAtualY, larguraColunas.fornecedor, alturaLinha);
+        pdf.text(nomeFornecedor, xPos + 2, posicaoAtualY + 4);
+
+        pdf.rect(xPos, posicaoAtualY + alturaLinha, larguraColunas.fornecedor / 2, alturaLinha);
+        pdf.text('Unit.', xPos + 2, posicaoAtualY + alturaLinha + 4);
+
+        pdf.rect(xPos + larguraColunas.fornecedor / 2, posicaoAtualY + alturaLinha, larguraColunas.fornecedor / 2, alturaLinha);
+        pdf.text('Total', xPos + larguraColunas.fornecedor / 2 + 2, posicaoAtualY + alturaLinha + 4);
+
+        xPos += larguraColunas.fornecedor;
+    });
+
+    posicaoAtualY += alturaLinha * 2;
+
+    // Adicionar itens
+    cotacao.dados.forEach((item, itemIndex) => {
+        if (posicaoAtualY + alturaLinha > limiteAltura) {
+            pdf.addPage(); // Adiciona nova página se ultrapassar o limite
+            posicaoAtualY = 20;
+        }
+
+        xPos = margemEsquerda;
+
+        pdf.rect(xPos, posicaoAtualY, larguraColunas.item, alturaLinha);
+        pdf.text(`${itemIndex + 1}. ${truncarTexto(item.nomeItem, 30)}`, xPos + 2, posicaoAtualY + 4);
+        xPos += larguraColunas.item;
+
+        pdf.rect(xPos, posicaoAtualY, larguraColunas.unid, alturaLinha);
+        pdf.text(item.tipoUnitario, xPos + 2, posicaoAtualY + 4);
+        xPos += larguraColunas.unid;
+
+        pdf.rect(xPos, posicaoAtualY, larguraColunas.qtde, alturaLinha);
+        pdf.text(item.quantidade.toString(), xPos + 2, posicaoAtualY + 4);
+        xPos += larguraColunas.qtde;
+
+        item.fornecedores.forEach((fornecedor) => {
+            pdf.rect(xPos, posicaoAtualY, larguraColunas.fornecedor / 2, alturaLinha);
+            pdf.text(fornecedor.precoUnitario || '-', xPos + 2, posicaoAtualY + 4);
+
+            pdf.rect(xPos + larguraColunas.fornecedor / 2, posicaoAtualY, larguraColunas.fornecedor / 2, alturaLinha);
+            pdf.text(fornecedor.precoTotal || '-', xPos + larguraColunas.fornecedor / 2 + 2, posicaoAtualY + 4);
+
+            xPos += larguraColunas.fornecedor;
+        });
+
+        posicaoAtualY += alturaLinha;
+    });
+
+    // Adicionar rodapé como tfoot
+    if (posicaoAtualY + alturaLinha * 5 > limiteAltura) {
+        pdf.addPage(); // Adiciona nova página se não houver espaço suficiente para o rodapé
+        posicaoAtualY = 20;
+    }
+
+    const rodapeLabels = [
+        '(-) Desconto %',
+        'Subtotal',
+        '(+) Frete',
+        'Condição de Pagamento',
+        'Total',
+    ];
+
+    rodapeLabels.forEach((label) => {
+        let xRodape = margemEsquerda;
+        const colspanLargura = larguraColunas.item + larguraColunas.unid + larguraColunas.qtde;
+
+        // Primeira célula: rótulo com colspan
+        pdf.rect(xRodape, posicaoAtualY, colspanLargura, alturaLinha);
+        pdf.text(label, xRodape + 2, posicaoAtualY + 4);
+
+        xRodape += colspanLargura;
+
+        // Células dos fornecedores
+        fornecedores.forEach((fornecedor) => {
+            pdf.rect(xRodape, posicaoAtualY, larguraColunas.fornecedor, alturaLinha);
+
+            let texto = '-';
+            if (label === '(-) Desconto %') {
+                texto = `${fornecedor.porcentagemDesconto || '0.00'}%`;
+            } else if (label === 'Subtotal') {
+                texto = `${fornecedor.subtotal || '0.00'}`;
+            } else if (label === '(+) Frete') {
+                texto = `R$ ${fornecedor.valorFrete || '0.00'}`;
+            } else if (label === 'Condição de Pagamento') {
+                texto = fornecedor.condicaoPagar || 'N/A';
+            } else if (label === 'Total') {
+                texto = `${fornecedor.valorTotal || '0.00'}`;
+            }
+
+            pdf.text(texto, xRodape + 2, posicaoAtualY + 4);
+            xRodape += larguraColunas.fornecedor;
+        });
+
+        posicaoAtualY += alturaLinha; // Avançar para a próxima linha do rodapé
+    });
+
+    pdf.save(`cotacao-${apelido}.pdf`);
 }
