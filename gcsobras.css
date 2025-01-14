@@ -1012,6 +1012,19 @@ input[type=range]::-moz-range-thumb {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
+.div_adicionais {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    justify-content: left;
+}
+
+.div_adicionais label {
+    border-radius: 3px;
+    background-color: white;
+    padding: 5px;
+}
+
 .block img {
     width: 3vw;
 }

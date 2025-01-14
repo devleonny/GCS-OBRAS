@@ -12,7 +12,7 @@ var data_status = dataAtual.toLocaleString('pt-BR', {
 var anexos = {}
 
 var fluxograma = {
-    'AGUARDANDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS'], },
+    'AGUARDANDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS'] },
     'PEDIDO DE VENDA ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'PEDIDO DE SERVIÇO ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'FATURAMENTO PEDIDO DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'] },
@@ -24,7 +24,9 @@ var fluxograma = {
     'FINALIZADO': { cor: 'blue', modulos: ['RELATÓRIOS'] },
     'MATERIAL ENVIADO': { cor: '#B3702D', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'MATERIAL RECEBIDO': { cor: '#B3702D', modulos: ['RELATÓRIOS'] },
-    'FINALIZADO': { cor: '#222', modulos: ['RELATÓRIOS'] }
+    'FINALIZADO': { cor: '#222', modulos: ['RELATÓRIOS'] },
+    'COTAÇÃO PENDENTE': { cor: '#0a989f', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
+    'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] }
 }
 
 function painel_adicionar_pedido() {
@@ -410,36 +412,23 @@ async function carregar_itens(apenas_visualizar, requisicao) {
             qtde_na_requisicao = requisicao[codigo]?.qtde_enviar || ''
         }
 
-        var botao_itens_adicionais = ''
-
-        if (dados_composicoes[codigo] && dados_composicoes[codigo]['material infra']) {
-            botao_itens_adicionais = `<img src="imagens/construcao.png" style="width: 30px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`
-        }
-
         var quantidade = `
         <div style="display: flex; flex-direction: column; align-items: start; justify-content: space-evenly; gap: 10px;">
 
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
                 <label><strong>Quantidade a enviar</strong></label>
-                <input class="pedido" type="number" style="width: 100%; padding: 0px; margin: 0px;" oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
+                <input class="pedido" type="number" style="width: 100%; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
             </div>
 
-            <div style="display: flex; align-items: center; gap: 10px; justify-content: left;">
-
-                <div class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px; background-color: #222; font-size: 1.2em;">
-                    <label><strong>Orçamento</strong></label>
-                    <label>${qtde}</label>   
-                </div>
-
-                ${botao_itens_adicionais}
+            <div class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px; background-color: #222; font-size: 1.2em;">
+                <label><strong>Orçamento</strong></label>
+                <label>${qtde}</label>   
             </div>
 
         </div>
         `
         var opcoes = `
-        <select>
-            <option>--</option>
-            <option>All Nations</option>
+        <select style="border: none; cursor: pointer;">
             <option>Nada a fazer</option>
             <option>Estoque AC</option>
             <option>Comprar</option>
@@ -450,21 +439,22 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
         if (apenas_visualizar) {
             part_number = `<label style="font-size: 1.2em;">${requisicao[codigo]?.partnumber || ''}</label>`
-            selectTipo = `<label style="font-size: 1.2em;">${requisicao[codigo]?.tipo || ''}</label>`
+            selectTipo = `<label style="font-size: 1.2em; margin: 10px;">${requisicao[codigo]?.tipo || ''}</label>`
             quantidade = `<label style="font-size: 1.2em;">${requisicao[codigo]?.qtde_enviar || ''}</label>`
             opcoes = `<label style="font-size: 1.2em;">${requisicao[codigo]?.requisicao || ''}</label>`
         }
 
         var linha = `
             <tr>
-            <td style="text-align: center; font-size: 1.2em;">${codigo}</td>
+            <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
             <td style="text-align: center;">
             ${part_number}
             </td>
-            <td>
+            <td style="position: relative;">
                 <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
                 ${elements}
                 </div>
+                <img src="imagens/construcao.png" style="position: absolute; bottom: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">
             </td>
             <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
                 ${selectTipo}
@@ -567,6 +557,15 @@ function mostrar_estoque() {
 function abrir_adicionais(codigo) {
 
     var acumulado = `
+
+    <img src="imagens/BG.png" style="height: 80px; position: absolute; top: -15px; left: 5px;">
+
+    <div style="display: flex; align-items: center; justify-content: space-evenly;">
+        <label style="font-size: 2.5vw;">Itens Adicionais</label> 
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: white; border-radius: 5px;">
+
         <div id="painel_cotacoes" style="background-color: #B12425; border-radius: 5px; font-size: 1.0vw; color: #222;">
 
             <table style="border-collapse: collapse; ">
@@ -584,15 +583,16 @@ function abrir_adicionais(codigo) {
 
             </table>
 
-            <div style="display: flex; gap: 10px; position: absolute; bottom: -50px; left: 0;">
-                <label style="border: 1px solid #888;" class="contorno_botoes"
-                onclick="adicionar_linha_materiais()">Adicionar 1 item</label>
-
-                <label style="background-color: green; border: 1px solid #888;" class="contorno_botoes"
-                onclick="salvar_itens_adicionais('${codigo}')">Salvar</label>
-            </div>
-
         </div>
+
+        <div style="display: flex; gap: 10px; justify-content: space-between; width: 80%; margin: 10px; cursor: pointer;">
+            <img src="imagens/baixar.png" onclick="adicionar_linha_materiais()">
+
+            <label style="background-color: #4CAF50; box-shadow: 0 0px 0px transparent;" class="contorno_botoes"
+            onclick="salvar_itens_adicionais('${codigo}')">Salvar</label>
+        </div>
+
+    </div>
     `
 
     openPopup_v2(acumulado)
@@ -678,18 +678,18 @@ function mostrar_itens_adicionais() {
                     var adicional = adicionais[ad]
 
                     div += `
-                    <div style="display: flex; gap: 5px; align-items: center; justify-content: left;">
-                        <label>(${adicional.qtde})</label>
-                        <label>(${adicional.unidade})</label>
-                        <label>(${adicional.partnumber})</label>
-                        <label>(${adicional.descricao})</label>
+                    <div class="div_adicionais">
+                        <label>${adicional.qtde}</label>
+                        <label>${adicional.unidade}</label>
+                        <label>${adicional.partnumber}</label>
+                        <label>${adicional.descricao}</label>
                     </div>
                     `
                 }
 
                 var acumulado = `
                 <div id="container_${codigo}" class="contorno" style="width: 80%;">
-                    <div style="padding: 5px; background-color: #99999940; border-radius: 3px; font-size: 0.6vw;">
+                    <div style="padding: 5px; background-color: #99999940; border-radius: 3px; font-size: 0.6vw; display: flex; flex-direction: column; justify-content: center; align-items: start; gap: 2px;">
                     <label><strong>ITENS ADICIONAIS</strong></label>
                         ${div}
                     </div>
@@ -805,7 +805,7 @@ function salvar_pedido(chave) {
 
 }
 
-function salvar_notas(chave) {//29
+function salvar_notas(chave) {
 
     let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
     let orcamento = dados_orcamentos[id_orcam];
@@ -862,7 +862,8 @@ function salvar_requisicao(chave, chave2) {
     var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
     var orcamento = dados_orcamentos[id_orcam];
     var st = '';
-    var interromper_processo = false
+    let pendencias = []
+    let interromper_processo = false
 
     if (!orcamento.status) {
         orcamento.status = {};
@@ -910,8 +911,10 @@ function salvar_requisicao(chave, chave2) {
             var tipo = tds[3].querySelector('select')?.value || '';
             var qtde = tds[4].querySelector('input')?.value || '';
 
-            if (qtde !== '' && (partnumber === '' || requisicao === '--')) {
+            if (qtde !== '' && partnumber === '') {
                 interromper_processo = true
+                pendencias.push(tds[1].querySelector('input'))
+
             }
 
             if (qtde !== '') {
@@ -937,16 +940,24 @@ function salvar_requisicao(chave, chave2) {
     var tipo = String(orcamento.status[chave].tipo).toUpperCase()
 
     if (interromper_processo) {
+
+        pendencias.forEach(element => {
+            element.style.backgroundColor = '#B12425'
+        })
+
         return openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>preencha também o PARTNUMBER e o status de Requisição</label>
+                <label> Preencha os PARTNUMBERs pendentes [Vermelho]</label>
             </div>
         `);
 
     } else {
         st = `FATURAMENTO PEDIDO DE ${tipo}`;
+
     }
+
+    console.log(pendencias)
 
     novo_lancamento.status = st;
     novo_lancamento.historico[chave2].status = st;
@@ -985,7 +996,7 @@ function fechar_espelho_ocorrencias() {
 function botao_novo_pedido(id) {
     return `
     <div class="contorno_botoes" style="background-color: ${fluxograma['PEDIDO DE VENDA ANEXADO'].cor}" onclick="carregar_status_divs('AGUARDANDO', undefined, '${id}')">
-        <label>Novo Pedido de <strong>Serviço</strong> ou <strong>Venda</strong></label>
+        <label>Novo <strong>Pedido </strong></label>
     </div>
 `}
 
@@ -1431,8 +1442,9 @@ function abrir_esquema(id) {
                             <label><strong>Total S/ICMS: </strong><br>${sst.total_sem_icms}</label>
                             <label><strong>Total C/ICMS: </strong><br>${sst.total_com_icms}</label>
                         </div>
+
                         <div class="contorno_botoes" style="border-radius: 3px; padding: 10px; background-color: ${infos.cor};">
-                        <label>${infos.label_porcentagem}</label>
+                            <label>${infos.label_porcentagem}</label>
                         </div>
                     </div>
                     `
@@ -1627,6 +1639,10 @@ function abrir_esquema(id) {
                                     onclick="envio_de_material('${chave_pedido}', '${id}')">
                                     <label>Envio de <strong>Material</strong></label>
                                 </div>
+                                <div class="contorno_botoes" style="background-color: ${fluxograma['COTAÇÃO PENDENTE'].cor};"
+                                    onclick="iniciar_cotacao('${chave_pedido}', '${id}')">
+                                    <label>Nova <strong>Cotação</strong></label>
+                                </div>
                             </div>
                         </div>
 
@@ -1656,6 +1672,130 @@ function abrir_esquema(id) {
     } else {
         openPopup_v2('Não existem dados históricos')
     }
+
+}
+
+async function iniciar_cotacao(chave, id_orcam) {
+
+    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let orcamento = dados_orcamentos[id_orcam]
+    let itens_do_orcamento = dados_orcamentos[id_orcam].dados_composicoes
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let todos_os_status = orcamento.status[chave].historico
+    let itens = {} // Dicionário;
+
+    for (chave2 in todos_os_status) {
+        let his = todos_os_status[chave2]
+        if (String(his.status).includes('FATURAMENTO')) {
+
+            let requisicao = his.requisicoes
+
+            requisicao.forEach(item => {
+
+                let it = item.codigo
+
+                if (!itens[it]) {
+                    itens[it] = {
+                        quantidade: 0,
+                        estoque: 0,
+                        fornecedores: []
+                    }
+                }
+
+                itens[it].tipoUnitario = dados_composicoes[it] !== undefined ? dados_composicoes[it].unidade : itens_do_orcamento[it].unidade
+                itens[it].partnumber = item.partnumber
+                itens[it].quantidade += conversor(item.qtde_enviar)
+                itens[it].nomeItem = dados_composicoes[it] !== undefined ? dados_composicoes[it].descricao : itens_do_orcamento[it].descricao
+
+            })
+
+            let adicionais = his.adicionais || {}
+
+            for (ad in adicionais) {
+
+                let pais = adicionais[ad]
+
+                if (itens[ad]) {
+                    delete itens[ad]
+                }
+
+                for (filho in pais) {
+
+                    let pais_e_filhos = pais[filho]
+
+                    if (!itens[filho]) {
+                        itens[filho] = {
+                            quantidade: 0,
+                            estoque: 0,
+                            fornecedores: []
+                        }
+                    }
+
+                    itens[filho].tipoUnitario = pais_e_filhos.unidade
+                    itens[filho].partnumber = pais_e_filhos.partnumber
+                    itens[filho].quantidade += conversor(pais_e_filhos.qtde)
+                    itens[filho].nomeItem = filho
+
+                }
+
+            }
+
+        }
+    }
+
+    // Converter dicionário em lista; 
+
+    let itens_em_lista = []
+    let i = 1
+    for (it in itens) {
+        itens[it].numeroItem = i
+        itens_em_lista.push(itens[it])
+        i++
+    }
+
+    // Fim
+
+    let id_compartilhado = unicoID()
+    let data = new Date()
+    let nova_cotacao = {
+        informacoes: {
+            id: id_compartilhado,
+            data: data.toLocaleDateString('pt-BR'),
+            hora: `${String(data.getHours()).padStart(2, '0')}:${String(data.getMinutes()).padStart(2, '0')}:${String(data.getSeconds()).padStart(2, '0')}`,
+            criador: acesso.usuario,
+            apelidoCotacao: orcamento.dados_orcam.cliente_selecionado
+        },
+        dados: itens_em_lista,
+        valorFinal: [],
+        operacao: 'incluir',
+        status: 'ativo'
+    }
+
+    let data_completa = new Date().toLocaleString('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+    });
+
+    orcamento.status[chave].status = 'COTAÇÃO PENDENTE'
+    orcamento.status[chave].historico[id_compartilhado] = {
+        status: 'COTAÇÃO PENDENTE',
+        data: data_completa,
+        executor: acesso.usuario,
+        cotacao: nova_cotacao
+    };
+
+    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
+    enviar_status_orcamento(orcamento)
+
+    let dados = {
+        tabela: 'cotacoes',
+        cotacao: nova_cotacao
+    }
+
+    enviar_dados_generico(dados)
+
+    abrir_esquema(id_orcam)
 
 }
 
@@ -2370,20 +2510,9 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
 
     if (!apenas_visualizar) {
         toolbar += `
-        <div style="display: flex; gap: 10px; justify-content: center; align-items: center; background-color: #151749; width: 60vw; margin-left: 2vw; border-top-left-radius: 5px; border-top-right-radius: 5px">
+        <div style="display: flex; gap: 10px; justify-content: center; align-items: center; background-color: #151749; border-top-left-radius: 5px; border-top-right-radius: 5px">
             <img src="imagens/pesquisar.png" style="width: 25px; height: 25px; padding: 5px;">
             <input id="pesquisa1" style="padding: 10px; border-radius: 5px; margin: 10px; width: 50%;" placeholder="Pesquisar" oninput="pesquisar_na_requisicao()">
-            <label style="color: white;">Marque todos</label>
-            <select onchange="alterar_todos(this.value)">
-                <option>--</option>
-                <option>All Nations</option>
-                <option>Nada a fazer</option>
-                <option>Estoque AC</option>
-                <option>Comprar</option>
-                <option>Enviar do CD</option>
-                <option>Fornecido pelo Cliente</option>
-            </select>
-        
         </div>
         `
         var funcao = `salvar_requisicao('${chave}', '${chave2}')`
@@ -2406,10 +2535,10 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
 
                 <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
                     <label><strong>Comentário</strong></label>
-                    <textarea rows="10" id="comentario_status" style="width: 80%;"></textarea>
+                    <textarea rows="3" id="comentario_status" style="width: 80%;"></textarea>
                 </div>
 
-                <label class="contorno_botoes" style="background-color: green;" onclick="${funcao}">Salvar Requisição</label>
+                <label class="contorno_botoes" style="background-color: #4CAF50; " onclick="${funcao}">Salvar Requisição</label>
             </div>
         </div>
         `
@@ -2468,7 +2597,7 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
 
     <div class="contorno">
         ${toolbar}
-        <table class="tabela" id="tabela_requisicoes" style="width: 100%; font-size: 0.8em; table-layout: auto;">
+        <table class="tabela" id="tabela_requisicoes" style="width: 100%; font-size: 0.8em; table-layout: auto; border-radius: 0px;">
             <thead>
                 <th style="text-align: center;">Código</th>
                 <th style="text-align: center;">PART NUMBER</th>
