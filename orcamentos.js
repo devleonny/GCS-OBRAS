@@ -223,9 +223,11 @@ function preencher_orcamentos_v2(st) {
             for (atalho in status_deste_modulo) {
                 var quantidade = status_deste_modulo[atalho]
                 atalhos += `
-                    <div class="block" onclick="preencher_orcamentos_v2('${status}')">
-                        <label class="numero">${quantidade}</label>
-                        <label style="font-size: 0.8vw;">${status}</label>
+                    <div class="block" onclick="preencher_orcamentos_v2('${atalho}')">
+                        <div style="width: 50px; height: 50px; display: flex; justify-content: center; align-items: center;">
+                            <label class="numero">${quantidade}</label>
+                        </div>
+                        <label style="font-size: 0.8vw;">${atalho}</label>
                     </div>
                 `
             }

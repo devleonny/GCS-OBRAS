@@ -7,9 +7,9 @@ async function sincronizar_periodico() {
 
     if (carimbo_storage) {
         setInterval(async () => {
-            let carimbo_nuvem = await carimbo_data_hora_pagamentos(true); 
+            let carimbo_nuvem = await carimbo_data_hora_pagamentos(true);
             let carimbo_maquina = JSON.parse(localStorage.getItem('carimbo_data_hora_pagamentos'));
-            
+
             if (carimbo_maquina[0] !== carimbo_nuvem[0]) {
                 await atualizar_pagamentos_menu();
             }
@@ -116,7 +116,7 @@ async function abrir_detalhes(id_pagamento) {
             <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;">
         </div>    
         `
-    }) //29
+    }) 
 
     var historico = ''
     var cor = '#222'
@@ -232,16 +232,17 @@ async function abrir_detalhes(id_pagamento) {
             os: 'Ordem de Serviço',
             medicao: 'Paga sobre medição?'
         }
+
         var infos = ''
         for (campo in campos) {
             var info_existente = ''
             if (campo == 'orcamento') {
                 info_existente += `
-                <div class="anexos" onclick="ir_pdf('${pagamento.id_orcamento}')" style="border: solid 1px green;">
-                    <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
-                    <label style="cursor: pointer; font-size: 0.6em;"><strong>Orçamento disponível</strong></label>
-                </div>
-            `
+                    <div class="anexos" onclick="ir_pdf('${pagamento.id_orcamento}')" style="border: solid 1px green;">
+                        <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
+                        <label style="cursor: pointer; font-size: 0.6em;"><strong>Orçamento disponível</strong></label>
+                    </div>
+                `
             }
 
             if (campo == 'pedido') {
@@ -261,12 +262,10 @@ async function abrir_detalhes(id_pagamento) {
                             for (anx in anexos) {
                                 let anexo = anexos[anx]
                                 info_existente += `
-
-                                <div style="display: flex; align-items: center; justify-content: center;">
-                                    <div onclick="abrirArquivo('https://drive.google.com/file/d/${anexo.link}')" class="anexos" style="border: solid 1px green;">
-                                        <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
-                                        <label style="cursor: pointer; font-size: 0.6em"><strong>${anexo.nome}</strong></label>
-                                    </div>                            
+                                <div onclick="abrirArquivo('https://drive.google.com/file/d/${anexo.link}')" class="anexos" style="border: solid 1px green;">
+                                    <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
+                                    <label style="cursor: pointer; font-size: 0.6em"><strong>${anexo.nome}</strong></label>
+                                </div>
                                 `
                             }
                         }
@@ -287,11 +286,12 @@ async function abrir_detalhes(id_pagamento) {
                                 <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
                                 <input type="file" id="anexo_${campo}" style="display: none;" onchange="anexos_parceiros('${campo}','${pagamento.id_pagamento}')">
                             </label>
-                        </div>   
+                        </div> 
                     
                         <div id="container_${campo}" class="container">
                         ${info_existente}
-                        </div> 
+                        </div>
+
                     </div> 
                 </div>
             </div>            
@@ -409,9 +409,12 @@ async function abrir_detalhes(id_pagamento) {
                 var anexo = anexos_on[anx]
 
                 var element = `
-                <div onclick="abrirArquivo('https://drive.google.com/file/d/${anexo.link}')" class="anexos" style="border: solid 1px green;">
-                    <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
-                    <label style="cursor: pointer; font-size: 0.6em;"><strong>${anexo.nome}</strong></label>
+                <div style="display: flex; justify-content: left; align-items: center; gap: 10px;">
+                    <div onclick="abrirArquivo('https://drive.google.com/file/d/${anexo.link}')" class="anexos" style="border: solid 1px green;">
+                        <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
+                        <label style="cursor: pointer; font-size: 0.6em;"><strong>${anexo.nome}</strong></label>
+                    </div>
+                    <img src="imagens/cancel.png" style="width: 25px; heigth: 25px; cursor: pointer;" onclick="excluir_anexo_parceiro('${id_pagamento}', '${item}', '${anx}')">
                 </div>
                 `
                 document.getElementById(`container_${item}`).insertAdjacentHTML('beforeend', element)
@@ -421,6 +424,35 @@ async function abrir_detalhes(id_pagamento) {
     }
 
     colorir_parceiros()
+
+}
+
+async function excluir_anexo_parceiro(id_pagamento, item, anx) {
+
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+
+    if (
+        lista_pagamentos[id_pagamento] &&
+        lista_pagamentos[id_pagamento].anexos_parceiros &&
+        lista_pagamentos[id_pagamento].anexos_parceiros[item] &&
+        lista_pagamentos[id_pagamento].anexos_parceiros[item][anx]
+    ) {
+        delete lista_pagamentos[id_pagamento].anexos_parceiros[item][anx]
+
+        await inserirDados(lista_pagamentos, 'lista_pagamentos')
+
+        let dados = {
+            tabela: 'anexos_parceiros',
+            operacao: 'excluir',
+            id_pagamento: id_pagamento,
+            item: item,
+            anx: anx
+        }
+
+        enviar_dados_generico(dados)
+
+        abrir_detalhes(id_pagamento)
+    }
 
 }
 

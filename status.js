@@ -2,7 +2,6 @@
 var itens_adicionais = {}
 var overlay = document.getElementById('overlay');
 var acesso = JSON.parse(localStorage.getItem('acesso')) || {};
-var status_tit = ''
 var id_orcam = ''
 var dataAtual = new Date();
 var data_status = dataAtual.toLocaleString('pt-BR', {
@@ -1017,8 +1016,6 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot�
 
     id_orcam = id
 
-    status_tit = ''
-
     var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'))
 
     var orcamento = dados_orcamentos[id]
@@ -1098,55 +1095,57 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot�
             var pedido_completo = orcamento.status[chave_pedido]
             var st = pedido_completo
 
-            status_tit = st.status
-
             Object.keys(st.historico).forEach(chave2 => {
                 var his = st.historico[chave2]
                 var exibir_label = false;
+                let status_chave2 = String(his.status)
 
-                fluxograma[his.status].modulos.forEach(sst => {
+                fluxograma[status_chave2].modulos.forEach(sst => {
                     if (sst === modulo) {
                         exibir_label = true;
                     }
                 });
 
 
-                if (his.status == status_tit && exibir_label) {
+                if (exibir_label) {
 
                     var coments = ''
                     if (his.comentario) {
                         coments = his.comentario.replace(/\n/g, '<br>')
                     }
-                    var funcao = ''
 
-                    if (String(st.status).includes('REQUISIÇÃO') && (acesso.permissao == 'adm' || acesso.permissao == 'log')) {
-                        funcao += `detalhar_requisicao('${chave_pedido}')`
+                    let funcao = ''
+                    if (status_chave2.includes('ANEXADO')) {
 
-                    } else if (String(st.status).includes('FATURAMENTO')) { // O status irá seguir para o próximo passo sempre... exceto no FATURADO.
+                        funcao = `detalhar_requisicao('${chave_pedido}')`
+
+                    } else if (status_chave2.includes('FATURAMENTO')) {
+
                         if (acesso.permissao == 'adm' || acesso.permissao == 'fin') {
-                            funcao += `carregar_status_divs('${st.status}', '${chave_pedido}', '${id}', '${chave2}')`
+                            funcao = `painel_adicionar_notas('${chave_pedido}')`
                         }
 
-                    } else if (!String(st.status).includes('FATURADO')) { // O status irá seguir para o próximo passo sempre... exceto no FATURADO.
-                        if (acesso.permissao == 'adm' || acesso.permissao == 'log' || acesso.permissao == 'user') {
-                            funcao += `carregar_status_divs('${st.status}', '${chave_pedido}', '${id}', '${chave2}')`
-                        }
+                    } else if (status_chave2.includes('FATURADO')) {
+
+                        funcao = `envio_de_material('${chave_pedido}', '${id_orcam}')`
 
                     }
 
                     acumulado += `
                     <hr style="width: 80%">
-                    <div class="avenida_contorno" style="box-shadow: 3px 3px #222; background-color: #e8e8e8">
-                        <label><strong>Status: </strong>${his.status}</label>
-                        <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-                            <label><strong>Número: </strong>${st.pedido}</label>
-                            <img src="gifs/alerta.gif" style="width: 2vw; cursor: pointer;" onclick="popup_atualizar_pedido('${chave_pedido}')">
-                        </div>
-                        <label><strong>Data: </strong> ${his.data}</label>
-                        <label><strong>Executor: </strong> ${his.executor}</label>
-                        <label><strong>Comentário: </strong> <br>${coments}</label>
-                        <div class="contorno_botoes" style="background-color: ${fluxograma[st.status].cor}" onclick="${funcao}">
-                            <label>Continuar</label>
+                    <div class="contorno">
+                        <div class="avenida_contorno" style="background-color: ${fluxograma[status_chave2].cor}1f; margin: 0px;">
+                            <label><strong>Status: </strong>${status_chave2}</label>
+                            <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
+                                <label><strong>Número: </strong>${st.pedido}</label>
+                                <img src="gifs/alerta.gif" style="width: 2vw; cursor: pointer;" onclick="popup_atualizar_item('${chave_pedido}', 'pedido')">
+                            </div>
+                            <label><strong>Data: </strong> ${his.data}</label>
+                            <label><strong>Executor: </strong> ${his.executor}</label>
+                            <label><strong>Comentário: </strong> <br>${coments}</label>
+                            <div class="contorno_botoes" style="background-color: ${fluxograma[status_chave2].cor}" onclick="${funcao}">
+                                <label>Continuar</label>
+                            </div>
                         </div>
                     </div>
                     `
@@ -1156,8 +1155,6 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot�
 
         })
     }
-
-    status_tit == '' ? status_tit = 'AGUARDANDO' : ''
 
     var elementus = `
     <div id="espelho_ocorrencias" class="status" style="display: flex;">
@@ -1203,10 +1200,12 @@ function atulizar_item(chave1, item) {
     remover_popup()
 
     var estrutura = document.getElementById('estrutura')
+    var espelho_ocorrencias = document.getElementById('espelho_ocorrencias')
     if (estrutura) {
         estrutura.remove()
         abrir_esquema(id_orcam)
-    } else {
+    } else if (espelho_ocorrencias) {
+        espelho_ocorrencias.remove()
         exibir_todos_os_status(id_orcam)
     }
 
