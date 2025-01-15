@@ -1042,9 +1042,10 @@ function adicionarLinhaComDados(dado) {
 
     const tdNomeItem = document.createElement("td");
     const inputNomeItem = document.createElement("input");
-
     inputNomeItem.setAttribute("value", `${dado.nomeItem}`);
+    inputNomeItem.oninput = () => mostrarSugestoes(inputNomeItem, tdPartnumber, tdEstoque);
     tdNomeItem.appendChild(inputNomeItem);
+
 
     const tdTipoUnitario = document.createElement("td");
     const inputTipoUnitario = document.createElement("input");
