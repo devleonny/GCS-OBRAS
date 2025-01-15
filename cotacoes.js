@@ -1597,13 +1597,16 @@ function exportarTabelaParaPDF() {
 
         item.fornecedores.forEach((fornecedor) => {
             pdf.rect(xPos, posicaoAtualY, larguraColunas.fornecedor / 2, alturaLinha);
-            pdf.text(fornecedor.precoUnitario || '-', xPos + 2, posicaoAtualY + 4);
+            pdf.text(formatarParaReal(fornecedor.precoUnitario), xPos + 2, posicaoAtualY + 4);
+
+            let apenasPrecoTotal = fornecedor.precoTotal.slice(3)
 
             pdf.rect(xPos + larguraColunas.fornecedor / 2, posicaoAtualY, larguraColunas.fornecedor / 2, alturaLinha);
-            pdf.text(fornecedor.precoTotal || '-', xPos + larguraColunas.fornecedor / 2 + 2, posicaoAtualY + 4);
+            pdf.text(formatarParaReal(apenasPrecoTotal) || '-', xPos + larguraColunas.fornecedor / 2 + 2, posicaoAtualY + 4);
 
             xPos += larguraColunas.fornecedor;
         });
+        
 
         posicaoAtualY += alturaLinha;
     });
@@ -1640,13 +1643,21 @@ function exportarTabelaParaPDF() {
             if (label === '(-) Desconto %') {
                 texto = `${fornecedor.porcentagemDesconto || '0.00'}%`;
             } else if (label === 'Subtotal') {
-                texto = `${fornecedor.subtotal || '0.00'}`;
+
+                let apenasValorSubtotal = fornecedor.subtotal.slice(3)
+
+                texto = `${formatarParaReal(apenasValorSubtotal) || '0.00'}`;
+
             } else if (label === '(+) Frete') {
-                texto = `R$ ${fornecedor.valorFrete || '0.00'}`;
+                texto = `${formatarParaReal(fornecedor.valorFrete) || '0.00'}`;
             } else if (label === 'Condição de Pagamento') {
                 texto = fornecedor.condicaoPagar || 'N/A';
             } else if (label === 'Total') {
-                texto = `${fornecedor.valorTotal || '0.00'}`;
+
+                let apenasValorTotal = fornecedor.valorTotal.slice(3)
+
+                texto = `${formatarParaReal(apenasValorTotal) || '0.00'}`;
+
             }
 
             pdf.text(texto, xRodape + 2, posicaoAtualY + 4);
@@ -1658,6 +1669,14 @@ function exportarTabelaParaPDF() {
 
     pdf.save(`cotacao-${apelido}.pdf`);
 }
+
+function formatarParaReal(valor) {
+    if (!valor || isNaN(valor)) {
+        return 'R$ 0,00';
+    }
+    return `R$ ${parseFloat(valor).toFixed(2).replace('.', ',')}`;
+}
+
 
 function voltarParaTabela() {
     const botaoPDF = document.getElementById("botaoExportarPDF");
