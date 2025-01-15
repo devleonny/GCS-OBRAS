@@ -217,10 +217,10 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
         return;
     }
 
-    // Filtra os itens baseados no valor digitado
+    // Filtra os itens baseados no partnumber digitado
     const itensFiltrados = Object.values(listaMateriais)
-        .filter(item => item.descricao && item.descricao.toLowerCase().startsWith(valor))
-        .sort((a, b) => a.descricao.localeCompare(b.descricao));
+        .filter(item => item.partnumber && item.partnumber.toLowerCase().includes(valor))
+        .sort((a, b) => a.partnumber.localeCompare(b.partnumber));
 
     if (itensFiltrados.length === 0) {
         sugestoes.style.display = "none"; // Oculta se não houver resultados
@@ -229,16 +229,16 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
 
     itensFiltrados.forEach(item => {
         const sugestao = document.createElement("div");
-        sugestao.textContent = item.descricao;
+        sugestao.textContent = item.descricao; // Mostra apenas o nome do item
         sugestao.style.padding = "8px";
         sugestao.style.cursor = "pointer";
         sugestao.style.backgroundColor = "#fff";
         sugestao.style.borderBottom = "1px solid #ccc";
 
         sugestao.onclick = () => {
-            input.value = item.descricao;
-            partnumberCell.querySelector("input").value = item.partnumber || "";
-            estoqueCell.querySelector("input").value = item.estoque ?? 0;
+            input.value = item.descricao; // Preenche o campo com o nome do item
+            partnumberCell.querySelector("input").value = item.partnumber || ""; // Preenche o partnumber correspondente
+            estoqueCell.querySelector("input").value = item.estoque ?? 0; // Preenche o estoque
             sugestoes.style.display = "none"; // Oculta após seleção
         };
 
@@ -252,6 +252,7 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
     sugestoes.style.width = `${rect.width}px`;
     sugestoes.style.display = "block"; // Exibe as sugestões
 }
+
 
 
 
