@@ -108,13 +108,13 @@ async function abrir_detalhes(id_pagamento) {
         var arquivo = `https://drive.google.com/file/d/${anexo.link}/view?usp=drivesdk`
 
         anexos += `
-        <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: left; cursor: pointer;" onclick="abrirArquivo('${arquivo}')">
-                <img src="imagens/anexo3.png" style="width: 20px; cursor: pointer;">
-                <label>${anexo.nome}</label>
+        <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+            <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;" onclick="abrirArquivo('${arquivo}')">
+                <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                <label style="font-size: 0.8em; cursor: pointer;">${String(anexo.nome).slice(0, 10)} ... ${String(anexo.nome).slice(-7)}</label>
             </div>
             <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;">
-        </div>    
+        </div>
         `
     }) 
 
@@ -259,13 +259,13 @@ async function abrir_detalhes(id_pagamento) {
                         if (String(item_historico.status).includes('ANEXADO')) {
                             let anexos = item_historico.anexos
 
-                            for (anx in anexos) {
+                            for (anx in anexos) { //29
                                 let anexo = anexos[anx]
                                 info_existente += `
                                 <div onclick="abrirArquivo('https://drive.google.com/file/d/${anexo.link}')" class="anexos" style="border: solid 1px green;">
                                     <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
                                     <label style="cursor: pointer; font-size: 0.6em"><strong>${anexo.nome}</strong></label>
-                                </div>
+                                </div>                              
                                 `
                             }
                         }
@@ -375,10 +375,8 @@ async function abrir_detalhes(id_pagamento) {
 
         </label>
         
-        <div class="contorno">
-            <div class="contorno_interno">
+        <div style="display: flex; flex-direction: column; aling-items: start; justify-content: center; gap: 3px;">
             ${anexos}
-            </div>
         </div>
 
         <label><strong>Histórico </strong> • ${historico}</label>
@@ -410,7 +408,7 @@ async function abrir_detalhes(id_pagamento) {
 
                 var element = `
                 <div style="display: flex; justify-content: left; align-items: center; gap: 10px;">
-                    <div onclick="abrirArquivo('https://drive.google.com/file/d/${anexo.link}')" class="anexos" style="border: solid 1px green;">
+                    <div onclick="abrirArquivo('https://drive.google.com/file/d/${anexo.link}')" class="anexos" style="border: solid 1px green; cursor: pointer;">
                         <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
                         <label style="cursor: pointer; font-size: 0.6em;"><strong>${anexo.nome}</strong></label>
                     </div>

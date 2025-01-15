@@ -1167,8 +1167,12 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot√
 
 const { shell } = require('electron');
 
-function abrirArquivo(link) {
-    shell.openExternal(link);
+function abrirArquivo(link) { //29
+    try {
+        shell.openExternal(link);
+    } catch {
+        window.open(link, '_blank');
+    }
 }
 
 function popup_atualizar_item(chave1, item) {
