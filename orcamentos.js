@@ -1394,7 +1394,7 @@ async function anexos_parceiros(campo, id_pagamento) {
 
                     await inserirDados(pagamentos, 'lista_pagamentos')
 
-                    await abrir_detalhes(id_pagamento)
+                    return await abrir_detalhes(id_pagamento)
                 }
 
                 var resposta = `
