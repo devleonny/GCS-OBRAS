@@ -217,10 +217,10 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
         return;
     }
 
-    // Filtra os itens baseados no valor digitado
+    // Filtra os itens baseados no partnumber digitado
     const itensFiltrados = Object.values(listaMateriais)
-        .filter(item => item.descricao && item.descricao.toLowerCase().startsWith(valor))
-        .sort((a, b) => a.descricao.localeCompare(b.descricao));
+        .filter(item => item.partnumber && item.partnumber.toLowerCase().includes(valor))
+        .sort((a, b) => a.partnumber.localeCompare(b.partnumber));
 
     if (itensFiltrados.length === 0) {
         sugestoes.style.display = "none"; // Oculta se não houver resultados
@@ -229,16 +229,16 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
 
     itensFiltrados.forEach(item => {
         const sugestao = document.createElement("div");
-        sugestao.textContent = item.descricao;
+        sugestao.textContent = item.descricao; // Mostra apenas o nome do item
         sugestao.style.padding = "8px";
         sugestao.style.cursor = "pointer";
         sugestao.style.backgroundColor = "#fff";
         sugestao.style.borderBottom = "1px solid #ccc";
 
         sugestao.onclick = () => {
-            input.value = item.descricao;
-            partnumberCell.querySelector("input").value = item.partnumber || "";
-            estoqueCell.querySelector("input").value = item.estoque ?? 0;
+            input.value = item.descricao; // Preenche o campo com o nome do item
+            partnumberCell.querySelector("input").value = item.partnumber || ""; // Preenche o partnumber correspondente
+            estoqueCell.querySelector("input").value = item.estoque ?? 0; // Preenche o estoque
             sugestoes.style.display = "none"; // Oculta após seleção
         };
 
@@ -252,6 +252,7 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
     sugestoes.style.width = `${rect.width}px`;
     sugestoes.style.display = "block"; // Exibe as sugestões
 }
+
 
 
 
@@ -687,7 +688,7 @@ function salvarObjeto() {
     const dados = salvarDados();
     const valorFinal = salvarValorFinal();
     const operacao = localStorage.getItem("operacao");
-    const status = "ativo"
+    const status = "ativo";
 
     const novaCotacao = { informacoes, dados, valorFinal, operacao, status };
 
@@ -697,7 +698,7 @@ function salvarObjeto() {
         cotacao: novaCotacao,
     };
 
-    enviar_dados_generico(payload); // Envia os dados para a API
+    enviar_dados_generico(payload);
 
     // Exibe mensagem de sucesso
     const aviso = document.getElementById("salvarAviso");
@@ -705,10 +706,13 @@ function salvarObjeto() {
     setTimeout(() => (aviso.style.display = "none"), 3000);
 
     console.log("Cotação salva:", informacoes.apelidoCotacao);
-    
+
+    // Exibe o botão de exportar PDF
+    const botaoPDF = document.getElementById("botaoExportarPDF");
+    botaoPDF.style.display = "inline-block";
+
     // Atualiza a tabela com os novos dados
     fecharModalApelido();
-
     carregarCotacoesSalvas();
 }
 
@@ -717,41 +721,50 @@ function salvarObjeto() {
 // Função para salvar as informações gerais (id, data, hora, criador)
 function salvarInformacoes() {
     const operacao = localStorage.getItem("operacao");
-    const now = new Date();
-    const dia = String(now.getDate()).padStart(2, "0");
-    const mes = String(now.getMonth() + 1).padStart(2, "0");
-    const ano = now.getFullYear();
-    const horas = String(now.getHours()).padStart(2, "0");
-    const minutos = String(now.getMinutes()).padStart(2, "0");
-    const segundos = String(now.getSeconds()).padStart(2, "0");
+    const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+    const id = localStorage.getItem("cotacaoEditandoID");
 
-    const dataFormatada = `${dia}/${mes}/${ano}`;
-    const horaFormatada = `${horas}:${minutos}:${segundos}`;
+    let informacoes = {};
+    if (operacao === "editar" && cotacoes[id]) {
+        // Reaproveita as informações existentes para edições
+        informacoes = cotacoes[id].informacoes;
+    } else {
+        // Geração de novas informações no caso de inclusão
+        const now = new Date();
+        const dia = String(now.getDate()).padStart(2, "0");
+        const mes = String(now.getMonth() + 1).padStart(2, "0");
+        const ano = now.getFullYear();
+        const horas = String(now.getHours()).padStart(2, "0");
+        const minutos = String(now.getMinutes()).padStart(2, "0");
+        const segundos = String(now.getSeconds()).padStart(2, "0");
 
-    const apelidoCotacao = document.getElementById("inputApelido").value;
+        const dataFormatada = `${dia}/${mes}/${ano}`;
+        const horaFormatada = `${horas}:${minutos}:${segundos}`;
 
-    // Obter o criador do localStorage
-    const acesso = JSON.parse(localStorage.getItem("acesso"));
-    const criador = acesso?.usuario || "Desconhecido";
+        const apelidoCotacao = document.getElementById("inputApelido").value;
 
-    // Geração do ID único usando a função unicoID
-    if(operacao == "incluir"){
+        // Obter o criador do localStorage
+        const acesso = JSON.parse(localStorage.getItem("acesso"));
+        const criador = acesso?.usuario || "Desconhecido";
 
-        id = unicoID();
-
-    }else if(operacao == "editar"){
-        id =  localStorage.getItem("cotacaoEditandoID");
-
+        informacoes = {
+            id: unicoID(),
+            data: dataFormatada,
+            hora: horaFormatada,
+            criador,
+            apelidoCotacao,
+        };
     }
 
-    return {
-        id,
-        data: dataFormatada,
-        hora: horaFormatada,
-        criador,
-        apelidoCotacao
-    };
+    // Atualiza o apelido apenas se for modificado
+    const novoApelido = document.getElementById("inputApelido").value;
+    if (novoApelido) {
+        informacoes.apelidoCotacao = novoApelido;
+    }
+
+    return informacoes;
 }
+
 // Função para salvar os dados dos itens
 function salvarDados() {
     const tabela = document.getElementById("cotacaoTable");
@@ -881,11 +894,12 @@ function carregarCotacoesSalvas() {
 
     // Transforma as cotações em um array e ordena pela data e hora
     const cotacoesOrdenadas = Object.entries(cotacoes).sort((a, b) => {
-        const dataA = new Date(`${a[1].informacoes.data} ${a[1].informacoes.hora}`);
-        const dataB = new Date(`${b[1].informacoes.data} ${b[1].informacoes.hora}`);
+        const dataA = new Date(`${a[1].informacoes.data.split('/').reverse().join('-')}T${a[1].informacoes.hora}`);
+        const dataB = new Date(`${b[1].informacoes.data.split('/').reverse().join('-')}T${b[1].informacoes.hora}`);
         return dataB - dataA; // Ordem decrescente (mais recente primeiro)
     });
 
+    // Popula a tabela com as cotações ordenadas
     cotacoesOrdenadas.forEach(([id, cotacao]) => {
         const linha = document.createElement("tr");
 
@@ -919,6 +933,7 @@ function carregarCotacoesSalvas() {
     }
 }
 
+
 function editarCotacao(id) {
     const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
     const cotacao = cotacoes[id];
@@ -938,11 +953,6 @@ function editarCotacao(id) {
     // Atualiza o valor de "Quantidade de Itens"
     atualizarQuantidadeItens();
 
-    // Exibe a tela de edição
-    document.getElementById("cotacoesSalvasContainer").style.display = "none";
-    document.getElementById("novaCotacaoContainer").style.display = "block";
-
-    // Itera sobre cada linha da tabela e chama decidirMelhorOferta
     const tabela = document.getElementById("cotacaoTable").querySelector("tbody");
     const linhas = tabela.children;
 
@@ -951,21 +961,16 @@ function editarCotacao(id) {
         decidirMelhorOferta(numeroItem);
     }
 
-    // Atualiza os destaques de menor subtotal e menor total
-    const inputsSubtotal = document.querySelectorAll(".inputs-subtotal");
-    const inputsTotal = document.querySelectorAll(".inputs-total");
+    // Exibe a tela de edição
+    document.getElementById("cotacoesSalvasContainer").style.display = "none";
+    document.getElementById("novaCotacaoContainer").style.display = "block";
 
-    const menorSubtotal = descobrirMenorValor(inputsSubtotal);
-    const menorTotal = descobrirMenorValor(inputsTotal);
-
-    estilizarMelhorPreco(inputsSubtotal, menorSubtotal);
-    estilizarMelhorPreco(inputsTotal, menorTotal);
-
-    const botaoPDF = document.querySelector("#botaoPDF")
+    // Exibe o botão de exportar PDF
+    const botaoPDF = document.getElementById("botaoExportarPDF");
+    botaoPDF.style.display = "inline-block";
 
     console.log(`Cotação editada: ID ${id}`);
 }
-
 
 // Função para encontrar o menor valor entre uma lista de inputs
 function descobrirMenorValor(inputs) {
@@ -1593,13 +1598,16 @@ function exportarTabelaParaPDF() {
 
         item.fornecedores.forEach((fornecedor) => {
             pdf.rect(xPos, posicaoAtualY, larguraColunas.fornecedor / 2, alturaLinha);
-            pdf.text(fornecedor.precoUnitario || '-', xPos + 2, posicaoAtualY + 4);
+            pdf.text(formatarParaReal(fornecedor.precoUnitario), xPos + 2, posicaoAtualY + 4);
+
+            let apenasPrecoTotal = fornecedor.precoTotal.slice(3)
 
             pdf.rect(xPos + larguraColunas.fornecedor / 2, posicaoAtualY, larguraColunas.fornecedor / 2, alturaLinha);
-            pdf.text(fornecedor.precoTotal || '-', xPos + larguraColunas.fornecedor / 2 + 2, posicaoAtualY + 4);
+            pdf.text(formatarParaReal(apenasPrecoTotal) || '-', xPos + larguraColunas.fornecedor / 2 + 2, posicaoAtualY + 4);
 
             xPos += larguraColunas.fornecedor;
         });
+        
 
         posicaoAtualY += alturaLinha;
     });
@@ -1636,13 +1644,21 @@ function exportarTabelaParaPDF() {
             if (label === '(-) Desconto %') {
                 texto = `${fornecedor.porcentagemDesconto || '0.00'}%`;
             } else if (label === 'Subtotal') {
-                texto = `${fornecedor.subtotal || '0.00'}`;
+
+                let apenasValorSubtotal = fornecedor.subtotal.slice(3)
+
+                texto = `${formatarParaReal(apenasValorSubtotal) || '0.00'}`;
+
             } else if (label === '(+) Frete') {
-                texto = `R$ ${fornecedor.valorFrete || '0.00'}`;
+                texto = `${formatarParaReal(fornecedor.valorFrete) || '0.00'}`;
             } else if (label === 'Condição de Pagamento') {
                 texto = fornecedor.condicaoPagar || 'N/A';
             } else if (label === 'Total') {
-                texto = `${fornecedor.valorTotal || '0.00'}`;
+
+                let apenasValorTotal = fornecedor.valorTotal.slice(3)
+
+                texto = `${formatarParaReal(apenasValorTotal) || '0.00'}`;
+
             }
 
             pdf.text(texto, xRodape + 2, posicaoAtualY + 4);
@@ -1653,4 +1669,18 @@ function exportarTabelaParaPDF() {
     });
 
     pdf.save(`cotacao-${apelido}.pdf`);
+}
+
+function formatarParaReal(valor) {
+    if (!valor || isNaN(valor)) {
+        return 'R$ 0,00';
+    }
+    return `R$ ${parseFloat(valor).toFixed(2).replace('.', ',')}`;
+}
+
+
+function voltarParaTabela() {
+    const botaoPDF = document.getElementById("botaoExportarPDF");
+    botaoPDF.style.display = "none"; // Oculta o botão
+    f5();
 }
