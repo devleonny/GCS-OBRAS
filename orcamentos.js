@@ -1397,14 +1397,6 @@ async function anexos_parceiros(campo, id_pagamento) {
                     return await abrir_detalhes(id_pagamento)
                 }
 
-                var resposta = `
-                <div onclick="abrirArquivo('https://drive.google.com/file/d/${result.fileId}')" class="anexos" style="border: solid 1px green;">
-                    <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
-                    <label style="cursor: pointer; font-size: 0.6em"><strong>${fileName}</strong></label>
-                </div>   
-                `
-                document.getElementById(`container_${campo}`).insertAdjacentHTML('beforeend', resposta)
-
             } else {
 
                 openPopup_v2(`Deu erro por aqui... ${result.message}`)
