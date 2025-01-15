@@ -961,6 +961,16 @@ function editarCotacao(id) {
         decidirMelhorOferta(numeroItem);
     }
 
+    // Estiliza os subtotais e totais do footer
+    const inputsSubtotal = document.querySelectorAll(".inputs-subtotal");
+    const inputsTotal = document.querySelectorAll(".inputs-total");
+
+    const menorSubtotal = descobrirMenorValor(inputsSubtotal);
+    const menorTotal = descobrirMenorValor(inputsTotal);
+
+    estilizarMelhorPreco(inputsSubtotal, menorSubtotal);
+    estilizarMelhorPreco(inputsTotal, menorTotal);
+
     // Exibe a tela de edição
     document.getElementById("cotacoesSalvasContainer").style.display = "none";
     document.getElementById("novaCotacaoContainer").style.display = "block";
@@ -971,6 +981,7 @@ function editarCotacao(id) {
 
     console.log(`Cotação editada: ID ${id}`);
 }
+
 
 // Função para encontrar o menor valor entre uma lista de inputs
 function descobrirMenorValor(inputs) {
@@ -1695,15 +1706,41 @@ function exportarTabelaParaPDF() {
         pdf.text(item.quantidade.toString(), xPos + 2, posicaoAtualY + 4);
         xPos += larguraColunas.qtde;
 
-        item.fornecedores.forEach((fornecedor) => {
+        const precosTotais = item.fornecedores.map(f => parseFloat(f.precoTotal.slice(3).replace(',', '.')));
+        const menorPreco = Math.min(...precosTotais);
+
+        item.fornecedores.forEach((fornecedor, fornecedorIndex) => {
+            const precoTotal = parseFloat(fornecedor.precoTotal.slice(3).replace(',', '.'));
+        
+            // Preço Unitário
             pdf.rect(xPos, posicaoAtualY, larguraColunas.fornecedor / 2, alturaLinha);
             pdf.text(formatarParaReal(fornecedor.precoUnitario), xPos + 2, posicaoAtualY + 4);
-
-            let apenasPrecoTotal = fornecedor.precoTotal.slice(3)
-
-            pdf.rect(xPos + larguraColunas.fornecedor / 2, posicaoAtualY, larguraColunas.fornecedor / 2, alturaLinha);
-            pdf.text(formatarParaReal(apenasPrecoTotal) || '-', xPos + larguraColunas.fornecedor / 2 + 2, posicaoAtualY + 4);
-
+        
+            // Preço Total
+            if (precoTotal === menorPreco) {
+                pdf.setFillColor(144, 238, 144); // Verde claro (Light Green)
+                pdf.rect(
+                    xPos + larguraColunas.fornecedor / 2,
+                    posicaoAtualY,
+                    larguraColunas.fornecedor / 2,
+                    alturaLinha,
+                    'FD'
+                ); // Fill and Draw para preencher e manter a borda
+            } else {
+                pdf.rect(
+                    xPos + larguraColunas.fornecedor / 2,
+                    posicaoAtualY,
+                    larguraColunas.fornecedor / 2,
+                    alturaLinha
+                ); // Apenas borda para outros valores
+            }
+        
+            pdf.text(
+                formatarParaReal(fornecedor.precoTotal.slice(3)),
+                xPos + larguraColunas.fornecedor / 2 + 2,
+                posicaoAtualY + 4
+            );
+        
             xPos += larguraColunas.fornecedor;
         });
         
@@ -1711,7 +1748,7 @@ function exportarTabelaParaPDF() {
         posicaoAtualY += alturaLinha;
     });
 
-    // Adicionar rodapé como tfoot
+    // Adicionar rodapé com fundo azul
     if (posicaoAtualY + alturaLinha * 5 > limiteAltura) {
         pdf.addPage(); // Adiciona nova página se não houver espaço suficiente para o rodapé
         posicaoAtualY = 20;
@@ -1728,44 +1765,58 @@ function exportarTabelaParaPDF() {
     rodapeLabels.forEach((label) => {
         let xRodape = margemEsquerda;
         const colspanLargura = larguraColunas.item + larguraColunas.unid + larguraColunas.qtde;
-
+    
         // Primeira célula: rótulo com colspan
-        pdf.rect(xRodape, posicaoAtualY, colspanLargura, alturaLinha);
+        pdf.setFillColor(173, 216, 230); // Define fundo azul
+        pdf.rect(xRodape, posicaoAtualY, colspanLargura, alturaLinha, 'FD'); // Preenche com cor e mantém borda
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(0, 0, 0); // Cor do texto preta
         pdf.text(label, xRodape + 2, posicaoAtualY + 4);
-
+    
         xRodape += colspanLargura;
-
+    
         // Células dos fornecedores
-        fornecedores.forEach((fornecedor) => {
-            pdf.rect(xRodape, posicaoAtualY, larguraColunas.fornecedor, alturaLinha);
-
+        let valores = fornecedores.map((fornecedor) => {
+            if (label === 'Subtotal') {
+                return parseFloat(fornecedor.subtotal.slice(3).replace(',', '.')) || Infinity;
+            } else if (label === 'Total') {
+                return parseFloat(fornecedor.valorTotal.slice(3).replace(',', '.')) || Infinity;
+            }
+            return Infinity; // Outros rótulos não são considerados para o menor valor
+        });
+    
+        const menorValor = Math.min(...valores);
+    
+        fornecedores.forEach((fornecedor, index) => {
             let texto = '-';
             if (label === '(-) Desconto %') {
                 texto = `${fornecedor.porcentagemDesconto || '0.00'}%`;
             } else if (label === 'Subtotal') {
-
-                let apenasValorSubtotal = fornecedor.subtotal.slice(3)
-
-                texto = `${formatarParaReal(apenasValorSubtotal) || '0.00'}`;
-
+                texto = `${formatarParaReal(fornecedor.subtotal.slice(3)) || '0.00'}`;
             } else if (label === '(+) Frete') {
                 texto = `${formatarParaReal(fornecedor.valorFrete) || '0.00'}`;
             } else if (label === 'Condição de Pagamento') {
                 texto = fornecedor.condicaoPagar || 'N/A';
             } else if (label === 'Total') {
-
-                let apenasValorTotal = fornecedor.valorTotal.slice(3)
-
-                texto = `${formatarParaReal(apenasValorTotal) || '0.00'}`;
-
+                texto = `${formatarParaReal(fornecedor.valorTotal.slice(3)) || '0.00'}`;
             }
-
+    
+            if ((label === 'Subtotal' || label === 'Total') && valores[index] === menorValor) {
+                pdf.setFillColor(144, 238, 144); // Verde claro (Light Green)
+                pdf.rect(xRodape, posicaoAtualY, larguraColunas.fornecedor, alturaLinha, 'FD'); // Fill and Draw
+            } else {
+                pdf.rect(xRodape, posicaoAtualY, larguraColunas.fornecedor, alturaLinha); // Apenas borda
+            }
+    
+            pdf.setTextColor(0, 0, 0); // Texto sempre preto
             pdf.text(texto, xRodape + 2, posicaoAtualY + 4);
+    
             xRodape += larguraColunas.fornecedor;
         });
-
+    
         posicaoAtualY += alturaLinha; // Avançar para a próxima linha do rodapé
     });
+    
 
     pdf.save(`cotacao-${apelido}.pdf`);
 }
@@ -1776,6 +1827,7 @@ function formatarParaReal(valor) {
     }
     return `R$ ${parseFloat(valor).toFixed(2).replace('.', ',')}`;
 }
+
 
 
 function voltarParaTabela() {
