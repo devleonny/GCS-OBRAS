@@ -1042,9 +1042,10 @@ function adicionarLinhaComDados(dado) {
 
     const tdNomeItem = document.createElement("td");
     const inputNomeItem = document.createElement("input");
-
     inputNomeItem.setAttribute("value", `${dado.nomeItem}`);
+    inputNomeItem.oninput = () => mostrarSugestoes(inputNomeItem, tdPartnumber, tdEstoque);
     tdNomeItem.appendChild(inputNomeItem);
+
 
     const tdTipoUnitario = document.createElement("td");
     const inputTipoUnitario = document.createElement("input");
@@ -1134,29 +1135,127 @@ function adicionarLinhaComDados(dado) {
     tabela.appendChild(novaLinha);
 }
 
-function adicionarNomeFornecedores(dado){
+function adicionarNomeFornecedores(dado) {
+    const linhaCountRow = document.querySelector(".count-row");
+    const linhaTopicosTabela = document.querySelector("#topicos-tabela");
 
-    const linhaCountRow = document.querySelector(".count-row")
+    const thTitulofornecedor = document.createElement("th");
+    thTitulofornecedor.setAttribute("colspan", "2");
 
-    const linhaTopicosTabela = document.querySelector("#topicos-tabela")
+    // Criar o container do nome e do ícone de exclusão
+    const containerFornecedor = document.createElement("div");
+    containerFornecedor.style.display = "flex";
+    containerFornecedor.style.alignItems = "center";
+    containerFornecedor.style.justifyContent = "center"; // Centraliza o conteúdo
+    containerFornecedor.style.gap = "8px"; // Espaçamento entre o nome e o botão de exclusão
 
-    const thTitulofornecedor = document.createElement("th")
+    // Nome do fornecedor
+    const nomeFornecedor = document.createElement("span");
+    nomeFornecedor.textContent = dado.nome;
+    nomeFornecedor.style.textAlign = "center"; // Garante o alinhamento do texto
+    containerFornecedor.appendChild(nomeFornecedor);
 
-    thTitulofornecedor.textContent = dado.nome
+    // Botão de exclusão
+    const imgExcluir = document.createElement("img");
+    imgExcluir.src = "imagens/excluir.png";
+    imgExcluir.alt = "Excluir Fornecedor";
+    imgExcluir.style.cursor = "pointer";
+    imgExcluir.style.width = "16px"; // Tamanho do ícone
+    imgExcluir.style.height = "16px";
+    imgExcluir.onclick = () => excluirFornecedor(dado.nome); // Evento de exclusão
+    containerFornecedor.appendChild(imgExcluir);
 
-    thTitulofornecedor.setAttribute("colspan", "2")
+    thTitulofornecedor.appendChild(containerFornecedor);
+    linhaCountRow.appendChild(thTitulofornecedor);
 
-    linhaCountRow.appendChild(thTitulofornecedor)
+    // Adicionar as colunas de preço unitário e preço total
+    const thPrecoUnitario = document.createElement("th");
+    thPrecoUnitario.textContent = "Preço Unitário";
 
-    const thPrecoUnitario = document.createElement("th")
-    const thPrecoTotal = document.createElement("th")
+    const thPrecoTotal = document.createElement("th");
+    thPrecoTotal.textContent = "Preço Total";
 
-    thPrecoUnitario.textContent = "Preço Unitário"
+    linhaTopicosTabela.append(thPrecoUnitario, thPrecoTotal);
+}
 
-    thPrecoTotal.textContent = "Preço Total"
 
-    linhaTopicosTabela.append(thPrecoUnitario, thPrecoTotal)
+function excluirFornecedor(nomeFornecedor) {
+    const linhaCountRow = document.querySelector(".count-row");
+    const linhaTopicosTabela = document.querySelector("#topicos-tabela");
+    const linhasTabela = document.querySelectorAll("#cotacaoTable tbody tr");
 
+    // Encontrar o índice do fornecedor
+    const headers = Array.from(linhaCountRow.children);
+    const indiceFornecedor = headers.findIndex((th) =>
+        th.textContent.trim().includes(nomeFornecedor)
+    );
+
+    if (indiceFornecedor === -1) {
+        console.error("Fornecedor não encontrado:", nomeFornecedor);
+        return;
+    }
+
+    // Remover o cabeçalho do fornecedor
+    linhaCountRow.removeChild(headers[indiceFornecedor]);
+
+    // Remover as colunas de preço unitário e preço total da linha de tópicos
+    const thsTopicos = linhaTopicosTabela.querySelectorAll("th");
+    linhaTopicosTabela.removeChild(thsTopicos[indiceFornecedor * 2 - 1]); // Preço Unitário
+    linhaTopicosTabela.removeChild(thsTopicos[indiceFornecedor * 2]); // Preço Total
+
+    // Remover as células correspondentes em cada linha da tabela de itens
+    linhasTabela.forEach((linha) => {
+        const celulas = linha.querySelectorAll("td");
+        linha.removeChild(celulas[indiceFornecedor * 2 - 1]); // Preço Unitário
+        linha.removeChild(celulas[indiceFornecedor * 2]); // Preço Total
+    });
+
+    // Remover os valores finais do rodapé
+    ["#linhaDesconto", "#linhaSubtotal", "#linhaFrete", "#linhaCondicaoPagar", "#linhaTotal"].forEach((linhaId) => {
+        const linhaRodape = document.querySelector(linhaId);
+        const celulasRodape = linhaRodape.querySelectorAll("td");
+        linhaRodape.removeChild(celulasRodape[indiceFornecedor - 1]);
+    });
+
+    // Atualizar a lista de fornecedores no localStorage
+    const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+    const idCotacao = localStorage.getItem("cotacaoEditandoID");
+
+    if (cotacoes[idCotacao]) {
+        cotacoes[idCotacao].dados.forEach((dado) => {
+            dado.fornecedores = dado.fornecedores.filter((f) => f.nome !== nomeFornecedor);
+        });
+        cotacoes[idCotacao].valorFinal = cotacoes[idCotacao].valorFinal.filter((f) => f.nome !== nomeFornecedor);
+        localStorage.setItem("dados_cotacao", JSON.stringify(cotacoes));
+    }
+
+    console.log(`Fornecedor "${nomeFornecedor}" excluído com sucesso.`);
+
+    // Verificar se ainda há fornecedores e atualizar o cabeçalho
+    verificarFornecedores();
+}
+
+function verificarFornecedores() {
+    // Seleciona os cabeçalhos de fornecedores
+    const headers = document.querySelectorAll(".count-row th");
+
+    // Filtra apenas os fornecedores (ignorando células como "Ações" ou similares)
+    const fornecedoresRestantes = Array.from(headers).filter(
+        (header) =>
+            header.querySelector("div") && // Certifica-se de que é um cabeçalho com fornecedor
+            header.querySelector("div").querySelector("span")?.textContent.trim() !== ""
+    );
+
+    // Seleciona o elemento com ID fornecedoresHeader
+    const fornecedoresHeader = document.getElementById("fornecedoresHeader");
+
+    // Se não houver fornecedores restantes, oculta o cabeçalho
+    if (fornecedoresRestantes.length === 0) {
+        fornecedoresHeader.style.display = "none";
+    } else {
+        // Caso contrário, exibe o cabeçalho
+        fornecedoresHeader.style.display = "table-cell";
+    }
 }
 
 function adicionarPrecoUnitarioPrecoTotal(dado, novaLinha, numeroItem) {
