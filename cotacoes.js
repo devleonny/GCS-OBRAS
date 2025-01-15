@@ -1558,7 +1558,8 @@ function filtrarTabela(colunaIndex, valorPesquisa) {
     const valorNormalizado = valorPesquisa.trim().toLowerCase();
     let encontrouResultados = false;
 
-    linhas.forEach(linha => {
+    // Percorre as linhas da tabela e exibe apenas as que correspondem à pesquisa
+    linhas.forEach((linha) => {
         const celula = linha.cells[colunaIndex]; // Obtém a célula correspondente à coluna
         if (celula) {
             const textoCelula = celula.textContent.trim().toLowerCase();
@@ -1571,26 +1572,31 @@ function filtrarTabela(colunaIndex, valorPesquisa) {
         }
     });
 
-    // Verifica se encontrou algum resultado
     const tabelaBody = tabela.querySelector("tbody");
+
+    // Remove a mensagem de "não existem cotações disponíveis" se ela já existir
+    const mensagemExistente = tabelaBody.querySelector("tr[data-mensagem]");
+    if (mensagemExistente) {
+        mensagemExistente.remove();
+    }
+
+    // Adiciona a mensagem se nenhuma linha corresponde à pesquisa
     if (!encontrouResultados) {
-        // Adiciona a mensagem de que não existem cotações disponíveis
         const linhaMensagem = document.createElement("tr");
         const celulaMensagem = document.createElement("td");
+
         celulaMensagem.colSpan = tabela.querySelectorAll("thead th").length; // Número de colunas na tabela
         celulaMensagem.textContent = "Não existem cotações disponíveis.";
         celulaMensagem.style.textAlign = "center"; // Centraliza a mensagem
         celulaMensagem.style.color = "gray"; // Adiciona uma cor para destaque
         linhaMensagem.appendChild(celulaMensagem);
+
+        // Adiciona um atributo para identificar a mensagem (facilitando a remoção posterior)
+        linhaMensagem.setAttribute("data-mensagem", "true");
         tabelaBody.appendChild(linhaMensagem);
-    } else {
-        // Remove a mensagem caso já exista
-        const mensagemExistente = tabelaBody.querySelector("tr td[colspan]");
-        if (mensagemExistente) {
-            mensagemExistente.parentElement.remove();
-        }
     }
 }
+
 
 function exportarTabelaParaPDF() {
     const idCotacao = localStorage.getItem("cotacaoEditandoID");
@@ -1644,14 +1650,21 @@ function exportarTabelaParaPDF() {
 
     posicaoAtualY += 10;
 
-    const larguraColunas = {
-        item: 60,
-        unid: 25,
-        qtde: 25,
-        fornecedor: (larguraMaximaTabela - 110) / fornecedores.length, // Ajusta dinamicamente
-    };
+    // Ajustar as larguras das colunas dependendo do número de fornecedores
+    const larguraColunas = fornecedores.length > 0
+        ? {
+            item: 60,
+            unid: 25,
+            qtde: 25,
+            fornecedor: (larguraMaximaTabela - 110) / fornecedores.length, // Ajusta dinamicamente
+        }
+        : {
+            item: larguraMaximaTabela * 0.5, // Ocupa metade da largura total
+            unid: larguraMaximaTabela * 0.25, // 25% da largura total
+            qtde: larguraMaximaTabela * 0.25, // 25% da largura total
+        };
 
-    const tamanhoFonte = larguraColunas.fornecedor > 20 ? 8 : 7;
+    const tamanhoFonte = fornecedores.length > 0 && larguraColunas.fornecedor > 20 ? 8 : 7;
     pdf.setFontSize(tamanhoFonte);
 
     const truncarTexto = (texto, limite) =>
@@ -1669,25 +1682,28 @@ function exportarTabelaParaPDF() {
 
     let xPos = margemEsquerda + larguraColunas.item + larguraColunas.unid + larguraColunas.qtde;
 
-    fornecedores.forEach((fornecedor) => {
-        const nomeFornecedor = truncarTexto(fornecedor.nome, 15);
-        pdf.rect(xPos, posicaoAtualY, larguraColunas.fornecedor, alturaLinha);
-        pdf.text(nomeFornecedor, xPos + 2, posicaoAtualY + 4);
+    if (fornecedores.length > 0) {
+        fornecedores.forEach((fornecedor) => {
+            const nomeFornecedor = truncarTexto(fornecedor.nome, 15);
+            pdf.rect(xPos, posicaoAtualY, larguraColunas.fornecedor, alturaLinha);
+            pdf.text(nomeFornecedor, xPos + 2, posicaoAtualY + 4);
 
-        pdf.rect(xPos, posicaoAtualY + alturaLinha, larguraColunas.fornecedor / 2, alturaLinha);
-        pdf.text('Unit.', xPos + 2, posicaoAtualY + alturaLinha + 4);
+            pdf.rect(xPos, posicaoAtualY + alturaLinha, larguraColunas.fornecedor / 2, alturaLinha);
+            pdf.text('Unit.', xPos + 2, posicaoAtualY + alturaLinha + 4);
 
-        pdf.rect(xPos + larguraColunas.fornecedor / 2, posicaoAtualY + alturaLinha, larguraColunas.fornecedor / 2, alturaLinha);
-        pdf.text('Total', xPos + larguraColunas.fornecedor / 2 + 2, posicaoAtualY + alturaLinha + 4);
+            pdf.rect(xPos + larguraColunas.fornecedor / 2, posicaoAtualY + alturaLinha, larguraColunas.fornecedor / 2, alturaLinha);
+            pdf.text('Total', xPos + larguraColunas.fornecedor / 2 + 2, posicaoAtualY + alturaLinha + 4);
 
-        xPos += larguraColunas.fornecedor;
-    });
+            xPos += larguraColunas.fornecedor;
+        });
+    }
 
     posicaoAtualY += alturaLinha * 2;
 
     // Adicionar itens
     cotacao.dados.forEach((item, itemIndex) => {
         if (posicaoAtualY + alturaLinha > limiteAltura) {
+            adicionarRodape(pdf); // Adicionar rodapé na página atual
             pdf.addPage(); // Adiciona nova página se ultrapassar o limite
             posicaoAtualY = 20;
         }
@@ -1706,44 +1722,26 @@ function exportarTabelaParaPDF() {
         pdf.text(item.quantidade.toString(), xPos + 2, posicaoAtualY + 4);
         xPos += larguraColunas.qtde;
 
-        const precosTotais = item.fornecedores.map(f => parseFloat(f.precoTotal.slice(3).replace(',', '.')));
-        const menorPreco = Math.min(...precosTotais);
+        if (fornecedores.length > 0) {
+            const precosTotais = item.fornecedores.map(f => parseFloat(f.precoTotal.slice(3).replace(',', '.')));
+            const menorPreco = Math.min(...precosTotais);
 
-        item.fornecedores.forEach((fornecedor, fornecedorIndex) => {
-            const precoTotal = parseFloat(fornecedor.precoTotal.slice(3).replace(',', '.'));
-        
-            // Preço Unitário
-            pdf.rect(xPos, posicaoAtualY, larguraColunas.fornecedor / 2, alturaLinha);
-            pdf.text(formatarParaReal(fornecedor.precoUnitario), xPos + 2, posicaoAtualY + 4);
-        
-            // Preço Total
-            if (precoTotal === menorPreco) {
-                pdf.setFillColor(144, 238, 144); // Verde claro (Light Green)
-                pdf.rect(
-                    xPos + larguraColunas.fornecedor / 2,
-                    posicaoAtualY,
-                    larguraColunas.fornecedor / 2,
-                    alturaLinha,
-                    'FD'
-                ); // Fill and Draw para preencher e manter a borda
-            } else {
-                pdf.rect(
-                    xPos + larguraColunas.fornecedor / 2,
-                    posicaoAtualY,
-                    larguraColunas.fornecedor / 2,
-                    alturaLinha
-                ); // Apenas borda para outros valores
-            }
-        
-            pdf.text(
-                formatarParaReal(fornecedor.precoTotal.slice(3)),
-                xPos + larguraColunas.fornecedor / 2 + 2,
-                posicaoAtualY + 4
-            );
-        
-            xPos += larguraColunas.fornecedor;
-        });
-        
+            item.fornecedores.forEach((fornecedor, fornecedorIndex) => {
+                const precoTotal = parseFloat(fornecedor.precoTotal.slice(3).replace(',', '.'));
+
+                pdf.rect(xPos, posicaoAtualY, larguraColunas.fornecedor / 2, alturaLinha);
+                pdf.text(formatarParaReal(fornecedor.precoUnitario), xPos + 2, posicaoAtualY + 4);
+                if (precoTotal === menorPreco) {
+                    pdf.setFillColor(144, 238, 144); // Verde claro (Light Green)
+                    pdf.rect(xPos + larguraColunas.fornecedor / 2, posicaoAtualY, larguraColunas.fornecedor / 2, alturaLinha, 'FD');
+                } else {
+                    pdf.rect(xPos + larguraColunas.fornecedor / 2, posicaoAtualY, larguraColunas.fornecedor / 2, alturaLinha);
+                }
+
+                pdf.text(formatarParaReal(fornecedor.precoTotal.slice(3)), xPos + larguraColunas.fornecedor / 2 + 2, posicaoAtualY + 4);
+                xPos += larguraColunas.fornecedor;
+            });
+        }
 
         posicaoAtualY += alturaLinha;
     });
@@ -1817,8 +1815,25 @@ function exportarTabelaParaPDF() {
         posicaoAtualY += alturaLinha; // Avançar para a próxima linha do rodapé
     });
     
-
+    adicionarRodape(pdf); // Adicionar rodapé na última página
     pdf.save(`cotacao-${apelido}.pdf`);
+}
+
+function adicionarRodape(pdf) {
+    const agora = new Date();
+    const data = agora.toLocaleDateString();
+    const hora = agora.toLocaleTimeString();
+
+    const larguraPagina = 297; // Largura da página A4 (em mm)
+    const alturaRodape = 10; // Altura do rodapé
+    const margemRodape = 10;
+
+    pdf.setFont('helvetica', 'italic');
+    pdf.setFontSize(8);
+    pdf.setTextColor(0, 0, 0); // Texto preto para um tom mais forte
+
+    const textoRodape = `Exportado em ${data} às ${hora}`;
+    pdf.text(textoRodape, larguraPagina - margemRodape - pdf.getTextWidth(textoRodape), 210 - alturaRodape);
 }
 
 function formatarParaReal(valor) {
