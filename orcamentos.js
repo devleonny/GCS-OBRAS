@@ -1390,11 +1390,11 @@ async function anexos_parceiros(campo, id_pagamento) {
                         ...dados.anexo
                     }
 
-                    localStorage.setItem('lista_pagamentos', JSON.stringify(pagamentos))
-
                     enviar_dados_generico(dados)
 
-                    abrir_detalhes(id_pagamento)
+                    await inserirDados(pagamentos, 'lista_pagamentos')
+
+                    await abrir_detalhes(id_pagamento)
                 }
 
                 var resposta = `

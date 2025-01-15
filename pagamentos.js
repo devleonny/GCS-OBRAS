@@ -437,6 +437,7 @@ async function excluir_anexo_parceiro(id_pagamento, item, anx) {
         lista_pagamentos[id_pagamento].anexos_parceiros[item] &&
         lista_pagamentos[id_pagamento].anexos_parceiros[item][anx]
     ) {
+
         delete lista_pagamentos[id_pagamento].anexos_parceiros[item][anx]
 
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
@@ -451,7 +452,7 @@ async function excluir_anexo_parceiro(id_pagamento, item, anx) {
 
         enviar_dados_generico(dados)
 
-        abrir_detalhes(id_pagamento)
+        await abrir_detalhes(id_pagamento)
     }
 
 }
