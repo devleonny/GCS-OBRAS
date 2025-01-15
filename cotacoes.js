@@ -961,6 +961,16 @@ function editarCotacao(id) {
         decidirMelhorOferta(numeroItem);
     }
 
+    // Estiliza os subtotais e totais do footer
+    const inputsSubtotal = document.querySelectorAll(".inputs-subtotal");
+    const inputsTotal = document.querySelectorAll(".inputs-total");
+
+    const menorSubtotal = descobrirMenorValor(inputsSubtotal);
+    const menorTotal = descobrirMenorValor(inputsTotal);
+
+    estilizarMelhorPreco(inputsSubtotal, menorSubtotal);
+    estilizarMelhorPreco(inputsTotal, menorTotal);
+
     // Exibe a tela de edição
     document.getElementById("cotacoesSalvasContainer").style.display = "none";
     document.getElementById("novaCotacaoContainer").style.display = "block";
@@ -971,6 +981,7 @@ function editarCotacao(id) {
 
     console.log(`Cotação editada: ID ${id}`);
 }
+
 
 // Função para encontrar o menor valor entre uma lista de inputs
 function descobrirMenorValor(inputs) {
@@ -1707,7 +1718,7 @@ function exportarTabelaParaPDF() {
         
             // Preço Total
             if (precoTotal === menorPreco) {
-                pdf.setFillColor(0, 255, 0); // Verde
+                pdf.setFillColor(144, 238, 144); // Verde claro (Light Green)
                 pdf.rect(
                     xPos + larguraColunas.fornecedor / 2,
                     posicaoAtualY,
@@ -1791,7 +1802,7 @@ function exportarTabelaParaPDF() {
             }
     
             if ((label === 'Subtotal' || label === 'Total') && valores[index] === menorValor) {
-                pdf.setFillColor(0, 255, 0); // Verde
+                pdf.setFillColor(144, 238, 144); // Verde claro (Light Green)
                 pdf.rect(xRodape, posicaoAtualY, larguraColunas.fornecedor, alturaLinha, 'FD'); // Fill and Draw
             } else {
                 pdf.rect(xRodape, posicaoAtualY, larguraColunas.fornecedor, alturaLinha); // Apenas borda
