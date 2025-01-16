@@ -507,7 +507,43 @@ async function criar_pagamento_v2(chave1) {
         var total = document.getElementById('total_de_pagamento').textContent
 
         var cliente = document.getElementById('cliente_pagamento')
-        var chave_pix = document.getElementById('pix').value
+
+        const selectElement = document.getElementById('forma_pagamento');
+        const formaSelecionada = selectElement.value;
+
+        var descky = `
+        Solicitante: ${acesso.usuario} \n
+        `
+
+        var objetoDataVencimento = ""
+
+        if (formaSelecionada === 'Pix') {
+
+            var chave_pix = document.getElementById('pix').value
+
+            descky += `
+            Chave PIX | Forma de Pagamento: ${chave_pix}
+            \n
+            `
+
+            objetoDataVencimento = data_atual('curta', parceiro)
+
+        } else if (formaSelecionada === 'Boleto') {
+
+            var data_vencimento = document.querySelector("#data_vencimento").value
+
+            const [ano, mes, dia] = data_vencimento.split("-")
+
+            data_vencimento = `${dia}/${mes}/${ano}`
+
+            descky += `
+            Data de Vencimento do Boleto: ${data_vencimento}
+            \n
+            `
+
+            objetoDataVencimento = data_vencimento
+
+        }
 
         //Categorias
         var valores = central_categorias.querySelectorAll('input[type="number"]');
@@ -538,11 +574,6 @@ async function criar_pagamento_v2(chave1) {
             });
         }
 
-        var descky = `
-        Solicitante: ${acesso.usuario} \n
-        Chave PIX | Forma de Pagamento: ${chave_pix}
-        \n
-        `
         descky += document.getElementById('descricao_pagamento').value
 
         var regex_cliente = regex = /\[(.*?)\]/;
@@ -554,9 +585,9 @@ async function criar_pagamento_v2(chave1) {
                 "valor_documento": conversor(total),
                 "observacao": descky,
                 "codigo_lancamento_integracao": id_pagamento,
-                "data_vencimento": data_atual('curta', parceiro),
+                "data_vencimento": objetoDataVencimento,
                 "categorias": rateio_categorias,
-                "data_previsao": data_atual('curta', parceiro),
+                "data_previsao": objetoDataVencimento,
                 "id_conta_corrente": '6054234828', // Itaú AC
                 "distribuicao": []
             }
@@ -800,13 +831,16 @@ async function tela_pagamento(chave1) {
                 </div>    
 
                 <div class="ordem">
-                    <label id="pix_numero" class="numero">${ordenar()}</label>    
-                    <div class="itens_financeiro">
-                        <label>Chave PIX</label>
-                        <textarea style="width:80%" rows="3" id="pix" oninput="calculadora_pagamento()"
-                            placeholder="CPF ou E-MAIL ou TELEFONE ou Código de Barras..."></textarea>
-                    </div>
-                </div> 
+                <label id="pix_ou_boleto_numero" class="numero">${ordenar()}</label>
+                <div class="itens_financeiro" style="padding: 10px;" id="forma_pagamento_container">
+                    <label>Forma de Pagamento</label>
+                    <select id="forma_pagamento" onchange="atualizarFormaPagamento()">
+                        <option value="Pix">Chave Pix</option>
+                        <option value="Boleto">Boleto</option>
+                    </select>
+                    <textarea style="width: 80%; margin-top: 10px;" rows="2" id="pix" placeholder="CPF ou E-MAIL ou TELEFONE ou Código de Barras..."></textarea>
+                </div>
+            </div>
 
                 <div class="ordem">
                     <label id="categoria_numero" class="numero">${ordenar()}</label>   
@@ -864,6 +898,29 @@ async function tela_pagamento(chave1) {
 
     carregar_opcoes(await opcoes_clientes(), 'cliente_pagamento', 'recebedor_sugestoes')
 
+}
+
+function atualizarFormaPagamento() {
+    const formaPagamento = document.getElementById('forma_pagamento').value;
+    const formaPagamentoContainer = document.getElementById('forma_pagamento_container');
+
+    formaPagamentoContainer.style.padding = '10px'; // Adiciona padding à div
+
+    formaPagamentoContainer.innerHTML = `
+        <label>Forma de Pagamento</label>
+        <select id="forma_pagamento" onchange="atualizarFormaPagamento()">
+            <option value="Pix" ${formaPagamento === 'Pix' ? 'selected' : ''}>Chave Pix</option>
+            <option value="Boleto" ${formaPagamento === 'Boleto' ? 'selected' : ''}>Boleto</option>
+        </select>
+        ${
+            formaPagamento === 'Pix'
+                ? `<textarea style="width: 80%; margin-top: 10px;" rows="2" id="pix" placeholder="CPF ou E-MAIL ou TELEFONE ou Código de Barras..."></textarea>`
+                : `
+                <label style="font-size: 0.8em; display: block; margin-top: 10px;">Data de Vencimento</label>
+                <input type="date" id="data_vencimento" style="width: 50%; margin-top: 5px;">
+            `
+        }
+    `;
 }
 
 async function atualizar_base_clientes() {
@@ -999,13 +1056,26 @@ async function calculadora_pagamento() {
         var categoria_invalida = false
 
         var pix = document.getElementById('pix')
+        var data_vencimento = document.getElementById('data_vencimento')
+
         if (pix) {
             if (pix.value !== '') {
-                colorir('green', 'pix_numero')
+                colorir('green', 'pix_ou_boleto_numero')
             } else {
                 bloqueio = true
-                colorir('#B12425', 'pix_numero')
+                colorir('#B12425', 'pix_ou_boleto_numero')
             }
+        }
+
+        if(data_vencimento){
+
+            if (data_vencimento.value) {
+                colorir('green', 'pix_ou_boleto_numero')
+            } else {
+                bloqueio = true
+                colorir('#B12425', 'pix_ou_boleto_numero')
+            }
+
         }
 
         var cc = document.getElementById('cc');
