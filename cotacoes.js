@@ -195,7 +195,6 @@ function adicionarLinha() {
     atualizarQuantidadeItens();
 }
 
-
 function mostrarSugestoes(input, partnumberCell, estoqueCell) {
     const listaMateriais = JSON.parse(localStorage.getItem("dados_materiais")) || {};
     const valor = input.value.toLowerCase();
@@ -217,10 +216,13 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
         return;
     }
 
-    // Filtra os itens baseados no partnumber digitado
+    // Filtra os itens baseados no texto digitado, usando includes em partnumber e descricao
     const itensFiltrados = Object.values(listaMateriais)
-        .filter(item => item.partnumber && item.partnumber.toLowerCase().includes(valor))
-        .sort((a, b) => a.partnumber.localeCompare(b.partnumber));
+        .filter(item =>
+            (item.partnumber && item.partnumber.toLowerCase().includes(valor)) ||
+            (item.descricao && item.descricao.toLowerCase().includes(valor))
+        )
+        .sort((a, b) => a.partnumber.localeCompare(b.partnumber)); // Opcional: ordena os resultados
 
     if (itensFiltrados.length === 0) {
         sugestoes.style.display = "none"; // Oculta se não houver resultados
@@ -229,7 +231,7 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
 
     itensFiltrados.forEach(item => {
         const sugestao = document.createElement("div");
-        sugestao.textContent = item.descricao; // Mostra apenas o nome do item
+        sugestao.textContent = `${item.descricao} (${item.partnumber})`; // Mostra o nome e o partnumber
         sugestao.style.padding = "8px";
         sugestao.style.cursor = "pointer";
         sugestao.style.backgroundColor = "#fff";
@@ -252,8 +254,6 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
     sugestoes.style.width = `${rect.width}px`;
     sugestoes.style.display = "block"; // Exibe as sugestões
 }
-
-
 
 
 let nomeFornecedor = "";
