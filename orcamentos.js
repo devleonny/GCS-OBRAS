@@ -763,7 +763,7 @@ async function tela_pagamento(chave1) {
 
                     <div id="aguarde_2" style="display: none; width: 100%; align-items: center; justify-content: center; gap: 10px;">
                         <img src="gifs/loading.gif" style="width: 5vw">
-                        <label>Baixando clientes do Omie...</label>
+                        <label>Verificando clientes do Omie...</label>
                     </div>
 
                 </div>
@@ -775,15 +775,15 @@ async function tela_pagamento(chave1) {
                     </div>
 
                     <div class="itens_financeiro" style="background-color: #B12425">
-                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; width: 100%;">
-                            <div style="display: flex; align-items: center; gap: 20px;">
-                                <input type="text" id="cnpj_cpf" oninput="calculadora_pagamento()"
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
+                            <div style="display: flex; align-items: center; gap: 20px; justify-content: center; width: 100%;">
+                                <input style="width: 200px;" type="text" id="cnpj_cpf" oninput="calculadora_pagamento()"
                                     placeholder="Digite o CNPJ ou CPF aqui...">
                                 <img src="imagens/confirmar.png" onclick="botao_cadastrar_cliente()" id="botao_cadastrar_cliente"
                                     style="margin: 10px; cursor: pointer; width: 30px;">
                             </div>
 
-                            <label style="white-space: nowrap; font-size: 0.7em;">Esse <strong>recebedor</strong> parece novo...
+                            <label style="font-size: 0.7em;">Esse <strong>recebedor</strong> parece novo...
                                 preencha o CPF/CNPJ e clique no símbolo de confirmação. </label>
                         </div>
                     </div>
