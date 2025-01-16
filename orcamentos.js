@@ -858,7 +858,7 @@ async function tela_pagamento(chave1) {
                         <div style="display: flex; justify-content: left; gap: 10px; width: 80%;">
                             <label for="adicionar_anexo_pagamento" style="text-decoration: underline; cursor: pointer; margin-left: 20px;">
                                 Clique aqui para + 1 Anexo
-                                <input type="file" id="adicionar_anexo_pagamento" style="display: none;" onchange="salvar_anexo_pagamento()">
+                                <input type="file" id="adicionar_anexo_pagamento" style="display: none;" onchange="salvar_anexo_pagamento()" multiple>
                             </label>
                         </div>
 
@@ -1290,100 +1290,92 @@ function cadastrarCliente(nome, cnpj_cpf) {
 
 async function salvar_anexo_pagamento(id_pagamento) {
 
-    var elemento = document.getElementById(`adicionar_anexo_pagamento`)
+    let elemento = document.getElementById(`adicionar_anexo_pagamento`);
+    let files = Array.from(elemento.files); // Converte a FileList para um array
 
-    var file = elemento.files[0];
+    for (let file of files) {
+        let fileName = file.name;
+        let reader = new FileReader();
 
-    if (file) {
-
-        var fileInput = elemento
-        var file = fileInput.files[0];
-        var fileName = file.name
-
-        var reader = new FileReader();
         reader.onload = async (e) => {
-            var base64 = e.target.result.split(',')[1];
-            var mimeType = file.type;
+            let base64 = e.target.result.split(',')[1];
+            let mimeType = file.type;
 
-            var response = await fetch('http://localhost:3000/upload', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    name: fileName,
-                    mimeType: mimeType,
-                    base64: base64
-                })
-            });
+            try {
+                let response = await fetch('http://localhost:3000/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: fileName,
+                        mimeType: mimeType,
+                        base64: base64
+                    })
+                });
 
-            var result = await response.json();
-            if (response.ok) {
+                let result = await response.json();
 
-                if (id_pagamento == undefined) {
+                if (response.ok) {
+                    if (id_pagamento === undefined) {
+                        let anx = gerar_id_5_digitos();
 
-                    let anx = gerar_id_5_digitos()
+                        anexos_pagamentos[anx] = {
+                            nome: fileName,
+                            formato: mimeType,
+                            link: result.fileId
+                        };
 
-                    anexos_pagamentos[anx] = {
-                        nome: fileName,
-                        formato: mimeType,
-                        link: result.fileId
-                    }
-
-                    let resposta = `
-                    <div id="${anx}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                        <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
-                            <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                            <label style="font-size: 0.8em; cursor: pointer;">${String(fileName).slice(0, 10)} ... ${String(fileName).slice(-7)}</label>
+                        let resposta = `
+                        <div id="${anx}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+                            <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                                <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                                <label style="font-size: 0.8em; cursor: pointer;">${String(fileName).slice(0, 10)} ... ${String(fileName).slice(-7)}</label>
+                            </div>
+                            <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="remover_anx('${anx}')">
                         </div>
-                        <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="remover_anx('${anx}')">
-                    </div>
-                    `
-                    document.getElementById('container_anexos').insertAdjacentHTML('beforeend', resposta)
+                        `;
+                        document.getElementById('container_anexos').insertAdjacentHTML('beforeend', resposta);
+                    } else {
+                        let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+
+                        let anexo = {};
+                        anexo[gerar_id_5_digitos()] = {
+                            nome: fileName,
+                            formato: mimeType,
+                            link: result.fileId
+                        };
+
+                        lista_pagamentos[id_pagamento].anexos = {
+                            ...lista_pagamentos[id_pagamento].anexos,
+                            ...anexo
+                        };
+
+                        let dados = {
+                            id_pagamento: id_pagamento,
+                            tabela: 'atualizacoes_pagamentos',
+                            alteracao: 'anexo',
+                            anexo: anexo
+                        };
+
+                        enviar_dados_generico(dados);
+
+                        inserirDados(lista_pagamentos, 'lista_pagamentos');
+
+                        consultar_pagamentos();
+                        abrir_detalhes(id_pagamento);
+                    }
                 } else {
-
-                    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-
-                    var anexo = {}
-
-                    anexo[gerar_id_5_digitos()] = {
-                        nome: fileName,
-                        formato: mimeType,
-                        link: result.fileId
-                    }
-
-                    lista_pagamentos[id_pagamento].anexos = {
-                        ...lista_pagamentos[id_pagamento].anexos,
-                        ...anexo
-                    };
-
-                    var dados = {
-                        id_pagamento: id_pagamento,
-                        tabela: 'atualizacoes_pagamentos',
-                        alteracao: 'anexo',
-                        anexo: anexo
-                    }
-
-                    enviar_dados_generico(dados)
-
-                    inserirDados(lista_pagamentos, 'lista_pagamentos');
-
-                    consultar_pagamentos()
-                    abrir_detalhes(id_pagamento)
-
+                    openPopup_v2(`Erro ao fazer upload do arquivo "${fileName}": ${result.message}`);
                 }
-
-            } else {
-
-                openPopup_v2(`Deu erro por aqui... ${result.message}`)
-
+            } catch (error) {
+                console.error(`Erro ao processar o arquivo "${fileName}":`, error);
+                openPopup_v2(`Erro ao processar o arquivo "${fileName}".`);
             }
-
         };
 
         reader.readAsDataURL(file);
     }
-
 }
 
 function remover_anx(anx) {
