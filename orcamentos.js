@@ -834,7 +834,7 @@ async function tela_pagamento(chave1) {
                 <label id="pix_ou_boleto_numero" class="numero">${ordenar()}</label>
                 <div class="itens_financeiro" style="padding: 10px;" id="forma_pagamento_container">
                     <label>Forma de Pagamento</label>
-                    <select id="forma_pagamento" onchange="atualizarFormaPagamento()">
+                    <select id="forma_pagamento" onchange="atualizarFormaPagamento()" style="border-radius: 3px; padding: 5px; cursor: pointer;">
                         <option value="Pix">Chave Pix</option>
                         <option value="Boleto">Boleto</option>
                     </select>
@@ -1298,11 +1298,6 @@ async function salvar_anexo_pagamento(id_pagamento) {
         var file = fileInput.files[0];
         var fileName = file.name
 
-        if (!file) {
-            openPopup_v2('Nenhum arquivo selecionado...');
-            return;
-        }
-
         var reader = new FileReader();
         reader.onload = async (e) => {
             var base64 = e.target.result.split(',')[1];
@@ -1387,7 +1382,6 @@ async function salvar_anexo_pagamento(id_pagamento) {
         reader.readAsDataURL(file);
     }
 
-    remover_popup()
 }
 
 function remover_anx(anx) {
