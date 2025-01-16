@@ -908,7 +908,7 @@ function atualizarFormaPagamento() {
 
     formaPagamentoContainer.innerHTML = `
         <label>Forma de Pagamento</label>
-        <select id="forma_pagamento" onchange="atualizarFormaPagamento()">
+        <select id="forma_pagamento" onchange="atualizarFormaPagamento()" style="border-radius: 3px; padding: 5px; cursor: pointer;">
             <option value="Pix" ${formaPagamento === 'Pix' ? 'selected' : ''}>Chave Pix</option>
             <option value="Boleto" ${formaPagamento === 'Boleto' ? 'selected' : ''}>Boleto</option>
         </select>
@@ -916,8 +916,10 @@ function atualizarFormaPagamento() {
             formaPagamento === 'Pix'
                 ? `<textarea style="width: 80%; margin-top: 10px;" rows="2" id="pix" placeholder="CPF ou E-MAIL ou TELEFONE ou Código de Barras..."></textarea>`
                 : `
-                <label style="font-size: 0.8em; display: block; margin-top: 10px;">Data de Vencimento</label>
-                <input type="date" id="data_vencimento" style="width: 50%; margin-top: 5px;">
+                <div style="display: flex; flex-direction: column; justify-content: center;">
+                    <label style="font-size: 0.8em; display: block; margin-top: 10px;">Data de Vencimento</label>
+                    <input type="date" id="data_vencimento" style="margin-top: 5px; cursor: pointer;">
+                </div>
             `
         }
     `;
