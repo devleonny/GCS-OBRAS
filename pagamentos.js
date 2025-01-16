@@ -101,7 +101,7 @@ async function abrir_detalhes(id_pagamento) {
         cliente = dados_clientes_invertido[pagamento.param[0].codigo_cliente_fornecedor].nome
     }
 
-    Object.keys(pagamento.anexos).forEach(anx => {
+    for (anx in pagamento.anexos) {
 
         var anexo = pagamento.anexos[anx]
 
@@ -113,10 +113,10 @@ async function abrir_detalhes(id_pagamento) {
                 <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
                 <label style="font-size: 0.8em; cursor: pointer;">${String(anexo.nome).slice(0, 10)} ... ${String(anexo.nome).slice(-7)}</label>
             </div>
-            <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;">
+            <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="excluir_anexo_complementares('${id_pagamento}', '${anx}')">
         </div>
         `
-    }) 
+    }
 
     var historico = ''
     var cor = '#222'
@@ -259,7 +259,7 @@ async function abrir_detalhes(id_pagamento) {
                         if (String(item_historico.status).includes('ANEXADO')) {
                             let anexos = item_historico.anexos
 
-                            for (anx in anexos) { //29
+                            for (anx in anexos) {
                                 let anexo = anexos[anx]
                                 info_existente += `
                                 <div onclick="abrirArquivo('https://drive.google.com/file/d/${anexo.link}')" class="anexos" style="border: solid 1px green;">
@@ -425,6 +425,31 @@ async function abrir_detalhes(id_pagamento) {
 
 }
 
+async function excluir_anexo_complementares(id_pagamento, anx) {
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+
+    if (
+        lista_pagamentos[id_pagamento] &&
+        lista_pagamentos[id_pagamento].anexos &&
+        lista_pagamentos[id_pagamento].anexos[anx]
+    ) {
+        delete lista_pagamentos[id_pagamento].anexos[anx]
+
+        let dados = {
+            tabela: 'anexos_complementares',
+            operacao: 'excluir_complementares',
+            id_pagamento: id_pagamento,
+            anx: anx
+        }
+
+        enviar_dados_generico(dados)
+
+        await inserirDados(lista_pagamentos, 'lista_pagamentos')
+        await abrir_detalhes(id_pagamento)
+    }
+
+}
+
 async function excluir_anexo_parceiro(id_pagamento, item, anx) {
 
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
@@ -437,7 +462,6 @@ async function excluir_anexo_parceiro(id_pagamento, item, anx) {
     ) {
 
         delete lista_pagamentos[id_pagamento].anexos_parceiros[item][anx]
-
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
 
         let dados = {
@@ -449,7 +473,6 @@ async function excluir_anexo_parceiro(id_pagamento, item, anx) {
         }
 
         enviar_dados_generico(dados)
-
         await abrir_detalhes(id_pagamento)
     }
 
