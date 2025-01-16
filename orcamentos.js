@@ -1216,18 +1216,9 @@ function cadastrarCliente(nome, cnpj_cpf) {
     });
 }
 
-
-
 async function salvar_anexo_pagamento(id_pagamento) {
 
     var elemento = document.getElementById(`adicionar_anexo_pagamento`)
-
-    openPopup_v2(`
-            <div id="aguarde" style="display: none; width: 100%; align-items: center; justify-content: center; gap: 10px;">
-                <img src="gifs/loading.gif" style="width: 5vw">
-                <label>Aguarde...</label>
-            </div>
-        `)
 
     var file = elemento.files[0];
 
@@ -1274,7 +1265,7 @@ async function salvar_anexo_pagamento(id_pagamento) {
 
                     let resposta = `
                     <div id="${anx}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                        <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;" onclick="abrirArquivo('${arquivo}')">
+                        <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
                             <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
                             <label style="font-size: 0.8em; cursor: pointer;">${String(fileName).slice(0, 10)} ... ${String(fileName).slice(-7)}</label>
                         </div>
