@@ -857,7 +857,11 @@ async function tela_pagamento(chave1) {
     `;
 
     openPopup_v2(acumulado)
-    carregar_opcoes(opcoes_centro_de_custo(), 'cc', 'cc_sugestoes')
+
+    if (chave1 == undefined) {
+        carregar_opcoes(opcoes_centro_de_custo(), 'cc', 'cc_sugestoes')
+    }
+
     carregar_opcoes(await opcoes_clientes(), 'cliente_pagamento', 'recebedor_sugestoes')
 
 }
@@ -1218,6 +1222,13 @@ async function salvar_anexo_pagamento(id_pagamento) {
 
     var elemento = document.getElementById(`adicionar_anexo_pagamento`)
 
+    openPopup_v2(`
+            <div id="aguarde" style="display: none; width: 100%; align-items: center; justify-content: center; gap: 10px;">
+                <img src="gifs/loading.gif" style="width: 5vw">
+                <label>Aguarde...</label>
+            </div>
+        `)
+
     var file = elemento.files[0];
 
     if (file) {
@@ -1253,30 +1264,23 @@ async function salvar_anexo_pagamento(id_pagamento) {
 
                 if (id_pagamento == undefined) {
 
-                    anexos_pagamentos[gerar_id_5_digitos()] = {
+                    let anx = gerar_id_5_digitos()
+
+                    anexos_pagamentos[anx] = {
                         nome: fileName,
                         formato: mimeType,
                         link: result.fileId
                     }
 
-                    var imagem = ''
-
-                    if (formato(mimeType) == 'PDF') {
-                        imagem = 'pdf'
-                    } else if (formato(mimeType) == 'IMAGEM') {
-                        imagem = 'imagem'
-                    } else if (formato(mimeType) == 'PLANILHA') {
-                        imagem = 'excel2'
-                    } else {
-                        imagem = 'anexo'
-                    }
-
-                    var resposta = `
-                <div style="align-items: center; width: max-content; font-size: 0.7em; display: flex; justify-content; left;">
-                    <img src="${imagem}.png" style="width: 20px;">
-                    <label><strong>${fileName}</strong></label>
-                </div>
-                `
+                    let resposta = `
+                    <div id="${anx}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+                        <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;" onclick="abrirArquivo('${arquivo}')">
+                            <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                            <label style="font-size: 0.8em; cursor: pointer;">${String(fileName).slice(0, 10)} ... ${String(fileName).slice(-7)}</label>
+                        </div>
+                        <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="remover_anx('${anx}')">
+                    </div>
+                    `
                     document.getElementById('container_anexos').insertAdjacentHTML('beforeend', resposta)
                 } else {
 
@@ -1321,6 +1325,18 @@ async function salvar_anexo_pagamento(id_pagamento) {
 
         reader.readAsDataURL(file);
     }
+
+    remover_popup()
+}
+
+function remover_anx(anx) {
+
+    let div = document.getElementById(anx)
+    if (div && anexos_pagamentos && anexos_pagamentos[anx]) {
+        delete anexos_pagamentos[anx]
+        div.remove()
+    }
+
 }
 
 async function anexos_parceiros(campo, id_pagamento) {
