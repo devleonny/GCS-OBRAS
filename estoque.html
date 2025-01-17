@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESTOQUE</title>
+    <link rel="stylesheet" type="text/css" href="gcsobras.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        .top {
+            display: flex;
+            width: 100%;
+            margin: 20px;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #222222bf;
+            padding: 10px;
+            border-radius: 5px;
+            gap: 20px;
+        }
+
+        .table {
+            border-collapse: collapse;
+        }
+
+        .table input,
+        textarea {
+            font-size: 0.7em;
+            margin: 0px;
+        }
+
+        .table thead {
+            font-size: 0.8em;
+        }
+
+        .table td {
+            background-color: #eaeaea;
+        }
+
+        .numero-bonito {
+            cursor: pointer;
+            text-align: center;
+            height: 30px;
+            width: 100px;
+            font-weight: bold;
+            color: #ffffff;
+            background-color: #4CAF50;
+            border-radius: 5px;
+            margin: 5px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="content">
+        <div class="top">
+
+            <img src="imagens/BG.png" style="width: 150px;">
+
+            <label class="novo_titulo" style="font-size: 2.0em;">Estoque</label>
+
+            <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
+                    onclick="window.location.href='inicial.html'">
+                    <label style="color: white;">Voltar</label>
+                    <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
+                    onclick="atualizar_estoque()">
+                    <label style="color: white;">Atualizar</label>
+                    <img src="imagens/atualizar_2.png" style="width: 30px; cursor: pointer;">
+                </div>
+
+                <div id="adicionar_item"
+                    style="display: none; align-items: center; justify-content: center; gap: 10px; cursor: pointer;"
+                    onclick="incluir_linha()">
+                    <label style="color: white;">Cadastrar Item</label>
+                    <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
+                </div>
+
+            </div>
+        </div>
+
+        <div id="estoque"></div>
+
+    </div>
+
+</body>
+
+<script src="open_menus.js"></script>
+<script src="estoque.js"></script>
+
+</html>
