@@ -51,22 +51,28 @@ async function carregar_estoque() {
 
             let info = dados_item[chave]
             let elemento = `<input style="cursor: pointer; text-align: center; padding: 10px; border-radius: 3px;" value="${info}" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>`
+            let quantidade = ''
+            let cor = ''
 
             if (chave == 'descricao' || chave == 'inventario') {
                 elemento = `<textarea style="border: none;" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>${info}</textarea>`
 
             } else if (chave.includes('estoque')) {
 
-                let cor = conversor(info) > 0 ? '#4CAF50' : '#B12425'
-
-                elemento = `<input type="number" class="numero-bonito" style="font-size: 25px; background-color: ${cor};" value="${info}" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>`
+                quantidade = dados_item[chave].quantidade
+                elemento = `<label style="cursor: pointer; font-size: 25px; text-align: center; color: white; width: 100%;" onclick="abrir_estoque('${item}', '${chave}')">${quantidade}</label>`
 
             }
 
             if (chave !== 'id') {
+
+                if (quantidade !== '') {
+                    cor = conversor(quantidade) > 0 ? '#4CAF50' : '#B12425'
+                }
+
                 tds += `
-                    <td>
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                    <td style="background-color: ${cor}">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer;">
                             ${elemento}
                             <img src="imagens/concluido.png" style="display: none; width: 25px; height: 25px; cursor: pointer;" onclick="salvar_dados_estoque(this, '${item}', '${chave}')">
                         </div>
@@ -94,6 +100,80 @@ async function carregar_estoque() {
     `
 
     document.getElementById('estoque').innerHTML = acumulado
+
+}
+
+async function abrir_estoque(codigo, stq) {
+
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+    let item = dados_estoque[codigo]
+    let estoque = item[stq] || {}
+    let atual = 0
+    let linhas = ''
+
+    for(chave in estoque.historico) {
+
+        let historico = estoque.historico[chave]
+
+        let img = historico.operacao == 'entrada' ? 'imagens/up_estoque.png' : 'imagens/down_estoque.png'
+
+        linhas += `
+            <tr>
+                <td><img src="${img}" style="width: 15px; height: 15px;"></td>
+                <td>${historico.quantidade}</td>
+                <td>${historico.operacao}</td>
+                <td>${historico.data}</td>
+                <td>${historico.usuario}</td>
+                <td style="display: flex; justify-content: center; align-items: center;"><img src="imagens/cancel.png" style="cursor: pointer; width: 25px; height: 25px;"></td>
+            </tr>
+            `
+    }
+
+    let data = new Date().toLocaleString('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+    });
+
+    let acumulado = `
+        <img src="imagens/BG.png" style="position: absolute; top: 5px; left: 5px; height: 70px;">
+
+        <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
+            <label>Movimentação de estoque</label>
+        </div>
+
+        <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px; height: 120px;">
+            
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <label style="color: #222;">Saída</label>
+                <input class="numero-bonito" style="background-color:#B12425;">
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <label style="color: #222;">Entrada</label>
+                <input class="numero-bonito">
+            </div>
+
+            <img src="imagens/concluido.png" style="cursor: pointer;">
+
+            <label style="position: absolute; bottom: 3px; right: 25px; color: #222; font-size: 0.7em;" id="data">${data}</label>
+
+        </div>
+
+        <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
+            <label>Histórico</label>
+        </div>
+ 
+        <div style="background-color: #222; height: max-content; max-height: 400px; overflow: auto; border-radius: 3px; display: flex; align-items: center; justify-content: center; color: #222;">
+            
+            <div style="background-color: white; border-radius: 3px;">
+                <table class="table">
+                    <tbody>${linhas}</tbody>
+                </table>
+            </div>
+
+        </div>
+    `
+
+    openPopup_v2(acumulado)
 
 }
 

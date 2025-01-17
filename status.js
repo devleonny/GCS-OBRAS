@@ -1988,6 +1988,7 @@ function registrar_envio_material(chave1, id_orcam) {
 
     var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
+    status.anexos = {}
     status.executor = acesso.usuario
     status.data = data_status
     status.status = 'MATERIAL ENVIADO'
@@ -2848,7 +2849,9 @@ function salvar_anexo(chave1, chave2) {
                     `;
                     div_anexos.style = 'align-items: normal';
                     div_anexos.insertAdjacentHTML('beforeend', resposta);
+
                 } else {
+
                     if (Array.isArray(dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos)) {
                         dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos = {};
                     }

@@ -95,7 +95,6 @@ function executarTransacao(db, nome_da_base, dados) {
     };
 }
 
-
 async function recuperarDados(nome_da_base) {
     return new Promise((resolve, reject) => {
 
