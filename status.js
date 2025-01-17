@@ -370,7 +370,6 @@ async function carregar_itens(apenas_visualizar, requisicao) {
         var item = orcamento.dados_composicoes[it]
         var codigo = item.codigo
         var qtde = item.qtde
-        console.log(item)
         var qtde_na_requisicao = 0
         var tipo = dados_composicoes[codigo]?.tipo || item.tipo
         var infos = ['descricao', 'descricaocarrefour', 'modelo', 'fabricante']
