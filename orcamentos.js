@@ -987,7 +987,7 @@ function incluir_campos_adicionais() {
                             Anexar
                             <input type="file" id="anexo_${campo}" style="display: none;" onchange="anexos_parceiros('${campo}')">
                         </label>
-                    <div id="container_${campo}" style="display: flex; flex-direction: column; justify-content: left; gap: 10px; width: 100%;"></div>
+                    <div id="container_${campo}" style="display: flex; flex-direction: column; justify-content: left; gap: 2px; width: 100%;"></div>
                 </div>
             </div>    
             `
