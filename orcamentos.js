@@ -1459,11 +1459,13 @@ async function anexos_parceiros(campo, id_pagamento) {
 
                 } else {
 
+                    let arquivo = `https://drive.google.com/file/d/${result.fileId}/view?usp=drivesdk`
+
                     let resposta = `
                     <div id="${id_anx}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
                         <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;" onclick="abrirArquivo('${arquivo}')">
                             <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                            <label style="font-size: 0.8em; cursor: pointer;">${String(anexo.nome).slice(0, 10)} ... ${String(anexo.nome).slice(-7)}</label>
+                            <label style="font-size: 0.8em; cursor: pointer;">${String(fileName).slice(0, 10)} ... ${String(fileName).slice(-7)}</label>
                         </div>
                         <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="excluir_anexo_parceiro_2('${campo}', '${id_anx}')">
                     </div>
