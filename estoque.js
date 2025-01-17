@@ -1,6 +1,15 @@
 let filtrosAtivosEstoques = {}
 carregar_estoque()
 
+
+async function primeira_vez() {
+
+    await recuperar_estoque()
+
+    await carregar_estoque()
+
+}
+
 async function carregar_estoque() {
 
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
@@ -14,6 +23,10 @@ async function carregar_estoque() {
     let apenas_leitura = autorizado ? '' : 'readonly'
 
     let dados_estoque = await recuperarDados('dados_estoque') || {}
+
+    if (Object.keys(dados_estoque).length == 0) {
+        return primeira_vez()
+    }
 
     let colunas = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'localizacao', 'estoque_usado', 'inventario']
     let thc = ''
