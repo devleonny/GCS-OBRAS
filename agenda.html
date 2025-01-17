@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agenda Técnicos</title>
+  <link rel="stylesheet" href="agenda.css">
+  <link rel="stylesheet" href="gcsobras.css"> <!-- CSS adicional -->
+</head>
+<body>
+    <div class="controls">
+        <label for="region-select">Região:</label>
+        <select id="region-select">
+          <option value="norte">Norte</option>
+          <option value="nordeste">Nordeste</option>
+          <option value="centro-oeste">Centro-Oeste</option>
+          <option value="sudeste">Sudeste</option>
+          <option value="sul">Sul</option>
+        </select>
+      
+        <label for="month-select">Mês:</label>
+        <select id="month-select"></select>
+      
+        <label for="year-select">Ano:</label>
+        <input type="number" id="year-select" value="" min="1900" max="2100" step="1">
+      
+        <button id="update-calendar">Atualizar</button>
+        <button id="add-technician-btn">Adicionar Técnico</button>
+        <button id="save-table">Salvar Tabela</button>
+      </div>
+      
+
+  <div class="calendar-header">
+    <div class="calendar-title">Agenda Técnicos</div>
+    <div class="month-year">
+      <span id="month-name"></span>
+    </div>
+    <div class="calendar-table-container">
+      <table class="calendar-table">
+        <thead>
+          <tr id="days-row">
+            <!-- Linha de dias será gerada dinamicamente -->
+          </tr>
+        </thead>
+        <tbody id="technicians-body">
+          <!-- Linhas dos técnicos serão adicionadas dinamicamente -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span id="close-modal" class="close">&times;</span>
+      <h2>Adicionar Técnico</h2>
+      <label for="technician-name">Nome do Técnico:</label>
+      <input type="text" id="technician-name" />
+      <button id="save-technician">Salvar</button>
+    </div>
+  </div>
+
+  <script src="agenda.js"></script>
+  <script src="open_menus.js"></script>
+</body>
+</html>

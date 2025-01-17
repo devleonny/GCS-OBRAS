@@ -1,0 +1,144 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4; /* Cor de fundo clara */
+  }
+  
+  .controls {
+    text-align: center;
+    margin-bottom: 10px; /* Espaço entre os controles e o calendário */
+  }
+  
+  .calendar-header {
+    display: flex;
+    flex-direction: column;
+    background-color: #2f4f6f;
+    color: white;
+    border-radius: 5px;
+    padding: 10px;
+    margin: auto;
+    width: 95%; /* Sempre ocupa 95% da largura */
+    max-width: 95%; /* Limite máximo de largura */
+    margin-top: 10px; /* Reduz o espaço acima da tabela */
+  }
+  
+  .calendar-title {
+    background-color: #2f4f6f;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+  }
+  
+  .month-year {
+    background-color: #1a3555;
+    text-align: center;
+    font-size: 18px;
+    padding: 10px;
+  }
+  
+  .calendar-table-container {
+    width: 100%;
+    overflow-x: auto; /* Scroll horizontal */
+  }
+  
+  .calendar-table {
+    width: 100%; /* A tabela ocupa todo o contêiner */
+    border-collapse: collapse;
+    margin: auto; /* Centraliza a tabela */
+  }
+  
+  .calendar-table th,
+  .calendar-table td {
+    border: 1px solid #fff;
+    text-align: center;
+    padding: 10px; /* Espaçamento interno das células */
+  }
+  
+  .calendar-table th.left-header,
+  .calendar-table td.left-header {
+    text-align: left;
+    background-color: #1a3555;
+    color: white;
+    padding-left: 10px;
+  }
+  
+  .calendar-table th {
+    width: auto; /* Garante que o cabeçalho ocupe a largura proporcional */
+    text-align: center;
+  }
+  
+  .calendar-table td {
+    width: auto; /* Garante que as células se ajustem proporcionalmente */
+  }
+  
+  .calendar-table td.day {
+    background-color: white;
+    color: black;
+    border: 1px solid #ddd;
+  }
+  
+  .calendar-table td.day .weekday {
+    font-size: 12px;
+    text-transform: capitalize;
+  }
+  
+  .calendar-table td.day .date-number {
+    font-size: 14px;
+    font-weight: bold;
+  }
+  
+  /* Modal estilos */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+  }
+  
+  .modal-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 300px;
+    text-align: center;
+    border-radius: 5px;
+  }
+  
+  .close {
+    color: red;
+    float: right;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  
+  .close:hover {
+    color: darkred;
+  }
+  
+  .remove-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .remove-btn img {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .remove-btn img:hover {
+    transform: scale(1.1); /* Aumenta levemente ao passar o mouse */
+  }
+  
