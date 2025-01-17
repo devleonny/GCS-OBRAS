@@ -912,10 +912,9 @@ function atualizarFormaPagamento() {
             <option value="Pix" ${formaPagamento === 'Pix' ? 'selected' : ''}>Chave Pix</option>
             <option value="Boleto" ${formaPagamento === 'Boleto' ? 'selected' : ''}>Boleto</option>
         </select>
-        ${
-            formaPagamento === 'Pix'
-                ? `<textarea style="width: 80%; margin-top: 10px;" rows="2" id="pix" placeholder="CPF ou E-MAIL ou TELEFONE ou Código de Barras..."></textarea>`
-                : `
+        ${formaPagamento === 'Pix'
+            ? `<textarea style="width: 80%; margin-top: 10px;" rows="2" id="pix" placeholder="CPF ou E-MAIL ou TELEFONE ou Código de Barras..."></textarea>`
+            : `
                 <div style="display: flex; flex-direction: column; justify-content: center;">
                     <label style="font-size: 0.8em; display: block; margin-top: 10px;">Data de Vencimento</label>
                     <input type="date" id="data_vencimento" style="margin-top: 5px; cursor: pointer;">
@@ -1069,7 +1068,7 @@ async function calculadora_pagamento() {
             }
         }
 
-        if(data_vencimento){
+        if (data_vencimento) {
 
             if (data_vencimento.value) {
                 colorir('green', 'pix_ou_boleto_numero')
@@ -1400,11 +1399,6 @@ async function anexos_parceiros(campo, id_pagamento) {
         var file = fileInput.files[0];
         var fileName = file.name
 
-        if (!file) {
-            openPopup_v2('Nenhum arquivo selecionado...');
-            return;
-        }
-
         var reader = new FileReader();
         reader.onload = async (e) => {
             var base64 = e.target.result.split(',')[1];
@@ -1430,7 +1424,9 @@ async function anexos_parceiros(campo, id_pagamento) {
                     anx_parceiros[campo] = {}
                 }
 
-                anx_parceiros[campo][gerar_id_5_digitos()] = {
+                let id_anx = gerar_id_5_digitos()
+
+                anx_parceiros[campo][id_anx] = {
                     nome: fileName,
                     formato: mimeType,
                     link: result.fileId
@@ -1460,17 +1456,44 @@ async function anexos_parceiros(campo, id_pagamento) {
                     await inserirDados(pagamentos, 'lista_pagamentos')
 
                     return await abrir_detalhes(id_pagamento)
+
+                } else {
+
+                    let resposta = `
+                    <div id="${id_anx}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+                        <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;" onclick="abrirArquivo('${arquivo}')">
+                            <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                            <label style="font-size: 0.8em; cursor: pointer;">${String(anexo.nome).slice(0, 10)} ... ${String(anexo.nome).slice(-7)}</label>
+                        </div>
+                        <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="excluir_anexo_parceiro_2('${campo}', '${id_anx}')">
+                    </div>
+                    `
+                    let local = document.getElementById(`container_${campo}`)
+
+                    if (local) {
+                        local.insertAdjacentHTML('beforeend', resposta)
+                    }
                 }
 
             } else {
 
-                openPopup_v2(`Deu erro por aqui... ${result.message}`)
+                console.log(`Deu erro por aqui... ${result.message}`)
 
             }
 
         };
 
         reader.readAsDataURL(file);
+    }
+
+}
+
+function excluir_anexo_parceiro_2(campo, anx) {
+
+    let local = document.getElementById(`container_${campo}`)
+    if (anx_parceiros[anx] && local) {
+        delete anx_parceiros[anx]
+        local.remove()
     }
 
 }
