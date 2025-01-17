@@ -245,8 +245,10 @@ function calcular_requisicao(sincronizar) {
 
                     var codigo = tds[0].textContent
 
-                    if (tds[4].querySelector('input') && tds[4].querySelector('input').value > conversor(itens[codigo].qtde)) {
-                        tds[4].querySelector('input').value = conversor(itens[codigo].qtde)
+                    let quantidadeDisponivel = tds[4].querySelectorAll("label")[2].textContent
+
+                    if (tds[4].querySelector('input') && tds[4].querySelector('input').value > conversor(quantidadeDisponivel)) {
+                        tds[4].querySelector('input').value = conversor(quantidadeDisponivel)
                     }
 
                     var tipo = 'Error 404'
@@ -374,6 +376,34 @@ async function carregar_itens(apenas_visualizar, requisicao) {
         var elements = ''
         let mod_livre = true
 
+        var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+
+        var todos_os_status = dados_orcamentos[id_orcam].status;
+
+        Object.keys(todos_os_status).forEach(chave_pedido => {
+
+            var lista_interna = todos_os_status[chave_pedido].historico;
+
+            Object.keys(lista_interna).forEach(chave2 => {
+
+                var sst = lista_interna[chave2]
+
+                if (sst.requisicoes) {
+
+                for(let requisicao of sst.requisicoes){
+
+                    if(requisicao.codigo == item.codigo){
+
+                        qtde = item.qtde - requisicao.qtde_enviar
+
+                    }
+
+                }
+                
+            }
+            
+        })
+    })
         infos.forEach(item => {
 
             if (dados_composicoes[codigo] && dados_composicoes[codigo][item]) {
@@ -2021,6 +2051,7 @@ function calcular_quantidades(requisicoes, itens_no_orcamento) {
         var novo_itens_do_orcamento = {};
 
         itens_no_orcamento.forEach(it => {
+            
             if (!novo_itens_do_orcamento[it.codigo]) {
                 novo_itens_do_orcamento[it.codigo] = it;
             }
@@ -2029,13 +2060,17 @@ function calcular_quantidades(requisicoes, itens_no_orcamento) {
         itens_no_orcamento = novo_itens_do_orcamento;
     }
 
+    let totalQtde = Object.values(itens_no_orcamento).reduce((acc, item) => acc + Number(item.qtde), 0);
+
+    totalQtde = conversor(totalQtde)
+
+    porcentagem.qtde_orcamento = totalQtde
+
     requisicoes.forEach(req => {
 
         var qtde_enviar = conversor(req.qtde_enviar)
-        var qtde_orcamento = conversor(itens_no_orcamento[req.codigo].qtde)
 
         porcentagem.qtde_enviar += qtde_enviar
-        porcentagem.qtde_orcamento += qtde_orcamento
 
     })
 
