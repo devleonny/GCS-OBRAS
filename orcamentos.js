@@ -280,6 +280,14 @@ function preencher_orcamentos_v2(st) {
 
 async function recuperar_orcamentos() {
 
+    let botao_atualizar = document.getElementById('botao_atualizar')
+
+    if (botao_atualizar) {
+        botao_atualizar.innerHTML = `
+        <img src="gifs/loading.gif" style="width: 100px;">
+        `
+    }
+
     return new Promise((resolve, reject) => {
 
         var url = 'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=orcamentos';
@@ -314,9 +322,15 @@ async function recuperar_orcamentos() {
 
                 }
 
-            })
-            .then(() => {
-                resolve();
+                if (botao_atualizar) {
+                    botao_atualizar.innerHTML = `
+                        <img src="imagens/atualizar_2.png" style="width: max-content; cursor: pointer;" onclick="atualizar_especial()">
+                        <label style="color: white;">Atualizar</label>
+                    `
+                }
+
+                resolve()
+
             })
             .catch(error => {
                 console.error('Ocorreu um erro:', error);
