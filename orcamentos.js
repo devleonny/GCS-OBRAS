@@ -92,8 +92,6 @@ function preencher_orcamentos_v2(st) {
         return
     }
 
-    div_orcamentos.innerHTML = ''
-
     var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
     var mostrar_orcamentos_proprios = localStorage.getItem('mostrar_orcamentos_proprios') || 'Não'
     var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
@@ -234,25 +232,34 @@ function preencher_orcamentos_v2(st) {
             painel_direito.innerHTML = atalhos
         }
 
-        var cabecs = ['Última alteração', 'Pedido', 'Notas', 'Chamado', 'Cliente', 'Cidade', 'Analista', 'Valor', 'LPU', 'Status & Ações']
+        var cabecs = ['Última alteração', 'Pedido', 'Notas', 'Chamado', 'Cliente', 'Cidade', 'Analista', 'Valor', 'LPU', 'Ações']
         var ths = ''
         var tsh = ''
         cabecs.forEach((cab, i) => {
 
             ths += `
-            <th>${cab}</th>
+            <th style="text-align: center;">${cab}</th>
             `
-            tsh += `
-            <th style="background-color: white; border-radius: 0px;">
-                <div style="position: relative;">
-                    <img src="imagens/pesquisar2.png" style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
-                    <input placeholder="${cab}" style="margin-left: 25px; text-align: left;" oninput="pesquisar_v2(${i}, this.value)">
-                </div>
-            </th>            
-            `
+            if (cab !== 'Ações') {
+                tsh += `
+                <th style="background-color: white; border-radius: 0px;">
+                    <div style="position: relative;">
+                        <img src="imagens/pesquisar2.png" style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
+                        <input placeholder="${cab}" style="margin-left: 25px; text-align: left;" oninput="pesquisar_v2(${i}, this.value)">
+                    </div>
+                </th>            
+            `} else {
+                tsh += `<th style="background-color: white;"></th>`
+            }
         })
 
-        var tabela = `
+        let linhas_orcamento = document.getElementById('linhas_orcamento')
+        if (linhas_orcamento) {
+            linhas_orcamento.innerHTML = linhas
+
+        } else {
+
+            let tabela = `
             <table id="orcamentos_" class="tabela">
                 <thead>
                     ${ths}
@@ -260,22 +267,18 @@ function preencher_orcamentos_v2(st) {
                 <thead id="tsh">
                     ${tsh}
                 </thead>
-                <tbody>
+                <tbody id="linhas_orcamento">
                     ${linhas}
                 </tbody>
             </table>
         `
-        div_orcamentos.insertAdjacentHTML('beforeend', tabela)
+            div_orcamentos.insertAdjacentHTML('beforeend', tabela)
+        }
     }
 
 }
 
 async function recuperar_orcamentos() {
-
-    var orcamentos = document.getElementById('orcamentos')
-    if (orcamentos) {
-        carregamento('orcamentos')
-    }
 
     return new Promise((resolve, reject) => {
 

@@ -22,7 +22,7 @@ var fluxograma = {
     'PEDIDO DE SERVIÇO FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'FINALIZADO': { cor: 'blue', modulos: ['RELATÓRIOS'] },
     'MATERIAL ENVIADO': { cor: '#B3702D', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
-    'MATERIAL RECEBIDO': { cor: '#B3702D', modulos: ['RELATÓRIOS'] },
+    'MATERIAL ENTREGUE': { cor: '#B3702D', modulos: ['RELATÓRIOS'] },
     'FINALIZADO': { cor: '#222', modulos: ['RELATÓRIOS'] },
     'COTAÇÃO PENDENTE': { cor: '#0a989f', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] }
@@ -390,20 +390,20 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
                 if (sst.requisicoes) {
 
-                for(let requisicao of sst.requisicoes){
+                    for (let requisicao of sst.requisicoes) {
 
-                    if(requisicao.codigo == item.codigo){
+                        if (requisicao.codigo == item.codigo) {
 
-                        qtde = item.qtde - requisicao.qtde_enviar
+                            qtde = item.qtde - requisicao.qtde_enviar
+
+                        }
 
                     }
 
                 }
-                
-            }
-            
+
+            })
         })
-    })
         infos.forEach(item => {
 
             if (dados_composicoes[codigo] && dados_composicoes[codigo][item]) {
@@ -1155,30 +1155,36 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot�
                             funcao = `painel_adicionar_notas('${chave_pedido}')`
                         }
 
+                    } else if (status_chave2 == 'MATERIAL ENVIADO') {
+
+                        funcao = `envio_de_material('${chave_pedido}', '${id_orcam}', '${chave2}')`
+
                     } else if (status_chave2.includes('FATURADO')) {
 
                         funcao = `envio_de_material('${chave_pedido}', '${id_orcam}')`
 
                     }
 
-                    acumulado += `
-                    <hr style="width: 80%">
-                    <div class="contorno">
-                        <div class="avenida_contorno" style="background-color: ${fluxograma[status_chave2].cor}1f; margin: 0px;">
-                            <label><strong>Status: </strong>${status_chave2}</label>
-                            <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-                                <label><strong>Número: </strong>${st.pedido}</label>
-                                <img src="gifs/alerta.gif" style="width: 2vw; cursor: pointer;" onclick="popup_atualizar_item('${chave_pedido}', 'pedido')">
-                            </div>
-                            <label><strong>Data: </strong> ${his.data}</label>
-                            <label><strong>Executor: </strong> ${his.executor}</label>
-                            <label><strong>Comentário: </strong> <br>${coments}</label>
-                            <div class="contorno_botoes" style="background-color: ${fluxograma[status_chave2].cor}" onclick="${funcao}">
-                                <label>Continuar</label>
+                    if (funcao !== '') {
+                        acumulado += `
+                        <hr style="width: 80%">
+                        <div class="contorno">
+                            <div class="avenida_contorno" style="background-color: ${fluxograma[status_chave2].cor}1f; margin: 0px;">
+                                <label><strong>Status: </strong>${status_chave2}</label>
+                                <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
+                                    <label><strong>Número: </strong>${st.pedido}</label>
+                                    <img src="gifs/alerta.gif" style="width: 2vw; cursor: pointer;" onclick="popup_atualizar_item('${chave_pedido}', 'pedido')">
+                                </div>
+                                <label><strong>Data: </strong> ${his.data}</label>
+                                <label><strong>Executor: </strong> ${his.executor}</label>
+                                <label><strong>Comentário: </strong> <br>${coments}</label>
+                                <div class="contorno_botoes" style="background-color: ${fluxograma[status_chave2].cor}" onclick="${funcao}">
+                                    <label>Continuar</label>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    `
+                        `
+                    }
                 }
 
             })
@@ -1197,7 +1203,7 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot�
 
 const { shell } = require('electron');
 
-function abrirArquivo(link) { //29
+function abrirArquivo(link) {
     try {
         shell.openExternal(link);
     } catch {
@@ -1358,7 +1364,6 @@ function abrir_esquema(id) {
             var links_requisicoes = ''
             var string_pagamentos = ''
             var tem_pagamento = false
-
             var pagamentos_painel = {}
 
             Object.keys(lista_pagamentos).forEach(pag => {
@@ -1414,15 +1419,24 @@ function abrir_esquema(id) {
                 var sst = lista_interna[chave2]
                 var anxsss = ''
                 links_requisicoes = ''
+                let editar = ''
 
                 if (String(sst.status).includes('FATURAMENTO') || String(sst.status).includes('REMESSA')) {
 
                     links_requisicoes += `
                     <div class="anexos" style="cursor: pointer; display: flex; gap: 10px; justify-content: left; align-items: center;">
-                        <img src="imagens/anexo.png" style="width: 25px">
-                        <label style="cursor: pointer;" onclick="detalhar_requisicao('${chave_pedido}', true, '${chave2}')"><strong>Requisição disponível</strong> <br> ${todos_os_status[chave_pedido].pedido} - ${todos_os_status[chave_pedido].tipo}</label>
-                        <img src="imagens/editar.png" onclick="detalhar_requisicao('${chave_pedido}', false, '${chave2}')" style="cursor: pointer; width: 25px; height: 25px;">
+                        <img src="gifs/lampada.gif" style="width: 25px">
+                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;"
+                            <label style="cursor: pointer;" onclick="detalhar_requisicao('${chave_pedido}', true, '${chave2}')"><strong>REQUISIÇÃO DISPONÍVEL</strong></label>
+                            <label style="font-size: 0.7em;">Clique Aqui</label>
+                        </div>
                     </div>
+                    `
+                    editar = `
+                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="detalhar_requisicao('${chave_pedido}', false, '${chave2}')">
+                            <img src="imagens/editar4.png" style="width: 15px;">
+                            <label>Editar</label>
+                        </div>
                     `
                 }
 
@@ -1432,28 +1446,16 @@ function abrir_esquema(id) {
 
                         var anx = sst.anexos[key_anx]
 
-                        var imagem = ''
-
-                        if (formato(anx.formato) == 'PDF') {
-                            imagem = 'pdf'
-                        } else if (formato(anx.formato) == 'IMAGEM') {
-                            imagem = 'imagem'
-                        } else if (formato(anx.formato) == 'PLANILHA') {
-                            imagem = 'excel2'
-                        } else {
-                            imagem = 'anexo'
-                        }
-
                         var arquivo = `https://drive.google.com/file/d/${anx.link}/view?usp=drivesdk`
 
                         anxsss += `
-                    <div style="display: flex; gap: 5px; align-items: center;">
-                        <div onclick="abrirArquivo('${arquivo}')" class="anexos">
-                            <img src="imagens/${imagem}.png" style="cursor: pointer; width: 30px; height: 30px">
-                            <label style="cursor: pointer; font-size: 0.6em; white-space: normal;"><strong>${anx.nome}</strong></label>
+                        <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+                            <div onclick="abrirArquivo('${arquivo}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                                <label style="font-size: 0.8em;">${String(anx.nome).slice(0, 10)} ... ${String(anx.nome).slice(-7)}</label>
+                            </div>
+                            <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="chamar_excluir_anexo('${chave_pedido}', '${chave2}', '${key_anx}')">
                         </div>
-                        <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="chamar_excluir_anexo('${chave_pedido}', '${chave2}', '${key_anx}')">
-                    </div>
                     `
                     })
 
@@ -1472,8 +1474,8 @@ function abrir_esquema(id) {
                     totais += `
                     <div style="display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; flex-direction: column;">
-                            <label><strong>Total S/ICMS: </strong><br>${sst.total_sem_icms}</label>
-                            <label><strong>Total C/ICMS: </strong><br>${sst.total_com_icms}</label>
+                            <label><strong>Total sem ICMS: </strong><br>${sst.total_sem_icms}</label>
+                            <label><strong>Total com ICMS: </strong><br>${sst.total_com_icms}</label>
                         </div>
 
                         <div class="contorno_botoes" style="border-radius: 3px; padding: 10px; background-color: ${infos.cor};">
@@ -1497,18 +1499,26 @@ function abrir_esquema(id) {
                     }
 
                     var envio = sst.envio
+                    let dt_previsao = ''
+                    if (envio.previsao) {
+                        dt_previsao = conv_data(envio?.previsao)
+                    }
+
+                    editar = `
+                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="envio_de_material('${chave_pedido}', '${id_orcam}','${chave2}')">
+                            <img src="imagens/editar4.png" style="width: 15px;">
+                            <label>Editar</label>
+                        </div>
+                    `
                     dados_de_envio = `
-                    <label><strong>Rastreio:</strong> ${envio.rastreio}</label>
+                    <label><strong>Rastreio: </strong> ${envio.rastreio}</label>
                     <label><strong>Custo do Frete:</strong> ${dinheiro(envio.custo_frete)}</label>
                     <label><strong>NF: </strong> ${envio.nf}</label>
-                    <label><strong>Requisição:</strong> ${envio.requisicao}</label>
-                    <label><strong>Transportadora:</strong> ${envio.transportadora}</label>
-                    <label><strong>Volumes:</strong> ${envio.volumes}</label>
-                    <label><strong>Data de Saída:</strong> ${conv_data(envio.data_saida)}</label>
-                    <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-                        <label><strong>Data da Entrega:</strong> ${conv_data(envio.data_entrega)}</label>
-                        <img src="gifs/alerta.gif" style="width: 30px; cursor: pointer;" onclick="pop_alterar_data_recebimento('${id_orcam}', '${chave_pedido}', '${chave2}')">
-                    </div>
+                    <label><strong>Transportadora: </strong> ${envio.transportadora}</label>
+                    <label><strong>Volumes: </strong> ${envio.volumes}</label>
+                    <label><strong>Data de Saída: </strong> ${conv_data(envio.data_saida)}</label>
+                    <label><strong>Data de Previsão: </strong> ${dt_previsao}</label>
+                    <label><strong>Data de Entrega: </strong> ${conv_data(envio.entrega)}</label>
                     `
                 }
                 var coments = ''
@@ -1529,16 +1539,18 @@ function abrir_esquema(id) {
                         ${dados_de_envio}
                         ${links_requisicoes}
                         <div style="display: flex; justify-content: space-evenly; align-items: center;">
-                            <div class="contorno_botoes">
+                            <div class="contorno_botoes" style="background-color: ${fluxograma[sst.status].cor}">
                                 <img src="imagens/anexo2.png" style="width: 15px;">
                                 <label for="adicionar_anexo_${chave_pedido}_${chave2}">Anexo
                                     <input type="file" id="adicionar_anexo_${chave_pedido}_${chave2}" style="display: none;" onchange="salvar_anexo('${chave_pedido}', '${chave2}')" multiple>  
                                 </label>
                             </div>
-                            <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave2}')">
+                            <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave2}')" style="background-color: ${fluxograma[sst.status].cor}">
                                 <img src="imagens/comentario.png" style="width: 15px;">
                                 <label>Comentário</label>
                             </div>
+
+                            ${editar}
                         </div>
                         <div id="comentario_${chave2}" style="display: none; justify-content: space-evenly; align-items: center;">
 
@@ -1864,58 +1876,28 @@ function alterar_status_principal(select, chave) {
 
 }
 
-function pop_alterar_data_recebimento(id_orcam, chave, chave2) {
+function envio_de_material(chave1, id_orcam, chave2) {
 
-    openPopup_v2(`
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: left;">
-            <label>Atualizar a data de recebimento:</label>
-            <input class="pedido" type="date" id="elemento_para_atualizado">
-            <button style="background-color: green;" onclick="alterar_data_recebimento('${id_orcam}', '${chave}', '${chave2}')">Salvar</button>
-        </div>
-        `)
-
-}
-
-function alterar_data_recebimento(id_orcam, chave, chave2) {
-
-    var nova_data = document.getElementById('elemento_para_atualizado')
-    if (nova_data) {
-
-        var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
-
-        dados_orcamentos[id_orcam].status[chave].historico[chave2].envio.data_entrega = nova_data.value
-
-        localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
-
-        remover_popup()
-        abrir_esquema(id_orcam)
+    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    let orcamento = dados_orcamentos[id_orcam]
+    let envio = {}
+    let funcao = `registrar_envio_material('${chave1}', '${id_orcam}')`
+    let comentario = ''
+    if (chave2 !== undefined) {
+        envio = orcamento.status[chave1].historico[chave2].envio
+        funcao = `registrar_envio_material('${chave1}', '${id_orcam}', '${chave2}')`
+        comentario = orcamento.status[chave1].historico[chave2].comentario
     }
 
-}
+    let transportadoras = ['JAMEF', 'CORREIOS', 'RODOVIÁRIA', 'JADLOG', 'AÉREO', 'OUTRAS']
+    let opcoes_transportadoras = ''
 
-function envio_de_material(chave1, id_orcam) {
-
-    var dados_orcamento = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
-
-    var historico = dados_orcamento[id_orcam].status[chave1].historico
-    var itens = ''
-    var nfs = ''
-
-    for (his in historico) {
-        var conteudo = historico[his]
-        if (conteudo.requisicoes) {
-            itens += `
-            <option>${conteudo.executor} - ${conteudo.total_com_icms}</option>
-            `
-        }
-        if (conteudo.notas) {
-            conteudo.notas.forEach(nf => {
-                nfs += `
-                <option>${nf.nota}</option>
-                `
-            })
-        }
-    }
+    transportadoras.forEach(transp => {
+        let marcado = envio.transportadora == transp ? 'selected' : ''
+        opcoes_transportadoras += `
+            <option ${marcado}>${transp}</option>
+        `
+    })
 
     var acumulado = `
     <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
@@ -1925,74 +1907,66 @@ function envio_de_material(chave1, id_orcam) {
     <div id="painel_envio_de_material">
         <div class="pergunta">
             <label>Número de rastreio</label>
-            <input id="rastreio">
-        </div>
-
-        <div class="pergunta">
-            <label>Requisição</label>
-            <select id="requisicao">
-                ${itens}
-            </select>
-        </div>        
+            <input id="rastreio" value="${envio?.rastreio}">
+        </div>    
 
         <div class="pergunta">
             <label>Transportadora</label>
             <select id="transportadora">
-                <option>JAMEF</option>
-                <option>CORREIOS</option>
-                <option>RODOVIÁRIA</option>
-                <option>JADLOG</option>
-                <option>OUTROS</option>
+                ${opcoes_transportadoras}
             </select>
         </div>
 
         <div class="pergunta">
             <label>Custo do Frete</label>
-            <input type="number" id="custo_frete">
+            <input type="number" id="custo_frete" value="${envio.custo_frete}">
         </div>
 
         <div class="pergunta">
             <label>Nota Fiscal</label>
-            <select id="nf">${nfs}
-            </select>
+            <input id="nf" value="${envio.nf}">
         </div>
 
         <div class="pergunta">
             <label>Comentário</label>
-            <textarea id="comentario"></textarea>
+            <textarea id="comentario_envio" style="border: none; width: 152px; height: 70px;">${comentario}</textarea>
         </div>
 
         <div class="pergunta">
             <label>Quantos volumes?</label>
-            <input type="number" id="volumes">
+            <input type="number" id="volumes" value="${envio.volumes}">
         </div>
 
         <div class="pergunta">
             <label>Data de Saída</label>
-            <input type="date" id="data_saida">
+            <input type="date" id="data_saida" value="${envio.data_saida}">
         </div>
 
         <div class="pergunta">
-            <label>Data da entrega</label>
-            <input type="date" id="data_entrega">
+            <label>Previsão de Entrega</label>
+            <input type="date" id="previsao" value="${envio.previsao}">
         </div>
 
-        <div style="display: flex; gap: 10px; justify-content: center; align-items: center; width: 100%;">
-            <label style="background-color: green;" class="contorno_botoes"
-            onclick="registrar_envio_material('${chave1}', '${id_orcam}')">Salvar</label>
+        <hr style="width: 80%;">
+
+        <div class="pergunta">
+            <label>Apenas quando o material for entregue, preencha esta data</label>
+            <input type="date" id="entrega" value="${envio.entrega}">
         </div>
+
+        <hr style="width: 80%;">
+
+        <button style="background-color: #4CAF50; width: 100%; margin: 0px;" onclick="${funcao}">Salvar</button>
       
     </div>
-
-
     `
     openPopup_v2(acumulado)
 
 }
 
-function registrar_envio_material(chave1, id_orcam) {
+function registrar_envio_material(chave1, id_orcam, chave2) {
 
-    var campos = ['rastreio', 'requisicao', 'transportadora', 'custo_frete', 'nf', 'comentario', 'volumes', 'data_saida', 'data_entrega']
+    var campos = ['rastreio', 'transportadora', 'custo_frete', 'nf', 'comentario_envio', 'volumes', 'data_saida', 'previsao', 'entrega']
     var status = {
         envio: {}
     }
@@ -2005,26 +1979,30 @@ function registrar_envio_material(chave1, id_orcam) {
             valor = Number(info.value)
         }
 
-        if (campo == 'comentario') {
-            status[campo] = valor
+        if (campo == 'comentario_envio') {
+            status.comentario = valor
         } else {
             status.envio[campo] = valor
         }
 
     })
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
-    var historico = dados_orcamentos[id_orcam].status[chave1].historico
-
-    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    let historico = dados_orcamentos[id_orcam].status[chave1].historico
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let st = status.envio.entrega !== '' ? 'MATERIAL ENTREGUE' : 'MATERIAL ENVIADO'
 
     status.anexos = {}
     status.executor = acesso.usuario
     status.data = data_status
-    status.status = 'MATERIAL ENVIADO'
-    dados_orcamentos[id_orcam].status[chave1].status = 'MATERIAL ENVIADO'
+    status.status = st
+    dados_orcamentos[id_orcam].status[chave1].status = st
 
-    var id = gerar_id_5_digitos()
+    let id = gerar_id_5_digitos()
+    if (chave2 !== undefined) {
+        id = chave2
+    }
+
     historico[id] = status
     localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
 
@@ -2051,7 +2029,7 @@ function calcular_quantidades(requisicoes, itens_no_orcamento) {
         var novo_itens_do_orcamento = {};
 
         itens_no_orcamento.forEach(it => {
-            
+
             if (!novo_itens_do_orcamento[it.codigo]) {
                 novo_itens_do_orcamento[it.codigo] = it;
             }

@@ -1031,6 +1031,7 @@ input[type=range]::-moz-range-thumb {
 
 .pergunta {
     display: flex;
+    align-items: center;
     gap: 10px;
     width: 100%;
 }
@@ -1043,7 +1044,6 @@ input[type=range]::-moz-range-thumb {
 .pergunta input,
 .pergunta select,
 .pergunta textarea {
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     color: white;
     background-color: #B3702D;
     padding: 5px;
@@ -1326,8 +1326,7 @@ input[type=range]::-moz-range-thumb {
     display: flex;
     gap: 5px;
     align-items: center;
-    border-radius: 5px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
 }
 
 .contorno_botoes img {
