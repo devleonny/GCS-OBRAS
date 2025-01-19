@@ -439,14 +439,13 @@ function incluir_linha() {
     let tds = ''
 
     campos.forEach(campo => {
-        let elemento = `<input style="cursor: pointer; text-align: center; padding: 10px; border-radius: 3px;" oninput="exibir_botao(this, '${campo}')">`
+        let elemento = `<input style="background-color: transparent; cursor: pointer; text-align: center; padding: 10px; border-radius: 3px;" oninput="exibir_botao(this, '${campo}')">`
         let cor = ''
         if (campo == 'descricao' || campo == 'inventario') {
             elemento = `<textarea style="border: none;" oninput="exibir_botao(this, '${campo}')"></textarea>`
 
         } else if (campo == 'Excluir') { 
 
-            cor = `transparent`
             elemento = `
             <div style="display: flex; align-items: center; justify-content: center;">
                 <img src="imagens/cancel.png" style="cursor: pointer; width: 25px; height: 25px;" onclick="remover_linha_excluir_item(this)">
@@ -460,7 +459,7 @@ function incluir_linha() {
 
         tds += `
             <td style="background-color: ${cor}">
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                     <img src="imagens/concluido.png" style="display: none; width: 25px; height: 25px; cursor: pointer;" onclick="salvar_dados_estoque(this, '${codigo}', '${campo}')">
                     ${elemento}
                 </div>
