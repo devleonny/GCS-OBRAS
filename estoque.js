@@ -14,10 +14,12 @@ async function carregar_estoque() {
 
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let autorizado = false
+    let colunas = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'localizacao', 'estoque_usado', 'inventario', 'valor_compra']
 
     if (acesso.permissao == 'adm' || acesso.permissao == 'log') {
         autorizado = true
         document.getElementById('adicionar_item').style.display = 'flex'
+        colunas.unshift('Excluir')
     }
 
     let apenas_leitura = autorizado ? '' : 'readonly'
@@ -28,38 +30,66 @@ async function carregar_estoque() {
         return primeira_vez()
     }
 
-    let colunas = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'localizacao', 'estoque_usado', 'inventario']
     let thc = ''
     let ths = ''
     let linhas = ''
     colunas.forEach((col, i) => {
+
+        let indice_correto = i + 1
         let coluna = String(col).toUpperCase()
         thc += `<th>${coluna}</th>`
-        ths += `
+
+        if (coluna == 'EXCLUIR') {
+            ths = `<th></th>`
+        } else {
+            ths += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisar_em_estoque(${i}, this.value)">
+                <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisar_em_estoque(${indice_correto}, this.value)">
             </th>
             `
+        }
     })
 
     for (item in dados_estoque) {
         let dados_item = dados_estoque[item]
 
         let tds = ''
-        for (chave in dados_item) {
 
-            let info = dados_item[chave]
-            let elemento = `<input style="cursor: pointer; text-align: center; padding: 10px; border-radius: 3px;" value="${info}" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>`
+        colunas.forEach(chave => {
+
+            let info = dados_item[chave] || ''
+            let elemento = `<input style="background-color: transparent; cursor: pointer; text-align: center; padding: 10px; border-radius: 3px;" value="${info}" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>`
             let quantidade = ''
             let cor = ''
 
             if (chave == 'descricao' || chave == 'inventario') {
                 elemento = `<textarea style="border: none;" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>${info}</textarea>`
 
+            } else if (chave == 'Excluir') {
+
+                elemento = `
+                    <div style="display: flex; align-items: center; justify-content: center;">
+                        <img src="imagens/cancel.png" style="cursor: pointer; width: 25px; height: 25px;" onclick="remover_linha_excluir_item(this)">
+                    </div>
+                `
+
             } else if (chave.includes('estoque')) {
 
-                quantidade = dados_item[chave].quantidade
+                quantidade = info.quantidade
+
+                for (his in info.historico) {
+
+                    let historico = info.historico[his]
+
+                    if (historico.operacao == 'entrada') {
+                        quantidade += historico.quantidade
+                    } else if (historico.operacao == 'saida') {
+                        quantidade -= historico.quantidade
+                    }
+
+                }
+
                 elemento = `<label style="cursor: pointer; font-size: 25px; text-align: center; color: white; width: 100%;" onclick="abrir_estoque('${item}', '${chave}')">${quantidade}</label>`
 
             }
@@ -72,17 +102,21 @@ async function carregar_estoque() {
 
                 tds += `
                     <td style="background-color: ${cor}">
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer;">
-                            ${elemento}
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
                             <img src="imagens/concluido.png" style="display: none; width: 25px; height: 25px; cursor: pointer;" onclick="salvar_dados_estoque(this, '${item}', '${chave}')">
+                            ${elemento}
                         </div>
                     </td>
                 `
             }
-        }
+
+        })
 
         linhas += `
-            <tr>${tds}</tr>
+            <tr>
+                <td style="display: none;">${item}</td>
+                ${tds}
+            </tr>
         `
     }
 
@@ -103,30 +137,71 @@ async function carregar_estoque() {
 
 }
 
+function parseDataBR(dataBR) {
+    const [dia, mes, anoHora] = dataBR.split('/');
+    const [ano, hora] = anoHora.split(', ');
+    return new Date(`${ano}-${mes}-${dia}T${hora}:00`);
+}
+
 async function abrir_estoque(codigo, stq) {
 
     let dados_estoque = await recuperarDados('dados_estoque') || {}
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let item = dados_estoque[codigo]
     let estoque = item[stq] || {}
     let atual = 0
+    let inicial = 0
     let linhas = ''
 
-    for(chave in estoque.historico) {
+    if (estoque.historico) {
+        atual = estoque.quantidade
+        inicial = estoque.quantidade
 
-        let historico = estoque.historico[chave]
+        let historicoArray = Object.entries(estoque.historico);
+        historicoArray.sort((a, b) => {
+            const dataA = parseDataBR(a[1].data);
+            const dataB = parseDataBR(b[1].data);
+            return dataB - dataA;
+        });
+        estoque.historico = Object.fromEntries(historicoArray);
 
-        let img = historico.operacao == 'entrada' ? 'imagens/up_estoque.png' : 'imagens/down_estoque.png'
+        for (chave in estoque.historico) {
 
-        linhas += `
-            <tr>
+            let historico = estoque.historico[chave]
+
+            let img = historico.operacao == 'entrada' ? 'imagens/up_estoque.png' : historico.operacao == 'inicial' ? 'imagens/zero.png' : 'imagens/down_estoque.png'
+
+            let exclusao = ''
+            if (
+                (historico.operacao == 'inicial' && acesso.permissao == 'adm') ||
+                (historico.operacao !== 'inicial' && (acesso.permissao == 'adm' || acesso.usuario == historico.usuario))
+            ) {
+                exclusao = `<img src="imagens/cancel.png" style="cursor: pointer; width: 25px; height: 25px;" onclick="remover_historico('${codigo}', '${stq}','${chave}')">`
+            }
+
+            linhas += `
+            <tr style="font-size: 0.7em;">
                 <td><img src="${img}" style="width: 15px; height: 15px;"></td>
                 <td>${historico.quantidade}</td>
                 <td>${historico.operacao}</td>
                 <td>${historico.data}</td>
                 <td>${historico.usuario}</td>
-                <td style="display: flex; justify-content: center; align-items: center;"><img src="imagens/cancel.png" style="cursor: pointer; width: 25px; height: 25px;"></td>
+                <td><textarea readonly>${historico.comentario}</textarea></td>
+                <td>
+                    <div style="display: flex; justify-content: center; align-items: center;">
+                        ${exclusao}
+                    </div>
+                </td>
             </tr>
             `
+
+            if (historico.operacao == 'entrada') {
+                atual += historico.quantidade
+
+            } else if (historico.operacao == 'saida') {
+                atual -= historico.quantidade
+            }
+        }
     }
 
     let data = new Date().toLocaleString('pt-BR', {
@@ -134,46 +209,175 @@ async function abrir_estoque(codigo, stq) {
         timeStyle: 'short'
     });
 
+    let div_historico = ''
+    if (estoque.historico && Object.keys(estoque.historico).length > 0) {
+        div_historico = `
+            <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
+                <label>Histórico</label>
+            </div>
+
+            <div style="background-color: #B12425; white; border-radius: 3px; height: max-content; max-height: 400px; overflow: auto; border-radius: 3px;">
+                <table class="table">
+                    <thead>
+                        <th>Sin</th>
+                        <th>Qt.</th>
+                        <th>Operação</th>
+                        <th>Data</th>
+                        <th>Usuário</th>
+                        <th>Comentário</th>
+                        <th>Excluir</th>
+                    </thead>
+                    <tbody style="color: #222;">${linhas}</tbody>
+                </table>
+            </div>
+        `
+    }
+
     let acumulado = `
-        <img src="imagens/BG.png" style="position: absolute; top: 5px; left: 5px; height: 70px;">
+        <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 10%;">
+        <label style="position: absolute; bottom: 5px; right: 15px; font-size: 0.7em;" id="data">${data}</label>
 
         <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
             <label>Movimentação de estoque</label>
         </div>
 
-        <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px; height: 120px;">
+        <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px; height: 140px;">
             
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                 <label style="color: #222;">Saída</label>
-                <input class="numero-bonito" style="background-color:#B12425;">
+                <input class="numero-bonito" style="background-color: #B12425;" id="saida">
             </div>
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                 <label style="color: #222;">Entrada</label>
-                <input class="numero-bonito">
+                <input class="numero-bonito" id="entrada">
             </div>
 
-            <img src="imagens/concluido.png" style="cursor: pointer;">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <label style="color: #222;">Comentário</label>
+                <textarea maxlength="100" placeholder="Saída/Entrada de X itens para loja..." id="comentario"></textarea>
+            </div>
 
-            <label style="position: absolute; bottom: 3px; right: 25px; color: #222; font-size: 0.7em;" id="data">${data}</label>
+            <img src="imagens/concluido.png" style="cursor: pointer;" onclick="salvar_movimento('${codigo}', '${stq}')">
 
         </div>
 
-        <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-            <label>Histórico</label>
-        </div>
- 
-        <div style="background-color: #222; height: max-content; max-height: 400px; overflow: auto; border-radius: 3px; display: flex; align-items: center; justify-content: center; color: #222;">
+        <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px; height: 130px;">
+         
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 60%;">
+                <label style="color: #222;">Saldo Atual</label>
+                <label style="background-color: #4CAF50; font-size: 35px; height: 50px; width: 90%; border-radius: 5px;">${atual}</label>
+            </div>
+        
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+
+                <label style="color: #222;">Saldo Inicial</label>
+
+                <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
+                    <input class="numero-bonito" style="background-color: #B12425;" value="${inicial}">
+                    <img src="imagens/concluido.png" style="cursor: pointer; width: 30px; height: 30px;" onclick="salvar_movimento('${codigo}', '${stq}', this)">
+                </div>
             
-            <div style="background-color: white; border-radius: 3px;">
-                <table class="table">
-                    <tbody>${linhas}</tbody>
-                </table>
             </div>
 
         </div>
+
+        ${div_historico}
+
     `
 
     openPopup_v2(acumulado)
+
+}
+
+async function remover_historico(codigo, stq, chave) {
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+    let item = dados_estoque[codigo]
+
+    if (item[stq].historico && item[stq].historico[chave]) {
+        delete item[stq].historico[chave]
+    }
+
+    let dados = {
+        id: codigo,
+        tabela: 'estoque',
+        chave: stq,
+        chave2: chave,
+        operacao: 'remover'
+    }
+
+    enviar_dados_generico(dados)
+
+    await inserirDados(dados_estoque, 'dados_estoque')
+    remover_popup()
+    await carregar_estoque()
+    await abrir_estoque(codigo, stq)
+
+}
+
+async function salvar_movimento(codigo, stq, inicial) {
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+    let item = dados_estoque[codigo]
+    if (!dicionario(item[stq])) {
+        item[stq] = {
+            historico: {},
+            quantidade: 0
+        };
+    }
+    let estoque = item[stq]
+    let data = document.getElementById('data')
+    let comentario = document.getElementById('comentario')
+    let entrada = document.getElementById('entrada')
+    let saida = document.getElementById('saida')
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let id = gerar_id_5_digitos()
+
+    let movimento = {
+        data: data.textContent,
+        usuario: acesso.usuario,
+        comentario: comentario.value,
+    }
+
+    if (entrada && entrada.value !== '') {
+
+        movimento.operacao = 'entrada'
+        movimento.quantidade = conversor(entrada.value)
+
+    } else if (saida && saida.value !== '') {
+
+        movimento.operacao = 'saida'
+        movimento.quantidade = conversor(saida.value)
+
+    } else if (inicial !== undefined) {
+
+        let div = inicial.parentElement
+        let input = div.querySelector('input')
+
+        movimento.operacao = 'inicial'
+        movimento.quantidade = conversor(input.value)
+        estoque.quantidade = conversor(input.value)
+
+    } else {
+        return
+    }
+
+    estoque.historico[id] = movimento
+
+    let dados = {
+        id: codigo,
+        tabela: 'estoque',
+        chave: stq,
+        operacao: 'movimento',
+        movi_id: id,
+        movimento: movimento,
+    }
+
+    enviar_dados_generico(dados)
+
+    await inserirDados(dados_estoque, 'dados_estoque')
+
+    remover_popup()
+    await carregar_estoque()
+    await abrir_estoque(codigo, stq)
 
 }
 
@@ -209,7 +413,7 @@ async function atualizar_estoque() {
 
     await recuperar_estoque()
 
-    carregar_estoque()
+    await carregar_estoque()
 }
 
 function exibir_botao(elemento, chave) {
@@ -222,7 +426,7 @@ function exibir_botao(elemento, chave) {
         }
     }
 
-    let img = elemento.nextElementSibling;
+    let img = elemento.previousElementSibling;
     img.style.display = 'block'
 
 }
@@ -231,42 +435,101 @@ function incluir_linha() {
     let codigo = gerar_id_5_digitos()
     let body = document.getElementById('body')
 
-    let campos = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'localizacao', 'estoque_usado', 'inventario']
+    let campos = ['Excluir', 'partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'localizacao', 'estoque_usado', 'inventario', 'valor_compra']
     let tds = ''
 
     campos.forEach(campo => {
         let elemento = `<input style="cursor: pointer; text-align: center; padding: 10px; border-radius: 3px;" oninput="exibir_botao(this, '${campo}')">`
-
+        let cor = ''
         if (campo == 'descricao' || campo == 'inventario') {
             elemento = `<textarea style="border: none;" oninput="exibir_botao(this, '${campo}')"></textarea>`
 
-        } else if (campo.includes('estoque')) {
-            elemento = `<input type="number" class="numero-bonito" style="font-size: 25px; background-color: '#4CAF50';" oninput="exibir_botao(this, '${campo}')">`
+        } else if (campo == 'Excluir') { 
 
+            cor = `transparent`
+            elemento = `
+            <div style="display: flex; align-items: center; justify-content: center;">
+                <img src="imagens/cancel.png" style="cursor: pointer; width: 25px; height: 25px;" onclick="remover_linha_excluir_item(this)">
+            </div>
+            `
+
+        } else if (campo.includes('estoque')) {
+            elemento = `<label style="cursor: pointer; font-size: 25px; text-align: center; color: white; width: 100%;" onclick="abrir_estoque('${codigo}', '${campo}')">0</label>`
+            cor = '#222'
         }
 
         tds += `
-            <td>
+            <td style="background-color: ${cor}">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-                    ${elemento}
                     <img src="imagens/concluido.png" style="display: none; width: 25px; height: 25px; cursor: pointer;" onclick="salvar_dados_estoque(this, '${codigo}', '${campo}')">
+                    ${elemento}
                 </div>
             </td>
         `
     })
 
     let linha = `
-    <tr>${tds}</tr>
+    <tr>
+        ${tds}
+    </tr>
     `
-
     body.insertAdjacentHTML('beforebegin', linha)
+
+}
+
+async function remover_linha_excluir_item(elemento) {
+
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+    let tr = elemento.closest('tr')
+    let tds = tr.querySelectorAll('td')
+    let codigo = tds[0].textContent
+
+    if (dados_estoque[codigo]) {
+
+        let item = dados_estoque[codigo]
+
+        openPopup_v2(`
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Deseja excluir este item?</label>
+            </div>
+            <label style="font-size: 0.7em;">${item.partnumber} - ${item.descricao}</label>
+            <div style="display: flex; justify-content: center; align-items: center; gap: 15px;">
+                <button onclick="confirmar_exclusao('${codigo}')">Confirmar</button>
+            </div>
+        `)
+
+    } else {
+        tr.remove()
+    }
+
+}
+
+async function confirmar_exclusao(codigo) {
+
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+
+    delete dados_estoque[codigo]
+
+    let dados = {
+        tabela: 'estoque',
+        operacao: 'excluir_produto',
+        id: codigo
+    }
+
+    enviar_dados_generico(dados)
+
+    await inserirDados(dados_estoque, 'dados_estoque')
+
+    remover_popup()
+    carregar_estoque()
 }
 
 async function salvar_dados_estoque(img, codigo, chave) {
 
     img.style.display = 'none'
 
-    let elemento = img.previousElementSibling;
+    let elemento = img.nextElementSibling;
 
     let dados_estoque = await recuperarDados('dados_estoque') || {}
 
@@ -284,7 +547,7 @@ async function salvar_dados_estoque(img, codigo, chave) {
         enviar_dados_generico(dados)
         await inserirDados(dados_estoque, 'dados_estoque')
 
-    } else if (!dados_estoque[codigo]) {
+    } else if (!dados_estoque[codigo]) { //29 PERMANENTE; Objetos criados no primeiro momento;
 
         dados_estoque[codigo] = {
             id: codigo,
@@ -292,10 +555,17 @@ async function salvar_dados_estoque(img, codigo, chave) {
             categoria: '',
             marca: '',
             descricao: '',
-            estoque: 0,
+            estoque: {
+                quantidade: 0,
+                historico: {}
+            },
             localizacao: '',
-            estoque_usado: '',
-            inventario: ''
+            estoque_usado: {
+                quantidade: 0,
+                historico: {}
+            },
+            inventario: '',
+            valor_compra: 0
         }
 
         dados_estoque[codigo][chave] = elemento.value
@@ -318,10 +588,6 @@ function pesquisar_em_estoque(coluna, texto) {
 
     var tabela_itens = document.getElementById('body');
     var trs = tabela_itens.querySelectorAll('tr');
-
-    var thead_pesquisa = document.getElementById('thead_pesquisa');
-    var inputs = thead_pesquisa.querySelectorAll('input');
-    inputs[coluna].value = texto
 
     trs.forEach(function (tr) {
         var tds = tr.querySelectorAll('td');
