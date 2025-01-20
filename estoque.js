@@ -40,7 +40,7 @@ async function carregar_estoque() {
         thc += `<th>${coluna}</th>`
 
         if (coluna == 'EXCLUIR') {
-            ths = `<th></th>`
+            ths = `<th style="background-color: white; position: relative; border-radius: 0px;"></th>`
         } else {
             ths += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
@@ -184,9 +184,9 @@ async function abrir_estoque(codigo, stq) {
                 <td><img src="${img}" style="width: 15px; height: 15px;"></td>
                 <td>${historico.quantidade}</td>
                 <td>${historico.operacao}</td>
-                <td>${historico.data}</td>
+                <td><label style="padding: 5px;">${historico.data}</label></td>
                 <td>${historico.usuario}</td>
-                <td><textarea readonly>${historico.comentario}</textarea></td>
+                <td><textarea style="padding: 0px; border: none; border-radius: 0px;" readonly>${historico.comentario}</textarea></td>
                 <td>
                     <div style="display: flex; justify-content: center; align-items: center;">
                         ${exclusao}
@@ -216,7 +216,7 @@ async function abrir_estoque(codigo, stq) {
                 <label>Histórico</label>
             </div>
 
-            <div style="background-color: #B12425; white; border-radius: 3px; height: max-content; max-height: 400px; overflow: auto; border-radius: 3px;">
+            <div style="background-color: #B12425; white; border-radius: 3px; height: max-content; max-height: 400px; width: max-content; overflow: auto; border-radius: 3px;">
                 <table class="table">
                     <thead>
                         <th>Sin</th>
