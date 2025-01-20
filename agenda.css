@@ -4,6 +4,14 @@ body {
     padding: 0;
     background-color: #f4f4f4; /* Cor de fundo clara */
   }
+
+  select {
+    max-width: 150px; /* Define o tamanho máximo */
+    overflow: hidden; /* Oculta o conteúdo que exceder o tamanho */
+    text-overflow: ellipsis; /* Adiciona "..." ao texto cortado */
+    white-space: nowrap; /* Impede quebra de linha */
+  }
+  
   
   .controls {
     text-align: center;
