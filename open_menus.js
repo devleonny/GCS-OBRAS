@@ -579,7 +579,7 @@ async function recuperar_dados_clientes() {
     if (acompanhamento_dados_clientes) {
         acompanhamento_dados_clientes.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: left;">
-        <img src="gifs/loading.gif" style="width: 50px"> 
+        <img src="gifs/loading.gif" style="width: 50px">
         <label>Aguarde alguns segundos... </label>
         </div>
         `
