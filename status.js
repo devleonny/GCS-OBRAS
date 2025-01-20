@@ -3111,8 +3111,8 @@ async function gerarpdf(cliente, pedido) {
     </body>
     </html>`;
 
-    if(cliente.includes("?")){
-        cliente = ""
+    if(pedido.includes("?")){
+        pedido = ""
     }
 
     const formData = {
