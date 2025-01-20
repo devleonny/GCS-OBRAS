@@ -114,7 +114,7 @@ async function importar_imagem(local_img, codigo) {
                     }
 
                     // Enviando dados para a API
-                    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec', {
+                    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec', {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: {

@@ -129,7 +129,7 @@ function atualizar_trello(id, trello){
         'id': id
     }
 
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec', {
+    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec', {
         method: 'POST',
         mode: 'no-cors',
         headers: {
@@ -149,7 +149,7 @@ async function recuperar_orcamentos_projetos() {
 
     return new Promise((resolve, reject) => {
 
-        var url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec?bloco=orcamentos';
+        var url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=orcamentos';
 
         fetch(url)
             .then(response => {

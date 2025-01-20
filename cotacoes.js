@@ -1360,7 +1360,7 @@ function voltarParaTabela() {
 
 async function recuperarCotacoes() {
     const resposta = await fetch(
-        'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec?bloco=cotacoes'
+        'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=cotacoes'
     );
 
     const dados = await resposta.json();
