@@ -3111,6 +3111,10 @@ async function gerarpdf(cliente, pedido) {
     </body>
     </html>`;
 
+    if(pedido.includes("?")){
+        pedido = ""
+    }
+
     const formData = {
         htmlContent: htmlContent,
         nomeArquivo: `REQUISICAO_${cliente}_${pedido}`
