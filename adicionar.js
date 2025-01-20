@@ -52,7 +52,7 @@ async function atualizar_precos() {
         await carregar_tabelas()
         await recuperar()
         await atualizar_lista_de_lpus()
-        
+
         tabela_produtos_v2()
         carregar_datalist_clientes()
 
@@ -956,6 +956,12 @@ function mostrar_ocultar_itens(elemento_img) {
 
 async function incluir_item(codigo, nova_quantidade, especial) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
+    if (Object.keys(dados_composicoes).length == 0) {
+        console.log(Object.keys(dados_composicoes).length)
+        await recuperar_dados_composicoes()
+        f5()
+    }
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
     let codigo_original = codigo

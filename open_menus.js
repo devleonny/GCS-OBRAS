@@ -591,6 +591,10 @@ async function recuperar_dados_clientes() {
         return fetch(url)
             .then(response => {
                 if (!response.ok) {
+                    acompanhamento_dados_clientes.innerHTML = `
+                    <img src="gifs/atencao.gif" style="width: 30px;">
+                    <label style="text-decoration: underline; cursor: pointer;" onclick="recuperar_dados_clientes()">Erro ao sincronizar, tente novamente...</label>
+                    `
                     throw new Error('Erro ao carregar os dados');
                 }
                 return response.json();
@@ -645,19 +649,19 @@ function obter_materiais() {
 }
 
 async function recuperar() {
-    obter_materiais()
+
     await recuperar_dados_composicoes()
     return new Promise((resolve, reject) => {
         var requisicoes = {
             'dados_categorias': 'categorias',
-            'dados_pagamentos': 'pagamentos',
             'vendedores': 'vendedores',
-            'dados_etiquetas': 'etiquetas',
-            'dados_comentarios': 'comentarios'
+            //'dados_etiquetas': 'etiquetas',
+            //'dados_comentarios': 'comentarios'
         };
 
         var alicia_keys = Object.keys(requisicoes);
         var promises = alicia_keys.map(function (api) {
+            console.log(api)
             let url = 'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=' + requisicoes[api];
 
             return fetch(url)
