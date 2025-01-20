@@ -64,7 +64,7 @@ async function carregar_estoque() {
             let cor = ''
 
             if (chave == 'descricao' || chave == 'inventario') {
-                elemento = `<textarea style="border: none;" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>${info}</textarea>`
+                elemento = `<textarea style="border: none; border-radius: 0px;" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>${info}</textarea>`
 
             } else if (chave == 'Excluir') {
 
