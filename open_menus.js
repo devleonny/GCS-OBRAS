@@ -653,16 +653,15 @@ async function recuperar() {
     await recuperar_dados_composicoes()
     return new Promise((resolve, reject) => {
         var requisicoes = {
-            'dados_categorias': 'categorias',
+            'categorias': 'categorias',
             'vendedores': 'vendedores',
-            //'dados_etiquetas': 'etiquetas',
-            //'dados_comentarios': 'comentarios'
-        };
+            'etiquetas': 'dados_etiquetas',
+            'comentarios': 'dados_comentarios'
+        }
 
         var alicia_keys = Object.keys(requisicoes);
         var promises = alicia_keys.map(function (api) {
-            console.log(api)
-            let url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=' + requisicoes[api];
+            let url = `https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=${api}`;
 
             return fetch(url)
                 .then(response => {
@@ -672,7 +671,7 @@ async function recuperar() {
                     return response.json();
                 })
                 .then(data => {
-                    localStorage.setItem(api, JSON.stringify(data));
+                    localStorage.setItem(requisicoes[api], JSON.stringify(data));
                 });
         });
 

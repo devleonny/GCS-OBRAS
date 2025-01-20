@@ -98,11 +98,11 @@ function executar_limpar_campos() {
 }
 
 function carregar_pagamentos() {
-    var dados_pagamentos = JSON.parse(localStorage.getItem('dados_pagamentos'))
-    var condicoes = document.getElementById('condicoes')
+    let dados_pagamentos = ["A definir", "15 dias", "30 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
+    let condicoes = document.getElementById('condicoes')
 
     dados_pagamentos.forEach(function (item) {
-        var option = document.createElement('option')
+        let option = document.createElement('option')
         option.textContent = item
         condicoes.appendChild(option)
     })
