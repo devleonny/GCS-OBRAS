@@ -216,8 +216,8 @@ async function abrir_estoque(codigo, stq) {
                 <label>Histórico</label>
             </div>
 
-            <div style="background-color: #B12425; white; border-radius: 3px; height: max-content; max-height: 400px; width: max-content; overflow: auto; border-radius: 3px;">
-                <table class="table">
+            <div style="background-color: #B12425; white; border-radius: 3px; height: max-content; max-height: 400px; width: 100%; overflow: auto; border-radius: 3px;">
+                <table class="table" style="width: 100%;">
                     <thead>
                         <th>Sin</th>
                         <th>Qt.</th>
