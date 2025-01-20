@@ -383,7 +383,7 @@ async function salvar_movimento(codigo, stq, inicial) {
 
 async function recuperar_estoque() {
     return new Promise((resolve, reject) => {
-        fetch('https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=estoque')
+        fetch('https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec?bloco=estoque')
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Erro ao carregar os dados');

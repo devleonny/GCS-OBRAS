@@ -277,7 +277,7 @@ function unicoID() {
 
 function carregar_orcamentos() {
 
-    fetch('https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=orcamentos')
+    fetch('https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec?bloco=orcamentos')
         .then(response => {
             if (!response.ok) {
                 throw new Error('Erro ao carregar os dados');
@@ -403,7 +403,7 @@ function apagar(codigo_orcamento) {
         'id': codigo_orcamento
     }
 
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec', {
+    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec', {
         method: 'POST',
         mode: 'no-cors',
         headers: {
@@ -457,7 +457,7 @@ function formatodata(data) {
 
 function sincronizar_orcamento(orcamento) {
 
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec', {
+    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec', {
         method: 'POST',
         mode: 'no-cors',
         headers: {
@@ -586,7 +586,7 @@ async function recuperar_dados_clientes() {
     }
 
     return new Promise((resolve, reject) => {
-        let url = 'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=clientes_v2'
+        let url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec?bloco=clientes_v2'
 
         return fetch(url)
             .then(response => {
@@ -662,7 +662,7 @@ async function recuperar() {
         var alicia_keys = Object.keys(requisicoes);
         var promises = alicia_keys.map(function (api) {
             console.log(api)
-            let url = 'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=' + requisicoes[api];
+            let url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec?bloco=' + requisicoes[api];
 
             return fetch(url)
                 .then(response => {
@@ -720,7 +720,7 @@ function baixar_em_excel(nome_tabela, filename) {
 function enviar_lista_pagamentos(dados) {
 
 
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec', {
+    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec', {
         method: 'POST',
         mode: 'no-cors',
         headers: {
@@ -801,7 +801,7 @@ async function obter_lista_pagamentos() {
     await carimbo_data_hora_pagamentos()
 
     return new Promise((resolve, reject) => {
-        var url = 'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=lista_pagamentos';
+        var url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec?bloco=lista_pagamentos';
 
         fetch(url)
             .then(response => {
@@ -824,7 +824,7 @@ async function obter_lista_pagamentos() {
 async function lista_setores() {
 
     return new Promise((resolve, reject) => {
-        var url = 'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=setores';
+        var url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec?bloco=setores';
 
         fetch(url)
             .then(response => {
@@ -847,7 +847,7 @@ async function lista_setores() {
 async function obter_departamentos_fixos() {
 
     return new Promise((resolve, reject) => {
-        var url = 'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=departamentosFixos';
+        var url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec?bloco=departamentosFixos';
 
         fetch(url)
             .then(response => {
@@ -869,7 +869,7 @@ async function obter_departamentos_fixos() {
 
 async function carimbo_data_hora_pagamentos(retornar) {
     return new Promise((resolve, reject) => {
-        var url = 'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=carimbo';
+        var url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec?bloco=carimbo';
 
         fetch(url)
             .then(response => {
@@ -926,7 +926,7 @@ function incluir_composicao_api(codigo) {
         'composicao': dados_composicoes[codigo]
     }
 
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec', {
+    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec', {
         method: 'POST',
         mode: 'no-cors',
         headers: {
@@ -1030,7 +1030,7 @@ function atualizar_etiqueta(id, id_etiqueta, data, operacao) {
         dados.operacao = operacao
     }
 
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec', {
+    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec', {
         method: 'POST',
         mode: 'no-cors',
         headers: {
@@ -1242,7 +1242,7 @@ async function conversor_composicoes_orcamento(orcamento) {
         delete orcamento.dados_composicoes_orcamento
         orcamento.dados_composicoes = new_dados_composicoes
 
-        fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec', {
+        fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec', {
             method: 'POST',
             mode: 'no-cors',
             headers: {
@@ -1266,7 +1266,7 @@ function encurtar_texto(texto, limite) {
 
 function enviar_dados_generico(dados) {
 
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec', {
+    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec', {
         method: 'POST',
         mode: 'no-cors',
         headers: {
@@ -1659,7 +1659,7 @@ function excluir_levantamento(id_orcamento, id_anexo) {
 function recuperar_dados_composicoes() {
     return new Promise(async (resolve, reject) => {
 
-        let url = 'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=compos_v3';
+        let url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec?bloco=compos_v3';
 
         try {
             const response = await fetch(url);

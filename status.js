@@ -2290,7 +2290,7 @@ function nova_etiqueta_api(id, nome, cor) {
         'id': id
     }
 
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec', {
+    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec', {
         method: 'POST',
         mode: 'no-cors',
         headers: {
@@ -2917,7 +2917,7 @@ async function excluir_status_na_nuvem(chave1, chave2, chave_anexo) {
         chave_anexo
     }
 
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec', {
+    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec', {
         method: 'POST',
         mode: 'no-cors',
         headers: {
@@ -2937,7 +2937,7 @@ async function enviar_status_orcamento(orcamento) {
         'status': orcamento.status
     }
 
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec', {
+    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec', {
         method: 'POST',
         mode: 'no-cors',
         headers: {
@@ -2978,7 +2978,7 @@ function apagar_status_historico(campo, chave1, chave2) {
         delete dados_orcamentos[id_orcam].status[chave1]
     }
 
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec', {
+    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec', {
         method: 'POST',
         mode: 'no-cors',
         headers: {
@@ -3017,7 +3017,7 @@ async function atualizar_partnumber(dicionario) {
                 'composicao': dados_composicoes[codigo]
             }
 
-            fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec', {
+            fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec', {
                 method: 'POST',
                 mode: 'no-cors',
                 headers: {

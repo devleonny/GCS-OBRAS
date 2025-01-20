@@ -842,7 +842,7 @@ function cadastrarCliente(nome, cnpj_cpf) {
     return new Promise((resolve, reject) => {
         var bloco = `cdc29_${nome}_${cnpj_cpf}`
 
-        var url = 'https://script.google.com/macros/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec?bloco=' + bloco
+        var url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec?bloco=' + bloco
 
         fetch(url)
             .then(response => {
@@ -871,7 +871,7 @@ function aprovarPagamento(param) {
         'param': param
     }
 
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbx40241Ogk6vqiPxQ3RDjf4XURo3l_yG0x9j9cTNpeKIdnosEEewTnw7epPrc2Ir9EX/exec', {
+    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuNexec', {
         method: 'POST',
         mode: 'no-cors',
         headers: {
