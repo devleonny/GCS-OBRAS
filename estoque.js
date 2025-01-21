@@ -237,11 +237,11 @@ async function abrir_estoque(codigo, stq) {
             
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                 <label style="color: #222;">Saída</label>
-                <input id="input_1" class="numero-bonito" style="background-color: #B12425;" id="saida" oninput="inputs(1)">
+                <input class="numero-bonito" style="background-color: #B12425;" id="saida" oninput="inputs(this)">
             </div>
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                 <label style="color: #222;">Entrada</label>
-                <input id="input_2" class="numero-bonito" id="entrada" oninput="inputs(2)">
+                <input class="numero-bonito" id="entrada" oninput="inputs(this)">
             </div>
 
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -281,15 +281,15 @@ async function abrir_estoque(codigo, stq) {
 
 }
 
-function inputs(numero) {
+function inputs(elemento) {
 
-    let outro = numero == 1 ? 2 : 1
+    let id = elemento.id
+    let outro = id == 'entrada' ? 'saida' : 'entrada'
 
-    let input_um = document.getElementById(`input_${numero}`)
-    let input_outro = document.getElementById(`input_${outro}`)
+    let input_um = document.getElementById(id)
+    let input_outro = document.getElementById(outro)
 
     if (input_um.value !== '') {
-        console.log(input_um.value)
         input_outro.readOnly = true
     } else {
         input_outro.readOnly = false
@@ -661,8 +661,6 @@ async function atualizar_dados_relatorio() {
         let inicial = new Date(anoI, mesI - 1, diaI)
         let [anoF, mesF, diaF] = String(inputs[0].value).split('-')
         let final = new Date(anoF, mesF - 1, diaF)
-
-        console.log(final)
 
         let filtrados = []
 
