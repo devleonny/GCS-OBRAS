@@ -1,11 +1,12 @@
 let filtrosAtivosEstoques = {}
-atualizar_estoque()
+let filtrosRelatorio = {}
+let colunas = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'localizacao_novo', 'estoque_usado', 'localizacao_usado', 'inventario', 'valor_compra']
+carregar_estoque()
 
 async function carregar_estoque() {
 
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let autorizado = false
-    let colunas = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'localizacao_novo', 'estoque_usado', 'localizacao_usado', 'inventario', 'valor_compra']
     let div_estoque = document.getElementById('estoque')
     if (acesso.permissao == 'adm' || acesso.permissao == 'log') {
         autorizado = true
@@ -36,7 +37,7 @@ async function carregar_estoque() {
             ths += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisar_em_estoque(${indice_correto}, this.value)">
+                <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisar_em_estoque(${indice_correto}, this.value, filtrosAtivosEstoques, 'body')">
             </th>
             `
         }
@@ -113,7 +114,7 @@ async function carregar_estoque() {
 
     let acumulado = `
         <div style="height: max-content; max-height: 70vh; width: max-content; max-width: 90vw; overflow: auto; background-color: #222; border-radius: 5px;">
-            <table class="table">
+            <table class="tabela_e">
                 <thead>
                     <tr>${thc}</tr>
                     <tr id="thead_pesquisa">${ths}</tr>
@@ -124,7 +125,7 @@ async function carregar_estoque() {
     
     `
 
-    document.getElementById('estoque').innerHTML = acumulado
+    div_estoque.innerHTML = acumulado
 
 }
 
@@ -173,7 +174,7 @@ async function abrir_estoque(codigo, stq) {
             linhas += `
             <tr style="font-size: 0.7em;">
                 <td><img src="${img}" style="width: 15px; height: 15px;"></td>
-                <td>${historico.quantidade}</td>
+                <td style="padding: 5px;">${historico.quantidade}</td>
                 <td>${historico.operacao}</td>
                 <td><label style="padding: 5px;">${historico.data}</label></td>
                 <td>${historico.usuario}</td>
@@ -207,8 +208,8 @@ async function abrir_estoque(codigo, stq) {
                 <label>Histórico</label>
             </div>
 
-            <div style="background-color: #B12425; white; border-radius: 3px; height: max-content; max-height: 400px; width: 100%; overflow: auto; border-radius: 3px;">
-                <table class="table" style="width: 100%;">
+            <div style="background-color: #B12425; white; border-radius: 3px; width: 100%; border-radius: 3px;">
+                <table class="tabela_e" style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <th>Sin</th>
                         <th>Qt.</th>
@@ -424,11 +425,9 @@ function exibir_botao(elemento, chave) {
 function incluir_linha() {
     let codigo = gerar_id_5_digitos()
     let body = document.getElementById('body')
-
-    let campos = ['Excluir', 'partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'localizacao', 'estoque_usado', 'inventario', 'valor_compra']
     let tds = ''
 
-    campos.forEach(campo => {
+    colunas.forEach(campo => {
         let elemento = `<input style="background-color: transparent; cursor: pointer; text-align: center; padding: 10px; border-radius: 3px;" oninput="exibir_botao(this, '${campo}')">`
         let cor = ''
         if (campo == 'descricao' || campo == 'inventario') {
@@ -548,11 +547,12 @@ async function salvar_dados_estoque(img, codigo, chave) {
                 quantidade: 0,
                 historico: {}
             },
-            localizacao: '',
+            localizacao_novo: '',
             estoque_usado: {
                 quantidade: 0,
                 historico: {}
             },
+            localizacao_usado: '',
             inventario: '',
             valor_compra: 0
         }
@@ -571,23 +571,24 @@ async function salvar_dados_estoque(img, codigo, chave) {
 
 }
 
-function pesquisar_em_estoque(coluna, texto) {
+function pesquisar_em_estoque(coluna, texto, filtro, id) {
 
-    filtrosAtivosEstoques[coluna] = texto.toLowerCase();
+    filtro[coluna] = texto.toLowerCase();
 
-    var tabela_itens = document.getElementById('body');
+    var tabela_itens = document.getElementById(id);
     var trs = tabela_itens.querySelectorAll('tr');
 
     trs.forEach(function (tr) {
         var tds = tr.querySelectorAll('td');
+
         var mostrarLinha = true;
 
-        for (var col in filtrosAtivosEstoques) {
-            var filtroTexto = filtrosAtivosEstoques[col];
+        for (var col in filtro) {
+            var filtroTexto = filtro[col];
 
             if (filtroTexto && col < tds.length) {
-                let element = tds[col].querySelector('input') || tds[col].querySelector('textarea')
-                var conteudoCelula = String(element.value).toLowerCase();
+                let element = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].textContent
+                var conteudoCelula = element.value ? String(element.value).toLowerCase() : element
 
                 if (!conteudoCelula.includes(filtroTexto)) {
                     mostrarLinha = false;
@@ -610,20 +611,20 @@ function relatorio_movimento() {
         <label>Relatório de Movimentos</label>
     </div>
 
-    <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px; height: 140px;">
+    <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px; height: 80px;">
         
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
             <label style="color: #222;">De</label>
-            <input class="datas_estoque" type="date" oninput="atualizar_dados_relatorio()">
+            <input class="datas_estoque" type="date" onchange="atualizar_dados_relatorio()">
         </div>
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
             <label style="color: #222;">Até</label>
-            <input class="datas_estoque" type="date" oninput="atualizar_dados_relatorio()">
+            <input class="datas_estoque" type="date" onchange="atualizar_dados_relatorio()">
         </div>
 
-        <div id="relatorio"></div>
-
     </div>
+
+    <div id="relatorio"></div>
     `
 
     openPopup_v2(acumulado)
@@ -640,10 +641,12 @@ async function atualizar_dados_relatorio() {
 
         let inputs = document.body.querySelectorAll('input.datas_estoque')
 
-        let inicial = new Date(inputs[0].value)
-        let final = new Date(inputs[1].value)
-        inicial.setHours(0, 0, 0, 0)
-        final.setHours(0, 0, 0, 0)
+        let [anoI, mesI, diaI] = String(inputs[0].value).split('-')
+        let inicial = new Date(anoI, mesI - 1, diaI)
+        let [anoF, mesF, diaF] = String(inputs[0].value).split('-')
+        let final = new Date(anoF, mesF - 1, diaF)
+
+        console.log(final)
 
         let filtrados = []
 
@@ -656,33 +659,81 @@ async function atualizar_dados_relatorio() {
 
                 for (his in historico) {
                     let movimento = historico[his]
+                    movimento.partnumber = produto.partnumber
+                    movimento.descricao = produto.descricao
 
                     let [dsd, dsh] = String(movimento.data).split(', ')
                     let [dia, mes, ano] = String(dsd).split('/')
-                    let data = new Date(ano, mes, dia)
+                    let data = new Date(ano, mes - 1, dia);
 
                     if (data >= inicial && data <= final) {
                         filtrados.push(movimento)
                     }
 
-                    console.log(data)
-
                 }
             }
         }
 
-        console.log(filtrados)
-
         let linhas = ''
 
+        filtrados.forEach(item => {
+
+            let img = item.operacao == 'entrada' ? 'imagens/up_estoque.png' : item.operacao == 'inicial' ? 'imagens/zero.png' : 'imagens/down_estoque.png'
+
+            linhas += `
+            <tr style="color: #222; font-size: 0.7em;">
+                <td>${item.partnumber}</td>
+                <td><textarea style="border: none; border-radius: 0px;" readonly>${item.descricao}</textarea></td>
+                <td style="padding: 5px;">${item.data}</td>
+                <td>${item.operacao}</td>
+                <td>
+                    <div>
+                        <img src="${img}" style="width: 25px; height: 25px;">
+                    </div>
+                </td>
+                <td>${item.quantidade}</td>
+                <td>${item.usuario}</td>
+            </tr>
+            `
+        })
+
+        let colunas = ['Partnumber', 'Descrição', 'Data', 'Operação', 'Sin', 'Quantidade', 'Usuário']
+        let ths = ''
+        let thsearch = ''
+
+        colunas.forEach((coluna, i) => {
+            ths += `<th>${coluna}</th>`
+            thsearch += `
+            <th style="background-color: white; position: relative; border-radius: 0px;">
+                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
+                <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisar_em_estoque(${i}, this.value, filtrosRelatorio, 'body2')">
+            </th>
+            `
+        })
+
+        if (linhas == '') {
+            thsearch = ''
+            linhas = `
+            <tr>
+                <td colspan="7" style="color: #222;">Sem resultados<td>
+            </tr>
+            `
+        }
+
         let tabela = `
-        <table>
-            <thead>
-            
-            <thead>
-            <tbody>${linhas}</tbody>
-        </table>
+        <label>Relatório</label>
+        <div style="background-color: #097fe6; border-radius: 5px;">
+            <table class="tabela_e">
+                <thead>
+                    <tr>${ths}</tr>
+                    <tr style="background-color: white;">${thsearch}</tr>
+                <thead>
+                <tbody id="body2">${linhas}</tbody>
+            </table>
+        </div>
         `
+
+        relatorio.innerHTML = tabela
 
     }
 
