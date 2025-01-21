@@ -140,19 +140,25 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function resgatar_tecnicos() {
-      const apiUrl =
-          "https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=clientes_v2";
+    const apiUrl =
+        "https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=clientes_v2";
 
-      const response = await fetch(apiUrl);
-      if (!response.ok) {
-          throw new Error(`Erro na requisição: ${response.status}`);
-      }
+    const response = await fetch(apiUrl);
+    if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.status}`);
+    }
 
-      const data = await response.json();
-      return Object.entries(data)
-          .filter(([_, value]) => value.tags && value.tags.some(tagObj => tagObj.tag === "TÉCNICO"))
-          .map(([id, value]) => ({ id, nome: value.nome }));
-  }
+    const data = await response.json();
+
+    // Filtra os técnicos e utiliza `omie` como identificador
+    return Object.entries(data)
+        .filter(([_, value]) => value.tags && value.tags.some(tagObj => tagObj.tag === "TÉCNICO"))
+        .map(([_, value]) => ({
+            omie: value.omie, // Substitui `id` por `omie`
+            nome: value.nome,
+        }));
+}
+
 
   function generateCalendar(year, month) {
     const region = document.getElementById("region-select").value;
@@ -181,11 +187,30 @@ document.addEventListener("DOMContentLoaded", () => {
     tecnicoSelect.innerHTML = `
         <option value="">Selecione</option>
         ${technicianOptions.map((tech) => `
-            <option value="${tech.id}" ${tech.id === technician.id ? "selected" : ""}>
+            <option value="${tech.omie}" ${tech.omie == technician.omie ? "selected" : ""}>
                 ${tech.nome}
             </option>`).join("")}
     `;
-    tecnicoSelect.addEventListener("change", saveTechniciansToLocalStorage);
+
+    // Adiciona o evento de salvar ao alterar o técnico
+    tecnicoSelect.addEventListener("change", () => {
+        const selectedOmie = tecnicoSelect.value;
+
+        // Atualiza o técnico na lista de técnicos
+        let existingTechnician = technicians.find((t) => t.omie == selectedOmie);
+
+        if (!existingTechnician) {
+            existingTechnician = {
+                omie: selectedOmie,
+                nome: tecnicoSelect.options[tecnicoSelect.selectedIndex]?.textContent.trim() || "Desconhecido",
+                agendas: {},
+            };
+            technicians.push(existingTechnician);
+        }
+
+        // Atualiza a agenda para o técnico selecionado
+        saveTechniciansToLocalStorage();
+    });
 
     tecnicoCell.appendChild(tecnicoSelect);
     newRow.appendChild(tecnicoCell);
@@ -198,12 +223,12 @@ document.addEventListener("DOMContentLoaded", () => {
         daySelect.innerHTML = `
             <option value="">Selecione</option>
             ${departments.map((dept) => `
-                <option value="${dept.codigo}" ${agenda[i] === dept.codigo ? "selected" : ""}>
+                <option value="${dept.codigo}" ${agenda[i] == dept.codigo ? "selected" : ""}>
                     ${dept.nome}
                 </option>`).join("")}
         `;
-        daySelect.addEventListener("change", saveTechniciansToLocalStorage);
 
+        daySelect.addEventListener("change", saveTechniciansToLocalStorage);
         dayCell.appendChild(daySelect);
         newRow.appendChild(dayCell);
     }
@@ -216,8 +241,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     removeBtn.addEventListener("click", () => {
         techniciansBody.removeChild(newRow);
-        technicians = technicians.filter((t) => t.id !== technician.id);
-        saveTechniciansToLocalStorage(); // Salva após excluir uma linha
+        technicians = technicians.filter((t) => t.omie !== technician.omie);
+        saveTechniciansToLocalStorage();
     });
 
     actionCell.appendChild(removeBtn);
@@ -225,6 +250,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     techniciansBody.appendChild(newRow);
 }
+
 
 function saveTechniciansToLocalStorage() {
   const key = getAgendaKey(); // Obtém a chave do mês/ano/região atual
@@ -241,17 +267,17 @@ function saveTechniciansToLocalStorage() {
           return; // Ignora linhas sem select de técnico
       }
 
-      const technicianId = tecnicoSelect.value;
-      if (!technicianId) {
+      const technicianOmie = tecnicoSelect.value; // Agora usa `omie` como identificador
+      if (!technicianOmie) {
           console.warn("Nenhum técnico selecionado para esta linha. Ignorando...");
           return; // Ignora linhas onde o técnico não está selecionado
       }
 
       // Busca ou cria o técnico
-      let technician = technicians.find((t) => t.id === technicianId);
+      let technician = technicians.find((t) => t.omie === technicianOmie);
       if (!technician) {
           technician = {
-              id: technicianId,
+              omie: technicianOmie,
               nome: tecnicoSelect.options[tecnicoSelect.selectedIndex]?.textContent.trim() || "Desconhecido",
               agendas: {},
           };
@@ -274,8 +300,6 @@ function saveTechniciansToLocalStorage() {
   localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(technicians));
   console.log("Agenda salva no localStorage:", technicians);
 }
-
-
 
 function loadTechniciansFromLocalStorage() {
   const storedData = localStorage.getItem("dados_agenda_tecnicos");
