@@ -1,5 +1,5 @@
 let filtrosAtivosEstoques = {}
-carregar_estoque()
+atualizar_estoque()
 
 async function carregar_estoque() {
 
