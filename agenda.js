@@ -258,32 +258,42 @@ function getDepartmentColor(departmentName) {
 
     // Colunas de dias
     for (let i = 0; i < totalDays; i++) {
-        const dayCell = document.createElement("td");
-        const daySelect = document.createElement("select");
-
-        daySelect.innerHTML = `
-            <option value="">Selecione</option>
-            ${departments.map((dept) => `
-                <option value="${dept.codigo}" ${agenda[i] == dept.codigo ? "selected" : ""}>
-                    ${dept.nome}
-                </option>`).join("")}
-        `;
-
-        daySelect.addEventListener("change", () => {
-            const selectedDept = departments.find((d) => d.codigo === daySelect.value);
-            dayCell.style.backgroundColor = selectedDept ? selectedDept.color : "";
-            saveTechniciansToLocalStorage();
-        });
-
-        // Define a cor de fundo inicial, se já houver valor selecionado
-        const selectedDept = departments.find((d) => d.codigo === agenda[i]);
-        if (selectedDept) {
-            dayCell.style.backgroundColor = selectedDept.color;
-        }
-
-        dayCell.appendChild(daySelect);
-        newRow.appendChild(dayCell);
-    }
+      const dayCell = document.createElement("td");
+      const daySelect = document.createElement("select");
+  
+      daySelect.className = "department-select"; // Adiciona a classe CSS
+  
+      // Preenche os departamentos no dropdown
+      daySelect.innerHTML = `
+          <option value="" data-title="Selecione">Selecione</option>
+          ${departments.map((dept) => `
+              <option value="${dept.codigo}" data-title="${dept.nome}" ${agenda[i] == dept.codigo ? "selected" : ""}>
+                  ${dept.nome}
+              </option>`).join("")}
+      `;
+  
+      // Adiciona o tooltip ao select
+      daySelect.setAttribute("data-title", "Selecione um departamento");
+  
+      // Evento para salvar no localStorage e atualizar a cor ao alterar
+      daySelect.addEventListener("change", () => {
+          const selectedDept = departments.find((d) => d.codigo === daySelect.value);
+          daySelect.setAttribute("data-title", selectedDept ? selectedDept.nome : "Selecione um departamento");
+          dayCell.style.backgroundColor = selectedDept ? selectedDept.color : "";
+          saveTechniciansToLocalStorage();
+      });
+  
+      // Define a cor inicial do departamento
+      const selectedDept = departments.find((d) => d.codigo === agenda[i]);
+      if (selectedDept) {
+          daySelect.setAttribute("data-title", selectedDept.nome);
+          dayCell.style.backgroundColor = selectedDept.color;
+      }
+  
+      dayCell.appendChild(daySelect);
+      newRow.appendChild(dayCell);
+  }
+    
 
     // Coluna de ações
     const actionCell = document.createElement("td");
