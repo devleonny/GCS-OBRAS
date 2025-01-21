@@ -237,16 +237,16 @@ async function abrir_estoque(codigo, stq) {
             
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                 <label style="color: #222;">Saída</label>
-                <input class="numero-bonito" style="background-color: #B12425;" id="saida">
+                <input id="input_1" class="numero-bonito" style="background-color: #B12425;" id="saida" oninput="inputs(1)">
             </div>
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                 <label style="color: #222;">Entrada</label>
-                <input class="numero-bonito" id="entrada">
+                <input id="input_2" class="numero-bonito" id="entrada" oninput="inputs(2)">
             </div>
 
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                 <label style="color: #222;">Comentário</label>
-                <textarea maxlength="100" placeholder="Saída/Entrada de X itens para loja..." id="comentario"></textarea>
+                <textarea maxlength="100" placeholder="Comentário" id="comentario"></textarea>
             </div>
 
             <img src="imagens/concluido.png" style="cursor: pointer;" onclick="salvar_movimento('${codigo}', '${stq}')">
@@ -278,6 +278,22 @@ async function abrir_estoque(codigo, stq) {
     `
 
     openPopup_v2(acumulado)
+
+}
+
+function inputs(numero) {
+
+    let outro = numero == 1 ? 2 : 1
+
+    let input_um = document.getElementById(`input_${numero}`)
+    let input_outro = document.getElementById(`input_${outro}`)
+
+    if (input_um.value !== '') {
+        console.log(input_um.value)
+        input_outro.readOnly = true
+    } else {
+        input_outro.readOnly = false
+    }
 
 }
 
