@@ -1,21 +1,12 @@
 let filtrosAtivosEstoques = {}
 carregar_estoque()
 
-
-async function primeira_vez() {
-
-    await recuperar_estoque()
-
-    await carregar_estoque()
-
-}
-
 async function carregar_estoque() {
 
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let autorizado = false
-    let colunas = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'localizacao', 'estoque_usado', 'inventario', 'valor_compra']
-
+    let colunas = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'localizacao_novo', 'estoque_usado', 'localizacao_usado', 'inventario', 'valor_compra']
+    let div_estoque = document.getElementById('estoque')
     if (acesso.permissao == 'adm' || acesso.permissao == 'log') {
         autorizado = true
         document.getElementById('adicionar_item').style.display = 'flex'
@@ -27,7 +18,7 @@ async function carregar_estoque() {
     let dados_estoque = await recuperarDados('dados_estoque') || {}
 
     if (Object.keys(dados_estoque).length == 0) {
-        return primeira_vez()
+        return atualizar_estoque()
     }
 
     let thc = ''
@@ -391,7 +382,6 @@ async function recuperar_estoque() {
                 return response.json();
             })
             .then(data => {
-
                 inserirDados(data, 'dados_estoque')
                 resolve()
             })
@@ -444,7 +434,7 @@ function incluir_linha() {
         if (campo == 'descricao' || campo == 'inventario') {
             elemento = `<textarea style="border: none;" oninput="exibir_botao(this, '${campo}')"></textarea>`
 
-        } else if (campo == 'Excluir') { 
+        } else if (campo == 'Excluir') {
 
             elemento = `
             <div style="display: flex; align-items: center; justify-content: center;">
@@ -608,5 +598,92 @@ function pesquisar_em_estoque(coluna, texto) {
 
         tr.style.display = mostrarLinha ? '' : 'none';
     });
+
+}
+
+function relatorio_movimento() {
+
+    let acumulado = `
+    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;;">
+
+    <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
+        <label>Relatório de Movimentos</label>
+    </div>
+
+    <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px; height: 140px;">
+        
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <label style="color: #222;">De</label>
+            <input class="datas_estoque" type="date" oninput="atualizar_dados_relatorio()">
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <label style="color: #222;">Até</label>
+            <input class="datas_estoque" type="date" oninput="atualizar_dados_relatorio()">
+        </div>
+
+        <div id="relatorio"></div>
+
+    </div>
+    `
+
+    openPopup_v2(acumulado)
+
+}
+
+async function atualizar_dados_relatorio() {
+
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+
+    let relatorio = document.getElementById('relatorio')
+
+    if (relatorio) {
+
+        let inputs = document.body.querySelectorAll('input.datas_estoque')
+
+        let inicial = new Date(inputs[0].value)
+        let final = new Date(inputs[1].value)
+        inicial.setHours(0, 0, 0, 0)
+        final.setHours(0, 0, 0, 0)
+
+        let filtrados = []
+
+        for (item in dados_estoque) {
+
+            let produto = dados_estoque[item]
+
+            if (produto.estoque && produto.estoque.historico) {
+                let historico = produto.estoque.historico
+
+                for (his in historico) {
+                    let movimento = historico[his]
+
+                    let [dsd, dsh] = String(movimento.data).split(', ')
+                    let [dia, mes, ano] = String(dsd).split('/')
+                    let data = new Date(ano, mes, dia)
+
+                    if (data >= inicial && data <= final) {
+                        filtrados.push(movimento)
+                    }
+
+                    console.log(data)
+
+                }
+            }
+        }
+
+        console.log(filtrados)
+
+        let linhas = ''
+
+        let tabela = `
+        <table>
+            <thead>
+            
+            <thead>
+            <tbody>${linhas}</tbody>
+        </table>
+        `
+
+    }
 
 }
