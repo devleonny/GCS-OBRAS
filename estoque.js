@@ -11,7 +11,11 @@ async function carregar_estoque() {
     if (acesso.permissao == 'adm' || acesso.permissao == 'log') {
         autorizado = true
         document.getElementById('adicionar_item').style.display = 'flex'
-        colunas.unshift('Excluir')
+
+        if(!colunas.includes('Excluir')){
+            colunas.unshift('Excluir')
+        }
+
     }
 
     let apenas_leitura = autorizado ? '' : 'readonly'
