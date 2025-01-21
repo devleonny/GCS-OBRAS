@@ -7,6 +7,31 @@ document.addEventListener("DOMContentLoaded", () => {
   const syncDataBtn = document.getElementById("sync-data-btn");
   const addLineBtn = document.getElementById("add-line-btn");
 
+  // Mapeamento para as cores dos departamentos
+const departmentColors = {
+  "Administrativo": "#FF5733",
+  "Financeiro": "#33FF57",
+  "RH": "#3357FF",
+  "TI": "#F5A623",
+  "Comercial": "#8E44AD",
+  "Produção": "#1ABC9C",
+  "Logística": "#E74C3C"
+};
+
+// Função para gerar uma cor aleatória
+function getRandomColor() {
+  return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+}
+
+// Função para obter a cor de um departamento
+function getDepartmentColor(departmentName) {
+  if (!departmentColors[departmentName]) {
+      departmentColors[departmentName] = getRandomColor();
+  }
+  return departmentColors[departmentName];
+}
+
+
   const monthNames = [
       "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
       "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
@@ -95,6 +120,17 @@ document.addEventListener("DOMContentLoaded", () => {
         departments = []; // Inicializa vazio caso não existam dados
     }
 
+    // Adiciona uma cor para cada departamento, se não existir
+    departments = departments.map((dept) => {
+        if (!dept.color) {
+            dept.color = getRandomColor(); // Gera cor aleatória para departamentos sem cor
+        }
+        return dept;
+    });
+
+    // Salva as cores atualizadas no localStorage
+    localStorage.setItem("departments", JSON.stringify(departments));
+
     if (storedTechnicians) {
         technicianOptions = JSON.parse(storedTechnicians);
     } else {
@@ -103,6 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     console.log("Dados carregados do localStorage:", { departments, technicianOptions });
 }
+
 
 
   // Função para mostrar o indicador de carregamento
@@ -124,20 +161,26 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function fetchDepartmentsFromAPI() {
-      const apiUrl =
-          "https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=departamentos";
+    const apiUrl =
+        "https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=departamentos";
 
-      const response = await fetch(apiUrl);
-      if (!response.ok) {
-          throw new Error("Erro ao buscar departamentos da API.");
-      }
+    const response = await fetch(apiUrl);
+    if (!response.ok) {
+        throw new Error("Erro ao buscar departamentos da API.");
+    }
 
-      const data = await response.json();
-      return Object.entries(data).map(([nome, codigo]) => ({
-          nome,
-          codigo: String(codigo)
-      }));
-  }
+    const data = await response.json();
+
+    // Processa os departamentos e garante que cada um tenha uma cor
+    const fetchedDepartments = Object.entries(data).map(([nome, codigo]) => ({
+        nome,
+        codigo: String(codigo),
+        color: getDepartmentColorFromStorage(nome), // Garante que a cor seja consistente
+    }));
+
+    return fetchedDepartments;
+}
+
 
   async function resgatar_tecnicos() {
     const apiUrl =
@@ -192,7 +235,6 @@ document.addEventListener("DOMContentLoaded", () => {
             </option>`).join("")}
     `;
 
-    // Adiciona o evento de salvar ao alterar o técnico
     tecnicoSelect.addEventListener("change", () => {
         const selectedOmie = tecnicoSelect.value;
 
@@ -208,7 +250,6 @@ document.addEventListener("DOMContentLoaded", () => {
             technicians.push(existingTechnician);
         }
 
-        // Atualiza a agenda para o técnico selecionado
         saveTechniciansToLocalStorage();
     });
 
@@ -228,7 +269,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 </option>`).join("")}
         `;
 
-        daySelect.addEventListener("change", saveTechniciansToLocalStorage);
+        daySelect.addEventListener("change", () => {
+            const selectedDept = departments.find((d) => d.codigo === daySelect.value);
+            dayCell.style.backgroundColor = selectedDept ? selectedDept.color : "";
+            saveTechniciansToLocalStorage();
+        });
+
+        // Define a cor de fundo inicial, se já houver valor selecionado
+        const selectedDept = departments.find((d) => d.codigo === agenda[i]);
+        if (selectedDept) {
+            dayCell.style.backgroundColor = selectedDept.color;
+        }
+
         dayCell.appendChild(daySelect);
         newRow.appendChild(dayCell);
     }
@@ -300,6 +352,7 @@ function saveTechniciansToLocalStorage() {
   localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(technicians));
   console.log("Agenda salva no localStorage:", technicians);
 }
+
 
 function loadTechniciansFromLocalStorage() {
   const storedData = localStorage.getItem("dados_agenda_tecnicos");
@@ -388,4 +441,16 @@ function debugKeys() {
 }
 
 });
+
+function getDepartmentColorFromStorage(departmentName) {
+  const storedDepartments = JSON.parse(localStorage.getItem("departments")) || [];
+  const storedDepartment = storedDepartments.find((dept) => dept.nome === departmentName);
+
+  // Retorna a cor salva ou gera uma nova
+  if (storedDepartment && storedDepartment.color) {
+      return storedDepartment.color;
+  }
+  return getRandomColor();
+}
+
 
