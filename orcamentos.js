@@ -249,7 +249,7 @@ function preencher_orcamentos_v2(st) {
                     </div>
                 </th>            
             `} else {
-                tsh += `<th style="background-color: white;"></th>`
+                tsh += `<th style="background-color: white; border-radius: 0px;"></th>`
             }
         })
 
@@ -855,7 +855,7 @@ async function tela_pagamento(chave1) {
                         <option value="Pix">Chave Pix</option>
                         <option value="Boleto">Boleto</option>
                     </select>
-                    <textarea style="width: 80%; margin-top: 10px;" rows="2" id="pix" placeholder="CPF ou E-MAIL ou TELEFONE ou Código de Barras..."></textarea>
+                    <textarea style="width: 80%; margin-top: 10px;" rows="2" id="pix" placeholder="CPF ou E-MAIL ou TELEFONE ou Código de Barras..." oninput="calculadora_pagamento()"></textarea>
                 </div>
             </div>
 

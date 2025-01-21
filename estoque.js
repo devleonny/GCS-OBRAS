@@ -230,7 +230,7 @@ async function abrir_estoque(codigo, stq) {
     }
 
     let acumulado = `
-        <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 10%;">
+        <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
         <label style="position: absolute; bottom: 5px; right: 15px; font-size: 0.7em;" id="data">${data}</label>
 
         <div style="display: flex; justify-content: center; align-items: center; width: 100%;">

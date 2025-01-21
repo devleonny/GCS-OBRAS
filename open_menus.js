@@ -275,33 +275,6 @@ function unicoID() {
     return uuid;
 }
 
-function carregar_orcamentos() {
-
-    fetch('https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=orcamentos')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Erro ao carregar os dados');
-            }
-            return response.json();
-        })
-        .then(data => {
-
-            var orcamentos = {}
-            data.forEach(function (orcamento) {
-
-                let orcamento_parse = JSON.parse(orcamento)
-
-                let id_orcamento = orcamento_parse.id
-
-                orcamentos[id_orcamento] = orcamento_parse
-            })
-
-            localStorage.setItem('dados_orcamentos', JSON.stringify(orcamentos))
-
-        })
-
-}
-
 function maiorId(prefixo) {
     var ids = document.querySelectorAll('[id^="' + prefixo + '"]');
     var maiorValor = 0;
@@ -419,7 +392,7 @@ function apagar(codigo_orcamento) {
     delete dados_orcamentos[codigo_orcamento]
 
     localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
-    preencher_dados_orcamentos()
+    preencher_orcamentos_v2()
 
 }
 
