@@ -190,3 +190,13 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   pointer-events: none; /* Evita interferência no mouse */
 }
+
+#no-data-row td {
+  font-family: Arial, sans-serif; /* Garante uma fonte legível */
+  font-size: 14px; /* Define um tamanho legível */
+  color: #333; /* Define a cor do texto para cinza escuro */
+  text-align: center; /* Centraliza o texto */
+  background-color: #f9f9f9; /* Define uma cor de fundo clara */
+  padding: 10px; /* Adiciona um espaçamento interno */
+  border: 1px solid #ddd; /* Adiciona uma borda para separação visual */
+}

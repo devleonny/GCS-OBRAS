@@ -363,7 +363,6 @@ function saveTechniciansToLocalStorage() {
   console.log("Agenda salva no localStorage:", technicians);
 }
 
-
 function loadTechniciansFromLocalStorage() {
   const storedData = localStorage.getItem("dados_agenda_tecnicos");
   if (storedData) {
@@ -373,7 +372,12 @@ function loadTechniciansFromLocalStorage() {
   } else {
       technicians = [];
       console.log("Nenhum técnico salvo no localStorage.");
-      techniciansBody.innerHTML = "<tr><td colspan='32'>Nenhum técnico encontrado.</td></tr>";
+  }
+
+  // Se não houver técnicos ou agendas, exibe o aviso
+  if (!technicians.length) {
+      const totalColumns = daysRow.children.length || 2; // Inclui dias e ações
+      techniciansBody.innerHTML = `<tr id="no-data-row"><td colspan="${totalColumns}">Nenhum dado disponível. Adicione um técnico.</td></tr>`;
   }
 }
 
@@ -387,13 +391,20 @@ function loadAgendaForCurrentMonth() {
   techniciansBody.innerHTML = ""; // Limpa a tabela
 
   // Preenche os técnicos e suas agendas do mês atual
+  let hasData = false; // Verifica se há dados
   technicians.forEach((technician) => {
       if (technician.agendas && technician.agendas[key]) {
+          hasData = true;
           addTechnicianRow(technician, technician.agendas[key]);
       }
   });
-}
 
+  // Exibe o aviso se não houver dados
+  if (!hasData) {
+      const totalColumns = daysRow.children.length || 2; // Inclui dias e ações
+      techniciansBody.innerHTML = `<tr id="no-data-row"><td colspan="${totalColumns}">Nenhum dado disponível. Adicione um técnico.</td></tr>`;
+  }
+}
 
 function getAgendaKey() {
   const region = document.getElementById("region-select").value;
@@ -409,10 +420,15 @@ function getAgendaKey() {
 }
 
 function addNewRow() {
+  // Remove o aviso, se existir
+  const noDataRow = document.getElementById("no-data-row");
+  if (noDataRow) {
+      noDataRow.remove();
+  }
+
   const technician = { id: "", nome: "Selecione", agendas: {} };
   addTechnicianRow(technician); // Apenas adiciona a linha, sem salvar imediatamente
 }
-
 
 function saveCurrentSettings() {
   const currentSettings = {
