@@ -9,24 +9,25 @@
 </head>
 <body>
   <div class="controls">
-      <label for="region-select">Região:</label>
-      <select id="region-select">
+    <label for="region-select">Região:</label>
+    <select id="region-select">
         <option value="norte">Norte</option>
         <option value="nordeste">Nordeste</option>
         <option value="centro-oeste">Centro-Oeste</option>
         <option value="sudeste">Sudeste</option>
         <option value="sul">Sul</option>
-      </select>
-    
-      <label for="month-select">Mês:</label>
-      <select id="month-select"></select>
-    
-      <label for="year-select">Ano:</label>
-      <input type="number" id="year-select" value="" min="1900" max="2100" step="1">
-    
-      <button id="add-line-btn">Adicionar Linha</button>
+    </select>
 
-    </div>
+    <label for="month-select">Mês:</label>
+    <select id="month-select"></select>
+
+    <label for="year-select">Ano:</label>
+    <input type="number" id="year-select" value="" min="1900" max="2100" step="1">
+
+    <button id="sync-data-btn">Sincronizar</button>
+    <button id="add-line-btn">Adicionar Linha</button>
+</div>
+
     
   <div class="calendar-header">
     <div class="calendar-title">Agenda Técnicos</div>
@@ -40,7 +41,7 @@
             <!-- Linha de dias será gerada dinamicamente -->
           </tr>
         </thead>
-        <tbody id="technicians-body">
+        <tbody id="technicians-body">    
           <!-- Linhas serão adicionadas dinamicamente -->
         </tbody>
       </table>
@@ -48,5 +49,6 @@
   </div>
 
   <script src="agenda.js"></script>
+  <script src="open_menus.js"></script>
 </body>
 </html>

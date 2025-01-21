@@ -1,81 +1,163 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const daysRow = document.getElementById("days-row");
-    const techniciansBody = document.getElementById("technicians-body");
-    const monthNameElement = document.getElementById("month-name");
-    const monthSelect = document.getElementById("month-select");
-    const yearSelect = document.getElementById("year-select");
-    const addLineBtn = document.getElementById("add-line-btn"); // Alterado para "Adicionar Linha"
+  const daysRow = document.getElementById("days-row");
+  const techniciansBody = document.getElementById("technicians-body");
+  const monthNameElement = document.getElementById("month-name");
+  const monthSelect = document.getElementById("month-select");
+  const yearSelect = document.getElementById("year-select");
+  const syncDataBtn = document.getElementById("sync-data-btn");
+  const addLineBtn = document.getElementById("add-line-btn");
 
   const monthNames = [
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ];
 
-  let technicians = [];
+  let technicians = []; // Declaração global
   let departments = [];
+  let technicianOptions = [];
 
+  // Carregar configurações atuais (mês, ano, região)
+  loadCurrentSettings();
+
+  // Preencher dropdown de meses
   monthNames.forEach((month, index) => {
-    const option = document.createElement("option");
-    option.value = index;
-    option.textContent = month;
-    monthSelect.appendChild(option);
+      const option = document.createElement("option");
+      option.value = index;
+      option.textContent = month;
+      monthSelect.appendChild(option);
   });
 
-  const today = new Date();
-  monthSelect.value = today.getMonth();
-  yearSelect.value = today.getFullYear();
-  generateCalendar(today.getFullYear(), today.getMonth());
+  // Carregar dados salvos no localStorage (departamentos e técnicos)
+  loadFromLocalStorage();
 
-  // Buscar departamentos da API e salvar no localStorage
-  fetchDepartmentsFromAPI().then(() => {
-    loadTechniciansFromLocalStorage();
+  // Gerar tabela inicial com base no mês, ano e região carregados
+  generateCalendar(yearSelect.value, monthSelect.value);
+  loadTechniciansFromLocalStorage(); // Preenche a tabela com base no localStorage
+
+  // Eventos para salvar configurações e recarregar a tabela ao alterar mês, ano ou região
+  monthSelect.addEventListener("change", () => {
+      saveCurrentSettings();
+      generateCalendar(yearSelect.value, monthSelect.value);
+      loadTechniciansFromLocalStorage();
   });
 
-  monthSelect.addEventListener("change", () => updateAgenda());
-  yearSelect.addEventListener("input", () => updateAgenda());
-  document.getElementById("region-select").addEventListener("change", () => updateAgenda());
+  yearSelect.addEventListener("input", () => {
+      saveCurrentSettings();
+      generateCalendar(yearSelect.value, monthSelect.value);
+      loadTechniciansFromLocalStorage();
+  });
 
-  function updateAgenda() {
-    const selectedMonth = parseInt(monthSelect.value, 10);
-    const selectedYear = parseInt(yearSelect.value, 10);
-    generateCalendar(selectedYear, selectedMonth);
-    loadAgendaForCurrentMonth();
+  document.getElementById("region-select").addEventListener("change", () => {
+      saveCurrentSettings();
+      loadTechniciansFromLocalStorage();
+  });
+
+  // Botão para sincronizar dados
+  syncDataBtn.addEventListener("click", async () => {
+      showLoading();
+      try {
+          const [fetchedDepartments, fetchedTechnicians] = await Promise.all([
+              fetchDepartmentsFromAPI(),
+              resgatar_tecnicos()
+          ]);
+
+          // Salvar dados sincronizados no localStorage
+          localStorage.setItem("departments", JSON.stringify(fetchedDepartments));
+          localStorage.setItem("technicians", JSON.stringify(fetchedTechnicians));
+
+          // Atualizar variáveis locais
+          departments = fetchedDepartments;
+          technicianOptions = fetchedTechnicians;
+
+          // Recarregar a tabela
+          loadTechniciansFromLocalStorage();
+          alert("Dados sincronizados com sucesso!");
+      } catch (error) {
+          console.error("Erro ao sincronizar os dados:", error);
+          alert("Erro ao sincronizar os dados. Verifique sua conexão e tente novamente.");
+      } finally {
+          hideLoading();
+      }
+  });
+
+  // Botão para adicionar nova linha
+  addLineBtn.addEventListener("click", addNewRow);
+
+  // Função para carregar dados do localStorage
+  function loadFromLocalStorage() {
+    const storedDepartments = localStorage.getItem("departments");
+    const storedTechnicians = localStorage.getItem("technicians");
+
+    // Verificar se já existem dados no localStorage
+    if (storedDepartments) {
+        departments = JSON.parse(storedDepartments);
+    } else {
+        departments = []; // Inicializa vazio caso não existam dados
+    }
+
+    if (storedTechnicians) {
+        technicianOptions = JSON.parse(storedTechnicians);
+    } else {
+        technicianOptions = []; // Inicializa vazio caso não existam dados
+    }
+
+    console.log("Dados carregados do localStorage:", { departments, technicianOptions });
+}
+
+
+  // Função para mostrar o indicador de carregamento
+  function showLoading() {
+      const totalColumns = daysRow.children.length || 3;
+      techniciansBody.innerHTML = `
+          <tr>
+              <td colspan="${totalColumns}" class="loading-container">
+                  <img src="gifs/loading.gif" alt="Carregando" class="loading-gif">
+                  <p>Carregando dados...</p>
+              </td>
+          </tr>
+      `;
   }
 
-  function fetchDepartmentsFromAPI() {
-    const apiUrl =
-      "https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=departamentos";
+  // Função para ocultar o indicador de carregamento
+  function hideLoading() {
+      techniciansBody.innerHTML = ""; // Limpa o tbody
+  }
 
-    return fetch(apiUrl)
-      .then((response) => {
-        if (!response.ok) {
+  async function fetchDepartmentsFromAPI() {
+      const apiUrl =
+          "https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=departamentos";
+
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
           throw new Error("Erro ao buscar departamentos da API.");
-        }
-        return response.json();
-      })
-      .then((data) => {
-        if (typeof data === "object" && data !== null) {
-          departments = Object.entries(data).map(([nome, codigo]) => ({
-            nome,
-            codigo: String(codigo),
-          }));
+      }
 
-          localStorage.setItem("dados_departamentos", JSON.stringify(departments));
-          console.log("Departamentos atualizados da API:", departments);
-        } else {
-          console.warn("Estrutura inesperada no retorno da API:", data);
-          departments = [];
-        }
-      })
-      .catch((error) => {
-        console.error("Erro ao buscar departamentos da API:", error);
-      });
+      const data = await response.json();
+      return Object.entries(data).map(([nome, codigo]) => ({
+          nome,
+          codigo: String(codigo)
+      }));
+  }
+
+  async function resgatar_tecnicos() {
+      const apiUrl =
+          "https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=clientes_v2";
+
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+          throw new Error(`Erro na requisição: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return Object.entries(data)
+          .filter(([_, value]) => value.tags && value.tags.some(tagObj => tagObj.tag === "TÉCNICO"))
+          .map(([id, value]) => ({ id, nome: value.nome }));
   }
 
   function generateCalendar(year, month) {
     const region = document.getElementById("region-select").value;
     monthNameElement.textContent = `${monthNames[month]} ${year} - Região: ${region.charAt(0).toUpperCase() + region.slice(1)}`;
-
+  
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
     let daysHTML = `<th class="left-header">Técnicos</th>`;
@@ -86,108 +168,200 @@ document.addEventListener("DOMContentLoaded", () => {
     daysHTML += `<th>Ações</th>`;
     daysRow.innerHTML = daysHTML;
   }
-
-  function addTechnicianRow(technician) {
-    const key = getAgendaKey();
-    const daysInMonth = daysRow.children.length - 2;
-    const agenda = technician.agendas[key] || Array(daysInMonth).fill("");
-
-    let rowHTML = `<td class="left-header">${technician.name}</td>`;
-    agenda.forEach((value, i) => {
-      rowHTML += `
-        <td>
-          <select data-index="${i}" data-id="${technician.id}">
-            <option value="" ${value === "" ? "selected" : ""}>Selecione</option>
-            ${departments
-              .map((dept) => {
-                const isSelected = String(value) === String(dept.codigo) ? "selected" : "";
-                return `<option value="${dept.codigo}" ${isSelected}>${dept.nome}</option>`;
-              })
-              .join("")}
-          </select>
-        </td>`;
-    });
-
-    rowHTML += `
-      <td>
-        <button class="remove-btn">
-          <img src="imagens/remover.png" alt="Remover Técnico" title="Remover Técnico" />
-        </button>
-      </td>`;
-
+  
+  function addTechnicianRow(technician, agenda = []) {
+    const totalDays = daysRow.children.length - 2;
     const newRow = document.createElement("tr");
-    newRow.innerHTML = rowHTML;
-    techniciansBody.appendChild(newRow);
 
-    newRow.querySelectorAll("select").forEach((select) => {
-      select.addEventListener("change", (event) => {
-        const index = parseInt(event.target.getAttribute("data-index"), 10);
-        const id = event.target.getAttribute("data-id");
-        const tech = technicians.find((t) => t.id === id);
-        if (tech) tech.agendas[key][index] = event.target.value;
-        saveTechniciansToLocalStorage();
-      });
-    });
+    // Coluna de técnico
+    const tecnicoCell = document.createElement("td");
+    tecnicoCell.className = "left-header";
 
-    const removeBtn = newRow.querySelector(".remove-btn");
-    removeBtn.addEventListener("click", () => {
-      techniciansBody.removeChild(newRow);
-      technicians = technicians.filter((tech) => tech.id !== technician.id);
-      saveTechniciansToLocalStorage();
-    });
-  }
+    const tecnicoSelect = document.createElement("select");
+    tecnicoSelect.innerHTML = `
+        <option value="">Selecione</option>
+        ${technicianOptions.map((tech) => `
+            <option value="${tech.id}" ${tech.id === technician.id ? "selected" : ""}>
+                ${tech.nome}
+            </option>`).join("")}
+    `;
+    tecnicoSelect.addEventListener("change", saveTechniciansToLocalStorage);
 
-  function saveTechniciansToLocalStorage() {
-    localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(technicians));
-  }
+    tecnicoCell.appendChild(tecnicoSelect);
+    newRow.appendChild(tecnicoCell);
 
-  function loadTechniciansFromLocalStorage() {
-    const savedData = localStorage.getItem("dados_agenda_tecnicos");
-    technicians = savedData ? JSON.parse(savedData) : [];
-    updateAgenda();
-  }
+    // Colunas de dias
+    for (let i = 0; i < totalDays; i++) {
+        const dayCell = document.createElement("td");
+        const daySelect = document.createElement("select");
 
-  function loadAgendaForCurrentMonth() {
-    const key = getAgendaKey();
-    techniciansBody.innerHTML = "";
-    technicians.forEach((technician) => {
-      if (technician.agendas[key]) {
-        addTechnicianRow(technician);
-      }
-    });
-  }
+        daySelect.innerHTML = `
+            <option value="">Selecione</option>
+            ${departments.map((dept) => `
+                <option value="${dept.codigo}" ${agenda[i] === dept.codigo ? "selected" : ""}>
+                    ${dept.nome}
+                </option>`).join("")}
+        `;
+        daySelect.addEventListener("change", saveTechniciansToLocalStorage);
 
-  function getAgendaKey() {
-    const region = document.getElementById("region-select").value;
-    const month = monthSelect.value;
-    const year = yearSelect.value;
-    return `${year}_${month}_${region}`;
-  }
-
-  
-});
-async function resgatar_tecnicos() {
-  
-  try {
-    const response = await fetch('https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=clientes_v2');
-    if (!response.ok) {
-      throw new Error(`Erro na requisição: ${response.status}`);
+        dayCell.appendChild(daySelect);
+        newRow.appendChild(dayCell);
     }
-    
-    const data = await response.json();
-    // Filtrar apenas os itens que possuem a tag "TÉCNICO" em tags
-    const tecnicoItems = Object.entries(data).filter(([key, value]) =>
-      value.tags && value.tags.some(tagObj => tagObj.tag === "TÉCNICO")
-    );
 
-    // Exibir os itens filtrados no console
-    console.log('Itens com a tag "TÉCNICO":', Object.fromEntries(tecnicoItems));
-  } catch (error) {
-    console.error('Erro ao buscar ou processar os dados:', error);
-  }
+    // Coluna de ações
+    const actionCell = document.createElement("td");
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "remove-btn";
+    removeBtn.innerHTML = '<img src="imagens/remover.png" alt="Remover Técnico" title="Remover Técnico">';
 
+    removeBtn.addEventListener("click", () => {
+        techniciansBody.removeChild(newRow);
+        technicians = technicians.filter((t) => t.id !== technician.id);
+        saveTechniciansToLocalStorage(); // Salva após excluir uma linha
+    });
+
+    actionCell.appendChild(removeBtn);
+    newRow.appendChild(actionCell);
+
+    techniciansBody.appendChild(newRow);
 }
 
-// Chama a função para buscar e exibir os dados
-resgatar_tecnicos();
+function saveTechniciansToLocalStorage() {
+  const key = getAgendaKey(); // Obtém a chave do mês/ano/região atual
+  if (!key) {
+      console.error("Chave inválida ao salvar a agenda!");
+      return;
+  }
+
+  // Atualiza as agendas dos técnicos
+  Array.from(techniciansBody.children).forEach((row) => {
+      const tecnicoSelect = row.querySelector("td select:first-child"); // Primeiro select é o técnico
+      if (!tecnicoSelect) {
+          console.warn("Linha sem select de técnico encontrada. Ignorando...");
+          return; // Ignora linhas sem select de técnico
+      }
+
+      const technicianId = tecnicoSelect.value;
+      if (!technicianId) {
+          console.warn("Nenhum técnico selecionado para esta linha. Ignorando...");
+          return; // Ignora linhas onde o técnico não está selecionado
+      }
+
+      // Busca ou cria o técnico
+      let technician = technicians.find((t) => t.id === technicianId);
+      if (!technician) {
+          technician = {
+              id: technicianId,
+              nome: tecnicoSelect.options[tecnicoSelect.selectedIndex]?.textContent.trim() || "Desconhecido",
+              agendas: {},
+          };
+          technicians.push(technician);
+      }
+
+      // Captura os departamentos selecionados para os dias do mês atual
+      const selectedDepartments = Array.from(row.querySelectorAll("td"))
+          .slice(1) // Ignora a primeira célula (coluna do técnico)
+          .map((cell) => {
+              const select = cell.querySelector("select"); // Busca o <select> dentro da célula
+              return select?.value || ""; // Retorna o valor do <select>, ou vazio se não existir
+          });
+
+      // Atualiza a agenda do técnico para a chave atual
+      technician.agendas[key] = selectedDepartments;
+  });
+
+  // Salva os técnicos atualizados no localStorage
+  localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(technicians));
+  console.log("Agenda salva no localStorage:", technicians);
+}
+
+
+
+function loadTechniciansFromLocalStorage() {
+  const storedData = localStorage.getItem("dados_agenda_tecnicos");
+  if (storedData) {
+      technicians = JSON.parse(storedData);
+      console.log("Técnicos carregados do localStorage:", technicians);
+      loadAgendaForCurrentMonth(); // Preenche a tabela com base na agenda do mês atual
+  } else {
+      technicians = [];
+      console.log("Nenhum técnico salvo no localStorage.");
+      techniciansBody.innerHTML = "<tr><td colspan='32'>Nenhum técnico encontrado.</td></tr>";
+  }
+}
+
+function loadAgendaForCurrentMonth() {
+  const key = getAgendaKey(); // Obtém a chave atual (mês/ano/região)
+  if (!key) {
+      console.error("Chave inválida ao carregar a agenda!");
+      return;
+  }
+
+  techniciansBody.innerHTML = ""; // Limpa a tabela
+
+  // Preenche os técnicos e suas agendas do mês atual
+  technicians.forEach((technician) => {
+      if (technician.agendas && technician.agendas[key]) {
+          addTechnicianRow(technician, technician.agendas[key]);
+      }
+  });
+}
+
+
+function getAgendaKey() {
+  const region = document.getElementById("region-select").value;
+  const month = monthSelect.value;
+  const year = yearSelect.value;
+
+  if (!region || month === undefined || !year) {
+      console.error("Chave inválida gerada:", { region, month, year });
+      return null;
+  }
+
+  return `${year}_${month}_${region}`;
+}
+
+function addNewRow() {
+  const technician = { id: "", nome: "Selecione", agendas: {} };
+  addTechnicianRow(technician); // Apenas adiciona a linha, sem salvar imediatamente
+}
+
+
+function saveCurrentSettings() {
+  const currentSettings = {
+      month: monthSelect.value,
+      year: yearSelect.value,
+      region: document.getElementById("region-select").value,
+  };
+  localStorage.setItem("current_settings", JSON.stringify(currentSettings));
+}
+
+function loadCurrentSettings() {
+  const savedSettings = localStorage.getItem("current_settings");
+  if (savedSettings) {
+      const { month, year, region } = JSON.parse(savedSettings);
+
+      monthSelect.value = month || new Date().getMonth();
+      yearSelect.value = year || new Date().getFullYear();
+      document.getElementById("region-select").value = region || "norte";
+  } else {
+      // Caso não existam configurações salvas, usa os valores padrão
+      monthSelect.value = new Date().getMonth();
+      yearSelect.value = new Date().getFullYear();
+      document.getElementById("region-select").value = "norte";
+  }
+}
+
+function debugKeys() {
+  const savedData = localStorage.getItem("dados_agenda_tecnicos");
+  if (savedData) {
+      const agendas = JSON.parse(savedData);
+      console.log("Chaves salvas no localStorage:", Object.keys(agendas));
+      console.log("Chave atual gerada:", getAgendaKey());
+  } else {
+      console.log("Nenhuma chave salva no localStorage.");
+  }
+}
+
+});
 

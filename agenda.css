@@ -150,3 +150,20 @@ body {
     transform: scale(1.1); /* Aumenta levemente ao passar o mouse */
   }
   
+  .loading-container {
+    text-align: center; /* Centraliza o conteúdo */
+    width: 100%; /* Garante que ocupe toda a largura */
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+.loading-gif {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 10px;
+}
+  
+  .loading-container p {
+    font-size: 14px;
+    color: #555;
+  }
+  
