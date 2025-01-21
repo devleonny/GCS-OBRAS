@@ -15,6 +15,7 @@ function f5() {
 localStorage.removeItem('dados_cliente')
 localStorage.removeItem('dados_composicoes')
 localStorage.removeItem('lista_pagamentos')
+localStorage.removeItem('dados_pagamentos')
 
 function inserirDados(dados, nome_da_base) {
     // Primeiro, abra o banco para verificar a versão e setores existentes
