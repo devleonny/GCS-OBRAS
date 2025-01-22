@@ -649,9 +649,9 @@ async function criar_pagamento_v2(chave1) {
 
         remover_popup()
 
-        var pagamentos = await recuperarDados('lista_pagamentos') || {};
+        var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
 
-        pagamentos[pagamento.id_pagamento] = pagamento
+        lista_pagamentos[pagamento.id_pagamento] = pagamento
 
         inserirDados(lista_pagamentos, 'lista_pagamentos');
 
@@ -1436,19 +1436,6 @@ async function anexos_parceiros(campo, id_pagamento) {
             var result = await response.json();
             if (response.ok) {
 
-                //Verificar estrutura
-                if (!anx_parceiros[campo]) {
-                    anx_parceiros[campo] = {}
-                }
-
-                let id_anx = gerar_id_5_digitos()
-
-                anx_parceiros[campo][id_anx] = {
-                    nome: fileName,
-                    formato: mimeType,
-                    link: result.fileId
-                }
-
                 if (id_pagamento !== undefined) {
 
                     var dados = {
@@ -1475,6 +1462,17 @@ async function anexos_parceiros(campo, id_pagamento) {
                     return await abrir_detalhes(id_pagamento)
 
                 } else {
+
+                    let id_anx = gerar_id_5_digitos()
+                    if (!anx_parceiros[campo]) {
+                        anx_parceiros[campo] = {}
+                    }
+
+                    anx_parceiros[campo][id_anx] = {
+                        nome: fileName,
+                        formato: mimeType,
+                        link: result.fileId
+                    }
 
                     let arquivo = `https://drive.google.com/file/d/${result.fileId}/view?usp=drivesdk`
 

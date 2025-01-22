@@ -410,7 +410,7 @@ async function abrir_detalhes(id_pagamento) {
                 <div style="display: flex; justify-content: left; align-items: center; gap: 10px;">
                     <div onclick="abrirArquivo('https://drive.google.com/file/d/${anexo.link}')" class="anexos" style="border: solid 1px green; cursor: pointer;">
                         <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
-                        <label style="cursor: pointer; font-size: 0.6em;"><strong>${anexo.nome}</strong></label>
+                        <label style="cursor: pointer; font-size: 0.6em;"><strong>${String(anexo.nome).slice(0, 10)} ... ${String(anexo.nome).slice(-7)}</strong></label>
                     </div>
                     <img src="imagens/cancel.png" style="width: 25px; heigth: 25px; cursor: pointer;" onclick="excluir_anexo_parceiro('${id_pagamento}', '${item}', '${anx}')">
                 </div>

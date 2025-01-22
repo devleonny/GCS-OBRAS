@@ -1,6 +1,8 @@
 let filtrosAtivosEstoques = {}
 let filtrosRelatorio = {}
 let colunas = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'localizacao_novo', 'estoque_usado', 'localizacao_usado', 'inventario', 'valor_compra']
+
+
 carregar_estoque()
 
 async function carregar_estoque() {
@@ -71,6 +73,11 @@ async function carregar_estoque() {
                         <img src="imagens/cancel.png" style="cursor: pointer; width: 25px; height: 25px;" onclick="remover_linha_excluir_item(this)">
                     </div>
                 `
+                } else if (chave.includes('valor_compra')) {
+
+                    elemento = `
+                    <label style="cursor: pointer; text-align: center;" onclick="abrir_valores('${item}', '${chave}')">R$ 0,00</label>
+                    `
 
                 } else if (chave.includes('estoque')) {
 
@@ -137,51 +144,149 @@ async function carregar_estoque() {
 
 }
 
-function filtrar_tabela(coluna, id, elementoTH) {
-    let tabela = document.getElementById(id);
-    let linhas = Array.from(tabela.tBodies[0].rows);
-    let ascendente = tabela.getAttribute("data-order") !== "asc";
+async function abrir_valores(codigo) {
 
-    linhas.sort((a, b) => {
-        let valorA = capturarValorCelula(a.cells[coluna])
-        let valorB = capturarValorCelula(b.cells[coluna])
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+    let item = dados_estoque[codigo]
 
-        if (!isNaN(valorA) && !isNaN(valorB)) {
-            return ascendente ? valorA - valorB : valorB - valorA;
-        }
-
-        return ascendente
-            ? valorA.localeCompare(valorB)
-            : valorB.localeCompare(valorA);
+    let data = new Date().toLocaleString('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short'
     });
 
-    let tbody = tabela.tBodies[0];
-    linhas.forEach((linha) => tbody.appendChild(linha));
+    let acumulado = `
+        <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
+        <label style="position: absolute; bottom: 5px; right: 15px; font-size: 0.7em;" id="data">${data}</label>
 
-    tabela.setAttribute("data-order", ascendente ? "asc" : "desc");
+        <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
+            <label>Informar valor de Compra</label>
+        </div>
 
-    let simbolo = ascendente ? 'a.png' : 'z.png';
+        <div style="position: relative; display: flex; justify-content: space-evenly; padding: 10px; align-items: center; background-color: white; border-radius: 5px; margin: 5px; height: 140px; gap: 10px;">
+            
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <label style="color: #222;">Valor de Compra</label>
+                <input class="numero-bonito" id="vl_compra">
+            </div>
 
-    let tr = elementoTH.closest('tr')
-    let ths = tr.querySelectorAll('th')
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <label style="color: #222;">Unidade</label>
+                <input class="numero-bonito" value="1" id="unidade">
+            </div>
 
-    ths.forEach(th => {
-        let img = th.querySelector('img')
-        if (img) {
-            img.remove()
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <label style="color: #222;">Conversão</label>
+                <input class="numero-bonito" value="1" id="conversao">
+            </div>
+
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <label style="color: #222;">Fornecedor</label>
+                <textarea maxlength="100" placeholder="Fornecedor" id="fornecedor"></textarea>
+            </div>
+
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <label style="color: #222;">Comentário</label>
+                <textarea maxlength="100" placeholder="Comentário" id="comentario"></textarea>
+            </div>
+
+            <img src="imagens/concluido.png" style="cursor: pointer;" onclick="salvar_valor('${codigo}')">
+
+        </div>
+        `
+
+    if (dicionario(item.valor_compra)) {
+
+        console.log(item.valor_compra)
+
+        let linhas = ''
+        for(cpr in item.valor_compra){
+            let compra = item.valor_compra[cpr]
+            linhas +=`
+            <tr>
+                <td>${dinheiro(compra.vl_compra)}</td>
+                <td>${compra.data}</td>
+                <td>${compra.unidade}</td>
+                <td>${compra.conversao}</td>
+                <td>${compra.fornecedor}</td>
+                <td>${compra.comentario}</td>
+                <td>${compra.usuario}</td>
+                <td>
+                    <div style="display: flex; justify-content: center; align-items: center;">
+                        <img src="imagens/cancel.png" style="width: 25px; heigth: 25px;">
+                    </div>
+                </td>
+            </tr>
+            `
         }
-    })
 
-    elementoTH.insertAdjacentHTML('beforeend', `<img src="imagens/${simbolo}" style="position: absolute; top: 3px; right: 3px; width: 15px; background-color: #222;">`)
-}
+        acumulado += `
 
-function capturarValorCelula(celula) {
-    let entrada = celula.querySelector('input') || celula.querySelector('textarea')
-    if (entrada) {
-        return entrada.value.toLowerCase(); 
+            <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
+                <label>Histórico</label>
+            </div>
+
+            <div style="background-color: #B12425; white; border-radius: 3px; width: 100%; border-radius: 3px;">
+                <table class="tabela_e" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <th>Valor</th>
+                        <th>Data</th>
+                        <th>Unidade</th>
+                        <th>Conversão</th>
+                        <th>Fornecedor</th>
+                        <th>Comentário</th>
+                        <th>Usuário</th>
+                        <th>Excluir</th>
+                    </thead>
+                    <tbody style="color: #222;">${linhas}</tbody>
+                </table>
+            </div>
+            
+        `
     }
 
-    return celula.innerText.toLowerCase(); 
+    openPopup_v2(acumulado)
+
+}
+
+async function salvar_valor(codigo) {
+
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+    let data = document.getElementById('data')
+
+    if (dados_estoque[codigo]) {
+
+        let vl_compra = document.getElementById('vl_compra')
+        let unidade = document.getElementById('unidade')
+        let conversao = document.getElementById('conversao')
+        let fornecedor = document.getElementById('fornecedor')
+        let comentario = document.getElementById('comentario')
+
+        let item = dados_estoque[codigo]
+
+        if (!item.valor_compra || !dicionario(item.valor_compra)) {
+            item.valor_compra = {}
+        }
+
+        let id = gerar_id_5_digitos()
+
+        item.valor_compra[id] = {
+            vl_compra: conversor(vl_compra.value),
+            unidade: conversor(unidade.value),
+            conversao: conversor(conversao.value),
+            fornecedor: fornecedor.value,
+            comentario: comentario.value,
+            usuario: acesso.usuario,
+            data: data.textContent
+        }
+
+        await inserirDados(dados_estoque, 'dados_estoque')
+
+    }
+
+    remover_popup()
+    await abrir_valores(codigo)
+
 }
 
 function parseDataBR(dataBR) {

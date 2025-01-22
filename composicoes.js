@@ -33,173 +33,130 @@ function pesquisar_em_composicoes(elemento) {
 
 carregar_tabela_v2()
 
-function carregar_tabela_v2(col, ordem) {
-    setTimeout(async function () {
-        var dados_composicoes = await recuperarDados('dados_composicoes') || {};
-        var thead = '';
-        var tbody = '';
-        var tsearch = '';
-        var painel_colunas = '';
+async function carregar_tabela_v2() {
 
-        var cabecalhos = [
-            ...new Set(
-                Object.values(dados_composicoes).flatMap(obj => Object.keys(obj))
-            )
-        ];
-        cabecalhos.push('editar');
+    var dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    var thead = '';
+    var tbody = '';
+    var tsearch = '';
+    var painel_colunas = '';
 
-        var pc = document.getElementById('pc');
-        var colunas = JSON.parse(localStorage.getItem('colunas_composicoes')) || [];
+    var cabecalhos = [
+        ...new Set(
+            Object.values(dados_composicoes).flatMap(obj => Object.keys(obj))
+        )
+    ];
+    cabecalhos.push('editar');
 
-        if (acesso.permissao == 'adm') {
-            var adicionar_item = document.getElementById('adicionar_item');
-            if (adicionar_item) {
-                adicionar_item.style.display = 'flex';
-            }
+    var pc = document.getElementById('pc');
+    var colunas = JSON.parse(localStorage.getItem('colunas_composicoes')) || [];
+
+    if (acesso.permissao == 'adm') {
+        var adicionar_item = document.getElementById('adicionar_item');
+        if (adicionar_item) {
+            adicionar_item.style.display = 'flex';
         }
+    }
 
-        if (pc) {
-            var inputs = pc.querySelectorAll('input');
-            var labels = pc.querySelectorAll('label');
-            var coluna_anterior = colunas
-            colunas = [];
+    if (pc) {
+        var inputs = pc.querySelectorAll('input');
+        var labels = pc.querySelectorAll('label');
+        var coluna_anterior = colunas
+        colunas = [];
 
-            inputs.forEach((input, i) => {
-                if (input.checked) {
-                    colunas.push(labels[i].textContent.toLowerCase());
-                } else {
-                    colunas.splice(i, 1);
-                }
-            });
-
-            colunas = [...new Set(colunas)];
-            colunas.sort((a, b) => a - b); // Ordem Crescente
-
-            if (colunas !== coluna_anterior) {
-                filtrosAtivos = {};
+        inputs.forEach((input, i) => {
+            if (input.checked) {
+                colunas.push(labels[i].textContent.toLowerCase());
+            } else {
+                colunas.splice(i, 1);
             }
-            localStorage.setItem('colunas_composicoes', JSON.stringify(colunas));
+        });
+
+        colunas = [...new Set(colunas)];
+        colunas.sort((a, b) => a - b); // Ordem Crescente
+
+        if (colunas !== coluna_anterior) {
+            filtrosAtivos = {};
         }
+        localStorage.setItem('colunas_composicoes', JSON.stringify(colunas));
+    }
 
-        composicoes_.innerHTML = '';
+    composicoes_.innerHTML = '';
 
-        var ths = {};
-        var tsc = {};
+    var ths = {};
+    var tsc = {};
 
-        cabecalhos.forEach(cab => {
-            ths[cab] = `
-            <th>
-            <div class="contorno_botoes" style="background-color: #B12425; display: flex; align-items: center; justify-content: center; gap: 3px;">
-
-                <label style="font-size: 0.7em;">${cab.toUpperCase()}</label>
-
-                <div style="display: flex; align-items: center; justify-content: center; gap: 2px;">
-                    <img src="imagens/a.png" style="width: 15px; cursor: pointer;" onclick="carregar_tabela_v2('${cab}', 'a')">
-                    <img src="imagens/z.png" style="width: 15px; cursor: pointer;" onclick="carregar_tabela_v2('${cab}', 'b')">
-                </div>
-            </div>
-            </th>`;
-            tsc[cab] = `
+    cabecalhos.forEach((cab, i) => {
+        ths[cab] = `<th style="position: relative; cursor: pointer;">${cab.toUpperCase()}</th>`
+        tsc[cab] = `
             <th style="background-color: white; position: relative; border-radius: 0px;">
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
                 <input style="width: 100%;" placeholder="..." oninput="pesquisar_em_composicoes(this)">
             </th>`;
-            painel_colunas += `
+        painel_colunas += `
             <div style="display: flex; gap: 10px; align-items: center; justify-content: right; text-align: right;">
                 <label style="color: white;">${cab.toUpperCase()}</label>
-                <input type="checkbox" style="cursor: pointer;" onchange="carregar_tabela_v2()" ${colunas.includes(cab) ? 'checked' : ''}>
+                <input type="checkbox" style="cursor: pointer; width: 20px; height: 20px;" onchange="carregar_tabela_v2()" ${colunas.includes(cab) ? 'checked' : ''}>
             </div>`;
-        });
+    });
 
-        colunas.forEach(col => {
-            thead += ths[col];
-            tsearch += tsc[col];
-        });
+    colunas.forEach(col => {
+        thead += ths[col];
+        tsearch += tsc[col];
+    });
 
-        var dadosOrdenados = Object.entries(dados_composicoes);
+    for (codigo in dados_composicoes) {
 
-        if (col && ordem) {
-            dadosOrdenados = dadosOrdenados.filter(([_, item]) => {
-                var val = item[col] || '';
+        let produto = dados_composicoes[codigo]
+        var tds = {};
 
-                if (dicionario(val)) {
-                    val = val.historico?.[val.ativo]?.custo || 0;
+        colunas.forEach(chave => {
+            var conteudo = produto[chave] || '';
+            var alinhamento = 'left';
+            chave = String(chave)
+            if (chave == 'imagem') {
+                var imagem = conteudo || 'https://i.imgur.com/Nb8sPs0.png';
+                alinhamento = 'center';
+                conteudo = `<img src="${imagem}" style="width: 50px; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">`;
+
+            } else if (chave.includes('lpu')) {
+                var preco_final = produto[chave];
+                if (dicionario(produto[chave]) && produto[chave].historico && produto[chave].ativo) {
+                    var ativo = produto[chave].ativo;
+                    preco_final = produto[chave].historico[ativo].valor;
+                } else {
+                    preco_final = '';
                 }
 
-                return val !== 0 && val !== '';
-            });
+                var estilo = preco_final !== '' ? 'valor_preenchido' : 'valor_zero';
+                conteudo = `<label class="${estilo}" onclick="abrir_historico_de_precos('${codigo}', '${chave}')"> ${dinheiro(conversor(preco_final))}</label>`;
 
-            dadosOrdenados.sort(([_, a], [__, b]) => {
-                var valA = a[col] || '';
-                var valB = b[col] || '';
+            } else if (chave == 'agrupamentos') {
 
-                if (col.includes('lpu')) {
+                var info_agrupamentos = ''
 
-                    if (dicionario(valA)) {
-                        valA = valA.historico[valA.ativo].valor
-                    }
+                if (produto[chave]) {
+                    var agrupamentos = produto[chave]
 
-                    if (dicionario(valB)) {
-                        valB = valB.historico[valB.ativo].valor
-                    }
+                    for (item in agrupamentos) {
 
-                    return ordem === 'a' ? valA - valB : valB - valA;
-                } else { // Ordenar como texto
-                    return ordem === 'a' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                }
-            });
-        }
+                        let tipo = dados_composicoes[item].tipo
 
-        for (const [codigo, produto] of dadosOrdenados) {
-            var tds = {};
+                        var cor = 'green'
+                        if (tipo == 'VENDA') {
+                            cor = '#B12425'
+                        }
 
-            colunas.forEach(chave => {
-                var conteudo = produto[chave] || '';
-                var alinhamento = 'left';
-                chave = String(chave)
-                if (chave == 'imagem') {
-                    var imagem = conteudo || 'https://i.imgur.com/Nb8sPs0.png';
-                    alinhamento = 'center';
-                    conteudo = `<img src="${imagem}" style="width: 50px; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">`;
-
-                } else if (chave.includes('lpu')) {
-                    var preco_final = produto[chave];
-                    if (dicionario(produto[chave]) && produto[chave].historico && produto[chave].ativo) {
-                        var ativo = produto[chave].ativo;
-                        preco_final = produto[chave].historico[ativo].valor;
-                    } else {
-                        preco_final = '';
-                    }
-
-                    var estilo = preco_final !== '' ? 'valor_preenchido' : 'valor_zero';
-                    conteudo = `<label class="${estilo}" onclick="abrir_historico_de_precos('${codigo}', '${chave}')"> ${dinheiro(conversor(preco_final))}</label>`;
-
-                } else if (chave == 'agrupamentos') {
-
-                    var info_agrupamentos = ''
-
-                    if (produto[chave]) {
-                        var agrupamentos = produto[chave]
-
-                        for (item in agrupamentos) {
-
-                            let tipo = dados_composicoes[item].tipo
-
-                            var cor = 'green'
-                            if (tipo == 'VENDA') {
-                                cor = '#B12425'
-                            }
-    
-                            info_agrupamentos += `
+                        info_agrupamentos += `
                             <div style="display: flex; gap: 3px; align-items: center; justify-content: left;">
                                 <label class="numero" style="width: 20px; height: 20px; padding: 3px; background-color: ${cor}">${agrupamentos[item]}</label>
                                 <label style="font-size: 0.6em; text-align: left;">${String(dados_composicoes[item].descricao).slice(0, 10)}...</label>
                             </div>
                             `
-                        }
                     }
+                }
 
-                    conteudo = `
+                conteudo = `
                     <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
                         <img src="imagens/construcao.png" style="width: 30px; height: 30px; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">
                         <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; gap: 2px;">
@@ -207,49 +164,62 @@ function carregar_tabela_v2(col, ordem) {
                         </div>
                     </div>
                     `
-                    alinhamento = 'center';
+                alinhamento = 'center';
 
-                } else if (chave == 'material infra') {
+            } else if (chave == 'material infra') {
 
-                    var stats = ''
-                    if (produto[chave]) {
-                        stats = 'checked'
-                    }
-
-                    conteudo = `<input type="checkbox" style="width: 30px; height: 30px;" onchange="atualizar_status_material('${codigo}', this)" ${stats}>`;
-                    alinhamento = 'center';
+                var stats = ''
+                if (produto[chave]) {
+                    stats = 'checked'
                 }
 
-                tds[chave] = `<td style="text-align: ${alinhamento}; max-width: 200px;">${conteudo}</td>`;
-            });
+                conteudo = `<input type="checkbox" style="width: 30px; height: 30px;" onchange="atualizar_status_material('${codigo}', this)" ${stats}>`;
+                alinhamento = 'center';
+            }
 
-            tds.editar = `<td style="width: 70px;"><img src="imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')"></td>`;
+            tds[chave] = `<td style="text-align: ${alinhamento}; max-width: 200px;">${conteudo}</td>`;
+        });
 
-            var celulas = '';
-            colunas.forEach(col => {
-                if (tds[col] !== undefined) {
-                    celulas += tds[col];
-                }
-            });
+        tds.editar = `<td style="width: 70px;"><img src="imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')"></td>`;
 
-            tbody += `<tr>${celulas}</tr>`;
-        }
+        var celulas = '';
+        colunas.forEach(col => {
+            if (tds[col] !== undefined) {
+                celulas += tds[col];
+            }
+        });
 
-        var acumulado = `
+        tbody += `<tr>${celulas}</tr>`;
+    }
+
+    var acumulado = `
         <div style="display: flex; gap: 10px;">
             <div id="pc">
                 ${painel_colunas}
             </div>
-            <div style="padding: 10px; overflow: auto; height: 600px; width:70vw; background-color: #222222bf; border-radius: 3px;">
-                <table style="border-collapse: collapse;">
-                    <thead>${thead}</thead>
+            <div style="resize: both; overflow: auto; height: 600px; width:70vw; background-color: #222222bf; border-radius: 3px;">
+                <table style="border-collapse: collapse;" id="tabela_composicoes">
+                    <thead id="thead1">${thead}</thead>
                     <thead id="tsearch">${tsearch}</thead>
                     <tbody>${tbody}</tbody>
                 </table>
             </div>
         </div>`;
-        composicoes_.innerHTML = acumulado;
-    }, 200);
+
+    composicoes_.innerHTML = acumulado;
+
+    // Inclusão do evento click nos cabeçalhos;
+    let thead1 = document.getElementById('thead1')
+    if (thead1) {
+        let tr = thead1.querySelector('tr')
+        let ths = tr.querySelectorAll('th')
+        ths.forEach((th, i) => {
+            th.addEventListener('click', function () {
+                filtrar_tabela(i, 'tabela_composicoes', this)
+            })
+        })
+    }
+
 }
 
 async function atualizar_status_material(codigo, elemento) {
@@ -284,11 +254,11 @@ async function abrir_agrupamentos(codigo) {
 
 
     for (item in dados_composicoes) {
-            var checked = ''
+        var checked = ''
 
-            if(produto.agrupamentos && produto.agrupamentos[item]){
-                checked = 'checked'
-            }
+        if (produto.agrupamentos && produto.agrupamentos[item]) {
+            checked = 'checked'
+        }
         var tr = `
         <tr>
             <td style="white-space: normal; text-align: center;"><input type="checkbox" style="width: 30px; height: 30px;" onclick="incluir_agrupamento(this)" ${checked}></td>

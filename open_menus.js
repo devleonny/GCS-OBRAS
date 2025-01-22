@@ -1649,3 +1649,51 @@ function recuperar_dados_composicoes() {
     });
 
 }
+
+function filtrar_tabela(coluna, id, elementoTH) {
+
+    let tabela = document.getElementById(id)
+    let linhas = Array.from(tabela.tBodies[0].rows)
+    let ascendente = tabela.getAttribute("data-order") !== "asc";
+
+    linhas.sort((a, b) => {
+        let valorA = capturarValorCelula(a.cells[coluna])
+        let valorB = capturarValorCelula(b.cells[coluna])
+
+        if (!isNaN(valorA) && !isNaN(valorB)) {
+            return ascendente ? valorA - valorB : valorB - valorA
+        }
+
+        return ascendente
+            ? valorA.localeCompare(valorB)
+            : valorB.localeCompare(valorA)
+    });
+
+    let tbody = tabela.tBodies[0];
+    linhas.forEach((linha) => tbody.appendChild(linha))
+
+    tabela.setAttribute("data-order", ascendente ? "asc" : "desc")
+
+    let simbolo = ascendente ? 'a.png' : 'z.png'
+
+    let tr = elementoTH.closest('tr')
+    let ths = tr.querySelectorAll('th')
+
+    ths.forEach(th => {
+        let img = th.querySelector('img')
+        if (img) {
+            img.remove()
+        }
+    })
+
+    elementoTH.insertAdjacentHTML('beforeend', `<img src="imagens/${simbolo}" style="border-radius: 3px; position: absolute; top: 3px; right: 3px; width: 20px; background-color: #222;">`)
+}
+
+function capturarValorCelula(celula) {
+    let entrada = celula.querySelector('input') || celula.querySelector('textarea')
+    if (entrada) {
+        return entrada.value.toLowerCase(); 
+    }
+
+    return celula.innerText.toLowerCase(); 
+}
