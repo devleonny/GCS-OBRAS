@@ -2,19 +2,23 @@ body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f4f4f4; /* Cor de fundo clara */
+  background-color: #f4f4f4;
+  /* Cor de fundo clara */
 }
 
 select {
-  max-width: 150px; /* Define o tamanho máximo */
+  max-width: 150px;
+  /* Define o tamanho máximo */
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap; /* Impede quebra de linha */
+  white-space: nowrap;
+  /* Impede quebra de linha */
 }
 
 .controls {
   text-align: center;
-  margin-bottom: 10px; /* Espaço entre os controles e o calendário */
+  margin-bottom: 10px;
+  /* Espaço entre os controles e o calendário */
 }
 
 .calendar-header {
@@ -46,13 +50,16 @@ select {
 
 .calendar-table-container {
   width: 100%;
-  overflow-x: auto; /* Scroll horizontal */
+  overflow-x: auto;
+  /* Scroll horizontal */
 }
 
 .calendar-table {
-  width: 100%; /* A tabela ocupa todo o contêiner */
+  width: 100%;
+  /* A tabela ocupa todo o contêiner */
   border-collapse: collapse;
-  margin: auto; /* Centraliza a tabela */
+  margin: auto;
+  /* Centraliza a tabela */
 }
 
 .calendar-table th,
@@ -71,14 +78,16 @@ select {
 }
 
 .modal {
-  display: none; /* Oculto por padrão */
+  display: none;
+  /* Oculto por padrão */
   position: fixed;
   z-index: 1000;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); /* Fundo semi-transparente */
+  background-color: rgba(0, 0, 0, 0.5);
+  /* Fundo semi-transparente */
 }
 
 .modal-content {
@@ -127,7 +136,8 @@ button:hover {
 }
 
 .loading-container {
-  text-align: center; /* Centraliza o conteúdo */
+  text-align: center;
+  /* Centraliza o conteúdo */
   background-color: rgba(255, 255, 255, 0.9);
 }
 
@@ -138,7 +148,8 @@ button:hover {
 }
 
 .department-select {
-  max-width: 60px; /* Tamanho reduzido */
+  max-width: 60px;
+  /* Tamanho reduzido */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -155,27 +166,36 @@ button:hover {
 
 .actions {
   display: flex;
-  justify-content: center; /* Centraliza horizontalmente */
-  align-items: center; /* Centraliza verticalmente */
+  justify-content: center;
+  /* Centraliza horizontalmente */
+  align-items: center;
+  /* Centraliza verticalmente */
   gap: 10px;
 }
 
 .actions button {
-  background-color: transparent; /* Remove o fundo do botão */
-  border: none; /* Remove a borda */
+  background-color: transparent;
+  /* Remove o fundo do botão */
+  border: none;
+  /* Remove a borda */
   cursor: pointer;
-  display: inline-flex; /* Garante alinhamento flexível */
+  display: inline-flex;
+  /* Garante alinhamento flexível */
   align-items: center;
   justify-content: center;
-  padding: 0; /* Remove o espaçamento interno */
+  padding: 0;
+  /* Remove o espaçamento interno */
 }
 
 .actions img {
-  width: 20px; /* Define o tamanho da imagem */
+  width: 20px;
+  /* Define o tamanho da imagem */
   height: 20px;
-  pointer-events: none; /* Evita interação com a imagem */
+  pointer-events: none;
+  /* Evita interação com a imagem */
 }
 
 .actions button:hover img {
-  transform: scale(1.1); /* Aumenta levemente o tamanho ao passar o mouse */
+  transform: scale(1.1);
+  /* Aumenta levemente o tamanho ao passar o mouse */
 }

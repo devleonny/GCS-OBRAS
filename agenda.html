@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,16 +8,19 @@
   <link rel="stylesheet" href="agenda.css">
   <link rel="stylesheet" href="gcsobras.css">
 </head>
+
 <body>
   <div class="controls">
     <label for="region-select">Região:</label>
     <select id="region-select">
-        <option value="norte">Norte</option>
-        <option value="nordeste">Nordeste</option>
-        <option value="centro-oeste">Centro-Oeste</option>
-        <option value="sudeste">Sudeste</option>
-        <option value="sul">Sul</option>
+      <option value="todas">Todas as Regiões</option>
+      <option value="norte">Norte</option>
+      <option value="nordeste">Nordeste</option>
+      <option value="centro-oeste">Centro-Oeste</option>
+      <option value="sudeste">Sudeste</option>
+      <option value="sul">Sul</option>
     </select>
+
 
     <label for="month-select">Mês:</label>
     <select id="month-select"></select>
@@ -26,9 +30,9 @@
 
     <button id="sync-data-btn">Sincronizar</button>
     <button id="add-line-btn">Adicionar Linha</button>
-</div>
+  </div>
 
-    
+
   <div class="calendar-header">
     <div class="calendar-title">Agenda Técnicos</div>
     <div class="month-year">
@@ -41,7 +45,7 @@
             <!-- Linha de dias será gerada dinamicamente -->
           </tr>
         </thead>
-        <tbody id="technicians-body">    
+        <tbody id="technicians-body">
           <!-- Linhas serão adicionadas dinamicamente -->
         </tbody>
       </table>
@@ -55,22 +59,23 @@
       <button id="close-button">Fechar</button>
     </div>
   </div>
-  
+
   <div id="edit-modal" class="modal">
     <div class="modal-content">
-        <h2>Editar Região</h2>
-        <label for="edit-region-select">Região Atual:</label>
-        <select id="edit-region-select">
-            <!-- As opções serão preenchidas dinamicamente -->
-        </select>
-        <div class="modal-buttons">
-            <button id="edit-confirm-btn">Confirmar</button>
-            <button id="edit-cancel-btn">Cancelar</button>
-        </div>
+      <h2>Editar Região</h2>
+      <label for="edit-region-select">Região Atual:</label>
+      <select id="edit-region-select">
+        <!-- As opções serão preenchidas dinamicamente -->
+      </select>
+      <div class="modal-buttons">
+        <button id="edit-confirm-btn">Confirmar</button>
+        <button id="edit-cancel-btn">Cancelar</button>
+      </div>
     </div>
-</div>
+  </div>
 
   <script src="agenda.js"></script>
   <script src="open_menus.js"></script>
 </body>
+
 </html>

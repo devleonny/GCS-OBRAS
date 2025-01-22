@@ -49,9 +49,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     regionSelect.addEventListener("change", () => {
-        generateCalendar(yearSelect.value, monthSelect.value);
-        loadTechniciansFromLocalStorage();
+        generateCalendar(yearSelect.value, monthSelect.value); // Atualiza o calendário
+        loadTechniciansFromLocalStorage(); // Recarrega os técnicos com base na nova região
     });
+    
 
     syncDataBtn.addEventListener("click", async () => {
         showLoading(); // Exibe o indicador de carregamento
@@ -445,25 +446,40 @@ document.addEventListener("DOMContentLoaded", () => {
     function loadTechniciansFromLocalStorage() {
         const storedData = localStorage.getItem("dados_agenda_tecnicos");
         const selectedRegion = regionSelect.value; // Obtém a região selecionada no dropdown
-
+    
         if (storedData) {
             // Converte o objeto de volta para uma lista
             const techniciansObj = JSON.parse(storedData);
-            technicians = Object.values(techniciansObj) // Converte os valores do objeto em um array
-                .filter(tech => tech.regiao_atual === selectedRegion); // Filtra pela região atual
-            console.log("Técnicos carregados para a região atual:", technicians);
+    
+            // Filtrar técnicos com base na região selecionada
+            if (selectedRegion === "todas") {
+                // Exibe todos os técnicos, independentemente da região
+                technicians = Object.values(techniciansObj);
+            } else {
+                // Filtra apenas os técnicos da região selecionada
+                technicians = Object.values(techniciansObj).filter(
+                    tech => tech.regiao_atual === selectedRegion
+                );
+            }
+    
+            console.log(
+                `Técnicos carregados para a região "${selectedRegion}":`,
+                technicians
+            );
+    
             loadAgendaForCurrentMonth(); // Preenche a tabela com base na agenda do mês atual
         } else {
             technicians = [];
             console.log("Nenhum técnico salvo no localStorage.");
         }
-
+    
         // Se não houver técnicos ou agendas, exibe o aviso
         if (!technicians.length) {
             const totalColumns = daysRow.children.length || 2; // Inclui dias e ações
             techniciansBody.innerHTML = `<tr id="no-data-row"><td colspan="${totalColumns}">Nenhum técnico disponível para esta região. Adicione um técnico.</td></tr>`;
         }
     }
+    
 
 
     function loadAgendaForCurrentMonth() {
