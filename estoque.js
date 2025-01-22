@@ -12,7 +12,7 @@ async function carregar_estoque() {
         autorizado = true
         document.getElementById('adicionar_item').style.display = 'flex'
 
-        if(!colunas.includes('Excluir')){
+        if (!colunas.includes('Excluir')) {
             colunas.unshift('Excluir')
         }
 
@@ -663,8 +663,9 @@ async function atualizar_dados_relatorio() {
 
         let [anoI, mesI, diaI] = String(inputs[0].value).split('-')
         let inicial = new Date(anoI, mesI - 1, diaI)
-        let [anoF, mesF, diaF] = String(inputs[0].value).split('-')
+        let [anoF, mesF, diaF] = String(inputs[1].value).split('-')
         let final = new Date(anoF, mesF - 1, diaF)
+        final.setHours(23, 59, 59, 999);
 
         let filtrados = []
 
@@ -741,7 +742,7 @@ async function atualizar_dados_relatorio() {
         let tabela = `
         <label>Relatório</label>
         <div style="background-color: #097fe6; border-radius: 5px;">
-            <table class="tabela_e">
+            <table class="tabela_e" style="width: 100%;">
                 <thead>
                     <tr>${ths}</tr>
                     <tr style="background-color: white;">${thsearch}</tr>

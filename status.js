@@ -1251,7 +1251,7 @@ function atulizar_item(chave1, item) {
 
 }
 
-function abrir_esquema(id) {
+async function abrir_esquema(id) {
 
     overlay.style.display = 'block'
     var status = document.getElementById('status')
@@ -1263,10 +1263,10 @@ function abrir_esquema(id) {
         estrutura.remove()
     }
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
-    var lista_pagamentos = JSON.parse(localStorage.getItem('lista_pagamentos')) || {};
-    var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {};
-    var dados_etiquetas = JSON.parse(localStorage.getItem('dados_etiquetas')) || {};
+    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+    let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {};
+    let dados_etiquetas = JSON.parse(localStorage.getItem('dados_etiquetas')) || {};
 
     var categorias = Object.fromEntries(
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
@@ -1367,37 +1367,39 @@ function abrir_esquema(id) {
             var pagamentos_painel = {}
 
             Object.keys(lista_pagamentos).forEach(pag => {
-                var pagamento = lista_pagamentos[pag]
-                var comentario = 'Sem observação'
-                if (pagamento.param[0].observacao) {
-                    comentario = pagamento.param[0].observacao.replace(/\|/g, '<br>')
-                }
+                if (pag !== 'id') { // IndexedDB armazena um item com esse 'id';
+                    var pagamento = lista_pagamentos[pag]
+                    var comentario = 'Sem observação'
+                    if (pagamento.param[0].observacao) {
+                        comentario = pagamento.param[0].observacao.replace(/\|/g, '<br>')
+                    }
 
-                if (pagamento.id_pedido == chave_pedido || pagamento.pedido == todos_os_status[chave_pedido].pedido) {
-                    string_pagamentos += `
+                    if (pagamento.id_pedido == chave_pedido || pagamento.pedido == todos_os_status[chave_pedido].pedido) {
+                        string_pagamentos += `
                     <div style="display: flex; flex-direction: column; border-radius: 5px; border: solid 1px white; padding: 10px; background-color: white; color: #222;">
                             
                         <label style="display: flex; gap: 10px;"><strong>${pagamento.status}</strong></label>
                         <label><strong>Data:</strong> ${pagamento.param[0].data_previsao}</label>
                         <label><strong>Observação:</strong><br>${comentario}</label>
                         `
-                    pagamento.param[0].categorias.forEach(cat => {
-                        var nome_cat = ''
-                        categorias[cat.codigo_categoria] ? nome_cat = categorias[cat.codigo_categoria] : nome_cat = cat.codigo_categoria
+                        pagamento.param[0].categorias.forEach(cat => {
+                            var nome_cat = ''
+                            categorias[cat.codigo_categoria] ? nome_cat = categorias[cat.codigo_categoria] : nome_cat = cat.codigo_categoria
+                            string_pagamentos += `
+                            <label><strong>Categoria:</strong> ${nome_cat} • R$ ${dinheiro(cat.valor)}</label>
+                            `
+
+                            if (!pagamentos_painel[pagamento.status]) {
+                                pagamentos_painel[pagamento.status] = 0
+                            }
+                            pagamentos_painel[pagamento.status] += Number(cat.valor)
+
+                        })
                         string_pagamentos += `
-                        <label><strong>Categoria:</strong> ${nome_cat} • R$ ${dinheiro(cat.valor)}</label>
-                        `
-
-                        if (!pagamentos_painel[pagamento.status]) {
-                            pagamentos_painel[pagamento.status] = 0
-                        }
-                        pagamentos_painel[pagamento.status] += Number(cat.valor)
-
-                    })
-                    string_pagamentos += `
                         </div>
-                    `
-                    tem_pagamento = true
+                        `
+                        tem_pagamento = true
+                    }
                 }
             })
 
@@ -3111,7 +3113,7 @@ async function gerarpdf(cliente, pedido) {
     </body>
     </html>`;
 
-    if(pedido.includes("?")){
+    if (pedido.includes("?")) {
         pedido = ""
     }
 
