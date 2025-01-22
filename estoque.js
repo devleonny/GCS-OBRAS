@@ -143,8 +143,8 @@ function filtrar_tabela(coluna, id, elementoTH) {
     let ascendente = tabela.getAttribute("data-order") !== "asc";
 
     linhas.sort((a, b) => {
-        let valorA = a.cells[coluna].innerText.toLowerCase();
-        let valorB = b.cells[coluna].innerText.toLowerCase();
+        let valorA = capturarValorCelula(a.cells[coluna])
+        let valorB = capturarValorCelula(b.cells[coluna])
 
         if (!isNaN(valorA) && !isNaN(valorB)) {
             return ascendente ? valorA - valorB : valorB - valorA;
@@ -173,6 +173,15 @@ function filtrar_tabela(coluna, id, elementoTH) {
     })
 
     elementoTH.insertAdjacentHTML('beforeend', `<img src="imagens/${simbolo}" style="position: absolute; top: 3px; right: 3px; width: 15px; background-color: #222;">`)
+}
+
+function capturarValorCelula(celula) {
+    let entrada = celula.querySelector('input') || celula.querySelector('textarea')
+    if (entrada) {
+        return entrada.value.toLowerCase(); 
+    }
+
+    return celula.innerText.toLowerCase(); 
 }
 
 function parseDataBR(dataBR) {
