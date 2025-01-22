@@ -1,202 +1,181 @@
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f4f4f4; /* Cor de fundo clara */
-  }
-
-  select {
-    max-width: 150px; /* Define o tamanho máximo */
-    overflow: hidden; /* Oculta o conteúdo que exceder o tamanho */
-    text-overflow: ellipsis; /* Adiciona "..." ao texto cortado */
-    white-space: nowrap; /* Impede quebra de linha */
-  }
-  
-  
-  .controls {
-    text-align: center;
-    margin-bottom: 10px; /* Espaço entre os controles e o calendário */
-  }
-  
-  .calendar-header {
-    display: flex;
-    flex-direction: column;
-    background-color: #2f4f6f;
-    color: white;
-    border-radius: 5px;
-    padding: 10px;
-    margin: auto;
-    width: 95%; /* Sempre ocupa 95% da largura */
-    max-width: 95%; /* Limite máximo de largura */
-    margin-top: 10px; /* Reduz o espaço acima da tabela */
-  }
-  
-  .calendar-title {
-    background-color: #2f4f6f;
-    color: white;
-    font-size: 24px;
-    font-weight: bold;
-    text-align: center;
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 5px;
-  }
-  
-  .month-year {
-    background-color: #1a3555;
-    text-align: center;
-    font-size: 18px;
-    padding: 10px;
-  }
-  
-  .calendar-table-container {
-    width: 100%;
-    overflow-x: auto; /* Scroll horizontal */
-  }
-  
-  .calendar-table {
-    width: 100%; /* A tabela ocupa todo o contêiner */
-    border-collapse: collapse;
-    margin: auto; /* Centraliza a tabela */
-  }
-  
-  .calendar-table th,
-  .calendar-table td {
-    border: 1px solid #fff;
-    text-align: center;
-    padding: 10px; /* Espaçamento interno das células */
-  }
-  
-  .calendar-table th.left-header,
-  .calendar-table td.left-header {
-    text-align: left;
-    background-color: #1a3555;
-    color: white;
-    padding-left: 10px;
-  }
-  
-  .calendar-table th {
-    width: auto; /* Garante que o cabeçalho ocupe a largura proporcional */
-    text-align: center;
-  }
-  
-  .calendar-table td {
-    width: auto; /* Garante que as células se ajustem proporcionalmente */
-  }
-  
-  .calendar-table td.day {
-    background-color: white;
-    color: black;
-    border: 1px solid #ddd;
-  }
-  
-  .calendar-table td.day .weekday {
-    font-size: 12px;
-    text-transform: capitalize;
-  }
-  
-  .calendar-table td.day .date-number {
-    font-size: 14px;
-    font-weight: bold;
-  }
-  
-  /* Modal estilos */
-  .modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.4);
-  }
-  
-  .modal-content {
-    background-color: white;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 300px;
-    text-align: center;
-    border-radius: 5px;
-  }
-  
-  .close {
-    color: red;
-    float: right;
-    font-size: 20px;
-    font-weight: bold;
-    cursor: pointer;
-  }
-  
-  .close:hover {
-    color: darkred;
-  }
-  
-  .remove-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-  }
-  
-  .remove-btn img {
-    width: 20px;
-    height: 20px;
-  }
-  
-  .remove-btn img:hover {
-    transform: scale(1.1); /* Aumenta levemente ao passar o mouse */
-  }
-  
-  .loading-container {
-    text-align: center; /* Centraliza o conteúdo */
-    width: 100%; /* Garante que ocupe toda a largura */
-    background-color: rgba(255, 255, 255, 0.9);
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f4f4f4; /* Cor de fundo clara */
 }
 
-.loading-gif {
-    width: 50px;
-    height: 50px;
-    margin-bottom: 10px;
-}
-  
-  .loading-container p {
-    font-size: 14px;
-    color: #555;
-  }
-/* Ajuste para o select de departamentos */
-.department-select {
-  max-width: 60px; /* Tamanho reduzido */
+select {
+  max-width: 150px; /* Define o tamanho máximo */
   overflow: hidden;
-  text-overflow: ellipsis; /* Adiciona "..." */
+  text-overflow: ellipsis;
   white-space: nowrap; /* Impede quebra de linha */
 }
 
-/* Estilo para o tooltip */
-.department-select:hover::after {
-  content: attr(data-title); /* Usa o atributo `data-title` */
-  position: absolute;
-  background: #333;
-  color: #fff;
-  padding: 5px;
+.controls {
+  text-align: center;
+  margin-bottom: 10px; /* Espaço entre os controles e o calendário */
+}
+
+.calendar-header {
+  display: flex;
+  flex-direction: column;
+  background-color: #2f4f6f;
+  color: white;
   border-radius: 5px;
-  top: -30px;
+  padding: 10px;
+  margin: auto;
+  width: 95%;
+  margin-top: 10px;
+}
+
+.calendar-title {
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.month-year {
+  background-color: #1a3555;
+  text-align: center;
+  font-size: 18px;
+  padding: 10px;
+}
+
+.calendar-table-container {
+  width: 100%;
+  overflow-x: auto; /* Scroll horizontal */
+}
+
+.calendar-table {
+  width: 100%; /* A tabela ocupa todo o contêiner */
+  border-collapse: collapse;
+  margin: auto; /* Centraliza a tabela */
+}
+
+.calendar-table th,
+.calendar-table td {
+  border: 1px solid #fff;
+  text-align: center;
+  padding: 10px;
+}
+
+.calendar-table th.left-header,
+.calendar-table td.left-header {
+  text-align: left;
+  background-color: #1a3555;
+  color: white;
+  padding-left: 10px;
+}
+
+.modal {
+  display: none; /* Oculto por padrão */
+  position: fixed;
+  z-index: 1000;
   left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Fundo semi-transparente */
+}
+
+.modal-content {
+  background-color: white;
+  margin: 15% auto;
+  padding: 20px;
+  width: 300px;
+  text-align: center;
+  border-radius: 5px;
+}
+
+.modal-buttons {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-around;
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #ddd;
+}
+
+.modal .close {
+  color: red;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.modal .close:hover {
+  color: darkred;
+}
+
+#modal-message {
+  margin: 20px 0;
+  font-size: 16px;
+}
+
+.loading-container {
+  text-align: center; /* Centraliza o conteúdo */
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.loading-gif {
+  width: 50px;
+  height: 50px;
+  margin-bottom: 10px;
+}
+
+.department-select {
+  max-width: 60px; /* Tamanho reduzido */
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
-  z-index: 10;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  pointer-events: none; /* Evita interferência no mouse */
 }
 
 #no-data-row td {
-  font-family: Arial, sans-serif; /* Garante uma fonte legível */
-  font-size: 14px; /* Define um tamanho legível */
-  color: #333; /* Define a cor do texto para cinza escuro */
-  text-align: center; /* Centraliza o texto */
-  background-color: #f9f9f9; /* Define uma cor de fundo clara */
-  padding: 10px; /* Adiciona um espaçamento interno */
-  border: 1px solid #ddd; /* Adiciona uma borda para separação visual */
+  font-size: 14px;
+  color: #333;
+  text-align: center;
+  background-color: #f9f9f9;
+  padding: 10px;
+  border: 1px solid #ddd;
+}
+
+.actions {
+  display: flex;
+  justify-content: center; /* Centraliza horizontalmente */
+  align-items: center; /* Centraliza verticalmente */
+  gap: 10px;
+}
+
+.actions button {
+  background-color: transparent; /* Remove o fundo do botão */
+  border: none; /* Remove a borda */
+  cursor: pointer;
+  display: inline-flex; /* Garante alinhamento flexível */
+  align-items: center;
+  justify-content: center;
+  padding: 0; /* Remove o espaçamento interno */
+}
+
+.actions img {
+  width: 20px; /* Define o tamanho da imagem */
+  height: 20px;
+  pointer-events: none; /* Evita interação com a imagem */
+}
+
+.actions button:hover img {
+  transform: scale(1.1); /* Aumenta levemente o tamanho ao passar o mouse */
 }
