@@ -196,19 +196,25 @@ async function abrir_valores(codigo) {
 
     if (dicionario(item.valor_compra)) {
 
-        console.log(item.valor_compra)
+        let historicoCompra = Object.entries(item.valor_compra);
+        historicoCompra.sort((a, b) => {
+            const dataA = parseDataBR(a[1].data);
+            const dataB = parseDataBR(b[1].data);
+            return dataB - dataA;
+        });
+        item.valor_compra = Object.fromEntries(historicoCompra);
 
         let linhas = ''
         for(cpr in item.valor_compra){
             let compra = item.valor_compra[cpr]
             linhas +=`
-            <tr>
+            <tr style="font-size: 0.7em;">
                 <td>${dinheiro(compra.vl_compra)}</td>
                 <td>${compra.data}</td>
                 <td>${compra.unidade}</td>
                 <td>${compra.conversao}</td>
                 <td>${compra.fornecedor}</td>
-                <td>${compra.comentario}</td>
+                <td><textarea style="border-radius: 0px; border: none;" readOnly>${compra.comentario}</textarea></td>
                 <td>${compra.usuario}</td>
                 <td>
                     <div style="display: flex; justify-content: center; align-items: center;">

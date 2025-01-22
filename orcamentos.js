@@ -1436,34 +1436,43 @@ async function anexos_parceiros(campo, id_pagamento) {
             var result = await response.json();
             if (response.ok) {
 
+                let id_anx = gerar_id_5_digitos()
+
                 if (id_pagamento !== undefined) {
 
                     var dados = {
                         id_pagamento: id_pagamento,
                         campo: campo,
                         tabela: 'anexos_parceiros',
-                        anexo: anx_parceiros[campo]
+                        anexo: {
+                            id_anx: {
+                                nome: fileName,
+                                formato: mimeType,
+                                link: result.fileId
+                            }
+                        }
                     }
 
-                    var pagamentos = await recuperarDados('lista_pagamentos') || {};
-                    var pagamento = pagamentos[id_pagamento]
+                    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+                    var pagamento = lista_pagamentos[id_pagamento]
 
-                    pagamento.anexos_parceiros = pagamento.anexos_parceiros || {};
+                    if (pagamento.anexos_parceiros[campo]) {
+                        pagamento.anexos_parceiros[campo] = {}
+                    }
 
-                    pagamento.anexos_parceiros[dados.campo] = {
+                    pagamento.anexos_parceiros[campo] = {
                         ...pagamento.anexos_parceiros[dados.campo],
                         ...dados.anexo
                     }
 
                     enviar_dados_generico(dados)
 
-                    await inserirDados(pagamentos, 'lista_pagamentos')
+                    await inserirDados(lista_pagamentos, 'lista_pagamentos')
 
                     return await abrir_detalhes(id_pagamento)
 
                 } else {
 
-                    let id_anx = gerar_id_5_digitos()
                     if (!anx_parceiros[campo]) {
                         anx_parceiros[campo] = {}
                     }
