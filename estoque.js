@@ -560,6 +560,7 @@ async function remover_linha_excluir_item(elemento) {
 
     } else {
         tr.remove()
+        carregar_estoque()
     }
 
 }
@@ -659,9 +660,10 @@ function pesquisar_em_estoque(coluna, texto, filtro, id) {
 
             if (filtroTexto && col < tds.length) {
                 let element = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].textContent
-                var conteudoCelula = element.value ? String(element.value).toLowerCase() : element
+                let conteudoCelula = element.value ? element.value : element
+                let texto_campo = String(conteudoCelula).toLowerCase()
 
-                if (!conteudoCelula.includes(filtroTexto)) {
+                if (!texto_campo.includes(filtroTexto)) {
                     mostrarLinha = false;
                     break;
                 }
@@ -763,11 +765,12 @@ async function atualizar_dados_relatorio() {
                 </td>
                 <td>${item.quantidade}</td>
                 <td>${item.usuario}</td>
+                <td><textarea style="border: none; border-radius: 0px;" readonly>${item.comentario}</textarea></td>
             </tr>
             `
         })
 
-        let colunas = ['Partnumber', 'Descrição', 'Data', 'Operação', 'Sin', 'Quantidade', 'Usuário']
+        let colunas = ['Partnumber', 'Descrição', 'Data', 'Operação', 'Sin', 'Quantidade', 'Usuário', 'Comentário']
         let ths = ''
         let thsearch = ''
 
@@ -785,7 +788,7 @@ async function atualizar_dados_relatorio() {
             thsearch = ''
             linhas = `
             <tr>
-                <td colspan="7" style="color: #222;">Sem resultados<td>
+                <td colspan="8" style="color: #222;">Sem resultados<td>
             </tr>
             `
         }
