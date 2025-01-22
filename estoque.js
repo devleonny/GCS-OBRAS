@@ -75,8 +75,26 @@ async function carregar_estoque() {
                 `
                 } else if (chave.includes('valor_compra')) {
 
+                    let valor = 0
+
+                    if (dicionario(dados_item.valor_compra)) {
+
+                        let total_unit = 0
+                        let total_compras = 0
+
+                        for(id in dados_item.valor_compra){
+                            let compra = dados_item.valor_compra[id]
+
+                            total_unit += (compra.vl_compra / compra.conversao)
+                            total_compras++
+                        }
+
+                        valor = total_unit / total_compras
+
+                    }
+
                     elemento = `
-                    <label style="cursor: pointer; text-align: center;" onclick="abrir_valores('${item}', '${chave}')">R$ 0,00</label>
+                    <label style="cursor: pointer; text-align: center;" onclick="abrir_valores('${item}', '${chave}')">${dinheiro(valor)}</label>
                     `
 
                 } else if (chave.includes('estoque')) {
@@ -205,9 +223,9 @@ async function abrir_valores(codigo) {
         item.valor_compra = Object.fromEntries(historicoCompra);
 
         let linhas = ''
-        for(cpr in item.valor_compra){
+        for (cpr in item.valor_compra) {
             let compra = item.valor_compra[cpr]
-            linhas +=`
+            linhas += `
             <tr style="font-size: 0.7em;">
                 <td>${dinheiro(compra.vl_compra)}</td>
                 <td>${compra.data}</td>

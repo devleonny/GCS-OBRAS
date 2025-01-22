@@ -264,7 +264,7 @@ async function abrir_detalhes(id_pagamento) {
                                 info_existente += `
                                 <div onclick="abrirArquivo('https://drive.google.com/file/d/${anexo.link}')" class="anexos" style="border: solid 1px green;">
                                     <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
-                                    <label style="cursor: pointer; font-size: 0.6em"><strong>${anexo.nome}</strong></label>
+                                    <label style="cursor: pointer; font-size: 0.6em"><strong>${String(fileName).slice(0, 20)} ... ${String(fileName).slice(-7)}</strong></label>
                                 </div>                              
                                 `
                             }
