@@ -33,7 +33,7 @@ async function carregar_estoque() {
 
         let indice_correto = i + 1
         let coluna = String(col).toUpperCase()
-        thc += `<th>${coluna}</th>`
+        thc += `<th style="cursor: pointer; position: relative;" onclick="filtrar_tabela('${indice_correto}', 'tabela_estoque', this)">${coluna}</th>`
 
         if (coluna == 'EXCLUIR') {
             ths = `<th style="background-color: white; position: relative; border-radius: 0px;"></th>`
@@ -48,55 +48,57 @@ async function carregar_estoque() {
     })
 
     for (item in dados_estoque) {
-        let dados_item = dados_estoque[item]
 
-        let tds = ''
+        if (item !== 'id') {
+            let dados_item = dados_estoque[item]
 
-        colunas.forEach(chave => {
+            let tds = ''
 
-            let info = dados_item[chave] || ''
-            let elemento = `<input style="background-color: transparent; cursor: pointer; text-align: center; padding: 10px; border-radius: 3px;" value="${info}" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>`
-            let quantidade = ''
-            let cor = ''
+            colunas.forEach(chave => {
 
-            if (chave == 'descricao' || chave == 'inventario') {
-                elemento = `<textarea style="border: none; border-radius: 0px;" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>${info}</textarea>`
+                let info = dados_item[chave] || ''
+                let elemento = `<input style="background-color: transparent; cursor: pointer; text-align: center; padding: 10px; border-radius: 3px;" value="${info}" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>`
+                let quantidade = ''
+                let cor = ''
 
-            } else if (chave == 'Excluir') {
+                if (chave == 'descricao' || chave == 'inventario') {
+                    elemento = `<textarea style="border: none; border-radius: 0px;" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>${info}</textarea>`
 
-                elemento = `
+                } else if (chave == 'Excluir') {
+
+                    elemento = `
                     <div style="display: flex; align-items: center; justify-content: center;">
                         <img src="imagens/cancel.png" style="cursor: pointer; width: 25px; height: 25px;" onclick="remover_linha_excluir_item(this)">
                     </div>
                 `
 
-            } else if (chave.includes('estoque')) {
+                } else if (chave.includes('estoque')) {
 
-                quantidade = info.quantidade
+                    quantidade = info.quantidade
 
-                for (his in info.historico) {
+                    for (his in info.historico) {
 
-                    let historico = info.historico[his]
+                        let historico = info.historico[his]
 
-                    if (historico.operacao == 'entrada') {
-                        quantidade += historico.quantidade
-                    } else if (historico.operacao == 'saida') {
-                        quantidade -= historico.quantidade
+                        if (historico.operacao == 'entrada') {
+                            quantidade += historico.quantidade
+                        } else if (historico.operacao == 'saida') {
+                            quantidade -= historico.quantidade
+                        }
+
                     }
 
+                    elemento = `<label style="cursor: pointer; font-size: 25px; text-align: center; color: white; width: 100%; padding: 5px;" onclick="abrir_estoque('${item}', '${chave}')">${quantidade}</label>`
+
                 }
 
-                elemento = `<label style="cursor: pointer; font-size: 25px; text-align: center; color: white; width: 100%;" onclick="abrir_estoque('${item}', '${chave}')">${quantidade}</label>`
+                if (chave !== 'id') {
 
-            }
+                    if (quantidade !== '') {
+                        cor = conversor(quantidade) > 0 ? '#4CAF50' : '#B12425'
+                    }
 
-            if (chave !== 'id') {
-
-                if (quantidade !== '') {
-                    cor = conversor(quantidade) > 0 ? '#4CAF50' : '#B12425'
-                }
-
-                tds += `
+                    tds += `
                     <td style="background-color: ${cor}">
                         <div style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
                             <img src="imagens/concluido.png" style="display: none; width: 25px; height: 25px; cursor: pointer;" onclick="salvar_dados_estoque(this, '${item}', '${chave}')">
@@ -104,21 +106,23 @@ async function carregar_estoque() {
                         </div>
                     </td>
                 `
-            }
+                }
 
-        })
 
-        linhas += `
+            })
+
+            linhas += `
             <tr>
                 <td style="display: none;">${item}</td>
                 ${tds}
             </tr>
         `
+        }
     }
 
     let acumulado = `
         <div style="height: max-content; max-height: 70vh; width: max-content; max-width: 90vw; overflow: auto; background-color: #222; border-radius: 5px;">
-            <table class="tabela_e">
+            <table class="tabela_e" id="tabela_estoque">
                 <thead>
                     <tr>${thc}</tr>
                     <tr id="thead_pesquisa">${ths}</tr>
@@ -131,6 +135,44 @@ async function carregar_estoque() {
 
     div_estoque.innerHTML = acumulado
 
+}
+
+function filtrar_tabela(coluna, id, elementoTH) {
+    let tabela = document.getElementById(id);
+    let linhas = Array.from(tabela.tBodies[0].rows);
+    let ascendente = tabela.getAttribute("data-order") !== "asc";
+
+    linhas.sort((a, b) => {
+        let valorA = a.cells[coluna].innerText.toLowerCase();
+        let valorB = b.cells[coluna].innerText.toLowerCase();
+
+        if (!isNaN(valorA) && !isNaN(valorB)) {
+            return ascendente ? valorA - valorB : valorB - valorA;
+        }
+
+        return ascendente
+            ? valorA.localeCompare(valorB)
+            : valorB.localeCompare(valorA);
+    });
+
+    let tbody = tabela.tBodies[0];
+    linhas.forEach((linha) => tbody.appendChild(linha));
+
+    tabela.setAttribute("data-order", ascendente ? "asc" : "desc");
+
+    let simbolo = ascendente ? 'a.png' : 'z.png';
+
+    let tr = elementoTH.closest('tr')
+    let ths = tr.querySelectorAll('th')
+
+    ths.forEach(th => {
+        let img = th.querySelector('img')
+        if (img) {
+            img.remove()
+        }
+    })
+
+    elementoTH.insertAdjacentHTML('beforeend', `<img src="imagens/${simbolo}" style="position: absolute; top: 3px; right: 3px; width: 15px; background-color: #222;">`)
 }
 
 function parseDataBR(dataBR) {
