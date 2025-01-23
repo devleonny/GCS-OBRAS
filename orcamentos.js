@@ -772,9 +772,14 @@ async function tela_pagamento(chave1) {
     }
 
     var acumulado = `
-    <div class="pagamento">
-        <h2>Solicitação de Pagamento</h2>
 
+    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
+
+    <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
+        <label>Solicitação de Pagamento</label>
+    </div>
+
+    <div class="pagamento">
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: left; gap: 5px; fontsize: 0.8vw;">
 
             <div style="display: flex; flex-direction: column; align-items: baseline; justify-content: center; width: 100%;">
@@ -784,8 +789,6 @@ async function tela_pagamento(chave1) {
                 <br> e será pago dia <strong>10</strong> de cada mês;</label>
                 <label>• Adiantamento de parceiro, o pagamento ocorre em até 8 dias.</label>
             </div>
-
-            <img src="gifs/baixo.gif" style="width: 2vw;">
 
             <div class="central_categorias">
 
