@@ -759,7 +759,7 @@ async function tela_pagamento(chave1) {
                 </div>
 
                 <div onclick="atualizar_departamentos()" class="botoes_financeiro">
-                    <img src="imagens/atualizar_2.png" style="width: 30px;">
+                    <img src="imagens/atualizar_2.png" style="width: 20px;">
                 </div>
             </div>
 
@@ -807,7 +807,7 @@ async function tela_pagamento(chave1) {
                         </div>
 
                         <div onclick="atualizar_base_clientes()" class="botoes_financeiro">
-                            <img src="imagens/atualizar_2.png" style="width: 30px;">
+                            <img src="imagens/atualizar_2.png" style="width: 20px;">
                         </div>
 
                     </div>

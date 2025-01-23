@@ -1404,7 +1404,6 @@ input[type=range]::-moz-range-thumb {
 
 .botoes_financeiro {
     position: absolute;
-    top: 10%;
     right: -15px;
     display: flex;
     align-items: center;
