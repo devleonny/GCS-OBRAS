@@ -62,6 +62,7 @@ async function carregar_estoque() {
                 let elemento = `<input style="background-color: transparent; cursor: pointer; text-align: center; padding: 10px; border-radius: 3px;" value="${info}" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>`
                 let quantidade = ''
                 let cor = ''
+                let valor = ''
 
                 if (chave == 'descricao' || chave == 'inventario') {
                     elemento = `<textarea style="border: none; border-radius: 0px;" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>${info}</textarea>`
@@ -75,26 +76,12 @@ async function carregar_estoque() {
                 `
                 } else if (chave.includes('valor_compra')) {
 
-                    let valor = 0
+                    valor = calcular_cmc(dados_item.valor_compra)
 
-                    if (dicionario(dados_item.valor_compra)) {
-
-                        let total_unit = 0
-                        let total_compras = 0
-
-                        for (id in dados_item.valor_compra) {
-                            let compra = dados_item.valor_compra[id]
-
-                            total_unit += (compra.vl_compra / compra.conversao)
-                            total_compras++
-                        }
-
-                        valor = total_unit / total_compras
-
-                    }
+                    let color = valor == 0 ? '#222' : 'white'
 
                     elemento = `
-                    <label style="cursor: pointer; text-align: center;" onclick="abrir_valores('${item}', '${chave}')">${dinheiro(valor)}</label>
+                    <label style="color: ${color}; cursor: pointer; text-align: center;" onclick="abrir_valores('${item}', '${chave}')">${dinheiro(valor)}</label>
                     `
 
                 } else if (chave.includes('estoque')) {
@@ -121,6 +108,10 @@ async function carregar_estoque() {
 
                     if (quantidade !== '') {
                         cor = conversor(quantidade) > 0 ? '#4CAF50' : '#B12425'
+                    }
+
+                    if (valor !== '') {
+                        cor = conversor(valor) > 0 ? '#097fe6' : ''
                     }
 
                     tds += `
@@ -162,6 +153,29 @@ async function carregar_estoque() {
 
 }
 
+function calcular_cmc(objeto) {
+
+    let valor = 0
+    if (dicionario(objeto) && Object.keys(objeto).length > 0) {
+
+        let total_unit = 0
+        let total_compras = 0
+
+        for (id in objeto) {
+            let compra = objeto[id]
+
+            total_unit += (compra.vl_compra / compra.conversao)
+            total_compras++
+        }
+
+        valor = total_unit / total_compras
+
+    }
+
+    return valor
+
+}
+
 async function abrir_valores(codigo) {
 
     let dados_estoque = await recuperarDados('dados_estoque') || {}
@@ -184,12 +198,12 @@ async function abrir_valores(codigo) {
             
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                 <label style="color: #222;">Valor de Compra</label>
-                <input class="numero-bonito" id="vl_compra">
+                <input class="numero-bonito" style="background-color: #097fe6;" id="vl_compra">
             </div>
 
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                 <label style="color: #222;">Unidade</label>
-                <input class="numero-bonito" value="1" id="unidade">
+                <input class="numero-bonito" value="1" id="unidade" readOnly>
             </div>
 
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -212,7 +226,7 @@ async function abrir_valores(codigo) {
         </div>
         `
 
-    if (dicionario(item.valor_compra)) {
+    if (dicionario(item.valor_compra) && Object.keys(item.valor_compra) > 0) {
 
         let historicoCompra = Object.entries(item.valor_compra);
         historicoCompra.sort((a, b) => {
@@ -225,25 +239,60 @@ async function abrir_valores(codigo) {
         let linhas = ''
         for (cpr in item.valor_compra) {
             let compra = item.valor_compra[cpr]
+            let readOnly = 'readOnly'
+            let exclusao = ''
+
+            if (acesso.permissao == 'adm' || acesso.usuario == compra.usuario) {
+                readOnly = ''
+                exclusao = `
+                    <div style="display: flex; justify-content: center; align-items: center;">
+                        <img src="imagens/cancel.png" style="width: 25px; heigth: 25px; cursor: pointer;" onclick="excluir_preco('${codigo}', '${cpr}')">
+                    </div>                
+                `
+            }
+
             linhas += `
             <tr style="font-size: 0.7em;">
                 <td>${dinheiro(compra.vl_compra)}</td>
                 <td>${compra.data}</td>
                 <td>${compra.unidade}</td>
-                <td>${compra.conversao}</td>
-                <td>${compra.fornecedor}</td>
-                <td><textarea style="border-radius: 0px; border: none;" readOnly>${compra.comentario}</textarea></td>
+                <td>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                        <img src="imagens/concluido.png" style="display: none; width: 25px; height: 25px; cursor: pointer;" onclick="salvar_dados_compra('${codigo}', '${cpr}', 'conversao', this)">
+                        <input class="numero-bonito" style="font-size: 1.2em;" value="${compra.conversao}" oninput="exibir_botao(this)" ${readOnly}>
+                    </div>
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                        <img src="imagens/concluido.png" style="display: none; width: 25px; height: 25px; cursor: pointer;" onclick="salvar_dados_compra('${codigo}', '${cpr}', 'fornecedor', this)">
+                        <textarea maxlength="100" style="border-radius: 0px; border: none;" oninput="exibir_botao(this)" ${readOnly}>${compra.fornecedor}</textarea>
+                    </div>
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                        <img src="imagens/concluido.png" style="display: none; width: 25px; height: 25px; cursor: pointer;" onclick="salvar_dados_compra('${codigo}', '${cpr}', 'comentario', this)">
+                        <textarea maxlength="100" style="border-radius: 0px; border: none;" oninput="exibir_botao(this)" ${readOnly}>${compra.comentario}</textarea>
+                    </div>                
+                </td>
                 <td>${compra.usuario}</td>
                 <td>
-                    <div style="display: flex; justify-content: center; align-items: center;">
-                        <img src="imagens/cancel.png" style="width: 25px; heigth: 25px; cursor: pointer;" onclick="excluir_preco('${codigo}', '${cpr}')">
-                    </div>
+                    ${exclusao}
                 </td>
             </tr>
             `
         }
 
+        let valor = calcular_cmc(item.valor_compra)
         acumulado += `
+
+            <hr style="width: 80%;">
+
+            <div style="display: flex; justify-content: center; align-items: center; width: 100%; gap: 10px;">
+                <label>CMC - Custo Médio de Compra</label>
+                <label style="border-radius: 5px; padding: 10px; font-size: 35px; color: white; background-color: #097fe6; margin: 5px;">${dinheiro(valor)}</label>
+            </div>
+
+            <hr style="width: 80%;">
 
             <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
                 <label>Histórico</label>
@@ -268,9 +317,36 @@ async function abrir_valores(codigo) {
         `
     }
 
-    carregar_estoque()
     openPopup_v2(acumulado)
+}
 
+async function salvar_dados_compra(codigo, cpr, campo, img) {
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+
+    let elemento = img.nextElementSibling
+    if (dados_estoque[codigo] && dados_estoque[codigo].valor_compra[cpr]) {
+
+        elemento = campo == 'conversao' ? conversor(elemento.value) : elemento.value
+        dados_estoque[codigo].valor_compra[cpr][campo] = elemento
+
+        let dados = {
+            tabela: 'estoque',
+            id: codigo,
+            id_compra: cpr,
+            operacao: 'alterar_compra',
+            campo: campo,
+            info: elemento
+        }
+
+        enviar_dados_generico(dados)
+
+        await inserirDados(dados_estoque, 'dados_estoque')
+
+    }
+
+    remover_popup()
+    await carregar_estoque()
+    await abrir_valores(codigo)
 }
 
 async function excluir_preco(codigo, cpr) {
@@ -280,11 +356,20 @@ async function excluir_preco(codigo, cpr) {
         delete dados_estoque[codigo].valor_compra[cpr]
     }
 
+    let dados = {
+        tabela: 'estoque',
+        operacao: 'excluir_compra',
+        id: codigo,
+        id_compra: cpr
+    }
+
+    enviar_dados_generico(dados)
+
     await inserirDados(dados_estoque, 'dados_estoque')
 
     remover_popup()
-    carregar_estoque()
-    abrir_valores(codigo)
+    await carregar_estoque()
+    await abrir_valores(codigo)
 }
 
 async function salvar_valor(codigo) {
@@ -309,7 +394,7 @@ async function salvar_valor(codigo) {
 
         let id = gerar_id_5_digitos()
 
-        item.valor_compra[id] = {
+        let compra = {
             vl_compra: conversor(vl_compra.value),
             unidade: conversor(unidade.value),
             conversao: conversor(conversao.value),
@@ -319,11 +404,24 @@ async function salvar_valor(codigo) {
             data: data.textContent
         }
 
+        item.valor_compra[id] = compra
+
+        let dados = {
+            tabela: 'estoque',
+            operacao: 'incluir_compra',
+            id: codigo,
+            id_compra: id,
+            compra: compra
+        }
+
+        enviar_dados_generico(dados)
+
         await inserirDados(dados_estoque, 'dados_estoque')
 
     }
 
     remover_popup()
+    await carregar_estoque()
     await abrir_valores(codigo)
 
 }
