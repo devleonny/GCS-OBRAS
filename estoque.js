@@ -82,7 +82,7 @@ async function carregar_estoque() {
                         let total_unit = 0
                         let total_compras = 0
 
-                        for(id in dados_item.valor_compra){
+                        for (id in dados_item.valor_compra) {
                             let compra = dados_item.valor_compra[id]
 
                             total_unit += (compra.vl_compra / compra.conversao)
@@ -236,7 +236,7 @@ async function abrir_valores(codigo) {
                 <td>${compra.usuario}</td>
                 <td>
                     <div style="display: flex; justify-content: center; align-items: center;">
-                        <img src="imagens/cancel.png" style="width: 25px; heigth: 25px;">
+                        <img src="imagens/cancel.png" style="width: 25px; heigth: 25px; cursor: pointer;" onclick="excluir_preco('${codigo}', '${cpr}')">
                     </div>
                 </td>
             </tr>
@@ -268,8 +268,23 @@ async function abrir_valores(codigo) {
         `
     }
 
+    carregar_estoque()
     openPopup_v2(acumulado)
 
+}
+
+async function excluir_preco(codigo, cpr) {
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+
+    if (dados_estoque[codigo] && dados_estoque[codigo].valor_compra[cpr]) {
+        delete dados_estoque[codigo].valor_compra[cpr]
+    }
+
+    await inserirDados(dados_estoque, 'dados_estoque')
+
+    remover_popup()
+    carregar_estoque()
+    abrir_valores(codigo)
 }
 
 async function salvar_valor(codigo) {
