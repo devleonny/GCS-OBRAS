@@ -577,7 +577,6 @@ async function atualizar_pagamentos_menu() {
     recuperar()
     await obter_lista_pagamentos()
     await lista_setores()
-    remover_popup()
     await consultar_pagamentos()
 
     for (coluna in filtrosAtivosPagamentos) {

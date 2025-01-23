@@ -226,7 +226,7 @@ async function abrir_valores(codigo) {
         </div>
         `
 
-    if (dicionario(item.valor_compra) && Object.keys(item.valor_compra) > 0) {
+    if (dicionario(item.valor_compra)) {
 
         let historicoCompra = Object.entries(item.valor_compra);
         historicoCompra.sort((a, b) => {
@@ -472,9 +472,9 @@ async function abrir_estoque(codigo, stq) {
             <tr style="font-size: 0.7em;">
                 <td><img src="${img}" style="width: 15px; height: 15px;"></td>
                 <td style="padding: 5px;">${historico.quantidade}</td>
-                <td>${historico.operacao}</td>
-                <td><label style="padding: 5px;">${historico.data}</label></td>
-                <td>${historico.usuario}</td>
+                <td style="padding: 5px;">${historico.operacao}</td>
+                <td style="padding: 5px;">${historico.data}</td>
+                <td style="padding: 5px;">${historico.usuario}</td>
                 <td><textarea style="padding: 0px; border: none; border-radius: 0px;" readonly>${historico.comentario}</textarea></td>
                 <td>
                     <div style="display: flex; justify-content: center; align-items: center;">
