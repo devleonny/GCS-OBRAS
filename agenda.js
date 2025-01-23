@@ -302,14 +302,9 @@ document.addEventListener("DOMContentLoaded", () => {
             // Define a cor inicial do <td> com base no departamento selecionado
             dayCell.style.backgroundColor = getDepartmentColorByCode(daySelect.value);
 
-            // Evento ao alterar o departamento
             daySelect.addEventListener("change", () => {
-                const selectedDepartments = Array.from(newRow.querySelectorAll("td select"))
-                    .slice(1) // Ignora a primeira célula (coluna do técnico)
-                    .map(cell => cell.value || "");
-            
-                const technicianOmie = tecnicoSelect.value;
-                if (!technicianOmie) return; // Não faz nada se nenhum técnico for selecionado
+                const technicianOmie = tecnicoSelect.value; // Identifica o técnico associado
+                if (!technicianOmie) return; // Não faz nada se nenhum técnico estiver selecionado
             
                 const currentKey = getAgendaKey(); // Obtém a chave do mês/ano atual
                 if (!currentKey) {
@@ -326,14 +321,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
             
-                // Atualiza a agenda do técnico para o mês/ano atual
-                storedData[technicianOmie].agendas[currentKey] = selectedDepartments;
+                // Atualiza apenas o dia correspondente na agenda do técnico para o mês/ano atual
+                const dayIndex = i; // Aqui, `i` é o índice do dia no calendário
+                const selectedValue = daySelect.value || ""; // Valor selecionado no select
+                if (!storedData[technicianOmie].agendas[currentKey]) {
+                    storedData[technicianOmie].agendas[currentKey] = []; // Inicializa a agenda se não existir
+                }
+                storedData[technicianOmie].agendas[currentKey][dayIndex] = selectedValue;
             
                 // Salva os dados atualizados no localStorage
                 localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
             
                 // Atualiza a cor da célula com base no departamento selecionado
-                dayCell.style.backgroundColor = getDepartmentColorByCode(daySelect.value);
+                dayCell.style.backgroundColor = getDepartmentColorByCode(selectedValue);
             });
             
 
