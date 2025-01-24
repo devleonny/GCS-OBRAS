@@ -27,6 +27,6 @@ function iniciar_sensor() {
         let linha = `
         <label class="contorno_botoes" style="background-color: #4CAF50;">${code}</label>
         `
-        resultados.insertAdjacentElement('beforebegin', linha)
+        resultados.insertAdjacentHTML('beforebegin', linha)
     });
 }
