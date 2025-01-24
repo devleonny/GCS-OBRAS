@@ -628,30 +628,59 @@ document.addEventListener("DOMContentLoaded", () => {
         const confirmBtn = document.getElementById("edit-confirm-btn");
         const cancelBtn = document.getElementById("edit-cancel-btn");
     
+        // Preenche o dropdown com as regiões disponíveis
+        regionSelect.innerHTML = `
+            <option value="norte">Norte</option>
+            <option value="nordeste">Nordeste</option>
+            <option value="centro-oeste">Centro-Oeste</option>
+            <option value="sudeste">Sudeste</option>
+            <option value="sul">Sul</option>
+        `;
+        // Define a região atual do técnico como selecionada
         regionSelect.value = technician.regiao_atual || "norte";
     
+        // Exibe o modal
         modal.style.display = "block";
     
-        confirmBtn.addEventListener("click", () => {
+        // Função para confirmar a alteração da região
+        const confirmHandler = () => {
             const newRegion = regionSelect.value;
     
+            // Atualiza a região no localStorage
             const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
-    
             if (storedData[technician.omie]) {
                 storedData[technician.omie].regiao_atual = newRegion;
                 localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
-                loadTechniciansFromLocalStorage();
+    
+                // Envia os dados atualizados para a API
+                // enviarParaAPI(storedData[technician.omie], "editar");
             }
     
+            // Fecha o modal
             modal.style.display = "none";
-        });
     
-        cancelBtn.addEventListener("click", () => {
+            // Atualiza a tabela para refletir a mudança
+            loadTechniciansFromLocalStorage();
+    
+            // Remove os event listeners para evitar duplicação
+            confirmBtn.removeEventListener("click", confirmHandler);
+            cancelBtn.removeEventListener("click", cancelHandler);
+        };
+    
+        // Função para cancelar a alteração
+        const cancelHandler = () => {
             modal.style.display = "none";
-        });
+    
+            // Remove os event listeners para evitar duplicação
+            confirmBtn.removeEventListener("click", confirmHandler);
+            cancelBtn.removeEventListener("click", cancelHandler);
+        };
+    
+        // Adiciona os event listeners
+        confirmBtn.addEventListener("click", confirmHandler);
+        cancelBtn.addEventListener("click", cancelHandler);
     }
     
-
     function enviarParaAPI(tecnico, operacao) {
         const payload = {
             tabela: "agenda", // Campo fixo
