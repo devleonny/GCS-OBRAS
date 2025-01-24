@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,6 +19,7 @@
             height: 100vh;
             background-color: #f0f0f0;
         }
+
         #interactive {
             width: 100%;
             max-width: 640px;
@@ -25,45 +27,41 @@
             border: 2px solid #333;
             margin-bottom: 20px;
         }
+
         #result {
             font-size: 1.2rem;
             color: #333;
         }
+
+        .top {
+            display: flex;
+            width: 100%;
+            margin: 20px;
+            align-items: center;
+            justify-content: center;
+            background-color: #222222bf;
+            padding: 10px;
+            border-radius: 5px;
+            gap: 20px;
+        }
     </style>
 </head>
+
 <body>
+
+    <div class="top">
+        <img src="imagens/BG.png" style="width: 150px;">
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: center;">
+        <label class="contorno_botoes" onclick="iniciar_sensor()">Iniciar o sensor?</label>
+    </div> 
+
     <div id="interactive" class="viewport"></div>
-    <p id="result">Código de barras: <span>N/A</span></p>
+    <div id="resultados" style="display: flex; flex-direction: column; align-items: start; justify-content: center;"></div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            Quagga.init({
-                inputStream: {
-                    type: "LiveStream",
-                    constraints: {
-                        width: 640,
-                        height: 480,
-                        facingMode: "environment" // Usa a câmera traseira
-                    },
-                    target: document.querySelector("#interactive") // Elemento onde o vídeo aparece
-                },
-                decoder: {
-                    readers: ["code_128_reader", "ean_reader", "ean_8_reader"] // Tipos de código de barras
-                }
-            }, function (err) {
-                if (err) {
-                    console.error("Erro ao inicializar o Quagga:", err);
-                    return;
-                }
-                Quagga.start();
-            });
-
-            Quagga.onDetected(function (data) {
-                const code = data.codeResult.code;
-                document.querySelector("#result span").textContent = code;
-                console.log("Código detectado:", code);
-            });
-        });
-    </script>
 </body>
+<script src="open_menus.js"></script>
+<script src="contagem.js"></script>
+
 </html>
