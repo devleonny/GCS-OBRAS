@@ -40,7 +40,7 @@ function iniciar_sensor() {
                 }
 
                 // Reproduzir som
-                let audio = new Audio('path/to/sound.mp3'); // Insira o caminho para o som
+                let audio = new Audio('beep.mp3'); // Insira o caminho para o som
                 audio.play();
 
                 // Atualizar UI
