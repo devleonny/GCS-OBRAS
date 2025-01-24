@@ -349,14 +349,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
                 delete storedData[technician.omie];
                 localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
-    
+        
                 // Remove a linha da tabela
                 newRow.remove();
-    
+        
+                // Verifica se ainda há técnicos na tabela
+                const remainingTechnicians = Array.from(techniciansBody.children).filter(
+                    (row) => row.id !== "no-data-row" // Exclui a linha do aviso, se já estiver lá
+                );
+        
+                if (remainingTechnicians.length === 0) {
+                    // Exibe a mensagem de "Nenhum técnico disponível"
+                    const totalColumns = daysRow.children.length || 2; // Inclui dias e ações
+                    techniciansBody.innerHTML = `<tr id="no-data-row"><td colspan="${totalColumns}">Nenhum técnico disponível para esta agenda.</td></tr>`;
+                }
+        
                 // Envia a exclusão para a API
-                // enviarParaAPI(technician, "excluir");
+                enviarParaAPI(technician, "excluir");
             }
         });
+        
         actionsCell.appendChild(removeButton);
     
         newRow.appendChild(actionsCell);
@@ -427,15 +439,22 @@ document.addEventListener("DOMContentLoaded", () => {
     
             techniciansBody.innerHTML = ""; // Limpa a tabela
     
-            technicians.forEach((technician) => {
-                const agenda = technician.agendas[currentKey] || [];
-                addTechnicianRow(technician, agenda); // Adiciona a linha com a agenda específica
-            });
+            if (technicians.length > 0) {
+                technicians.forEach((technician) => {
+                    const agenda = technician.agendas[currentKey] || [];
+                    addTechnicianRow(technician, agenda); // Adiciona a linha com a agenda específica
+                });
+            } else {
+                // Exibe mensagem de aviso se não houver técnicos
+                const totalColumns = daysRow.children.length || 2; // Inclui dias e ações
+                techniciansBody.innerHTML = `<tr id="no-data-row"><td colspan="${totalColumns}">Nenhum técnico disponível para esta agenda.</td></tr>`;
+            }
         } else {
-            technicians = [];
+            // Caso não haja dados no localStorage
             techniciansBody.innerHTML = `<tr id="no-data-row"><td colspan="${daysRow.children.length || 2}">Nenhum técnico disponível.</td></tr>`;
         }
     }
+    
     
     
     function loadAgendaForCurrentMonth() {
