@@ -44,6 +44,17 @@
             border-radius: 5px;
             gap: 20px;
         }
+
+        #resultados {
+            background-color: #222222bf;
+            border-radius: 5px;
+            height: 500px;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: start;
+            justify-content: center;
+        }
     </style>
 </head>
 
@@ -55,10 +66,10 @@
 
     <div style="display: flex; align-items: center; justify-content: center;">
         <label class="contorno_botoes" onclick="iniciar_sensor()">Iniciar o sensor?</label>
-    </div> 
+    </div>
 
     <div id="interactive" class="viewport"></div>
-    <div id="resultados" style="display: flex; flex-direction: column; align-items: start; justify-content: center;"></div>
+    <div id="resultados"></div>
 
 </body>
 <script src="open_menus.js"></script>
