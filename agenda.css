@@ -199,3 +199,29 @@ button:hover {
   transform: scale(1.1);
   /* Aumenta levemente o tamanho ao passar o mouse */
 }
+
+#delete-modal .modal-content {
+  background-color: white;
+  margin: 15% auto;
+  padding: 20px;
+  width: 300px;
+  text-align: center;
+  border-radius: 5px;
+}
+
+#delete-modal .modal-buttons {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-around;
+}
+
+#delete-modal button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+#delete-modal button:hover {
+  background-color: #ddd;
+}

@@ -344,30 +344,75 @@ document.addEventListener("DOMContentLoaded", () => {
         removeImage.alt = "Excluir Técnico";
         removeButton.appendChild(removeImage);
         removeButton.addEventListener("click", () => {
-            if (confirm("Tem certeza que deseja excluir este técnico?")) {
-                // Remove o técnico do localStorage
-                const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
-                delete storedData[technician.omie];
-                localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
+            const deleteModal = document.getElementById("delete-modal");
+            const confirmDeleteBtn = document.getElementById("confirm-delete-btn");
+            const cancelDeleteBtn = document.getElementById("cancel-delete-btn");
         
-                // Remove a linha da tabela
+            // Exibe o modal
+            deleteModal.style.display = "block";
+        
+            // Confirma a exclusão
+            const confirmHandler = () => {
+                const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
+                const currentKey = getAgendaKey(); // Obtém a chave do mês/ano atual
+        
+                if (storedData[technician.omie] && storedData[technician.omie].agendas[currentKey]) {
+                    // Remove apenas a agenda específica
+                    delete storedData[technician.omie].agendas[currentKey];
+        
+                    // Verifica se o técnico ainda tem agendas
+                    if (Object.keys(storedData[technician.omie].agendas).length === 0) {
+                        // Mantém o técnico no localStorage, mas sem agendas
+                        storedData[technician.omie].agendas = {};
+                    }
+        
+                    // Atualiza o localStorage
+                    localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
+                }
+        
+                // Remove a linha correspondente da tabela
                 newRow.remove();
         
-                // Verifica se ainda há técnicos na tabela
-                const remainingTechnicians = Array.from(techniciansBody.children).filter(
-                    (row) => row.id !== "no-data-row" // Exclui a linha do aviso, se já estiver lá
+                // Verifica se ainda há linhas na tabela (exceto o aviso)
+                const remainingRows = Array.from(techniciansBody.children).filter(
+                    (row) => row.id !== "no-data-row"
                 );
         
-                if (remainingTechnicians.length === 0) {
+                if (remainingRows.length === 0) {
                     // Exibe a mensagem de "Nenhum técnico disponível"
                     const totalColumns = daysRow.children.length || 2; // Inclui dias e ações
                     techniciansBody.innerHTML = `<tr id="no-data-row"><td colspan="${totalColumns}">Nenhum técnico disponível para esta agenda.</td></tr>`;
                 }
         
                 // Envia a exclusão para a API
-                enviarParaAPI(technician, "excluir");
-            }
+                // enviarParaAPI({
+                //     omie: technician.omie,
+                //     nome: technician.nome,
+                //     agenda_removida: currentKey,
+                // }, "excluir");
+        
+                // Fecha o modal
+                deleteModal.style.display = "none";
+        
+                // Remove os event listeners para evitar duplicação
+                confirmDeleteBtn.removeEventListener("click", confirmHandler);
+                cancelDeleteBtn.removeEventListener("click", cancelHandler);
+            };
+        
+            // Cancela a exclusão
+            const cancelHandler = () => {
+                deleteModal.style.display = "none";
+        
+                // Remove os event listeners para evitar duplicação
+                confirmDeleteBtn.removeEventListener("click", confirmHandler);
+                cancelDeleteBtn.removeEventListener("click", cancelHandler);
+            };
+        
+            // Adiciona os event listeners
+            confirmDeleteBtn.addEventListener("click", confirmHandler);
+            cancelDeleteBtn.addEventListener("click", cancelHandler);
         });
+        
         
         actionsCell.appendChild(removeButton);
     
