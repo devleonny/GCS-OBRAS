@@ -370,7 +370,7 @@ async function abrir_detalhes(id_pagamento) {
         
             <label for="adicionar_anexo_pagamento" style="text-decoration: underline; cursor: pointer;">
                 Incluir Anexo
-                <input type="file" id="adicionar_anexo_pagamento" style="display: none;" onchange="salvar_anexo_pagamento('${id_pagamento}')">
+                <input type="file" id="adicionar_anexo_pagamento" style="display: none;" onchange="salvar_anexo_pagamento('${id_pagamento}')" multiple>
             </label>
 
         </label>

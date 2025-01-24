@@ -272,12 +272,9 @@ async function preencher_v2(parceiro) {
                 tds[13] = `
                     <td>
                         <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <div style="display: flex; flex-direction: column; justify-content: left; text-align: left; white-space: nowrap;">
-                                <label>${dinheiro(item.parceiro.valor)} (<strong>${(item.parceiro.valor / item.custo * 100).toFixed(0)}%</strong>)</label>
-                                <label><strong>${item.parceiro.quando}</strong></label>
-                                <label><strong>${item.parceiro.quem}</strong></label>
-                            </div>
                             <img src="${item.parceiro.icone}" style="width: 25px; cursor: pointer;" onclick="preencher_parceiro(this)">
+                            <input style="border:none" value="${item.parceiro.valor}"> 
+                            <label>(<strong>${(item.parceiro.valor / item.custo * 100).toFixed(0)}%</strong>)</label>
                         </div>
                     </td>
                 `

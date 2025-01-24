@@ -877,7 +877,7 @@ async function tela_pagamento(chave1) {
                     <div style="display: flex; flex-direction: column; justify-content: left; gap: 10px; width: 80%;">
                         <div style="display: flex; justify-content: left; gap: 10px; width: 80%;">
                             <label for="adicionar_anexo_pagamento" style="text-decoration: underline; cursor: pointer; margin-left: 20px;">
-                                Clique aqui para + 1 Anexo
+                                Incluir Anexos (Multiplos)
                                 <input type="file" id="adicionar_anexo_pagamento" style="display: none;" onchange="salvar_anexo_pagamento()" multiple>
                             </label>
                         </div>
