@@ -111,7 +111,7 @@ body::before {
     border-radius: 3px;
     padding: 3px;
     margin: 2px;
-    color: white;
+    color: #222;
 }
 
 .titulo_paginas {

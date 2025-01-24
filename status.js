@@ -1312,8 +1312,9 @@ async function abrir_esquema(id) {
                     imagem = 'anexo'
                 }
 
+                let arquivo = `https://drive.google.com/file/d/${levantamento.link}/view?usp=drivesdk`
                 levantamentos += `
-                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;" onclick="abrirArquivo('${arquivo}')">
                     <div style="align-items: center; width: max-content; font-size: 0.7em; display: flex; justify-content; left; box-shadow: 2px 2px #94a0ab; background-color: #e9e9e9; color: #555; padding: 5px; margin:5px; border-radius: 5px;">
                         <img src="imagens/${imagem}.png" style="width: 25px;">
                         <label><strong>${encurtar_texto(levantamento.nome, 10)}</strong></label>

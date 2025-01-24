@@ -136,8 +136,8 @@ function preencher_orcamentos_v2(st) {
 
                 label_pedidos += `
                     <div class="etiqueta_pedidos" style="background-color: ${cor}">
-                        <label style="font-size: 0.8em;">${tipo}</label>
-                        <label style="font-size: 1.1em;"><strong>${num_pedido}</strong></label>
+                        <label style="font-size: 0.7vw;">${tipo}</label>
+                        <label style="font-size: 0.9vw;"><strong>${num_pedido}</strong></label>
                     </div>
                 `
 
