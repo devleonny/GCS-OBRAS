@@ -223,7 +223,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function addTechnicianRow(technician, agenda = []) {
         const totalDays = daysRow.children.length - 2;
-    
         const newRow = document.createElement("tr");
     
         // Coluna de técnico
@@ -244,13 +243,25 @@ document.addEventListener("DOMContentLoaded", () => {
         tecnicoSelect.addEventListener("change", () => {
             const technicianOmie = tecnicoSelect.value;
             if (!technicianOmie) return;
-    
-            const currentKey = getAgendaKey();
+        
+            const currentKey = getAgendaKey(); // Obtém a chave do mês/ano atual
             if (!currentKey) return;
-    
+        
             const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
+        
+            // Verifica se o técnico já existe para o mês/ano atual
+            const isTechnicianAssigned = Object.values(storedData).some(tech =>
+                tech.omie === technicianOmie && tech.agendas[currentKey]
+            );
+        
+            if (isTechnicianAssigned) {
+                showPopup("Este técnico já possui uma agenda para este mês e ano. Por favor, selecione outro.");
+                tecnicoSelect.value = ""; // Reseta a seleção
+                return;
+            }
+        
             let operacao = "incluir";
-    
+        
             if (storedData[technicianOmie]) {
                 operacao = "editar";
             } else {
@@ -261,13 +272,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     agendas: {},
                 };
             }
-    
-            storedData[technicianOmie].regiao_atual = regionSelect.value;
+        
+            // Atualiza ou cria a agenda do técnico para o mês/ano atual
             storedData[technicianOmie].agendas[currentKey] = storedData[technicianOmie].agendas[currentKey] || [];
             localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
-    
-            enviarParaAPI(storedData[technicianOmie], operacao);
+        
+            // enviarParaAPI(storedData[technicianOmie], operacao);
         });
+        
     
         // Colunas de dias
         for (let i = 0; i < totalDays; i++) {
@@ -301,7 +313,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
                 localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
     
-                enviarParaAPI(storedData[technicianOmie], "editar");
+                // enviarParaAPI(storedData[technicianOmie], "editar");
     
                 dayCell.style.backgroundColor = getDepartmentColorByCode(selectedValue);
             });
@@ -310,8 +322,48 @@ document.addEventListener("DOMContentLoaded", () => {
             newRow.appendChild(dayCell);
         }
     
+        // Coluna de ações
+        const actionsCell = document.createElement("td");
+        actionsCell.className = "actions";
+    
+        // Botão de editar região com imagem
+        const editButton = document.createElement("button");
+        editButton.className = "edit-btn";
+        const editImage = document.createElement("img");
+        editImage.src = "imagens/editar.png";
+        editImage.alt = "Editar Região";
+        editButton.appendChild(editImage);
+        editButton.addEventListener("click", () => openEditModal(technician));
+        actionsCell.appendChild(editButton);
+    
+        // Botão de excluir técnico com imagem
+        const removeButton = document.createElement("button");
+        removeButton.className = "remove-btn";
+        const removeImage = document.createElement("img");
+        removeImage.src = "imagens/excluir.png";
+        removeImage.alt = "Excluir Técnico";
+        removeButton.appendChild(removeImage);
+        removeButton.addEventListener("click", () => {
+            if (confirm("Tem certeza que deseja excluir este técnico?")) {
+                // Remove o técnico do localStorage
+                const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
+                delete storedData[technician.omie];
+                localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
+    
+                // Remove a linha da tabela
+                newRow.remove();
+    
+                // Envia a exclusão para a API
+                // enviarParaAPI(technician, "excluir");
+            }
+        });
+        actionsCell.appendChild(removeButton);
+    
+        newRow.appendChild(actionsCell);
+    
         techniciansBody.appendChild(newRow);
     }
+    
     
 
     function getDepartmentColorByCode(departmentCode) {
@@ -360,27 +412,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function loadTechniciansFromLocalStorage() {
         const storedData = localStorage.getItem("dados_agenda_tecnicos");
-        const selectedRegion = regionSelect.value;
+        const selectedRegion = regionSelect.value; // Região selecionada
+        const currentKey = getAgendaKey(); // Chave do mês/ano atual
     
         if (storedData) {
             const techniciansObj = JSON.parse(storedData);
     
-            technicians = selectedRegion === "todas"
-                ? Object.values(techniciansObj)
-                : Object.values(techniciansObj).filter(
-                    (tech) => tech.regiao_atual === selectedRegion
-                );
+            // Filtrar técnicos pela região e verificar se possuem agenda no mês/ano atual
+            technicians = Object.values(techniciansObj).filter(
+                (tech) =>
+                    (selectedRegion === "todas" || tech.regiao_atual === selectedRegion) &&
+                    tech.agendas[currentKey] // Verifica se o técnico tem agenda no mês/ano
+            );
     
             techniciansBody.innerHTML = ""; // Limpa a tabela
     
             technicians.forEach((technician) => {
-                const agenda = technician.agendas[getAgendaKey()] || [];
-                addTechnicianRow(technician, agenda);
+                const agenda = technician.agendas[currentKey] || [];
+                addTechnicianRow(technician, agenda); // Adiciona a linha com a agenda específica
             });
         } else {
+            technicians = [];
             techniciansBody.innerHTML = `<tr id="no-data-row"><td colspan="${daysRow.children.length || 2}">Nenhum técnico disponível.</td></tr>`;
         }
     }
+    
     
     function loadAgendaForCurrentMonth() {
         const key = getAgendaKey(); // Obtém a chave atual (mês/ano)
