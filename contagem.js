@@ -22,11 +22,36 @@ function iniciar_sensor() {
         Quagga.start();
     });
 
+    let detectedCodes = new Map();
+
     Quagga.onDetected(function (data) {
-        let code = data.codeResult.code;
-        let linha = `
-        <label class="contorno_botoes" style="background-color: #4CAF50;">${code}</label>
-        `
-        resultados.insertAdjacentHTML('beforebegin', linha)
+        if (data && data.codeResult && data.codeResult.code) {
+            let code = data.codeResult.code;
+            let now = Date.now();
+
+            // Verifica se o código foi detectado recentemente (ex.: 2 segundos)
+            if (!detectedCodes.has(code) || (now - detectedCodes.get(code)) > 2000) {
+                detectedCodes.set(code, now);
+                console.log("Código detectado:", code);
+
+                // Vibração
+                if (navigator.vibrate) {
+                    navigator.vibrate(200); // Vibra por 200ms
+                }
+
+                // Reproduzir som
+                let audio = new Audio('path/to/sound.mp3'); // Insira o caminho para o som
+                audio.play();
+
+                // Atualizar UI
+                let linha = `
+                <label class="contorno_botoes" style="background-color: #4CAF50;">${code}</label>
+                `;
+                resultados.insertAdjacentHTML('beforebegin', linha);
+            }
+        } else {
+            console.log("Nenhum código válido detectado.");
+        }
     });
+
 }
