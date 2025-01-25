@@ -35,7 +35,7 @@ carregar_tabela_v2()
 
 async function carregar_tabela_v2() {
 
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     var thead = '';
     var tbody = '';
     var tsearch = '';
@@ -140,19 +140,26 @@ async function carregar_tabela_v2() {
 
                     for (item in agrupamentos) {
 
-                        let tipo = dados_composicoes[item].tipo
+                        if (!dados_composicoes[item]) {
+                            delete produto.agrupamentos[item]
+                            deletar(`dados_composicoes/${codigo}/agrupamentos/${item}`)
+                            inserirDados(dados_composicoes, 'dados_composicoes')
+                        } else {
 
-                        var cor = 'green'
-                        if (tipo == 'VENDA') {
-                            cor = '#B12425'
-                        }
+                            let tipo = dados_composicoes[item].tipo
 
-                        info_agrupamentos += `
+                            var cor = 'green'
+                            if (tipo == 'VENDA') {
+                                cor = '#B12425'
+                            }
+
+                            info_agrupamentos += `
                             <div style="display: flex; gap: 3px; align-items: center; justify-content: left;">
                                 <label class="numero" style="width: 20px; height: 20px; padding: 3px; background-color: ${cor}">${agrupamentos[item]}</label>
                                 <label style="font-size: 0.6em; text-align: left;">${String(dados_composicoes[item].descricao).slice(0, 10)}...</label>
                             </div>
                             `
+                        }
                     }
                 }
 
@@ -229,14 +236,7 @@ async function atualizar_status_material(codigo, elemento) {
     dados_composicoes[codigo]['material infra'] = resposta
     inserirDados(dados_composicoes, 'dados_composicoes')
 
-    var dados = {
-        tabela: 'composicoes',
-        campo: 'material infra',
-        codigo: codigo,
-        info: resposta
-    }
-
-    enviar_dados_generico(dados)
+    await enviar('PUT', `dados_composicoes/${codigo}/material infra`, resposta)
 
     carregar_tabela_v2()
 
@@ -278,7 +278,6 @@ async function abrir_agrupamentos(codigo) {
 
     acumulado += `
 
-        <span class="close" onclick="remover_popup()">&times;</span>
         <div class="agrupamentos">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
                 <img src="${imagem}" style="width: 100px">
@@ -362,10 +361,12 @@ async function salvar_agrupamentos(codigo) {
     var div_agrupamentos = document.getElementById('div_agrupamentos')
     var agrupamentos = div_agrupamentos.querySelectorAll('.agrupado')
     var dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    var produto = dados_composicoes[codigo]
 
-    if (produto) {
+    if (dados_composicoes[codigo]) {
+
+        let produto = dados_composicoes[codigo]
         produto.agrupamentos = {}
+
         agrupamentos.forEach(agrupamento => {
             var codigo_agrupamento = agrupamento.querySelectorAll('label')[0].textContent
             produto.agrupamentos[codigo_agrupamento] = Number(agrupamento.querySelector('input').value)
@@ -374,12 +375,7 @@ async function salvar_agrupamentos(codigo) {
 
         await inserirDados(dados_composicoes, 'dados_composicoes')
 
-        var requisicao = {
-            tabela: 'composicoes',
-            composicao: produto
-        }
-
-        enviar_dados_generico(requisicao)
+        await enviar('PUT', `dados_composicoes/${codigo}/agrupamentos`, produto.agrupamentos)
 
         remover_popup()
 
@@ -560,7 +556,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
         dados_composicoes[codigo][tabela].ativo == cotacao ? marcado = 'checked' : marcado = ''
 
         linhas += `
-        <tr>
+        <tr style="font-size: 0.7em; color: #222;">
             <td>${dinheiro(historico[cotacao].custo)}</td>
             <td>${historico[cotacao].margem}</td>
             <td>${dinheiro(historico[cotacao].valor)}</td>
@@ -568,20 +564,36 @@ async function abrir_historico_de_precos(codigo, tabela) {
             <td>${historico[cotacao].usuario}</td>
             <td>${historico[cotacao].fornecedor}</td>
             <td><input type="checkbox" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_preco_ativo('${codigo}', '${cotacao}', '${tabela}')" ${marcado}></td>
+            <td>
+                <div style="display: flex; align-items: center; justify-content;">
+                    <img src="imagens/cancel.png" style="width: 25px; cursor: pointer;" onclick="excluir_cotacao('${codigo}', '${tabela}', '${cotacao}')">
+                </div>
+            </td>
         </tr>
         `
     }
 
-    acumulado = `
-    <div id="historico_preco" class="retangulo_glass" style="display: block;">
-        <span class="close" onclick="remover_divs('historico_preco')">&times;</span>
+    let visibilidade = 'flex'
+    if (linhas == '') {
+        visibilidade = 'none'
+    }
 
-        <div style="display: flex; justify-content: space-evenly; width: 100%; gap: 10px; align-items: center; margin: ">
+    acumulado = `
+
+    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
+
+    <div style="display: flex; justify-content: space-evenly; width: 100%;">
+        <label>Valores de Venda</label>
+    </div>
+
+    <div id="historico_preco" style="background-color: white; padding: 5px; border-radius: 5px;">
+
+        <div style="display: flex; justify-content: space-evenly; gap: 10px; align-items: center;">
             <img src="${imagem}" style="width: 100px;">
-            <h2 style="white-space: normal;">${dados_composicoes[codigo].descricao}</h2>
+            <label style="white-space: normal; color: #222; text-align: left; font-size: 1.2em;">${dados_composicoes[codigo].descricao}</label>
         </div>
 
-        <div style="border-radius: 3px; padding: 3px;">
+        <div id="tabela_historico" style="display: ${visibilidade}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
             <table class="tabela">
                 <thead>
                     <th>Custo de Compra</th>
@@ -591,11 +603,13 @@ async function abrir_historico_de_precos(codigo, tabela) {
                     <th>Feito por</th>
                     <th>Fornecedor</th>
                     <th>Ativo</th>
+                    <th>Excluir</th>
                 </thead>
                 <tbody>${linhas}</tbody>
             </table>
         </div>
-        <label class="incluir" onclick="adicionar_nova_cotacao('${codigo}', '${tabela}')">Incluir uma nova cotação</label>
+
+        <img src="imagens/baixar.png" style="cursor: pointer;" onclick="adicionar_nova_cotacao('${codigo}', '${tabela}')">
     </div>
     `
 
@@ -604,35 +618,55 @@ async function abrir_historico_de_precos(codigo, tabela) {
         historico_preco.remove()
     }
 
-    document.body.insertAdjacentHTML('beforeend', acumulado)
+    openPopup_v2(acumulado)
 
+}
+
+async function excluir_cotacao(codigo, tabela, cotacao) {
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
+    if (dados_composicoes[codigo] && dados_composicoes[codigo][tabela]) {
+
+        let cotacoes = dados_composicoes[codigo][tabela]
+
+        if (cotacoes.ativo == cotacao) {
+            cotacoes.ativo = ''
+            enviar('PUT', `dados_composicoes/${codigo}/${tabela}/ativo`, '')
+        }
+
+        delete cotacoes.historico[cotacao]
+
+        deletar(`dados_composicoes/${codigo}/${tabela}/historico/${cotacao}`)
+
+        await inserirDados(dados_composicoes, 'dados_composicoes')
+        await carregar_tabela_v2()
+        await abrir_historico_de_precos(codigo, tabela)
+
+    }
 }
 
 function adicionar_nova_cotacao(codigo, lpu) {
     var historico_preco = document.getElementById('historico_preco')
+    let tabela_historico = document.getElementById('tabela_historico')
+    tabela_historico.style.display = 'flex'
+
     if (historico_preco) {
         var tabela = historico_preco.querySelector('table')
         var tbody = tabela.querySelector('tbody')
 
         var linha = `
-        <td><input type="number" oninput="calcular()"></td>
-        <td><input type="number" oninput="calcular()"></td>
-        <td>R$ 0,00 </td>
-        <td>${data_atual('completa')}</td>
-        <td>${acesso.usuario}</td>
-        <td><input></td>
-        <td><img src="imagens/concluido.png" onclick="salvar_cotacao('${codigo}', '${lpu}')" style="width: 30px; cursor: pointer;"></td>
+        <tr style="color: #222; font-size: 0.7em;">
+            <td><input class="numero-bonito" type="number" oninput="calcular()"></td>
+            <td><input class="numero-bonito" type="number" oninput="calcular()"></td>
+            <td>R$ 0,00 </td>
+            <td>${data_atual('completa')}</td>
+            <td>${acesso.usuario}</td>
+            <td><input class="numero-bonito"></td>
+            <td><img src="imagens/concluido.png" onclick="salvar_cotacao('${codigo}', '${lpu}')" style="width: 30px; cursor: pointer;"></td>
+        </tr>
         `
         tbody.insertAdjacentHTML('beforeend', linha)
     }
-}
-
-function remover_divs(elemento) {
-    var elemento_div = document.getElementById(elemento)
-    if (elemento_div) {
-        elemento_div.remove()
-    }
-    overlay.style.display = 'none'
 }
 
 async function atualizar() {
@@ -657,21 +691,17 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
         trs.forEach(tr => {
 
             var tds = tr.querySelectorAll('td')
-            var checkbox = tds[6].querySelector('input')//29
+            var checkbox = tds[6].querySelector('input')
 
             if (checkbox.checked) {
                 produto[lpu].ativo = id_preco
                 inserirDados(dados_composicoes, 'dados_composicoes')
 
-                var requisicao = {
-                    tabela: 'composicoes',
-                    composicao: produto
-                }
-
-                enviar_dados_generico(requisicao)
+                enviar('PUT', `dados_composicoes/${codigo}/${lpu}/ativo`, id_preco)
 
                 historico_preco.remove()
                 carregar_tabela_v2()
+                remover_popup()
                 return abrir_historico_de_precos(codigo, lpu)
             }
         })
@@ -716,12 +746,7 @@ async function salvar_cotacao(codigo, lpu) {
 
                 produto[lpu].historico[id] = dados
 
-                var requisicao = {
-                    tabela: 'composicoes',
-                    composicao: produto
-                }
-
-                enviar_dados_generico(requisicao)
+                enviar('PUT', `dados_composicoes/${codigo}/${lpu}/historico/${id}`, dados)
 
                 inserirDados(dados_composicoes, 'dados_composicoes')
 
@@ -761,52 +786,50 @@ function calcular() {
 
 async function cadastrar_editar_item(codigo) {
 
-    var tem_codigo = ''
-    if (codigo !== undefined) {
-        tem_codigo = `'${codigo}'`
-    }
-
     overlay.style.display = 'block'
 
-    var colunas = ['descricao', 'descricaocarrefour', 'substituto', 'sapid', 'refid', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
-
+    let colunas = ['descricao', 'descricaocarrefour', 'substituto', 'sapid', 'refid', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let dados = dados_composicoes[codigo] || {}
+    let n_codigo = codigo
     if (codigo !== undefined) {
-        var dados_composicoes = await recuperarDados('dados_composicoes') || {}
-        var dados = dados_composicoes[codigo]
         colunas = Object.keys(dados)
+    } else {
+        n_codigo = `gcs-${gerar_id_5_digitos()}`
     }
+    let funcao = codigo == undefined ? `cadastrar_alterar('${n_codigo}')` : `cadastrar_alterar('${codigo}')`
 
-    var elementos = ''
+    let elementos = ''
 
     colunas.forEach(col => {
-        var valor = ''
-        if (codigo !== undefined) {
-            valor = dados[col]
-        }
-
-        var campo = ''
+        let valor = codigo !== undefined ? dados[col] : ''
+        let campo = `<input style="background-color: #a2d7a4; padding: 5px; border-radius: 3px;" value="${valor}">`
 
         if (col.includes('desc')) {
             campo = `
-            <textarea placeholder="${col}" style="width: 100%;">${valor}</textarea>
+            <textarea style="background-color: #a2d7a4; width: 100%; border: none;">${valor}</textarea>
             `
         } else if (col == 'tipo') {
             campo = `
-            <select>
-                <option>VENDA</option>
-                <option>SERVIÇO</option>
-            </select>
-            `
-        } else {
-            campo = `
-            <input placeholder="${col}" value="${valor}">
+            <div>
+                <select style="cursor: pointer;">
+                    <option>VENDA</option>
+                    <option>SERVIÇO</option>
+                </select>
+            </div>
             `
         }
 
-        if (!col.includes('lpu') && col !== 'codigo' && col !== 'imagem') {
+        if (
+            !col.includes('lpu') &&
+            col !== 'codigo' &&
+            col !== 'imagem' &&
+            col !== 'agrupamentos' &&
+            col !== 'material infra' &&
+            col !== 'parceiro') {
             elementos += `
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: right;">
-                <label>${col}</label>
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <label style="width: 30%; text-align: right;">${col}</label>
                 ${campo}
             </div>
             `
@@ -815,76 +838,106 @@ async function cadastrar_editar_item(codigo) {
 
     var acumulado = `
 
-    <div id="cadastrar_item" class="retangulo_glass" style="display: block; height: 80vh; overflow-y: auto;">
-        <span class="close" onclick="remover_divs('cadastrar_item')">&times;</span>
+    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
 
-        <div style="display: flex; justify-content: space-evenly; width: 100%;">
-            <h2>Dados do Item</h2>
-        </div>
-        <div id="elementos" style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
+        <label style="font-size: 0.7em;">${n_codigo}</label>
+        <img src="imagens/cancel.png" style="width: 15px; cursor: pointer;" onclick="confirmar_exclusao_item('${n_codigo}')">
+    </div>
+
+    <div style="display: flex; justify-content: space-evenly; width: 100%;">
+        <label>Dados do Item</label>
+    </div>
+
+    <div id="cadastrar_item" style="background-color: white; color: #222; padding: 5px; border-radius: 5px;">
+
+        <div id="elementos" style="display: flex; flex-direction: column; gap: 5px;">
         ${elementos}
         </div>
-        <div id="nova_lpu" style="margin: 10px; display: flex; gap: 10px; align-items: center; justify-content: right; border-radius: 3px; padding: 10px; background-color: #222; color: white;">
-            <label>Começar uma nova LPU?</label>
-            <input placeholder="Nome">
+        <div id="novo_campo" style="margin: 10px; display: flex; gap: 10px; align-items: center; justify-content: right; border-radius: 3px; padding: 10px; background-color: #222; color: white;">
+            <label>Novo campo?</label>
+            <input placeholder="Campo" id="campo" style="padding: 5px; border-radius: 3px;">
+            <input placeholder="Valor" id="valor" style="padding: 5px; border-radius: 3px;">
         </div>
-        <button style="background-color: green;" onclick="cadastrar_alterar(${tem_codigo})">Salvar</buttton>
+        <button style="background-color: #4CAF50; width: 100%; margin: 0px;" onclick="${funcao}">Salvar</buttton>
     </div>
     `
-
-    document.body.insertAdjacentHTML('beforeEnd', acumulado)
+    openPopup_v2(acumulado)
 }
 
+async function confirmar_exclusao_item(codigo) {
+
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
+    remover_popup()
+
+    openPopup_v2(`
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <img src="gifs/alerta.gif">
+                <label>Tem certeza que deseja excluir este item?</label>
+            </div>
+            <label style="font-size: 0.7em;">${dados_composicoes[codigo].descricao}</label>
+            <button onclick="exclusao_item('${codigo}')">Confirmar</button>
+        </div>
+        `)
+}
+
+async function exclusao_item(codigo) {
+
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
+    if (dados_composicoes[codigo]) {
+        delete dados_composicoes[codigo]
+
+        await deletar(`dados_composicoes/${codigo}`)
+        await inserirDados(dados_composicoes, 'dados_composicoes')
+        remover_popup()
+        await carregar_tabela_v2()
+    }
+
+}
 
 async function cadastrar_alterar(codigo) {
 
-    var elementos = document.getElementById('elementos')
-    var nova_lpu = document.getElementById('nova_lpu')
-    var produto;
-    var cadastrar = false
-    if (codigo == undefined) {
-        cadastrar = true
-    }
-
+    let elementos = document.getElementById('elementos')
     if (elementos) {
 
-        var dados_composicoes = await recuperarDados('dados_composicoes') || {}
-        produto = dados_composicoes[codigo] || {}
+        let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+        if (!dados_composicoes[codigo]) {
+            dados_composicoes[codigo] = {}
+        }
 
-        var divs = elementos.querySelectorAll('div')
+        let divs = elementos.querySelectorAll('div')
 
         divs.forEach(div => {
 
-            var item = div.querySelector('label')
-            var valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select')
+            let item = div.querySelector('label')
+            let valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select')
 
             if (item && valor) {
-                produto[item.textContent] = valor.value
+                dados_composicoes[codigo][item.textContent] = valor.value
+                enviar('PUT', `dados_composicoes/${codigo}/${item.textContent}`, valor.value)
             }
 
         })
 
-        inserirDados(dados_composicoes, 'dados_composicoes')
-
-        if (nova_lpu) {
-            var input_lpu = nova_lpu.querySelector('input')
-            if (input_lpu.value !== '') {
-                produto[`lpu ${input_lpu.value}`] = ''
+        let novo_campo = document.getElementById('nova_lpu')
+        if (novo_campo) {
+            let campo = document.getElementById('campo').value
+            let valor = document.getElementById('valor').value
+            if (campo !== '' && valor !== '') {
+                dados_composicoes[codigo][campo] = valor
+                enviar('PUT', `dados_composicoes/${codigo}/${campo}`, valor)
             }
         }
 
-        var requisicao = {
-            tabela: 'composicoes',
-            composicao: produto
-        }
+        enviar('PUT', `dados_composicoes/${codigo}/codigo`, codigo) // Chave código no Objeto;
+        dados_composicoes[codigo].codigo = codigo // Chave código no Objeto;
 
-        if (cadastrar) {
-            requisicao.operacao = 'cadastrar'
-        }
+        await inserirDados(dados_composicoes, 'dados_composicoes')
 
-        enviar_dados_generico(requisicao)
-
-        remover_divs('cadastrar_item')
+        remover_popup()
         carregar_tabela_v2()
     }
 }

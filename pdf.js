@@ -158,9 +158,8 @@ async function preencher_v2(parceiro) {
         11: 'Valor UNT',
         12: 'Valor TOTAL',
         13: 'LPU Parceiro UNT',
-        14: 'Valor Negociado UNT',
-        15: 'TOTAL Parceiro',
-        16: 'Desvio'
+        14: 'TOTAL Parceiro',
+        15: 'Desvio'
     }
 
     var config = {
@@ -168,7 +167,7 @@ async function preencher_v2(parceiro) {
         VENDA: { CARREFOUR: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], COMUM: [1, 4, 5, 6, 7, 8, 9, 10, 11, 12], cor: '#B12425' }
     }
 
-    var cols_parceiro = [1, 4, 6, 7, 11, 12, 13, 14, 15, 16]
+    var cols_parceiro = [1, 4, 6, 7, 11, 12, 13, 14, 15]
 
     var totais = {
         SERVIÇO: { valor: 0, cor: 'green' },
@@ -229,8 +228,6 @@ async function preencher_v2(parceiro) {
                 item.imagem = item.imagem ? item.imagem : dados.imagem
                 item.unidade = dados.unidade
                 item.custo = conversor(item.custo)
-                item.parceiro.icone = "imagens/concluido.png"
-
             }
 
             item.unidade = item.unidade ? item.unidade : item.unidade = 'UND'
@@ -272,15 +269,14 @@ async function preencher_v2(parceiro) {
                 tds[13] = `
                     <td>
                         <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <img src="${item.parceiro.icone}" style="width: 25px; cursor: pointer;" onclick="preencher_parceiro(this)">
-                            <input style="border:none" value="${item.parceiro.valor}"> 
-                            <label>(<strong>${(item.parceiro.valor / item.custo * 100).toFixed(0)}%</strong>)</label>
+                            <img src="imagens/concluido.png" style="display: none; width: 25px; cursor: pointer;" onclick="preencher_parceiro(this)">
+                            <input class="numero-bonito" value="${item.parceiro.valor}" oninput="ativar_botao(this)"> 
                         </div>
                     </td>
                 `
-                tds[14] = `<td><input class="numero-bonito" oninput="calcular_parceiro()"></td>`
+                tds[14] = `<td></td>`
                 tds[15] = `<td></td>`
-                tds[16] = `<td></td>`
+
 
                 var celulas = ''
 
@@ -365,58 +361,46 @@ async function preencher_v2(parceiro) {
     }
 }
 
-function preencher_parceiro(elemento_img) {
+function ativar_botao(input) {
 
-    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let img = input.previousElementSibling
+    img.style.display = 'block'
 
-    var div_proximo = elemento_img.closest('div')
-
-    div_proximo.innerHTML = `
-    <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; flex-direction: column; justify-content: left; text-align: left; white-space: nowrap;">
-            <label><input class="numero-bonito"></label>
-            <label><strong>${data_atual('completa')}</strong></label>
-            <label><strong>${acesso.usuario}</strong></label>
-        </div>
-        <img src="imagens/concluido.png" style="width: 25px; cursor: pointer;" onclick="salvar_parceiro(this)">
-    </div>
-    
-    `
 }
 
-async function salvar_parceiro(elemento_img) {
+async function preencher_parceiro(elemento_img) {
 
-    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    let orcamento = JSON.parse(localStorage.getItem('pdf')) || {}
+    let tr = elemento_img.closest('tr')
+    let tds = tr.querySelectorAll('td')
+    let codigo = tds[0].textContent
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let valor = elemento_img.nextElementSibling
 
-    var div_proximo = elemento_img.closest('div')
-    var tr = elemento_img.closest('tr')
-    var tds = tr.querySelectorAll('td')
-    var codigo = tds[0].textContent
+    let data = new Date().toLocaleString('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+    });
 
-    var labels = div_proximo.querySelectorAll('label')
+    let id = gerar_id_5_digitos()
 
-    var dados = {
-        quem: acesso.usuario,
-        quando: data_atual('completa'),
-        valor: conversor(labels[0].querySelector('input').value),
+    let valor_parceiro = {
+        data: data,
+        usuario: acesso.usuario,
+        valor: conversor(valor.value),
+        id_orcamento: orcamento.id
     }
 
     if (dados_composicoes[codigo]) {
-        dados_composicoes[codigo].parceiro = dados
-        localStorage.setItem('dados_composicoes', JSON.stringify(dados_composicoes))
+        if (!dados_composicoes[codigo].parceiro || !dicionario(dados_composicoes[codigo].parceiro)) {
+            dados_composicoes[codigo].parceiro = {}
+        }
+
+        dados_composicoes[codigo].parceiro[id] = valor_parceiro
     }
 
-    div_proximo.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; flex-direction: column; justify-content: left; text-align: left; white-space: nowrap;">
-                <label>${dinheiro(dados.valor)}</label>
-                <label><strong> ${dados.quando}</strong></label>
-                <label><strong> ${dados.quem}</strong></label>
-            </div>
-            <img src="imagens/concluido.png" style="width: 25px; cursor: pointer;" onclick="preencher_parceiro(this)">
-        </div>
-    `
+    console.log(dados_composicoes[codigo])
 
 }
 
@@ -433,11 +417,6 @@ function calcular_parceiro() {
     var html_orcamento = document.getElementById('html_orcamento')
     var tabelas = html_orcamento.querySelectorAll('table')
     var orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {}
-    var pagamento_parceiro = JSON.parse(localStorage.getItem('pagamento_parceiro')) || {}
-
-    if (!pagamento_parceiro[orcamento_v2.id]) {
-        pagamento_parceiro[orcamento_v2.id] = {}
-    }
 
     var parceiro = document.getElementById('parceiro')
 
@@ -450,44 +429,6 @@ function calcular_parceiro() {
 
         })
     })
-
-    var valor_a_pagar = ''
-    var observacao = ''
-
-    if (pagamento_parceiro[orcamento_v2.id].valor_a_pagar) {
-        var VAPM = pagamento_parceiro[orcamento_v2.id].valor_a_pagar
-
-        valor_a_pagar = `
-        <label style="padding: 5px;"> <strong>${dinheiro(VAPM)}</strong></label>
-        <label>${(VAPM / total_itens_validos * 100).toFixed(1)}%</label>
-        <img src="gifs/alerta.gif" style="width: 3vw; cursor: pointer;" onclick="confirmar_edicao_valor()">
-        `
-
-        if (total_itens_validos * perc_parceiro < VAPM) {
-
-            var diferenca = VAPM - total_itens_validos * perc_parceiro
-            observacao += `
-            <div style="display: flex; align-items: center; justify-content: left;">
-                <img src="imagens/acima.png" style="width: 15px;">
-                <label>Valor acima em ${dinheiro(diferenca)} ${(diferenca / total_itens_validos * 100).toFixed(1)}%</label>
-            </div>
-            `
-        } else {
-            var diferenca = (VAPM - total_itens_validos * perc_parceiro) * -1
-            observacao += `
-            <div style="display: flex; align-items: center; justify-content: left;">
-                <img src="imagens/abaixo.png" style="width: 15px;">
-                <label>Valor abaixo em ${dinheiro(diferenca)} ${(diferenca / total_itens_validos * 100).toFixed(1)}%</label>
-            </div>
-            `
-        }
-
-    } else {
-        valor_a_pagar = `
-            <input type="number" class="numero-bonito" oninput="atualizar_indicadores(this)">
-            <img src="imagens/concluido.png" style="width: 3vw; cursor: pointer;" onclick="atualizar_indicadores(this, true)">
-        `
-    }
 
     var acumulado = `
     <div style="display: flex; flex-direction: column; justify-content: left;">
@@ -590,4 +531,42 @@ function gerarPDF() {
 
         ocultar.style.display = 'flex';
     });
+}
+
+
+function receber(chave) {
+    const url = `https://base-88062-default-rtdb.firebaseio.com/${chave}.json`; // Substitua pelo seu caminho
+
+    // Fazendo a requisição GET
+    fetch(url)
+        .then(response => response.json()) // Converte a resposta em JSON
+        .then(data => {
+            console.log(data); // Aqui estão seus dados do Firebase
+        })
+        .catch(error => {
+            console.error("Erro ao obter dados:", error);
+        });
+
+}
+
+async function enviar() {
+    const url = "https://base-88062-default-rtdb.firebaseio.com/dados_composicoes.json";
+
+    let dados_composicoes = await recuperarDados('dados_composicoes')
+
+    fetch(url, {
+        method: "PATCH",  // Para criar um novo usuário
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(dados_composicoes)  // Dados a serem enviados
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Novo usuário adicionado:", data);
+        })
+        .catch(error => {
+            console.error("Erro ao adicionar usuário:", error);
+        });
+
 }

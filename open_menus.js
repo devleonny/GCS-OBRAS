@@ -624,7 +624,7 @@ function obter_materiais() {
 
 async function recuperar() {
 
-    await recuperar_dados_composicoes()
+    recuperar_dados_composicoes()
     return new Promise((resolve, reject) => {
         var requisicoes = {
             'categorias': 'categorias',
@@ -1629,24 +1629,9 @@ function excluir_levantamento(id_orcamento, id_anexo) {
     enviar_dados_generico(dados)
 }
 
-function recuperar_dados_composicoes() {
-    return new Promise(async (resolve, reject) => {
+async function recuperar_dados_composicoes() {
 
-        let url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=compos_v3';
-
-        try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error('Erro ao carregar os dados');
-            }
-            const data = await response.json();
-            inserirDados(data, 'dados_composicoes');
-            resolve();
-        } catch (error) {
-            console.error('Ocorreu um erro:', error);
-            reject(error);
-        }
-    });
+    inserirDados(await receber('dados_composicoes'), 'dados_composicoes');
 
 }
 
@@ -1692,8 +1677,68 @@ function filtrar_tabela(coluna, id, elementoTH) {
 function capturarValorCelula(celula) {
     let entrada = celula.querySelector('input') || celula.querySelector('textarea')
     if (entrada) {
-        return entrada.value.toLowerCase(); 
+        return entrada.value.toLowerCase();
     }
 
-    return celula.innerText.toLowerCase(); 
+    return celula.innerText.toLowerCase();
+}
+
+
+//--- NOVO SERVIÇO DE ARMAZENAMENTO -- \\
+
+async function receber(chave) {
+    const url = `https://base-88062-default-rtdb.firebaseio.com/${chave}.json`;
+    return new Promise((resolve, reject) => {
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                resolve(data)
+            })
+            .catch(error => {
+                console.error("Erro ao obter dados:", error);
+                reject()
+            });
+    })
+}
+
+async function deletar(chave) {
+    const url = `https://base-88062-default-rtdb.firebaseio.com/${chave}.json`;
+    return new Promise((resolve, reject) => {
+        fetch(url, {
+            method: "DELETE"
+        })
+            .then(response => response.json())
+            .then(data => {
+                resolve(data)
+            })
+            .catch(error => {
+                console.error("Erro ao obter dados:", error);
+                reject()
+            });
+    })
+}
+
+async function enviar(metodo, chave, objeto) {
+    const url = `https://base-88062-default-rtdb.firebaseio.com/${chave}.json`;
+    return new Promise((resolve, reject) => {
+
+        fetch(url, {
+            method: metodo,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(objeto)
+        })
+            .then(response => response.json())
+            .then(data => {
+                resolve(data)
+            })
+            .catch(error => {
+                let dados_erros = localStorage.getItem('dados_erros') || []
+                dados_erros.push(objeto)
+                localStorage.setItem('dados_erros', JSON.stringify(dados_erros))
+                console.error("Erro ao adicionar usuário:", error);
+                reject()
+            });
+    })
 }
