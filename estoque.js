@@ -203,6 +203,11 @@ async function abrir_valores(codigo) {
             <label>Informar valor de Compra</label>
         </div>
 
+        <div style="color: #222; position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px;">
+            <img src="imagens/LG.png" style="width: 70px; height: 70px;">
+            <label style="width: 300px; text-align: left;">${item.descricao}</label>
+        </div>
+
         <div style="position: relative; display: flex; justify-content: space-evenly; padding: 10px; align-items: center; background-color: white; border-radius: 5px; margin: 5px; height: 140px; gap: 10px;">
             
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -430,11 +435,11 @@ async function abrir_estoque(codigo, stq) {
     let item = dados_estoque[codigo]
     let estoque = item[stq] || {}
     let atual = 0
-    let inicial = 0
+    let inicial = estoque.quantidade ? estoque.quantidade : 0
     let linhas = ''
+
     if (estoque.historico) {
         atual = estoque.quantidade
-        inicial = estoque.quantidade
 
         let historicoArray = Object.entries(estoque.historico);
         historicoArray.sort((a, b) => {
