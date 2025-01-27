@@ -215,19 +215,18 @@ document.addEventListener("DOMContentLoaded", () => {
     function addTechnicianRow(technician, agenda = []) {
         const totalDays = daysRow.children.length - 2;
         const newRow = document.createElement("tr");
-    
+
         // Coluna de técnico
         const tecnicoCell = document.createElement("td");
         tecnicoCell.className = "left-header";
-    
+
         const tecnicoInput = document.createElement("input");
         tecnicoInput.type = "text";
-        tecnicoInput.placeholder = "Selecione um técnico"; // Placeholder no input do técnico
+        tecnicoInput.placeholder = "Selecione um técnico";
         tecnicoInput.className = "dropdown-input";
         tecnicoInput.value = technician.nome || ""; // Preenche o nome do técnico
         tecnicoInput.dataset.omie = technician.omie || ""; // Salva o omie no dataset
-    
-        // Dropdown de técnicos
+
         const tecnicoDropdown = document.createElement("div");
         tecnicoDropdown.className = "dropdown-options";
         technicianOptions.forEach((tech) => {
@@ -236,65 +235,107 @@ document.addEventListener("DOMContentLoaded", () => {
             option.textContent = tech.nome;
             option.dataset.omie = tech.omie;
             option.addEventListener("click", () => {
-                tecnicoInput.value = tech.nome; // Preenche o nome do técnico
+                tecnicoInput.value = tech.nome; // Define o nome do técnico
                 tecnicoInput.dataset.omie = tech.omie; // Salva o código omie
                 tecnicoDropdown.style.display = "none"; // Fecha o dropdown
             });
             tecnicoDropdown.appendChild(option);
         });
-    
+
         tecnicoInput.addEventListener("focus", () => {
             tecnicoDropdown.style.display = "block"; // Exibe o dropdown
-            positionDropdown(tecnicoInput, tecnicoDropdown); // Posiciona o dropdown
+            positionDropdown(tecnicoInput, tecnicoDropdown);
         });
-    
+
         tecnicoInput.addEventListener("input", () => {
-            const searchTerm = tecnicoInput.value.toLowerCase();
-            Array.from(tecnicoDropdown.children).forEach((option) => {
-                option.style.display = option.textContent.toLowerCase().includes(searchTerm)
-                    ? "block"
-                    : "none";
-            });
+            // Verifica se o técnico selecionado é válido
+            const validTechnician = technicianOptions.find(
+                (tech) => tech.nome.trim().toLowerCase() === tecnicoInput.value.trim().toLowerCase()
+            );
+        
+            if (!validTechnician) {
+                // Técnico inválido: Limpa o campo e exibe mensagem de erro (opcional)
+                tecnicoInput.dataset.omie = ""; // Remove o `omie` se inválido
+                return; // Sai da função para evitar qualquer outra ação
+            }
+        
+            // Verifica se o técnico já existe na agenda atual
+            const currentKey = getAgendaKey(); // Exemplo: "2025_0"
+            const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
+            const isDuplicate = Object.values(storedData).some(
+                (tech) =>
+                    tech.omie === validTechnician.omie && // Mesmo técnico pelo código `omie`
+                    tech.agendas[currentKey] // Já registrado na mesma agenda
+            );
+        
+            if (isDuplicate) {
+                // Técnico duplicado: Limpa o campo e exibe mensagem de erro
+                tecnicoInput.value = ""; // Limpa o nome do técnico
+                tecnicoInput.dataset.omie = ""; // Remove o código do dataset
+                showPopup("Este técnico já está na agenda atual!");
+                return; // Sai da função para evitar salvar duplicado
+            }
+        
+            // Técnico válido e não duplicado: Salva o `omie` no dataset
+            tecnicoInput.dataset.omie = validTechnician.omie;
         });
-    
-        // Validação no blur para técnicos
+        
+
+        // Validação no blur para não duplicar técnicos na mesma agenda
         tecnicoInput.addEventListener("blur", () => {
             setTimeout(() => {
+                // Verifica se o técnico selecionado é válido
                 const validTechnician = technicianOptions.find(
                     (tech) => tech.nome.trim().toLowerCase() === tecnicoInput.value.trim().toLowerCase()
                 );
-    
+        
                 if (!validTechnician) {
-                    // Técnico inválido: limpar campo e exibir mensagem
+                    // Técnico inválido: Limpa o campo e exibe mensagem de erro
                     tecnicoInput.value = "";
                     tecnicoInput.dataset.omie = "";
                     showPopup("Por favor, selecione um técnico válido.");
                 } else {
-                    tecnicoInput.dataset.omie = validTechnician.omie; // Salva o omie
-                    saveTechniciansToLocalStorage(); // Atualiza o localStorage
+                    // Verifica se o técnico já está na agenda atual
+                    const currentKey = getAgendaKey(); // Exemplo: "2025_0"
+                    const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
+                    const isDuplicate = Object.values(storedData).some(
+                        (tech) =>
+                            String(tech.omie) === String(validTechnician.omie) && // Força a conversão para string
+                            tech.agendas[currentKey] // Já registrado na mesma agenda
+                    );
+                    
+                    if (isDuplicate) {
+                        // Técnico duplicado: Limpa o campo e exibe mensagem de erro
+                        tecnicoInput.value = "";
+                        tecnicoInput.dataset.omie = "";
+                        showPopup("Este técnico já está na agenda atual!");
+                    } else {
+                        // Técnico válido e não duplicado: Salva no localStorage
+                        tecnicoInput.dataset.omie = validTechnician.omie;
+                        saveTechniciansToLocalStorage();
+                    }
                 }
-    
+        
                 tecnicoDropdown.style.display = "none"; // Fecha o dropdown
-            }, 200); // Pequeno atraso para permitir a seleção
+            }, 200); // Pequeno atraso para permitir seleção do dropdown
         });
-    
+
         tecnicoCell.appendChild(tecnicoInput);
         tecnicoCell.appendChild(tecnicoDropdown);
         newRow.appendChild(tecnicoCell);
-    
-        // Colunas de dias (departamentos)
+
+        // Colunas de dias (departamentos) (mantidas inalteradas)
         for (let i = 0; i < totalDays; i++) {
             const dayCell = document.createElement("td");
             dayCell.style.width = "50px";
             dayCell.style.maxWidth = "50px";
-    
+
             const dayInput = document.createElement("input");
             dayInput.type = "text";
             dayInput.placeholder = "Selecione";
             dayInput.className = "dropdown-input";
             dayInput.style.backgroundColor = "transparent";
-    
-            // Carregar o valor e a cor do departamento
+
             const deptCode = agenda[i] || "";
             const dept = departments.find((d) => d.codigo === deptCode);
             if (dept) {
@@ -304,10 +345,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 dayCell.style.backgroundColor = dept.color;
                 adjustTextColor(dayCell, dept.color);
             }
-    
+
             dayInput.dataset.codigo = deptCode;
-    
-            // Dropdown de opções (departamentos)
+
             const dayDropdown = document.createElement("div");
             dayDropdown.className = "dropdown-options";
             departments.forEach((dept) => {
@@ -327,54 +367,56 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
                 dayDropdown.appendChild(option);
             });
-    
+
             dayInput.addEventListener("focus", () => {
                 dayDropdown.style.display = "block";
                 positionDropdown(dayInput, dayDropdown);
             });
-    
+
             dayInput.addEventListener("blur", () => {
                 setTimeout(() => {
+                    // Verifica se o departamento é válido pelo nome ou código
                     const validDepartment = departments.find(
                         (dept) =>
-                            dept.nome.trim().toLowerCase() === dayInput.value.trim().toLowerCase() || // Verifica pelo nome
-                            dept.codigo === dayInput.dataset.codigo // Verifica pelo código (omie)
+                            dept.nome.trim().toLowerCase() === dayInput.value.trim().toLowerCase() || // Compara pelo nome
+                            String(dept.codigo) === String(dayInput.dataset.codigo) // Compara pelo código (força string)
                     );
             
                     if (!validDepartment) {
-                        // Departamento inválido: limpar campo e exibir mensagem
+                        // Departamento inválido: limpa o campo e exibe mensagem
                         dayInput.value = "";
                         dayInput.dataset.codigo = "";
                         showPopup("Por favor, selecione um departamento válido.");
-                        dayCell.style.backgroundColor = ""; // Remove a cor do fundo no TD
+                        dayCell.style.backgroundColor = ""; // Remove a cor do fundo
                         dayCell.style.color = ""; // Reseta a cor do texto
                     } else {
-                        // Departamento válido: ajusta nome, código e estilo
+                        // Departamento válido: atualiza o nome, código e estilo
                         const truncatedName = validDepartment.nome.length > 3
                             ? validDepartment.nome.slice(0, 3) + "..."
                             : validDepartment.nome;
                         dayInput.value = truncatedName; // Nome truncado
                         dayInput.title = validDepartment.nome; // Nome completo como dica
-                        dayInput.dataset.codigo = validDepartment.codigo;
-                        dayCell.style.backgroundColor = validDepartment.color; // Aplica a cor do departamento
-                        adjustTextColor(dayCell, validDepartment.color); // Ajusta a cor do texto
+                        dayInput.dataset.codigo = validDepartment.codigo; // Salva o código no dataset
+                        dayCell.style.backgroundColor = validDepartment.color; // Aplica a cor no TD
+                        adjustTextColor(dayCell, validDepartment.color); // Ajusta a cor do texto no TD
+            
                         saveTechniciansToLocalStorage(); // Salva no localStorage
                     }
             
                     dayDropdown.style.display = "none"; // Fecha o dropdown
-                }, 200); // Pequeno atraso para permitir a seleção do dropdown
+                }, 200);
             });
             
-    
+
             dayCell.appendChild(dayInput);
             dayCell.appendChild(dayDropdown);
             newRow.appendChild(dayCell);
         }
-    
+
         // Coluna de ações (mantida inalterada)
         const actionsCell = document.createElement("td");
         actionsCell.className = "actions";
-    
+
         const editButton = document.createElement("button");
         editButton.className = "edit-btn";
         const editImage = document.createElement("img");
@@ -383,7 +425,7 @@ document.addEventListener("DOMContentLoaded", () => {
         editButton.appendChild(editImage);
         editButton.addEventListener("click", () => openEditModal(technician));
         actionsCell.appendChild(editButton);
-    
+
         const removeButton = document.createElement("button");
         removeButton.className = "remove-btn";
         const removeImage = document.createElement("img");
@@ -394,13 +436,13 @@ document.addEventListener("DOMContentLoaded", () => {
             newRow.remove();
             saveTechniciansToLocalStorage();
         });
-    
+
         actionsCell.appendChild(removeButton);
         newRow.appendChild(actionsCell);
-    
+
         techniciansBody.appendChild(newRow);
-    }    
-    
+    }
+
     function positionDropdown(input, dropdown) {
         const rect = input.getBoundingClientRect();
         dropdown.style.position = "absolute";
@@ -421,40 +463,45 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Chave inválida ao salvar a agenda!");
             return;
         }
-
-        const techniciansObj = {}; // Objeto para armazenar técnicos
-        const selectedRegion = regionSelect.value; // Obtém a região atual selecionada
-
+    
+        // Carrega os dados existentes do localStorage (se houver)
+        const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
+    
+        // Atualiza ou adiciona técnicos na região atual
         Array.from(techniciansBody.children).forEach((row) => {
             const tecnicoInput = row.querySelector("td input.dropdown-input");
-            if (!tecnicoInput || !tecnicoInput.dataset.omie) return;
-
+            if (!tecnicoInput || !tecnicoInput.dataset.omie) return; // Ignora linhas inválidas
+    
             const technicianOmie = tecnicoInput.dataset.omie;
-
-            let technician = technicians.find((t) => t.omie === technicianOmie);
-            if (!technician) {
-                technician = {
-                    omie: technicianOmie,
-                    nome: tecnicoInput.value.trim(),
-                    agendas: {},
-                };
-                technicians.push(technician);
-            }
-
+    
+            // Verifica se o técnico já existe no objeto armazenado
+            let technician = storedData[technicianOmie] || {
+                omie: technicianOmie,
+                nome: tecnicoInput.value.trim(),
+                agendas: {},
+            };
+    
+            // Atualiza a região atual do técnico para a região selecionada
+            technician.regiao_atual = regionSelect.value;
+    
+            // Obtém os departamentos selecionados para a agenda atual
             const selectedDepartments = Array.from(
                 row.querySelectorAll("td input.dropdown-input")
             )
-                .slice(1)
+                .slice(1) // Ignora o primeiro campo (técnico)
                 .map((cell) => cell.dataset.codigo || "");
-
+    
+            // Atualiza ou adiciona os dados da agenda para a chave atual
             technician.agendas[key] = selectedDepartments;
-            technician.regiao_atual = selectedRegion; // Salva a região atual
-            techniciansObj[technicianOmie] = technician;
+    
+            // Atualiza o técnico no objeto armazenado
+            storedData[technicianOmie] = technician;
         });
-
-        localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(techniciansObj));
-        console.log("Dados salvos no localStorage:", techniciansObj);
-    }
+    
+        // Salva os dados atualizados no localStorage
+        localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
+        console.log("Dados atualizados no localStorage:", storedData);
+    }    
 
     function loadTechniciansFromLocalStorage() {
         const storedData = localStorage.getItem("dados_agenda_tecnicos");
@@ -548,10 +595,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (noDataRow) {
             noDataRow.remove();
         }
-    
+
         // Cria um novo objeto técnico vazio para a nova linha
         const newTechnician = { id: "", nome: "", agendas: {} }; // Nome vazio e sem "Selecione"
-    
+
         // Adiciona a nova linha com um técnico vazio
         addTechnicianRow(newTechnician); // Adiciona a linha, sem salvar imediatamente
     }
@@ -699,13 +746,13 @@ document.addEventListener("DOMContentLoaded", () => {
 function isColorDark(color) {
     // Remove o "#" se existir
     const hex = color.replace("#", "");
-    
+
     // Verifica se a cor tem 6 caracteres
     if (hex.length !== 6) {
         console.error("Formato de cor inválido:", color);
         return false; // Retorna falso para evitar erros
     }
-    
+
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
