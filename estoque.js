@@ -195,6 +195,41 @@ async function abrir_valores(codigo) {
         timeStyle: 'short'
     });
 
+    let opcoes = {
+        resultados: {
+            fornecedor: [],
+            comentario: []
+        },
+        datalists: {
+            fornecedor: '',
+            comentario: ''
+        }
+    }
+
+    for (produto in dados_estoque) {
+        let item = dados_estoque[produto]
+        if (item.valor_compra && dicionario(item.valor_compra)) {
+            for (compra in item.valor_compra) {
+                let compra_item = item.valor_compra[compra]
+                opcoes.resultados.fornecedor.push(compra_item.fornecedor)
+                opcoes.resultados.comentario.push(compra_item.comentario)
+            }
+        }
+    }
+
+    opcoes.resultados.fornecedor = [...new Set(opcoes.resultados.fornecedor)]
+    opcoes.resultados.comentario = [...new Set(opcoes.resultados.comentario)]
+
+    opcoes.resultados.fornecedor.forEach(fornecedor => {
+        opcoes.datalists.fornecedor += `<option value="${fornecedor}">`
+    })
+
+    opcoes.resultados.comentario.forEach(comentario => {
+        opcoes.datalists.comentario += `<option value="${comentario}">`
+    })
+
+    console.log(opcoes)
+
     let acumulado = `
         <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
         <label style="position: absolute; bottom: 5px; right: 15px; font-size: 0.7em;" id="data">${data}</label>
@@ -208,36 +243,49 @@ async function abrir_valores(codigo) {
             <label style="width: 300px; text-align: left;">${item.descricao}</label>
         </div>
 
-        <div style="position: relative; display: flex; justify-content: space-evenly; padding: 10px; align-items: center; background-color: white; border-radius: 5px; margin: 5px; height: 140px; gap: 10px;">
-            
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <label style="color: #222;">Valor de Compra</label>
-                <input class="numero-bonito" style="background-color: #097fe6;" id="vl_compra">
-            </div>
+        <div style="display: flex; align-items: center; justify-content: space-evenly; gap: 10px; background-color: white; border-radius: 5px; margin: 5px; padding: 10px;">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+                <div style="display: flex; justify-content: center;">
+                    
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <label style="color: #222;">Valor de Compra</label>
+                        <input class="numero-bonito" style="background-color: #097fe6;" id="vl_compra">
+                    </div>
 
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <label style="color: #222;">Unidade</label>
-                <input class="numero-bonito" value="1" id="unidade" readOnly>
-            </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <label style="color: #222;">Unidade</label>
+                        <input class="numero-bonito" value="1" id="unidade" readOnly>
+                    </div>
 
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <label style="color: #222;">Conversão</label>
-                <input class="numero-bonito" value="1" id="conversao">
-            </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <label style="color: #222;">Conversão</label>
+                        <input class="numero-bonito" value="1" id="conversao">
+                    </div>
 
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <label style="color: #222;">Fornecedor</label>
-                <textarea maxlength="100" placeholder="Fornecedor" id="fornecedor"></textarea>
-            </div>
+                </div>
 
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <label style="color: #222;">Comentário</label>
-                <textarea maxlength="100" placeholder="Comentário" id="comentario"></textarea>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 10px;"> 
+
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <label style="color: #222;">Fornecedor</label>
+                        <input class="numero-bonito" id="fornecedor" list="datalist_fornecedor">
+                        <datalist id="datalist_fornecedor">${opcoes.datalists.fornecedor}</datalist>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
+                        <label style="color: #222;">Comentário</label>
+                        <input class="numero-bonito" id="comentario" list="datalist_comentario">
+                        <datalist id="datalist_comentario">${opcoes.datalists.comentario}</datalist>
+                    </div>
+
+                </div>
+
             </div>
 
             <img src="imagens/concluido.png" style="cursor: pointer;" onclick="salvar_valor('${codigo}')">
 
         </div>
+
         `
 
     if (dicionario(item.valor_compra)) {
