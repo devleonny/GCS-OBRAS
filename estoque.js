@@ -228,8 +228,6 @@ async function abrir_valores(codigo) {
         opcoes.datalists.comentario += `<option value="${comentario}">`
     })
 
-    console.log(opcoes)
-
     let acumulado = `
         <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
         <label style="position: absolute; bottom: 5px; right: 15px; font-size: 0.7em;" id="data">${data}</label>
@@ -663,6 +661,22 @@ async function remover_historico(codigo, stq, chave) {
 }
 
 async function salvar_movimento(codigo, stq, inicial) {
+
+    let data = document.getElementById('data')
+    let comentario = document.getElementById('comentario')
+    let entrada = document.getElementById('entrada')
+    let saida = document.getElementById('saida')
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let id = gerar_id_5_digitos()
+
+    remover_popup()
+    openPopup_v2(`
+        <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+            <img src="gifs/loading.gif" style="width: 70px;">
+            <label>Salvando...</label>
+        </div>
+    `)
+
     let dados_estoque = await recuperarDados('dados_estoque') || {}
     let item = dados_estoque[codigo]
     if (!dicionario(item[stq]) || !item[stq].historico) {
@@ -672,12 +686,6 @@ async function salvar_movimento(codigo, stq, inicial) {
         };
     }
     let estoque = item[stq]
-    let data = document.getElementById('data')
-    let comentario = document.getElementById('comentario')
-    let entrada = document.getElementById('entrada')
-    let saida = document.getElementById('saida')
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    let id = gerar_id_5_digitos()
 
     let movimento = {
         data: data.textContent,
@@ -717,7 +725,7 @@ async function salvar_movimento(codigo, stq, inicial) {
         await enviar('PUT', `dados_estoque/${codigo}/${stq}/quantidade`, estoque.quantidade)
     }
 
-    retomar_paginacao()
+    await retomar_paginacao(codigo, stq)
 
 }
 
@@ -864,7 +872,7 @@ async function salvar_dados_estoque(img, codigo, chave) {
 
 }
 
-async function retomar_paginacao() {
+async function retomar_paginacao(codigo, stq) {
     await carregar_estoque()
 
     let tabela_estoque = document.getElementById('tabela_estoque')
@@ -888,6 +896,9 @@ async function retomar_paginacao() {
         inputs[0].value = data_entrada
         inputs[1].value = data_saida
         atualizar_dados_relatorio()
+    } else if (codigo !== undefined && stq !== undefined) {
+        remover_popup()
+        await abrir_estoque(codigo, stq)
     }
 
 }
