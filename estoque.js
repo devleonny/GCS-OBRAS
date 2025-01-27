@@ -2,8 +2,24 @@ let filtrosAtivosEstoques = {}
 let filtrosRelatorio = {}
 let colunas = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'localizacao_novo', 'estoque_usado', 'localizacao_usado', 'inventario', 'valor_compra']
 
+atualizar_estoque()
 
-carregar_estoque()
+async function atualizar_estoque() {
+    let div = document.getElementById('estoque')
+
+    if (div) {
+        carregamento('estoque')
+    }
+
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+
+    if (Object.keys(dados_estoque).length == 0) {
+        let estoque_nuvem = await receber('dados_estoque') || {}
+        await inserirDados(descodificarUTF8(estoque_nuvem), 'dados_estoque')
+    }
+
+    await carregar_estoque()
+}
 
 async function carregar_estoque() {
 
@@ -21,12 +37,7 @@ async function carregar_estoque() {
     }
 
     let apenas_leitura = autorizado ? '' : 'readonly'
-
     let dados_estoque = await recuperarDados('dados_estoque') || {}
-
-    if (Object.keys(dados_estoque).length == 0) {
-        return atualizar_estoque()
-    }
 
     let thc = ''
     let ths = ''
@@ -123,8 +134,6 @@ async function carregar_estoque() {
                     </td>
                 `
                 }
-
-
             })
 
             linhas += `
@@ -338,9 +347,8 @@ async function salvar_dados_compra(codigo, cpr, campo, img) {
             info: elemento
         }
 
-        enviar_dados_generico(dados)
-
         await inserirDados(dados_estoque, 'dados_estoque')
+        await enviar('PUT', `dados_estoque/${codigo}/valor_compra/${cpr}/${campo}`, elemento)
 
     }
 
@@ -356,15 +364,7 @@ async function excluir_preco(codigo, cpr) {
         delete dados_estoque[codigo].valor_compra[cpr]
     }
 
-    let dados = {
-        tabela: 'estoque',
-        operacao: 'excluir_compra',
-        id: codigo,
-        id_compra: cpr
-    }
-
-    enviar_dados_generico(dados)
-
+    await deletar(`dados_estoque/${codigo}/valor_compra/${cpr}`)
     await inserirDados(dados_estoque, 'dados_estoque')
 
     remover_popup()
@@ -406,17 +406,8 @@ async function salvar_valor(codigo) {
 
         item.valor_compra[id] = compra
 
-        let dados = {
-            tabela: 'estoque',
-            operacao: 'incluir_compra',
-            id: codigo,
-            id_compra: id,
-            compra: compra
-        }
-
-        enviar_dados_generico(dados)
-
         await inserirDados(dados_estoque, 'dados_estoque')
+        await enviar('PUT', `dados_estoque/${codigo}/valor_compra/${id}`, codificarUTF8(compra))
 
     }
 
@@ -441,7 +432,7 @@ async function abrir_estoque(codigo, stq) {
     let atual = 0
     let inicial = 0
     let linhas = ''
-
+    console.log(estoque)
     if (estoque.historico) {
         atual = estoque.quantidade
         inicial = estoque.quantidade
@@ -523,6 +514,9 @@ async function abrir_estoque(codigo, stq) {
     }
 
     let acumulado = `
+
+        <label id="movimento" style="display: none;">${codigo}/${stq}</label>
+
         <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
         <label style="position: absolute; bottom: 5px; right: 15px; font-size: 0.7em;" id="data">${data}</label>
 
@@ -602,17 +596,9 @@ async function remover_historico(codigo, stq, chave) {
         delete item[stq].historico[chave]
     }
 
-    let dados = {
-        id: codigo,
-        tabela: 'estoque',
-        chave: stq,
-        chave2: chave,
-        operacao: 'remover'
-    }
-
-    enviar_dados_generico(dados)
-
     await inserirDados(dados_estoque, 'dados_estoque')
+    await deletar(`dados_estoque/${codigo}/${stq}/historico/${chave}`)
+
     remover_popup()
     await carregar_estoque()
     await abrir_estoque(codigo, stq)
@@ -622,7 +608,7 @@ async function remover_historico(codigo, stq, chave) {
 async function salvar_movimento(codigo, stq, inicial) {
     let dados_estoque = await recuperarDados('dados_estoque') || {}
     let item = dados_estoque[codigo]
-    if (!dicionario(item[stq])) {
+    if (!dicionario(item[stq]) || !item[stq].historico) {
         item[stq] = {
             historico: {},
             quantidade: 0
@@ -667,57 +653,15 @@ async function salvar_movimento(codigo, stq, inicial) {
 
     estoque.historico[id] = movimento
 
-    let dados = {
-        id: codigo,
-        tabela: 'estoque',
-        chave: stq,
-        operacao: 'movimento',
-        movi_id: id,
-        movimento: movimento,
-    }
-
-    enviar_dados_generico(dados)
-
     await inserirDados(dados_estoque, 'dados_estoque')
+    await enviar('PUT', `dados_estoque/${codigo}/${stq}/historico/${id}`, codificarUTF8(movimento))
 
-    remover_popup()
-    await carregar_estoque()
-    await abrir_estoque(codigo, stq)
-
-}
-
-async function recuperar_estoque() {
-    return new Promise((resolve, reject) => {
-        fetch('https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=estoque')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erro ao carregar os dados');
-                }
-                return response.json();
-            })
-            .then(data => {
-                inserirDados(data, 'dados_estoque')
-                resolve()
-            })
-            .catch(error => {
-                console.error('Ocorreu um erro:', error);
-                reject(error);
-            });
-
-    })
-
-}
-
-async function atualizar_estoque() {
-    let div = document.getElementById('estoque')
-
-    if (div) {
-        carregamento('estoque')
+    if (inicial !== undefined) {
+        await enviar('PUT', `dados_estoque/${codigo}/${stq}/quantidade`, estoque.quantidade)
     }
 
-    await recuperar_estoque()
+    retomar_paginacao()
 
-    await carregar_estoque()
 }
 
 function exibir_botao(elemento, chave) {
@@ -810,18 +754,10 @@ async function remover_linha_excluir_item(elemento) {
 async function confirmar_exclusao(codigo) {
 
     let dados_estoque = await recuperarDados('dados_estoque') || {}
-
     delete dados_estoque[codigo]
 
-    let dados = {
-        tabela: 'estoque',
-        operacao: 'excluir_produto',
-        id: codigo
-    }
-
-    enviar_dados_generico(dados)
-
     await inserirDados(dados_estoque, 'dados_estoque')
+    await deletar(`dados_estoque/${codigo}`)
 
     remover_popup()
     carregar_estoque()
@@ -838,16 +774,8 @@ async function salvar_dados_estoque(img, codigo, chave) {
     if (dados_estoque[codigo] && Object.hasOwn(dados_estoque[codigo], chave)) {
         dados_estoque[codigo][chave] = elemento.value
 
-        let dados = {
-            tabela: 'estoque',
-            operacao: 'alteracao',
-            id: codigo,
-            chave: chave,
-            valor: elemento.value
-        }
-
-        enviar_dados_generico(dados)
         await inserirDados(dados_estoque, 'dados_estoque')
+        await enviar('PUT', `dados_estoque/${codigo}/${chave}`, codificarUTF8(elemento.value))
 
     } else if (!dados_estoque[codigo]) { //29 PERMANENTE; Objetos criados no primeiro momento;
 
@@ -873,15 +801,43 @@ async function salvar_dados_estoque(img, codigo, chave) {
 
         dados_estoque[codigo][chave] = elemento.value
         await inserirDados(dados_estoque, 'dados_estoque')
+        await enviar('PUT', `dados_estoque/${codigo}`, codificarUTF8(dados_estoque[codigo]))
 
-        let dados = {
-            tabela: 'estoque',
-            operacao: 'incluir',
-            id: codigo,
-            item: dados_estoque[codigo]
-        }
-        enviar_dados_generico(dados)
     }
+
+}
+
+async function retomar_paginacao() {
+    await carregar_estoque()
+
+    let tabela_estoque = document.getElementById('tabela_estoque')
+    let thead = tabela_estoque.querySelector('thead')
+    let trs = thead.querySelectorAll('tr')
+    let ths = trs[1].querySelectorAll('th')
+
+    for (coluna in filtrosAtivosEstoques) {
+        let texto = filtrosAtivosEstoques[coluna]
+        ths[coluna - 1].querySelector('input').value = texto
+        pesquisar_em_estoque(coluna, texto, filtrosAtivosEstoques, 'tabela_estoque')
+    }
+
+    let movimento = document.getElementById('movimento')
+    let inputs = document.body.querySelectorAll('input.datas_estoque')
+    if (movimento) {
+        remover_popup()
+        let [codigo, chave] = movimento.textContent.split('/')
+        abrir_estoque(codigo, chave)
+    } else if (inputs.length > 0) {
+        let data_entrada = inputs[0].value
+        let data_saida = inputs[1].value
+        remover_popup()
+        relatorio_movimento()
+        inputs = document.body.querySelectorAll('input.datas_estoque')
+        inputs[0].value = data_entrada
+        inputs[1].value = data_saida
+        atualizar_dados_relatorio()
+    }
+
 
 }
 
@@ -1051,5 +1007,14 @@ async function atualizar_dados_relatorio() {
         relatorio.innerHTML = tabela
 
     }
+
+}
+
+async function enviar_estoque() {
+
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+
+    console.log(dados_estoque)
+    //enviar('PUT', 'dados_estoque', codificarUTF8(dados_estoque))
 
 }

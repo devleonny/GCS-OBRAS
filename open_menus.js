@@ -1,5 +1,15 @@
 var acesso = JSON.parse(localStorage.getItem('acesso'))
 var versao = 'v3.0.4'
+const firebaseConfig = {
+    apiKey: "AIzaSyAjQHxVx_RAyukseYnUgmBblS5SEHITZ_U",
+    authDomain: "base-88062.firebaseapp.com",
+    databaseURL: "https://base-88062-default-rtdb.firebaseio.com",
+    projectId: "base-88062",
+    storageBucket: "base-88062.firebasestorage.app",
+    messagingSenderId: "190993678134",
+    appId: "1:190993678134:web:0c0c1f456caf24d3423d97",
+    measurementId: "G-PJP7PVPEXG"
+};
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F5') {
@@ -11,27 +21,29 @@ function f5() {
     location.reload();
 }
 
-//provisoriamente;
+//Provisoriamente;
 localStorage.removeItem('dados_cliente')
 localStorage.removeItem('dados_composicoes')
 localStorage.removeItem('lista_pagamentos')
 localStorage.removeItem('dados_pagamentos')
+localStorage.removeItem('dados_orcamentos')
 
+// Lógicas para a inclusão no IndexedDB(Entrada e Saída de dados); 
 function inserirDados(dados, nome_da_base) {
-    // Primeiro, abra o banco para verificar a versão e setores existentes
+    // Primeiro, abra o banco para verificar a versão e setores existentes;
     const request = indexedDB.open('Bases');
     let novaVersao;
 
     request.onsuccess = function (event) {
         const db = event.target.result;
 
-        // Verificar se a store já existe
+        // Verificar se a store já existe;
         if (!db.objectStoreNames.contains(nome_da_base)) {
-            // Fechar o banco atual para alterar a versão
+            // Fechar o banco atual para alterar a versão;
             novaVersao = db.version + 1;
             db.close();
 
-            // Reabrir o banco com a nova versão
+            // Reabrir o banco com a nova versão;
             const upgradeRequest = indexedDB.open('Bases', novaVersao);
 
             upgradeRequest.onupgradeneeded = function (event) {
@@ -49,7 +61,7 @@ function inserirDados(dados, nome_da_base) {
                 console.error('Erro ao atualizar versão do banco:', event.target.error);
             };
         } else {
-            // Se a store já existe, apenas insira os dados
+            // Se a store já existe, apenas insira os dados;
             executarTransacao(db, nome_da_base, dados);
         }
     };
@@ -68,14 +80,14 @@ function executarTransacao(db, nome_da_base, dados) {
     clearRequest.onsuccess = function () {
         if (Array.isArray(dados)) {
             dados.forEach(item => {
-                item.id = 1; // Substituir sempre o mesmo ID
+                item.id = 1; // Substituir sempre o mesmo ID;
                 const addRequest = store.put(item);
                 addRequest.onerror = function (event) {
                     console.error('Erro ao adicionar item:', event.target.error);
                 };
             });
         } else {
-            dados.id = 1; // Substituir sempre o mesmo ID
+            dados.id = 1; // Substituir sempre o mesmo ID;
             const addRequest = store.put(dados);
             addRequest.onerror = function (event) {
                 console.error('Erro ao adicionar item:', event.target.error);
@@ -104,7 +116,7 @@ async function recuperarDados(nome_da_base) {
         request.onsuccess = function (event) {
             const db = event.target.result;
 
-            // Verificar se a store existe
+            // Verificar se a store existe;
             if (!db.objectStoreNames.contains(nome_da_base)) {
                 console.warn(`Store "${nome_da_base}" não existe no banco.`);
                 resolve(null);
@@ -368,32 +380,12 @@ function removerLinha(select) {
     linha.parentNode.removeChild(linha);
 }
 
-function apagar(codigo_orcamento) {
+async function apagar(codigo_orcamento) {
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'))
+    await enviar('PUT', `dados_orcamentos/${codigo_orcamento}/operacao`, 'excluido')
 
-    var exclusao_orcamento = {
-        'tabela': 'excluir',
-        'id': codigo_orcamento
-    }
-
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(exclusao_orcamento)
-    })
-
-    remover_popup()
     fechar_espelho_ocorrencias()
-    openPopup_v2('Orçamento Excluído');
-
-    delete dados_orcamentos[codigo_orcamento]
-
-    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
-    preencher_orcamentos_v2()
+    remover_popup()
 
 }
 
@@ -624,7 +616,6 @@ function obter_materiais() {
 
 async function recuperar() {
 
-    recuperar_dados_composicoes()
     return new Promise((resolve, reject) => {
         var requisicoes = {
             'categorias': 'categorias',
@@ -1737,8 +1728,79 @@ async function enviar(metodo, chave, objeto) {
                 let dados_erros = localStorage.getItem('dados_erros') || []
                 dados_erros.push(objeto)
                 localStorage.setItem('dados_erros', JSON.stringify(dados_erros))
-                console.error("Erro ao adicionar usuário:", error);
+                console.error(error);
                 reject()
             });
     })
+}
+
+function descodificarUTF8(obj) {
+    if (typeof obj === "string") {
+        try {
+            if (/%[0-9A-Fa-f]{2}/.test(obj)) {
+                return decodeURIComponent(obj);
+            }
+            return obj;
+        } catch (e) {
+            console.error("Erro ao decodificar string:", obj, e);
+            return obj; 
+        }
+    } else if (Array.isArray(obj)) {
+        return obj.map(descodificarUTF8);
+    } else if (typeof obj === "object" && obj !== null) {
+        const novoObj = {};
+        for (let chave in obj) {
+            try {
+                const chaveDecodificada = /%[0-9A-Fa-f]{2}/.test(chave)
+                    ? decodeURIComponent(chave)
+                    : chave;
+                novoObj[chaveDecodificada] = descodificarUTF8(obj[chave]);
+            } catch (e) {
+                console.error("Erro ao decodificar chave:", chave, e);
+                novoObj[chave] = descodificarUTF8(obj[chave]);
+            }
+        }
+        return novoObj;
+    }
+    return obj;
+}
+
+function codificarUTF8(obj) {
+    if (typeof obj === "string") {
+        return obj.replace(/[$#[\]./]/g, char => encodeURIComponent(char));
+    } else if (Array.isArray(obj)) {
+        return obj.map(codificarUTF8);
+    } else if (typeof obj === "object" && obj !== null) {
+        const novoObj = {};
+        for (let chave in obj) {
+            const chaveCodificada = chave.replace(/[$#[\]./]/g, char => encodeURIComponent(char));
+            novoObj[chaveCodificada] = codificarUTF8(obj[chave]);
+        }
+        return novoObj;
+    }
+    return obj;
+}
+
+async function proximo_sequencial() {
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+
+    var chamados_sequenciais = []
+
+    for (orc in dados_orcamentos) {
+
+        var orcamento = dados_orcamentos[orc]
+        if (orcamento.dados_orcam && orcamento.dados_orcam.contrato) {
+            var chamado = orcamento.dados_orcam.contrato
+            if (chamado.slice(0, 4) == 'ORC_') {
+                chamados_sequenciais.push(Number(chamado.replace('ORC_', '')))
+            }
+        }
+
+    }
+
+    var proximo = Math.max(...chamados_sequenciais) + 1
+
+    return proximo
+
 }

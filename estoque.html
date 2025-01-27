@@ -77,13 +77,6 @@
             <label class="novo_titulo" style="font-size: 2.0em;">Estoque</label>
 
             <div style="display: flex; justify-content: center; gap: 10px;">
-                <div style="display: flex; flex-direction: column; gap: 10px; height: 100%;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="relatorio_movimento()">
-                        <label style="color: white;">Relatório</label>
-                        <img src="imagens/relatorio2.png" style="width: 25px; cursor: pointer;">
-                    </div>
-                </div>
 
                 <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
@@ -93,9 +86,9 @@
                     </div>
 
                     <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="atualizar_estoque()">
-                        <label style="color: white;">Atualizar</label>
-                        <img src="imagens/atualizar_2.png" style="width: 30px; cursor: pointer;">
+                        onclick="relatorio_movimento()">
+                        <label style="color: white;">Relatório</label>
+                        <img src="imagens/relatorio2.png" style="width: 25px; cursor: pointer;">
                     </div>
 
                     <div id="adicionar_item"
@@ -117,5 +110,49 @@
 
 <script src="open_menus.js"></script>
 <script src="estoque.js"></script>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+    import { getDatabase, ref, onChildAdded, onChildChanged, onChildRemoved } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    escutarAlteracoes('dados_estoque')
+
+    async function escutarAlteracoes(nome_base) {
+        const dadosRef = ref(db, nome_base);
+
+        let baseLocal = await recuperarDados(nome_base) || {}
+
+        onChildAdded(dadosRef, async (snapshot) => {
+            const chave = snapshot.key;
+            const dado = descodificarUTF8(snapshot.val());
+            if (!baseLocal[chave]) {
+                baseLocal[chave] = dado;
+                await inserirDados(baseLocal, nome_base);
+                retomar_paginacao()
+                console.log("Adicionado:", chave, dado);
+            }
+        });
+
+        onChildChanged(dadosRef, async (snapshot) => {
+            const chave = snapshot.key;
+            const dado = descodificarUTF8(snapshot.val());
+            baseLocal[chave] = dado;
+            await inserirDados(baseLocal, nome_base);
+            retomar_paginacao()
+            console.log("Alterado:", chave, dado);
+        });
+
+        onChildRemoved(dadosRef, async (snapshot) => {
+            const chave = snapshot.key;
+            delete baseLocal[chave];
+            await inserirDados(baseLocal, nome_base);
+            retomar_paginacao()
+            console.log("Removido:", chave);
+        });
+
+    }
+</script>
 
 </html>
