@@ -234,3 +234,12 @@ button:hover {
   background-color: #f0f0f0;
   color: black;
 }
+
+.calendar-table td:not(.left-header) {
+  width: 50px; /* Largura menor para as células dos departamentos */
+  max-width: 50px; /* Limita a largura máxima */
+  text-overflow: ellipsis; /* Adiciona os "..." para texto longo */
+  overflow: hidden; /* Esconde o texto excedente */
+  white-space: nowrap; /* Impede quebra de linha */
+  text-align: center; /* Centraliza o texto */
+}

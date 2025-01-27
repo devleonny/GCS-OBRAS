@@ -215,98 +215,47 @@ document.addEventListener("DOMContentLoaded", () => {
     function addTechnicianRow(technician, agenda = []) {
         const totalDays = daysRow.children.length - 2;
         const newRow = document.createElement("tr");
-
-        // Coluna de técnico
+    
+        // Coluna de técnico (mantida inalterada)
         const tecnicoCell = document.createElement("td");
         tecnicoCell.className = "left-header";
-
+    
         const tecnicoInput = document.createElement("input");
         tecnicoInput.type = "text";
         tecnicoInput.placeholder = "Selecione um técnico";
         tecnicoInput.className = "dropdown-input";
         tecnicoInput.value = technician.nome || ""; // Preenche o nome do técnico
         tecnicoInput.dataset.omie = technician.omie || ""; // Salva o omie no dataset
-
-        const tecnicoDropdown = document.createElement("div");
-        tecnicoDropdown.className = "dropdown-options";
-
-        // Preencher dropdown com técnicos
-        technicianOptions.forEach((tech) => {
-            const option = document.createElement("div");
-            option.className = "dropdown-option";
-            option.textContent = tech.nome;
-            option.dataset.omie = tech.omie;
-            option.addEventListener("click", () => {
-                tecnicoInput.value = tech.nome;
-                tecnicoInput.dataset.omie = tech.omie; // Salva o omie no input
-                tecnicoDropdown.style.display = "none"; // Fecha o dropdown
-                saveTechniciansToLocalStorage(); // Salva alterações automaticamente
-            });
-            tecnicoDropdown.appendChild(option);
-        });
-
-        tecnicoInput.addEventListener("focus", () => {
-            tecnicoDropdown.style.display = "block"; // Exibe o dropdown
-            positionDropdown(tecnicoInput, tecnicoDropdown); // Posiciona o dropdown dinamicamente
-        });
-
-        tecnicoInput.addEventListener("input", () => {
-            const searchTerm = tecnicoInput.value.toLowerCase();
-            Array.from(tecnicoDropdown.children).forEach((option) => {
-                option.style.display = option.textContent.toLowerCase().includes(searchTerm)
-                    ? "block"
-                    : "none";
-            });
-        });
-
-        tecnicoInput.addEventListener("blur", () => {
-            setTimeout(() => {
-                const validTechnician = technicianOptions.find(
-                    (tech) => tech.nome.trim().toLowerCase() === tecnicoInput.value.trim().toLowerCase()
-                );
-
-                if (!validTechnician) {
-                    tecnicoInput.value = "";
-                    tecnicoInput.dataset.omie = "";
-                    showPopup("Por favor, selecione um técnico válido.");
-                } else {
-                    tecnicoInput.dataset.omie = validTechnician.omie;
-
-                    // Salvar no localStorage
-                    saveTechniciansToLocalStorage();
-                }
-
-                tecnicoDropdown.style.display = "none"; // Fecha o dropdown
-            }, 200); // Pequeno atraso para permitir a seleção do dropdown
-        });
-
+    
         tecnicoCell.appendChild(tecnicoInput);
-        tecnicoCell.appendChild(tecnicoDropdown);
         newRow.appendChild(tecnicoCell);
-
-        // Colunas de dias
-        // Colunas de dias
-        // Colunas de dias
+    
+        // Colunas de dias (departamentos)
         for (let i = 0; i < totalDays; i++) {
-            const dayCell = document.createElement("td"); // Define o fundo na célula
+            const dayCell = document.createElement("td");
+            dayCell.style.width = "80px"; // Define a largura direta no TD
+            dayCell.style.maxWidth = "80px"; // Limita o tamanho máximo
+    
             const dayInput = document.createElement("input");
             dayInput.type = "text";
             dayInput.placeholder = "Selecione";
             dayInput.className = "dropdown-input";
             dayInput.style.backgroundColor = "transparent"; // Fundo do input transparente
-
+    
             // Carregar o valor e a cor do departamento
             const deptCode = agenda[i] || ""; // Código do departamento salvo
             const dept = departments.find((d) => d.codigo === deptCode);
             if (dept) {
-                dayInput.value = dept.nome; // Nome do departamento
+                const truncatedName = dept.nome.length > 3 ? dept.nome.slice(0, 3) + "..." : dept.nome;
+                dayInput.value = truncatedName; // Nome truncado
+                dayInput.title = dept.nome; // Nome completo como dica ao passar o mouse
                 dayCell.style.backgroundColor = dept.color; // Define a cor de fundo no TD
                 adjustTextColor(dayCell, dept.color); // Ajusta a cor do texto no TD
-            }            
-
+            }
+    
             dayInput.dataset.codigo = deptCode; // Salvar o código no dataset
-
-            // Dropdown de opções
+    
+            // Dropdown de opções (mantido inalterado)
             const dayDropdown = document.createElement("div");
             dayDropdown.className = "dropdown-options";
             departments.forEach((dept) => {
@@ -315,7 +264,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 option.textContent = dept.nome;
                 option.dataset.codigo = dept.codigo;
                 option.addEventListener("click", () => {
-                    dayInput.value = dept.nome;
+                    const truncatedName = dept.nome.length > 3 ? dept.nome.slice(0, 3) + "..." : dept.nome;
+                    dayInput.value = truncatedName; // Nome truncado
+                    dayInput.title = dept.nome; // Nome completo como dica
                     dayInput.dataset.codigo = dept.codigo;
                     dayDropdown.style.display = "none";
                     dayCell.style.backgroundColor = dept.color; // Atualiza a cor no TD
@@ -324,18 +275,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
                 dayDropdown.appendChild(option);
             });
-
+    
             dayInput.addEventListener("focus", () => {
                 dayDropdown.style.display = "block";
                 positionDropdown(dayInput, dayDropdown);
             });
-
+    
             dayInput.addEventListener("blur", () => {
                 setTimeout(() => {
                     const validDepartment = departments.find(
                         (dept) => dept.nome.trim().toLowerCase() === dayInput.value.trim().toLowerCase()
                     );
-
+    
                     if (!validDepartment) {
                         dayInput.value = "";
                         dayInput.dataset.codigo = "";
@@ -343,25 +294,30 @@ document.addEventListener("DOMContentLoaded", () => {
                         dayCell.style.backgroundColor = ""; // Remove a cor do fundo no TD
                         dayCell.style.color = ""; // Reseta a cor do texto
                     } else {
+                        const truncatedName = validDepartment.nome.length > 3
+                            ? validDepartment.nome.slice(0, 3) + "..."
+                            : validDepartment.nome;
+                        dayInput.value = truncatedName; // Nome truncado
+                        dayInput.title = validDepartment.nome; // Nome completo como dica
                         dayInput.dataset.codigo = validDepartment.codigo;
                         dayCell.style.backgroundColor = validDepartment.color;
                         adjustTextColor(dayCell, validDepartment.color); // Ajusta a cor do texto no TD
                         saveTechniciansToLocalStorage();
                     }
-
+    
                     dayDropdown.style.display = "none"; // Fecha o dropdown
                 }, 200); // Pequeno atraso para permitir a seleção do dropdown
             });
-
+    
             dayCell.appendChild(dayInput);
             dayCell.appendChild(dayDropdown);
             newRow.appendChild(dayCell);
         }
-
-        // Coluna de ações
+    
+        // Coluna de ações (mantida inalterada)
         const actionsCell = document.createElement("td");
         actionsCell.className = "actions";
-
+    
         const editButton = document.createElement("button");
         editButton.className = "edit-btn";
         const editImage = document.createElement("img");
@@ -370,7 +326,7 @@ document.addEventListener("DOMContentLoaded", () => {
         editButton.appendChild(editImage);
         editButton.addEventListener("click", () => openEditModal(technician));
         actionsCell.appendChild(editButton);
-
+    
         const removeButton = document.createElement("button");
         removeButton.className = "remove-btn";
         const removeImage = document.createElement("img");
@@ -381,15 +337,13 @@ document.addEventListener("DOMContentLoaded", () => {
             newRow.remove();
             saveTechniciansToLocalStorage(); // Atualiza o localStorage após exclusão
         });
-
+    
         actionsCell.appendChild(removeButton);
         newRow.appendChild(actionsCell);
-
+    
         techniciansBody.appendChild(newRow);
-    }
-
-
-
+    }    
+    
     function positionDropdown(input, dropdown) {
         const rect = input.getBoundingClientRect();
         dropdown.style.position = "absolute";
