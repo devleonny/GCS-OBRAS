@@ -432,7 +432,6 @@ async function abrir_estoque(codigo, stq) {
     let atual = 0
     let inicial = 0
     let linhas = ''
-    console.log(estoque)
     if (estoque.historico) {
         atual = estoque.quantidade
         inicial = estoque.quantidade
@@ -522,6 +521,11 @@ async function abrir_estoque(codigo, stq) {
 
         <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
             <label>Movimentação de estoque</label>
+        </div>
+
+        <div style="color: #222; position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px;">
+            <img src="imagens/LG.png" style="width: 70px; height: 70px;">
+            <label style="width: 300px; text-align: left;">${item.descricao}</label>
         </div>
 
         <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px; height: 140px;">
@@ -821,13 +825,8 @@ async function retomar_paginacao() {
         pesquisar_em_estoque(coluna, texto, filtrosAtivosEstoques, 'tabela_estoque')
     }
 
-    let movimento = document.getElementById('movimento')
     let inputs = document.body.querySelectorAll('input.datas_estoque')
-    if (movimento) {
-        remover_popup()
-        let [codigo, chave] = movimento.textContent.split('/')
-        abrir_estoque(codigo, chave)
-    } else if (inputs.length > 0) {
+    if (inputs.length > 0) {
         let data_entrada = inputs[0].value
         let data_saida = inputs[1].value
         remover_popup()
@@ -837,7 +836,6 @@ async function retomar_paginacao() {
         inputs[1].value = data_saida
         atualizar_dados_relatorio()
     }
-
 
 }
 
@@ -1007,14 +1005,5 @@ async function atualizar_dados_relatorio() {
         relatorio.innerHTML = tabela
 
     }
-
-}
-
-async function enviar_estoque() {
-
-    let dados_estoque = await recuperarDados('dados_estoque') || {}
-
-    console.log(dados_estoque)
-    //enviar('PUT', 'dados_estoque', codificarUTF8(dados_estoque))
 
 }
