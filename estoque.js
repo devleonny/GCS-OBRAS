@@ -11,8 +11,12 @@ async function atualizar_estoque() {
         carregamento('estoque')
     }
 
-    let estoque_nuvem = await receber('dados_estoque') || {}
-    await inserirDados(descodificarUTF8(estoque_nuvem), 'dados_estoque')
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+
+    if (Object.keys(dados_estoque) == 0) {
+        let estoque_nuvem = await receber('dados_estoque') || {}
+        await inserirDados(descodificarUTF8(estoque_nuvem), 'dados_estoque')
+    }
 
     await carregar_estoque()
 }
@@ -385,22 +389,12 @@ async function salvar_dados_compra(codigo, cpr, campo, img) {
         elemento = campo == 'conversao' ? conversor(elemento.value) : elemento.value
         dados_estoque[codigo].valor_compra[cpr][campo] = elemento
 
-        let dados = {
-            tabela: 'estoque',
-            id: codigo,
-            id_compra: cpr,
-            operacao: 'alterar_compra',
-            campo: campo,
-            info: elemento
-        }
-
         await inserirDados(dados_estoque, 'dados_estoque')
         await enviar('PUT', `dados_estoque/${codigo}/valor_compra/${cpr}/${campo}`, elemento)
         await enviar('PUT', `dados_estoque/${codigo}/timestamp`, Date.now())
     }
 
     remover_popup()
-    await carregar_estoque()
     await abrir_valores(codigo)
 }
 
@@ -415,7 +409,6 @@ async function excluir_preco(codigo, cpr) {
     await inserirDados(dados_estoque, 'dados_estoque')
 
     remover_popup()
-    await carregar_estoque()
     await abrir_valores(codigo)
 }
 
@@ -456,7 +449,6 @@ async function salvar_valor(codigo) {
         await inserirDados(dados_estoque, 'dados_estoque')
         await enviar('PUT', `dados_estoque/${codigo}/valor_compra/${id}`, codificarUTF8(compra))
         await enviar('PUT', `dados_estoque/${codigo}/timestamp`, Date.now())
-
     }
 
     remover_popup()
@@ -652,7 +644,6 @@ async function remover_historico(codigo, stq, chave) {
     await deletar(`dados_estoque/${codigo}/${stq}/historico/${chave}`)
 
     remover_popup()
-    await carregar_estoque()
     await abrir_estoque(codigo, stq)
 
 }
