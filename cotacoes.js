@@ -125,7 +125,7 @@ function adicionarLinha() {
                 let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
 
                 let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
-                    
+
                 let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
 
                 quantidadeAtual -= valorEstoque
@@ -143,7 +143,7 @@ function adicionarLinha() {
                 let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
 
                 let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
-                    
+
                 let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
 
                 quantidadeAtual -= valorEstoque
@@ -175,7 +175,7 @@ function adicionarLinha() {
                 let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
 
                 let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
-                    
+
                 let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
 
                 quantidadeAtual -= valorEstoque
@@ -259,14 +259,17 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
 let nomeFornecedor = "";
 
 function abrirModal() {
-
     const modal = document.getElementById("fornecedorModal");
     modal.style.display = "block";
+
     const input = document.getElementById("pesquisarFornecedor");
-
-    input.addEventListener("input", () => filtroFornecedores())
-
+    if (input) {
+        input.addEventListener("input", () => filtroFornecedores());
+    } else {
+        console.error("Elemento com id='pesquisarFornecedor' não encontrado.");
+    }
 }
+
 
 function fecharModal() {
     const modal = document.getElementById("fornecedorModal");
@@ -297,7 +300,6 @@ function salvarFornecedor() {
     const input = document.getElementById("pesquisarFornecedor");
     const sugestoes = document.getElementById("listaFornecedores");
     const mensagemErro = document.getElementById("mensagemErro");
-
     const trNomeFornecedor = document.querySelector(".count-row");
     const thNomeFornecedor = document.createElement("th");
     const trTopicostabela = document.querySelector("#topicos-tabela");
@@ -319,8 +321,10 @@ function salvarFornecedor() {
         // Remove mensagem de erro, caso exista
         if (mensagemErro) mensagemErro.textContent = "";
 
+        const ultimoNumeroItem = obterUltimoNumeroItem();
+
         // Percorre cada linha existente na tabela para criar os inputs necessários
-        for (let linhaAtualQuantidade = 1; linhaAtualQuantidade <= numeroLinhas; linhaAtualQuantidade++) {
+        for (let linhaAtualQuantidade = 1; linhaAtualQuantidade <= ultimoNumeroItem; linhaAtualQuantidade++) {
             let tdPrecoUnitario = document.createElement("td");
             let inputPrecoUnitario = document.createElement("input");
             inputPrecoUnitario.type = "number";
@@ -329,84 +333,91 @@ function salvarFornecedor() {
 
             let inputQuantidade = document.querySelector(`#quantidade-${linhaAtualQuantidade}`);
 
-            let linhaQuantidade = linhaAtualQuantidade;
-            let numeroDoFornecedor = quantidadeFornecedores;
+            if (inputQuantidade) {
 
-            inputQuantidade.addEventListener("input", () => {
+                let linhaQuantidade = linhaAtualQuantidade;
+                let numeroDoFornecedor = quantidadeFornecedores;
 
-                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
+                console.log(`#quantidade-${linhaAtualQuantidade}`)
 
-                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
+                inputQuantidade.addEventListener("input", () => {
 
-                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
-                    
-                let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
+                    let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
 
-                quantidadeAtual -= valorEstoque
+                    let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
 
-                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+                    let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
 
-                decidirMelhorOferta(linhaQuantidade);
+                    let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
 
-            });
+                    quantidadeAtual -= valorEstoque
 
-            inputPrecoUnitario.addEventListener("input", () => {
+                    precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
 
-                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
+                    decidirMelhorOferta(linhaQuantidade);
 
-                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
+                });
 
-                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
-                    
-                let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
+                inputPrecoUnitario.addEventListener("input", () => {
 
-                quantidadeAtual -= valorEstoque
+                    let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
 
-                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+                    let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
 
-                decidirMelhorOferta(linhaQuantidade);
+                    let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
 
-            });
+                    let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
 
-            tdPrecoUnitario.appendChild(inputPrecoUnitario);
+                    quantidadeAtual -= valorEstoque
 
-            let inputEstoque = document.querySelector(`#estoque-${linhaAtualQuantidade}`)
+                    precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
 
-            console.log(inputEstoque)
+                    decidirMelhorOferta(linhaQuantidade);
 
-            inputEstoque.addEventListener("input", () => {
+                });
 
-                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
+                tdPrecoUnitario.appendChild(inputPrecoUnitario);
 
-                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
+                let inputEstoque = document.querySelector(`#estoque-${linhaAtualQuantidade}`)
 
-                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
-                    
-                let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
+                console.log(inputEstoque)
 
-                quantidadeAtual -= valorEstoque
+                inputEstoque.addEventListener("input", () => {
 
-                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+                    let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
 
-                decidirMelhorOferta(linhaQuantidade);
+                    let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
 
-            });
+                    let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
 
-            let tdPrecototal = document.createElement("td");
-            let inputPrecoTotal = document.createElement("input");
-            inputPrecoTotal.type = "text";
-            inputPrecoTotal.readOnly = "true";
+                    let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
 
-            inputPrecoTotal.id = `precoTotal-${quantidadeFornecedores}-${linhaAtualQuantidade}`;
+                    quantidadeAtual -= valorEstoque
 
-            inputPrecoTotal.classList.add(`resultadoPrecoTotal-linha-${linhaAtualQuantidade}`);
-            inputPrecoTotal.classList.add(`resultadoPrecoTotal-fornecedor-${quantidadeFornecedores}`);
+                    precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
 
-            tdPrecototal.append(inputPrecoTotal);
+                    decidirMelhorOferta(linhaQuantidade);
 
-            // Adiciona os novos inputs na linha correspondente
-            let linhaParaAdicionar = document.querySelector(`#linha-${linhaAtualQuantidade}`);
-            linhaParaAdicionar.append(tdPrecoUnitario, tdPrecototal);
+                });
+
+                let tdPrecototal = document.createElement("td");
+                let inputPrecoTotal = document.createElement("input");
+                inputPrecoTotal.type = "text";
+                inputPrecoTotal.readOnly = "true";
+                inputPrecoTotal.value = "R$ 0,00"
+
+                inputPrecoTotal.id = `precoTotal-${quantidadeFornecedores}-${linhaAtualQuantidade}`;
+
+                inputPrecoTotal.classList.add(`resultadoPrecoTotal-linha-${linhaAtualQuantidade}`);
+                inputPrecoTotal.classList.add(`resultadoPrecoTotal-fornecedor-${quantidadeFornecedores}`);
+
+                tdPrecototal.append(inputPrecoTotal);
+
+                // Adiciona os novos inputs na linha correspondente
+                let linhaParaAdicionar = document.querySelector(`#linha-${linhaAtualQuantidade}`);
+                linhaParaAdicionar.append(tdPrecoUnitario, tdPrecototal);
+            }
+
         }
 
         adiconarFooter();
@@ -424,6 +435,8 @@ function salvarFornecedor() {
         fecharModal();
 
         console.log("Fornecedor salvo:", nomeFornecedor);
+
+
     } else {
         // Adiciona ou exibe mensagem de erro em vermelho abaixo do campo
         if (!mensagemErro) {
@@ -439,7 +452,21 @@ function salvarFornecedor() {
     }
 }
 
-function decidirMelhorOferta(linha_quantidade){
+const obterUltimoNumeroItem = () => {
+    const elementosNumeroItem = document.querySelectorAll('td:nth-child(2)'); // Segunda coluna (Número do Item)
+    let maiorNumero = 0;
+
+    elementosNumeroItem.forEach((elemento) => {
+        const numero = parseInt(elemento.textContent.trim(), 10); // Converte para inteiro
+        if (!isNaN(numero) && numero > maiorNumero) {
+            maiorNumero = numero;
+        }
+    });
+
+    return maiorNumero; // Retorna o maior número encontrado
+};
+
+function decidirMelhorOferta(linha_quantidade) {
 
     let listaValores = document.querySelectorAll(`input.resultadoPrecoTotal-linha-${linha_quantidade}`)
 
@@ -449,7 +476,7 @@ function decidirMelhorOferta(linha_quantidade){
 
 }
 
-function adiconarFooter(){
+function adiconarFooter() {
 
     let linhaDesconto = document.querySelector("#linhaDesconto")
 
@@ -483,7 +510,7 @@ function adiconarFooter(){
     inputSubtotal.classList.add("inputs-subtotal")
     tdSubtotal.colSpan = "2"
     inputSubtotal.readOnly = "true"
-    
+
     tdSubtotal.appendChild(inputSubtotal)
     linhaSubtotal.appendChild(tdSubtotal)
 
@@ -525,39 +552,39 @@ function adiconarFooter(){
 
 }
 
-function calculoSubtotal(numeroFornecedor){
+function calculoSubtotal(numeroFornecedor) {
 
     let tdSubtotal = document.querySelector(`#input-subtotal-${numeroFornecedor}`)
 
     let inputsSubtotal = document.querySelectorAll(".inputs-subtotal")
-    
+
     let quantidadeDesconto = document.querySelector(`#input-desconto-${numeroFornecedor}`).value
-    
+
     let valorSubtotal = 0
-    
+
     let listaValores = document.querySelectorAll(`input.resultadoPrecoTotal-fornecedor-${numeroFornecedor}`)
-    
-    for(valor of listaValores){
-        
+
+    for (valor of listaValores) {
+
         valorReal = valor.value
-        
+
         valorReal = parseFloat(valorReal.slice(3))
-        
+
         valorSubtotal += valorReal
-        
+
     }
-    
+
     let valorDesconto = valorSubtotal * (quantidadeDesconto / 100)
-    
+
     tdSubtotal.value = `R$ ${(valorSubtotal - valorDesconto).toFixed(2)}`
-    
-     let menorValor = descobrirMenorValor(inputsSubtotal)
+
+    let menorValor = descobrirMenorValor(inputsSubtotal)
 
     estilizarMelhorPreco(inputsSubtotal, menorValor)
 
 }
 
-function calculoTotal(numeroFornecedor){
+function calculoTotal(numeroFornecedor) {
 
     let inputsTotal = document.querySelectorAll(".inputs-total")
 
@@ -575,23 +602,23 @@ function calculoTotal(numeroFornecedor){
 
 }
 
-function estilizarMelhorPreco(listaValores, menorValor){
+function estilizarMelhorPreco(listaValores, menorValor) {
 
-    for(valor of listaValores){
+    for (valor of listaValores) {
 
         valorReal = valor.value
-        
+
         valorReal = parseFloat(valorReal.slice(3))
 
-        if(menorValor == valorReal){
+        if (menorValor == valorReal) {
 
-            valor.parentElement.style.backgroundColor =  "#00ff37"
+            valor.parentElement.style.backgroundColor = "#00ff37"
             valor.style.backgroundColor = "#00ff37"
 
 
-        }else{
+        } else {
 
-            valor.parentElement.style.backgroundColor =  "white"
+            valor.parentElement.style.backgroundColor = "white"
             valor.style.backgroundColor = "white"
 
         }
@@ -600,17 +627,17 @@ function estilizarMelhorPreco(listaValores, menorValor){
 
 }
 
-function descobrirMenorValor(listaValores){
+function descobrirMenorValor(listaValores) {
 
     let menorValor = Infinity
 
-    for(valor of listaValores){
-        
+    for (valor of listaValores) {
+
         valorReal = valor.value
-        
+
         valorReal = parseFloat(valorReal.slice(3))
 
-        if(valorReal < menorValor){
+        if (valorReal < menorValor) {
 
             menorValor = valorReal
 
@@ -622,7 +649,7 @@ function descobrirMenorValor(listaValores){
 
 }
 
-async function carregarFornecedores(){
+async function carregarFornecedores() {
 
     const fornecedores = await recuperarDados('dados_clientes');
     return Object.values(fornecedores);
@@ -630,56 +657,57 @@ async function carregarFornecedores(){
 }
 
 async function filtroFornecedores() {
-    
+
     const termo = document.getElementById('pesquisarFornecedor').value.toLowerCase();
     const lista = document.getElementById('listaFornecedores');
     lista.style.display = "block"
     lista.innerHTML = "";
 
     if (termo.trim() === "") {
-        
+
         lista.style.display = "none"
 
-        return};
+        return
+    };
 
     const fornecedores = await carregarFornecedores();
 
-    const resultados = fornecedores.filter(fornecedor =>{
+    const resultados = fornecedores.filter(fornecedor => {
 
-        if(fornecedor.nome && fornecedor.cnpj){
+        if (fornecedor.nome && fornecedor.cnpj) {
 
             return fornecedor.nome.toLowerCase().includes(termo) || fornecedor.cnpj.includes(termo)
 
-        }else if(fornecedor.nome){
+        } else if (fornecedor.nome) {
 
             return fornecedor.nome.toLowerCase().includes(termo)
 
-        }else if(fornecedor.cnpj){
+        } else if (fornecedor.cnpj) {
 
             return fornecedor.cnpj.includes(termo)
 
         }
 
 
-        
+
     }
 
-    
-);
 
-resultados.forEach(fornecedor => {
-    const item = document.createElement('li');
-    item.textContent = fornecedor.nome;
-    item.dataset.cnpj = fornecedor.cnpj;
+    );
 
-    item.addEventListener('click', function () {
-        document.getElementById('pesquisarFornecedor').value = fornecedor.nome;
-        lista.style.display = "none"
-        lista.innerHTML = "";
+    resultados.forEach(fornecedor => {
+        const item = document.createElement('li');
+        item.textContent = fornecedor.nome;
+        item.dataset.cnpj = fornecedor.cnpj;
+
+        item.addEventListener('click', function () {
+            document.getElementById('pesquisarFornecedor').value = fornecedor.nome;
+            lista.style.display = "none"
+            lista.innerHTML = "";
+        });
+
+        lista.appendChild(item);
     });
-
-    lista.appendChild(item);
-});
 
 }
 
@@ -1085,7 +1113,7 @@ function adicionarLinhaComDados(dado) {
             if (precoUnitarioInput && precoTotalInput) {
 
                 const precoUnitarioAtual = Number(precoUnitarioInput.value) || 0;
-                    
+
                 let valorEstoque = Number(document.querySelector(`#estoque-${dado.numeroItem}`).value) || 0
 
                 quantidadeAtual -= valorEstoque
@@ -1120,7 +1148,7 @@ function adicionarLinhaComDados(dado) {
             if (precoUnitarioInput && precoTotalInput) {
 
                 const precoUnitarioAtual = Number(precoUnitarioInput.value) || 0;
-                    
+
                 let valorEstoque = Number(document.querySelector(`#estoque-${dado.numeroItem}`).value) || 0
 
                 quantidadeAtual -= valorEstoque
@@ -1311,9 +1339,9 @@ function adicionarPrecoUnitarioPrecoTotal(dado, novaLinha, numeroItem) {
             quantidadeAtual -= valorEstoque
 
             inputPrecoTotal.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
-            
+
             decidirMelhorOferta(numeroItem);
-                
+
         });
 
         novaLinha.append(tdPrecoUnitario, tdPrecoTotal);
