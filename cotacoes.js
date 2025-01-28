@@ -338,8 +338,6 @@ function salvarFornecedor() {
                 let linhaQuantidade = linhaAtualQuantidade;
                 let numeroDoFornecedor = quantidadeFornecedores;
 
-                console.log(`#quantidade-${linhaAtualQuantidade}`)
-
                 inputQuantidade.addEventListener("input", () => {
 
                     let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
@@ -499,6 +497,7 @@ function adiconarFooter() {
     let numeroFornecedorDesconto = inputDesconto.id[15]
 
     inputDesconto.addEventListener('input', () => calculoSubtotal(numeroFornecedorDesconto))
+    inputDesconto.addEventListener('input', () => calculoTotal(numeroFornecedorDesconto))
 
     tdDesconto.appendChild(inputDesconto)
     linhaDesconto.appendChild(tdDesconto)
@@ -585,21 +584,19 @@ function calculoSubtotal(numeroFornecedor) {
 }
 
 function calculoTotal(numeroFornecedor) {
+    let inputsTotal = document.querySelectorAll(".inputs-total");
 
-    let inputsTotal = document.querySelectorAll(".inputs-total")
+    // Obtém o valor do input de frete e substitui vírgulas por pontos
+    let tdFreteRaw = document.querySelector(`#input-frete-${numeroFornecedor}`).value;
+    let tdFrete = parseFloat(tdFreteRaw.replace(",", ".") || "0"); // Substitui vírgulas e converte para número
 
-    let tdFrete = parseFloat(document.querySelector(`#input-frete-${numeroFornecedor}`).value)
+    let tdSubtotal = parseFloat(document.querySelector(`#input-subtotal-${numeroFornecedor}`).value.slice(3)) || 0;
 
-    let tdSubtotal = parseFloat(document.querySelector(`#input-subtotal-${numeroFornecedor}`).value.slice(3))
+    let inputTotal = document.querySelector(`#input-total-${numeroFornecedor}`);
+    inputTotal.value = `R$ ${(tdSubtotal + tdFrete).toFixed(2)}`; // Calcula e formata o total
 
-    let inputTotal = document.querySelector(`#input-total-${numeroFornecedor}`)
-
-    inputTotal.value = `R$ ${(tdSubtotal + tdFrete).toFixed(2)}`
-
-    menorValor = descobrirMenorValor(inputsTotal)
-
-    estilizarMelhorPreco(inputsTotal, menorValor)
-
+    let menorValor = descobrirMenorValor(inputsTotal); // Descobre o menor valor
+    estilizarMelhorPreco(inputsTotal, menorValor); // Estiliza os preços totais
 }
 
 function estilizarMelhorPreco(listaValores, menorValor) {
@@ -1371,6 +1368,11 @@ function criarLinhaInput(linhaSelector, idPrefix, index, value, placeholder, eve
     if (additionalClass) input.classList.add(additionalClass);
 
     if (eventListener) input.addEventListener("input", eventListener);
+    if(linhaSelector == "#linhaDesconto") 
+
+        {input.addEventListener("input", () => calculoTotal(index));
+
+    }
 
     td.appendChild(input);
     linha.appendChild(td);
