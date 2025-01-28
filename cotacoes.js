@@ -487,6 +487,22 @@ function adiconarFooter() {
     let linhaTotal = document.querySelector("#linhaTotal")
 
     let tdDesconto = document.createElement("td")
+    let selectDesconto = document.createElement("select")
+
+    selectDesconto.id = `selectDesconto-${quantidadeFornecedores}`
+
+    let optionPorcentagem = document.createElement("option")
+    optionPorcentagem.value = "porcentagem"
+    optionPorcentagem.textContent = "Porcentagem"
+
+    let optionValorFixo = document.createElement("option")
+    optionValorFixo.value = "valorFixo"
+    optionValorFixo.textContent = "Valor Fixo"
+
+    selectDesconto.append(optionPorcentagem, optionValorFixo)
+
+    tdDesconto.appendChild(selectDesconto)
+
     let inputDesconto = document.createElement("input")
 
     inputDesconto.id = `input-desconto-${quantidadeFornecedores}`
@@ -573,7 +589,19 @@ function calculoSubtotal(numeroFornecedor) {
 
     }
 
-    let valorDesconto = valorSubtotal * (quantidadeDesconto / 100)
+    let valorDesconto = 0
+
+    let selectDesconto = document.querySelector(`#selectDesconto-${numeroFornecedor}`)
+
+    if(selectDesconto.value == "porcentagem"){
+
+    valorDesconto = valorSubtotal * (quantidadeDesconto / 100)
+
+    }else if(selectDesconto.value == "valorFixo"){
+
+        valorDesconto = quantidadeDesconto
+
+    }
 
     tdSubtotal.value = `R$ ${(valorSubtotal - valorDesconto).toFixed(2)}`
 
@@ -1368,9 +1396,25 @@ function criarLinhaInput(linhaSelector, idPrefix, index, value, placeholder, eve
     if (additionalClass) input.classList.add(additionalClass);
 
     if (eventListener) input.addEventListener("input", eventListener);
-    if(linhaSelector == "#linhaDesconto") 
+    if (linhaSelector == "#linhaDesconto") {
 
-        {input.addEventListener("input", () => calculoTotal(index));
+        input.addEventListener("input", () => calculoTotal(index));
+
+        let selectDesconto = document.createElement("select")
+
+        selectDesconto.id = `selectDesconto-${index}`
+
+        let optionPorcentagem = document.createElement("option")
+        optionPorcentagem.value = "porcentagem"
+        optionPorcentagem.textContent = "Porcentagem"
+
+        let optionValorFixo = document.createElement("option")
+        optionValorFixo.value = "valorFixo"
+        optionValorFixo.textContent = "Valor Fixo"
+
+        selectDesconto.append(optionPorcentagem, optionValorFixo)
+
+        td.appendChild(selectDesconto)
 
     }
 
