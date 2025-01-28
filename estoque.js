@@ -11,12 +11,8 @@ async function atualizar_estoque() {
         carregamento('estoque')
     }
 
-    let dados_estoque = await recuperarDados('dados_estoque') || {}
-
-    if (Object.keys(dados_estoque).length == 0) {
-        let estoque_nuvem = await receber('dados_estoque') || {}
-        await inserirDados(descodificarUTF8(estoque_nuvem), 'dados_estoque')
-    }
+    let estoque_nuvem = await receber('dados_estoque') || {}
+    await inserirDados(descodificarUTF8(estoque_nuvem), 'dados_estoque')
 
     await carregar_estoque()
 }
@@ -400,7 +396,7 @@ async function salvar_dados_compra(codigo, cpr, campo, img) {
 
         await inserirDados(dados_estoque, 'dados_estoque')
         await enviar('PUT', `dados_estoque/${codigo}/valor_compra/${cpr}/${campo}`, elemento)
-
+        await enviar('PUT', `dados_estoque/${codigo}/timestamp`, Date.now())
     }
 
     remover_popup()
@@ -459,6 +455,7 @@ async function salvar_valor(codigo) {
 
         await inserirDados(dados_estoque, 'dados_estoque')
         await enviar('PUT', `dados_estoque/${codigo}/valor_compra/${id}`, codificarUTF8(compra))
+        await enviar('PUT', `dados_estoque/${codigo}/timestamp`, Date.now())
 
     }
 
@@ -724,7 +721,7 @@ async function salvar_movimento(codigo, stq, inicial) {
     if (inicial !== undefined) {
         await enviar('PUT', `dados_estoque/${codigo}/${stq}/quantidade`, estoque.quantidade)
     }
-
+    await enviar('PUT', `dados_estoque/${codigo}/timestamp`, Date.now())
     await retomar_paginacao(codigo, stq)
 
 }
@@ -841,6 +838,7 @@ async function salvar_dados_estoque(img, codigo, chave) {
 
         await inserirDados(dados_estoque, 'dados_estoque')
         await enviar('PUT', `dados_estoque/${codigo}/${chave}`, codificarUTF8(elemento.value))
+        await enviar('PUT', `dados_estoque/${codigo}/timestamp`, Date.now())
 
     } else if (!dados_estoque[codigo]) { //29 PERMANENTE; Objetos criados no primeiro momento;
 
@@ -867,7 +865,7 @@ async function salvar_dados_estoque(img, codigo, chave) {
         dados_estoque[codigo][chave] = elemento.value
         await inserirDados(dados_estoque, 'dados_estoque')
         await enviar('PUT', `dados_estoque/${codigo}`, codificarUTF8(dados_estoque[codigo]))
-
+        await enviar('PUT', `dados_estoque/${codigo}/timestamp`, Date.now())
     }
 
 }

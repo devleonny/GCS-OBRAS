@@ -130,8 +130,8 @@
             if (!baseLocal[chave]) {
                 baseLocal[chave] = dado;
                 await inserirDados(baseLocal, nome_base);
-                retomar_paginacao()
                 console.log("Adicionado:", chave, dado);
+                retomar_paginacao()
             }
         });
 
@@ -140,19 +140,20 @@
             const dado = descodificarUTF8(snapshot.val());
             baseLocal[chave] = dado;
             await inserirDados(baseLocal, nome_base);
-            retomar_paginacao()
             console.log("Alterado:", chave, dado);
+            retomar_paginacao()
         });
 
         onChildRemoved(dadosRef, async (snapshot) => {
             const chave = snapshot.key;
             delete baseLocal[chave];
             await inserirDados(baseLocal, nome_base);
-            retomar_paginacao()
             console.log("Removido:", chave);
+            retomar_paginacao()
         });
 
     }
+
 </script>
 
 </html>
