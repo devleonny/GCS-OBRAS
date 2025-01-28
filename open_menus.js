@@ -26,7 +26,6 @@ localStorage.removeItem('dados_cliente')
 localStorage.removeItem('dados_composicoes')
 localStorage.removeItem('lista_pagamentos')
 localStorage.removeItem('dados_pagamentos')
-localStorage.removeItem('dados_orcamentos')
 
 // Lógicas para a inclusão no IndexedDB(Entrada e Saída de dados); 
 function inserirDados(dados, nome_da_base) {
