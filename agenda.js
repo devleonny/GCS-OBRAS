@@ -8,6 +8,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const syncDataBtn = document.getElementById("sync-data-btn");
     const addLineBtn = document.getElementById("add-line-btn");
     const updateDataBtn = document.getElementById("update-data-btn");
+
+    atualizarDados()
     // Função para gerar uma cor aleatória
     function getRandomColor() {
         return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
@@ -93,7 +95,6 @@ document.addEventListener("DOMContentLoaded", () => {
             // Exibe o popup de sucesso
             showPopup("Dados sincronizados com sucesso!");
         } catch (error) {
-            console.error("Erro ao sincronizar os dados:", error);
             showPopup("Erro ao sincronizar os dados. Verifique sua conexão e tente novamente.");
         } finally {
             hideLoading(); // Oculta o indicador de carregamento
@@ -124,8 +125,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Salva as cores atualizadas no localStorage
         localStorage.setItem("departments", JSON.stringify(departments));
-
-        console.log("Dados carregados do localStorage:", { departments });
     }
 
     // Função para mostrar o indicador de carregamento
@@ -464,16 +463,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         tecnico: storedData[technician.omie], // Técnico atualizado sem a agenda excluída
                     });
 
-                    // Se o técnico não tiver mais agendas, ele permanece no localStorage
-                    if (Object.keys(storedData[technician.omie].agendas).length === 0) {
-                        console.warn(
-                            `Técnico ${technician.nome} não tem mais agendas, mas permanece no localStorage.`
-                        );
-                    }
-
                     // Salva os dados atualizados no localStorage
                     localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
-                    console.log(`Técnico ${technician.nome} atualizado após remoção da agenda ${currentKey}.`);
                 }
 
                 // Remove a linha da tabela
@@ -558,13 +549,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 .map((cell) => cell.dataset.codigo || "");
     
             technician.agendas[key] = selectedDepartments;
-            storedData[technicianOmie] = technician; // Salva o técnico usando `omie` como chave
+    
+            // Define a operação: "incluir" se ainda não estiver no localStorage, "editar" caso contrário
+            const operacao = storedData[technicianOmie] ? "editar" : "incluir";
+    
+            // Envia os dados para a API
+            enviar_dados_generico({
+                tabela: "agenda",
+                operacao,
+                tecnico: technician,
+            });
+    
+            // Atualiza o `storedData` com o técnico
+            storedData[technicianOmie] = technician;
         });
     
-        // Salva os dados atualizados como um objeto indexado por `omie` no `localStorage`
+        // Salva os dados atualizados no localStorage
         localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
-        console.log("Dados atualizados no localStorage (objeto indexado por omie):", storedData);
-    }    
+        console.log("Dados atualizados no localStorage e enviados para a API:", storedData);
+    }
+    
 
     function loadTechniciansFromLocalStorage() {
         const storedData = localStorage.getItem("dados_agenda_tecnicos");
@@ -608,13 +612,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (storedTechnicians) {
             try {
                 technicianOptions = JSON.parse(storedTechnicians);
-                console.log("Técnicos carregados do localStorage:", technicianOptions);
             } catch (error) {
-                console.error("Erro ao carregar técnicos do localStorage:", error);
                 technicianOptions = []; // Garante que a lista esteja vazia em caso de erro
             }
         } else {
-            console.warn("Nenhum técnico encontrado no localStorage.");
             technicianOptions = []; // Lista vazia se não houver dados
         }
     }
@@ -623,7 +624,6 @@ document.addEventListener("DOMContentLoaded", () => {
     function loadAgendaForCurrentMonth() {
         const key = getAgendaKey(); // Obtém a chave atual (mês/ano)
         if (!key) {
-            console.error("Chave inválida ao carregar a agenda!");
             return;
         }
 
@@ -653,7 +653,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const year = yearSelect.value;
     
         if (month === undefined || !year) {
-            console.error("Chave inválida gerada:", { month, year });
             return null;
         }
     
@@ -681,7 +680,6 @@ document.addEventListener("DOMContentLoaded", () => {
             region: document.getElementById("region-select").value,
         };
         localStorage.setItem("current_settings", JSON.stringify(currentSettings));
-        console.log("Configurações salvas no localStorage:", currentSettings);
     }
 
     function loadCurrentSettings() {
@@ -745,7 +743,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const regionSelect = document.getElementById("edit-region-select");
         const confirmBtn = document.getElementById("edit-confirm-btn");
         const cancelBtn = document.getElementById("edit-cancel-btn");
-
+    
         // Preenche o dropdown com as regiões disponíveis
         regionSelect.innerHTML = `
             <option value="norte">Norte</option>
@@ -756,48 +754,53 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
         // Define a região atual do técnico como selecionada
         regionSelect.value = technician.regiao_atual || "norte";
-
+    
         // Exibe o modal
         modal.style.display = "block";
-
+    
         // Função para confirmar a alteração da região
         const confirmHandler = () => {
             const newRegion = regionSelect.value;
-
+    
             // Atualiza a região no localStorage
             const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
             if (storedData[technician.omie]) {
                 storedData[technician.omie].regiao_atual = newRegion;
                 localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
-
+    
                 // Envia os dados atualizados para a API
-                // enviarParaAPI(storedData[technician.omie], "editar");
+                enviar_dados_generico({
+                    tabela: "agenda",
+                    operacao: "editar", // Sempre "editar" porque o técnico já existe
+                    tecnico: storedData[technician.omie], // Dados atualizados do técnico
+                });
             }
-
+    
             // Fecha o modal
             modal.style.display = "none";
-
+    
             // Atualiza a tabela para refletir a mudança
             loadTechniciansFromLocalStorage();
-
+    
             // Remove os event listeners para evitar duplicação
             confirmBtn.removeEventListener("click", confirmHandler);
             cancelBtn.removeEventListener("click", cancelHandler);
         };
-
+    
         // Função para cancelar a alteração
         const cancelHandler = () => {
             modal.style.display = "none";
-
+    
             // Remove os event listeners para evitar duplicação
             confirmBtn.removeEventListener("click", confirmHandler);
             cancelBtn.removeEventListener("click", cancelHandler);
         };
-
+    
         // Adiciona os event listeners
         confirmBtn.addEventListener("click", confirmHandler);
         cancelBtn.addEventListener("click", cancelHandler);
     }
+    
 
     async function atualizarDados() {
         const apiUrl = "https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=agenda";
@@ -827,15 +830,13 @@ document.addEventListener("DOMContentLoaded", () => {
         
             // Salva no localStorage como um objeto indexado por `omie`
             localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(formattedData));
-            console.log("Dados da agenda atualizados com sucesso:", formattedData);
 
+            hideLoading();
             showPopup("Dados da agenda atualizados com sucesso!");
-            f5()
+            generateCalendar(yearSelect.value, monthSelect.value); // Garante que o calendário seja atualizado
+            loadTechniciansFromLocalStorage(); // Monta a tabela
         } catch (error) {
-            console.error("Erro ao buscar dados da agenda:", error);
             showPopup("Erro ao atualizar os dados. Verifique sua conexão.");
-        } finally {
-            hideLoading(); // Oculta o indicador de carregamento
         }
     }
     
@@ -848,7 +849,6 @@ function isColorDark(color) {
 
     // Verifica se a cor tem 6 caracteres
     if (hex.length !== 6) {
-        console.error("Formato de cor inválido:", color);
         return false; // Retorna falso para evitar erros
     }
 
@@ -857,7 +857,6 @@ function isColorDark(color) {
     const b = parseInt(hex.substring(4, 6), 16);
 
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    console.log(`Cor: ${color}, Luminância: ${luminance}`);
     return luminance < 0.5; // Retorna true se a cor for escura
 }
 
