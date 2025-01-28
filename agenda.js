@@ -7,10 +7,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const regionSelect = document.getElementById("region-select"); // Corrigido aqui
     const syncDataBtn = document.getElementById("sync-data-btn");
     const addLineBtn = document.getElementById("add-line-btn");
+    const updateDataBtn = document.getElementById("update-data-btn");
     // Função para gerar uma cor aleatória
     function getRandomColor() {
         return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
     }
+
+    // Adiciona o evento ao botão de "Atualizar"
+    updateDataBtn.addEventListener("click", atualizarDados);
 
     const monthNames = [
         "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -126,20 +130,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Função para mostrar o indicador de carregamento
     function showLoading() {
-        const totalColumns = daysRow.children.length || 3;
-        techniciansBody.innerHTML = `
-          <tr>
-              <td colspan="${totalColumns}" class="loading-container">
-                  <img src="gifs/loading.gif" alt="Carregando" class="loading-gif">
-                  <p>Carregando dados...</p>
-              </td>
-          </tr>
-      `;
+        const totalColumns = document.getElementById("days-row").children.length || 3;
+        document.getElementById("technicians-body").innerHTML = `
+            <tr>
+                <td colspan="${totalColumns}" class="loading-container">
+                    <img src="gifs/loading.gif" alt="Carregando" class="loading-gif">
+                    <p>Carregando dados...</p>
+                </td>
+            </tr>
+        `;
     }
 
     // Função para ocultar o indicador de carregamento
     function hideLoading() {
-        techniciansBody.innerHTML = ""; // Limpa o tbody
+        document.getElementById("technicians-body").innerHTML = ""; // Limpa o tbody
     }
 
     async function fetchDepartmentsFromAPI() {
@@ -438,69 +442,69 @@ document.addEventListener("DOMContentLoaded", () => {
         removeButton.addEventListener("click", () => {
             const currentKey = getAgendaKey(); // Obtém a chave atual da agenda (exemplo: "2025_0")
             const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
-        
+
             // Configura o modal
             const deleteModal = document.getElementById("delete-modal");
             const confirmDeleteBtn = document.getElementById("confirm-delete-btn");
             const cancelDeleteBtn = document.getElementById("cancel-delete-btn");
-        
+
             // Exibe o modal
             deleteModal.style.display = "block";
-        
+
             // Lógica para confirmar exclusão
             const confirmHandler = () => {
                 if (storedData[technician.omie]) {
                     // Remove apenas a agenda correspondente
                     delete storedData[technician.omie].agendas[currentKey];
-        
+
                     // Envia os dados atualizados para a API com a operação "editar"
                     enviar_dados_generico({
                         tabela: "agenda",
                         operacao: "editar",
                         tecnico: storedData[technician.omie], // Técnico atualizado sem a agenda excluída
                     });
-        
+
                     // Se o técnico não tiver mais agendas, ele permanece no localStorage
                     if (Object.keys(storedData[technician.omie].agendas).length === 0) {
                         console.warn(
                             `Técnico ${technician.nome} não tem mais agendas, mas permanece no localStorage.`
                         );
                     }
-        
+
                     // Salva os dados atualizados no localStorage
                     localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
                     console.log(`Técnico ${technician.nome} atualizado após remoção da agenda ${currentKey}.`);
                 }
-        
+
                 // Remove a linha da tabela
                 newRow.remove();
-        
+
                 // Atualiza a tabela de técnicos na interface
                 loadTechniciansFromLocalStorage();
-        
+
                 // Fecha o modal
                 deleteModal.style.display = "none";
-        
+
                 // Remove os event listeners para evitar duplicações
                 confirmDeleteBtn.removeEventListener("click", confirmHandler);
                 cancelDeleteBtn.removeEventListener("click", cancelHandler);
             };
-        
+
             // Lógica para cancelar exclusão
             const cancelHandler = () => {
                 // Fecha o modal
                 deleteModal.style.display = "none";
-        
+
                 // Remove os event listeners para evitar duplicações
                 confirmDeleteBtn.removeEventListener("click", confirmHandler);
                 cancelDeleteBtn.removeEventListener("click", cancelHandler);
             };
-        
+
             // Adiciona os event listeners
             confirmDeleteBtn.addEventListener("click", confirmHandler);
             cancelDeleteBtn.addEventListener("click", cancelHandler);
         });
-        
+
         actionsCell.appendChild(removeButton);
         newRow.appendChild(actionsCell);
 
@@ -537,9 +541,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
             const technicianOmie = tecnicoInput.dataset.omie;
     
-            // Verifica se o técnico já existe no `localStorage`
-            const isNewTechnician = !storedData[technicianOmie];
-    
+            // Verifica se o técnico já existe no `storedData`
             let technician = storedData[technicianOmie] || {
                 omie: technicianOmie,
                 nome: tecnicoInput.value.trim(),
@@ -556,56 +558,51 @@ document.addEventListener("DOMContentLoaded", () => {
                 .map((cell) => cell.dataset.codigo || "");
     
             technician.agendas[key] = selectedDepartments;
-            storedData[technicianOmie] = technician;
-    
-            // Determina a operação com base em `isNewTechnician`
-            const operacao = isNewTechnician ? "incluir" : "editar";
-    
-            // Envia os dados para a API
-            enviar_dados_generico({
-                tabela: "agenda",
-                operacao: operacao,
-                tecnico: technician,
-            });
+            storedData[technicianOmie] = technician; // Salva o técnico usando `omie` como chave
         });
     
-        // Salva os dados atualizados no `localStorage`
+        // Salva os dados atualizados como um objeto indexado por `omie` no `localStorage`
         localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
-        console.log("Dados atualizados no localStorage:", storedData);
-    }      
+        console.log("Dados atualizados no localStorage (objeto indexado por omie):", storedData);
+    }    
 
     function loadTechniciansFromLocalStorage() {
         const storedData = localStorage.getItem("dados_agenda_tecnicos");
-        const currentKey = getAgendaKey(); // Chave do mês/ano atual
-        const selectedRegion = regionSelect.value; // Região selecionada
-
+        const daysRow = document.getElementById("days-row");
+        const techniciansBody = document.getElementById("technicians-body");
+    
         if (storedData) {
             const techniciansObj = JSON.parse(storedData);
-
+            const currentKey = getAgendaKey(); // Chave do mês/ano atual
+            const regionSelect = document.getElementById("region-select");
+            const selectedRegion = regionSelect.value; // Região selecionada
+    
             // Filtrar técnicos com base na região e na agenda
-            technicians = Object.values(techniciansObj).filter((tech) => {
+            const technicians = Object.values(techniciansObj).filter((tech) => {
                 const isRegionMatching =
                     selectedRegion === "todas" || tech.regiao_atual === selectedRegion;
                 return tech.agendas[currentKey] && isRegionMatching;
             });
-
+    
             techniciansBody.innerHTML = ""; // Limpa a tabela
-
+    
             if (technicians.length > 0) {
                 technicians.forEach((technician) => {
                     const agenda = technician.agendas[currentKey] || [];
                     addTechnicianRow(technician, agenda);
                 });
             } else {
-                techniciansBody.innerHTML = `<tr id="no-data-row"><td colspan="${daysRow.children.length || 2
-                    }">Nenhum técnico disponível para esta região.</td></tr>`;
+                techniciansBody.innerHTML = `<tr id="no-data-row"><td colspan="${
+                    daysRow.children.length || 2
+                }">Nenhum técnico disponível para esta região.</td></tr>`;
             }
         } else {
-            techniciansBody.innerHTML = `<tr id="no-data-row"><td colspan="${daysRow.children.length || 2
-                }">Nenhum técnico disponível para esta região.</td></tr>`;
+            techniciansBody.innerHTML = `<tr id="no-data-row"><td colspan="${
+                daysRow.children.length || 2
+            }">Nenhum técnico disponível.</td></tr>`;
         }
-    }
-
+    }    
+    
     function loadTechniciansFromStorage() {
         const storedTechnicians = localStorage.getItem("technicians");
         if (storedTechnicians) {
@@ -649,14 +646,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function getAgendaKey() {
+        const monthSelect = document.getElementById("month-select");
+        const yearSelect = document.getElementById("year-select");
+    
         const month = monthSelect.value;
         const year = yearSelect.value;
-
+    
         if (month === undefined || !year) {
             console.error("Chave inválida gerada:", { month, year });
             return null;
         }
-
+    
         return `${year}_${month}`;
     }
 
@@ -709,19 +709,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const modalMessage = document.getElementById("modal-message");
         const closeButton = document.getElementById("close-button");
         const closeModalBtn = document.getElementById("close-modal-btn");
-
+    
         modalMessage.textContent = message; // Define a mensagem
         modal.style.display = "block"; // Exibe o modal
-
+    
         // Fecha o modal ao clicar no botão "Fechar"
         const closeModal = () => {
             modal.style.display = "none";
         };
-
+    
         closeButton.addEventListener("click", closeModal, { once: true });
         closeModalBtn.addEventListener("click", closeModal, { once: true });
-
-        // Fecha o modal ao clicar fora dele
+    
+        // Fecha o modal ao clicar fora do modal
         window.addEventListener("click", (event) => {
             if (event.target === modal) {
                 closeModal();
@@ -799,18 +799,46 @@ document.addEventListener("DOMContentLoaded", () => {
         cancelBtn.addEventListener("click", cancelHandler);
     }
 
-    function enviarParaAPI(tecnico, operacao) {
-        const payload = {
-            tabela: "agenda", // Campo fixo
-            operacao: operacao, // "incluir" ou "editar"
-            tecnico: tecnico, // Objeto completo do técnico
-        };
+    async function atualizarDados() {
+        const apiUrl = "https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=agenda";
+        
+        try {
+            showLoading(); // Exibe o indicador de carregamento
+            const response = await fetch(apiUrl);
+        
+            if (!response.ok) {
+                throw new Error(`Erro na requisição: ${response.status}`);
+            }
+        
+            const data = await response.json();
+        
+            // Verifica se os dados são válidos
+            if (!data || typeof data !== "object") {
+                throw new Error("Dados inválidos ou vazios retornados pela API.");
+            }
+        
+            // Converte os dados para um objeto indexado por `omie`
+            const formattedData = {};
+            data.forEach((item) => {
+                if (item.omie) {
+                    formattedData[item.omie] = item; // Usa o `omie` como chave
+                }
+            });
+        
+            // Salva no localStorage como um objeto indexado por `omie`
+            localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(formattedData));
+            console.log("Dados da agenda atualizados com sucesso:", formattedData);
 
-        // Chama a função genérica para envio
-        enviar_dados_generico(payload);
+            showPopup("Dados da agenda atualizados com sucesso!");
+            f5()
+        } catch (error) {
+            console.error("Erro ao buscar dados da agenda:", error);
+            showPopup("Erro ao atualizar os dados. Verifique sua conexão.");
+        } finally {
+            hideLoading(); // Oculta o indicador de carregamento
+        }
     }
-
-
+    
 
 });
 
