@@ -125,7 +125,7 @@ function adicionarLinha() {
                 let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
 
                 let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
-                    
+
                 let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
 
                 quantidadeAtual -= valorEstoque
@@ -143,7 +143,7 @@ function adicionarLinha() {
                 let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
 
                 let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
-                    
+
                 let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
 
                 quantidadeAtual -= valorEstoque
@@ -175,7 +175,7 @@ function adicionarLinha() {
                 let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
 
                 let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
-                    
+
                 let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
 
                 quantidadeAtual -= valorEstoque
@@ -259,14 +259,17 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
 let nomeFornecedor = "";
 
 function abrirModal() {
-
     const modal = document.getElementById("fornecedorModal");
     modal.style.display = "block";
+
     const input = document.getElementById("pesquisarFornecedor");
-
-    input.addEventListener("input", () => filtroFornecedores())
-
+    if (input) {
+        input.addEventListener("input", () => filtroFornecedores());
+    } else {
+        console.error("Elemento com id='pesquisarFornecedor' não encontrado.");
+    }
 }
+
 
 function fecharModal() {
     const modal = document.getElementById("fornecedorModal");
@@ -297,7 +300,6 @@ function salvarFornecedor() {
     const input = document.getElementById("pesquisarFornecedor");
     const sugestoes = document.getElementById("listaFornecedores");
     const mensagemErro = document.getElementById("mensagemErro");
-
     const trNomeFornecedor = document.querySelector(".count-row");
     const thNomeFornecedor = document.createElement("th");
     const trTopicostabela = document.querySelector("#topicos-tabela");
@@ -319,8 +321,10 @@ function salvarFornecedor() {
         // Remove mensagem de erro, caso exista
         if (mensagemErro) mensagemErro.textContent = "";
 
+        const ultimoNumeroItem = obterUltimoNumeroItem();
+
         // Percorre cada linha existente na tabela para criar os inputs necessários
-        for (let linhaAtualQuantidade = 1; linhaAtualQuantidade <= numeroLinhas; linhaAtualQuantidade++) {
+        for (let linhaAtualQuantidade = 1; linhaAtualQuantidade <= ultimoNumeroItem; linhaAtualQuantidade++) {
             let tdPrecoUnitario = document.createElement("td");
             let inputPrecoUnitario = document.createElement("input");
             inputPrecoUnitario.type = "number";
@@ -329,84 +333,91 @@ function salvarFornecedor() {
 
             let inputQuantidade = document.querySelector(`#quantidade-${linhaAtualQuantidade}`);
 
-            let linhaQuantidade = linhaAtualQuantidade;
-            let numeroDoFornecedor = quantidadeFornecedores;
+            if (inputQuantidade) {
 
-            inputQuantidade.addEventListener("input", () => {
+                let linhaQuantidade = linhaAtualQuantidade;
+                let numeroDoFornecedor = quantidadeFornecedores;
 
-                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
+                console.log(`#quantidade-${linhaAtualQuantidade}`)
 
-                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
+                inputQuantidade.addEventListener("input", () => {
 
-                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
-                    
-                let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
+                    let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
 
-                quantidadeAtual -= valorEstoque
+                    let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
 
-                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+                    let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
 
-                decidirMelhorOferta(linhaQuantidade);
+                    let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
 
-            });
+                    quantidadeAtual -= valorEstoque
 
-            inputPrecoUnitario.addEventListener("input", () => {
+                    precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
 
-                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
+                    decidirMelhorOferta(linhaQuantidade);
 
-                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
+                });
 
-                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
-                    
-                let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
+                inputPrecoUnitario.addEventListener("input", () => {
 
-                quantidadeAtual -= valorEstoque
+                    let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
 
-                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+                    let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
 
-                decidirMelhorOferta(linhaQuantidade);
+                    let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
 
-            });
+                    let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
 
-            tdPrecoUnitario.appendChild(inputPrecoUnitario);
+                    quantidadeAtual -= valorEstoque
 
-            let inputEstoque = document.querySelector(`#estoque-${linhaAtualQuantidade}`)
+                    precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
 
-            console.log(inputEstoque)
+                    decidirMelhorOferta(linhaQuantidade);
 
-            inputEstoque.addEventListener("input", () => {
+                });
 
-                let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
+                tdPrecoUnitario.appendChild(inputPrecoUnitario);
 
-                let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
+                let inputEstoque = document.querySelector(`#estoque-${linhaAtualQuantidade}`)
 
-                let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
-                    
-                let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
+                console.log(inputEstoque)
 
-                quantidadeAtual -= valorEstoque
+                inputEstoque.addEventListener("input", () => {
 
-                precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
+                    let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
 
-                decidirMelhorOferta(linhaQuantidade);
+                    let precoUnitarioAtual = Number(document.querySelector(`#precoUnitario-${numeroDoFornecedor}-${linhaQuantidade}`).value) || 0;
 
-            });
+                    let precoTotalAtual = document.querySelector(`#precoTotal-${numeroDoFornecedor}-${linhaQuantidade}`);
 
-            let tdPrecototal = document.createElement("td");
-            let inputPrecoTotal = document.createElement("input");
-            inputPrecoTotal.type = "text";
-            inputPrecoTotal.readOnly = "true";
+                    let valorEstoque = Number(document.querySelector(`#estoque-${linhaQuantidade}`).value) || 0
 
-            inputPrecoTotal.id = `precoTotal-${quantidadeFornecedores}-${linhaAtualQuantidade}`;
+                    quantidadeAtual -= valorEstoque
 
-            inputPrecoTotal.classList.add(`resultadoPrecoTotal-linha-${linhaAtualQuantidade}`);
-            inputPrecoTotal.classList.add(`resultadoPrecoTotal-fornecedor-${quantidadeFornecedores}`);
+                    precoTotalAtual.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
 
-            tdPrecototal.append(inputPrecoTotal);
+                    decidirMelhorOferta(linhaQuantidade);
 
-            // Adiciona os novos inputs na linha correspondente
-            let linhaParaAdicionar = document.querySelector(`#linha-${linhaAtualQuantidade}`);
-            linhaParaAdicionar.append(tdPrecoUnitario, tdPrecototal);
+                });
+
+                let tdPrecototal = document.createElement("td");
+                let inputPrecoTotal = document.createElement("input");
+                inputPrecoTotal.type = "text";
+                inputPrecoTotal.readOnly = "true";
+                inputPrecoTotal.value = "R$ 0,00"
+
+                inputPrecoTotal.id = `precoTotal-${quantidadeFornecedores}-${linhaAtualQuantidade}`;
+
+                inputPrecoTotal.classList.add(`resultadoPrecoTotal-linha-${linhaAtualQuantidade}`);
+                inputPrecoTotal.classList.add(`resultadoPrecoTotal-fornecedor-${quantidadeFornecedores}`);
+
+                tdPrecototal.append(inputPrecoTotal);
+
+                // Adiciona os novos inputs na linha correspondente
+                let linhaParaAdicionar = document.querySelector(`#linha-${linhaAtualQuantidade}`);
+                linhaParaAdicionar.append(tdPrecoUnitario, tdPrecototal);
+            }
+
         }
 
         adiconarFooter();
@@ -424,6 +435,8 @@ function salvarFornecedor() {
         fecharModal();
 
         console.log("Fornecedor salvo:", nomeFornecedor);
+
+
     } else {
         // Adiciona ou exibe mensagem de erro em vermelho abaixo do campo
         if (!mensagemErro) {
@@ -439,7 +452,21 @@ function salvarFornecedor() {
     }
 }
 
-function decidirMelhorOferta(linha_quantidade){
+const obterUltimoNumeroItem = () => {
+    const elementosNumeroItem = document.querySelectorAll('td:nth-child(2)'); // Segunda coluna (Número do Item)
+    let maiorNumero = 0;
+
+    elementosNumeroItem.forEach((elemento) => {
+        const numero = parseInt(elemento.textContent.trim(), 10); // Converte para inteiro
+        if (!isNaN(numero) && numero > maiorNumero) {
+            maiorNumero = numero;
+        }
+    });
+
+    return maiorNumero; // Retorna o maior número encontrado
+};
+
+function decidirMelhorOferta(linha_quantidade) {
 
     let listaValores = document.querySelectorAll(`input.resultadoPrecoTotal-linha-${linha_quantidade}`)
 
@@ -449,7 +476,7 @@ function decidirMelhorOferta(linha_quantidade){
 
 }
 
-function adiconarFooter(){
+function adiconarFooter() {
 
     let linhaDesconto = document.querySelector("#linhaDesconto")
 
@@ -483,7 +510,7 @@ function adiconarFooter(){
     inputSubtotal.classList.add("inputs-subtotal")
     tdSubtotal.colSpan = "2"
     inputSubtotal.readOnly = "true"
-    
+
     tdSubtotal.appendChild(inputSubtotal)
     linhaSubtotal.appendChild(tdSubtotal)
 
@@ -525,39 +552,39 @@ function adiconarFooter(){
 
 }
 
-function calculoSubtotal(numeroFornecedor){
+function calculoSubtotal(numeroFornecedor) {
 
     let tdSubtotal = document.querySelector(`#input-subtotal-${numeroFornecedor}`)
 
     let inputsSubtotal = document.querySelectorAll(".inputs-subtotal")
-    
+
     let quantidadeDesconto = document.querySelector(`#input-desconto-${numeroFornecedor}`).value
-    
+
     let valorSubtotal = 0
-    
+
     let listaValores = document.querySelectorAll(`input.resultadoPrecoTotal-fornecedor-${numeroFornecedor}`)
-    
-    for(valor of listaValores){
-        
+
+    for (valor of listaValores) {
+
         valorReal = valor.value
-        
+
         valorReal = parseFloat(valorReal.slice(3))
-        
+
         valorSubtotal += valorReal
-        
+
     }
-    
+
     let valorDesconto = valorSubtotal * (quantidadeDesconto / 100)
-    
+
     tdSubtotal.value = `R$ ${(valorSubtotal - valorDesconto).toFixed(2)}`
-    
-     let menorValor = descobrirMenorValor(inputsSubtotal)
+
+    let menorValor = descobrirMenorValor(inputsSubtotal)
 
     estilizarMelhorPreco(inputsSubtotal, menorValor)
 
 }
 
-function calculoTotal(numeroFornecedor){
+function calculoTotal(numeroFornecedor) {
 
     let inputsTotal = document.querySelectorAll(".inputs-total")
 
@@ -575,23 +602,23 @@ function calculoTotal(numeroFornecedor){
 
 }
 
-function estilizarMelhorPreco(listaValores, menorValor){
+function estilizarMelhorPreco(listaValores, menorValor) {
 
-    for(valor of listaValores){
+    for (valor of listaValores) {
 
         valorReal = valor.value
-        
+
         valorReal = parseFloat(valorReal.slice(3))
 
-        if(menorValor == valorReal){
+        if (menorValor == valorReal) {
 
-            valor.parentElement.style.backgroundColor =  "#00ff37"
+            valor.parentElement.style.backgroundColor = "#00ff37"
             valor.style.backgroundColor = "#00ff37"
 
 
-        }else{
+        } else {
 
-            valor.parentElement.style.backgroundColor =  "white"
+            valor.parentElement.style.backgroundColor = "white"
             valor.style.backgroundColor = "white"
 
         }
@@ -600,17 +627,17 @@ function estilizarMelhorPreco(listaValores, menorValor){
 
 }
 
-function descobrirMenorValor(listaValores){
+function descobrirMenorValor(listaValores) {
 
     let menorValor = Infinity
 
-    for(valor of listaValores){
-        
+    for (valor of listaValores) {
+
         valorReal = valor.value
-        
+
         valorReal = parseFloat(valorReal.slice(3))
 
-        if(valorReal < menorValor){
+        if (valorReal < menorValor) {
 
             menorValor = valorReal
 
@@ -622,7 +649,7 @@ function descobrirMenorValor(listaValores){
 
 }
 
-async function carregarFornecedores(){
+async function carregarFornecedores() {
 
     const fornecedores = await recuperarDados('dados_clientes');
     return Object.values(fornecedores);
@@ -630,56 +657,57 @@ async function carregarFornecedores(){
 }
 
 async function filtroFornecedores() {
-    
+
     const termo = document.getElementById('pesquisarFornecedor').value.toLowerCase();
     const lista = document.getElementById('listaFornecedores');
     lista.style.display = "block"
     lista.innerHTML = "";
 
     if (termo.trim() === "") {
-        
+
         lista.style.display = "none"
 
-        return};
+        return
+    };
 
     const fornecedores = await carregarFornecedores();
 
-    const resultados = fornecedores.filter(fornecedor =>{
+    const resultados = fornecedores.filter(fornecedor => {
 
-        if(fornecedor.nome && fornecedor.cnpj){
+        if (fornecedor.nome && fornecedor.cnpj) {
 
             return fornecedor.nome.toLowerCase().includes(termo) || fornecedor.cnpj.includes(termo)
 
-        }else if(fornecedor.nome){
+        } else if (fornecedor.nome) {
 
             return fornecedor.nome.toLowerCase().includes(termo)
 
-        }else if(fornecedor.cnpj){
+        } else if (fornecedor.cnpj) {
 
             return fornecedor.cnpj.includes(termo)
 
         }
 
 
-        
+
     }
 
-    
-);
 
-resultados.forEach(fornecedor => {
-    const item = document.createElement('li');
-    item.textContent = fornecedor.nome;
-    item.dataset.cnpj = fornecedor.cnpj;
+    );
 
-    item.addEventListener('click', function () {
-        document.getElementById('pesquisarFornecedor').value = fornecedor.nome;
-        lista.style.display = "none"
-        lista.innerHTML = "";
+    resultados.forEach(fornecedor => {
+        const item = document.createElement('li');
+        item.textContent = fornecedor.nome;
+        item.dataset.cnpj = fornecedor.cnpj;
+
+        item.addEventListener('click', function () {
+            document.getElementById('pesquisarFornecedor').value = fornecedor.nome;
+            lista.style.display = "none"
+            lista.innerHTML = "";
+        });
+
+        lista.appendChild(item);
     });
-
-    lista.appendChild(item);
-});
 
 }
 
@@ -1085,7 +1113,7 @@ function adicionarLinhaComDados(dado) {
             if (precoUnitarioInput && precoTotalInput) {
 
                 const precoUnitarioAtual = Number(precoUnitarioInput.value) || 0;
-                    
+
                 let valorEstoque = Number(document.querySelector(`#estoque-${dado.numeroItem}`).value) || 0
 
                 quantidadeAtual -= valorEstoque
@@ -1120,7 +1148,7 @@ function adicionarLinhaComDados(dado) {
             if (precoUnitarioInput && precoTotalInput) {
 
                 const precoUnitarioAtual = Number(precoUnitarioInput.value) || 0;
-                    
+
                 let valorEstoque = Number(document.querySelector(`#estoque-${dado.numeroItem}`).value) || 0
 
                 quantidadeAtual -= valorEstoque
@@ -1311,9 +1339,9 @@ function adicionarPrecoUnitarioPrecoTotal(dado, novaLinha, numeroItem) {
             quantidadeAtual -= valorEstoque
 
             inputPrecoTotal.value = `R$ ${(quantidadeAtual * precoUnitarioAtual).toFixed(2)}`;
-            
+
             decidirMelhorOferta(numeroItem);
-                
+
         });
 
         novaLinha.append(tdPrecoUnitario, tdPrecoTotal);
@@ -1597,7 +1625,6 @@ function filtrarTabela(colunaIndex, valorPesquisa) {
     }
 }
 
-
 function exportarTabelaParaPDF() {
     const idCotacao = localStorage.getItem("cotacaoEditandoID");
     const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
@@ -1617,9 +1644,9 @@ function exportarTabelaParaPDF() {
     const pdf = new jsPDF('l', 'mm', 'a4'); // Orientação "landscape"
 
     const margemEsquerda = 10;
-    const larguraMaximaTabela = 277; // Largura total da página (ajustado para margens horizontais)
-    const alturaLinha = 6; // Altura reduzida para compactar
-    const limiteAltura = 190; // Limite de altura da página antes de quebrar
+    const larguraMaximaTabela = 277;
+    const alturaLinha = 6;
+    const limiteAltura = 190;
 
     let posicaoAtualY = 20;
 
@@ -1650,25 +1677,21 @@ function exportarTabelaParaPDF() {
 
     posicaoAtualY += 10;
 
-    // Ajustar as larguras das colunas dependendo do número de fornecedores
+    // Configurar larguras das colunas
     const larguraColunas = fornecedores.length > 0
         ? {
             item: 60,
             unid: 25,
             qtde: 25,
-            fornecedor: (larguraMaximaTabela - 110) / fornecedores.length, // Ajusta dinamicamente
+            fornecedor: (larguraMaximaTabela - 110) / fornecedores.length,
         }
         : {
-            item: larguraMaximaTabela * 0.5, // Ocupa metade da largura total
-            unid: larguraMaximaTabela * 0.25, // 25% da largura total
-            qtde: larguraMaximaTabela * 0.25, // 25% da largura total
+            item: larguraMaximaTabela * 0.5,
+            unid: larguraMaximaTabela * 0.25,
+            qtde: larguraMaximaTabela * 0.25,
         };
 
-    const tamanhoFonte = fornecedores.length > 0 && larguraColunas.fornecedor > 20 ? 8 : 7;
-    pdf.setFontSize(tamanhoFonte);
-
-    const truncarTexto = (texto, limite) =>
-        texto.length > limite ? texto.slice(0, limite) + '...' : texto;
+    pdf.setFontSize(8);
 
     // Cabeçalhos da tabela
     pdf.rect(margemEsquerda, posicaoAtualY, larguraColunas.item, alturaLinha * 2);
@@ -1684,10 +1707,10 @@ function exportarTabelaParaPDF() {
 
     if (fornecedores.length > 0) {
         fornecedores.forEach((fornecedor) => {
-            const nomeFornecedor = truncarTexto(fornecedor.nome, 15);
             pdf.rect(xPos, posicaoAtualY, larguraColunas.fornecedor, alturaLinha);
-            pdf.text(nomeFornecedor, xPos + 2, posicaoAtualY + 4);
+            pdf.text(fornecedor.nome, xPos + 2, posicaoAtualY + 4);
 
+            // Adicionar subcabeçalhos (Unit. e Total) com borda entre eles
             pdf.rect(xPos, posicaoAtualY + alturaLinha, larguraColunas.fornecedor / 2, alturaLinha);
             pdf.text('Unit.', xPos + 2, posicaoAtualY + alturaLinha + 4);
 
@@ -1700,25 +1723,31 @@ function exportarTabelaParaPDF() {
 
     posicaoAtualY += alturaLinha * 2;
 
-    // Adicionar itens
+    // Adicionar itens com quebra de linha para nomes longos
     cotacao.dados.forEach((item, itemIndex) => {
         if (posicaoAtualY + alturaLinha > limiteAltura) {
-            adicionarRodape(pdf); // Adicionar rodapé na página atual
-            pdf.addPage(); // Adiciona nova página se ultrapassar o limite
+            adicionarRodape(pdf);
+            pdf.addPage();
             posicaoAtualY = 20;
         }
 
         xPos = margemEsquerda;
 
-        pdf.rect(xPos, posicaoAtualY, larguraColunas.item, alturaLinha);
-        pdf.text(`${itemIndex + 1}. ${truncarTexto(item.nomeItem, 30)}`, xPos + 2, posicaoAtualY + 4);
+        // Nome do item com quebra de linha
+        const linhasNomeItem = pdf.splitTextToSize(`${itemIndex + 1}. ${item.nomeItem}`, larguraColunas.item - 4);
+        const alturaNomeItem = linhasNomeItem.length * alturaLinha;
+
+        pdf.rect(xPos, posicaoAtualY, larguraColunas.item, alturaNomeItem);
+        linhasNomeItem.forEach((linha, i) => {
+            pdf.text(linha, xPos + 2, posicaoAtualY + 4 + (i * alturaLinha));
+        });
         xPos += larguraColunas.item;
 
-        pdf.rect(xPos, posicaoAtualY, larguraColunas.unid, alturaLinha);
+        pdf.rect(xPos, posicaoAtualY, larguraColunas.unid, alturaNomeItem);
         pdf.text(item.tipoUnitario, xPos + 2, posicaoAtualY + 4);
         xPos += larguraColunas.unid;
 
-        pdf.rect(xPos, posicaoAtualY, larguraColunas.qtde, alturaLinha);
+        pdf.rect(xPos, posicaoAtualY, larguraColunas.qtde, alturaNomeItem);
         pdf.text(item.quantidade.toString(), xPos + 2, posicaoAtualY + 4);
         xPos += larguraColunas.qtde;
 
@@ -1726,98 +1755,95 @@ function exportarTabelaParaPDF() {
             const precosTotais = item.fornecedores.map(f => parseFloat(f.precoTotal.slice(3).replace(',', '.')));
             const menorPreco = Math.min(...precosTotais);
 
-            item.fornecedores.forEach((fornecedor, fornecedorIndex) => {
+            item.fornecedores.forEach((fornecedor) => {
                 const precoTotal = parseFloat(fornecedor.precoTotal.slice(3).replace(',', '.'));
 
-                pdf.rect(xPos, posicaoAtualY, larguraColunas.fornecedor / 2, alturaLinha);
+                // Adicionar borda entre "Unit." e "Total"
+                pdf.rect(xPos, posicaoAtualY, larguraColunas.fornecedor / 2, alturaNomeItem);
                 pdf.text(formatarParaReal(fornecedor.precoUnitario), xPos + 2, posicaoAtualY + 4);
-                if (precoTotal === menorPreco) {
-                    pdf.setFillColor(144, 238, 144); // Verde claro (Light Green)
-                    pdf.rect(xPos + larguraColunas.fornecedor / 2, posicaoAtualY, larguraColunas.fornecedor / 2, alturaLinha, 'FD');
-                } else {
-                    pdf.rect(xPos + larguraColunas.fornecedor / 2, posicaoAtualY, larguraColunas.fornecedor / 2, alturaLinha);
-                }
 
+                // Destacar apenas "Preço Total" com cor verde
+                if (precoTotal === menorPreco) {
+                    pdf.setFillColor(144, 238, 144); // Verde claro
+                    pdf.rect(xPos + larguraColunas.fornecedor / 2, posicaoAtualY, larguraColunas.fornecedor / 2, alturaNomeItem, 'FD');
+                } else {
+                    pdf.rect(xPos + larguraColunas.fornecedor / 2, posicaoAtualY, larguraColunas.fornecedor / 2, alturaNomeItem);
+                }
                 pdf.text(formatarParaReal(fornecedor.precoTotal.slice(3)), xPos + larguraColunas.fornecedor / 2 + 2, posicaoAtualY + 4);
+
                 xPos += larguraColunas.fornecedor;
             });
         }
 
-        posicaoAtualY += alturaLinha;
+        posicaoAtualY += alturaNomeItem;
     });
 
-    // Adicionar rodapé com fundo azul
-    if (posicaoAtualY + alturaLinha * 5 > limiteAltura) {
-        pdf.addPage(); // Adiciona nova página se não houver espaço suficiente para o rodapé
-        posicaoAtualY = 20;
+    // Adicionar rodapé apenas se houver fornecedores
+    if (fornecedores.length > 0) {
+        const rodapeLabels = [
+            '(-) Desconto %',
+            'Subtotal',
+            '(+) Frete',
+            'Condição de Pagamento',
+            'Total',
+        ];
+
+        rodapeLabels.forEach((label) => {
+            let xRodape = margemEsquerda;
+            const colspanLargura = larguraColunas.item + larguraColunas.unid + larguraColunas.qtde;
+
+            pdf.setFillColor(173, 216, 230); // Fundo azul
+            pdf.rect(xRodape, posicaoAtualY, colspanLargura, alturaLinha, 'FD');
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(label, xRodape + 2, posicaoAtualY + 4);
+
+            xRodape += colspanLargura;
+
+            const valores = fornecedores.map((fornecedor) => {
+                if (label === 'Subtotal') {
+                    return parseFloat(fornecedor.subtotal.slice(3).replace(',', '.')) || Infinity;
+                } else if (label === 'Total') {
+                    return parseFloat(fornecedor.valorTotal.slice(3).replace(',', '.')) || Infinity;
+                }
+                return Infinity;
+            });
+
+            const menorValor = Math.min(...valores);
+
+            fornecedores.forEach((fornecedor, index) => {
+                let texto = '-';
+                if (label === '(-) Desconto %') {
+                    texto = `${fornecedor.porcentagemDesconto || '0.00'}%`;
+                } else if (label === 'Subtotal') {
+                    texto = `${formatarParaReal(fornecedor.subtotal.slice(3)) || '0.00'}`;
+                } else if (label === '(+) Frete') {
+                    texto = `${formatarParaReal(fornecedor.valorFrete) || '0.00'}`;
+                } else if (label === 'Condição de Pagamento') {
+                    texto = fornecedor.condicaoPagar || 'N/A';
+                } else if (label === 'Total') {
+                    texto = `${formatarParaReal(fornecedor.valorTotal.slice(3)) || '0.00'}`;
+                }
+
+                if ((label === 'Subtotal' || label === 'Total') && valores[index] === menorValor) {
+                    pdf.setFillColor(144, 238, 144); // Verde claro
+                    pdf.rect(xRodape, posicaoAtualY, larguraColunas.fornecedor, alturaLinha, 'FD');
+                } else {
+                    pdf.rect(xRodape, posicaoAtualY, larguraColunas.fornecedor, alturaLinha);
+                }
+
+                pdf.text(texto, xRodape + 2, posicaoAtualY + 4);
+
+                xRodape += larguraColunas.fornecedor;
+            });
+
+            posicaoAtualY += alturaLinha;
+        });
     }
 
-    const rodapeLabels = [
-        '(-) Desconto %',
-        'Subtotal',
-        '(+) Frete',
-        'Condição de Pagamento',
-        'Total',
-    ];
-
-    rodapeLabels.forEach((label) => {
-        let xRodape = margemEsquerda;
-        const colspanLargura = larguraColunas.item + larguraColunas.unid + larguraColunas.qtde;
-    
-        // Primeira célula: rótulo com colspan
-        pdf.setFillColor(173, 216, 230); // Define fundo azul
-        pdf.rect(xRodape, posicaoAtualY, colspanLargura, alturaLinha, 'FD'); // Preenche com cor e mantém borda
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(0, 0, 0); // Cor do texto preta
-        pdf.text(label, xRodape + 2, posicaoAtualY + 4);
-    
-        xRodape += colspanLargura;
-    
-        // Células dos fornecedores
-        let valores = fornecedores.map((fornecedor) => {
-            if (label === 'Subtotal') {
-                return parseFloat(fornecedor.subtotal.slice(3).replace(',', '.')) || Infinity;
-            } else if (label === 'Total') {
-                return parseFloat(fornecedor.valorTotal.slice(3).replace(',', '.')) || Infinity;
-            }
-            return Infinity; // Outros rótulos não são considerados para o menor valor
-        });
-    
-        const menorValor = Math.min(...valores);
-    
-        fornecedores.forEach((fornecedor, index) => {
-            let texto = '-';
-            if (label === '(-) Desconto %') {
-                texto = `${fornecedor.porcentagemDesconto || '0.00'}%`;
-            } else if (label === 'Subtotal') {
-                texto = `${formatarParaReal(fornecedor.subtotal.slice(3)) || '0.00'}`;
-            } else if (label === '(+) Frete') {
-                texto = `${formatarParaReal(fornecedor.valorFrete) || '0.00'}`;
-            } else if (label === 'Condição de Pagamento') {
-                texto = fornecedor.condicaoPagar || 'N/A';
-            } else if (label === 'Total') {
-                texto = `${formatarParaReal(fornecedor.valorTotal.slice(3)) || '0.00'}`;
-            }
-    
-            if ((label === 'Subtotal' || label === 'Total') && valores[index] === menorValor) {
-                pdf.setFillColor(144, 238, 144); // Verde claro (Light Green)
-                pdf.rect(xRodape, posicaoAtualY, larguraColunas.fornecedor, alturaLinha, 'FD'); // Fill and Draw
-            } else {
-                pdf.rect(xRodape, posicaoAtualY, larguraColunas.fornecedor, alturaLinha); // Apenas borda
-            }
-    
-            pdf.setTextColor(0, 0, 0); // Texto sempre preto
-            pdf.text(texto, xRodape + 2, posicaoAtualY + 4);
-    
-            xRodape += larguraColunas.fornecedor;
-        });
-    
-        posicaoAtualY += alturaLinha; // Avançar para a próxima linha do rodapé
-    });
-    
     adicionarRodape(pdf); // Adicionar rodapé na última página
     pdf.save(`cotacao-${apelido}.pdf`);
 }
+
 
 function adicionarRodape(pdf) {
     const agora = new Date();
@@ -1842,8 +1868,6 @@ function formatarParaReal(valor) {
     }
     return `R$ ${parseFloat(valor).toFixed(2).replace('.', ',')}`;
 }
-
-
 
 function voltarParaTabela() {
     const botaoPDF = document.getElementById("botaoExportarPDF");
