@@ -9,6 +9,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const addLineBtn = document.getElementById("add-line-btn");
     const updateDataBtn = document.getElementById("update-data-btn");
 
+    document.querySelectorAll(".close-modal-btn").forEach((closeBtn) => {
+        closeBtn.addEventListener("click", (event) => {
+          const modal = event.target.closest(".modal"); // Seleciona o modal atual
+          modal.style.display = "none"; // Esconde o modal
+        });
+      });
+
     checkRegionBeforeAdding();
     // Função para gerar uma cor aleatória
     function getRandomColor() {
@@ -925,7 +932,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const modal = document.getElementById("edit-modal");
         const regionSelect = document.getElementById("edit-region-select");
         const confirmBtn = document.getElementById("edit-confirm-btn");
-        const cancelBtn = document.getElementById("edit-cancel-btn");
 
         // Preenche o dropdown com as regiões disponíveis
         regionSelect.innerHTML = `

@@ -63,28 +63,27 @@
 
   <div id="edit-modal" class="modal">
     <div class="modal-content">
+      <span class="close-modal-btn">&times;</span> <!-- Adiciona o X vermelho -->
       <h2>Editar Região</h2>
       <label for="edit-region-select">Região Atual:</label>
-      <select id="edit-region-select">
-        <!-- As opções serão preenchidas dinamicamente -->
-      </select>
+      <select id="edit-region-select"></select>
       <div class="modal-buttons">
         <button id="edit-confirm-btn">Confirmar</button>
-        <button id="edit-cancel-btn">Cancelar</button>
       </div>
     </div>
   </div>
-
+  
   <div id="delete-modal" class="modal">
     <div class="modal-content">
+      <span class="close-modal-btn">&times;</span> <!-- Adiciona o X vermelho -->
       <h2>Confirmar Exclusão</h2>
       <p>Tem certeza que deseja remover este técnico desta agenda?</p>
       <div class="modal-buttons">
         <button id="confirm-delete-btn">Excluir</button>
-        <button id="cancel-delete-btn">Cancelar</button>
       </div>
     </div>
-  </div>  
+  </div>
+  
 
   <script src="agenda.js"></script>
   <script src="open_menus.js"></script>
