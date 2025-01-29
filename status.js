@@ -244,8 +244,7 @@ async function calcular_requisicao(sincronizar) {
                 if (tr.style.display !== 'none') {
 
                     var codigo = tds[0].textContent
-
-                    let quantidadeDisponivel = tds[4].querySelectorAll("label")[2].textContent
+                    let quantidadeDisponivel = tds[4].querySelector('label').textContent
 
                     if (tds[4].querySelector('input') && tds[4].querySelector('input').value > conversor(quantidadeDisponivel)) {
                         tds[4].querySelector('input').value = conversor(quantidadeDisponivel)
