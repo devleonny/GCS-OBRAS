@@ -8,11 +8,6 @@ var anx_parceiros = {};
 var intervaloCompleto;
 var intervaloCurto;
 
-
-if (document.title == 'ORÇAMENTOS') {
-    preencher_orcamentos_v2()
-}
-
 function pesquisar_v2(coluna, texto) {
 
     filtrosAtivos[coluna] = texto.toLowerCase();

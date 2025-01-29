@@ -160,6 +160,9 @@
     let funcao_recarregar = preencher_orcamentos_v2
 
     async function escutarAlteracoes(nome_base) {
+
+        await preencher_orcamentos_v2()
+
         const dadosRef = ref(db, nome_base);
         let baseLocal = await recuperarDados(nome_base) || {}
 
