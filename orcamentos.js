@@ -1449,36 +1449,3 @@ function excluir_anexo_parceiro_2(campo, anx) {
     }
 
 }
-
-async function recuperar_antigo() {
-    return new Promise((resolve, reject) => {
-
-        var url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=orcamentos';
-
-        fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erro ao carregar os dados');
-                }
-                return response.json();
-            })
-            .then(data => {
-                localStorage.setItem('dados_orcamentos', JSON.stringify(data));
-                resolve()
-
-            })
-            .catch(error => {
-                console.error('Ocorreu um erro:', error);
-                reject(error);
-            });
-    });
-}
-
-async function transferir() {
-    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'))
-
-    for (id in dados_orcamentos) {
-        await enviar('PUT', `dados_orcamentos/${id}`, codificarUTF8(dados_orcamentos[id]))
-    }
-
-}
