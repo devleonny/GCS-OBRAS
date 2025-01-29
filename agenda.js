@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const updateDataBtn = document.getElementById("update-data-btn");
 
     atualizarDados()
+    checkRegionBeforeAdding();
     // Função para gerar uma cor aleatória
     function getRandomColor() {
         return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
@@ -56,8 +57,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     regionSelect.addEventListener("change", () => {
-        generateCalendar(yearSelect.value, monthSelect.value); // Atualiza o calendário
-        loadTechniciansFromLocalStorage(); // Recarrega os técnicos com base na nova região
+        checkRegionBeforeAdding();
+        generateCalendar(yearSelect.value, monthSelect.value);
+        loadTechniciansFromLocalStorage();
     });
 
 
@@ -103,7 +105,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // Botão para adicionar nova linha
-    addLineBtn.addEventListener("click", addNewRow);
+    addLineBtn.addEventListener("click", () => {
+        if (regionSelect.value === "todas") {
+            // Mostra aviso se a região for "Todas as Regiões"
+            showPopup("Escolha uma região para adicionar um Técnico.");
+        } else {
+            // Adiciona a nova linha normalmente
+            addNewRow();
+        }
+    });
 
     // Função para carregar dados do localStorage
     function loadFromLocalStorage() {
