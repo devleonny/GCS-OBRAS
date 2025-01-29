@@ -2172,7 +2172,7 @@ async function carregar_comentarios(chave1, chave2) {
 }
 
 async function salvar_comentario_trello(chave1, chave2) {
-    
+
     toggle_comentario(`comentario_${chave2}`)
     let id_div = `comentario_${chave2}`
     let textarea = document.getElementById(id_div).querySelector('textarea')
@@ -2824,13 +2824,13 @@ function getComputedStylesAsText(element) {
     return styleText;
 }
 
-try {
-    const { ipcRenderer } = require('electron');
 
-    ipcRenderer.on('open-save-dialog', (event, { htmlContent, nomeArquivo }) => {
-        ipcRenderer.send('save-dialog', { htmlContent, nomeArquivo });
-    });
-} catch { }
+const { ipcRenderer } = require('electron');
+
+ipcRenderer.on('open-save-dialog', (event, { htmlContent, nomeArquivo }) => {
+    ipcRenderer.send('save-dialog', { htmlContent, nomeArquivo });
+});
+
 
 async function gerarpdf(cliente, pedido) {
 
