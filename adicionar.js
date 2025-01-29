@@ -410,6 +410,12 @@ async function tabela_produtos_v2(tipo_tabela) {
 
         var dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
+        if (Object.keys(dados_composicoes) == 0) {
+            let nuvem = descodificarUTF8(await receber('dados_composicoes'))
+            await inserirDados(nuvem, 'dados_composicoes')
+            dados_composicoes = nuvem
+        }
+
         var linhas = ''
 
         for (pod in dados_composicoes) {

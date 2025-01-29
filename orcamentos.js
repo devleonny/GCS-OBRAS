@@ -50,7 +50,8 @@ async function preencher_orcamentos_v2(st) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
     if (Object.keys(dados_orcamentos).length == 0) {
-        return await recuperar_orcamentos()
+        await recuperar_orcamentos()
+        dados_orcamentos = await recuperarDados('dados_orcamentos')
     }
 
     document.getElementById('nome_modulo').textContent = modulo
