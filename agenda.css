@@ -15,8 +15,18 @@ select {
 
 .controls {
   text-align: center;
-  margin-bottom: 10px;
+  margin-bottom: 10px; /* Mantém o espaçamento geral inferior */
+  color: white; /* Torna o texto branco */
+  display: flex; /* Para alinhar elementos horizontalmente */
+  align-items: center; /* Centraliza os elementos verticalmente */
+  justify-content: center; /* Alinha os elementos no centro horizontalmente */
+  gap: 20px; /* Adiciona espaçamento horizontal entre os elementos */
 }
+
+.controls button {
+  margin-left: 10px; /* Espaçamento extra para botões, se necessário */
+}
+
 
 .calendar-header {
   display: flex;

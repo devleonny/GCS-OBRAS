@@ -4,12 +4,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const monthNameElement = document.getElementById("month-name");
     const monthSelect = document.getElementById("month-select");
     const yearSelect = document.getElementById("year-select");
-    const regionSelect = document.getElementById("region-select"); // Corrigido aqui
+    const regionSelect = document.getElementById("region-select");
     const syncDataBtn = document.getElementById("sync-data-btn");
     const addLineBtn = document.getElementById("add-line-btn");
     const updateDataBtn = document.getElementById("update-data-btn");
 
-    atualizarDados()
     checkRegionBeforeAdding();
     // Função para gerar uma cor aleatória
     function getRandomColor() {
@@ -27,6 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let technicians = []; // Declaração global
     let departments = [];
     let technicianOptions = [];
+    let isLoading = false;
 
     // Carregar configurações atuais (mês, ano, região)
     loadCurrentSettings();
@@ -62,10 +62,9 @@ document.addEventListener("DOMContentLoaded", () => {
         loadTechniciansFromLocalStorage();
     });
 
-
-    syncDataBtn.addEventListener("click", async () => {
+    // Sincronizar dados (usado para botão e verificação inicial)
+    async function syncData() {
         showLoading(); // Exibe o indicador de carregamento
-        saveCurrentSettings(); // Salva as configurações antes de sincronizar
         try {
             const [fetchedDepartments, fetchedTechnicians] = await Promise.all([
                 fetchDepartmentsFromAPI(),
@@ -76,33 +75,54 @@ document.addEventListener("DOMContentLoaded", () => {
             localStorage.setItem("departments", JSON.stringify(fetchedDepartments));
             localStorage.setItem("technicians", JSON.stringify(fetchedTechnicians));
 
-            // Atualizar variáveis locais
+            // Atualizar variáveis globais
             departments = fetchedDepartments;
             technicianOptions = fetchedTechnicians;
 
-            // Atualizar a lista global de técnicos
-            technicians = fetchedTechnicians.map(tech => ({
-                omie: tech.omie,
-                nome: tech.nome,
-                agendas: {}, // Inicializa uma agenda vazia para cada técnico
-            }));
-
-            // Recria o calendário e limpa o corpo da tabela
-            generateCalendar(yearSelect.value, monthSelect.value); // Gera os dias do mês
-            techniciansBody.innerHTML = ""; // Limpa as linhas existentes
-
-            // Preenche a tabela com os técnicos sincronizados
-            technicians.forEach(tech => addTechnicianRow(tech));
-
-            hideLoading();
-            generateCalendar(yearSelect.value, monthSelect.value); // Garante que o calendário seja atualizado
-            loadTechniciansFromLocalStorage(); // Monta a tabela
+            // Atualizar a tabela e o calendário somente após a sincronização
+            hideLoading(); // Oculta o loading
+            generateCalendar(yearSelect.value, monthSelect.value);
+            loadTechniciansFromLocalStorage();
             showPopup("Dados sincronizados com sucesso!");
         } catch (error) {
+            hideLoading(); // Oculta o loading em caso de erro
+            console.error("Erro ao sincronizar os dados:", error);
             showPopup("Erro ao sincronizar os dados. Verifique sua conexão e tente novamente.");
+        } finally{
+            atualizarDados()
         }
-    });
+    }
 
+    // Verifica se os dados estão no localStorage, caso contrário, sincroniza
+    function checkAndSyncData() {
+        const storedDepartments = localStorage.getItem("departments");
+        const storedTechnicians = localStorage.getItem("technicians");
+
+        if (!storedDepartments || !storedTechnicians) {
+            console.log("Dados ausentes no localStorage. Realizando sincronização...");
+            syncData();
+        } else {
+            console.log("Dados encontrados no localStorage. Continuando normalmente.");
+            atualizarDados()
+            loadFromLocalStorage();
+            loadTechniciansFromStorage();
+            generateCalendar(yearSelect.value, monthSelect.value);
+            loadTechniciansFromLocalStorage();
+        }
+    }
+
+    
+    // Função de inicialização da página
+    function initializePage() {
+        showLoading(); // Exibe o loading ao carregar a página
+        loadCurrentSettings(); // Carrega configurações de mês, ano e região
+        checkAndSyncData(); // Verifica se há dados e sincroniza se necessário
+    }
+    
+    // Evento do botão de sincronização manual
+    syncDataBtn.addEventListener("click", syncData);
+    // Chama a função de inicialização
+    initializePage();
 
     // Botão para adicionar nova linha
     addLineBtn.addEventListener("click", () => {
@@ -147,6 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Função para mostrar o indicador de carregamento
     function showLoading() {
+        isLoading = true;
         const totalColumns = document.getElementById("days-row").children.length || 3;
         document.getElementById("technicians-body").innerHTML = `
             <tr>
@@ -160,6 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Função para ocultar o indicador de carregamento
     function hideLoading() {
+        isLoading = false;
         document.getElementById("technicians-body").innerHTML = ""; // Limpa o tbody
     }
 
@@ -731,6 +753,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     function loadTechniciansFromLocalStorage() {
+
+        if (isLoading) return;
+
         const storedData = localStorage.getItem("dados_agenda_tecnicos");
         const daysRow = document.getElementById("days-row");
         const techniciansBody = document.getElementById("technicians-body");
@@ -990,7 +1015,6 @@ document.addEventListener("DOMContentLoaded", () => {
             localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(formattedData));
 
             hideLoading();
-            showPopup("Dados da agenda atualizados com sucesso!");
             generateCalendar(yearSelect.value, monthSelect.value); // Garante que o calendário seja atualizado
             loadTechniciansFromLocalStorage(); // Monta a tabela
         } catch (error) {
