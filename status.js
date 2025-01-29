@@ -2834,9 +2834,8 @@ try {
 
 async function gerarpdf(cliente, pedido) {
 
-    if (menu_flutuante && span) {
+    if (menu_flutuante) {
         menu_flutuante.style.display = 'none'
-        span.style.display = 'none'
     }
 
     var status = document.getElementById('status')
@@ -2920,9 +2919,8 @@ async function gerarpdf(cliente, pedido) {
 
     });
 
-    if (menu_flutuante && span) {
+    if (menu_flutuante) {
         menu_flutuante.style.display = 'flex'
-        span.style.display = 'block'
     }
 
 }
