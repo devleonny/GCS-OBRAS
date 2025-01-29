@@ -2,7 +2,8 @@ body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f4f4f4;
+  background: linear-gradient(45deg, #151749, #B12425);
+  animation: none;
 }
 
 select {
@@ -14,8 +15,18 @@ select {
 
 .controls {
   text-align: center;
-  margin-bottom: 10px;
+  margin-bottom: 10px; /* Mantém o espaçamento geral inferior */
+  color: white; /* Torna o texto branco */
+  display: flex; /* Para alinhar elementos horizontalmente */
+  align-items: center; /* Centraliza os elementos verticalmente */
+  justify-content: center; /* Alinha os elementos no centro horizontalmente */
+  gap: 20px; /* Adiciona espaçamento horizontal entre os elementos */
 }
+
+.controls button {
+  margin-left: 10px; /* Espaçamento extra para botões, se necessário */
+}
+
 
 .calendar-header {
   display: flex;
@@ -92,13 +103,35 @@ select {
 }
 
 .modal-content {
-  background-color: white;
-  margin: 15% auto;
+  position: relative; /* Torna o conteúdo do modal o contêiner de referência */
+  top: 20em;
   padding: 20px;
-  width: 300px;
-  text-align: center;
   border-radius: 5px;
+  background-color: white; /* Fundo branco para destacar o modal */
+  margin: 0 auto;
+  max-width: 400px; /* Largura máxima do modal */
 }
+
+.modal-content .close-modal-btn {
+  color: red; /* Define a cor do botão como vermelho */
+  position: absolute; /* Posiciona relativo ao .modal-content */
+  top: 10px; /* Margem superior dentro da parte branca */
+  right: 10px; /* Margem à direita dentro da parte branca */
+  font-size: 18px; /* Tamanho da fonte ajustado */
+  font-weight: bold; /* Negrito para maior destaque */
+  cursor: pointer; /* Exibe o cursor de "mãozinha" ao passar */
+  z-index: 1001; /* Mantém o botão acima do conteúdo do modal */
+  background: none; /* Remove fundo */
+  border: none; /* Remove bordas */
+  outline: none; /* Remove contorno ao clicar */
+}
+
+.modal-content .close-modal-btn:hover {
+  color: darkred; /* Vermelho mais escuro ao passar o mouse */
+  transform: scale(1.2); /* Ampliação ao passar o mouse */
+  transition: 0.3s; /* Animação suave */
+}
+
 
 .modal-buttons {
   margin-top: 20px;
