@@ -1119,12 +1119,13 @@ async function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem d
 
     if (orcamento.status) {
 
-        Object.keys(orcamento.status).forEach(chave_pedido => {
+        for (chave_pedido in orcamento.status) {
 
             var pedido_completo = orcamento.status[chave_pedido]
             var st = pedido_completo
 
-            Object.keys(st.historico).forEach(chave2 => {
+            for (chave2 in st.historico) {
+
                 var his = st.historico[chave2]
                 var exibir_label = false;
                 let status_chave2 = String(his.status)
@@ -1186,9 +1187,9 @@ async function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem d
                     }
                 }
 
-            })
+            }
 
-        })
+        }
     }
 
     var elementus = `
@@ -2787,6 +2788,9 @@ function deseja_apagar(chave1, chave2) {
 }
 
 async function apagar_status_historico(chave1, chave2) {
+
+    remover_popup()
+
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
     if (chave2 == undefined) {
@@ -2800,7 +2804,7 @@ async function apagar_status_historico(chave1, chave2) {
 
     await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    remover_popup()
+
     fechar_estrutura()
     abrir_esquema(id_orcam)
 

@@ -31,8 +31,6 @@ function pesquisar_em_composicoes(elemento) {
     });
 }
 
-carregar_tabela_v2()
-
 async function carregar_tabela_v2() {
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
@@ -234,7 +232,7 @@ async function atualizar_status_material(codigo, elemento) {
     var resposta = elemento.checked
     var dados_composicoes = await recuperarDados('dados_composicoes') || {}
     dados_composicoes[codigo]['material infra'] = resposta
-    inserirDados(dados_composicoes, 'dados_composicoes')
+    await inserirDados(dados_composicoes, 'dados_composicoes')
 
     await enviar('PUT', `dados_composicoes/${codigo}/material infra`, resposta)
     await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
