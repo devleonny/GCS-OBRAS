@@ -115,6 +115,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    function checkRegionBeforeAdding() {
+        if (regionSelect.value === "todas") {
+            addLineBtn.style.cursor = "pointer";
+        } else {
+            addLineBtn.style.cursor = "pointer"; // Certifica que o cursor é padrão
+        }
+    }
+
     // Função para carregar dados do localStorage
     function loadFromLocalStorage() {
         const storedDepartments = localStorage.getItem("departments");
