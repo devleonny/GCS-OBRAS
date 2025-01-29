@@ -237,6 +237,7 @@ async function atualizar_status_material(codigo, elemento) {
     inserirDados(dados_composicoes, 'dados_composicoes')
 
     await enviar('PUT', `dados_composicoes/${codigo}/material infra`, resposta)
+    await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
 
     carregar_tabela_v2()
 
@@ -376,6 +377,7 @@ async function salvar_agrupamentos(codigo) {
         await inserirDados(dados_composicoes, 'dados_composicoes')
 
         await enviar('PUT', `dados_composicoes/${codigo}/agrupamentos`, produto.agrupamentos)
+        await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
 
         remover_popup()
 
@@ -565,7 +567,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
             <td>${historico[cotacao].fornecedor}</td>
             <td><input type="checkbox" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_preco_ativo('${codigo}', '${cotacao}', '${tabela}')" ${marcado}></td>
             <td>
-                <div style="display: flex; align-items: center; justify-content;">
+                <div style="display: flex; align-items: center; justify-content; width: 100%;">
                     <img src="imagens/cancel.png" style="width: 25px; cursor: pointer;" onclick="excluir_cotacao('${codigo}', '${tabela}', '${cotacao}')">
                 </div>
             </td>
@@ -625,22 +627,27 @@ async function abrir_historico_de_precos(codigo, tabela) {
 async function excluir_cotacao(codigo, tabela, cotacao) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
+    remover_popup()
+
     if (dados_composicoes[codigo] && dados_composicoes[codigo][tabela]) {
 
         let cotacoes = dados_composicoes[codigo][tabela]
 
         if (cotacoes.ativo == cotacao) {
             cotacoes.ativo = ''
-            enviar('PUT', `dados_composicoes/${codigo}/${tabela}/ativo`, '')
+            await enviar('PUT', `dados_composicoes/${codigo}/${tabela}/ativo`, '')
+            await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
         }
 
         delete cotacoes.historico[cotacao]
 
-        deletar(`dados_composicoes/${codigo}/${tabela}/historico/${cotacao}`)
-
         await inserirDados(dados_composicoes, 'dados_composicoes')
-        await carregar_tabela_v2()
         await abrir_historico_de_precos(codigo, tabela)
+
+        await deletar(`dados_composicoes/${codigo}/${tabela}/historico/${cotacao}`)
+        await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
+
+        await carregar_tabela_v2()
 
     }
 }
@@ -662,11 +669,21 @@ function adicionar_nova_cotacao(codigo, lpu) {
             <td>${data_atual('completa')}</td>
             <td>${acesso.usuario}</td>
             <td><input class="numero-bonito"></td>
-            <td><img src="imagens/concluido.png" onclick="salvar_cotacao('${codigo}', '${lpu}')" style="width: 30px; cursor: pointer;"></td>
+            <td>
+                <img src="imagens/concluido.png" onclick="salvar_cotacao('${codigo}', '${lpu}')" style="width: 30px; cursor: pointer;">
+            </td>
+            <td>
+                <img src="imagens/cancel.png" style="width: 30px; cursor: pointer;" onclick="remover_esta_linha(this)">
+            </td>
         </tr>
         `
         tbody.insertAdjacentHTML('beforeend', linha)
     }
+}
+
+function remover_esta_linha(elemento) {
+    let tr = elemento.closest('tr')
+    tr.remove()
 }
 
 async function atualizar() {
@@ -687,24 +704,34 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
         var tabela = historico_preco.querySelector('table')
         var tbody = tabela.querySelector('tbody')
         var trs = tbody.querySelectorAll('tr')
+        remover_popup()
+        openPopup_v2(`
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <img src="gifs/loading.gif" style="width: 70px;">
+                    <label>Aguarde...</label>
+                </div>
+            </div>
+            `)
 
-        trs.forEach(tr => {
-
+        for (t in trs) {
+            let tr = trs[t]
             var tds = tr.querySelectorAll('td')
             var checkbox = tds[6].querySelector('input')
 
             if (checkbox.checked) {
                 produto[lpu].ativo = id_preco
-                inserirDados(dados_composicoes, 'dados_composicoes')
+                await inserirDados(dados_composicoes, 'dados_composicoes')
 
-                enviar('PUT', `dados_composicoes/${codigo}/${lpu}/ativo`, id_preco)
+                await enviar('PUT', `dados_composicoes/${codigo}/${lpu}/ativo`, id_preco)
+                await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
 
                 historico_preco.remove()
-                carregar_tabela_v2()
                 remover_popup()
                 return abrir_historico_de_precos(codigo, lpu)
+                carregar_tabela_v2()
             }
-        })
+        }
     }
 
 }
@@ -719,7 +746,8 @@ async function salvar_cotacao(codigo, lpu) {
         var tbody = tabela.querySelector('tbody')
         var trs = tbody.querySelectorAll('tr')
 
-        trs.forEach(tr => {
+        for (t in trs) {
+            let tr = trs[t]
             var inputs = tr.querySelectorAll('input')
             var tds = tr.querySelectorAll('td')
 
@@ -746,13 +774,14 @@ async function salvar_cotacao(codigo, lpu) {
 
                 produto[lpu].historico[id] = dados
 
-                enviar('PUT', `dados_composicoes/${codigo}/${lpu}/historico/${id}`, dados)
+                await enviar('PUT', `dados_composicoes/${codigo}/${lpu}/historico/${id}`, dados)
+                await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
 
-                inserirDados(dados_composicoes, 'dados_composicoes')
+                await inserirDados(dados_composicoes, 'dados_composicoes')
 
             }
 
-        })
+        }
 
         carregar_tabela_v2()
         return abrir_historico_de_precos(codigo, lpu)
@@ -899,45 +928,45 @@ async function exclusao_item(codigo) {
 }
 
 async function cadastrar_alterar(codigo) {
+    let operacao = 'PATCH'
+    let elementos = document.getElementById('elementos');
+    if (!elementos) return;
 
-    let elementos = document.getElementById('elementos')
-    if (elementos) {
-
-        let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-        if (!dados_composicoes[codigo]) {
-            dados_composicoes[codigo] = {}
-        }
-
-        let divs = elementos.querySelectorAll('div')
-
-        divs.forEach(div => {
-
-            let item = div.querySelector('label')
-            let valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select')
-
-            if (item && valor) {
-                dados_composicoes[codigo][item.textContent] = valor.value
-                enviar('PUT', `dados_composicoes/${codigo}/${item.textContent}`, valor.value)
-            }
-
-        })
-
-        let novo_campo = document.getElementById('nova_lpu')
-        if (novo_campo) {
-            let campo = document.getElementById('campo').value
-            let valor = document.getElementById('valor').value
-            if (campo !== '' && valor !== '') {
-                dados_composicoes[codigo][campo] = valor
-                enviar('PUT', `dados_composicoes/${codigo}/${campo}`, valor)
-            }
-        }
-
-        enviar('PUT', `dados_composicoes/${codigo}/codigo`, codigo) // Chave código no Objeto;
-        dados_composicoes[codigo].codigo = codigo // Chave código no Objeto;
-
-        await inserirDados(dados_composicoes, 'dados_composicoes')
-
-        remover_popup()
-        carregar_tabela_v2()
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    if (!dados_composicoes[codigo]) {
+        dados_composicoes[codigo] = {};
+        operacao = 'PUT'
     }
+
+    let dadosAtualizados = {};
+    let divs = elementos.querySelectorAll('div');
+
+    divs.forEach(div => {
+        let item = div.querySelector('label');
+        let valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select');
+
+        if (item && valor) {
+            dadosAtualizados[item.textContent] = valor.value;
+        }
+    });
+
+    let novo_campo = document.getElementById('nova_lpu');
+    if (novo_campo) {
+        let campo = document.getElementById('campo').value;
+        let valor = document.getElementById('valor').value;
+        if (campo !== '' && valor !== '') {
+            dadosAtualizados[campo] = valor;
+        }
+    }
+
+    dadosAtualizados.codigo = codigo;
+
+    dados_composicoes[codigo] = { ...dados_composicoes[codigo], ...dadosAtualizados };
+
+    await inserirDados(dados_composicoes, 'dados_composicoes');
+    await enviar(operacao, `dados_composicoes/${codigo}`, dadosAtualizados);
+    await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
+
+    remover_popup();
+    carregar_tabela_v2();
 }

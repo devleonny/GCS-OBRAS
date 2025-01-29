@@ -102,9 +102,6 @@ function executarTransacao(db, nome_da_base, dados) {
         console.error('Erro durante a transação:', event.target.errorCode);
     };
 
-    transaction.oncomplete = function () {
-        console.log('Transação concluída com sucesso!');
-    };
 }
 
 async function recuperarDados(nome_da_base) {
@@ -381,11 +378,11 @@ function removerLinha(select) {
 
 async function apagar(codigo_orcamento) {
 
-    await enviar('PUT', `dados_orcamentos/${codigo_orcamento}/operacao`, 'excluido')
-
     fechar_espelho_ocorrencias()
     remover_popup()
 
+    await enviar('PUT', `dados_orcamentos/${codigo_orcamento}/operacao`, 'excluido')
+    await enviar('PUT', `dados_orcamentos/${codigo_orcamento}/timestamp`, Date.now())
 }
 
 function calcularProporcao(dataInicio, dataFim) {
@@ -1548,45 +1545,30 @@ function salvar_levantamento(id_orcamento) {
             if (response.ok) {
 
                 var anexo = {}
-
-                anexo[gerar_id_5_digitos()] = {
+                let id_anexo = gerar_id_5_digitos()
+                anexo[id_anexo] = {
                     nome: fileName,
                     formato: mimeType,
                     link: result.fileId
                 }
 
-                var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-
                 if (id_orcamento) {
-                    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
-                    var orcamento_v2 = dados_orcamentos[id_orcamento]
-                }
-
-                if (!orcamento_v2.levantamentos) {
-                    orcamento_v2.levantamentos = {}
-                }
-
-                orcamento_v2.levantamentos = {
-                    ...orcamento_v2.levantamentos,
-                    ...anexo
-                }
-
-                if (id_orcamento) {
-
-                    var dados = {
-                        tabela: 'levantamento',
-                        operacao: 'incluir',
-                        id: id_orcamento,
-                        anexo
-                    }
-
-                    enviar_dados_generico(dados)
-                    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
+                    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+                    orcamento_v2 = dados_orcamentos[id_orcamento]
+                    await enviar('PUT', `dados_orcamentos/${id_orcamento}/levantamentos/${id_anexo}`, codificarUTF8(anexo))
+                    await enviar('PUT', `dados_orcamentos/${id_orcamento}/timestamp`, Date.now())
+                    await inserirDados(dados_orcamentos, 'dados_orcamentos')
                     abrir_esquema(id_orcamento)
 
                 } else {
+                    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+                    if (!orcamento_v2.levantamentos) {
+                        orcamento_v2.levantamentos = {}
+                    }
+                    orcamento_v2.levantamentos[id_anexo] = anexo
                     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
                     recuperar_preenchido()
+
                 }
 
             }
@@ -1597,26 +1579,18 @@ function salvar_levantamento(id_orcamento) {
     }
 }
 
-function excluir_levantamento(id_orcamento, id_anexo) {
+async function excluir_levantamento(id_orcamento, id_anexo) {
 
-    var dados = {
-        tabela: 'levantamento',
-        operacao: 'excluir',
-        anexo_id: id_anexo,
-        id: id_orcamento
-    }
-
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
-
-    var orcamento = dados_orcamentos[id_orcamento]
-
+    let dados_orcamentos = recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[id_orcamento]
     delete orcamento.levantamentos[id_anexo]
 
-    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
+    await deletar(`dados_orcamentos/${id_orcamento}/levantamentos/${id_anexo}`)
+    await enviar('PUT', `dados_orcamentos/${id_orcamento}/timestamp`, Date.now())
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     abrir_esquema(id_orcamento)
 
-    enviar_dados_generico(dados)
 }
 
 async function recuperar_dados_composicoes() {
@@ -1724,8 +1698,8 @@ async function enviar(metodo, chave, objeto) {
                 resolve(data)
             })
             .catch(error => {
-                let dados_erros = localStorage.getItem('dados_erros') || []
-                dados_erros.push(objeto)
+                let dados_erros = localStorage.getItem('dados_erros') || {}
+                dados_erros[gerar_id_5_digitos()] = objeto
                 localStorage.setItem('dados_erros', JSON.stringify(dados_erros))
                 console.error(error);
                 reject()
@@ -1742,7 +1716,7 @@ function descodificarUTF8(obj) {
             return obj;
         } catch (e) {
             console.error("Erro ao decodificar string:", obj, e);
-            return obj; 
+            return obj;
         }
     } else if (Array.isArray(obj)) {
         return obj.map(descodificarUTF8);
@@ -1784,7 +1758,7 @@ async function proximo_sequencial() {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    var chamados_sequenciais = []
+    var chamados_sequenciais = [0]
 
     for (orc in dados_orcamentos) {
 

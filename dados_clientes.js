@@ -1,23 +1,3 @@
-var lista = [
-    'cliente_selecionado',
-    'estado',
-    'cep',
-    'bairro',
-    'cidade',
-    'cnpj',
-    'contrato',
-    'analista',
-    'email_analista',
-    'telefone_analista',
-    'vendedor',
-    'email_vendedor',
-    'telefone_vendedor',
-    'consideracoes',
-    'tipo_de_frete',
-    'condicoes',
-    'garantia'
-];
-
 var dados_clientes_provisorios = {}
 
 // Processos para inicialização;
@@ -163,47 +143,28 @@ function atualizar_dados_vendedores() {
 
 }
 
-function incluir_listeners() {
-
-    lista.forEach(function (item) {
-        document.getElementById(item).addEventListener('input', function () {
-            salvar_preenchido()
-            total()
-        })
-    })
-}
-
 function salvar_preenchido() {
-
-    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-
-    if (orcamento_v2.lpu_ativa == 'MODALIDADE LIVRE') {
-        total_v2()
-    } else {
-        total()
-    }
-
-    var chamado_off = document.getElementById('chamado_off')
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
+    let chamado_off = document.getElementById('chamado_off');
+    let input_contrato = document.getElementById('contrato');
 
     if (chamado_off.checked) {
-        document.getElementById('contrato').style.display = 'none'
-        document.getElementById('contrato').value = ''
+        input_contrato.style.display = 'none';
     } else {
-        document.getElementById('contrato').style.display = 'block'
+        input_contrato.style.display = 'block';
+        input_contrato.value = ''
     }
 
-    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-
-    var dados_analista = {
+    let dados_analista = {
         email: document.getElementById('email_analista').textContent,
         nome: document.getElementById('analista').textContent,
         telefone: document.getElementById('telefone_analista').textContent
-    }
+    };
 
     if (orcamento_v2.id) {
-        dados_analista.email = orcamento_v2.dados_orcam.email_analista
-        dados_analista.telefone = orcamento_v2.dados_orcam.telefone_analista
-        dados_analista.nome = orcamento_v2.dados_orcam.analista
+        dados_analista.email = orcamento_v2.dados_orcam.email_analista;
+        dados_analista.telefone = orcamento_v2.dados_orcam.telefone_analista;
+        dados_analista.nome = orcamento_v2.dados_orcam.analista;
     }
 
     orcamento_v2.dados_orcam = {
@@ -216,20 +177,29 @@ function salvar_preenchido() {
         cnpj: document.getElementById('cnpj').value,
         condicoes: document.getElementById('condicoes').value,
         consideracoes: document.getElementById('consideracoes').value,
-        contrato: chamado_off.checked ? 'sequencial' : document.getElementById('contrato').value,
         data: new Date(),
         email_analista: dados_analista.email,
         email_vendedor: document.getElementById('email_vendedor').textContent,
         garantia: document.getElementById('garantia').value,
         telefone_analista: dados_analista.telefone,
+        transportadora: document.getElementById('transportadora').value,
         telefone_vendedor: document.getElementById('telefone_vendedor').textContent,
         tipo_de_frete: document.getElementById('tipo_de_frete').value,
         vendedor: document.getElementById('vendedor').value,
-    }
+        contrato: chamado_off.checked ? 'sequencial' : '' 
+    };
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
 
+    if (orcamento_v2.lpu_ativa === 'MODALIDADE LIVRE') {
+        total_v2();
+    } else {
+        total();
+    }
+
 }
+
+
 
 function tipo_elemento(element) {
     if ('value' in element && (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT')) {
@@ -241,15 +211,22 @@ function tipo_elemento(element) {
 
 function recuperar_preenchido() {
 
-    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-    var dados_orcam = orcamento_v2.dados_orcam || {}
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let dados_orcam = orcamento_v2.dados_orcam || {}
+    let input_contrato = document.getElementById('contrato');
+    let chamado_off = document.getElementById('chamado_off');
 
     if (dados_orcam.contrato == 'sequencial') {
-        document.getElementById('chamado_off').checked = true
-        document.getElementById('contrato').style.display = 'none'
+        chamado_off.checked = true
+        input_contrato.style.display = 'none'
     } else {
-        document.getElementById('chamado_off').checked = false
-        document.getElementById('contrato').style.display = 'block'
+        chamado_off.checked = false
+        input_contrato.style.display = 'block'
+    }
+    
+    if(dados_orcam.contrato && String(dados_orcam.contrato).includes('ORC_')){
+        input_contrato.style.display = 'none'
+        chamado_off.checked = true
     }
 
     for (chave in dados_orcam) {
@@ -264,7 +241,6 @@ function recuperar_preenchido() {
                 elemento.textContent = info
             }
         }
-
     }
 
     var levantamentos = document.getElementById('levantamentos')

@@ -28,7 +28,7 @@ var fluxograma = {
     'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] }
 }
 
-function painel_adicionar_pedido() {
+async function painel_adicionar_pedido() {
 
     let painel_status = document.getElementById('status')
     let espelho_ocorrencias = document.getElementById('espelho_ocorrencias')
@@ -41,7 +41,7 @@ function painel_adicionar_pedido() {
         espelho_ocorrencias.remove()
     }
 
-    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let cliente = dados_orcamentos[id_orcam].dados_orcam.cliente_selecionado
     let data = new Date().toLocaleString('pt-BR', {
         dateStyle: 'short',
@@ -120,14 +120,14 @@ function painel_adicionar_pedido() {
 }
 
 
-function painel_adicionar_notas(chave) {
+async function painel_adicionar_notas(chave) {
 
     var painel_status = document.getElementById('status')
     if (painel_status) {
         painel_status.remove()
     }
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var cliente = dados_orcamentos[id_orcam].dados_orcam.cliente_selecionado
     var data = new Date().toLocaleString('pt-BR', {
         dateStyle: 'short',
@@ -217,14 +217,14 @@ function ocultar_pedido(elemento) {
     }
 }
 
-function calcular_requisicao(sincronizar) {
+async function calcular_requisicao(sincronizar) {
 
     var tabela_requisicoes = document.getElementById('tabela_requisicoes')
 
     if (tabela_requisicoes) {
         var tbody = tabela_requisicoes.querySelector('tbody')
 
-        var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+        let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
         var orcamento = dados_orcamentos[id_orcam]
 
         conversor_composicoes_orcamento(orcamento)
@@ -353,7 +353,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
         return ''
     }
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var dados_composicoes = await recuperarDados('dados_composicoes') || {}
     var orcamento = dados_orcamentos[id_orcam]
 
@@ -375,8 +375,6 @@ async function carregar_itens(apenas_visualizar, requisicao) {
         var infos = ['descricao', 'descricaocarrefour', 'modelo', 'fabricante']
         var elements = ''
         let mod_livre = true
-
-        var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
 
         var todos_os_status = dados_orcamentos[id_orcam].status;
 
@@ -731,7 +729,7 @@ function mostrar_itens_adicionais() {
     }
 }
 
-function carregar_status_divs(valor, chave, id) { // "valor" é o último status no array de status que vem do script de orçamentos;
+async function carregar_status_divs(valor, chave, id) { // "valor" é o último status no array de status que vem do script de orçamentos;
 
     var estrutura = document.getElementById('estrutura')
     if (estrutura) {
@@ -746,7 +744,7 @@ function carregar_status_divs(valor, chave, id) { // "valor" é o último status
 
     if (id) {
         id_orcam = id
-        dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+        dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
         orcamento = dados_orcamentos[id_orcam]
     }
 
@@ -770,9 +768,9 @@ function carregar_status_divs(valor, chave, id) { // "valor" é o último status
 
 }
 
-function salvar_pedido(chave) {
+async function salvar_pedido(chave) {
 
-    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let orcamento = dados_orcamentos[id_orcam];
     let st = '';
@@ -827,16 +825,17 @@ function salvar_pedido(chave) {
 
     orcamento.status[chave] = novo_lancamento;
 
-    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}`, codificarUTF8(novo_lancamento))
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await inserirDados(dados_orcamentos, 'dados_orcamentos');
 
-    enviar_status_orcamento(orcamento);
     abrir_esquema(id_orcam)
 
 }
 
-function salvar_notas(chave) {
+async function salvar_notas(chave) {
 
-    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
     let st = '';
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
@@ -878,17 +877,18 @@ function salvar_notas(chave) {
     novo_lancamento.status = st;
     novo_lancamento.historico[chave_his].status = st;
 
-    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
-    enviar_status_orcamento(orcamento);
+    await inserirDados(dados_orcamentos, 'dados_orcamentos');
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/historico/${chave_his}`, codificarUTF8(novo_lancamento.historico[chave_his]))
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
     abrir_esquema(id_orcam)
 
     anexos = {}
     itens_adicionais = {}
 }
 
-function salvar_requisicao(chave, chave2) {
+async function salvar_requisicao(chave, chave2) {
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var orcamento = dados_orcamentos[id_orcam];
     var st = '';
     let pendencias = []
@@ -986,8 +986,6 @@ function salvar_requisicao(chave, chave2) {
 
     }
 
-    console.log(pendencias)
-
     novo_lancamento.status = st;
     novo_lancamento.historico[chave2].status = st;
     novo_lancamento.historico[chave2].pedido_selecionado = pedido;
@@ -997,8 +995,10 @@ function salvar_requisicao(chave, chave2) {
         painel_status.remove()
     }
 
-    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
-    enviar_status_orcamento(orcamento);
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/historico/${chave2}`, codificarUTF8(novo_lancamento.historico[chave2]))
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+
     abrir_esquema(id_orcam)
 
     anexos = {}
@@ -1036,7 +1036,7 @@ function botao_novo_pagamento(ch_pedido) {
     </div>   
 `}
 
-function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do botão;
+async function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do botão;
     overlay.style.display = 'block'
 
     var detalhes = document.getElementById('detalhes')
@@ -1046,7 +1046,7 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot�
 
     id_orcam = id
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'))
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
     var orcamento = dados_orcamentos[id]
 
@@ -1201,15 +1201,17 @@ function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do bot�
 
 }
 
-const { shell } = require('electron');
+try {
+    const { shell } = require('electron');
 
-function abrirArquivo(link) {
-    try {
-        shell.openExternal(link);
-    } catch {
-        window.open(link, '_blank');
+    function abrirArquivo(link) {
+        try {
+            shell.openExternal(link);
+        } catch {
+            window.open(link, '_blank');
+        }
     }
-}
+} catch { }
 
 function popup_atualizar_item(chave1, item) {
 
@@ -1222,22 +1224,19 @@ function popup_atualizar_item(chave1, item) {
     `)
 }
 
-function atulizar_item(chave1, item) {
+async function atulizar_item(chave1, item) {
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'))
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var orcamento = dados_orcamentos[id_orcam]
-
     var novo = elemento_para_atualizado.value
+    remover_popup()
 
     novo == '' ? novo = '???' : ''
-
     orcamento.status[chave1][item] = novo
 
-    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
-
-    enviar_status_orcamento(orcamento)
-
-    remover_popup()
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave1}/${item}`, codificarUTF8(novo))
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
     var estrutura = document.getElementById('estrutura')
     var espelho_ocorrencias = document.getElementById('espelho_ocorrencias')
@@ -1263,7 +1262,7 @@ async function abrir_esquema(id) {
         estrutura.remove()
     }
 
-    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {};
     let dados_etiquetas = JSON.parse(localStorage.getItem('dados_etiquetas')) || {};
@@ -1327,7 +1326,7 @@ async function abrir_esquema(id) {
 
         var acumulado = `
         <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-            <div onclick="atualizar_esquema()" style="display: flex; flex-direction: column; justify-content: left; align-items: center; cursor: pointer;">
+            <div onclick="abrir_esquema('${id_orcam}')" style="display: flex; flex-direction: column; justify-content: left; align-items: center; cursor: pointer;">
                 <img src="imagens/atualizar2.png" style="width: 50px;">
                 <label>Atualizar</label>
             </div>
@@ -1358,7 +1357,8 @@ async function abrir_esquema(id) {
         `;
         var contador = 1;
 
-        Object.keys(todos_os_status).forEach(chave_pedido => {
+
+        for (chave_pedido in todos_os_status) {
 
             var lista_interna = todos_os_status[chave_pedido].historico;
             var blocos = '';
@@ -1367,7 +1367,7 @@ async function abrir_esquema(id) {
             var tem_pagamento = false
             var pagamentos_painel = {}
 
-            Object.keys(lista_pagamentos).forEach(pag => {
+            for (pag in lista_pagamentos) {
                 if (pag !== 'id') { // IndexedDB armazena um item com esse 'id';
                     var pagamento = lista_pagamentos[pag]
                     var comentario = 'Sem observação'
@@ -1402,7 +1402,7 @@ async function abrir_esquema(id) {
                         tem_pagamento = true
                     }
                 }
-            })
+            }
 
             if (tem_pagamento) {
                 blocos += `
@@ -1417,7 +1417,8 @@ async function abrir_esquema(id) {
                 </div>
             `}
 
-            Object.keys(lista_interna).forEach(chave2 => {
+
+            for (chave2 in lista_interna) {
 
                 var sst = lista_interna[chave2]
                 var anxsss = ''
@@ -1532,7 +1533,7 @@ async function abrir_esquema(id) {
                 blocos += `
                 <div class="bloko" style="border: 1px solid ${fluxograma[sst.status].cor}">
                     <div style="display: flex; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-radius: 3px; padding: 3px; height: 100%;">
-                        <span class="close" style="position: absolute; top: 15px; right: 15px;" onclick="deseja_apagar('historico', '${chave_pedido}', '${chave2}')">&times;</span>
+                        <span class="close" style="position: absolute; top: 15px; right: 15px;" onclick="deseja_apagar('${chave_pedido}', '${chave2}')">&times;</span>
                         <label><strong>Status: </strong>${sst.status}</label>
                         <label><strong>Executor: </strong>${sst.executor}</label>
                         <label><strong>Data: </strong>${sst.data}</label>
@@ -1559,19 +1560,19 @@ async function abrir_esquema(id) {
 
                             <textarea placeholder="Comente algo aqui..."></textarea>
 
-                            <label class="contorno_botoes" style="background-color: green;" onclick="salvar_comentario_trello('${chave2}')">Salvar</label>
+                            <label class="contorno_botoes" style="background-color: green;" onclick="salvar_comentario_trello('${chave_pedido}', '${chave2}')">Salvar</label>
                             <label class="contorno_botoes" style="background-color: #B12425;" onclick="toggle_comentario('comentario_${chave2}')">&times;</label>
 
                         </div>
                         <div id="caixa_comentarios_${chave2}" style="display: flex; flex-direction: column;">
-                            ${carregar_comentarios(chave2)}
+                            ${await carregar_comentarios(chave_pedido, chave2)}
                         </div>
-                        ${anxsss}            
+                        ${anxsss}
                     </div>
                 </div>
-            `;
+                `
 
-            });
+            }
 
             var valor_do_pedido = '???'
             if (todos_os_status[chave_pedido].valor) {
@@ -1580,7 +1581,8 @@ async function abrir_esquema(id) {
 
             var pags = ''
             var total_pago = 0
-            Object.keys(pagamentos_painel).forEach(pg => {
+
+            for (pg in pagamentos_painel) {
 
                 pags += `
                 <div style="display: flex; flex-direction: column; align-items: start;">
@@ -1591,7 +1593,7 @@ async function abrir_esquema(id) {
                 if (pg == 'PAGO') {
                     total_pago += pagamentos_painel[pg]
                 }
-            })
+            }
 
             var resultado = conversor(todos_os_status[chave_pedido].valor) - total_pago
             var porcentagem = total_pago / conversor(todos_os_status[chave_pedido].valor) * 100
@@ -1643,7 +1645,7 @@ async function abrir_esquema(id) {
                             <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
                             <img src="gifs/atencao.gif" style="width: 2vw;">
                             <label style="text-decoration: underline; cursor: pointer;"
-                                onclick="deseja_apagar('pedido', '${chave_pedido}')">
+                                onclick="deseja_apagar('${chave_pedido}')">
                                 Excluir este número de Pedido
                             </label>
                             </div>
@@ -1706,7 +1708,7 @@ async function abrir_esquema(id) {
             acumulado += linhas;
             contador++;
 
-        });
+        };
 
         var estruturaHtml = `
         <div id="estrutura" class="status" style="display: flex; flex-direction: column; gap: 10px; width: 100%; height: 100vh; overflow: auto;">
@@ -1725,7 +1727,7 @@ async function abrir_esquema(id) {
 
 async function iniciar_cotacao(chave, id_orcam) {
 
-    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento = dados_orcamentos[id_orcam]
     let itens_do_orcamento = dados_orcamentos[id_orcam].dados_composicoes
@@ -1833,23 +1835,24 @@ async function iniciar_cotacao(chave, id_orcam) {
         cotacao: nova_cotacao
     };
 
-    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
-    enviar_status_orcamento(orcamento)
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/historico/${id_compartilhado}`, codificarUTF8(orcamento.status[chave].historico[id_compartilhado]))
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
     let dados = {
         tabela: 'cotacoes',
         cotacao: nova_cotacao
     }
 
-    enviar_dados_generico(dados)
+    //enviar_dados_generico(dados) // 29 Mantém por enquanto...
 
     abrir_esquema(id_orcam)
 
 }
 
-function alterar_status_principal(select, chave) {
+async function alterar_status_principal(select, chave) {
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     var orcamento = dados_orcamentos[id_orcam]
 
@@ -1862,26 +1865,20 @@ function alterar_status_principal(select, chave) {
     orcamento.status[chave].alterado_por = acesso.usuario
     orcamento.status[chave].alterado_quando = data
 
-    var dados = {
-        tabela: 'status_principal',
-        status: select.value,
-        id: id_orcam,
-        chave: chave,
-        alterado_por: acesso.usuario,
-        alterado_quando: data
-    }
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/status`, select.value)
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/alterado_por`, acesso.usuario)
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/alterado_quando`, data)
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
-    enviar_dados_generico(dados)
-
-    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     abrir_esquema(id_orcam)
 
 }
 
-function envio_de_material(chave1, id_orcam, chave2) {
+async function envio_de_material(chave1, id_orcam, chave2) {
 
-    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam]
     let envio = {}
     let funcao = `registrar_envio_material('${chave1}', '${id_orcam}')`
@@ -1967,7 +1964,7 @@ function envio_de_material(chave1, id_orcam, chave2) {
 
 }
 
-function registrar_envio_material(chave1, id_orcam, chave2) {
+async function registrar_envio_material(chave1, id_orcam, chave2) {
 
     var campos = ['rastreio', 'transportadora', 'custo_frete', 'nf', 'comentario_envio', 'volumes', 'data_saida', 'previsao', 'entrega']
     var status = {
@@ -1990,7 +1987,7 @@ function registrar_envio_material(chave1, id_orcam, chave2) {
 
     })
 
-    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let historico = dados_orcamentos[id_orcam].status[chave1].historico
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let st = status.envio.entrega !== '' ? 'MATERIAL ENTREGUE' : 'MATERIAL ENVIADO'
@@ -2007,12 +2004,13 @@ function registrar_envio_material(chave1, id_orcam, chave2) {
     }
 
     historico[id] = status
-    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
-
-    enviar_status_orcamento(dados_orcamentos[id_orcam])
-
     remover_popup()
     abrir_esquema(id_orcam)
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave1}/historico/${id}`, codificarUTF8(status))
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave1}/status`, st)
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
 }
 
@@ -2110,60 +2108,52 @@ function calcular_quantidades_v2(historico, itens_no_orcamento) {
 
 }
 
-function confirmar_exclusao_comentario(id_comentario, chave2) {
+function confirmar_exclusao_comentario(id_comentario, chave1, chave2) {
 
     openPopup_v2(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
             <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
             <label>Excluir o comentário?</label>
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-            <button onclick="excluir_comentario('${id_comentario}', '${chave2}')" style="background-color: green">Confirmar</button>
+            <button onclick="excluir_comentario('${id_comentario}', ${chave1}, '${chave2}')" style="background-color: green">Confirmar</button>
             <button onclick="remover_popup()">Cancelar</button>
             </div>
         </div>
         `)
 }
 
-function excluir_comentario(id_comentario, chave2) {
-    var dados_comentarios = JSON.parse(localStorage.getItem('dados_comentarios')) || {}
+async function excluir_comentario(id_comentario, chave1, chave2) {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    if (dados_comentarios[id_comentario]) {
-        var comentario = dados_comentarios[id_comentario]
+    let comentarios = dados_orcamentos[id_orcam].status[chave1].historico[chave2].comentarios || {}
 
-        var dados = {
-            tabela: 'data_recebimento',
-            operacao: 'excluir',
-            comentario
-        }
+    delete comentarios[id_comentario]
 
-        enviar_dados_generico(dados)
-
-        comentario.operacao = 'excluir'
-
-        localStorage.setItem('dados_comentarios', JSON.stringify(dados_comentarios))
-
-        carregar_comentarios(chave2, `caixa_comentarios_${chave2}`)
-        remover_popup()
-    }
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await deletar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/comentarios/${id_comentario}`)
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await carregar_comentarios(chave1, chave2)
 
 }
 
-function carregar_comentarios(chave2, div_caixa) {
+async function carregar_comentarios(chave1, chave2) {
 
-    var dados_comentarios = JSON.parse(localStorage.getItem('dados_comentarios')) || {}
-    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    var comentss = ''
-    Object.keys(dados_comentarios).forEach(it => {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let comentss = ''
+    if (dados_orcamentos[id_orcam].status[chave1] && dados_orcamentos[id_orcam].status[chave1].historico[chave2]) {
 
-        var item = dados_comentarios[it]
+        let comentarios = dados_orcamentos[id_orcam].status[chave1].historico[chave2].comentarios || {}
 
-        var excluir = ''
+        for (it in comentarios) {
 
-        if (acesso.usuario == item.usuario || acesso.permissao == 'adm') {
-            excluir = ` •<label onclick="confirmar_exclusao_comentario('${it}', '${chave2}')" style="text-decoration: underline; cursor: pointer;"> Excluir</label>`
-        }
+            let item = comentarios[it]
+            let excluir = ''
 
-        if (item.chave2 == chave2 && item.operacao !== 'excluir') {
+            if (acesso.usuario == item.usuario || acesso.permissao == 'adm') {
+                excluir = ` •<label onclick="confirmar_exclusao_comentario('${it}', ${chave1}, '${chave2}')" style="text-decoration: underline; cursor: pointer;"> Excluir</label>`
+            }
+
             comentss += `
             <div class="anexos" style="width: 95%;">
                 <label>${item.comentario.replace(/\n/g, '<br>')}
@@ -2171,22 +2161,25 @@ function carregar_comentarios(chave2, div_caixa) {
             </div>
         `
         }
-    })
 
-    if (div_caixa == undefined) {
-        return comentss
+    }
+
+    let div_caixa = document.getElementById(`caixa_comentarios_${chave2}`)
+    if (div_caixa) {
+        div_caixa.innerHTML = comentss
     } else {
-        document.getElementById(div_caixa).innerHTML = comentss
+        return comentss
     }
 }
 
-function salvar_comentario_trello(chave2) {
-
-    var id = `comentario_${chave2}`
-    var textarea = document.getElementById(id).querySelector('textarea')
-
-    var dados_comentarios = JSON.parse(localStorage.getItem('dados_comentarios')) || {}
-    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+async function salvar_comentario_trello(chave1, chave2) {
+    
+    toggle_comentario(`comentario_${chave2}`)
+    let id_div = `comentario_${chave2}`
+    let textarea = document.getElementById(id_div).querySelector('textarea')
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let orcamento = dados_orcamentos[id_orcam]
 
     var id = unicoID()
 
@@ -2197,24 +2190,18 @@ function salvar_comentario_trello(chave2) {
         data: data_atual('completa'),
         usuario: acesso.usuario
     }
+    let cartao = orcamento.status[chave1].historico[chave2]
+    if (!cartao.comentarios) {
+        cartao.comentarios = {}
+    }
 
-    dados_comentarios[id] = comentario
+    cartao.comentarios[id] = comentario
 
     textarea.value = ''
 
-    var dados = {
-        tabela: 'comentarios',
-        operacao: 'incluir',
-        comentario
-    }
-
-    enviar_dados_generico(dados)
-
-    localStorage.setItem('dados_comentarios', JSON.stringify(dados_comentarios))
-
-    carregar_comentarios(chave2, `caixa_comentarios_${chave2}`)
-
-    toggle_comentario(`comentario_${chave2}`)
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/comentarios/${id}`, codificarUTF8(comentario))
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await carregar_comentarios(chave1, chave2)
 
 }
 
@@ -2304,8 +2291,8 @@ function nova_etiqueta_api(id, nome, cor) {
 
 }
 
-function associar_etiqueta(id, id_etiqueta) {
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+async function associar_etiqueta(id, id_etiqueta) {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
     if (!dados_orcamentos[id].etiqueta) {
         dados_orcamentos[id].etiqueta = {}
@@ -2315,7 +2302,7 @@ function associar_etiqueta(id, id_etiqueta) {
 
     atualizar_etiqueta(id, id_etiqueta, dt)
 
-    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     fechar_estrutura()
     abrir_esquema(id)
@@ -2339,12 +2326,11 @@ function remover_etiqueta(id, id_etiqueta) {
 
 }
 
-
-function remover_mesmo_a_etiqueta(id, id_etiqueta) {
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+async function remover_mesmo_a_etiqueta(id, id_etiqueta) {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     delete dados_orcamentos[id].etiqueta[id_etiqueta]
 
-    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     atualizar_etiqueta(id, id_etiqueta, undefined, 'excluir')
 
@@ -2357,30 +2343,6 @@ function remover_mesmo_a_etiqueta(id, id_etiqueta) {
     if (quadro) {
         inicializar()
     }
-}
-
-
-async function atualizar_esquema() {
-    openPopup_v2(`
-    <div style="display: flex; width: 100%; align-items: center; justify-content: center; gap: 10px; color: #222;">
-        <img src="gifs/loading.gif" style="width: 5vw">
-        <label style="color: white; font-size: 1.5em;">Aguarde...</label>
-    </div>
-    `)
-    recuperar()
-    var estrutura = document.getElementById('estrutura')
-    if (estrutura) {
-        estrutura.remove()
-    }
-
-    await recuperar_orcamentos()
-    var orcamentos = document.getElementById('orcamentos')
-    if (orcamentos) {
-        preencher_orcamentos_v2()
-    }
-
-    remover_popup()
-    abrir_esquema(id_orcam)
 }
 
 function pesquisar_pagamentos(chave) {
@@ -2423,14 +2385,13 @@ function chamar_excluir_anexo(chave_pedido, chave2, key_anx) {
 }
 
 
-function excluir_anexo(chave, chave2, chave_anexo) {
+async function excluir_anexo(chave, chave2, chave_anexo) {
 
-
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'))
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
     delete dados_orcamentos[id_orcam].status[chave].historico[chave2].anexos[chave_anexo]
 
-    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     excluir_status_na_nuvem(chave, chave2, chave_anexo)
 
@@ -2450,18 +2411,22 @@ function fechar_estrutura() {
 
 async function chamar_duplicar(id) {
     fechar_espelho_ocorrencias()
-    await recuperar_orcamentos()
     duplicar(id)
 }
 
 async function chamar_editar(id) {
     fechar_espelho_ocorrencias()
-    await recuperar_orcamentos()
     editar(id)
 }
 
 async function chamar_excluir(id) {
-    openPopup_v2('Deseja realmente excluir o orçamento?', true, `apagar('${id}')`)
+    openPopup_v2(`
+        <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <label>Deseja realmente excluir o orçamento?</label>
+        </div>
+        <button onclick="apagar('${id}')">Confirmar</button>
+        `)
 }
 
 async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
@@ -2488,7 +2453,7 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
 
     overlay.style.display = 'block'
 
-    dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+    dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     orcamento = dados_orcamentos[id_orcam];
 
     var requisicao = {}
@@ -2651,137 +2616,13 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
 
 }
 
-function atualizar_status_logistico(st, chave, chave2) {
-
-    dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
-    orcamento = dados_orcamentos[id_orcam];
-
-    var novo_lancamento = orcamento.status[chave].historico[chave2]
-
-    var tbody = tabela_requisicoes.querySelector('tbody');
-
-    if (tbody) { // Caso seja um orçamento em branco, não vai existir esse elemento;
-        var trs = tbody.querySelectorAll('tr');
-
-        var interromper_processo = false;
-
-        novo_lancamento.requisicoes = []
-
-        trs.forEach(tr => {
-
-            if (tr.style.display !== 'none') {
-                var tds = tr.querySelectorAll('td');
-
-                var tds1Value = tds[1].querySelector('input')?.value || '';
-                var tds8Value = tds[8].querySelector('input')?.value || '';
-                var tds13Value = tds[13].querySelector('select')?.value || '--';
-
-                if ((tds8Value !== '' || tds13Value !== '--') && (tds1Value === '' || tds8Value === '' || tds13Value === '--')) {
-                    interromper_processo = true
-                }
-
-                novo_lancamento.requisicoes.push({
-                    codigo: tds[0].textContent,
-                    partnumber: tds[1].querySelector('input').value,
-                    carrefour: tds[2].textContent,
-                    descricao: tds[3].textContent,
-                    modelo: tds[4].textContent,
-                    fabricante: tds[5].textContent,
-                    tipo: tds[6].textContent,
-                    qtde_orcada: tds[7].textContent,
-                    qtde_enviar: tds[8].querySelector('input').value,
-                    valor_unit_sICMS: tds[9].textContent,
-                    valor_total_sICMS: tds[10].textContent,
-                    valor_venda: tds[11].textContent,
-                    valor_total: tds[12].textContent,
-                    requisicao: tds[13].querySelector('select').value
-                });
-
-            }
-        });
-
-        if (interromper_processo) {
-            return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Se o item tiver quantidade, preencha também o PARTNUMBER e o status de Requisição</label>
-            </div>
-        `);
-        }
-    }
-
-    var informacao_no_select = String(pedido_selecionado.value)
-    var tipo = ''
-    if (informacao_no_select.includes('Serviço')) {
-        tipo = 'SERVIÇO'
-    } else if (informacao_no_select.includes('Venda')) {
-        tipo = 'VENDA'
-    }
-
-    if (informacao_no_select == 'Selecione') {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw">
-                <label>Não deixe o campo de pedido em branco, selecione um pedido.</label>
-            </div>
-            `)
-
-    } else {
-        st = `FATURAMENTO PEDIDO DE ${tipo}`
-    }
-
-    orcamento.status[chave].status = st //Atualiza fora;
-    novo_lancamento.status = st //E dentro;
-    novo_lancamento.data = data_status
-    novo_lancamento.executor = acesso.usuario
-    novo_lancamento.comentario = comentario_status.value
-    novo_lancamento.anexos = anexos
-
-    anexos = {} // Voltar a limpar a variável;
-
-    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
-
-    enviar_status_orcamento(orcamento)
-
-    var mods = '';
-    var concordancia_em_numero = '';
-    fluxograma[st].modulos.map(it => mods += `<p><strong>${it}</strong></p>`);
-
-    if (fluxograma[st].modulos.length == 1) {
-        concordancia_em_numero = `
-        <label>O orçamento foi transferido para o módulo abaixo:</label>
-        `;
-    } else {
-        concordancia_em_numero = `
-        <label>O orçamento foi transferido para os módulos abaixo:</label>
-        `;
-    }
-
-    openPopup_v2(`
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            ${concordancia_em_numero}
-            ${mods}
-            <label>Com status → <strong>${st}</strong></label>
-        </div>
-    `);
-
-    preencher_orcamentos_v2();
-
-    var espelho_ocorrencias = document.getElementById('espelho_ocorrencias')
-    if (espelho_ocorrencias) {
-        fechar_espelho_ocorrencias()
-    }
-
-    abrir_esquema(id_orcam)
-
-}
-
 function close_chave() {
     exibir_todos_os_status(id_orcam)
     document.getElementById('alerta').remove()
 }
 
-function salvar_anexo(chave1, chave2) {
+async function salvar_anexo(chave1, chave2) {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var elemento = chave1 !== undefined
         ? document.getElementById(`adicionar_anexo_${chave1}_${chave2}`)
         : document.getElementById(`adicionar_anexo`);
@@ -2842,8 +2683,6 @@ function salvar_anexo(chave1, chave2) {
 
     Promise.all(promises)
         .then(results => {
-            let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
-
             results.forEach(({ file, result }) => {
                 if (chave1 === undefined && chave2 === undefined) {
                     let id = gerar_id_5_digitos();
@@ -2872,25 +2711,27 @@ function salvar_anexo(chave1, chave2) {
                         dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos = {};
                     }
 
-                    dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos[gerar_id_5_digitos()] = {
+                    let id_anx = gerar_id_5_digitos()
+                    let anx = {
                         nome: file.name,
                         formato: file.type,
                         link: result.fileId
-                    };
+                    }
+
+                    dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos[id_anx] = anx
+
+                    inserirDados(dados_orcamentos, 'dados_orcamentos');
+                    enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/anexos/${id_anx}`, codificarUTF8(anx))
+
                 }
             });
 
-            if (chave1 !== undefined && chave2 !== undefined) {
-                localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
-                var estrutura = document.getElementById('estrutura');
-                if (estrutura) {
-                    estrutura.remove();
-                }
-                abrir_esquema(id_orcam);
-            }
-
-            enviar_status_orcamento(dados_orcamentos[id_orcam]);
             remover_popup();
+            var estrutura = document.getElementById('estrutura');
+            if (estrutura) {
+                estrutura.remove();
+            }
+            abrir_esquema(id_orcam);
         })
         .catch(error => {
             openPopup_v2(`Erro ao fazer upload: ${error.message}`);
@@ -2931,104 +2772,47 @@ async function excluir_status_na_nuvem(chave1, chave2, chave_anexo) {
 
 }
 
+function deseja_apagar(chave1, chave2) {
 
-async function enviar_status_orcamento(orcamento) {
-
-    var orcamento = {
-        'id': orcamento.id,
-        'tabela': 'orcamento_status',
-        'status': orcamento.status
-    }
-
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(orcamento)
-    })
-
-}
-
-function deseja_apagar(campo, chave1, chave2) {
+    let funcao = chave2 == undefined ? `apagar_status_historico('${chave1}')` : `apagar_status_historico('${chave1}', '${chave2}')`
 
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
             <label>Deseja apagar essa informação?</label>
             <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
-                <button style="background-color: green" onclick="apagar_status_historico('${campo}', '${chave1}', '${chave2}')">Confirmar</button>
+                <button style="background-color: green" onclick="${funcao}">Confirmar</button>
                 <button onclick="remover_popup()">Cancelar</button>
             </div>
         </div>
         `)
 }
 
-function apagar_status_historico(campo, chave1, chave2) {
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'))
+async function apagar_status_historico(chave1, chave2) {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    var orcamento = {
-        'id': id_orcam,
-        'tabela': 'orcamento_status',
-        'operacao': 'excluir_' + campo,
-        'chave1': chave1
-    }
-
-    if (campo == 'historico') {
-        orcamento.chave2 = chave2
-        delete dados_orcamentos[id_orcam].status[chave1].historico[chave2]
-    } else {
+    if (chave2 == undefined) {
         delete dados_orcamentos[id_orcam].status[chave1]
+        await deletar(`dados_orcamentos/${id_orcam}/status/${chave1}`)
+
+    } else {
+        delete dados_orcamentos[id_orcam].status[chave1].historico[chave2]
+        await deletar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}`)
     }
 
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(orcamento)
-    })
-
-    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos))
-
-    preencher_orcamentos_v2()
-
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
     remover_popup()
-
     fechar_estrutura()
-
     abrir_esquema(id_orcam)
 
 }
 
-
 async function atualizar_partnumber(dicionario) {
 
     for (codigo in dicionario) {
-
-        var dados_composicoes = await recuperarDados('dados_composicoes') || {}
-
-        if (dados_composicoes && dados_composicoes[codigo]) {
-            dados_composicoes[codigo].omie = dicionario[codigo]
-
-            localStorage.setItem('dados_composicoes', JSON.stringify(dados_composicoes))
-
-            var composicao = {
-                'tabela': 'composicoes',
-                'codigo': codigo,
-                'composicao': dados_composicoes[codigo]
-            }
-
-            fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec', {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(composicao)
-            });
-        }
+        let partnumber = dicionario[codigo]
+        await enviar('PUT', `dados_composicoes/${codigo}/partnumber`, codificarUTF8(partnumber))
+        await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
     }
 }
 
@@ -3041,11 +2825,13 @@ function getComputedStylesAsText(element) {
     return styleText;
 }
 
-const { ipcRenderer } = require('electron');
+try {
+    const { ipcRenderer } = require('electron');
 
-ipcRenderer.on('open-save-dialog', (event, { htmlContent, nomeArquivo }) => {
-    ipcRenderer.send('save-dialog', { htmlContent, nomeArquivo });
-});
+    ipcRenderer.on('open-save-dialog', (event, { htmlContent, nomeArquivo }) => {
+        ipcRenderer.send('save-dialog', { htmlContent, nomeArquivo });
+    });
+} catch { }
 
 async function gerarpdf(cliente, pedido) {
 

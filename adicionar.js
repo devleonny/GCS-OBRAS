@@ -23,7 +23,6 @@ let metaforas = [
     "Uma tela de múltiplas câmeras em branco",
     "Um painel de controle sem notificações",
     "Uma infraestrutura sem dispositivos ativos"
-
 ]
 
 atualizar_precos()
@@ -50,10 +49,10 @@ async function atualizar_precos() {
         menu_superior.style.display = 'flex'
 
         await carregar_tabelas()
-        await recuperar()
+        tabela_produtos_v2()
+        recuperar()
         await atualizar_lista_de_lpus()
 
-        tabela_produtos_v2()
         carregar_datalist_clientes()
 
         atualizando.style.display = 'none'
@@ -170,6 +169,10 @@ function alterar_tabela_lpu(elemento) {
 async function carregar_tabelas() {
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    if (Object.keys(dados_composicoes).length == 0) {
+        await recuperar_dados_composicoes()
+    }
 
     let tabelas = ['serviço', 'venda'];
 
@@ -329,25 +332,38 @@ async function enviar_dados() {
         }
     }
 
-    orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2'));
+    orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')); // Recuperado do localStorage novamente, cuidado com alterações antes disto.
     orcamento_v2.tabela = 'orcamentos';
-    if (!orcamento_v2.id) {
-        orcamento_v2.id = 'ORCA_' + unicoID();
+
+    if (orcamento_v2.dados_orcam.contrato == 'sequencial') {
+        let sequencial = `ORC_${await proximo_sequencial()}`
+        orcamento_v2.dados_orcam.contrato = sequencial
     }
 
-    enviar_dados_generico(orcamento_v2);
+    let operacao = 'PATCH'
+    if (!orcamento_v2.id) {
+        orcamento_v2.id = 'ORCA_' + unicoID();
+        operacao = 'PUT'
+    }
+
+    orcamento_v2 = codificarUTF8(orcamento_v2) // Codificar para UTF-8;
 
     openPopup_v2(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
             <img src="imagens/concluido.png" style="width: 3vw; height: 3vw;">
-            <label>Orcamento salvo... redirecionando...</label>
+            <label>Aguarde... redirecionando...</label>
         </div>
-    `);
+    `)
 
-    setTimeout(function () {
-        localStorage.removeItem('orcamento_v2');
-        location.href = 'orcamentos.html';
-    }, 2000);
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    dados_orcamentos[orcamento_v2.id] = orcamento_v2
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await enviar(operacao, `dados_orcamentos/${orcamento_v2.id}`, orcamento_v2);
+    await enviar('PUT', `dados_orcamentos/${orcamento_v2.id}/timestamp`, Date.now());
+
+    localStorage.removeItem('orcamento_v2');
+    location.href = 'orcamentos.html';
+
 }
 
 function pesquisar_v2(elemento, col) {
@@ -956,13 +972,6 @@ function mostrar_ocultar_itens(elemento_img) {
 
 async function incluir_item(codigo, nova_quantidade, especial) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-
-    if (Object.keys(dados_composicoes).length == 0) {
-        console.log(Object.keys(dados_composicoes).length)
-        await recuperar_dados_composicoes()
-        f5()
-    }
-
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
     let codigo_original = codigo
     if (String(codigo).includes('[AVULSO]')) {

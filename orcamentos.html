@@ -37,8 +37,17 @@
             color: #222;
         }
 
-        h1 {
-            margin-right: 50px;
+        .top {
+            position: relative;
+            display: flex;
+            width: 100%;
+            margin: 5px;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #222222bf;
+            padding: 10px;
+            border-radius: 5px;
+            gap: 20px;
         }
 
         .formato_status {
@@ -95,47 +104,25 @@
 
     <div id="content">
 
-        <div
-            style="display: flex; height: 5vh; margin-bottom: 5vh; align-items: center; gap: 25px; justify-content: space-between; width: 100%;">
+        <div class="top">
 
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="imagens/BG.png" style="height: 10vw; margin-right: 5vw; cursor: pointer;">
-                <label class="novo_titulo" id="nome_modulo"></label>
+            <img src="imagens/BG.png" style="width: 150px;">
+
+            <label class="novo_titulo" id="nome_modulo"></label>
+
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <div style="display: flex; flex-direction: column; gap: 10px; height: 100%;">
+                    <!--PRIMEIRA COLUNA DE ÍCONES-->
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
+                        onclick="window.location.href='inicial.html'">
+                        <label style="color: white;">Voltar</label>
+                        <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
+                    </div>
+                </div>
             </div>
-
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;"
-                onclick="window.location.href='inicial.html'">
-                <img src="imagens/voltar.png" style=" cursor: pointer;" onclick="window.location.href='inicial.html'">
-                <label style="color: white;">Voltar</label>
-            </div>
-
-            <div id="botao_atualizar"
-                style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <img src="imagens/atualizar_2.png" style="width: max-content; cursor: pointer;"
-                    onclick="atualizar_especial()">
-                <label style="color: white;">Atualizar</label>
-            </div>
-
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <img src="imagens/reembolso.png" style="width: max-content; cursor: pointer;"
-                    onclick="window.location.href='pagamentos.html'">
-                <label style="color: white;">Pagamentos</label>
-            </div>
-
-            <!--CheckBox-->
-            <div class="wrap-check-53">
-                <input class="switch" type="checkbox" id="switch" name="switch" value="private">
-                <label for="switch">
-                    <span class="switch-x-text">Apenas orçamentos próprios? </span>
-                    <span class="switch-x-toggletext">
-                        <span class="switch-x-unchecked"><span class="switch-x-hiddenlabel">Unchecked:
-                            </span>Não</span>
-                        <span class="switch-x-checked"><span class="switch-x-hiddenlabel">Checked:
-                            </span>Sim</span>
-                    </span>
-                </label>
-            </div>
-
         </div>
 
         <div style="display: flex; gap: 10px;">
@@ -143,11 +130,11 @@
             <div style="display: grid; width: max-content; height: max-content; gap: 20px;">
                 <div class="block" onclick="window.location.href = 'adicionar.html'">
                     <img src="imagens/projeto.png" style="width: 50px;">
-                    <p>CRIAR ORÇAMENTO</p>
+                    <p style="font-size: 0.8vw;">CRIAR ORÇAMENTO</p>
                 </div>
                 <div class="block_reverso" onclick="preencher_orcamentos_v2()">
                     <img src="imagens/duplicar.png" style="width: 50px;">
-                    <p>TODOS OS ORÇAMENTOS</p>
+                    <p style="font-size: 0.8vw;">TODOS OS ORÇAMENTOS</p>
                 </div>
                 <div id="painel_direito" class="containerX"
                     style="width: max-content; height: max-content; grid-template-columns: repeat(1, 1fr);">
@@ -157,12 +144,92 @@
 
     </div>
 
-
 </body>
 
+</script>
 <script src="open_menus.js"></script>
-<script src="status.js"></script>
 <script src="orcamentos.js"></script>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+    import { getDatabase, ref, onChildAdded, onChildChanged, onChildRemoved, onValue, query, orderByChild, startAt, get } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    escutarAlteracoes('dados_orcamentos')
+    let funcao_recarregar = preencher_orcamentos_v2
+
+    async function escutarAlteracoes(nome_base) {
+        const dadosRef = ref(db, nome_base);
+        let baseLocal = await recuperarDados(nome_base) || {}
+
+        consultarDados(nome_base)
+
+        onChildAdded(dadosRef, async (snapshot) => {
+            atualizar_timestamp(nome_base)
+            const chave = snapshot.key;
+            const dado = descodificarUTF8(snapshot.val());
+            if (!baseLocal[chave]) {
+                baseLocal[chave] = dado;
+                await inserirDados(baseLocal, nome_base);
+                console.log('Adicionado:', chave, dado);
+                funcao_recarregar()
+            }
+        });
+
+        onChildChanged(dadosRef, async (snapshot) => {
+            atualizar_timestamp(nome_base)
+            const chave = snapshot.key;
+            const dado = descodificarUTF8(snapshot.val());
+            baseLocal[chave] = dado;
+            await inserirDados(baseLocal, nome_base);
+            console.log('Alterado:', chave, dado);
+            funcao_recarregar()
+        });
+
+        onChildRemoved(dadosRef, async (snapshot) => {
+            atualizar_timestamp(nome_base)
+            const chave = snapshot.key;
+            delete baseLocal[chave];
+            await inserirDados(baseLocal, nome_base);
+            console.log('Removido:', chave);
+            funcao_recarregar()
+        });
+
+    }
+
+    async function consultarDados(nome_base) {
+        let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
+        if (!timestamps[nome_base]) {
+            timestamps[nome_base] = Date.now()
+        }
+
+        const dadosRef = ref(db, nome_base);
+        const consulta = query(dadosRef, orderByChild('timestamp'), startAt(timestamps[nome_base]));
+        let baseLocal = await recuperarDados(nome_base) || {}
+        
+        const snapshot = await get(consulta);
+        snapshot.forEach( async (childSnapshot) => {
+            const chave = childSnapshot.key;
+            const dado = descodificarUTF8(snapshot.val());
+            baseLocal[chave] = dado[chave];
+            await inserirDados(baseLocal, nome_base);
+            console.log('Dado encontrado:', chave, dado[chave]);
+            funcao_recarregar()
+        });
+
+        atualizar_timestamp(nome_base)
+
+    };
+
+    function atualizar_timestamp(nome_base) {
+        let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
+        timestamps[nome_base] = Date.now()
+        localStorage.setItem('timestamps', JSON.stringify(timestamps))
+    }
+
+</script>
+<script src="status.js"></script>
 <script src="gerar_excel.js"></script>
 
 </html>

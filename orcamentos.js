@@ -8,49 +8,9 @@ var anx_parceiros = {};
 var intervaloCompleto;
 var intervaloCurto;
 
+
 if (document.title == 'ORÇAMENTOS') {
-
-    document.addEventListener('DOMContentLoaded', function () {
-        const switchInput = document.getElementById('switch');
-        const switchLabel = document.querySelector('.switch-x-checked');
-
-        const savedStatus = localStorage.getItem('mostrar_orcamentos_proprios');
-
-        if (savedStatus !== null) {
-            switchInput.checked = (savedStatus === 'Sim');
-            switchLabel.innerText = savedStatus;
-        } else {
-            localStorage.setItem('mostrar_orcamentos_proprios', switchInput.checked ? 'Sim' : 'Não');
-        }
-
-        switchInput.addEventListener('change', function () {
-            const isChecked = switchInput.checked;
-
-            if (isChecked) {
-                switchLabel.innerText = 'Sim';
-            } else {
-                switchLabel.innerText = 'Não';
-            }
-            localStorage.setItem('mostrar_orcamentos_proprios', isChecked ? 'Sim' : 'Não');
-
-            preencher_orcamentos_v2()
-        });
-    });
-
-
-    recuperar_orcamentos()
     preencher_orcamentos_v2()
-    obter_lista_pagamentos()
-    recuperar()
-
-}
-
-async function atualizar_especial() {
-
-    recuperar()
-    await recuperar_orcamentos()
-    await obter_lista_pagamentos()
-
 }
 
 function pesquisar_v2(coluna, texto) {
@@ -81,7 +41,7 @@ function pesquisar_v2(coluna, texto) {
     });
 }
 
-function preencher_orcamentos_v2(st) {
+async function preencher_orcamentos_v2(st) {
 
     if (st !== undefined) {
         botao_status_ativo = st
@@ -92,12 +52,26 @@ function preencher_orcamentos_v2(st) {
         return
     }
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
-    var mostrar_orcamentos_proprios = localStorage.getItem('mostrar_orcamentos_proprios') || 'Não'
-    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+
+    if (Object.keys(dados_orcamentos).length == 0) {
+        return await recuperar_orcamentos()
+    }
+
     document.getElementById('nome_modulo').textContent = modulo
 
-    // Organizar por data de edição;
+    //Eleminar o ID que o DB cria... 
+    delete dados_orcamentos['id']
+    //Fim
+
+    dados_orcamentos = descodificarUTF8(dados_orcamentos)
+
+    for (orc in dados_orcamentos) { // Remover os excluídos para não distorcer o relatório;
+        if (dados_orcamentos[orc].operacao == 'excluido') {
+            delete dados_orcamentos[orc]
+        }
+    }
+
     var desordenado = Object.entries(dados_orcamentos);
     desordenado.sort((a, b) => new Date(b[1].dados_orcam.data) - new Date(a[1].dados_orcam.data));
     dados_orcamentos = Object.fromEntries(desordenado);
@@ -117,7 +91,7 @@ function preencher_orcamentos_v2(st) {
             })
 
             if (orc.operacao && orc.operacao == 'excluido') {
-                return
+                continue
             }
 
             var exibir_linha = false
@@ -189,12 +163,6 @@ function preencher_orcamentos_v2(st) {
 
             }
 
-            if (mostrar_orcamentos_proprios == 'Sim') {
-                if (dados_orcam.analista !== acesso.nome_completo) {
-                    exibir_linha = false
-                }
-            }
-
             if (exibir_linha) {
                 linhas += `
                 <tr class="linha_destacada">
@@ -225,7 +193,7 @@ function preencher_orcamentos_v2(st) {
                         <div style="width: 50px; height: 50px; display: flex; justify-content: center; align-items: center;">
                             <label class="numero">${quantidade}</label>
                         </div>
-                        <label style="font-size: 0.8vw;">${atalho}</label>
+                        <label style="font-size: 0.8vw; cursor: pointer;">${atalho}</label>
                     </div>
                 `
             }
@@ -245,7 +213,7 @@ function preencher_orcamentos_v2(st) {
                 <th style="background-color: white; border-radius: 0px;">
                     <div style="position: relative;">
                         <img src="imagens/pesquisar2.png" style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
-                        <input placeholder="${cab}" style="margin-left: 25px; text-align: left;" oninput="pesquisar_v2(${i}, this.value)">
+                        <input placeholder="..." style="margin-left: 25px; text-align: left;" oninput="pesquisar_v2(${i}, this.value)">
                     </div>
                 </th>            
             `} else {
@@ -254,13 +222,14 @@ function preencher_orcamentos_v2(st) {
         })
 
         let linhas_orcamento = document.getElementById('linhas_orcamento')
+
         if (linhas_orcamento) {
             linhas_orcamento.innerHTML = linhas
 
         } else {
 
             let tabela = `
-            <table id="orcamentos_" class="tabela">
+            <table id="orcamentos_" class="tabela" style="font-size: 0.8vw;">
                 <thead>
                     ${ths}
                 </thead>
@@ -280,69 +249,23 @@ function preencher_orcamentos_v2(st) {
 
 async function recuperar_orcamentos() {
 
-    let botao_atualizar = document.getElementById('botao_atualizar')
+    let dados_orcamentos = await receber('dados_orcamentos') || {}
+    await inserirDados(descodificarUTF8(dados_orcamentos), 'dados_orcamentos')
 
-    if (botao_atualizar) {
-        botao_atualizar.innerHTML = `
-        <img src="gifs/loading.gif" style="width: 100px;">
-        `
+    if (document.title == 'ORÇAMENTOS') {
+
+        if (botao_status_ativo !== '') {
+            preencher_orcamentos_v2(botao_status_ativo)
+        } else {
+            preencher_orcamentos_v2()
+        }
     }
-
-    return new Promise((resolve, reject) => {
-
-        var url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=orcamentos';
-
-        fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erro ao carregar os dados');
-                }
-                return response.json();
-            })
-            .then(data => {
-
-                localStorage.setItem('dados_orcamentos', JSON.stringify(data));
-
-                if (document.title == 'ORÇAMENTOS') {
-
-                    if (botao_status_ativo !== '') {
-                        preencher_orcamentos_v2(botao_status_ativo)
-                    } else {
-                        preencher_orcamentos_v2()
-                    }
-
-                    var tsh = document.getElementById('tsh')
-                    var inputs = tsh.querySelectorAll('input')
-
-                    for (col in filtrosAtivos) {
-
-                        pesquisar_v2(col, filtrosAtivos[col])
-                        inputs[col].value = filtrosAtivos[col]
-                    }
-
-                }
-
-                if (botao_atualizar) {
-                    botao_atualizar.innerHTML = `
-                        <img src="imagens/atualizar_2.png" style="width: max-content; cursor: pointer;" onclick="atualizar_especial()">
-                        <label style="color: white;">Atualizar</label>
-                    `
-                }
-
-                resolve()
-
-            })
-            .catch(error => {
-                console.error('Ocorreu um erro:', error);
-                reject(error);
-            });
-    });
 }
 
 async function rir(id_orcam) {
 
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'));
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
     var orcamento = dados_orcamentos[id_orcam];
 
@@ -413,7 +336,7 @@ async function rir(id_orcam) {
 }
 
 async function editar(orcam_) {
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
     var orcamento_v2 = dados_orcamentos[orcam_]
 
@@ -426,7 +349,7 @@ async function editar(orcam_) {
 }
 
 async function duplicar(orcam_) {
-    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'))
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let acesso = JSON.parse(localStorage.getItem('acesso'))
 
     var orcamento_v2 = dados_orcamentos[orcam_]
@@ -1523,6 +1446,39 @@ function excluir_anexo_parceiro_2(campo, anx) {
     if (anx_parceiros[anx] && local) {
         delete anx_parceiros[anx]
         local.remove()
+    }
+
+}
+
+async function recuperar_antigo() {
+    return new Promise((resolve, reject) => {
+
+        var url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=orcamentos';
+
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar os dados');
+                }
+                return response.json();
+            })
+            .then(data => {
+                localStorage.setItem('dados_orcamentos', JSON.stringify(data));
+                resolve()
+
+            })
+            .catch(error => {
+                console.error('Ocorreu um erro:', error);
+                reject(error);
+            });
+    });
+}
+
+async function transferir() {
+    let dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'))
+
+    for (id in dados_orcamentos) {
+        await enviar('PUT', `dados_orcamentos/${id}`, codificarUTF8(dados_orcamentos[id]))
     }
 
 }

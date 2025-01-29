@@ -118,6 +118,7 @@
     const db = getDatabase(app);
 
     escutarAlteracoes('dados_estoque')
+    let funcao_recarregar = retomar_paginacao()
 
     async function escutarAlteracoes(nome_base) {
         const dadosRef = ref(db, nome_base);
@@ -133,7 +134,7 @@
                 baseLocal[chave] = dado;
                 await inserirDados(baseLocal, nome_base);
                 console.log('Adicionado:', chave, dado);
-                retomar_paginacao()
+                funcao_recarregar()
             }
         });
 
@@ -144,7 +145,7 @@
             baseLocal[chave] = dado;
             await inserirDados(baseLocal, nome_base);
             console.log('Alterado:', chave, dado);
-            retomar_paginacao()
+            funcao_recarregar()
         });
 
         onChildRemoved(dadosRef, async (snapshot) => {
@@ -153,7 +154,7 @@
             delete baseLocal[chave];
             await inserirDados(baseLocal, nome_base);
             console.log('Removido:', chave);
-            retomar_paginacao()
+            funcao_recarregar()
         });
 
     }
@@ -175,7 +176,7 @@
             baseLocal[chave] = dado[chave];
             await inserirDados(baseLocal, nome_base);
             console.log('Dado encontrado:', chave, dado[chave]);
-            retomar_paginacao()
+            funcao_recarregar()
         });
 
         atualizar_timestamp(nome_base)
