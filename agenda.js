@@ -233,6 +233,36 @@ document.addEventListener("DOMContentLoaded", () => {
         daysRow.innerHTML = daysHTML;
     }
 
+    function updateFilteredDropdown(dropdown, options, inputValue, onSelectCallback) {
+        dropdown.innerHTML = ""; // Limpa o dropdown
+    
+        const filteredOptions = options.filter((option) =>
+            option.nome.toLowerCase().includes(inputValue.toLowerCase())
+        );
+    
+        if (filteredOptions.length > 0) {
+            filteredOptions.forEach((option) => {
+                const optionElement = document.createElement("div");
+                optionElement.className = "dropdown-option";
+                optionElement.textContent = option.nome;
+                optionElement.dataset.codigo = option.codigo || option.omie; // Suporte para técnicos (omie) e departamentos (codigo)
+    
+                // Define o evento de clique para selecionar o item
+                optionElement.addEventListener("click", () => {
+                    onSelectCallback(option);
+                    dropdown.style.display = "none"; // Fecha o dropdown
+                });
+    
+                dropdown.appendChild(optionElement);
+            });
+        } else {
+            const noResultsOption = document.createElement("div");
+            noResultsOption.className = "dropdown-option no-results";
+            noResultsOption.textContent = "Nenhum item encontrado";
+            dropdown.appendChild(noResultsOption);
+        }
+    }
+
     function addTechnicianRow(technician, agenda = []) {
         const totalDays = daysRow.children.length - 2;
         const newRow = document.createElement("tr");
@@ -265,11 +295,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
         tecnicoInput.addEventListener("focus", () => {
             tecnicoDropdown.style.display = "block"; // Exibe o dropdown
-            positionDropdown(tecnicoInput, tecnicoDropdown);
+            positionDropdown(tecnicoInput, tecnicoDropdown); // Posiciona o dropdown abaixo do input
+            updateFilteredDropdown(tecnicoDropdown, technicianOptions, tecnicoInput.value, (selectedTech) => {
+                tecnicoInput.value = selectedTech.nome;
+                tecnicoInput.dataset.omie = selectedTech.omie;
+            });
         });
 
         tecnicoInput.addEventListener("input", () => {
             // Verifica se o técnico selecionado é válido
+            updateFilteredDropdown(
+                tecnicoDropdown,
+                technicianOptions,
+                tecnicoInput.value,
+                (selectedTech) => {
+                    tecnicoInput.value = selectedTech.nome; // Define o nome do técnico
+                    tecnicoInput.dataset.omie = selectedTech.omie; // Salva o código omie
+                }
+            );
+
             const validTechnician = technicianOptions.find(
                 (tech) => tech.nome.trim().toLowerCase() === tecnicoInput.value.trim().toLowerCase()
             );
@@ -390,8 +434,34 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             dayInput.addEventListener("focus", () => {
-                dayDropdown.style.display = "block";
-                positionDropdown(dayInput, dayDropdown);
+                dayDropdown.style.display = "block"; // Exibe o dropdown
+                positionDropdown(dayInput, dayDropdown); // Posiciona o dropdown abaixo do input
+                updateFilteredDropdown(dayDropdown, departments, dayInput.value, (selectedDept) => {
+                    const truncatedName = selectedDept.nome.length > 3 ? selectedDept.nome.slice(0, 3) + "..." : selectedDept.nome;
+                    dayInput.value = truncatedName;
+                    dayInput.title = selectedDept.nome;
+                    dayInput.dataset.codigo = selectedDept.codigo;
+                    dayCell.style.backgroundColor = selectedDept.color;
+                    adjustTextColor(dayCell, selectedDept.color);
+                    saveTechniciansToLocalStorage();
+                });
+            });
+
+            dayInput.addEventListener("input", () => {
+                updateFilteredDropdown(
+                    dayDropdown,
+                    departments,
+                    dayInput.value,
+                    (selectedDept) => {
+                        const truncatedName = selectedDept.nome.length > 3 ? selectedDept.nome.slice(0, 3) + "..." : selectedDept.nome;
+                        dayInput.value = truncatedName; // Define o nome truncado no input
+                        dayInput.title = selectedDept.nome; // Define o nome completo no título
+                        dayInput.dataset.codigo = selectedDept.codigo; // Salva o código do departamento
+                        dayCell.style.backgroundColor = selectedDept.color; // Aplica a cor no fundo do TD
+                        adjustTextColor(dayCell, selectedDept.color); // Ajusta a cor do texto
+                        saveTechniciansToLocalStorage(); // Salva no localStorage
+                    }
+                );
             });
 
             dayInput.addEventListener("blur", () => {
