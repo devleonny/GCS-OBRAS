@@ -769,13 +769,20 @@ async function carregar_status_divs(valor, chave, id) { // "valor" é o último 
 
 async function salvar_pedido(chave) {
 
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    let orcamento = dados_orcamentos[id_orcam];
     let st = '';
     let chave_his = gerar_id_5_digitos();
     let data = document.getElementById('data')
     let comentario_status = document.getElementById('comentario_status')
+    let valor = document.getElementById('valor')
+    let tipo = document.getElementById('tipo')
+    let pedido = document.getElementById('pedido')
+
+    fechar_status() // Só fechar após coletar a informação necessária; 
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[id_orcam];
+
     if (chave == undefined) {
         chave = gerar_id_5_digitos()
     }
@@ -792,10 +799,6 @@ async function salvar_pedido(chave) {
         comentario: comentario_status.value,
         anexos: anexos,
     };
-
-    let valor = document.getElementById('valor')
-    let tipo = document.getElementById('tipo')
-    let pedido = document.getElementById('pedido')
 
     if (valor.value == '' || tipo.value == 'Selecione' || pedido.value == '') {
         return openPopup_v2(`
@@ -828,7 +831,7 @@ async function salvar_pedido(chave) {
     await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
 
-    abrir_esquema(id_orcam)
+    //abrir_esquema(id_orcam)
 
 }
 
@@ -1532,7 +1535,7 @@ async function abrir_esquema(id) {
 
                 blocos += `
                 <div class="bloko" style="border: 1px solid ${fluxograma[sst.status].cor}">
-                    <div style="display: flex; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-radius: 3px; padding: 3px; height: 100%;">
+                    <div style="display: flex; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-radius: 3px; padding: 3px; height: 100vh;">
                         <span class="close" style="position: absolute; top: 15px; right: 15px;" onclick="deseja_apagar('${chave_pedido}', '${chave2}')">&times;</span>
                         <label><strong>Status: </strong>${sst.status}</label>
                         <label><strong>Executor: </strong>${sst.executor}</label>
@@ -2793,13 +2796,14 @@ async function apagar_status_historico(chave1, chave2) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    if (chave2 == undefined) {
+    if (chave2 == undefined || chave2 == 'undefined') {
         delete dados_orcamentos[id_orcam].status[chave1]
         await deletar(`dados_orcamentos/${id_orcam}/status/${chave1}`)
 
     } else {
         delete dados_orcamentos[id_orcam].status[chave1].historico[chave2]
         await deletar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}`)
+        
     }
 
     await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
