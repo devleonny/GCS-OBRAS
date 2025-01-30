@@ -1072,7 +1072,7 @@ async function exibir_todos_os_status(id) {
     `
 
     var analista = dados_orcamentos[id]['dados_orcam'].analista
-    var acumulado_botoes = ''   
+    var acumulado_botoes = ''
 
     acumulado_botoes += `
     <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="abrir_esquema('${id}')">
@@ -1118,7 +1118,7 @@ async function exibir_todos_os_status(id) {
     }
 
     if (modulo == 'PROJETOS' || modulo == 'RELATÓRIOS' || document.title == 'Projetos') {
-        acumulado_botoes +=  botao_novo_pedido(id)
+        acumulado_botoes += botao_novo_pedido(id)
     }
 
     acumulado += `
@@ -2694,25 +2694,30 @@ async function salvar_anexo(chave1, chave2) {
         .then(results => {
             results.forEach(({ file, result }) => {
                 if (chave1 === undefined && chave2 === undefined) {
-                    let id = gerar_id_5_digitos();
+                    let div_anexos = document.getElementById('div_anexos')
 
-                    anexos[id] = {
-                        nome: file.name,
-                        formato: file.type,
-                        link: result.fileId
-                    };
+                    if (div_anexos) {
+                        let id = gerar_id_5_digitos();
 
-                    let resposta = `
-                    <div id="${id}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                        <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                            <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                            <label style="font-size: 0.8em;">${String(file.name).slice(0, 10)} ... ${String(file.name).slice(-7)}</label>
-                        </div>
-                        <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="remover_anexo('${id}')">
-                    </div>
-                    `;
-                    div_anexos.style = 'align-items: normal';
-                    div_anexos.insertAdjacentHTML('beforeend', resposta);
+                        anexos[id] = {
+                            nome: file.name,
+                            formato: file.type,
+                            link: result.fileId
+                        };
+
+                        let resposta = `
+                            <div id="${id}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+                                <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                    <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                                    <label style="font-size: 0.8em;">${String(file.name).slice(0, 10)} ... ${String(file.name).slice(-7)}</label>
+                                </div>
+                                <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="remover_anexo('${id}')">
+                            </div>
+                            `;
+
+                        div_anexos.style = 'align-items: normal';
+                        div_anexos.insertAdjacentHTML('beforeend', resposta);
+                    }
 
                 } else {
 
@@ -2732,15 +2737,16 @@ async function salvar_anexo(chave1, chave2) {
                     inserirDados(dados_orcamentos, 'dados_orcamentos');
                     enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/anexos/${id_anx}`, codificarUTF8(anx))
 
+                    remover_popup();
+                    var estrutura = document.getElementById('estrutura');
+                    if (estrutura) {
+                        estrutura.remove();
+                    }
+                    abrir_esquema(id_orcam);
                 }
+
             });
 
-            remover_popup();
-            var estrutura = document.getElementById('estrutura');
-            if (estrutura) {
-                estrutura.remove();
-            }
-            abrir_esquema(id_orcam);
         })
         .catch(error => {
             openPopup_v2(`Erro ao fazer upload: ${error.message}`);
