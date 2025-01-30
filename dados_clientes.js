@@ -195,7 +195,6 @@ function salvar_preenchido() {
 }
 
 
-
 function tipo_elemento(element) {
     if ('value' in element && (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT')) {
         return 'value';

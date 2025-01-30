@@ -346,9 +346,9 @@ function fecharPopup() {
     popup.classList.remove('aberto');
 }
 
-function ir_pdf(orcam_) {
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+async function ir_pdf(orcam_) {
 
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     localStorage.setItem('pdf', JSON.stringify(dados_orcamentos[orcam_]));
 
     try {
