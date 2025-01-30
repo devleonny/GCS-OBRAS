@@ -1049,7 +1049,7 @@ function botao_novo_pagamento(ch_pedido) {
     </div>   
 `}
 
-async function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem do botão;
+async function exibir_todos_os_status(id) {
     overlay.style.display = 'block'
 
     var detalhes = document.getElementById('detalhes')
@@ -1060,7 +1060,6 @@ async function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem d
     id_orcam = id
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
     var orcamento = dados_orcamentos[id]
 
     var acumulado = ''
@@ -1073,31 +1072,22 @@ async function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem d
     `
 
     var analista = dados_orcamentos[id]['dados_orcam'].analista
-    var acumulado_botoes = ''
-
-    if (modulo !== 'PROJETOS' || document.title == 'Projetos' || document.title == 'PAGAMENTOS') {
-        acumulado_botoes += `
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="abrir_esquema('${id}')">
-            <img src="imagens/esquema.png" style="width: 48px; height: 48px; margin: 3px;">
-            <label style="cursor: pointer;">Histórico</label>
-        </div>           
-        `
-    }
+    var acumulado_botoes = ''   
 
     acumulado_botoes += `
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_duplicar('${id}')">
-            <img src="imagens/duplicar.png">
-            <label style="cursor: pointer;">Duplicar Orçamento</label>
-        </div>      
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_pdf('${id}')">
-            <img src="imagens/pdf.png" style="width: 55px;">
-            <label style="cursor: pointer;">Abrir Orçamento em PDF</label>
-        </div>
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_excel('${id}')">
-            <img src="imagens/excel.png">
-            <label style="cursor: pointer;">Baixar Orçamento em Excel</label>
-        </div>
-        `
+    <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="abrir_esquema('${id}')">
+        <img src="imagens/esquema.png" style="width: 48px; height: 48px; margin: 3px;">
+        <label style="cursor: pointer;">Histórico</label>
+    </div>
+    <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_pdf('${id}')">
+        <img src="imagens/pdf.png" style="width: 55px;">
+        <label style="cursor: pointer;">Abrir Orçamento em PDF</label>
+    </div>
+    <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_excel('${id}')">
+        <img src="imagens/excel.png">
+        <label style="cursor: pointer;">Baixar Orçamento em Excel</label>
+    </div>
+    `
 
     if (orcamento.lpu_ativa == 'LPU CARREFOUR') {
         acumulado_botoes += `
@@ -1106,6 +1096,13 @@ async function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem d
             <label style="cursor: pointer;">Itens Reais em Excel</label>
         </div> 
     `}
+
+    acumulado_botoes += `
+    <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_duplicar('${id}')">
+        <img src="imagens/duplicar.png">
+        <label style="cursor: pointer;">Duplicar Orçamento</label>
+    </div>
+    `
 
     if ((modulo == 'PROJETOS' && document.title !== 'Projetos' && analista == acesso.nome_completo) || (acesso.permissao == 'adm' || acesso.permissao == 'fin')) {
         acumulado_botoes += `
@@ -1120,16 +1117,16 @@ async function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem d
         `
     }
 
+    if (modulo == 'PROJETOS' || modulo == 'RELATÓRIOS' || document.title == 'Projetos') {
+        acumulado_botoes +=  botao_novo_pedido(id)
+    }
+
     acumulado += `
     <hr style="width: 80%">
     <div style="display: flex; flex-direction: column; justify-content: center;">
         ${acumulado_botoes}                  
     </div> 
     `
-
-    if (modulo == 'PROJETOS' || modulo == 'RELATÓRIOS' || document.title == 'Projetos') {
-        acumulado += botao_novo_pedido(id)
-    }
 
     if (orcamento.status) {
 
@@ -1200,9 +1197,7 @@ async function exibir_todos_os_status(id) { //Filtrar apenas a demanda que vem d
                         `
                     }
                 }
-
             }
-
         }
     }
 

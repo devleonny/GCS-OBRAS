@@ -112,6 +112,8 @@ body::before {
     padding: 3px;
     margin: 2px;
     color: #222;
+    min-width: 100vw;
+    width: max-content;
 }
 
 .titulo_paginas {

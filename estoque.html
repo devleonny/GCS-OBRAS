@@ -118,7 +118,7 @@
     const db = getDatabase(app);
 
     escutarAlteracoes('dados_estoque')
-    let funcao_recarregar = retomar_paginacao()
+    let funcao_recarregar = retomar_paginacao
 
     async function escutarAlteracoes(nome_base) {
         const dadosRef = ref(db, nome_base);
