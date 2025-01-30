@@ -2737,7 +2737,6 @@ async function salvar_anexo(chave1, chave2) {
                     inserirDados(dados_orcamentos, 'dados_orcamentos');
                     enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/anexos/${id_anx}`, codificarUTF8(anx))
 
-                    remover_popup();
                     var estrutura = document.getElementById('estrutura');
                     if (estrutura) {
                         estrutura.remove();
@@ -2752,6 +2751,8 @@ async function salvar_anexo(chave1, chave2) {
             openPopup_v2(`Erro ao fazer upload: ${error.message}`);
             console.error(error);
         });
+
+    remover_popup();
 }
 
 
