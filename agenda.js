@@ -9,6 +9,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const addLineBtn = document.getElementById("add-line-btn");
     const updateDataBtn = document.getElementById("update-data-btn");
 
+    recuperar_dados_clientes()
+
     document.querySelectorAll(".close-modal-btn").forEach((closeBtn) => {
         closeBtn.addEventListener("click", (event) => {
           const modal = event.target.closest(".modal"); // Seleciona o modal atual
@@ -70,9 +72,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Sincronizar dados (usado para botão e verificação inicial)
-    async function syncData() {
+    async function syncData(clientesIndexDB) {
         showLoading(); // Exibe o indicador de carregamento
         try {
+            if(!clientesIndexDB){
+
+                console.log("entrei")
+                await recuperar_dados_clientes()
+                console.log("sai")
+
+            }
             const [fetchedDepartments, fetchedTechnicians] = await Promise.all([
                 fetchDepartmentsFromAPI(),
                 resgatar_tecnicos()
@@ -101,13 +110,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Verifica se os dados estão no localStorage, caso contrário, sincroniza
-    function checkAndSyncData() {
-        const storedDepartments = localStorage.getItem("departments");
-        const storedTechnicians = localStorage.getItem("technicians");
+    async function checkAndSyncData() {
+        let storedDepartments = localStorage.getItem("departments");
+        let storedTechnicians = localStorage.getItem("technicians");
+        let clientesIndexDB = await recuperarDados("dados_clientes") || false;
 
-        if (!storedDepartments || !storedTechnicians) {
+        if(storedDepartments == "[]"){
+            storedDepartments = false
+        }
+
+        if (!storedDepartments || !storedTechnicians || !clientesIndexDB) {
             console.log("Dados ausentes no localStorage. Realizando sincronização...");
-            syncData();
+            syncData(clientesIndexDB);
         } else {
             console.log("Dados encontrados no localStorage. Continuando normalmente.");
             atualizarDados()
@@ -127,7 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     
     // Evento do botão de sincronização manual
-    syncDataBtn.addEventListener("click", syncData);
+    syncDataBtn.addEventListener("click", () => syncData(false));
     // Chama a função de inicialização
     initializePage();
 
@@ -152,7 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Função para carregar dados do localStorage
     function loadFromLocalStorage() {
-        const storedDepartments = localStorage.getItem("departments");
+        let storedDepartments = localStorage.getItem("departments");
 
         if (storedDepartments) {
             departments = JSON.parse(storedDepartments);
@@ -215,23 +229,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     async function resgatar_tecnicos() {
-        const apiUrl =
-            "https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=clientes_v2";
-
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            throw new Error(`Erro na requisição: ${response.status}`);
+        let clientes = await recuperarDados("dados_clientes"); // Recupera os dados
+    
+        if (clientes && typeof clientes === "object") {
+            // Converte os valores do objeto em uma array
+            const dadosArray = Object.values(clientes);
+    
+            // Filtra apenas os objetos que possuem a tag "TÉCNICO"
+            const tecnicos = dadosArray
+                .filter(item => 
+                    item.tags && item.tags.some(tagObj => tagObj.tag === "TÉCNICO")
+                )
+                .map(tecnico => ({
+                    nome: tecnico.nome,
+                    omie: tecnico.omie
+                })); // Retorna apenas `nome` e `omie`
+            return tecnicos;
+        } else {
+            console.error("Os dados retornados não são um objeto válido:", clientes);
+            return []; // Retorna uma array vazia como fallback
         }
-
-        const data = await response.json();
-
-        // Filtra os técnicos e utiliza `omie` como identificador
-        return Object.entries(data)
-            .filter(([_, value]) => value.tags && value.tags.some(tagObj => tagObj.tag === "TÉCNICO"))
-            .map(([_, value]) => ({
-                omie: value.omie, // Substitui `id` por `omie`
-                nome: value.nome,
-            }));
     }
 
     function generateCalendar(year, month) {
@@ -797,7 +814,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function loadTechniciansFromStorage() {
-        const storedTechnicians = localStorage.getItem("technicians");
+        let storedTechnicians = localStorage.getItem("technicians");
         if (storedTechnicians) {
             try {
                 technicianOptions = JSON.parse(storedTechnicians);
@@ -806,31 +823,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         } else {
             technicianOptions = []; // Lista vazia se não houver dados
-        }
-    }
-
-
-    function loadAgendaForCurrentMonth() {
-        const key = getAgendaKey(); // Obtém a chave atual (mês/ano)
-        if (!key) {
-            return;
-        }
-
-        techniciansBody.innerHTML = ""; // Limpa a tabela
-
-        // Preenche os técnicos e suas agendas do mês atual
-        let hasData = false; // Verifica se há dados
-        technicians.forEach((technician) => {
-            if (technician.agendas && technician.agendas[key]) {
-                hasData = true;
-                addTechnicianRow(technician, technician.agendas[key]);
-            }
-        });
-
-        // Exibe o aviso se não houver dados
-        if (!hasData) {
-            const totalColumns = daysRow.children.length || 2; // Inclui dias e ações
-            techniciansBody.innerHTML = `<tr id="no-data-row"><td colspan="${totalColumns}">Nenhum dado disponível. Adicione um técnico.</td></tr>`;
         }
     }
 
@@ -917,7 +909,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function getDepartmentColorFromStorage(departmentName) {
-        const storedDepartments = JSON.parse(localStorage.getItem("departments")) || [];
+        let storedDepartments = JSON.parse(localStorage.getItem("departments")) || [];
         const storedDepartment = storedDepartments.find((dept) => dept.nome === departmentName);
 
         // Retorna a cor salva ou gera uma nova
