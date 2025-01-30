@@ -54,7 +54,7 @@ async function carregar_estoque() {
             ths += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisar_em_estoque(${indice_correto}, this.value, filtrosAtivosEstoques, 'body')">
+                <input style="width: 100%; font-size: 1.1vw;" style="text-align: center;" oninput="pesquisar_em_estoque(${indice_correto}, this.value, filtrosAtivosEstoques, 'body')">
             </th>
             `
         }
@@ -733,33 +733,32 @@ function exibir_botao(elemento, chave) {
 }
 
 function incluir_linha() {
-    let codigo = gerar_id_5_digitos()
     let body = document.getElementById('body')
     let tds = ''
 
     colunas.forEach(campo => {
-        let elemento = `<input style="background-color: transparent; cursor: pointer; text-align: center; padding: 10px; border-radius: 3px;" oninput="exibir_botao(this, '${campo}')">`
+        let elemento = `<input style="background-color: transparent; cursor: pointer; text-align: center; padding: 10px; border-radius: 3px;")">`
         let cor = ''
         if (campo == 'descricao' || campo == 'inventario') {
-            elemento = `<textarea style="border: none;" oninput="exibir_botao(this, '${campo}')"></textarea>`
+            elemento = `<textarea style="border: none;"></textarea>`
 
         } else if (campo == 'Excluir') {
 
             elemento = `
             <div style="display: flex; align-items: center; justify-content: center;">
                 <img src="imagens/cancel.png" style="cursor: pointer; width: 25px; height: 25px;" onclick="remover_linha_excluir_item(this)">
+                <img src="imagens/concluido.png" style="display: width: 25px; height: 25px; cursor: pointer;" onclick="salvar_linha(this)">
             </div>
             `
 
-        } else if (campo.includes('estoque')) {
-            elemento = `<label style="cursor: pointer; font-size: 25px; text-align: center; color: white; width: 100%;" onclick="abrir_estoque('${codigo}', '${campo}')">0</label>`
+        } else if (campo.includes('estoque') || campo.includes('valor_compra')) {
+            elemento = `<label style="cursor: pointer; font-size: 25px; text-align: center; color: white; width: 100%;">X</label>`
             cor = '#222'
         }
 
         tds += `
             <td style="background-color: ${cor}">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    <img src="imagens/concluido.png" style="display: none; width: 25px; height: 25px; cursor: pointer;" onclick="salvar_dados_estoque(this, '${codigo}', '${campo}')">
                     ${elemento}
                 </div>
             </td>
@@ -772,6 +771,43 @@ function incluir_linha() {
     </tr>
     `
     body.insertAdjacentHTML('beforebegin', linha)
+
+}
+
+async function salvar_linha(img) {
+    let tr = img.closest('tr')
+    let codigo = gerar_id_5_digitos()
+    let tds = tr.querySelectorAll('td')
+
+    let dados_estoque = await recuperarDados('dados_estoques') || {}
+
+    let item = {
+        partnumber: tds[1].querySelector('input').value,
+        categoria: tds[2].querySelector('input').value,
+        marca: tds[3].querySelector('input').value,
+        estoque: {
+            quantidade: 0,
+            historico: {}
+        },
+        estoque_usado: {
+            quantidade: 0,
+            historico: {}
+        },
+        descricao: tds[4].querySelector('textarea').value,
+        localizacao_novo: tds[6].querySelector('input').value,
+        localizacao_usado: tds[8].querySelector('input').value,
+        inventario: tds[9].querySelector('textarea').value,
+    }
+
+    dados_estoque[codigo] = item
+    await inserirDados(dados_estoque, 'dados_estoques')
+
+    filtrosAtivosEstoques[5] = item.descricao
+
+    retomar_paginacao()
+
+    await enviar('PUT', `dados_estoque/${codigo}`, codificarUTF8(item))
+    await enviar('PUT', `dados_estoque/${codigo}/timestamp`, Date.now())
 
 }
 
