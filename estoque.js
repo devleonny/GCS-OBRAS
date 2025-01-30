@@ -813,10 +813,10 @@ async function salvar_linha(img) {
 
 async function remover_linha_excluir_item(elemento) {
 
-    let dados_estoque = await recuperarDados('dados_estoque') || {}
     let tr = elemento.closest('tr')
     let tds = tr.querySelectorAll('td')
     let codigo = tds[0].textContent
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
 
     if (dados_estoque[codigo]) {
 
@@ -835,21 +835,22 @@ async function remover_linha_excluir_item(elemento) {
 
     } else {
         tr.remove()
-        carregar_estoque()
+        delete dados_estoque[codigo]
+        await inserirDados(dados_estoque, 'dados_estoque')
+        await carregar_estoque()
     }
 
 }
 
 async function confirmar_exclusao(codigo) {
 
+    remover_popup()
+
     let dados_estoque = await recuperarDados('dados_estoque') || {}
     delete dados_estoque[codigo]
-
     await inserirDados(dados_estoque, 'dados_estoque')
     await deletar(`dados_estoque/${codigo}`)
-
-    remover_popup()
-    carregar_estoque()
+    await carregar_estoque()
 }
 
 async function salvar_dados_estoque(img, codigo, chave) {
