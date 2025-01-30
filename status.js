@@ -837,17 +837,24 @@ async function salvar_pedido(chave) {
     await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
 
-    //abrir_esquema(id_orcam)
+    abrir_esquema(id_orcam)
 
 }
 
 async function salvar_notas(chave) {
 
+    let nota = document.getElementById('nota')
+    let tipo = document.getElementById('tipo')
+    let data = document.getElementById('data')
+    let comentario_status = document.getElementById('comentario_status')
+
+    fechar_status()
+
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
+
     let st = '';
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    let data = document.getElementById('data')
 
     if (!orcamento.status) {
         orcamento.status = {};
@@ -866,8 +873,6 @@ async function salvar_notas(chave) {
         notas: []
     };
 
-    let nota = document.getElementById('nota')
-    let tipo = document.getElementById('tipo')
 
     novo_lancamento.historico[chave_his].notas.push({
         nota: nota.value,
@@ -886,9 +891,10 @@ async function salvar_notas(chave) {
     novo_lancamento.historico[chave_his].status = st;
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
+    abrir_esquema(id_orcam)
+
     await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/historico/${chave_his}`, codificarUTF8(novo_lancamento.historico[chave_his]))
     await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
-    abrir_esquema(id_orcam)
 
     anexos = {}
     itens_adicionais = {}
@@ -1018,7 +1024,6 @@ function fechar_status() {
     if (status) {
         status.remove()
     }
-    abrir_esquema(id_orcam)
     remover_popup()
 }
 

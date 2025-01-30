@@ -480,7 +480,7 @@
                                 onchange="salvar_preenchido()">
                             <label>Sem Chamado</label>
                         </div>
-                        <input type="text" id="contrato" placeholder="nº do Chamado" oninput="salvar_preenchido()">
+                        <input type="text" id="contrato" placeholder="nº do Chamado" onchange="salvar_preenchido()">
                     </div>
                 </div>
 
@@ -719,7 +719,7 @@
 
     async function escutarAlteracoes(nome_base) {
 
-        await tabela_produtos_v2()
+        await tabela_produtos_v2
 
         const dadosRef = ref(db, nome_base);
         let baseLocal = await recuperarDados(nome_base) || {}
