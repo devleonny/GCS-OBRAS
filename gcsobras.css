@@ -109,10 +109,9 @@ body::before {
     flex-direction: column;
     justify-content: left;
     border-radius: 3px;
-    padding: 3px;
-    margin: 2px;
+    min-width: 100%;
+    margin: 1px;
     color: #222;
-    min-width: 100vw;
     width: max-content;
 }
 

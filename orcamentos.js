@@ -106,8 +106,8 @@ async function preencher_orcamentos_v2(st) {
 
                 label_pedidos += `
                     <div class="etiqueta_pedidos" style="background-color: ${cor}">
-                        <label style="font-size: 0.7vw;">${tipo}</label>
-                        <label style="font-size: 0.9vw;"><strong>${num_pedido}</strong></label>
+                        <label style="font-size: 0.7vw; margin: 2px;">${tipo}</label>
+                        <label style="font-size: 0.9vw; margin: 2px;"><strong>${num_pedido}</strong></label>
                     </div>
                 `
 
@@ -122,8 +122,8 @@ async function preencher_orcamentos_v2(st) {
                         nota.modalidade == 'Venda' ? cor2 = '#ff9c24' : cor2 = '#00bfb7'
                         label_notas += `
                         <div class="etiqueta_pedidos" style="background-color: ${cor2};">
-                            <label style="font-size: 0.8em;">${nota.modalidade}</label>
-                            <label style="font-size: 1.1em;"><strong>${nota.nota}</strong></label>
+                            <label style="font-size: 0.8em; margin: 2px;">${nota.modalidade}</label>
+                            <label style="font-size: 1.1em; margin: 2px;"><strong>${nota.nota}</strong></label>
                         </div>
                         `
                     }
