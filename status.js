@@ -244,7 +244,13 @@ async function calcular_requisicao(sincronizar) {
                 if (tr.style.display !== 'none') {
 
                     var codigo = tds[0].textContent
-                    let quantidadeDisponivel = tds[4].querySelector('label').textContent
+
+                    let quantidadeDisponivel = 0
+                    if (tds[4].querySelector('label.num')) {
+                        quantidadeDisponivel = tds[4].querySelector('label.num').textContent
+                    } else {
+                        quantidadeDisponivel = tds[4].querySelector('label').textContent
+                    }
 
                     if (tds[4].querySelector('input') && tds[4].querySelector('input').value > conversor(quantidadeDisponivel)) {
                         tds[4].querySelector('input').value = conversor(quantidadeDisponivel)
@@ -448,7 +454,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
             <div class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px; background-color: #222; font-size: 1.2em;">
                 <label><strong>Orçamento</strong></label>
-                <label>${qtde}</label>   
+                <label class="num">${qtde}</label>   
             </div>
 
         </div>
@@ -2803,7 +2809,7 @@ async function apagar_status_historico(chave1, chave2) {
     } else {
         delete dados_orcamentos[id_orcam].status[chave1].historico[chave2]
         await deletar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}`)
-        
+
     }
 
     await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
