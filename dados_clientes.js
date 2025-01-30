@@ -148,12 +148,7 @@ function salvar_preenchido() {
     let chamado_off = document.getElementById('chamado_off');
     let input_contrato = document.getElementById('contrato');
 
-    if (chamado_off.checked) {
-        input_contrato.style.display = 'none';
-    } else {
-        input_contrato.style.display = 'block';
-        input_contrato.value = ''
-    }
+    chamado_off.checked ? input_contrato.style.display = 'none' : input_contrato.style.display = 'block';
 
     let dados_analista = {
         email: document.getElementById('email_analista').textContent,
@@ -186,7 +181,7 @@ function salvar_preenchido() {
         telefone_vendedor: document.getElementById('telefone_vendedor').textContent,
         tipo_de_frete: document.getElementById('tipo_de_frete').value,
         vendedor: document.getElementById('vendedor').value,
-        contrato: chamado_off.checked ? 'sequencial' : '' 
+        contrato: chamado_off.checked ? 'sequencial' : input_contrato.value
     };
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
