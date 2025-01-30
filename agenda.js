@@ -498,7 +498,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const dayInput = document.createElement("input");
             dayInput.type = "text";
-            dayInput.placeholder = "Selecione";
             dayInput.className = "dropdown-input";
             dayInput.style.backgroundColor = "transparent";
 
