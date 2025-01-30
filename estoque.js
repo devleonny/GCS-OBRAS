@@ -469,8 +469,8 @@ async function abrir_estoque(codigo, stq) {
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let item = dados_estoque[codigo]
     let estoque = item[stq] || {}
-    let atual = 0
-    let inicial = estoque.quantidade ? estoque.quantidade : 0
+    let atual = estoque.quantidade ? estoque.quantidade : 0
+    let inicial = atual
     let linhas = ''
 
     if (estoque.historico) {
