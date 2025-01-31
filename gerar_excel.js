@@ -1,7 +1,7 @@
 async function ir_excel(orcam_) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento = dados_orcamentos[orcam_]
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
     var wb = new ExcelJS.Workbook();
     var ws_orcamento = wb.addWorksheet('Orçamento');
@@ -23,11 +23,9 @@ async function ir_excel(orcam_) {
             extension: 'png',
         });
 
-        var estado = orcamento['dados_orcam'].estado;
-
-        var nome_arquivo = orcamento['dados_orcam']['cliente_selecionado'] + ' ' + orcamento['dados_orcam']['contrato'];
-
-        var REF;
+        let estado = `${orcamento.dados_orcam.estado}`
+        let nome_arquivo = `${orcamento.dados_orcam.cliente_selecionado} ${orcamento.dados_orcam.contrato}`
+        let REF;
 
         if (orcamento['lpu_ativa']) {
             REF = String(orcamento['lpu_ativa']).split('LPU ')[1]
