@@ -229,6 +229,7 @@ async function calcular_requisicao(sincronizar) {
 
         conversor_composicoes_orcamento(orcamento)
 
+        
         var itens = orcamento.dados_composicoes
         var estado = orcamento.dados_orcam.estado
 
@@ -237,7 +238,7 @@ async function calcular_requisicao(sincronizar) {
 
             var total_sem_icms = 0
             var total_com_icms = 0
-
+            
             trs.forEach(tr => {
                 var tds = tr.querySelectorAll('td')
 
@@ -397,7 +398,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
                         if (requisicao.codigo == item.codigo) {
 
-                            qtde = item.qtde - requisicao.qtde_enviar
+                            qtde -= requisicao.qtde_enviar
 
                         }
 
@@ -407,6 +408,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
             })
         })
+
         infos.forEach(item => {
 
             if (dados_composicoes[codigo] && dados_composicoes[codigo][item]) {

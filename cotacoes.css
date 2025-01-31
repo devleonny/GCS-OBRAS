@@ -306,12 +306,17 @@ table th, table td {
 .table-container::-webkit-scrollbar-track {
     background: #f1f1f1; /* Fundo do scroll */
 }
-
 /* Estilo da tabela de cotações salvas */
 #cotacoesSalvasTable {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 20px;
+    /* Importante: usar display:block para permitir o scroll no tbody */
+    display: block; 
+}
+
+#cotacoesSalvasTable {
+    max-height: 650px; /* Defina aqui o valor máximo de altura desejado */
+    overflow-y: auto;  /* Exibe barra de rolagem vertical quando necessário */
 }
 
 #cotacoesSalvasTable th, #cotacoesSalvasTable td {
