@@ -176,7 +176,7 @@ async function preencher_v2(parceiro) {
         GERAL: { valor: 0, cor: '#151749' }
     }
 
-    Object.keys(config).forEach((tabela, i) => {
+    for (tabela in config) {
 
         var linhas = ''
         var ths = ''
@@ -311,7 +311,7 @@ async function preencher_v2(parceiro) {
         if (linhas != '') {
             tabelas += tabela
         }
-    })
+    }
 
     var divs_totais = ''
     for (total in totais) {
