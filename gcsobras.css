@@ -1459,12 +1459,12 @@ input[type=range]::-moz-range-thumb {
 
 ::-webkit-scrollbar-track {
     background-color: #666;
-    border-radius: 10px;
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
     background-color: #222;
-    border-radius: 10px;
+    border-radius: 3px;
 }
 
 .autocomplete-container {

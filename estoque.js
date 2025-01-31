@@ -146,7 +146,7 @@ async function carregar_estoque() {
     }
 
     let acumulado = `
-        <div style="height: max-content; max-height: 70vh; width: max-content; max-width: 90vw; overflow: auto; background-color: #222; border-radius: 5px;">
+        <div style="height: max-content; max-height: 70vh; width: max-content; max-width: 90vw; overflow: auto; background-color: #222222bf; border-radius: 5px;">
             <table class="tabela_e" id="tabela_estoque">
                 <thead>
                     <tr>${thc}</tr>
@@ -935,6 +935,7 @@ function pesquisar_em_estoque(coluna, texto, filtro, id) {
 
     var tabela_itens = document.getElementById(id);
     var trs = tabela_itens.querySelectorAll('tr');
+    let contador = 0
 
     trs.forEach(function (tr) {
         var tds = tr.querySelectorAll('td');
@@ -956,8 +957,15 @@ function pesquisar_em_estoque(coluna, texto, filtro, id) {
             }
         }
 
+        mostrarLinha ? contador++ : ''
+
         tr.style.display = mostrarLinha ? '' : 'none';
     });
+
+    let contagem = document.getElementById('contagem')
+    if (contagem) {
+        contagem.textContent = contador
+    }
 
 }
 
@@ -970,15 +978,21 @@ function relatorio_movimento() {
         <label>Relatório de Movimentos</label>
     </div>
 
-    <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px; height: 80px;">
+    <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px; padding: 20px; height: 80px; gap: 20px;">
         
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
             <label style="color: #222;">De</label>
             <input class="datas_estoque" type="date" onchange="atualizar_dados_relatorio()">
         </div>
+
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
             <label style="color: #222;">Até</label>
             <input class="datas_estoque" type="date" onchange="atualizar_dados_relatorio()">
+        </div>
+
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <label style="color: #222;">Movimentos</label>
+            <label style="background-color: #097fe6; color: white;" class="numero-bonito" id="contagem">0</label>
         </div>
 
     </div>
@@ -1019,6 +1033,27 @@ async function atualizar_dados_relatorio() {
                     let movimento = historico[his]
                     movimento.partnumber = produto.partnumber
                     movimento.descricao = produto.descricao
+                    movimento.origem = 'novo'
+
+                    let [dsd, dsh] = String(movimento.data).split(', ')
+                    let [dia, mes, ano] = String(dsd).split('/')
+                    let data = new Date(ano, mes - 1, dia);
+
+                    if (data >= inicial && data <= final) {
+                        filtrados.push(movimento)
+                    }
+
+                }
+            }
+
+            if (produto.estoque_usado && produto.estoque_usado.historico) {
+                let historico = produto.estoque_usado.historico
+
+                for (his in historico) {
+                    let movimento = historico[his]
+                    movimento.partnumber = produto.partnumber
+                    movimento.descricao = produto.descricao
+                    movimento.origem = 'usado'
 
                     let [dsd, dsh] = String(movimento.data).split(', ')
                     let [dia, mes, ano] = String(dsd).split('/')
@@ -1033,13 +1068,17 @@ async function atualizar_dados_relatorio() {
         }
 
         let linhas = ''
-
+        let contagem = document.getElementById('contagem')
+        if (contagem) {
+            contagem.textContent = filtrados.length
+        }
         filtrados.forEach(item => {
 
             let img = item.operacao == 'entrada' ? 'imagens/up_estoque.png' : item.operacao == 'inicial' ? 'imagens/zero.png' : 'imagens/down_estoque.png'
 
             linhas += `
             <tr style="color: #222; font-size: 0.7em;">
+                <td>${item.origem}</td>
                 <td>${item.partnumber}</td>
                 <td><textarea style="border: none; border-radius: 0px;" readonly>${item.descricao}</textarea></td>
                 <td style="padding: 5px;">${item.data}</td>
@@ -1050,13 +1089,13 @@ async function atualizar_dados_relatorio() {
                     </div>
                 </td>
                 <td>${item.quantidade}</td>
-                <td>${item.usuario}</td>
+                <td style="padding: 5px;">${item.usuario}</td>
                 <td><textarea style="border: none; border-radius: 0px;" readonly>${item.comentario}</textarea></td>
             </tr>
             `
         })
 
-        let colunas = ['Partnumber', 'Descrição', 'Data', 'Operação', 'Sin', 'Quantidade', 'Usuário', 'Comentário']
+        let colunas = ['Origem', 'Partnumber', 'Descrição', 'Data', 'Operação', 'Sin', 'Quantidade', 'Usuário', 'Comentário']
         let ths = ''
         let thsearch = ''
 
@@ -1074,7 +1113,7 @@ async function atualizar_dados_relatorio() {
             thsearch = ''
             linhas = `
             <tr>
-                <td colspan="8" style="color: #222;">Sem resultados<td>
+                <td colspan="9" style="color: #222;">Sem resultados<td>
             </tr>
             `
         }

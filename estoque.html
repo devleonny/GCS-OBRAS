@@ -112,7 +112,7 @@
 <script src="estoque.js"></script>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
-    import { getDatabase, ref, onChildAdded, onChildChanged, onChildRemoved, onValue, query, orderByChild, startAt, get } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
+    import { getDatabase, ref, set, onDisconnect, onChildAdded, onChildChanged, onChildRemoved, onValue, query, orderByChild, startAt, get } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
@@ -168,9 +168,9 @@
         const dadosRef = ref(db, nome_base);
         const consulta = query(dadosRef, orderByChild('timestamp'), startAt(timestamps[nome_base]));
         let baseLocal = await recuperarDados(nome_base) || {}
-        
+
         const snapshot = await get(consulta);
-        snapshot.forEach( async (childSnapshot) => {
+        snapshot.forEach(async (childSnapshot) => {
             const chave = childSnapshot.key;
             const dado = descodificarUTF8(snapshot.val());
             baseLocal[chave] = dado[chave];
@@ -188,6 +188,20 @@
         timestamps[nome_base] = Date.now()
         localStorage.setItem('timestamps', JSON.stringify(timestamps))
     }
+
+    // Usuário Online
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let userRef = ref(db, `usuarios_online/${acesso.usuario}`);
+
+    set(userRef, {
+        nome: acesso.usuario,
+        online: true,
+        app: 'estoque',
+        timestamp: Date.now(),
+    });
+
+    // Deslogar...
+    onDisconnect(userRef).remove();
 
 </script>
 

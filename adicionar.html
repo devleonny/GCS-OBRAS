@@ -641,7 +641,8 @@
                         <label style="white-space: nowrap; font-size: 3.0em;" id="total_geral"></label>
                     </div>
 
-                    <div style="position: absolute; bottom: 5px; right: 5px; display: flex; flex-direction: column; gap: 10px; margin: 10px;">
+                    <div
+                        style="position: absolute; bottom: 5px; right: 5px; display: flex; flex-direction: column; gap: 10px; margin: 10px;">
                         <div style="display: flex; align-items: center; justify-content: right; margin: 5px; gap: 10px;"
                             onclick="window.location.href='inicial.html'">
                             <label style="color: white;">Voltar</label>
@@ -709,7 +710,7 @@
 <script src="dados_clientes.js"></script>
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
-    import { getDatabase, ref, onChildAdded, onChildChanged, onChildRemoved, onValue, query, orderByChild, startAt, get } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
+    import { getDatabase, ref, set, onDisconnect, onChildAdded, onChildChanged, onChildRemoved, onValue, query, orderByChild, startAt, get } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
@@ -768,9 +769,9 @@
         const dadosRef = ref(db, nome_base);
         const consulta = query(dadosRef, orderByChild('timestamp'), startAt(timestamps[nome_base]));
         let baseLocal = await recuperarDados(nome_base) || {}
-        
+
         const snapshot = await get(consulta);
-        snapshot.forEach( async (childSnapshot) => {
+        snapshot.forEach(async (childSnapshot) => {
             const chave = childSnapshot.key;
             const dado = descodificarUTF8(snapshot.val());
             baseLocal[chave] = dado[chave];
@@ -788,6 +789,20 @@
         timestamps[nome_base] = Date.now()
         localStorage.setItem('timestamps', JSON.stringify(timestamps))
     }
+
+    // Usuário Online
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let userRef = ref(db, `usuarios_online/${acesso.usuario}`);
+
+    set(userRef, {
+        nome: acesso.usuario,
+        online: true,
+        app: 'criando orçamento',
+        timestamp: Date.now(),
+    });
+
+    // Deslogar...
+    onDisconnect(userRef).remove();
 
 </script>
 <script src="upload_imagens.js"></script>
