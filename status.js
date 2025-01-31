@@ -1019,12 +1019,14 @@ async function salvar_requisicao(chave, chave2) {
     itens_adicionais = {}
 }
 
-function fechar_status() {
+async function fechar_status() {
     var status = document.getElementById('status')
     if (status) {
         status.remove()
     }
     remover_popup()
+
+    await abrir_esquema(id_orcam)
 }
 
 function fechar_espelho_ocorrencias() {
