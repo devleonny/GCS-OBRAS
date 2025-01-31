@@ -2727,7 +2727,7 @@ async function salvar_anexo(chave1, chave2) {
 
                 } else {
 
-                    if (Array.isArray(dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos)) {
+                    if (Array.isArray(dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos) || !dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos) {
                         dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos = {};
                     }
 
