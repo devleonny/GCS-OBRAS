@@ -3,12 +3,10 @@ async function ir_excel(orcam_) {
     let orcamento = dados_orcamentos[orcam_]
     var dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
-    // Cria um novo workbook e uma nova planilha
     var wb = new ExcelJS.Workbook();
     var ws_orcamento = wb.addWorksheet('Orçamento');
     var ws_total = wb.addWorksheet('TOTAL');
 
-    // Baixa a imagem e converte para base64
     const response = await fetch('https://i.imgur.com/Nb8sPs0.png');
     const imageBlob = await response.blob();
     const reader = new FileReader();
@@ -20,13 +18,11 @@ async function ir_excel(orcam_) {
     reader.onloadend = () => {
         const base64data = reader.result.replace(/^data:image\/(png|jpg);base64,/, '');
 
-        // Adiciona a imagem ao workbook
         const imageId = wb.addImage({
             base64: base64data,
             extension: 'png',
         });
 
-        // Define os cabeçalhos das tabelas
         var estado = orcamento['dados_orcam'].estado;
 
         var nome_arquivo = orcamento['dados_orcam']['cliente_selecionado'] + ' ' + orcamento['dados_orcam']['contrato'];
@@ -60,8 +56,6 @@ async function ir_excel(orcam_) {
 
         var venda_data = [];
         var servico_data = [];
-
-        // Adiciona os dados às tabelas de venda e serviço
 
         Object.keys(orcamento.dados_composicoes).forEach(it => {
             var item = orcamento.dados_composicoes[it]
