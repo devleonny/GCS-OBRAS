@@ -146,7 +146,6 @@
 
 </body>
 
-</script>
 <script src="open_menus.js"></script>
 <script src="orcamentos.js"></script>
 <script type="module">
@@ -158,7 +157,6 @@
 
     escutarAlteracoes('dados_orcamentos')
     let funcao_recarregar = preencher_orcamentos_v2
-    consultarDados('dados_orcamentos')
 
     async function escutarAlteracoes(nome_base) {
 
@@ -166,6 +164,8 @@
 
         const dadosRef = ref(db, nome_base);
         let baseLocal = await recuperarDados(nome_base) || {}
+
+        consultarDados(nome_base)
 
         onChildAdded(dadosRef, async (snapshot) => {
             atualizar_timestamp(nome_base)

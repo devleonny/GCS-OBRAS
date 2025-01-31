@@ -593,11 +593,11 @@ function calculoSubtotal(numeroFornecedor) {
 
     let selectDesconto = document.querySelector(`#selectDesconto-${numeroFornecedor}`)
 
-    if(selectDesconto.value == "porcentagem"){
+    if (selectDesconto.value == "porcentagem") {
 
-    valorDesconto = valorSubtotal * (quantidadeDesconto / 100)
+        valorDesconto = valorSubtotal * (quantidadeDesconto / 100)
 
-    }else if(selectDesconto.value == "valorFixo"){
+    } else if (selectDesconto.value == "valorFixo") {
 
         valorDesconto = quantidadeDesconto
 
@@ -790,6 +790,8 @@ function salvarInformacoes() {
         const horas = String(now.getHours()).padStart(2, "0");
         const minutos = String(now.getMinutes()).padStart(2, "0");
         const segundos = String(now.getSeconds()).padStart(2, "0");
+        const idOrcamento = ""
+        const chavePedido = ""
 
         const dataFormatada = `${dia}/${mes}/${ano}`;
         const horaFormatada = `${horas}:${minutos}:${segundos}`;
@@ -806,6 +808,8 @@ function salvarInformacoes() {
             hora: horaFormatada,
             criador,
             apelidoCotacao,
+            idOrcamento,
+            chavePedido,
         };
     }
 
@@ -1460,7 +1464,7 @@ function voltarParaInicio() {
     window.location.href = "inicial.html";
 }
 
-function removerCotacao(elemento) {
+async function removerCotacao(elemento) {
     // Adiciona a confirmação antes de prosseguir
     const confirmar = confirm("Tem certeza de que deseja excluir esta cotação?");
     if (!confirmar) {
@@ -1488,9 +1492,38 @@ function removerCotacao(elemento) {
 
     enviar_dados_generico(payload);
 
+
     // Remove a cotação do localStorage
     let cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
-    delete cotacoes[idCotacao];
+
+    let cotacaoAtual = cotacoes[idCotacao]
+
+    const idOrcamento = cotacaoAtual.informacoes.idOrcamento || "";
+    const chavePedido = cotacaoAtual.informacoes.chavePedido || "";
+
+
+    if (idOrcamento != "" || chavePedido != "") {
+
+        let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+
+        if (idCotacao == undefined || idCotacao == 'undefined') {
+
+            delete dados_orcamentos[idOrcamento].status[chavePedido]
+            await deletar(`dados_orcamentos/${id_orcam}/status/${chavePedido}`)
+
+        } else {
+
+            delete dados_orcamentos[idOrcamento].status[chavePedido].historico[idCotacao]
+            await deletar(`dados_orcamentos/${idOrcamento}/status/${chavePedido}/historico/${idCotacao}`)
+
+        }
+
+        await enviar('PUT', `dados_orcamentos/${idOrcamento}/timestamp`, Date.now())
+        await inserirDados(dados_orcamentos, 'dados_orcamentos')
+
+    }
+
+    delete cotacaoAtual;
     localStorage.setItem("dados_cotacao", JSON.stringify(cotacoes));
 
     // Verifica se ainda existem cotações

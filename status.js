@@ -1825,7 +1825,9 @@ async function iniciar_cotacao(chave, id_orcam) {
             data: data.toLocaleDateString('pt-BR'),
             hora: `${String(data.getHours()).padStart(2, '0')}:${String(data.getMinutes()).padStart(2, '0')}:${String(data.getSeconds()).padStart(2, '0')}`,
             criador: acesso.usuario,
-            apelidoCotacao: orcamento.dados_orcam.cliente_selecionado
+            apelidoCotacao: orcamento.dados_orcam.cliente_selecionado,
+            idOrcamento: id_orcam,
+            chavePedido: chave
         },
         dados: itens_em_lista,
         valorFinal: [],
@@ -2796,6 +2798,8 @@ function deseja_apagar(chave1, chave2) {
 
     let funcao = chave2 == undefined ? `apagar_status_historico('${chave1}')` : `apagar_status_historico('${chave1}', '${chave2}')`
 
+    console.log(funcao)
+
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
             <label>Deseja apagar essa informação?</label>
@@ -2810,6 +2814,8 @@ function deseja_apagar(chave1, chave2) {
 async function apagar_status_historico(chave1, chave2) {
 
     remover_popup()
+
+    remover_cotacao(chave2)
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
@@ -2828,6 +2834,23 @@ async function apagar_status_historico(chave1, chave2) {
 
     fechar_estrutura()
     abrir_esquema(id_orcam)
+
+}
+
+function remover_cotacao(chave2){
+
+    let status = "excluido";
+    let operacao = "excluir";
+    let idCotacao = chave2
+
+    const cotacaoParaExcluir = { operacao, status, idCotacao };
+
+    const payload = {
+        tabela: "cotacoes",
+        cotacao: cotacaoParaExcluir,
+    };
+
+    enviar_dados_generico(payload);
 
 }
 
