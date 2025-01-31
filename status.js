@@ -2489,14 +2489,16 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
             itens_adicionais = orcamento.status[chave].historico[chave2].adicionais
         }
 
-        orcamento.status[chave].historico[chave2].requisicoes.forEach(item => {
-            requisicao[item.codigo] = {
-                partnumber: item.partnumber,
-                requisicao: item.requisicao,
-                tipo: item.tipo,
-                qtde_enviar: item.qtde_enviar
-            }
-        })
+        if (orcamento.status[chave].historico[chave2].requisicoes) {
+            orcamento.status[chave].historico[chave2].requisicoes.forEach(item => {
+                requisicao[item.codigo] = {
+                    partnumber: item.partnumber,
+                    requisicao: item.requisicao,
+                    tipo: item.tipo,
+                    qtde_enviar: item.qtde_enviar
+                }
+            })
+        }
 
     }
 
