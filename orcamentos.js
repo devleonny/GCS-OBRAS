@@ -36,7 +36,63 @@ function pesquisar_v2(coluna, texto) {
     });
 }
 
-async function preencher_orcamentos_v2(st) {
+function filtrar_pendencias(dados) {
+    let pendencias = {
+        gerente: {},
+        diretoria: {}
+    }
+
+    for (id in dados) {
+        let orcamento = dados[id]
+
+        if (orcamento.status) {
+
+            let pedidos = orcamento.status
+
+            for (chave1 in pedidos) {
+                if (String(pedidos[chave1].pedido).includes('?')) {
+
+                    if (conversor(orcamento.total_geral) > 20000) {
+                        pendencias.diretoria[id] = orcamento
+                    }
+
+                    pendencias.gerente[id] = orcamento
+
+                }
+            }
+        }
+    }
+
+    return pendencias
+
+}
+
+async function mostrar_apenas_pendencias(filtroPendencia) {
+
+    localStorage.setItem('filtroAtivo', filtroPendencia)
+
+    await preencher_orcamentos_v2(undefined, filtroPendencia)
+
+    botao_limpar_painel_direito()
+
+}
+
+function botao_limpar_painel_direito() {
+
+    let painel_direito = document.getElementById('painel_direito')
+
+    if (painel_direito) {
+        painel_direito.innerHTML = `
+            <div class="block_reverso" onclick="preencher_orcamentos_v2(undefined, undefined, true)">
+                <img src="imagens/voltar.png" style="width: 50px;">
+                <p style="font-size: 0.8vw;">VOLTAR</p>
+            </div>
+        `
+    }
+
+}
+
+async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
 
     if (st !== undefined) {
         botao_status_ativo = st
@@ -54,11 +110,28 @@ async function preencher_orcamentos_v2(st) {
         dados_orcamentos = await recuperarDados('dados_orcamentos')
     }
 
+    let pendencias = filtrar_pendencias(dados_orcamentos)
+
+    if (remover) {
+        localStorage.removeItem('filtroAtivo')
+
+    } else {
+        let filtroAtivo = localStorage.getItem('filtroAtivo')
+
+        if (filtroPendencia == undefined && filtroAtivo) {
+            filtroPendencia = filtroAtivo
+        }
+
+        if (filtroPendencia !== undefined) {
+            dados_orcamentos = pendencias[filtroPendencia]
+        }
+    }
+
     document.getElementById('nome_modulo').textContent = modulo
 
-    //Eleminar o ID que o DB cria... 
+    // Eleminar o ID que o DB cria...
     delete dados_orcamentos['id']
-    //Fim
+    // Fim...
 
     dados_orcamentos = descodificarUTF8(dados_orcamentos)
 
@@ -180,8 +253,43 @@ async function preencher_orcamentos_v2(st) {
         }
 
         var painel_direito = document.getElementById('painel_direito')
-        if (painel_direito) {
+        if (filtroPendencia) {
+            botao_limpar_painel_direito()
+        } else {
             var atalhos = ''
+
+            if (modulo !== 'PROJETOS') {
+                if (Object.keys(pendencias.diretoria).length > 0) {
+                    atalhos += `
+                    <div class="block_reverso" onclick="mostrar_apenas_pendencias('diretoria')">
+                        <img src="gifs/atencao.gif" style="width: 50px;">
+                        <p style="font-size: 0.8vw;">APROVAÇÃO DA DIRETORIA</p>
+                    </div>
+                `
+                }
+
+                if (Object.keys(pendencias.gerente).length > 0) {
+                    atalhos += `
+                    <div class="block_reverso" style="background-color: ;" onclick="mostrar_apenas_pendencias('gerente')">
+                        <img src="gifs/atencao.gif" style="width: 50px;">
+                        <p style="font-size: 0.8vw;">APROVAÇÃO DO GERENTE</p>
+                    </div>
+                `
+                }
+            }
+
+            atalhos += `
+                <div class="block" onclick="window.location.href = 'adicionar.html'">
+                    <img src="imagens/projeto.png" style="width: 50px;">
+                    <p style="font-size: 0.8vw;">CRIAR ORÇAMENTO</p>
+                </div>
+
+                <div class="block_reverso" onclick="preencher_orcamentos_v2()">
+                    <img src="imagens/duplicar.png" style="width: 50px;">
+                    <p style="font-size: 0.8vw;">TODOS OS ORÇAMENTOS</p>
+                </div>
+            `
+
             for (atalho in status_deste_modulo) {
                 var quantidade = status_deste_modulo[atalho]
                 atalhos += `
@@ -193,6 +301,7 @@ async function preencher_orcamentos_v2(st) {
                     </div>
                 `
             }
+
             painel_direito.innerHTML = atalhos
         }
 
@@ -236,7 +345,7 @@ async function preencher_orcamentos_v2(st) {
                     ${linhas}
                 </tbody>
             </table>
-        `
+            `
             div_orcamentos.insertAdjacentHTML('beforeend', tabela)
         }
     }
