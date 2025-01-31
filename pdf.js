@@ -277,7 +277,6 @@ async function preencher_v2(parceiro) {
                 tds[14] = `<td></td>`
                 tds[15] = `<td></td>`
 
-
                 var celulas = ''
 
                 colunas.forEach(col => {
