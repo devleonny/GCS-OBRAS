@@ -1,5 +1,6 @@
 async function ir_excel(orcam_) {
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos'))[orcam_];
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let orcamento = dados_orcamentos[orcam_]
     var dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
     // Cria um novo workbook e uma nova planilha
@@ -26,14 +27,14 @@ async function ir_excel(orcam_) {
         });
 
         // Define os cabeçalhos das tabelas
-        var estado = dados_orcamentos['dados_orcam'].estado;
+        var estado = orcamento['dados_orcam'].estado;
 
-        var nome_arquivo = dados_orcamentos['dados_orcam']['cliente_selecionado'] + ' ' + dados_orcamentos['dados_orcam']['contrato'];
+        var nome_arquivo = orcamento['dados_orcam']['cliente_selecionado'] + ' ' + orcamento['dados_orcam']['contrato'];
 
         var REF;
 
-        if (dados_orcamentos['lpu_ativa']) {
-            REF = String(dados_orcamentos['lpu_ativa']).split('LPU ')[1]
+        if (orcamento['lpu_ativa']) {
+            REF = String(orcamento['lpu_ativa']).split('LPU ')[1]
         } else {
             REF = 'CARREFOUR'
         }
@@ -62,8 +63,8 @@ async function ir_excel(orcam_) {
 
         // Adiciona os dados às tabelas de venda e serviço
 
-        Object.keys(dados_orcamentos.dados_composicoes).forEach(it => {
-            var item = dados_orcamentos.dados_composicoes[it]
+        Object.keys(orcamento.dados_composicoes).forEach(it => {
+            var item = orcamento.dados_composicoes[it]
             var unit_ = conversor(item.custo);
             var total_ = conversor(item.total);
             let valor_unit_liq = item.tipo == "VENDA" ? unit_ - (unit_ * (estado == 'BA' ? 0.205 : 0.12)) : unit_;
@@ -146,7 +147,7 @@ async function ir_excel(orcam_) {
             }
         });
 
-        ws_orcamento.addRow(['', 'Orçamento: ' + nome_arquivo + ' - TOTAL: ' + dados_orcamentos['total_geral']]);
+        ws_orcamento.addRow(['', 'Orçamento: ' + nome_arquivo + ' - TOTAL: ' + orcamento['total_geral']]);
 
         if (servico_data.length !== 0) {
 
@@ -272,7 +273,7 @@ async function ir_excel(orcam_) {
             vertical: 'middle'
         };
 
-        var escopo = dados_orcamentos['dados_orcam'].consideracoes;
+        var escopo = orcamento['dados_orcam'].consideracoes;
 
         var ws_total_data = [
             ['', 'Grupo Costa Silva'],
