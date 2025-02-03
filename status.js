@@ -28,8 +28,6 @@ var fluxograma = {
     'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] }
 }
 
-resumo_orcamentos()
-
 async function resumo_orcamentos() {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
