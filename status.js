@@ -28,6 +28,62 @@ var fluxograma = {
     'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] }
 }
 
+async function resumo_orcamentos() {
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamentos_por_usuario = {}
+
+    delete dados_orcamentos['id']
+
+    for (id in dados_orcamentos) {
+        let orcamento = dados_orcamentos[id]
+        console.log(orcamento)
+        let analista = orcamento.dados_orcam.analista
+
+        if (!orcamentos_por_usuario[analista]) {
+            orcamentos_por_usuario[analista] = {}
+        }
+
+        orcamentos_por_usuario[analista][id] = orcamento
+
+    }
+
+    let linhas = ''
+
+    for (pessoa in orcamentos_por_usuario) {
+        let orcamentos = orcamentos_por_usuario[pessoa]
+        let total = Object.keys(orcamentos).length
+
+        linhas += `
+            <tr>
+                <td>${pessoa}</td>
+                <td>${total}</td>
+            </tr>
+        `
+
+    }
+
+    let acumulado = `
+        <table>
+            <thead>
+                <th>Analista</th>
+                <th>Total</th>
+                <th>Aprovados</th>
+                <th>Reprovados</th>
+                <th>Pendentes</th>
+            </thead>
+            <tbody>
+                ${linhas}
+            </tbody>
+        </table>
+    `
+
+    openPopup_v2(acumulado)
+
+    console.log(orcamentos_por_usuario)
+
+}
+
 async function painel_adicionar_pedido() {
 
     let painel_status = document.getElementById('status')
@@ -479,38 +535,39 @@ async function carregar_itens(apenas_visualizar, requisicao) {
         }
 
         var linha = `
+            <tr style="background-color: white;">
+                <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
+                <td style="text-align: center;">
+                ${part_number}
+                </td>
+                <td style="position: relative;">
+                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
+                    ${elements}
+                    </div>
+                    <img src="imagens/construcao.png" style="position: absolute; bottom: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">
+                </td>
+                <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
+                    ${selectTipo}
+                </td>
+                <td style="text-align: center;">
+                    ${quantidade}
+                </td>
+                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                    <label></label>
+                    <br>
+                    <br>
+                    <label style="color: red; font-size: 1.0em;"></label>
+                </td>
+                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                    <label></label>
+                    <br>
+                    <br>
+                    <label style="color: red; font-size: 1.0em;"></label>
+                </td>
+                <td>
+                    ${opcoes}
+                </td>
             <tr>
-            <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
-            <td style="text-align: center;">
-            ${part_number}
-            </td>
-            <td style="position: relative;">
-                <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
-                ${elements}
-                </div>
-                <img src="imagens/construcao.png" style="position: absolute; bottom: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">
-            </td>
-            <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
-                ${selectTipo}
-            </td>
-            <td style="text-align: center;">
-                ${quantidade}
-            </td>
-            <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                <label></label>
-                <br>
-                <br>
-                <label style="color: red; font-size: 1.0em;"></label>
-            </td>
-            <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                <label></label>
-                <br>
-                <br>
-                <label style="color: red; font-size: 1.0em;"></label>
-            </td>
-            <td>
-                ${opcoes}
-            </td>
         `
         if (apenas_visualizar == undefined || !apenas_visualizar || (apenas_visualizar && requisicao && requisicao[codigo] && requisicao[codigo].qtde_enviar)) {
             linhas += linha
