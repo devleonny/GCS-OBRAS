@@ -1455,6 +1455,28 @@ async function abrir_esquema(id) {
                     `
                 }
 
+                if (String(sst.status).includes('COTAÇÃO')) {
+
+                    recuperarCotacoes()
+
+                    let cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+
+                    for (let cotacao of Object.values(cotacoes)) {
+
+                        if (cotacao.informacoes.idOrcamento) {
+
+                            if (id_orcam == cotacao.informacoes.idOrcamento) {
+                                
+                                var idCotacao = cotacao.informacoes.id
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
                 if (sst.anexos) {
 
                     Object.keys(sst.anexos).forEach(key_anx => {
@@ -1553,6 +1575,7 @@ async function abrir_esquema(id) {
                         ${totais}
                         ${dados_de_envio}
                         ${links_requisicoes}
+                        ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${idCotacao}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
                         <div style="display: flex; justify-content: space-evenly; align-items: center;">
                             <div class="contorno_botoes" style="background-color: ${fluxograma[sst.status].cor}">
                                 <img src="imagens/anexo2.png" style="width: 15px;">
@@ -1887,6 +1910,23 @@ async function alterar_status_principal(select, chave) {
 
     abrir_esquema(id_orcam)
 
+}
+
+async function recuperarCotacoes() {
+    const resposta = await fetch(
+        'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=cotacoes'
+    );
+
+    const dados = await resposta.json();
+
+    // Inicializar o objeto para armazenar as cotações
+    let cotacoes = {};
+
+    // Transformar a lista de cotações em um objeto com ID como chave
+    dados.forEach((cotacao) => {
+        const id = cotacao.informacoes.id;
+        cotacoes[id] = cotacao;
+    });
 }
 
 async function envio_de_material(chave1, id_orcam, chave2) {
@@ -2837,7 +2877,7 @@ async function apagar_status_historico(chave1, chave2) {
 
 }
 
-function remover_cotacao(chave2){
+function remover_cotacao(chave2) {
 
     let status = "excluido";
     let operacao = "excluir";

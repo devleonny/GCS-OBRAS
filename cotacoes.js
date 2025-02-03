@@ -6,7 +6,18 @@ recuperarCotacoes()
 document.addEventListener("DOMContentLoaded", () => {
     obter_materiais();
     adicionarLinha();
+
+    const idEdicao = localStorage.getItem("cotacaoEditandoID");
+    const operacao = localStorage.getItem("operacao");
+    const iniciouPorClique = localStorage.getItem("iniciouPorClique");
+
+    // Só chama editarCotacao se a flag indicar que foi pelo link específico
+    if (idEdicao && operacao === "editar" && iniciouPorClique === "true") {
+        editarCotacao(idEdicao);
+        localStorage.removeItem("iniciouPorClique"); // Remove para evitar execuções indesejadas
+    }
 });
+
 
 
 function atualizarQuantidadeItens() {
