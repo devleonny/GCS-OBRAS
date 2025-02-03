@@ -32,12 +32,10 @@ async function resumo_orcamentos() {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamentos_por_usuario = {}
-
     delete dados_orcamentos['id']
 
     for (id in dados_orcamentos) {
         let orcamento = dados_orcamentos[id]
-        console.log(orcamento)
         let analista = orcamento.dados_orcam.analista
 
         if (!orcamentos_por_usuario[analista]) {
@@ -53,34 +51,79 @@ async function resumo_orcamentos() {
     for (pessoa in orcamentos_por_usuario) {
         let orcamentos = orcamentos_por_usuario[pessoa]
         let total = Object.keys(orcamentos).length
+        let contadores = {
+            aprovados: 0,
+            reprovados: 0,
+            pendentes: 0
+        }
+
+        for (id in orcamentos) {
+            let orc = orcamentos[id]
+            if (orc.aprovacao && Object.keys(orc.aprovacao).length > 0) {
+
+                let responsaveis = orc.aprovacao
+                let valor = conversor(orc.total_geral)
+                let gerente = false
+                let diretoria = false
+
+                if (responsaveis.Gerente && responsaveis.Gerente.status) {
+                    let st = responsaveis.Gerente.status
+                    gerente = st == 'aprovado' ? true : false
+                }
+
+                if (responsaveis.Diretoria && responsaveis.Diretoria.status) {
+                    let st = responsaveis.Diretoria.status
+                    diretoria = st == 'aprovado' ? true : false
+                }
+
+                if (valor > 21000) {
+                    if (diretoria) {
+                       contadores.aprovados += 1
+                    } else if (gerente) {
+                        contadores.pendentes += 1
+                    } else {
+                        contadores.reprovados += 1
+                    }
+                } else {
+                    gerente ? contadores.aprovados += 1 : contadores.reprovados += 1;
+                }
+
+            }
+        }
+
+        let diferenca = total - (contadores.aprovados + contadores.reprovados)
+        contadores.pendentes = contadores.pendentes + diferenca
 
         linhas += `
-            <tr>
+            <tr style="background-color: white; color:#222;">
                 <td>${pessoa}</td>
                 <td>${total}</td>
+                <td>${contadores.aprovados}</td>
+                <td>${contadores.reprovados}</td>
+                <td>${contadores.pendentes}</td>
             </tr>
         `
 
     }
 
     let acumulado = `
-        <table>
-            <thead>
-                <th>Analista</th>
-                <th>Total</th>
-                <th>Aprovados</th>
-                <th>Reprovados</th>
-                <th>Pendentes</th>
-            </thead>
-            <tbody>
-                ${linhas}
-            </tbody>
-        </table>
+        <div>
+            <table class="tabela" >
+                <thead>
+                    <th>Analista</th>
+                    <th>Total</th>
+                    <th>Aprovados</th>
+                    <th>Reprovados</th>
+                    <th>Pendentes</th>
+                </thead>
+                <tbody>
+                    ${linhas}
+                </tbody>
+            </table>
+        </div>
     `
 
     openPopup_v2(acumulado)
-
-    console.log(orcamentos_por_usuario)
 
 }
 
