@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 
 <head>
-    
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -27,7 +27,7 @@
             <span>Atualizar</span>
         </div>
     </div>
-    
+
 
     <div id="cotacoesSalvasContainer">
         <div id="mensagemCargasOrdenadas" class="cotacoes-ordenadas-mensagem"></div>
@@ -66,28 +66,30 @@
                     </th>
                     <th>
                         <div class="input-container">
-                            <input type="text" placeholder="Pesquisar Qtde Itens" oninput="filtrarTabela(3, this.value)">
+                            <input type="text" placeholder="Pesquisar Qtde Itens"
+                                oninput="filtrarTabela(3, this.value)">
                             <img src="imagens/pesquisar2.png" alt="Pesquisar">
                         </div>
                     </th>
                     <th>
                         <div class="input-container">
-                            <input type="text" placeholder="Pesquisar Qtde Fornecedores" oninput="filtrarTabela(4, this.value)">
+                            <input type="text" placeholder="Pesquisar Qtde Fornecedores"
+                                oninput="filtrarTabela(4, this.value)">
                             <img src="imagens/pesquisar2.png" alt="Pesquisar">
                         </div>
                     </th>
                     <th></th>
                 </tr>
-                
+
             </thead>
             <tbody>
                 <!-- Linhas serão preenchidas dinamicamente -->
             </tbody>
         </table>
-        
-            <tbody>
-                <!-- Linhas serão preenchidas dinamicamente -->
-            </tbody>
+
+        <tbody>
+            <!-- Linhas serão preenchidas dinamicamente -->
+        </tbody>
         </table>
         <div class="button-container">
             <button id="novaCotacaoButton" class="btn-nova-cotacao">Nova Cotação</button>
@@ -140,58 +142,80 @@
                 </tfoot>
             </table>
         </div>
-        
-    
 
-    <div class="button-container">
-        <button onclick="adicionarLinha()">Adicionar Item</button>
-        <button onclick="abrirModal()">Adicionar Fornecedor</button>
-        <button onclick="abrirModalApelido()">Salvar</button>
-        <p id="salvarAviso" class="salvar-aviso" style="display: none;">Cotação salva com sucesso!</p>
-        <button onclick="voltarParaTabela()" class="btn-voltar">Voltar</button>
-        <button id="botaoExportarPDF" onclick="exportarTabelaParaPDF()" style="display: none;">Exportar para PDF</button>
-    </div>
-    
-    
+        <div class="button-container">
+            <button onclick="adicionarLinha()">Adicionar Item</button>
+            <button onclick="abrirModal()">Adicionar Fornecedor</button>
+            <button onclick="abrirModalApelido()">Salvar</button>
+            <p id="salvarAviso" class="salvar-aviso" style="display: none;">Cotação salva com sucesso!</p>
+            <button onclick="voltarParaTabela()" class="btn-voltar">Voltar</button>
+            <button id="botaoFinalizarCotacao" onclick="abrirModalFinalizar()">Finalizar Cotação</button>
+            <button id="botaoReabrirCotacao" onclick="abrirModalReabrir()" style="display: none;">Reabrir Cotação</button>
+            <button id="botaoExportarPDF" onclick="exportarTabelaParaPDF()" style="display: none;">Exportar para PDF</button>
+        </div>
 
-    <div id="fornecedorModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="fecharModal()">&times;</span>
-            <h2>Adicionar Fornecedor</h2>
-            <label for="pesquisarFornecedor">Pesquisar Fornecedor:</label>
-            <input type="text" id="pesquisarFornecedor" placeholder="Digite o nome ou CNPJ">
-            <ul style="display: none;" id="listaFornecedores"></ul>
-            <button onclick="salvarFornecedor()">Salvar</button>
-            <button onclick="fecharModal()">Fechar</button>
-        </div>
-    </div>
-    
-    <div id="modalApelido" class="modal">
-        <div class="modal-content">
-            <button class="close" onclick="fecharModalApelido()">&times;</button>
-            <h2>Defina um apelido para a cotação</h2>
-            <label for="inputApelido">Apelido:</label>
-            <input type="text" id="inputApelido" placeholder="Digite um apelido para a cotação">
-            <button onclick="salvarObjeto()" id="confirmarApelidoButton">Salvar Apelido</button>
-        </div>
-    </div>
-    
-    <div id="confirmarExclusaoModal" class="modal">
-        <div class="modal-content">
-            <h2>Confirmar Exclusão</h2>
-            <p>Tem certeza de que deseja excluir esta cotação?</p>
-            <div class="button-container">
-                <button id="confirmarExclusao" class="btn-confirmar">Confirmar</button>
-                <button id="cancelarExclusao" class="btn-cancelar">Cancelar</button>
+        <div id="fornecedorModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="fecharModal()">&times;</span>
+                <h2>Adicionar Fornecedor</h2>
+                <label for="pesquisarFornecedor">Pesquisar Fornecedor:</label>
+                <input type="text" id="pesquisarFornecedor" placeholder="Digite o nome ou CNPJ">
+                <ul style="display: none;" id="listaFornecedores"></ul>
+                <button onclick="salvarFornecedor()">Salvar</button>
+                <button onclick="fecharModal()">Fechar</button>
             </div>
         </div>
-    </div>           
+
+        <div id="modalApelido" class="modal">
+            <div class="modal-content">
+                <button class="close" onclick="fecharModalApelido()">&times;</button>
+                <h2>Defina um apelido para a cotação</h2>
+                <label for="inputApelido">Apelido:</label>
+                <input type="text" id="inputApelido" placeholder="Digite um apelido para a cotação">
+                <button onclick="salvarObjeto(false)" id="confirmarApelidoButton">Salvar Apelido</button>
+            </div>
+        </div>
+
+        <div id="confirmarExclusaoModal" class="modal">
+            <div class="modal-content">
+                <h2>Confirmar Exclusão</h2>
+                <p>Tem certeza de que deseja excluir esta cotação?</p>
+                <div class="button-container">
+                    <button id="confirmarExclusao" class="btn-confirmar">Confirmar</button>
+                    <button id="cancelarExclusao" class="btn-cancelar">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para Finalizar Cotação -->
+        <div id="modalConfirmarFinalizacao" class="modal">
+            <div class="modal-content">
+                <button class="close" onclick="fecharModalFinalizar()">&times;</button>
+                <h2>Confirmar Finalização</h2>
+                <p>Tem certeza de que deseja finalizar esta cotação? Após finalizar, não será possível editá-la.</p>
+                <button onclick="salvarObjeto(true)" class="btn-confirmar">Finalizar</button>
+                <button onclick="fecharModalFinalizar()" class="btn-cancelar">Cancelar</button>
+            </div>
+        </div>
+
+        <!-- Modal para Reabrir Cotação -->
+        <div id="modalConfirmarReabertura" class="modal">
+            <div class="modal-content">
+                <button class="close" onclick="fecharModalReabrir()">&times;</button>
+                <h2>Confirmar Reabertura</h2>
+                <p>Tem certeza de que deseja reabrir esta cotação? Após reabrir, ela voltará para o status "Pendente".
+                </p>
+                <button onclick="salvarObjeto(false, true)" class="btn-confirmar">Reabrir</button>
+                <button onclick="fecharModalReabrir()" class="btn-cancelar">Cancelar</button>
+            </div>
+        </div>
 
 </body>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
 <script src="open_menus.js"></script>
-<script src="cotacoes.js"></script>
 <script src="status.js"></script>
+<script src="cotacoes.js"></script>
+
 </html>

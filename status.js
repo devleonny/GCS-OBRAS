@@ -1457,21 +1457,40 @@ async function abrir_esquema(id) {
 
                 if (String(sst.status).includes('COTAÇÃO')) {
 
-                    recuperarCotacoes()
+                    await recuperarCotacoes()
 
                     let cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+                    
+                    let cotacaoAtual = {}
 
                     for (let cotacao of Object.values(cotacoes)) {
 
                         if (cotacao.informacoes.idOrcamento) {
 
                             if (id_orcam == cotacao.informacoes.idOrcamento) {
-                                
-                                var idCotacao = cotacao.informacoes.id
+
+                                cotacaoAtual = cotacoes[cotacao.informacoes.id]
 
                             }
 
                         }
+
+
+                    }
+
+                    var idCotacao = cotacaoAtual.informacoes.id
+
+                    if (cotacaoAtual.status == "Finalizada") {
+
+                        sst.status = "COTAÇÃO FINALIZADA"
+                        await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave_pedido}/historico/${chave2}/status`, "COTAÇÃO FINALIZADA")
+                        await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+
+                    } else {
+
+                        sst.status = "COTAÇÃO PENDENTE"
+                        await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave_pedido}/historico/${chave2}/status`, "COTAÇÃO PENDENTE")
+                        await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
                     }
 
@@ -1855,7 +1874,7 @@ async function iniciar_cotacao(chave, id_orcam) {
         dados: itens_em_lista,
         valorFinal: [],
         operacao: 'incluir',
-        status: 'ativo'
+        status: 'Pendente'
     }
 
     let data_completa = new Date().toLocaleString('pt-BR', {
@@ -1927,6 +1946,7 @@ async function recuperarCotacoes() {
         const id = cotacao.informacoes.id;
         cotacoes[id] = cotacao;
     });
+    localStorage.setItem("dados_cotacao", JSON.stringify(cotacoes));
 }
 
 async function envio_de_material(chave1, id_orcam, chave2) {
