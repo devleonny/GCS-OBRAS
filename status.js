@@ -28,6 +28,8 @@ var fluxograma = {
     'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] }
 }
 
+resumo_orcamentos()
+
 async function resumo_orcamentos() {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
@@ -78,7 +80,7 @@ async function resumo_orcamentos() {
 
                 if (valor > 21000) {
                     if (diretoria) {
-                       contadores.aprovados += 1
+                        contadores.aprovados += 1
                     } else if (gerente) {
                         contadores.pendentes += 1
                     } else {
@@ -94,21 +96,48 @@ async function resumo_orcamentos() {
         let diferenca = total - (contadores.aprovados + contadores.reprovados)
         contadores.pendentes = contadores.pendentes + diferenca
 
+        let porc = {
+            apr: (contadores.aprovados / total * 100).toFixed(1),
+            rep: (contadores.reprovados / total * 100).toFixed(1),
+            pen: (contadores.pendentes / total * 100).toFixed(1)
+        }
+
         linhas += `
-            <tr style="background-color: white; color:#222;">
+            <tr style="background-color: white; color: #222;">
                 <td>${pessoa}</td>
-                <td>${total}</td>
-                <td>${contadores.aprovados}</td>
-                <td>${contadores.reprovados}</td>
-                <td>${contadores.pendentes}</td>
+                <td style="text-align: right;">${total}</td>
+                <td>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <label>${contadores.aprovados}</label>
+                        <label class="numero">${(contadores.aprovados / total * 100).toFixed(1)}%</label>
+                    </div>
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <label>${contadores.reprovados}</label>
+
+                        <div style="width: 100px; background-color: #999; display: flex; align-items: center; justify-content: start;">
+                            <div style="width: ${porc.rep}; background-color: green; color: transparent;">0<div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <label>${contadores.pendentes}</label>
+
+                            <div style="width: 100px; background-color: #999; display: flex; align-items: center; justify-content: start;">
+                            <div style="width: ${porc.pen}; background-color: green; color: transparent;">0<div>
+                        </div>
+                    </div>
+                </td>
             </tr>
         `
 
     }
 
     let acumulado = `
-        <div>
-            <table class="tabela" >
+        <div style="width: 50vw;">
+            <table class="tabela" style="table-layout: auto;">
                 <thead>
                     <th>Analista</th>
                     <th>Total</th>
@@ -326,8 +355,7 @@ async function calcular_requisicao(sincronizar) {
         let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
         var orcamento = dados_orcamentos[id_orcam]
 
-        conversor_composicoes_orcamento(orcamento)
-
+        await conversor_composicoes_orcamento(orcamento)
 
         var itens = orcamento.dados_composicoes
         var estado = orcamento.dados_orcam.estado
@@ -339,10 +367,9 @@ async function calcular_requisicao(sincronizar) {
             var total_com_icms = 0
 
             trs.forEach(tr => {
-                var tds = tr.querySelectorAll('td')
 
                 if (tr.style.display !== 'none') {
-
+                    var tds = tr.querySelectorAll('td')
                     var codigo = tds[0].textContent
 
                     let quantidadeDisponivel = 0
@@ -610,7 +637,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
                 <td>
                     ${opcoes}
                 </td>
-            <tr>
+            </tr>
         `
         if (apenas_visualizar == undefined || !apenas_visualizar || (apenas_visualizar && requisicao && requisicao[codigo] && requisicao[codigo].qtde_enviar)) {
             linhas += linha
@@ -795,6 +822,7 @@ function mostrar_itens_adicionais() {
 
         trs.forEach(tr => {
             var tds = tr.querySelectorAll('td')
+
             var codigo = tds[0].textContent
 
             var container = document.getElementById(`container_${codigo}`)
@@ -832,6 +860,7 @@ function mostrar_itens_adicionais() {
 
                 tds[2].querySelector('div').insertAdjacentHTML('beforeend', acumulado)
             }
+
         })
     }
 }
@@ -1025,7 +1054,7 @@ async function salvar_requisicao(chave, chave2) {
     var pedido = orcamento.status[chave].pedido
     var novo_lancamento = orcamento.status[chave];
 
-    calcular_requisicao()
+    await calcular_requisicao()
 
     novo_lancamento.historico[chave2] = {
         status: '',
@@ -1049,7 +1078,6 @@ async function salvar_requisicao(chave, chave2) {
         trs.forEach(tr => {
 
             var tds = tr.querySelectorAll('td');
-
             var codigo = tds[0].textContent
             var partnumber = tds[1].querySelector('input')?.value || '';
             var requisicao = tds[7].querySelector('select')?.value || '';
@@ -2855,7 +2883,7 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
         comentario_status.value = orcamento.status[chave].historico[chave2].comentario
     }
 
-    calcular_requisicao()
+    await calcular_requisicao()
     mostrar_itens_adicionais()
 
 }
