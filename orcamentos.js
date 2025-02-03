@@ -83,7 +83,7 @@ function botao_limpar_painel_direito() {
 
     if (painel_direito) {
         painel_direito.innerHTML = `
-            <div class="block_reverso" onclick="preencher_orcamentos_v2(undefined, undefined, true)">
+            <div class="block_reverso" style="background-color: #222222bf;" onclick="preencher_orcamentos_v2(undefined, undefined, true)">
                 <img src="imagens/voltar.png" style="width: 50px;">
                 <p style="font-size: 0.8vw;">VOLTAR</p>
             </div>
@@ -169,11 +169,11 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
             var label_notas = ''
 
             for (pedido in pedidos) {
-                var chave_pedido = pedidos[pedido]
-                var status = chave_pedido.status
-                var num_pedido = chave_pedido.pedido
-                var tipo = chave_pedido.tipo
-                var cor;
+                let chave_pedido = pedidos[pedido]
+                let status = chave_pedido.status
+                let num_pedido = chave_pedido.pedido
+                let tipo = chave_pedido.tipo
+                let cor;
 
                 tipo == 'Venda' ? cor = '#ff9c24' : cor = '#00bfb7'
 
@@ -188,7 +188,7 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
 
                 for (chave2 in historico) {
                     var chave_historico = historico[chave2]
-                    var cor2;
+                    let cor2;
 
                     if (chave_historico.notas) {
                         var nota = chave_historico.notas[0]
@@ -232,9 +232,43 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
 
             }
 
+            let cor = '#ffc584'
+            let fonte = 'black'
+
+            if (orc.aprovacao && Object.keys(orc.aprovacao).length > 0) {
+
+                let responsaveis = orc.aprovacao
+                let valor = conversor(orc.total_geral)
+                let gerente = false
+                let diretoria = false
+
+                if (responsaveis.Gerente && responsaveis.Gerente.status) {
+                    let st = responsaveis.Gerente.status
+                    gerente = st == 'aprovado' ? true : false
+                }
+
+                if (responsaveis.Diretoria && responsaveis.Diretoria.status) {
+                    let st = responsaveis.Diretoria.status
+                    diretoria = st == 'aprovado' ? true : false
+                }
+
+                if (valor > 21000) {
+                    if (diretoria) {
+                        cor = '#4CAF50'; 
+                    } else if (gerente) {
+                        cor = '#9cc0e0';
+                    } else {
+                        cor = '#ff7777'; 
+                    }
+                } else { 
+                    cor = gerente ? '#4CAF50' : '#ff7777'; 
+                }
+
+            }
+
             if (exibir_linha) {
                 linhas += `
-                <tr class="linha_destacada">
+                <tr style="background-color: ${cor}; color: ${fonte};">
                     <td>${data}</td>
                     <td>${label_pedidos}</td>
                     <td>${label_notas}</td>
@@ -245,7 +279,7 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
                     <td style="white-space: nowrap;">${orc.total_geral}</td>
                     <td style="white-space: nowrap;">${orc.lpu_ativa}</td>
                     <td style="text-align: center;" onclick="exibir_todos_os_status('${orcamento}')">
-                        <img src="imagens/pesquisar2.png" style="width: 20px; height: 20px;">
+                        <img src="imagens/pesquisar3.png" style="width: 2vw; cursor: pointer;">
                     </td>
                 </tr>
                 `
@@ -261,7 +295,7 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
             if (modulo !== 'PROJETOS') {
                 if (Object.keys(pendencias.diretoria).length > 0) {
                     atalhos += `
-                    <div class="block_reverso" onclick="mostrar_apenas_pendencias('diretoria')">
+                    <div class="block_reverso" style="background-color: #222222bf;" onclick="mostrar_apenas_pendencias('diretoria')">
                         <img src="gifs/atencao.gif" style="width: 50px;">
                         <p style="font-size: 0.8vw;">APROVAÇÃO DA DIRETORIA</p>
                     </div>
@@ -270,7 +304,7 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
 
                 if (Object.keys(pendencias.gerente).length > 0) {
                     atalhos += `
-                    <div class="block_reverso" style="background-color: ;" onclick="mostrar_apenas_pendencias('gerente')">
+                    <div class="block_reverso" style="background-color: #222222bf;" onclick="mostrar_apenas_pendencias('gerente')">
                         <img src="gifs/atencao.gif" style="width: 50px;">
                         <p style="font-size: 0.8vw;">APROVAÇÃO DO GERENTE</p>
                     </div>
@@ -293,11 +327,11 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
             for (atalho in status_deste_modulo) {
                 var quantidade = status_deste_modulo[atalho]
                 atalhos += `
-                    <div class="block" onclick="preencher_orcamentos_v2('${atalho}')">
+                    <div class="block" style="background-color: #222222bf;" onclick="preencher_orcamentos_v2('${atalho}')">
                         <div style="width: 50px; height: 50px; display: flex; justify-content: center; align-items: center;">
                             <label class="numero">${quantidade}</label>
                         </div>
-                        <label style="font-size: 0.8vw; cursor: pointer;">${atalho}</label>
+                        <label style="font-size: 0.8vw; cursor: pointer; color: white;">${atalho}</label>
                     </div>
                 `
             }
@@ -313,7 +347,7 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
             ths += `
             <th style="text-align: center;">${cab}</th>
             `
-            if (cab !== 'Ações') {
+            if (cab !== 'Ações' && cab !== 'Aprovação') {
                 tsh += `
                 <th style="background-color: white; border-radius: 0px;">
                     <div style="position: relative;">
@@ -334,7 +368,7 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
         } else {
 
             let tabela = `
-            <table id="orcamentos_" class="tabela" style="font-size: 0.8vw;">
+            <table id="orcamentos_" class="tabela" style="font-size: 0.8vw; background-color: #222;">
                 <thead>
                     ${ths}
                 </thead>

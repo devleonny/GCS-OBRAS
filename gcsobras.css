@@ -33,6 +33,20 @@ body::before {
     z-index: -10;
 }
 
+.balao {
+    padding: 5px;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: baseline;
+    justify-content: left;
+    margin: 2vw;
+    border-radius: 5px;
+    border: 1px solid #222;
+    background-color: #222;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
 #campo-pesquisa {
     text-align: right;
     padding: 10px;
@@ -108,11 +122,12 @@ body::before {
     display: flex;
     flex-direction: column;
     justify-content: left;
-    border-radius: 3px;
+    border-radius: 2px;
     min-width: 100%;
     margin: 1px;
     color: #222;
     width: max-content;
+    box-shadow: 1px 1px #222;
 }
 
 .titulo_paginas {
@@ -879,15 +894,6 @@ a {
     font-size: 2em;
     width: 50%;
     margin: 3px;
-}
-
-.linha_destacada {
-    transition: ease-in-out;
-    cursor: pointer;
-}
-
-.linha_destacada:hover {
-    background-color: #ffa3a3;
 }
 
 .logistica {

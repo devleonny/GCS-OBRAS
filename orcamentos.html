@@ -12,6 +12,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <style>
+        td {
+            background-color: transparent;
+        }
+
         body {
             font-size: 0.8em;
             background: linear-gradient(45deg, #151749, #B12425);
@@ -150,7 +154,7 @@
 
     escutarAlteracoes('dados_orcamentos')
     let funcao_recarregar = preencher_orcamentos_v2
-    consultarDados('dados_orcamentos')
+    //consultarDados('dados_orcamentos')
 
     async function escutarAlteracoes(nome_base) {
 
