@@ -28,6 +28,8 @@ var fluxograma = {
     'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] }
 }
 
+//resumo_orcamentos()
+
 async function resumo_orcamentos() {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
@@ -124,7 +126,7 @@ async function resumo_orcamentos() {
                         <label>${contadores.pendentes}</label>
 
                             <div style="width: 100px; background-color: #999; display: flex; align-items: center; justify-content: start;">
-                            <div style="width: ${porc.pen}; background-color: green; color: transparent;">0<div>
+                            <div style="width: ${porc.pen}%; background-color: green; color: transparent;">0<div>
                         </div>
                     </div>
                 </td>
@@ -134,7 +136,7 @@ async function resumo_orcamentos() {
     }
 
     let acumulado = `
-        <div style="width: 50vw;">
+        <div>
             <table class="tabela" style="table-layout: auto;">
                 <thead>
                     <th>Analista</th>
@@ -1138,6 +1140,7 @@ async function salvar_requisicao(chave, chave2) {
     }
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/status`, st)
     await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/historico/${chave2}`, codificarUTF8(novo_lancamento.historico[chave2]))
     await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
