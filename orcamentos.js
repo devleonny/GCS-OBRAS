@@ -254,14 +254,14 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
 
                 if (valor > 21000) {
                     if (diretoria) {
-                        cor = '#4CAF50'; 
+                        cor = '#4CAF50';
                     } else if (gerente) {
                         cor = '#9cc0e0';
                     } else {
-                        cor = '#ff7777'; 
+                        cor = '#ff7777';
                     }
-                } else { 
-                    cor = gerente ? '#4CAF50' : '#ff7777'; 
+                } else {
+                    cor = gerente ? '#4CAF50' : '#ff7777';
                 }
 
             }
@@ -325,13 +325,17 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
             `
 
             for (atalho in status_deste_modulo) {
-                var quantidade = status_deste_modulo[atalho]
+                let quantidade = status_deste_modulo[atalho]
+                let nome = atalho
+                if (fluxograma[atalho].nome) {
+                    nome = fluxograma[atalho].nome
+                }
                 atalhos += `
                     <div class="block" style="background-color: #222222bf;" onclick="preencher_orcamentos_v2('${atalho}')">
                         <div style="width: 50px; height: 50px; display: flex; justify-content: center; align-items: center;">
                             <label class="numero">${quantidade}</label>
                         </div>
-                        <label style="font-size: 0.8vw; cursor: pointer; color: white;">${atalho}</label>
+                        <label style="font-size: 0.8vw; cursor: pointer; color: white;">${nome}</label>
                     </div>
                 `
             }

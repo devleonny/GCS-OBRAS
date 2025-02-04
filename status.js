@@ -11,19 +11,18 @@ var data_status = dataAtual.toLocaleString('pt-BR', {
 var anexos = {}
 
 var fluxograma = {
-    'AGUARDANDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS'] },
-    'PEDIDO DE VENDA ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
-    'PEDIDO DE SERVIÇO ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
-    'FATURAMENTO PEDIDO DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'] },
-    'FATURAMENTO PEDIDO DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'] },
-    'REMESSA DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'] },
-    'REMESSA DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'] },
-    'PEDIDO DE VENDA FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
-    'PEDIDO DE SERVIÇO FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
+    'AGUARDANDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS']},
+    'PEDIDO DE VENDA ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'FAZER REMESSA DE VENDA'},
+    'PEDIDO DE SERVIÇO ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'FAZER REMESSA DE SERVIÇO'},
+    'FATURAMENTO PEDIDO DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE VENDA'},
+    'FATURAMENTO PEDIDO DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE SERVIÇO'},
+    'REMESSA DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE REMESSA DE SERVIÇO'},
+    'REMESSA DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'],  nome: 'EMITIR NOTA DE REMESSA DE VENDA' },
+    'PEDIDO DE VENDA FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'COLOCAR STATUS DE ENVIO - VENDA'},
+    'PEDIDO DE SERVIÇO FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'COLOCAR STATUS DE ENVIO - SERVIÇO'},
     'FINALIZADO': { cor: 'blue', modulos: ['RELATÓRIOS'] },
     'MATERIAL ENVIADO': { cor: '#B3702D', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'MATERIAL ENTREGUE': { cor: '#B3702D', modulos: ['RELATÓRIOS'] },
-    'FINALIZADO': { cor: '#222', modulos: ['RELATÓRIOS'] },
     'COTAÇÃO PENDENTE': { cor: '#0a989f', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] }
 }
@@ -31,130 +30,152 @@ var fluxograma = {
 //resumo_orcamentos()
 
 async function resumo_orcamentos() {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let setores = JSON.parse(localStorage.getItem('dados_setores')) || {};
+    let setores_por_nome = {};
 
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let orcamentos_por_usuario = {}
-    delete dados_orcamentos['id']
+    Object.keys(setores).forEach(id => {
+        setores_por_nome[setores[id].nome] = setores[id];
+    });
 
-    for (id in dados_orcamentos) {
-        let orcamento = dados_orcamentos[id]
-        let analista = orcamento.dados_orcam.analista
+    let orcamentos_por_usuario = {};
+    delete dados_orcamentos['id'];
+
+    for (let id in dados_orcamentos) {
+        let orcamento = dados_orcamentos[id];
+        let analista = orcamento.dados_orcam.analista;
 
         if (!orcamentos_por_usuario[analista]) {
-            orcamentos_por_usuario[analista] = {}
+            orcamentos_por_usuario[analista] = {};
         }
 
-        orcamentos_por_usuario[analista][id] = orcamento
-
+        orcamentos_por_usuario[analista][id] = orcamento;
     }
 
-    let linhas = ''
+    let linhas = '';
 
-    for (pessoa in orcamentos_por_usuario) {
-        let orcamentos = orcamentos_por_usuario[pessoa]
-        let total = Object.keys(orcamentos).length
+    for (let pessoa in orcamentos_por_usuario) {
+        let orcamentos = orcamentos_por_usuario[pessoa];
         let contadores = {
             aprovados: 0,
             reprovados: 0,
-            pendentes: 0
-        }
+            pendentes: 0,
+            total: 0
+        };
 
-        for (id in orcamentos) {
-            let orc = orcamentos[id]
+        for (let id in orcamentos) {
+            let orc = orcamentos[id];
+
+            if (orc.status) {
+                let pedidos = orc.status;
+                for (let ped in pedidos) {
+                    let pedido = pedidos[ped];
+                    if (String(pedido.pedido).includes('?')) {
+                        contadores.pendentes += 1;
+                    } else {
+                        contadores.aprovados += 1;
+                    }
+                    contadores.total += 1;
+                }
+            } else {
+                contadores.total += 1;
+            }
+
             if (orc.aprovacao && Object.keys(orc.aprovacao).length > 0) {
-
-                let responsaveis = orc.aprovacao
-                let valor = conversor(orc.total_geral)
-                let gerente = false
-                let diretoria = false
+                let responsaveis = orc.aprovacao;
+                let valor = conversor(orc.total_geral);
+                let gerente = false;
+                let diretoria = false;
 
                 if (responsaveis.Gerente && responsaveis.Gerente.status) {
-                    let st = responsaveis.Gerente.status
-                    gerente = st == 'aprovado' ? true : false
+                    gerente = responsaveis.Gerente.status === 'aprovado';
                 }
 
                 if (responsaveis.Diretoria && responsaveis.Diretoria.status) {
-                    let st = responsaveis.Diretoria.status
-                    diretoria = st == 'aprovado' ? true : false
+                    diretoria = responsaveis.Diretoria.status === 'aprovado';
                 }
 
                 if (valor > 21000) {
                     if (diretoria) {
-                        contadores.aprovados += 1
+                        contadores.aprovados += 1;
                     } else if (gerente) {
-                        contadores.pendentes += 1
+                        contadores.pendentes += 1;
                     } else {
-                        contadores.reprovados += 1
+                        contadores.reprovados += 1;
                     }
                 } else {
                     gerente ? contadores.aprovados += 1 : contadores.reprovados += 1;
                 }
-
             }
         }
 
-        let diferenca = total - (contadores.aprovados + contadores.reprovados)
-        contadores.pendentes = contadores.pendentes + diferenca
+        // Corrigindo o cálculo de pendentes:
+        contadores.pendentes = contadores.total - (contadores.aprovados + contadores.reprovados);
 
         let porc = {
-            apr: (contadores.aprovados / total * 100).toFixed(1),
-            rep: (contadores.reprovados / total * 100).toFixed(1),
-            pen: (contadores.pendentes / total * 100).toFixed(1)
+            apr: ((contadores.aprovados / contadores.total) * 100 || 0).toFixed(0),
+            rep: ((contadores.reprovados / contadores.total) * 100 || 0).toFixed(0),
+            pen: ((contadores.pendentes / contadores.total) * 100 || 0).toFixed(0)
+        };
+
+        function div_porc(porc, cor) {
+            return `
+                <div style="width: 100px; background-color: #999; display: flex; align-items: center; justify-content: start; border-radius: 3px;">
+                    <div style="width: ${porc}%; background-color: ${cor}; text-align: center; border-radius: 3px;">
+                        <label style="color: black; margin-left: 3px;">${porc}%</label>
+                    <div>
+                </div>
+            `;
         }
 
         linhas += `
             <tr style="background-color: white; color: #222;">
                 <td>${pessoa}</td>
-                <td style="text-align: right;">${total}</td>
+                <td>${setores_por_nome[pessoa]?.setor || '--'}</td>
+                <td style="text-align: center;">${contadores.total}</td>
                 <td>
                     <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                         <label>${contadores.aprovados}</label>
-                        <label class="numero">${(contadores.aprovados / total * 100).toFixed(1)}%</label>
+                        ${div_porc(porc.apr, 'green')}
                     </div>
                 </td>
                 <td>
                     <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                         <label>${contadores.reprovados}</label>
-
-                        <div style="width: 100px; background-color: #999; display: flex; align-items: center; justify-content: start;">
-                            <div style="width: ${porc.rep}; background-color: green; color: transparent;">0<div>
-                        </div>
+                        ${div_porc(porc.rep, 'red')}
                     </div>
                 </td>
                 <td>
                     <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                         <label>${contadores.pendentes}</label>
-
-                            <div style="width: 100px; background-color: #999; display: flex; align-items: center; justify-content: start;">
-                            <div style="width: ${porc.pen}%; background-color: green; color: transparent;">0<div>
-                        </div>
+                        ${div_porc(porc.pen, 'orange')}
                     </div>
                 </td>
             </tr>
-        `
-
+        `;
     }
 
+    let colunas = ['Analista', 'Setor', 'Total', 'Aprovados', 'Reprovados', 'Pendentes'];
+    let ths = colunas.map(col => `<th>${col}</th>`).join('');
+
     let acumulado = `
+        <img src="imagens/BG.png" style="height: 70px; position: absolute; top: 3px; left: 3px;">
+        <label>Relatório de orçamentos por Pessoa</label>
         <div>
             <table class="tabela" style="table-layout: auto;">
                 <thead>
-                    <th>Analista</th>
-                    <th>Total</th>
-                    <th>Aprovados</th>
-                    <th>Reprovados</th>
-                    <th>Pendentes</th>
+                    <tr>${ths}</tr>
                 </thead>
                 <tbody>
                     ${linhas}
                 </tbody>
             </table>
         </div>
-    `
+    `;
 
-    openPopup_v2(acumulado)
-
+    openPopup_v2(acumulado);
 }
+
 
 async function painel_adicionar_pedido() {
 
