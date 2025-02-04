@@ -26,7 +26,7 @@ var fluxograma = {
     'FINALIZADO': { cor: '#222', modulos: ['RELATÓRIOS'] },
     'COTAÇÃO PENDENTE': { cor: '#0a989f', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] },
-    'RETORNO MATERIAIS': {cor : '#aacc14', modulos: ['LOGÍSTICA', 'RELATÓRIOS']},
+    'RETORNO DE MATERIAIS': {cor : '#aacc14', modulos: ['LOGÍSTICA', 'RELATÓRIOS']},
 }
 
 async function painel_adicionar_pedido() {
@@ -1774,6 +1774,8 @@ async function abrir_esquema(id) {
                 `
             }
 
+            console.log(chave_pedido)
+
             var linhas = `
                 <div style="display: flex; flex-direction: column; gap: 15px;">
                     <hr style="width: 80%;">
@@ -1834,7 +1836,7 @@ async function abrir_esquema(id) {
                                     onclick="iniciar_cotacao('${chave_pedido}', '${id}')">
                                     <label>Nova <strong>Cotação</strong></label>
                                 </div>
-                                <div class="contorno_botoes" style="background-color: ${fluxograma['RETORNO MATERIAIS'].cor};"
+                                <div class="contorno_botoes" style="background-color: ${fluxograma['RETORNO DE MATERIAIS'].cor};"
                                     onclick="retorno_de_materiais('${chave_pedido}', '${id}')">
                                     <label>Retorno de <strong>Materiais</strong></label>
                                 </div>
@@ -1997,6 +1999,7 @@ async function iniciar_cotacao(chave, id_orcam) {
 
 async function retorno_de_materiais(chave_pedido, id) {
     
+    console.log(chave_pedido)
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id];
@@ -2035,7 +2038,7 @@ async function retorno_de_materiais(chave_pedido, id) {
     
     </table>
     
-    <button id="botao_salvar_retorno" onclick='salvar_materiais_retorno()'>Salvar</button>
+    <button id="botao_salvar_retorno" onclick="salvar_materiais_retorno('${chave_pedido}')">Salvar</button>
 
     `
 
@@ -2043,21 +2046,43 @@ async function retorno_de_materiais(chave_pedido, id) {
 
 }
 
-async function salvar_materiais_retorno() {
+async function salvar_materiais_retorno(chave_pedido) {
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[id_orcam];
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     
     let tabelaRetornoMateriais = document.querySelector("#tabelaRetornoMateriais")
 
     let inputsQtde = tabelaRetornoMateriais.querySelectorAll(".dados_qtde_retorno")
     let tdsDescricao = tabelaRetornoMateriais.querySelectorAll(".dados_descricao_retorno")
 
-    let dadosMateriais = {};
+    let dadosMateriaisRetorno = {};
 
     for (let i = 0; i < inputsQtde.length; i++) {
         let codigo = tdsDescricao[i].dataset.codigo; // Obtém o texto da descrição
         let quantidade = Number(inputsQtde[i].value); // Obtém o valor do input
     
-        dadosMateriais[codigo] = quantidade;
+        dadosMateriaisRetorno[codigo] = quantidade;
     }
+
+    let id_compartilhado = unicoID()
+    let data_completa = new Date().toLocaleString('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+    });
+
+    orcamento.status[chave_pedido].status = 'RETORNO DE MATERIAIS'
+    orcamento.status[chave_pedido].historico[id_compartilhado] = {
+        status: 'RETORNO DE MATERIAIS',
+        data: data_completa,
+        executor: acesso.usuario,
+        materiaisRetorno: dadosMateriaisRetorno
+    };
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+
+    abrir_esquema(id_orcam)
 
 }
 
