@@ -2,7 +2,6 @@ var status_deste_modulo = [];
 var modulo = localStorage.getItem('modulo_ativo') || ''
 var filtrosAtivos = {};
 var filtrosAtivosPagamentos = {};
-var botao_status_ativo = ''
 var anexos_pagamentos = {};
 var anx_parceiros = {};
 var intervaloCompleto;
@@ -36,11 +35,83 @@ function pesquisar_v2(coluna, texto) {
     });
 }
 
-async function preencher_orcamentos_v2(st) {
-
-    if (st !== undefined) {
-        botao_status_ativo = st
+function filtros_de_orcamento(dados) {
+    let dados_filtrados = {
+        gerente: {},
+        diretoria: {}
     }
+
+    for (st_existentes in fluxograma) {
+        dados_filtrados[st_existentes] = {}
+    }
+
+    for (id in dados) {
+        let orcamento = dados[id]
+
+        if (orcamento.operacao && orcamento.operacao == 'excluido') {
+            continue
+        }
+
+        if (orcamento.status) {
+
+            let pedidos = orcamento.status
+
+            for (chave1 in pedidos) {
+                let pedido = pedidos[chave1]
+                if (String(pedido.pedido).includes('?')) {
+
+                    if (conversor(orcamento.total_geral) > 20000) {
+                        dados_filtrados.diretoria[id] = orcamento
+                    }
+
+                    dados_filtrados.gerente[id] = orcamento
+
+                }
+
+                if (dados_filtrados[pedido.status]) {
+                    dados_filtrados[pedido.status][id] = orcamento
+                }
+            }
+        } else {
+            dados_filtrados['AGUARDANDO'][id] = orcamento
+        }
+    }
+
+    return dados_filtrados
+
+}
+
+async function mostrar_apenas_pendencias(filtros) {
+
+    localStorage.setItem('filtroAtivo', filtros)
+
+    if (filtros == 'gerente' || filtros == 'diretoria') {
+        localStorage.setItem('modulo_ativo', 'RELATÓRIOS')
+        modulo = 'RELATÓRIOS'
+    }
+
+    await preencher_orcamentos_v2(filtros)
+
+    botao_limpar_painel_direito()
+
+}
+
+function botao_limpar_painel_direito() {
+
+    let painel_direito = document.getElementById('painel_direito')
+
+    if (painel_direito) {
+        painel_direito.innerHTML = `
+            <div class="block_reverso" style="background-color: #222222bf;" onclick="preencher_orcamentos_v2(undefined, true)">
+                <img src="imagens/voltar.png" style="width: 50px;">
+                <p style="font-size: 0.8vw;">VOLTAR</p>
+            </div>
+        `
+    }
+
+}
+
+async function preencher_orcamentos_v2(filtros, remover) {
 
     var div_orcamentos = document.getElementById('orcamentos')
     if (!div_orcamentos) {
@@ -54,11 +125,52 @@ async function preencher_orcamentos_v2(st) {
         dados_orcamentos = await recuperarDados('dados_orcamentos')
     }
 
-    document.getElementById('nome_modulo').textContent = modulo
+    let dados_filtrados = filtros_de_orcamento(dados_orcamentos)
 
-    //Eleminar o ID que o DB cria... 
-    delete dados_orcamentos['id']
+    if (remover) {
+        localStorage.removeItem('filtroAtivo')
+
+    } else {
+        let filtroAtivo = localStorage.getItem('filtroAtivo')
+
+        if (filtros == undefined && filtroAtivo) {
+            filtros = filtroAtivo
+        }
+
+        if (filtros !== undefined) {
+            dados_orcamentos = dados_filtrados[filtros]
+        }
+    }
+
+    document.getElementById('nome_modulo').textContent = modulo
+    let nome = filtros
+
+    //Resetar a tabela caso o filtro não pertença ao módulo;
+    if (fluxograma[filtros]) {
+        let reiniciar = true
+        let modulos = fluxograma[filtros].modulos
+
+        modulos.forEach(mod => {
+            if (modulo == mod) {
+                reiniciar = false
+            }
+        })
+
+        if (reiniciar) {
+            localStorage.removeItem('filtroAtivo')
+            return preencher_orcamentos_v2()
+        }
+    }
     //Fim
+
+    if (fluxograma[filtros] && fluxograma[filtros].nome) {
+        nome = fluxograma[filtros].nome
+    }
+    document.getElementById('nome_filtro').textContent = nome
+
+    // Eleminar o ID que o DB cria...
+    delete dados_orcamentos['id']
+    // Fim...
 
     dados_orcamentos = descodificarUTF8(dados_orcamentos)
 
@@ -96,16 +208,16 @@ async function preencher_orcamentos_v2(st) {
             var label_notas = ''
 
             for (pedido in pedidos) {
-                var chave_pedido = pedidos[pedido]
-                var status = chave_pedido.status
-                var num_pedido = chave_pedido.pedido
-                var tipo = chave_pedido.tipo
-                var cor;
+                let chave_pedido = pedidos[pedido]
+                let status = chave_pedido.status
+                let num_pedido = chave_pedido.pedido
+                let tipo = chave_pedido.tipo
+                let cor;
 
                 tipo == 'Venda' ? cor = '#ff9c24' : cor = '#00bfb7'
 
                 label_pedidos += `
-                    <div class="etiqueta_pedidos" style="background-color: ${cor}">
+                    <div class="etiqueta_pedidos" style="background-color: ${cor};"> 
                         <label style="font-size: 0.7vw; margin: 2px;">${tipo}</label>
                         <label style="font-size: 0.9vw; margin: 2px;"><strong>${num_pedido}</strong></label>
                     </div>
@@ -115,7 +227,7 @@ async function preencher_orcamentos_v2(st) {
 
                 for (chave2 in historico) {
                     var chave_historico = historico[chave2]
-                    var cor2;
+                    let cor2;
 
                     if (chave_historico.notas) {
                         var nota = chave_historico.notas[0]
@@ -129,7 +241,7 @@ async function preencher_orcamentos_v2(st) {
                     }
                 }
 
-                if (fluxograma[status] && (st == undefined || st == status)) {
+                if (fluxograma[status]) {
 
                     var modulos = fluxograma[status].modulos
                     if (modulos.includes(modulo)) {
@@ -148,7 +260,7 @@ async function preencher_orcamentos_v2(st) {
                 var aguardando = 'AGUARDANDO'
                 var modulos = fluxograma[aguardando].modulos
 
-                if (modulos.includes(modulo) && (st == undefined || aguardando == status)) {
+                if (modulos.includes(modulo)) {
                     exibir_linha = true
                     if (!status_deste_modulo[aguardando]) {
                         status_deste_modulo[aguardando] = 0
@@ -159,9 +271,53 @@ async function preencher_orcamentos_v2(st) {
 
             }
 
+            let cor = '#ffc584'
+            let fonte = 'black'
+
+            if (orc.aprovacao && Object.keys(orc.aprovacao).length > 0) {
+
+                let responsaveis = orc.aprovacao
+                let valor = conversor(orc.total_geral)
+                let gerente = false
+                let diretoria = false
+
+                if (responsaveis.Gerente && responsaveis.Gerente.status) {
+                    let st = responsaveis.Gerente.status
+                    gerente = st == 'aprovado' ? true : false
+                }
+
+                if (responsaveis.Diretoria && responsaveis.Diretoria.status) {
+                    let st = responsaveis.Diretoria.status
+                    diretoria = st == 'aprovado' ? true : false
+                }
+
+                if (valor > 21000) {
+                    if (diretoria) {
+                        cor = '#4CAF50';
+                    } else if (gerente) {
+                        cor = '#9cc0e0';
+                    } else {
+                        cor = '#ff7777';
+                    }
+                } else {
+                    cor = gerente ? '#4CAF50' : '#ff7777';
+                }
+
+            }
+
+            if (orc.status && cor == '#ffc584') {
+                let pedidos = orc.status
+                for (id in pedidos) {
+                    let pedido = pedidos[id]
+                    if (!String(pedido.pedido).includes('?')) {
+                        cor = '#4CAF50'
+                    }
+                }
+            }
+
             if (exibir_linha) {
                 linhas += `
-                <tr class="linha_destacada">
+                <tr style="background-color: ${cor}; color: ${fonte};">
                     <td>${data}</td>
                     <td>${label_pedidos}</td>
                     <td>${label_notas}</td>
@@ -172,7 +328,7 @@ async function preencher_orcamentos_v2(st) {
                     <td style="white-space: nowrap;">${orc.total_geral}</td>
                     <td style="white-space: nowrap;">${orc.lpu_ativa}</td>
                     <td style="text-align: center;" onclick="exibir_todos_os_status('${orcamento}')">
-                        <img src="imagens/pesquisar2.png" style="width: 20px; height: 20px;">
+                        <img src="imagens/pesquisar3.png" style="width: 2vw; cursor: pointer;">
                     </td>
                 </tr>
                 `
@@ -180,19 +336,59 @@ async function preencher_orcamentos_v2(st) {
         }
 
         var painel_direito = document.getElementById('painel_direito')
-        if (painel_direito) {
-            var atalhos = ''
+        if (filtros) {
+            botao_limpar_painel_direito()
+        } else {
+            var atalhos = `
+            <div class="block" onclick="window.location.href = 'adicionar.html'">
+                <img src="imagens/projeto.png" style="width: 50px;">
+                <p style="font-size: 0.8vw;">CRIAR ORÇAMENTO</p>
+            </div>
+            `
+
+            if (modulo !== 'PROJETOS') {
+                if (Object.keys(dados_filtrados.diretoria).length > 0) {
+                    atalhos += `
+                    <div class="block" onclick="mostrar_apenas_pendencias('diretoria')">
+                        <img src="gifs/atencao.gif" style="width: 50px;">
+                        <p style="font-size: 0.8vw;">APROVAÇÃO DA DIRETORIA</p>
+                    </div>
+                    `
+                }
+
+                if (Object.keys(dados_filtrados.gerente).length > 0) {
+                    atalhos += `
+                    <div class="block" onclick="mostrar_apenas_pendencias('gerente')">
+                        <img src="gifs/atencao.gif" style="width: 50px;">
+                        <p style="font-size: 0.8vw;">APROVAÇÃO DO GERENTE</p>
+                    </div>
+                    `
+                }
+            }
+
+            atalhos += `
+            <div class="block" onclick="resumo_orcamentos()">
+                <img src="gifs/atencao.gif" style="width: 50px;">
+                <p style="font-size: 0.8vw;">ORÇAMENTOS POR ANALISTA</p>
+            </div>
+            `
+
             for (atalho in status_deste_modulo) {
-                var quantidade = status_deste_modulo[atalho]
+                let quantidade = status_deste_modulo[atalho]
+                let nome = atalho
+                if (fluxograma[atalho].nome) {
+                    nome = fluxograma[atalho].nome
+                }
                 atalhos += `
-                    <div class="block" onclick="preencher_orcamentos_v2('${atalho}')">
+                    <div class="block" style="background-color: #222222bf;" onclick="mostrar_apenas_pendencias('${atalho}')">
                         <div style="width: 50px; height: 50px; display: flex; justify-content: center; align-items: center;">
                             <label class="numero">${quantidade}</label>
                         </div>
-                        <label style="font-size: 0.8vw; cursor: pointer;">${atalho}</label>
+                        <label style="font-size: 0.8vw; cursor: pointer; color: white;">${nome}</label>
                     </div>
                 `
             }
+
             painel_direito.innerHTML = atalhos
         }
 
@@ -204,7 +400,7 @@ async function preencher_orcamentos_v2(st) {
             ths += `
             <th style="text-align: center;">${cab}</th>
             `
-            if (cab !== 'Ações') {
+            if (cab !== 'Ações' && cab !== 'Aprovação') {
                 tsh += `
                 <th style="background-color: white; border-radius: 0px;">
                     <div style="position: relative;">
@@ -225,7 +421,7 @@ async function preencher_orcamentos_v2(st) {
         } else {
 
             let tabela = `
-            <table id="orcamentos_" class="tabela" style="font-size: 0.8vw;">
+            <table id="orcamentos_" class="tabela" style="font-size: 0.8vw; background-color: #222;">
                 <thead>
                     ${ths}
                 </thead>
@@ -236,7 +432,7 @@ async function preencher_orcamentos_v2(st) {
                     ${linhas}
                 </tbody>
             </table>
-        `
+            `
             div_orcamentos.insertAdjacentHTML('beforeend', tabela)
         }
     }
@@ -250,11 +446,7 @@ async function recuperar_orcamentos() {
 
     if (document.title == 'ORÇAMENTOS') {
 
-        if (botao_status_ativo !== '') {
-            preencher_orcamentos_v2(botao_status_ativo)
-        } else {
-            preencher_orcamentos_v2()
-        }
+        await preencher_orcamentos_v2()
     }
 }
 

@@ -614,7 +614,7 @@ async function recuperar() {
 
     return new Promise((resolve, reject) => {
         var requisicoes = {
-            'categorias': 'categorias',
+            'categorias': 'dados_categorias',
             'vendedores': 'vendedores',
             'etiquetas': 'dados_etiquetas',
             'comentarios': 'dados_comentarios'

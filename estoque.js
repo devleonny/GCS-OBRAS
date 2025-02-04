@@ -779,7 +779,7 @@ async function salvar_linha(img) {
     let codigo = gerar_id_5_digitos()
     let tds = tr.querySelectorAll('td')
 
-    let dados_estoque = await recuperarDados('dados_estoques') || {}
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
 
     let item = {
         partnumber: tds[1].querySelector('input').value,
@@ -800,7 +800,7 @@ async function salvar_linha(img) {
     }
 
     dados_estoque[codigo] = item
-    await inserirDados(dados_estoque, 'dados_estoques')
+    await inserirDados(dados_estoque, 'dados_estoque')
 
     filtrosAtivosEstoques[5] = item.descricao
 

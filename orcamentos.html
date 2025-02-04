@@ -12,6 +12,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <style>
+        td {
+            background-color: transparent;
+        }
+
         body {
             font-size: 0.8em;
             background: linear-gradient(45deg, #151749, #B12425);
@@ -107,8 +111,10 @@
         <div class="top">
 
             <img src="imagens/BG.png" style="width: 150px;">
-
-            <label class="novo_titulo" id="nome_modulo"></label>
+            <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; color: white;">
+                <label class="novo_titulo" id="nome_modulo"></label>
+                <label id="nome_filtro"></label>
+            </div>
 
             <div style="display: flex; justify-content: center; gap: 10px;">
                 <div style="display: flex; flex-direction: column; gap: 10px; height: 100%;">
@@ -118,7 +124,7 @@
                 <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
                         onclick="window.location.href='inicial.html'">
-                        <label style="color: white;">Voltar</label>
+                        <label style="color: white;">Menu Inicial</label>
                         <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
                     </div>
                 </div>
@@ -128,14 +134,6 @@
         <div style="display: flex; gap: 10px;">
             <div id="orcamentos"></div>
             <div style="display: grid; width: max-content; height: max-content; gap: 20px;">
-                <div class="block" onclick="window.location.href = 'adicionar.html'">
-                    <img src="imagens/projeto.png" style="width: 50px;">
-                    <p style="font-size: 0.8vw;">CRIAR ORÇAMENTO</p>
-                </div>
-                <div class="block_reverso" onclick="preencher_orcamentos_v2()">
-                    <img src="imagens/duplicar.png" style="width: 50px;">
-                    <p style="font-size: 0.8vw;">TODOS OS ORÇAMENTOS</p>
-                </div>
                 <div id="painel_direito" class="containerX"
                     style="width: max-content; height: max-content; grid-template-columns: repeat(1, 1fr);">
                 </div>

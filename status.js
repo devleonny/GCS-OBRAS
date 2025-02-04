@@ -11,22 +11,169 @@ var data_status = dataAtual.toLocaleString('pt-BR', {
 var anexos = {}
 
 var fluxograma = {
-    'AGUARDANDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS'] },
-    'PEDIDO DE VENDA ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
-    'PEDIDO DE SERVIÇO ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
-    'FATURAMENTO PEDIDO DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'] },
-    'FATURAMENTO PEDIDO DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'] },
-    'REMESSA DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'] },
-    'REMESSA DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'] },
-    'PEDIDO DE VENDA FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
-    'PEDIDO DE SERVIÇO FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
+    'AGUARDANDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS']},
+    'PEDIDO DE VENDA ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'FAZER REMESSA DE VENDA'},
+    'PEDIDO DE SERVIÇO ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'FAZER REMESSA DE SERVIÇO'},
+    'FATURAMENTO PEDIDO DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE VENDA'},
+    'FATURAMENTO PEDIDO DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE SERVIÇO'},
+    'REMESSA DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE REMESSA DE SERVIÇO'},
+    'REMESSA DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'],  nome: 'EMITIR NOTA DE REMESSA DE VENDA' },
+    'PEDIDO DE VENDA FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'COLOCAR STATUS DE ENVIO VENDA'},
+    'PEDIDO DE SERVIÇO FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'COLOCAR STATUS DE ENVIO SERVIÇO'},
     'FINALIZADO': { cor: 'blue', modulos: ['RELATÓRIOS'] },
     'MATERIAL ENVIADO': { cor: '#B3702D', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'MATERIAL ENTREGUE': { cor: '#B3702D', modulos: ['RELATÓRIOS'] },
-    'FINALIZADO': { cor: '#222', modulos: ['RELATÓRIOS'] },
     'COTAÇÃO PENDENTE': { cor: '#0a989f', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] }
 }
+
+async function resumo_orcamentos() {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let setores = JSON.parse(localStorage.getItem('dados_setores')) || {};
+    let setores_por_nome = {};
+
+    Object.keys(setores).forEach(id => {
+        setores_por_nome[setores[id].nome] = setores[id];
+    });
+
+    let orcamentos_por_usuario = {};
+    delete dados_orcamentos['id'];
+
+    for (let id in dados_orcamentos) {
+        let orcamento = dados_orcamentos[id];
+        let analista = orcamento.dados_orcam.analista;
+
+        if (!orcamentos_por_usuario[analista]) {
+            orcamentos_por_usuario[analista] = {};
+        }
+
+        orcamentos_por_usuario[analista][id] = orcamento;
+    }
+
+    let linhas = '';
+
+    for (let pessoa in orcamentos_por_usuario) {
+        let orcamentos = orcamentos_por_usuario[pessoa];
+        let contadores = {
+            aprovados: 0,
+            reprovados: 0,
+            pendentes: 0,
+            total: 0
+        };
+
+        for (let id in orcamentos) {
+            let orc = orcamentos[id];
+
+            if (orc.status) {
+                let pedidos = orc.status;
+                for (let ped in pedidos) {
+                    let pedido = pedidos[ped];
+                    if (String(pedido.pedido).includes('?')) {
+                        contadores.pendentes += 1;
+                    } else {
+                        contadores.aprovados += 1;
+                    }
+                    contadores.total += 1;
+                }
+            } else {
+                contadores.total += 1;
+            }
+
+            if (orc.aprovacao && Object.keys(orc.aprovacao).length > 0) {
+                let responsaveis = orc.aprovacao;
+                let valor = conversor(orc.total_geral);
+                let gerente = false;
+                let diretoria = false;
+
+                if (responsaveis.Gerente && responsaveis.Gerente.status) {
+                    gerente = responsaveis.Gerente.status === 'aprovado';
+                }
+
+                if (responsaveis.Diretoria && responsaveis.Diretoria.status) {
+                    diretoria = responsaveis.Diretoria.status === 'aprovado';
+                }
+
+                if (valor > 21000) {
+                    if (diretoria) {
+                        contadores.aprovados += 1;
+                    } else if (gerente) {
+                        contadores.pendentes += 1;
+                    } else {
+                        contadores.reprovados += 1;
+                    }
+                } else {
+                    gerente ? contadores.aprovados += 1 : contadores.reprovados += 1;
+                }
+            }
+        }
+
+        // Corrigindo o cálculo de pendentes:
+        contadores.pendentes = contadores.total - (contadores.aprovados + contadores.reprovados);
+
+        let porc = {
+            apr: ((contadores.aprovados / contadores.total) * 100 || 0).toFixed(0),
+            rep: ((contadores.reprovados / contadores.total) * 100 || 0).toFixed(0),
+            pen: ((contadores.pendentes / contadores.total) * 100 || 0).toFixed(0)
+        };
+
+        function div_porc(porc, cor) {
+            return `
+                <div style="width: 100px; background-color: #dfdfdf; display: flex; align-items: center; justify-content: start; border-radius: 3px;">
+                    <div style="width: ${porc}%; background-color: ${cor}; text-align: center; border-radius: 3px;">
+                        <label style="color: black; margin-left: 3px;">${porc}%</label>
+                    <div>
+                </div>
+            `;
+        }
+
+        linhas += `
+            <tr style="background-color: white; color: #222;">
+                <td>${pessoa}</td>
+                <td>${setores_por_nome[pessoa]?.setor || '--'}</td>
+                <td style="text-align: center;">${contadores.total}</td>
+                <td>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <label>${contadores.aprovados}</label>
+                        ${div_porc(porc.apr, '#4CAF50')}
+                    </div>
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <label>${contadores.reprovados}</label>
+                        ${div_porc(porc.rep, 'red')}
+                    </div>
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <label>${contadores.pendentes}</label>
+                        ${div_porc(porc.pen, 'orange')}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    let colunas = ['Analista', 'Setor', 'Total', 'Aprovados', 'Reprovados', 'Pendentes'];
+    let ths = colunas.map(col => `<th>${col}</th>`).join('');
+
+    let acumulado = `
+        <img src="imagens/BG.png" style="height: 70px; position: absolute; top: 3px; left: 3px;">
+        <label>Relatório de orçamentos por Pessoa</label>
+        <div>
+            <table class="tabela" style="table-layout: auto;">
+                <thead>
+                    <tr>${ths}</tr>
+                </thead>
+                <tbody>
+                    ${linhas}
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    openPopup_v2(acumulado);
+}
+
 
 async function painel_adicionar_pedido() {
 
@@ -227,7 +374,7 @@ async function calcular_requisicao(sincronizar) {
         let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
         var orcamento = dados_orcamentos[id_orcam]
 
-        conversor_composicoes_orcamento(orcamento)
+        await conversor_composicoes_orcamento(orcamento)
 
         var itens = orcamento.dados_composicoes
         var estado = orcamento.dados_orcam.estado
@@ -239,10 +386,9 @@ async function calcular_requisicao(sincronizar) {
             var total_com_icms = 0
 
             trs.forEach(tr => {
-                var tds = tr.querySelectorAll('td')
 
                 if (tr.style.display !== 'none') {
-
+                    var tds = tr.querySelectorAll('td')
                     var codigo = tds[0].textContent
 
                     let quantidadeDisponivel = 0
@@ -397,7 +543,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
                         if (requisicao.codigo == item.codigo) {
 
-                            qtde = item.qtde - requisicao.qtde_enviar
+                            qtde -= requisicao.qtde_enviar
 
                         }
 
@@ -407,6 +553,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
             })
         })
+
         infos.forEach(item => {
 
             if (dados_composicoes[codigo] && dados_composicoes[codigo][item]) {
@@ -477,38 +624,39 @@ async function carregar_itens(apenas_visualizar, requisicao) {
         }
 
         var linha = `
-            <tr>
-            <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
-            <td style="text-align: center;">
-            ${part_number}
-            </td>
-            <td style="position: relative;">
-                <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
-                ${elements}
-                </div>
-                <img src="imagens/construcao.png" style="position: absolute; bottom: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">
-            </td>
-            <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
-                ${selectTipo}
-            </td>
-            <td style="text-align: center;">
-                ${quantidade}
-            </td>
-            <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                <label></label>
-                <br>
-                <br>
-                <label style="color: red; font-size: 1.0em;"></label>
-            </td>
-            <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                <label></label>
-                <br>
-                <br>
-                <label style="color: red; font-size: 1.0em;"></label>
-            </td>
-            <td>
-                ${opcoes}
-            </td>
+            <tr style="background-color: white;">
+                <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
+                <td style="text-align: center;">
+                ${part_number}
+                </td>
+                <td style="position: relative;">
+                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
+                    ${elements}
+                    </div>
+                    <img src="imagens/construcao.png" style="position: absolute; bottom: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">
+                </td>
+                <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
+                    ${selectTipo}
+                </td>
+                <td style="text-align: center;">
+                    ${quantidade}
+                </td>
+                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                    <label></label>
+                    <br>
+                    <br>
+                    <label style="color: red; font-size: 1.0em;"></label>
+                </td>
+                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                    <label></label>
+                    <br>
+                    <br>
+                    <label style="color: red; font-size: 1.0em;"></label>
+                </td>
+                <td>
+                    ${opcoes}
+                </td>
+            </tr>
         `
         if (apenas_visualizar == undefined || !apenas_visualizar || (apenas_visualizar && requisicao && requisicao[codigo] && requisicao[codigo].qtde_enviar)) {
             linhas += linha
@@ -693,6 +841,7 @@ function mostrar_itens_adicionais() {
 
         trs.forEach(tr => {
             var tds = tr.querySelectorAll('td')
+
             var codigo = tds[0].textContent
 
             var container = document.getElementById(`container_${codigo}`)
@@ -730,6 +879,7 @@ function mostrar_itens_adicionais() {
 
                 tds[2].querySelector('div').insertAdjacentHTML('beforeend', acumulado)
             }
+
         })
     }
 }
@@ -923,7 +1073,7 @@ async function salvar_requisicao(chave, chave2) {
     var pedido = orcamento.status[chave].pedido
     var novo_lancamento = orcamento.status[chave];
 
-    calcular_requisicao()
+    await calcular_requisicao()
 
     novo_lancamento.historico[chave2] = {
         status: '',
@@ -947,7 +1097,6 @@ async function salvar_requisicao(chave, chave2) {
         trs.forEach(tr => {
 
             var tds = tr.querySelectorAll('td');
-
             var codigo = tds[0].textContent
             var partnumber = tds[1].querySelector('input')?.value || '';
             var requisicao = tds[7].querySelector('select')?.value || '';
@@ -1010,6 +1159,7 @@ async function salvar_requisicao(chave, chave2) {
     }
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/status`, st)
     await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/historico/${chave2}`, codificarUTF8(novo_lancamento.historico[chave2]))
     await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
@@ -1054,15 +1204,22 @@ function botao_novo_pagamento(ch_pedido) {
 async function exibir_todos_os_status(id) {
     overlay.style.display = 'block'
 
-    var detalhes = document.getElementById('detalhes')
+    let espelho_ocorrencias = document.getElementById('espelho_ocorrencias')
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let detalhes = document.getElementById('detalhes')
     if (detalhes) {
         detalhes.remove()
+    }
+    if (espelho_ocorrencias) {
+        espelho_ocorrencias.remove()
     }
 
     id_orcam = id
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var orcamento = dados_orcamentos[id]
+
+    console.log(orcamento)
 
     var acumulado = ''
 
@@ -1073,22 +1230,22 @@ async function exibir_todos_os_status(id) {
     </div>
     `
 
-    var analista = dados_orcamentos[id]['dados_orcam'].analista
+    var analista = orcamento.dados_orcam.analista
     var acumulado_botoes = ''
 
     acumulado_botoes += `
-    <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="abrir_esquema('${id}')">
-        <img src="imagens/esquema.png" style="width: 48px; height: 48px; margin: 3px;">
-        <label style="cursor: pointer;">Histórico</label>
-    </div>
-    <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_pdf('${id}')">
-        <img src="imagens/pdf.png" style="width: 55px;">
-        <label style="cursor: pointer;">Abrir Orçamento em PDF</label>
-    </div>
-    <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_excel('${id}')">
-        <img src="imagens/excel.png">
-        <label style="cursor: pointer;">Baixar Orçamento em Excel</label>
-    </div>
+        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="abrir_esquema('${id}')">
+            <img src="imagens/esquema.png" style="width: 48px; height: 48px; margin: 3px;">
+            <label style="cursor: pointer;">Histórico</label>
+        </div>
+        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_pdf('${id}')">
+            <img src="imagens/pdf.png" style="width: 55px;">
+            <label style="cursor: pointer;">Abrir Orçamento em PDF</label>
+        </div>
+        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_excel('${id}')">
+            <img src="imagens/excel.png">
+            <label style="cursor: pointer;">Baixar Orçamento em Excel</label>
+        </div>
     `
 
     if (orcamento.lpu_ativa == 'LPU CARREFOUR') {
@@ -1100,10 +1257,10 @@ async function exibir_todos_os_status(id) {
     `}
 
     acumulado_botoes += `
-    <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_duplicar('${id}')">
-        <img src="imagens/duplicar.png">
-        <label style="cursor: pointer;">Duplicar Orçamento</label>
-    </div>
+        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_duplicar('${id}')">
+            <img src="imagens/duplicar.png">
+            <label style="cursor: pointer;">Duplicar Orçamento</label>
+        </div>
     `
 
     if ((modulo == 'PROJETOS' && document.title !== 'Projetos' && analista == acesso.nome_completo) || (acesso.permissao == 'adm' || acesso.permissao == 'fin')) {
@@ -1123,11 +1280,87 @@ async function exibir_todos_os_status(id) {
         acumulado_botoes += botao_novo_pedido(id)
     }
 
+    let data = new Date().toLocaleString('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+    });
+
+    let responsaveis = ['Gerente']
+    let painel_aprovacao = ''
+    if (conversor(orcamento.total_geral) > 21000) {
+        responsaveis.push('Diretoria')
+    }
+
+    responsaveis.forEach(responsavel => {
+        if (orcamento.aprovacao && orcamento.aprovacao[responsavel]) {
+            let aprovado = orcamento.aprovacao[responsavel]
+            let cor = aprovado.status == 'aprovado' ? '#4CAF50' : '#B12425'
+            let img = aprovado.status == 'aprovado' ? 'concluido' : 'remover'
+            let botao_cancelar = ''
+            if (
+                acesso.permissao == 'adm' ||
+                (responsavel == 'Gerente' && (acesso.permissao == 'gerente' || acesso.permissao == 'diretoria') ||
+                    (responsavel == 'Diretoria' && acesso.permissao == 'diretoria')
+                )
+            ) {
+                botao_cancelar = `<button style="background-color: #222;" onclick="remover_reprovacao('${responsavel}')">Cancelar</button>`
+            }
+
+            painel_aprovacao += `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+                <div class="contorno">
+                    <div class="avenida_contorno" style="margin: 0px; padding: 3px; background-color: ${cor}47;">
+                        <div style="position: relative; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                            <label style="padding: 5px;">${String(aprovado.status).toUpperCase()} por ${aprovado.usuario} <strong>${responsavel}</strong></label>
+                            <textarea rows="3" style="width: 100%; padding: 0px; border: none;" readOnly>${aprovado.justificativa}</textarea>
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+                                <label style="font-size: 0.8vw;">${aprovado.data}</label>
+                                ${botao_cancelar}
+                            </div>
+                        </div>
+                    </div>
+                </div>    
+                <img src="imagens/${img}.png">
+            </div>
+            `
+        } else {
+
+            if (
+                acesso.permissao == 'adm' ||
+                (responsavel == 'Gerente' && acesso.permissao == 'gerente') ||
+                (responsavel == 'Diretoria' && acesso.permissao == 'diretoria')
+            ) {
+
+                painel_aprovacao += `
+                <div class="contorno">
+                    <div class="avenida_contorno" style="margin: 0px; background-color: #097fe661;">
+                        <div style="position: relative; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                            <label>Aprovação ${responsavel}</label>
+                            <textarea rows="3" id="justificativa_${responsavel}"></textarea>
+                            <label>${data}</label>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: center;">
+                            <button style="background-color: green;" onclick="aprovar_orcamento('${responsavel}', true, '${data}')">Aprovar</button>
+                            <button onclick="aprovar_orcamento('${responsavel}', false, '${data}')">Reprovar</button>
+                        </div>
+                    </div>
+                </div>
+            `
+            }
+        }
+    })
+
     acumulado += `
-    <hr style="width: 80%">
-    <div style="display: flex; flex-direction: column; justify-content: center;">
-        ${acumulado_botoes}                  
-    </div> 
+        <hr style="width: 80%">
+        <div style="display: flex; align-items: start; justify-content: space-between; gap: 20px;">
+            <div style="display: flex; flex-direction: column; justify-content: center;">
+                ${acumulado_botoes}
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <label>Aprovações deste Orçamento</label>
+                ${painel_aprovacao}
+            </div>
+        </div>
     `
 
     if (orcamento.status) {
@@ -1205,11 +1438,57 @@ async function exibir_todos_os_status(id) {
 
     var elementus = `
     <div id="espelho_ocorrencias" class="status" style="display: flex;">
-    ${acumulado}
+        ${acumulado}
     </div>
     `
     document.body.insertAdjacentHTML('beforeend', elementus)
 
+}
+
+async function remover_reprovacao(responsavel) {
+
+    fechar_espelho_ocorrencias()
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[id_orcam]
+
+    delete orcamento.aprovacao[responsavel]
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+
+    await deletar(`dados_orcamentos/${id_orcam}/aprovacao/${responsavel}`)
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+
+    exibir_todos_os_status(id_orcam)
+    await preencher_orcamentos_v2()
+}
+
+async function aprovar_orcamento(responsavel, aprovar, data) {
+    let justificativa = document.getElementById(`justificativa_${responsavel}`)
+    fechar_espelho_ocorrencias()
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let orcamento = dados_orcamentos[id_orcam]
+    let aprov = {
+        usuario: acesso.usuario,
+        data: data,
+        justificativa: justificativa.value,
+        status: aprovar ? 'aprovado' : 'reprovado'
+    }
+
+    if (!orcamento.aprovacao) {
+        orcamento.aprovacao = {}
+    }
+
+    orcamento.aprovacao[responsavel] = aprov
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/aprovacao/${responsavel}`, aprov)
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+
+    exibir_todos_os_status(id_orcam)
+    await preencher_orcamentos_v2()
 }
 
 try {
@@ -1273,14 +1552,14 @@ async function abrir_esquema(id) {
         estrutura.remove()
     }
 
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
-    let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {};
-    let dados_etiquetas = JSON.parse(localStorage.getItem('dados_etiquetas')) || {};
+    let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
+    let dados_etiquetas = JSON.parse(localStorage.getItem('dados_etiquetas')) || {}
 
     var categorias = Object.fromEntries(
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
-    );
+    )
 
     if (dados_orcamentos[id] && dados_orcamentos[id].status) {
         var todos_os_status = dados_orcamentos[id].status;
@@ -2686,7 +2965,7 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
         comentario_status.value = orcamento.status[chave].historico[chave2].comentario
     }
 
-    calcular_requisicao()
+    await calcular_requisicao()
     mostrar_itens_adicionais()
 
 }
@@ -2787,7 +3066,7 @@ async function salvar_anexo(chave1, chave2) {
 
                 } else {
 
-                    if (Array.isArray(dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos)) {
+                    if (Array.isArray(dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos) || !dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos) {
                         dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos = {};
                     }
 

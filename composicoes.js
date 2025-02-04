@@ -34,6 +34,13 @@ function pesquisar_em_composicoes(elemento) {
 async function carregar_tabela_v2() {
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+
+    if (Object.keys(dados_composicoes).length == 0) {
+        let nuvem = descodificarUTF8(await receber('dados_composicoes'))
+        await inserirDados(nuvem, 'dados_composicoes')
+        dados_composicoes = nuvem
+    }
+
     var thead = '';
     var tbody = '';
     var tsearch = '';
@@ -217,12 +224,14 @@ async function carregar_tabela_v2() {
     let thead1 = document.getElementById('thead1')
     if (thead1) {
         let tr = thead1.querySelector('tr')
-        let ths = tr.querySelectorAll('th')
-        ths.forEach((th, i) => {
-            th.addEventListener('click', function () {
-                filtrar_tabela(i, 'tabela_composicoes', this)
+        if (tr) {
+            let ths = tr.querySelectorAll('th')
+            ths.forEach((th, i) => {
+                th.addEventListener('click', function () {
+                    filtrar_tabela(i, 'tabela_composicoes', this)
+                })
             })
-        })
+        }
     }
 
 }

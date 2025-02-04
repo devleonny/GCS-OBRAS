@@ -101,7 +101,7 @@ async function preencher_v2(parceiro) {
     // LÓGICA DOS DADOS
     var informacoes = orcamento_v2.dados_orcam
 
-    var dados = {
+    var dados_por_bloco = {
         'Dados da Proposta': {
             'Número do Chamado': informacoes.contrato,
             'Tipo de Frete': informacoes.tipo_de_frete,
@@ -176,7 +176,7 @@ async function preencher_v2(parceiro) {
         GERAL: { valor: 0, cor: '#151749' }
     }
 
-    Object.keys(config).forEach((tabela, i) => {
+    for (tabela in config) {
 
         var linhas = ''
         var ths = ''
@@ -203,7 +203,7 @@ async function preencher_v2(parceiro) {
             var item = itens[it]
 
             if (item.parceiro) {
-                console.log(item.parceiro)
+
             }
             // valor de parceiro no histórico desse item; 
             item.parceiro = {
@@ -277,7 +277,6 @@ async function preencher_v2(parceiro) {
                 tds[14] = `<td></td>`
                 tds[15] = `<td></td>`
 
-
                 var celulas = ''
 
                 colunas.forEach(col => {
@@ -311,7 +310,7 @@ async function preencher_v2(parceiro) {
         if (linhas != '') {
             tabelas += tabela
         }
-    })
+    }
 
     var divs_totais = ''
     for (total in totais) {
@@ -330,10 +329,10 @@ async function preencher_v2(parceiro) {
     html_orcamento.innerHTML = `
     <label>Salvador, Bahia, ${carimbo_data()}</label>
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-    ${criar_bloco_html('Dados da Proposta', dados['Dados da Proposta'])}
-    ${criar_bloco_html('Dados do Cliente', dados['Dados do Cliente'])}
+    ${criar_bloco_html('Dados da Proposta', dados_por_bloco['Dados da Proposta'])}
+    ${criar_bloco_html('Dados do Cliente', dados_por_bloco['Dados do Cliente'])}
     </div>
-    ${criar_bloco_html('Dados da Empresa', dados['Dados da Empresa'])}
+    ${criar_bloco_html('Dados da Empresa', dados_por_bloco['Dados da Empresa'])}
     <div class="contorno">
         <div class="titulo">
             Itens do Orçamento
@@ -351,8 +350,8 @@ async function preencher_v2(parceiro) {
     ${criar_bloco_html('Considerações', { Considerações: informacoes.consideracoes })}
 
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-    ${criar_bloco_html('Contato Analista', dados['Contato Analista'])}
-    ${criar_bloco_html('Contato Vendedor', dados['Contato Vendedor'])}
+    ${criar_bloco_html('Contato Analista', dados_por_bloco['Contato Analista'])}
+    ${criar_bloco_html('Contato Vendedor', dados_por_bloco['Contato Vendedor'])}
     </div>
     <div style="height: 200px;"></div>
     `
@@ -399,8 +398,6 @@ async function preencher_parceiro(elemento_img) {
 
         dados_composicoes[codigo].parceiro[id] = valor_parceiro
     }
-
-    console.log(dados_composicoes[codigo])
 
 }
 
