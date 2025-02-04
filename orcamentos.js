@@ -72,6 +72,8 @@ function filtros_de_orcamento(dados) {
                     dados_filtrados[pedido.status][id] = orcamento
                 }
             }
+        } else {
+            dados_filtrados['AGUARDANDO'][id] = orcamento
         }
     }
 
