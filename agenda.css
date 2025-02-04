@@ -15,6 +15,7 @@ select {
 
 .controls {
   text-align: center;
+  margin-top: 30px; /* Adiciona mais margem no topo */
   margin-bottom: 10px; /* Mantém o espaçamento geral inferior */
   color: white; /* Torna o texto branco */
   display: flex; /* Para alinhar elementos horizontalmente */
@@ -22,6 +23,7 @@ select {
   justify-content: center; /* Alinha os elementos no centro horizontalmente */
   gap: 20px; /* Adiciona espaçamento horizontal entre os elementos */
 }
+
 
 .controls button {
   margin-left: 10px; /* Espaçamento extra para botões, se necessário */
@@ -176,7 +178,6 @@ button:hover {
 
 .loading-gif {
   width: 50px;
-  height: 50px;
   margin-bottom: 10px;
 }
 
@@ -277,3 +278,14 @@ button:hover {
   text-align: center; /* Centraliza o texto */
 }
 
+.logo-container {
+  position: absolute; /* Garante que a logo fique posicionada em um lugar fixo */
+  top: 10px; /* Distância do topo */
+  left: 10px; /* Distância da lateral esquerda */
+  z-index: 1000; /* Coloca a logo acima dos outros elementos */
+}
+
+.logo {
+  width: 150px; /* Ajuste o tamanho da logo */
+  height: auto; /* Mantém a proporção da imagem */
+}
