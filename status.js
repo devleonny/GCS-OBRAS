@@ -18,16 +18,14 @@ var fluxograma = {
     'FATURAMENTO PEDIDO DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE SERVIÇO'},
     'REMESSA DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE REMESSA DE SERVIÇO'},
     'REMESSA DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'],  nome: 'EMITIR NOTA DE REMESSA DE VENDA' },
-    'PEDIDO DE VENDA FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'COLOCAR STATUS DE ENVIO - VENDA'},
-    'PEDIDO DE SERVIÇO FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'COLOCAR STATUS DE ENVIO - SERVIÇO'},
+    'PEDIDO DE VENDA FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'COLOCAR STATUS DE ENVIO VENDA'},
+    'PEDIDO DE SERVIÇO FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'COLOCAR STATUS DE ENVIO SERVIÇO'},
     'FINALIZADO': { cor: 'blue', modulos: ['RELATÓRIOS'] },
     'MATERIAL ENVIADO': { cor: '#B3702D', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'MATERIAL ENTREGUE': { cor: '#B3702D', modulos: ['RELATÓRIOS'] },
     'COTAÇÃO PENDENTE': { cor: '#0a989f', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] }
 }
-
-//resumo_orcamentos()
 
 async function resumo_orcamentos() {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
@@ -120,7 +118,7 @@ async function resumo_orcamentos() {
 
         function div_porc(porc, cor) {
             return `
-                <div style="width: 100px; background-color: #999; display: flex; align-items: center; justify-content: start; border-radius: 3px;">
+                <div style="width: 100px; background-color: #dfdfdf; display: flex; align-items: center; justify-content: start; border-radius: 3px;">
                     <div style="width: ${porc}%; background-color: ${cor}; text-align: center; border-radius: 3px;">
                         <label style="color: black; margin-left: 3px;">${porc}%</label>
                     <div>
@@ -136,7 +134,7 @@ async function resumo_orcamentos() {
                 <td>
                     <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                         <label>${contadores.aprovados}</label>
-                        ${div_porc(porc.apr, 'green')}
+                        ${div_porc(porc.apr, '#4CAF50')}
                     </div>
                 </td>
                 <td>

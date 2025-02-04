@@ -2,7 +2,6 @@ var status_deste_modulo = [];
 var modulo = localStorage.getItem('modulo_ativo') || ''
 var filtrosAtivos = {};
 var filtrosAtivosPagamentos = {};
-var botao_status_ativo = ''
 var anexos_pagamentos = {};
 var anx_parceiros = {};
 var intervaloCompleto;
@@ -36,42 +35,60 @@ function pesquisar_v2(coluna, texto) {
     });
 }
 
-function filtrar_pendencias(dados) {
-    let pendencias = {
+function filtros_de_orcamento(dados) {
+    let dados_filtrados = {
         gerente: {},
         diretoria: {}
     }
 
+    for (st_existentes in fluxograma) {
+        dados_filtrados[st_existentes] = {}
+    }
+
     for (id in dados) {
         let orcamento = dados[id]
+
+        if (orcamento.operacao && orcamento.operacao == 'excluido') {
+            continue
+        }
 
         if (orcamento.status) {
 
             let pedidos = orcamento.status
 
             for (chave1 in pedidos) {
-                if (String(pedidos[chave1].pedido).includes('?')) {
+                let pedido = pedidos[chave1]
+                if (String(pedido.pedido).includes('?')) {
 
                     if (conversor(orcamento.total_geral) > 20000) {
-                        pendencias.diretoria[id] = orcamento
+                        dados_filtrados.diretoria[id] = orcamento
                     }
 
-                    pendencias.gerente[id] = orcamento
+                    dados_filtrados.gerente[id] = orcamento
 
+                }
+
+                if (dados_filtrados[pedido.status]) {
+                    dados_filtrados[pedido.status][id] = orcamento
                 }
             }
         }
     }
 
-    return pendencias
+    return dados_filtrados
 
 }
 
-async function mostrar_apenas_pendencias(filtroPendencia) {
+async function mostrar_apenas_pendencias(filtros) {
 
-    localStorage.setItem('filtroAtivo', filtroPendencia)
+    localStorage.setItem('filtroAtivo', filtros)
 
-    await preencher_orcamentos_v2(undefined, filtroPendencia)
+    if (filtros == 'gerente' || filtros == 'diretoria') {
+        localStorage.setItem('modulo_ativo', 'RELATÓRIOS')
+        modulo = 'RELATÓRIOS'
+    }
+
+    await preencher_orcamentos_v2(filtros)
 
     botao_limpar_painel_direito()
 
@@ -83,7 +100,7 @@ function botao_limpar_painel_direito() {
 
     if (painel_direito) {
         painel_direito.innerHTML = `
-            <div class="block_reverso" style="background-color: #222222bf;" onclick="preencher_orcamentos_v2(undefined, undefined, true)">
+            <div class="block_reverso" style="background-color: #222222bf;" onclick="preencher_orcamentos_v2(undefined, true)">
                 <img src="imagens/voltar.png" style="width: 50px;">
                 <p style="font-size: 0.8vw;">VOLTAR</p>
             </div>
@@ -92,11 +109,7 @@ function botao_limpar_painel_direito() {
 
 }
 
-async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
-
-    if (st !== undefined) {
-        botao_status_ativo = st
-    }
+async function preencher_orcamentos_v2(filtros, remover) {
 
     var div_orcamentos = document.getElementById('orcamentos')
     if (!div_orcamentos) {
@@ -110,7 +123,7 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
         dados_orcamentos = await recuperarDados('dados_orcamentos')
     }
 
-    let pendencias = filtrar_pendencias(dados_orcamentos)
+    let dados_filtrados = filtros_de_orcamento(dados_orcamentos)
 
     if (remover) {
         localStorage.removeItem('filtroAtivo')
@@ -118,16 +131,40 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
     } else {
         let filtroAtivo = localStorage.getItem('filtroAtivo')
 
-        if (filtroPendencia == undefined && filtroAtivo) {
-            filtroPendencia = filtroAtivo
+        if (filtros == undefined && filtroAtivo) {
+            filtros = filtroAtivo
         }
 
-        if (filtroPendencia !== undefined) {
-            dados_orcamentos = pendencias[filtroPendencia]
+        if (filtros !== undefined) {
+            dados_orcamentos = dados_filtrados[filtros]
         }
     }
 
     document.getElementById('nome_modulo').textContent = modulo
+    let nome = filtros
+
+    //Resetar a tabela caso o filtro não pertença ao módulo;
+    if (fluxograma[filtros]) {
+        let reiniciar = true
+        let modulos = fluxograma[filtros].modulos
+
+        modulos.forEach(mod => {
+            if (modulo == mod) {
+                reiniciar = false
+            }
+        })
+
+        if (reiniciar) {
+            localStorage.removeItem('filtroAtivo')
+            return preencher_orcamentos_v2()
+        }
+    }
+    //Fim
+
+    if (fluxograma[filtros] && fluxograma[filtros].nome) {
+        nome = fluxograma[filtros].nome
+    }
+    document.getElementById('nome_filtro').textContent = nome
 
     // Eleminar o ID que o DB cria...
     delete dados_orcamentos['id']
@@ -178,7 +215,7 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
                 tipo == 'Venda' ? cor = '#ff9c24' : cor = '#00bfb7'
 
                 label_pedidos += `
-                    <div class="etiqueta_pedidos" style="background-color: ${cor}">
+                    <div class="etiqueta_pedidos" style="background-color: ${cor};"> 
                         <label style="font-size: 0.7vw; margin: 2px;">${tipo}</label>
                         <label style="font-size: 0.9vw; margin: 2px;"><strong>${num_pedido}</strong></label>
                     </div>
@@ -202,7 +239,7 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
                     }
                 }
 
-                if (fluxograma[status] && (st == undefined || st == status)) {
+                if (fluxograma[status]) {
 
                     var modulos = fluxograma[status].modulos
                     if (modulos.includes(modulo)) {
@@ -221,7 +258,7 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
                 var aguardando = 'AGUARDANDO'
                 var modulos = fluxograma[aguardando].modulos
 
-                if (modulos.includes(modulo) && (st == undefined || aguardando == status)) {
+                if (modulos.includes(modulo)) {
                     exibir_linha = true
                     if (!status_deste_modulo[aguardando]) {
                         status_deste_modulo[aguardando] = 0
@@ -266,6 +303,16 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
 
             }
 
+            if (orc.status && cor == '#ffc584') {
+                let pedidos = orc.status
+                for (id in pedidos) {
+                    let pedido = pedidos[id]
+                    if (!String(pedido.pedido).includes('?')) {
+                        cor = '#4CAF50'
+                    }
+                }
+            }
+
             if (exibir_linha) {
                 linhas += `
                 <tr style="background-color: ${cor}; color: ${fonte};">
@@ -287,41 +334,41 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
         }
 
         var painel_direito = document.getElementById('painel_direito')
-        if (filtroPendencia) {
+        if (filtros) {
             botao_limpar_painel_direito()
         } else {
-            var atalhos = ''
+            var atalhos = `
+            <div class="block" onclick="window.location.href = 'adicionar.html'">
+                <img src="imagens/projeto.png" style="width: 50px;">
+                <p style="font-size: 0.8vw;">CRIAR ORÇAMENTO</p>
+            </div>
+            `
 
             if (modulo !== 'PROJETOS') {
-                if (Object.keys(pendencias.diretoria).length > 0) {
+                if (Object.keys(dados_filtrados.diretoria).length > 0) {
                     atalhos += `
-                    <div class="block_reverso" style="background-color: #222222bf;" onclick="mostrar_apenas_pendencias('diretoria')">
+                    <div class="block" onclick="mostrar_apenas_pendencias('diretoria')">
                         <img src="gifs/atencao.gif" style="width: 50px;">
                         <p style="font-size: 0.8vw;">APROVAÇÃO DA DIRETORIA</p>
                     </div>
-                `
+                    `
                 }
 
-                if (Object.keys(pendencias.gerente).length > 0) {
+                if (Object.keys(dados_filtrados.gerente).length > 0) {
                     atalhos += `
-                    <div class="block_reverso" style="background-color: #222222bf;" onclick="mostrar_apenas_pendencias('gerente')">
+                    <div class="block" onclick="mostrar_apenas_pendencias('gerente')">
                         <img src="gifs/atencao.gif" style="width: 50px;">
                         <p style="font-size: 0.8vw;">APROVAÇÃO DO GERENTE</p>
                     </div>
-                `
+                    `
                 }
             }
 
             atalhos += `
-                <div class="block" onclick="window.location.href = 'adicionar.html'">
-                    <img src="imagens/projeto.png" style="width: 50px;">
-                    <p style="font-size: 0.8vw;">CRIAR ORÇAMENTO</p>
-                </div>
-
-                <div class="block_reverso" onclick="preencher_orcamentos_v2()">
-                    <img src="imagens/duplicar.png" style="width: 50px;">
-                    <p style="font-size: 0.8vw;">TODOS OS ORÇAMENTOS</p>
-                </div>
+            <div class="block" onclick="resumo_orcamentos()">
+                <img src="gifs/atencao.gif" style="width: 50px;">
+                <p style="font-size: 0.8vw;">ORÇAMENTOS POR ANALISTA</p>
+            </div>
             `
 
             for (atalho in status_deste_modulo) {
@@ -331,7 +378,7 @@ async function preencher_orcamentos_v2(st, filtroPendencia, remover) {
                     nome = fluxograma[atalho].nome
                 }
                 atalhos += `
-                    <div class="block" style="background-color: #222222bf;" onclick="preencher_orcamentos_v2('${atalho}')">
+                    <div class="block" style="background-color: #222222bf;" onclick="mostrar_apenas_pendencias('${atalho}')">
                         <div style="width: 50px; height: 50px; display: flex; justify-content: center; align-items: center;">
                             <label class="numero">${quantidade}</label>
                         </div>
@@ -397,11 +444,7 @@ async function recuperar_orcamentos() {
 
     if (document.title == 'ORÇAMENTOS') {
 
-        if (botao_status_ativo !== '') {
-            preencher_orcamentos_v2(botao_status_ativo)
-        } else {
-            preencher_orcamentos_v2()
-        }
+        await preencher_orcamentos_v2()
     }
 }
 
