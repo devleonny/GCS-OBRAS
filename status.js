@@ -1733,14 +1733,44 @@ async function abrir_esquema(id) {
                     `
                 }
 
-                if (String(sst.status).includes('RETORNO')) {
+                if (String(sst.status).includes('COTAÇÃO')) {
 
-                    editar = `
-                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="retorno_de_materiais('${chave_pedido}','${id_orcam}', false)">
-                            <img src="imagens/editar4.png" style="width: 15px;">
-                            <label>Editar</label>
-                        </div>
-                    `
+                    await recuperarCotacoes()
+
+                    let cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+                    
+                    let cotacaoAtual = {}
+
+                    for (let cotacao of Object.values(cotacoes)) {
+
+                        if (cotacao.informacoes.idOrcamento) {
+
+                            if (id_orcam == cotacao.informacoes.idOrcamento) {
+
+                                cotacaoAtual = cotacoes[cotacao.informacoes.id]
+
+                            }
+
+                        }
+
+
+                    }
+
+                    var idCotacao = cotacaoAtual.informacoes.id
+
+                    if (cotacaoAtual.status == "Finalizada") {
+
+                        sst.status = "COTAÇÃO FINALIZADA"
+                        await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave_pedido}/historico/${chave2}/status`, "COTAÇÃO FINALIZADA")
+                        await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+
+                    } else {
+
+                        sst.status = "COTAÇÃO PENDENTE"
+                        await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave_pedido}/historico/${chave2}/status`, "COTAÇÃO PENDENTE")
+                        await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+
+                    }
 
                 }
 
@@ -1842,6 +1872,7 @@ async function abrir_esquema(id) {
                         ${totais}
                         ${dados_de_envio}
                         ${links_requisicoes}
+                        ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${idCotacao}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
                         <div style="display: flex; justify-content: space-evenly; align-items: center;">
                             <div class="contorno_botoes" style="background-color: ${fluxograma[sst.status].cor}">
                                 <img src="imagens/anexo2.png" style="width: 15px;">
@@ -2118,12 +2149,14 @@ async function iniciar_cotacao(chave, id_orcam) {
             data: data.toLocaleDateString('pt-BR'),
             hora: `${String(data.getHours()).padStart(2, '0')}:${String(data.getMinutes()).padStart(2, '0')}:${String(data.getSeconds()).padStart(2, '0')}`,
             criador: acesso.usuario,
-            apelidoCotacao: orcamento.dados_orcam.cliente_selecionado
+            apelidoCotacao: orcamento.dados_orcam.cliente_selecionado,
+            idOrcamento: id_orcam,
+            chavePedido: chave
         },
         dados: itens_em_lista,
         valorFinal: [],
         operacao: 'incluir',
-        status: 'ativo'
+        status: 'Pendente'
     }
 
     let data_completa = new Date().toLocaleString('pt-BR', {
@@ -2309,6 +2342,24 @@ async function alterar_status_principal(select, chave) {
 
     abrir_esquema(id_orcam)
 
+}
+
+async function recuperarCotacoes() {
+    const resposta = await fetch(
+        'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=cotacoes'
+    );
+
+    const dados = await resposta.json();
+
+    // Inicializar o objeto para armazenar as cotações
+    let cotacoes = {};
+
+    // Transformar a lista de cotações em um objeto com ID como chave
+    dados.forEach((cotacao) => {
+        const id = cotacao.informacoes.id;
+        cotacoes[id] = cotacao;
+    });
+    localStorage.setItem("dados_cotacao", JSON.stringify(cotacoes));
 }
 
 async function envio_de_material(chave1, id_orcam, chave2) {
@@ -3220,6 +3271,8 @@ function deseja_apagar(chave1, chave2) {
 
     let funcao = chave2 == undefined ? `apagar_status_historico('${chave1}')` : `apagar_status_historico('${chave1}', '${chave2}')`
 
+    console.log(funcao)
+
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
             <label>Deseja apagar essa informação?</label>
@@ -3234,6 +3287,8 @@ function deseja_apagar(chave1, chave2) {
 async function apagar_status_historico(chave1, chave2) {
 
     remover_popup()
+
+    remover_cotacao(chave2)
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
@@ -3252,6 +3307,23 @@ async function apagar_status_historico(chave1, chave2) {
 
     fechar_estrutura()
     abrir_esquema(id_orcam)
+
+}
+
+function remover_cotacao(chave2) {
+
+    let status = "excluido";
+    let operacao = "excluir";
+    let idCotacao = chave2
+
+    const cotacaoParaExcluir = { operacao, status, idCotacao };
+
+    const payload = {
+        tabela: "cotacoes",
+        cotacao: cotacaoParaExcluir,
+    };
+
+    enviar_dados_generico(payload);
 
 }
 
