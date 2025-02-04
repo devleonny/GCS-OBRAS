@@ -24,7 +24,8 @@ var fluxograma = {
     'MATERIAL ENVIADO': { cor: '#B3702D', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'MATERIAL ENTREGUE': { cor: '#B3702D', modulos: ['RELATÓRIOS'] },
     'COTAÇÃO PENDENTE': { cor: '#0a989f', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
-    'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] }
+    'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] },
+    'RETORNO DE MATERIAIS': { cor: '#aacc14', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
 }
 
 async function resumo_orcamentos() {
@@ -1219,8 +1220,6 @@ async function exibir_todos_os_status(id) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var orcamento = dados_orcamentos[id]
 
-    console.log(orcamento)
-
     var acumulado = ''
 
     acumulado += `
@@ -2025,6 +2024,10 @@ async function abrir_esquema(id) {
                                     onclick="iniciar_cotacao('${chave_pedido}', '${id}')">
                                     <label>Nova <strong>Cotação</strong></label>
                                 </div>
+                                <div class="contorno_botoes" style="background-color: ${fluxograma['RETORNO DE MATERIAIS'].cor};"
+                                    onclick="retorno_de_materiais('${chave_pedido}', '${id}', true)">
+                                    <label>Retorno de <strong>Materiais</strong></label>
+                                </div>
                             </div>
                         </div>
 
@@ -2179,6 +2182,137 @@ async function iniciar_cotacao(chave, id_orcam) {
     }
 
     enviar_dados_generico(dados) // 29 Mantém por enquanto...
+
+    abrir_esquema(id_orcam)
+
+}
+
+async function retorno_de_materiais(chave_pedido, id, qualBotao) {
+
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[id];
+    let retornoAtual = undefined
+    let chave2 = undefined
+
+    Object.entries(orcamento.status[chave_pedido].historico).forEach(([chave, item]) => {
+        if (item.status.includes("RETORNO")) {
+            retornoAtual = item.materiaisRetorno;
+            chave2 = chave; // Armazena a chave do objeto
+        }
+    });
+
+    if (retornoAtual && qualBotao) {
+
+        openPopup_v2(`
+            
+                <p>Já existe um bloco de Retorno de Materiais</p>
+
+            `)
+
+        return
+
+    }
+
+    let acumulado = `
+
+    <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
+
+        <label class="novo_titulo">Retorno de Materiais</label>
+
+    </div>
+    
+    <table id="tabelaRetornoMateriais" style="border-collapse: collapse; border: 1px solid black; background-color: white; width: 100%; text-align: center;">
+
+        <tr style="border: 1px solid black;">
+
+            <th style="border: 1px solid black; color: black; padding: 8px;">Descrição</th>
+            <th style="border: 1px solid black; color: black; padding: 8px;">Quantidade Disponivel</th>
+            <th style="border: 1px solid black; color: black; padding: 8px;">Quantidade para Retorno</th>
+
+        </tr>`
+
+    if (retornoAtual) {
+
+        Object.values(orcamento.dados_composicoes).forEach(item => {
+
+            acumulado += `<tr style="border: 1px solid black;">
+
+        <td class="dados_descricao_retorno" data-codigo="${item.codigo}" style="border: 1px solid black; color: black; padding: 8px;">${dados_composicoes[item.codigo].descricao}</td>
+        <td style="border: 1px solid black; color: black; padding: 8px;">${item.qtde}</td>
+        <td style="border: 1px solid black; color: black; padding: 8px;"><input class="dados_qtde_retorno" type="number" value="${retornoAtual[item.codigo]}" ></td>
+
+    </tr>`
+
+        })
+    } else {
+
+        Object.values(orcamento.dados_composicoes).forEach(item => {
+
+            acumulado += `<tr style="border: 1px solid black;">
+
+        <td class="dados_descricao_retorno" data-codigo="${item.codigo}" style="border: 1px solid black; color: black; padding: 8px;">${dados_composicoes[item.codigo].descricao}</td>
+        <td style="border: 1px solid black; color: black; padding: 8px;">${item.qtde}</td>
+        <td style="border: 1px solid black; color: black; padding: 8px;"><input class="dados_qtde_retorno" type="number" " ></td>
+
+    </tr>`
+
+        })
+    }
+
+    acumulado += `
+    
+    </table>
+    
+    <button id="botao_salvar_retorno" onclick="salvar_materiais_retorno('${chave_pedido}', '${chave2}')">Salvar</button>
+
+    `
+
+    openPopup_v2(acumulado)
+
+}
+
+async function salvar_materiais_retorno(chave_pedido, chave2) {
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[id_orcam];
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    let tabelaRetornoMateriais = document.querySelector("#tabelaRetornoMateriais")
+
+    let inputsQtde = tabelaRetornoMateriais.querySelectorAll(".dados_qtde_retorno")
+    let tdsDescricao = tabelaRetornoMateriais.querySelectorAll(".dados_descricao_retorno")
+
+    let dadosMateriaisRetorno = {};
+
+    for (let i = 0; i < inputsQtde.length; i++) {
+        let codigo = tdsDescricao[i].dataset.codigo; // Obtém o texto da descrição
+        let quantidade = Number(inputsQtde[i].value) || 0; // Obtém o valor do input
+
+        dadosMateriaisRetorno[codigo] = quantidade;
+    }
+
+    remover_popup()
+
+    if (!chave2) {
+        chave2 = unicoID()
+    }
+    let data_completa = new Date().toLocaleString('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+    });
+
+    orcamento.status[chave_pedido].status = 'RETORNO DE MATERIAIS'
+    orcamento.status[chave_pedido].historico[chave2] = {
+        status: 'RETORNO DE MATERIAIS',
+        data: data_completa,
+        executor: acesso.usuario,
+        materiaisRetorno: dadosMateriaisRetorno
+    };
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave_pedido}/historico/${chave2}`, codificarUTF8(orcamento.status[chave_pedido].historico[chave2]))
+    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
     abrir_esquema(id_orcam)
 
