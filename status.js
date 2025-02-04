@@ -2208,7 +2208,7 @@ async function retorno_de_materiais(chave_pedido, id, qualBotao) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id];
     let retornoAtual = undefined
-    let chave2 = undefined
+    let chave2 = 0
 
     Object.entries(orcamento.status[chave_pedido].historico).forEach(([chave, item]) => {
         if (item.status.includes("RETORNO")) {
@@ -2279,7 +2279,7 @@ async function retorno_de_materiais(chave_pedido, id, qualBotao) {
     
     </table>
     
-    <button id="botao_salvar_retorno" onclick="salvar_materiais_retorno('${chave_pedido}', ${chave2})">Salvar</button>
+    <button id="botao_salvar_retorno" onclick="salvar_materiais_retorno('${chave_pedido}', '${chave2}')">Salvar</button>
 
     `
 
@@ -2309,7 +2309,7 @@ async function salvar_materiais_retorno(chave_pedido, chave2) {
 
     remover_popup()
 
-    if (!chave2) {
+    if (chave2 == '0') {
         chave2 = unicoID()
     }
     let data_completa = new Date().toLocaleString('pt-BR', {
