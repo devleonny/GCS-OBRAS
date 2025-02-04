@@ -935,15 +935,13 @@ async function salvar_pedido(chave) {
     let tipo = document.getElementById('tipo')
     let pedido = document.getElementById('pedido')
 
-    if(tipo.value == "Selecione"){
-
+    if (valor.value == '' || tipo.value == 'Selecione' || pedido.value == '') {
         return openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Defina o tipo do Pedido</label>
+                <label>Não deixe campos em Branco</label>
             </div>
-        `)
-
+        `);
     }
 
     fechar_status() // Só fechar após coletar a informação necessária; 
@@ -968,14 +966,6 @@ async function salvar_pedido(chave) {
         anexos: anexos,
     };
 
-    if (valor.value == '' || tipo.value == 'Selecione' || pedido.value == '') {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Não deixe campos em Branco</label>
-            </div>
-        `);
-    }
 
     novo_lancamento.valor = Number(valor.value)
     novo_lancamento.tipo = tipo.value
