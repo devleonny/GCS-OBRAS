@@ -25,7 +25,8 @@ var fluxograma = {
     'MATERIAL ENTREGUE': { cor: '#B3702D', modulos: ['RELATÓRIOS'] },
     'FINALIZADO': { cor: '#222', modulos: ['RELATÓRIOS'] },
     'COTAÇÃO PENDENTE': { cor: '#0a989f', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
-    'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] }
+    'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] },
+    'RETORNO MATERIAIS': {cor : '#aacc14', modulos: ['LOGÍSTICA', 'RELATÓRIOS']},
 }
 
 async function painel_adicionar_pedido() {
@@ -1071,8 +1072,6 @@ async function exibir_todos_os_status(id) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var orcamento = dados_orcamentos[id]
 
-    console.log(orcamento)
-
     var acumulado = ''
 
     acumulado += `
@@ -1835,6 +1834,10 @@ async function abrir_esquema(id) {
                                     onclick="iniciar_cotacao('${chave_pedido}', '${id}')">
                                     <label>Nova <strong>Cotação</strong></label>
                                 </div>
+                                <div class="contorno_botoes" style="background-color: ${fluxograma['RETORNO MATERIAIS'].cor};"
+                                    onclick="retorno_de_materiais('${chave_pedido}', '${id}')">
+                                    <label>Retorno de <strong>Materiais</strong></label>
+                                </div>
                             </div>
                         </div>
 
@@ -1989,6 +1992,72 @@ async function iniciar_cotacao(chave, id_orcam) {
     enviar_dados_generico(dados) // 29 Mantém por enquanto...
 
     abrir_esquema(id_orcam)
+
+}
+
+async function retorno_de_materiais(chave_pedido, id) {
+    
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[id];
+
+    let acumulado = `
+
+    <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
+
+        <label class="novo_titulo">Retorno de Materiais</label>
+
+    </div>
+    
+    <table id="tabelaRetornoMateriais" style="border-collapse: collapse; border: 1px solid black; background-color: white; width: 100%; text-align: center;">
+
+        <tr style="border: 1px solid black;">
+
+            <th style="border: 1px solid black; color: black; padding: 8px;">Descrição</th>
+            <th style="border: 1px solid black; color: black; padding: 8px;">Quantidade Disponivel</th>
+            <th style="border: 1px solid black; color: black; padding: 8px;">Quantidade para Retorno</th>
+
+        </tr>`
+
+    Object.values(orcamento.dados_composicoes).forEach(item =>{
+
+        acumulado += `<tr style="border: 1px solid black;">
+
+        <td class="dados_descricao_retorno" data-codigo="${item.codigo}" style="border: 1px solid black; color: black; padding: 8px;">${dados_composicoes[item.codigo].descricao}</td>
+        <td style="border: 1px solid black; color: black; padding: 8px;">${item.qtde}</td>
+        <td style="border: 1px solid black; color: black; padding: 8px;"><input class="dados_qtde_retorno" value="0" type="number" ></td>
+
+    </tr>`
+
+    })
+
+    acumulado += `
+    
+    </table>
+    
+    <button id="botao_salvar_retorno" onclick='salvar_materiais_retorno()'>Salvar</button>
+
+    `
+
+    openPopup_v2(acumulado)
+
+}
+
+async function salvar_materiais_retorno() {
+    
+    let tabelaRetornoMateriais = document.querySelector("#tabelaRetornoMateriais")
+
+    let inputsQtde = tabelaRetornoMateriais.querySelectorAll(".dados_qtde_retorno")
+    let tdsDescricao = tabelaRetornoMateriais.querySelectorAll(".dados_descricao_retorno")
+
+    let dadosMateriais = {};
+
+    for (let i = 0; i < inputsQtde.length; i++) {
+        let codigo = tdsDescricao[i].dataset.codigo; // Obtém o texto da descrição
+        let quantidade = Number(inputsQtde[i].value); // Obtém o valor do input
+    
+        dadosMateriais[codigo] = quantidade;
+    }
 
 }
 

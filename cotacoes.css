@@ -312,6 +312,7 @@ table th, table td {
     border-collapse: collapse;
     /* Importante: usar display:block para permitir o scroll no tbody */
     display: block; 
+    /* color: #aacc14; */
 }
 
 #cotacoesSalvasTable {
