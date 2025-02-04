@@ -11,15 +11,15 @@ var data_status = dataAtual.toLocaleString('pt-BR', {
 var anexos = {}
 
 var fluxograma = {
-    'AGUARDANDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS']},
-    'PEDIDO DE VENDA ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'FAZER REMESSA DE VENDA'},
-    'PEDIDO DE SERVIÇO ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'FAZER REMESSA DE SERVIÇO'},
-    'FATURAMENTO PEDIDO DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE VENDA'},
-    'FATURAMENTO PEDIDO DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE SERVIÇO'},
-    'REMESSA DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE REMESSA DE SERVIÇO'},
-    'REMESSA DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'],  nome: 'EMITIR NOTA DE REMESSA DE VENDA' },
-    'PEDIDO DE VENDA FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'COLOCAR STATUS DE ENVIO VENDA'},
-    'PEDIDO DE SERVIÇO FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'COLOCAR STATUS DE ENVIO SERVIÇO'},
+    'AGUARDANDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS'] },
+    'PEDIDO DE VENDA ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'FAZER REMESSA DE VENDA' },
+    'PEDIDO DE SERVIÇO ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'FAZER REMESSA DE SERVIÇO' },
+    'FATURAMENTO PEDIDO DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE VENDA' },
+    'FATURAMENTO PEDIDO DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE SERVIÇO' },
+    'REMESSA DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE REMESSA DE SERVIÇO' },
+    'REMESSA DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE REMESSA DE VENDA' },
+    'PEDIDO DE VENDA FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'COLOCAR STATUS DE ENVIO VENDA' },
+    'PEDIDO DE SERVIÇO FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'COLOCAR STATUS DE ENVIO SERVIÇO' },
     'FINALIZADO': { cor: 'blue', modulos: ['RELATÓRIOS'] },
     'MATERIAL ENVIADO': { cor: '#B3702D', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
     'MATERIAL ENTREGUE': { cor: '#B3702D', modulos: ['RELATÓRIOS'] },
@@ -1233,11 +1233,16 @@ async function exibir_todos_os_status(id) {
     var analista = orcamento.dados_orcam.analista
     var acumulado_botoes = ''
 
-    acumulado_botoes += `
+    if (orcamento.status) {
+        acumulado_botoes += `
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="abrir_esquema('${id}')">
             <img src="imagens/esquema.png" style="width: 48px; height: 48px; margin: 3px;">
             <label style="cursor: pointer;">Histórico</label>
         </div>
+        `
+    }
+
+    acumulado_botoes += `
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_pdf('${id}')">
             <img src="imagens/pdf.png" style="width: 55px;">
             <label style="cursor: pointer;">Abrir Orçamento em PDF</label>
@@ -1734,7 +1739,7 @@ async function abrir_esquema(id) {
                     `
                 }
 
-                if(String(sst.status).includes("RETORNO")){
+                if (String(sst.status).includes("RETORNO")) {
 
                     editar = `
                         <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="retorno_de_materiais('${chave_pedido}', '${id}', false)">
@@ -1750,7 +1755,7 @@ async function abrir_esquema(id) {
                     await recuperarCotacoes()
 
                     let cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
-                    
+
                     let cotacaoAtual = {}
 
                     for (let cotacao of Object.values(cotacoes)) {
@@ -2066,8 +2071,6 @@ async function abrir_esquema(id) {
         document.body.insertAdjacentHTML('beforeend', estruturaHtml);
 
         fechar_espelho_ocorrencias();
-    } else {
-        openPopup_v2('Não existem dados históricos')
     }
 
 }
