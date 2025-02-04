@@ -9,12 +9,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const addLineBtn = document.getElementById("add-line-btn");
     const updateDataBtn = document.getElementById("update-data-btn");
 
+    recuperar_dados_clientes()
+
     document.querySelectorAll(".close-modal-btn").forEach((closeBtn) => {
         closeBtn.addEventListener("click", (event) => {
-          const modal = event.target.closest(".modal"); // Seleciona o modal atual
-          modal.style.display = "none"; // Esconde o modal
+            const modal = event.target.closest(".modal"); // Seleciona o modal atual
+            modal.style.display = "none"; // Esconde o modal
         });
-      });
+    });
 
     checkRegionBeforeAdding();
     // Função para gerar uma cor aleatória
@@ -70,9 +72,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Sincronizar dados (usado para botão e verificação inicial)
-    async function syncData() {
+    async function syncData(clientesIndexDB) {
         showLoading(); // Exibe o indicador de carregamento
         try {
+            if (!clientesIndexDB) {
+
+                console.log("entrei")
+                await recuperar_dados_clientes()
+                console.log("sai")
+
+            }
             const [fetchedDepartments, fetchedTechnicians] = await Promise.all([
                 fetchDepartmentsFromAPI(),
                 resgatar_tecnicos()
@@ -95,19 +104,24 @@ document.addEventListener("DOMContentLoaded", () => {
             hideLoading(); // Oculta o loading em caso de erro
             console.error("Erro ao sincronizar os dados:", error);
             showPopup("Erro ao sincronizar os dados. Verifique sua conexão e tente novamente.");
-        } finally{
+        } finally {
             atualizarDados()
         }
     }
 
     // Verifica se os dados estão no localStorage, caso contrário, sincroniza
-    function checkAndSyncData() {
-        const storedDepartments = localStorage.getItem("departments");
-        const storedTechnicians = localStorage.getItem("technicians");
+    async function checkAndSyncData() {
+        let storedDepartments = localStorage.getItem("departments");
+        let storedTechnicians = localStorage.getItem("technicians");
+        let clientesIndexDB = await recuperarDados("dados_clientes") || false;
 
-        if (!storedDepartments || !storedTechnicians) {
+        if (storedDepartments == "[]") {
+            storedDepartments = false
+        }
+
+        if (!storedDepartments || !storedTechnicians || !clientesIndexDB) {
             console.log("Dados ausentes no localStorage. Realizando sincronização...");
-            syncData();
+            syncData(clientesIndexDB);
         } else {
             console.log("Dados encontrados no localStorage. Continuando normalmente.");
             atualizarDados()
@@ -118,16 +132,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    
+
     // Função de inicialização da página
     function initializePage() {
         showLoading(); // Exibe o loading ao carregar a página
         loadCurrentSettings(); // Carrega configurações de mês, ano e região
         checkAndSyncData(); // Verifica se há dados e sincroniza se necessário
     }
-    
+
     // Evento do botão de sincronização manual
-    syncDataBtn.addEventListener("click", syncData);
+    syncDataBtn.addEventListener("click", () => syncData(false));
     // Chama a função de inicialização
     initializePage();
 
@@ -152,7 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Função para carregar dados do localStorage
     function loadFromLocalStorage() {
-        const storedDepartments = localStorage.getItem("departments");
+        let storedDepartments = localStorage.getItem("departments");
 
         if (storedDepartments) {
             departments = JSON.parse(storedDepartments);
@@ -215,23 +229,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     async function resgatar_tecnicos() {
-        const apiUrl =
-            "https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=clientes_v2";
+        let clientes = await recuperarDados("dados_clientes"); // Recupera os dados
 
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            throw new Error(`Erro na requisição: ${response.status}`);
+        if (clientes && typeof clientes === "object") {
+            // Converte os valores do objeto em uma array
+            const dadosArray = Object.values(clientes);
+
+            // Filtra apenas os objetos que possuem a tag "TÉCNICO"
+            const tecnicos = dadosArray
+                .filter(item =>
+                    item.tags && item.tags.some(tagObj => tagObj.tag === "TÉCNICO")
+                )
+                .map(tecnico => ({
+                    nome: tecnico.nome,
+                    omie: tecnico.omie
+                })); // Retorna apenas `nome` e `omie`
+            return tecnicos;
+        } else {
+            console.error("Os dados retornados não são um objeto válido:", clientes);
+            return []; // Retorna uma array vazia como fallback
         }
-
-        const data = await response.json();
-
-        // Filtra os técnicos e utiliza `omie` como identificador
-        return Object.entries(data)
-            .filter(([_, value]) => value.tags && value.tags.some(tagObj => tagObj.tag === "TÉCNICO"))
-            .map(([_, value]) => ({
-                omie: value.omie, // Substitui `id` por `omie`
-                nome: value.nome,
-            }));
     }
 
     function generateCalendar(year, month) {
@@ -304,8 +321,11 @@ document.addEventListener("DOMContentLoaded", () => {
         tecnicoInput.type = "text";
         tecnicoInput.placeholder = "Selecione um técnico";
         tecnicoInput.className = "dropdown-input";
-        tecnicoInput.value = technician.nome || ""; // Preenche o nome do técnico
-        tecnicoInput.dataset.omie = technician.omie || ""; // Salva o omie no dataset
+        const tecnicoOmie = technician.omie || "";
+        const tecnicoAtual = technicianOptions.find((tech) => tech.omie == tecnicoOmie);
+        tecnicoInput.value = tecnicoAtual ? tecnicoAtual.nome : ""; // Nome do técnico baseado no `omie`
+
+        tecnicoInput.dataset.omie = tecnicoOmie;
 
         const tecnicoDropdown = document.createElement("div");
         tecnicoDropdown.className = "dropdown-options";
@@ -314,11 +334,13 @@ document.addEventListener("DOMContentLoaded", () => {
             option.className = "dropdown-option";
             option.textContent = tech.nome;
             option.dataset.omie = tech.omie;
+    
             option.addEventListener("click", () => {
-                tecnicoInput.value = tech.nome; // Define o nome do técnico
-                tecnicoInput.dataset.omie = tech.omie; // Salva o código omie
+                tecnicoInput.value = tech.nome; // Atualiza o nome do técnico no input
+                tecnicoInput.dataset.omie = tech.omie; // Vincula o código omie
                 tecnicoDropdown.style.display = "none"; // Fecha o dropdown
             });
+    
             tecnicoDropdown.appendChild(option);
         });
 
@@ -382,21 +404,21 @@ document.addEventListener("DOMContentLoaded", () => {
             setTimeout(() => {
                 const currentKey = getAgendaKey(); // Chave do mês/ano atual (exemplo: "2025_0")
                 const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
-        
+
                 // Captura o nome e Omie antes de qualquer mudança
-                const previousOmie = tecnicoInput.dataset.previousOmie || String(tecnicoInput.dataset.omie); 
+                const previousOmie = tecnicoInput.dataset.previousOmie || String(tecnicoInput.dataset.omie);
                 const previousName = tecnicoInput.dataset.previousName || tecnicoInput.dataset.originalName;
-        
+
                 console.log("Chave do mês/ano (currentKey):", currentKey);
                 console.log("Dados armazenados (storedData):", storedData);
                 console.log("Nome Anterior:", previousName);
                 console.log("Omie Anterior:", previousOmie);
-        
+
                 // Verifica se o técnico selecionado é válido
                 const validTechnician = technicianOptions.find(
                     (tech) => tech.nome.trim().toLowerCase() === tecnicoInput.value.trim().toLowerCase()
                 );
-        
+
                 if (!validTechnician) {
                     // Técnico inválido: Reverte o valor para o anterior
                     tecnicoInput.value = previousName;
@@ -410,7 +432,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             String(tech.omie) === String(validTechnician.omie) &&
                             tech.agendas?.[currentKey]
                     );
-        
+
                     if (isDuplicate) {
                         // Técnico duplicado: Reverte o valor para o anterior
                         tecnicoInput.value = previousName;
@@ -420,19 +442,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     } else {
                         // Técnico válido e não duplicado
                         const newOmie = String(validTechnician.omie);
-        
+
                         if (storedData[previousOmie]) {
                             console.log(
                                 `Encontrado técnico anterior (${previousName}, ${previousOmie}) no storedData.`
                             );
-        
+
                             // Verifica se há uma agenda para a chave atual
                             if (storedData[previousOmie]?.agendas?.[currentKey]) {
                                 console.log(
                                     `Agenda encontrada para técnico anterior (${previousName}, ${previousOmie}):`,
                                     storedData[previousOmie].agendas[currentKey]
                                 );
-        
+
                                 delete storedData[previousOmie].agendas[currentKey];
 
                                 enviar_dados_generico({
@@ -440,7 +462,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                     operacao: "editar",
                                     tecnico: storedData[previousOmie], // Técnico atualizado sem a agenda excluída
                                 });
-        
+
                                 // Atualiza o localStorage
                                 localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
                                 console.log(
@@ -456,25 +478,25 @@ document.addEventListener("DOMContentLoaded", () => {
                                 `Técnico anterior (${previousName}, ${previousOmie}) não encontrado no storedData.`
                             );
                         }
-        
+
                         // Atualiza o técnico atual
                         tecnicoInput.dataset.omie = newOmie;
                         tecnicoInput.dataset.originalName = validTechnician.nome;
-        
+
                         // Salva as mudanças no localStorage
                         saveTechniciansToLocalStorage();
-        
+
                         // Log de sucesso
                         console.log(
                             `Técnico atualizado com sucesso: ${validTechnician.nome} (${newOmie}).`
                         );
                     }
                 }
-        
+
                 tecnicoDropdown.style.display = "none"; // Fecha o dropdown
             }, 200); // Pequeno atraso para permitir seleção do dropdown
         });
-        
+
         // Garante que o valor anterior seja salvo antes de edição
         tecnicoInput.addEventListener("focus", () => {
             tecnicoInput.dataset.previousOmie = tecnicoInput.dataset.omie;
@@ -484,8 +506,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 previousName: tecnicoInput.dataset.previousName,
             });
         });
-                  
-        
+
+
         tecnicoCell.appendChild(tecnicoInput);
         tecnicoCell.appendChild(tecnicoDropdown);
         newRow.appendChild(tecnicoCell);
@@ -498,7 +520,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const dayInput = document.createElement("input");
             dayInput.type = "text";
-            dayInput.placeholder = "Selecione";
             dayInput.className = "dropdown-input";
             dayInput.style.backgroundColor = "transparent";
 
@@ -760,32 +781,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     function loadTechniciansFromLocalStorage() {
-
         if (isLoading) return;
-
+    
         const storedData = localStorage.getItem("dados_agenda_tecnicos");
         const daysRow = document.getElementById("days-row");
         const techniciansBody = document.getElementById("technicians-body");
-
+    
         if (storedData) {
             const techniciansObj = JSON.parse(storedData);
             const currentKey = getAgendaKey(); // Chave do mês/ano atual
-            const regionSelect = document.getElementById("region-select");
             const selectedRegion = regionSelect.value; // Região selecionada
-
-            // Filtrar técnicos com base na região e na agenda
+    
             const technicians = Object.values(techniciansObj).filter((tech) => {
                 const isRegionMatching =
                     selectedRegion === "todas" || tech.regiao_atual === selectedRegion;
                 return tech.agendas[currentKey] && isRegionMatching;
             });
-
+    
             techniciansBody.innerHTML = ""; // Limpa a tabela
-
+    
             if (technicians.length > 0) {
                 technicians.forEach((technician) => {
                     const agenda = technician.agendas[currentKey] || [];
-                    addTechnicianRow(technician, agenda);
+                    addTechnicianRow(technician, agenda); // Adiciona a linha com base no `omie`
                 });
             } else {
                 techniciansBody.innerHTML = `<tr id="no-data-row"><td colspan="${daysRow.children.length || 2
@@ -796,9 +814,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 }">Nenhum técnico disponível.</td></tr>`;
         }
     }
+    
 
     function loadTechniciansFromStorage() {
-        const storedTechnicians = localStorage.getItem("technicians");
+        let storedTechnicians = localStorage.getItem("technicians");
         if (storedTechnicians) {
             try {
                 technicianOptions = JSON.parse(storedTechnicians);
@@ -807,31 +826,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         } else {
             technicianOptions = []; // Lista vazia se não houver dados
-        }
-    }
-
-
-    function loadAgendaForCurrentMonth() {
-        const key = getAgendaKey(); // Obtém a chave atual (mês/ano)
-        if (!key) {
-            return;
-        }
-
-        techniciansBody.innerHTML = ""; // Limpa a tabela
-
-        // Preenche os técnicos e suas agendas do mês atual
-        let hasData = false; // Verifica se há dados
-        technicians.forEach((technician) => {
-            if (technician.agendas && technician.agendas[key]) {
-                hasData = true;
-                addTechnicianRow(technician, technician.agendas[key]);
-            }
-        });
-
-        // Exibe o aviso se não houver dados
-        if (!hasData) {
-            const totalColumns = daysRow.children.length || 2; // Inclui dias e ações
-            techniciansBody.innerHTML = `<tr id="no-data-row"><td colspan="${totalColumns}">Nenhum dado disponível. Adicione um técnico.</td></tr>`;
         }
     }
 
@@ -918,7 +912,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function getDepartmentColorFromStorage(departmentName) {
-        const storedDepartments = JSON.parse(localStorage.getItem("departments")) || [];
+        let storedDepartments = JSON.parse(localStorage.getItem("departments")) || [];
         const storedDepartment = storedDepartments.find((dept) => dept.nome === departmentName);
 
         // Retorna a cor salva ou gera uma nova
