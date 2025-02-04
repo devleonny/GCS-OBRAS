@@ -935,6 +935,17 @@ async function salvar_pedido(chave) {
     let tipo = document.getElementById('tipo')
     let pedido = document.getElementById('pedido')
 
+    if(tipo.value == "Selecione"){
+
+        return openPopup_v2(`
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Defina o tipo do Pedido</label>
+            </div>
+        `)
+
+    }
+
     fechar_status() // Só fechar após coletar a informação necessária; 
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
@@ -1733,6 +1744,17 @@ async function abrir_esquema(id) {
                     `
                 }
 
+                if(String(sst.status).includes("RETORNO")){
+
+                    editar = `
+                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="retorno_de_materiais('${chave_pedido}', '${id}', false)">
+                            <img src="imagens/editar4.png" style="width: 15px;">
+                            <label>Editar</label>
+                        </div>
+                    `
+
+                }
+
                 if (String(sst.status).includes('COTAÇÃO')) {
 
                     await recuperarCotacoes()
@@ -2202,15 +2224,15 @@ async function retorno_de_materiais(chave_pedido, id, qualBotao) {
         }
     });
 
+
     if (retornoAtual && qualBotao) {
 
-        openPopup_v2(`
-            
-                <p>Já existe um bloco de Retorno de Materiais</p>
-
-            `)
-
-        return
+        return openPopup_v2(`
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Já existe um Retorno de Materiais no Pedido</label>
+            </div>
+        `)
 
     }
 
@@ -2264,7 +2286,7 @@ async function retorno_de_materiais(chave_pedido, id, qualBotao) {
     
     </table>
     
-    <button id="botao_salvar_retorno" onclick="salvar_materiais_retorno('${chave_pedido}', '${chave2}')">Salvar</button>
+    <button id="botao_salvar_retorno" onclick="salvar_materiais_retorno('${chave_pedido}', ${chave2})">Salvar</button>
 
     `
 
@@ -3270,8 +3292,6 @@ async function excluir_status_na_nuvem(chave1, chave2, chave_anexo) {
 function deseja_apagar(chave1, chave2) {
 
     let funcao = chave2 == undefined ? `apagar_status_historico('${chave1}')` : `apagar_status_historico('${chave1}', '${chave2}')`
-
-    console.log(funcao)
 
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
