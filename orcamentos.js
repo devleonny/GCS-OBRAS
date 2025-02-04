@@ -336,10 +336,28 @@ async function preencher_orcamentos_v2(filtros, remover) {
         }
 
         var painel_direito = document.getElementById('painel_direito')
+        let atalhos = `
+        <div style="display: flex; align-items: center; justify-content: start; gap: 10px; color: white;">
+            <label class="numero" style="background-color: #ffc584; width: 2vw; height: 2vw;"></label>
+            <label>Sem Pedido</label>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: start; gap: 10px; color: white;">
+            <label class="numero" style="background-color: #4CAF50; width: 2vw; height: 2vw;"></label>
+            <label>Aprovados</label>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: start; gap: 10px; color: white;">
+            <label class="numero" style="background-color: #ff7777; width: 2vw; height: 2vw;"></label>
+            <label>Reprovados</label>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: start; gap: 10px; color: white;">
+            <label class="numero" style="width: 2vw; height: 2vw;"></label>
+            <label>Diretoria Pendente</label>
+        </div>
+        `
         if (filtros) {
             botao_limpar_painel_direito()
         } else {
-            var atalhos = `
+            atalhos += `
             <div class="block" onclick="window.location.href = 'adicionar.html'">
                 <img src="imagens/projeto.png" style="width: 50px;">
                 <p style="font-size: 0.8vw;">CRIAR ORÇAMENTO</p>
