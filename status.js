@@ -1750,46 +1750,140 @@ async function abrir_esquema(id) {
 
                 }
 
-                if (String(sst.status).includes('COTAÇÃO')) {
+                async function iniciar_cotacao(chave, id_orcam) {
 
-                    await recuperarCotacoes()
-
-                    let cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
-
-                    let cotacaoAtual = {}
-
-                    for (let cotacao of Object.values(cotacoes)) {
-
-                        if (cotacao.informacoes.idOrcamento) {
-
-                            if (id_orcam == cotacao.informacoes.idOrcamento) {
-
-                                cotacaoAtual = cotacoes[cotacao.informacoes.id]
-
+                    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+                    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+                    let orcamento = dados_orcamentos[id_orcam];
+                    let itens_do_orcamento = dados_orcamentos[id_orcam].dados_composicoes;
+                    let acesso = JSON.parse(localStorage.getItem('acesso')) || {};
+                    let todos_os_status = orcamento.status[chave].historico;
+                    let itens = {}; // Dicionário para armazenar os itens processados.
+                
+                    console.log("🔍 Iniciando análise de itens...");
+                
+                    for (let chave2 in todos_os_status) {
+                        let his = todos_os_status[chave2];
+                        console.log(`🟡 Analisando status: ${chave2}, dados:`, his);
+                
+                        if (String(his.status).includes('FATURAMENTO')) {
+                            console.log(`✅ Status 'FATURAMENTO' encontrado para ${chave2}`);
+                
+                            let requisicao = his.requisicoes;
+                
+                            requisicao.forEach(item => {
+                                console.log(`📦 Processando item da requisição:`, item);
+                
+                                let it = item.codigo;
+                
+                                // Verifica se o código existe em `dados_composicoes` ou `itens_do_orcamento`
+                                console.log("🔍 Verificando código no dicionário:", it, "Dados:", dados_composicoes[it]);
+                                if (!dados_composicoes[it] && !itens_do_orcamento[it]) {
+                                    console.warn(`⚠️ Código ${it} não encontrado em dados_composicoes ou itens_do_orcamento.`);
+                                    return;
+                                }
+                
+                                // Adiciona ou atualiza o item no dicionário de itens.
+                                if (!itens[it]) {
+                                    itens[it] = {
+                                        quantidade: 0,
+                                        estoque: 0,
+                                        fornecedores: []
+                                    };
+                                }
+                
+                                itens[it].tipoUnitario = dados_composicoes[it] !== undefined ? dados_composicoes[it].unidade : itens_do_orcamento[it].unidade;
+                                itens[it].partnumber = item.partnumber;
+                                itens[it].quantidade += conversor(item.qtde_enviar);
+                                itens[it].nomeItem = dados_composicoes[it] !== undefined ? dados_composicoes[it].descricao : itens_do_orcamento[it].descricao;
+                            });
+                
+                            // Processa adicionais, caso existam.
+                            let adicionais = his.adicionais || {};
+                            console.log("🔍 Adicionais encontrados:", adicionais);
+                
+                            for (let ad in adicionais) {
+                                console.log(`🔄 Processando adicional: ${ad}`);
+                
+                                let pais = adicionais[ad];
+                
+                                // Remove o item pai se ele já estiver no dicionário.
+                                if (itens[ad]) {
+                                    console.log(`❌ Removendo item pai ${ad} devido a adicionais.`);
+                                    delete itens[ad];
+                                }
+                
+                                for (let filho in pais) {
+                                    let pais_e_filhos = pais[filho];
+                
+                                    console.log(`🔹 Processando item filho: ${filho}, dados:`, pais_e_filhos);
+                
+                                    if (!itens[filho]) {
+                                        itens[filho] = {
+                                            quantidade: 0,
+                                            estoque: 0,
+                                            fornecedores: []
+                                        };
+                                    }
+                
+                                    itens[filho].tipoUnitario = pais_e_filhos.unidade;
+                                    itens[filho].partnumber = pais_e_filhos.partnumber;
+                                    itens[filho].quantidade += conversor(pais_e_filhos.qtde);
+                                    itens[filho].nomeItem = filho;
+                                }
                             }
-
                         }
-
-
                     }
-
-                    var idCotacao = cotacaoAtual.informacoes.id
-
-                    if (cotacaoAtual.status == "Finalizada") {
-
-                        sst.status = "COTAÇÃO FINALIZADA"
-                        await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave_pedido}/historico/${chave2}/status`, "COTAÇÃO FINALIZADA")
-                        await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
-
-                    } else {
-
-                        sst.status = "COTAÇÃO PENDENTE"
-                        await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave_pedido}/historico/${chave2}/status`, "COTAÇÃO PENDENTE")
-                        await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
-
+                
+                    console.log("📄 Final do processamento dos itens:", itens);
+                
+                    // Converter dicionário em lista;
+                    let itens_em_lista = [];
+                    let i = 1;
+                
+                    for (let it in itens) {
+                        itens[it].numeroItem = i;
+                        itens_em_lista.push(itens[it]);
+                        console.log(`✅ Adicionado à lista:`, itens[it]);
+                        i++;
                     }
-
-                }
+                
+                    console.log("📋 Lista final de itens:", itens_em_lista);
+                
+                    // Gerar uma nova cotação
+                    let id_compartilhado = unicoID();
+                    let data = new Date();
+                    let nova_cotacao = {
+                        informacoes: {
+                            id: id_compartilhado,
+                            data: data.toLocaleDateString('pt-BR'),
+                            hora: `${String(data.getHours()).padStart(2, '0')}:${String(data.getMinutes()).padStart(2, '0')}:${String(data.getSeconds()).padStart(2, '0')}`,
+                            criador: acesso.usuario,
+                            apelidoCotacao: orcamento.dados_orcam.cliente_selecionado,
+                            idOrcamento: id_orcam,
+                            chavePedido: chave
+                        },
+                        dados: itens_em_lista,
+                        valorFinal: [],
+                        operacao: 'incluir',
+                        status: 'Pendente'
+                    };
+                
+                    console.log("📦 Nova cotação gerada:", nova_cotacao);
+                
+                    // Atualizar o status no orçamento
+                    let data_completa = new Date().toLocaleString('pt-BR', {
+                        dateStyle: 'short',
+                        timeStyle: 'short'
+                    });
+                
+                    orcamento.status[chave].status = 'COTAÇÃO PENDENTE';
+                    orcamento.status[chave].historico[id_compartilhado] = {
+                        status: 'COTAÇÃO PENDENTE',
+                        data: data_completa,
+                        executor: acesso.usuario,
+                        cotacao: nova_cotacao
+                    };                
 
                 if (sst.anexos) {
 
@@ -1889,7 +1983,7 @@ async function abrir_esquema(id) {
                         ${totais}
                         ${dados_de_envio}
                         ${links_requisicoes}
-                        ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${idCotacao}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
+                        ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${chave2}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
                         <div style="display: flex; justify-content: space-evenly; align-items: center;">
                             <div class="contorno_botoes" style="background-color: ${fluxograma[sst.status].cor}">
                                 <img src="imagens/anexo2.png" style="width: 15px;">
