@@ -1750,47 +1750,6 @@ async function abrir_esquema(id) {
 
                 }
 
-                if (String(sst.status).includes('COTAÇÃO')) {
-
-                    await recuperarCotacoes()
-
-                    let cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
-
-                    let cotacaoAtual = {}
-
-                    for (let cotacao of Object.values(cotacoes)) {
-
-                        if (cotacao.informacoes.idOrcamento) {
-
-                            if (id_orcam == cotacao.informacoes.idOrcamento) {
-
-                                cotacaoAtual = cotacoes[cotacao.informacoes.id]
-
-                            }
-
-                        }
-
-
-                    }
-
-                    var idCotacao = cotacaoAtual.informacoes.id
-
-                    if (cotacaoAtual.status == "Finalizada") {
-
-                        sst.status = "COTAÇÃO FINALIZADA"
-                        await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave_pedido}/historico/${chave2}/status`, "COTAÇÃO FINALIZADA")
-                        await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
-
-                    } else {
-
-                        sst.status = "COTAÇÃO PENDENTE"
-                        await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave_pedido}/historico/${chave2}/status`, "COTAÇÃO PENDENTE")
-                        await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
-
-                    }
-
-                }
-
                 if (sst.anexos) {
 
                     Object.keys(sst.anexos).forEach(key_anx => {
@@ -1889,7 +1848,7 @@ async function abrir_esquema(id) {
                         ${totais}
                         ${dados_de_envio}
                         ${links_requisicoes}
-                        ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${idCotacao}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
+                        ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${chave2}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
                         <div style="display: flex; justify-content: space-evenly; align-items: center;">
                             <div class="contorno_botoes" style="background-color: ${fluxograma[sst.status].cor}">
                                 <img src="imagens/anexo2.png" style="width: 15px;">
