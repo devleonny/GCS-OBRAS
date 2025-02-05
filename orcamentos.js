@@ -1,3 +1,15 @@
+document.addEventListener("DOMContentLoaded", function() {
+    let tipo = localStorage.getItem("ativarPendencias");
+
+    console.log(tipo)
+
+    if (tipo != null) {
+        mostrar_apenas_pendencias(tipo); // Chama a função com "gerente" ou "diretoria"
+        localStorage.removeItem("ativarPendencias"); // Remove para evitar execução futura indevida
+    }
+});
+
+
 var status_deste_modulo = [];
 var modulo = localStorage.getItem('modulo_ativo') || ''
 var filtrosAtivos = {};
@@ -364,34 +376,7 @@ async function preencher_orcamentos_v2(filtros, remover) {
             </div>
             `
 
-            if (modulo !== 'PROJETOS') {
-                if (Object.keys(dados_filtrados.diretoria).length > 0) {
-                    atalhos += `
-                    <div class="block" onclick="mostrar_apenas_pendencias('diretoria')">
-                        <img src="gifs/atencao.gif" style="width: 50px;">
-                        <p style="font-size: 0.8vw;">APROVAÇÃO DA DIRETORIA</p>
-                    </div>
-                    `
-                }
-
-                if (Object.keys(dados_filtrados.gerente).length > 0) {
-                    atalhos += `
-                    <div class="block" onclick="mostrar_apenas_pendencias('gerente')">
-                        <img src="gifs/atencao.gif" style="width: 50px;">
-                        <p style="font-size: 0.8vw;">APROVAÇÃO DO GERENTE</p>
-                    </div>
-                    `
-                }
-            }
-
-            atalhos += `
-            <div class="block" onclick="resumo_orcamentos()">
-                <img src="gifs/atencao.gif" style="width: 50px;">
-                <p style="font-size: 0.8vw;">ORÇAMENTOS POR ANALISTA</p>
-            </div>
-            `
-
-            for (atalho in status_deste_modulo) {
+            for (var atalho in status_deste_modulo) {
                 let quantidade = status_deste_modulo[atalho]
                 let nome = atalho
                 if (fluxograma[atalho].nome) {
