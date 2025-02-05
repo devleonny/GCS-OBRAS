@@ -110,9 +110,7 @@ async function carregar_tabela_v2() {
         tsearch += tsc[col];
     });
 
-    for (codigo in dados_composicoes) {
-
-        let produto = dados_composicoes[codigo]
+    for (let [codigo, produto] of Object.entries(dados_composicoes).reverse()) {
         var tds = {};
 
         colunas.forEach(chave => {
@@ -631,31 +629,62 @@ async function abrir_historico_de_precos(codigo, tabela) {
 
 }
 
-async function excluir_cotacao(codigo, tabela, cotacao) {
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+async function excluir_cotacao(codigo, lpu, cotacao) {
+    var historico_preco = document.getElementById('historico_preco');
+    var dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
-    remover_popup()
+    if (historico_preco) {
+        var tabela = historico_preco.querySelector('table');
 
-    if (dados_composicoes[codigo] && dados_composicoes[codigo][tabela]) {
+        // 🔥 Adicionar o aviso de "Aguarde..." dentro do container
+        const aviso = document.createElement('div');
+        aviso.id = "aviso-aguarde";
+        aviso.style = `
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            font-size: 1.5em;
+            border-radius: 5px;
+        `;
+        aviso.innerHTML = `<div>Aguarde...</div>`;
+        historico_preco.style.position = "relative"; // Garante o posicionamento correto
+        historico_preco.appendChild(aviso);
 
-        let cotacoes = dados_composicoes[codigo][tabela]
+        // 🔥 Reduz a opacidade da tabela enquanto o aviso está ativo
+        tabela.style.opacity = "0.3";
 
-        if (cotacoes.ativo == cotacao) {
-            cotacoes.ativo = ''
-            await enviar('PUT', `dados_composicoes/${codigo}/${tabela}/ativo`, '')
-            await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
+        // 🔥 Lógica de exclusão da cotação
+        if (dados_composicoes[codigo] && dados_composicoes[codigo][lpu]) {
+            let cotacoes = dados_composicoes[codigo][lpu];
+
+            // Remove o preço ativo, se ele for a cotação atual
+            if (cotacoes.ativo == cotacao) {
+                cotacoes.ativo = "";
+                await enviar('PUT', `dados_composicoes/${codigo}/${lpu}/ativo`, "");
+                await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now());
+            }
+
+            // Remove a cotação do histórico
+            delete cotacoes.historico[cotacao];
+
+            // Atualiza o banco de dados
+            await inserirDados(dados_composicoes, 'dados_composicoes');
+            await deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`);
+            await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now());
         }
 
-        delete cotacoes.historico[cotacao]
-
-        await inserirDados(dados_composicoes, 'dados_composicoes')
-        await abrir_historico_de_precos(codigo, tabela)
-
-        await deletar(`dados_composicoes/${codigo}/${tabela}/historico/${cotacao}`)
-        await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
-
-        await carregar_tabela_v2()
-
+        // 🔥 Restaurar a tabela e abrir o histórico
+        tabela.style.opacity = "1"; // Restaura a opacidade
+        await abrir_historico_de_precos(codigo, lpu); // 🛠️ Processa o histórico antes de remover o aviso
+        aviso.remove(); // Remover aviso somente após abrir_historico_de_precos
     }
 }
 
@@ -703,63 +732,142 @@ async function atualizar() {
 }
 
 async function salvar_preco_ativo(codigo, id_preco, lpu) {
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    var produto = dados_composicoes[codigo]
-    var historico_preco = document.getElementById('historico_preco')
+    var dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    var produto = dados_composicoes[codigo];
+    var historico_preco = document.getElementById('historico_preco');
 
     if (historico_preco) {
-        var tabela = historico_preco.querySelector('table')
-        var tbody = tabela.querySelector('tbody')
-        var trs = tbody.querySelectorAll('tr')
-        remover_popup()
-        openPopup_v2(`
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    <img src="gifs/loading.gif" style="width: 70px;">
-                    <label>Aguarde...</label>
-                </div>
-            </div>
-            `)
+        var tabela = historico_preco.querySelector('table');
+        var tbody = tabela.querySelector('tbody');
+        var trs = tbody.querySelectorAll('tr');
 
-        for (t in trs) {
-            let tr = trs[t]
-            var tds = tr.querySelectorAll('td')
-            var checkbox = tds[6].querySelector('input')
+        // 🔥 Adicionar o aviso de "Aguarde..." dentro do container da tabela
+        const aviso = document.createElement('div');
+        aviso.id = "aviso-aguarde";
+        aviso.style = `
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background-color: rgba(0, 0, 0, 0.7); 
+            color: white; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 10; 
+            font-size: 1.5em; 
+            border-radius: 5px;
+        `;
+        aviso.innerHTML = `<div>Aguarde...</div>`;
+        historico_preco.style.position = "relative"; // Garante que o aviso seja posicionado corretamente
+        historico_preco.appendChild(aviso);
 
-            if (checkbox.checked) {
-                produto[lpu].ativo = id_preco
-                await inserirDados(dados_composicoes, 'dados_composicoes')
+        // 🔥 Ocultar a tabela enquanto o aviso é exibido
+        tabela.style.opacity = "0.3"; // Reduz a opacidade da tabela
 
-                await enviar('PUT', `dados_composicoes/${codigo}/${lpu}/ativo`, id_preco)
-                await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
+        // 🔥 Desmarca todos os checkboxes antes de ativar o novo
+        trs.forEach(tr => {
+            let tds = tr.querySelectorAll('td');
+            let checkbox = tds[6].querySelector('input');
+            checkbox.checked = false; // Remove todas as marcações
+        });
 
-                historico_preco.remove()
-                remover_popup()
-                return abrir_historico_de_precos(codigo, lpu)
-                carregar_tabela_v2()
+        let algumMarcado = false;
+
+        // 🔥 Agora percorre e marca apenas o checkbox correto
+        for (let tr of trs) {
+            let tds = tr.querySelectorAll('td');
+            let checkbox = tds[6].querySelector('input');
+
+            if (id_preco === produto[lpu]?.ativo) {
+                // Desmarcando o preço ativo
+                produto[lpu].ativo = "";
+                await inserirDados(dados_composicoes, 'dados_composicoes');
+                await enviar('PUT', `dados_composicoes/${codigo}/${lpu}/ativo`, "");
+                await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now());
+
+                // 🔥 Remover o aviso e restaurar a tabela
+                aviso.remove();
+                tabela.style.opacity = "1"; // Restaura a opacidade
+                carregar_tabela_v2();
+                return abrir_historico_de_precos(codigo, lpu);
+            }
+
+            if (checkbox.checked || id_preco) {
+                checkbox.checked = true; // Garante a marcação
+                produto[lpu].ativo = id_preco;
+                algumMarcado = true;
+
+                await inserirDados(dados_composicoes, 'dados_composicoes');
+                await enviar('PUT', `dados_composicoes/${codigo}/${lpu}/ativo`, id_preco);
+                await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now());
+
+                historico_preco.remove();
+
+                // 🔥 Remover o aviso e restaurar a tabela
+                aviso.remove();
+                tabela.style.opacity = "1"; // Restaura a opacidade
+                remover_popup();
+                return abrir_historico_de_precos(codigo, lpu);
             }
         }
-    }
 
+        // 🔥 Se nenhum checkbox foi marcado, remove o ativo
+        if (!algumMarcado) {
+            produto[lpu].ativo = "";
+            await inserirDados(dados_composicoes, 'dados_composicoes');
+            await enviar('PUT', `dados_composicoes/${codigo}/${lpu}/ativo`, "");
+            await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now());
+        }
+
+        // 🔥 Remover o aviso e restaurar a tabela
+        aviso.remove();
+        tabela.style.opacity = "1"; // Restaura a opacidade
+        carregar_tabela_v2();
+    }
 }
 
 async function salvar_cotacao(codigo, lpu) {
-    var historico_preco = document.getElementById('historico_preco')
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    var produto = dados_composicoes[codigo]
+    var historico_preco = document.getElementById('historico_preco');
+    var dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    var produto = dados_composicoes[codigo];
 
     if (historico_preco) {
-        var tabela = historico_preco.querySelector('table')
-        var tbody = tabela.querySelector('tbody')
-        var trs = tbody.querySelectorAll('tr')
+        var tabela = historico_preco.querySelector('table');
+        var tbody = tabela.querySelector('tbody');
+        var trs = tbody.querySelectorAll('tr');
 
-        for (t in trs) {
-            let tr = trs[t]
-            var inputs = tr.querySelectorAll('input')
-            var tds = tr.querySelectorAll('td')
+        // 🔥 Adicionar o aviso de "Aguarde..." dentro do container
+        const aviso = document.createElement('div');
+        aviso.id = "aviso-aguarde";
+        aviso.style = `
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            font-size: 1.5em;
+            border-radius: 5px;
+        `;
+        aviso.innerHTML = `<div>Aguarde...</div>`;
+        historico_preco.style.position = "relative"; // Garante que o aviso seja posicionado corretamente
+        historico_preco.appendChild(aviso);
+
+        // 🔥 Reduz a opacidade da tabela enquanto o aviso está ativo
+        tabela.style.opacity = "0.3";
+
+        for (let tr of trs) {
+            var inputs = tr.querySelectorAll('input');
+            var tds = tr.querySelectorAll('td');
 
             if (inputs.length > 1) {
-
                 var dados = {
                     custo: conversor(inputs[0].value),
                     margem: inputs[1].value,
@@ -767,34 +875,33 @@ async function salvar_cotacao(codigo, lpu) {
                     data: tds[3].textContent,
                     usuario: acesso.usuario,
                     fornecedor: inputs[2].value,
-                }
+                };
 
-                if (!dicionario(produto[lpu]) || !produto[lpu]) {
+                if (!produto[lpu]) {
                     produto[lpu] = {};
                 }
-
                 if (!produto[lpu].historico) {
                     produto[lpu].historico = {};
                 }
 
-                var id = gerarNumeroAleatorio()
+                var id = gerarNumeroAleatorio();
 
-                produto[lpu].historico[id] = dados
+                produto[lpu].historico[id] = dados;
 
-                await enviar('PUT', `dados_composicoes/${codigo}/${lpu}/historico/${id}`, dados)
-                await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
+                await enviar('PUT', `dados_composicoes/${codigo}/${lpu}/historico/${id}`, dados);
+                await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now());
 
-                await inserirDados(dados_composicoes, 'dados_composicoes')
-
+                await inserirDados(dados_composicoes, 'dados_composicoes');
             }
-
         }
 
-        carregar_tabela_v2()
-        return abrir_historico_de_precos(codigo, lpu)
-
+        // 🔥 Restaurar a tabela e abrir o histórico
+        tabela.style.opacity = "1"; // Restaura a opacidade
+        await abrir_historico_de_precos(codigo, lpu); // 🛠️ Processa o histórico antes de remover o aviso
+        aviso.remove(); // Remover aviso somente após abrir_historico_de_precos
     }
 }
+
 
 function calcular() {
 
