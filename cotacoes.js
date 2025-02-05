@@ -1,17 +1,17 @@
 let linhasAtuais = [];
 let quantidadeFornecedores = 0;
 
-recuperarCotacoes();
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     obter_materiais();
     adicionarLinha();
-
+    await recuperarCotacoes();
+    
     const idEdicao = localStorage.getItem("cotacaoEditandoID");
     const operacao = localStorage.getItem("operacao");
     const iniciouPorClique = localStorage.getItem("iniciouPorClique");
     const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
-
+    
     // Só chama editarCotacao se a flag indicar que foi pelo link específico
     if (idEdicao && operacao === "editar" && iniciouPorClique === "true") {
         editarCotacao(idEdicao);
