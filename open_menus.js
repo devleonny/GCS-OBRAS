@@ -1271,16 +1271,6 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
             }
             if (pg.criado !== 'Omie') {
 
-                var continuar = false
-                if (acesso.permissao == 'gerente' && dados_setores[acesso.usuario].setor == dados_setores[pg.criado].setor) {
-                    continuar = true
-                } else if (pg.criado === acesso.usuario) {
-                    continuar = true
-                } else if (acesso.permissao == 'diretoria' || acesso.permissao == 'adm' || acesso.permissao == 'fin') {
-                    continuar = true
-                }
-
-                if (continuar) {
                     var valor_categorias = pg.param[0].categorias.map(cat =>
                         `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
                     ).join('');
@@ -1301,7 +1291,6 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
                         criado: pg.criado,
                         anexos: pg.anexos
                     };
-                }
 
             }
             return null;
