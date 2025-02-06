@@ -867,8 +867,6 @@ async function salvar_cotacao(codigo, lpu) {
             var inputs = tr.querySelectorAll('input');
             var tds = tr.querySelectorAll('td');
 
-            console.log(inputs[0].value)
-
             if (inputs.length > 1) {
                 var dados = {
                     custo: conversorParaCotacao(inputs[0].value),
@@ -878,8 +876,6 @@ async function salvar_cotacao(codigo, lpu) {
                     usuario: acesso.usuario,
                     fornecedor: inputs[2].value,
                 };
-
-                console.log(dados)
 
                 if (!produto[lpu]) {
                     produto[lpu] = {};
@@ -898,19 +894,6 @@ async function salvar_cotacao(codigo, lpu) {
                 await inserirDados(dados_composicoes, 'dados_composicoes');
             }
         }
-
-        console.log(conversorParaCotacao("5,2"));           // 5.2
-        console.log(conversorParaCotacao("5.2"));           // 5.2
-        console.log(conversorParaCotacao(5.2));           // 5.2
-        console.log(conversorParaCotacao(5,2));           // 5.2
-        console.log(conversorParaCotacao("1.000,25"));      // 1000.25
-        console.log(conversorParaCotacao("1,000.25"));      // 1000.25
-        console.log(conversorParaCotacao("10,25"));         // 10.25
-        console.log(conversorParaCotacao(""));              // 0
-        console.log(conversorParaCotacao(null));            // 0
-        console.log(conversorParaCotacao("abc"));           // 0
-        console.log(conversorParaCotacao(52));              // 52
-        console.log(conversorParaCotacao("52"));            // 52
 
         // 🔥 Restaurar a tabela e abrir o histórico
         tabela.style.opacity = "1"; // Restaura a opacidade
