@@ -1664,7 +1664,7 @@ async function receber(chave) {
 }
 
 async function deletar(chave) {
-    const url = `http://localhost:4000/deletar`;
+    const url = `https://leonny.dev.br/deletar`;
     return new Promise((resolve, reject) => {
         fetch(url, {
             method: "DELETE",
