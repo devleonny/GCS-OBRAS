@@ -1628,13 +1628,23 @@ function filtrar_tabela(coluna, id, elementoTH) {
 }
 
 function capturarValorCelula(celula) {
-    let entrada = celula.querySelector('input') || celula.querySelector('textarea')
+    let entrada = celula.querySelector('input') || celula.querySelector('textarea');
     if (entrada) {
         return entrada.value.toLowerCase();
     }
 
-    return celula.innerText.toLowerCase();
+    let valor = celula.innerText.toLowerCase();
+
+    // 🔥 Exceção para valores monetários no formato "R$ 0,00"
+    if (/^r\$\s[\d.,]+$/.test(valor)) {
+        // Remove "R$", remove separadores de milhar, substitui vírgula por ponto e converte para número
+        valor = valor.replace("r$", "").trim().replace(/\./g, "").replace(",", ".");
+        return parseFloat(valor);
+    }
+
+    return valor;
 }
+
 
 
 //--- NOVO SERVIÇO DE ARMAZENAMENTO -- \\
