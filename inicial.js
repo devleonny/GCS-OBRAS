@@ -94,13 +94,13 @@ function aparecerPopupResumoOrcamentos() {
   document.body.innerHTML += popupResumoOrcamentos;
 }
 
-function aparecerPopupAprovadosGerencia(){
+function aparecerPopupAprovadosGerencia() {
 
   const acesso = JSON.parse(localStorage.getItem("acesso"));
 
-  if(acesso.permissao == "adm" || acesso.permissao == "gerente"){
+  if (acesso.permissao == "adm" || acesso.permissao == "gerente") {
 
-  const popupAprovadosGerencia = `
+    const popupAprovadosGerencia = `
 
       <div id="popupAprovadosGerencia" style="
             position: fixed;
@@ -130,30 +130,27 @@ function aparecerPopupAprovadosGerencia(){
                 background: none;
                 border: none;
             ">×</button>
-          
-            
-            <div onclick="navegarParaOrcamentos('gerente')" style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-    <img src="gifs/atencao.gif" style="width: 50px;">
-    <p style="font-size: 0.8vw;">APROVAÇÃO DO GERENTE</p>
-</div>
-                    
-            
-      </div>
-  `
 
-  document.body.innerHTML += popupAprovadosGerencia;
+        <div onclick="navegarParaOrcamentos('gerente')" style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <img src="gifs/atencao.gif" style="width: 50px;">
+            <p style="font-size: 0.8vw;">APROVAÇÃO DO GERENTE</p>
+        </div>
+      </div>
+    `
+
+    document.body.innerHTML += popupAprovadosGerencia;
 
   }
 
 }
 
-function aparecerPopupAprovadosDiretoria(){
+function aparecerPopupAprovadosDiretoria() {
 
   const acesso = JSON.parse(localStorage.getItem("acesso"));
 
-  if(acesso.permissao == "adm" || acesso.permissao == "diretoria"){
+  if (acesso.permissao == "adm" || acesso.permissao == "diretoria") {
 
-  const popupAprovadosDiretoria = `
+    const popupAprovadosDiretoria = `
 
       <div id="popupAprovadosDiretoria" style="
             position: fixed;
@@ -191,7 +188,7 @@ function aparecerPopupAprovadosDiretoria(){
                     </div>
                     `
 
-                    document.body.innerHTML += popupAprovadosDiretoria
+    document.body.innerHTML += popupAprovadosDiretoria
 
   }
 
@@ -202,7 +199,7 @@ function navegarParaOrcamentos(tipo) {
   window.location.href = "orcamentos.html"; // Redireciona para a página
 }
 
-function fecharPopUps(id){
+function fecharPopUps(id) {
   document.getElementById(`${id}`).remove();
 }
 
