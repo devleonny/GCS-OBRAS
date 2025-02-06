@@ -1,15 +1,5 @@
 var acesso = JSON.parse(localStorage.getItem('acesso'))
 var versao = 'v3.0.4'
-const firebaseConfig = {
-    apiKey: "AIzaSyAjQHxVx_RAyukseYnUgmBblS5SEHITZ_U",
-    authDomain: "base-88062.firebaseapp.com",
-    databaseURL: "https://base-88062-default-rtdb.firebaseio.com",
-    projectId: "base-88062",
-    storageBucket: "base-88062.firebasestorage.app",
-    messagingSenderId: "190993678134",
-    appId: "1:190993678134:web:0c0c1f456caf24d3423d97",
-    measurementId: "G-PJP7PVPEXG"
-};
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F5') {
@@ -381,8 +371,7 @@ async function apagar(codigo_orcamento) {
     fechar_espelho_ocorrencias()
     remover_popup()
 
-    await enviar('PUT', `dados_orcamentos/${codigo_orcamento}/operacao`, 'excluido')
-    await enviar('PUT', `dados_orcamentos/${codigo_orcamento}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${codigo_orcamento}/operacao`, 'excluido')
 }
 
 function calcularProporcao(dataInicio, dataFim) {
@@ -1545,7 +1534,6 @@ function salvar_levantamento(id_orcamento) {
                     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
                     orcamento_v2 = dados_orcamentos[id_orcamento]
                     await enviar(`dados_orcamentos/${id_orcamento}/levantamentos/${id_anexo}`, anexo)
-                    await enviar(`dados_orcamentos/${id_orcamento}/timestamp`, Date.now())
                     await inserirDados(dados_orcamentos, 'dados_orcamentos')
                     abrir_esquema(id_orcamento)
 
@@ -1575,7 +1563,6 @@ async function excluir_levantamento(id_orcamento, id_anexo) {
     delete orcamento.levantamentos[id_anexo]
 
     await deletar(`dados_orcamentos/${id_orcamento}/levantamentos/${id_anexo}`)
-    await enviar(`dados_orcamentos/${id_orcamento}/timestamp`, Date.now())
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     abrir_esquema(id_orcamento)
@@ -1750,3 +1737,22 @@ async function proximo_sequencial() {
     return proximo
 
 }
+
+const socket = new WebSocket("wss://leonny.dev.br:8443");
+
+socket.onopen = () => {
+    console.log("Conectado ao WebSocket!");
+};
+
+socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log("Mensagem recebida:", data);
+};
+
+socket.onclose = () => {
+    console.log("Conexão WebSocket fechada.");
+};
+
+socket.onerror = (error) => {
+    console.error("Erro no WebSocket:", error);
+};

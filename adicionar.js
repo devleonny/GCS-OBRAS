@@ -340,10 +340,8 @@ async function enviar_dados() {
         orcamento_v2.dados_orcam.contrato = sequencial
     }
 
-    let operacao = 'PATCH'
     if (!orcamento_v2.id) {
         orcamento_v2.id = 'ORCA_' + unicoID();
-        operacao = 'PUT'
     }
 
     openPopup_v2(`
@@ -357,7 +355,6 @@ async function enviar_dados() {
     dados_orcamentos[orcamento_v2.id] = orcamento_v2
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${orcamento_v2.id}`, orcamento_v2);
-    await enviar(`dados_orcamentos/${orcamento_v2.id}/timestamp`, Date.now());
 
     localStorage.removeItem('orcamento_v2');
     location.href = 'orcamentos.html';
@@ -506,7 +503,7 @@ async function tabela_produtos_v2(tipo_tabela) {
             <label class="menu_top_serviço" onclick="tabela_produtos_v2('SERVIÇO')">Serviço</label>
             <label class="menu_top_venda" onclick="tabela_produtos_v2('VENDA')">Venda</label>
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;" onclick="recuperar_composicoes()">
-                <img src="imagens/atualizar_2.png" style="width: 30px; cursor: pointer;" onclick="exibir_calculadora()">
+                <img src="imagens/atualizar_2.png" style="width: 30px; cursor: pointer;">
                 <label style="color: white; cursor: pointer;">Atualizar</label>
             </div>
         </div>
