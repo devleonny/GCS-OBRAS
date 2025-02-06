@@ -1306,6 +1306,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
 
     var contadores = {
         gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: "imagens/gerente.png" },
+        qualidade: { qtde: 0, valor: 0, termo: 'qualidade', label: 'Aguardando aprovação da Qualidade', icone: "imagens/gerente.png" },
         diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: "imagens/diretoria.png" },
         reprovados: { qtde: 0, valor: 0, termo: 'reprovado', label: 'Reprovados', icone: "imagens/remover.png" },
         excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: "gifs/alerta.gif" },
@@ -1334,6 +1335,10 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
             icone = contadores.avencer.icone
             contadores.avencer.qtde += 1
             contadores.avencer.valor += pg.param[0].valor_documento
+        } else if (pg.status == 'Aguardando aprovação da Qualidade') {
+            icone = contadores.qualidade.icone
+            contadores.qualidade.qtde += 1
+            contadores.qualidade.valor += pg.param[0].valor_documento
         } else if (pg.status == 'Aguardando aprovação da Gerência') {
             icone = contadores.gerente.icone
             contadores.gerente.qtde += 1
@@ -1703,16 +1708,16 @@ function enviar(caminho, info) {
                 if (!response.ok) {
                     throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
                 }
-                return response.text(); 
+                return response.text();
             })
             .then(text => text ? JSON.parse(text) : {})
             .then(data => {
                 console.log("Resposta do servidor:", data);
-                resolve(data); 
+                resolve(data);
             })
-            .catch(error => {  
+            .catch(error => {
                 console.error("Erro:", error);
-                reject(error); 
+                reject(error);
             });
     });
 }
