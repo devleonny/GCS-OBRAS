@@ -1,8 +1,6 @@
 document.addEventListener("DOMContentLoaded", function() {
     let tipo = localStorage.getItem("ativarPendencias");
 
-    console.log(tipo)
-
     if (tipo != null) {
         mostrar_apenas_pendencias(tipo); // Chama a função com "gerente" ou "diretoria"
         localStorage.removeItem("ativarPendencias"); // Remove para evitar execução futura indevida

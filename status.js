@@ -2043,6 +2043,34 @@ async function iniciar_cotacao(chave, id_orcam) {
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let todos_os_status = orcamento.status[chave].historico
     let itens = {} // Dicionário;
+    let tem_requisicao = false
+
+    for(chave2 in todos_os_status){
+
+        let teste = todos_os_status[chave2]
+
+        if (String(teste.status).includes('FATURAMENTO')){
+
+            if(teste.requisicoes){
+
+                tem_requisicao = true
+
+            }
+
+        }
+
+    }
+
+    if(!tem_requisicao){
+
+        return openPopup_v2(`
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Precisa ter uma requisição para criar uma cotação</label>
+            </div>
+        `)
+
+    }
 
     for (chave2 in todos_os_status) {
         let his = todos_os_status[chave2]
@@ -2147,8 +2175,8 @@ async function iniciar_cotacao(chave, id_orcam) {
     };
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/historico/${id_compartilhado}`, codificarUTF8(orcamento.status[chave].historico[id_compartilhado]))
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/historico/${id_compartilhado}`, codificarUTF8(orcamento.status[chave].historico[id_compartilhado]))
+    await enviar(`dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
     let dados = {
         tabela: 'cotacoes',
