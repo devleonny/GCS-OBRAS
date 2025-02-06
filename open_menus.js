@@ -1664,20 +1664,24 @@ async function receber(chave) {
 }
 
 async function deletar(chave) {
-    const url = `https://base-88062-default-rtdb.firebaseio.com/${chave}.json`;
+    const url = `http://localhost:4000/deletar`;
     return new Promise((resolve, reject) => {
         fetch(url, {
-            method: "DELETE"
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ chave })
         })
             .then(response => response.json())
             .then(data => {
-                resolve(data)
+                resolve(data);
             })
             .catch(error => {
-                console.error("Erro ao obter dados:", error);
-                reject()
+                console.error("Erro ao deletar chave:", error);
+                reject();
             });
-    })
+    });
 }
 
 function enviar(caminho, info) {
