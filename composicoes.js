@@ -31,14 +31,18 @@ function pesquisar_em_composicoes(elemento) {
     });
 }
 
+async function recuperar_composicoes() {
+    let nuvem = await receber('dados_composicoes')
+    await inserirDados(nuvem, 'dados_composicoes')
+    await carregar_tabela_v2()
+}
+
 async function carregar_tabela_v2() {
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
     if (Object.keys(dados_composicoes).length == 0) {
-        let nuvem = descodificarUTF8(await receber('dados_composicoes'))
-        await inserirDados(nuvem, 'dados_composicoes')
-        dados_composicoes = nuvem
+        return recuperar_composicoes()
     }
 
     var thead = '';
@@ -241,8 +245,8 @@ async function atualizar_status_material(codigo, elemento) {
     dados_composicoes[codigo]['material infra'] = resposta
     await inserirDados(dados_composicoes, 'dados_composicoes')
 
-    await enviar('PUT', `dados_composicoes/${codigo}/material infra`, resposta)
-    await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
+    await enviar(`dados_composicoes/${codigo}/material infra`, resposta)
+    await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now())
 
     carregar_tabela_v2()
 
@@ -381,8 +385,8 @@ async function salvar_agrupamentos(codigo) {
 
         await inserirDados(dados_composicoes, 'dados_composicoes')
 
-        await enviar('PUT', `dados_composicoes/${codigo}/agrupamentos`, produto.agrupamentos)
-        await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
+        await enviar(`dados_composicoes/${codigo}/agrupamentos`, produto.agrupamentos)
+        await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now())
 
         remover_popup()
 
@@ -668,8 +672,8 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
             // Remove o preço ativo, se ele for a cotação atual
             if (cotacoes.ativo == cotacao) {
                 cotacoes.ativo = "";
-                await enviar('PUT', `dados_composicoes/${codigo}/${lpu}/ativo`, "");
-                await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now());
+                await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
+                await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now());
             }
 
             // Remove a cotação do histórico
@@ -678,7 +682,7 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
             // Atualiza o banco de dados
             await inserirDados(dados_composicoes, 'dados_composicoes');
             await deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`);
-            await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now());
+            await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now());
         }
 
         // 🔥 Restaurar a tabela e abrir o histórico
@@ -784,8 +788,8 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
                 // Desmarcando o preço ativo
                 produto[lpu].ativo = "";
                 await inserirDados(dados_composicoes, 'dados_composicoes');
-                await enviar('PUT', `dados_composicoes/${codigo}/${lpu}/ativo`, "");
-                await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now());
+                await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
+                await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now());
 
                 // 🔥 Remover o aviso e restaurar a tabela
                 aviso.remove();
@@ -800,8 +804,8 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
                 algumMarcado = true;
 
                 await inserirDados(dados_composicoes, 'dados_composicoes');
-                await enviar('PUT', `dados_composicoes/${codigo}/${lpu}/ativo`, id_preco);
-                await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now());
+                await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco);
+                await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now());
 
                 historico_preco.remove();
 
@@ -817,8 +821,8 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
         if (!algumMarcado) {
             produto[lpu].ativo = "";
             await inserirDados(dados_composicoes, 'dados_composicoes');
-            await enviar('PUT', `dados_composicoes/${codigo}/${lpu}/ativo`, "");
-            await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now());
+            await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
+            await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now());
         }
 
         // 🔥 Remover o aviso e restaurar a tabela
@@ -888,8 +892,8 @@ async function salvar_cotacao(codigo, lpu) {
 
                 produto[lpu].historico[id] = dados;
 
-                await enviar('PUT', `dados_composicoes/${codigo}/${lpu}/historico/${id}`, dados);
-                await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now());
+                await enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, dados);
+                await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now());
 
                 await inserirDados(dados_composicoes, 'dados_composicoes');
             }
@@ -1042,14 +1046,12 @@ async function exclusao_item(codigo) {
 }
 
 async function cadastrar_alterar(codigo) {
-    let operacao = 'PATCH'
     let elementos = document.getElementById('elementos');
     if (!elementos) return;
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     if (!dados_composicoes[codigo]) {
         dados_composicoes[codigo] = {};
-        operacao = 'PUT'
     }
 
     let dadosAtualizados = {};
@@ -1078,8 +1080,8 @@ async function cadastrar_alterar(codigo) {
     dados_composicoes[codigo] = { ...dados_composicoes[codigo], ...dadosAtualizados };
 
     await inserirDados(dados_composicoes, 'dados_composicoes');
-    await enviar(operacao, `dados_composicoes/${codigo}`, dadosAtualizados);
-    await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
+    await enviar(`dados_composicoes/${codigo}`, dadosAtualizados);
+    await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now())
 
     remover_popup();
     carregar_tabela_v2();

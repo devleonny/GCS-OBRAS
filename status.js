@@ -985,8 +985,8 @@ async function salvar_pedido(chave) {
 
     orcamento.status[chave] = novo_lancamento;
 
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}`, codificarUTF8(novo_lancamento))
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}`, novo_lancamento)
+    await enviar(`dados_orcamentos/${id_orcam}/timestamp`, Date.now())
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
 
     abrir_esquema(id_orcam)
@@ -1045,8 +1045,8 @@ async function salvar_notas(chave) {
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
     abrir_esquema(id_orcam)
 
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/historico/${chave_his}`, codificarUTF8(novo_lancamento.historico[chave_his]))
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/historico/${chave_his}`, novo_lancamento.historico[chave_his])
+    await enviar(`dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
     anexos = {}
     itens_adicionais = {}
@@ -1161,9 +1161,9 @@ async function salvar_requisicao(chave, chave2) {
     }
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/status`, st)
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/historico/${chave2}`, codificarUTF8(novo_lancamento.historico[chave2]))
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/status`, st)
+    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/historico/${chave2}`, novo_lancamento.historico[chave2])
+    await enviar(`dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
     abrir_esquema(id_orcam)
 
@@ -1462,7 +1462,7 @@ async function remover_reprovacao(responsavel) {
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     await deletar(`dados_orcamentos/${id_orcam}/aprovacao/${responsavel}`)
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
     exibir_todos_os_status(id_orcam)
     await preencher_orcamentos_v2()
@@ -1489,8 +1489,8 @@ async function aprovar_orcamento(responsavel, aprovar, data) {
     orcamento.aprovacao[responsavel] = aprov
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/aprovacao/${responsavel}`, aprov)
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${id_orcam}/aprovacao/${responsavel}`, aprov)
+    await enviar(`dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
     exibir_todos_os_status(id_orcam)
     await preencher_orcamentos_v2()
@@ -1530,8 +1530,8 @@ async function atulizar_item(chave1, item) {
     orcamento.status[chave1][item] = novo
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave1}/${item}`, codificarUTF8(novo))
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/${item}`, novo)
+    await enviar(`dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
     var estrutura = document.getElementById('estrutura')
     var espelho_ocorrencias = document.getElementById('espelho_ocorrencias')
@@ -2147,8 +2147,8 @@ async function iniciar_cotacao(chave, id_orcam) {
     };
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/historico/${id_compartilhado}`, codificarUTF8(orcamento.status[chave].historico[id_compartilhado]))
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/historico/${id_compartilhado}`, orcamento.status[chave].historico[id_compartilhado])
+    await enviar(`dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
     let dados = {
         tabela: 'cotacoes',
@@ -2285,8 +2285,8 @@ async function salvar_materiais_retorno(chave_pedido, chave2) {
     };
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave_pedido}/historico/${chave2}`, codificarUTF8(orcamento.status[chave_pedido].historico[chave2]))
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${id_orcam}/status/${chave_pedido}/historico/${chave2}`, orcamento.status[chave_pedido].historico[chave2])
+    await enviar(`dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
     abrir_esquema(id_orcam)
 
@@ -2307,10 +2307,10 @@ async function alterar_status_principal(select, chave) {
     orcamento.status[chave].alterado_por = acesso.usuario
     orcamento.status[chave].alterado_quando = data
 
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/status`, select.value)
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/alterado_por`, acesso.usuario)
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave}/alterado_quando`, data)
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/status`, select.value)
+    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/alterado_por`, acesso.usuario)
+    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/alterado_quando`, data)
+    await enviar(`dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
@@ -2468,9 +2468,9 @@ async function registrar_envio_material(chave1, id_orcam, chave2) {
     abrir_esquema(id_orcam)
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave1}/historico/${id}`, codificarUTF8(status))
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave1}/status`, st)
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${id}`, status)
+    await enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/status`, st)
+    await enviar(`dados_orcamentos/${id_orcam}/timestamp`, Date.now())
 
 }
 
@@ -2591,7 +2591,7 @@ async function excluir_comentario(id_comentario, chave1, chave2) {
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await deletar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/comentarios/${id_comentario}`)
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${id_orcam}/timestamp`, Date.now())
     await carregar_comentarios(chave1, chave2)
 
 }
@@ -2659,8 +2659,8 @@ async function salvar_comentario_trello(chave1, chave2) {
 
     textarea.value = ''
 
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/comentarios/${id}`, codificarUTF8(comentario))
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/comentarios/${id}`, comentario)
+    await enviar(`dados_orcamentos/${id_orcam}/timestamp`, Date.now())
     await carregar_comentarios(chave1, chave2)
 
 }
@@ -3188,7 +3188,7 @@ async function salvar_anexo(chave1, chave2) {
                     dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos[id_anx] = anx
 
                     inserirDados(dados_orcamentos, 'dados_orcamentos');
-                    enviar('PUT', `dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/anexos/${id_anx}`, codificarUTF8(anx))
+                    enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/anexos/${id_anx}`, anx)
 
                     var estrutura = document.getElementById('estrutura');
                     if (estrutura) {
@@ -3274,7 +3274,7 @@ async function apagar_status_historico(chave1, chave2) {
 
     }
 
-    await enviar('PUT', `dados_orcamentos/${id_orcam}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${id_orcam}/timestamp`, Date.now())
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     fechar_estrutura()
@@ -3303,8 +3303,8 @@ async function atualizar_partnumber(dicionario) {
 
     for (codigo in dicionario) {
         let partnumber = dicionario[codigo]
-        await enviar('PUT', `dados_composicoes/${codigo}/partnumber`, codificarUTF8(partnumber))
-        await enviar('PUT', `dados_composicoes/${codigo}/timestamp`, Date.now())
+        await enviar(`dados_composicoes/${codigo}/partnumber`, partnumber)
+        await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now())
     }
 }
 

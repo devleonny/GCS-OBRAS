@@ -346,8 +346,6 @@ async function enviar_dados() {
         operacao = 'PUT'
     }
 
-    orcamento_v2 = codificarUTF8(orcamento_v2) // Codificar para UTF-8;
-
     openPopup_v2(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
             <img src="imagens/concluido.png" style="width: 3vw; height: 3vw;">
@@ -358,8 +356,8 @@ async function enviar_dados() {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     dados_orcamentos[orcamento_v2.id] = orcamento_v2
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(operacao, `dados_orcamentos/${orcamento_v2.id}`, orcamento_v2);
-    await enviar('PUT', `dados_orcamentos/${orcamento_v2.id}/timestamp`, Date.now());
+    await enviar(`dados_orcamentos/${orcamento_v2.id}`, orcamento_v2);
+    await enviar(`dados_orcamentos/${orcamento_v2.id}/timestamp`, Date.now());
 
     localStorage.removeItem('orcamento_v2');
     location.href = 'orcamentos.html';
@@ -400,6 +398,12 @@ function mudar_tabela_pesquisa(tabela) {
 
 }
 
+async function recuperar_composicoes(tipo_tabela) {
+    let nuvem = await receber('dados_composicoes')
+    await inserirDados(nuvem, 'dados_composicoes')
+    await tabela_produtos_v2(tipo_tabela)
+}
+
 async function tabela_produtos_v2(tipo_tabela) {
 
     var tabela_itens = document.getElementById('tabela_itens')
@@ -411,9 +415,7 @@ async function tabela_produtos_v2(tipo_tabela) {
         var dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
         if (Object.keys(dados_composicoes) == 0) {
-            let nuvem = descodificarUTF8(await receber('dados_composicoes'))
-            await inserirDados(nuvem, 'dados_composicoes')
-            dados_composicoes = nuvem
+            await recuperar_composicoes(tipo_tabela)
         }
 
         var linhas = ''
@@ -503,6 +505,10 @@ async function tabela_produtos_v2(tipo_tabela) {
             <label class="menu_top_geral" onclick="tabela_produtos_v2()">Todos</label>
             <label class="menu_top_serviço" onclick="tabela_produtos_v2('SERVIÇO')">Serviço</label>
             <label class="menu_top_venda" onclick="tabela_produtos_v2('VENDA')">Venda</label>
+            <div style="display: flex; gap: 10px; justify-content: center; align-items: center;" onclick="recuperar_composicoes()">
+                <img src="imagens/atualizar_2.png" style="width: 30px; cursor: pointer;" onclick="exibir_calculadora()">
+                <label style="color: white; cursor: pointer;">Atualizar</label>
+            </div>
         </div>
         <table class="tabela" style="background-color: ${cores[tipo_tabela]}">
             <thead>

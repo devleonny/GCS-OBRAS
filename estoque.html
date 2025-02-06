@@ -80,6 +80,12 @@
 
                 <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
+                        onclick="recuperar_estoque()">
+                        <label style="color: white;">Atualizar</label>
+                        <img src="imagens/atualizar_2.png" style="width: 25px; cursor: pointer;">
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
                         onclick="window.location.href='inicial.html'">
                         <label style="color: white;">Voltar</label>
                         <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
@@ -110,99 +116,5 @@
 
 <script src="open_menus.js"></script>
 <script src="estoque.js"></script>
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
-    import { getDatabase, ref, set, onDisconnect, onChildAdded, onChildChanged, onChildRemoved, onValue, query, orderByChild, startAt, get } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    escutarAlteracoes('dados_estoque')
-    let funcao_recarregar = retomar_paginacao
-
-    async function escutarAlteracoes(nome_base) {
-        const dadosRef = ref(db, nome_base);
-        let baseLocal = await recuperarDados(nome_base) || {}
-
-        consultarDados(nome_base)
-
-        onChildAdded(dadosRef, async (snapshot) => {
-            atualizar_timestamp(nome_base)
-            const chave = snapshot.key;
-            const dado = descodificarUTF8(snapshot.val());
-            if (!baseLocal[chave]) {
-                baseLocal[chave] = dado;
-                await inserirDados(baseLocal, nome_base);
-                console.log('Adicionado:', chave, dado);
-                funcao_recarregar()
-            }
-        });
-
-        onChildChanged(dadosRef, async (snapshot) => {
-            atualizar_timestamp(nome_base)
-            const chave = snapshot.key;
-            const dado = descodificarUTF8(snapshot.val());
-            baseLocal[chave] = dado;
-            await inserirDados(baseLocal, nome_base);
-            console.log('Alterado:', chave, dado);
-            funcao_recarregar()
-        });
-
-        onChildRemoved(dadosRef, async (snapshot) => {
-            atualizar_timestamp(nome_base)
-            const chave = snapshot.key;
-            delete baseLocal[chave];
-            await inserirDados(baseLocal, nome_base);
-            console.log('Removido:', chave);
-            funcao_recarregar()
-        });
-
-    }
-
-    async function consultarDados(nome_base) {
-        let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
-        if (!timestamps[nome_base]) {
-            timestamps[nome_base] = Date.now()
-        }
-
-        const dadosRef = ref(db, nome_base);
-        const consulta = query(dadosRef, orderByChild('timestamp'), startAt(timestamps[nome_base]));
-        let baseLocal = await recuperarDados(nome_base) || {}
-
-        const snapshot = await get(consulta);
-        snapshot.forEach(async (childSnapshot) => {
-            const chave = childSnapshot.key;
-            const dado = descodificarUTF8(snapshot.val());
-            baseLocal[chave] = dado[chave];
-            await inserirDados(baseLocal, nome_base);
-            console.log('Dado encontrado:', chave, dado[chave]);
-            funcao_recarregar()
-        });
-
-        atualizar_timestamp(nome_base)
-
-    };
-
-    function atualizar_timestamp(nome_base) {
-        let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
-        timestamps[nome_base] = Date.now()
-        localStorage.setItem('timestamps', JSON.stringify(timestamps))
-    }
-
-    // Usuário Online
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    let userRef = ref(db, `usuarios_online/${acesso.usuario}`);
-
-    set(userRef, {
-        nome: acesso.usuario,
-        online: true,
-        app: 'estoque',
-        timestamp: Date.now(),
-    });
-
-    // Deslogar...
-    onDisconnect(userRef).remove();
-
-</script>
 
 </html>

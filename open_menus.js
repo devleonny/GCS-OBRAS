@@ -1271,26 +1271,26 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
             }
             if (pg.criado !== 'Omie') {
 
-                    var valor_categorias = pg.param[0].categorias.map(cat =>
-                        `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
-                    ).join('');
-                    var nome_orcamento = orcamentos[pg.id_orcamento]
-                        ? orcamentos[pg.id_orcamento].dados_orcam.cliente_selecionado
-                        : pg.departamento;
-                    var data_registro = pg.data_registro || pg.param[0].data_previsao;
+                var valor_categorias = pg.param[0].categorias.map(cat =>
+                    `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
+                ).join('');
+                var nome_orcamento = orcamentos[pg.id_orcamento]
+                    ? orcamentos[pg.id_orcamento].dados_orcam.cliente_selecionado
+                    : pg.departamento;
+                var data_registro = pg.data_registro || pg.param[0].data_previsao;
 
-                    return {
-                        id: pagamento,
-                        param: pg.param,
-                        data_registro,
-                        data_previsao: pg.param[0].data_previsao,
-                        nome_orcamento,
-                        valor_categorias,
-                        status: pg.status,
-                        observacao: pg.param[0].observacao,
-                        criado: pg.criado,
-                        anexos: pg.anexos
-                    };
+                return {
+                    id: pagamento,
+                    param: pg.param,
+                    data_registro,
+                    data_previsao: pg.param[0].data_previsao,
+                    nome_orcamento,
+                    valor_categorias,
+                    status: pg.status,
+                    observacao: pg.param[0].observacao,
+                    criado: pg.criado,
+                    anexos: pg.anexos
+                };
 
             }
             return null;
@@ -1544,8 +1544,8 @@ function salvar_levantamento(id_orcamento) {
                 if (id_orcamento) {
                     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
                     orcamento_v2 = dados_orcamentos[id_orcamento]
-                    await enviar('PUT', `dados_orcamentos/${id_orcamento}/levantamentos/${id_anexo}`, codificarUTF8(anexo))
-                    await enviar('PUT', `dados_orcamentos/${id_orcamento}/timestamp`, Date.now())
+                    await enviar(`dados_orcamentos/${id_orcamento}/levantamentos/${id_anexo}`, anexo)
+                    await enviar(`dados_orcamentos/${id_orcamento}/timestamp`, Date.now())
                     await inserirDados(dados_orcamentos, 'dados_orcamentos')
                     abrir_esquema(id_orcamento)
 
@@ -1575,7 +1575,7 @@ async function excluir_levantamento(id_orcamento, id_anexo) {
     delete orcamento.levantamentos[id_anexo]
 
     await deletar(`dados_orcamentos/${id_orcamento}/levantamentos/${id_anexo}`)
-    await enviar('PUT', `dados_orcamentos/${id_orcamento}/timestamp`, Date.now())
+    await enviar(`dados_orcamentos/${id_orcamento}/timestamp`, Date.now())
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     abrir_esquema(id_orcamento)
@@ -1638,20 +1638,29 @@ function capturarValorCelula(celula) {
 
 
 //--- NOVO SERVIÇO DE ARMAZENAMENTO -- \\
-
 async function receber(chave) {
-    const url = `https://base-88062-default-rtdb.firebaseio.com/${chave}.json`;
-    return new Promise((resolve, reject) => {
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                resolve(data)
-            })
-            .catch(error => {
-                console.error("Erro ao obter dados:", error);
-                reject()
-            });
-    })
+    const url = `https://leonny.dev.br/dados?chave=${chave}`;
+
+    let obs = {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        }
+    };
+
+    try {
+        const response = await fetch(url, obs);
+
+        if (!response.ok) {
+            throw new Error(`Erro: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Erro ao obter dados:", error);
+        return null;
+    }
 }
 
 async function deletar(chave) {
@@ -1671,76 +1680,37 @@ async function deletar(chave) {
     })
 }
 
-async function enviar(metodo, chave, objeto) {
-    const url = `https://base-88062-default-rtdb.firebaseio.com/${chave}.json`;
+function enviar(caminho, info) {
     return new Promise((resolve, reject) => {
 
-        fetch(url, {
-            method: metodo,
+        let objeto = {
+            caminho: caminho,
+            valor: info
+        };
+
+        fetch("https://leonny.dev.br/salvar", {
+            method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(objeto)
         })
-            .then(response => response.json())
-            .then(data => {
-                resolve(data)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.text(); 
             })
-            .catch(error => {
-                let dados_erros = localStorage.getItem('dados_erros') || {}
-                dados_erros[gerar_id_5_digitos()] = objeto
-                localStorage.setItem('dados_erros', JSON.stringify(dados_erros))
-                console.error(error);
-                reject()
+            .then(text => text ? JSON.parse(text) : {})
+            .then(data => {
+                console.log("Resposta do servidor:", data);
+                resolve(data); 
+            })
+            .catch(error => {  
+                console.error("Erro:", error);
+                reject(error); 
             });
-    })
-}
-
-function descodificarUTF8(obj) {
-    if (typeof obj === "string") {
-        try {
-            if (/%[0-9A-Fa-f]{2}/.test(obj)) {
-                return decodeURIComponent(obj);
-            }
-            return obj;
-        } catch (e) {
-            console.error("Erro ao decodificar string:", obj, e);
-            return obj;
-        }
-    } else if (Array.isArray(obj)) {
-        return obj.map(descodificarUTF8);
-    } else if (typeof obj === "object" && obj !== null) {
-        const novoObj = {};
-        for (let chave in obj) {
-            try {
-                const chaveDecodificada = /%[0-9A-Fa-f]{2}/.test(chave)
-                    ? decodeURIComponent(chave)
-                    : chave;
-                novoObj[chaveDecodificada] = descodificarUTF8(obj[chave]);
-            } catch (e) {
-                console.error("Erro ao decodificar chave:", chave, e);
-                novoObj[chave] = descodificarUTF8(obj[chave]);
-            }
-        }
-        return novoObj;
-    }
-    return obj;
-}
-
-function codificarUTF8(obj) {
-    if (typeof obj === "string") {
-        return obj.replace(/[$#[\]./]/g, char => encodeURIComponent(char));
-    } else if (Array.isArray(obj)) {
-        return obj.map(codificarUTF8);
-    } else if (typeof obj === "object" && obj !== null) {
-        const novoObj = {};
-        for (let chave in obj) {
-            const chaveCodificada = chave.replace(/[$#[\]./]/g, char => encodeURIComponent(char));
-            novoObj[chaveCodificada] = codificarUTF8(obj[chave]);
-        }
-        return novoObj;
-    }
-    return obj;
+    });
 }
 
 async function proximo_sequencial() {

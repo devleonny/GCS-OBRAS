@@ -2,22 +2,11 @@ let filtrosAtivosEstoques = {}
 let filtrosRelatorio = {}
 let colunas = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'localizacao_novo', 'estoque_usado', 'localizacao_usado', 'inventario', 'valor_compra']
 
-atualizar_estoque()
+carregar_estoque()
 
-async function atualizar_estoque() {
-    let div = document.getElementById('estoque')
-
-    if (div) {
-        carregamento('estoque')
-    }
-
-    let dados_estoque = await recuperarDados('dados_estoque') || {}
-
-    if (Object.keys(dados_estoque) == 0) {
-        let estoque_nuvem = await receber('dados_estoque') || {}
-        await inserirDados(descodificarUTF8(estoque_nuvem), 'dados_estoque')
-    }
-
+async function recuperar_estoque() {
+    let estoque_nuvem = await receber('dados_estoque') || {}
+    await inserirDados(estoque_nuvem, 'dados_estoque')
     await carregar_estoque()
 }
 
@@ -26,6 +15,8 @@ async function carregar_estoque() {
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let autorizado = false
     let div_estoque = document.getElementById('estoque')
+    carregamento('estoque')
+
     if (acesso.permissao == 'adm' || acesso.permissao == 'log') {
         autorizado = true
         document.getElementById('adicionar_item').style.display = 'flex'
@@ -38,6 +29,10 @@ async function carregar_estoque() {
 
     let apenas_leitura = autorizado ? '' : 'readonly'
     let dados_estoque = await recuperarDados('dados_estoque') || {}
+
+    if (Object.keys(dados_estoque).length == 0) {
+        return recuperar_estoque()
+    }
 
     let thc = ''
     let ths = ''
@@ -390,8 +385,8 @@ async function salvar_dados_compra(codigo, cpr, campo, img) {
         dados_estoque[codigo].valor_compra[cpr][campo] = elemento
 
         await inserirDados(dados_estoque, 'dados_estoque')
-        await enviar('PUT', `dados_estoque/${codigo}/valor_compra/${cpr}/${campo}`, elemento)
-        await enviar('PUT', `dados_estoque/${codigo}/timestamp`, Date.now())
+        await enviar(`dados_estoque/${codigo}/valor_compra/${cpr}/${campo}`, elemento)
+        await enviar(`dados_estoque/${codigo}/timestamp`, Date.now())
     }
 
     remover_popup()
@@ -447,8 +442,8 @@ async function salvar_valor(codigo) {
         item.valor_compra[id] = compra
 
         await inserirDados(dados_estoque, 'dados_estoque')
-        await enviar('PUT', `dados_estoque/${codigo}/valor_compra/${id}`, codificarUTF8(compra))
-        await enviar('PUT', `dados_estoque/${codigo}/timestamp`, Date.now())
+        await enviar(`dados_estoque/${codigo}/valor_compra/${id}`, compra)
+        await enviar(`dados_estoque/${codigo}/timestamp`, Date.now())
     }
 
     remover_popup()
@@ -707,12 +702,12 @@ async function salvar_movimento(codigo, stq, inicial) {
     estoque.historico[id] = movimento
 
     await inserirDados(dados_estoque, 'dados_estoque')
-    await enviar('PUT', `dados_estoque/${codigo}/${stq}/historico/${id}`, codificarUTF8(movimento))
+    await enviar(`dados_estoque/${codigo}/${stq}/historico/${id}`, movimento)
 
     if (inicial !== undefined) {
-        await enviar('PUT', `dados_estoque/${codigo}/${stq}/quantidade`, estoque.quantidade)
+        await enviar(`dados_estoque/${codigo}/${stq}/quantidade`, estoque.quantidade)
     }
-    await enviar('PUT', `dados_estoque/${codigo}/timestamp`, Date.now())
+    await enviar(`dados_estoque/${codigo}/timestamp`, Date.now())
     await retomar_paginacao(codigo, stq)
 
 }
@@ -806,8 +801,8 @@ async function salvar_linha(img) {
 
     retomar_paginacao()
 
-    await enviar('PUT', `dados_estoque/${codigo}`, codificarUTF8(item))
-    await enviar('PUT', `dados_estoque/${codigo}/timestamp`, Date.now())
+    await enviar(`dados_estoque/${codigo}`, item)
+    await enviar(`dados_estoque/${codigo}/timestamp`, Date.now())
 
 }
 
@@ -865,8 +860,8 @@ async function salvar_dados_estoque(img, codigo, chave) {
         dados_estoque[codigo][chave] = elemento.value
 
         await inserirDados(dados_estoque, 'dados_estoque')
-        await enviar('PUT', `dados_estoque/${codigo}/${chave}`, codificarUTF8(elemento.value))
-        await enviar('PUT', `dados_estoque/${codigo}/timestamp`, Date.now())
+        await enviar(`dados_estoque/${codigo}/${chave}`, elemento.value)
+        await enviar(`dados_estoque/${codigo}/timestamp`, Date.now())
 
     } else if (!dados_estoque[codigo]) { //29 PERMANENTE; Objetos criados no primeiro momento;
 
@@ -892,8 +887,8 @@ async function salvar_dados_estoque(img, codigo, chave) {
 
         dados_estoque[codigo][chave] = elemento.value
         await inserirDados(dados_estoque, 'dados_estoque')
-        await enviar('PUT', `dados_estoque/${codigo}`, codificarUTF8(dados_estoque[codigo]))
-        await enviar('PUT', `dados_estoque/${codigo}/timestamp`, Date.now())
+        await enviar(`dados_estoque/${codigo}`, dados_estoque[codigo])
+        await enviar(`dados_estoque/${codigo}/timestamp`, Date.now())
     }
 
 }

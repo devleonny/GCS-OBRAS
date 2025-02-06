@@ -89,6 +89,12 @@
                     <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
                 </div>
 
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
+                    onclick="recuperar_composicoes()">
+                    <label style="color: white;">Atualizar</label>
+                    <img src="imagens/atualizar_2.png" style="width: 25px; cursor: pointer;">
+                </div>
+
                 <div id="adicionar_item"
                     style="display: none; align-items: center; justify-content: center; gap: 10px; cursor: pointer;"
                     onclick="cadastrar_editar_item()">
@@ -105,89 +111,6 @@
 </body>
 
 <script src="open_menus.js"></script>
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
-    import { getDatabase, ref, onChildAdded, onChildChanged, onChildRemoved, onValue, query, orderByChild, startAt, get } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    escutarAlteracoes('dados_composicoes')
-    let funcao_recarregar = carregar_tabela_v2
-
-    async function escutarAlteracoes(nome_base) {
-
-        await carregar_tabela_v2()
-
-        const dadosRef = ref(db, nome_base);
-        let baseLocal = await recuperarDados(nome_base) || {}
-
-        consultarDados(nome_base)
-
-        onChildAdded(dadosRef, async (snapshot) => {
-            atualizar_timestamp(nome_base)
-            const chave = snapshot.key;
-            const dado = descodificarUTF8(snapshot.val());
-            if (!baseLocal[chave]) {
-                baseLocal[chave] = dado;
-                await inserirDados(baseLocal, nome_base);
-                console.log('Adicionado:', chave, dado);
-                funcao_recarregar()
-            }
-        });
-
-        onChildChanged(dadosRef, async (snapshot) => {
-            atualizar_timestamp(nome_base)
-            const chave = snapshot.key;
-            const dado = descodificarUTF8(snapshot.val());
-            baseLocal[chave] = dado;
-            await inserirDados(baseLocal, nome_base);
-            console.log('Alterado:', chave, dado);
-            funcao_recarregar()
-        });
-
-        onChildRemoved(dadosRef, async (snapshot) => {
-            atualizar_timestamp(nome_base)
-            const chave = snapshot.key;
-            delete baseLocal[chave];
-            await inserirDados(baseLocal, nome_base);
-            console.log('Removido:', chave);
-            funcao_recarregar()
-        });
-
-    }
-
-    async function consultarDados(nome_base) {
-        let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
-        if (!timestamps[nome_base]) {
-            timestamps[nome_base] = Date.now()
-        }
-
-        const dadosRef = ref(db, nome_base);
-        const consulta = query(dadosRef, orderByChild('timestamp'), startAt(timestamps[nome_base]));
-        let baseLocal = await recuperarDados(nome_base) || {}
-        
-        const snapshot = await get(consulta);
-        snapshot.forEach( async (childSnapshot) => {
-            const chave = childSnapshot.key;
-            const dado = descodificarUTF8(snapshot.val());
-            baseLocal[chave] = dado[chave];
-            await inserirDados(baseLocal, nome_base);
-            console.log('Dado encontrado:', chave, dado[chave]);
-            funcao_recarregar()
-        });
-
-        atualizar_timestamp(nome_base)
-
-    };
-
-    function atualizar_timestamp(nome_base) {
-        let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
-        timestamps[nome_base] = Date.now()
-        localStorage.setItem('timestamps', JSON.stringify(timestamps))
-    }
-
-</script>
 <script src="composicoes.js"></script>
 <script src="upload_imagens.js"></script>
 
