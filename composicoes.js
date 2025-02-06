@@ -873,7 +873,7 @@ async function salvar_cotacao(codigo, lpu) {
 
             if (inputs.length > 1) {
                 var dados = {
-                    custo: conversor(inputs[0].value),
+                    custo: conversorParaCotacao(inputs[0].value),
                     margem: inputs[1].value,
                     valor: conversor(tds[2].textContent),
                     data: tds[3].textContent,
@@ -904,6 +904,40 @@ async function salvar_cotacao(codigo, lpu) {
         await abrir_historico_de_precos(codigo, lpu); // 🛠️ Processa o histórico antes de remover o aviso
         aviso.remove(); // Remover aviso somente após abrir_historico_de_precos
     }
+}
+
+function conversorParaCotacao(valor) {
+    if (typeof valor === 'number') {
+        return valor; // Retorna diretamente se já for um número
+    }
+
+    if (!valor || typeof valor !== 'string' || valor.trim() === "") {
+        return 0; // Retorna 0 para valores nulos, vazios ou inválidos
+    }
+
+    // Remove espaços em branco
+    valor = valor.trim();
+
+    // Identificar formatos
+    const isBRFormat = valor.includes(',') && !valor.includes('.'); // Ex: "1.000,25"
+    const isUSFormat = valor.includes('.') && valor.includes(','); // Ex: "1,000.25"
+
+    if (isUSFormat) {
+        // Formato US: Remove vírgulas e mantém o ponto como decimal
+        valor = valor.replace(/,/g, '');
+    } else if (isBRFormat) {
+        // Formato BR: Remove pontos de milhar e substitui vírgula por ponto
+        valor = valor.replace(/\./g, '').replace(',', '.');
+    } else {
+        // Caso geral: Remove qualquer caracter que não seja número ou ponto
+        valor = valor.replace(/[^0-9.]/g, '');
+    }
+
+    // Tenta converter para float
+    const numero = parseFloat(valor);
+
+    // Retorna o número convertido ou 0 se não for válido
+    return isNaN(numero) ? 0 : numero;
 }
 
 
