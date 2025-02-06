@@ -2184,7 +2184,7 @@ async function iniciar_cotacao(chave, id_orcam) {
     }
 
     enviar_dados_generico(dados) // 29 Mantém por enquanto...
-
+    
     abrir_esquema(id_orcam)
 
 }
