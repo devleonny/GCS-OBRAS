@@ -31,6 +31,8 @@ function pesquisar_em_composicoes(elemento) {
     });
 }
 
+carregar_tabela_v2()
+
 async function recuperar_composicoes() {
     let nuvem = await receber('dados_composicoes')
     await inserirDados(nuvem, 'dados_composicoes')
@@ -44,6 +46,12 @@ async function carregar_tabela_v2() {
     if (Object.keys(dados_composicoes).length == 0) {
         return recuperar_composicoes()
     }
+
+    //Remover o 'id' que o IndexedDB cria... 
+    if (dados_composicoes['id']) {
+        delete dados_composicoes['id']
+    }
+    //Fim
 
     var thead = '';
     var tbody = '';
@@ -246,7 +254,6 @@ async function atualizar_status_material(codigo, elemento) {
     await inserirDados(dados_composicoes, 'dados_composicoes')
 
     await enviar(`dados_composicoes/${codigo}/material infra`, resposta)
-    await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now())
 
     carregar_tabela_v2()
 
@@ -386,7 +393,6 @@ async function salvar_agrupamentos(codigo) {
         await inserirDados(dados_composicoes, 'dados_composicoes')
 
         await enviar(`dados_composicoes/${codigo}/agrupamentos`, produto.agrupamentos)
-        await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now())
 
         remover_popup()
 
@@ -599,9 +605,9 @@ async function abrir_historico_de_precos(codigo, tabela) {
 
     <div id="historico_preco" style="background-color: white; padding: 5px; border-radius: 5px;">
 
-        <div style="display: flex; justify-content: space-evenly; gap: 10px; align-items: center;">
-            <img src="${imagem}" style="width: 100px;">
-            <label style="white-space: normal; color: #222; text-align: left; font-size: 1.2em;">${dados_composicoes[codigo].descricao}</label>
+        <div style="color: #222; display: flex; flex-direction: column; justify-content: start; align-items: start;">
+            <label>Descrição</label>
+            <textarea style="font-size: 1.2em; width: 80%;" readOnly>${dados_composicoes[codigo].descricao}</textarea>
         </div>
 
         <div id="tabela_historico" style="display: ${visibilidade}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
@@ -619,8 +625,10 @@ async function abrir_historico_de_precos(codigo, tabela) {
                 <tbody>${linhas}</tbody>
             </table>
         </div>
-
-        <img src="imagens/baixar.png" style="cursor: pointer;" onclick="adicionar_nova_cotacao('${codigo}', '${tabela}')">
+        <div onclick="adicionar_nova_cotacao('${codigo}', '${tabela}')" class="contorno_botoes" style="background-color: #151749; display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <img src="imagens/preco.png" style="cursor: pointer; width: 40px;">
+            <label>Adicionar Preço</label>
+        </div>
     </div>
     `
 
@@ -673,7 +681,6 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
             if (cotacoes.ativo == cotacao) {
                 cotacoes.ativo = "";
                 await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
-                await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now());
             }
 
             // Remove a cotação do histórico
@@ -682,7 +689,6 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
             // Atualiza o banco de dados
             await inserirDados(dados_composicoes, 'dados_composicoes');
             await deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`);
-            await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now());
         }
 
         // 🔥 Restaurar a tabela e abrir o histórico
@@ -789,7 +795,6 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
                 produto[lpu].ativo = "";
                 await inserirDados(dados_composicoes, 'dados_composicoes');
                 await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
-                await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now());
 
                 // 🔥 Remover o aviso e restaurar a tabela
                 aviso.remove();
@@ -805,7 +810,6 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
 
                 await inserirDados(dados_composicoes, 'dados_composicoes');
                 await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco);
-                await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now());
 
                 historico_preco.remove();
 
@@ -822,7 +826,6 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
             produto[lpu].ativo = "";
             await inserirDados(dados_composicoes, 'dados_composicoes');
             await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
-            await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now());
         }
 
         // 🔥 Remover o aviso e restaurar a tabela
@@ -873,7 +876,7 @@ async function salvar_cotacao(codigo, lpu) {
 
             if (inputs.length > 1) {
                 var dados = {
-                    custo: conversor(inputs[0].value),
+                    custo: conversorParaCotacao(inputs[0].value),
                     margem: inputs[1].value,
                     valor: conversor(tds[2].textContent),
                     data: tds[3].textContent,
@@ -893,8 +896,6 @@ async function salvar_cotacao(codigo, lpu) {
                 produto[lpu].historico[id] = dados;
 
                 await enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, dados);
-                await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now());
-
                 await inserirDados(dados_composicoes, 'dados_composicoes');
             }
         }
@@ -904,6 +905,40 @@ async function salvar_cotacao(codigo, lpu) {
         await abrir_historico_de_precos(codigo, lpu); // 🛠️ Processa o histórico antes de remover o aviso
         aviso.remove(); // Remover aviso somente após abrir_historico_de_precos
     }
+}
+
+function conversorParaCotacao(valor) {
+    if (typeof valor === 'number') {
+        return valor; // Retorna diretamente se já for um número
+    }
+
+    if (!valor || typeof valor !== 'string' || valor.trim() === "") {
+        return 0; // Retorna 0 para valores nulos, vazios ou inválidos
+    }
+
+    // Remove espaços em branco
+    valor = valor.trim();
+
+    // Identificar formatos
+    const isBRFormat = valor.includes(',') && !valor.includes('.'); // Ex: "1.000,25"
+    const isUSFormat = valor.includes('.') && valor.includes(','); // Ex: "1,000.25"
+
+    if (isUSFormat) {
+        // Formato US: Remove vírgulas e mantém o ponto como decimal
+        valor = valor.replace(/,/g, '');
+    } else if (isBRFormat) {
+        // Formato BR: Remove pontos de milhar e substitui vírgula por ponto
+        valor = valor.replace(/\./g, '').replace(',', '.');
+    } else {
+        // Caso geral: Remove qualquer caracter que não seja número ou ponto
+        valor = valor.replace(/[^0-9.]/g, '');
+    }
+
+    // Tenta converter para float
+    const numero = parseFloat(valor);
+
+    // Retorna o número convertido ou 0 se não for válido
+    return isNaN(numero) ? 0 : numero;
 }
 
 
@@ -1081,7 +1116,6 @@ async function cadastrar_alterar(codigo) {
 
     await inserirDados(dados_composicoes, 'dados_composicoes');
     await enviar(`dados_composicoes/${codigo}`, dadosAtualizados);
-    await enviar(`dados_composicoes/${codigo}/timestamp`, Date.now())
 
     remover_popup();
     carregar_tabela_v2();

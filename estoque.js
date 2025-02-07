@@ -386,7 +386,7 @@ async function salvar_dados_compra(codigo, cpr, campo, img) {
 
         await inserirDados(dados_estoque, 'dados_estoque')
         await enviar(`dados_estoque/${codigo}/valor_compra/${cpr}/${campo}`, elemento)
-        await enviar(`dados_estoque/${codigo}/timestamp`, Date.now())
+
     }
 
     remover_popup()
@@ -443,7 +443,7 @@ async function salvar_valor(codigo) {
 
         await inserirDados(dados_estoque, 'dados_estoque')
         await enviar(`dados_estoque/${codigo}/valor_compra/${id}`, compra)
-        await enviar(`dados_estoque/${codigo}/timestamp`, Date.now())
+
     }
 
     remover_popup()
@@ -707,7 +707,7 @@ async function salvar_movimento(codigo, stq, inicial) {
     if (inicial !== undefined) {
         await enviar(`dados_estoque/${codigo}/${stq}/quantidade`, estoque.quantidade)
     }
-    await enviar(`dados_estoque/${codigo}/timestamp`, Date.now())
+
     await retomar_paginacao(codigo, stq)
 
 }
@@ -802,7 +802,6 @@ async function salvar_linha(img) {
     retomar_paginacao()
 
     await enviar(`dados_estoque/${codigo}`, item)
-    await enviar(`dados_estoque/${codigo}/timestamp`, Date.now())
 
 }
 
@@ -861,7 +860,6 @@ async function salvar_dados_estoque(img, codigo, chave) {
 
         await inserirDados(dados_estoque, 'dados_estoque')
         await enviar(`dados_estoque/${codigo}/${chave}`, elemento.value)
-        await enviar(`dados_estoque/${codigo}/timestamp`, Date.now())
 
     } else if (!dados_estoque[codigo]) { //29 PERMANENTE; Objetos criados no primeiro momento;
 
@@ -888,7 +886,7 @@ async function salvar_dados_estoque(img, codigo, chave) {
         dados_estoque[codigo][chave] = elemento.value
         await inserirDados(dados_estoque, 'dados_estoque')
         await enviar(`dados_estoque/${codigo}`, dados_estoque[codigo])
-        await enviar(`dados_estoque/${codigo}/timestamp`, Date.now())
+
     }
 
 }
