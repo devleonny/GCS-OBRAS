@@ -16,23 +16,47 @@ localStorage.removeItem('dados_cliente')
 localStorage.removeItem('dados_composicoes')
 localStorage.removeItem('lista_pagamentos')
 localStorage.removeItem('dados_pagamentos')
+localStorage.removeItem('timestamps')
 
-// Lógicas para a inclusão no IndexedDB(Entrada e Saída de dados); 
+setInterval(async function () {
+    await reprocessar_offline()
+}, 60000)
+
+async function reprocessar_offline() {
+    let dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {};
+
+    for (let operacao in dados_offline) {
+        let operacoes = dados_offline[operacao];
+
+        for (let id in operacoes) {
+            let evento = operacoes[id];
+
+            if (operacao === 'enviar') {
+                await enviar(evento.caminho, evento.valor);
+            } else {
+                await deletar(evento.chave);
+            }
+            
+            dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {};
+            delete dados_offline[operacao][id];
+            localStorage.setItem('dados_offline', JSON.stringify(dados_offline));
+
+        }
+    }
+}
+
+
 function inserirDados(dados, nome_da_base) {
-    // Primeiro, abra o banco para verificar a versão e setores existentes;
     const request = indexedDB.open('Bases');
     let novaVersao;
 
     request.onsuccess = function (event) {
         const db = event.target.result;
 
-        // Verificar se a store já existe;
         if (!db.objectStoreNames.contains(nome_da_base)) {
-            // Fechar o banco atual para alterar a versão;
             novaVersao = db.version + 1;
             db.close();
 
-            // Reabrir o banco com a nova versão;
             const upgradeRequest = indexedDB.open('Bases', novaVersao);
 
             upgradeRequest.onupgradeneeded = function (event) {
@@ -50,7 +74,6 @@ function inserirDados(dados, nome_da_base) {
                 console.error('Erro ao atualizar versão do banco:', event.target.error);
             };
         } else {
-            // Se a store já existe, apenas insira os dados;
             executarTransacao(db, nome_da_base, dados);
         }
     };
@@ -69,14 +92,14 @@ function executarTransacao(db, nome_da_base, dados) {
     clearRequest.onsuccess = function () {
         if (Array.isArray(dados)) {
             dados.forEach(item => {
-                item.id = 1; // Substituir sempre o mesmo ID;
+                item.id = 1;
                 const addRequest = store.put(item);
                 addRequest.onerror = function (event) {
                     console.error('Erro ao adicionar item:', event.target.error);
                 };
             });
         } else {
-            dados.id = 1; // Substituir sempre o mesmo ID;
+            dados.id = 1;
             const addRequest = store.put(dados);
             addRequest.onerror = function (event) {
                 console.error('Erro ao adicionar item:', event.target.error);
@@ -367,11 +390,15 @@ function removerLinha(select) {
 }
 
 async function apagar(codigo_orcamento) {
-
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    if (dados_orcamentos[codigo_orcamento]) {
+        delete dados_orcamentos[codigo_orcamento]
+        await inserirDados(dados_orcamentos, 'dados_orcamentos')
+        await deletar(`dados_orcamentos/${codigo_orcamento}`)
+    }
+    preencher_orcamentos_v2()
     fechar_espelho_ocorrencias()
     remover_popup()
-
-    await enviar(`dados_orcamentos/${codigo_orcamento}/operacao`, 'excluido')
 }
 
 function calcularProporcao(dataInicio, dataFim) {
@@ -1634,7 +1661,7 @@ function capturarValorCelula(celula) {
 
 
 
-//--- NOVO SERVIÇO DE ARMAZENAMENTO -- \\
+//--- NOVO SERVIÇO DE ARMAZENAMENTO ---\\
 async function receber(chave) {
     const url = `https://leonny.dev.br/dados?chave=${chave}`;
 
@@ -1662,7 +1689,7 @@ async function receber(chave) {
 
 async function deletar(chave) {
     const url = `https://leonny.dev.br/deletar`;
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         fetch(url, {
             method: "DELETE",
             headers: {
@@ -1674,16 +1701,15 @@ async function deletar(chave) {
             .then(data => {
                 resolve(data);
             })
-            .catch(error => {
-                console.error("Erro ao deletar chave:", error);
-                reject();
+            .catch(() => {
+                salvar_offline({ chave: chave }, 'deletar')
+                resolve();
             });
     });
 }
 
 function enviar(caminho, info) {
-    return new Promise((resolve, reject) => {
-
+    return new Promise((resolve) => {
         let objeto = {
             caminho: caminho,
             valor: info
@@ -1700,18 +1726,28 @@ function enviar(caminho, info) {
                 if (!response.ok) {
                     throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
                 }
-                return response.text(); 
+                return response.text();
             })
             .then(text => text ? JSON.parse(text) : {})
-            .then(data => {
-                console.log("Resposta do servidor:", data);
-                resolve(data); 
-            })
-            .catch(error => {  
-                console.error("Erro:", error);
-                reject(error); 
+            .then(data => resolve(data))
+            .catch(() => {
+                salvar_offline(objeto, 'enviar');
+                resolve();
             });
     });
+}
+
+function salvar_offline(objeto, operacao) {
+    let dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {}
+    let id = gerar_id_5_digitos()
+
+    if (!dados_offline[operacao]) {
+        dados_offline[operacao] = {}
+    }
+
+    dados_offline[operacao][id] = objeto
+
+    localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
 }
 
 async function proximo_sequencial() {
@@ -1738,21 +1774,93 @@ async function proximo_sequencial() {
 
 }
 
+function dt() {
+    let dt = new Date().toLocaleString('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+    })
+
+    return dt
+}
+
 const socket = new WebSocket("wss://leonny.dev.br:8443");
 
 socket.onopen = () => {
-    console.log("Conectado ao WebSocket!");
+    console.log(`🟢🟢🟢 WS ${dt()} 🟢🟢🟢`);
 };
 
 socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    console.log("Mensagem recebida:", data);
+    let data = JSON.parse(event.data);
+    espelhar_atualizacao(data)
+    console.log('📢', data);
 };
 
 socket.onclose = () => {
-    console.log("Conexão WebSocket fechada.");
+    console.log(`🔴🔴🔴 WS ${dt()} 🔴🔴🔴`);
 };
 
 socket.onerror = (error) => {
     console.error("Erro no WebSocket:", error);
 };
+
+async function espelhar_atualizacao(objeto) {
+    if (!objeto.caminho && !objeto.chave) return;
+
+    let chaves = objeto.caminho ? objeto.caminho.split("/") : objeto.chave.split("/");
+    let arquivo = chaves.shift();
+    let dados = await recuperarDados(arquivo);
+
+    if (objeto.tipo === "remocao") {
+        let deleteNestedValue = (obj, path) => {
+            const keys = path.split('/');
+            let current = obj;
+
+            for (let i = 0; i < keys.length - 1; i++) {
+                if (!current[keys[i]]) return false;
+                current = current[keys[i]];
+            }
+
+            const lastKey = keys[keys.length - 1];
+            if (current.hasOwnProperty(lastKey)) {
+                delete current[lastKey];
+                return true;
+            }
+
+            return false;
+        };
+
+        let removido = deleteNestedValue(dados, chaves.join("/"));
+        if (!removido) return;
+    } else {
+        let atualizarValor = (dados, chaves, valor) => {
+            if (chaves.length === 1) {
+                dados[chaves[0]] = valor;
+            } else {
+                if (!dados[chaves[0]]) {
+                    dados[chaves[0]] = {};
+                }
+                atualizarValor(dados[chaves[0]], chaves.slice(1), valor);
+            }
+        };
+        atualizarValor(dados, chaves, objeto.valor);
+    }
+
+    await inserirDados(dados, arquivo);
+
+    if (arquivo === "dados_orcamentos" && document.title === "ORÇAMENTOS") {
+        preencher_orcamentos_v2();
+    }
+
+    if (arquivo === "dados_composicoes" && document.title === "COMPOSIÇÕES") {
+        carregar_tabela_v2();
+    }
+
+    if (arquivo === "dados_composicoes" && document.title === "Criar Orçamento") {
+        tabela_produtos_v2()
+    }
+
+    if (arquivo === "dados_estoque" && document.title === "ESTOQUE") {
+        await retomar_paginacao();
+    }
+}
+

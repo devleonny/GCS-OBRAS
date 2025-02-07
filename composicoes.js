@@ -31,6 +31,8 @@ function pesquisar_em_composicoes(elemento) {
     });
 }
 
+carregar_tabela_v2()
+
 async function recuperar_composicoes() {
     let nuvem = await receber('dados_composicoes')
     await inserirDados(nuvem, 'dados_composicoes')
@@ -44,6 +46,12 @@ async function carregar_tabela_v2() {
     if (Object.keys(dados_composicoes).length == 0) {
         return recuperar_composicoes()
     }
+
+    //Remover o 'id' que o IndexedDB cria... 
+    if (dados_composicoes['id']) {
+        delete dados_composicoes['id']
+    }
+    //Fim
 
     var thead = '';
     var tbody = '';
@@ -597,9 +605,9 @@ async function abrir_historico_de_precos(codigo, tabela) {
 
     <div id="historico_preco" style="background-color: white; padding: 5px; border-radius: 5px;">
 
-        <div style="display: flex; justify-content: space-evenly; gap: 10px; align-items: center;">
-            <img src="${imagem}" style="width: 100px;">
-            <label style="white-space: normal; color: #222; text-align: left; font-size: 1.2em;">${dados_composicoes[codigo].descricao}</label>
+        <div style="color: #222; display: flex; flex-direction: column; justify-content: start; align-items: start;">
+            <label>Descrição</label>
+            <textarea style="font-size: 1.2em; width: 80%;" readOnly>${dados_composicoes[codigo].descricao}</textarea>
         </div>
 
         <div id="tabela_historico" style="display: ${visibilidade}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
@@ -617,8 +625,10 @@ async function abrir_historico_de_precos(codigo, tabela) {
                 <tbody>${linhas}</tbody>
             </table>
         </div>
-
-        <img src="imagens/baixar.png" style="cursor: pointer;" onclick="adicionar_nova_cotacao('${codigo}', '${tabela}')">
+        <div onclick="adicionar_nova_cotacao('${codigo}', '${tabela}')" class="contorno_botoes" style="background-color: #151749; display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <img src="imagens/preco.png" style="cursor: pointer; width: 40px;">
+            <label>Adicionar Preço</label>
+        </div>
     </div>
     `
 

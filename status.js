@@ -1541,6 +1541,8 @@ async function atulizar_item(chave1, item) {
 
 async function abrir_esquema(id) {
 
+    console.log(id)
+
     overlay.style.display = 'block'
     var status = document.getElementById('status')
     if (status) {

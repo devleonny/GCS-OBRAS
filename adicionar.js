@@ -121,23 +121,12 @@ async function atualizar_lista_de_lpus() {
         var acumulado = `
         <div style="color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 3px; padding: 5px;">
             <label style="font-size: 1em;">Tabela de preço</label>
-            <select id="lpu" onchange="alterar_tabela_lpu(this)" class="select_da_lpu">
+            <select id="lpu" onchange="alterar_tabela_lpu(this)" style="background-color: white; border-radius: 3px; padding: 5px; color: #222;">
                 ${opcoes}
             </select>
         </div>
         `
         div_tabela_de_preco.innerHTML = acumulado
-        if (!orcamento_v2.dados_composicoes || Object.keys(orcamento_v2.dados_composicoes).length == 0) {
-            openPopup_v2(`
-            <div style="display: flex; gap: 10px; flex-direction: column; align-items: center; justify-content: center;">
-                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                    <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                    <label class="novo_titulo">Escolha a tabela de Preços</label>
-                </div>
-                ${acumulado}
-            </div>
-        `)
-        }
 
         var select_lpu = document.getElementById('lpu')
 
@@ -148,6 +137,20 @@ async function atualizar_lista_de_lpus() {
         if (select_lpu.value !== '') {
             orcamento_v2.lpu_ativa = select_lpu.value
             localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+        }
+
+        if (!orcamento_v2.dados_composicoes || Object.keys(orcamento_v2.dados_composicoes).length == 0) {
+            openPopup_v2(`
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center; margin-bottom: 20px;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Escolha a tabela de Preços</label>
+            </div>
+            <div style="display: flex; gap: 10px; flex-direction: column; align-items: center; justify-content: center;">
+                <select id="lpu" onchange="alterar_tabela_lpu(this)" style="background-color: white; border-radius: 3px; padding: 5px; color: #222;">
+                    ${opcoes}
+                </select>
+            </div>
+        `)
         }
 
         resolve()
