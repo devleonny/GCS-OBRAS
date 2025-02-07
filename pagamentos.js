@@ -258,12 +258,24 @@ async function abrir_detalhes(id_pagamento) {
         for (campo in campos) {
             var info_existente = ''
             if (campo == 'orcamento') {
+                if (dados_orcamentos[pagamento.id_orcamento]){
                 info_existente += `
                     <div class="anexos" onclick="ir_pdf('${pagamento.id_orcamento}')" style="border: solid 1px green;">
                         <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
                         <label style="cursor: pointer; font-size: 0.6em;"><strong>Orçamento disponível</strong></label>
                     </div>
-                `
+                `}else{
+
+                    `
+
+                    <div class="anexos" onclick="ir_pdf('${pagamento.id_orcamento}')" style="border: solid 1px red;">
+                        <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
+                    </div>
+                    
+                    `
+
+                }
+
             }
 
             if (campo == 'pedido') {
