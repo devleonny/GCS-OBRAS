@@ -823,7 +823,7 @@ async function atualizar_departamentos() {
 
     await obter_departamentos_fixos()
 
-    carregar_opcoes(opcoes_centro_de_custo(), 'cc', 'cc_sugestoes') // Carregar os centros de custo;
+    carregar_opcoes(await opcoes_centro_de_custo(), 'cc', 'cc_sugestoes') // Carregar os centros de custo;
 
     departamentos.style.display = 'flex'
     aguarde.style.display = 'none'
@@ -1024,7 +1024,7 @@ async function tela_pagamento(chave1) {
     openPopup_v2(acumulado)
 
     if (chave1 == undefined) {
-        carregar_opcoes(opcoes_centro_de_custo(), 'cc', 'cc_sugestoes')
+        carregar_opcoes(await opcoes_centro_de_custo(), 'cc', 'cc_sugestoes')
     }
 
     carregar_opcoes(await opcoes_clientes(), 'cliente_pagamento', 'recebedor_sugestoes')
