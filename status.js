@@ -508,9 +508,10 @@ async function carregar_itens(apenas_visualizar, requisicao) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var dados_composicoes = await recuperarDados('dados_composicoes') || {}
     var orcamento = dados_orcamentos[id_orcam]
-
+    
     orcamento = await conversor_composicoes_orcamento(orcamento)
 
+    
     var linhas = ''
 
     if (!orcamento.dados_composicoes || Object.keys(orcamento.dados_composicoes).length == 0) {
@@ -597,12 +598,12 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
                 <label><strong>Quantidade a enviar</strong></label>
-                <input class="pedido" type="number" style="width: 100%; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
+                <input class="pedido" type="number" style="width: 100%; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${requisicao[codigo]?.qtde_enviar || qtde_na_requisicao}">
             </div>
 
             <div class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px; background-color: #222; font-size: 1.2em;">
                 <label><strong>Orçamento</strong></label>
-                <label class="num">${qtde}</label>   
+                <label class="num">${requisicao[codigo]?.qtde_enviar || qtde}</label>   
             </div>
 
         </div>
@@ -1541,8 +1542,6 @@ async function atulizar_item(chave1, item) {
 
 async function abrir_esquema(id) {
 
-    console.log(id)
-
     overlay.style.display = 'block'
     var status = document.getElementById('status')
     if (status) {
@@ -2387,7 +2386,7 @@ async function envio_de_material(chave1, id_orcam, chave2) {
     <div id="painel_envio_de_material">
         <div class="pergunta">
             <label>Número de rastreio</label>
-            <input id="rastreio" value="${envio?.rastreio}">
+            <input id="rastreio" value="${envio?.rastreio || ""}">
         </div>    
 
         <div class="pergunta">
@@ -2404,7 +2403,7 @@ async function envio_de_material(chave1, id_orcam, chave2) {
 
         <div class="pergunta">
             <label>Nota Fiscal</label>
-            <input id="nf" value="${envio.nf}">
+            <input id="nf" value="${envio.nf || ""}">
         </div>
 
         <div class="pergunta">
@@ -2485,11 +2484,11 @@ async function registrar_envio_material(chave1, id_orcam, chave2) {
 
     historico[id] = status
     remover_popup()
-    abrir_esquema(id_orcam)
-
+    
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${id}`, status)
     await enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/status`, st)
+    abrir_esquema(id_orcam)
 
 }
 
@@ -3083,6 +3082,7 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
     ${elementus}
     </div>
     `
+    console.log(requisicao)
     document.body.insertAdjacentHTML('beforeend', elementus_tus)
 
     var comentario_status = document.getElementById('comentario_status')
