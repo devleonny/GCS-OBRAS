@@ -1106,13 +1106,13 @@ function carregar_opcoes(items, id_input, id_div_sugestoes) {
     });
 }
 
-function opcoes_centro_de_custo() {
+async function opcoes_centro_de_custo() {
 
     centros_de_custo = {};
     var options = [];
 
     var departamentos_fixos = JSON.parse(localStorage.getItem('departamentos_fixos')) || [];
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+    var dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
 
     let contador = 1;
 
@@ -1264,7 +1264,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
     var acumulado = ''
     var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-    var orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    var orcamentos = await recuperarDados('dados_orcamentos') || {};
     var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
     var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
     var dados_clientes = await recuperarDados('dados_clientes') || {};

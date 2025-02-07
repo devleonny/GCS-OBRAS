@@ -55,7 +55,7 @@ async function abrir_detalhes(id_pagamento) {
     ordem = 0
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     var dados_clientes = await recuperarDados('dados_clientes') || {};
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {}
+    var dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
     var cc = 'Erro 404'
     var pedido = ''
