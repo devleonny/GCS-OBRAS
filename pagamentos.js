@@ -122,18 +122,36 @@ async function abrir_detalhes(id_pagamento) {
     var cor = '#222'
     if (pagamento.historico) {
 
+        let tem_qualidade = false
+
+        pagamento.historico.forEach(teste =>{
+
+            if(teste.status.includes("Qualidade")){
+
+                tem_qualidade = true
+    
+            }
+
+        })
+
         pagamento.historico.forEach(item => {
 
             var imagem = "imagens/remover.png"
             if (item.status.includes('Aprovado')) {
                 cor = '#4CAF50'
                 imagem = "imagens/concluido.png"
-            } else if (item.status.includes('Aguardando')) {
-                cor = '#D97302'
-                imagem = "imagens/avencer.png"
             } else if (item.status.includes('Reprovado')) {
                 cor = '#B12425'
                 imagem = "imagens/remover.png"
+            } else if (item.status.includes('Aguardando') && tem_qualidade && item.status.includes('Qualidade') ) {
+                cor = '#D97302'
+                imagem = "imagens/avencer.png"
+            }else if (item.status.includes('Aguardando') && tem_qualidade && item.status.includes('Diretoria') ) {
+                cor = '#32a5e7'
+                imagem = "imagens/qualidade.png"
+            } else if (item.status.includes('Aguardando')) {
+                cor = '#D97302'
+                imagem = "imagens/avencer.png"
             } else {
                 cor = '#B12425'
             }
@@ -174,6 +192,8 @@ async function abrir_detalhes(id_pagamento) {
         valor: 0
     }
 
+    var categoria_atual = ""
+
     pagamento.param[0].categorias.forEach(item => {
         valores += `
             <label><strong>${dinheiro(item.valor)}</strong> - ${categorias_invertidas[item.codigo_categoria]}</label>
@@ -182,6 +202,7 @@ async function abrir_detalhes(id_pagamento) {
             habilitar_painel_parceiro.ativar = true
             habilitar_painel_parceiro.valor += item.valor
         }
+        categoria_atual = categorias_invertidas[item.codigo_categoria]
     })
 
     var div_valores = `
@@ -192,7 +213,7 @@ async function abrir_detalhes(id_pagamento) {
         </div>
         `
     var acumulado = ''
-    if (pagamento.param[0].valor_documento > 500 && (pagamento.status.includes('Aguardando') || pagamento.status.includes('Reprovado')) && (acesso.permissao == 'gerente' || acesso.permissao == 'adm' || acesso.permissao == 'diretoria' || acesso.permissao == 'fin' || pagamento.criado == acesso.usuario)) {
+    if (pagamento.param[0].valor_documento > 500 && (pagamento.status.includes('Aguardando') || pagamento.status.includes('Reprovado')) && (acesso.permissao == 'gerente' || acesso.permissao == 'adm' || acesso.permissao == 'diretoria' || acesso.permissao == 'fin' || pagamento.criado == acesso.usuario || (acesso.permissao == "qualidade" && categoria_atual.includes("Parceiros")))) {
         acumulado += `
         <div class="balao">
 
@@ -586,10 +607,9 @@ async function atualizar_pagamentos_menu() {
 }
 
 async function atualizar_feedback(resposta, id_pagamento) {
-
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
 
-    var pagamento = lista_pagamentos[id_pagamento]
+    var pagamento = lista_pagamentos[id_pagamento];
 
     var dataFormatada = new Date().toLocaleString('pt-BR', {
         day: '2-digit',
@@ -600,39 +620,49 @@ async function atualizar_feedback(resposta, id_pagamento) {
         second: '2-digit'
     });
 
-    var usuario = acesso.usuario
-    var status = `Aprovado por ${usuario}`
-    var justificativa = document.getElementById('justificativa').value
+    var usuario = acesso.usuario;
+    var status = `Aprovado por ${usuario}`;
+    var justificativa = document.getElementById('justificativa').value;
 
-    if (resposta == 'Aprovar' && (acesso.permissao == 'gerente' || acesso.permissao == 'adm')) {
-        status = 'Aguardando aprovação da Diretoria'
+    let categoria_atual = pagamento.param[0].categorias[0].codigo_categoria
+
+    // 🔥 Lógica de Aprovação/Reprovação
+    if (resposta == 'Aprovar' && (acesso.permissao == 'gerente' || acesso.permissao == 'adm') && (categoria_atual == "2.01.99" || categoria_atual == "2.01.81")) {
+        status = 'Aguardando aprovação da Qualidade';
+    } else if (resposta == 'Aprovar' && (acesso.permissao == 'gerente' || acesso.permissao == 'adm')) {
+        status = 'Aguardando aprovação da Diretoria';
+    } else if (resposta == 'Aprovar' && acesso.permissao == 'qualidade') {
+        status = 'Aguardando aprovação da Diretoria';
     } else if (resposta == 'Aprovar' && acesso.permissao == 'diretoria') {
-        status = 'Aprovado pela Diretoria'
+        status = 'Aprovado pela Diretoria';
     } else if (resposta == 'Aprovar' && acesso.permissao == 'fin') {
-        status = 'Aprovado pelo Financeiro'
+        status = 'Aprovado pelo Financeiro';
     } else if (resposta == 'Reprovar') {
-        status = `Reprovado por ${acesso.permissao}`
+        status = `Reprovado por ${acesso.permissao}`;
     } else {
-        status = 'Aguardando aprovação da Gerência'
+        status = 'Aguardando aprovação da Gerência';
     }
 
+    // 🔥 Registro do Histórico
     var historico = {
-        status,
-        usuario,
-        justificativa,
-        data: dataFormatada
-    }
+        status,                // Status gerado acima
+        usuario,               // Usuário atual
+        justificativa,         // Justificativa do feedback
+        data: dataFormatada    // Data e hora formatadas
+    };
 
+    // 🔥 Preparação de dados para envio
     var dados = {
         id_pagamento: id_pagamento,
         tabela: 'atualizacoes_pagamentos',
         alteracao: 'justificativa',
         status,
         historico
-    }
+    };
 
+    // 🔥 Atualização Local e Remota
     if (!pagamento.historico) {
-        pagamento.historico = []
+        pagamento.historico = [];
     }
     pagamento.status = status
 
@@ -642,8 +672,8 @@ async function atualizar_feedback(resposta, id_pagamento) {
 
     inserirDados(lista_pagamentos, 'lista_pagamentos');
     fechar_e_abrir(id_pagamento)
-
 }
+
 
 async function editar_comentario(id) {
 
