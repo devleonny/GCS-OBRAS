@@ -1,182 +1,115 @@
-var quadros = [
-    'ORÇAMENTO',
-    'MEETING - PLANEJAMENTO',
-    'AGUARDANDO MATERIAL',
-    'MATERIAL SEPARADO',
-    'MATERIAL ENVIADO',
-    'STAND BY',
-    'MOBILIZAÇÃO',
-    'START',
-    'INFRA',
-    'INSTALAÇÕES',
-    'CONFIGURAÇÃO',
-    'PENTE FINO',
-    'CONCLUÍDA',
-    'COM RETORNO',
-    'FATURADO',
-    'PAGAMENTO CONCLUÍDO'
-];
+document.addEventListener("DOMContentLoaded", carregarListas);
 
-inicializar()
+function adicionarTarefa(idLista) {
+    let textoTarefa = prompt("Digite o nome da nova tarefa:");
+    if (textoTarefa) {
+        let listas = JSON.parse(localStorage.getItem("listas")) || [];
+        let listaAlvo = listas.find(lista => lista.id === idLista);
 
-async function inicializar() {
-    var dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    var dados_etiquetas = JSON.parse(localStorage.getItem('dados_etiquetas')) || {};
-
-    document.getElementById('quadro').innerHTML = ''; // Limpar o quadro
-
-    var acumulado = '';
-    quadros.forEach(qd => {
-        acumulado += `
-        <div class="column">
-            <label class="column-header">${qd}</label>
-            <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin: 10px;">
-                <img src="imagens/pesquisar.png" style="width: 25px; height: 25px;">
-                <input id="pesquisar_${qd}" style="padding: 10px; border-radius: 5px;" placeholder="Pesquisar cartão" oninput="pesquisar_orcamento('${qd}')">
-            </div>
-            <div class="card-list" id="${qd}"></div>
-        </div>`;
-    });
-
-    document.getElementById('quadro').insertAdjacentHTML('beforeend', acumulado);
-
-    // Adiciona cartões aos quadros
-    for (var chave_orcamento in dados_orcamentos) {
-        var qd = 'ORÇAMENTO';
-        if (dados_orcamentos[chave_orcamento].trello) {
-            qd = dados_orcamentos[chave_orcamento].trello.quadro;
+        if (listaAlvo) {
+            listaAlvo.tarefas.push({ id: "tarefa" + new Date().getTime(), texto: textoTarefa });
+            salvarListas(listas);
+            renderizarQuadro();
         }
-
-        var tags = '';
-        if (dados_orcamentos[chave_orcamento].etiqueta) {
-            var etiquetas_orcamento = dados_orcamentos[chave_orcamento].etiqueta;
-            Object.keys(etiquetas_orcamento).forEach(et => {
-                var etiqueta = dados_etiquetas[et];
-                tags += `<div class="contorno_botoes" style="background-color: ${etiqueta.cor}; border-radius: 2px;">${etiqueta.nome}</div>`;
-            });
-        }
-
-        var elemento = `
-        <div class="card" onclick="exibir_todos_os_status('${chave_orcamento}')">
-            <div style="display: flex; font-size: 0.6em; flex-wrap: wrap;">${tags}</div>
-            <label style="display: none;">${chave_orcamento}</label>
-            ${dados_orcamentos[chave_orcamento].dados_orcam.contrato} - 
-            ${dados_orcamentos[chave_orcamento].dados_orcam.cliente_selecionado}
-        </div>`;
-
-        document.getElementById(qd).insertAdjacentHTML('beforeend', elemento);
     }
-
-    // Inicializa Sortable nos quadros uma única vez
-    quadros.forEach(qd => {
-        if (!Sortable.get(document.getElementById(qd))) {
-            Sortable.create(document.getElementById(qd), {
-                group: 'shared',
-                animation: 50,
-                handle: '.card',
-                onEnd: posicao_cards // Atualiza posição no final do movimento
-            });
-        }
-    });
 }
 
-async function posicao_cards() {
-    var dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-
-    quadros.forEach(quadro => {
-        var div_quadros = document.getElementById(quadro);
-        var cards = div_quadros.querySelectorAll('div.card');
-
-        cards.forEach((card, ordem_) => {
-            var id = card.querySelector('label').textContent;
-            var ja_possuia_trello = Boolean(dados_orcamentos[id].trello);
-
-            // Verificação adicional para evitar duplicação
-            if (quadro === 'ORÇAMENTO' && !ja_possuia_trello) return;
-
-            if (!ja_possuia_trello || dados_orcamentos[id].trello.quadro !== quadro || dados_orcamentos[id].trello.posicao !== ordem_) {
-                dados_orcamentos[id].trello = { posicao: ordem_, quadro: quadro };
-                atualizar_trello(id, dados_orcamentos[id].trello);
-            }
+function adicionarLista() {
+    let nomeLista = prompt("Digite o nome da nova lista:");
+    if (nomeLista) {
+        let listas = JSON.parse(localStorage.getItem("listas")) || [];
+        listas.push({
+            id: "lista" + new Date().getTime(),
+            titulo: nomeLista,
+            tarefas: []
         });
-    });
-
-    localStorage.setItem('dados_orcamentos', JSON.stringify(dados_orcamentos));
-}
-
-
-function pesquisar_orcamento(qd) {
-    var quadro = document.getElementById(qd);
-    var pesquisa = String(document.getElementById('pesquisar_' + qd).value).toLowerCase();
-
-    if (quadro) {
-        var divs = quadro.querySelectorAll('div.card');
-
-        divs.forEach(div => {
-            // Mostra o cartão apenas se corresponder à pesquisa ou se o campo de pesquisa estiver vazio
-            div.style.display = String(div.textContent).toLowerCase().includes(pesquisa) || pesquisa == '' ? "block" : "none";
-        });
+        salvarListas(listas);
+        renderizarQuadro();
     }
 }
 
-
-function atualizar_trello(id, trello){
-
-    var dados = {
-        'tabela': 'trello',
-        'quadro': trello.quadro,
-        'posicao': trello.posicao,
-        'id': id
-    }
-
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(dados)
-    })
-
+function salvarListas(listas) {
+    localStorage.setItem("listas", JSON.stringify(listas));
 }
 
+function carregarListas() {
+    let listas = JSON.parse(localStorage.getItem("listas")) || [];
+    renderizarQuadro();
+}
 
-async function recuperar_orcamentos_projetos() {
+function excluirTarefa(idLista, idTarefa) {
+    let listas = JSON.parse(localStorage.getItem("listas")) || [];
+    let listaAlvo = listas.find(lista => lista.id === idLista);
 
-    carregamento('quadro')
+    if (listaAlvo) {
+        listaAlvo.tarefas = listaAlvo.tarefas.filter(tarefa => tarefa.id !== idTarefa);
+        salvarListas(listas);
+        renderizarQuadro();
+    }
+}
 
-    recuperar()
+function excluirLista(idLista) {
+    let listas = JSON.parse(localStorage.getItem("listas")) || [];
+    listas = listas.filter(lista => lista.id !== idLista);
+    salvarListas(listas);
+    renderizarQuadro();
+}
 
-    return new Promise((resolve, reject) => {
+function renderizarQuadro() {
+    let quadro = document.getElementById("quadro");
+    let listas = JSON.parse(localStorage.getItem("listas")) || [];
 
-        var url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=orcamentos';
+    // Constrói o HTML do quadro
+    quadro.innerHTML = listas
+        .map(lista => {
+            return `
+                <div class="lista" id="${lista.id}">
+                    <div class="titulo-lista">
+                        <h3>${lista.titulo}</h3>
+                        <button class="botao-excluir" onclick="excluirLista('${lista.id}')">❌</button>
+                    </div>
+                    <div class="tarefas" ondrop="soltar(event)" ondragover="permitirSoltar(event)">
+                        ${lista.tarefas
+                            .map(
+                                tarefa => `
+                                <div class="tarefa" draggable="true" ondragstart="arrastar(event)" id="${tarefa.id}">
+                                    ${tarefa.texto}
+                                    <button class="botao-excluir-tarefa" onclick="excluirTarefa('${lista.id}', '${tarefa.id}')">❌</button>
+                                </div>
+                            `
+                            )
+                            .join("")}
+                    </div>
+                    <button onclick="adicionarTarefa('${lista.id}')">➕ Adicionar Tarefa</button>
+                </div>
+            `;
+        })
+        .join("");
+}
 
-        fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erro ao carregar os dados');
-                }
-                return response.json();
-            })
-            .then(data => {
-                var orcamentos = {};
-                data.forEach(function (orcamento) {
-                    let orcamento_parse = JSON.parse(orcamento);
-                    let id_orcamento = orcamento_parse.id;
-                    orcamentos[id_orcamento] = orcamento_parse;
-                });
+function permitirSoltar(evento) {
+    evento.preventDefault();
+}
 
-                localStorage.setItem('dados_orcamentos', JSON.stringify(orcamentos));
+function arrastar(evento) {
+    evento.dataTransfer.setData("texto", evento.target.id);
+}
 
-                inicializar()
+function soltar(evento) {
+    evento.preventDefault();
+    let idTarefa = evento.dataTransfer.getData("texto");
+    let idListaDestino = evento.target.closest(".lista").id;
 
-            })
-            .then(() => {
-                resolve();
-            })
-            .catch(error => {
-                console.error('Ocorreu um erro:', error);
-                reject(error);
-            });
-    });
+    let listas = JSON.parse(localStorage.getItem("listas")) || [];
+    let listaOrigem = listas.find(lista => lista.tarefas.some(tarefa => tarefa.id === idTarefa));
+    let listaDestino = listas.find(lista => lista.id === idListaDestino);
+
+    if (listaOrigem && listaDestino) {
+        let tarefaMovida = listaOrigem.tarefas.find(tarefa => tarefa.id === idTarefa);
+        listaOrigem.tarefas = listaOrigem.tarefas.filter(tarefa => tarefa.id !== idTarefa);
+        listaDestino.tarefas.push(tarefaMovida);
+
+        salvarListas(listas);
+        renderizarQuadro();
+    }
 }

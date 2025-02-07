@@ -1,0 +1,114 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #f4f4f4;
+}
+
+h1 {
+    margin-bottom: 20px;
+}
+
+.quadro {
+    display: flex;
+    justify-content: flex-start;
+    gap: 20px;
+    padding: 20px;
+    overflow-x: auto;
+}
+
+.lista {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    width: 250px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column; /* Organiza os elementos em coluna */
+    gap: 10px; /* Espaçamento entre elementos */
+}
+
+.tarefas {
+    flex-grow: 1; /* Expande para ocupar o espaço disponível */
+    min-height: 150px; /* Altura mínima */
+    padding: 10px;
+    border: 2px dashed #ccc;
+    overflow-y: auto; /* Adiciona barra de rolagem se necessário */
+    display: flex;
+    flex-direction: column; /* Mantém as tarefas em coluna */
+    gap: 8px; /* Espaço entre as tarefas */
+}
+
+.lista button {
+    align-self: center; /* Centraliza o botão horizontalmente */
+    margin-top: 10px; /* Espaço acima do botão */
+}
+
+
+.tarefa {
+    background: #fffa65;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: grab;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tarefa button {
+    background: red;
+    border: none;
+    color: white;
+    padding: 3px 5px;
+    margin-left: 10px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+button {
+    padding: 10px 15px;
+    border: none;
+    background: #007bff;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #0056b3;
+}
+
+.titulo-lista {
+    display: flex;
+    justify-content: space-between; /* Coloca o título e o botão em extremidades opostas */
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.botao-excluir {
+    background: red;
+    color: white;
+    border: none;
+    padding: 5px 8px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.botao-excluir:hover {
+    background: darkred;
+}
+
+.botao-excluir-tarefa {
+    background: red;
+    border: none;
+    color: white;
+    padding: 3px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-left: 10px;
+    font-size: 12px;
+}
+
+.botao-excluir-tarefa:hover {
+    background: darkred;
+}
