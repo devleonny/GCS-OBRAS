@@ -19,8 +19,8 @@ var quadros = [
 
 inicializar()
 
-function inicializar() {
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+async function inicializar() {
+    var dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     var dados_etiquetas = JSON.parse(localStorage.getItem('dados_etiquetas')) || {};
 
     document.getElementById('quadro').innerHTML = ''; // Limpar o quadro
@@ -80,8 +80,8 @@ function inicializar() {
     });
 }
 
-function posicao_cards() {
-    var dados_orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+async function posicao_cards() {
+    var dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
 
     quadros.forEach(quadro => {
         var div_quadros = document.getElementById(quadro);
