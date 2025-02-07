@@ -136,10 +136,6 @@ async function abrir_detalhes(id_pagamento) {
 
         pagamento.historico.forEach(item => {
 
-            // console.log(item.status.includes('Aguardando'))
-            // console.log(tem_qualidade)
-            // console.log(item.status.includes('Qualidade') )
-
             var imagem = "imagens/remover.png"
             if (item.status.includes('Aprovado')) {
                 cor = '#4CAF50'
@@ -152,7 +148,7 @@ async function abrir_detalhes(id_pagamento) {
                 imagem = "imagens/avencer.png"
             }else if (item.status.includes('Aguardando') && tem_qualidade && item.status.includes('Diretoria') ) {
                 cor = '#32a5e7'
-                imagem = "imagens/avencer.png"
+                imagem = "imagens/qualidade.png"
             } else if (item.status.includes('Aguardando')) {
                 cor = '#D97302'
                 imagem = "imagens/avencer.png"
@@ -646,8 +642,6 @@ async function atualizar_feedback(resposta, id_pagamento) {
     } else {
         status = 'Aguardando aprovação da Gerência';
     }
-
-    console.log(status)
 
     // 🔥 Registro do Histórico
     var historico = {
