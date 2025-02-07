@@ -1330,7 +1330,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
         pago: { qtde: 0, valor: 0, termo: 'pago', label: 'Pagamento realizado', icone: "imagens/concluido.png" },
         avencer: { qtde: 0, valor: 0, termo: 'a vencer', label: 'Pagamento será feito outro dia', icone: "imagens/avencer.png" },
         hoje: { qtde: 0, valor: 0, termo: 'hoje', label: 'Pagamento será feito hoje', icone: "imagens/vencehoje.png" },
-        todos: { qtde: 0, valor: 0, termo: '', label: 'Todos os pagamentos', icone: "imagens/voltar.png" }
+        todos: { qtde: 0, valor: 0, termo: '', label: 'Todos os pagamentos', icone: "imagens/voltar_2.png" }
     }
 
     for (pagamento in pagamentosFiltrados) {
@@ -1412,14 +1412,6 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
         `
     };
 
-    var carimbo_data_hora_pagamentos = 'Desatualizado...'
-
-    var carimbo_localstorage = JSON.parse(localStorage.getItem('carimbo_data_hora_pagamentos'))
-
-    if (carimbo_localstorage) {
-        carimbo_data_hora_pagamentos = carimbo_localstorage[0]
-    }
-
     var colunas = ['Data de Previsão', 'Centro de Custo', 'Valor e Categoria', 'Status Pagamento', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
 
     var cabecalho1 = ''
@@ -1443,7 +1435,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
         if (contadores[item].valor !== 0) {
             titulos += `
             <div style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1.0vw;" onclick="pesquisar_em_pagamentos(3, '${contadores[item].termo}')">
-                <label class="contagem" style="background-color: #B12425;">${contadores[item].qtde}</label>
+                <label class="contagem" style="background-color: #B12425; color: white;">${contadores[item].qtde}</label>
                 <img src="${contadores[item].icone}" style="width: 25px; height: 25px;">
                 
                 <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
@@ -1451,14 +1443,22 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
                     <label>${dinheiro(contadores[item].valor)}</label>
                 </div>
             </div>
+            <hr style="width: 100%;">
             `
         }
     }
 
     var div_titulos = `
-        <div class="contorno_botoes" style="background-color: #22222287; display: flex; flex-direction: column; gap: 3px; align-items: start; justify-content: left; margin: 10px;">
-        ${titulos}
+    <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; width: 30%;">
+
+        <div class="contorno_botoes" style="background-color: #097fe6" onclick="tela_pagamento()">
+            <label>Novo <strong>Pagamento</strong></label>
         </div>
+
+        <div class="contorno_botoes" style="background-color: #ffffffe3; color: #222; display: flex; flex-direction: column; gap: 3px; align-items: start; justify-content: left; margin: 10px;">
+            ${titulos}
+        </div>
+    </div>
     `
     if (especial) {
         return div_titulos
@@ -1466,46 +1466,21 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
 
     acumulado += `
     <div id="div_pagamentos">
-        <div style="display: flex; gap: 10px; justify-content: space-evenly; align-items: center; width: 100%; color: white;">
-            
-
-            <div class="contorno_botoes" style="background-color: #097fe6" onclick="tela_pagamento()">
-                <label>Novo <strong>Pagamento</strong></label>
-            </div>
-
+        <div style="display: flex; justify-content: center; align-items: start; gap: 10px;">
             ${div_titulos}
-
-            <div id="andamento" style="display: flex; flex-direction: column; gap: 10px; justify-content: space-evenly; align-items: start; background-color: #22222287; border-radius: 5px; padding: 10px; margin: 30px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);">
-
-                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                    onclick="window.location.href='inicial.html'">
-                    <img src="imagens/voltar.png" style="cursor: pointer; width: 30px;" onclick="window.location.href='inicial.html'">
-                    <label style="color: white;">Voltar</label>
-                </div>
-                    
-                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="atualizar_pagamentos_menu()">
-                    <img src="imagens/atualizar_2.png" style="width: max-content; cursor: pointer; width: 30px;">
-                    <label style="color: white;">Atualizar Pagamentos</label>
-                </div>
-
-                <label>Atualizado em ${carimbo_data_hora_pagamentos}</label>
-
+            <div style="border-radius: 5px; height: 800px; overflow-y: auto;">
+                <table id="pagamentos" style="color: #222; font-size: 0.8em; border-collapse: collapse; table-layout: fixed;">
+                    <thead>
+                        ${cabecalho1}
+                    </thead>
+                    <thead id="thead_pesquisa">
+                        ${cabecalho2}
+                    </thead>
+                    <tbody id="body">
+                        ${linhas}
+                    </tbody>
+                </table>
             </div>
-
-
-        </div>
-        <div style="border-radius: 5px; height: 800px; overflow-y: auto;">
-            <table id="pagamentos" style="width: 100%; color: #222; font-size: 0.8em; border-collapse: collapse; table-layout: fixed;">
-                <thead>
-                    ${cabecalho1}
-                </thead>
-                <thead id="thead_pesquisa">
-                    ${cabecalho2}
-                </thead>
-                <tbody id="body">
-                    ${linhas}
-                </tbody>
-            </table>
         </div>
     </div>
     `
