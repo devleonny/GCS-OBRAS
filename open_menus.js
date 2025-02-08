@@ -1424,7 +1424,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
         cabecalho2 += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
             <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-            <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisar_em_pagamentos(${i}, this.value)">
+            <input style="width: 100%;" style="text-align: center;" placeholder="..." oninput="pesquisar_em_pagamentos(${i}, this.value)">
             </th>
             `
     })
