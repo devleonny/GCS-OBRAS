@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,15 +8,17 @@
     <link rel="stylesheet" href="gcsobras.css">
     <link rel="stylesheet" href="projetos.css">
 </head>
+
 <body>
 
     <h1>Mini Trello</h1>
 
-    <button onclick="adicionarLista()">➕ Adicionar Nova Lista</button>
-    
+    <button onclick="abrirModais('modal-adicionar-lista')">➕ Adicionar Nova Lista</button>
+
     <div class="quadro" id="quadro">
         <!-- Agora começa vazio -->
     </div>
+
 
     <div id="modal" class="modal oculto">
         <div class="modal-conteudo">
@@ -25,9 +28,33 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- Modal Adicionar Lista -->
+    <div id="modal-adicionar-lista" class="modal oculto">
+        <div class="modal-conteudo">
+            <span class="fechar" onclick="fecharModais('modal-adicionar-lista')">&times;</span>
+            <h3>Adicionar Nova Lista</h3>
+            <input type="text" id="input-nova-lista" placeholder="Digite o nome da lista">
+            <button onclick="confirmarAdicionarLista()">Confirmar</button>
+        </div>
+    </div>
+
+    <!-- Modal Adicionar Tarefa -->
+    <div id="modal-adicionar-tarefa" class="modal oculto">
+        <div class="modal-conteudo">
+            <span class="fechar" onclick="fecharModais('modal-adicionar-tarefa')">&times;</span>
+            <h3>Adicionar Nova Tarefa</h3>
+            <input type="text" id="input-nova-tarefa" placeholder="Digite o nome da tarefa">
+            <button onclick="confirmarAdicionarTarefa()">Confirmar</button>
+        </div>
+    </div>
+
+    <div id="overlay" class="overlay"></div>
 
     <script src="open_menus.js"></script>
+    <script src="orcamentos.js"></script>
+    <script src="status.js"></script>
     <script src="projetos.js"></script>
 </body>
+
 </html>

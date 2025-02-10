@@ -1,13 +1,36 @@
+/* Geral */
 body {
     font-family: Arial, sans-serif;
     text-align: center;
-    background-color: #f4f4f4;
+    background-color: #1e1e2f; /* Fundo escuro */
+    color: #000000; /* Texto branco */
+    overflow-x: hidden; /* Evita o scroll horizontal */
+    overflow-y: auto; /* Mantém o scroll vertical */
+    margin: 0;
+    padding: 0;
 }
 
 h1 {
-    margin-bottom: 20px;
+    color: #000000; /* Título em preto */
+    margin: 20px 0;
+}
+/* Botões principais */
+button {
+    background-color: #007bff; /* Azul vibrante */
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Sombra */
 }
 
+button:hover {
+    background-color: #0056b3; /* Azul mais escuro */
+}
+
+/* Quadro de listas */
 .quadro {
     display: flex;
     justify-content: flex-start;
@@ -16,206 +39,287 @@ h1 {
     overflow-x: auto;
 }
 
+/* Listas */
 .lista {
-    background: white;
+    background: #282a3a; /* Fundo da lista em tom escuro */
     padding: 15px;
     border-radius: 8px;
     width: 250px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5); /* Sombra */
     display: flex;
     flex-direction: column; /* Organiza os elementos em coluna */
-    gap: 10px; /* Espaçamento entre elementos */
+    gap: 10px; /* Espaçamento interno */
+    border: 1px solid #3a3c4e; /* Borda sutil */
 }
 
-.tarefas {
-    flex-grow: 1; /* Expande para ocupar o espaço disponível */
-    min-height: 150px; /* Altura mínima */
-    padding: 10px;
-    border: 2px dashed #ccc;
-    overflow-y: auto; /* Adiciona barra de rolagem se necessário */
+.titulo-lista {
     display: flex;
-    flex-direction: column; /* Mantém as tarefas em coluna */
-    gap: 8px; /* Espaço entre as tarefas */
-}
-
-#tarefa-titulo {
-    width: 100%;
-    padding: 8px;
-    margin-top: 5px;
-    margin-bottom: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    justify-content: space-between; /* Título e botão em extremidades opostas */
+    align-items: center;
+    color: #ffffff;
+    font-weight: bold;
     font-size: 16px;
 }
 
-#tarefa-titulo:focus {
-    outline: 2px solid #007bff;
-}
-
-.lista button {
-    align-self: center; /* Centraliza o botão horizontalmente */
-    margin-top: 10px; /* Espaço acima do botão */
-}
-
-
-.tarefa {
-    background: #fffa65;
-    padding: 10px;
-    border-radius: 5px;
-    cursor: grab;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.tarefa button {
-    background: red;
-    border: none;
-    color: white;
-    padding: 3px 5px;
-    margin-left: 10px;
-    cursor: pointer;
-    border-radius: 3px;
-}
-
-button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-button:hover {
-    background-color: #0056b3;
-}
-.titulo-lista {
-    display: flex;
-    justify-content: space-between; /* Coloca o título e o botão em extremidades opostas */
-    align-items: center;
-    margin-bottom: 10px;
-}
-
 .botao-excluir {
-    background: red;
+    background: #ff5c5c; /* Vermelho suave */
     color: white;
     border: none;
     padding: 5px 8px;
     cursor: pointer;
     border-radius: 5px;
     font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Sombra */
 }
 
 .botao-excluir:hover {
-    background: darkred;
+    background: #ff1a1a; /* Vermelho forte */
 }
 
-.botao-excluir-tarefa {
-    background: red;
+/* Tarefas */
+.tarefa {
+    background: #3c3f51; /* Fundo da tarefa */
+    padding: 10px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Sombra */
+    color: white;
+}
+
+.tarefa:hover {
+    background: #50536a; /* Destaque ao passar o mouse */
+}
+
+.tarefa button {
+    background: #ff5c5c; /* Botão de excluir vermelho */
     border: none;
     color: white;
-    padding: 3px 6px;
-    border-radius: 3px;
-    cursor: pointer;
+    padding: 3px 5px;
     margin-left: 10px;
-    font-size: 12px;
-}
-
-.botao-excluir-tarefa:hover {
-    background: darkred;
-}
-
-h3 {
     cursor: pointer;
-    user-select: none;
+    border-radius: 3px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Sombra */
 }
 
-.tarefa span {
-    cursor: pointer;
-    user-select: none;
+.tarefa button:hover {
+    background: #ff1a1a;
 }
 
-h3:hover,
-.tarefa span:hover {
-    text-decoration: underline;
+.tarefas {
+    flex-grow: 1; /* Expande para ocupar o espaço disponível */
+    min-height: 150px; /* Altura mínima */
+    padding: 10px;
+    border: 2px dashed #3a3c4e; /* Borda em tom escuro */
+    overflow-y: auto; /* Barra de rolagem */
+    display: flex;
+    flex-direction: column; /* Mantém as tarefas em coluna */
+    gap: 8px; /* Espaçamento entre tarefas */
 }
 
-/* Estilo para o modal */
+/* Indicadores de etiquetas */
+.indicadores-etiquetas {
+    display: flex;
+    gap: 5px;
+    margin-right: 8px;
+}
+
+.indicador-etiqueta {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%; /* Torna o indicador circular */
+    display: inline-block;
+    border: 1px solid #1e1e2f; /* Borda para contraste */
+}
+
+/* Modal Geral */
 .modal {
-    display: none; /* Oculta o modal por padrão */
+    display: none; /* Escondido por padrão */
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Fundo transparente */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #2b2d42; /* Fundo escuro */
+    color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.7); /* Sombra */
+    border-radius: 10px;
+    padding: 20px;
     z-index: 1000;
-    justify-content: center;
-    align-items: center;
+    width: 80%; /* Reduzido para ajustar a largura */
+    max-width: 600px; /* Largura máxima */
+    max-height: 90vh; /* Altura máxima com rolagem */
+    overflow-y: auto; /* Rolagem vertical */
+    font-size: 16px; /* Aumentado o tamanho da fonte */
+    line-height: 1.5; /* Espaçamento mais confortável entre linhas */
+}
+
+.modal:not(.oculto) {
+    display: block; /* Exibe quando não está oculto */
 }
 
 .modal-conteudo {
-    background: #fff;
-    border-radius: 8px;
-    padding: 20px;
-    width: 500px;
-    max-width: 90%;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centraliza o conteúdo no modal */
+    gap: 20px; /* Espaçamento entre os elementos */
+    width: 100%;
 }
 
+/* Botão de fechar */
 .fechar {
-    font-size: 24px;
+    font-size: 28px; /* Aumentado o tamanho do X */
     font-weight: bold;
     cursor: pointer;
-    position: absolute;
-    top: 10px;
+    position: absolute; /* Posicionamento absoluto no canto superior direito */
+    top: 15px;
     right: 20px;
+    color: white;
 }
 
-.modal h2 {
-    margin-bottom: 20px;
+.fechar:hover {
+    color: red; /* Destaca o botão ao passar o mouse */
 }
 
-.modal .descricao {
-    margin-bottom: 20px;
+/* Inputs e Labels no modal */
+.modal .descricao div {
+    display: flex;
+    align-items: center; /* Centraliza verticalmente */
+    gap: 10px; /* Espaço entre a label e o input */
+    justify-content: center; /* Centraliza no modal */
+    width: 100%;
+}
+
+.modal .descricao label {
+    width: 150px; /* Tamanho fixo para as labels */
+    text-align: right;
+    font-weight: bold;
+    color: #f1f1f1;
+    font-size: 16px; /* Aumentado o tamanho da fonte */
 }
 
 .modal .descricao input {
-    width: 100%;
-    padding: 8px;
-    margin-top: 5px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    width: 60%; /* Ajusta o tamanho do input */
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #3a3c4e;
+    border-radius: 5px;
+    background: #1e1e2f;
+    color: white;
+    font-size: 16px; /* Aumentado o tamanho da fonte */
 }
 
-.modal .atividades {
+/* Espaçamento entre etiquetas no modal */
+#lista-etiquetas {
+    display: flex;
+    flex-wrap: wrap; /* Quebra as etiquetas para a próxima linha, se necessário */
+    gap: 10px; /* Espaçamento entre etiquetas */
+    justify-content: center; /* Centraliza as etiquetas horizontalmente */
+}
+
+/* Comentários no modal */
+.atividades {
     margin-top: 20px;
-    background: #f9f9f9;
+    background: #3c3f51; /* Fundo dos comentários */
     padding: 10px;
     border-radius: 8px;
-    max-height: 200px;
-    overflow-y: auto;
-    border: 1px solid #ddd;
+    max-height: 300px; /* Altura máxima dos comentários */
+    overflow-y: auto; /* Barra de rolagem */
+    border: 1px solid #3a3c4e;
+    width: 100%; /* Larga o espaço */
 }
 
-.modal .atividades .comentario {
-    margin: 5px 0;
+.atividades .comentario {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #3c3f51;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    color: white;
     font-size: 14px;
-    color: #333;
 }
 
-.modal textarea {
-    width: 100%;
+.atividades .comentario div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.atividades .comentario strong {
+    color: #007bff;
+}
+
+.atividades .excluir-comentario {
+    background: none;
+    border: none;
+    color: #ff5c5c;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.atividades .excluir-comentario:hover {
+    color: #ff1a1a;
+}
+
+.comentario-linha {
+    display: flex;
+    align-items: center; /* Centraliza verticalmente os itens */
+    gap: 10px; /* Espaçamento entre os elementos */
+    padding: 5px 10px;
+    background-color: #3c3f51; /* Fundo do comentário */
+    border-radius: 4px; /* Bordas arredondadas */
+    margin-bottom: 5px; /* Espaço entre os comentários */
+    color: white; /* Cor do texto */
+}
+
+.comentario-nome {
+    flex: 0 0 auto; /* Tamanho fixo baseado no conteúdo */
+    font-weight: bold;
+    color: #007bff; /* Cor do nome */
+}
+
+.comentario-data {
+    flex: 0 0 auto; /* Tamanho fixo baseado no conteúdo */
+    font-size: 12px;
+    color: #aaaaaa; /* Cor para indicar data/hora */
+}
+
+.comentario-texto {
+    flex: 1; /* Expande para ocupar o espaço restante */
+    overflow-wrap: break-word; /* Quebra texto longo */
+}
+
+.excluir-comentario {
+    flex: 0 0 auto; /* Tamanho fixo baseado no botão */
+    background-color: #ff5c5c; /* Vermelho suave */
+    border: none;
+    color: white;
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.excluir-comentario:hover {
+    background-color: #ff1a1a; /* Vermelho forte */
+}
+
+/* Botão Adicionar Comentário */
+textarea#novo-comentario {
+    width: 90%;
     height: 80px;
     margin-top: 10px;
     padding: 8px;
-    border: 1px solid #ccc;
+    border: 1px solid #3a3c4e;
     border-radius: 4px;
     resize: none;
+    background: #1e1e2f;
+    color: white;
+    font-size: 16px; /* Aumentado o tamanho da fonte */
 }
 
-.modal button {
+.modal .atividades button {
     margin-top: 10px;
     background: #007bff;
     color: white;
@@ -223,46 +327,66 @@ h3:hover,
     padding: 10px;
     border-radius: 4px;
     cursor: pointer;
+    align-self: center; /* Centraliza o botão */
+    font-size: 16px; /* Aumentado o tamanho da fonte */
 }
 
-.modal button:hover {
+.modal .atividades button:hover {
     background: #0056b3;
 }
 
-.descricao {
-    margin-top: 20px;
+/* Lista de sugestões - Oculta inicialmente */
+.auto-complete-list {
+    position: absolute; /* Garante que o elemento será posicionado relativo ao seu pai */
+    top: 100%; /* Posiciona a lista logo abaixo do campo de entrada */
+    left: 0; /* Alinha à esquerda do campo */
+    width: 100%; /* Igual ao campo de entrada */
+    list-style-type: none; /* Remove os bullets */
+    margin: 0; /* Remove margens */
+    padding: 0; /* Remove padding */
+    background-color: #1e1e2f; /* Fundo escuro */
+    border: 1px solid #3a3c4e; /* Borda para delimitar */
+    border-radius: 5px; /* Bordas arredondadas */
+    max-height: 150px; /* Altura máxima */
+    overflow-y: auto; /* Rolagem vertical */
+    z-index: 1000; /* Garante que fique acima de outros elementos */
 }
 
-.descricao div {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
+/* Estilo das sugestões */
+.auto-complete-list li {
+    padding: 5px 10px;
+    background: #3a3c4e;
+    color: white;
+    cursor: pointer;
+    border-bottom: 1px solid #50536a;
 }
 
-.descricao label {
-    width: 150px;
+.auto-complete-list li:last-child {
+    border-bottom: none; /* Remove a borda do último item */
+}
+
+.auto-complete-list li:hover {
+    background: #50536a; /* Destaque ao passar o mouse */
+}
+
+
+.orcamento-selecionado {
+    margin-top: 10px;
+    color: #007bff;
     font-weight: bold;
-    text-align: right;
-    margin-right: 10px;
 }
 
-.descricao input {
-    flex-grow: 1;
-    padding: 8px;
-    border: 1px solid #ccc;
+
+/* Scroll personalizado */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #50536a; /* Cor do scroll */
     border-radius: 4px;
 }
 
-.descricao button {
-    margin-top: 10px;
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.descricao button:hover {
-    background: #0056b3;
+::-webkit-scrollbar-track {
+    background: #1e1e2f; /* Fundo do scroll */
 }
