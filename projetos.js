@@ -3,6 +3,17 @@ document.addEventListener("DOMContentLoaded", () => {
     carregarListas();
 });
 
+document.getElementById("fundo-escuro").addEventListener("click", () => {
+    const modaisAbertos = document.querySelectorAll(".modal:not(.oculto)");
+    modaisAbertos.forEach(modal => {
+        modal.classList.add("oculto"); // Fecha os modais abertos
+    });
+
+    const fundoEscuro = document.getElementById("fundo-escuro");
+    if (fundoEscuro) fundoEscuro.classList.add("oculto"); // Esconde o fundo-escuro
+});
+
+
 let idListaAtual = null; // Variável para armazenar a lista onde será adicionada a tarefa
 
 function adicionarTarefa(idLista) {
@@ -217,6 +228,7 @@ function soltar(evento) {
 }
 
 async function abrirModal(idLista, idTarefa) {
+    
     let listas = JSON.parse(localStorage.getItem("listas")) || [];
     let listaAlvo = listas.find(lista => lista.id === idLista);
     let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
@@ -233,6 +245,7 @@ async function abrirModal(idLista, idTarefa) {
         let etiquetasGlobais = JSON.parse(localStorage.getItem("etiquetasGlobais")) || [];
         let modal = document.getElementById("modal");
         let modalCorpo = document.getElementById("modal-corpo");
+        let fundoEscuro = document.getElementById("fundo-escuro"); // Obtenha o fundo-escuro
 
         // Redefine o conteúdo do modal, mas preserva o título
         modalCorpo.innerHTML = `
@@ -367,31 +380,45 @@ async function abrirModal(idLista, idTarefa) {
         // Exibe o modal
         modal.classList.remove("oculto");
         modal.style.display = "flex";
+        fundoEscuro.classList.remove("oculto"); // Exibe o fundo escuro
     } else {
         console.error("Erro: Tarefa não encontrada ou estrutura inválida.");
     }
 }
 
 function fecharModal() {
-    let modal = document.getElementById("modal");
-    modal.style.display = "none";
+    const modal = document.getElementById("modal");
+    const fundoEscuro = document.getElementById("fundo-escuro");
+
+    if (modal && fundoEscuro) {
+        modal.style.display = "none"; // Esconde o modal
+        fundoEscuro.classList.add("oculto"); // Esconde o fundo-escuro
+    } else {
+        console.error("Modal ou fundo-escuro não encontrados.");
+    }
 }
 
 function abrirModais(modalId) {
     const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.remove("oculto");
+    const fundoEscuro = document.getElementById("fundo-escuro");
+
+    if (modal && fundoEscuro) {
+        modal.classList.remove("oculto"); // Mostra o modal
+        fundoEscuro.classList.remove("oculto"); // Mostra o fundo-escuro
     } else {
-        console.error(`Modal com ID ${modalId} não encontrado.`);
+        console.error(`Modal ou fundo-escuro não encontrados. Modal ID: ${modalId}`);
     }
 }
 
 function fecharModais(modalId) {
     const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.add("oculto");
+    const fundoEscuro = document.getElementById("fundo-escuro");
+
+    if (modal && fundoEscuro) {
+        modal.classList.add("oculto"); // Esconde o modal
+        fundoEscuro.classList.add("oculto"); // Esconde o fundo-escuro
     } else {
-        console.error(`Modal com ID ${modalId} não encontrado.`);
+        console.error(`Modal ou fundo-escuro não encontrados. Modal ID: ${modalId}`);
     }
 }
 
