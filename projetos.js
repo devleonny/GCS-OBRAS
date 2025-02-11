@@ -22,34 +22,29 @@ function adicionarTarefa(idLista) {
 }
 
 function confirmarAdicionarTarefa() {
-    let textoTarefa = document.getElementById('input-nova-tarefa').value.trim();
+    let textoTarefa = document.getElementById("input-nova-tarefa").value.trim();
     if (textoTarefa && idListaAtual) {
-        let listas = JSON.parse(localStorage.getItem('listas')) || [];
-        let listaAlvo = listas.find(lista => lista.id === idListaAtual);
+        let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+        let listaAlvo = listas[idListaAtual];
 
         if (listaAlvo) {
             listaAlvo.tarefas.push({
-                id: 'tarefa' + new Date().getTime(),
+                id: unicoID(), // Gerando ID único para a tarefa
                 texto: textoTarefa,
                 descricao: {
-                    chamado: '',
-                    endereco: '',
-                    start: '',
-                    entrega: '',
-                    pedidoServico: '',
-                    pedidoVenda: '',
-                    escopo: '',
-                    equipe: ''
+                    chamado: "", endereco: "", start: "", entrega: "",
+                    pedidoServico: "", pedidoVenda: "", escopo: "", equipe: ""
                 },
-                etiquetas: [], // Inicializa as etiquetas
-                atividades: [] // Inicializa as atividades
+                etiquetas: [],
+                atividades: []
             });
+
             salvarListas(listas);
             renderizarQuadro();
-            fecharModais('modal-adicionar-tarefa');
+            fecharModais("modal-adicionar-tarefa");
         }
     } else {
-        alert('O nome da tarefa não pode estar vazio.');
+        alert("O nome da tarefa não pode estar vazio.");
     }
 }
 
@@ -58,45 +53,34 @@ function adicionarLista() {
 }
 
 function salvarListas(listas) {
-    console.log("Listas atualizadas no localStorage:", listas);
-    localStorage.setItem("listas", JSON.stringify(listas));
+    localStorage.setItem("dados_kanban", JSON.stringify(listas));
 }
 
 function carregarListas() {
-    let listas = JSON.parse(localStorage.getItem("listas")) || [];
+    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
 
-    // Garante que todas as tarefas tenham uma estrutura válida
-    listas.forEach(lista => {
+    // Garante que todas as listas tenham uma estrutura válida
+    Object.values(listas).forEach(lista => {
+        if (!Array.isArray(lista.tarefas)) {
+            lista.tarefas = [];
+        }
         lista.tarefas.forEach(tarefa => {
-            if (!tarefa.descricao) {
-                tarefa.descricao = {
-                    chamado: "",
-                    endereco: "",
-                    start: "",
-                    entrega: "",
-                    pedidoServico: "",
-                    pedidoVenda: "",
-                    escopo: "",
-                    equipe: ""
-                };
-            }
-            if (!tarefa.atividades) {
-                tarefa.atividades = []; // Inicializa atividades se não existir
-            }
-            if (!tarefa.etiquetas) {
-                tarefa.etiquetas = []; // Inicializa etiquetas se não existir
-            }
+            tarefa.descricao ||= {
+                chamado: "", endereco: "", start: "", entrega: "",
+                pedidoServico: "", pedidoVenda: "", escopo: "", equipe: ""
+            };
+            tarefa.atividades ||= [];
+            tarefa.etiquetas ||= [];
         });
     });
 
-    salvarListas(listas); // Salva as atualizações no localStorage
+    salvarListas(listas);
     renderizarQuadro();
 }
 
-
 function excluirTarefa(idLista, idTarefa) {
-    let listas = JSON.parse(localStorage.getItem("listas")) || [];
-    let listaAlvo = listas.find(lista => lista.id === idLista);
+    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+    let listaAlvo = listas[idLista];
 
     if (listaAlvo) {
         listaAlvo.tarefas = listaAlvo.tarefas.filter(tarefa => tarefa.id !== idTarefa);
@@ -106,74 +90,65 @@ function excluirTarefa(idLista, idTarefa) {
 }
 
 function excluirLista(idLista) {
-    let listas = JSON.parse(localStorage.getItem("listas")) || [];
-    listas = listas.filter(lista => lista.id !== idLista);
+    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+    delete listas[idLista]; // Remove a lista do objeto
+
     salvarListas(listas);
     renderizarQuadro();
 }
 
 function confirmarAdicionarLista() {
-    let nomeLista = document.getElementById('input-nova-lista').value.trim();
+    let nomeLista = document.getElementById("input-nova-lista").value.trim();
     if (nomeLista) {
-        let listas = JSON.parse(localStorage.getItem('listas')) || [];
-        listas.push({
-            id: 'lista' + new Date().getTime(),
+        let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+        let idLista = unicoID(); // Gerando ID único para a lista
+
+        listas[idLista] = {
+            id: idLista,
             titulo: nomeLista,
             tarefas: []
-        });
+        };
+
         salvarListas(listas);
         renderizarQuadro();
-        fecharModais('modal-adicionar-lista');
+        fecharModais("modal-adicionar-lista");
     } else {
-        alert('O nome da lista não pode estar vazio.');
+        alert("O nome da lista não pode estar vazio.");
     }
 }
 
 function renderizarQuadro() {
     let quadro = document.getElementById("quadro");
-    let listas = JSON.parse(localStorage.getItem("listas")) || [];
+    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
 
-    // Constrói o HTML do quadro
-    quadro.innerHTML = listas
-        .map(lista => {
-            return `
-                <div class="lista" id="${lista.id}">
-                    <div class="titulo-lista">
-                        <h3 ondblclick="editarTituloLista('${lista.id}')">${lista.titulo}</h3>
-                        <button class="botao-excluir" onclick="excluirLista('${lista.id}')">❌</button>
-                    </div>
-                    <div class="tarefas" ondrop="soltar(event)" ondragover="permitirSoltar(event)">
-                        ${lista.tarefas
-                    .map(
-                        tarefa => `
-                                    <div class="tarefa" draggable="true" ondragstart="arrastar(event)" id="${tarefa.id}" onclick="abrirModal('${lista.id}', '${tarefa.id}')">
-                                        <div class="indicadores-etiquetas">
-                                            ${tarefa.etiquetas
-                                .map(
-                                    etiqueta => `
-                                                        <span class="indicador-etiqueta" style="background-color: ${etiqueta.cor}" title="${etiqueta.nome}"></span>
-                                                    `
-                                )
-                                .join("")}
-                                        </div>
-                                        ${tarefa.texto}
-                                        <button class="botao-excluir-tarefa" onclick="excluirTarefa('${lista.id}', '${tarefa.id}')">❌</button>
-                                    </div>
-                                `
-                    )
-                    .join("")}
-                    </div>
-                    <!-- Corrigido para passar o ID real da lista -->
-                    <button onclick="adicionarTarefa('${lista.id}')">➕ Adicionar Tarefa</button>
+    quadro.innerHTML = Object.values(listas)
+        .map(lista => `
+            <div class="lista" id="${lista.id}">
+                <div class="titulo-lista">
+                    <h3 ondblclick="editarTituloLista('${lista.id}')">${lista.titulo}</h3>
+                    <button class="botao-excluir" onclick="excluirLista('${lista.id}')">❌</button>
                 </div>
-            `;
-        })
-        .join("");
+                <div class="tarefas" ondrop="soltar(event)" ondragover="permitirSoltar(event)">
+                    ${lista.tarefas.map(tarefa => `
+                        <div class="tarefa" draggable="true" ondragstart="arrastar(event)" id="${tarefa.id}" onclick="abrirModal('${lista.id}', '${tarefa.id}')">
+                            <div class="indicadores-etiquetas">
+                                ${tarefa.etiquetas.map(etiqueta => `
+                                    <span class="indicador-etiqueta" style="background-color: ${etiqueta.cor}" title="${etiqueta.nome}"></span>
+                                `).join("")}
+                            </div>
+                            ${tarefa.texto}
+                            <button class="botao-excluir-tarefa" onclick="excluirTarefa('${lista.id}', '${tarefa.id}')">❌</button>
+                        </div>
+                    `).join("")}
+                </div>
+                <button onclick="adicionarTarefa('${lista.id}')">➕ Adicionar Tarefa</button>
+            </div>
+        `).join("");
 }
 
 function editarTituloLista(idLista) {
-    let listas = JSON.parse(localStorage.getItem("listas")) || [];
-    let listaAlvo = listas.find(lista => lista.id === idLista);
+    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+    let listaAlvo = listas[idLista];
 
     if (listaAlvo) {
         let novoTitulo = prompt("Edite o título da lista:", listaAlvo.titulo);
@@ -186,8 +161,8 @@ function editarTituloLista(idLista) {
 }
 
 function editarTituloTarefa(idLista, idTarefa) {
-    let listas = JSON.parse(localStorage.getItem("listas")) || [];
-    let listaAlvo = listas.find(lista => lista.id === idLista);
+    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+    let listaAlvo = listas[idLista]; // Acessa a lista pelo ID diretamente do objeto
     let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
 
     if (tarefaAlvo) {
@@ -211,30 +186,40 @@ function arrastar(evento) {
 function soltar(evento) {
     evento.preventDefault();
     let idTarefa = evento.dataTransfer.getData("texto");
-    let idListaDestino = evento.target.closest(".lista").id;
+    let idListaDestino = evento.target.closest(".lista")?.id;
 
-    let listas = JSON.parse(localStorage.getItem("listas")) || [];
-    let listaOrigem = listas.find(lista => lista.tarefas.some(tarefa => tarefa.id === idTarefa));
-    let listaDestino = listas.find(lista => lista.id === idListaDestino);
-
-    if (listaOrigem && listaDestino) {
-        let tarefaMovida = listaOrigem.tarefas.find(tarefa => tarefa.id === idTarefa);
-        listaOrigem.tarefas = listaOrigem.tarefas.filter(tarefa => tarefa.id !== idTarefa);
-        listaDestino.tarefas.push(tarefaMovida);
-
-        salvarListas(listas);
-        renderizarQuadro();
+    if (!idListaDestino) {
+        console.error("Erro: Lista de destino não encontrada.");
+        return;
     }
+
+    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+    
+    // Encontrar a lista de origem e a lista de destino
+    let listaOrigem = Object.values(listas).find(lista => lista.tarefas.some(tarefa => tarefa.id === idTarefa));
+    let listaDestino = listas[idListaDestino];
+
+    if (!listaOrigem || !listaDestino) {
+        console.error("Erro: Lista de origem ou destino não encontrada.");
+        return;
+    }
+
+    // Encontrar e mover a tarefa
+    let tarefaMovida = listaOrigem.tarefas.find(tarefa => tarefa.id === idTarefa);
+    listaOrigem.tarefas = listaOrigem.tarefas.filter(tarefa => tarefa.id !== idTarefa);
+    listaDestino.tarefas.push(tarefaMovida);
+
+    salvarListas(listas);
+    renderizarQuadro();
 }
 
 async function abrirModal(idLista, idTarefa) {
     
-    let listas = JSON.parse(localStorage.getItem("listas")) || [];
-    let listaAlvo = listas.find(lista => lista.id === idLista);
+    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+    let listaAlvo = listas[idLista]; // Pegando a lista pelo ID diretamente do objeto
     let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
 
     let dados_orcamentos = await recuperarDados("dados_orcamentos");
-    console.log(dados_orcamentos);
 
     if (tarefaAlvo) {
         // Garante que as etiquetas existam
@@ -246,6 +231,10 @@ async function abrirModal(idLista, idTarefa) {
         let modal = document.getElementById("modal");
         let modalCorpo = document.getElementById("modal-corpo");
         let fundoEscuro = document.getElementById("fundo-escuro"); // Obtenha o fundo-escuro
+
+        let linkOrcamento = tarefaAlvo.orcamento
+            ? `<a href="#" id="orcamento-link">${tarefaAlvo.orcamento}</a>`
+            : "Nenhum";
 
         // Redefine o conteúdo do modal, mas preserva o título
         modalCorpo.innerHTML = `
@@ -308,9 +297,8 @@ async function abrirModal(idLista, idTarefa) {
                 <label for="input-auto-complete">Buscar Orçamento:</label>
                 <input type="text" id="input-auto-complete" placeholder="Digite para buscar...">
                 <ul id="sugestoes" class="auto-complete-list"></ul>
-                <p id="orcamento-selecionado" class="orcamento-selecionado">
-                    Orçamento Selecionado: ${tarefaAlvo.orcamento || "Nenhum"}
-                </p>
+                <label>Orçamento Selecionado:</label>
+                <p id="orcamento-selecionado">${linkOrcamento}</p>
             </div>
             <button onclick="salvarDescricao('${idLista}', '${idTarefa}')">Salvar Descrição</button>
         </div>
@@ -322,7 +310,7 @@ async function abrirModal(idLista, idTarefa) {
         </div>`;
 
         // Renderizar as atividades dentro do modal
-        renderizarAtividades(tarefaAlvo.atividades);
+        renderizarAtividades(tarefaAlvo.atividades, idLista, idTarefa);
 
         // Configuração do auto-complete
         const inputAutoComplete = document.getElementById("input-auto-complete");
@@ -346,24 +334,33 @@ async function abrirModal(idLista, idTarefa) {
                 sugestoes.forEach(chave => {
                     const li = document.createElement("li");
                     li.textContent = chave;
+                
                     li.addEventListener("click", () => {
                         // Atualiza o orçamento na tarefa
                         tarefaAlvo.orcamento = chave;
-
-                        // Atualiza o texto do parágrafo
-                        exibir_todos_os_status(chave)
-                        paragrafoSelecionado.textContent = `Orçamento Selecionado: ${chave}`;
-
+                
+                        // Substitui o parágrafo por um link
+                        paragrafoSelecionado.innerHTML = `<a href="#" id="orcamento-link">${chave}</a>`;
+                
                         // Salva a lista atualizada no localStorage
                         salvarListas(listas);
-
+                
                         // Limpa a lista de sugestões e o campo de input
                         listaSugestoes.innerHTML = "";
                         listaSugestoes.style.display = "none";
                         inputAutoComplete.value = "";
+                
+                        // Adiciona o evento de clique no link para chamar a função
+                        document.getElementById("orcamento-link").addEventListener("click", (event) => {
+                            event.preventDefault(); // Evita que o link recarregue a página
+                            exibir_todos_os_status(chave);
+                            fecharModal();
+                        });
                     });
+                
                     listaSugestoes.appendChild(li);
                 });
+                
             } else {
                 listaSugestoes.style.display = "none"; // Oculta a lista
             }
@@ -376,6 +373,17 @@ async function abrirModal(idLista, idTarefa) {
                 listaSugestoes.style.display = "none";
             }
         });
+
+        setTimeout(() => {
+            let orcamentoLink = document.getElementById("orcamento-link");
+            if (orcamentoLink) {
+                orcamentoLink.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    exibir_todos_os_status(tarefaAlvo.orcamento);
+                    fecharModal()
+                });
+            }
+        }, 100);
 
         // Exibe o modal
         modal.classList.remove("oculto");
@@ -433,24 +441,19 @@ function adicionarComentario(idLista, idTarefa) {
         return;
     }
 
-    console.log("Comentário capturado:", comentarioTexto);
+    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+    let listaAlvo = listas[idLista]; // Acessa a lista correta
+    let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
 
-    let listas = JSON.parse(localStorage.getItem("listas")) || [];
-    console.log("Listas carregadas do localStorage:", listas);
-
-    const listaAlvo = listas.find(lista => lista.id === idLista);
     if (!listaAlvo) {
         console.error("Lista não encontrada:", idLista);
         return;
     }
 
-    const tarefaAlvo = listaAlvo.tarefas.find(tarefa => tarefa.id === idTarefa);
     if (!tarefaAlvo) {
         console.error("Tarefa não encontrada:", idTarefa);
         return;
     }
-
-    console.log("Tarefa encontrada:", tarefaAlvo);
 
     if (!tarefaAlvo.atividades) {
         tarefaAlvo.atividades = []; // Inicializa a lista de atividades, se necessário
@@ -466,7 +469,6 @@ function adicionarComentario(idLista, idTarefa) {
         dataHora: dataHora,
     });
 
-    console.log("Atividades atualizadas:", tarefaAlvo.atividades);
 
     // Salva no localStorage
     salvarListas(listas);
@@ -478,7 +480,7 @@ function adicionarComentario(idLista, idTarefa) {
     document.getElementById("novo-comentario").value = "";
 }
 
-function renderizarAtividades(atividades) {
+function renderizarAtividades(atividades, idLista, idTarefa) {
     const listaAtividades = document.getElementById("lista-atividades");
 
     if (!listaAtividades) {
@@ -486,7 +488,7 @@ function renderizarAtividades(atividades) {
         return;
     }
 
-    console.log("Renderizando atividades:", atividades);
+    console.log(`Renderizando atividades para idLista: ${idLista}, idTarefa: ${idTarefa}`);
 
     listaAtividades.innerHTML = atividades
         .map((atividade, index) => {
@@ -495,18 +497,14 @@ function renderizarAtividades(atividades) {
                 return `<div class="comentario">Atividade inválida</div>`;
             }
 
-            const podeExcluir = atividade.criador === (JSON.parse(localStorage.getItem("acesso"))?.usuario || "Desconhecido");
-
             return `
                 <div class="comentario-linha">
                     <span class="comentario-nome"><strong>${atividade.criador}</strong></span>
                     <span class="comentario-data">${atividade.dataHora}</span>
                     <span class="comentario-texto">${atividade.comentario}</span>
-                    ${
-                        podeExcluir
-                            ? `<button class="excluir-comentario" onclick="excluirComentario(${index})">Excluir</button>`
-                            : ""
-                    }
+                    <button class="excluir-comentario" onclick="excluirComentario('${idLista}', '${idTarefa}', ${index})">
+                        Excluir
+                    </button>
                 </div>
             `;
         })
@@ -514,46 +512,34 @@ function renderizarAtividades(atividades) {
 }
 
 function salvarDescricao(idLista, idTarefa) {
-    let listas = JSON.parse(localStorage.getItem("listas")) || [];
-    let listaAlvo = listas.find(lista => lista.id === idLista);
+    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+    let listaAlvo = listas[idLista]; // Acessa a lista pelo ID diretamente do objeto
     let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
 
     if (tarefaAlvo) {
-        // Garante que a descrição exista
-        if (!tarefaAlvo.descricao) {
-            tarefaAlvo.descricao = {
-                chamado: "",
-                endereco: "",
-                start: "",
-                entrega: "",
-                pedidoServico: "",
-                pedidoVenda: "",
-                escopo: "",
-                equipe: ""
-            };
-        }
+        // Atualiza os valores da descrição com os novos inputs
+        tarefaAlvo.descricao = {
+            chamado: document.getElementById("input-chamado").value.trim(),
+            endereco: document.getElementById("input-endereco").value.trim(),
+            start: document.getElementById("input-start").value.trim(),
+            entrega: document.getElementById("input-entrega").value.trim(),
+            pedidoServico: document.getElementById("input-pedido-servico").value.trim(),
+            pedidoVenda: document.getElementById("input-pedido-venda").value.trim(),
+            escopo: document.getElementById("input-escopo").value.trim(),
+            equipe: document.getElementById("input-equipe").value.trim(),
+        };
 
-        // Atualiza os valores da descrição
-        tarefaAlvo.descricao.chamado = document.getElementById("input-chamado").value.trim();
-        tarefaAlvo.descricao.endereco = document.getElementById("input-endereco").value.trim();
-        tarefaAlvo.descricao.start = document.getElementById("input-start").value.trim();
-        tarefaAlvo.descricao.entrega = document.getElementById("input-entrega").value.trim();
-        tarefaAlvo.descricao.pedidoServico = document.getElementById("input-pedido-servico").value.trim();
-        tarefaAlvo.descricao.pedidoVenda = document.getElementById("input-pedido-venda").value.trim();
-        tarefaAlvo.descricao.escopo = document.getElementById("input-escopo").value.trim();
-        tarefaAlvo.descricao.equipe = document.getElementById("input-equipe").value.trim();
-
-        // Salva no localStorage e re-renderiza o modal
+        // Salva no localStorage e fecha o modal
         salvarListas(listas);
-        abrirModal(idLista, idTarefa);
+        abrirModal(idLista, idTarefa); // Reabre o modal para refletir a atualização
     } else {
         console.error("Erro: Tarefa não encontrada ou estrutura inválida.");
     }
 }
 
 function salvarTituloTarefa(idLista, idTarefa) {
-    let listas = JSON.parse(localStorage.getItem("listas")) || [];
-    let listaAlvo = listas.find(lista => lista.id === idLista);
+    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+    let listaAlvo = listas[idLista]; // Acessa a lista pelo ID diretamente do objeto
     let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
 
     if (tarefaAlvo) {
@@ -574,9 +560,10 @@ function adicionarEtiquetaTarefa(idLista, idTarefa, nomeEtiqueta) {
     let etiqueta = etiquetasGlobais.find(et => et.nome === nomeEtiqueta);
 
     if (etiqueta) {
-        let listas = JSON.parse(localStorage.getItem("listas")) || [];
-        let listaAlvo = listas.find(lista => lista.id === idLista);
-        let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
+        let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+    let listaAlvo = listas[idLista]; // Acessa a lista pelo ID diretamente do objeto
+    let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
+
 
         if (tarefaAlvo) {
             tarefaAlvo.etiquetas.push(etiqueta);
@@ -604,9 +591,10 @@ function adicionarEtiquetaGlobal(idLista, idTarefa) {
 
 
 function removerEtiqueta(idLista, idTarefa, nomeEtiqueta) {
-    let listas = JSON.parse(localStorage.getItem("listas")) || [];
-    let listaAlvo = listas.find(lista => lista.id === idLista);
+    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+    let listaAlvo = listas[idLista]; // Acessa a lista pelo ID diretamente do objeto
     let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
+
 
     if (tarefaAlvo) {
         tarefaAlvo.etiquetas = tarefaAlvo.etiquetas.filter(etiqueta => etiqueta.nome !== nomeEtiqueta);
@@ -662,33 +650,40 @@ function exibirOpcoesEtiquetas(idLista, idTarefa) {
     modalCorpo.insertAdjacentHTML("beforeend", opcoesHTML); // Adiciona sem sobrescrever o conteúdo existente
 }
 
-function excluirComentario(index) {
-    const acesso = JSON.parse(localStorage.getItem("acesso")) || {};
-    const usuarioAtual = acesso.usuario || "Desconhecido";
+function excluirComentario(idLista, idTarefa, index) {
+    console.log(`Tentando excluir comentário...`);
+    console.log(`idLista: ${idLista}, idTarefa: ${idTarefa}, index: ${index}`);
 
-    // Recuperar a tarefa e a lista correspondente
-    let listas = JSON.parse(localStorage.getItem("listas")) || [];
-    let listaAlvo = listas.find(lista =>
-        lista.tarefas.some(tarefa =>
-            tarefa.atividades?.[index]?.criador === usuarioAtual
-        )
-    );
-
-    if (listaAlvo) {
-        let tarefaAlvo = listaAlvo.tarefas.find(tarefa =>
-            tarefa.atividades?.[index]?.criador === usuarioAtual
-        );
-
-        if (tarefaAlvo) {
-            // Verificar se o criador corresponde ao usuário atual
-            const atividade = tarefaAlvo.atividades[index];
-            if (atividade.criador === usuarioAtual) {
-                tarefaAlvo.atividades.splice(index, 1); // Remove o comentário
-                salvarListas(listas); // Atualiza o localStorage
-                renderizarAtividades(tarefaAlvo.atividades); // Re-renderiza os comentários
-            } else {
-                alert("Você só pode excluir seus próprios comentários.");
-            }
-        }
+    if (!idLista || !idTarefa) {
+        console.error(`Erro: Parâmetros inválidos! idLista=${idLista}, idTarefa=${idTarefa}`);
+        return;
     }
+
+    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+    let listaAlvo = listas[idLista];
+
+    if (!listaAlvo) {
+        console.error(`Erro: Lista com ID ${idLista} não encontrada.`);
+        return;
+    }
+
+    let tarefaAlvo = listaAlvo.tarefas.find(tarefa => tarefa.id === idTarefa);
+    if (!tarefaAlvo) {
+        console.error(`Erro: Tarefa com ID ${idTarefa} não encontrada na lista ${idLista}.`);
+        return;
+    }
+
+    if (index < 0 || index >= tarefaAlvo.atividades.length) {
+        console.error(`Erro: Índice de comentário inválido (${index}).`);
+        return;
+    }
+
+    // Remove o comentário do array
+    tarefaAlvo.atividades.splice(index, 1);
+
+    // Salva a atualização no localStorage
+    salvarListas(listas);
+
+    // Atualiza a exibição do modal com os comentários restantes
+    renderizarAtividades(tarefaAlvo.atividades, idLista, idTarefa);
 }
