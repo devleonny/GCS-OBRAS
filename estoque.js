@@ -82,7 +82,7 @@ async function carregar_estoque() {
                 `
                 } else if (chave.includes('valor_compra')) {
 
-                    valor = calcular_cmc(dados_item.valor_compra)
+                    valor = calcular_maior(dados_item.valor_compra)
 
                     let color = valor == 0 ? '#222' : 'white'
 
@@ -177,6 +177,32 @@ function calcular_cmc(objeto) {
     }
 
     return valor
+
+}
+
+function calcular_maior(objeto){
+    
+    let maior = 0
+
+    if (dicionario(objeto) && Object.keys(objeto).length > 0) {
+        
+        for (id in objeto) {
+
+            let compra = objeto[id]
+
+            let valor = compra.vl_compra / compra.conversao
+
+            if(maior < valor){
+
+                maior = compra.vl_compra / compra.conversao
+
+            }
+
+        }
+
+    }
+
+    return maior
 
 }
 
