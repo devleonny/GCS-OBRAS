@@ -28,16 +28,38 @@ function confirmarAdicionarTarefa() {
         let listaAlvo = listas[idListaAtual];
 
         if (listaAlvo) {
-            listaAlvo.tarefas.push({
-                id: unicoID(), // Gerando ID único para a tarefa
+            let dataAtual = new Date().toISOString().split("T")[0]; // Data atual no formato YYYY-MM-DD
+            let horaAtual = new Date().toLocaleTimeString("pt-BR"); // Hora atual
+            let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
+            let criador = acesso.usuario || "Desconhecido";
+
+            let novaTarefa = {
+                id: unicoID(),
                 texto: textoTarefa,
                 descricao: {
-                    chamado: "", endereco: "", start: "", entrega: "",
-                    pedidoServico: "", pedidoVenda: "", escopo: "", equipe: ""
+                    chamado: "",
+                    endereco: "",
+                    start: dataAtual, // Start definido como a data atual
+                    entrega: "",
+                    pedidoServico: "",
+                    pedidoVenda: "",
+                    escopo: "",
+                    equipe: ""
                 },
                 etiquetas: [],
-                atividades: []
+                atividades: [],
+                historico: [] // Novo campo para armazenar histórico
+            };
+
+            // Adiciona o registro de criação ao histórico
+            novaTarefa.historico.push({
+                tipo: "criação",
+                mensagem: `Tarefa criada por ${criador}`,
+                data: dataAtual,
+                hora: horaAtual
             });
+
+            listaAlvo.tarefas.push(novaTarefa);
 
             salvarListas(listas);
             renderizarQuadro();
@@ -71,6 +93,7 @@ function carregarListas() {
             };
             tarefa.atividades ||= [];
             tarefa.etiquetas ||= [];
+            tarefa.historico ||= []; // Garante que o histórico exista
         });
     });
 
@@ -240,8 +263,14 @@ async function abrirModal(idLista, idTarefa) {
         modalCorpo.innerHTML = `
         <div>
             <label for="tarefa-titulo">Título da Tarefa:</label>
-            <input type="text" id="tarefa-titulo" value="${tarefaAlvo.texto}" />
-            <button onclick="salvarTituloTarefa('${idLista}', '${idTarefa}')">Salvar Título</button>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="text" id="tarefa-titulo" value="${tarefaAlvo.texto}" 
+                    class="input-estilo" oninput="mostrarBotaoSalvar()">
+                <button id="botao-salvar-titulo" onclick="salvarTituloTarefa('${idLista}', '${idTarefa}')" 
+                    style="display: none;" class="botao-salvar">
+                    Salvar
+                </button>
+            </div>
         </div>
         <div class="etiquetas">
             <h3>Etiquetas</h3>
@@ -270,11 +299,11 @@ async function abrirModal(idLista, idTarefa) {
             </div>
             <div>
                 <label>Start:</label>
-                <input type="text" id="input-start" value="${tarefaAlvo.descricao.start}">
+                <input type="date" id="input-start" value="${tarefaAlvo.descricao.start}">
             </div>
             <div>
                 <label>Entrega:</label>
-                <input type="text" id="input-entrega" value="${tarefaAlvo.descricao.entrega}">
+                <input type="date" id="input-entrega" value="${tarefaAlvo.descricao.entrega}">
             </div>
             <div>
                 <label>Pedido de Serviço:</label>
@@ -310,7 +339,7 @@ async function abrirModal(idLista, idTarefa) {
         </div>`;
 
         // Renderizar as atividades dentro do modal
-        renderizarAtividades(tarefaAlvo.atividades, idLista, idTarefa);
+          renderizarAtividades(tarefaAlvo.atividades, tarefaAlvo.historico, idLista, idTarefa);
 
         // Configuração do auto-complete
         const inputAutoComplete = document.getElementById("input-auto-complete");
@@ -394,6 +423,12 @@ async function abrirModal(idLista, idTarefa) {
     }
 }
 
+function mostrarBotaoSalvar() {
+    let botao = document.getElementById("botao-salvar-titulo");
+    let titulo = document.getElementById("tarefa-titulo").value.trim();
+    botao.style.display = titulo ? "inline-block" : "none";
+}
+
 function fecharModal() {
     const modal = document.getElementById("modal");
     const fundoEscuro = document.getElementById("fundo-escuro");
@@ -432,7 +467,7 @@ function fecharModais(modalId) {
 
 function adicionarComentario(idLista, idTarefa) {
     const acesso = JSON.parse(localStorage.getItem("acesso")) || {};
-    const criador = acesso.usuario || "Desconhecido";
+    const criador = acesso.usuario || "Usuário desconhecido"; // Se não encontrar, usa um padrão
 
     const comentarioTexto = document.getElementById("novo-comentario").value.trim();
 
@@ -442,45 +477,42 @@ function adicionarComentario(idLista, idTarefa) {
     }
 
     let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-    let listaAlvo = listas[idLista]; // Acessa a lista correta
+    let listaAlvo = listas[idLista]; 
     let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
 
-    if (!listaAlvo) {
-        console.error("Lista não encontrada:", idLista);
-        return;
-    }
-
-    if (!tarefaAlvo) {
-        console.error("Tarefa não encontrada:", idTarefa);
+    if (!listaAlvo || !tarefaAlvo) {
+        console.error("Erro: Lista ou tarefa não encontrada.");
         return;
     }
 
     if (!tarefaAlvo.atividades) {
-        tarefaAlvo.atividades = []; // Inicializa a lista de atividades, se necessário
+        tarefaAlvo.atividades = []; 
     }
 
     const agora = new Date();
-    const dataHora = agora.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+    const data = agora.toISOString().split("T")[0]; 
+    const hora = agora.toLocaleTimeString("pt-BR", { hour12: false }); 
 
-    // Adiciona o novo comentário
+    // Adiciona o comentário com o criador e tipo
     tarefaAlvo.atividades.push({
+        tipo: "comentario",
         comentario: comentarioTexto,
-        criador: criador,
-        dataHora: dataHora,
+        criador: criador, 
+        data: data,
+        hora: hora
     });
-
 
     // Salva no localStorage
     salvarListas(listas);
 
     // Atualiza a exibição no modal
-    renderizarAtividades(tarefaAlvo.atividades);
+    renderizarAtividades(tarefaAlvo.atividades, tarefaAlvo.historico, idLista, idTarefa);
 
-    // Limpa o campo de texto do comentário
+    // Limpa o campo de comentário
     document.getElementById("novo-comentario").value = "";
 }
 
-function renderizarAtividades(atividades, idLista, idTarefa) {
+function renderizarAtividades(atividades, historico, idLista, idTarefa) {
     const listaAtividades = document.getElementById("lista-atividades");
 
     if (!listaAtividades) {
@@ -488,37 +520,89 @@ function renderizarAtividades(atividades, idLista, idTarefa) {
         return;
     }
 
-    console.log(`Renderizando atividades para idLista: ${idLista}, idTarefa: ${idTarefa}`);
+    // Garante que atividades e histórico sejam arrays válidos
+    atividades = Array.isArray(atividades) ? atividades : [];
+    historico = Array.isArray(historico) ? historico : [];
 
-    listaAtividades.innerHTML = atividades
+    // Junta atividades e histórico
+    let todasAtividades = [...atividades, ...historico];
+
+    // Ordena por data e hora
+    todasAtividades.sort((a, b) => {
+        let dataA = new Date(`${a.data} ${a.hora}`).getTime() || 0;
+        let dataB = new Date(`${b.data} ${b.hora}`).getTime() || 0;
+        return dataB - dataA;
+    });
+
+    console.log("📌 Atividades para renderizar:", todasAtividades);
+
+    // Obtém o usuário logado
+    let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
+    let usuarioLogado = acesso.usuario || "Usuário desconhecido";
+
+    listaAtividades.innerHTML = todasAtividades
         .map((atividade, index) => {
-            if (!atividade || !atividade.comentario || !atividade.criador) {
-                console.error("Atividade inválida:", atividade);
-                return `<div class="comentario">Atividade inválida</div>`;
+            let tipo = atividade?.tipo || "comentario";
+            let criador = atividade?.criador || "Usuário desconhecido"; 
+            let dataHora = atividade?.data && atividade?.hora 
+                ? formatarData(atividade.data) + " " + atividade.hora 
+                : "⚠️ Data/Hora desconhecida";
+            let icone = "📝"; 
+            let mensagem = "";
+            let botaoExcluir = ""; // Inicialmente, o botão de excluir não aparece
+
+            if (tipo === "comentario") {
+                icone = "💬";
+                mensagem = `${criador}: ${atividade.comentario || "⚠️ Sem descrição"}`;
+
+                // 🔥 Exibe o botão **somente** se o criador for o usuário logado
+                if (criador === usuarioLogado) {
+                    botaoExcluir = `<button class="botao-excluir-comentario" onclick="excluirComentario('${idLista}', '${idTarefa}', ${index})">❌</button>`;
+                }
+            } else if (tipo === "alteração") {
+                icone = "✏️";
+                let camposAlterados = atividade.campos || [];
+                let camposFormatados = camposAlterados.length > 0 
+                    ? camposAlterados.map(campo => `${campo}`).join(", ") 
+                    : "⚠️ Alteração desconhecida";
+                mensagem = `${criador} fez alterações em: ${camposFormatados}`;
+            } else if (tipo === "criação") {
+                icone = "📌";
+                mensagem = `${atividade.mensagem}`;
             }
 
             return `
-                <div class="comentario-linha">
-                    <span class="comentario-nome"><strong>${atividade.criador}</strong></span>
-                    <span class="comentario-data">${atividade.dataHora}</span>
-                    <span class="comentario-texto">${atividade.comentario}</span>
-                    <button class="excluir-comentario" onclick="excluirComentario('${idLista}', '${idTarefa}', ${index})">
-                        Excluir
-                    </button>
+                <div class="comentario-container">
+                    <div class="comentario-info">
+                        <span class="comentario-data">${dataHora}</span>
+                        ${botaoExcluir}
+                    </div>
+                    <textarea class="comentario-textarea" readonly>${mensagem}</textarea>
                 </div>
             `;
         })
         .join("");
 }
 
+/**
+ * Função para formatar a data no padrão brasileiro (DD/MM/AA)
+ */
+function formatarData(dataISO) {
+    if (!dataISO) return "Data inválida";
+    const data = new Date(dataISO);
+    return data.toLocaleDateString("pt-BR", { year: "2-digit", month: "2-digit", day: "2-digit" });
+}
+/**
+ * Função auxiliar para formatar a data no padrão brasileiro
+ */
+
 function salvarDescricao(idLista, idTarefa) {
     let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-    let listaAlvo = listas[idLista]; // Acessa a lista pelo ID diretamente do objeto
+    let listaAlvo = listas[idLista];
     let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
 
     if (tarefaAlvo) {
-        // Atualiza os valores da descrição com os novos inputs
-        tarefaAlvo.descricao = {
+        let novaDescricao = {
             chamado: document.getElementById("input-chamado").value.trim(),
             endereco: document.getElementById("input-endereco").value.trim(),
             start: document.getElementById("input-start").value.trim(),
@@ -529,7 +613,48 @@ function salvarDescricao(idLista, idTarefa) {
             equipe: document.getElementById("input-equipe").value.trim(),
         };
 
-        // Salva no localStorage e fecha o modal
+        let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
+        let usuario = acesso.usuario || "Desconhecido";
+
+        // 📌 Captura corretamente a data e hora separadas
+        let agora = new Date();
+        let dataFormatada = agora.toISOString().split("T")[0]; // Formato YYYY-MM-DD
+        let horaFormatada = agora.toLocaleTimeString("pt-BR", { hour12: false }); // Formato HH:MM:SS
+
+        // 🔍 Mapeamento dos campos para exibição correta
+        const nomesCampos = {
+            chamado: "N° Chamado",
+            endereco: "Endereço da Loja",
+            start: "Start",
+            entrega: "Entrega",
+            pedidoServico: "Pedido de Serviço",
+            pedidoVenda: "Pedido de Venda",
+            escopo: "Escopo",
+            equipe: "Equipe"
+        };
+
+        // 🔍 Verifica quais campos foram alterados
+        let alteracoes = [];
+        for (let campo in novaDescricao) {
+            if (tarefaAlvo.descricao[campo] !== novaDescricao[campo]) {
+                alteracoes.push(nomesCampos[campo]); // Usa o nome correto da label
+            }
+        }
+
+        // ✅ Se houver alterações, adiciona ao histórico
+        if (alteracoes.length > 0) {
+            tarefaAlvo.historico.push({
+                tipo: "alteração",
+                criador: usuario,
+                campos: alteracoes,
+                data: dataFormatada,  // 📅 Armazena corretamente a data
+                hora: horaFormatada   // ⏰ Armazena corretamente a hora
+            });
+        }
+
+        // Atualiza a descrição
+        tarefaAlvo.descricao = novaDescricao;
+
         salvarListas(listas);
         abrirModal(idLista, idTarefa); // Reabre o modal para refletir a atualização
     } else {
@@ -651,14 +776,6 @@ function exibirOpcoesEtiquetas(idLista, idTarefa) {
 }
 
 function excluirComentario(idLista, idTarefa, index) {
-    console.log(`Tentando excluir comentário...`);
-    console.log(`idLista: ${idLista}, idTarefa: ${idTarefa}, index: ${index}`);
-
-    if (!idLista || !idTarefa) {
-        console.error(`Erro: Parâmetros inválidos! idLista=${idLista}, idTarefa=${idTarefa}`);
-        return;
-    }
-
     let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
     let listaAlvo = listas[idLista];
 
@@ -669,21 +786,32 @@ function excluirComentario(idLista, idTarefa, index) {
 
     let tarefaAlvo = listaAlvo.tarefas.find(tarefa => tarefa.id === idTarefa);
     if (!tarefaAlvo) {
-        console.error(`Erro: Tarefa com ID ${idTarefa} não encontrada na lista ${idLista}.`);
+        console.error(`Erro: Tarefa com ID ${idTarefa} não encontrada.`);
         return;
     }
 
-    if (index < 0 || index >= tarefaAlvo.atividades.length) {
-        console.error(`Erro: Índice de comentário inválido (${index}).`);
+    // Verifica se a atividade a ser excluída é um comentário
+    if (tarefaAlvo.atividades[index]?.tipo !== "comentario") {
+        alert("❌ Apenas comentários podem ser excluídos!");
         return;
     }
 
-    // Remove o comentário do array
+    // Verifica se o usuário é o criador do comentário
+    let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
+    let usuarioLogado = acesso.usuario || "Usuário desconhecido";
+    let criadorComentario = tarefaAlvo.atividades[index]?.criador;
+
+    if (usuarioLogado !== criadorComentario) {
+        alert("❌ Você só pode excluir seus próprios comentários!");
+        return;
+    }
+
+    // Remove o comentário
     tarefaAlvo.atividades.splice(index, 1);
 
     // Salva a atualização no localStorage
     salvarListas(listas);
 
-    // Atualiza a exibição do modal com os comentários restantes
-    renderizarAtividades(tarefaAlvo.atividades, idLista, idTarefa);
+    // Atualiza a exibição do modal
+    renderizarAtividades(tarefaAlvo.atividades, tarefaAlvo.historico, idLista, idTarefa);
 }

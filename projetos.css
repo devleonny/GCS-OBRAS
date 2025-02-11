@@ -220,13 +220,16 @@ button:hover {
 /* Comentários no modal */
 .atividades {
     margin-top: 20px;
+    margin-bottom: 20px; /* Espaçamento inferior */
+    margin-right: 15px; /* Espaçamento lateral direito */
     background: #3c3f51; /* Fundo dos comentários */
-    padding: 10px;
+    padding: 15px;
     border-radius: 8px;
     max-height: 300px; /* Altura máxima dos comentários */
     overflow-y: auto; /* Barra de rolagem */
     border: 1px solid #3a3c4e;
-    width: 100%; /* Larga o espaço */
+    width: 95%; /* Larga o espaço */
+    background-color: rgba(255, 255, 255, 0.05); /* Fundo levemente destacado */
 }
 
 .atividades .comentario {
@@ -319,6 +322,23 @@ textarea#novo-comentario {
     font-size: 16px; /* Aumentado o tamanho da fonte */
 }
 
+#novo-comentario {
+    width: 100%; /* Faz o campo ocupar toda a largura disponível */
+    min-height: 80px; /* Aumenta a altura mínima para melhor usabilidade */
+    margin-top: 10px; /* Dá um espaço acima do campo */
+    padding: 10px; /* Melhor conforto na digitação */
+    border-radius: 5px; /* Bordas arredondadas */
+    border: 1px solid #ccc; /* Bordas suaves */
+    background-color: #222; /* Fundo escuro para combinar com o tema */
+    color: #fff; /* Texto branco para contraste */
+}
+
+#novo-comentario + button {
+    margin-top: 10px; /* Adiciona um espaçamento entre o campo e o botão */
+    width: 80%; /* Faz o botão ocupar toda a largura disponível */
+}
+
+
 .modal .atividades button {
     margin-top: 10px;
     background: #007bff;
@@ -391,6 +411,129 @@ textarea#novo-comentario {
 .fundo-escuro:not(.oculto) {
     display: block; /* Exibe o fundo escuro quando a classe "oculto" é removida */
 }
+
+.input-estilo {
+    background-color: #1e1e2f; /* Cor escura igual aos outros inputs */
+    color: white;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 16px;
+    border: 1px solid #444;
+    width: 100%;
+}
+
+.botao-salvar {
+    padding: 8px 12px;
+    border-radius: 5px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.botao-salvar:hover {
+    background-color: #45a049;
+}
+
+input[type="date"] {
+    background-color: #1e1e2f;
+    color: white;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 16px;
+    border: 1px solid #444;
+    width: 100%;
+}
+
+.comentario-criador {
+    color: #007bff; /* Azul para o nome */
+    font-weight: bold;
+}
+
+.comentario-texto {
+    color: #ccc; /* Cinza para o texto */
+    font-weight: normal;
+}
+.comentario-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.comentario-textarea {
+    width: 95%;
+    height: auto;
+    min-height: 50px;
+    max-height: 150px;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #444;
+    background-color: #1e1e2f;
+    color: #ffffff;
+    font-size: 14px;
+    white-space: pre-wrap; /* Mantém a quebra de linha */
+    word-wrap: break-word; /* Evita scroll lateral */
+    overflow-wrap: break-word;
+}
+
+.comentario-container {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 10px;
+    border: 1px solid #444;
+    border-radius: 5px;
+    padding: 8px;
+    background-color: #2b2d42;
+}
+
+.comentario-info {
+    display: flex;
+    justify-content: space-between; /* Data à esquerda e botão à direita */
+    align-items: center;
+    font-size: 12px;
+    color: #bbbbbb;
+}
+
+.comentario-data {
+    font-weight: bold;
+    font-size: 12px;
+    color: #ffcc00; /* Destaca a data/hora */
+}
+
+.comentario-textarea {
+    width: 95%;
+    height: auto;
+    min-height: 50px;
+    max-height: 150px;
+    padding: 8px;
+    border-radius: 5px;
+    border: none;
+    background-color: #1e1e2f;
+    color: #ffffff;
+    font-size: 14px;
+    white-space: pre-wrap; /* Mantém a quebra de linha */
+    word-wrap: break-word; /* Evita scroll lateral */
+    overflow-wrap: break-word;
+    resize: none;
+}
+
+.botao-excluir-comentario {
+    background-color: #ff5c5c;
+    border: none;
+    color: white;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.botao-excluir-comentario:hover {
+    background-color: #ff1a1a;
+}
+
+
 /* Scroll personalizado */
 ::-webkit-scrollbar {
     width: 8px;
