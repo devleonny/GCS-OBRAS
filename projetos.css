@@ -529,10 +529,87 @@ input[type="date"] {
     cursor: pointer;
 }
 
+.etiquetas-tarefa {
+    display: flex;
+    flex-wrap: wrap; /* Permite que as etiquetas quebrem a linha */
+    gap: 4px; /* Espaço entre as etiquetas */
+    max-width: 60px; /* Ajuste este valor conforme necessário */
+}
+
+.etiqueta-bolinha {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.etiqueta-opcao {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Move o botão para o fim */
+    cursor: pointer;
+    padding: 5px;
+    margin: 5px 0;
+    border-radius: 5px;
+    transition: background 0.2s;
+}
+
+.etiqueta-opcao:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.etiqueta-nome {
+    font-size: 14px;
+    color: #fff;
+    flex-grow: 1; /* Faz o nome da etiqueta ocupar o espaço central */
+}
+
+.etiqueta {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: transform 0.2s;
+}
+
+.etiqueta:hover {
+    transform: scale(1.05);
+}
+
+
 .botao-excluir-comentario:hover {
     background-color: #ff1a1a;
 }
 
+.input-edicao {
+    font-size: 16px;
+    width: 90%;
+    padding: 5px;
+    border: 2px solid #007bff;
+    outline: none;
+}
+.input-edicao:focus {
+    border-color: #0056b3;
+}
+
+.botao-excluir-etiqueta {
+    background: #ff5c5c; /* Vermelho suave, igual aos outros botões */
+    border: none;
+    color: white;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 5px; /* Espaçamento para não ficar grudado na etiqueta */
+    transition: background 0.2s;
+}
+
+.botao-excluir-etiqueta:hover {
+    background: #ff1a1a; /* Vermelho mais forte ao passar o mouse */
+}
 
 /* Scroll personalizado */
 ::-webkit-scrollbar {

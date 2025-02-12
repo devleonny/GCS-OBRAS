@@ -24,8 +24,8 @@ function adicionarTarefa(idLista) {
 function confirmarAdicionarTarefa() {
     let textoTarefa = document.getElementById("input-nova-tarefa").value.trim();
     if (textoTarefa && idListaAtual) {
-        let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-        let listaAlvo = listas[idListaAtual];
+        let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+        let listaAlvo = dados.listas[idListaAtual];
 
         if (listaAlvo) {
             let dataAtual = new Date().toISOString().split("T")[0]; // Data atual no formato YYYY-MM-DD
@@ -61,7 +61,9 @@ function confirmarAdicionarTarefa() {
 
             listaAlvo.tarefas.push(novaTarefa);
 
-            salvarListas(listas);
+            // ✅ Agora estamos salvando o objeto `dados.listas` corretamente
+            salvarListas(dados.listas);
+
             renderizarQuadro();
             fecharModais("modal-adicionar-tarefa");
         }
@@ -74,30 +76,36 @@ function adicionarLista() {
     abrirModais('modal-adicionar-lista');
 }
 
-function salvarListas(listas) {
-    localStorage.setItem("dados_kanban", JSON.stringify(listas));
+function salvarListas(novasListas) {
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+
+    // Garante que as etiquetas globais não sejam alteradas
+    dados.listas = novasListas;
+
+    localStorage.setItem("dados_kanban", JSON.stringify(dados));
+}
+
+function salvarEtiquetasGlobais(novasEtiquetas) {
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+    dados.etiquetasGlobais = novasEtiquetas; // Garante que estamos atualizando apenas as etiquetas
+
+    localStorage.setItem("dados_kanban", JSON.stringify(dados));
+
+    console.log("✅ Etiquetas globais salvas:", novasEtiquetas);
 }
 
 function carregarListas() {
-    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
 
-    // Garante que todas as listas tenham uma estrutura válida
-    Object.values(listas).forEach(lista => {
-        if (!Array.isArray(lista.tarefas)) {
-            lista.tarefas = [];
-        }
-        lista.tarefas.forEach(tarefa => {
-            tarefa.descricao ||= {
-                chamado: "", endereco: "", start: "", entrega: "",
-                pedidoServico: "", pedidoVenda: "", escopo: "", equipe: ""
-            };
-            tarefa.atividades ||= [];
-            tarefa.etiquetas ||= [];
-            tarefa.historico ||= []; // Garante que o histórico exista
-        });
-    });
+    // ✅ Garantimos que os valores sejam preservados sem sobrescrever incorretamente
+    if (!dados.listas || typeof dados.listas !== "object") {
+        dados.listas = {};
+    }
 
-    salvarListas(listas);
+    if (!Array.isArray(dados.etiquetasGlobais)) {
+        dados.etiquetasGlobais = [];
+    }
+
     renderizarQuadro();
 }
 
@@ -113,26 +121,43 @@ function excluirTarefa(idLista, idTarefa) {
 }
 
 function excluirLista(idLista) {
-    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-    delete listas[idLista]; // Remove a lista do objeto
+    console.log(`🗑 Excluindo lista: ${idLista}`);
 
-    salvarListas(listas);
+    // Obtém os dados do localStorage
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+
+    if (!dados.listas[idLista]) {
+        console.warn(`⚠️ Lista com ID ${idLista} não encontrada.`);
+        return;
+    }
+
+    // Remove a lista do objeto `listas`
+    delete dados.listas[idLista];
+
+    // Salva a nova estrutura no `localStorage`
+    localStorage.setItem("dados_kanban", JSON.stringify(dados));
+
+    // Atualiza o quadro para refletir a exclusão
     renderizarQuadro();
+
+    console.log(`✅ Lista ${idLista} removida com sucesso!`);
 }
 
 function confirmarAdicionarLista() {
     let nomeLista = document.getElementById("input-nova-lista").value.trim();
     if (nomeLista) {
-        let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-        let idLista = unicoID(); // Gerando ID único para a lista
+        let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
 
-        listas[idLista] = {
+        let idLista = unicoID();
+        dados.listas[idLista] = {
             id: idLista,
             titulo: nomeLista,
             tarefas: []
         };
 
-        salvarListas(listas);
+        // ✅ Agora está salvando corretamente o objeto inteiro
+        localStorage.setItem("dados_kanban", JSON.stringify(dados));
+
         renderizarQuadro();
         fecharModais("modal-adicionar-lista");
     } else {
@@ -142,25 +167,28 @@ function confirmarAdicionarLista() {
 
 function renderizarQuadro() {
     let quadro = document.getElementById("quadro");
-    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
 
-    quadro.innerHTML = Object.values(listas)
+    dados.listas ||= {};
+
+    quadro.innerHTML = Object.values(dados.listas)
         .map(lista => `
             <div class="lista" id="${lista.id}">
                 <div class="titulo-lista">
-                    <h3 ondblclick="editarTituloLista('${lista.id}')">${lista.titulo}</h3>
+                    <h3 ondblclick="editarTituloLista('${lista.id}', this)">${lista.titulo}</h3>
                     <button class="botao-excluir" onclick="excluirLista('${lista.id}')">❌</button>
                 </div>
                 <div class="tarefas" ondrop="soltar(event)" ondragover="permitirSoltar(event)">
                     ${lista.tarefas.map(tarefa => `
                         <div class="tarefa" draggable="true" ondragstart="arrastar(event)" id="${tarefa.id}" onclick="abrirModal('${lista.id}', '${tarefa.id}')">
-                            <div class="indicadores-etiquetas">
-                                ${tarefa.etiquetas.map(etiqueta => `
-                                    <span class="indicador-etiqueta" style="background-color: ${etiqueta.cor}" title="${etiqueta.nome}"></span>
-                                `).join("")}
-                            </div>
-                            ${tarefa.texto}
-                            <button class="botao-excluir-tarefa" onclick="excluirTarefa('${lista.id}', '${tarefa.id}')">❌</button>
+                            <div class="etiquetas-tarefa">
+    ${tarefa.etiquetas?.map(etiqueta => `
+        <span class="etiqueta-bolinha" style="background-color: ${etiqueta.cor};"></span>
+    `).join("") || ""}
+</div>
+
+                            <p>${tarefa.texto}</p>
+                            <button class="botao-excluir-tarefa" onclick="excluirTarefa('${lista.id}', '${tarefa.id}'); event.stopPropagation();">❌</button>
                         </div>
                     `).join("")}
                 </div>
@@ -169,18 +197,51 @@ function renderizarQuadro() {
         `).join("");
 }
 
-function editarTituloLista(idLista) {
-    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-    let listaAlvo = listas[idLista];
+function editarTituloLista(idLista, elementoH3) {
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {} };
+    let listaAlvo = dados.listas[idLista];
 
-    if (listaAlvo) {
-        let novoTitulo = prompt("Edite o título da lista:", listaAlvo.titulo);
-        if (novoTitulo !== null) {
-            listaAlvo.titulo = novoTitulo.trim();
-            salvarListas(listas);
-            renderizarQuadro();
-        }
+    if (!listaAlvo) {
+        console.error(`❌ Lista com ID ${idLista} não encontrada.`);
+        return;
     }
+
+    // Criar input de edição
+    let input = document.createElement("input");
+    input.type = "text";
+    input.value = listaAlvo.titulo;
+    input.className = "input-edicao";
+    input.setAttribute("data-id", idLista);
+
+    // Substituir o título pelo input
+    elementoH3.replaceWith(input);
+    input.focus();
+
+    // Confirmar edição ao pressionar Enter ou sair do campo
+    input.addEventListener("blur", () => salvarNovoTituloLista(input));
+    input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") salvarNovoTituloLista(input);
+    });
+}
+
+function salvarNovoTituloLista(input) {
+    let idLista = input.getAttribute("data-id");
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {} };
+    let listaAlvo = dados.listas[idLista];
+
+    if (!listaAlvo) return;
+
+    let novoTitulo = input.value.trim();
+    if (novoTitulo) {
+        listaAlvo.titulo = novoTitulo;
+        salvarListas(dados.listas);
+    }
+
+    // Criar novo h3 e substituir o input
+    let h3 = document.createElement("h3");
+    h3.textContent = listaAlvo.titulo;
+    h3.ondblclick = () => editarTituloLista(idLista, h3);
+    input.replaceWith(h3);
 }
 
 function editarTituloTarefa(idLista, idTarefa) {
@@ -216,11 +277,11 @@ function soltar(evento) {
         return;
     }
 
-    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-    
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+
     // Encontrar a lista de origem e a lista de destino
-    let listaOrigem = Object.values(listas).find(lista => lista.tarefas.some(tarefa => tarefa.id === idTarefa));
-    let listaDestino = listas[idListaDestino];
+    let listaOrigem = Object.values(dados.listas).find(lista => lista.tarefas.some(tarefa => tarefa.id === idTarefa));
+    let listaDestino = dados.listas[idListaDestino];
 
     if (!listaOrigem || !listaDestino) {
         console.error("Erro: Lista de origem ou destino não encontrada.");
@@ -232,15 +293,18 @@ function soltar(evento) {
     listaOrigem.tarefas = listaOrigem.tarefas.filter(tarefa => tarefa.id !== idTarefa);
     listaDestino.tarefas.push(tarefaMovida);
 
-    salvarListas(listas);
+    // ✅ Agora estamos garantindo que o objeto completo `dados.listas` seja salvo corretamente
+    salvarListas(dados.listas);
+
+    // Atualiza o quadro após mover a tarefa
     renderizarQuadro();
 }
 
 async function abrirModal(idLista, idTarefa) {
-    
-    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-    let listaAlvo = listas[idLista]; // Pegando a lista pelo ID diretamente do objeto
-    let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
+
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+    let listaAlvo = dados.listas[idLista];
+    let tarefaAlvo = listaAlvo.tarefas.find(tarefa => tarefa.id === idTarefa);
 
     let dados_orcamentos = await recuperarDados("dados_orcamentos");
 
@@ -250,7 +314,6 @@ async function abrirModal(idLista, idTarefa) {
             tarefaAlvo.etiquetas = [];
         }
 
-        let etiquetasGlobais = JSON.parse(localStorage.getItem("etiquetasGlobais")) || [];
         let modal = document.getElementById("modal");
         let modalCorpo = document.getElementById("modal-corpo");
         let fundoEscuro = document.getElementById("fundo-escuro"); // Obtenha o fundo-escuro
@@ -275,16 +338,18 @@ async function abrirModal(idLista, idTarefa) {
         <div class="etiquetas">
             <h3>Etiquetas</h3>
             <div id="lista-etiquetas">
-                ${tarefaAlvo.etiquetas
-                .map(
-                    etiqueta => `
-                        <span class="etiqueta" style="background-color: ${etiqueta.cor}">
-                            ${etiqueta.nome}
-                            <button class="remover-etiqueta" onclick="removerEtiqueta('${idLista}', '${idTarefa}', '${etiqueta.nome}')">❌</button>
-                        </span>`
-                )
-                .join("")}
-            </div>
+    ${tarefaAlvo.etiquetas
+        .map(etiqueta => {
+            let corTexto = definirCorTexto(etiqueta.cor);
+            return `
+                <span class="etiqueta" style="background-color: ${etiqueta.cor}; color: ${corTexto};">
+                    ${etiqueta.nome}
+                    <button class="botao-excluir botao-excluir-etiqueta" 
+                        onclick="removerEtiqueta('${idLista}', '${idTarefa}', '${etiqueta.nome}')">❌</button>
+                </span>`;
+        }).join("")}
+</div>
+
             <button onclick="exibirOpcoesEtiquetas('${idLista}', '${idTarefa}')">➕</button>
         </div>
         <div class="descricao">
@@ -339,7 +404,7 @@ async function abrirModal(idLista, idTarefa) {
         </div>`;
 
         // Renderizar as atividades dentro do modal
-          renderizarAtividades(tarefaAlvo.atividades, tarefaAlvo.historico, idLista, idTarefa);
+        renderizarAtividades(tarefaAlvo.atividades, tarefaAlvo.historico, idLista, idTarefa);
 
         // Configuração do auto-complete
         const inputAutoComplete = document.getElementById("input-auto-complete");
@@ -363,22 +428,22 @@ async function abrirModal(idLista, idTarefa) {
                 sugestoes.forEach(chave => {
                     const li = document.createElement("li");
                     li.textContent = chave;
-                
+
                     li.addEventListener("click", () => {
                         // Atualiza o orçamento na tarefa
                         tarefaAlvo.orcamento = chave;
-                
+
                         // Substitui o parágrafo por um link
                         paragrafoSelecionado.innerHTML = `<a href="#" id="orcamento-link">${chave}</a>`;
-                
+
                         // Salva a lista atualizada no localStorage
-                        salvarListas(listas);
-                
+                        salvarListas(dados.listas);
+
                         // Limpa a lista de sugestões e o campo de input
                         listaSugestoes.innerHTML = "";
                         listaSugestoes.style.display = "none";
                         inputAutoComplete.value = "";
-                
+
                         // Adiciona o evento de clique no link para chamar a função
                         document.getElementById("orcamento-link").addEventListener("click", (event) => {
                             event.preventDefault(); // Evita que o link recarregue a página
@@ -386,10 +451,10 @@ async function abrirModal(idLista, idTarefa) {
                             fecharModal();
                         });
                     });
-                
+
                     listaSugestoes.appendChild(li);
                 });
-                
+
             } else {
                 listaSugestoes.style.display = "none"; // Oculta a lista
             }
@@ -405,14 +470,16 @@ async function abrirModal(idLista, idTarefa) {
 
         setTimeout(() => {
             let orcamentoLink = document.getElementById("orcamento-link");
-            if (orcamentoLink) {
+            if (orcamentoLink && tarefaAlvo.orcamento) {
                 orcamentoLink.addEventListener("click", (event) => {
                     event.preventDefault();
+                    console.log(`🔗 Abrindo orçamento: ${tarefaAlvo.orcamento}`);
                     exibir_todos_os_status(tarefaAlvo.orcamento);
-                    fecharModal()
+                    fecharModal();
                 });
             }
         }, 100);
+
 
         // Exibe o modal
         modal.classList.remove("oculto");
@@ -466,46 +533,58 @@ function fecharModais(modalId) {
 }
 
 function adicionarComentario(idLista, idTarefa) {
-    const acesso = JSON.parse(localStorage.getItem("acesso")) || {};
-    const criador = acesso.usuario || "Usuário desconhecido"; // Se não encontrar, usa um padrão
+    console.log(`📝 Adicionando comentário para Lista: ${idLista}, Tarefa: ${idTarefa}`);
 
-    const comentarioTexto = document.getElementById("novo-comentario").value.trim();
+    let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
+    let criador = acesso.usuario || "Usuário desconhecido";
+
+    let comentarioTexto = document.getElementById("novo-comentario").value.trim();
 
     if (!comentarioTexto) {
         alert("O comentário não pode estar vazio!");
         return;
     }
 
-    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-    let listaAlvo = listas[idLista]; 
-    let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+    let listaAlvo = dados.listas[idLista];
 
-    if (!listaAlvo || !tarefaAlvo) {
-        console.error("Erro: Lista ou tarefa não encontrada.");
+    if (!listaAlvo) {
+        console.error("❌ Erro: Lista não encontrada!");
         return;
     }
 
-    if (!tarefaAlvo.atividades) {
-        tarefaAlvo.atividades = []; 
+    let tarefaAlvo = listaAlvo.tarefas.find(tarefa => tarefa.id === idTarefa);
+
+    if (!tarefaAlvo) {
+        console.error("❌ Erro: Tarefa não encontrada!");
+        return;
     }
 
-    const agora = new Date();
-    const data = agora.toISOString().split("T")[0]; 
-    const hora = agora.toLocaleTimeString("pt-BR", { hour12: false }); 
+    if (!Array.isArray(tarefaAlvo.atividades)) {
+        tarefaAlvo.atividades = []; // Garante que atividades é um array
+    }
 
-    // Adiciona o comentário com o criador e tipo
-    tarefaAlvo.atividades.push({
+    let agora = new Date();
+    let dataFormatada = agora.toISOString().split("T")[0];
+    let horaFormatada = agora.toLocaleTimeString("pt-BR", { hour12: false });
+
+    let novoComentario = {
         tipo: "comentario",
         comentario: comentarioTexto,
-        criador: criador, 
-        data: data,
-        hora: hora
-    });
+        criador: criador,
+        data: dataFormatada,
+        hora: horaFormatada
+    };
 
-    // Salva no localStorage
-    salvarListas(listas);
+    console.log("📌 Novo comentário:", novoComentario);
 
-    // Atualiza a exibição no modal
+    // Adiciona o comentário
+    tarefaAlvo.atividades.push(novoComentario);
+
+    // Salva no `localStorage`
+    salvarListas(dados.listas);
+
+    // Atualiza a exibição do modal
     renderizarAtividades(tarefaAlvo.atividades, tarefaAlvo.historico, idLista, idTarefa);
 
     // Limpa o campo de comentário
@@ -513,19 +592,27 @@ function adicionarComentario(idLista, idTarefa) {
 }
 
 function renderizarAtividades(atividades, historico, idLista, idTarefa) {
+    console.log("🔄 Renderizando atividades...");
+
     const listaAtividades = document.getElementById("lista-atividades");
 
     if (!listaAtividades) {
-        console.error("Erro: Elemento lista-atividades não encontrado.");
+        console.error("❌ Erro: Elemento `lista-atividades` não encontrado.");
         return;
     }
 
-    // Garante que atividades e histórico sejam arrays válidos
+    // 🚀 Garante que atividades e histórico sejam arrays válidos
     atividades = Array.isArray(atividades) ? atividades : [];
     historico = Array.isArray(historico) ? historico : [];
 
-    // Junta atividades e histórico
     let todasAtividades = [...atividades, ...historico];
+
+    // 🚨 Verifica se há atividades antes de tentar exibir
+    if (todasAtividades.length === 0) {
+        listaAtividades.innerHTML = "<p style='color: gray;'>Nenhuma atividade registrada.</p>";
+        console.warn("⚠️ Nenhuma atividade encontrada.");
+        return;
+    }
 
     // Ordena por data e hora
     todasAtividades.sort((a, b) => {
@@ -534,39 +621,31 @@ function renderizarAtividades(atividades, historico, idLista, idTarefa) {
         return dataB - dataA;
     });
 
-    console.log("📌 Atividades para renderizar:", todasAtividades);
+    console.log("📌 Atividades a serem exibidas:", todasAtividades);
 
     // Obtém o usuário logado
     let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
     let usuarioLogado = acesso.usuario || "Usuário desconhecido";
 
     listaAtividades.innerHTML = todasAtividades
-        .map((atividade, index) => {
-            let tipo = atividade?.tipo || "comentario";
-            let criador = atividade?.criador || "Usuário desconhecido"; 
-            let dataHora = atividade?.data && atividade?.hora 
-                ? formatarData(atividade.data) + " " + atividade.hora 
-                : "⚠️ Data/Hora desconhecida";
-            let icone = "📝"; 
+        .map(atividade => {
+            let icone = "💬";
             let mensagem = "";
-            let botaoExcluir = ""; // Inicialmente, o botão de excluir não aparece
+            let botaoExcluir = "";
 
-            if (tipo === "comentario") {
+            if (atividade.tipo === "comentario") {
                 icone = "💬";
-                mensagem = `${criador}: ${atividade.comentario || "⚠️ Sem descrição"}`;
+                mensagem = `${atividade.criador}: ${atividade.comentario || "⚠️ Sem descrição"}`;
 
-                // 🔥 Exibe o botão **somente** se o criador for o usuário logado
-                if (criador === usuarioLogado) {
-                    botaoExcluir = `<button class="botao-excluir-comentario" onclick="excluirComentario('${idLista}', '${idTarefa}', ${index})">❌</button>`;
+                // Se o usuário for o criador do comentário, exibe o botão de exclusão
+                if (atividade.criador === usuarioLogado) {
+                    botaoExcluir = `<button class="botao-excluir-comentario" onclick="excluirComentario('${idLista}', '${idTarefa}', '${atividade.data}', '${atividade.hora}')">❌</button>`;
                 }
-            } else if (tipo === "alteração") {
+            } else if (atividade.tipo === "alteração") {
                 icone = "✏️";
-                let camposAlterados = atividade.campos || [];
-                let camposFormatados = camposAlterados.length > 0 
-                    ? camposAlterados.map(campo => `${campo}`).join(", ") 
-                    : "⚠️ Alteração desconhecida";
-                mensagem = `${criador} fez alterações em: ${camposFormatados}`;
-            } else if (tipo === "criação") {
+                let camposFormatados = atividade.campos && atividade.campos.length > 0 ? atividade.campos.join(", ") : "⚠️ Alteração desconhecida";
+                mensagem = `${atividade.criador} fez alterações em: ${camposFormatados}`;
+            } else if (atividade.tipo === "criação") {
                 icone = "📌";
                 mensagem = `${atividade.mensagem}`;
             }
@@ -574,7 +653,7 @@ function renderizarAtividades(atividades, historico, idLista, idTarefa) {
             return `
                 <div class="comentario-container">
                     <div class="comentario-info">
-                        <span class="comentario-data">${dataHora}</span>
+                        <span class="comentario-data">${atividade.data || "???"} ${atividade.hora || "???"}</span>
                         ${botaoExcluir}
                     </div>
                     <textarea class="comentario-textarea" readonly>${mensagem}</textarea>
@@ -582,6 +661,8 @@ function renderizarAtividades(atividades, historico, idLista, idTarefa) {
             `;
         })
         .join("");
+
+    console.log("✅ Atividades renderizadas!");
 }
 
 /**
@@ -597,171 +678,296 @@ function formatarData(dataISO) {
  */
 
 function salvarDescricao(idLista, idTarefa) {
-    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-    let listaAlvo = listas[idLista];
-    let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
+    console.log(`📌 Salvando descrição para Lista: ${idLista}, Tarefa: ${idTarefa}`);
 
-    if (tarefaAlvo) {
-        let novaDescricao = {
-            chamado: document.getElementById("input-chamado").value.trim(),
-            endereco: document.getElementById("input-endereco").value.trim(),
-            start: document.getElementById("input-start").value.trim(),
-            entrega: document.getElementById("input-entrega").value.trim(),
-            pedidoServico: document.getElementById("input-pedido-servico").value.trim(),
-            pedidoVenda: document.getElementById("input-pedido-venda").value.trim(),
-            escopo: document.getElementById("input-escopo").value.trim(),
-            equipe: document.getElementById("input-equipe").value.trim(),
-        };
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+    let listaAlvo = dados.listas[idLista];
 
-        let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
-        let usuario = acesso.usuario || "Desconhecido";
-
-        // 📌 Captura corretamente a data e hora separadas
-        let agora = new Date();
-        let dataFormatada = agora.toISOString().split("T")[0]; // Formato YYYY-MM-DD
-        let horaFormatada = agora.toLocaleTimeString("pt-BR", { hour12: false }); // Formato HH:MM:SS
-
-        // 🔍 Mapeamento dos campos para exibição correta
-        const nomesCampos = {
-            chamado: "N° Chamado",
-            endereco: "Endereço da Loja",
-            start: "Start",
-            entrega: "Entrega",
-            pedidoServico: "Pedido de Serviço",
-            pedidoVenda: "Pedido de Venda",
-            escopo: "Escopo",
-            equipe: "Equipe"
-        };
-
-        // 🔍 Verifica quais campos foram alterados
-        let alteracoes = [];
-        for (let campo in novaDescricao) {
-            if (tarefaAlvo.descricao[campo] !== novaDescricao[campo]) {
-                alteracoes.push(nomesCampos[campo]); // Usa o nome correto da label
-            }
-        }
-
-        // ✅ Se houver alterações, adiciona ao histórico
-        if (alteracoes.length > 0) {
-            tarefaAlvo.historico.push({
-                tipo: "alteração",
-                criador: usuario,
-                campos: alteracoes,
-                data: dataFormatada,  // 📅 Armazena corretamente a data
-                hora: horaFormatada   // ⏰ Armazena corretamente a hora
-            });
-        }
-
-        // Atualiza a descrição
-        tarefaAlvo.descricao = novaDescricao;
-
-        salvarListas(listas);
-        abrirModal(idLista, idTarefa); // Reabre o modal para refletir a atualização
-    } else {
-        console.error("Erro: Tarefa não encontrada ou estrutura inválida.");
+    if (!listaAlvo) {
+        console.error("❌ Erro: Lista não encontrada!");
+        return;
     }
+
+    let tarefaAlvo = listaAlvo.tarefas.find(tarefa => tarefa.id === idTarefa);
+
+    if (!tarefaAlvo) {
+        console.error("❌ Erro: Tarefa não encontrada!");
+        return;
+    }
+
+    console.log("✅ Tarefa antes da atualização:", tarefaAlvo);
+
+    let novaDescricao = {
+        chamado: document.getElementById("input-chamado").value.trim(),
+        endereco: document.getElementById("input-endereco").value.trim(),
+        start: document.getElementById("input-start").value.trim(),
+        entrega: document.getElementById("input-entrega").value.trim(),
+        pedidoServico: document.getElementById("input-pedido-servico").value.trim(),
+        pedidoVenda: document.getElementById("input-pedido-venda").value.trim(),
+        escopo: document.getElementById("input-escopo").value.trim(),
+        equipe: document.getElementById("input-equipe").value.trim(),
+    };
+
+    // 📌 Adicionando o orçamento corretamente
+    let inputOrcamento = document.getElementById("orcamento-selecionado").textContent.trim();
+    if (inputOrcamento !== "Nenhum") {
+        tarefaAlvo.orcamento = inputOrcamento;
+    } else {
+        delete tarefaAlvo.orcamento; // Remove o campo se não houver orçamento selecionado
+    }
+
+    // 📌 Adiciona histórico de alteração
+    let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
+    let usuario = acesso.usuario || "Desconhecido";
+
+    let agora = new Date();
+    let dataFormatada = agora.toISOString().split("T")[0];
+    let horaFormatada = agora.toLocaleTimeString("pt-BR", { hour12: false });
+
+    const nomesCampos = {
+        chamado: "N° Chamado",
+        endereco: "Endereço da Loja",
+        start: "Start",
+        entrega: "Entrega",
+        pedidoServico: "Pedido de Serviço",
+        pedidoVenda: "Pedido de Venda",
+        escopo: "Escopo",
+        equipe: "Equipe"
+    };
+
+    let alteracoes = [];
+    for (let campo in novaDescricao) {
+        if (tarefaAlvo.descricao[campo] !== novaDescricao[campo]) {
+            alteracoes.push(nomesCampos[campo]);
+        }
+    }
+
+    if (alteracoes.length > 0) {
+        tarefaAlvo.historico.push({
+            tipo: "alteração",
+            criador: usuario,
+            campos: alteracoes,
+            data: dataFormatada,
+            hora: horaFormatada
+        });
+    }
+
+    // Atualiza a descrição da tarefa
+    tarefaAlvo.descricao = novaDescricao;
+
+    console.log("✅ Tarefa após atualização:", tarefaAlvo);
+
+    // ✅ Agora salva corretamente no LocalStorage
+    salvarListas(dados.listas);
+
+    // Reabre o modal para refletir as alterações
+    abrirModal(idLista, idTarefa);
 }
 
 function salvarTituloTarefa(idLista, idTarefa) {
-    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-    let listaAlvo = listas[idLista]; // Acessa a lista pelo ID diretamente do objeto
-    let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
+    console.log(`📝 Salvando título para Lista: ${idLista}, Tarefa: ${idTarefa}`);
 
-    if (tarefaAlvo) {
-        let novoTitulo = document.getElementById("tarefa-titulo").value.trim();
-        if (novoTitulo) {
-            tarefaAlvo.texto = novoTitulo; // Atualiza o título
-            salvarListas(listas);
-            abrirModal(idLista, idTarefa); // Reabre o modal com o título atualizado
-            renderizarQuadro(); // Atualiza o quadro para refletir o novo título
-        } else {
-            alert("O título da tarefa não pode estar vazio.");
-        }
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+    let listaAlvo = dados.listas[idLista];
+
+    if (!listaAlvo) {
+        console.error("❌ Erro: Lista não encontrada!");
+        return;
     }
+
+    let tarefaAlvo = listaAlvo.tarefas.find(tarefa => tarefa.id === idTarefa);
+
+    if (!tarefaAlvo) {
+        console.error("❌ Erro: Tarefa não encontrada!");
+        return;
+    }
+
+    let novoTitulo = document.getElementById("tarefa-titulo").value.trim();
+
+    if (!novoTitulo) {
+        alert("O título da tarefa não pode estar vazio!");
+        return;
+    }
+
+    // 📌 Armazena o título anterior para histórico
+    let tituloAnterior = tarefaAlvo.texto;
+
+    // 📌 Atualiza o título da tarefa
+    tarefaAlvo.texto = novoTitulo;
+
+    // 📌 Garante que o histórico existe e é um array
+    if (!Array.isArray(tarefaAlvo.historico)) {
+        tarefaAlvo.historico = [];
+    }
+
+    // 📌 Adiciona ao histórico de alterações, garantindo que o campo `campos` esteja preenchido corretamente
+    let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
+    let usuario = acesso.usuario || "Usuário desconhecido";
+
+    let agora = new Date();
+    let dataFormatada = agora.toISOString().split("T")[0];
+    let horaFormatada = agora.toLocaleTimeString("pt-BR", { hour12: false });
+
+    tarefaAlvo.historico.push({
+        tipo: "alteração",
+        criador: usuario,
+        campos: ["Título da Tarefa"], // ✅ Corrigido para garantir que o campo alterado seja identificado corretamente
+        mensagem: `Título alterado de "${tituloAnterior}" para "${novoTitulo}"`,
+        data: dataFormatada,
+        hora: horaFormatada
+    });
+
+    // ✅ Agora salva corretamente no LocalStorage
+    salvarListas(dados.listas);
+
+    console.log("✅ Novo título salvo com sucesso!");
+
+    // Atualiza a interface do quadro e reabre o modal para refletir as alterações
+    renderizarQuadro();
+    abrirModal(idLista, idTarefa);
 }
 
 function adicionarEtiquetaTarefa(idLista, idTarefa, nomeEtiqueta) {
-    let etiquetasGlobais = JSON.parse(localStorage.getItem("etiquetasGlobais")) || [];
-    let etiqueta = etiquetasGlobais.find(et => et.nome === nomeEtiqueta);
+    console.log(`🏷️ Tentando adicionar etiqueta '${nomeEtiqueta}' à tarefa ${idTarefa} na lista ${idLista}`);
 
-    if (etiqueta) {
-        let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-    let listaAlvo = listas[idLista]; // Acessa a lista pelo ID diretamente do objeto
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+    let listaAlvo = dados.listas[idLista];
     let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
 
-
-        if (tarefaAlvo) {
-            tarefaAlvo.etiquetas.push(etiqueta);
-            salvarListas(listas);
-            abrirModal(idLista, idTarefa);
-        }
+    if (!listaAlvo || !tarefaAlvo) {
+        console.error("❌ Lista ou tarefa não encontrada.");
+        return;
     }
+
+    // Garante que as etiquetas existam
+    if (!Array.isArray(tarefaAlvo.etiquetas)) {
+        tarefaAlvo.etiquetas = [];
+    }
+
+    // Busca a etiqueta global correspondente
+    let etiqueta = dados.etiquetasGlobais.find(et => et.nome === nomeEtiqueta);
+
+    if (!etiqueta) {
+        console.warn(`⚠️ Etiqueta '${nomeEtiqueta}' não encontrada nas etiquetas globais.`);
+        return;
+    }
+
+    // Evita duplicação da mesma etiqueta
+    if (!tarefaAlvo.etiquetas.some(et => et.nome === nomeEtiqueta)) {
+        tarefaAlvo.etiquetas.push({ nome: etiqueta.nome, cor: etiqueta.cor });
+
+        // ✅ Agora salva corretamente no LocalStorage
+        salvarListas(dados.listas);
+
+        console.log(`✅ Etiqueta '${nomeEtiqueta}' adicionada à tarefa.`);
+    } else {
+        console.warn(`⚠️ A etiqueta '${nomeEtiqueta}' já está adicionada.`);
+    }
+
+    // Atualiza a interface
+    renderizarQuadro();
+    abrirModal(idLista, idTarefa);
 }
 
-
 function adicionarEtiquetaGlobal(idLista, idTarefa) {
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+
     let nome = document.getElementById("nova-etiqueta-nome-global").value.trim();
     let cor = document.getElementById("nova-etiqueta-cor-global").value;
 
-    if (nome) {
-        let etiquetasGlobais = JSON.parse(localStorage.getItem("etiquetasGlobais")) || [];
-        etiquetasGlobais.push({ nome, cor });
-        localStorage.setItem("etiquetasGlobais", JSON.stringify(etiquetasGlobais));
-
-        adicionarEtiquetaTarefa(idLista, idTarefa, nome); // Associa à tarefa automaticamente
-    } else {
+    if (!nome) {
         alert("O nome da etiqueta não pode estar vazio.");
+        return;
     }
+
+    // Verifica se a etiqueta já existe
+    let etiquetaExiste = dados.etiquetasGlobais.some(et => et.nome === nome);
+
+    if (!etiquetaExiste) {
+        dados.etiquetasGlobais.push({ nome, cor });
+
+        // Salva as etiquetas globais no localStorage
+        salvarEtiquetasGlobais(dados.etiquetasGlobais);
+
+        console.log(`✅ Etiqueta global '${nome}' adicionada.`);
+    } else {
+        console.warn(`⚠️ A etiqueta '${nome}' já existe.`);
+    }
+
+    // Adiciona a etiqueta à tarefa
+    adicionarEtiquetaTarefa(idLista, idTarefa, nome);
 }
 
-
 function removerEtiqueta(idLista, idTarefa, nomeEtiqueta) {
-    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-    let listaAlvo = listas[idLista]; // Acessa a lista pelo ID diretamente do objeto
-    let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
+    console.log(`🗑️ Removendo etiqueta '${nomeEtiqueta}' da tarefa '${idTarefa}' na lista '${idLista}'`);
 
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+    let listaAlvo = dados.listas[idLista];
 
-    if (tarefaAlvo) {
-        tarefaAlvo.etiquetas = tarefaAlvo.etiquetas.filter(etiqueta => etiqueta.nome !== nomeEtiqueta);
-        salvarListas(listas);
-        abrirModal(idLista, idTarefa); // Reabre o modal para atualizar a exibição
+    if (!listaAlvo) {
+        console.error(`❌ Lista '${idLista}' não encontrada.`);
+        return;
     }
+
+    let tarefaAlvo = listaAlvo.tarefas.find(tarefa => tarefa.id === idTarefa);
+
+    if (!tarefaAlvo) {
+        console.error(`❌ Tarefa '${idTarefa}' não encontrada.`);
+        return;
+    }
+
+    // 🔥 Removendo a etiqueta pelo nome
+    let etiquetasAntes = tarefaAlvo.etiquetas.length;
+    tarefaAlvo.etiquetas = tarefaAlvo.etiquetas.filter(etiqueta => etiqueta.nome !== nomeEtiqueta);
+    let etiquetasDepois = tarefaAlvo.etiquetas.length;
+
+    if (etiquetasAntes === etiquetasDepois) {
+        console.warn(`⚠️ A etiqueta '${nomeEtiqueta}' não estava presente na tarefa.`);
+        return;
+    }
+
+    // 🔥 Salvando a lista atualizada no localStorage
+    salvarListas(dados.listas);
+
+    // 🔥 Re-renderizando o quadro e mantendo o modal aberto
+    renderizarQuadro();
+    abrirModal(idLista, idTarefa);
+
+    console.log(`✅ Etiqueta '${nomeEtiqueta}' removida com sucesso!`);
 }
 
 function inicializarEtiquetasGlobais() {
-    let etiquetasGlobais = JSON.parse(localStorage.getItem("etiquetasGlobais")) || [];
-    if (etiquetasGlobais.length === 0) {
-        // Adicione algumas etiquetas padrão, se necessário
-        etiquetasGlobais = [
-            { nome: "Prioridade Alta", cor: "#ff0000" },
-            { nome: "Em Andamento", cor: "#00ff00" },
-            { nome: "Concluído", cor: "#0000ff" }
-        ];
-        localStorage.setItem("etiquetasGlobais", JSON.stringify(etiquetasGlobais));
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+
+    // 🔥 Removemos a criação automática de etiquetas padrão
+    if (!Array.isArray(dados.etiquetasGlobais)) {
+        dados.etiquetasGlobais = [];
+        salvarEtiquetasGlobais(dados.etiquetasGlobais);
     }
 }
 
 function exibirOpcoesEtiquetas(idLista, idTarefa) {
-    let etiquetasGlobais = JSON.parse(localStorage.getItem("etiquetasGlobais")) || [];
-
-    // Verifica se as opções já estão no modal
-    let opcoesExistentes = document.getElementById("opcoes-etiquetas");
-    if (opcoesExistentes) return; // Evita duplicações
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+    let etiquetasGlobais = dados.etiquetasGlobais || [];
 
     let modalCorpo = document.getElementById("modal-corpo");
+    let opcoesExistentes = document.getElementById("opcoes-etiquetas");
+    if (opcoesExistentes) opcoesExistentes.remove(); // Remove opções antigas
+
     let opcoesHTML = `
         <div id="opcoes-etiquetas">
             <h3>Escolha uma Etiqueta</h3>
             <div id="lista-etiquetas-globais">
-                ${etiquetasGlobais
-            .map(
-                etiqueta => `
-                    <span class="etiqueta" style="background-color: ${etiqueta.cor}" onclick="adicionarEtiquetaTarefa('${idLista}', '${idTarefa}', '${etiqueta.nome}')">
-                        ${etiqueta.nome}
-                    </span>
-                `
-            )
-            .join("")}
+                ${etiquetasGlobais.length > 0
+            ? etiquetasGlobais.map(etiqueta => `
+                        <div class="etiqueta-opcao" onclick="adicionarEtiquetaTarefa('${idLista}', '${idTarefa}', '${etiqueta.nome}')">
+                            <span class="etiqueta-bolinha" style="background-color: ${etiqueta.cor};"></span>
+                            <span class="etiqueta-nome">${etiqueta.nome}</span>
+                            <button class="botao-excluir-etiqueta" onclick="removerEtiquetaGlobal('${etiqueta.nome}'); event.stopPropagation();">❌</button>
+                        </div>
+                    `).join("")
+            : "<p style='color: gray;'>Nenhuma etiqueta disponível</p>"
+        }
             </div>
             <h3>Nova Etiqueta</h3>
             <div>
@@ -772,46 +978,98 @@ function exibirOpcoesEtiquetas(idLista, idTarefa) {
         </div>
     `;
 
-    modalCorpo.insertAdjacentHTML("beforeend", opcoesHTML); // Adiciona sem sobrescrever o conteúdo existente
+    modalCorpo.insertAdjacentHTML("beforeend", opcoesHTML);
 }
 
-function excluirComentario(idLista, idTarefa, index) {
-    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-    let listaAlvo = listas[idLista];
+function removerEtiquetaGlobal(nomeEtiqueta) {
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+
+    // Filtra e mantém apenas as etiquetas diferentes da que foi removida
+    dados.etiquetasGlobais = dados.etiquetasGlobais.filter(etiqueta => etiqueta.nome !== nomeEtiqueta);
+
+    // Remove a etiqueta de todas as tarefas
+    Object.values(dados.listas).forEach(lista => {
+        lista.tarefas.forEach(tarefa => {
+            if (tarefa.etiquetas) {
+                tarefa.etiquetas = tarefa.etiquetas.filter(etiqueta => etiqueta.nome !== nomeEtiqueta);
+            }
+        });
+    });
+
+    // Atualiza o localStorage
+    localStorage.setItem("dados_kanban", JSON.stringify(dados));
+
+    console.log(`✅ Etiqueta '${nomeEtiqueta}' removida globalmente de todas as tarefas!`);
+
+    // Atualiza a interface para refletir a remoção
+    renderizarQuadro();
+    exibirOpcoesEtiquetas();
+}
+
+function excluirComentario(idLista, idTarefa, data, hora) {
+    console.log(`🗑 Excluindo comentário da Lista: ${idLista}, Tarefa: ${idTarefa}, Data: ${data}, Hora: ${hora}`);
+
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: [] };
+    let listaAlvo = dados.listas[idLista];
 
     if (!listaAlvo) {
-        console.error(`Erro: Lista com ID ${idLista} não encontrada.`);
+        console.error(`❌ Erro: Lista com ID ${idLista} não encontrada.`);
         return;
     }
 
     let tarefaAlvo = listaAlvo.tarefas.find(tarefa => tarefa.id === idTarefa);
     if (!tarefaAlvo) {
-        console.error(`Erro: Tarefa com ID ${idTarefa} não encontrada.`);
+        console.error(`❌ Erro: Tarefa com ID ${idTarefa} não encontrada.`);
         return;
     }
 
-    // Verifica se a atividade a ser excluída é um comentário
-    if (tarefaAlvo.atividades[index]?.tipo !== "comentario") {
-        alert("❌ Apenas comentários podem ser excluídos!");
+    if (!Array.isArray(tarefaAlvo.atividades)) {
+        console.warn("⚠️ Nenhuma atividade encontrada nesta tarefa.");
         return;
     }
 
-    // Verifica se o usuário é o criador do comentário
+    // Obtém o usuário logado
     let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
     let usuarioLogado = acesso.usuario || "Usuário desconhecido";
-    let criadorComentario = tarefaAlvo.atividades[index]?.criador;
 
-    if (usuarioLogado !== criadorComentario) {
-        alert("❌ Você só pode excluir seus próprios comentários!");
+    // Encontra o índice do comentário a ser excluído
+    let indexComentario = tarefaAlvo.atividades.findIndex(atividade =>
+        atividade.tipo === "comentario" &&
+        atividade.data === data &&
+        atividade.hora === hora &&
+        atividade.criador === usuarioLogado
+    );
+
+    if (indexComentario === -1) {
+        alert("❌ Você só pode excluir os comentários que você criou!");
         return;
     }
 
-    // Remove o comentário
-    tarefaAlvo.atividades.splice(index, 1);
+    // Remove o comentário da lista
+    console.log("🗑 Removendo comentário:", tarefaAlvo.atividades[indexComentario]);
+    tarefaAlvo.atividades.splice(indexComentario, 1);
 
     // Salva a atualização no localStorage
-    salvarListas(listas);
+    salvarListas(dados.listas);
 
-    // Atualiza a exibição do modal
+    // Atualiza a exibição no modal
     renderizarAtividades(tarefaAlvo.atividades, tarefaAlvo.historico, idLista, idTarefa);
+
+    console.log("✅ Comentário excluído com sucesso!");
+}
+
+function definirCorTexto(corHex) {
+    // Remove o "#" se estiver presente
+    corHex = corHex.replace("#", "");
+
+    // Converte o HEX para valores RGB
+    let r = parseInt(corHex.substring(0, 2), 16);
+    let g = parseInt(corHex.substring(2, 4), 16);
+    let b = parseInt(corHex.substring(4, 6), 16);
+
+    // Calcula a luminância
+    let luminancia = (0.299 * r) + (0.587 * g) + (0.114 * b);
+
+    // Se for clara, retorna preto, senão branco
+    return luminancia > 128 ? "#000000" : "#FFFFFF";
 }
