@@ -2223,8 +2223,8 @@ function ultimoStatus(historicos) {
     return '';
 }
 
-//alteracoes_status()
 
+//Função usada para reorganizar os dados_orcamentos; 13-02-2025
 async function alteracoes_status() {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
