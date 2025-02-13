@@ -1517,8 +1517,6 @@ async function abrir_esquema(id) {
 
                 blocos_por_status['PAGAMENTOS'] = `
                 <div class="bloko"
-                onmouseover="exibirItens(this, true)" 
-                onmouseout="exibirItens(this, false)"
                 style="background-color: #097fe6; height: max-content; overflow-y: auto;">
                     <div style="display: flex; justify-content: center; align-items: center;">
                         <label style="color: white; font-size: 1.3vw;">Pagamentos</label>
@@ -1527,8 +1525,14 @@ async function abrir_esquema(id) {
                         <img src="imagens/pesquisar.png" style="width: 1vw;">
                         <input id="${chave_pedido}" style="width: 12vw; font-size: 0.7vw; padding: 3px; border-radius: 3px;" placeholder="Pesquisar pagamento" oninput="pesquisar_pagamentos('${chave_pedido}')">
                     </div>
-                    <div class="escondido" id="div_pagamentos_pesquisa_${chave_pedido}" style="display: none; flex-direction: column; gap: 10px;">
-                        ${string_pagamentos}
+                    <div style="height: max-content; max-height: 500px; overflow: auto;">
+                        <div class="escondido" id="div_pagamentos_pesquisa_${chave_pedido}" style="display: none; flex-direction: column; justify-content: start; align-items: center; gap: 10px;">
+                            ${string_pagamentos}
+                        </div>
+                    </div>
+
+                    <div style="cursor: pointer; background-color: #097fe6; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
+                        <label style="color: white; font-size: 0.9vw;">▼</label>
                     </div>
                 </div>
             `}
@@ -1675,11 +1679,8 @@ async function abrir_esquema(id) {
                 }
 
                 blocos_por_status[campo] += `
-                    <div class="bloko" 
-                        style="border: 1px solid ${fluxograma[sst.status].cor};"
-                        onmouseover="exibirItens(this, true)" 
-                        onmouseout="exibirItens(this, false)">
-                        <div style="cursor: pointer; display: flex; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-radius: 3px;">
+                    <div class="bloko" style="gap: 0px; border: 1px solid ${fluxograma[sst.status].cor}; background-color: white; justify-content: center;">
+                        <div style="cursor: pointer; display: flex; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-radius-top-right: 3px; border-radius-top-left: 3px;">
                             <span class="close" style="font-size: 2vw; position: absolute; top: 15px; right: 15px;" onclick="deseja_apagar('${chave_pedido}', '${chave2}')">&times;</span>
                             <div style="display: flex; align-items: center; justify-content: start; gap: 3px;">
                                 <label><strong>Status:</strong></label>
@@ -1720,6 +1721,11 @@ async function abrir_esquema(id) {
                                 ${anxsss}
                             </div>
                         </div>
+
+                        <div style="cursor: pointer; background-color: ${fluxograma[sst.status].cor}; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
+                            <label style="color: white; font-size: 0.9vw;">▼</label>
+                        </div>
+
                     </div>
 
                 `
@@ -1898,10 +1904,18 @@ async function alterar_status(chave1, chave2, select) {
 
 }
 
-function exibirItens(elemento, exibir) {
+function exibirItens(div) {
+
+    let elemento = div.previousElementSibling;
+    let label = div.querySelector('label')
     let itens = elemento.querySelectorAll('.escondido');
+
     itens.forEach(item => {
+        let exibir = item.style.display !== 'flex';
         item.style.display = exibir ? 'flex' : 'none';
+
+        exibir ? label.textContent = '▲' : label.textContent = '▼'
+
     });
 }
 

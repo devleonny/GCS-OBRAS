@@ -49,7 +49,7 @@ async function carregar_estoque() {
             ths += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%; font-size: 1.1vw;" style="text-align: center;" oninput="pesquisar_em_estoque(${indice_correto}, this.value, filtrosAtivosEstoques, 'body')">
+                <input style="width: 100%; font-size: 1.1vw;" style="text-align: center;" oninput="pesquispesquisar_genericoar_em_estoque(${indice_correto}, this.value, filtrosAtivosEstoques, 'body')">
             </th>
             `
         }
@@ -925,7 +925,7 @@ async function retomar_paginacao(codigo, stq) {
     for (coluna in filtrosAtivosEstoques) {
         let texto = filtrosAtivosEstoques[coluna]
         ths[coluna - 1].querySelector('input').value = texto
-        pesquisar_em_estoque(coluna, texto, filtrosAtivosEstoques, 'tabela_estoque')
+        pesquisar_generico(coluna, texto, filtrosAtivosEstoques, 'tabela_estoque')
     }
 
     let inputs = document.body.querySelectorAll('input.datas_estoque')
@@ -941,46 +941,6 @@ async function retomar_paginacao(codigo, stq) {
     } else if (codigo !== undefined && stq !== undefined) {
         remover_popup()
         await abrir_estoque(codigo, stq)
-    }
-
-}
-
-function pesquisar_em_estoque(coluna, texto, filtro, id) {
-
-    filtro[coluna] = texto.toLowerCase();
-
-    var tabela_itens = document.getElementById(id);
-    var trs = tabela_itens.querySelectorAll('tr');
-    let contador = 0
-
-    trs.forEach(function (tr) {
-        var tds = tr.querySelectorAll('td');
-
-        var mostrarLinha = true;
-
-        for (var col in filtro) {
-            var filtroTexto = filtro[col];
-
-            if (filtroTexto && col < tds.length) {
-                let element = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].textContent
-                let conteudoCelula = element.value ? element.value : element
-                let texto_campo = String(conteudoCelula).toLowerCase()
-
-                if (!texto_campo.includes(filtroTexto)) {
-                    mostrarLinha = false;
-                    break;
-                }
-            }
-        }
-
-        mostrarLinha ? contador++ : ''
-
-        tr.style.display = mostrarLinha ? '' : 'none';
-    });
-
-    let contagem = document.getElementById('contagem')
-    if (contagem) {
-        contagem.textContent = contador
     }
 
 }
@@ -1120,7 +1080,7 @@ async function atualizar_dados_relatorio() {
             thsearch += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisar_em_estoque(${i}, this.value, filtrosRelatorio, 'body2')">
+                <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisar_generico(${i}, this.value, filtrosRelatorio, 'body2')">
             </th>
             `
         })

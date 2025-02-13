@@ -1011,6 +1011,46 @@ function atualizar_etiqueta(id, id_etiqueta, data, operacao) {
 
 }
 
+function pesquisar_generico(coluna, texto, filtro, id) {
+
+    filtro[coluna] = texto.toLowerCase();
+
+    var tabela_itens = document.getElementById(id);
+    var trs = tabela_itens.querySelectorAll('tr');
+    let contador = 0
+
+    trs.forEach(function (tr) {
+        var tds = tr.querySelectorAll('td');
+
+        var mostrarLinha = true;
+
+        for (var col in filtro) {
+            var filtroTexto = filtro[col];
+
+            if (filtroTexto && col < tds.length) {
+                let element = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].textContent
+                let conteudoCelula = element.value ? element.value : element
+                let texto_campo = String(conteudoCelula).toLowerCase()
+
+                if (!texto_campo.includes(filtroTexto)) {
+                    mostrarLinha = false;
+                    break;
+                }
+            }
+        }
+
+        mostrarLinha ? contador++ : ''
+
+        tr.style.display = mostrarLinha ? '' : 'none';
+    });
+
+    let contagem = document.getElementById('contagem')
+    if (contagem) {
+        contagem.textContent = contador
+    }
+
+}
+
 function pesquisar_em_pagamentos(coluna, texto) {
 
     filtrosAtivosPagamentos[coluna] = texto.toLowerCase();
@@ -1249,7 +1289,7 @@ function enviar_dados_generico(dados) {
 
 }
 
-async function consultar_pagamentos(especial) { //True aqui vai retornar o painel de títulos com as contagens;
+async function consultar_pagamentos(especial) { // True aqui vai retornar o painel de títulos com as contagens;
 
     var div_pagamentos = document.getElementById('div_pagamentos')
     if (!div_pagamentos) {
