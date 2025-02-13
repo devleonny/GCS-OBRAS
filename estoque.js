@@ -49,7 +49,7 @@ async function carregar_estoque() {
             ths += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%; font-size: 1.1vw;" style="text-align: center;" oninput="pesquispesquisar_genericoar_em_estoque(${indice_correto}, this.value, filtrosAtivosEstoques, 'body')">
+                <input style="width: 100%; font-size: 1.1vw;" style="text-align: center;" oninput="pesquisar_generico(${indice_correto}, this.value, filtrosAtivosEstoques, 'body')">
             </th>
             `
         }
