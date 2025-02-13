@@ -2,6 +2,7 @@ var overlay = document.getElementById('overlay')
 var centros_de_custo = {};
 var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
+
 async function sincronizar_periodico() {
     let carimbo_storage = localStorage.getItem('carimbo_data_hora_pagamentos');
 
@@ -124,12 +125,12 @@ async function abrir_detalhes(id_pagamento) {
 
         let tem_qualidade = false
 
-        pagamento.historico.forEach(teste =>{
+        pagamento.historico.forEach(teste => {
 
-            if(teste.status.includes("Qualidade")){
+            if (teste.status.includes("Qualidade")) {
 
                 tem_qualidade = true
-    
+
             }
 
         })
@@ -143,10 +144,10 @@ async function abrir_detalhes(id_pagamento) {
             } else if (item.status.includes('Reprovado')) {
                 cor = '#B12425'
                 imagem = "imagens/remover.png"
-            } else if (item.status.includes('Aguardando') && tem_qualidade && item.status.includes('Qualidade') ) {
+            } else if (item.status.includes('Aguardando') && tem_qualidade && item.status.includes('Qualidade')) {
                 cor = '#D97302'
                 imagem = "imagens/avencer.png"
-            }else if (item.status.includes('Aguardando') && tem_qualidade && item.status.includes('Diretoria') ) {
+            } else if (item.status.includes('Aguardando') && tem_qualidade && item.status.includes('Diretoria')) {
                 cor = '#32a5e7'
                 imagem = "imagens/qualidade.png"
             } else if (item.status.includes('Aguardando')) {
@@ -258,13 +259,13 @@ async function abrir_detalhes(id_pagamento) {
         for (campo in campos) {
             var info_existente = ''
             if (campo == 'orcamento') {
-                if (dados_orcamentos[pagamento.id_orcamento]){
-                info_existente += `
+                if (dados_orcamentos[pagamento.id_orcamento]) {
+                    info_existente += `
                     <div class="anexos" onclick="ir_pdf('${pagamento.id_orcamento}')" style="border: solid 1px green;">
                         <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
                         <label style="cursor: pointer; font-size: 0.6em;"><strong>Orçamento disponível</strong></label>
                     </div>
-                `}else{
+                `} else {
 
                     `
 
@@ -623,6 +624,18 @@ async function atualizar_feedback(resposta, id_pagamento) {
 
     var pagamento = lista_pagamentos[id_pagamento];
 
+    
+    let criado = pagamento.criado
+    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    let setor = ""
+    Object.keys(dados_setores).forEach(usuario => {
+
+        if(criado == usuario){
+            setor = dados_setores[usuario].setor
+        }
+
+    })
+
     var dataFormatada = new Date().toLocaleString('pt-BR', {
         day: '2-digit',
         month: '2-digit',
@@ -639,7 +652,7 @@ async function atualizar_feedback(resposta, id_pagamento) {
     let categoria_atual = pagamento.param[0].categorias[0].codigo_categoria
 
     // 🔥 Lógica de Aprovação/Reprovação
-    if (resposta == 'Aprovar' && (acesso.permissao == 'gerente' || acesso.permissao == 'adm') && (categoria_atual == "2.01.99" || categoria_atual == "2.01.81")) {
+    if (resposta == 'Aprovar' && (acesso.permissao == 'gerente' || acesso.permissao == 'adm') && (categoria_atual == "2.01.99" || categoria_atual == "2.01.81") && setor == "INFRA") {
         status = 'Aguardando aprovação da Qualidade';
     } else if (resposta == 'Aprovar' && (acesso.permissao == 'gerente' || acesso.permissao == 'adm')) {
         status = 'Aguardando aprovação da Diretoria';
