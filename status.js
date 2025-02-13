@@ -1329,69 +1329,6 @@ async function exibir_todos_os_status(id) {
             </div>
         </div>
     `
-
-    if (orcamento.status) {
-
-        for (chave_pedido in orcamento.status) {
-
-            var pedido_completo = orcamento.status[chave_pedido]
-            var st = pedido_completo
-
-            for (chave2 in st.historico) {
-
-                var his = st.historico[chave2]
-                var exibir_label = false;
-                let status_chave2 = String(his.status)
-                console.log(his) //29
-                fluxograma[status_chave2].modulos.forEach(sst => {
-                    if (sst === modulo) {
-                        exibir_label = true;
-                    }
-                });
-
-
-                if (exibir_label) {
-
-                    var coments = ''
-                    if (his.comentario) {
-                        coments = his.comentario.replace(/\n/g, '<br>')
-                    }
-
-                    let funcao = ''
-                    if (status_chave2.includes('PEDIDO')) {
-
-                        funcao = `detalhar_requisicao('${chave_pedido}')`
-
-                    } else if (status_chave2.includes('REQUISIÇÃO') || status_chave2.includes('MATERIAL')) {
-
-                        if (acesso.permissao == 'adm' || acesso.permissao == 'fin') {
-                            funcao = `painel_adicionar_notas('${chave_pedido}')`
-                        }
-
-                    }
-
-                    if (funcao !== '') {
-                        acumulado += `
-                        <hr style="width: 80%">
-                        <div class="contorno">
-                            <div class="avenida_contorno" style="background-color: ${fluxograma[status_chave2].cor}1f; margin: 0px;">
-                                <label><strong>Status: </strong>${status_chave2}</label>
-                                <label><strong>Número: </strong>${st.pedido}</label>
-                                <label><strong>Data: </strong> ${his.data}</label>
-                                <label><strong>Executor: </strong> ${his.executor}</label>
-                                <label><strong>Comentário: </strong> <br>${coments}</label>
-                                <div class="contorno_botoes" style="background-color: ${fluxograma[status_chave2].cor}" onclick="${funcao}">
-                                    <label>Continuar</label>
-                                </div>
-                            </div>
-                        </div>
-                        `
-                    }
-                }
-            }
-        }
-    }
-
     var elementus = `
     <div id="espelho_ocorrencias" class="status" style="display: flex;">
         ${acumulado}
@@ -1737,7 +1674,7 @@ async function abrir_esquema(id) {
                         onmouseover="exibirItens(this, true)" 
                         onmouseout="exibirItens(this, false)">
                         <div style="cursor: pointer; display: flex; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-radius: 3px;">
-                            <span class="close" style="position: absolute; top: 15px; right: 15px;" onclick="deseja_apagar('${chave_pedido}', '${chave2}')">&times;</span>
+                            <span class="close" style="font-size: 2vw; position: absolute; top: 15px; right: 15px;" onclick="deseja_apagar('${chave_pedido}', '${chave2}')">&times;</span>
                             <div style="display: flex; align-items: center; justify-content: start; gap: 3px;">
                                 <label><strong>Status:</strong></label>
                                 ${status_dinamico}
