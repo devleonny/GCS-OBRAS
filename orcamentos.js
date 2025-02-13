@@ -59,10 +59,6 @@ function filtros_de_orcamento(dados) {
     for (id in dados) {
         let orcamento = dados[id]
 
-        if (orcamento.operacao && orcamento.operacao == 'excluido') {
-            continue
-        }
-
         if (orcamento.status) {
 
             let pedidos = orcamento.status
@@ -79,12 +75,25 @@ function filtros_de_orcamento(dados) {
 
                 }
 
-                if (dados_filtrados[pedido.status]) {
-                    dados_filtrados[pedido.status][id] = orcamento
+                if (pedido.historico) {
+
+                    let ultimo_status = pedido.finalizado ? 'FINALIZADO' : ultimoStatus(pedido.historico)
+
+                    if (!dados_filtrados[ultimo_status]) {
+                        dados_filtrados[ultimo_status] = {}
+                    }
+                    dados_filtrados[ultimo_status][id] = orcamento
                 }
+
             }
+
         } else {
-            dados_filtrados['AGUARDANDO'][id] = orcamento
+
+            if (!dados_filtrados['INCLUIR PEDIDO']) {
+                dados_filtrados['INCLUIR PEDIDO'] = {}
+            }
+            dados_filtrados['INCLUIR PEDIDO'][id] = orcamento
+
         }
     }
 
@@ -114,8 +123,8 @@ function botao_limpar_painel_direito() {
     if (painel_direito) {
         painel_direito.innerHTML = `
             <div class="block_reverso" style="background-color: #222222bf;" onclick="preencher_orcamentos_v2(undefined, true)">
-                <img src="imagens/voltar.png" style="width: 50px;">
-                <p style="font-size: 0.8vw;">VOLTAR</p>
+                <img src="imagens/cancelar.png" style="width: 50px;">
+                <p style="font-size: 0.8vw;">DESFAZER FILTRO</p>
             </div>
         `
     }
@@ -154,10 +163,10 @@ async function preencher_orcamentos_v2(filtros, remover) {
     }
 
     document.getElementById('nome_modulo').textContent = modulo
-    let nome = filtros
 
     //Resetar a tabela caso o filtro não pertença ao módulo;
     if (fluxograma[filtros]) {
+
         let reiniciar = true
         let modulos = fluxograma[filtros].modulos
 
@@ -174,20 +183,13 @@ async function preencher_orcamentos_v2(filtros, remover) {
     }
     //Fim
 
-    if (fluxograma[filtros] && fluxograma[filtros].nome) {
-        nome = fluxograma[filtros].nome
-    }
-    document.getElementById('nome_filtro').textContent = nome
+    let proximo = filtros
 
-    // Eleminar o ID que o DB cria...
-    delete dados_orcamentos['id']
-    // Fim...
-
-    for (orc in dados_orcamentos) { // Remover os excluídos para não distorcer o relatório;
-        if (dados_orcamentos[orc].operacao == 'excluido') {
-            delete dados_orcamentos[orc]
-        }
+    if (fluxograma[filtros] && fluxograma[filtros].proximo) {
+        proximo = fluxograma[filtros].proximo
     }
+
+    document.getElementById('nome_filtro').textContent = proximo
 
     var desordenado = Object.entries(dados_orcamentos);
     desordenado.sort((a, b) => new Date(b[1].dados_orcam.data) - new Date(a[1].dados_orcam.data));
@@ -207,75 +209,81 @@ async function preencher_orcamentos_v2(filtros, remover) {
                 timeStyle: 'short'
             })
 
-            if (orc.operacao && orc.operacao == 'excluido') {
-                continue
-            }
-
-            var exibir_linha = false
+            var exibir_linha = true
             var pedidos = orc.status || {}
             var label_pedidos = ''
             var label_notas = ''
 
             for (pedido in pedidos) {
                 let chave_pedido = pedidos[pedido]
-                let status = chave_pedido.status
-                let num_pedido = chave_pedido.pedido
-                let tipo = chave_pedido.tipo
-                let cor;
+                let historico = chave_pedido.historico
 
-                tipo == 'Venda' ? cor = '#ff9c24' : cor = '#00bfb7'
+                let ultimo_status = chave_pedido.finalizado ? 'FINALIZADO' : ultimoStatus(historico)
 
-                label_pedidos += `
-                    <div class="etiqueta_pedidos" style="background-color: ${cor};"> 
-                        <label style="font-size: 0.7vw; margin: 2px;">${tipo}</label>
-                        <label style="font-size: 0.9vw; margin: 2px;"><strong>${num_pedido}</strong></label>
-                    </div>
-                `
+                if (fluxograma[ultimo_status]) { // Contagem de pendências;
 
-                var historico = chave_pedido.historico
+                    var modulos = fluxograma[ultimo_status].modulos
+                    if (!modulos.includes(modulo)) {
+                        exibir_linha = false
+
+                    } else {
+                        if (!status_deste_modulo[ultimo_status]) {
+                            status_deste_modulo[ultimo_status] = 0
+                        }
+                        status_deste_modulo[ultimo_status] += 1
+                    }
+
+                }
 
                 for (chave2 in historico) {
-                    var chave_historico = historico[chave2]
-                    let cor2;
+
+                    let chave_historico = historico[chave2]
+                    let status = chave_historico.status
+
+                    if (status == 'PEDIDO') {
+
+                        let num_pedido = chave_historico.pedido
+                        let tipo = chave_historico.tipo
+                        let cor;
+
+                        tipo == 'Venda' ? cor = '#ff9c24' : cor = '#00bfb7'
+
+                        label_pedidos += `
+                        <div class="etiqueta_pedidos" style="background-color: ${cor};"> 
+                            <label style="font-size: 0.6vw;">${tipo}</label>
+                            <label style="font-size: 0.7vw; margin: 2px;"><strong>${num_pedido}</strong></label>
+                        </div>
+                        `
+                    }
 
                     if (chave_historico.notas) {
+                        let cor;
                         var nota = chave_historico.notas[0]
-                        nota.modalidade == 'Venda' ? cor2 = '#ff9c24' : cor2 = '#00bfb7'
+                        nota.modalidade == 'Venda' ? cor = '#ff9c24' : cor = '#00bfb7'
                         label_notas += `
-                        <div class="etiqueta_pedidos" style="background-color: ${cor2};">
+                        <div class="etiqueta_pedidos" style="background-color: ${cor};">
                             <label style="font-size: 0.8em; margin: 2px;">${nota.modalidade}</label>
                             <label style="font-size: 1.1em; margin: 2px;"><strong>${nota.nota}</strong></label>
                         </div>
                         `
                     }
-                }
-
-                if (fluxograma[status]) {
-
-                    var modulos = fluxograma[status].modulos
-                    if (modulos.includes(modulo)) {
-                        exibir_linha = true
-                        if (!status_deste_modulo[status]) {
-                            status_deste_modulo[status] = 0
-                        }
-                        status_deste_modulo[status] += 1
-                    }
 
                 }
+
             }
 
             if (Object.keys(pedidos).length == 0) {
 
-                var aguardando = 'AGUARDANDO'
-                var modulos = fluxograma[aguardando].modulos
+                let sx = 'INCLUIR PEDIDO'
+                var modulos = fluxograma[sx].modulos
+                if (!modulos.includes(modulo)) {
+                    exibir_linha = false
 
-                if (modulos.includes(modulo)) {
-                    exibir_linha = true
-                    if (!status_deste_modulo[aguardando]) {
-                        status_deste_modulo[aguardando] = 0
+                } else {
+                    if (!status_deste_modulo[sx]) {
+                        status_deste_modulo[sx] = 0
                     }
-
-                    status_deste_modulo[aguardando] += 1
+                    status_deste_modulo[sx] += 1
                 }
 
             }
@@ -352,11 +360,11 @@ async function preencher_orcamentos_v2(filtros, remover) {
         </div>
         <div style="display: flex; align-items: center; justify-content: start; gap: 10px; color: white;">
             <label class="numero" style="background-color: #4CAF50; width: 2vw; height: 2vw;"></label>
-            <label>Aprovados</label>
+            <label>Aprovado</label>
         </div>
         <div style="display: flex; align-items: center; justify-content: start; gap: 10px; color: white;">
             <label class="numero" style="background-color: #ff7777; width: 2vw; height: 2vw;"></label>
-            <label>Reprovados</label>
+            <label>Reprovado</label>
         </div>
         <div style="display: flex; align-items: center; justify-content: start; gap: 10px; color: white;">
             <label class="numero" style="width: 2vw; height: 2vw;"></label>
@@ -372,19 +380,30 @@ async function preencher_orcamentos_v2(filtros, remover) {
                 <p style="font-size: 0.8vw;">CRIAR ORÇAMENTO</p>
             </div>
             `
+            if (modulo == 'CHAMADOS') {
+                atalhos += `
+                <div class="block" onclick="criar_manutencao()">
+                    <img src="imagens/chamados.png" style="width: 50px;">
+                    <p style="font-size: 0.8vw;">CRIAR MANUTENÇÃO</p>
+                </div>
+                `
+            }
 
             for (var atalho in status_deste_modulo) {
                 let quantidade = status_deste_modulo[atalho]
-                let nome = atalho
-                if (fluxograma[atalho].nome) {
-                    nome = fluxograma[atalho].nome
+
+                let proximo = atalho
+
+                if (fluxograma[atalho] && fluxograma[atalho].proximo) {
+                    proximo = fluxograma[atalho].proximo
                 }
+
                 atalhos += `
                     <div class="block" style="background-color: #222222bf;" onclick="mostrar_apenas_pendencias('${atalho}')">
                         <div style="width: 50px; height: 50px; display: flex; justify-content: center; align-items: center;">
-                            <label class="numero">${quantidade}</label>
+                            <label style="font-size: 1.5vw; color: white;">${quantidade}</label>
                         </div>
-                        <label style="font-size: 0.8vw; cursor: pointer; color: white;">${nome}</label>
+                        <label style="font-size: 0.8vw; cursor: pointer; color: white;">${proximo}</label>
                     </div>
                 `
             }
@@ -404,8 +423,8 @@ async function preencher_orcamentos_v2(filtros, remover) {
                 tsh += `
                 <th style="background-color: white; border-radius: 0px;">
                     <div style="position: relative;">
-                        <img src="imagens/pesquisar2.png" style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
-                        <input placeholder="..." style="margin-left: 25px; text-align: left;" oninput="pesquisar_v2(${i}, this.value)">
+                        <input placeholder="..." style="text-align: left;" oninput="pesquisar_v2(${i}, this.value)">
+                        <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
                     </div>
                 </th>            
             `} else {
@@ -437,6 +456,8 @@ async function preencher_orcamentos_v2(filtros, remover) {
         }
     }
 
+    await carregar_manutencoes()
+
 }
 
 async function recuperar_orcamentos() {
@@ -448,6 +469,548 @@ async function recuperar_orcamentos() {
 
         await preencher_orcamentos_v2()
     }
+}
+
+async function abrir_manutencao(id) {
+    let dados_manutencao = await recuperarDados('dados_manutencao') || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+    let dados_clientes_omie = {}
+
+    for (cnpj in dados_clientes) {
+        dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
+    }
+
+    criar_manutencao(id)
+    let manutencao = dados_manutencao[id]
+    let pecas = manutencao.pecas
+
+    document.getElementById('comentario').value = manutencao.comentario
+    document.getElementById('status_manutencao').value = manutencao.status_manutencao
+    document.getElementById('chamado').value = manutencao.chamado
+
+    if (manutencao.chamado == 'KIT TÉCNICO') {
+        document.getElementById('kit').checked = true
+        document.getElementById('div_chamado').style.display = 'none'
+    }
+
+    let pessoas = ['tecnico', 'cliente']
+
+    pessoas.forEach(pessoa => {
+
+        let chave = `codigo_${pessoa}`
+
+        if (manutencao[chave] && manutencao[chave] !== '') {
+
+            let item = dados_clientes_omie[manutencao[chave]]
+            document.getElementById(chave).textContent = manutencao[chave]
+            document.getElementById(pessoa).value = item.nome
+            document.getElementById(`endereco_${pessoa}`).innerHTML = `
+                <label><strong>CNPJ/CPF:</strong> ${item.cnpj}</label>
+                <label><strong>Rua/Bairro:</strong> ${item.bairro}</label>
+                <label><strong>CEP:</strong> ${item.cep}</label>
+                <label><strong>Cidade:</strong> ${item.cidade}</label>
+                <label><strong>Estado:</strong> ${item.estado}</label>        
+            `
+        }
+    })
+
+    let tamanho = Object.keys(pecas).length
+    for (let i = 0; i < tamanho; i++) {
+        adicionar_linha_manut()
+    }
+
+    let linhas_manutencao = document.getElementById('linhas_manutencao')
+    let linhas = linhas_manutencao.querySelectorAll('.linha')
+
+    let i = 0
+    for (id_peca in pecas) {
+        let peca = pecas[id_peca]
+        let celulas = linhas[i].querySelectorAll('input, textarea')
+
+        celulas[0].value = peca.descricao
+        celulas[1].value = peca.codigo
+        celulas[2].value = peca.quantidade
+        celulas[3].value = peca.comentario
+        celulas[4].value = 0
+
+        i++
+    }
+
+    let div_historico = document.getElementById('historico')
+
+    let historicos = {}
+    if (manutencao.historico) {
+        historicos = manutencao.historico
+    }
+
+    historicos[id] = manutencao // Acrescentei o objeto atual para que ele entre no histórico;
+    let infos = ''
+
+    for (his in historicos) {
+        let historico = historicos[his]
+        let imagem;
+
+        switch (historico.status_manutencao) {
+            case 'MANUTENÇÃO':
+                imagem = 'avencer'
+                break
+            case 'MATERIAL ENVIADO':
+                imagem = 'logistica'
+                break
+            case 'MATERIAL RECEBIDO':
+                imagem = 'concluido'
+                break
+            default:
+                imagem = 'cancel'
+        }
+
+        infos += `
+            <div style="display: flex; align-items: center; justify-content: space-evenly;">
+                <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; font-size: 0.8vw;">
+                    <label><strong>Data:</strong> ${historico.data}</label>
+                    <label><strong>Status:</strong> ${historico.status_manutencao}</label>
+                    <label><strong>Usuário:</strong> ${historico.usuario}</label>
+                    <label><strong>Comentário:</strong></label>
+                    <textarea style="width: 20vw;" readOnly>${historico.comentario}</textarea>
+                </div>
+                <img src="imagens/${imagem}.png">
+            </div>
+            <hr style="width: 80%;">
+            `
+    }
+
+    let elemento = `
+        <br>
+            
+            <div style="background-color: #151749; border-top-left-radius: 3px; border-top-right-radius: 3px; width: 70vw; padding: 5px;">Histórico</div>
+
+            <div style="width: 70vw; background-color: #d2d2d2; color: #222; padding: 5px;">
+                ${infos}
+            </div>
+        `
+
+    div_historico.insertAdjacentHTML('beforeend', elemento)
+
+}
+
+function capturar_html_pdf() {
+    let documento_pdf = document.getElementById('documento_pdf')
+    gerar_pdf_online(documento_pdf.outerHTML)
+}
+
+function criar_manutencao(id) {
+
+    let termo = 'Editar'
+    let botao = 'Atualizar'
+    let pdf = `
+        <div onclick="capturar_html_pdf()" class="contorno_botoes" style="background-color: #B12425; display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <img src="imagens/pdf.png" style="cursor: pointer; width: 40px;">
+            <label>PDF</label>
+        </div>`
+    if (id == undefined) {
+        termo = 'Criar'
+        botao = 'Enviar para Logística'
+        pdf = ''
+        id = gerar_id_5_digitos()
+    }
+
+    let acumulado = `
+
+    <div id="aguarde" style="display: none; 
+    align-items: center; 
+    justify-content: center; 
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    font-size: 1.5em;
+    border-radius: 5px;
+    ">Aguarde...</div>
+
+    <img src="imagens/BG.png" style="height: 70px; position: absolute; top: 0; left: 0;">
+
+    <label>${termo} <strong> Manutenção </strong> </label>
+
+    <div style="background-color: white; border-radius: 3px; padding: 5px; font-size: 0.9vw; width: 70vw;">
+
+        <div id="documento_pdf">
+
+            <div style="display: flex; align-items: center; justify-content: start; color: #222; background-color: #d2d2d2; padding: 5px; border-radius: 3px;">
+                <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
+                    
+                    <label style="font-size: 1.2vw;">Cliente | Loja</label>
+                    <label id="codigo_cliente" style="display: none"></label>
+                    <div style="position: relative;">
+                        <textarea type="text" id="cliente" oninput="sugestoes(this, 'sug_cliente', 'clientes')" placeholder="..."></textarea>
+                        <div class="autocomplete-list" id="sug_cliente"></div>
+                    </div>
+
+                    <div id="endereco_cliente" style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 3px;"></div>
+
+                </div>
+
+                <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
+                    <label style="font-size: 1.2vw;">TÉCNICO</label>
+                    <label id="codigo_tecnico" style="display: none"></label>
+                    <div style="position: relative;">
+                        <textarea type="text" id="tecnico" oninput="sugestoes(this, 'sug_tecnico', 'clientes')" placeholder="..."></textarea>
+                        <div class="autocomplete-list" id="sug_tecnico"></div>
+                    </div>
+
+                    <div id="endereco_tecnico" style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 3px;"></div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: start; gap: 5px;">
+                    <div style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: start; gap: 20px;">
+                        <label style="font-size: 1.2vw;">Status Manutenção</label>
+                        <select id="status_manutencao" style="padding: 5px; border-radius: 3px; cursor: pointer; width: 10vw; font-size: 0.8vw;">
+                            <option>MANUTENÇÃO</option>
+                            <option>MATERIAL ENVIADO</option>
+                            <option>MATERIAL RECEBIDO</option>
+                            <option>REPROVADO</option>
+                        </select>
+                    </div>
+                    <div style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
+                        <label style="font-size: 1.2vw;">Kit Técnico</label>
+                        <input id="kit" type="checkbox" style="width: 2vw; height: 2vw; cursor: pointer;" onclick="alterar_kit(this)">
+                    </div>                
+                    <div id="div_chamado" style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
+                        <label style="font-size: 1.2vw;">Chamado</label>
+                        <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text" placeholder="..." id="chamado">
+                    </div>
+                    <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
+                        <label style="font-size: 1.2vw;">Comentário</label>
+                        <textarea type="text" placeholder="..." id="comentario"></textarea>
+                    </div>
+                </div>
+
+            </div>
+
+            <br>
+
+            <div class="tabela_manutencao">
+                <div class="linha" style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
+                    <div style="width: 25vw;">
+                        <label>Descrição</label>
+                    </div>
+                    <div style="width: 10vw;">
+                        <label>Quantidade</label>
+                    </div>
+                    <div style="width: 20vw;">
+                        <label>Comentário</label>
+                    </div>
+                    <div style="width: 10vw;">
+                        <label>Estoque Disponível</label>
+                    </div>
+                    <div style="width: 5vw;">
+                        <label>Remover</label>
+                    </div>
+                </div>
+                
+                <div id="linhas_manutencao">
+                    <div id="excluir_inicial" class="linha" style="width: 70vw;">
+                        <label>Lista Vazia</label>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <br>
+
+        <div style="display: flex; align-items: start; justify-content: left; gap: 5px;">
+            <div onclick="adicionar_linha_manut()" class="contorno_botoes" style="background-color: #151749; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <img src="imagens/chamados.png" style="cursor: pointer; width: 40px;">
+                <label>Adicionar Peça</label>
+            </div>
+            <div onclick="enviar_manutencao('${id}')" class="contorno_botoes" style="background-color: green; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <img src="imagens/estoque.png" style="cursor: pointer; width: 40px;">
+                <label>${botao}</label>
+            </div>
+            ${pdf}
+        </div>
+
+    </div>
+
+    <div id="historico"></div>
+
+    <label id="data" style="position: absolute; bottom: 10px; right: 20px; font-size: 0.8vw;">${data_atual('completa')}</label>
+    
+    `
+    openPopup_v2(acumulado)
+}
+
+function alterar_kit(checkbox) {
+    let chamado = document.getElementById('chamado')
+    let div_chamado = document.getElementById('div_chamado')
+
+    if (checkbox.checked) {
+        chamado.value = 'KIT TÉCNICO'
+        div_chamado.style.display = 'none'
+    } else {
+        chamado.value = ''
+        div_chamado.style.display = 'flex'
+    }
+}
+
+async function carregar_manutencoes() {
+    let dados_manutencao = await recuperarDados('dados_manutencao') || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
+    let dados_clientes_omie = {}
+
+    for (cnpj in dados_clientes) {
+        dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
+    }
+
+    let linhas_orcamento = document.getElementById('linhas_orcamento')
+    let linhas = ''
+    if (linhas_orcamento) {
+
+        for (id in dados_manutencao) {
+            let manutencao = dados_manutencao[id]
+            let dados_clientes = dados_clientes_omie[manutencao.codigo_cliente] || {}
+            let cor
+            let exibir = false
+
+            switch (manutencao.status_manutencao) {
+                case 'MANUTENÇÃO':
+                    cor = '#ffc584'
+                    modulo == 'LOGÍSTICA' ? exibir = true : ''
+                    break
+                case 'MATERIAL ENVIADO':
+                    cor = '#097fe6'
+                    modulo == 'LOGÍSTICA' ? exibir = true : ''
+                    break
+                case 'MATERIAL RECEBIDO':
+                    cor = '#4CAF50'
+                    modulo == 'RELATÓRIOS' ? exibir = true : ''
+                    break
+                case 'REPROVADO':
+                    cor = '#ff7777'
+                    modulo == 'CHAMADOS' ? exibir = true : ''
+                    break
+                default:
+                    cor = '#ff7777'
+            }
+
+            if (!exibir) {
+                continue
+            }
+
+            linhas += `
+            <tr style="background-color: ${cor};">
+                <td>${manutencao.data}</td>
+                <td>${manutencao.status_manutencao}</td>
+                <td>...</td>
+                <td>${manutencao.chamado || 'SEM CHAMADO'}</td>
+                <td>${dados_clientes.nome || '--'}</td>
+                <td>${dados_clientes.cidade || '--'}</td>
+                <td>${manutencao.analista}</td>
+                <td>...</td>
+                <td>...</td>
+                <td style="text-align: center;">
+                    <img onclick="abrir_manutencao('${id}')" src="imagens/pesquisar3.png" style="width: 2vw; cursor: pointer;">
+                </td>
+            </tr>
+            `
+        }
+
+        linhas_orcamento.insertAdjacentHTML('beforeend', linhas)
+
+    }
+
+}
+
+async function enviar_manutencao(id) {
+
+    let aguarde = document.getElementById('aguarde')
+    aguarde.style.display = 'flex;'
+
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let campos = ['codigo_tecnico', 'codigo_cliente', 'comentario', 'status_manutencao', 'data', 'chamado']
+    let manutencao = {}
+    manutencao.usuario = acesso.usuario
+    manutencao.analista = acesso.nome_completo
+
+    let dados_manutencao = await recuperarDados('dados_manutencao') || {}
+
+    if (dados_manutencao[id]) {
+        manutencao.historico = {}
+
+        if (dados_manutencao[id].historico) {
+            manutencao.historico = dados_manutencao[id].historico
+            delete dados_manutencao[id].historico
+        }
+
+        manutencao.historico[gerar_id_5_digitos()] = dados_manutencao[id]
+    }
+
+    let tabela = document.getElementById('linhas_manutencao')
+    let linhas = tabela.querySelectorAll('.linha')
+    let pecas = {}
+
+    linhas.forEach(linha => {
+        let celulas = linha.querySelectorAll('input, textarea')
+        if (celulas.length > 0) {
+            pecas[gerar_id_5_digitos()] = {
+                descricao: celulas[0].value,
+                codigo: celulas[1].value,
+                quantidade: celulas[2].value,
+                comentario: celulas[3].value
+            }
+        }
+    })
+
+    manutencao.pecas = pecas
+
+    campos.forEach(campo => {
+        let elemento = document.getElementById(campo)
+        if (elemento) {
+            manutencao[campo] = elemento.value || elemento.textContent
+        }
+    })
+
+    let kit = document.getElementById('kit')
+    if (kit.checked) {
+        manutencao.chamado = 'KIT TÉCNICO'
+    }
+
+    dados_manutencao[id] = manutencao
+
+    await inserirDados(dados_manutencao, 'dados_manutencao')
+
+    await preencher_orcamentos_v2()
+
+    remover_popup()
+}
+
+function adicionar_linha_manut() {
+    let tbody = document.getElementById('linhas_manutencao')
+    let aleatorio = gerar_id_5_digitos()
+
+    let excluir_inicial = document.getElementById('excluir_inicial')
+    if (excluir_inicial) {
+        excluir_inicial.remove()
+    }
+
+    if (tbody) {
+        let linha = `
+        <div class="linha_completa">
+            <div class="linha">
+                <div style="position: relative; width: 25vw; height: 30px; background-color: #b5b5b5;">
+                    <textarea style="background-color: transparent;" type="text" id="${aleatorio}" oninput="sugestoes(this, 'sug_${aleatorio}', 'estoque')"></textarea>
+                    <div class="autocomplete-list" id="sug_${aleatorio}"></div>
+                    <input id="input_${aleatorio}" style="display: none;">
+                </div>
+                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
+                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="number">
+                </div>
+                <div style="width: 20vw; height: 30px; background-color: #b5b5b5;">
+                    <textarea style="background-color: transparent;"></textarea>
+                </div>
+                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
+                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="number" readOnly>
+                </div>
+                <div style="width: 5vw;">
+                    <img src="imagens/remover.png" onclick="remover_esta_linha(this)" style="width: 30px; cursor: pointer;">
+                </div>
+            </div>
+            <hr style="width: 100%; margin: 0px;">
+        </div>
+        `
+        tbody.insertAdjacentHTML('beforeend', linha)
+    }
+}
+
+function remover_esta_linha(div_menor) {
+    let linha_completa = div_menor.closest('.linha_completa')
+    if (linha_completa) {
+        linha_completa.remove()
+    }
+}
+
+async function sugestoes(textarea, div, base) {
+
+    let div_sugestoes = document.getElementById(div)
+    let query = String(textarea.value).toUpperCase()
+    div_sugestoes.innerHTML = '';
+
+    if (query === '') {
+        let campo = div.split('_')[1]
+        let endereco = document.getElementById(`endereco_${campo}`)
+
+        if (endereco) {
+            document.getElementById(`codigo_${campo}`).innerHTML = ''
+            endereco.innerHTML = ''
+            return
+        }
+
+        return
+    }
+
+    let dados = await recuperarDados(`dados_${base}`) || {}
+    let opcoes = ''
+
+    for (id in dados) {
+        let item = dados[id]
+        let info;
+        let dados_endereco;
+        let cod_omie;
+
+        if (base == 'clientes') {
+            cod_omie = item.omie
+            info = String(item.nome)
+            dados_endereco = `
+            <label><strong>CNPJ/CPF:</strong> ${item.cnpj}</label>
+            <label><strong>Rua/Bairro:</strong> ${item.bairro}</label>
+            <label><strong>CEP:</strong> ${item.cep}</label>
+            <label><strong>Cidade:</strong> ${item.cidade}</label>
+            <label><strong>Estado:</strong> ${item.estado}</label>
+        `.replace(/'/g, "&apos;")
+                .replace(/"/g, "&quot;")
+                .replace(/\r?\n|\r/g, "");
+
+        } else if (base == 'estoque') {
+            info = String(item.descricao)
+        }
+
+        if (info.includes(query)) {
+            opcoes += `
+                    <div onclick="definir_campo(this, '${div}', '${dados_endereco}', '${cod_omie}', '${id}')" class="autocomplete-item" style="font-size: 0.8vw;">${info}</div>
+                `
+        }
+    }
+
+    div_sugestoes.innerHTML = opcoes
+
+}
+
+function definir_campo(elemento, div, string_html, omie, id) {
+
+    let campo = String(div).split('_')[1]
+
+    if (campo == 'tecnico' || campo == 'cliente') {
+
+        let endereco = document.getElementById(`endereco_${campo}`)
+        endereco.innerHTML = string_html.replace(/&apos;/g, "'").replace(/&quot;/g, '"');
+
+    } else {
+        let input_aleatorio = document.getElementById(`input_${campo}`)
+        input_aleatorio.value = id
+    }
+
+    let codigo = document.getElementById(`codigo_${campo}`)
+    if (codigo) {
+        codigo.textContent = omie
+    }
+    document.getElementById(campo).value = elemento.textContent
+    document.getElementById(div).innerHTML = '' // Sugestões
 }
 
 async function rir(id_orcam) {
@@ -1636,4 +2199,120 @@ function excluir_anexo_parceiro_2(campo, anx) {
         local.remove()
     }
 
+}
+
+function ultimoStatus(historicos) {
+
+    let status = []
+
+    for (chave2 in historicos) {
+        let cartao = historicos[chave2]
+
+        status.push(cartao.status)
+
+    }
+
+    let cronologia = Object.keys(fluxograma);
+
+    for (let i = cronologia.length - 1; i >= 0; i--) {
+        if (status.includes(cronologia[i])) {
+            return cronologia[i];
+        }
+    }
+
+    return '';
+}
+
+//alteracoes_status()
+
+async function alteracoes_status() {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+
+    for (id in dados_orcamentos) {
+        let orcamento = dados_orcamentos[id]
+
+        if (orcamento.levantamentos) {
+            let novo_levantamentos = {};
+
+            for (let lev in orcamento.levantamentos) {
+                let adentro = orcamento.levantamentos[lev];
+
+                while (adentro && typeof adentro[lev] === 'object') {
+                    adentro = adentro[lev];
+                }
+
+                novo_levantamentos[lev] = adentro;
+            }
+
+            orcamento.levantamentos = novo_levantamentos;
+        }
+
+        if (orcamento.status) {
+
+            let chaves = orcamento.status
+
+            let novas_chaves = {}
+
+            for (chave1 in chaves) {
+                let pedido = chaves[chave1]
+                let historicos = pedido.historico
+
+                if (!novas_chaves[chave1]) {
+                    novas_chaves[chave1] = {}
+                }
+
+                if (pedido.status == 'FINALIZADO') {
+                    novas_chaves[chave1].finalizado = true
+                }
+
+                for (chave2 in historicos) {
+                    let his = historicos[chave2]
+                    his.status = atualizar_status(his.status)
+
+                    if (his.status == 'PEDIDO') {
+                        his.pedido = pedido.pedido
+                        his.valor = pedido.valor
+                        his.tipo = pedido.tipo
+                    }
+
+                    if (!novas_chaves[chave1].historico) {
+                        novas_chaves[chave1].historico = {}
+                    }
+
+                    novas_chaves[chave1].historico[chave2] = his
+                }
+
+            }
+
+            orcamento.status = novas_chaves
+
+        }
+    }
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+}
+
+function atualizar_status(st) {
+
+    switch (true) {
+        case st.includes('ANEXADO'):
+            st = 'PEDIDO'
+            break
+        case st.includes('FATURAMENTO PEDIDO DE'):
+            st = 'REQUISIÇÃO'
+            break
+        case st.includes('REMESSA DE'):
+            st = 'REQUISIÇÃO'
+            break
+        case st.includes('FATURADO'):
+            st = 'FATURADO'
+            break
+        case st == '':
+            st = 'PEDIDO'
+            break
+        default:
+            st = st
+    }
+
+    return st
 }

@@ -62,13 +62,12 @@ function aparecerPopupResumoOrcamentos() {
       padding: 20px;
       border: 1px solid #ccc;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      border-radius: 10px;
+      border-radius: 5px;
       z-index: 1000;
-      max-width: 350px;
+      width: 20vw;
       font-family: Arial, sans-serif;
-      font-size: 30px;
+      font-size: 1.1vw;
       color: #333;
-      min-width: 350px;
     ">
 
     <button onclick="fecharPopUps(this.parentNode.id)" style="
@@ -110,13 +109,12 @@ function aparecerPopupAprovadosGerencia() {
             padding: 20px;
             border: 1px solid #ccc;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
+            border-radius: 5px;
             z-index: 1000;
-            max-width: 350px;
+            width: 20vw;
             font-family: Arial, sans-serif;
-            font-size: 30px;
+            font-size: 1.1vw;
             color: #333;
-            min-width: 350px;
         ">
 
         <button onclick="fecharPopUps(this.parentNode.id)" style="
@@ -160,13 +158,12 @@ function aparecerPopupAprovadosDiretoria() {
             padding: 20px;
             border: 1px solid #ccc;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
+            border-radius: 5px;
             z-index: 1000;
-            max-width: 350px;
+            width: 20vw;
             font-family: Arial, sans-serif;
-            font-size: 30px;
+            font-size: 1.1vw;
             color: #333;
-            min-width: 350px;
         ">
 
         <button onclick="fecharPopUps(this.parentNode.id)" style="
@@ -358,7 +355,6 @@ async function resumo_orcamentos() {
 
   openPopup_v2(acumulado);
 }
-
 
 const { ipcRenderer } = require('electron');
 

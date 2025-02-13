@@ -47,12 +47,6 @@ async function carregar_tabela_v2() {
         return recuperar_composicoes()
     }
 
-    //Remover o 'id' que o IndexedDB cria... 
-    if (dados_composicoes['id']) {
-        delete dados_composicoes['id']
-    }
-    //Fim
-
     var thead = '';
     var tbody = '';
     var tsearch = '';

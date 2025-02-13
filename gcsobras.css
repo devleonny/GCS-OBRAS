@@ -122,12 +122,12 @@ body::before {
     display: flex;
     flex-direction: column;
     justify-content: left;
-    border-radius: 2px;
+    border-radius: 1px;
     min-width: 100%;
-    margin: 1px;
+    margin: 2px;
+    padding: 2px;
     color: #222;
     width: max-content;
-    box-shadow: 1px 1px #222;
 }
 
 .titulo_paginas {
@@ -990,7 +990,7 @@ input[type=range]::-moz-range-thumb {
 
 .containerX {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     grid-gap: 10px;
 }
 
@@ -998,15 +998,22 @@ input[type=range]::-moz-range-thumb {
     display: flex;
     gap: 2vw;
     justify-content: left;
+    text-align: center;
     align-items: center;
-    background-color: rgba(255, 255, 255, 0.819);
-    color: #222;
+    background-color: #1517497c;
+    color: #d2d2d2;
     border-radius: 5px;
     padding: 1vw;
-    transition: transform 0.3s ease;
     cursor: pointer;
     width: 15vw;
+    font-size: 1.1vw;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.block:hover {
+    transition: 0.2s ease;
+    color: #222;
+    background-color: #ffffffc6;
 }
 
 .block_reverso {
@@ -1018,7 +1025,6 @@ input[type=range]::-moz-range-thumb {
     color: white;
     border-radius: 5px;
     padding: 1vw;
-    transition: transform 0.3s ease;
     cursor: pointer;
     width: 15vw;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
@@ -1255,8 +1261,11 @@ input[type=range]::-moz-range-thumb {
     font-size: 0.8em;
     overflow: hidden;
     padding: 8px;
-    text-align: left;
     border-bottom: 1px solid transparent;
+}
+
+.tabela td {
+    text-align: left;
 }
 
 .contorno {
@@ -1324,6 +1333,13 @@ input[type=range]::-moz-range-thumb {
     background-color: rgb(138, 138, 138);
 }
 
+.escondido {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+}
+
 .contorno_botoes {
     background-color: #222;
     display: flex;
@@ -1341,7 +1357,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 .contorno_botoes img {
-    width: 15px;
+    width: 1vw;
 }
 
 .contorno_botoes label {
@@ -1361,18 +1377,13 @@ input[type=range]::-moz-range-thumb {
     gap: 3px;
     padding: 5px;
     border-radius: 3px;
-    font-size: 0.8em;
-    height: 400px;
-    width: 250px;
+    font-size: 0.7vw;
+    height: max-content;
+    width: 90%;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     overflow-y: auto;
     flex-shrink: 0;
-}
-
-.bloko:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .container-blocos {
@@ -1442,7 +1453,7 @@ input[type=range]::-moz-range-thumb {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1em;
+    font-size: 1.0em;
 }
 
 .pedido {
@@ -1496,7 +1507,7 @@ input[type=range]::-moz-range-thumb {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     max-height: 500px;
     overflow-y: auto;
-    z-index: 999;
+    z-index: 1000;
 }
 
 .autocomplete-item {

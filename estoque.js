@@ -57,87 +57,84 @@ async function carregar_estoque() {
 
     for (item in dados_estoque) {
 
-        if (item !== 'id') {
-            let dados_item = dados_estoque[item]
+        let dados_item = dados_estoque[item]
 
-            let tds = ''
+        let tds = ''
 
-            colunas.forEach(chave => {
+        colunas.forEach(chave => {
 
-                let info = dados_item[chave] || ''
-                let elemento = `<input style="background-color: transparent; cursor: pointer; text-align: center; padding: 10px; border-radius: 3px;" value="${info}" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>`
-                let quantidade = ''
-                let cor = ''
-                let valor = ''
+            let info = dados_item[chave] || ''
+            let elemento = `<input style="background-color: transparent; cursor: pointer; text-align: center; padding: 10px; border-radius: 3px;" value="${info}" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>`
+            let quantidade = ''
+            let cor = ''
+            let valor = ''
 
-                if (chave == 'descricao' || chave == 'inventario') {
-                    elemento = `<textarea style="border: none; border-radius: 0px;" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>${info}</textarea>`
+            if (chave == 'descricao' || chave == 'inventario') {
+                elemento = `<textarea style="border: none; border-radius: 0px;" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>${info}</textarea>`
 
-                } else if (chave == 'Excluir') {
+            } else if (chave == 'Excluir') {
 
-                    elemento = `
+                elemento = `
                     <div style="display: flex; align-items: center; justify-content: center;">
                         <img src="imagens/cancel.png" style="cursor: pointer; width: 25px; height: 25px;" onclick="remover_linha_excluir_item(this)">
                     </div>
                 `
-                } else if (chave.includes('valor_compra')) {
+            } else if (chave.includes('valor_compra')) {
 
-                    valor = calcular_cmc(dados_item.valor_compra)
+                valor = calcular_cmc(dados_item.valor_compra)
 
-                    let color = valor == 0 ? '#222' : 'white'
+                let color = valor == 0 ? '#222' : 'white'
 
-                    elemento = `
+                elemento = `
                     <label style="color: ${color}; cursor: pointer; text-align: center;" onclick="abrir_valores('${item}', '${chave}')">${dinheiro(valor)}</label>
                     `
 
-                } else if (chave.includes('estoque')) {
+            } else if (chave.includes('estoque')) {
 
-                    quantidade = info.quantidade
+                quantidade = info.quantidade
 
-                    for (his in info.historico) {
+                for (his in info.historico) {
 
-                        let historico = info.historico[his]
+                    let historico = info.historico[his]
 
-                        if (historico.operacao == 'entrada') {
-                            quantidade += historico.quantidade
-                        } else if (historico.operacao == 'saida') {
-                            quantidade -= historico.quantidade
-                        }
-
+                    if (historico.operacao == 'entrada') {
+                        quantidade += historico.quantidade
+                    } else if (historico.operacao == 'saida') {
+                        quantidade -= historico.quantidade
                     }
-
-                    elemento = `<label style="cursor: pointer; font-size: 25px; text-align: center; color: white; width: 100%; padding: 5px;" onclick="abrir_estoque('${item}', '${chave}')">${quantidade}</label>`
 
                 }
 
-                if (chave !== 'id') {
+                elemento = `<label style="cursor: pointer; font-size: 25px; text-align: center; color: white; width: 100%; padding: 5px;" onclick="abrir_estoque('${item}', '${chave}')">${quantidade}</label>`
 
-                    if (quantidade !== '') {
-                        cor = conversor(quantidade) > 0 ? '#4CAF50' : '#B12425'
-                    }
+            }
 
-                    if (valor !== '') {
-                        cor = conversor(valor) > 0 ? '#097fe6' : ''
-                    }
+            if (quantidade !== '') {
+                cor = conversor(quantidade) > 0 ? '#4CAF50' : '#B12425'
+            }
 
-                    tds += `
-                    <td style="background-color: ${cor}">
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
-                            <img src="imagens/concluido.png" style="display: none; width: 25px; height: 25px; cursor: pointer;" onclick="salvar_dados_estoque(this, '${item}', '${chave}')">
-                            ${elemento}
-                        </div>
-                    </td>
-                `
-                }
-            })
+            if (valor !== '') {
+                cor = conversor(valor) > 0 ? '#097fe6' : ''
+            }
 
-            linhas += `
+            tds += `
+                <td style="background-color: ${cor}">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                        <img src="imagens/concluido.png" style="display: none; width: 25px; height: 25px; cursor: pointer;" onclick="salvar_dados_estoque(this, '${item}', '${chave}')">
+                        ${elemento}
+                    </div>
+                </td>
+            `
+
+        })
+
+        linhas += `
             <tr>
                 <td style="display: none;">${item}</td>
                 ${tds}
             </tr>
         `
-        }
+
     }
 
     let acumulado = `

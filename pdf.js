@@ -516,6 +516,8 @@ function gerarPDF() {
         nomeArquivo: `Orcamento_${cliente}_${contrato}`
     };
 
+    // gerar_pdf_online(document.documentElement.outerHTML) Voltar aqui depois;
+
     // Envia para salvar o PDF localmente
     ipcRenderer.send('generate-pdf-local', formData);
 
@@ -529,7 +531,6 @@ function gerarPDF() {
         ocultar.style.display = 'flex';
     });
 }
-
 
 function receber(chave) {
     const url = `https://base-88062-default-rtdb.firebaseio.com/${chave}.json`; // Substitua pelo seu caminho

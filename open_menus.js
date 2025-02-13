@@ -36,7 +36,7 @@ async function reprocessar_offline() {
             } else {
                 await deletar(evento.chave);
             }
-            
+
             dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {};
             delete dados_offline[operacao][id];
             localStorage.setItem('dados_offline', JSON.stringify(dados_offline));
@@ -127,7 +127,6 @@ async function recuperarDados(nome_da_base) {
 
             // Verificar se a store existe;
             if (!db.objectStoreNames.contains(nome_da_base)) {
-                console.warn(`Store "${nome_da_base}" não existe no banco.`);
                 resolve(null);
                 return;
             }
@@ -138,6 +137,12 @@ async function recuperarDados(nome_da_base) {
             const getRequest = store.get(1);
 
             getRequest.onsuccess = function (event) {
+                let dados = event.target.result
+
+                if (dados && dados['id']) {
+                    delete dados['id']
+                }
+
                 resolve(event.target.result || null);
             };
 
@@ -912,7 +917,7 @@ function incluir_composicao_api(codigo) {
     });
 }
 
-if (document.title !== 'PDF') {
+if (document.title == 'Criar Orçamento') {
     calculadora_reversa()
 
     valor_liquido.addEventListener('input', function () {
@@ -942,17 +947,6 @@ function exibir_calculadora() {
 function calculadora_reversa() {
 
     var calculadora = ''
-
-    /* No momento irei desativar;
-    if(document.title !== 'Criar Orçamento'){ 
-        calculadora +=`
-        <div id="mini_calculadora">
-        <label>Calculadora ICMS</label>
-        <img src="imagens/calculadora.png" style="width: 50px; cursor: pointer;" onclick="exibir_calculadora()">
-        </div>
-    `
-    }
-    */
 
     calculadora += `
     <div id="calculadora">
@@ -1234,6 +1228,8 @@ async function conversor_composicoes_orcamento(orcamento) {
 }
 
 function encurtar_texto(texto, limite) {
+
+    texto = String(texto)
     if (texto.length > limite) {
         return texto.slice(0, limite) + "...";
     }
@@ -1493,7 +1489,7 @@ async function consultar_pagamentos(especial) { //True aqui vai retornar o paine
 
 }
 
-function salvar_levantamento(id_orcamento) {
+async function salvar_levantamento(id_orcamento) {
 
     var elemento = document.getElementById('adicionar_levantamento')
     var file = elemento.files[0];
@@ -1529,30 +1525,38 @@ function salvar_levantamento(id_orcamento) {
             var result = await response.json();
             if (response.ok) {
 
-                var anexo = {}
-                let id_anexo = gerar_id_5_digitos()
+                var anexo = {};
+                let id_anexo = gerar_id_5_digitos();
+
                 anexo[id_anexo] = {
                     nome: fileName,
                     formato: mimeType,
                     link: result.fileId
-                }
+                };
 
                 if (id_orcamento) {
-                    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-                    orcamento_v2 = dados_orcamentos[id_orcamento]
-                    await enviar(`dados_orcamentos/${id_orcamento}/levantamentos/${id_anexo}`, anexo)
-                    await inserirDados(dados_orcamentos, 'dados_orcamentos')
-                    abrir_esquema(id_orcamento)
+                    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+                    let orcamento_v2 = dados_orcamentos[id_orcamento] || {};
 
-                } else {
-                    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
                     if (!orcamento_v2.levantamentos) {
-                        orcamento_v2.levantamentos = {}
+                        orcamento_v2.levantamentos = {};
                     }
-                    orcamento_v2.levantamentos[id_anexo] = anexo
-                    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
-                    recuperar_preenchido()
 
+                    orcamento_v2.levantamentos[id_anexo] = anexo[id_anexo];
+
+                    await enviar(`dados_orcamentos/${id_orcamento}/levantamentos/${id_anexo}`, anexo[id_anexo]);
+                    await inserirDados(dados_orcamentos, 'dados_orcamentos');
+                    abrir_esquema(id_orcamento);
+                } else {
+                    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
+
+                    if (!orcamento_v2.levantamentos) {
+                        orcamento_v2.levantamentos = {};
+                    }
+
+                    orcamento_v2.levantamentos[id_anexo] = anexo[id_anexo];
+                    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
+                    recuperar_preenchido();
                 }
 
             }
@@ -1842,5 +1846,24 @@ async function espelhar_atualizacao(objeto) {
     if (arquivo === "dados_estoque" && document.title === "ESTOQUE") {
         await retomar_paginacao();
     }
+}
+
+function gerar_pdf_online(htmlString) {
+    let encoded = new TextEncoder().encode(htmlString);
+    let compressed = pako.gzip(encoded);
+
+    fetch("https://leonny.dev.br/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/octet-stream" },
+        body: compressed
+    })
+        .then(response => response.blob())
+        .then(blob => {
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "documento.pdf";
+            link.click();
+        })
+        .catch(err => console.error("Erro ao gerar PDF:", err));
 }
 

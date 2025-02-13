@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.2.1/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 
     <style>
         td {
@@ -38,7 +39,9 @@
         }
 
         textarea {
+            font-size: 0.8vw;
             color: #222;
+            width: 80%;
         }
 
         .top {
@@ -85,8 +88,7 @@
             padding: 10px;
             border-radius: 5px;
             height: 70vh;
-            min-width: 60vw;
-            max-height: 70vh;
+            width: 70vw;
             overflow: auto;
             /* color: #32a5e7; */
         }
@@ -100,6 +102,54 @@
             display: inline-block;
             word-wrap: break-word;
         }
+
+        .numero-bonito {
+            cursor: pointer;
+            text-align: center;
+            height: 30px;
+            width: 300px;
+            background-color: #4CAF507c;
+            border-radius: 3px;
+            margin: 5px;
+        }
+
+        .tabela_manutencao {
+            display: flex;
+            flex-direction: column;
+            align-items: start;
+            justify-content: center;
+        }
+
+        .tabela_manutencao td {
+            padding: 0px;
+            margin: 0px;
+        }
+
+        .tabela_manutencao textarea {
+            border-radius: 0px;
+            padding: 3px;
+            border: none;
+            width: 95%;
+        }
+
+        #linhas_manutencao {
+            display: flex;
+            flex-direction: column;
+            align-items: start;
+            justify-content: center;
+        }
+
+        .linha {
+            text-align: center;
+            background-color: #d2d2d2;
+            color: #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 70vw;
+            gap: 1px;
+        }
+
     </style>
 </head>
 

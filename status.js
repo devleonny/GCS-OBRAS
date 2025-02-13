@@ -11,21 +11,17 @@ var data_status = dataAtual.toLocaleString('pt-BR', {
 var anexos = {}
 
 var fluxograma = {
-    'AGUARDANDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS'] },
-    'PEDIDO DE VENDA ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'FAZER REMESSA DE VENDA' },
-    'PEDIDO DE SERVIÇO ANEXADO': { cor: '#4CAF50', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'FAZER REMESSA DE SERVIÇO' },
-    'FATURAMENTO PEDIDO DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE VENDA' },
-    'FATURAMENTO PEDIDO DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE SERVIÇO' },
-    'REMESSA DE VENDA': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE REMESSA DE SERVIÇO' },
-    'REMESSA DE SERVIÇO': { cor: '#B12425', modulos: ['FINANCEIRO', 'RELATÓRIOS'], nome: 'EMITIR NOTA DE REMESSA DE VENDA' },
-    'PEDIDO DE VENDA FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'COLOCAR STATUS DE ENVIO VENDA' },
-    'PEDIDO DE SERVIÇO FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], nome: 'COLOCAR STATUS DE ENVIO SERVIÇO' },
-    'FINALIZADO': { cor: 'blue', modulos: ['RELATÓRIOS'] },
-    'MATERIAL ENVIADO': { cor: '#B3702D', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
-    'MATERIAL ENTREGUE': { cor: '#B3702D', modulos: ['RELATÓRIOS'] },
-    'COTAÇÃO PENDENTE': { cor: '#0a989f', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
+    'INCLUIR PEDIDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS'] },
+    'PEDIDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS'], proximo: 'FAZER REQUISIÇÃO', campo: 'PEDIDO' },
+    'REQUISIÇÃO': { cor: '#B12425', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], proximo: 'SEPARAR MATERIAL', campo: 'REQUISIÇÃO' },
+    'MATERIAL SEPARADO': { cor: '#B12425', modulos: ['FINANCEIRO', 'LOGÍSTICA', 'RELATÓRIOS'], proximo: 'EMITIR A NOTA', campo: 'REQUISIÇÃO' },
+    'FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], proximo: 'ENVIAR MATERIAL' },
+    'MATERIAL ENVIADO': { cor: '#B12425', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], proximo: 'CONFIRMAR RECEBIMENTO', campo: 'REQUISIÇÃO' },
+    'MATERIAL RECEBIDO': { cor: '#B12425', modulos: ['RELATÓRIOS'], campo: 'REQUISIÇÃO' },
+    'COTAÇÃO PENDENTE': { cor: '#0a989f', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], proximo: 'FINALIZAR COTAÇÃO' },
     'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] },
-    'RETORNO DE MATERIAIS': { cor: '#aacc14', modulos: ['LOGÍSTICA', 'RELATÓRIOS'] },
+    'RETORNO DE MATERIAIS': { cor: '#aacc14', modulos: ['RELATÓRIOS'] },
+    'FINALIZADO': { cor: 'blue', modulos: ['RELATÓRIOS'] },
 }
 
 async function resumo_orcamentos() {
@@ -38,7 +34,6 @@ async function resumo_orcamentos() {
     });
 
     let orcamentos_por_usuario = {};
-    delete dados_orcamentos['id'];
 
     for (let id in dados_orcamentos) {
         let orcamento = dados_orcamentos[id];
@@ -219,6 +214,7 @@ async function painel_adicionar_pedido() {
                     <option>Selecione</option>
                     <option>Serviço</option>
                     <option>Venda</option>
+                    <option>Venda + Serviço</option>
                 </select>
             </div>
 
@@ -316,6 +312,7 @@ async function painel_adicionar_notas(chave) {
                         <option>Remessa</option>
                         <option>Venda</option>
                         <option>Serviço</option>
+                        <option>Venda + Serviço</option>
                     </select>
                 </div>
             </div>
@@ -508,10 +505,10 @@ async function carregar_itens(apenas_visualizar, requisicao) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var dados_composicoes = await recuperarDados('dados_composicoes') || {}
     var orcamento = dados_orcamentos[id_orcam]
-    
+
     orcamento = await conversor_composicoes_orcamento(orcamento)
 
-    
+
     var linhas = ''
 
     if (!orcamento.dados_composicoes || Object.keys(orcamento.dados_composicoes).length == 0) {
@@ -917,10 +914,6 @@ async function carregar_status_divs(valor, chave, id) { // "valor" é o último 
 
         return painel_adicionar_notas(chave)
 
-    } else if (String(valor).includes('FATURADO')) {
-
-        return envio_de_material(chave, id_orcam)
-
     }
 
 }
@@ -928,7 +921,6 @@ async function carregar_status_divs(valor, chave, id) { // "valor" é o último 
 async function salvar_pedido(chave) {
 
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    let st = '';
     let chave_his = gerar_id_5_digitos();
     let data = document.getElementById('data')
     let comentario_status = document.getElementById('comentario_status')
@@ -945,7 +937,7 @@ async function salvar_pedido(chave) {
         `);
     }
 
-    fechar_status() // Só fechar após coletar a informação necessária; 
+    fechar_status() // Só fechar após coletar a informação necessária;
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
@@ -965,16 +957,12 @@ async function salvar_pedido(chave) {
         executor: acesso.usuario,
         comentario: comentario_status.value,
         anexos: anexos,
+        valor: Number(valor.value),
+        tipo: tipo.value,
+        pedido: pedido.value
     };
 
-
-    novo_lancamento.valor = Number(valor.value)
-    novo_lancamento.tipo = tipo.value
-    novo_lancamento.pedido = pedido.value
-    st = `PEDIDO DE ${String(tipo.value).toUpperCase()} ANEXADO`
-
-    novo_lancamento.status = st;
-    novo_lancamento.historico[chave_his].status = st;
+    novo_lancamento.historico[chave_his].status = `PEDIDO`
 
     if (!orcamento.status) {
         orcamento.status = {}
@@ -1004,8 +992,6 @@ async function salvar_notas(chave) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
-
-    let st = '';
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
     if (!orcamento.status) {
@@ -1013,7 +999,6 @@ async function salvar_notas(chave) {
     }
 
     var novo_lancamento = orcamento.status[chave];
-    novo_lancamento.notas = [];
     var chave_his = gerar_id_5_digitos();
 
     novo_lancamento.historico[chave_his] = {
@@ -1022,25 +1007,12 @@ async function salvar_notas(chave) {
         executor: acesso.usuario,
         comentario: comentario_status.value,
         anexos: anexos,
-        notas: []
+        status: 'FATURADO',
+        notas: [{
+            nota: nota.value,
+            modalidade: tipo.value
+        }]
     };
-
-
-    novo_lancamento.historico[chave_his].notas.push({
-        nota: nota.value,
-        modalidade: tipo.value
-    });
-
-    if (tipo.value == 'Venda') {
-        st = `PEDIDO DE VENDA FATURADO`;
-    } else if (tipo.value == 'Serviço') {
-        st = `PEDIDO DE SERVIÇO FATURADO`;
-    } else if (tipo.value == 'Remessa') {
-        st = tipo.value.includes('Serviço') ? `REMESSA DE SERVIÇO` : `REMESSA DE VENDA`;
-    }
-
-    novo_lancamento.status = st;
-    novo_lancamento.historico[chave_his].status = st;
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
     abrir_esquema(id_orcam)
@@ -1054,8 +1026,7 @@ async function salvar_notas(chave) {
 async function salvar_requisicao(chave, chave2) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    var orcamento = dados_orcamentos[id_orcam];
-    var st = '';
+    let orcamento = dados_orcamentos[id_orcam];
     let pendencias = []
     let interromper_processo = false
 
@@ -1077,7 +1048,7 @@ async function salvar_requisicao(chave, chave2) {
     await calcular_requisicao()
 
     novo_lancamento.historico[chave2] = {
-        status: '',
+        status: 'REQUISIÇÃO',
         data: data_status,
         executor: acesso.usuario,
         comentario: comentario_status.value,
@@ -1130,8 +1101,6 @@ async function salvar_requisicao(chave, chave2) {
 
     }
 
-    var tipo = String(orcamento.status[chave].tipo).toUpperCase()
-
     if (interromper_processo) {
 
         pendencias.forEach(element => {
@@ -1145,13 +1114,8 @@ async function salvar_requisicao(chave, chave2) {
             </div>
         `);
 
-    } else {
-        st = `FATURAMENTO PEDIDO DE ${tipo}`;
-
     }
 
-    novo_lancamento.status = st;
-    novo_lancamento.historico[chave2].status = st;
     novo_lancamento.historico[chave2].pedido_selecionado = pedido;
 
     var painel_status = document.getElementById('status')
@@ -1160,7 +1124,6 @@ async function salvar_requisicao(chave, chave2) {
     }
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/status`, st)
     await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/historico/${chave2}`, novo_lancamento.historico[chave2])
 
     abrir_esquema(id_orcam)
@@ -1189,10 +1152,11 @@ function fechar_espelho_ocorrencias() {
 
 function botao_novo_pedido(id) {
     return `
-    <div class="contorno_botoes" style="background-color: ${fluxograma['PEDIDO DE VENDA ANEXADO'].cor}" onclick="carregar_status_divs('AGUARDANDO', undefined, '${id}')">
+    <div class="contorno_botoes" style="background-color: ${fluxograma['PEDIDO'].cor}" onclick="carregar_status_divs('AGUARDANDO', undefined, '${id}')">
         <label>Novo <strong>Pedido </strong></label>
     </div>
-`}
+`
+}
 
 function botao_novo_pagamento(ch_pedido) {
     return `
@@ -1378,7 +1342,7 @@ async function exibir_todos_os_status(id) {
                 var his = st.historico[chave2]
                 var exibir_label = false;
                 let status_chave2 = String(his.status)
-
+                console.log(his) //29
                 fluxograma[status_chave2].modulos.forEach(sst => {
                     if (sst === modulo) {
                         exibir_label = true;
@@ -1394,23 +1358,15 @@ async function exibir_todos_os_status(id) {
                     }
 
                     let funcao = ''
-                    if (status_chave2.includes('ANEXADO')) {
+                    if (status_chave2.includes('PEDIDO')) {
 
                         funcao = `detalhar_requisicao('${chave_pedido}')`
 
-                    } else if (status_chave2.includes('FATURAMENTO')) {
+                    } else if (status_chave2.includes('REQUISIÇÃO') || status_chave2.includes('MATERIAL')) {
 
                         if (acesso.permissao == 'adm' || acesso.permissao == 'fin') {
                             funcao = `painel_adicionar_notas('${chave_pedido}')`
                         }
-
-                    } else if (status_chave2 == 'MATERIAL ENVIADO') {
-
-                        funcao = `envio_de_material('${chave_pedido}', '${id_orcam}', '${chave2}')`
-
-                    } else if (status_chave2.includes('FATURADO')) {
-
-                        funcao = `envio_de_material('${chave_pedido}', '${id_orcam}')`
 
                     }
 
@@ -1420,10 +1376,7 @@ async function exibir_todos_os_status(id) {
                         <div class="contorno">
                             <div class="avenida_contorno" style="background-color: ${fluxograma[status_chave2].cor}1f; margin: 0px;">
                                 <label><strong>Status: </strong>${status_chave2}</label>
-                                <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-                                    <label><strong>Número: </strong>${st.pedido}</label>
-                                    <img src="gifs/alerta.gif" style="width: 2vw; cursor: pointer;" onclick="popup_atualizar_item('${chave_pedido}', 'pedido')">
-                                </div>
+                                <label><strong>Número: </strong>${st.pedido}</label>
                                 <label><strong>Data: </strong> ${his.data}</label>
                                 <label><strong>Executor: </strong> ${his.executor}</label>
                                 <label><strong>Comentário: </strong> <br>${coments}</label>
@@ -1492,27 +1445,14 @@ async function aprovar_orcamento(responsavel, aprovar, data) {
     await preencher_orcamentos_v2()
 }
 
-try {
-    const { shell } = require('electron');
+const { shell } = require('electron');
 
-    function abrirArquivo(link) {
-        try {
-            shell.openExternal(link);
-        } catch {
-            window.open(link, '_blank');
-        }
+function abrirArquivo(link) {
+    try {
+        shell.openExternal(link);
+    } catch {
+        window.open(link, '_blank');
     }
-} catch { }
-
-function popup_atualizar_item(chave1, item) {
-
-    openPopup_v2(`
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: left;">
-            <label>Atualize a informação</label>
-            <input class="pedido" style="width: 100%" id="elemento_para_atualizado">
-            <button style="background-color: green;" onclick="atulizar_item('${chave1}', '${item}')">Salvar</button>
-        </div>
-    `)
 }
 
 async function atulizar_item(chave1, item) {
@@ -1555,61 +1495,32 @@ async function abrir_esquema(id) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
-    let dados_etiquetas = JSON.parse(localStorage.getItem('dados_etiquetas')) || {}
 
     var categorias = Object.fromEntries(
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
     )
 
+    console.log(dados_orcamentos[id])
+
     if (dados_orcamentos[id] && dados_orcamentos[id].status) {
         var todos_os_status = dados_orcamentos[id].status;
 
-        var etiquetas = ''
-        if (dados_orcamentos[id].etiqueta) {
-            var etiquetas_orcamento = dados_orcamentos[id].etiqueta
-
-            Object.keys(etiquetas_orcamento).forEach(et => {
-                var etiqueta = dados_etiquetas[et]
-                etiquetas += `
-                <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-                    <div class="contorno_botoes" style="background-color: ${etiqueta.cor}" onclick="remover_etiqueta('${id_orcam}', '${et}')">
-                    ${etiqueta.nome}
-                    </div>
-                    <label style="font-size: 0.6em;">${etiquetas_orcamento[et]}</label>
-                </div>    
-                `
-            })
-        }
-
         var levantamentos = ''
-
         if (dados_orcamentos[id].levantamentos) {
 
-            for (chave in dados_orcamentos[id].levantamentos) {
+            for (chave in dados_orcamentos[id].levantamentos) {//29
 
                 var levantamento = dados_orcamentos[id].levantamentos[chave]
 
-                var imagem = ''
-
-                if (formato(levantamento.formato) == 'PDF') {
-                    imagem = 'pdf'
-                } else if (formato(levantamento.formato) == 'IMAGEM') {
-                    imagem = 'imagem'
-                } else if (formato(levantamento.formato) == 'PLANILHA') {
-                    imagem = 'excel2'
-                } else {
-                    imagem = 'anexo'
-                }
-
                 let arquivo = `https://drive.google.com/file/d/${levantamento.link}/view?usp=drivesdk`
                 levantamentos += `
-                <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: center;" onclick="abrirArquivo('${arquivo}')">
-                    <div style="cursor: pointer; align-items: center; width: max-content; font-size: 0.7em; display: flex; justify-content; left; box-shadow: 2px 2px #94a0ab; background-color: #e9e9e9; color: #555; padding: 5px; margin:5px; border-radius: 5px;">
-                        <img src="imagens/${imagem}.png" style="width: 25px;">
-                        <label style="cursor: pointer;"><strong>${encurtar_texto(levantamento.nome, 10)}</strong></label>
+                <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;" onclick="abrirArquivo('${arquivo}')">
+                    <div onclick="abrirArquivo('${arquivo}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                        <label style="font-size: 0.8em;">${String(levantamento.nome).slice(0, 10)} ... ${String(levantamento.nome).slice(-7)}</label>
                     </div>
-                    <label style="text-decoration: underline; font-size: 0.7em; cursor: pointer;" onclick="excluir_levantamento('${id}', '${chave}')">Excluir</label>
-                </div>
+                    <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="excluir_levantamento('${id}', '${chave}')">
+                </div>                
                 `
             }
         }
@@ -1621,17 +1532,12 @@ async function abrir_esquema(id) {
                 <label>Atualizar</label>
             </div>
             • 
+            ${botao_novo_pedido(id)}
+            • 
             <label class="novo_titulo" style="color: #222">${dados_orcamentos[id].dados_orcam.cliente_selecionado}</label>
             • 
             <label class="novo_titulo" style="color: #222">${dados_orcamentos[id].dados_orcam.contrato}</label>
             •
-            <div onclick="selecionar_etiqueta()" class="contorno_botoes" style="display: flex; gap: 10px; align-items: center; justify-content: center; background-color: #222;"> 
-                <img src="imagens/etiqueta.png" style="width: 20px;">
-                <label>Etiqueta</label>
-            </div>
-            •
-            <div>${etiquetas}</div>
-
             <div style="display: flex; flex-direction: column; align-items: start;">
                 <div class="contorno_botoes" style="background-color: #222;">
                     <img src="imagens/anexo2.png" style="width: 15px;">
@@ -1647,56 +1553,60 @@ async function abrir_esquema(id) {
         `;
         var contador = 1;
 
-
         for (chave_pedido in todos_os_status) {
 
-            var lista_interna = todos_os_status[chave_pedido].historico;
-            var blocos = '';
-            var links_requisicoes = ''
-            var string_pagamentos = ''
-            var tem_pagamento = false
-            var pagamentos_painel = {}
+            let lista_interna = todos_os_status[chave_pedido].historico;
+            let blocos_por_status = {}
+            let links_requisicoes = ''
+            let string_pagamentos = ''
+            let tem_pagamento = false
+            let pagamentos_painel = {}
 
             for (pag in lista_pagamentos) {
-                if (pag !== 'id') { // IndexedDB armazena um item com esse 'id';
-                    var pagamento = lista_pagamentos[pag]
-                    var comentario = 'Sem observação'
-                    if (pagamento.param[0].observacao) {
-                        comentario = pagamento.param[0].observacao.replace(/\|/g, '<br>')
-                    }
 
-                    if (pagamento.id_pedido == chave_pedido || pagamento.pedido == todos_os_status[chave_pedido].pedido) {
-                        string_pagamentos += `
+                var pagamento = lista_pagamentos[pag]
+                var comentario = 'Sem observação'
+                if (pagamento.param[0].observacao) {
+                    comentario = pagamento.param[0].observacao.replace(/\|/g, '<br>')
+                }
+
+                if (pagamento.id_pedido == chave_pedido) { //29 Verificar um padrão para associar;
+                    string_pagamentos += `
                     <div style="display: flex; flex-direction: column; border-radius: 5px; border: solid 1px white; padding: 10px; background-color: white; color: #222;">
                             
                         <label style="display: flex; gap: 10px;"><strong>${pagamento.status}</strong></label>
                         <label><strong>Data:</strong> ${pagamento.param[0].data_previsao}</label>
                         <label><strong>Observação:</strong><br>${comentario}</label>
                         `
-                        pagamento.param[0].categorias.forEach(cat => {
-                            var nome_cat = ''
-                            categorias[cat.codigo_categoria] ? nome_cat = categorias[cat.codigo_categoria] : nome_cat = cat.codigo_categoria
-                            string_pagamentos += `
+                    pagamento.param[0].categorias.forEach(cat => {
+                        var nome_cat = ''
+                        categorias[cat.codigo_categoria] ? nome_cat = categorias[cat.codigo_categoria] : nome_cat = cat.codigo_categoria
+                        string_pagamentos += `
                             <label><strong>Categoria:</strong> ${nome_cat} • R$ ${dinheiro(cat.valor)}</label>
                             `
 
-                            if (!pagamentos_painel[pagamento.status]) {
-                                pagamentos_painel[pagamento.status] = 0
-                            }
-                            pagamentos_painel[pagamento.status] += Number(cat.valor)
+                        if (!pagamentos_painel[pagamento.status]) {
+                            pagamentos_painel[pagamento.status] = 0
+                        }
+                        pagamentos_painel[pagamento.status] += Number(cat.valor)
 
-                        })
-                        string_pagamentos += `
+                    })
+                    string_pagamentos += `
                         </div>
                         `
-                        tem_pagamento = true
-                    }
+                    tem_pagamento = true
                 }
+
             }
 
             if (tem_pagamento) {
-                blocos += `
-                <div class="bloko" style="background-color: #097fe6">
+
+                if (!blocos_por_status['PAGAMENTOS']) {
+                    blocos_por_status['PAGAMENTOS'] = ''
+                }
+
+                blocos_por_status['PAGAMENTOS'] = `
+                <div class="bloko" style="background-color: #097fe6; height: 500px; overflow-y: auto;">
                     <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
                     <img src="imagens/pesquisar.png" style="width: 25px; height: 25px;">
                     <input id="${chave_pedido}" style="padding: 10px; border-radius: 5px;" placeholder="Pesquisar pagamento" oninput="pesquisar_pagamentos('${chave_pedido}')">
@@ -1707,7 +1617,6 @@ async function abrir_esquema(id) {
                 </div>
             `}
 
-
             for (chave2 in lista_interna) {
 
                 var sst = lista_interna[chave2]
@@ -1715,12 +1624,12 @@ async function abrir_esquema(id) {
                 links_requisicoes = ''
                 let editar = ''
 
-                if (String(sst.status).includes('FATURAMENTO') || String(sst.status).includes('REMESSA')) {
+                if (sst.status.includes('REQUISIÇÃO') || sst.status.includes('MATERIAL')) {
 
                     links_requisicoes += `
                     <div class="anexos" style="cursor: pointer; display: flex; gap: 10px; justify-content: left; align-items: center;">
                         <img src="gifs/lampada.gif" style="width: 25px">
-                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;"
+                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
                             <label style="cursor: pointer;" onclick="detalhar_requisicao('${chave_pedido}', true, '${chave2}')"><strong>REQUISIÇÃO DISPONÍVEL</strong></label>
                             <label style="font-size: 0.7em;">Clique Aqui</label>
                         </div>
@@ -1728,17 +1637,48 @@ async function abrir_esquema(id) {
                     `
                     editar = `
                         <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="detalhar_requisicao('${chave_pedido}', false, '${chave2}')">
-                            <img src="imagens/editar4.png" style="width: 15px;">
+                            <img src="imagens/editar4.png">
                             <label>Editar</label>
                         </div>
                     `
                 }
 
-                if (String(sst.status).includes("RETORNO")) {
+                let dados_pedidos = ''
+                let opcoes = ['Serviço', 'Venda', 'Venda + Serviço']
+                let html_opcoes = ''
+                opcoes.forEach(op => {
+                    html_opcoes += `
+                    <option ${sst.tipo == op ? 'selected' : ''}>${op}</option>
+                    `
+                })
+
+                if (String(sst.status).includes('PEDIDO')) {
+
+                    dados_pedidos = `
+                    <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
+                        <label><strong>Pedido:</strong></label>
+                        <input style="border-radius: 2px; width: 8vw; font-size: 0.7vw;" value="${sst.pedido}" oninput="mostrar_botao_pedido(this)">
+                        <img src="imagens/concluido.png" style="display: none; width: 1vw;" onclick="atualizar_pedido('${chave_pedido}', '${chave2}', 'pedido', this)">
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
+                        <label><strong>Valor:</strong></label>
+                        <input style="border-radius: 2px; width: 8vw; font-size: 0.7vw;" value="${sst.valor}" oninput="mostrar_botao_pedido(this)">
+                        <img src="imagens/concluido.png" style="display: none; width: 1vw;" onclick="atualizar_pedido('${chave_pedido}', '${chave2}', 'valor', this)">
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
+                        <label><strong>Tipo:</strong></label>
+                        <select style="text-align: center; border: none; padding: 0px; margin: 0px; font-size: 0.7vw;" onchange="atualizar_pedido('${chave_pedido}', '${chave2}', 'tipo', this)">
+                            ${html_opcoes}
+                        </select>
+                    </div>                                        
+                    `
+                }
+
+                if (String(sst.status).includes('RETORNO')) {
 
                     editar = `
                         <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="retorno_de_materiais('${chave_pedido}', '${id}', false)">
-                            <img src="imagens/editar4.png" style="width: 15px;">
+                            <img src="imagens/editar4.png">
                             <label>Editar</label>
                         </div>
                     `
@@ -1777,103 +1717,96 @@ async function abrir_esquema(id) {
                     var infos = calcular_quantidades(sst.requisicoes, dados_orcamentos[id].dados_composicoes)
 
                     totais += `
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; flex-direction: column;">
-                            <label><strong>Total sem ICMS: </strong><br>${sst.total_sem_icms}</label>
-                            <label><strong>Total com ICMS: </strong><br>${sst.total_com_icms}</label>
-                        </div>
 
-                        <div class="contorno_botoes" style="border-radius: 3px; padding: 10px; background-color: ${infos.cor};">
-                            <label>${infos.label_porcentagem}</label>
-                        </div>
+                    <div style="display: flex; flex-direction: column;">
+                        <label><strong>Total sem ICMS: </strong><br>${sst.total_sem_icms}</label>
+                        <label><strong>Total com ICMS: </strong><br>${sst.total_com_icms}</label>
                     </div>
+
+                    <div class="contorno_botoes" style="border-radius: 3px; padding: 5px; background-color: ${infos.cor};">
+                        <label style="font-size: 0.7vw;">${infos.label_porcentagem}</label>
+                    </div>
+
                     `
                 }
 
-                var dados_de_envio = ''
-                if (sst.envio) {
-
-                    function conv_data(data) {
-
-                        if (data !== '') {
-                            var split_data = String(data).split('-')
-                            data = `${split_data[2]}/${split_data[1]}/${split_data[0]}`
-                        }
-
-                        return data
-                    }
-
-                    var envio = sst.envio
-                    let dt_previsao = ''
-                    if (envio.previsao) {
-                        dt_previsao = conv_data(envio?.previsao)
-                    }
-
-                    editar = `
-                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="envio_de_material('${chave_pedido}', '${id_orcam}','${chave2}')">
-                            <img src="imagens/editar4.png" style="width: 15px;">
-                            <label>Editar</label>
-                        </div>
-                    `
-                    dados_de_envio = `
-                    <label><strong>Rastreio: </strong> ${envio.rastreio}</label>
-                    <label><strong>Custo do Frete:</strong> ${dinheiro(envio.custo_frete)}</label>
-                    <label><strong>NF: </strong> ${envio.nf}</label>
-                    <label><strong>Transportadora: </strong> ${envio.transportadora}</label>
-                    <label><strong>Volumes: </strong> ${envio.volumes}</label>
-                    <label><strong>Data de Saída: </strong> ${conv_data(envio.data_saida)}</label>
-                    <label><strong>Data de Previsão: </strong> ${dt_previsao}</label>
-                    <label><strong>Data de Entrega: </strong> ${conv_data(envio.entrega)}</label>
-                    `
-                }
                 var coments = ''
                 if (sst.comentario) {
                     var coments = sst.comentario.replace(/\n/g, '<br>')
                 }
 
-                blocos += `
-                <div class="bloko" style="border: 1px solid ${fluxograma[sst.status].cor}">
-                    <div style="display: flex; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-radius: 3px; padding: 3px; height: 100vh;">
-                        <span class="close" style="position: absolute; top: 15px; right: 15px;" onclick="deseja_apagar('${chave_pedido}', '${chave2}')">&times;</span>
-                        <label><strong>Status: </strong>${sst.status}</label>
-                        <label><strong>Executor: </strong>${sst.executor}</label>
-                        <label><strong>Data: </strong>${sst.data}</label>
-                        <label><strong>Comentário: </strong> <br> ${coments}</label>
-                        ${sst.notas ? `<label><strong>NF: </strong>${notas}</label>` : ''}
-                        ${totais}
-                        ${dados_de_envio}
-                        ${links_requisicoes}
-                        ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${chave2}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
-                        <div style="display: flex; justify-content: space-evenly; align-items: center;">
-                            <div class="contorno_botoes" style="background-color: ${fluxograma[sst.status].cor}">
-                                <img src="imagens/anexo2.png" style="width: 15px;">
-                                <label for="adicionar_anexo_${chave_pedido}_${chave2}">Anexo
-                                    <input type="file" id="adicionar_anexo_${chave_pedido}_${chave2}" style="display: none;" onchange="salvar_anexo('${chave_pedido}', '${chave2}')" multiple>  
-                                </label>
+                let status_dinamico = sst.status
+                if (sst.status.includes('REQUISIÇÃO') || sst.status.includes('MATERIAL')) {
+                    let opcoes = ['REQUISIÇÃO', 'MATERIAL SEPARADO', 'MATERIAL ENVIADO', 'MATERIAL RECEBIDO']
+                    let string_opcoes = ''
+
+                    opcoes.forEach(op => {
+                        let selected = sst.status == op;
+                        string_opcoes += `<option ${selected ? 'selected' : ''}>${op}</option>`;
+                    });
+
+                    status_dinamico = `
+                    <select onchange="alterar_status('${chave_pedido}', '${chave2}', this)" style="font-size: 0.7vw; padding: 0px; margin: 0px; border: none; text-align: center; cursor: pointer;">
+                        ${string_opcoes}
+                    </select>
+                    `
+                }
+
+                let campo = fluxograma[sst.status]?.campo || sst.status
+
+                if (!blocos_por_status[campo]) {
+                    blocos_por_status[campo] = ''
+                }
+
+                blocos_por_status[campo] += `
+                    <div class="bloko" 
+                        style="border: 1px solid ${fluxograma[sst.status].cor};"
+                        onmouseover="exibirItens(this, true)" 
+                        onmouseout="exibirItens(this, false)">
+                        <div style="cursor: pointer; display: flex; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-radius: 3px;">
+                            <span class="close" style="position: absolute; top: 15px; right: 15px;" onclick="deseja_apagar('${chave_pedido}', '${chave2}')">&times;</span>
+                            <div style="display: flex; align-items: center; justify-content: start; gap: 3px;">
+                                <label><strong>Status:</strong></label>
+                                ${status_dinamico}
                             </div>
-                            <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave2}')" style="background-color: ${fluxograma[sst.status].cor}">
-                                <img src="imagens/comentario.png" style="width: 15px;">
-                                <label>Comentário</label>
+                            <label><strong>Executor: </strong>${sst.executor}</label>
+                            <label><strong>Data: </strong>${sst.data}</label>
+
+                            <div class="escondido" style="display: none;">
+                                <label><strong>Comentário: </strong> <br> ${coments}</label>
+                                ${dados_pedidos}
+                                ${sst.notas ? `<label><strong>NF: </strong>${notas}</label>` : ''}
+                                ${totais}
+                                ${links_requisicoes}
+                                ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${chave2}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
+
+                                <div class="contorno_botoes" style="background-color: ${fluxograma[sst.status].cor}">
+                                    <img src="imagens/anexo2.png">
+                                    <label for="adicionar_anexo_${chave_pedido}_${chave2}">Anexo
+                                        <input type="file" id="adicionar_anexo_${chave_pedido}_${chave2}" style="display: none;" onchange="salvar_anexo('${chave_pedido}', '${chave2}')" multiple>  
+                                    </label>
+                                </div>
+                                <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave2}')" style="background-color: ${fluxograma[sst.status].cor}">
+                                    <img src="imagens/comentario.png">
+                                    <label>Comentário</label>
+                                </div>
+
+                                ${editar}
+
+                                <div id="comentario_${chave2}" style="display: none; justify-content: space-evenly; align-items: center;">
+                                    <textarea placeholder="Comente algo aqui..."></textarea>
+                                    <label class="contorno_botoes" style="background-color: green;" onclick="salvar_comentario_trello('${chave_pedido}', '${chave2}')">Salvar</label>
+                                    <label class="contorno_botoes" style="background-color: #B12425;" onclick="toggle_comentario('comentario_${chave2}')">&times;</label>
+                                </div>
+                                <div id="caixa_comentarios_${chave2}" style="display: flex; flex-direction: column;">
+                                    ${await carregar_comentarios(chave_pedido, chave2)}
+                                </div>
+                                ${anxsss}
                             </div>
-
-                            ${editar}
                         </div>
-                        <div id="comentario_${chave2}" style="display: none; justify-content: space-evenly; align-items: center;">
-
-                            <textarea placeholder="Comente algo aqui..."></textarea>
-
-                            <label class="contorno_botoes" style="background-color: green;" onclick="salvar_comentario_trello('${chave_pedido}', '${chave2}')">Salvar</label>
-                            <label class="contorno_botoes" style="background-color: #B12425;" onclick="toggle_comentario('comentario_${chave2}')">&times;</label>
-
-                        </div>
-                        <div id="caixa_comentarios_${chave2}" style="display: flex; flex-direction: column;">
-                            ${await carregar_comentarios(chave_pedido, chave2)}
-                        </div>
-                        ${anxsss}
                     </div>
-                </div>
-                `
 
+                `
             }
 
             var valor_do_pedido = '???'
@@ -1907,7 +1840,7 @@ async function abrir_esquema(id) {
                 cor_indicador = '#B12425'
             }
 
-            var div_pags = `
+            blocos_por_status['PAINEL'] = `
             <div class="contorno_botoes" style="display: flex; flex-direction: column; align-items: start; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
                 <label>Gestão de Custos</label>
                 ${pags}
@@ -1918,78 +1851,49 @@ async function abrir_esquema(id) {
                 <label>${dinheiro(resultado)}</label>
             </div>
             `
-            var ultima_alteracao = ''
-            if (todos_os_status[chave_pedido].alterado_por) {
-                var info = todos_os_status[chave_pedido]
 
-                ultima_alteracao = `
-                <label>Alterado por <strong>${info.alterado_por}</strong>, às ${info.alterado_quando}</label>
+            let blocos = ''
+            for (div in blocos_por_status) {
+                let divisao = blocos_por_status[div]
+                blocos += `
+                <div style="display: flex; flex-direction: column; justify-content: start; align-items: center; width: 16vw; overflow-y: auto; gap: 10px;">
+                    ${divisao}
+                </div>
                 `
             }
 
-            var opcoes_status = ''
-            var atual_status = todos_os_status[chave_pedido].status
-            for (fluxo in fluxograma) {
-                opcoes_status += `
-                <option ${fluxo == atual_status ? 'selected' : ''}>${fluxo}</option>
-                `
-            }
-
+            let finalizado = todos_os_status[chave_pedido].finalizado ? 'checked' : ''
+            
             var linhas = `
                 <div style="display: flex; flex-direction: column; gap: 15px;">
-                    <hr style="width: 80%;">
-                    <div style="display: flex; gap: 10px;">
+                    <hr style="width: 95%;">
+
+                    <div style="display: flex;">
                         <div
-                            style="display: flex; align-items: center; font-size: 1.5em; font-weight: bold; background-color: #444; color: #fff; padding: 5px 10px; border-radius: 5px;">
+                            style="display: flex; align-items: center; font-size: 1.5em; font-weight: bold; background-color: #444; color: #fff; padding: 5px 10px; border-bottom-left-radius: 5px; border-top-left-radius: 5px;">
                             ${contador}
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 10px;">
-                            <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-                            <img src="gifs/atencao.gif" style="width: 2vw;">
-                            <label style="text-decoration: underline; cursor: pointer;"
-                                onclick="deseja_apagar('${chave_pedido}')">
-                                Excluir este número de Pedido
-                            </label>
+
+                        <div style="display: flex; flex-direction: column; gap: 10px; padding: 3px;">
+
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">  
+
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                    <input type="checkbox" style="width: 30px; height: 30px;" onchange="finalizar_pedido('${chave_pedido}', this)" ${finalizado}>
+                                    <label><strong>Marcar como FINALIZADO?</strong></label>
+                                </div>
+
                             </div>
 
-                            <div style="display: flex; flex-direction: column; align-items: start;">
-                                <label>
-                                    <strong>Situação atual: </strong>
-                                </label>
-                                <select onchange="alterar_status_principal(this, '${chave_pedido}')">
-                                    ${opcoes_status}
-                                </select>
-                                ${ultima_alteracao}
-                            </div>
-
-                            <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-                                <label style="text-align: left;"><strong>Número do pedido:</strong>
-                                    ${todos_os_status[chave_pedido].pedido}</label>
-                                <img src="gifs/alerta.gif" style="width: 2vw; cursor: pointer;"
-                                    onclick="popup_atualizar_item('${chave_pedido}', 'pedido')">
-                            </div>
-
-                            <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-                                <label style="text-align: left;"><strong>Valor deste Pedido</strong>
-                                    ${valor_do_pedido}</label>
-                                <img src="gifs/alerta.gif" style="width: 2vw; cursor: pointer;"
-                                    onclick="popup_atualizar_item('${chave_pedido}', 'valor')">
-                            </div>
-                            
                             <div style="display: flex; gap: 10px;">
                                 ${botao_novo_pagamento(chave_pedido)}
-                                ${botao_novo_pedido(id)}
-                                <div class="contorno_botoes" style="background-color: ${fluxograma['FATURAMENTO PEDIDO DE VENDA'].cor}"
+                                <div class="contorno_botoes" style="background-color: ${fluxograma['REQUISIÇÃO'].cor}"
                                     onclick="detalhar_requisicao('${chave_pedido}')">
                                     <label>Nova <strong>Requisição</strong></label>
                                 </div>
-                                <div class="contorno_botoes" style="background-color: ${fluxograma['PEDIDO DE VENDA FATURADO'].cor};"
+                                <div class="contorno_botoes" style="background-color: ${fluxograma['FATURADO'].cor};"
                                     onclick="carregar_status_divs('FATURAMENTO', '${chave_pedido}', '${id}')">
                                     <label>Nova <strong>Nota Fiscal</strong></label>
-                                </div>
-                                <div class="contorno_botoes" style="background-color: ${fluxograma['MATERIAL ENVIADO'].cor};"
-                                    onclick="envio_de_material('${chave_pedido}', '${id}')">
-                                    <label>Envio de <strong>Material</strong></label>
                                 </div>
                                 <div class="contorno_botoes" style="background-color: ${fluxograma['COTAÇÃO PENDENTE'].cor};"
                                     onclick="iniciar_cotacao('${chave_pedido}', '${id}')">
@@ -1999,10 +1903,14 @@ async function abrir_esquema(id) {
                                     onclick="retorno_de_materiais('${chave_pedido}', '${id}', true)">
                                     <label>Retorno de <strong>Materiais</strong></label>
                                 </div>
+                                <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
+                                    <img src="gifs/atencao.gif" style="width: 2vw;">
+                                    <label style="text-decoration: underline; cursor: pointer;" onclick="deseja_apagar('${chave_pedido}')">
+                                        Excluir este número de Pedido
+                                    </label>
+                                </div>                                
                             </div>
                         </div>
-
-                        ${pags !== '' ? div_pags : ''}
 
                     </div>
                     <div class="container-blocos">
@@ -2017,16 +1925,63 @@ async function abrir_esquema(id) {
         };
 
         var estruturaHtml = `
-        <div id="estrutura" class="status" style="display: flex; flex-direction: column; gap: 10px; width: 100%; height: 100vh; overflow: auto;">
+        <div id="estrutura" class="status" style="display: flex; flex-direction: column; gap: 10px; width: 100%; overflow: auto;">
         <span class="close" onclick="fechar_estrutura()">&times;</span>
         ${acumulado}
         </div>
-    `;
+        `;
         document.body.insertAdjacentHTML('beforeend', estruturaHtml);
 
         fechar_espelho_ocorrencias();
     }
 
+}
+
+async function atualizar_pedido(chave1, chave2, campo, img_select) {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+
+    let orcamento = dados_orcamentos[id_orcam]
+
+    let elemento = campo == 'tipo' ? img_select : img_select.previousElementSibling;
+
+    orcamento.status[chave1].historico[chave2][campo] = elemento.value
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+
+    campo !== 'tipo' ? img_select.style.display = 'none' : ''
+}
+
+function mostrar_botao_pedido(elemento) { //29
+    let img = elemento.nextElementSibling;
+    img.style.display = 'block'
+}
+
+async function finalizar_pedido(chave1, checkbox) {
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let pedido = dados_orcamentos[id_orcam].status[chave1]
+
+    checkbox.checked ? pedido.finalizado = true : pedido.finalizado = false
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+
+}
+
+async function alterar_status(chave1, chave2, select) {
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+
+    dados_orcamentos[id_orcam].status[chave1].historico[chave2].status = select.value
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+
+}
+
+function exibirItens(elemento, exibir) {
+    let itens = elemento.querySelectorAll('.escondido');
+    itens.forEach(item => {
+        item.style.display = exibir ? 'flex' : 'none';
+    });
 }
 
 async function iniciar_cotacao(chave, id_orcam) {
@@ -2040,13 +1995,13 @@ async function iniciar_cotacao(chave, id_orcam) {
     let itens = {} // Dicionário;
     let tem_requisicao = false
 
-    for(chave2 in todos_os_status){
+    for (chave2 in todos_os_status) {
 
         let teste = todos_os_status[chave2]
 
-        if (String(teste.status).includes('FATURAMENTO')){
+        if (String(teste.status).includes('FATURAMENTO')) {
 
-            if(teste.requisicoes){
+            if (teste.requisicoes) {
 
                 tem_requisicao = true
 
@@ -2056,7 +2011,7 @@ async function iniciar_cotacao(chave, id_orcam) {
 
     }
 
-    if(!tem_requisicao){
+    if (!tem_requisicao) {
 
         return openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
@@ -2178,7 +2133,7 @@ async function iniciar_cotacao(chave, id_orcam) {
     }
 
     enviar_dados_generico(dados) // 29 Mantém por enquanto...
-    
+
     abrir_esquema(id_orcam)
 
 }
@@ -2313,30 +2268,6 @@ async function salvar_materiais_retorno(chave_pedido, chave2) {
 
 }
 
-async function alterar_status_principal(select, chave) {
-
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    var orcamento = dados_orcamentos[id_orcam]
-
-    var data = new Date().toLocaleString('pt-BR', {
-        dateStyle: 'short',
-        timeStyle: 'short'
-    });
-
-    orcamento.status[chave].status = select.value
-    orcamento.status[chave].alterado_por = acesso.usuario
-    orcamento.status[chave].alterado_quando = data
-
-    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/status`, select.value)
-    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/alterado_por`, acesso.usuario)
-    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/alterado_quando`, data)
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
-
-    abrir_esquema(id_orcam)
-
-}
-
 async function recuperarCotacoes() {
     const resposta = await fetch(
         'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=cotacoes'
@@ -2353,94 +2284,6 @@ async function recuperarCotacoes() {
         cotacoes[id] = cotacao;
     });
     localStorage.setItem("dados_cotacao", JSON.stringify(cotacoes));
-}
-
-async function envio_de_material(chave1, id_orcam, chave2) {
-
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let orcamento = dados_orcamentos[id_orcam]
-    let envio = {}
-    let funcao = `registrar_envio_material('${chave1}', '${id_orcam}')`
-    let comentario = ''
-    if (chave2 !== undefined) {
-        envio = orcamento.status[chave1].historico[chave2].envio
-        funcao = `registrar_envio_material('${chave1}', '${id_orcam}', '${chave2}')`
-        comentario = orcamento.status[chave1].historico[chave2].comentario
-    }
-
-    let transportadoras = ['JAMEF', 'CORREIOS', 'RODOVIÁRIA', 'JADLOG', 'AÉREO', 'OUTRAS']
-    let opcoes_transportadoras = ''
-
-    transportadoras.forEach(transp => {
-        let marcado = envio.transportadora == transp ? 'selected' : ''
-        opcoes_transportadoras += `
-            <option ${marcado}>${transp}</option>
-        `
-    })
-
-    var acumulado = `
-    <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
-        <img src="imagens/logistica.png" style="width: 50px;">
-        <label class="novo_titulo">Registrar Envio de Material</label>
-    </div>
-    <div id="painel_envio_de_material">
-        <div class="pergunta">
-            <label>Número de rastreio</label>
-            <input id="rastreio" value="${envio?.rastreio || ""}">
-        </div>    
-
-        <div class="pergunta">
-            <label>Transportadora</label>
-            <select id="transportadora">
-                ${opcoes_transportadoras}
-            </select>
-        </div>
-
-        <div class="pergunta">
-            <label>Custo do Frete</label>
-            <input type="number" id="custo_frete" value="${envio.custo_frete}">
-        </div>
-
-        <div class="pergunta">
-            <label>Nota Fiscal</label>
-            <input id="nf" value="${envio.nf || ""}">
-        </div>
-
-        <div class="pergunta">
-            <label>Comentário</label>
-            <textarea id="comentario_envio" style="border: none; width: 152px; height: 70px;">${comentario}</textarea>
-        </div>
-
-        <div class="pergunta">
-            <label>Quantos volumes?</label>
-            <input type="number" id="volumes" value="${envio.volumes}">
-        </div>
-
-        <div class="pergunta">
-            <label>Data de Saída</label>
-            <input type="date" id="data_saida" value="${envio.data_saida}">
-        </div>
-
-        <div class="pergunta">
-            <label>Previsão de Entrega</label>
-            <input type="date" id="previsao" value="${envio.previsao}">
-        </div>
-
-        <hr style="width: 80%;">
-
-        <div class="pergunta">
-            <label>Apenas quando o material for entregue, preencha esta data</label>
-            <input type="date" id="entrega" value="${envio.entrega}">
-        </div>
-
-        <hr style="width: 80%;">
-
-        <button style="background-color: #4CAF50; width: 100%; margin: 0px;" onclick="${funcao}">Salvar</button>
-      
-    </div>
-    `
-    openPopup_v2(acumulado)
-
 }
 
 async function registrar_envio_material(chave1, id_orcam, chave2) {
@@ -2484,7 +2327,7 @@ async function registrar_envio_material(chave1, id_orcam, chave2) {
 
     historico[id] = status
     remover_popup()
-    
+
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${id}`, status)
     await enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/status`, st)
@@ -2632,7 +2475,7 @@ async function carregar_comentarios(chave1, chave2) {
             }
 
             comentss += `
-            <div class="anexos" style="width: 95%;">
+            <div class="anexos" style="width: 95%; margin: 0px; margin-top: 5px;">
                 <label>${item.comentario.replace(/\n/g, '<br>')}
                 <br><strong>${item.data} • ${item.usuario}</strong>${excluir}</label>
             </div>

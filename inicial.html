@@ -8,6 +8,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="gcsobras.css">
     <style>
+        body {
+            font-size: 0.8em;
+            background: linear-gradient(45deg, #B12425, #151749);
+            animation: none;
+        }
+
         #progress-bar {
             width: 100%;
             background-color: #e0e0e0;
@@ -58,12 +64,6 @@
             background-color: #151749;
         }
 
-        p {
-            font-size: 0.6em;
-            font-weight: bold;
-            text-align: center;
-        }
-
         #popup {
             display: none;
             position: fixed;
@@ -75,11 +75,11 @@
             padding: 20px;
             border: 1px solid #ccc;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
+            border-radius: 5px;
             z-index: 1000;
-            max-width: 350px;
+            width: 20vw;
             font-family: Arial, sans-serif;
-            font-size: 30px;
+            font-size: 1.0vw;
             color: #333;
         }
 
@@ -108,7 +108,7 @@
             text-align: center;
             text-decoration: none;
             border-radius: 5px;
-            font-size: 16px;
+            font-size: 1.1vw;
         }
 
         #popup .payment-btn:hover {
@@ -127,69 +127,66 @@
 
     <div id="popup">
         <button class="close-btn" onclick="fecharPopUps(this.parentNode.id)">×</button>
-        <p id="popup-message"></p>
-        <a href="pagamentos.html" class="payment-btn">Ir para a Página de Pagamento</a>
+        <label id="popup-message"></label>
+        <label onclick="window.location.href='pagamentos.html'" class="payment-btn">Página de Pagamento</label>
     </div>
 
-    <div id="content" style="width: 100%; justify-content: center;">
+    <div id="content" style="width: 100%; justify-content: center; align-items: start; margin-left: 10vw;">
         <div style="display: flex; justify-content: center; align-items: center;">
             <img src="imagens/BG.png" style="width: 20vw;">
         </div>
 
         <div class="containerX" id="painel_geral">
-            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
-                onclick="ir_para('PROJETOS')">
+            <div class="block" style="flex-direction: column; gap: 0px;" onclick="ir_para('PROJETOS')">
                 <div class="icon"><img src="imagens/projeto.png" style="width: 50px;"></div>
-                <p>PROJETOS</p>
+                <label>PROJETOS</label>
             </div>
-            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
-                onclick="ir_para('LOGÍSTICA')">
+            <div class="block" style="flex-direction: column; gap: 0px;" onclick="ir_para('LOGÍSTICA')">
                 <div class="icon"><img src="imagens/logistica.png" style="width: 50px;"></div>
-                <p>LOGÍSTICA</p>
+                <label>LOGÍSTICA</label>
             </div>
-            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
-                onclick="ir_para('FINANCEIRO')">
+            <div class="block" style="flex-direction: column; gap: 0px;" onclick="ir_para('FINANCEIRO')">
                 <div class="icon"><img src="imagens/financeiro.png" style="width: 50px;"></div>
-                <p>FINANCEIRO</p>
+                <label>FINANCEIRO</label>
             </div>
-            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
-                onclick="window.location.href='cotacoes.html'">
+            <div class="block" style="flex-direction: column; gap: 0px;" onclick="ir_para('CHAMADOS')">
+                <div class="icon"><img src="imagens/chamados.png" style="width: 50px;"></div>
+                <label>CHAMADOS</label>
+            </div>
+            <div class="block" style="flex-direction: column; gap: 0px;" onclick="window.location.href='cotacoes.html'">
                 <div class="icon"><img src="imagens/cotacao2.png" style="width: 50px;"></div>
-                <p>COTAÇÕES</p>
+                <label>COTAÇÕES</label>
             </div>
-            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
+            <div class="block" style="flex-direction: column; gap: 0px;"
                 onclick="window.location.href='composicoes.html'">
                 <div class="icon"><img src="imagens/composicoes.png" style="width: 50px;"></div>
-                <p>COMPOSIÇÕES</p>
+                <label>COMPOSIÇÕES</label>
             </div>
-            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
+            <div class="block" style="flex-direction: column; gap: 0px;"
                 onclick="window.location.href='simulador.html'">
                 <div class="icon"><img src="imagens/calculadora.png" style="width: 50px;"></div>
-                <p>CALCULADORA</p>
+                <label>CALCULADORA</label>
             </div>
-            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
-                onclick="ir_para('RELATÓRIOS')">
+            <div class="block" style="flex-direction: column; gap: 0px;" onclick="window.location.href='estoque.html'">
+                <div class="icon"><img src="imagens/estoque.png" style="width: 50px;"></div>
+                <label>ESTOQUE</label>
+            </div>
+            <div class="block" style="flex-direction: column; gap: 0px;" onclick="ir_para('RELATÓRIOS')">
                 <div class="icon"><img src="imagens/relatorio.png" style="width: 50px;"></div>
-                <p>RELATÓRIOS</p>
+                <label>RELATÓRIOS</label>
             </div>
-            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
+            <div class="block" style="flex-direction: column; gap: 0px;"
                 onclick="window.location.href='pagamentos.html'">
                 <div class="icon"><img src="imagens/reembolso.png" style="width: 50px;"></div>
-                <p>REEMBOLSOS & PAGAMENTOS</p>
+                <label>REEMBOLSOS & PAGAMENTOS</label>
             </div>
-            <div class="block" style="font-size: 1.5em; flex-direction: column; gap: 0px;"
-                onclick="window.location.href='estoque.html'">
-                <div class="icon"><img src="imagens/estoque.png" style="width: 50px;"></div>
-                <p>ESTOQUE</p>
-            </div>
-
         </div>
 
     </div>
 
     <div id="popup">
         <button class="close-btn" onclick="closePopup()">×</button>
-        <p id="popup-message"></p>
+        <p id="popup-message"></label>
     </div>
 
 </body>
