@@ -1455,31 +1455,6 @@ function abrirArquivo(link) {
     }
 }
 
-async function atulizar_item(chave1, item) {
-
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    var orcamento = dados_orcamentos[id_orcam]
-    var novo = elemento_para_atualizado.value
-    remover_popup()
-
-    novo == '' ? novo = '???' : ''
-    orcamento.status[chave1][item] = novo
-
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/${item}`, novo)
-
-    var estrutura = document.getElementById('estrutura')
-    var espelho_ocorrencias = document.getElementById('espelho_ocorrencias')
-    if (estrutura) {
-        estrutura.remove()
-        abrir_esquema(id_orcam)
-    } else if (espelho_ocorrencias) {
-        espelho_ocorrencias.remove()
-        exibir_todos_os_status(id_orcam)
-    }
-
-}
-
 async function abrir_esquema(id) {
 
     overlay.style.display = 'block'
@@ -1499,8 +1474,6 @@ async function abrir_esquema(id) {
     var categorias = Object.fromEntries(
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
     )
-
-    console.log(dados_orcamentos[id])
 
     if (dados_orcamentos[id] && dados_orcamentos[id].status) {
         var todos_os_status = dados_orcamentos[id].status;
@@ -1863,7 +1836,7 @@ async function abrir_esquema(id) {
             }
 
             let finalizado = todos_os_status[chave_pedido].finalizado ? 'checked' : ''
-            
+
             var linhas = `
                 <div style="display: flex; flex-direction: column; gap: 15px;">
                     <hr style="width: 95%;">
@@ -1946,6 +1919,7 @@ async function atualizar_pedido(chave1, chave2, campo, img_select) {
 
     orcamento.status[chave1].historico[chave2][campo] = elemento.value
 
+    enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/${campo}`, elemento.value)
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     campo !== 'tipo' ? img_select.style.display = 'none' : ''
@@ -1960,9 +1934,12 @@ async function finalizar_pedido(chave1, checkbox) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let pedido = dados_orcamentos[id_orcam].status[chave1]
+    let situacao;
+    checkbox.checked ? situacao = true : situacao = false
 
-    checkbox.checked ? pedido.finalizado = true : pedido.finalizado = false
+    pedido.finalizado = situacao
 
+    enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/finalizado`, situacao)
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
 }
@@ -1973,6 +1950,7 @@ async function alterar_status(chave1, chave2, select) {
 
     dados_orcamentos[id_orcam].status[chave1].historico[chave2].status = select.value
 
+    enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/status`, select.value)
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
 }
