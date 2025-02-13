@@ -566,8 +566,10 @@ input[type="date"] {
 }
 
 .etiqueta {
-    display: inline-block;
-    padding: 5px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
     border-radius: 5px;
     font-size: 12px;
     font-weight: bold;
@@ -578,7 +580,6 @@ input[type="date"] {
 .etiqueta:hover {
     transform: scale(1.05);
 }
-
 
 .botao-excluir-comentario:hover {
     background-color: #ff1a1a;
@@ -596,7 +597,7 @@ input[type="date"] {
 }
 
 .botao-excluir-etiqueta {
-    background: #ff5c5c; /* Vermelho suave, igual aos outros botões */
+    background: #ff5c5c; /* Vermelho suave */
     border: none;
     color: white;
     padding: 3px 6px;
@@ -610,7 +611,6 @@ input[type="date"] {
 .botao-excluir-etiqueta:hover {
     background: #ff1a1a; /* Vermelho mais forte ao passar o mouse */
 }
-
 /* Scroll personalizado */
 ::-webkit-scrollbar {
     width: 8px;
