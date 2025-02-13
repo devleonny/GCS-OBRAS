@@ -1516,13 +1516,19 @@ async function abrir_esquema(id) {
                 }
 
                 blocos_por_status['PAGAMENTOS'] = `
-                <div class="bloko" style="background-color: #097fe6; height: 500px; overflow-y: auto;">
-                    <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
-                    <img src="imagens/pesquisar.png" style="width: 25px; height: 25px;">
-                    <input id="${chave_pedido}" style="padding: 10px; border-radius: 5px;" placeholder="Pesquisar pagamento" oninput="pesquisar_pagamentos('${chave_pedido}')">
+                <div class="bloko"
+                onmouseover="exibirItens(this, true)" 
+                onmouseout="exibirItens(this, false)"
+                style="background-color: #097fe6; height: max-content; overflow-y: auto;">
+                    <div style="display: flex; justify-content: center; align-items: center;">
+                        <label style="color: white; font-size: 1.3vw;">Pagamentos</label>
                     </div>
-                    <div id="div_pagamentos_pesquisa_${chave_pedido}" style="display: flex; flex-direction: column; gap: 10px;">
-                    ${string_pagamentos}
+                    <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
+                        <img src="imagens/pesquisar.png" style="width: 1vw;">
+                        <input id="${chave_pedido}" style="width: 12vw; font-size: 0.7vw; padding: 3px; border-radius: 3px;" placeholder="Pesquisar pagamento" oninput="pesquisar_pagamentos('${chave_pedido}')">
+                    </div>
+                    <div class="escondido" id="div_pagamentos_pesquisa_${chave_pedido}" style="display: none; flex-direction: column; gap: 10px;">
+                        ${string_pagamentos}
                     </div>
                 </div>
             `}

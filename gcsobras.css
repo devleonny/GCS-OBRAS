@@ -1354,6 +1354,7 @@ input[type=range]::-moz-range-thumb {
     gap: 5px;
     align-items: center;
     border-radius: 3px;
+    font-size: 1.1vw;
 }
 
 .contorno_botoes img {
