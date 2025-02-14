@@ -123,7 +123,7 @@ function confirmarAdicionarTarefa() {
             escopo: "",
             equipe: ""
         },
-        etiquetas: [],
+        etiquetas: {}, // 🔥 Agora é um OBJETO em vez de um array
         atividades: {},
         historico: {
             [idHistorico]: {
@@ -298,7 +298,6 @@ function renderizarQuadro() {
 
     quadro.innerHTML = Object.values(dados.listas)
         .map(lista => {
-            // 🔥 Obtendo as tarefas da lista correta
             let tarefasDaLista = Object.values(dados.tarefas).filter(tarefa => tarefa.lista === lista.id);
 
             return `
@@ -313,12 +312,9 @@ function renderizarQuadro() {
     onclick="abrirModal('${tarefa.lista}', '${tarefa.id}')">
 
                                 <div class="etiquetas-tarefa">
-                                    ${tarefa.etiquetas?.map(idEtiqueta => {
-                let etiqueta = dados.etiquetasGlobais[idEtiqueta];
-                return etiqueta
-                    ? `<span class="etiqueta-bolinha" style="background-color: ${etiqueta.cor};"></span>`
-                    : "";
-            }).join("") || ""}
+                                    ${Object.values(tarefa.etiquetas || {}).map(etiqueta => `
+                                        <span class="etiqueta-bolinha" style="background-color: ${etiqueta.cor};"></span>
+                                    `).join("") || ""}
                                 </div>
                                 <p>${tarefa.texto}</p>
                                 <button class="botao-excluir-tarefa" onclick="excluirTarefa('${tarefa.id}'); event.stopPropagation();">❌</button>
@@ -517,35 +513,32 @@ async function abrirModal(idLista, idTarefa) {
 
         // Redefine o conteúdo do modal, mas preserva o título
         modalCorpo.innerHTML = `
-         <div>
-            <label for="tarefa-titulo">Título da Tarefa:</label>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <input type="text" id="tarefa-titulo" value="${tarefaAlvo.texto}" 
-                    class="input-estilo" maxlength="20" oninput="mostrarBotaoSalvar()">
-                <button id="botao-salvar-titulo" 
-                    onclick="salvarTituloTarefa('${idLista}', '${idTarefa}')"
-                    style="display: none;" 
-                    class="botao-salvar">Salvar
-                </button>
+          <div>
+                <label for="tarefa-titulo">Título da Tarefa:</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="text" id="tarefa-titulo" value="${tarefaAlvo.texto}" 
+                        class="input-estilo" maxlength="20" oninput="mostrarBotaoSalvar()">
+                    <button id="botao-salvar-titulo" 
+                        onclick="salvarTituloTarefa('${idLista}', '${idTarefa}')"
+                        style="display: none;" 
+                        class="botao-salvar">Salvar
+                    </button>
+                </div>
+                <p id="aviso-tarefa-modal" style="color: red; font-size: 12px; display: none;"></p>
             </div>
-            <p id="aviso-tarefa-modal" style="color: red; font-size: 12px; display: none;"></p>
-        </div>
-        <div class="etiquetas">
-    <h3>Etiquetas</h3>
-    <div id="lista-etiquetas">
-        ${tarefaAlvo.etiquetas.map(idEtiqueta => {
-            let etiqueta = dados.etiquetasGlobais[idEtiqueta];
-            return etiqueta ? `
-                <span class="etiqueta" style="background-color: ${etiqueta.cor}; color: ${definirCorTexto(etiqueta.cor)};">
-                    ${etiqueta.nome}
-                    <button class="botao-excluir botao-excluir-etiqueta" 
-                        onclick="removerEtiqueta('${idLista}', '${idTarefa}', '${idEtiqueta}')">❌</button>
-                </span>
-            ` : "";
-        }).join("")}
-    </div>
-    <button onclick="exibirOpcoesEtiquetas('${idLista}', '${idTarefa}')">➕ Adicionar Etiqueta</button>
-</div>
+            <div class="etiquetas">
+                <h3>Etiquetas</h3>
+                <div id="lista-etiquetas">
+                    ${Object.values(tarefaAlvo.etiquetas || {}).map(etiqueta => `
+                        <span class="etiqueta" style="background-color: ${etiqueta.cor}; color: ${definirCorTexto(etiqueta.cor)};">
+                            ${etiqueta.nome}
+                            <button class="botao-excluir botao-excluir-etiqueta" 
+                                onclick="removerEtiqueta('${idLista}', '${idTarefa}', '${etiqueta.id}')">❌</button>
+                        </span>
+                    `).join("") || "<p style='color: gray;'>Nenhuma etiqueta</p>"}
+                </div>
+                <button onclick="exibirOpcoesEtiquetas('${idLista}', '${idTarefa}')">➕ Adicionar Etiqueta</button>
+            </div>
 
         <div class="descricao">
             <h3>Descrição</h3>
@@ -977,33 +970,31 @@ function salvarTituloTarefa(idLista, idTarefa) {
 }
 
 function adicionarEtiquetaTarefa(idLista, idTarefa, idEtiqueta) {
-
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
-
-    // 📌 Garante que a estrutura correta exista
-    if (!dados.tarefas) dados.tarefas = {};
-    if (!dados.etiquetasGlobais) dados.etiquetasGlobais = {};
 
     let tarefaAlvo = dados.tarefas[idTarefa];
 
-    if (!tarefaAlvo) {
-        return;
+    if (!tarefaAlvo) return;
+
+    if (!tarefaAlvo.etiquetas || typeof tarefaAlvo.etiquetas !== "object") {
+        tarefaAlvo.etiquetas = {}; // 🔥 Agora etiquetas é um objeto
     }
 
-    if (!Array.isArray(tarefaAlvo.etiquetas)) {
-        tarefaAlvo.etiquetas = [];
-    }
+    if (!tarefaAlvo.etiquetas[idEtiqueta]) {
+        let etiqueta = dados.etiquetasGlobais[idEtiqueta];
 
-    if (!tarefaAlvo.etiquetas.includes(idEtiqueta)) {
-        tarefaAlvo.etiquetas.push(idEtiqueta);
+        if (!etiqueta) {
+            alert("Etiqueta não encontrada.");
+            return;
+        }
+
+        tarefaAlvo.etiquetas[idEtiqueta] = etiqueta; // 🔥 Agora armazenamos como objeto
         salvarTarefas(dados.tarefas);
 
-        // 🔥 Enviar APENAS a nova etiqueta para a nuvem no formato correto
-        let etiquetaAdicionada = { id: idEtiqueta, ...dados.etiquetasGlobais[idEtiqueta] };
-        enviar(`dados_kanban/tarefas/${idTarefa}/etiquetas/${idEtiqueta}`, etiquetaAdicionada);
+        // 🔥 Envia apenas a nova etiqueta para a nuvem
+        enviar(`dados_kanban/tarefas/${idTarefa}/etiquetas/${idEtiqueta}`, etiqueta);
     }
 
-    // Atualizar o quadro e o modal
     renderizarQuadro();
     abrirModal(idLista, idTarefa);
 }
@@ -1049,26 +1040,20 @@ function adicionarEtiquetaGlobal(idLista, idTarefa) {
 }
 
 function removerEtiqueta(idLista, idTarefa, idEtiqueta) {
-
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
     let tarefaAlvo = dados.tarefas[idTarefa];
 
-    if (!tarefaAlvo) {
+    if (!tarefaAlvo || !tarefaAlvo.etiquetas || typeof tarefaAlvo.etiquetas !== "object") {
         return;
     }
 
-    if (!Array.isArray(tarefaAlvo.etiquetas)) {
-        return;
-    }
-
-    let index = tarefaAlvo.etiquetas.indexOf(idEtiqueta);
-    if (index !== -1) {
-        tarefaAlvo.etiquetas.splice(index, 1); // Remove a etiqueta da lista de etiquetas da tarefa
+    if (tarefaAlvo.etiquetas[idEtiqueta]) {
+        delete tarefaAlvo.etiquetas[idEtiqueta]; // 🔥 Remove do objeto
 
         // 🔥 Salva as mudanças no localStorage
         localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
-        // 🔥 Atualiza na nuvem, removendo apenas essa etiqueta específica
+        // 🔥 Atualiza na nuvem, removendo essa etiqueta
         deletar(`dados_kanban/tarefas/${idTarefa}/etiquetas/${idEtiqueta}`);
 
         // Atualiza o quadro e reabre o modal para refletir a alteração
