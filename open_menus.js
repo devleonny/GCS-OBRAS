@@ -1911,6 +1911,11 @@ async function espelhar_atualizacao(objeto) {
     if (arquivo === "dados_estoque" && document.title === "ESTOQUE") {
         await retomar_paginacao();
     }
+
+    if (arquivo === "dados_kanban" && document.title === "KANBAN"){
+        carregarDadosDaNuvem()
+    }
+
 }
 
 async function gerar_pdf_online(htmlString, nome) {
