@@ -468,6 +468,12 @@ async function preencher_orcamentos_v2(filtros, remover) {
         let linhas_orcamento = document.getElementById('linhas_orcamento')
 
         if (linhas !== '') {
+
+            let toolbar = document.getElementById('toolbar')
+            toolbar.innerHTML = ''
+            let label = `<label style="background-color: #222;" onclick="mostrar_tabela('orcamentos_')">ORÇAMENTOS</label>`
+            toolbar.insertAdjacentHTML('beforeend', label)
+
             if (linhas_orcamento) {
                 linhas_orcamento.innerHTML = linhas
 
@@ -490,11 +496,6 @@ async function preencher_orcamentos_v2(filtros, remover) {
             }
         }
     }
-
-    let toolbar = document.getElementById('toolbar')
-    toolbar.innerHTML = ''
-    let label = `<label style="background-color: #222;" onclick="mostrar_tabela('orcamentos_')">ORÇAMENTOS</label>`
-    toolbar.insertAdjacentHTML('beforeend', label)
 
     await carregar_manutencoes()
 
@@ -796,132 +797,137 @@ function criar_manutencao(id) {
     }
 
     let acumulado = `
+        <img src="imagens/BG.png" style="height: 70px; position: absolute; top: 0; left: 0;">
 
-    <div id="aguarde" style="display: none; 
-    align-items: center; 
-    justify-content: center; 
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 10;
-    font-size: 1.5em;
-    border-radius: 5px;
-    ">
-        <img src="gifs/loading.gif" style="width: 5vw;">
-        <label style="color: white; font-size: 1.1vw;">Aguarde...</label>
-    </div>
+        <label>${termo} <strong> Requisição de Materiais </strong> </label>
 
-    <img src="imagens/BG.png" style="height: 70px; position: absolute; top: 0; left: 0;">
+        <div style="position: relative;">
 
-    <label>${termo} <strong> Requisição de Materiais </strong> </label>
+            ${overlay_aguarde()}
 
-    <div style="background-color: white; border-radius: 3px; padding: 5px; font-size: 0.9vw; width: 70vw;">
+            <div style="background-color: white; border-radius: 3px; padding: 5px; font-size: 0.9vw; width: 70vw;">
 
-        <div style="display: flex; align-items: center; justify-content: start; color: #222; background-color: #d2d2d2; padding: 5px; border-radius: 3px;">
-            <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
-                
-                <label style="font-size: 1.2vw;">Cliente | Loja</label>
-                <label id="codigo_cliente" style="display: none"></label>
-                <div style="position: relative;">
-                    <textarea type="text" id="cliente" oninput="sugestoes(this, 'sug_cliente', 'clientes')" placeholder="..."></textarea>
-                    <div class="autocomplete-list" id="sug_cliente"></div>
+                <div
+                    style="position: relative; display: flex; align-items: center; justify-content: start; color: #222; background-color: #d2d2d2; padding: 5px; border-radius: 3px;">
+                    <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
+
+                        <label style="font-size: 1.2vw;">Cliente | Loja</label>
+                        <label id="codigo_cliente" style="display: none"></label>
+                        <div style="position: relative;">
+                            <textarea type="text" id="cliente" oninput="sugestoes(this, 'sug_cliente', 'clientes')"
+                                placeholder="..."></textarea>
+                            <div class="autocomplete-list" id="sug_cliente"></div>
+                        </div>
+
+                        <div id="endereco_cliente"
+                            style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;">
+                        </div>
+
+                    </div>
+
+                    <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
+                        <label style="font-size: 1.2vw;">TÉCNICO</label>
+                        <label id="codigo_tecnico" style="display: none"></label>
+                        <div style="position: relative;">
+                            <textarea type="text" id="tecnico" oninput="sugestoes(this, 'sug_tecnico', 'clientes')"
+                                placeholder="..."></textarea>
+                            <div class="autocomplete-list" id="sug_tecnico"></div>
+                        </div>
+
+                        <div id="endereco_tecnico"
+                            style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; align-items: start; gap: 5px;">
+                        <div
+                            style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: start; gap: 20px;">
+                            <label style="font-size: 1.2vw;">Status Manutenção</label>
+                            <select id="status_manutencao"
+                                style="padding: 5px; border-radius: 3px; cursor: pointer; width: 10vw; font-size: 0.8vw;">
+                                <option>MANUTENÇÃO</option>
+                                <option>REQUISIÇÃO AVULSA</option>
+                                <option>MATERIAL SEPARADO</option>
+                                <option>MATERIAL ENVIADO</option>
+                                <option>MATERIAL RECEBIDO</option>
+                                <option>REPROVADO</option>
+                            </select>
+                        </div>
+                        <div
+                            style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
+                            <label style="font-size: 1.2vw;">Kit Técnico</label>
+                            <input id="kit" type="checkbox" style="width: 2vw; height: 2vw; cursor: pointer;"
+                                onclick="alterar_kit(this)">
+                        </div>
+                        <div id="div_chamado"
+                            style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
+                            <label style="font-size: 1.2vw;">Chamado</label>
+                            <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text"
+                                placeholder="..." id="chamado">
+                        </div>
+                        <div
+                            style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
+                            <label style="font-size: 1.2vw;">Comentário</label>
+                            <textarea type="text" placeholder="..." id="comentario"></textarea>
+                        </div>
+                    </div>
+
                 </div>
 
-                <div id="endereco_cliente" style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;"></div>
+                <br>
 
-            </div>
+                <div class="tabela_manutencao">
+                    <div class="linha"
+                        style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
+                        <div style="width: 25vw;">
+                            <label>Descrição</label>
+                        </div>
+                        <div style="width: 10vw;">
+                            <label>Quantidade</label>
+                        </div>
+                        <div style="width: 20vw;">
+                            <label>Comentário</label>
+                        </div>
+                        <div style="width: 10vw;">
+                            <label>Estoque Disponível</label>
+                        </div>
+                        <div style="width: 5vw;">
+                            <label>Remover</label>
+                        </div>
+                    </div>
 
-            <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
-                <label style="font-size: 1.2vw;">TÉCNICO</label>
-                <label id="codigo_tecnico" style="display: none"></label>
-                <div style="position: relative;">
-                    <textarea type="text" id="tecnico" oninput="sugestoes(this, 'sug_tecnico', 'clientes')" placeholder="..."></textarea>
-                    <div class="autocomplete-list" id="sug_tecnico"></div>
+                    <div id="linhas_manutencao">
+                        <div id="excluir_inicial" class="linha" style="width: 70vw;">
+                            <label>Lista Vazia</label>
+                        </div>
+                    </div>
+
                 </div>
 
-                <div id="endereco_tecnico" style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;"></div>
-            </div>
+                <br>
 
-            <div style="display: flex; flex-direction: column; align-items: start; gap: 5px;">
-                <div style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: start; gap: 20px;">
-                    <label style="font-size: 1.2vw;">Status Manutenção</label>
-                    <select id="status_manutencao" style="padding: 5px; border-radius: 3px; cursor: pointer; width: 10vw; font-size: 0.8vw;">
-                        <option>MANUTENÇÃO</option>
-                        <option>REQUISIÇÃO AVULSA</option>
-                        <option>MATERIAL SEPARADO</option>
-                        <option>MATERIAL ENVIADO</option>
-                        <option>MATERIAL RECEBIDO</option>
-                        <option>REPROVADO</option>
-                    </select>
+                <div style="display: flex; align-items: start; justify-content: left; gap: 5px;">
+                    <div onclick="adicionar_linha_manut()" class="contorno_botoes"
+                        style="background-color: #151749; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <img src="imagens/chamados.png" style="cursor: pointer; width: 40px;">
+                        <label>Adicionar Peça</label>
+                    </div>
+                    <div onclick="enviar_manutencao('${id}')" class="contorno_botoes"
+                        style="background-color: green; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <img src="imagens/estoque.png" style="cursor: pointer; width: 40px;">
+                        <label>${botao}</label>
+                    </div>
+                    ${pdf}
                 </div>
-                <div style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
-                    <label style="font-size: 1.2vw;">Kit Técnico</label>
-                    <input id="kit" type="checkbox" style="width: 2vw; height: 2vw; cursor: pointer;" onclick="alterar_kit(this)">
-                </div>                
-                <div id="div_chamado" style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
-                    <label style="font-size: 1.2vw;">Chamado</label>
-                    <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text" placeholder="..." id="chamado">
-                </div>
-                <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
-                    <label style="font-size: 1.2vw;">Comentário</label>
-                    <textarea type="text" placeholder="..." id="comentario"></textarea>
-                </div>
+
             </div>
 
         </div>
 
-        <br>
+        <div id="historico"></div>
 
-        <div class="tabela_manutencao">
-            <div class="linha" style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
-                <div style="width: 25vw;">
-                    <label>Descrição</label>
-                </div>
-                <div style="width: 10vw;">
-                    <label>Quantidade</label>
-                </div>
-                <div style="width: 20vw;">
-                    <label>Comentário</label>
-                </div>
-                <div style="width: 10vw;">
-                    <label>Estoque Disponível</label>
-                </div>
-                <div style="width: 5vw;">
-                    <label>Remover</label>
-                </div>
-            </div>
-            
-            <div id="linhas_manutencao">
-                <div id="excluir_inicial" class="linha" style="width: 70vw;">
-                    <label>Lista Vazia</label>
-                </div>
-            </div>
-
-        </div>
-
-        <br>
-
-        <div style="display: flex; align-items: start; justify-content: left; gap: 5px;">
-            <div onclick="adicionar_linha_manut()" class="contorno_botoes" style="background-color: #151749; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                <img src="imagens/chamados.png" style="cursor: pointer; width: 40px;">
-                <label>Adicionar Peça</label>
-            </div>
-            <div onclick="enviar_manutencao('${id}')" class="contorno_botoes" style="background-color: green; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                <img src="imagens/estoque.png" style="cursor: pointer; width: 40px;">
-                <label>${botao}</label>
-            </div>
-            ${pdf}
-        </div>
-
-    </div>
-
-    <div id="historico"></div>
-
-    <label id="data" style="position: absolute; bottom: 10px; right: 20px; font-size: 0.8vw;">${data_atual('completa')}</label>
+        <label id="data"
+            style="position: absolute; bottom: 10px; right: 20px; font-size: 0.8vw;">${data_atual('completa')}</label>
     
     `
     openPopup_v2(acumulado)
@@ -1031,8 +1037,11 @@ async function carregar_manutencoes() {
         `}
     })
 
+    let toolbar = document.getElementById('toolbar')
+    let visibilidade = toolbar.length > 0 ? 'none' : 'table'
+
     let tabela = `
-        <table id="chamados" class="tabela" style="display: none; font-size: 0.8vw; background-color: #151749;">
+        <table id="chamados" class="tabela" style="display: ${visibilidade}; font-size: 0.8vw; background-color: #151749;">
             <thead>
                 <tr>${ths}</tr>
                 <tr>${tsh}</tr>
@@ -1058,10 +1067,12 @@ function mostrar_tabela(tabela) {
     let chamados = document.getElementById('chamados')
     let orcamentos_ = document.getElementById('orcamentos_')
 
+    let a_tabela = document.getElementById(tabela)
+
     chamados ? chamados.style.display = 'none' : ''
     orcamentos_ ? orcamentos_.style.display = 'none' : ''
 
-    document.getElementById(tabela).style.display = 'table';
+    a_tabela ? a_tabela.style.display = 'table' : ''
 }
 
 async function enviar_manutencao(id) {

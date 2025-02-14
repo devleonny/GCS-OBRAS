@@ -18,6 +18,31 @@ localStorage.removeItem('lista_pagamentos')
 localStorage.removeItem('dados_pagamentos')
 localStorage.removeItem('timestamps')
 
+function overlay_aguarde() {
+
+    let elemento = `           
+    <div id="aguarde" style="display: none; 
+                align-items: center; 
+                justify-content: center; 
+                background-color: rgba(0, 0, 0, 0.7);
+                color: white;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 10;
+                font-size: 1.5em;
+                border-radius: 3px;
+            ">
+        <img src="gifs/loading.gif" style="width: 5vw;">
+        <label style="color: white; font-size: 1.1vw;">Aguarde...</label>
+    </div>
+    `
+
+    return elemento
+}
+
 setInterval(async function () {
     await reprocessar_offline()
 }, 60000)
