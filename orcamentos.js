@@ -492,6 +492,7 @@ async function preencher_orcamentos_v2(filtros, remover) {
     }
 
     let toolbar = document.getElementById('toolbar')
+    toolbar.innerHTML = ''
     let label = `<label style="background-color: #222;" onclick="mostrar_tabela('orcamentos_')">ORÇAMENTOS</label>`
     toolbar.insertAdjacentHTML('beforeend', label)
 
