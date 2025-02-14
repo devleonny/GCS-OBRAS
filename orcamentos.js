@@ -365,7 +365,7 @@ async function preencher_orcamentos_v2(filtros, remover) {
                 { cor: '#ff7777', label: 'Reprovado' },
                 { cor: '#80bbef', label: 'Diretoria Pendente' },
             ],
-            chamados: [
+            requisições: [
                 { cor: '#b3b3b3', label: 'Requisição Avulsa' },
                 { cor: '#ffc584', label: 'Manutenção' },
                 { cor: '#ff7777', label: 'Reprovado' },
@@ -474,7 +474,6 @@ async function preencher_orcamentos_v2(filtros, remover) {
             } else {
 
                 let tabela = `
-                    <label style="font-size: 2.0vw; color: white;">Orçamentos</label>
                     <table id="orcamentos_" class="tabela" style="font-size: 0.8vw; background-color: #222;">
                         <thead>
                             ${ths}
@@ -1028,8 +1027,7 @@ async function carregar_manutencoes() {
     })
 
     let tabela = `
-        <label style="font-size: 2.0vw; color: white;">Requisições</label>
-        <table class="tabela" style="font-size: 0.8vw; background-color: #222;">
+        <table id="chamados" class="tabela" style="display: none; font-size: 0.8vw; background-color: #151749;">
             <thead>
                 <tr>${ths}</tr>
                 <tr>${tsh}</tr>
@@ -1037,23 +1035,25 @@ async function carregar_manutencoes() {
             <tbody id="manutencoes">${linhas}</tbody>
         </table>
     `
-
-    let acumulado = `
-    <div id="chamados">
-        ${tabela}
-    </div>
-    `
-
-    let tabelas = document.getElementById('tabelas')
-    let chamados = document.getElementById('chamados')
+    let orcamentos = document.getElementById('orcamentos')
 
     if (linhas !== '') {
-        if (chamados) {
-            chamados.innerHTML = tabela
-        } else {
-            tabelas.insertAdjacentHTML('afterbegin', acumulado)
-        }
+        let toolbar = document.getElementById('toolbar')
+        let label = `
+        <label style="background-color: #151749;" onclick="mostrar_tabela('chamados', this)">REQUISIÇÕES</label>
+        `
+        toolbar.insertAdjacentHTML('beforeend', label)
+
+        orcamentos.insertAdjacentHTML('beforeend', tabela)
+
     }
+}
+
+function mostrar_tabela(tabela) {
+    document.getElementById('chamados').style.display = 'none';
+    document.getElementById('orcamentos_').style.display = 'none';
+
+    document.getElementById(tabela).style.display = 'table';
 }
 
 async function enviar_manutencao(id) {
