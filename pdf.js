@@ -516,7 +516,7 @@ function gerarPDF() {
         nomeArquivo: `Orcamento_${cliente}_${contrato}`
     };
 
-    // gerar_pdf_online(document.documentElement.outerHTML) Voltar aqui depois;
+    //gerar_pdf_online(document.documentElement.outerHTML) //Voltar aqui depois;
 
     // Envia para salvar o PDF localmente
     ipcRenderer.send('generate-pdf-local', formData);

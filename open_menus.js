@@ -1888,22 +1888,29 @@ async function espelhar_atualizacao(objeto) {
     }
 }
 
-function gerar_pdf_online(htmlString) {
-    let encoded = new TextEncoder().encode(htmlString);
-    let compressed = pako.gzip(encoded);
+async function gerar_pdf_online(htmlString, nome) {
+    return new Promise((resolve, reject) => {
+        let encoded = new TextEncoder().encode(htmlString);
+        let compressed = pako.gzip(encoded);
 
-    fetch("https://leonny.dev.br/pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/octet-stream" },
-        body: compressed
-    })
-        .then(response => response.blob())
-        .then(blob => {
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "documento.pdf";
-            link.click();
+        fetch("https://leonny.dev.br/pdf", {
+            method: "POST",
+            headers: { "Content-Type": "application/octet-stream" },
+            body: compressed
         })
-        .catch(err => console.error("Erro ao gerar PDF:", err));
+            .then(response => response.blob())
+            .then(blob => {
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `${nome}.pdf`;
+                link.click();
+                resolve()
+            })
+            .catch(err => {
+                console.error("Erro ao gerar PDF:", err)
+                reject()
+            });
+    })
+
 }
 

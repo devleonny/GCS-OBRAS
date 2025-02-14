@@ -3,6 +3,13 @@ body {
     background: linear-gradient(45deg, #151749, #B12425);
     background-size: 200% 200%;
     animation: gradientMove 5s ease infinite;
+    margin-bottom: 10vh;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
 }
 
 /* AnimaÃ§Ã£o do gradiente */
@@ -264,17 +271,6 @@ body::before {
 
 .retangulinho button {
     margin: 10px;
-}
-
-body {
-    margin-bottom: 10vh;
-    padding: 0;
-    background-color: #151749;
-    font-family: 'Poppins', sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
 }
 
 .salvar {

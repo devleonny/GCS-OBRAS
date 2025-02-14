@@ -366,6 +366,7 @@ async function preencher_orcamentos_v2(filtros, remover) {
                 { cor: '#80bbef', label: 'Diretoria Pendente' },
             ],
             chamados: [
+                { cor: '#b3b3b3', label: 'Requisição Avulsa' },
                 { cor: '#ffc584', label: 'Manutenção' },
                 { cor: '#ff7777', label: 'Reprovado' },
                 { cor: '#09e6d9', label: 'Material Separado' },
@@ -542,7 +543,7 @@ async function abrir_manutencao(id) {
             document.getElementById(pessoa).value = item.nome
             document.getElementById(`endereco_${pessoa}`).innerHTML = `
                 <label><strong>CNPJ/CPF:</strong> ${item.cnpj}</label>
-                <label><strong>Rua/Bairro:</strong> ${item.bairro}</label>
+                <label style="text-align: left;"><strong>Rua/Bairro:</strong> ${item.bairro}</label>
                 <label><strong>CEP:</strong> ${item.cep}</label>
                 <label><strong>Cidade:</strong> ${item.cidade}</label>
                 <label><strong>Estado:</strong> ${item.estado}</label>        
@@ -590,6 +591,9 @@ async function abrir_manutencao(id) {
             case 'MANUTENÇÃO':
                 imagem = 'avencer'
                 break
+            case 'REQUISIÇÃO AVULSA':
+                imagem = 'avulso'
+                break
             case 'MATERIAL SEPARADO':
                 imagem = 'estoque'
                 break
@@ -632,17 +636,149 @@ async function abrir_manutencao(id) {
 
 }
 
-function capturar_html_pdf() {
-    let documento_pdf = document.getElementById('documento_pdf')
-    gerar_pdf_online(documento_pdf.outerHTML)
+async function capturar_html_pdf(id) {
+
+    let aguarde = document.getElementById('aguarde')
+    aguarde.style.display = 'flex'
+
+    let dados_manutencao = await recuperarDados('dados_manutencao') || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
+    let dados_clientes_omie = {}
+    for (cnpj in dados_clientes) {
+        dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
+    }
+
+    let manutencao = dados_manutencao[id]
+    let campos = ['nome', 'cnpj', 'bairro', 'cep', 'cidade', 'estado']
+    let pessoas = ['tecnico', 'cliente']
+    let divs = ''
+
+    pessoas.forEach(pessoa => {
+        let elementos = ''
+        let codigo = manutencao[`codigo_${pessoa}`]
+        let dados = dados_clientes_omie[codigo] || {}
+
+        campos.forEach(campo => {
+            elementos += `<label style="text-align: left;"><strong>${campo.toUpperCase()}: </strong>${dados[campo]}</label>`
+        })
+
+        divs += `
+        <div style="display: flex; flex-direction: column; aling-items: start; justify-content: left;">
+            <label style="font-size: 1.5em;">${pessoa.toUpperCase()}</label>
+            ${elementos}
+        </div>
+        `
+    })
+
+    let cabecalho = `
+        <div style="display: flex; align-items: start; justify-content: left; gap: 10vw;">
+            ${divs}
+        </div>
+    `
+
+    let pecas = manutencao.pecas
+    let linhas = ''
+    for (pc in pecas) {
+        let peca = pecas[pc]
+        linhas += `
+        <tr>
+            <td style="text-align: center;">${peca.quantidade}</td>
+            <td>${peca.comentario}</td>
+            <td>${peca.descricao}</td>
+        </tr>
+        `
+    }
+
+    let tabela = `
+        <label style="font-size: 1.5em;">REQUISIÇÃO</label>
+        <table>
+            <thead>
+                <th>Quantidade</th>
+                <th>Comentário</th>
+                <th>Descrição</th>
+            </thead>
+            <tbody>${linhas}</tbody>
+        </table>
+    `
+
+    let html = `
+        <html>
+
+        <head>
+            <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+            <style>
+                body {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: start;
+                    align-items: start;
+                    padding: 3vw;
+                    gap: 10px;    
+                    font-family: 'Poppins', sans-serif;
+                    font-size: 1.0em;
+                }
+
+                table {
+                    font-size: 1.0em;
+                    border-collapse: collapse;
+                }
+                
+                th {
+                    background-color: #d2d2d2;
+                }
+
+                th, td {
+                    border: 1px solid #222;
+                    padding: 3px;
+                }
+
+                @media print {
+                    body {
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+
+                    header,
+                    footer {
+                        display: none !important;
+                    }
+
+                    .table-container {
+                        margin-right: 0;
+                    }
+                }                    
+            
+            </style>
+        </head>
+
+        <body>
+            <div style="width: 100%; display: flex; align-items: center; justify-content: start; gap: 20px;">
+                <img src="https://i.imgur.com/qZLbNfb.png" style="width: 20vw; border-radius: 3px;">
+                <label style="font-size: 2.0em;">Requisição de Materiais <br> Manutenção/Avulso</label>
+            </div>
+            <hr style="width: 90%;">
+            ${cabecalho}
+            <hr style="width: 90%;">
+            ${tabela}
+        </body>
+
+        </html>
+    `;
+
+    let nome = `REQUISICAO ${manutencao.chamado}`
+
+    await gerar_pdf_online(html, nome);
+
+    aguarde.style.display = 'none'
 }
+
 
 function criar_manutencao(id) {
 
     let termo = 'Editar'
     let botao = 'Atualizar'
     let pdf = `
-        <div onclick="capturar_html_pdf()" class="contorno_botoes" style="background-color: #B12425; display: flex; align-items: center; justify-content: center; gap: 10px;">
+        <div onclick="capturar_html_pdf('${id}')" class="contorno_botoes" style="background-color: #B12425; display: flex; align-items: center; justify-content: center; gap: 10px;">
             <img src="imagens/pdf.png" style="cursor: pointer; width: 40px;">
             <label>PDF</label>
         </div>`
@@ -668,95 +804,95 @@ function criar_manutencao(id) {
     z-index: 10;
     font-size: 1.5em;
     border-radius: 5px;
-    ">Aguarde...</div>
+    ">
+        <img src="gifs/loading.gif" style="width: 5vw;">
+        <label style="color: white; font-size: 1.1vw;">Aguarde...</label>
+    </div>
 
     <img src="imagens/BG.png" style="height: 70px; position: absolute; top: 0; left: 0;">
 
-    <label>${termo} <strong> Manutenção </strong> </label>
+    <label>${termo} <strong> Requisição de Materiais </strong> </label>
 
     <div style="background-color: white; border-radius: 3px; padding: 5px; font-size: 0.9vw; width: 70vw;">
 
-        <div id="documento_pdf">
-
-            <div style="display: flex; align-items: center; justify-content: start; color: #222; background-color: #d2d2d2; padding: 5px; border-radius: 3px;">
-                <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
-                    
-                    <label style="font-size: 1.2vw;">Cliente | Loja</label>
-                    <label id="codigo_cliente" style="display: none"></label>
-                    <div style="position: relative;">
-                        <textarea type="text" id="cliente" oninput="sugestoes(this, 'sug_cliente', 'clientes')" placeholder="..."></textarea>
-                        <div class="autocomplete-list" id="sug_cliente"></div>
-                    </div>
-
-                    <div id="endereco_cliente" style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 3px;"></div>
-
+        <div style="display: flex; align-items: center; justify-content: start; color: #222; background-color: #d2d2d2; padding: 5px; border-radius: 3px;">
+            <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
+                
+                <label style="font-size: 1.2vw;">Cliente | Loja</label>
+                <label id="codigo_cliente" style="display: none"></label>
+                <div style="position: relative;">
+                    <textarea type="text" id="cliente" oninput="sugestoes(this, 'sug_cliente', 'clientes')" placeholder="..."></textarea>
+                    <div class="autocomplete-list" id="sug_cliente"></div>
                 </div>
 
-                <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
-                    <label style="font-size: 1.2vw;">TÉCNICO</label>
-                    <label id="codigo_tecnico" style="display: none"></label>
-                    <div style="position: relative;">
-                        <textarea type="text" id="tecnico" oninput="sugestoes(this, 'sug_tecnico', 'clientes')" placeholder="..."></textarea>
-                        <div class="autocomplete-list" id="sug_tecnico"></div>
-                    </div>
-
-                    <div id="endereco_tecnico" style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 3px;"></div>
-                </div>
-
-                <div style="display: flex; flex-direction: column; align-items: start; gap: 5px;">
-                    <div style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: start; gap: 20px;">
-                        <label style="font-size: 1.2vw;">Status Manutenção</label>
-                        <select id="status_manutencao" style="padding: 5px; border-radius: 3px; cursor: pointer; width: 10vw; font-size: 0.8vw;">
-                            <option>MANUTENÇÃO</option>
-                            <option>MATERIAL SEPARADO</option>
-                            <option>MATERIAL ENVIADO</option>
-                            <option>MATERIAL RECEBIDO</option>
-                            <option>REPROVADO</option>
-                        </select>
-                    </div>
-                    <div style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
-                        <label style="font-size: 1.2vw;">Kit Técnico</label>
-                        <input id="kit" type="checkbox" style="width: 2vw; height: 2vw; cursor: pointer;" onclick="alterar_kit(this)">
-                    </div>                
-                    <div id="div_chamado" style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
-                        <label style="font-size: 1.2vw;">Chamado</label>
-                        <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text" placeholder="..." id="chamado">
-                    </div>
-                    <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
-                        <label style="font-size: 1.2vw;">Comentário</label>
-                        <textarea type="text" placeholder="..." id="comentario"></textarea>
-                    </div>
-                </div>
+                <div id="endereco_cliente" style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;"></div>
 
             </div>
 
-            <br>
-
-            <div class="tabela_manutencao">
-                <div class="linha" style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
-                    <div style="width: 25vw;">
-                        <label>Descrição</label>
-                    </div>
-                    <div style="width: 10vw;">
-                        <label>Quantidade</label>
-                    </div>
-                    <div style="width: 20vw;">
-                        <label>Comentário</label>
-                    </div>
-                    <div style="width: 10vw;">
-                        <label>Estoque Disponível</label>
-                    </div>
-                    <div style="width: 5vw;">
-                        <label>Remover</label>
-                    </div>
-                </div>
-                
-                <div id="linhas_manutencao">
-                    <div id="excluir_inicial" class="linha" style="width: 70vw;">
-                        <label>Lista Vazia</label>
-                    </div>
+            <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
+                <label style="font-size: 1.2vw;">TÉCNICO</label>
+                <label id="codigo_tecnico" style="display: none"></label>
+                <div style="position: relative;">
+                    <textarea type="text" id="tecnico" oninput="sugestoes(this, 'sug_tecnico', 'clientes')" placeholder="..."></textarea>
+                    <div class="autocomplete-list" id="sug_tecnico"></div>
                 </div>
 
+                <div id="endereco_tecnico" style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;"></div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; align-items: start; gap: 5px;">
+                <div style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: start; gap: 20px;">
+                    <label style="font-size: 1.2vw;">Status Manutenção</label>
+                    <select id="status_manutencao" style="padding: 5px; border-radius: 3px; cursor: pointer; width: 10vw; font-size: 0.8vw;">
+                        <option>REQUISIÇÃO AVULSA</option>
+                        <option>MANUTENÇÃO</option>
+                        <option>MATERIAL SEPARADO</option>
+                        <option>MATERIAL ENVIADO</option>
+                        <option>MATERIAL RECEBIDO</option>
+                        <option>REPROVADO</option>
+                    </select>
+                </div>
+                <div style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
+                    <label style="font-size: 1.2vw;">Kit Técnico</label>
+                    <input id="kit" type="checkbox" style="width: 2vw; height: 2vw; cursor: pointer;" onclick="alterar_kit(this)">
+                </div>                
+                <div id="div_chamado" style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
+                    <label style="font-size: 1.2vw;">Chamado</label>
+                    <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text" placeholder="..." id="chamado">
+                </div>
+                <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
+                    <label style="font-size: 1.2vw;">Comentário</label>
+                    <textarea type="text" placeholder="..." id="comentario"></textarea>
+                </div>
+            </div>
+
+        </div>
+
+        <br>
+
+        <div class="tabela_manutencao">
+            <div class="linha" style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
+                <div style="width: 25vw;">
+                    <label>Descrição</label>
+                </div>
+                <div style="width: 10vw;">
+                    <label>Quantidade</label>
+                </div>
+                <div style="width: 20vw;">
+                    <label>Comentário</label>
+                </div>
+                <div style="width: 10vw;">
+                    <label>Estoque Disponível</label>
+                </div>
+                <div style="width: 5vw;">
+                    <label>Remover</label>
+                </div>
+            </div>
+            
+            <div id="linhas_manutencao">
+                <div id="excluir_inicial" class="linha" style="width: 70vw;">
+                    <label>Lista Vazia</label>
+                </div>
             </div>
 
         </div>
@@ -824,6 +960,10 @@ async function carregar_manutencoes() {
         switch (manutencao.status_manutencao) {
             case 'MANUTENÇÃO':
                 cor = '#ffc584'
+                modulo == 'LOGÍSTICA' ? exibir = true : ''
+                break
+            case 'REQUISIÇÃO AVULSA':
+                cor = '#b3b3b3'
                 modulo == 'LOGÍSTICA' ? exibir = true : ''
                 break
             case 'MATERIAL SEPARADO':
@@ -1061,7 +1201,7 @@ async function sugestoes(textarea, div, base) {
             info = String(item.nome)
             dados_endereco = `
             <label><strong>CNPJ/CPF:</strong> ${item.cnpj}</label>
-            <label><strong>Rua/Bairro:</strong> ${item.bairro}</label>
+            <label style="text-align: left;"><strong>Rua/Bairro:</strong> ${item.bairro}</label>
             <label><strong>CEP:</strong> ${item.cep}</label>
             <label><strong>Cidade:</strong> ${item.cidade}</label>
             <label><strong>Estado:</strong> ${item.estado}</label>
