@@ -3177,6 +3177,22 @@ async function gerarpdf(cliente, pedido) {
         label {
             margin: 5px;
         }
+        
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            header,
+            footer {
+                display: none !important;
+            }
+
+            .table-container {
+                margin-right: 0;
+            }
+        }
         </style>
     </head>
     <body>
@@ -3188,22 +3204,7 @@ async function gerarpdf(cliente, pedido) {
         pedido = ""
     }
 
-    const formData = {
-        htmlContent: htmlContent,
-        nomeArquivo: `REQUISICAO_${cliente}_${pedido}`
-    };
-
-    // Envia para salvar o PDF localmente
-    ipcRenderer.send('generate-pdf-local', formData);
-
-    ipcRenderer.once('generate-pdf-local-reply', (event, response) => {
-        if (response.success) {
-            console.log('PDF gerado com sucesso!', response.filePath);
-        } else {
-            console.error('Erro ao gerar PDF:', response.error);
-        }
-
-    });
+    await gerar_pdf_online(htmlContent, `REQUISICAO_${cliente}_${pedido}`);
 
     if (menu_flutuante) {
         menu_flutuante.style.display = 'flex'

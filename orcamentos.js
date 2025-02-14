@@ -656,18 +656,20 @@ async function capturar_html_pdf(id) {
     pessoas.forEach(pessoa => {
         let elementos = ''
         let codigo = manutencao[`codigo_${pessoa}`]
-        let dados = dados_clientes_omie[codigo] || {}
 
-        campos.forEach(campo => {
-            elementos += `<label style="text-align: left;"><strong>${campo.toUpperCase()}: </strong>${dados[campo]}</label>`
-        })
+        if (codigo !== '') {
+            let dados = dados_clientes_omie[codigo] || {}
 
-        divs += `
-        <div style="display: flex; flex-direction: column; aling-items: start; justify-content: left;">
-            <label style="font-size: 1.5em;">${pessoa.toUpperCase()}</label>
-            ${elementos}
-        </div>
-        `
+            campos.forEach(campo => {
+                elementos += `<label style="text-align: left;"><strong>${campo.toUpperCase()}: </strong>${dados[campo]}</label>`
+            })
+
+            divs += `
+                <div style="display: flex; flex-direction: column; aling-items: start; justify-content: left;">
+                    <label style="font-size: 1.5em;">${pessoa.toUpperCase()}</label>
+                    ${elementos}
+                </div>
+        `}
     })
 
     let cabecalho = `
@@ -690,7 +692,7 @@ async function capturar_html_pdf(id) {
     }
 
     let tabela = `
-        <label style="font-size: 1.5em;">REQUISIÇÃO</label>
+        <label style="font-size: 1.5em;">REQUISIÇÃO ${manutencao.chamado}</label>
         <table>
             <thead>
                 <th>Quantidade</th>
@@ -1026,7 +1028,7 @@ async function carregar_manutencoes() {
     })
 
     let tabela = `
-        <label style="font-size: 2.0vw; color: white;">Manutenções</label>
+        <label style="font-size: 2.0vw; color: white;">Requisições</label>
         <table class="tabela" style="font-size: 0.8vw; background-color: #222;">
             <thead>
                 <tr>${ths}</tr>

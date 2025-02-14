@@ -496,13 +496,7 @@ function atualizar_indicadores(elemento, salvar) {
 
 }
 
-const { ipcRenderer } = require('electron');
-
-ipcRenderer.on('open-save-dialog', (event, { htmlContent, nomeArquivo }) => {
-    ipcRenderer.send('save-dialog', { htmlContent, nomeArquivo });
-});
-
-function gerarPDF() {
+async function gerarPDF() {
     preencher_v2();
     ocultar.style.display = 'none';
 
@@ -511,60 +505,7 @@ function gerarPDF() {
     var contrato = orcamento_v2.dados_orcam.contrato;
     var cliente = orcamento_v2.dados_orcam.cliente_selecionado;
 
-    const formData = {
-        htmlContent: document.documentElement.outerHTML,
-        nomeArquivo: `Orcamento_${cliente}_${contrato}`
-    };
+    await gerar_pdf_online(document.documentElement.outerHTML, `Orcamento_${cliente}_${contrato}`)
 
-    //gerar_pdf_online(document.documentElement.outerHTML) //Voltar aqui depois;
-
-    // Envia para salvar o PDF localmente
-    ipcRenderer.send('generate-pdf-local', formData);
-
-    ipcRenderer.once('generate-pdf-local-reply', (event, response) => {
-        if (response.success) {
-            console.log('PDF gerado com sucesso!', response.filePath);
-        } else {
-            console.error('Erro ao gerar PDF:', response.error);
-        }
-
-        ocultar.style.display = 'flex';
-    });
-}
-
-function receber(chave) {
-    const url = `https://base-88062-default-rtdb.firebaseio.com/${chave}.json`; // Substitua pelo seu caminho
-
-    // Fazendo a requisição GET
-    fetch(url)
-        .then(response => response.json()) // Converte a resposta em JSON
-        .then(data => {
-            console.log(data); // Aqui estão seus dados do Firebase
-        })
-        .catch(error => {
-            console.error("Erro ao obter dados:", error);
-        });
-
-}
-
-async function enviar() {
-    const url = "https://base-88062-default-rtdb.firebaseio.com/dados_composicoes.json";
-
-    let dados_composicoes = await recuperarDados('dados_composicoes')
-
-    fetch(url, {
-        method: "PATCH",  // Para criar um novo usuário
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(dados_composicoes)  // Dados a serem enviados
-    })
-        .then(response => response.json())
-        .then(data => {
-            console.log("Novo usuário adicionado:", data);
-        })
-        .catch(error => {
-            console.error("Erro ao adicionar usuário:", error);
-        });
-
+    ocultar.style.display = 'flex';
 }
