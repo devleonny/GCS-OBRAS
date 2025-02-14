@@ -1,7 +1,5 @@
 document.addEventListener("DOMContentLoaded", async () => {
-    await carregarDadosDaNuvem(); // Busca os dados da nuvem
-    inicializarEtiquetasGlobais(); // Inicializa etiquetas
-    carregarListas(); // Carrega as listas do localStorage
+    await carregarDadosDaNuvem(); // Busca os dados da nuvem 
 });
 
 
@@ -66,7 +64,9 @@ function adicionarTarefa(idLista) {
 }
 
 function confirmarAdicionarTarefa() {
-    let textoTarefa = document.getElementById("input-nova-tarefa").value.trim();
+    let inputTarefa = document.getElementById("input-nova-tarefa");
+    let textoTarefa = inputTarefa.value.trim();
+
     if (!textoTarefa || !idListaAtual) {
         alert("O nome da tarefa não pode estar vazio.");
         return;
@@ -76,7 +76,7 @@ function confirmarAdicionarTarefa() {
 
     let agora = new Date();
     let dataAtual = agora.toISOString().split("T")[0]; // 📌 Data no formato YYYY-MM-DD
-    let horaAtual = agora.toLocaleTimeString("pt-BR", { hour12: false }); // 📌 Hora no formato 24h
+    let horaAtual = agora.toLocaleTimeString("pt-BR", { hour12: false });
 
     let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
     let criador = acesso.usuario || "Desconhecido";
@@ -87,7 +87,7 @@ function confirmarAdicionarTarefa() {
     let novaTarefa = {
         id: idTarefa,
         texto: textoTarefa,
-        lista: idListaAtual, // 📌 Indica a lista onde está armazenada
+        lista: idListaAtual,
         descricao: {
             chamado: "",
             endereco: "",
@@ -99,8 +99,8 @@ function confirmarAdicionarTarefa() {
             equipe: ""
         },
         etiquetas: [],
-        atividades: {}, // 🔥 Agora é um objeto, e não um array
-        historico: { // 🔥 Também é um objeto, com ID único
+        atividades: {},
+        historico: {
             [idHistorico]: {
                 id: idHistorico,
                 tipo: "criação",
@@ -111,21 +111,16 @@ function confirmarAdicionarTarefa() {
         }
     };
 
-    // 🔥 Adiciona a nova tarefa ao objeto de tarefas
     dados.tarefas[idTarefa] = novaTarefa;
-
-    // 🔥 Salva no localStorage
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
-
-    console.log(`✅ Tarefa '${textoTarefa}' adicionada com ID '${idTarefa}'`);
 
     // 🔥 Envia a tarefa isoladamente para a nuvem
     enviar(`dados_kanban/tarefas/${idTarefa}`, novaTarefa);
 
-    // 🔥 Atualiza a interface
-    renderizarQuadro();
+    // 🔥 LIMPA O INPUT APÓS ADICIONAR A TAREFA
+    inputTarefa.value = "";
 
-    // 🔥 Fecha o modal
+    renderizarQuadro();
     fecharModais("modal-adicionar-tarefa");
 }
 
@@ -142,7 +137,6 @@ function salvarListas(novasListas) {
     // ✅ Salva no localStorage
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
-    console.log("💾 Listas salvas no localStorage:", novasListas);
 }
 
 function salvarTarefas(novasTarefas) {
@@ -153,7 +147,6 @@ function salvarTarefas(novasTarefas) {
 
     // Salva no LocalStorage
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
-    console.log("💾 Tarefas salvas no localStorage:", novasTarefas);
 
     // 🔥 Envia cada tarefa separadamente para a nuvem
     for (let idTarefa in novasTarefas) {
@@ -172,7 +165,6 @@ function salvarEtiquetasGlobais(novasEtiquetas) {
     // ✅ Salva no localStorage
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
-    console.log("💾 Etiquetas globais salvas:", novasEtiquetas);
 }
 
 function carregarListas() {
@@ -190,7 +182,6 @@ function excluirTarefa(idTarefa) {
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
 
     if (!dados.tarefas[idTarefa]) {
-        console.warn("❌ Tarefa não encontrada.");
         return;
     }
 
@@ -211,7 +202,6 @@ function excluirLista(idLista) {
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
 
     if (!dados.listas[idLista]) {
-        console.warn(`⚠️ Lista ID '${idLista}' não encontrada.`);
         return;
     }
 
@@ -223,7 +213,6 @@ function excluirLista(idLista) {
     // 🔥 Deleta todas as tarefas pertencentes à lista
     Object.keys(dados.tarefas).forEach(idTarefa => {
         if (dados.tarefas[idTarefa].lista === idLista) {
-            console.log(`🗑️ Excluindo tarefa '${idTarefa}' da lista '${idLista}'`);
             delete dados.tarefas[idTarefa];
 
             // 🔥 Remove a tarefa da nuvem
@@ -240,30 +229,27 @@ function excluirLista(idLista) {
     // 🔥 Remove a lista da nuvem
     deletar(`dados_kanban/listas/${idLista}`);
 
-    console.log(`✅ Lista '${idLista}' excluída com sucesso, junto com suas tarefas.`);
-
     // Atualiza a interface
     renderizarQuadro();
 }
 
 async function confirmarAdicionarLista() {
-    let nomeLista = document.getElementById("input-nova-lista").value.trim();
+    let inputLista = document.getElementById("input-nova-lista");
+    let nomeLista = inputLista.value.trim();
+
     if (!nomeLista) {
         alert("O nome da lista não pode estar vazio.");
         return;
     }
 
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
-
     let idLista = unicoID(); // Gera um ID único para a lista
 
-    // 🔥 Agora a lista NÃO possui mais um array de tarefas dentro dela
     dados.listas[idLista] = {
         id: idLista,
         titulo: nomeLista
     };
 
-    // 🔥 Garante que o objeto `tarefas` continua existindo
     if (!dados.tarefas) {
         dados.tarefas = {};
     }
@@ -273,6 +259,9 @@ async function confirmarAdicionarLista() {
 
     // 🔥 Envia apenas a nova lista para a nuvem
     enviar(`dados_kanban/listas/${idLista}`, dados.listas[idLista]);
+
+    // 🔥 LIMPA O INPUT APÓS ADICIONAR A LISTA
+    inputLista.value = "";
 
     renderizarQuadro();
     fecharModais("modal-adicionar-lista");
@@ -443,7 +432,6 @@ function soltar(evento) {
     let tarefaMovida = dados.tarefas[idTarefa];
 
     if (!tarefaMovida) {
-        console.warn("❌ Tarefa não encontrada.");
         return;
     }
 
@@ -463,17 +451,14 @@ function soltar(evento) {
 }
 
 async function abrirModal(idLista, idTarefa) {
-    console.log("🧐 Abrindo modal para a tarefa:", idTarefa, "na lista:", idLista);
 
     if (!idLista || !idTarefa) {
-        console.error("❌ ERRO: idLista ou idTarefa está indefinido!");
         return;
     }
 
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
 
     if (!dados.tarefas || typeof dados.tarefas !== "object") {
-        console.warn("⚠️ Nenhuma tarefa encontrada, inicializando objeto...");
         dados.tarefas = {};
         localStorage.setItem("dados_kanban", JSON.stringify(dados));
     }
@@ -481,19 +466,14 @@ async function abrirModal(idLista, idTarefa) {
     let tarefaAlvo = dados.tarefas[idTarefa];
 
     if (!tarefaAlvo) {
-        console.warn(`❌ Tarefa ID ${idTarefa} não encontrada.`);
-        console.log("📌 Tarefas existentes:", dados.tarefas);
         return;
     }
 
     let listaAlvo = dados.listas[idLista];
 
     if (!listaAlvo) {
-        console.warn(`❌ Lista ID ${idLista} não encontrada.`);
         return;
     }
-
-    console.log("✅ Tarefa encontrada:", tarefaAlvo);
 
     if (tarefaAlvo) {
         // Garante que as etiquetas existam
@@ -727,7 +707,6 @@ function adicionarComentario(idLista, idTarefa) {
     let tarefaAlvo = dados.tarefas[idTarefa];
 
     if (!tarefaAlvo) {
-        console.warn(`❌ ERRO: Tarefa ID ${idTarefa} não encontrada!`);
         return;
     }
 
@@ -757,8 +736,6 @@ function adicionarComentario(idLista, idTarefa) {
 
     // 🔥 Enviar **apenas** o novo comentário para a nuvem
     enviar(`dados_kanban/tarefas/${idTarefa}/atividades/${idComentario}`, tarefaAlvo.atividades[idComentario]);
-
-    console.log(`✅ Comentário adicionado à tarefa '${idTarefa}':`, tarefaAlvo.atividades[idComentario]);
 
     // ✅ LIMPA O TEXTAREA APÓS O COMENTÁRIO
     document.getElementById("novo-comentario").value = "";
@@ -842,7 +819,6 @@ function formatarData(dataISO) {
  */
 
 function salvarDescricao(idLista, idTarefa) {
-    console.log(`🚀 Iniciando salvamento da descrição para Tarefa: ${idTarefa}, Lista: ${idLista}`);
 
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
 
@@ -853,12 +829,10 @@ function salvarDescricao(idLista, idTarefa) {
     let tarefaAlvo = dados.tarefas[idTarefa];
 
     if (!tarefaAlvo) {
-        console.error(`❌ ERRO: Tarefa ID ${idTarefa} não encontrada!`);
         return;
     }
 
     let descricaoAntiga = { ...tarefaAlvo.descricao };
-    console.log("📌 Descrição antiga:", descricaoAntiga);
 
     // 🔍 Captura os valores do formulário
     let novaDescricao = {
@@ -871,8 +845,6 @@ function salvarDescricao(idLista, idTarefa) {
         escopo: document.getElementById("input-escopo")?.value.trim() || "",
         equipe: document.getElementById("input-equipe")?.value.trim() || ""
     };
-
-    console.log("✏️ Nova descrição capturada do formulário:", novaDescricao);
 
     // 🔍 Verifica se a descrição mudou
     let alteracoesDetectadas = JSON.stringify(descricaoAntiga) !== JSON.stringify(novaDescricao);
@@ -900,29 +872,21 @@ function salvarDescricao(idLista, idTarefa) {
         dados.tarefas[idTarefa] = tarefaAlvo;
         localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
-        console.log("✅ Descrição completa salva no LocalStorage:", tarefaAlvo.descricao);
-
-        // 🔥 Enviar a descrição inteira para a nuvem
-        console.log(`📤 Enviando descrição COMPLETA para a nuvem`);
         enviar(`dados_kanban/tarefas/${idTarefa}/descricao`, tarefaAlvo.descricao);
 
         // 🔥 Atualizar orçamento na nuvem apenas se foi alterado
         let inputOrcamento = document.getElementById("orcamento-selecionado")?.textContent.trim() || "";
         if (inputOrcamento !== "Nenhum" && inputOrcamento !== "" && inputOrcamento !== tarefaAlvo.orcamento) {
             tarefaAlvo.orcamento = inputOrcamento;
-            console.log(`📤 Enviando orçamento para a nuvem: ${tarefaAlvo.orcamento}`);
             enviar(`dados_kanban/tarefas/${idTarefa}/orcamento`, tarefaAlvo.orcamento);
         } else if (tarefaAlvo.orcamento && inputOrcamento === "Nenhum") {
             delete tarefaAlvo.orcamento;
-            console.log("📤 Removendo orçamento da nuvem.");
             enviar(`dados_kanban/tarefas/${idTarefa}/orcamento`, null);
         }
 
         // Atualiza a interface do quadro e reabre o modal para refletir as alterações
         renderizarQuadro();
         abrirModal(idLista, idTarefa);
-    } else {
-        console.log("⚠️ Nenhuma alteração foi detectada na descrição.");
     }
 }
 function salvarTituloTarefa(idLista, idTarefa) {
@@ -930,7 +894,6 @@ function salvarTituloTarefa(idLista, idTarefa) {
     let tarefaAlvo = dados.tarefas[idTarefa];
 
     if (!tarefaAlvo) {
-        console.error("❌ Tarefa não encontrada.");
         return;
     }
 
@@ -968,7 +931,6 @@ function salvarTituloTarefa(idLista, idTarefa) {
     dados.tarefas[idTarefa] = tarefaAlvo;
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
-    console.log(`✅ Título da tarefa atualizado: ${tituloAnterior} ➡️ ${novoTitulo}`);
 
     // 🔥 Atualizar na nuvem (se aplicável)
     enviar(`dados_kanban/tarefas/${idTarefa}/texto`, novoTitulo);
@@ -979,7 +941,6 @@ function salvarTituloTarefa(idLista, idTarefa) {
 }
 
 function adicionarEtiquetaTarefa(idLista, idTarefa, idEtiqueta) {
-    console.log(`🏷️ Tentando adicionar etiqueta '${idEtiqueta}' à tarefa '${idTarefa}' na lista '${idLista}'`);
 
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
 
@@ -990,7 +951,6 @@ function adicionarEtiquetaTarefa(idLista, idTarefa, idEtiqueta) {
     let tarefaAlvo = dados.tarefas[idTarefa];
 
     if (!tarefaAlvo) {
-        console.error(`❌ Tarefa '${idTarefa}' não encontrada.`);
         return;
     }
 
@@ -1002,13 +962,9 @@ function adicionarEtiquetaTarefa(idLista, idTarefa, idEtiqueta) {
         tarefaAlvo.etiquetas.push(idEtiqueta);
         salvarTarefas(dados.tarefas);
 
-        console.log(`✅ Etiqueta '${idEtiqueta}' adicionada à tarefa '${idTarefa}'.`);
-
         // 🔥 Enviar APENAS a nova etiqueta para a nuvem no formato correto
         let etiquetaAdicionada = { id: idEtiqueta, ...dados.etiquetasGlobais[idEtiqueta] };
         enviar(`dados_kanban/tarefas/${idTarefa}/etiquetas/${idEtiqueta}`, etiquetaAdicionada);
-    } else {
-        console.warn(`⚠️ A etiqueta '${idEtiqueta}' já está adicionada.`);
     }
 
     // Atualizar o quadro e o modal
@@ -1035,7 +991,6 @@ function adicionarEtiquetaGlobal(idLista, idTarefa) {
     // 📌 Garante que `unicoID` retorna um valor válido
     let idEtiqueta = unicoID();
     if (!idEtiqueta) {
-        console.error("❌ ERRO: Falha ao gerar ID único para a etiqueta.");
         return;
     }
 
@@ -1044,8 +999,6 @@ function adicionarEtiquetaGlobal(idLista, idTarefa) {
     // 📌 Salva no objeto local e no localStorage
     dados.etiquetasGlobais[idEtiqueta] = novaEtiqueta;
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
-
-    console.log(`✅ Etiqueta global '${nome}' adicionada com ID '${idEtiqueta}'.`);
 
     // 🔥 Enviar apenas a nova etiqueta para a nuvem
     enviar(`dados_kanban/etiquetasGlobais/${idEtiqueta}`, novaEtiqueta);
@@ -1056,31 +1009,25 @@ function adicionarEtiquetaGlobal(idLista, idTarefa) {
     // 📌 Só adiciona à tarefa se IDs forem válidos
     if (idLista && idTarefa) {
         adicionarEtiquetaTarefa(idLista, idTarefa, idEtiqueta);
-    } else {
-        console.warn("⚠️ A etiqueta foi criada, mas nenhum idLista/idTarefa foi fornecido.");
     }
 }
 
 function removerEtiqueta(idLista, idTarefa, idEtiqueta) {
-    console.log(`🗑️ Tentando remover etiqueta '${idEtiqueta}' da tarefa '${idTarefa}' na lista '${idLista}'`);
 
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
     let tarefaAlvo = dados.tarefas[idTarefa];
 
     if (!tarefaAlvo) {
-        console.warn(`❌ ERRO: Tarefa ID ${idTarefa} não encontrada!`);
         return;
     }
 
     if (!Array.isArray(tarefaAlvo.etiquetas)) {
-        console.warn(`⚠️ A tarefa '${idTarefa}' não possui etiquetas.`);
         return;
     }
 
     let index = tarefaAlvo.etiquetas.indexOf(idEtiqueta);
     if (index !== -1) {
         tarefaAlvo.etiquetas.splice(index, 1); // Remove a etiqueta da lista de etiquetas da tarefa
-        console.log(`✅ Etiqueta '${idEtiqueta}' removida da tarefa '${idTarefa}'.`);
 
         // 🔥 Salva as mudanças no localStorage
         localStorage.setItem("dados_kanban", JSON.stringify(dados));
@@ -1091,8 +1038,6 @@ function removerEtiqueta(idLista, idTarefa, idEtiqueta) {
         // Atualiza o quadro e reabre o modal para refletir a alteração
         renderizarQuadro();
         abrirModal(idLista, idTarefa);
-    } else {
-        console.warn(`⚠️ A etiqueta '${idEtiqueta}' não está atribuída à tarefa '${idTarefa}'.`);
     }
 }
 
@@ -1197,8 +1142,6 @@ function salvarEdicaoEtiqueta(idEtiqueta) {
     enviar(`dados_kanban/etiquetasGlobais/${idEtiqueta}/nome`, novoNome);
     enviar(`dados_kanban/etiquetasGlobais/${idEtiqueta}/cor`, novaCor);
 
-    console.log(`✅ Etiqueta '${idEtiqueta}' atualizada: Nome='${novoNome}', Cor='${novaCor}'`);
-
     fecharModalEdicao();
     exibirOpcoesEtiquetas();
 }
@@ -1207,7 +1150,6 @@ function deletarEtiquetaGlobal(idEtiqueta) {
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: {} };
 
     if (!dados.etiquetasGlobais[idEtiqueta]) {
-        console.warn(`⚠️ Etiqueta '${idEtiqueta}' não encontrada.`);
         return;
     }
 
@@ -1222,8 +1164,6 @@ function deletarEtiquetaGlobal(idEtiqueta) {
     });
 
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
-
-    console.log(`✅ Etiqueta '${idEtiqueta}' deletada.`);
 
     // 🔥 Deletar apenas a etiqueta específica na nuvem
     deletar(`dados_kanban/etiquetasGlobais/${idEtiqueta}`);
@@ -1243,7 +1183,6 @@ function excluirComentario(idLista, idTarefa, idComentario) {
     let tarefaAlvo = dados.tarefas[idTarefa];
 
     if (!tarefaAlvo || !tarefaAlvo.atividades || !tarefaAlvo.atividades[idComentario]) {
-        console.warn(`❌ ERRO: Comentário ID ${idComentario} não encontrado na tarefa ${idTarefa}!`);
         return;
     }
 
@@ -1257,8 +1196,6 @@ function excluirComentario(idLista, idTarefa, idComentario) {
 
     // 🗑️ Remove o comentário da estrutura local
     delete tarefaAlvo.atividades[idComentario];
-
-    console.log(`✅ Comentário ID ${idComentario} removido da tarefa '${idTarefa}'`);
 
     // 🔥 Salva as mudanças no localStorage
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
@@ -1287,11 +1224,9 @@ function definirCorTexto(corHex) {
 }
 
 async function carregarDadosDaNuvem() {
-    console.log("🔄 Buscando dados da nuvem...");
     let dadosRecebidos = await receber("dados_kanban");
 
     if (dadosRecebidos) {
-        console.log("✅ Dados recebidos da nuvem:", dadosRecebidos);
 
         // 🚨 Corrige `etiquetasGlobais` caso seja um array antigo
         if (!dadosRecebidos.etiquetasGlobais || typeof dadosRecebidos.etiquetasGlobais !== "object") {
@@ -1299,8 +1234,8 @@ async function carregarDadosDaNuvem() {
         }
 
         localStorage.setItem("dados_kanban", JSON.stringify(dadosRecebidos));
+        inicializarEtiquetasGlobais(); // Inicializa etiquetas
+        carregarListas();
         renderizarQuadro();
-    } else {
-        console.warn("⚠️ Nenhum dado encontrado na nuvem.");
     }
 }
