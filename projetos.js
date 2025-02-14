@@ -1,5 +1,14 @@
 document.addEventListener("DOMContentLoaded", async () => {
+
+    let dadosLocais = localStorage.getItem("dados_kanban");
+
+    if (dadosLocais) {
+        carregarListas();
+        renderizarQuadro();
+        return; // 🚀 Interrompe a execução para evitar carregamento desnecessário da nuvem
+    }else{
     await carregarDadosDaNuvem(); // Busca os dados da nuvem 
+    }
 });
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -1254,13 +1263,6 @@ function definirCorTexto(corHex) {
 
 async function carregarDadosDaNuvem() {
     // 🔍 Verifica se já há dados salvos localmente
-    let dadosLocais = localStorage.getItem("dados_kanban");
-
-    if (dadosLocais) {
-        carregarListas();
-        renderizarQuadro();
-        return; // 🚀 Interrompe a execução para evitar carregamento desnecessário da nuvem
-    }
     let dadosRecebidos = await receber("dados_kanban");
 
     if (dadosRecebidos) {
