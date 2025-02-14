@@ -2,6 +2,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     await carregarDadosDaNuvem(); // Busca os dados da nuvem 
 });
 
+document.addEventListener("DOMContentLoaded", function () {
+    // Limite para adicionar Lista (máx. 25 caracteres)
+    let inputLista = document.getElementById("input-nova-lista");
+    if (inputLista) aplicarLimitador(inputLista, 25, "aviso-lista");
+
+    // Limite para adicionar Tarefa (máx. 20 caracteres)
+    let inputTarefa = document.getElementById("input-nova-tarefa");
+    if (inputTarefa) aplicarLimitador(inputTarefa, 20, "aviso-tarefa");
+});
+
+/**
+ * Aplica um limitador de caracteres ao campo de input
+ * @param {HTMLElement} input - O campo de entrada de texto
+ * @param {number} maxCaracteres - O limite máximo de caracteres
+ * @param {string} idAviso - O ID do aviso para exibição de erro
+ */
 
 document.getElementById("fundo-escuro").addEventListener("click", () => {
     const modaisAbertos = document.querySelectorAll(".modal:not(.oculto)");
@@ -310,48 +326,20 @@ function editarTituloLista(idLista, elementoH3) {
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {} };
     let listaAlvo = dados.listas[idLista];
 
-    if (!listaAlvo) {
-        return;
-    }
+    if (!listaAlvo) return;
 
-    // Criar input de edição
     let input = document.createElement("input");
     input.type = "text";
     input.value = listaAlvo.titulo;
     input.className = "input-edicao";
     input.setAttribute("data-id", idLista);
 
-    // Substituir o título pelo input
+    // Aplica limitador de caracteres no input (máx. 25)
+    aplicarLimitador(input, 25, `aviso-editar-lista-${idLista}`);
+
     elementoH3.replaceWith(input);
     input.focus();
 
-    // Confirmar edição ao pressionar Enter ou sair do campo
-    input.addEventListener("blur", () => salvarNovoTituloLista(input, elementoH3));
-    input.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") salvarNovoTituloLista(input, elementoH3);
-    });
-}
-
-function editarTituloLista(idLista, elementoH3) {
-    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {} };
-    let listaAlvo = dados.listas[idLista];
-
-    if (!listaAlvo) {
-        return;
-    }
-
-    // Criar input de edição
-    let input = document.createElement("input");
-    input.type = "text";
-    input.value = listaAlvo.titulo;
-    input.className = "input-edicao";
-    input.setAttribute("data-id", idLista);
-
-    // Substituir o título pelo input
-    elementoH3.replaceWith(input);
-    input.focus();
-
-    // Confirmar edição ao pressionar Enter ou sair do campo
     input.addEventListener("blur", () => salvarNovoTituloLista(input, elementoH3));
     input.addEventListener("keydown", (event) => {
         if (event.key === "Enter") salvarNovoTituloLista(input, elementoH3);
@@ -366,17 +354,13 @@ function salvarNovoTituloLista(input, elementoH3) {
     if (!listaAlvo) return;
 
     let novoTitulo = input.value.trim();
-    if (novoTitulo && novoTitulo !== listaAlvo.titulo) {
-        listaAlvo.titulo = novoTitulo;
+    if (!novoTitulo) return;
 
-        // 🔥 Atualiza APENAS o título no localStorage
-        localStorage.setItem("dados_kanban", JSON.stringify(dados));
+    listaAlvo.titulo = novoTitulo;
+    localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
-        // 🔥 Envia APENAS a atualização do título para a nuvem
-        enviar(`dados_kanban/listas/${idLista}/titulo`, novoTitulo);
-    }
+    enviar(`dados_kanban/listas/${idLista}/titulo`, novoTitulo);
 
-    // Criar novo h3 e substituir o input
     let h3 = document.createElement("h3");
     h3.textContent = listaAlvo.titulo;
     h3.ondblclick = () => editarTituloLista(idLista, h3);
@@ -384,29 +368,62 @@ function salvarNovoTituloLista(input, elementoH3) {
 }
 
 function editarTituloTarefa(idLista, idTarefa) {
-    let listas = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-    let listaAlvo = listas[idLista]; // Acessa a lista pelo ID diretamente
-    let tarefaAlvo = listaAlvo?.tarefas.find(tarefa => tarefa.id === idTarefa);
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { tarefas: {} };
+    let tarefaAlvo = dados.tarefas[idTarefa];
 
     if (!tarefaAlvo) return;
 
-    let novoTexto = prompt("Edite o texto da tarefa:", tarefaAlvo.texto);
-    if (novoTexto !== null && novoTexto.trim() !== "") {
-        let novoTitulo = novoTexto.trim();
+    let input = document.createElement("input");
+    input.type = "text";
+    input.value = tarefaAlvo.texto;
+    input.className = "input-edicao";
+    input.setAttribute("data-id", idTarefa);
 
-        // Só atualiza se houver mudança real no título
-        if (novoTitulo !== tarefaAlvo.texto) {
-            tarefaAlvo.texto = novoTitulo;
+    // Criar um elemento de aviso caso necessário
+    let avisoId = `aviso-editar-tarefa-${idTarefa}`;
+    let aviso = document.getElementById(avisoId);
+    if (!aviso) {
+        aviso = document.createElement("p");
+        aviso.id = avisoId;
+        aviso.style.color = "red";
+        aviso.style.fontSize = "12px";
+        aviso.style.margin = "5px 0 0 0"; // Garante que fique abaixo do input
+        aviso.style.display = "none"; // Esconde inicialmente
+    }
 
-            // 🔥 Atualiza apenas o título da tarefa na nuvem (fragmentado)
-            enviar(`dados_kanban/listas/${idLista}/tarefas/${idTarefa}/texto`, novoTitulo);
+    aplicarLimitador(input, 20, avisoId);
 
-            // Atualiza no localStorage
-            salvarListas(listas);
+    let tarefaElemento = document.getElementById(idTarefa);
+    if (tarefaElemento) {
+        tarefaElemento.innerHTML = ""; // Limpa o conteúdo para inserir o input
+        tarefaElemento.appendChild(input);
+        tarefaElemento.appendChild(aviso); // Adiciona o aviso logo abaixo do input
+    }
 
-            // Atualiza a interface
-            renderizarQuadro();
-        }
+    input.focus();
+    input.addEventListener("blur", () => salvarNovoTituloTarefa(input, idLista, idTarefa));
+    input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") salvarNovoTituloTarefa(input, idLista, idTarefa);
+    });
+}
+
+function salvarNovoTituloTarefa(input, idLista, idTarefa) {
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { tarefas: {} };
+    let tarefaAlvo = dados.tarefas[idTarefa];
+
+    if (!tarefaAlvo) return;
+
+    let novoTitulo = input.value.trim();
+    if (!novoTitulo) return;
+
+    tarefaAlvo.texto = novoTitulo;
+    localStorage.setItem("dados_kanban", JSON.stringify(dados));
+
+    enviar(`dados_kanban/tarefas/${idTarefa}/texto`, novoTitulo);
+
+    let tarefaElemento = document.getElementById(idTarefa);
+    if (tarefaElemento) {
+        tarefaElemento.innerHTML = `<p ondblclick="editarTituloTarefa('${idLista}', '${idTarefa}')">${novoTitulo}</p>`;
     }
 }
 
@@ -491,19 +508,18 @@ async function abrirModal(idLista, idTarefa) {
 
         // Redefine o conteúdo do modal, mas preserva o título
         modalCorpo.innerHTML = `
-        <div>
+         <div>
             <label for="tarefa-titulo">Título da Tarefa:</label>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <input type="text" id="tarefa-titulo" value="${tarefaAlvo.texto}" 
-                    class="input-estilo" oninput="mostrarBotaoSalvar()">
+                    class="input-estilo" maxlength="20" oninput="mostrarBotaoSalvar()">
                 <button id="botao-salvar-titulo" 
-    onclick="salvarTituloTarefa('${idLista}', '${idTarefa}')"
-    style="display: none;" 
-    class="botao-salvar">
-    Salvar
-</button>
-
+                    onclick="salvarTituloTarefa('${idLista}', '${idTarefa}')"
+                    style="display: none;" 
+                    class="botao-salvar">Salvar
+                </button>
             </div>
+            <p id="aviso-tarefa-modal" style="color: red; font-size: 12px; display: none;"></p>
         </div>
         <div class="etiquetas">
     <h3>Etiquetas</h3>
@@ -649,6 +665,9 @@ async function abrirModal(idLista, idTarefa) {
             }
         }, 100);
 
+
+        let inputTitulo = document.getElementById("tarefa-titulo");
+        aplicarLimitador(inputTitulo, 20, "aviso-tarefa-modal");
 
         // Exibe o modal
         modal.classList.remove("oculto");
@@ -918,22 +937,30 @@ function salvarTituloTarefa(idLista, idTarefa) {
     let dataFormatada = agora.toISOString().split("T")[0];
     let horaFormatada = agora.toLocaleTimeString("pt-BR", { hour12: false });
 
-    tarefaAlvo.historico.push({
+    // Garante que `historico` seja um objeto antes de adicionar um novo registro
+    if (!tarefaAlvo.historico || typeof tarefaAlvo.historico !== "object") {
+        tarefaAlvo.historico = {};
+    }
+
+    // Gera um ID único para o novo histórico
+    let idHistorico = unicoID();
+    
+    tarefaAlvo.historico[idHistorico] = {
         tipo: "alteração",
         criador: usuario,
         campos: ["Título da Tarefa"],
         mensagem: `Título alterado de "${tituloAnterior}" para "${novoTitulo}"`,
         data: dataFormatada,
         hora: horaFormatada
-    });
+    };
 
     // 🔥 Atualiza os dados no LocalStorage corretamente
     dados.tarefas[idTarefa] = tarefaAlvo;
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
-
     // 🔥 Atualizar na nuvem (se aplicável)
     enviar(`dados_kanban/tarefas/${idTarefa}/texto`, novoTitulo);
+    enviar(`dados_kanban/tarefas/${idTarefa}/historico/${idHistorico}`, tarefaAlvo.historico[idHistorico]);
 
     // Atualiza a interface do quadro e reabre o modal para refletir as alterações
     renderizarQuadro();
@@ -1147,29 +1174,31 @@ function salvarEdicaoEtiqueta(idEtiqueta) {
 }
 
 function deletarEtiquetaGlobal(idEtiqueta) {
-    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: {} };
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
 
     if (!dados.etiquetasGlobais[idEtiqueta]) {
         return;
     }
 
-    // Remove do objeto local
+    // 🔥 Remove do objeto local de etiquetas globais
     delete dados.etiquetasGlobais[idEtiqueta];
 
-    // Remove de todas as tarefas
-    Object.values(dados.listas).forEach(lista => {
-        lista.tarefas.forEach(tarefa => {
+    // 🔥 Remove a etiqueta de todas as tarefas que a possuem
+    Object.values(dados.tarefas).forEach(tarefa => {
+        if (Array.isArray(tarefa.etiquetas)) {
             tarefa.etiquetas = tarefa.etiquetas.filter(etId => etId !== idEtiqueta);
-        });
+        }
     });
 
+    // 🔥 Salva as alterações no localStorage
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
-    // 🔥 Deletar apenas a etiqueta específica na nuvem
+    // 🔥 Remove a etiqueta globalmente na nuvem
     deletar(`dados_kanban/etiquetasGlobais/${idEtiqueta}`);
 
-    renderizarQuadro();
-    exibirOpcoesEtiquetas();
+    // 🔥 Atualiza a interface do quadro e o modal de etiquetas
+    renderizarQuadro(); 
+    exibirOpcoesEtiquetas(); // 🛠 Atualiza a lista de etiquetas disponíveis no modal
 }
 
 function fecharModalEdicao() {
@@ -1224,18 +1253,103 @@ function definirCorTexto(corHex) {
 }
 
 async function carregarDadosDaNuvem() {
+    // 🔍 Verifica se já há dados salvos localmente
+    let dadosLocais = localStorage.getItem("dados_kanban");
+
+    if (dadosLocais) {
+        carregarListas();
+        renderizarQuadro();
+        return; // 🚀 Interrompe a execução para evitar carregamento desnecessário da nuvem
+    }
     let dadosRecebidos = await receber("dados_kanban");
 
     if (dadosRecebidos) {
-
         // 🚨 Corrige `etiquetasGlobais` caso seja um array antigo
         if (!dadosRecebidos.etiquetasGlobais || typeof dadosRecebidos.etiquetasGlobais !== "object") {
             dadosRecebidos.etiquetasGlobais = {};
         }
 
         localStorage.setItem("dados_kanban", JSON.stringify(dadosRecebidos));
-        inicializarEtiquetasGlobais(); // Inicializa etiquetas
+        inicializarEtiquetasGlobais(); // 🔥 Inicializa etiquetas
         carregarListas();
         renderizarQuadro();
     }
 }
+
+function aplicarLimitador(input, maxCaracteres, idAviso) {
+    let aviso = document.getElementById(idAviso);
+
+    if (!aviso) {
+        aviso = document.createElement("p");
+        aviso.id = idAviso;
+        aviso.style.color = "red";
+        aviso.style.fontSize = "12px";
+        aviso.style.marginTop = "5px";
+        aviso.style.display = "none";
+        input.insertAdjacentElement("afterend", aviso);
+    }
+
+    input.addEventListener("input", function () {
+        if (this.value.length > maxCaracteres) {
+            this.value = this.value.substring(0, maxCaracteres);
+            aviso.textContent = `⚠️ Máximo de ${maxCaracteres} caracteres permitido.`;
+            aviso.style.display = "block"; 
+        } else {
+            aviso.style.display = "none";
+        }
+    });
+
+    input.addEventListener("blur", function () {
+        aviso.style.display = "none"; 
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    // Validação para criar Lista (máx. 25 caracteres)
+    let inputLista = document.getElementById("input-nova-lista");
+    if (inputLista) {
+        inputLista.addEventListener("input", function () {
+            let maxCaracteres = 25;
+            let aviso = document.getElementById("aviso-lista");
+
+            if (!aviso) {
+                aviso = document.createElement("p");
+                aviso.id = "aviso-lista";
+                aviso.style.color = "red";
+                aviso.style.fontSize = "12px";
+                this.insertAdjacentElement("afterend", aviso);
+            }
+
+            if (this.value.length > maxCaracteres) {
+                this.value = this.value.substring(0, maxCaracteres);
+                aviso.textContent = `⚠️ O nome da lista pode ter no máximo ${maxCaracteres} caracteres.`;
+            } else {
+                aviso.textContent = ""; // Remove o aviso quando o texto está dentro do limite
+            }
+        });
+    }
+
+    // Validação para criar Tarefa (máx. 20 caracteres)
+    let inputTarefa = document.getElementById("input-nova-tarefa");
+    if (inputTarefa) {
+        inputTarefa.addEventListener("input", function () {
+            let maxCaracteres = 20;
+            let aviso = document.getElementById("aviso-tarefa");
+
+            if (!aviso) {
+                aviso = document.createElement("p");
+                aviso.id = "aviso-tarefa";
+                aviso.style.color = "red";
+                aviso.style.fontSize = "12px";
+                this.insertAdjacentElement("afterend", aviso);
+            }
+
+            if (this.value.length > maxCaracteres) {
+                this.value = this.value.substring(0, maxCaracteres);
+                aviso.textContent = `⚠️ O nome da tarefa pode ter no máximo ${maxCaracteres} caracteres.`;
+            } else {
+                aviso.textContent = ""; // Remove o aviso quando o texto está dentro do limite
+            }
+        });
+    }
+});
