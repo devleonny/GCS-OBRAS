@@ -1,117 +1,90 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Projetos</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="gcsobras.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.2.1/exceljs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-
-    <style>
-
-        .nome_projeto {
-            font-weight: bold;
-            background-color: #222;
-            color: #94A0AB;
-            border-radius: 5px;
-            padding: 10px;
-            font-size: 2em;
-            border: 1px solid #94A0AB;
-            width: 100%;
-        }
-
-        .board {
-            display: flex;
-            min-width: 100%;
-            width: 100%;
-            overflow: auto;
-            gap: 10px;
-        }
-
-        .column {
-            background: #101204;
-            color: rgb(204, 204, 204);
-            border-radius: 5px;
-            width: 250px;
-            height: 500px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            flex: 1 0 200px;
-            max-width: 100%;
-            margin-bottom: 20px;
-        }
-
-
-        .column-header {
-            font-size: 1.2em;
-            margin-bottom: 10px;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-        }
-
-        .card-list {
-            background: #101204;
-            max-height: 70vh;
-            border-radius: 5px;
-            padding: 2px;
-            flex-grow: 1;
-            min-height: 200px;
-            overflow-y: auto;
-        }
-
-        .card {
-            background: #22272B;
-            color: #B2BECA;
-            border-radius: 5px;
-            padding: 10px;
-            margin-bottom: 10px;
-            cursor: pointer;
-        }
-    </style>
+    <title>Kanban</title>
+    <link rel="stylesheet" href="gcsobras.css">
+    <link rel="stylesheet" href="projetos.css">
 </head>
 
 <body>
 
-    <div id="overlay"></div>
+    <div class="top">
 
-    <div id="content">
-
-        <div
-            style="display: flex; height: 5vh; margin-bottom: 5vh; align-items: center; gap: 25px; justify-content: space-between; width: 100%;">
-
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="imagens/BG.png" style="height: 10vw; margin-right: 5vw; cursor: pointer;">
-                <label class="novo_titulo" id="nome_modulo"></label>
-            </div>
-
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;"
-                onclick="window.location.href='inicial.html'">
-                <img src="imagens/voltar.png" style=" cursor: pointer;" onclick="window.location.href='inicial.html'">
-                <label style="color: white;">Voltar</label>
-            </div>
-
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <img src="imagens/atualizar_2.png" style="width: max-content; cursor: pointer;"
-                    onclick="recuperar_orcamentos_projetos()">
-                <label style="color: white;">Atualizar</label>
-            </div>
-            <label class="novo_titulo">Projetos</label>
+        <img src="imagens/BG.png" style="width: 150px;">
+        <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; color: white;">
+            <label class="novo_titulo" id="nome_modulo">KANBAN</label>
+            <label id="nome_filtro"></label>
         </div>
 
-        <div id="quadro" class="board"></div>
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 10px; height: 100%;">
+                <!--PRIMEIRA COLUNA DE ÍCONES-->
+            </div>
+
+            <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
+                    onclick="window.location.href='inicial.html'">
+                    <label style="color: white;">Menu Inicial</label>
+                    <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
+                    onclick="carregarDadosDaNuvem()">
+                    <label style="color: white;">Atualizar</label>
+                    <img src="imagens/atualizar_2.png" style="width: 25px; cursor: pointer;">
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
+                    onclick="abrirModais('modal-adicionar-lista')">
+                    <label style="color: white;">Adicionar Nova Lista</label>
+                    <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
+                </div>
+            </div>
+        </div>
     </div>
 
+    <div class="quadro" id="quadro">
+        <!-- Agora começa vazio -->
+    </div>
+
+    <div id="modal" class="modal oculto">
+        <div class="modal-conteudo">
+            <span class="fechar" onclick="fecharModal()">&times;</span>
+            <div id="modal-corpo">
+                <!-- O conteúdo será gerado dinamicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Adicionar Lista -->
+    <div id="modal-adicionar-lista" class="modal oculto">
+        <div class="modal-conteudo">
+            <span class="fechar" onclick="fecharModais('modal-adicionar-lista')">&times;</span>
+            <h3>Adicionar Nova Lista</h3>
+            <input type="text" id="input-nova-lista" placeholder="Digite o nome da lista">
+            <button onclick="confirmarAdicionarLista()">Confirmar</button>
+        </div>
+    </div>
+
+    <!-- Modal Adicionar Tarefa -->
+    <div id="modal-adicionar-tarefa" class="modal oculto">
+        <div class="modal-conteudo">
+            <span class="fechar" onclick="fecharModais('modal-adicionar-tarefa')">&times;</span>
+            <h3>Adicionar Nova Tarefa</h3>
+            <input type="text" id="input-nova-tarefa" placeholder="Digite o nome da tarefa">
+            <button onclick="confirmarAdicionarTarefa()">Confirmar</button>
+        </div>
+    </div>
+
+    <div id="overlay" class="overlay"></div>
+
+    <div id="fundo-escuro" class="fundo-escuro oculto"></div>
+
+    <script src="open_menus.js"></script>
+    <script src="orcamentos.js"></script>
+    <script src="status.js"></script>
+    <script src="projetos.js"></script>
 </body>
-<script src="status.js"></script>
-<script src="orcamentos.js"></script>
-<script src="open_menus.js"></script>
-<script src="projetos.js"></script>
-<script src="gerar_excel.js"></script>
 
 </html>
