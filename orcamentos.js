@@ -491,6 +491,10 @@ async function preencher_orcamentos_v2(filtros, remover) {
         }
     }
 
+    let toolbar = document.getElementById('toolbar')
+    let label = `<label style="background-color: #222;" onclick="mostrar_tabela('orcamentos_')">ORÇAMENTOS</label>`
+    toolbar.insertAdjacentHTML('beforeend', label)
+
     await carregar_manutencoes()
 
 }
@@ -845,8 +849,8 @@ function criar_manutencao(id) {
                 <div style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: start; gap: 20px;">
                     <label style="font-size: 1.2vw;">Status Manutenção</label>
                     <select id="status_manutencao" style="padding: 5px; border-radius: 3px; cursor: pointer; width: 10vw; font-size: 0.8vw;">
-                        <option>REQUISIÇÃO AVULSA</option>
                         <option>MANUTENÇÃO</option>
+                        <option>REQUISIÇÃO AVULSA</option>
                         <option>MATERIAL SEPARADO</option>
                         <option>MATERIAL ENVIADO</option>
                         <option>MATERIAL RECEBIDO</option>
@@ -1050,8 +1054,11 @@ async function carregar_manutencoes() {
 }
 
 function mostrar_tabela(tabela) {
-    document.getElementById('chamados').style.display = 'none';
-    document.getElementById('orcamentos_').style.display = 'none';
+    let chamados = document.getElementById('chamados')
+    let orcamentos_ = document.getElementById('orcamentos_')
+
+    chamados ? chamados.style.display = 'none' : ''
+    orcamentos_ ? orcamentos_.style.display = 'none' : ''
 
     document.getElementById(tabela).style.display = 'table';
 }
