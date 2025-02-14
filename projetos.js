@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", async () => {
-    // await carregarDadosDaNuvem(); // Busca os dados da nuvem
+    await carregarDadosDaNuvem(); // Busca os dados da nuvem
     inicializarEtiquetasGlobais(); // Inicializa etiquetas
     carregarListas(); // Carrega as listas do localStorage
 });
@@ -14,6 +14,48 @@ document.getElementById("fundo-escuro").addEventListener("click", () => {
     const fundoEscuro = document.getElementById("fundo-escuro");
     if (fundoEscuro) fundoEscuro.classList.add("oculto"); // Esconde o fundo-escuro
 });
+
+document.addEventListener("DOMContentLoaded", () => {
+    const quadro = document.getElementById("quadro"); // Container das listas
+
+    let scrollInterval = null;
+
+    quadro.addEventListener("dragover", (evento) => {
+        evento.preventDefault();
+        const limite = 200; // Distância das bordas para ativar o scroll
+        const velocidade = 100; // Velocidade do scroll
+
+        let mouseX = evento.clientX;
+        let quadroRect = quadro.getBoundingClientRect();
+
+        // Se o mouse estiver próximo da borda esquerda, rola para a esquerda
+        if (mouseX < quadroRect.left + limite) {
+            iniciarScroll(-velocidade);
+        }
+        // Se o mouse estiver próximo da borda direita, rola para a direita
+        else if (mouseX > quadroRect.right - limite) {
+            iniciarScroll(velocidade);
+        } else {
+            pararScroll();
+        }
+    });
+
+    quadro.addEventListener("dragleave", pararScroll);
+    quadro.addEventListener("drop", pararScroll);
+
+    function iniciarScroll(velocidade) {
+        if (scrollInterval) return;
+        scrollInterval = setInterval(() => {
+            quadro.scrollLeft += velocidade;
+        }, 30); // Ajusta a taxa de atualização do scroll
+    }
+
+    function pararScroll() {
+        clearInterval(scrollInterval);
+        scrollInterval = null;
+    }
+});
+
 
 
 let idListaAtual = null; // Variável para armazenar a lista onde será adicionada a tarefa
@@ -32,17 +74,20 @@ function confirmarAdicionarTarefa() {
 
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
 
-    let dataAtual = new Date().toISOString().split("T")[0];
-    let horaAtual = new Date().toLocaleTimeString("pt-BR");
+    let agora = new Date();
+    let dataAtual = agora.toISOString().split("T")[0]; // 📌 Data no formato YYYY-MM-DD
+    let horaAtual = agora.toLocaleTimeString("pt-BR", { hour12: false }); // 📌 Hora no formato 24h
+
     let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
     let criador = acesso.usuario || "Desconhecido";
 
-    let idTarefa = unicoID(); // Gera um ID único para a tarefa
+    let idTarefa = unicoID(); // 🔥 Gera um ID único para a tarefa
+    let idHistorico = unicoID(); // 🔥 Gera um ID único para o primeiro histórico
 
     let novaTarefa = {
         id: idTarefa,
         texto: textoTarefa,
-        lista: idListaAtual, // 🔥 Indica a lista onde está armazenada
+        lista: idListaAtual, // 📌 Indica a lista onde está armazenada
         descricao: {
             chamado: "",
             endereco: "",
@@ -54,23 +99,33 @@ function confirmarAdicionarTarefa() {
             equipe: ""
         },
         etiquetas: [],
-        atividades: [],
-        historico: [{
-            tipo: "criação",
-            mensagem: `Tarefa criada por ${criador}`,
-            data: dataAtual,
-            hora: horaAtual
-        }]
+        atividades: {}, // 🔥 Agora é um objeto, e não um array
+        historico: { // 🔥 Também é um objeto, com ID único
+            [idHistorico]: {
+                id: idHistorico,
+                tipo: "criação",
+                mensagem: `Tarefa criada por ${criador}`,
+                data: dataAtual,
+                hora: horaAtual
+            }
+        }
     };
 
-    // Adiciona a nova tarefa
+    // 🔥 Adiciona a nova tarefa ao objeto de tarefas
     dados.tarefas[idTarefa] = novaTarefa;
 
-    // 🔥 Usa a nova função para salvar corretamente
-    salvarTarefas(dados.tarefas);
+    // 🔥 Salva no localStorage
+    localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
-    // Atualiza o quadro
+    console.log(`✅ Tarefa '${textoTarefa}' adicionada com ID '${idTarefa}'`);
+
+    // 🔥 Envia a tarefa isoladamente para a nuvem
+    enviar(`dados_kanban/tarefas/${idTarefa}`, novaTarefa);
+
+    // 🔥 Atualiza a interface
     renderizarQuadro();
+
+    // 🔥 Fecha o modal
     fecharModais("modal-adicionar-tarefa");
 }
 
@@ -80,12 +135,14 @@ function adicionarLista() {
 
 function salvarListas(novasListas) {
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: {} };
+
+    // ✅ Atualiza apenas as listas, sem modificar outras partes dos dados
     dados.listas = novasListas;
 
+    // ✅ Salva no localStorage
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
-    console.log("💾 Listas salvas no localStorage:", novasListas);
 
-    enviar("dados_kanban", dados);
+    console.log("💾 Listas salvas no localStorage:", novasListas);
 }
 
 function salvarTarefas(novasTarefas) {
@@ -109,12 +166,13 @@ function salvarTarefas(novasTarefas) {
 function salvarEtiquetasGlobais(novasEtiquetas) {
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: {} };
 
-    dados.etiquetasGlobais = novasEtiquetas; // ✅ Garante que seja um objeto
+    // ✅ Atualiza apenas as etiquetas globais, sem modificar outras partes dos dados
+    dados.etiquetasGlobais = novasEtiquetas;
 
+    // ✅ Salva no localStorage
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
-    console.log("💾 Etiquetas globais salvas:", novasEtiquetas);
 
-    enviar("dados_kanban", dados); // Envia para a nuvem
+    console.log("💾 Etiquetas globais salvas:", novasEtiquetas);
 }
 
 function carregarListas() {
@@ -150,16 +208,41 @@ function excluirTarefa(idTarefa) {
 }
 
 function excluirLista(idLista) {
-    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: {} };
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
 
     if (!dados.listas[idLista]) {
+        console.warn(`⚠️ Lista ID '${idLista}' não encontrada.`);
         return;
     }
 
+    // 📌 Garante que o objeto tarefas exista
+    if (!dados.tarefas || typeof dados.tarefas !== "object") {
+        dados.tarefas = {};
+    }
+
+    // 🔥 Deleta todas as tarefas pertencentes à lista
+    Object.keys(dados.tarefas).forEach(idTarefa => {
+        if (dados.tarefas[idTarefa].lista === idLista) {
+            console.log(`🗑️ Excluindo tarefa '${idTarefa}' da lista '${idLista}'`);
+            delete dados.tarefas[idTarefa];
+
+            // 🔥 Remove a tarefa da nuvem
+            deletar(`dados_kanban/tarefas/${idTarefa}`);
+        }
+    });
+
+    // 🔥 Remove a lista
     delete dados.listas[idLista];
 
+    // 🔥 Atualiza o LocalStorage
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
+    // 🔥 Remove a lista da nuvem
+    deletar(`dados_kanban/listas/${idLista}`);
+
+    console.log(`✅ Lista '${idLista}' excluída com sucesso, junto com suas tarefas.`);
+
+    // Atualiza a interface
     renderizarQuadro();
 }
 
@@ -189,7 +272,7 @@ async function confirmarAdicionarLista() {
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
     // 🔥 Envia apenas a nova lista para a nuvem
-    await enviar(`dados_kanban/listas/${idLista}`, dados.listas[idLista]);
+    enviar(`dados_kanban/listas/${idLista}`, dados.listas[idLista]);
 
     renderizarQuadro();
     fecharModais("modal-adicionar-lista");
@@ -254,13 +337,39 @@ function editarTituloLista(idLista, elementoH3) {
     input.focus();
 
     // Confirmar edição ao pressionar Enter ou sair do campo
-    input.addEventListener("blur", () => salvarNovoTituloLista(input));
+    input.addEventListener("blur", () => salvarNovoTituloLista(input, elementoH3));
     input.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") salvarNovoTituloLista(input);
+        if (event.key === "Enter") salvarNovoTituloLista(input, elementoH3);
     });
 }
 
-function salvarNovoTituloLista(input) {
+function editarTituloLista(idLista, elementoH3) {
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {} };
+    let listaAlvo = dados.listas[idLista];
+
+    if (!listaAlvo) {
+        return;
+    }
+
+    // Criar input de edição
+    let input = document.createElement("input");
+    input.type = "text";
+    input.value = listaAlvo.titulo;
+    input.className = "input-edicao";
+    input.setAttribute("data-id", idLista);
+
+    // Substituir o título pelo input
+    elementoH3.replaceWith(input);
+    input.focus();
+
+    // Confirmar edição ao pressionar Enter ou sair do campo
+    input.addEventListener("blur", () => salvarNovoTituloLista(input, elementoH3));
+    input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") salvarNovoTituloLista(input, elementoH3);
+    });
+}
+
+function salvarNovoTituloLista(input, elementoH3) {
     let idLista = input.getAttribute("data-id");
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {} };
     let listaAlvo = dados.listas[idLista];
@@ -271,11 +380,11 @@ function salvarNovoTituloLista(input) {
     if (novoTitulo && novoTitulo !== listaAlvo.titulo) {
         listaAlvo.titulo = novoTitulo;
 
-        // 🔥 Atualizar apenas o título da lista na nuvem
-        enviar(`dados_kanban/listas/${idLista}/titulo`, novoTitulo);
+        // 🔥 Atualiza APENAS o título no localStorage
+        localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
-        // Atualiza o localStorage
-        salvarListas(dados.listas);
+        // 🔥 Envia APENAS a atualização do título para a nuvem
+        enviar(`dados_kanban/listas/${idLista}/titulo`, novoTitulo);
     }
 
     // Criar novo h3 e substituir o input
@@ -622,27 +731,34 @@ function adicionarComentario(idLista, idTarefa) {
         return;
     }
 
-    // 📌 Captura data e hora no formato correto
+    if (!tarefaAlvo.atividades || typeof tarefaAlvo.atividades !== "object") {
+        tarefaAlvo.atividades = {}; // Agora é um objeto!
+    }
+
+    let idComentario = unicoID(); // 🔥 Gera um ID único para o comentário
+
+    // 📌 Captura data e hora
     let agora = new Date();
     let dataFormatada = agora.toLocaleDateString("pt-BR"); // "DD/MM/AAAA"
     let horaFormatada = agora.toLocaleTimeString("pt-BR", { hour12: false });
 
-    // 📝 Adiciona novo comentário à lista de atividades
-    tarefaAlvo.atividades.push({
+    // 📝 Adiciona o novo comentário ao objeto de atividades
+    tarefaAlvo.atividades[idComentario] = {
+        id: idComentario,
         tipo: "comentario",
         comentario: comentarioTexto,
         criador: criador,
         data: dataFormatada,
         hora: horaFormatada
-    });
+    };
 
-    // 🔥 Salva as mudanças no localStorage
+    // 🔥 Salva no localStorage
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
-    // 🔥 Atualizar na nuvem
-    enviar(`dados_kanban/tarefas/${idTarefa}/atividades`, tarefaAlvo.atividades);
+    // 🔥 Enviar **apenas** o novo comentário para a nuvem
+    enviar(`dados_kanban/tarefas/${idTarefa}/atividades/${idComentario}`, tarefaAlvo.atividades[idComentario]);
 
-    console.log(`✅ Comentário adicionado à tarefa '${idTarefa}':`, comentarioTexto);
+    console.log(`✅ Comentário adicionado à tarefa '${idTarefa}':`, tarefaAlvo.atividades[idComentario]);
 
     // ✅ LIMPA O TEXTAREA APÓS O COMENTÁRIO
     document.getElementById("novo-comentario").value = "";
@@ -654,17 +770,15 @@ function adicionarComentario(idLista, idTarefa) {
 function renderizarAtividades(atividades, historico, idLista, idTarefa) {
     const listaAtividades = document.getElementById("lista-atividades");
 
-    if (!listaAtividades) {
-        return;
-    }
+    if (!listaAtividades) return;
 
-    // 🚀 Garante que atividades e histórico sejam arrays válidos
-    atividades = Array.isArray(atividades) ? atividades : [];
-    historico = Array.isArray(historico) ? historico : [];
+    // 🚀 Garante que atividades e histórico sejam objetos válidos
+    atividades = atividades && typeof atividades === "object" ? Object.values(atividades) : [];
+    historico = historico && typeof historico === "object" ? Object.values(historico) : [];
 
     let todasAtividades = [...atividades, ...historico];
 
-    // 🚨 Verifica se há atividades antes de tentar exibir
+    // 🚨 Verifica se há atividades antes de exibir
     if (todasAtividades.length === 0) {
         listaAtividades.innerHTML = "<p style='color: gray;'>Nenhuma atividade registrada.</p>";
         return;
@@ -691,7 +805,7 @@ function renderizarAtividades(atividades, historico, idLista, idTarefa) {
                 let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
                 let usuarioLogado = acesso.usuario || "Usuário desconhecido";
                 if (atividade.criador === usuarioLogado) {
-                    botaoExcluir = `<button class="botao-excluir-comentario" onclick="excluirComentario('${idLista}', '${idTarefa}', '${atividade.data}', '${atividade.hora}')">❌</button>`;
+                    botaoExcluir = `<button class="botao-excluir-comentario" onclick="excluirComentario('${idLista}', '${idTarefa}', '${atividade.id}')">❌</button>`;
                 }
             } else if (atividade.tipo === "alteração") {
                 icone = "✏️";
@@ -728,6 +842,8 @@ function formatarData(dataISO) {
  */
 
 function salvarDescricao(idLista, idTarefa) {
+    console.log(`🚀 Iniciando salvamento da descrição para Tarefa: ${idTarefa}, Lista: ${idLista}`);
+
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
 
     if (!dados.tarefas) {
@@ -742,49 +858,27 @@ function salvarDescricao(idLista, idTarefa) {
     }
 
     let descricaoAntiga = { ...tarefaAlvo.descricao };
+    console.log("📌 Descrição antiga:", descricaoAntiga);
 
+    // 🔍 Captura os valores do formulário
     let novaDescricao = {
-        chamado: document.getElementById("input-chamado").value.trim(),
-        endereco: document.getElementById("input-endereco").value.trim(),
-        start: document.getElementById("input-start").value.trim(),
-        entrega: document.getElementById("input-entrega").value.trim(),
-        pedidoServico: document.getElementById("input-pedido-servico").value.trim(),
-        pedidoVenda: document.getElementById("input-pedido-venda").value.trim(),
-        escopo: document.getElementById("input-escopo").value.trim(),
-        equipe: document.getElementById("input-equipe").value.trim(),
+        chamado: document.getElementById("input-chamado")?.value.trim() || "",
+        endereco: document.getElementById("input-endereco")?.value.trim() || "",
+        start: document.getElementById("input-start")?.value.trim() || "",
+        entrega: document.getElementById("input-entrega")?.value.trim() || "",
+        pedidoServico: document.getElementById("input-pedido-servico")?.value.trim() || "",
+        pedidoVenda: document.getElementById("input-pedido-venda")?.value.trim() || "",
+        escopo: document.getElementById("input-escopo")?.value.trim() || "",
+        equipe: document.getElementById("input-equipe")?.value.trim() || ""
     };
 
-    // 📌 Dicionário para mapear os nomes técnicos para os nomes exibidos na interface
-    let labelsCampos = {
-        chamado: "N° Chamado",
-        endereco: "Endereço da Loja",
-        start: "Start",
-        entrega: "Entrega",
-        pedidoServico: "Pedido de Serviço",
-        pedidoVenda: "Pedido de Venda",
-        escopo: "Escopo",
-        equipe: "Equipe"
-    };
+    console.log("✏️ Nova descrição capturada do formulário:", novaDescricao);
 
-    // 📌 Obtendo o orçamento corretamente
-    let inputOrcamento = document.getElementById("orcamento-selecionado").textContent.trim();
-    if (inputOrcamento !== "Nenhum" && inputOrcamento !== "") {
-        tarefaAlvo.orcamento = inputOrcamento;
-    } else {
-        delete tarefaAlvo.orcamento;
-    }
+    // 🔍 Verifica se a descrição mudou
+    let alteracoesDetectadas = JSON.stringify(descricaoAntiga) !== JSON.stringify(novaDescricao);
 
-    // 🔍 Comparação para identificar mudanças na descrição
-    let camposAlterados = [];
-    for (let campo in novaDescricao) {
-        if (novaDescricao[campo] !== descricaoAntiga[campo]) {
-            camposAlterados.push(labelsCampos[campo] || campo); // Usa o nome correto
-        }
-    }
-
-    // 🚀 Atualiza apenas se houver mudanças
-    if (camposAlterados.length > 0) {
-        tarefaAlvo.descricao = novaDescricao;
+    if (alteracoesDetectadas) {
+        tarefaAlvo.descricao = { ...novaDescricao };
 
         let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
         let usuario = acesso.usuario || "Usuário desconhecido";
@@ -793,12 +887,11 @@ function salvarDescricao(idLista, idTarefa) {
         let dataFormatada = agora.toISOString().split("T")[0];
         let horaFormatada = agora.toLocaleTimeString("pt-BR", { hour12: false });
 
-        // 📌 Adiciona ao histórico com os nomes formatados
+        // 📌 Adiciona ao histórico
         tarefaAlvo.historico.push({
             tipo: "alteração",
             criador: usuario,
-            campos: camposAlterados,
-            mensagem: `Descrição alterada nos campos: ${camposAlterados.join(", ")}`,
+            mensagem: "Descrição da tarefa foi atualizada.",
             data: dataFormatada,
             hora: horaFormatada
         });
@@ -807,12 +900,22 @@ function salvarDescricao(idLista, idTarefa) {
         dados.tarefas[idTarefa] = tarefaAlvo;
         localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
-        console.log(`✅ Descrição da tarefa '${idTarefa}' atualizada! Campos alterados: ${camposAlterados.join(", ")}`);
+        console.log("✅ Descrição completa salva no LocalStorage:", tarefaAlvo.descricao);
 
-        // 🔥 Atualizar na nuvem
-        enviar(`dados_kanban/tarefas/${idTarefa}/descricao`, novaDescricao);
-        if (tarefaAlvo.orcamento) {
+        // 🔥 Enviar a descrição inteira para a nuvem
+        console.log(`📤 Enviando descrição COMPLETA para a nuvem`);
+        enviar(`dados_kanban/tarefas/${idTarefa}/descricao`, tarefaAlvo.descricao);
+
+        // 🔥 Atualizar orçamento na nuvem apenas se foi alterado
+        let inputOrcamento = document.getElementById("orcamento-selecionado")?.textContent.trim() || "";
+        if (inputOrcamento !== "Nenhum" && inputOrcamento !== "" && inputOrcamento !== tarefaAlvo.orcamento) {
+            tarefaAlvo.orcamento = inputOrcamento;
+            console.log(`📤 Enviando orçamento para a nuvem: ${tarefaAlvo.orcamento}`);
             enviar(`dados_kanban/tarefas/${idTarefa}/orcamento`, tarefaAlvo.orcamento);
+        } else if (tarefaAlvo.orcamento && inputOrcamento === "Nenhum") {
+            delete tarefaAlvo.orcamento;
+            console.log("📤 Removendo orçamento da nuvem.");
+            enviar(`dados_kanban/tarefas/${idTarefa}/orcamento`, null);
         }
 
         // Atualiza a interface do quadro e reabre o modal para refletir as alterações
@@ -822,7 +925,6 @@ function salvarDescricao(idLista, idTarefa) {
         console.log("⚠️ Nenhuma alteração foi detectada na descrição.");
     }
 }
-
 function salvarTituloTarefa(idLista, idTarefa) {
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
     let tarefaAlvo = dados.tarefas[idTarefa];
@@ -1135,49 +1237,34 @@ function fecharModalEdicao() {
     if (modalEdicao) modalEdicao.remove();
 }
 
-function excluirComentario(idLista, idTarefa, data, hora) {
+function excluirComentario(idLista, idTarefa, idComentario) {
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
 
-    // 📌 Obtendo a tarefa diretamente do local correto
     let tarefaAlvo = dados.tarefas[idTarefa];
 
-    if (!tarefaAlvo) {
-        console.warn(`❌ ERRO: Tarefa ID ${idTarefa} não encontrada!`);
+    if (!tarefaAlvo || !tarefaAlvo.atividades || !tarefaAlvo.atividades[idComentario]) {
+        console.warn(`❌ ERRO: Comentário ID ${idComentario} não encontrado na tarefa ${idTarefa}!`);
         return;
     }
 
-    if (!Array.isArray(tarefaAlvo.atividades)) {
-        console.warn(`⚠️ Nenhuma atividade encontrada para a tarefa ID ${idTarefa}`);
-        return;
-    }
-
-    // Obtém o usuário logado
     let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
     let usuarioLogado = acesso.usuario || "Usuário desconhecido";
 
-    // 🔍 Encontra o índice do comentário a ser excluído
-    let indexComentario = tarefaAlvo.atividades.findIndex(atividade =>
-        atividade.tipo === "comentario" &&
-        atividade.data === data &&
-        atividade.hora === hora &&
-        atividade.criador === usuarioLogado
-    );
-
-    if (indexComentario === -1) {
+    if (tarefaAlvo.atividades[idComentario].criador !== usuarioLogado) {
         alert("❌ Você só pode excluir os comentários que você criou!");
         return;
     }
 
-    // 🗑️ Remove o comentário da lista
-    let comentarioRemovido = tarefaAlvo.atividades.splice(indexComentario, 1);
+    // 🗑️ Remove o comentário da estrutura local
+    delete tarefaAlvo.atividades[idComentario];
 
-    console.log(`✅ Comentário removido da tarefa '${idTarefa}':`, comentarioRemovido);
+    console.log(`✅ Comentário ID ${idComentario} removido da tarefa '${idTarefa}'`);
 
     // 🔥 Salva as mudanças no localStorage
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
-    // 🔥 Atualizar na nuvem
-    enviar(`dados_kanban/tarefas/${idTarefa}/atividades`, tarefaAlvo.atividades);
+    // 🔥 Deletar **apenas** o comentário na nuvem
+    deletar(`dados_kanban/tarefas/${idTarefa}/atividades/${idComentario}`);
 
     // Atualiza a exibição no modal
     renderizarAtividades(tarefaAlvo.atividades, tarefaAlvo.historico, idLista, idTarefa);

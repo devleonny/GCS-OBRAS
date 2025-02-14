@@ -8,6 +8,8 @@ body {
     overflow-y: auto; /* Mantém o scroll vertical */
     margin: 0;
     padding: 0;
+    background: linear-gradient(45deg, #151749, #B12425);
+  animation: none;  
 }
 
 h1 {
@@ -30,26 +32,49 @@ button:hover {
     background-color: #0056b3; /* Azul mais escuro */
 }
 
-/* Quadro de listas */
+/* Estiliza o container do quadro para permitir rolagem horizontal */
 .quadro {
     display: flex;
-    justify-content: flex-start;
+    flex-wrap: nowrap; /* Impede que as listas quebrem para a próxima linha */
     gap: 20px;
     padding: 20px;
-    overflow-x: auto;
+    overflow-x: auto; /* Ativa a rolagem horizontal */
+    overflow-y: hidden; /* Evita rolagem vertical indesejada */
+    white-space: nowrap; /* Impede quebra de linha */
+    scrollbar-width: thin; /* Estiliza a barra de rolagem para Firefox */
+    scrollbar-color: #50536a #1e1e2f; /* Cor da barra e do fundo no Firefox */
+    max-width: 95vw; /* 🔥 Garante que o quadro nunca ultrapasse a largura da tela */
 }
 
-/* Listas */
+/* Personaliza a barra de rolagem no Chrome, Edge e Safari */
+.quadro::-webkit-scrollbar {
+    height: 8px; /* Altura da barra de rolagem horizontal */
+}
+
+.quadro::-webkit-scrollbar-thumb {
+    background: #50536a; /* Cor da barra */
+    border-radius: 4px;
+}
+
+.quadro::-webkit-scrollbar-track {
+    background: #1e1e2f; /* Fundo do scrollbar */
+}
+
 .lista {
-    background: #282a3a; /* Fundo da lista em tom escuro */
+    background: #282a3a;
     padding: 15px;
     border-radius: 8px;
+    flex: 0 0 auto;
     width: 250px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5); /* Sombra */
+    max-width: 300px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
     display: flex;
-    flex-direction: column; /* Organiza os elementos em coluna */
-    gap: 10px; /* Espaçamento interno */
-    border: 1px solid #3a3c4e; /* Borda sutil */
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid #3a3c4e;
+    min-height: fit-content; /* 🔥 Altura mínima baseada no conteúdo */
+    max-height: 55vh; /* 🔥 Limite máximo */
+    overflow: hidden; /* 🔥 Evita crescimento desnecessário */
 }
 
 .titulo-lista {
@@ -107,24 +132,33 @@ button:hover {
     background: #ff1a1a;
 }
 
+/* 🔥 Garante que a área de tarefas só cresça até um limite real */
 .tarefas {
-    flex-grow: 1; /* Expande para ocupar o espaço disponível */
-    min-height: 150px; /* Altura mínima */
+    flex-grow: 1;
+    min-height: 50px; /* 🔥 Mantém listas vazias pequenas */
+    max-height: 50vh; /* 🔥 Limita o crescimento da lista */
     padding: 10px;
-    border: 2px dashed #3a3c4e; /* Borda em tom escuro */
-    overflow-y: auto; /* Barra de rolagem */
+    border: 2px dashed #3a3c4e;
+    overflow-y: auto; /* 🔥 Scroll interno quando necessário */
     display: flex;
-    flex-direction: column; /* Mantém as tarefas em coluna */
-    gap: 8px; /* Espaçamento entre tarefas */
+    flex-direction: column;
+    gap: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: #50536a #282a3a;
+}
+/* Personaliza a barra de rolagem para Chrome, Edge e Safari */
+.tarefas::-webkit-scrollbar {
+    width: 8px;
 }
 
-/* Indicadores de etiquetas */
-.indicadores-etiquetas {
-    display: flex;
-    gap: 5px;
-    margin-right: 8px;
+.tarefas::-webkit-scrollbar-thumb {
+    background: #50536a;
+    border-radius: 4px;
 }
 
+.tarefas::-webkit-scrollbar-track {
+    background: #282a3a;
+}
 .indicador-etiqueta {
     width: 10px;
     height: 10px;
@@ -611,6 +645,31 @@ input[type="date"] {
 .botao-excluir-etiqueta:hover {
     background: #ff1a1a; /* Vermelho mais forte ao passar o mouse */
 }
+
+.top {
+    position: relative;
+    display: flex;
+    width: 95%;
+    margin: 40px 0 20px 0;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #222222bf;
+    padding: 10px;
+    border-radius: 5px;
+    gap: 20px;
+}
+
+.container-botao {
+    display: flex;
+    justify-content: flex-end; /* Alinha o botão no canto direito */
+    width: 95%;
+    padding: 10px;
+}
+
+.botao-adicionar-lista:hover {
+    background-color: #0056b3; /* Azul mais escuro ao passar o mouse */
+}
+
 /* Scroll personalizado */
 ::-webkit-scrollbar {
     width: 8px;
