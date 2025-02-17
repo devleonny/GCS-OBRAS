@@ -98,21 +98,38 @@ button:hover {
     max-width: calc(100% - 40px); /* 🔥 Mantém espaço para o botão */
 }
 
+#modal-confirmacao {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #2b2d42;
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    width: 300px;
+    text-align: center;
+}
+
+#modal-confirmacao:not(.oculto) {
+    display: block;
+}
+
 .botao-excluir {
-    flex-shrink: 0; /* 🔥 Evita que o botão diminua */
-    background: #ff5c5c;
+    background-color: red;
     color: white;
     border: none;
-    padding: 5px 8px;
-    cursor: pointer;
     border-radius: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
     font-size: 14px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-    align-self: flex-start; /* 🔥 Mantém o botão sempre no topo */
 }
 
 .botao-excluir:hover {
-    background: #ff1a1a;
+    background-color: darkred;
 }
 
 /* Tarefas */
