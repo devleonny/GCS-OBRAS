@@ -2,12 +2,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     let dadosLocais = localStorage.getItem("dados_kanban");
 
+    carregarListas();
+    renderizarQuadro();
     if (dadosLocais) {
-        carregarListas();
-        renderizarQuadro();
         return; // 🚀 Interrompe a execução para evitar carregamento desnecessário da nuvem
-    }else{
-    await carregarDadosDaNuvem(); // Busca os dados da nuvem 
+    } else {
+        await carregarDadosDaNuvem(); // Busca os dados da nuvem 
     }
 });
 
@@ -294,7 +294,12 @@ async function confirmarAdicionarLista() {
 
 function renderizarQuadro() {
     let quadro = document.getElementById("quadro");
-    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || {};
+
+    // 🛠️ Garante que cada propriedade seja um objeto antes de acessar
+    dados.listas = dados.listas && typeof dados.listas === "object" ? dados.listas : {};
+    dados.tarefas = dados.tarefas && typeof dados.tarefas === "object" ? dados.tarefas : {};
+    dados.etiquetasGlobais = dados.etiquetasGlobais && typeof dados.etiquetasGlobais === "object" ? dados.etiquetasGlobais : {};
 
     quadro.innerHTML = Object.values(dados.listas)
         .map(lista => {
@@ -309,8 +314,7 @@ function renderizarQuadro() {
                     <div class="tarefas" ondrop="soltar(event)" ondragover="permitirSoltar(event)">
                         ${tarefasDaLista.map(tarefa => `
                             <div class="tarefa" draggable="true" ondragstart="arrastar(event)" id="${tarefa.id}" 
-    onclick="abrirModal('${tarefa.lista}', '${tarefa.id}')">
-
+                                onclick="abrirModal('${tarefa.lista}', '${tarefa.id}')">
                                 <div class="etiquetas-tarefa">
                                     ${Object.values(tarefa.etiquetas || {}).map(etiqueta => `
                                         <span class="etiqueta-bolinha" style="background-color: ${etiqueta.cor};"></span>
@@ -475,12 +479,15 @@ function soltar(evento) {
 async function abrirModal(idLista, idTarefa) {
 
     if (!idLista || !idTarefa) {
+        console.error("⚠️ Erro: ID da lista ou da tarefa não foi fornecido.");
         return;
     }
 
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
 
+    // 🛠️ Garante que tarefas seja um objeto válido
     if (!dados.tarefas || typeof dados.tarefas !== "object") {
+        console.warn("⚠️ Aviso: 'tarefas' estava indefinido. Inicializando...");
         dados.tarefas = {};
         localStorage.setItem("dados_kanban", JSON.stringify(dados));
     }
@@ -488,12 +495,32 @@ async function abrirModal(idLista, idTarefa) {
     let tarefaAlvo = dados.tarefas[idTarefa];
 
     if (!tarefaAlvo) {
+        console.error(`❌ Erro: Tarefa com ID ${idTarefa} não encontrada.`);
         return;
     }
+
+    // 🔍 Campos do orçamento
+    let idOrcamento = tarefaAlvo.idOrcamento || "";  // Armazena o ID real do orçamento
+    let nomeOrcamento = tarefaAlvo.nomeOrcamento || "Nenhum"; // Nome formatado do orçamento
+
+    // 🔍 Recupera orçamentos
+    const orcamentos = await recuperarDados("dados_orcamentos") || {};
+
+    if (idOrcamento && orcamentos[idOrcamento]) {
+        let dadosOrcamento = orcamentos[idOrcamento].dados_orcam || {};
+        let cliente = dadosOrcamento.cliente_selecionado || "Cliente desconhecido";
+        let contrato = dadosOrcamento.contrato || "Contrato não informado";
+
+        nomeOrcamento = `${cliente} - ${contrato}`;
+    }
+
+    console.log("🔍 Dados da tarefa:", tarefaAlvo);
+    console.log("📄 Orçamento associado:", nomeOrcamento);
 
     let listaAlvo = dados.listas[idLista];
 
     if (!listaAlvo) {
+        console.error(`❌ Erro: Lista com ID ${idLista} não encontrada.`);
         return;
     }
 
@@ -506,10 +533,6 @@ async function abrirModal(idLista, idTarefa) {
         let modal = document.getElementById("modal");
         let modalCorpo = document.getElementById("modal-corpo");
         let fundoEscuro = document.getElementById("fundo-escuro"); // Obtenha o fundo-escuro
-
-        let linkOrcamento = tarefaAlvo.orcamento
-            ? `<a href="#" id="orcamento-link">${tarefaAlvo.orcamento}</a>`
-            : "Nenhum";
 
         // Redefine o conteúdo do modal, mas preserva o título
         modalCorpo.innerHTML = `
@@ -529,14 +552,19 @@ async function abrirModal(idLista, idTarefa) {
             <div class="etiquetas">
                 <h3>Etiquetas</h3>
                 <div id="lista-etiquetas">
-                    ${Object.values(tarefaAlvo.etiquetas || {}).map(etiqueta => `
-                        <span class="etiqueta" style="background-color: ${etiqueta.cor}; color: ${definirCorTexto(etiqueta.cor)};">
-                            ${etiqueta.nome}
-                            <button class="botao-excluir botao-excluir-etiqueta" 
-                                onclick="removerEtiqueta('${idLista}', '${idTarefa}', '${etiqueta.id}')">❌</button>
-                        </span>
-                    `).join("") || "<p style='color: gray;'>Nenhuma etiqueta</p>"}
-                </div>
+    ${Object.values(tarefaAlvo.etiquetas || {}).map(etiqueta => {
+        let corTexto = definirCorTexto(etiqueta.cor);
+        return `
+            <span class="etiqueta" style="background-color: ${etiqueta.cor}; color: ${corTexto};">
+                ${etiqueta.nome}
+                <button class="botao-excluir-etiqueta"
+                    style="background-color: transparent; color: ${corTexto};"
+                    onclick="removerEtiqueta('${idLista}', '${idTarefa}', '${etiqueta.id}')">✖</button>
+            </span>
+        `;
+    }).join("") || "<p style='color: gray;'>Nenhuma etiqueta</p>"}
+</div>
+
                 <button onclick="exibirOpcoesEtiquetas('${idLista}', '${idTarefa}')">➕ Adicionar Etiqueta</button>
             </div>
 
@@ -575,14 +603,19 @@ async function abrirModal(idLista, idTarefa) {
                 <input type="text" id="input-equipe" value="${tarefaAlvo.descricao.equipe}">
             </div>
             <!-- Auto-complete para orçamento -->
+            <h3>Orçamento</h3>
             <div style="position: relative;">
                 <label for="input-auto-complete">Buscar Orçamento:</label>
                 <input type="text" id="input-auto-complete" placeholder="Digite para buscar...">
                 <ul id="sugestoes" class="auto-complete-list"></ul>
                 <label>Orçamento Selecionado:</label>
-                <p id="orcamento-selecionado">${linkOrcamento}</p>
+                <p id="orcamento-selecionado">
+                    <a href="#" id="orcamento-link" data-id="${idOrcamento}">${nomeOrcamento}</a>
+                </p>
             </div>
-            <button onclick="salvarDescricao('${idLista}', '${idTarefa}')">Salvar Descrição</button>
+        </div>
+
+        <button onclick="salvarDescricao('${idLista}', '${idTarefa}')">Salvar Descrição</button>
         </div>
         <div class="atividades">
             <h3>Atividades</h3>
@@ -593,6 +626,17 @@ async function abrirModal(idLista, idTarefa) {
 
         // Renderizar as atividades dentro do modal
         renderizarAtividades(tarefaAlvo.atividades, tarefaAlvo.historico, idTarefa);
+
+        setTimeout(() => {
+            let orcamentoLink = document.getElementById("orcamento-link");
+            if (orcamentoLink && idOrcamento) {
+                orcamentoLink.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    exibir_todos_os_status(idOrcamento);
+                    fecharModal();
+                });
+            }
+        }, 100);
 
         // Configuração do auto-complete
         const inputAutoComplete = document.getElementById("input-auto-complete");
@@ -605,37 +649,54 @@ async function abrirModal(idLista, idTarefa) {
 
             if (termoBusca) {
                 listaSugestoes.style.display = "block"; // Mostra a lista
-                const dadosOrcamentos = await recuperarDados("dados_orcamentos");
+                const dadosOrcamentos = await recuperarDados("dados_orcamentos") || {};
 
-                // Filtra os dados
-                const sugestoes = Object.keys(dadosOrcamentos).filter(chave =>
-                    chave.toLowerCase().includes(termoBusca)
-                );
+                console.log("🔍 Todos os orçamentos carregados:", dadosOrcamentos);
 
-                // Renderiza as sugestões
-                sugestoes.forEach(chave => {
+                // 🔍 Filtra apenas os orçamentos válidos (com cliente e contrato)
+                const sugestoes = Object.entries(dadosOrcamentos)
+                    .filter(([id, dados]) =>
+                        dados.dados_orcam?.cliente_selecionado &&
+                        dados.dados_orcam?.contrato &&
+                        (
+                            dados.dados_orcam.cliente_selecionado.toLowerCase().includes(termoBusca) ||
+                            dados.dados_orcam.contrato.toLowerCase().includes(termoBusca)
+                        )
+                    );
+
+                console.log("✅ Orçamentos filtrados (com cliente e contrato):", sugestoes);
+
+                // Renderiza as sugestões formatadas corretamente
+                sugestoes.forEach(([id, dados]) => {
+                    const nomeFormatado = `${dados.dados_orcam.cliente_selecionado} - ${dados.dados_orcam.contrato}`;
+
                     const li = document.createElement("li");
-                    li.textContent = chave;
+                    li.textContent = nomeFormatado;
 
                     li.addEventListener("click", () => {
-                        // Atualiza o orçamento na tarefa
-                        tarefaAlvo.orcamento = chave;
+                        // 📌 Salva **idOrcamento** e **nomeOrcamento** corretamente
+                        tarefaAlvo.idOrcamento = id;
+                        tarefaAlvo.nomeOrcamento = nomeFormatado;
 
-                        // Substitui o parágrafo por um link
-                        paragrafoSelecionado.innerHTML = `<a href="#" id="orcamento-link">${chave}</a>`;
+                        // 📌 Atualiza a exibição com o nome formatado
+                        paragrafoSelecionado.innerHTML = `<a href="#" id="orcamento-link" data-id="${id}">${nomeFormatado}</a>`;
 
-                        // Salva a lista atualizada no localStorage
-                        salvarListas(dados.listas);
+                        // 📌 Salva no LocalStorage
+                        localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
-                        // Limpa a lista de sugestões e o campo de input
+                        // 📌 Salva na nuvem os **dois campos**
+                        enviar(`dados_kanban/tarefas/${idTarefa}/idOrcamento`, id);
+                        enviar(`dados_kanban/tarefas/${idTarefa}/nomeOrcamento`, nomeFormatado);
+
+                        // 📌 Limpa a lista de sugestões
                         listaSugestoes.innerHTML = "";
                         listaSugestoes.style.display = "none";
                         inputAutoComplete.value = "";
 
-                        // Adiciona o evento de clique no link para chamar a função
+                        // 📌 Adiciona o evento de clique para abrir os detalhes
                         document.getElementById("orcamento-link").addEventListener("click", (event) => {
-                            event.preventDefault(); // Evita que o link recarregue a página
-                            exibir_todos_os_status(chave);
+                            event.preventDefault();
+                            exibir_todos_os_status(idOrcamento);
                             fecharModal();
                         });
                     });
@@ -648,25 +709,11 @@ async function abrirModal(idLista, idTarefa) {
             }
         });
 
-
-        // Oculta a lista ao clicar fora do campo de entrada
         document.addEventListener("click", (event) => {
             if (!inputAutoComplete.contains(event.target) && !listaSugestoes.contains(event.target)) {
                 listaSugestoes.style.display = "none";
             }
         });
-
-        setTimeout(() => {
-            let orcamentoLink = document.getElementById("orcamento-link");
-            if (orcamentoLink && tarefaAlvo.orcamento) {
-                orcamentoLink.addEventListener("click", (event) => {
-                    event.preventDefault();
-                    exibir_todos_os_status(tarefaAlvo.orcamento);
-                    fecharModal();
-                });
-            }
-        }, 100);
-
 
         let inputTitulo = document.getElementById("tarefa-titulo");
         aplicarLimitador(inputTitulo, 20, "aviso-tarefa-modal");
@@ -840,7 +887,6 @@ function formatarData(dataISO) {
  */
 
 function salvarDescricao(idLista, idTarefa) {
-
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
 
     if (!dados.tarefas) {
@@ -867,49 +913,70 @@ function salvarDescricao(idLista, idTarefa) {
         equipe: document.getElementById("input-equipe")?.value.trim() || ""
     };
 
-    // 🔍 Verifica se a descrição mudou
-    let alteracoesDetectadas = JSON.stringify(descricaoAntiga) !== JSON.stringify(novaDescricao);
+    // 🔍 Mapeia nomes técnicos para nomes legíveis
+    const nomesCampos = {
+        chamado: "N° Chamado",
+        endereco: "Endereço da Loja",
+        start: "Data de Início",
+        entrega: "Data de Entrega",
+        pedidoServico: "Pedido de Serviço",
+        pedidoVenda: "Pedido de Venda",
+        escopo: "Escopo",
+        equipe: "Equipe"
+    };
 
-    if (alteracoesDetectadas) {
-        tarefaAlvo.descricao = { ...novaDescricao };
-
-        let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
-        let usuario = acesso.usuario || "Usuário desconhecido";
-
-        let agora = new Date();
-        let dataFormatada = agora.toISOString().split("T")[0];
-        let horaFormatada = agora.toLocaleTimeString("pt-BR", { hour12: false });
-
-        // 📌 Adiciona ao histórico
-        tarefaAlvo.historico.push({
-            tipo: "alteração",
-            criador: usuario,
-            mensagem: "Descrição da tarefa foi atualizada.",
-            data: dataFormatada,
-            hora: horaFormatada
-        });
-
-        // 🔥 Salva no LocalStorage corretamente
-        dados.tarefas[idTarefa] = tarefaAlvo;
-        localStorage.setItem("dados_kanban", JSON.stringify(dados));
-
-        enviar(`dados_kanban/tarefas/${idTarefa}/descricao`, tarefaAlvo.descricao);
-
-        // 🔥 Atualizar orçamento na nuvem apenas se foi alterado
-        let inputOrcamento = document.getElementById("orcamento-selecionado")?.textContent.trim() || "";
-        if (inputOrcamento !== "Nenhum" && inputOrcamento !== "" && inputOrcamento !== tarefaAlvo.orcamento) {
-            tarefaAlvo.orcamento = inputOrcamento;
-            enviar(`dados_kanban/tarefas/${idTarefa}/orcamento`, tarefaAlvo.orcamento);
-        } else if (tarefaAlvo.orcamento && inputOrcamento === "Nenhum") {
-            delete tarefaAlvo.orcamento;
-            enviar(`dados_kanban/tarefas/${idTarefa}/orcamento`, null);
+    // 🔍 Detecta quais campos foram alterados e converte para rótulos legíveis
+    let camposAlterados = [];
+    for (let chave in novaDescricao) {
+        if (novaDescricao[chave] !== descricaoAntiga[chave]) {
+            camposAlterados.push(nomesCampos[chave]); // Converte para nome legível
         }
-
-        // Atualiza a interface do quadro e reabre o modal para refletir as alterações
-        renderizarQuadro();
-        abrirModal(idLista, idTarefa);
     }
+
+    // Se nada foi alterado, interrompe a função
+    if (camposAlterados.length === 0) {
+        return;
+    }
+
+    // Atualiza a descrição da tarefa
+    tarefaAlvo.descricao = { ...novaDescricao };
+
+    let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
+    let usuario = acesso.usuario || "Usuário desconhecido";
+
+    let agora = new Date();
+    let dataFormatada = agora.toISOString().split("T")[0];
+    let horaFormatada = agora.toLocaleTimeString("pt-BR", { hour12: false });
+
+    // 📌 Garante que `historico` seja um objeto antes de adicionar um novo registro
+    if (!tarefaAlvo.historico || typeof tarefaAlvo.historico !== "object") {
+        tarefaAlvo.historico = {};
+    }
+
+    // 🔥 Adiciona corretamente os campos alterados no histórico
+    let idHistorico = unicoID();
+    tarefaAlvo.historico[idHistorico] = {
+        tipo: "alteração",
+        criador: usuario,
+        mensagem: `Alteração realizada nos campos: ${camposAlterados.join(", ")}`,
+        campos: camposAlterados, // Agora armazena os nomes legíveis
+        data: dataFormatada,
+        hora: horaFormatada
+    };
+
+    // 🔥 Salva no LocalStorage corretamente
+    dados.tarefas[idTarefa] = tarefaAlvo;
+    localStorage.setItem("dados_kanban", JSON.stringify(dados));
+
+    // 🔥 Atualiza na nuvem apenas os dados alterados
+    enviar(`dados_kanban/tarefas/${idTarefa}/descricao`, tarefaAlvo.descricao);
+    enviar(`dados_kanban/tarefas/${idTarefa}/historico/${idHistorico}`, tarefaAlvo.historico[idHistorico]);
+
+    // Atualiza a interface do quadro e reabre o modal para refletir as alterações
+    renderizarQuadro();
+    abrirModal(idLista, idTarefa);
 }
+
 function salvarTituloTarefa(idLista, idTarefa) {
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
     let tarefaAlvo = dados.tarefas[idTarefa];
@@ -946,7 +1013,7 @@ function salvarTituloTarefa(idLista, idTarefa) {
 
     // Gera um ID único para o novo histórico
     let idHistorico = unicoID();
-    
+
     tarefaAlvo.historico[idHistorico] = {
         tipo: "alteração",
         criador: usuario,
@@ -1191,7 +1258,7 @@ function deletarEtiquetaGlobal(idEtiqueta) {
     deletar(`dados_kanban/etiquetasGlobais/${idEtiqueta}`);
 
     // 🔥 Atualiza a interface do quadro e o modal de etiquetas
-    renderizarQuadro(); 
+    renderizarQuadro();
     exibirOpcoesEtiquetas(); // 🛠 Atualiza a lista de etiquetas disponíveis no modal
 }
 
@@ -1280,14 +1347,14 @@ function aplicarLimitador(input, maxCaracteres, idAviso) {
         if (this.value.length > maxCaracteres) {
             this.value = this.value.substring(0, maxCaracteres);
             aviso.textContent = `⚠️ Máximo de ${maxCaracteres} caracteres permitido.`;
-            aviso.style.display = "block"; 
+            aviso.style.display = "block";
         } else {
             aviso.style.display = "none";
         }
     });
 
     input.addEventListener("blur", function () {
-        aviso.style.display = "none"; 
+        aviso.style.display = "none";
     });
 }
 

@@ -622,11 +622,6 @@ input[type="date"] {
     font-size: 12px;
     font-weight: bold;
     text-transform: uppercase;
-    transition: transform 0.2s;
-}
-
-.etiqueta:hover {
-    transform: scale(1.05);
 }
 
 .botao-excluir-comentario:hover {
@@ -645,15 +640,16 @@ input[type="date"] {
 }
 
 .botao-excluir-etiqueta {
-    background: #ff5c5c; /* Vermelho suave */
-    border: none;
-    color: white;
-    padding: 3px 6px;
-    border-radius: 4px;
-    font-size: 12px;
+    width: 18px; /* 🔥 Mesmo tamanho do botão de fechar modal */
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px; /* 🔥 Tamanho ajustado */
+    font-weight: bold;
     cursor: pointer;
-    margin-left: 5px; /* Espaçamento para não ficar grudado na etiqueta */
-    transition: background 0.2s;
+    border: none;
+    padding: 0;
 }
 
 .botao-excluir-etiqueta:hover {
