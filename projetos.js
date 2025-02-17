@@ -581,6 +581,7 @@ async function abrirModal(idLista, idTarefa) {
         let contrato = dadosOrcamento.contrato || "Contrato não informado";
 
         nomeOrcamento = `${cliente} - ${contrato}`;
+    }
 
     let listaAlvo = dados.listas[idLista];
 
