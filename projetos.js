@@ -16,7 +16,7 @@ let idListaAtual = null;
 document.addEventListener("DOMContentLoaded", function () {
     // Limite para adicionar Lista (máx. 25 caracteres)
     let inputLista = document.getElementById("input-nova-lista");
-    if (inputLista) aplicarLimitador(inputLista, 20, "aviso-lista");
+    if (inputLista) aplicarLimitador(inputLista, 25, "aviso-lista");
 
     // Limite para adicionar Tarefa (máx. 20 caracteres)
     let inputTarefa = document.getElementById("input-nova-tarefa");
@@ -416,7 +416,7 @@ function editarTituloLista(idLista, elementoH3) {
     input.setAttribute("data-id", idLista);
 
     // Aplica limitador de caracteres no input (máx. 25)
-    aplicarLimitador(input, 20, `aviso-editar-lista-${idLista}`);
+    aplicarLimitador(input, 25, `aviso-editar-lista-${idLista}`);
 
     elementoH3.replaceWith(input);
     input.focus();
@@ -622,7 +622,7 @@ async function abrirModal(idLista, idTarefa) {
             return `
                 <span class="etiqueta" style="background-color: ${etiqueta.cor}; color: ${corTexto};">
                     ${etiqueta.nome}
-                    <button class="botao-excluir-etiqueta"
+                    <button class="botao-excluir"
                         onclick="removerEtiqueta('${idLista}', '${idTarefa}', '${idEtiqueta}')"
                         style="color: ${corTexto}; border: none; background: transparent; font-size: 14px;">✖</button>
                 </span>
@@ -1236,7 +1236,7 @@ function exibirOpcoesEtiquetas(idLista, idTarefa) {
                         <span class="etiqueta-bolinha" style="background-color: ${etiqueta.cor};"></span>
                         <span class="etiqueta-nome">${etiqueta.nome}</span>
                         <button class="botao-editar-etiqueta" onclick="editarEtiqueta('${idEtiqueta}'); event.stopPropagation();">✏️</button>
-                        <button class="botao-excluir-etiqueta" onclick="abrirModalConfirmacao('etiquetaGlobal', '${idEtiqueta}', '${etiqueta.nome}'); event.stopPropagation();">❌</button>
+                        <button class="botao-excluir" onclick="abrirModalConfirmacao('etiquetaGlobal', '${idEtiqueta}', '${etiqueta.nome}'); event.stopPropagation();">❌</button>
                     </div>
                 `).join("")
             : "<p style='color: gray;'>Nenhuma etiqueta disponível</p>"

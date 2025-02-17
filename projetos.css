@@ -65,7 +65,7 @@ button:hover {
     padding: 15px;
     border-radius: 8px;
     flex: 0 0 auto;
-    width: 250px;
+    width:300px;
     max-width: 300px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
     display: flex;
@@ -80,7 +80,7 @@ button:hover {
 .titulo-lista {
     display: flex;
     align-items: flex-start; /* 🔥 Mantém alinhamento no topo */
-    justify-content: space-between; /* 🔥 Distribui os elementos */
+    justify-content: space-around; /* 🔥 Distribui os elementos */
     gap: 10px;
     width: 100%;
     color: white;
