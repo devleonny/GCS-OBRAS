@@ -243,7 +243,10 @@ async function preencher_v2(parceiro) {
                 orcamento_v2.dados_orcam.estado == 'BA' ? icms = 0.205 : ''
                 var unitario_sem_icms = item.custo - (item.custo * icms)
                 var total_sem_icms = unitario_sem_icms * item.qtde
-                totais.ICMS.valor += item.custo * item.qtde * icms
+                
+                if (item.tipo == 'VENDA') {
+                    totais.ICMS.valor += item.custo * item.qtde * icms
+                }
 
                 var descricao_auxiliar = ''
                 if (parceiro && item.descricao_real && (item.descricao_real !== item.descricao)) {
