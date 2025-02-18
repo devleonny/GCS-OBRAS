@@ -496,7 +496,7 @@ function pesquisar_na_requisicao() {
     }
 }
 
-async function carregar_itens(apenas_visualizar, requisicao) {
+async function carregar_itens(apenas_visualizar, requisicao, editar) {
 
     if (!id_orcam) {
         return ''
@@ -507,7 +507,6 @@ async function carregar_itens(apenas_visualizar, requisicao) {
     var orcamento = dados_orcamentos[id_orcam]
 
     orcamento = await conversor_composicoes_orcamento(orcamento)
-
 
     var linhas = ''
 
@@ -525,6 +524,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
         var infos = ['descricao', 'descricaocarrefour', 'modelo', 'fabricante']
         var elements = ''
         let mod_livre = true
+        let qtde_editar = qtde
 
         var todos_os_status = dados_orcamentos[id_orcam].status;
 
@@ -542,7 +542,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
                         if (requisicao.codigo == item.codigo) {
 
-                            qtde -= requisicao.qtde_enviar
+                            qtde_editar -= requisicao.qtde_enviar
 
                         }
 
@@ -590,6 +590,52 @@ async function carregar_itens(apenas_visualizar, requisicao) {
             qtde_na_requisicao = requisicao[codigo]?.qtde_enviar || ''
         }
 
+        let somasQtde = 0
+
+        let q = 0
+
+        if(editar){
+
+            Object.values(orcamento.status).forEach(status => {
+                if (status.historico) {
+                    Object.entries(status.historico).forEach(([chave, historico]) => {
+                        
+                        if(historico.status.includes("REQUISIÇÃO")){
+    
+                            for(let requisicaoUnica of historico.requisicoes){
+
+                                if(requisicaoUnica.codigo == codigo){
+
+                                    somasQtde += Number(requisicaoUnica.qtde_enviar)
+
+                                    q++
+
+                                }
+
+                            }
+    
+                        }
+    
+                    });
+                }
+            });
+
+        }
+
+        let quantidadeAtual = undefined
+
+        if(Number(requisicao[codigo]?.qtde_enviar) != NaN){
+
+            quantidadeAtual = qtde - qtde_editar + Number(requisicao[codigo]?.qtde_enviar)
+
+        }
+
+        if(q == 1){
+
+            quantidadeAtual = qtde_editar
+
+        }
+
         var quantidade = `
         <div style="display: flex; flex-direction: column; align-items: start; justify-content: space-evenly; gap: 10px;">
 
@@ -600,7 +646,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
             <div class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px; background-color: #222; font-size: 1.2em;">
                 <label><strong>Orçamento</strong></label>
-                <label class="num">${requisicao[codigo]?.qtde_enviar || qtde}</label>   
+                <label class="num">${quantidadeAtual || qtde_editar}</label>   
             </div>
 
         </div>
@@ -1556,7 +1602,7 @@ async function abrir_esquema(id) {
                     </div>
                     `
                     editar = `
-                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="detalhar_requisicao('${chave_pedido}', false, '${chave2}')">
+                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="detalhar_requisicao('${chave_pedido}', false, '${chave2}', true)">
                             <img src="imagens/editar4.png">
                             <label>Editar</label>
                         </div>
@@ -2094,8 +2140,6 @@ async function valores_manuais() {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
 
-    console.log(orcamento)
-
     let acumulado = `
 
     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: Arial, sans-serif;">
@@ -2160,8 +2204,6 @@ async function salvarValorManual() {
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${id_orcam}/valoresManuais/${idValorManual}`, dados_orcamentos[id_orcam].valoresManuais[idValorManual]);
-
-    console.log(dados_orcamentos[id_orcam])
 
     abrir_esquema(id_orcam)
 
@@ -2815,7 +2857,7 @@ async function chamar_excluir(id) {
         `)
 }
 
-async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
+async function detalhar_requisicao(chave, apenas_visualizar, chave2, editar) {
 
     var painel_status = document.getElementById('status')
     if (painel_status) {
@@ -2982,7 +3024,7 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
                 <th style="text-align: center;">Requisição</th>
             </thead>
             <tbody>
-            ${await carregar_itens(apenas_visualizar, requisicao)}
+            ${await carregar_itens(apenas_visualizar, requisicao, editar)}
             </tbody>
         </table>
     <div>
