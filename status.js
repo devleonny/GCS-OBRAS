@@ -1768,22 +1768,24 @@ async function abrir_esquema(id) {
     ${pags}
     <hr style="width: 100%;">
     <label>${dados_orcamentos[id].total_geral} <label style="font-size: 0.6em;">Valor do Pedido</label></label>
-    <label>(-) ${dinheiro(total_pago)}  
-        <label class="indicador" style="background-color: ${cor_indicador}">${string_porcentagem}</label>
-    </label>
     <hr style="width: 100%;">
     <label onclick="valores_manuais()" style="font-size: 12px;">➕ Adicionar Valor Manual</label>
+    
     <div id="lista-valores-manuais">
-    ${Object.entries(dados_orcamentos[id].valoresManuais || {}).length > 0
-        ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
-            <div><label>${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label></div>
-        `).join("")
-        : "<label style='font-size: 12px; color: gray;'>Nenhum valor manual adicionado.</label>"
-    }
-</div>
+        ${Object.entries(dados_orcamentos[id].valoresManuais || {}).length > 0
+            ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label style="font-size: 12px">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
+                    <button onclick="removerValorManual('${id}', '${chave}')" 
+                        style="background: none; border: none; color: red; cursor: pointer; font-size: 14px;">❌</button>
+                </div>
+            `).join("")
+            : "<label style='font-size: 12px; color: gray;'>Nenhum valor manual adicionado.</label>"
+        }
+    </div>
 
     <hr style="width: 100%;">
-    <label>${dinheiro(resultado)}</label>
+    <label>${dinheiro(calcularResultado(dados_orcamentos[id]))}</label>
 </div>
 
             `
@@ -2139,8 +2141,8 @@ async function salvarValorManual() {
         return;
     }
 
-    if (!dados_orcamentos[id_orcam].valoresManuais) { 
-        dados_orcamentos[id_orcam].valoresManuais = {}; 
+    if (!dados_orcamentos[id_orcam].valoresManuais) {
+        dados_orcamentos[id_orcam].valoresManuais = {};
     }
 
     let idValorManual = gerar_id_5_digitos(); // 🔥 Gera um ID único
@@ -2164,6 +2166,44 @@ async function salvarValorManual() {
     abrir_esquema(id_orcam)
 
 }
+
+async function removerValorManual(id_orcam, idValorManual) {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+
+    if (!dados_orcamentos[id_orcam]?.valoresManuais || !dados_orcamentos[id_orcam].valoresManuais[idValorManual]) {
+        console.warn("⚠️ Valor manual não encontrado.");
+        return;
+    }
+
+    // 🗑️ Remove o valor manual do objeto
+    delete dados_orcamentos[id_orcam].valoresManuais[idValorManual];
+
+    // 🔥 Atualiza o localStorage e envia para a nuvem
+    await inserirDados(dados_orcamentos, 'dados_orcamentos');
+    await deletar(`dados_orcamentos/${id_orcam}/valoresManuais/${idValorManual}`);
+
+    // 🔄 Atualiza a exibição do orçamento
+    abrir_esquema(id_orcam);
+}
+
+function calcularResultado(orcamento) {
+    if (!orcamento || !orcamento.total_geral) return "Erro nos dados";
+
+    // 🔥 Converte total_geral para número (removendo "R$ " e convertendo vírgula para ponto)
+    let totalGeral = parseFloat(orcamento.total_geral.replace("R$ ", "").replace(/\./g, "").replace(",", "."));
+
+    if (isNaN(totalGeral)) return "Erro no total_geral";
+
+    // 🔥 Soma os valores de valoresManuais
+    let somaValoresManuais = Object.values(orcamento.valoresManuais || {})
+        .reduce((soma, item) => soma + (parseFloat(item.valorManual) || 0), 0);
+
+    // 🔥 Subtrai a soma dos valores manuais do total geral
+    let resultadoFinal = totalGeral - somaValoresManuais;
+
+    return resultadoFinal;
+}
+
 
 async function retorno_de_materiais(chave_pedido, id, qualBotao) {
 
