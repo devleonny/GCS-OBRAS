@@ -2596,9 +2596,10 @@ async function carregar_comentarios(chave1, chave2) {
     let div_caixa = document.getElementById(`caixa_comentarios_${chave2}`)
     if (div_caixa) {
         div_caixa.innerHTML = comentss
-    } else {
-        return comentss
-    }
+     } 
+     
+     return comentss
+     
 }
 
 async function salvar_comentario_trello(chave1, chave2) {
