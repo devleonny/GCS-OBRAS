@@ -1764,14 +1764,28 @@ async function abrir_esquema(id) {
 
             blocos_por_status['PAINEL'] = `
             <div class="contorno_botoes" style="display: flex; flex-direction: column; align-items: start; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
-                <label>Gestão de Custos</label>
-                ${pags}
-                <hr style="width: 100%;">
-                <label>${valor_do_pedido} <label style="font-size: 0.6em;">Valor do Pedido</label></label>
-                <label>(-) ${dinheiro(total_pago)}  <label class="indicador" style="background-color: ${cor_indicador}">${string_porcentagem}</label></label>
-                <hr style="width: 100%;">
-                <label>${dinheiro(resultado)}</label>
-            </div>
+    <label>Gestão de Custos</label>
+    ${pags}
+    <hr style="width: 100%;">
+    <label>${dados_orcamentos[id].total_geral} <label style="font-size: 0.6em;">Valor do Pedido</label></label>
+    <label>(-) ${dinheiro(total_pago)}  
+        <label class="indicador" style="background-color: ${cor_indicador}">${string_porcentagem}</label>
+    </label>
+    <hr style="width: 100%;">
+    <label onclick="valores_manuais()" style="font-size: 12px;">➕ Adicionar Valor Manual</label>
+    <div id="lista-valores-manuais">
+    ${Object.entries(dados_orcamentos[id].valoresManuais || {}).length > 0
+        ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
+            <div><label>${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label></div>
+        `).join("")
+        : "<label style='font-size: 12px; color: gray;'>Nenhum valor manual adicionado.</label>"
+    }
+</div>
+
+    <hr style="width: 100%;">
+    <label>${dinheiro(resultado)}</label>
+</div>
+
             `
 
             let blocos = ''
@@ -2068,6 +2082,84 @@ async function iniciar_cotacao(chave, id_orcam) {
     }
 
     enviar_dados_generico(dados) // 29 Mantém por enquanto...
+
+    abrir_esquema(id_orcam)
+
+}
+
+async function valores_manuais() {
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[id_orcam];
+
+    console.log(orcamento)
+
+    let acumulado = `
+
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: Arial, sans-serif;">
+
+    <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
+
+        <label class="novo_titulo">Gestão de Custos</label>
+
+    </div>
+    
+    <div style="padding: 20px; border-radius: 8px; text-align: center;">
+        <label for="nome-valor-manual" style="display: block; margin-bottom: 5px; font-weight: bold;">Nome do Valor Manual:</label>
+        <input type="text" id="nome-valor-manual" placeholder="Digite o nome" 
+            style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px;">
+
+        <label for="valor-manual" style="display: block; margin-bottom: 5px; font-weight: bold;">Valor Manual:</label>
+        <input type="number" id="valor-manual" placeholder="Digite o valor" 
+            style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px;">
+
+        <button onclick="salvarValorManual()" 
+            style="width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">
+            Salvar
+        </button>
+    </div>
+
+    </div>
+
+    `
+
+    openPopup_v2(acumulado)
+
+}
+
+async function salvarValorManual() {
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+
+    let nome = document.getElementById("nome-valor-manual").value.trim();
+    let valor = document.getElementById("valor-manual").value.trim();
+
+    if (!nome || !valor) {
+        alert("⚠️ Por favor, preencha todos os campos.");
+        return;
+    }
+
+    if (!dados_orcamentos[id_orcam].valoresManuais) { 
+        dados_orcamentos[id_orcam].valoresManuais = {}; 
+    }
+
+    let idValorManual = gerar_id_5_digitos(); // 🔥 Gera um ID único
+
+    dados_orcamentos[id_orcam].valoresManuais[idValorManual] = {
+        nomeValorManual: nome,
+        valorManual: parseFloat(valor)
+    };
+
+    // 🔥 Limpa os inputs após salvar
+    document.getElementById("nome-valor-manual").value = "";
+    document.getElementById("valor-manual").value = "";
+
+    remover_popup()
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await enviar(`dados_orcamentos/${id_orcam}/valoresManuais/${idValorManual}`, dados_orcamentos[id_orcam].valoresManuais[idValorManual]);
+
+    console.log(dados_orcamentos[id_orcam])
 
     abrir_esquema(id_orcam)
 
@@ -2860,7 +2952,7 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
     ${elementus}
     </div>
     `
-    console.log(requisicao)
+
     document.body.insertAdjacentHTML('beforeend', elementus_tus)
 
     var comentario_status = document.getElementById('comentario_status')
