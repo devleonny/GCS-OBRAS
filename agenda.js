@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const addLineBtn = document.getElementById("add-line-btn");
     const updateDataBtn = document.getElementById("update-data-btn");
 
-    recuperar_dados_clientes()
+    recuperar_clientes()
 
     document.querySelectorAll(".close-modal-btn").forEach((closeBtn) => {
         closeBtn.addEventListener("click", (event) => {
@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!clientesIndexDB) {
 
                 console.log("entrei")
-                await recuperar_dados_clientes()
+                await recuperar_clientes()
                 console.log("sai")
 
             }
@@ -207,6 +207,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function fetchDepartmentsFromAPI() {
+        
         const apiUrl =
             "https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=departamentos";
 
@@ -457,11 +458,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                                 delete storedData[previousOmie].agendas[currentKey];
 
-                                enviar_dados_generico({
-                                    tabela: "agenda",
-                                    operacao: "editar",
-                                    tecnico: storedData[previousOmie], // Técnico atualizado sem a agenda excluída
-                                });
+                                enviar(`dados_agenda_tecnicos/${newOmie}`, storedData[newOmie]);
 
                                 // Atualiza o localStorage
                                 localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
@@ -587,14 +584,35 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             dayInput.addEventListener("blur", () => {
-                setTimeout(() => {
-                    // Verifica se o departamento é válido pelo nome ou código
+                setTimeout(async () => {
+                    const idAgenda = getAgendaKey(); // Obtém a chave do mês/ano atual
+                    const indexDia = Array.from(dayInput.parentElement.parentElement.children).indexOf(dayInput.parentElement) - 1;
+                    const technicianOmie = dayInput.closest("tr").querySelector("td input.dropdown-input").dataset.omie;
+            
+                    // 🔥 Permitir campo em branco (remover departamento) 🔥
+                    if (!dayInput.value.trim()) {
+                        dayInput.dataset.codigo = "";
+                        dayCell.style.backgroundColor = ""; // Remove cor do fundo
+                        dayCell.style.color = ""; // Reseta cor do texto
+            
+                        // Remove do LocalStorage
+                        saveTechniciansToLocalStorage();
+            
+                        // Remove da API
+                        if (idAgenda && indexDia >= 0) {
+                            await enviar(`dados_agenda_tecnicos/${technicianOmie}/agendas/${idAgenda}/${indexDia}`, null);
+                            console.log(`Departamento removido: dados_agenda_tecnicos/${technicianOmie}/agendas/${idAgenda}/${indexDia}`);
+                        }
+                        return;
+                    }
+            
+                    // 🔥 Verifica se o departamento é válido 🔥
                     const validDepartment = departments.find(
                         (dept) =>
                             dept.nome.trim().toLowerCase() === dayInput.value.trim().toLowerCase() || // Compara pelo nome
                             String(dept.codigo) === String(dayInput.dataset.codigo) // Compara pelo código (força string)
                     );
-
+            
                     if (!validDepartment) {
                         // Departamento inválido: limpa o campo e exibe mensagem
                         dayInput.value = "";
@@ -603,7 +621,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         dayCell.style.backgroundColor = ""; // Remove a cor do fundo
                         dayCell.style.color = ""; // Reseta a cor do texto
                     } else {
-                        // Departamento válido: atualiza o nome, código e estilo
+                        // 🔥 Atualiza nome, código e estilo 🔥
                         const truncatedName = validDepartment.nome.length > 3
                             ? validDepartment.nome.slice(0, 3) + "..."
                             : validDepartment.nome;
@@ -612,15 +630,21 @@ document.addEventListener("DOMContentLoaded", () => {
                         dayInput.dataset.codigo = validDepartment.codigo; // Salva o código no dataset
                         dayCell.style.backgroundColor = validDepartment.color; // Aplica a cor no TD
                         adjustTextColor(dayCell, validDepartment.color); // Ajusta a cor do texto no TD
-
-                        saveTechniciansToLocalStorage(); // Salva no localStorage
+            
+                        // Salva no LocalStorage
+                        saveTechniciansToLocalStorage();
+            
+                        // 🔥 Envia APENAS a atualização específica 🔥
+                        if (idAgenda && indexDia >= 0) {
+                            await enviar(`dados_agenda_tecnicos/${technicianOmie}/agendas/${idAgenda}/${indexDia}`, validDepartment.codigo);
+                            console.log(`Atualizado: dados_agenda_tecnicos/${technicianOmie}/agendas/${idAgenda}/${indexDia} -> ${validDepartment.codigo}`);
+                        }
                     }
-
+            
                     dayDropdown.style.display = "none"; // Fecha o dropdown
                 }, 200);
             });
-
-
+            
             dayCell.appendChild(dayInput);
             dayCell.appendChild(dayDropdown);
             newRow.appendChild(dayCell);
@@ -667,11 +691,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     delete storedData[technician.omie].agendas[currentKey];
 
                     // Envia os dados atualizados para a API com a operação "editar"
-                    enviar_dados_generico({
-                        tabela: "agenda",
-                        operacao: "editar",
-                        tecnico: storedData[technician.omie], // Técnico atualizado sem a agenda excluída
-                    });
+                    deletar(`dados_agenda_tecnicos/${technician.omie}`);
 
                     // Salva os dados atualizados no localStorage
                     localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
@@ -760,16 +780,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             technician.agendas[key] = selectedDepartments;
 
-            // Define a operação: "incluir" se ainda não estiver no localStorage, "editar" caso contrário
-            const operacao = storedData[technicianOmie] ? "editar" : "incluir";
-
-            // Envia os dados para a API
-            enviar_dados_generico({
-                tabela: "agenda",
-                operacao,
-                tecnico: technician,
-            });
-
             // Atualiza o `storedData` com o técnico
             storedData[technicianOmie] = technician;
         });
@@ -786,7 +796,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const storedData = localStorage.getItem("dados_agenda_tecnicos");
         const daysRow = document.getElementById("days-row");
         const techniciansBody = document.getElementById("technicians-body");
-    
+
         if (storedData) {
             const techniciansObj = JSON.parse(storedData);
             const currentKey = getAgendaKey(); // Chave do mês/ano atual
@@ -942,33 +952,32 @@ document.addEventListener("DOMContentLoaded", () => {
         modal.style.display = "block";
 
         // Função para confirmar a alteração da região
-        const confirmHandler = () => {
+        const confirmHandler = async () => {
             const newRegion = regionSelect.value;
-
+        
             // Atualiza a região no localStorage
             const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
+        
             if (storedData[technician.omie]) {
                 storedData[technician.omie].regiao_atual = newRegion;
                 localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
-
-                // Envia os dados atualizados para a API
-                enviar_dados_generico({
-                    tabela: "agenda",
-                    operacao: "editar", // Sempre "editar" porque o técnico já existe
-                    tecnico: storedData[technician.omie], // Dados atualizados do técnico
-                });
+        
+                // 🔥 Envia APENAS a atualização da região específica 🔥
+                enviar(`dados_agenda_tecnicos/${technician.omie}/regiao_atual`,newRegion );
+        
+                console.log(`Região atualizada para ${newRegion} do técnico ${technician.omie}`);
             }
-
+        
             // Fecha o modal
             modal.style.display = "none";
-
+        
             // Atualiza a tabela para refletir a mudança
             loadTechniciansFromLocalStorage();
-
+        
             // Remove os event listeners para evitar duplicação
             confirmBtn.removeEventListener("click", confirmHandler);
-            cancelBtn.removeEventListener("click", cancelHandler);
         };
+        
 
         // Função para cancelar a alteração
         const cancelHandler = () => {
@@ -976,50 +985,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Remove os event listeners para evitar duplicação
             confirmBtn.removeEventListener("click", confirmHandler);
-            cancelBtn.removeEventListener("click", cancelHandler);
         };
 
         // Adiciona os event listeners
         confirmBtn.addEventListener("click", confirmHandler);
-        cancelBtn.addEventListener("click", cancelHandler);
     }
 
 
     async function atualizarDados() {
-        const apiUrl = "https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=agenda";
-
-        try {
+        
             showLoading(); // Exibe o indicador de carregamento
-            const response = await fetch(apiUrl);
+            const data = await receber("dados_agenda_tecnicos");
 
-            if (!response.ok) {
-                throw new Error(`Erro na requisição: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            // Verifica se os dados são válidos
-            if (!data || typeof data !== "object") {
-                throw new Error("Dados inválidos ou vazios retornados pela API.");
-            }
-
-            // Converte os dados para um objeto indexado por `omie`
-            const formattedData = {};
-            data.forEach((item) => {
-                if (item.omie) {
-                    formattedData[item.omie] = item; // Usa o `omie` como chave
-                }
-            });
+            console.log(data)
 
             // Salva no localStorage como um objeto indexado por `omie`
-            localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(formattedData));
+            localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(data));
 
             hideLoading();
             generateCalendar(yearSelect.value, monthSelect.value); // Garante que o calendário seja atualizado
             loadTechniciansFromLocalStorage(); // Monta a tabela
-        } catch (error) {
-            showPopup("Erro ao atualizar os dados. Verifique sua conexão.");
-        }
     }
 
 
