@@ -1366,7 +1366,7 @@ async function tela_pagamento(chave1) {
                     <label style="text-decoration: underline; cursor: pointer;" onclick="nova_categoria()">Clique aqui para
                         + 1 Categoria</label>
                     <div id="central_categorias" class="central_categorias">
-                        ${nova_categoria()}
+                        ${await nova_categoria()}
                     </div>
                 </div>
             </div>
