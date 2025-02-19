@@ -1382,9 +1382,29 @@ async function aprovar_orcamento(responsavel, aprovar, data) {
     await preencher_orcamentos_v2()
 }
 
+function verificar_timestamp_nome(nome) {
+    let regex = /^(\d{13})\.\w+$/;
+    let match = nome.match(regex);
+
+    if (match) {
+        let timestamp = parseInt(match[1]);
+        let data = new Date(timestamp);
+        return !isNaN(data.getTime()) && data.getFullYear() > 2000;
+    }
+
+    return false;
+}
+
 const { shell } = require('electron');
 
-function abrirArquivo(link) {
+function abrirArquivo(link) { 
+
+    if (verificar_timestamp_nome(link)) { // Se for um link composto por timestamp, então vem do servidor;
+        link = `https://leonny.dev.br/uploads/${link}`
+    } else { // Antigo Google;
+        link = `https://drive.google.com/file/d/${link}/view?usp=drivesdk`
+    }
+
     try {
         shell.openExternal(link);
     } catch {
@@ -1422,10 +1442,9 @@ async function abrir_esquema(id) {
 
                 var levantamento = dados_orcamentos[id].levantamentos[chave]
 
-                let arquivo = `https://drive.google.com/file/d/${levantamento.link}/view?usp=drivesdk`
                 levantamentos += `
-                <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;" onclick="abrirArquivo('${arquivo}')">
-                    <div onclick="abrirArquivo('${arquivo}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;" onclick="abrirArquivo('${levantamento.link}')">
+                    <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                         <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
                         <label style="font-size: 0.8em;">${String(levantamento.nome).slice(0, 10)} ... ${String(levantamento.nome).slice(-7)}</label>
                     </div>
@@ -1437,6 +1456,7 @@ async function abrir_esquema(id) {
 
         var acumulado = `
         <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
+        
             <div onclick="abrir_esquema('${id_orcam}')" style="display: flex; flex-direction: column; justify-content: left; align-items: center; cursor: pointer;">
                 <img src="imagens/atualizar2.png" style="width: 50px;">
                 <label>Atualizar</label>
@@ -1444,10 +1464,11 @@ async function abrir_esquema(id) {
             • 
             ${botao_novo_pedido(id)}
             • 
-            <label class="novo_titulo" style="color: #222">${dados_orcamentos[id].dados_orcam.cliente_selecionado}</label>
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: start; font-size: 1.2vw; color: #222;">
+                <label>${dados_orcamentos[id].dados_orcam.contrato}</label>
+                <label>${dados_orcamentos[id].dados_orcam.cliente_selecionado}</label>
+            </div>
             • 
-            <label class="novo_titulo" style="color: #222">${dados_orcamentos[id].dados_orcam.contrato}</label>
-            •
             <div style="display: flex; flex-direction: column; align-items: start;">
                 <div class="contorno_botoes" style="background-color: #222;">
                     <img src="imagens/anexo2.png" style="width: 15px;">
@@ -1611,11 +1632,9 @@ async function abrir_esquema(id) {
 
                         var anx = sst.anexos[key_anx]
 
-                        var arquivo = `https://drive.google.com/file/d/${anx.link}/view?usp=drivesdk`
-
                         anxsss += `
                         <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                            <div onclick="abrirArquivo('${arquivo}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <div onclick="abrirArquivo('${anx.link}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                                 <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
                                 <label style="font-size: 0.8em;">${String(anx.nome).slice(0, 10)} ... ${String(anx.nome).slice(-7)}</label>
                             </div>
@@ -1763,7 +1782,7 @@ async function abrir_esquema(id) {
             }
 
             blocos_por_status['PAINEL'] = `
-            <div class="contorno_botoes" style="display: flex; flex-direction: column; align-items: start; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
+            <div class="contorno_botoes" style="font-size: 0.9vw; display: flex; flex-direction: column; align-items: start; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
                 <label>Gestão de Custos</label>
                 ${pags}
                 <hr style="width: 100%;">

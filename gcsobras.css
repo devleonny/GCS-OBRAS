@@ -1,8 +1,6 @@
 body {
     font-size: 0.8em;
     background: linear-gradient(45deg, #151749, #B12425);
-    background-size: 200% 200%;
-    animation: gradientMove 5s ease infinite;
     margin-bottom: 10vh;
     padding: 0;
     font-family: 'Poppins', sans-serif;
@@ -10,34 +8,6 @@ body {
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
-}
-
-/* AnimaÃ§Ã£o do gradiente */
-@keyframes gradientMove {
-    0% {
-        background-position: 0% 50%;
-    }
-
-    50% {
-        background-position: 100% 50%;
-    }
-
-    100% {
-        background-position: 0% 50%;
-    }
-}
-
-/* PadrÃ£o de textura */
-body::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('https://www.transparenttextures.com/patterns/black-paper.png');
-    opacity: 0.2;
-    z-index: -10;
 }
 
 .balao {
@@ -1132,39 +1102,24 @@ input[type=range]::-moz-range-thumb {
     cursor: pointer;
 }
 
-.pagamento {
-    margin-top: 5px;
-    background-color: white;
-    padding: 10px;
-    border-radius: 5px;
-    color: #222;
-}
-
-.pagamento input {
-    border-radius: 5px;
-    padding: 5px;
-    border: solid 1px #777;
-}
-
 .central_categorias {
     text-align: left;
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0.5vw;
     border-radius: 3px;
-    padding: 15px;
     margin: 5px;
 }
 
 .contorno_botao_liberacao {
-    width: max-content;
+    width: 100%;
     border: 1px solid #097fe6;
     border-radius: 5px;
     padding: 5px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     gap: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
@@ -1391,45 +1346,37 @@ input[type=range]::-moz-range-thumb {
 }
 
 .itens_financeiro {
+    gap: 5px;
     position: relative;
     color: white;
-    background-color: #097fe6;
-    border-radius: 5px;
+    background-color: #3b444c;
+    border-radius: 2px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 10px;
+    justify-content: space-evenly;
     width: 80%;
+    box-shadow: 2px 2px #222;
 }
 
 .itens_financeiro label {
     margin: 5px;
-    width: 50%;
+    border: none;
 }
 
-.itens_financeiro textarea {
+.itens_financeiro textarea,
+.itens_financeiro input,
+.itens_financeiro select {
+    background-color: #e0e0e0;
     font-size: 0.7em;
+    border: none;
+    border-radius: 2px;
+    box-shadow: 2px 2px #222;
 }
 
 .itens_financeiro input {
     width: 100%;
-}
-
-.botoes_financeiro {
-    position: absolute;
-    right: -15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    gap: 10px;
-    background-color: #222;
-    border-radius: 50%;
+    font-size: 1.0vw;
     padding: 5px;
-}
-
-.botoes_financeiro label {
-    width: 100%;
 }
 
 .ordem {
@@ -1444,8 +1391,8 @@ input[type=range]::-moz-range-thumb {
     border-radius: 50%;
     background-color: #097fe6;
     color: white;
-    width: 40px;
-    height: 40px;
+    width: 2vw;
+    height: 2vw;
     display: flex;
     justify-content: center;
     align-items: center;
