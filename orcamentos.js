@@ -469,6 +469,7 @@ async function preencher_orcamentos_v2(filtros, remover) {
 
             let toolbar = document.getElementById('toolbar')
             toolbar.innerHTML = ''
+            div_orcamentos.innerHTML = ''
             let label = `<label style="background-color: #222;" onclick="mostrar_tabela('orcamentos_')">ORÇAMENTOS</label>`
             toolbar.insertAdjacentHTML('beforeend', label)
 
@@ -507,6 +508,7 @@ async function recuperar_orcamentos() {
     if (document.title == 'ORÇAMENTOS') {
 
         await preencher_orcamentos_v2()
+
     }
 }
 
@@ -1047,7 +1049,7 @@ async function carregar_manutencoes() {
             <tbody id="manutencoes">${linhas}</tbody>
         </table>
     `
-    let orcamentos = document.getElementById('orcamentos')
+    let div_chamados = document.getElementById('chamados')
 
     if (linhas !== '') {
         let toolbar = document.getElementById('toolbar')
@@ -1055,20 +1057,18 @@ async function carregar_manutencoes() {
         <label style="background-color: #151749;" onclick="mostrar_tabela('chamados', this)">REQUISIÇÕES</label>
         `
         toolbar.insertAdjacentHTML('beforeend', label)
-
-        orcamentos.insertAdjacentHTML('beforeend', tabela)
-
+        div_chamados.innerHTML = tabela
     }
 }
 
 function mostrar_tabela(tabela) {
     let chamados = document.getElementById('chamados')
-    let orcamentos_ = document.getElementById('orcamentos_')
+    let orcamentos = document.getElementById('orcamentos')
 
     let a_tabela = document.getElementById(tabela)
 
     chamados ? chamados.style.display = 'none' : ''
-    orcamentos_ ? orcamentos_.style.display = 'none' : ''
+    orcamentos ? orcamentos_.style.display = 'none' : ''
 
     a_tabela ? a_tabela.style.display = 'table' : ''
 }
