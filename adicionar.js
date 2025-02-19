@@ -50,7 +50,6 @@ async function atualizar_precos() {
 
         await carregar_tabelas()
         tabela_produtos_v2()
-        recuperar()
         await atualizar_lista_de_lpus()
 
         carregar_datalist_clientes()

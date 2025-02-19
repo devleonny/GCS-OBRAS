@@ -108,7 +108,21 @@ function pagina_adicionar() {
 }
 
 function vendedores_analistas() {
-    var dados_vendedores = JSON.parse(localStorage.getItem('vendedores')) || {}
+    var dados_vendedores = {
+        'GRUPO COSTA SILVA': {
+            email: 'comercial@acsolucoesintegradas.com.br',
+            telefone: '(71) 3901-3655'
+        },
+        'Sérgio Bergamini': {
+            email: 'sergio.bergamini@acsolucoesintegradas.com.br',
+            telefone: '(11) 98938-2759'
+        },
+        'Fernando Queiroz': {
+            email: 'fernando.queiroz@acsolucoesintegradas.com.br',
+            telefone: '(11) 99442-8826'
+        }
+    }
+
     var vendedores = Object.keys(dados_vendedores)
 
     var select = document.getElementById('vendedor')
@@ -217,8 +231,8 @@ function recuperar_preenchido() {
         chamado_off.checked = false
         input_contrato.style.display = 'block'
     }
-    
-    if(dados_orcam.contrato && String(dados_orcam.contrato).includes('ORC_')){
+
+    if (dados_orcam.contrato && String(dados_orcam.contrato).includes('ORC_')) {
         input_contrato.style.display = 'none'
         chamado_off.checked = true
     }

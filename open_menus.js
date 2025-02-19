@@ -402,7 +402,7 @@ function timestamp(dataStr, horaStr) {
     return data.getTime();
 }
 
-async function recuperar_clientes() { //29
+async function recuperar_clientes() {
 
     var acompanhamento_dados_clientes = document.getElementById('acompanhamento_dados_clientes')
     if (acompanhamento_dados_clientes) {
