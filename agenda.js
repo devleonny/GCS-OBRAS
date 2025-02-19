@@ -584,14 +584,35 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             dayInput.addEventListener("blur", () => {
-                setTimeout(() => {
-                    // Verifica se o departamento é válido pelo nome ou código
+                setTimeout(async () => {
+                    const idAgenda = getAgendaKey(); // Obtém a chave do mês/ano atual
+                    const indexDia = Array.from(dayInput.parentElement.parentElement.children).indexOf(dayInput.parentElement) - 1;
+                    const technicianOmie = dayInput.closest("tr").querySelector("td input.dropdown-input").dataset.omie;
+            
+                    // 🔥 Permitir campo em branco (remover departamento) 🔥
+                    if (!dayInput.value.trim()) {
+                        dayInput.dataset.codigo = "";
+                        dayCell.style.backgroundColor = ""; // Remove cor do fundo
+                        dayCell.style.color = ""; // Reseta cor do texto
+            
+                        // Remove do LocalStorage
+                        saveTechniciansToLocalStorage();
+            
+                        // Remove da API
+                        if (idAgenda && indexDia >= 0) {
+                            await enviar(`dados_agenda_tecnicos/${technicianOmie}/agendas/${idAgenda}/${indexDia}`, null);
+                            console.log(`Departamento removido: dados_agenda_tecnicos/${technicianOmie}/agendas/${idAgenda}/${indexDia}`);
+                        }
+                        return;
+                    }
+            
+                    // 🔥 Verifica se o departamento é válido 🔥
                     const validDepartment = departments.find(
                         (dept) =>
                             dept.nome.trim().toLowerCase() === dayInput.value.trim().toLowerCase() || // Compara pelo nome
                             String(dept.codigo) === String(dayInput.dataset.codigo) // Compara pelo código (força string)
                     );
-
+            
                     if (!validDepartment) {
                         // Departamento inválido: limpa o campo e exibe mensagem
                         dayInput.value = "";
@@ -600,7 +621,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         dayCell.style.backgroundColor = ""; // Remove a cor do fundo
                         dayCell.style.color = ""; // Reseta a cor do texto
                     } else {
-                        // Departamento válido: atualiza o nome, código e estilo
+                        // 🔥 Atualiza nome, código e estilo 🔥
                         const truncatedName = validDepartment.nome.length > 3
                             ? validDepartment.nome.slice(0, 3) + "..."
                             : validDepartment.nome;
@@ -609,15 +630,21 @@ document.addEventListener("DOMContentLoaded", () => {
                         dayInput.dataset.codigo = validDepartment.codigo; // Salva o código no dataset
                         dayCell.style.backgroundColor = validDepartment.color; // Aplica a cor no TD
                         adjustTextColor(dayCell, validDepartment.color); // Ajusta a cor do texto no TD
-
-                        saveTechniciansToLocalStorage(); // Salva no localStorage
+            
+                        // Salva no LocalStorage
+                        saveTechniciansToLocalStorage();
+            
+                        // 🔥 Envia APENAS a atualização específica 🔥
+                        if (idAgenda && indexDia >= 0) {
+                            await enviar(`dados_agenda_tecnicos/${technicianOmie}/agendas/${idAgenda}/${indexDia}`, validDepartment.codigo);
+                            console.log(`Atualizado: dados_agenda_tecnicos/${technicianOmie}/agendas/${idAgenda}/${indexDia} -> ${validDepartment.codigo}`);
+                        }
                     }
-
+            
                     dayDropdown.style.display = "none"; // Fecha o dropdown
                 }, 200);
             });
-
-
+            
             dayCell.appendChild(dayInput);
             dayCell.appendChild(dayDropdown);
             newRow.appendChild(dayCell);
@@ -664,7 +691,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     delete storedData[technician.omie].agendas[currentKey];
 
                     // Envia os dados atualizados para a API com a operação "editar"
-                    enviar(`dados_agenda_tecnicos/${technician.omie}`, storedData[technician.omie]);
+                    deletar(`dados_agenda_tecnicos/${technician.omie}`);
 
                     // Salva os dados atualizados no localStorage
                     localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
@@ -752,9 +779,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 .map((cell) => cell.dataset.codigo || "");
 
             technician.agendas[key] = selectedDepartments;
-
-            // Envia os dados para a API
-            enviar(`dados_agenda_tecnicos/${technicianOmie}`, technician);
 
             // Atualiza o `storedData` com o técnico
             storedData[technicianOmie] = technician;
@@ -928,29 +952,32 @@ document.addEventListener("DOMContentLoaded", () => {
         modal.style.display = "block";
 
         // Função para confirmar a alteração da região
-        const confirmHandler = () => {
+        const confirmHandler = async () => {
             const newRegion = regionSelect.value;
-
+        
             // Atualiza a região no localStorage
             const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
+        
             if (storedData[technician.omie]) {
                 storedData[technician.omie].regiao_atual = newRegion;
                 localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
-
-                // Envia os dados atualizados para a API
-                enviar(`dados_agenda_tecnicos/${technician.omie}`, storedData[technician.omie]);
+        
+                // 🔥 Envia APENAS a atualização da região específica 🔥
+                enviar(`dados_agenda_tecnicos/${technician.omie}/regiao_atual`,newRegion );
+        
+                console.log(`Região atualizada para ${newRegion} do técnico ${technician.omie}`);
             }
-
+        
             // Fecha o modal
             modal.style.display = "none";
-
+        
             // Atualiza a tabela para refletir a mudança
             loadTechniciansFromLocalStorage();
-
+        
             // Remove os event listeners para evitar duplicação
             confirmBtn.removeEventListener("click", confirmHandler);
-            cancelBtn.removeEventListener("click", cancelHandler);
         };
+        
 
         // Função para cancelar a alteração
         const cancelHandler = () => {
@@ -958,12 +985,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Remove os event listeners para evitar duplicação
             confirmBtn.removeEventListener("click", confirmHandler);
-            cancelBtn.removeEventListener("click", cancelHandler);
         };
 
         // Adiciona os event listeners
         confirmBtn.addEventListener("click", confirmHandler);
-        cancelBtn.addEventListener("click", cancelHandler);
     }
 
 
