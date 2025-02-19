@@ -1227,6 +1227,11 @@ async function espelhar_atualizacao(objeto) {
     if (arquivo == 'lista_pagamentos' && document.title === 'PAGAMENTOS') {
         await consultar_pagamentos()
     }
+    
+    if (arquivo === "dados_kanban" && document.title === "KANBAN"){
+        carregarDadosDaNuvem()
+    }
+
 }
 
 async function gerar_pdf_online(htmlString, nome) {

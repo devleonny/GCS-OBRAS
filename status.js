@@ -496,7 +496,7 @@ function pesquisar_na_requisicao() {
     }
 }
 
-async function carregar_itens(apenas_visualizar, requisicao) {
+async function carregar_itens(apenas_visualizar, requisicao, editar) {
 
     if (!id_orcam) {
         return ''
@@ -507,7 +507,6 @@ async function carregar_itens(apenas_visualizar, requisicao) {
     var orcamento = dados_orcamentos[id_orcam]
 
     orcamento = await conversor_composicoes_orcamento(orcamento)
-
 
     var linhas = ''
 
@@ -525,6 +524,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
         var infos = ['descricao', 'descricaocarrefour', 'modelo', 'fabricante']
         var elements = ''
         let mod_livre = true
+        let qtde_editar = qtde
 
         var todos_os_status = dados_orcamentos[id_orcam].status;
 
@@ -542,7 +542,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
                         if (requisicao.codigo == item.codigo) {
 
-                            qtde -= requisicao.qtde_enviar
+                            qtde_editar -= requisicao.qtde_enviar
 
                         }
 
@@ -590,6 +590,52 @@ async function carregar_itens(apenas_visualizar, requisicao) {
             qtde_na_requisicao = requisicao[codigo]?.qtde_enviar || ''
         }
 
+        let somasQtde = 0
+
+        let q = 0
+
+        if(editar){
+
+            Object.values(orcamento.status).forEach(status => {
+                if (status.historico) {
+                    Object.entries(status.historico).forEach(([chave, historico]) => {
+                        
+                        if(historico.status.includes("REQUISIÇÃO")){
+    
+                            for(let requisicaoUnica of historico.requisicoes){
+
+                                if(requisicaoUnica.codigo == codigo){
+
+                                    somasQtde += Number(requisicaoUnica.qtde_enviar)
+
+                                    q++
+
+                                }
+
+                            }
+    
+                        }
+    
+                    });
+                }
+            });
+
+        }
+
+        let quantidadeAtual = undefined
+
+        if(Number(requisicao[codigo]?.qtde_enviar) != NaN){
+
+            quantidadeAtual = qtde - qtde_editar + Number(requisicao[codigo]?.qtde_enviar)
+
+        }
+
+        if(q == 1){
+
+            quantidadeAtual = qtde_editar
+
+        }
+
         var quantidade = `
         <div style="display: flex; flex-direction: column; align-items: start; justify-content: space-evenly; gap: 10px;">
 
@@ -600,7 +646,7 @@ async function carregar_itens(apenas_visualizar, requisicao) {
 
             <div class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px; background-color: #222; font-size: 1.2em;">
                 <label><strong>Orçamento</strong></label>
-                <label class="num">${requisicao[codigo]?.qtde_enviar || qtde}</label>   
+                <label class="num">${quantidadeAtual || qtde_editar}</label>   
             </div>
 
         </div>
@@ -1577,7 +1623,7 @@ async function abrir_esquema(id) {
                     </div>
                     `
                     editar = `
-                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="detalhar_requisicao('${chave_pedido}', false, '${chave2}')">
+                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="detalhar_requisicao('${chave_pedido}', false, '${chave2}', true)">
                             <img src="imagens/editar4.png">
                             <label>Editar</label>
                         </div>
@@ -1782,17 +1828,32 @@ async function abrir_esquema(id) {
             }
 
             blocos_por_status['PAINEL'] = `
-            <div class="contorno_botoes" style="font-size: 0.9vw; display: flex; flex-direction: column; align-items: start; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
+            <div class="contorno_botoes" style="display: flex; flex-direction: column; align-items: start; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
                 <label>Gestão de Custos</label>
                 ${pags}
                 <hr style="width: 100%;">
-                <label>${valor_do_pedido} <label style="font-size: 0.6em;">Valor do Pedido</label></label>
-                <label>(-) ${dinheiro(total_pago)}  <label class="indicador" style="background-color: ${cor_indicador}">${string_porcentagem}</label></label>
+                <label>${dados_orcamentos[id].total_geral} <label style="font-size: 0.6em;">Valor do Pedido</label></label>
                 <hr style="width: 100%;">
-                <label>${dinheiro(resultado)}</label>
-            </div>
-            `
+                <label onclick="valores_manuais()" style="font-size: 12px;">➕ Adicionar Valor Manual</label>
+    
+                <div id="lista-valores-manuais">
+                    ${Object.entries(dados_orcamentos[id].valoresManuais || {}).length > 0
+                        ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <label style="font-size: 12px">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
+                                <button onclick="removerValorManual('${id}', '${chave}')" 
+                                    style="background: none; border: none; color: red; cursor: pointer; font-size: 14px;">❌</button>
+                            </div>
+                        `).join("")
+                        : "<label style='font-size: 12px; color: gray;'>Nenhum valor manual adicionado.</label>"
+                    }
+                </div>
 
+                <hr style="width: 100%;">
+                <label>${dinheiro(calcularResultado(dados_orcamentos[id]))}</label>
+            </div>
+
+            `
             let blocos = ''
             for (div in blocos_por_status) {
                 let divisao = blocos_por_status[div]
@@ -2091,6 +2152,118 @@ async function iniciar_cotacao(chave, id_orcam) {
     abrir_esquema(id_orcam)
 
 }
+
+async function valores_manuais() {
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[id_orcam];
+
+    let acumulado = `
+
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: Arial, sans-serif;">
+
+    <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
+
+        <label class="novo_titulo">Gestão de Custos</label>
+
+    </div>
+    
+    <div style="padding: 20px; border-radius: 8px; text-align: center;">
+        <label for="nome-valor-manual" style="display: block; margin-bottom: 5px; font-weight: bold;">Nome do Valor Manual:</label>
+        <input type="text" id="nome-valor-manual" placeholder="Digite o nome" 
+            style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px;">
+
+        <label for="valor-manual" style="display: block; margin-bottom: 5px; font-weight: bold;">Valor Manual:</label>
+        <input type="number" id="valor-manual" placeholder="Digite o valor" 
+            style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px;">
+
+        <button onclick="salvarValorManual()" 
+            style="width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">
+            Salvar
+        </button>
+    </div>
+
+    </div>
+
+    `
+
+    openPopup_v2(acumulado)
+
+}
+
+async function salvarValorManual() {
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+
+    let nome = document.getElementById("nome-valor-manual").value.trim();
+    let valor = document.getElementById("valor-manual").value.trim();
+
+    if (!nome || !valor) {
+        alert("⚠️ Por favor, preencha todos os campos.");
+        return;
+    }
+
+    if (!dados_orcamentos[id_orcam].valoresManuais) {
+        dados_orcamentos[id_orcam].valoresManuais = {};
+    }
+
+    let idValorManual = gerar_id_5_digitos(); // 🔥 Gera um ID único
+
+    dados_orcamentos[id_orcam].valoresManuais[idValorManual] = {
+        nomeValorManual: nome,
+        valorManual: parseFloat(valor)
+    };
+
+    // 🔥 Limpa os inputs após salvar
+    document.getElementById("nome-valor-manual").value = "";
+    document.getElementById("valor-manual").value = "";
+
+    remover_popup()
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await enviar(`dados_orcamentos/${id_orcam}/valoresManuais/${idValorManual}`, dados_orcamentos[id_orcam].valoresManuais[idValorManual]);
+
+    abrir_esquema(id_orcam)
+
+}
+
+async function removerValorManual(id_orcam, idValorManual) {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+
+    if (!dados_orcamentos[id_orcam]?.valoresManuais || !dados_orcamentos[id_orcam].valoresManuais[idValorManual]) {
+        console.warn("⚠️ Valor manual não encontrado.");
+        return;
+    }
+
+    // 🗑️ Remove o valor manual do objeto
+    delete dados_orcamentos[id_orcam].valoresManuais[idValorManual];
+
+    // 🔥 Atualiza o localStorage e envia para a nuvem
+    await inserirDados(dados_orcamentos, 'dados_orcamentos');
+    await deletar(`dados_orcamentos/${id_orcam}/valoresManuais/${idValorManual}`);
+
+    // 🔄 Atualiza a exibição do orçamento
+    abrir_esquema(id_orcam);
+}
+
+function calcularResultado(orcamento) {
+    if (!orcamento || !orcamento.total_geral) return "Erro nos dados";
+
+    // 🔥 Converte total_geral para número (removendo "R$ " e convertendo vírgula para ponto)
+    let totalGeral = parseFloat(orcamento.total_geral.replace("R$ ", "").replace(/\./g, "").replace(",", "."));
+
+    if (isNaN(totalGeral)) return "Erro no total_geral";
+
+    // 🔥 Soma os valores de valoresManuais
+    let somaValoresManuais = Object.values(orcamento.valoresManuais || {})
+        .reduce((soma, item) => soma + (parseFloat(item.valorManual) || 0), 0);
+
+    // 🔥 Subtrai a soma dos valores manuais do total geral
+    let resultadoFinal = totalGeral - somaValoresManuais;
+
+    return resultadoFinal;
+}
+
 
 async function retorno_de_materiais(chave_pedido, id, qualBotao) {
 
@@ -2441,9 +2614,10 @@ async function carregar_comentarios(chave1, chave2) {
     let div_caixa = document.getElementById(`caixa_comentarios_${chave2}`)
     if (div_caixa) {
         div_caixa.innerHTML = comentss
-    } else {
-        return comentss
-    }
+     } 
+     
+     return comentss
+     
 }
 
 async function salvar_comentario_trello(chave1, chave2) {
@@ -2702,7 +2876,7 @@ async function chamar_excluir(id) {
         `)
 }
 
-async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
+async function detalhar_requisicao(chave, apenas_visualizar, chave2, editar) {
 
     var painel_status = document.getElementById('status')
     if (painel_status) {
@@ -2869,7 +3043,7 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
                 <th style="text-align: center;">Requisição</th>
             </thead>
             <tbody>
-            ${await carregar_itens(apenas_visualizar, requisicao)}
+            ${await carregar_itens(apenas_visualizar, requisicao, editar)}
             </tbody>
         </table>
     <div>
@@ -2879,7 +3053,7 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2) {
     ${elementus}
     </div>
     `
-    console.log(requisicao)
+
     document.body.insertAdjacentHTML('beforeend', elementus_tus)
 
     var comentario_status = document.getElementById('comentario_status')
