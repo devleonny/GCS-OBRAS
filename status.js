@@ -264,7 +264,11 @@ async function painel_adicionar_pedido() {
 }
 
 
-async function painel_adicionar_notas(chave) {
+async function painel_adicionar_notas(chave, sst, editar, chave2) {
+
+    if(sst){
+        sst = JSON.parse(sst)
+    }
 
     var painel_status = document.getElementById('status')
     if (painel_status) {
@@ -280,7 +284,7 @@ async function painel_adicionar_notas(chave) {
 
     var funcao = `salvar_notas()`
     if (chave !== undefined) {
-        funcao = `salvar_notas('${chave}')`
+        funcao = `salvar_notas('${chave}', ${editar}, '${chave2}')`;
     }
 
     var acumulado = `
@@ -307,19 +311,23 @@ async function painel_adicionar_notas(chave) {
             <div style="display: flex; flex-direction: column; justify-content: center; align-items: start;"
                 <label><strong>Número da Nota</strong></label>
                 <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
-                    <input type="number" class="pedido" id="nota">
+                    <input type="number" class="pedido" id="nota" value="${sst?.notas?.[0]?.nota || ''}">
                     <select id="tipo">
-                        <option>Remessa</option>
-                        <option>Venda</option>
-                        <option>Serviço</option>
-                        <option>Venda + Serviço</option>
+                        <option ${sst?.notas?.[0]?.modalidade === "Remessa" ? "selected" : ""}>Remessa</option>
+                        <option ${sst?.notas?.[0]?.modalidade === "Venda" ? "selected" : ""}>Venda</option>
+                        <option ${sst?.notas?.[0]?.modalidade === "Serviço" ? "selected" : ""}>Serviço</option>
+                        <option ${sst?.notas?.[0]?.modalidade === "Venda + Serviço" ? "selected" : ""}>Venda + Serviço</option>
                     </select>
                 </div>
+                <label><strong>Valor da Nota</strong></label>
+                <input type="number" class="pedido" id="valorNota" value="${sst?.notas?.[0]?.valorNota || ''}">
+                <label><strong>Valor do Frete</strong></label>
+                <input type="number" class="pedido" id="valorFrete" value="${sst?.notas?.[0]?.valorFrete || ''}">
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
                 <label><strong>Comentário</strong></label>
-                <textarea rows="5" style="width: 80%;" id="comentario_status"></textarea>
+                <textarea rows="5" style="width: 80%;" id="comentario_status">${sst?.comentario || ''}</textarea>
             </div>
 
             <div id="div_anexos"
@@ -929,7 +937,7 @@ function mostrar_itens_adicionais() {
     }
 }
 
-async function carregar_status_divs(valor, chave, id) { // "valor" é o último status no array de status que vem do script de orçamentos;
+async function carregar_status_divs(valor, chave, id, sst, editar, chave2) { // "valor" é o último status no array de status que vem do script de orçamentos;
 
     var estrutura = document.getElementById('estrutura')
     if (estrutura) {
@@ -958,7 +966,7 @@ async function carregar_status_divs(valor, chave, id) { // "valor" é o último 
 
     } else if (String(valor).includes('FATURAMENTO') || String(valor).includes('REMESSA')) {
 
-        return painel_adicionar_notas(chave)
+        return painel_adicionar_notas(chave, sst, editar, chave2)
 
     }
 
@@ -1027,9 +1035,11 @@ async function salvar_pedido(chave) {
 
 }
 
-async function salvar_notas(chave) {
+async function salvar_notas(chave, editar, chave2) {
 
     let nota = document.getElementById('nota')
+    let valorNota = document.getElementById('valorNota')
+    let valorFrete = document.getElementById('valorFrete')
     let tipo = document.getElementById('tipo')
     let data = document.getElementById('data')
     let comentario_status = document.getElementById('comentario_status')
@@ -1045,7 +1055,14 @@ async function salvar_notas(chave) {
     }
 
     var novo_lancamento = orcamento.status[chave];
+
+    if(editar){
+        var chave_his = chave2
+    }else{
+
     var chave_his = gerar_id_5_digitos();
+
+    }
 
     novo_lancamento.historico[chave_his] = {
         status: '',
@@ -1056,14 +1073,17 @@ async function salvar_notas(chave) {
         status: 'FATURADO',
         notas: [{
             nota: nota.value,
-            modalidade: tipo.value
+            modalidade: tipo.value,
+            valorNota: valorNota.value,
+            valorFrete: valorFrete.value
         }]
     };
 
-    await inserirDados(dados_orcamentos, 'dados_orcamentos');
-    abrir_esquema(id_orcam)
-
     await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/historico/${chave_his}`, novo_lancamento.historico[chave_his])
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos');
+
+    abrir_esquema(id_orcam)
 
     anexos = {}
     itens_adicionais = {}
@@ -1672,6 +1692,19 @@ async function abrir_esquema(id) {
 
                 }
 
+                
+                if (String(sst.status).includes('FATURADO')) {
+                    console.log(sst)
+
+                    editar = `
+                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="carregar_status_divs('FATURAMENTO', '${chave_pedido}', '${id}', '${JSON.stringify(sst).replace(/"/g, '&quot;')}', true, '${chave2}')">
+                            <img src="imagens/editar4.png">
+                            <label>Editar</label>
+                        </div>
+                    `
+
+                }
+
                 if (sst.anexos) {
 
                     Object.keys(sst.anexos).forEach(key_anx => {
@@ -1694,6 +1727,10 @@ async function abrir_esquema(id) {
                 var notas = ''
                 if (sst.notas) {
                     notas += `${sst.notas[0].nota}`
+                }
+                var valorNota = 0
+                if(sst.notas){
+                    valorNota += Number(sst.notas[0].valorNota)
                 }
 
                 var totais = ''
@@ -1758,6 +1795,7 @@ async function abrir_esquema(id) {
                                 <label><strong>Comentário: </strong> <br> ${coments}</label>
                                 ${dados_pedidos}
                                 ${sst.notas ? `<label><strong>NF: </strong>${notas}</label>` : ''}
+                                ${sst.notas ? `<label><strong>Valor NF: </strong>${dinheiro(valorNota)}</label>` : ''}
                                 ${totais}
                                 ${links_requisicoes}
                                 ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${chave2}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
@@ -2617,7 +2655,7 @@ async function carregar_comentarios(chave1, chave2) {
      } 
      
      return comentss
-     
+
 }
 
 async function salvar_comentario_trello(chave1, chave2) {
