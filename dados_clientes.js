@@ -244,22 +244,10 @@ function recuperar_preenchido() {
         for (chave in orcamento_v2.levantamentos) {
             var levantamento = orcamento_v2.levantamentos[chave]
 
-            var imagem = ''
-
-            if (formato(levantamento.formato) == 'PDF') {
-                imagem = 'pdf'
-            } else if (formato(levantamento.formato) == 'IMAGEM') {
-                imagem = 'imagem'
-            } else if (formato(levantamento.formato) == 'PLANILHA') {
-                imagem = 'excel2'
-            } else {
-                imagem = 'anexo'
-            }
-
             acumulado += `
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <div style="align-items: center; width: max-content; font-size: 0.7em; display: flex; justify-content; left; box-shadow: 2px 2px #94a0ab; background-color: #e9e9e9; color: #555; padding: 5px; margin:5px; border-radius: 5px;">
-                    <img src="${imagem}.png" style="width: 3vw;">
+                    <img src="imagens/anexo2.png" style="width: 3vw;">
                     <label><strong>${encurtar_texto(levantamento.nome, 10)}</strong></label>
                 </div>
                 <label style="text-decoration: underline; font-size: 0.7em; cursor: pointer;" onclick="excluir_levantamento('${chave}')">Excluir</label>
