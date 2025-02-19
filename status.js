@@ -594,17 +594,17 @@ async function carregar_itens(apenas_visualizar, requisicao, editar) {
 
         let q = 0
 
-        if(editar){
+        if (editar) {
 
             Object.values(orcamento.status).forEach(status => {
                 if (status.historico) {
                     Object.entries(status.historico).forEach(([chave, historico]) => {
-                        
-                        if(historico.status.includes("REQUISIÇÃO")){
-    
-                            for(let requisicaoUnica of historico.requisicoes){
 
-                                if(requisicaoUnica.codigo == codigo){
+                        if (historico.status.includes("REQUISIÇÃO")) {
+
+                            for (let requisicaoUnica of historico.requisicoes) {
+
+                                if (requisicaoUnica.codigo == codigo) {
 
                                     somasQtde += Number(requisicaoUnica.qtde_enviar)
 
@@ -613,9 +613,9 @@ async function carregar_itens(apenas_visualizar, requisicao, editar) {
                                 }
 
                             }
-    
+
                         }
-    
+
                     });
                 }
             });
@@ -624,13 +624,13 @@ async function carregar_itens(apenas_visualizar, requisicao, editar) {
 
         let quantidadeAtual = undefined
 
-        if(Number(requisicao[codigo]?.qtde_enviar) != NaN){
+        if (Number(requisicao[codigo]?.qtde_enviar) != NaN) {
 
             quantidadeAtual = qtde - qtde_editar + Number(requisicao[codigo]?.qtde_enviar)
 
         }
 
-        if(q == 1){
+        if (q == 1) {
 
             quantidadeAtual = qtde_editar
 
@@ -1443,7 +1443,7 @@ function verificar_timestamp_nome(nome) {
 
 const { shell } = require('electron');
 
-function abrirArquivo(link) { 
+function abrirArquivo(link) {
 
     if (verificar_timestamp_nome(link)) { // Se for um link composto por timestamp, então vem do servidor;
         link = `https://leonny.dev.br/uploads/${link}`
@@ -1777,7 +1777,7 @@ async function abrir_esquema(id) {
 
                                 <div id="comentario_${chave2}" style="display: none; justify-content: space-evenly; align-items: center;">
                                     <textarea placeholder="Comente algo aqui..."></textarea>
-                                    <label class="contorno_botoes" style="background-color: green;" onclick="salvar_comentario_trello('${chave_pedido}', '${chave2}')">Salvar</label>
+                                    <label class="contorno_botoes" style="background-color: green;" onclick="salvar_comentario('${chave_pedido}', '${chave2}')">Salvar</label>
                                     <label class="contorno_botoes" style="background-color: #B12425;" onclick="toggle_comentario('comentario_${chave2}')">&times;</label>
                                 </div>
                                 <div id="caixa_comentarios_${chave2}" style="display: flex; flex-direction: column;">
@@ -1796,7 +1796,6 @@ async function abrir_esquema(id) {
                 `
             }
 
-            var valor_do_pedido = '???'
             if (todos_os_status[chave_pedido].valor) {
                 valor_do_pedido = dinheiro(conversor(todos_os_status[chave_pedido].valor))
             }
@@ -1817,9 +1816,8 @@ async function abrir_esquema(id) {
                 }
             }
 
-            var resultado = conversor(todos_os_status[chave_pedido].valor) - total_pago
             var porcentagem = total_pago / conversor(todos_os_status[chave_pedido].valor) * 100
-            var string_porcentagem = `${(porcentagem).toFixed(0)}%`
+
             var cor_indicador = 'orangered'
             if (porcentagem < 35) {
                 cor_indicador = 'green'
@@ -1838,15 +1836,15 @@ async function abrir_esquema(id) {
     
                 <div id="lista-valores-manuais">
                     ${Object.entries(dados_orcamentos[id].valoresManuais || {}).length > 0
-                        ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
+                    ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
                             <div style="display: flex; align-items: center; gap: 5px;">
                                 <label style="font-size: 12px">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
                                 <button onclick="removerValorManual('${id}', '${chave}')" 
                                     style="background: none; border: none; color: red; cursor: pointer; font-size: 14px;">❌</button>
                             </div>
                         `).join("")
-                        : "<label style='font-size: 12px; color: gray;'>Nenhum valor manual adicionado.</label>"
-                    }
+                    : "<label style='font-size: 12px; color: gray;'>Nenhum valor manual adicionado.</label>"
+                }
                 </div>
 
                 <hr style="width: 100%;">
@@ -2563,7 +2561,7 @@ function confirmar_exclusao_comentario(id_comentario, chave1, chave2) {
             <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
             <label>Excluir o comentário?</label>
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-            <button onclick="excluir_comentario('${id_comentario}', ${chave1}, '${chave2}')" style="background-color: green">Confirmar</button>
+            <button onclick="excluir_comentario('${id_comentario}', '${chave1}', '${chave2}')" style="background-color: green">Confirmar</button>
             <button onclick="remover_popup()">Cancelar</button>
             </div>
         </div>
@@ -2572,11 +2570,11 @@ function confirmar_exclusao_comentario(id_comentario, chave1, chave2) {
 
 async function excluir_comentario(id_comentario, chave1, chave2) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
     let comentarios = dados_orcamentos[id_orcam].status[chave1].historico[chave2].comentarios || {}
 
     delete comentarios[id_comentario]
 
+    remover_popup()
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await deletar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/comentarios/${id_comentario}`)
     await carregar_comentarios(chave1, chave2)
@@ -2598,7 +2596,7 @@ async function carregar_comentarios(chave1, chave2) {
             let excluir = ''
 
             if (acesso.usuario == item.usuario || acesso.permissao == 'adm') {
-                excluir = ` •<label onclick="confirmar_exclusao_comentario('${it}', ${chave1}, '${chave2}')" style="text-decoration: underline; cursor: pointer;"> Excluir</label>`
+                excluir = ` •<label onclick="confirmar_exclusao_comentario('${it}', '${chave1}', '${chave2}')" style="text-decoration: underline; cursor: pointer;"> Excluir</label>`
             }
 
             comentss += `
@@ -2606,7 +2604,7 @@ async function carregar_comentarios(chave1, chave2) {
                 <label>${item.comentario.replace(/\n/g, '<br>')}
                 <br><strong>${item.data} • ${item.usuario}</strong>${excluir}</label>
             </div>
-        `
+            `
         }
 
     }
@@ -2614,13 +2612,13 @@ async function carregar_comentarios(chave1, chave2) {
     let div_caixa = document.getElementById(`caixa_comentarios_${chave2}`)
     if (div_caixa) {
         div_caixa.innerHTML = comentss
-     } 
-     
-     return comentss
-     
+    }
+    
+    return comentss
+
 }
 
-async function salvar_comentario_trello(chave1, chave2) {
+async function salvar_comentario(chave1, chave2) {
 
     toggle_comentario(`comentario_${chave2}`)
     let id_div = `comentario_${chave2}`
@@ -2629,7 +2627,7 @@ async function salvar_comentario_trello(chave1, chave2) {
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let orcamento = dados_orcamentos[id_orcam]
 
-    var id = unicoID()
+    var id = gerar_id_5_digitos()
 
     var comentario = {
         id: id,
@@ -2651,7 +2649,6 @@ async function salvar_comentario_trello(chave1, chave2) {
     await carregar_comentarios(chave1, chave2)
 
 }
-
 
 function toggle_comentario(id) {
     var elemento = document.getElementById(id)
