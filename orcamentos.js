@@ -469,7 +469,7 @@ async function preencher_orcamentos_v2(filtros, remover) {
 
             let toolbar = document.getElementById('toolbar')
             toolbar.innerHTML = ''
-            div_orcamentos.innerHTML = ''
+
             let label = `<label style="background-color: #222;" onclick="mostrar_tabela('orcamentos_')">ORÇAMENTOS</label>`
             toolbar.insertAdjacentHTML('beforeend', label)
 
@@ -478,6 +478,7 @@ async function preencher_orcamentos_v2(filtros, remover) {
 
             } else {
 
+                div_orcamentos.innerHTML = ''
                 let tabela = `
                     <table id="orcamentos_" class="tabela" style="font-size: 0.8vw; background-color: #222;">
                         <thead>
