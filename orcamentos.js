@@ -1054,10 +1054,12 @@ async function carregar_manutencoes() {
     if (linhas !== '') {
         let toolbar = document.getElementById('toolbar')
         let label = `
-        <label style="background-color: #151749;" onclick="mostrar_tabela('chamados', this)">REQUISIÇÕES</label>
+        <label style="background-color: #151749;" onclick="mostrar_tabela('chamados')">REQUISIÇÕES</label>
         `
         toolbar.insertAdjacentHTML('beforeend', label)
         div_chamados.innerHTML = tabela
+
+        mostrar_tabela('orcamentos_')
     }
 }
 
@@ -1067,10 +1069,12 @@ function mostrar_tabela(tabela) {
 
     let a_tabela = document.getElementById(tabela)
 
-    chamados ? chamados.style.display = 'none' : ''
-    orcamentos ? orcamentos_.style.display = 'none' : ''
+    if (a_tabela) {
+        chamados ? chamados.style.display = 'none' : ''
+        orcamentos ? orcamentos_.style.display = 'none' : ''
 
-    a_tabela ? a_tabela.style.display = 'table' : ''
+        a_tabela ? a_tabela.style.display = 'table' : ''
+    }
 }
 
 async function enviar_manutencao(id) {
