@@ -843,10 +843,18 @@ async function atualizar_pagamentos_menu() {
 
     recuperar_orcamentos()
     recuperar()
-    
+
     await lista_setores()
 
     await inserirDados(await receber('lista_pagamentos'), 'lista_pagamentos')
+
+    let dados_categorias = await recuperarDados('dados_categorias')
+    if (!dados_categorias) {
+        dados_categorias = await receber('dados_categorias')
+        inserirDados(dados_categorias, 'dados_categorias')
+    }
+
+    await inserirDados(await receber('dados_categorias'), 'dados_categorias')
 
     await consultar_pagamentos()
 
