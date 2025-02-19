@@ -14,10 +14,10 @@ var fluxograma = {
     'INCLUIR PEDIDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS'] },
     'PEDIDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS'], proximo: 'FAZER REQUISIÇÃO', campo: 'PEDIDO' },
     'REQUISIÇÃO': { cor: '#B12425', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], proximo: 'SEPARAR MATERIAL', campo: 'REQUISIÇÃO' },
-    'MATERIAL SEPARADO': { cor: '#B12425', modulos: ['FINANCEIRO', 'LOGÍSTICA', 'RELATÓRIOS'], proximo: 'EMITIR A NOTA', campo: 'REQUISIÇÃO' },
+    'MATERIAL SEPARADO': { cor: '#b17724', modulos: ['FINANCEIRO', 'LOGÍSTICA', 'RELATÓRIOS'], proximo: 'EMITIR A NOTA', campo: 'REQUISIÇÃO' },
     'FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], proximo: 'ENVIAR MATERIAL' },
-    'MATERIAL ENVIADO': { cor: '#B12425', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], proximo: 'CONFIRMAR RECEBIMENTO', campo: 'REQUISIÇÃO' },
-    'MATERIAL RECEBIDO': { cor: '#B12425', modulos: ['RELATÓRIOS'], campo: 'REQUISIÇÃO' },
+    'MATERIAL ENVIADO': { cor: '#b17724', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], proximo: 'CONFIRMAR RECEBIMENTO', campo: 'REQUISIÇÃO' },
+    'MATERIAL RECEBIDO': { cor: '#b17724', modulos: ['RELATÓRIOS'], campo: 'REQUISIÇÃO' },
     'COTAÇÃO PENDENTE': { cor: '#0a989f', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], proximo: 'FINALIZAR COTAÇÃO' },
     'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] },
     'RETORNO DE MATERIAIS': { cor: '#aacc14', modulos: ['RELATÓRIOS'] },
@@ -1504,7 +1504,7 @@ async function abrir_esquema(id) {
         var levantamentos = ''
         if (dados_orcamentos[id].levantamentos) {
 
-            for (chave in dados_orcamentos[id].levantamentos) {//29
+            for (chave in dados_orcamentos[id].levantamentos) {
 
                 var levantamento = dados_orcamentos[id].levantamentos[chave]
 
@@ -1758,8 +1758,8 @@ async function abrir_esquema(id) {
                 }
 
                 let status_dinamico = sst.status
-                if (sst.status.includes('REQUISIÇÃO') || sst.status.includes('MATERIAL')) {
-                    let opcoes = ['REQUISIÇÃO', 'MATERIAL SEPARADO', 'MATERIAL ENVIADO', 'MATERIAL RECEBIDO']
+                if (sst.status.includes('MATERIAL')) {
+                    let opcoes = ['MATERIAL SEPARADO', 'MATERIAL ENVIADO', 'MATERIAL RECEBIDO']
                     let string_opcoes = ''
 
                     opcoes.forEach(op => {
@@ -1901,7 +1901,7 @@ async function abrir_esquema(id) {
             }
 
             let finalizado = todos_os_status[chave_pedido].finalizado ? 'checked' : ''
-
+//29
             var linhas = `
                 <div style="display: flex; flex-direction: column; gap: 15px;">
                     <hr style="width: 95%;">
@@ -1923,11 +1923,15 @@ async function abrir_esquema(id) {
 
                             </div>
 
-                            <div style="display: flex; gap: 10px;">
+                            <div style="display: flex; gap: 10px; font-size: 0.9vw;">
                                 ${botao_novo_pagamento(chave_pedido)}
                                 <div class="contorno_botoes" style="background-color: ${fluxograma['REQUISIÇÃO'].cor}"
                                     onclick="detalhar_requisicao('${chave_pedido}')">
                                     <label>Nova <strong>Requisição</strong></label>
+                                </div>
+                                <div class="contorno_botoes" style="background-color: ${fluxograma['MATERIAL ENVIADO'].cor}"
+                                    onclick="envio_de_material('${chave_pedido}', undefined)">
+                                    <label>Enviar <strong>Material</strong></label>
                                 </div>
                                 <div class="contorno_botoes" style="background-color: ${fluxograma['FATURADO'].cor};"
                                     onclick="carregar_status_divs('FATURAMENTO', '${chave_pedido}', '${id}')">
@@ -3437,5 +3441,101 @@ async function gerarpdf(cliente, pedido) {
     if (menu_flutuante) {
         menu_flutuante.style.display = 'flex'
     }
+
+}
+
+async function envio_de_material(chave1, chave2) {
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[id_orcam]
+    let envio = {}
+    let funcao = `registrar_envio_material('${chave1}', '${id_orcam}')`
+    let comentario = ''
+    if (chave2 !== undefined) {
+        envio = orcamento.status[chave1].historico[chave2].envio
+        funcao = `registrar_envio_material('${chave1}', '${id_orcam}', '${chave2}')`
+        comentario = orcamento.status[chave1].historico[chave2].comentario
+    }
+
+    let transportadoras = ['JAMEF', 'CORREIOS', 'RODOVIÁRIA', 'JADLOG', 'AÉREO', 'OUTRAS']
+    let opcoes_transportadoras = ''
+
+    transportadoras.forEach(transp => {
+        let marcado = envio.transportadora == transp ? 'selected' : ''
+        opcoes_transportadoras += `
+            <option ${marcado}>${transp}</option>
+        `
+    })
+
+    var acumulado = `
+    <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
+        <img src="imagens/logistica.png" style="width: 50px;">
+        <label class="novo_titulo">Registrar Envio de Material</label>
+    </div>
+    <div id="painel_envio_de_material">
+
+        <div class="pergunta">
+            <label>Status do Material</label>
+            <select>
+
+            </select>
+        </div>
+
+        <div class="pergunta">
+            <label>Número de rastreio</label>
+            <input id="rastreio" value="${envio?.rastreio || ""}">
+        </div>
+
+        <div class="pergunta">
+            <label>Transportadora</label>
+            <select id="transportadora">
+                ${opcoes_transportadoras}
+            </select>
+        </div>
+
+        <div class="pergunta">
+            <label>Custo do Frete</label>
+            <input type="number" id="custo_frete" value="${envio.custo_frete}">
+        </div>
+
+        <div class="pergunta">
+            <label>Nota Fiscal</label>
+            <input id="nf" value="${envio.nf || ""}">
+        </div>
+
+        <div class="pergunta">
+            <label>Comentário</label>
+            <textarea id="comentario_envio" style="border: none; width: 152px; height: 70px;">${comentario}</textarea>
+        </div>
+
+        <div class="pergunta">
+            <label>Quantos volumes?</label>
+            <input type="number" id="volumes" value="${envio.volumes}">
+        </div>
+
+        <div class="pergunta">
+            <label>Data de Saída</label>
+            <input type="date" id="data_saida" value="${envio.data_saida}">
+        </div>
+
+        <div class="pergunta">
+            <label>Previsão de Entrega</label>
+            <input type="date" id="previsao" value="${envio.previsao}">
+        </div>
+
+        <hr style="width: 80%;">
+
+        <div class="pergunta">
+            <label>Apenas quando o material for entregue, preencha esta data</label>
+            <input type="date" id="entrega" value="${envio.entrega}">
+        </div>
+
+        <hr style="width: 80%;">
+
+        <button style="background-color: #4CAF50; width: 100%; margin: 0px;" onclick="${funcao}">Salvar</button>
+      
+    </div>
+    `
+    openPopup_v2(acumulado)
 
 }
