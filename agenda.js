@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const addLineBtn = document.getElementById("add-line-btn");
     const updateDataBtn = document.getElementById("update-data-btn");
 
-    recuperar_dados_clientes()
+    recuperar_clientes()
 
     document.querySelectorAll(".close-modal-btn").forEach((closeBtn) => {
         closeBtn.addEventListener("click", (event) => {
@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!clientesIndexDB) {
 
                 console.log("entrei")
-                await recuperar_dados_clientes()
+                await recuperar_clientes()
                 console.log("sai")
 
             }
@@ -207,6 +207,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function fetchDepartmentsFromAPI() {
+        
         const apiUrl =
             "https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=departamentos";
 
@@ -457,11 +458,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                                 delete storedData[previousOmie].agendas[currentKey];
 
-                                enviar_dados_generico({
-                                    tabela: "agenda",
-                                    operacao: "editar",
-                                    tecnico: storedData[previousOmie], // Técnico atualizado sem a agenda excluída
-                                });
+                                enviar(`dados_agenda_tecnicos/${newOmie}`, storedData[newOmie]);
 
                                 // Atualiza o localStorage
                                 localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
@@ -667,11 +664,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     delete storedData[technician.omie].agendas[currentKey];
 
                     // Envia os dados atualizados para a API com a operação "editar"
-                    enviar_dados_generico({
-                        tabela: "agenda",
-                        operacao: "editar",
-                        tecnico: storedData[technician.omie], // Técnico atualizado sem a agenda excluída
-                    });
+                    enviar(`dados_agenda_tecnicos/${technician.omie}`, storedData[technician.omie]);
 
                     // Salva os dados atualizados no localStorage
                     localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
@@ -760,15 +753,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             technician.agendas[key] = selectedDepartments;
 
-            // Define a operação: "incluir" se ainda não estiver no localStorage, "editar" caso contrário
-            const operacao = storedData[technicianOmie] ? "editar" : "incluir";
-
             // Envia os dados para a API
-            enviar_dados_generico({
-                tabela: "agenda",
-                operacao,
-                tecnico: technician,
-            });
+            enviar(`dados_agenda_tecnicos/${technicianOmie}`, technician);
 
             // Atualiza o `storedData` com o técnico
             storedData[technicianOmie] = technician;
@@ -786,7 +772,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const storedData = localStorage.getItem("dados_agenda_tecnicos");
         const daysRow = document.getElementById("days-row");
         const techniciansBody = document.getElementById("technicians-body");
-    
+
         if (storedData) {
             const techniciansObj = JSON.parse(storedData);
             const currentKey = getAgendaKey(); // Chave do mês/ano atual
@@ -952,11 +938,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
 
                 // Envia os dados atualizados para a API
-                enviar_dados_generico({
-                    tabela: "agenda",
-                    operacao: "editar", // Sempre "editar" porque o técnico já existe
-                    tecnico: storedData[technician.omie], // Dados atualizados do técnico
-                });
+                enviar(`dados_agenda_tecnicos/${technician.omie}`, storedData[technician.omie]);
             }
 
             // Fecha o modal
@@ -986,40 +968,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     async function atualizarDados() {
-        const apiUrl = "https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=agenda";
-
-        try {
+        
             showLoading(); // Exibe o indicador de carregamento
-            const response = await fetch(apiUrl);
+            const data = await receber("dados_agenda_tecnicos");
 
-            if (!response.ok) {
-                throw new Error(`Erro na requisição: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            // Verifica se os dados são válidos
-            if (!data || typeof data !== "object") {
-                throw new Error("Dados inválidos ou vazios retornados pela API.");
-            }
-
-            // Converte os dados para um objeto indexado por `omie`
-            const formattedData = {};
-            data.forEach((item) => {
-                if (item.omie) {
-                    formattedData[item.omie] = item; // Usa o `omie` como chave
-                }
-            });
+            console.log(data)
 
             // Salva no localStorage como um objeto indexado por `omie`
-            localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(formattedData));
+            localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(data));
 
             hideLoading();
             generateCalendar(yearSelect.value, monthSelect.value); // Garante que o calendário seja atualizado
             loadTechniciansFromLocalStorage(); // Monta a tabela
-        } catch (error) {
-            showPopup("Erro ao atualizar os dados. Verifique sua conexão.");
-        }
     }
 
 
