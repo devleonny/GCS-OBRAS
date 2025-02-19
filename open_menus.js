@@ -1209,7 +1209,7 @@ async function espelhar_atualizacao(objeto) {
     await inserirDados(dados, arquivo);
 
     if (arquivo === "dados_orcamentos" && document.title === "ORÇAMENTOS") {
-        preencher_orcamentos_v2();
+        await preencher_orcamentos_v2();
     }
 
     if (arquivo === "dados_composicoes" && document.title === "COMPOSIÇÕES") {
