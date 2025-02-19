@@ -30,9 +30,6 @@ async function consultar_pagamentos() {
     var dados_clientes = await recuperarDados('dados_clientes') || {};
     var clientes = {}
     var linhas = ''
-    dados_categorias = Object.fromEntries(
-        Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
-    );
 
     Object.keys(dados_clientes).forEach(item => {
         var cliente = dados_clientes[item]
@@ -41,35 +38,29 @@ async function consultar_pagamentos() {
 
     var pagamentosFiltrados = Object.keys(lista_pagamentos)
         .map(pagamento => {
+
             var pg = lista_pagamentos[pagamento];
-            if (pg == 1) { // O indexedDB inclui um item com chave 1 no objeto... 
-                return
-            }
-            if (pg.criado !== 'Omie') {
 
-                var valor_categorias = pg.param[0].categorias.map(cat =>
-                    `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
-                ).join('');
-                var nome_orcamento = orcamentos[pg.id_orcamento]
-                    ? orcamentos[pg.id_orcamento].dados_orcam.cliente_selecionado
-                    : pg.departamento;
-                var data_registro = pg.data_registro || pg.param[0].data_previsao;
+            var valor_categorias = pg.param[0].categorias.map(cat =>
+                `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
+            ).join('');
+            var nome_orcamento = orcamentos[pg.id_orcamento]
+                ? orcamentos[pg.id_orcamento].dados_orcam.cliente_selecionado
+                : pg.departamento;
+            var data_registro = pg.data_registro || pg.param[0].data_previsao;
 
-                return {
-                    id: pagamento,
-                    param: pg.param,
-                    data_registro,
-                    data_previsao: pg.param[0].data_previsao,
-                    nome_orcamento,
-                    valor_categorias,
-                    status: pg.status,
-                    observacao: pg.param[0].observacao,
-                    criado: pg.criado,
-                    anexos: pg.anexos
-                };
-
-            }
-            return null;
+            return {
+                id: pagamento,
+                param: pg.param,
+                data_registro,
+                data_previsao: pg.param[0].data_previsao,
+                nome_orcamento,
+                valor_categorias,
+                status: pg.status,
+                observacao: pg.param[0].observacao,
+                criado: pg.criado,
+                anexos: pg.anexos
+            };
         })
         .filter(Boolean);
 
