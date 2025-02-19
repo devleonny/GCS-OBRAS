@@ -885,7 +885,7 @@ async function salvar_cotacao(codigo, lpu) {
                     produto[lpu].historico = {};
                 }
 
-                var id = gerarNumeroAleatorio();
+                var id = gerar_id_5_digitos();
 
                 produto[lpu].historico[id] = dados;
 
