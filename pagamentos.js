@@ -19,8 +19,13 @@ async function consultar_pagamentos() {
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
     }
 
+    let dados_categorias = await recuperarDados('dados_categorias')
+    if (!dados_categorias) {
+        dados_categorias = await receber('dados_categorias')
+        inserirDados(dados_categorias, 'dados_categorias')
+    }
+
     var orcamentos = await recuperarDados('dados_orcamentos') || {};
-    var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
     var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
     var dados_clientes = await recuperarDados('dados_clientes') || {};
     var clientes = {}
@@ -840,9 +845,6 @@ function fechar_detalhes() {
 }
 
 async function atualizar_pagamentos_menu() {
-
-    recuperar_orcamentos()
-    recuperar()
 
     await lista_setores()
 
