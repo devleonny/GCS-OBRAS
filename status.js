@@ -1864,7 +1864,7 @@ async function abrir_esquema(id) {
             }
 
             blocos_por_status['PAINEL'] = `
-            <div class="contorno_botoes" style="display: flex; flex-direction: column; align-items: start; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
+            <div class="contorno_botoes" style="width: ; display: flex; flex-direction: column; align-items: start; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
                 <label>Gestão de Custos</label>
                 ${pags}
                 <hr style="width: 100%;">

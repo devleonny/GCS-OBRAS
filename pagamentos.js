@@ -941,7 +941,7 @@ async function editar_comentario(id) {
         ${pagamento.param[0].observacao}
         </textarea>
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px;">
-            <button onclick="salvar_comentario('${id}')" style="background-color: green">Alterar Comentário</button>
+            <button onclick="salvar_comentario_pagamento('${id}')" style="background-color: green">Alterar Comentário</button>
             <button onclick="fechar_e_abrir('${id}')">Cancelar</button>
         </div>
         `
@@ -992,7 +992,7 @@ async function salvar_centro_de_custo(id) {
 
 }
 
-async function salvar_comentario(id) {
+async function salvar_comentario_pagamento(id) {
 
     var dataFormatada = new Date().toLocaleString('pt-BR', {
         day: '2-digit',
