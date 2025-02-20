@@ -921,7 +921,7 @@ async function atualizar_feedback(resposta, id_pagamento) {
     pagamento.historico.push(historico)
 
     enviar(`lista_pagamentos/${id_pagamento}/status`, status)
-    enviar(`lista_pagamentos/${id_pagamento}/historico`, historico)
+    enviar(`lista_pagamentos/${id_pagamento}/historico`, pagamento.historico)
 
     inserirDados(lista_pagamentos, 'lista_pagamentos');
     fechar_e_abrir(id_pagamento)

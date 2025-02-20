@@ -506,6 +506,9 @@ async function recuperar_orcamentos() {
     let dados_orcamentos = await receber('dados_orcamentos') || {}
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
+    let dados_manutencao = await receber('dados_manutencao') || {}
+    await inserirDados(dados_manutencao, 'dados_manutencao')
+
     if (document.title == 'ORÇAMENTOS') {
 
         await preencher_orcamentos_v2()
@@ -973,19 +976,19 @@ async function carregar_manutencoes() {
         switch (manutencao.status_manutencao) {
             case 'MANUTENÇÃO':
                 cor = '#ffc584'
-                modulo == 'LOGÍSTICA' ? exibir = true : ''
+                exibir = (modulo == 'LOGÍSTICA' || modulo == 'RELATÓRIOS')  ? true : exibir
                 break
             case 'REQUISIÇÃO AVULSA':
                 cor = '#b3b3b3'
-                modulo == 'LOGÍSTICA' ? exibir = true : ''
+                exibir = (modulo == 'LOGÍSTICA' || modulo == 'RELATÓRIOS')  ? true : exibir
                 break
             case 'MATERIAL SEPARADO':
                 cor = '#09e6d9'
-                modulo == 'LOGÍSTICA' ? exibir = true : ''
+                exibir = (modulo == 'LOGÍSTICA' || modulo == 'RELATÓRIOS')  ? true : exibir
                 break
             case 'MATERIAL ENVIADO':
                 cor = '#80bbef'
-                modulo == 'LOGÍSTICA' ? exibir = true : ''
+                exibir = (modulo == 'LOGÍSTICA' || modulo == 'RELATÓRIOS')  ? true : exibir
                 break
             case 'MATERIAL RECEBIDO':
                 cor = '#4CAF50'
@@ -997,6 +1000,7 @@ async function carregar_manutencoes() {
                 break
             default:
                 cor = '#ff7777'
+                exibir = true
         }
 
         if (!exibir) {
