@@ -79,8 +79,12 @@ async function carregar_tabela_v2() {
 
     if (acesso.permissao == 'adm') {
         var adicionar_item = document.getElementById('adicionar_item');
+        var btn_criar_lpu = document.getElementById('btn-criar-lpu')
         if (adicionar_item) {
             adicionar_item.style.display = 'flex';
+        }
+        if(btn_criar_lpu){
+            btn_criar_lpu.style.display = 'flex';
         }
     }
     composicoes_.innerHTML = '';

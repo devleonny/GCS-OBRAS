@@ -181,15 +181,15 @@
                     <label style="color: white;">Cadastrar Item</label>
                     <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
                 </div>
-                <div id="btn-criar-lpu" 
-                    style="align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                <div id="btn-criar-lpu"
+                    style="display: none; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
                     <label style="color: white;">Cadastrar LPU</label>
                     <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
                 </div>
-                
+
             </div>
         </div>
-        
+
         <button onclick="abrirModalFiltros()"
             style="background-color: #4CAF50; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer;">
             🔍 Filtrar Campos
@@ -204,21 +204,22 @@
             <button onclick="aplicarFiltros()">✅ Aplicar</button>
             <button class="cancelar" onclick="fecharModalFiltros()">❌ Cancelar</button>
         </div>
-    
+
         <h3>Selecionar Campos</h3>
-    
+
         <!-- Campo de Pesquisa -->
-        <input type="text" id="pesquisa-filtros" class="pesquisa-filtros" placeholder="🔍 Pesquisar campos..." oninput="filtrarCampos()">
-    
+        <input type="text" id="pesquisa-filtros" class="pesquisa-filtros" placeholder="🔍 Pesquisar campos..."
+            oninput="filtrarCampos()">
+
         <label style="display: flex; align-items: center; gap: 10px;">
-            <input type="checkbox" id="selecionar-tudo" onclick="selecionarTodosFiltros()"> 
+            <input type="checkbox" id="selecionar-tudo" onclick="selecionarTodosFiltros()">
             Selecionar tudo
         </label>
-    
+
         <div id="lista-filtros" class="lista-filtros"></div>
     </div>
 
-    
+
 </body>
 
 <script src="open_menus.js"></script>
