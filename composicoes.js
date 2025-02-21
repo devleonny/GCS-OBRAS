@@ -4,6 +4,17 @@ var composicoes_ = document.getElementById('composicoes_')
 var overlay = document.getElementById('overlay')
 var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
+document.getElementById("btn-criar-lpu").addEventListener("click", function () {
+    openPopup_v2(`
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <label style="font-size: 1.2em;">Digite o nome da nova LPU:</label>
+            <input id="nome-lpu" type="text" placeholder="Ex: LPU Novo" style="padding: 10px; width: 80%; border-radius: 5px;">
+            <button onclick="salvarNovaLPU()" style="background-color: #026CED; color: white; padding: 10px; border: none; cursor: pointer; width: 80%;">Salvar</button>
+        </div>
+    `);
+});
+
+
 function pesquisar_em_composicoes(elemento) {
     var tabela = composicoes_.querySelector('table');
     var tbody = tabela.querySelector('tbody');
@@ -30,7 +41,6 @@ function pesquisar_em_composicoes(elemento) {
         tr.style.display = exibir ? '' : 'none';
     });
 }
-
 carregar_tabela_v2()
 
 async function recuperar_composicoes() {
@@ -44,7 +54,7 @@ async function carregar_tabela_v2() {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
     if (Object.keys(dados_composicoes).length == 0) {
-        return recuperar_composicoes()
+        return recuperar_composicoes();
     }
 
     var thead = '';
@@ -52,46 +62,31 @@ async function carregar_tabela_v2() {
     var tsearch = '';
     var painel_colunas = '';
 
+    // 🔹 Obtém os cabeçalhos padrão dos dados
     var cabecalhos = [
         ...new Set(
             Object.values(dados_composicoes).flatMap(obj => Object.keys(obj))
         )
     ];
+
+    // 🔹 Adiciona LPUs criadas no `localStorage`
+    let lpusCriadas = JSON.parse(localStorage.getItem("lpus_criadas")) || [];
+    cabecalhos.push(...lpusCriadas);
+
     cabecalhos.push('editar');
 
-    var pc = document.getElementById('pc');
     var colunas = JSON.parse(localStorage.getItem('colunas_composicoes')) || [];
 
     if (acesso.permissao == 'adm') {
         var adicionar_item = document.getElementById('adicionar_item');
+        var btn_criar_lpu = document.getElementById('btn-criar-lpu')
         if (adicionar_item) {
             adicionar_item.style.display = 'flex';
         }
-    }
-
-    if (pc) {
-        var inputs = pc.querySelectorAll('input');
-        var labels = pc.querySelectorAll('label');
-        var coluna_anterior = colunas
-        colunas = [];
-
-        inputs.forEach((input, i) => {
-            if (input.checked) {
-                colunas.push(labels[i].textContent.toLowerCase());
-            } else {
-                colunas.splice(i, 1);
-            }
-        });
-
-        colunas = [...new Set(colunas)];
-        colunas.sort((a, b) => a - b); // Ordem Crescente
-
-        if (colunas !== coluna_anterior) {
-            filtrosAtivos = {};
+        if(btn_criar_lpu){
+            btn_criar_lpu.style.display = 'flex';
         }
-        localStorage.setItem('colunas_composicoes', JSON.stringify(colunas));
     }
-
     composicoes_.innerHTML = '';
 
     var ths = {};
@@ -104,11 +99,6 @@ async function carregar_tabela_v2() {
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
                 <input style="width: 100%;" placeholder="..." oninput="pesquisar_em_composicoes(this)">
             </th>`;
-        painel_colunas += `
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: right; text-align: right;">
-                <label style="color: white;">${cab.toUpperCase()}</label>
-                <input type="checkbox" style="cursor: pointer; width: 20px; height: 20px;" onchange="carregar_tabela_v2()" ${colunas.includes(cab) ? 'checked' : ''}>
-            </div>`;
     });
 
     colunas.forEach(col => {
@@ -213,7 +203,7 @@ async function carregar_tabela_v2() {
             <div id="pc">
                 ${painel_colunas}
             </div>
-            <div style="resize: both; overflow: auto; height: 600px; width:70vw; background-color: #222222bf; border-radius: 3px;">
+            <div style="resize: both; overflow: auto; height: 600px; width:92.5vw; background-color: #222222bf; border-radius: 3px;">
                 <table style="border-collapse: collapse;" id="tabela_composicoes">
                     <thead id="thead1">${thead}</thead>
                     <thead id="tsearch">${tsearch}</thead>
@@ -1113,4 +1103,106 @@ async function cadastrar_alterar(codigo) {
 
     remover_popup();
     carregar_tabela_v2();
+}
+
+async function abrirModalFiltros() {
+    let modal = document.getElementById("modal-filtros");
+    let listaFiltros = document.getElementById("lista-filtros");
+
+    // Obtém os dados do localStorage ou do banco
+    let dados_composicoes = await recuperarDados("dados_composicoes") || {};
+    let cabecalhos = [...new Set(Object.values(dados_composicoes).flatMap(obj => Object.keys(obj)))];
+
+    let lpusCriadas = JSON.parse(localStorage.getItem("lpus_criadas")) || [];
+    cabecalhos.push(...lpusCriadas);
+
+    // Adiciona o campo "Editar" manualmente à lista de filtros
+    if (!cabecalhos.includes("editar")) {
+        cabecalhos.push("editar");
+    }
+
+    let colunasAtivas = JSON.parse(localStorage.getItem("colunas_composicoes")) || cabecalhos;
+
+    listaFiltros.innerHTML = ""
+
+    // Ordena os filtros em ordem alfabética
+    cabecalhos.sort((a, b) => a.localeCompare(b));
+
+    cabecalhos.forEach(cab => {
+        let cabecalhoFormatado = cab
+            .toLowerCase()
+            .split(" ") // Divide o nome em palavras
+            .map(word =>
+                word.toLowerCase() === "lpu" ? "LPU" : word.charAt(0).toUpperCase() + word.slice(1)
+            ) // Deixa "LPU" totalmente maiúsculo e capitaliza o restante
+            .join(" "); // Junta novamente com espaço
+
+        let checked = colunasAtivas.includes(cab) ? "checked" : "";
+
+        listaFiltros.innerHTML += `
+            <label>
+                <input type="checkbox" value="${cab}" ${checked}> ${cabecalhoFormatado}
+            </label>
+        `;
+
+    });
+
+
+    modal.style.display = "block";
+}
+
+function fecharModalFiltros() {
+    document.getElementById("modal-filtros").style.display = "none";
+}
+
+function selecionarTodosFiltros() {
+    let checkboxes = document.querySelectorAll("#lista-filtros input[type='checkbox']");
+    let selecionarTudo = document.getElementById("selecionar-tudo").checked;
+
+    checkboxes.forEach(cb => cb.checked = selecionarTudo);
+}
+
+function aplicarFiltros() {
+    let checkboxes = document.querySelectorAll("#lista-filtros input[type='checkbox']:checked");
+    let colunasSelecionadas = Array.from(checkboxes).map(cb => cb.value);
+
+    localStorage.setItem("colunas_composicoes", JSON.stringify(colunasSelecionadas));
+    fecharModalFiltros();
+    carregar_tabela_v2(); // Atualiza a tabela com os filtros aplicados
+}
+
+function filtrarCampos() {
+    let termo = document.getElementById("pesquisa-filtros").value.toLowerCase();
+    let filtros = document.querySelectorAll("#lista-filtros label");
+
+    filtros.forEach(label => {
+        let texto = label.textContent.toLowerCase();
+        label.style.display = texto.includes(termo) ? "flex" : "none";
+    });
+}
+
+function salvarNovaLPU() {
+    let inputLPU = document.getElementById("nome-lpu");
+    let nomeLPU = inputLPU.value.trim();
+
+    if (nomeLPU === "") {
+        alert("Digite um nome válido para a LPU!");
+        return;
+    }
+
+    nomeLPU = nomeLPU.toLowerCase(); // Converte para maiúsculas
+
+    // Recupera LPUs já salvas ou cria um array vazio
+    let lpusCriadas = JSON.parse(localStorage.getItem("lpus_criadas")) || [];
+
+    if (lpusCriadas.includes(nomeLPU)) {
+        alert("Essa LPU já existe!");
+        return;
+    }
+
+    // Adiciona a nova LPU e salva no localStorage
+    lpusCriadas.push(nomeLPU);
+    localStorage.setItem("lpus_criadas", JSON.stringify(lpusCriadas));
+
+    remover_popup();
 }

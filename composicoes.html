@@ -69,6 +69,86 @@
             margin: 5px;
             text-align: center;
         }
+
+        .modal-filtros {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            width: 320px;
+            /* Ajuste para um tamanho melhor */
+        }
+
+        .modal-filtros-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .modal-filtros-header button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .modal-filtros-header button.cancelar {
+            background: #B12425;
+        }
+
+        .pesquisa-filtros {
+            width: 95%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .lista-filtros {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-height: 250px;
+            /* Adiciona rolagem se necessário */
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 5px;
+            background: #f9f9f9;
+        }
+
+        .lista-filtros label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            width: 90%;
+            background: white;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .lista-filtros label:hover {
+            background: #e3e3e3;
+        }
+
+        .lista-filtros input[type="checkbox"] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+        }
     </style>
 </head>
 
@@ -101,12 +181,44 @@
                     <label style="color: white;">Cadastrar Item</label>
                     <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
                 </div>
+                <div id="btn-criar-lpu"
+                    style="display: none; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                    <label style="color: white;">Cadastrar LPU</label>
+                    <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
+                    onclick="abrirModalFiltros()">
+                    <label style="color: white;">Filtrar Campos</label>
+                    <img src="imagens/pesquisar.png" style="width: 25px; cursor: pointer;">
+                </div>
+
             </div>
         </div>
 
         <div id="composicoes_" style="display: flex; width: 100%; justify-content: space-between;"></div>
 
     </div>
+
+    <div id="modal-filtros" class="modal-filtros">
+        <div class="modal-filtros-header">
+            <button onclick="aplicarFiltros()">✅ Aplicar</button>
+            <button class="cancelar" onclick="fecharModalFiltros()">❌ Cancelar</button>
+        </div>
+
+        <h3>Selecionar Campos</h3>
+
+        <!-- Campo de Pesquisa -->
+        <input type="text" id="pesquisa-filtros" class="pesquisa-filtros" placeholder="🔍 Pesquisar campos..."
+            oninput="filtrarCampos()">
+
+        <label style="display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="selecionar-tudo" onclick="selecionarTodosFiltros()">
+            Selecionar tudo
+        </label>
+
+        <div id="lista-filtros" class="lista-filtros"></div>
+    </div>
+
 
 </body>
 
