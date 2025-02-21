@@ -682,6 +682,11 @@ async function abrirModal(idLista, idTarefa) {
 
         <button onclick="salvarDescricao('${idLista}', '${idTarefa}')">Salvar Descrição</button>
         </div>
+        <div class="anexos">
+            <h3>Anexos</h3>
+            <input type="file" id="input-anexos" multiple onchange="salvar_anexos_kanban(this, '${idTarefa}')">
+            <div id="lista-anexos"></div>
+        </div>
         <div class="atividades">
             <h3>Atividades</h3>
             <div id="lista-atividades"></div>
@@ -778,6 +783,8 @@ async function abrirModal(idLista, idTarefa) {
 
         let inputTitulo = document.getElementById("tarefa-titulo");
         aplicarLimitador(inputTitulo, 20, "aviso-tarefa-modal");
+
+        renderizarAnexos(idTarefa)
 
         // Exibe o modal
         modal.classList.remove("oculto");
@@ -1525,3 +1532,82 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 });
+
+async function salvar_anexos_kanban(input, idTarefa) {
+    if (!idTarefa) {
+        alert("Erro: Nenhuma tarefa foi selecionada!");
+        return;
+    }
+
+    let anexos = await anexo_v2(input); // Simulação da função de upload
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {} };
+    let tarefa = dados.tarefas[idTarefa];
+
+    if (!tarefa) return;
+
+    if (!tarefa.anexos) {
+        tarefa.anexos = {};
+    }
+
+    anexos.forEach(anexo => {
+        tarefa.anexos[anexo.link] = anexo;
+        enviar(`dados_kanban/tarefas/${idTarefa}/anexos/${anexo.link}`, anexo);
+    });
+
+    // Atualiza localmente
+    localStorage.setItem("dados_kanban", JSON.stringify(dados));
+
+    // Recarrega os anexos no modal
+    renderizarAnexos(idTarefa);
+}
+
+function renderizarAnexos(idTarefa) {
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {} };
+    let tarefa = dados.tarefas[idTarefa];
+
+    let listaAnexos = document.getElementById("lista-anexos");
+    if (!listaAnexos) return;
+
+    if (!tarefa || !tarefa.anexos || Object.keys(tarefa.anexos).length === 0) {
+        listaAnexos.innerHTML = "<p style='color: gray;'>Nenhum anexo encontrado.</p>";
+        return;
+    }
+
+    listaAnexos.innerHTML = Object.values(tarefa.anexos)
+        .map(anexo => {
+            let nomeFormatado = anexo.nome.length > 15 
+                ? `${anexo.nome.slice(0, 6)}...${anexo.nome.slice(-6)}` 
+                : anexo.nome;
+
+            return `
+            <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+                <div style="cursor: pointer;" class="anexo-item" onclick="abrirArquivo('${anexo.link}')">
+                    <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                    <label title="${anexo.nome}">${nomeFormatado}</label>
+                </div>
+                <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="removerAnexo('${idTarefa}', '${anexo.link}')">
+            </div>
+                </div>
+            `;
+        })
+        .join("");
+
+}
+
+function removerAnexo(idTarefa, linkAnexo) {
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {} };
+    let tarefa = dados.tarefas[idTarefa];
+
+    if (!tarefa || !tarefa.anexos || !tarefa.anexos[linkAnexo]) return;
+
+    delete tarefa.anexos[linkAnexo];
+
+    // Atualiza o localStorage
+    localStorage.setItem("dados_kanban", JSON.stringify(dados));
+
+    // Remove da nuvem
+    deletar(`dados_kanban/tarefas/${idTarefa}/anexos/${linkAnexo}`);
+
+    // Atualiza a interface
+    renderizarAnexos(idTarefa);
+}
