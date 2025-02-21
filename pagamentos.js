@@ -1025,8 +1025,12 @@ async function criar_pagamento_v2(chave1) {
 
     if (!await calculadora_pagamento()) {
 
+        if(document.getElementById('id_pedido')){
         chave1 = document.getElementById('id_pedido').textContent
+        }
+        if(document.getElementById('id_orcamento')){
         id_orcam = document.getElementById('id_orcamento').textContent
+        }
 
         var id_pagamento = unicoID()
         var acesso = JSON.parse(localStorage.getItem('acesso'))
@@ -1632,16 +1636,19 @@ async function calculadora_pagamento() {
 
         }
 
-        let id_orcamento = document.getElementById('id_orcamento').textContent
-        let id_pedido = document.getElementById('id_pedido').textContent
+        if (document.getElementById('id_orcamento') && document.getElementById('id_pedido')) {
 
-        if (id_orcamento !== '' && id_pedido !== '') {
-            colorir('green', 'cc_numero')
-            ultimo_pagamento.id_orcamento = id_orcamento
-            ultimo_pagamento.id_pedido = id_pedido
-        } else {
-            bloqueio = true
-            colorir('#B12425', 'cc_numero')
+            let id_orcamento = document.getElementById('id_orcamento').textContent
+            let id_pedido = document.getElementById('id_pedido').textContent
+
+            if (id_orcamento !== '' && id_pedido !== '') {
+                colorir('green', 'cc_numero')
+                ultimo_pagamento.id_orcamento = id_orcamento
+                ultimo_pagamento.id_pedido = id_pedido
+            } else {
+                bloqueio = true
+                colorir('#B12425', 'cc_numero')
+            }
         }
 
         let atraso_na_data = 0
@@ -1791,9 +1798,13 @@ async function recuperar_ultimo_pagamento() {
             cliente_selecionado = dados_orcamentos[ultimo_pagamento.id_orcamento].dados_orcam.cliente_selecionado
         }
 
-        document.getElementById('cc').value = cliente_selecionado || ''
-        document.getElementById('id_orcamento').textContent = ultimo_pagamento.id_orcamento || ''
-        document.getElementById('id_pedido').textContent = ultimo_pagamento.id_pedido || ''
+        if (document.getElementById('cc') && document.getElementById('id_orcamento') && document.getElementById('id_pedido')) {
+
+            document.getElementById('cc').value = cliente_selecionado || ''
+            document.getElementById('id_orcamento').textContent = ultimo_pagamento.id_orcamento || ''
+            document.getElementById('id_pedido').textContent = ultimo_pagamento.id_pedido || ''
+
+        }
         document.getElementById('descricao_pagamento').value = ultimo_pagamento.descricao || ''
         let forma_pagamento = document.getElementById('forma_pagamento')
 
