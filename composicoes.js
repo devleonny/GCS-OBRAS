@@ -1123,6 +1123,8 @@ async function abrirModalFiltros() {
 
     let colunasAtivas = JSON.parse(localStorage.getItem("colunas_composicoes")) || cabecalhos;
 
+    listaFiltros.innerHTML = ""
+
     // Ordena os filtros em ordem alfabética
     cabecalhos.sort((a, b) => a.localeCompare(b));
 
@@ -1202,9 +1204,5 @@ function salvarNovaLPU() {
     lpusCriadas.push(nomeLPU);
     localStorage.setItem("lpus_criadas", JSON.stringify(lpusCriadas));
 
-    // Atualiza os filtros
-    atualizarFiltros();
-
     remover_popup();
-    alert("LPU criada com sucesso!");
 }
