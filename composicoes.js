@@ -9,6 +9,7 @@ document.getElementById("btn-criar-lpu").addEventListener("click", function () {
         <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
             <label style="font-size: 1.2em;">Digite o nome da nova LPU:</label>
             <input id="nome-lpu" type="text" placeholder="Ex: LPU Novo" style="padding: 10px; width: 80%; border-radius: 5px;">
+            <label id="texto-aviso" style="display: none; color: red;"></label>
             <button onclick="salvarNovaLPU()" style="background-color: #026CED; color: white; padding: 10px; border: none; cursor: pointer; width: 80%;">Salvar</button>
         </div>
     `);
@@ -1107,7 +1108,9 @@ async function cadastrar_alterar(codigo) {
 
 async function abrirModalFiltros() {
     let modal = document.getElementById("modal-filtros");
+    let overlay = document.getElementById("overlay");
     let listaFiltros = document.getElementById("lista-filtros");
+    overlay.style.display = "block"
 
     // Obtém os dados do localStorage ou do banco
     let dados_composicoes = await recuperarDados("dados_composicoes") || {};
@@ -1147,12 +1150,12 @@ async function abrirModalFiltros() {
 
     });
 
-
     modal.style.display = "block";
 }
 
 function fecharModalFiltros() {
     document.getElementById("modal-filtros").style.display = "none";
+    overlay = document.getElementById("overlay").style.display = "none";
 }
 
 function selecionarTodosFiltros() {
@@ -1164,11 +1167,13 @@ function selecionarTodosFiltros() {
 
 function aplicarFiltros() {
     let checkboxes = document.querySelectorAll("#lista-filtros input[type='checkbox']:checked");
+    let overlay = document.getElementById("overlay");
     let colunasSelecionadas = Array.from(checkboxes).map(cb => cb.value);
 
     localStorage.setItem("colunas_composicoes", JSON.stringify(colunasSelecionadas));
     fecharModalFiltros();
     carregar_tabela_v2(); // Atualiza a tabela com os filtros aplicados
+    overlay.style.display = "none"
 }
 
 function filtrarCampos() {
@@ -1184,6 +1189,7 @@ function filtrarCampos() {
 function salvarNovaLPU() {
     let inputLPU = document.getElementById("nome-lpu");
     let nomeLPU = inputLPU.value.trim();
+    let texto_aviso = document.getElementById("texto-aviso")
 
     if (nomeLPU === "") {
         alert("Digite um nome válido para a LPU!");
@@ -1196,7 +1202,14 @@ function salvarNovaLPU() {
     let lpusCriadas = JSON.parse(localStorage.getItem("lpus_criadas")) || [];
 
     if (lpusCriadas.includes(nomeLPU)) {
-        alert("Essa LPU já existe!");
+        texto_aviso.style.display = "flex"
+        texto_aviso.textContent = "Essa LPU já existe!!!"
+        return;
+    }
+
+    if(!nomeLPU.includes("lpu")){
+        texto_aviso.style.display = "flex"
+        texto_aviso.textContent = "É necessário ter LPU no nome!!!"
         return;
     }
 
