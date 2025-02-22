@@ -1143,25 +1143,34 @@ function dt() {
     return dt
 }
 
-const socket = new WebSocket("wss://leonny.dev.br:8443");
+const WS_URL = "wss://leonny.dev.br:8443";
+let socket;
+let reconnectInterval = 30000;
+connectWebSocket();
 
-socket.onopen = () => {
-    console.log(`🟢🟢🟢 WS ${dt()} 🟢🟢🟢`);
-};
+function connectWebSocket() {
+    socket = new WebSocket(WS_URL);
 
-socket.onmessage = (event) => {
-    let data = JSON.parse(event.data);
-    espelhar_atualizacao(data)
-    console.log('📢', data);
-};
+    socket.onopen = () => {
+        console.log(`🟢🟢🟢 WS ${dt()} 🟢🟢🟢`);
+    };
 
-socket.onclose = () => {
-    console.log(`🔴🔴🔴 WS ${dt()} 🔴🔴🔴`);
-};
+    socket.onmessage = (event) => {
+        let data = JSON.parse(event.data);
+        espelhar_atualizacao(data);
+        console.log('📢', data);
+    };
 
-socket.onerror = (error) => {
-    console.error("Erro no WebSocket:", error);
-};
+    socket.onclose = () => {
+        console.log(`🔴🔴🔴 WS ${dt()} 🔴🔴🔴`);
+        console.log(`Tentando reconectar em ${reconnectInterval / 1000} segundos...`);
+        setTimeout(connectWebSocket, reconnectInterval);
+    };
+
+    socket.onerror = (error) => {
+        console.error("Erro no WebSocket:", error);
+    };
+}
 
 async function espelhar_atualizacao(objeto) {
     if (!objeto.caminho && !objeto.chave) return;
