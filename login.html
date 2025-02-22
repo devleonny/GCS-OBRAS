@@ -196,43 +196,55 @@
         var usuario = document.getElementById('usuario').value;
         var senha = document.getElementById('senha').value;
 
-        let url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=' + usuario + '*' + senha
-
+        let url = 'https://leonny.dev.br/login'
 
         if (usuario == "" || senha == "") {
             openPopup_v2("Senha e/ou usuário não informado(s)")
             document.getElementById('acesso').style.display = 'flex'
             document.getElementById('loading').style.display = 'none'
+
         } else {
-            fetch(url)
+
+            let payload = {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ usuario, senha })
+            }
+
+            fetch(url, payload)
+
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Erro ao carregar os dados');
+                        return response.json().then(err => { throw err; });
                     }
                     return response.json();
                 })
                 .then(data => {
+                    console.log('Resposta do servidor:', data); // Debug
 
                     switch (true) {
-                        case data == "Usuário não cadastrado":
-                            openPopup_v2(data)
-                            break
-                        case data == "Senha incorreta":
-                            openPopup_v2(data)
-                            break
-                        case data.acesso == "Autorizado":
-                            localStorage.setItem('acesso', JSON.stringify(data))
-                            window.location.href = 'inicial.html'
-                            break
+                        case data.erro === "Usuário incorreto":
+                        case data.erro === "Senha incorreta":
+                            openPopup_v2(data.erro);
+                            break;
+                        case data.acesso === "Autorizado":
+                            localStorage.setItem('acesso', JSON.stringify(data));
+                            window.location.href = 'inicial.html';
+                            break;
                         default:
-                            openPopup_v2('Falha interna. Entre em contato com o planejamento.')
+                            openPopup_v2('Servidor Offline... fale com o Setor de Programação.');
                     }
-                    document.getElementById('acesso').style.display = 'flex'
-                    document.getElementById('loading').style.display = 'none'
+
+                    document.getElementById('acesso').style.display = 'flex';
+                    document.getElementById('loading').style.display = 'none';
 
                 })
                 .catch(error => {
-                    console.error('Ocorreu um erro:', error);
+                    console.error('Erro na requisição:', error);
+                    openPopup_v2(error.erro || 'Erro desconhecido');
+
+                    document.getElementById('acesso').style.display = 'flex';
+                    document.getElementById('loading').style.display = 'none';
                 });
 
         }
@@ -250,48 +262,54 @@
         var nome_completo = document.getElementById('nome_completo').value;
         var telefone = document.getElementById('telefone').value;
 
-
-        let url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=CAD*' + usuario + '*' + senha + '*' + email + '*' + nome_completo + '*' + telefone
+        let url = 'https://leonny.dev.br/novo_usuario'
 
         if (usuario == "" || senha == "" || email == "") {
             openPopup_v2("Senha, usuário ou e-mail não informado(s)")
             document.getElementById('acesso').style.display = 'flex'
             document.getElementById('loading').style.display = 'none'
         } else {
-            fetch(url)
+
+            let payload = {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ usuario, senha, email, nome_completo, telefone })
+            }
+
+            fetch(url, payload)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Erro ao carregar os dados');
+                        return response.json().then(err => { throw err; });
                     }
                     return response.json();
                 })
                 .then(data => {
+                    console.log('Resposta do servidor:', data); // Debug
 
                     switch (true) {
-                        case data == "Usuário já cadastrado":
-                            openPopup_v2(data)
-                            break
-                        case data == "Cadastro realizado!":
-                            localStorage.setItem('acesso', JSON.stringify({
-                                acesso: "Autorizado",
-                                email: email,
-                                nome_completo: nome_completo,
-                                permissao: 'user',
-                                telefone: telefone,
-                                usuario: usuario,
-                            }))
-                            window.location.href = 'inicial.html'
-                            break
+                        case data.erro === "Usuário já cadastrado":
+                            openPopup_v2(data.erro);
+                            break;
+                        case data.acesso === "Autorizado":
+                            localStorage.setItem('acesso', JSON.stringify(data));
+                            window.location.href = 'inicial.html';
+                            break;
                         default:
-                            openPopup_v2('Falha interna. Entre em contato com o planejamento.', false)
+                            openPopup_v2('Servidor Offline... fale com o Setor de Programação.');
                     }
-                    document.getElementById('acesso').style.display = 'flex'
-                    document.getElementById('loading').style.display = 'none'
+
+                    document.getElementById('acesso').style.display = 'flex';
+                    document.getElementById('loading').style.display = 'none';
 
                 })
                 .catch(error => {
-                    console.error('Ocorreu um erro:', error);
+                    console.error('Erro na requisição:', error);
+                    openPopup_v2(error.erro || 'Erro desconhecido');
+
+                    document.getElementById('acesso').style.display = 'flex';
+                    document.getElementById('loading').style.display = 'none';
                 });
+
         }
 
     }
