@@ -92,9 +92,8 @@ async function preencher_v2(parceiro) {
     `
     document.getElementById('container').insertAdjacentHTML('beforeend', botoes)
 
-    var orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {}
+    var orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
     var dados_composicoes = await recuperarDados('dados_composicoes') || {};
-    var pagamento_parceiro = JSON.parse(localStorage.getItem('pagamento_parceiro')) || {}
 
     orcamento_v2 = await conversor_composicoes_orcamento(orcamento_v2)
 
@@ -200,19 +199,30 @@ async function preencher_v2(parceiro) {
         })
 
         for (it in itens) {
+
             var item = itens[it]
+            let valorAtivo = 0; // Variável para armazenar o valor correspondente ao ativo
+
+            // Verifica se o código existe em dados_composicoes
+            if (item.codigo && dados_composicoes[item.codigo]) {
+                let itemDados = dados_composicoes[item.codigo]; // Objeto correspondente
+                let possuiLpuParceiro = itemDados.hasOwnProperty("lpu parceiro"); // Verifica se existe a chave "lpu parceiro"
+
+
+                if (possuiLpuParceiro && typeof itemDados["lpu parceiro"] === "object") {
+                    let chaveAtivo = itemDados["lpu parceiro"].ativo; // Obtém a chave ativa
+                    if (chaveAtivo && itemDados["lpu parceiro"].historico?.[chaveAtivo]) {
+                        valorAtivo = itemDados["lpu parceiro"].historico[chaveAtivo].valor || null;
+                    }
+                }
+            }
+
 
             if (item.parceiro) {
 
             }
-            // valor de parceiro no histórico desse item; 
-            item.parceiro = {
-                quem: '?',
-                quando: '?',
-                aprovado: '?',
-                valor: 0,
-                icone: "gifs/alerta.gif"
-            }
+
+
 
             if (dados_composicoes[item.codigo]) {
                 item.descricao = dados_composicoes[item.codigo].descricao
@@ -243,7 +253,7 @@ async function preencher_v2(parceiro) {
                 orcamento_v2.dados_orcam.estado == 'BA' ? icms = 0.205 : ''
                 var unitario_sem_icms = item.custo - (item.custo * icms)
                 var total_sem_icms = unitario_sem_icms * item.qtde
-                
+
                 if (item.tipo == 'VENDA') {
                     totais.ICMS.valor += item.custo * item.qtde * icms
                 }
@@ -270,15 +280,25 @@ async function preencher_v2(parceiro) {
                 tds[11] = `<td style="white-space: nowrap;">${dinheiro(item.custo)}</td>`
                 tds[12] = `<td style="white-space: nowrap;">${dinheiro(item.total)}</td>`
                 tds[13] = `
-                    <td>
-                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <img src="imagens/concluido.png" style="display: none; width: 25px; cursor: pointer;" onclick="preencher_parceiro(this)">
-                            <input class="numero-bonito" value="${item.parceiro.valor}" oninput="ativar_botao(this)"> 
-                        </div>
-                    </td>
-                `
-                tds[14] = `<td></td>`
-                tds[15] = `<td></td>`
+                            <td id="lpu-parceiro-${item.codigo}">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <label>${dinheiro(valorAtivo)}</label> 
+                                </div>
+                            </td>
+                        `;
+
+                tds[14] = `
+                            <td>
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <img src="imagens/concluido.png" style="display: none; width: 25px; cursor: pointer;" onclick="preencher_parceiro(this)">
+                                    <input id="input-parceiro-${item.codigo}" class="numero-bonito" 
+                                        oninput="calcularDesvio('${item.codigo}'); ativar_botao(this);">
+                                </div>
+                            </td>
+                        `;
+
+                tds[15] = `<td id="desvio-${item.codigo}" class="td-desvio"></td>`;
+
 
                 var celulas = ''
 
@@ -361,6 +381,24 @@ async function preencher_v2(parceiro) {
     if (parceiro) {
         calcular_parceiro(true)
     }
+}
+
+function calcularDesvio(codigo) {
+
+    let labelLpuParceiro = document.querySelector(`#lpu-parceiro-${codigo} label`);
+    let inputParceiro = document.querySelector(`#input-parceiro-${codigo}`);
+    let tdDesvio = document.querySelector(`#desvio-${codigo}`);
+    if (!labelLpuParceiro || !inputParceiro || !tdDesvio) {
+        console.warn("❌ Erro: Algum dos campos necessários não foi encontrado!");
+        return;
+    }
+
+    let lpuParceiroValor = parseFloat(labelLpuParceiro.textContent.replace("R$", "").replace(",", ".").trim()) || 0;
+    let inputValor = parseFloat(inputParceiro.value.replace(",", ".").trim()) || 0;
+
+    let desvio = lpuParceiroValor - inputValor; // Calcula o desvio
+
+    tdDesvio.textContent = dinheiro(desvio); // Atualiza a célula com o valor formatado
 }
 
 function ativar_botao(input) {
