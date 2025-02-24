@@ -412,7 +412,6 @@ function salvarValorNaNuvem(codigoItem) {
     let inputElement = document.getElementById(`input-parceiro-${codigoItem}`);
     let imgConcluido = document.getElementById(`concluido-${codigoItem}`);
     if (!inputElement) {
-        console.warn(`❌ Input não encontrado para ${codigoItem}`);
         return;
     }
 
