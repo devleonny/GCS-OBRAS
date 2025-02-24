@@ -573,12 +573,35 @@ async function abrir_manutencao(id) {
         let peca = pecas[id_peca]
         let celulas = linhas[i].querySelectorAll('input, textarea')
 
+        let estoques = ['estoque', 'estoque_usado']
+
+        let dic_quantidades = {}
+
+        estoques.forEach(estoque => {
+
+            let estoque_do_objeto = dados_estoque[peca.codigo][estoque]
+            let historicos = estoque_do_objeto.historico
+            dic_quantidades[estoque] = estoque_do_objeto.quantidade
+
+            for (his in historicos) {
+                let historico = historicos[his]
+    
+                if (historico.operacao == 'entrada') {
+                    dic_quantidades[estoque] += historico.quantidade
+                } else if (historico.operacao == 'saida') {
+                    dic_quantidades[estoque] -= historico.quantidade
+                }
+            }
+
+        })
+
         celulas[0].value = peca.descricao
         celulas[1].value = peca.codigo
         celulas[2].value = peca.quantidade
         celulas[3].value = peca.comentario
-        celulas[4].value = 0
-
+        celulas[4].value = dic_quantidades.estoque
+        celulas[5].value = dic_quantidades.estoque_usado
+        
         i++
     }
 
@@ -893,7 +916,10 @@ function criar_manutencao(id) {
                             <label>Comentário</label>
                         </div>
                         <div style="width: 10vw;">
-                            <label>Estoque Disponível</label>
+                            <label>Estoque</label>
+                        </div>
+                        <div style="width: 10vw;">
+                            <label>Estoque Usado</label>
                         </div>
                         <div style="width: 5vw;">
                             <label>Remover</label>
@@ -976,19 +1002,19 @@ async function carregar_manutencoes() {
         switch (manutencao.status_manutencao) {
             case 'MANUTENÇÃO':
                 cor = '#ffc584'
-                exibir = (modulo == 'LOGÍSTICA' || modulo == 'RELATÓRIOS')  ? true : exibir
+                exibir = (modulo == 'LOGÍSTICA' || modulo == 'RELATÓRIOS') ? true : exibir
                 break
             case 'REQUISIÇÃO AVULSA':
                 cor = '#b3b3b3'
-                exibir = (modulo == 'LOGÍSTICA' || modulo == 'RELATÓRIOS')  ? true : exibir
+                exibir = (modulo == 'LOGÍSTICA' || modulo == 'RELATÓRIOS') ? true : exibir
                 break
             case 'MATERIAL SEPARADO':
                 cor = '#09e6d9'
-                exibir = (modulo == 'LOGÍSTICA' || modulo == 'RELATÓRIOS')  ? true : exibir
+                exibir = (modulo == 'LOGÍSTICA' || modulo == 'RELATÓRIOS') ? true : exibir
                 break
             case 'MATERIAL ENVIADO':
                 cor = '#80bbef'
-                exibir = (modulo == 'LOGÍSTICA' || modulo == 'RELATÓRIOS')  ? true : exibir
+                exibir = (modulo == 'LOGÍSTICA' || modulo == 'RELATÓRIOS') ? true : exibir
                 break
             case 'MATERIAL RECEBIDO':
                 cor = '#4CAF50'
@@ -1169,15 +1195,23 @@ function adicionar_linha_manut() {
                     <div class="autocomplete-list" id="sug_${aleatorio}"></div>
                     <input id="input_${aleatorio}" style="display: none;">
                 </div>
+
                 <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
                     <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="number">
                 </div>
+
                 <div style="width: 20vw; height: 30px; background-color: #b5b5b5;">
                     <textarea style="background-color: transparent;"></textarea>
                 </div>
+
                 <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="number" readOnly>
+                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" readOnly>
                 </div>
+
+                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
+                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" readOnly>
+                </div>
+
                 <div style="width: 5vw;">
                     <img src="imagens/remover.png" onclick="remover_esta_linha(this)" style="width: 30px; cursor: pointer;">
                 </div>
