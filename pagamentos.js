@@ -316,32 +316,30 @@ async function abrir_detalhes(id_pagamento) {
 
         let tem_qualidade = false
 
-        pagamento.historico.forEach(teste => {
+        for (his in pagamento.historico) {
 
-            if (teste.status.includes("Qualidade")) {
+            let justificativa = pagamento.historico[his]
+            
+            if (justificativa.status.includes("Qualidade")) {
 
                 tem_qualidade = true
 
             }
 
-        })
-
-        pagamento.historico.forEach(item => {
-
             var imagem = "imagens/remover.png"
-            if (item.status.includes('Aprovado')) {
+            if (justificativa.status.includes('Aprovado')) {
                 cor = '#4CAF50'
                 imagem = "imagens/concluido.png"
-            } else if (item.status.includes('Reprovado')) {
+            } else if (justificativa.status.includes('Reprovado')) {
                 cor = '#B12425'
                 imagem = "imagens/remover.png"
-            } else if (item.status.includes('Aguardando') && tem_qualidade && item.status.includes('Qualidade')) {
+            } else if (justificativa.status.includes('Aguardando') && tem_qualidade && item.status.includes('Qualidade')) {
                 cor = '#D97302'
                 imagem = "imagens/avencer.png"
-            } else if (item.status.includes('Aguardando') && tem_qualidade && item.status.includes('Diretoria')) {
+            } else if (justificativa.status.includes('Aguardando') && tem_qualidade && item.status.includes('Diretoria')) {
                 cor = '#32a5e7'
                 imagem = "imagens/qualidade.png"
-            } else if (item.status.includes('Aguardando')) {
+            } else if (justificativa.status.includes('Aguardando')) {
                 cor = '#D97302'
                 imagem = "imagens/avencer.png"
             } else {
@@ -351,15 +349,16 @@ async function abrir_detalhes(id_pagamento) {
             historico += `
             <div style="display: flex; gap: 10px; align-items: center; margin: 3vw;">
                 <div class="vitrificado" style="border: 2px solid ${cor}">
-                    <p><strong>Status </strong>${item.status}</p>
-                    <p><strong>Usuário </strong>${item.usuario}</p>
-                    <p><strong>Data </strong>${item.data}</p>
-                    <p><strong>Justificativa </strong>${item.justificativa.replace(/\n/g, "<br>")}</p>
+                    <p><strong>Status </strong>${justificativa.status}</p>
+                    <p><strong>Usuário </strong>${justificativa.usuario}</p>
+                    <p><strong>Data </strong>${justificativa.data}</p>
+                    <p><strong>Justificativa </strong>${justificativa.justificativa.replace(/\n/g, "<br>")}</p>
                 </div>
                 <img src="${imagem}">
             </div>
             `
-        })
+
+        }
 
     }
 
@@ -888,7 +887,7 @@ async function atualizar_feedback(resposta, id_pagamento) {
 
     let categoria_atual = pagamento.param[0].categorias[0].codigo_categoria
 
-    if (resposta == 'Aprovar' && (acesso.permissao == 'gerente' || acesso.permissao == 'adm') && (categoria_atual == "2.01.99" || categoria_atual == "2.01.81") && setor == "INFRA") {
+    if (resposta == 'Aprovar' && (acesso.permissao == 'gerente' || acesso.permissao == 'adm') && categoria_atual == "2.01.99" && setor == "INFRA") {
         status = 'Aguardando aprovação da Qualidade';
     } else if (resposta == 'Aprovar' && (acesso.permissao == 'gerente' || acesso.permissao == 'adm')) {
         status = 'Aguardando aprovação da Diretoria';
@@ -907,23 +906,24 @@ async function atualizar_feedback(resposta, id_pagamento) {
     }
 
     var historico = {
-        status,                // Status gerado acima
-        usuario,               // Usuário atual
-        justificativa,         // Justificativa do feedback
-        data: dataFormatada    // Data e hora formatadas
+        status,
+        usuario,
+        justificativa,
+        data: dataFormatada
     };
 
     if (!pagamento.historico) {
-        pagamento.historico = [];
+        pagamento.historico = {};
     }
 
+    let id_justificativa = gerar_id_5_digitos()
     pagamento.status = status
-    pagamento.historico.push(historico)
+    pagamento.historico[id_justificativa] = historico
 
     enviar(`lista_pagamentos/${id_pagamento}/status`, status)
-    enviar(`lista_pagamentos/${id_pagamento}/historico`, pagamento.historico)
+    enviar(`lista_pagamentos/${id_pagamento}/historico/${id_justificativa}`, historico)
 
-    inserirDados(lista_pagamentos, 'lista_pagamentos');
+    await inserirDados(lista_pagamentos, 'lista_pagamentos');
     fechar_e_abrir(id_pagamento)
 }
 
@@ -1025,11 +1025,11 @@ async function criar_pagamento_v2(chave1) {
 
     if (!await calculadora_pagamento()) {
 
-        if(document.getElementById('id_pedido')){
-        chave1 = document.getElementById('id_pedido').textContent
+        if (document.getElementById('id_pedido')) {
+            chave1 = document.getElementById('id_pedido').textContent
         }
-        if(document.getElementById('id_orcamento')){
-        id_orcam = document.getElementById('id_orcamento').textContent
+        if (document.getElementById('id_orcamento')) {
+            id_orcam = document.getElementById('id_orcamento').textContent
         }
 
         var id_pagamento = unicoID()
