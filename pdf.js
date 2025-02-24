@@ -95,6 +95,8 @@ async function preencher_v2(parceiro) {
     var orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
     var dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
+    console.log(dados_composicoes)
+
     orcamento_v2 = await conversor_composicoes_orcamento(orcamento_v2)
 
     // LÓGICA DOS DADOS
@@ -172,7 +174,10 @@ async function preencher_v2(parceiro) {
         SERVIÇO: { valor: 0, cor: 'green' },
         VENDA: { valor: 0, cor: '#B12425' },
         ICMS: { valor: 0, cor: '#555555' },
-        GERAL: { valor: 0, cor: '#151749' }
+        GERAL: { valor: 0, cor: '#151749' },
+        LPU_Parceiro_UNT: { valor: 0, cor: '#151749' },
+        Parceiro: { valor: 0, cor: '#151749' },
+        Desvio: { valor: 0, cor: '#151749' },
     }
 
     for (tabela in config) {
@@ -202,27 +207,26 @@ async function preencher_v2(parceiro) {
 
             var item = itens[it]
             let valorAtivo = 0; // Variável para armazenar o valor correspondente ao ativo
+            let valor_historico_pdf = ""
 
             // Verifica se o código existe em dados_composicoes
             if (item.codigo && dados_composicoes[item.codigo]) {
                 let itemDados = dados_composicoes[item.codigo]; // Objeto correspondente
                 let possuiLpuParceiro = itemDados.hasOwnProperty("lpu parceiro"); // Verifica se existe a chave "lpu parceiro"
 
-
-                if (possuiLpuParceiro && typeof itemDados["lpu parceiro"] === "object") {
+                if (possuiLpuParceiro && typeof itemDados["lpu parceiro"] === "object" && tabela == itemDados.tipo) {
                     let chaveAtivo = itemDados["lpu parceiro"].ativo; // Obtém a chave ativa
                     if (chaveAtivo && itemDados["lpu parceiro"].historico?.[chaveAtivo]) {
                         valorAtivo = itemDados["lpu parceiro"].historico[chaveAtivo].valor || null;
+                        if (itemDados["lpu parceiro"].historico_pdf) {
+                            let valores = Object.values(itemDados["lpu parceiro"].historico_pdf);
+                            valor_historico_pdf = Number(valores[valores.length - 1]);
+                            totais.Parceiro.valor += valor_historico_pdf
+                        }
+                        totais.LPU_Parceiro_UNT.valor += valorAtivo
                     }
                 }
             }
-
-
-            if (item.parceiro) {
-
-            }
-
-
 
             if (dados_composicoes[item.codigo]) {
                 item.descricao = dados_composicoes[item.codigo].descricao
@@ -287,18 +291,21 @@ async function preencher_v2(parceiro) {
                             </td>
                         `;
 
-                tds[14] = `
-                            <td>
-                                <div style="display: flex; align-items: center; justify-content: space-between;">
-                                    <img src="imagens/concluido.png" style="display: none; width: 25px; cursor: pointer;" onclick="preencher_parceiro(this)">
-                                    <input id="input-parceiro-${item.codigo}" class="numero-bonito" 
-                                        oninput="calcularDesvio('${item.codigo}'); ativar_botao(this);">
-                                </div>
-                            </td>
-                        `;
+                        tds[14] = `
+                        <td>
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <img id="concluido-${item.codigo}" src="imagens/concluido.png" 
+                                    style="display: none; width: 25px; cursor: pointer;" 
+                                    onclick="salvarValorNaNuvem('${item.codigo}')" 
+                                    title="Salvar valor na nuvem">
+                                
+                                <input value="${valor_historico_pdf}" id="input-parceiro-${item.codigo}" class="numero-bonito" 
+                                    oninput="mostrarConcluido('${item.codigo}'); calcularDesvio('${item.codigo}'); ativar_botao(this);">
+                            </div>
+                        </td>
+                    `;                    
 
                 tds[15] = `<td id="desvio-${item.codigo}" class="td-desvio"></td>`;
-
 
                 var celulas = ''
 
@@ -334,6 +341,8 @@ async function preencher_v2(parceiro) {
             tabelas += tabela
         }
     }
+
+    totais.Desvio.valor = totais.LPU_Parceiro_UNT.valor - totais.Parceiro.valor
 
     var divs_totais = ''
     for (total in totais) {
@@ -378,10 +387,52 @@ async function preencher_v2(parceiro) {
     </div>
     <div style="height: 200px;"></div>
     `
+
+    // Aguarda um pequeno tempo para garantir que a tabela foi gerada antes de calcular os desvios
+    setTimeout(() => {
+        document.querySelectorAll('.numero-bonito').forEach(input => {
+            calcularDesvio(input.id.replace('input-parceiro-', ''));
+        });
+    }, 200);
+
+
     if (parceiro) {
         calcular_parceiro(true)
     }
 }
+
+function mostrarConcluido(codigoItem) {
+    let imgConcluido = document.getElementById(`concluido-${codigoItem}`);
+    if (imgConcluido) {
+        imgConcluido.style.display = "inline-block"; // Exibe a imagem
+    }
+}
+
+function salvarValorNaNuvem(codigoItem) {
+    let inputElement = document.getElementById(`input-parceiro-${codigoItem}`);
+    let imgConcluido = document.getElementById(`concluido-${codigoItem}`);
+    if (!inputElement) {
+        console.warn(`❌ Input não encontrado para ${codigoItem}`);
+        return;
+    }
+
+    let valorSalvo = inputElement.value.trim();
+    if (valorSalvo === "") {
+        return;
+    }
+
+    let id_historico_pdf = gerar_id_5_digitos()
+
+    // Constrói o caminho correto
+    let caminho = `dados_composicoes/${codigoItem}/lpu parceiro/historico_pdf/${id_historico_pdf}`;
+
+    enviar(caminho, valorSalvo);
+    console.log(`✅ Valor salvo com sucesso: ${valorSalvo} em ${caminho}`);
+
+    imgConcluido.style.display = "none"
+
+}
+
 
 function calcularDesvio(codigo) {
 
