@@ -596,7 +596,7 @@ function baixar_em_excel(nome_tabela, filename) {
 async function lista_setores() { //29
 
     return new Promise((resolve, reject) => {
-        var url = 'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=setores';
+        var url = 'https://leonny.dev.br/setores';
 
         fetch(url)
             .then(response => {
