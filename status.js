@@ -266,7 +266,7 @@ async function painel_adicionar_pedido() {
 
 async function painel_adicionar_notas(chave, sst, editar, chave2) {
 
-    if(sst){
+    if (sst) {
         sst = JSON.parse(sst)
     }
 
@@ -1056,11 +1056,11 @@ async function salvar_notas(chave, editar, chave2) {
 
     var novo_lancamento = orcamento.status[chave];
 
-    if(editar){
+    if (editar) {
         var chave_his = chave2
-    }else{
+    } else {
 
-    var chave_his = gerar_id_5_digitos();
+        var chave_his = gerar_id_5_digitos();
 
     }
 
@@ -1163,7 +1163,9 @@ async function salvar_requisicao(chave, chave2) {
 
         });
 
-        atualizar_partnumber(lista_partnumbers);
+        if (orcamento.modalidade !== 'MODALIDADE LIVRE') {
+            atualizar_partnumber(lista_partnumbers)
+        }
 
     }
 
@@ -1692,7 +1694,7 @@ async function abrir_esquema(id) {
 
                 }
 
-                
+
                 if (String(sst.status).includes('FATURADO')) {
                     console.log(sst)
 
@@ -1729,7 +1731,7 @@ async function abrir_esquema(id) {
                     notas += `${sst.notas[0].nota}`
                 }
                 var valorNota = 0
-                if(sst.notas){
+                if (sst.notas) {
                     valorNota += Number(sst.notas[0].valorNota)
                 }
 
@@ -1901,7 +1903,7 @@ async function abrir_esquema(id) {
             }
 
             let finalizado = todos_os_status[chave_pedido].finalizado ? 'checked' : ''
-//29
+            //29
             var linhas = `
                 <div style="display: flex; flex-direction: column; gap: 15px;">
                     <hr style="width: 95%;">
@@ -2655,7 +2657,7 @@ async function carregar_comentarios(chave1, chave2) {
     if (div_caixa) {
         div_caixa.innerHTML = comentss
     }
-    
+
     return comentss
 
 }
