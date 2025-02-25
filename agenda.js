@@ -603,6 +603,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             await enviar(`dados_agenda_tecnicos/${technicianOmie}/agendas/${idAgenda}/${indexDia}`, null);
                             console.log(`Departamento removido: dados_agenda_tecnicos/${technicianOmie}/agendas/${idAgenda}/${indexDia}`);
                         }
+                        dayDropdown.style.display = "none";
                         return;
                     }
             
@@ -642,7 +643,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
             
                     dayDropdown.style.display = "none"; // Fecha o dropdown
-                }, 200);
+                }, 100);
             });
             
             dayCell.appendChild(dayInput);
