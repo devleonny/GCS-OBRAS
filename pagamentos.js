@@ -569,9 +569,17 @@ async function abrir_detalhes(id_pagamento) {
         excluir_pagamento = `
         <div onclick="deseja_excluir_pagamento('${id_pagamento}')" style="display: flex; align-items: center; justify-content: center; gap: 10px; background-color: #d2d2d2; border-radius: 3px; cursor: pointer; padding: 3px;">
             <img src="imagens/remover.png" style="cursor: pointer;">
-            <label style="cursor: pointer;">Excluir pagamento</label>
+            <label style="cursor: pointer; margin-right: 5px;">Excluir pagamento</label>
         </div>
         `
+        if(pagamento.status == 'Pagamento Excluído'){
+            excluir_pagamento += `
+            <div onclick="relancar_pagamento('${id_pagamento}')" style="display: flex; align-items: center; justify-content: center; gap: 10px; background-color: #d2d2d2; border-radius: 3px; cursor: pointer; padding: 3px;">
+                <img src="imagens/concluido.png" style="cursor: pointer;">
+                <label style="cursor: pointer; margin-right: 5px;">Refazer Pagamento</label>
+            </div>
+            `
+        }
     }
 
     acumulado += `
@@ -670,6 +678,20 @@ function deseja_excluir_pagamento(id) {
             <label onclick="confirmar_exclusao_pagamento('${id}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
         </div>
         `)
+
+}
+
+async function relancar_pagamento(id) {
+
+    remover_popup()
+    fechar_detalhes()
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+    let pagamento = lista_pagamentos[id]
+
+    pagamento.status = 'Pagamento salvo localmente'
+    await lancar_pagamento(pagamento)
+    await inserirDados(lista_pagamentos, 'lista_pagamentos')
+    await consultar_pagamentos()
 
 }
 
