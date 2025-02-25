@@ -1003,19 +1003,7 @@ function carregarCotacoesSalvas() {
 
         tabelaBody.appendChild(linha);
     });
-
-    // Exibe a mensagem "Cotações Carregadas e Ordenadas!"
-    const mensagemDiv = document.getElementById("mensagemCargasOrdenadas");
-    if (mensagemDiv) {
-        mensagemDiv.textContent = "Cotações Carregadas e Ordenadas!";
-        mensagemDiv.style.display = "block";
-
-        setTimeout(() => {
-            mensagemDiv.style.display = "none";
-        }, 5000);
-    } else {
-        console.warn("Elemento mensagemCargasOrdenadas não encontrado.");
-    }
+    
 }
 
 
@@ -1474,6 +1462,9 @@ function voltarParaTabela() {
 }
 
 async function recuperarCotacoes() {
+
+    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
+
     const resposta = await fetch(
         'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=cotacoes'
     );
@@ -1494,6 +1485,7 @@ async function recuperarCotacoes() {
 
     // Recarregar a tabela de cotações salvas
     carregarCotacoesSalvas();
+    document.getElementById("aguarde").remove()
 }
 
 
