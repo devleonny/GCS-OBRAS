@@ -55,6 +55,12 @@ async function carregar_estoque() {
         }
     })
 
+    dados_estoque = Object.fromEntries(
+        Object.entries(dados_estoque).sort(([, a], [, b]) => 
+            (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0)
+        )
+    );
+    
     for (item in dados_estoque) {
 
         let dados_item = dados_estoque[item]
@@ -751,58 +757,54 @@ function exibir_botao(elemento, chave) {
 }
 
 function incluir_linha() {
-    let body = document.getElementById('body')
-    let tds = ''
 
-    colunas.forEach(campo => {
-        let elemento = `<input style="background-color: transparent; cursor: pointer; text-align: center; padding: 10px; border-radius: 3px;")">`
-        let cor = ''
-        if (campo == 'descricao' || campo == 'inventario') {
-            elemento = `<textarea style="border: none;"></textarea>`
+    let acumulado = `
+    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
+    <label style="font-size: 1.5vw;">Cadastro de Item</label>
 
-        } else if (campo == 'Excluir') {
+    <div class="formulario">
 
-            elemento = `
-            <div style="display: flex; align-items: center; justify-content: center;">
-                <img src="imagens/cancel.png" style="cursor: pointer; width: 25px; height: 25px;" onclick="remover_linha_excluir_item(this)">
-                <img src="imagens/concluido.png" style="display: width: 25px; height: 25px; cursor: pointer;" onclick="salvar_linha(this)">
-            </div>
-            `
+        <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
+            <label>PartNumber</label>
+            <input>
+        </div>
 
-        } else if (campo.includes('estoque') || campo.includes('valor_compra')) {
-            elemento = `<label style="cursor: pointer; font-size: 25px; text-align: center; color: white; width: 100%;">X</label>`
-            cor = '#222'
-        }
+        <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
+            <label>Categoria</label>
+            <input>
+        </div>
 
-        tds += `
-            <td style="background-color: ${cor}">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    ${elemento}
-                </div>
-            </td>
-        `
-    })
+        <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
+            <label>Marca</label>
+            <input>
+        </div>
 
-    let linha = `
-    <tr>
-        ${tds}
-    </tr>
+        <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
+            <label>Descrição</label>
+            <textarea></textarea>
+        </div>
+
+        <button onclick="salvar_item(this)">Salvar</button>
+
+    </div>
     `
-    body.insertAdjacentHTML('beforebegin', linha)
+    openPopup_v2(acumulado)
 
 }
 
-async function salvar_linha(img) {
-    let tr = img.closest('tr')
+async function salvar_item(button) {
+
+    remover_popup()
+    let div_maior = button.parentElement
     let codigo = gerar_id_5_digitos()
-    let tds = tr.querySelectorAll('td')
+    let inputs = div_maior.querySelectorAll('input, textarea')
 
     let dados_estoque = await recuperarDados('dados_estoque') || {}
 
     let item = {
-        partnumber: tds[1].querySelector('input').value,
-        categoria: tds[2].querySelector('input').value,
-        marca: tds[3].querySelector('input').value,
+        partnumber: inputs[0].value,
+        categoria: inputs[1].value,
+        marca: inputs[2].value,
         estoque: {
             quantidade: 0,
             historico: {}
@@ -811,19 +813,15 @@ async function salvar_linha(img) {
             quantidade: 0,
             historico: {}
         },
-        descricao: tds[4].querySelector('textarea').value,
-        localizacao_novo: tds[6].querySelector('input').value,
-        localizacao_usado: tds[8].querySelector('input').value,
-        inventario: tds[9].querySelector('textarea').value,
+        descricao: inputs[3].value,
+        localizacao_novo: '',
+        localizacao_usado: '',
+        inventario: '',
+        timestamp: new Date().getTime()
     }
 
     dados_estoque[codigo] = item
     await inserirDados(dados_estoque, 'dados_estoque')
-
-    filtrosAtivosEstoques[5] = item.descricao
-
-    retomar_paginacao()
-
     await enviar(`dados_estoque/${codigo}`, item)
 
 }
@@ -884,7 +882,7 @@ async function salvar_dados_estoque(img, codigo, chave) {
         await inserirDados(dados_estoque, 'dados_estoque')
         await enviar(`dados_estoque/${codigo}/${chave}`, elemento.value)
 
-    } else if (!dados_estoque[codigo]) { //29 PERMANENTE; Objetos criados no primeiro momento;
+    } else if (!dados_estoque[codigo]) { // 29 PERMANENTE; Objetos criados no primeiro momento;
 
         dados_estoque[codigo] = {
             id: codigo,
