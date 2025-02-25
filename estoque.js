@@ -11,11 +11,12 @@ async function recuperar_estoque() {
 }
 
 async function carregar_estoque() {
+    
+    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
 
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let autorizado = false
     let div_estoque = document.getElementById('estoque')
-    carregamento('estoque')
 
     if (acesso.permissao == 'adm' || acesso.permissao == 'log') {
         autorizado = true
@@ -151,6 +152,8 @@ async function carregar_estoque() {
     `
 
     div_estoque.innerHTML = acumulado
+
+    document.getElementById("aguarde").remove()
 
 }
 

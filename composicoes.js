@@ -45,9 +45,11 @@ function pesquisar_em_composicoes(elemento) {
 carregar_tabela_v2()
 
 async function recuperar_composicoes() {
+    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
     let nuvem = await receber('dados_composicoes')
     await inserirDados(nuvem, 'dados_composicoes')
     await carregar_tabela_v2()
+    document.getElementById("aguarde").remove()
 }
 
 async function carregar_tabela_v2() {

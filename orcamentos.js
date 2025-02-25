@@ -503,6 +503,8 @@ async function preencher_orcamentos_v2(filtros, remover) {
 
 async function recuperar_orcamentos() {
 
+    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
+
     let dados_orcamentos = await receber('dados_orcamentos') || {}
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
@@ -514,6 +516,7 @@ async function recuperar_orcamentos() {
         await preencher_orcamentos_v2()
 
     }
+    document.getElementById("aguarde").remove()
 }
 
 async function abrir_manutencao(id) {

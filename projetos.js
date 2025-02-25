@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 });
 
-let idListaAtual = null; 
+let idListaAtual = null;
 
 document.addEventListener("DOMContentLoaded", function () {
     // Limite para adicionar Lista (máx. 25 caracteres)
@@ -141,7 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
- // Variável para armazenar a lista onde será adicionada a tarefa
+// Variável para armazenar a lista onde será adicionada a tarefa
 
 function adicionarTarefa(idLista) {
     if (!idLista) {
@@ -334,7 +334,7 @@ async function confirmarAdicionarLista() {
 
     // 🔥 Garante que `dados` seja um objeto válido
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-    
+
     // 🔥 Garante que `listas` seja um objeto antes de atribuir um novo item
     if (!dados.listas || typeof dados.listas !== "object") {
         dados.listas = {};
@@ -1440,21 +1440,23 @@ async function carregarDadosDaNuvem() {
 
     // 🔥 Exibe o overlay carregando
     document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
-        let dadosRecebidos = await receber("dados_kanban");
 
-        console.log("Dados Recebidos!!!");
+    let dadosRecebidos = await receber("dados_kanban");
 
-        if (dadosRecebidos) {
-            if (!dadosRecebidos.etiquetasGlobais || typeof dadosRecebidos.etiquetasGlobais !== "object") {
-                dadosRecebidos.etiquetasGlobais = {};
-            }
+    console.log("Dados Recebidos!!!");
 
-            localStorage.setItem("dados_kanban", JSON.stringify(dadosRecebidos));
-            inicializarEtiquetasGlobais();
-            carregarListas();
-            renderizarQuadro();
+    if (dadosRecebidos) {
+        if (!dadosRecebidos.etiquetasGlobais || typeof dadosRecebidos.etiquetasGlobais !== "object") {
+            dadosRecebidos.etiquetasGlobais = {};
         }
-        document.getElementById("aguarde").remove()
+
+        localStorage.setItem("dados_kanban", JSON.stringify(dadosRecebidos));
+        inicializarEtiquetasGlobais();
+        carregarListas();
+        renderizarQuadro();
+    }
+    document.getElementById("aguarde").remove()
+    
 }
 
 function aplicarLimitador(input, maxCaracteres, idAviso) {
@@ -1577,8 +1579,8 @@ function renderizarAnexos(idTarefa) {
 
     listaAnexos.innerHTML = Object.values(tarefa.anexos)
         .map(anexo => {
-            let nomeFormatado = anexo.nome.length > 15 
-                ? `${anexo.nome.slice(0, 6)}...${anexo.nome.slice(-6)}` 
+            let nomeFormatado = anexo.nome.length > 15
+                ? `${anexo.nome.slice(0, 6)}...${anexo.nome.slice(-6)}`
                 : anexo.nome;
 
             return `
