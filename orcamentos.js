@@ -670,8 +670,7 @@ async function abrir_manutencao(id) {
 
 async function capturar_html_pdf(id) {
 
-    let aguarde = document.getElementById('aguarde')
-    aguarde.style.display = 'flex'
+    document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde())
 
     let dados_manutencao = await recuperarDados('dados_manutencao') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
@@ -803,7 +802,8 @@ async function capturar_html_pdf(id) {
 
     await gerar_pdf_online(html, nome);
 
-    aguarde.style.display = 'none'
+    remover_popup()
+    await abrir_manutencao(id)
 }
 
 
@@ -1107,7 +1107,7 @@ function mostrar_tabela(tabela) {
 }
 
 async function enviar_manutencao(id) {
-    
+
     document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde())
 
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
@@ -1172,6 +1172,7 @@ async function enviar_manutencao(id) {
     await preencher_orcamentos_v2()
 
     remover_popup()
+
 }
 
 function adicionar_linha_manut() {
