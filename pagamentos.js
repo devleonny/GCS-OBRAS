@@ -595,7 +595,7 @@ async function abrir_detalhes(id_pagamento) {
 
         <div id="comentario" class="contorno">
             <div class="contorno_interno">
-                <label><strong>Observações </strong> •  ${ultima_alteracao} <br> ${pagamento.param[0].observacao.replace(/\n/g, "<br>")}</label>
+                <label><strong>Observações </strong> •  ${ultima_alteracao} <br> ${pagamento.param[0].observacao.replace(/\||\n/g, "<br>")}</label>
                 ${botao_editar}
             </div>
         </div>
@@ -1037,9 +1037,8 @@ async function criar_pagamento_v2(chave1) {
         var total = document.getElementById('total_de_pagamento').textContent
         var codigo_cliente = document.getElementById('codigo_omie').textContent
 
-        var descky = `
-        Solicitante: ${acesso.usuario} \n
-        `
+        let descricao = `Solicitante: ${acesso.usuario} |`
+        
         // Categorias
         var valores = central_categorias.querySelectorAll('input[type="number"]');
         var textareas = central_categorias.querySelectorAll('textarea');
@@ -1086,10 +1085,7 @@ async function criar_pagamento_v2(chave1) {
 
             var chave_pix = document.getElementById('pix').value
 
-            descky += `
-            Chave PIX | Forma de Pagamento: ${chave_pix}
-            \n
-            `
+            descricao += `Chave PIX: ${chave_pix} |`
 
             objetoDataVencimento = data_atual('curta', atraso_na_data)
 
@@ -1101,22 +1097,19 @@ async function criar_pagamento_v2(chave1) {
 
             data_vencimento = `${dia}/${mes}/${ano}`
 
-            descky += `
-            Data de Vencimento do Boleto: ${data_vencimento}
-            \n
-            `
+            descricao += `Data de Vencimento do Boleto: ${data_vencimento} |`
 
             objetoDataVencimento = data_vencimento
 
         }
 
-        descky += document.getElementById('descricao_pagamento').value
+        descricao += document.getElementById('descricao_pagamento').value
 
         var param = [
             {
                 "codigo_cliente_fornecedor": codigo_cliente,
                 "valor_documento": conversor(total),
-                "observacao": descky,
+                "observacao": descricao,
                 "codigo_lancamento_integracao": id_pagamento,
                 "data_vencimento": objetoDataVencimento,
                 "categorias": rateio_categorias,
