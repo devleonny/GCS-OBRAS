@@ -92,9 +92,10 @@ async function preencher_v2(parceiro) {
     `
     document.getElementById('container').insertAdjacentHTML('beforeend', botoes)
 
-    var orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {}
+    var orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
     var dados_composicoes = await recuperarDados('dados_composicoes') || {};
-    var pagamento_parceiro = JSON.parse(localStorage.getItem('pagamento_parceiro')) || {}
+
+    console.log(dados_composicoes)
 
     orcamento_v2 = await conversor_composicoes_orcamento(orcamento_v2)
 
@@ -174,7 +175,14 @@ async function preencher_v2(parceiro) {
         VENDA: { valor: 0, cor: '#B12425' },
         ICMS: { valor: 0, cor: '#555555' },
         GERAL: { valor: 0, cor: '#151749' }
-    }
+    };
+
+    // 🔥 Novo objeto para armazenar os valores de LPU, Informado e Desvio
+    var lpuParceiros = {
+        LPU: { valor: 0, cor: 'black' },       // Antes era LPU_Parceiro_UNT
+        Informado: { valor: 0, cor: 'black' }, // Antes era Parceiro
+        Desvio: { valor: 0, cor: 'black' }
+    };
 
     for (tabela in config) {
 
@@ -200,18 +208,38 @@ async function preencher_v2(parceiro) {
         })
 
         for (it in itens) {
+
             var item = itens[it]
+            let valorAtivo = 0; // Variável para armazenar o valor correspondente ao ativo
+            let valor_historico_pdf = ""
 
-            if (item.parceiro) {
+            // Verifica se o código existe em dados_composicoes
+            if (item.codigo && dados_composicoes[item.codigo]) {
+                let itemDados = dados_composicoes[item.codigo]; // Objeto correspondente
+                let possuiLpuParceiro = itemDados.hasOwnProperty("lpu parceiro"); // Verifica se existe a chave "lpu parceiro"
 
-            }
-            // valor de parceiro no histórico desse item; 
-            item.parceiro = {
-                quem: '?',
-                quando: '?',
-                aprovado: '?',
-                valor: 0,
-                icone: "gifs/alerta.gif"
+                if (possuiLpuParceiro && typeof itemDados["lpu parceiro"] === "object" && tabela === itemDados.tipo) {
+                    let chaveAtivo = itemDados["lpu parceiro"].ativo; // Obtém a chave ativa
+
+                    // ✅ Obtém o valor do LPU Parceiro ativo
+                    valorAtivo = chaveAtivo && itemDados["lpu parceiro"].historico?.[chaveAtivo]?.valor
+                        ? Number(itemDados["lpu parceiro"].historico[chaveAtivo].valor)
+                        : 0;
+
+                    // ✅ Obtém o último valor do histórico PDF
+                    if (itemDados["lpu parceiro"].historico_pdf) {
+                        let historicoValores = Object.values(itemDados["lpu parceiro"].historico_pdf);
+                        let ultimoHistorico = historicoValores.length > 0
+                            ? Number(historicoValores[historicoValores.length - 1].valor)
+                            : 0;
+
+                        valor_historico_pdf = ultimoHistorico || "0"; // Define um valor padrão se for nulo ou undefined
+                        lpuParceiros.Informado.valor += valor_historico_pdf;
+                    }
+
+                    // ✅ Atualiza os totais
+                    lpuParceiros.LPU.valor += valorAtivo;
+                }
             }
 
             if (dados_composicoes[item.codigo]) {
@@ -243,7 +271,7 @@ async function preencher_v2(parceiro) {
                 orcamento_v2.dados_orcam.estado == 'BA' ? icms = 0.205 : ''
                 var unitario_sem_icms = item.custo - (item.custo * icms)
                 var total_sem_icms = unitario_sem_icms * item.qtde
-                
+
                 if (item.tipo == 'VENDA') {
                     totais.ICMS.valor += item.custo * item.qtde * icms
                 }
@@ -270,15 +298,29 @@ async function preencher_v2(parceiro) {
                 tds[11] = `<td style="white-space: nowrap;">${dinheiro(item.custo)}</td>`
                 tds[12] = `<td style="white-space: nowrap;">${dinheiro(item.total)}</td>`
                 tds[13] = `
-                    <td>
-                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <img src="imagens/concluido.png" style="display: none; width: 25px; cursor: pointer;" onclick="preencher_parceiro(this)">
-                            <input class="numero-bonito" value="${item.parceiro.valor}" oninput="ativar_botao(this)"> 
-                        </div>
-                    </td>
-                `
-                tds[14] = `<td></td>`
-                tds[15] = `<td></td>`
+                            <td id="lpu-parceiro-${item.codigo}">
+                                <div style="display: flex; align-items: center; justify-content: center;">
+                                    <label>${dinheiro(valorAtivo)}</label> 
+                                </div>
+                            </td>
+                        `;
+
+                tds[14] = `
+                        <td>
+                            <div style="display: flex; align-items: center; justify-content: center;">
+                                <img id="concluido-${item.codigo}" src="imagens/concluido.png" 
+                                    style="display: none; width: 25px; cursor: pointer;" 
+                                    onclick="salvarValorNaNuvem('${item.codigo}')" 
+                                    title="Salvar valor na nuvem">
+                                
+                                <input value="${valor_historico_pdf}" id="input-parceiro-${item.codigo}" class="numero-bonito" 
+                                oninput="mostrarConcluido('${item.codigo}'); calcularDesvio('${item.codigo}'); ativar_botao(this);">
+
+                            </div>
+                        </td>
+                    `;
+
+                tds[15] = `<td id="desvio-${item.codigo}" class="td-desvio"></td>`;
 
                 var celulas = ''
 
@@ -299,7 +341,7 @@ async function preencher_v2(parceiro) {
             <div style="display: flex; align-items: center; justify-content: center;">
                 <h3>${tabela}</h3> 
             </div>
-            <table>
+            <table style="table-layout: fixed;">
                 <thead style="font-size: 0.7em; color: white; background-color: ${config[tabela].cor}">${ths}</thead>
                 <tbody style="font-size: 0.7em;">
                 ${linhas}
@@ -315,52 +357,157 @@ async function preencher_v2(parceiro) {
         }
     }
 
-    var divs_totais = ''
+    // 🔥 Calcula o desvio antes de gerar os DIVs
+    lpuParceiros.Desvio.valor = lpuParceiros.LPU.valor - lpuParceiros.Informado.valor;
+
+    // 🔥 Determina qual imagem exibir com base no valor do desvio
+    let imagemDesvio = "";
+    if (lpuParceiros.Desvio.valor > 0) {
+        imagemDesvio = `<img src="https://imgur.com/2bb0ea22-d3ff-4d7b-bcf7-c266806778b2" style="width: 20px; margin-left: 5px;">`;
+    } else if (lpuParceiros.Desvio.valor < 0) {
+        imagemDesvio = `<img src="https://imgur.com/d7dd643e-c60b-4675-834a-9ddf3e93bfda" style="width: 20px; margin-left: 5px;">`;
+    }
+
+    // 🔥 Gerando os DIVs corretamente alinhados
+    var divs_totais = '';
+    var divs_lpuParceiros = '';
+
+    // 🔥 Criando a exibição separada para LPU, Informado e Desvio
+    if(parceiro){
+    divs_lpuParceiros += `
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%;">
+                            <div class="totais" style="color: ${lpuParceiros.LPU.cor}; background-color: transparent; text-align: right;">
+                                LPU: ${dinheiro(lpuParceiros.LPU.valor)}
+                            </div>
+                            <div class="totais" style="color: ${lpuParceiros.Informado.cor}; background-color: transparent; text-align: right;">
+                                Informado: ${dinheiro(lpuParceiros.Informado.valor)}
+                            </div>
+                            <hr style="width: 80%;">
+                            <div class="totais" style="color: ${lpuParceiros.Desvio.cor}; background-color: transparent; display: flex; align-items: center; justify-content: flex-end;">
+                                Desvio: ${dinheiro(lpuParceiros.Desvio.valor)} ${imagemDesvio}
+                            </div>
+                        </div>
+                        `;
+    }
+
+    // 🔥 Criando os totais normais
     for (total in totais) {
-
         if (totais[total].valor !== 0) {
-
-            if (total !== 'ICMS' || (total == 'ICMS' && totais['VENDA'].valor !== 0)) {
-                divs_totais += `
-                <div class="totais" style="background-color: ${totais[total].cor}">TOTAL ${total} ${dinheiro(totais[total].valor)}</div>
-                `
-            }
-
+            divs_totais += `
+            <div class="totais" style="background-color: ${totais[total].cor}">
+                TOTAL ${total} ${dinheiro(totais[total].valor)}
+            </div>
+        `;
         }
     }
 
+    // 🔥 Atualizando o HTML para manter a estrutura correta
     html_orcamento.innerHTML = `
     <label>Salvador, Bahia, ${carimbo_data()}</label>
+
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-    ${criar_bloco_html('Dados da Proposta', dados_por_bloco['Dados da Proposta'])}
-    ${criar_bloco_html('Dados do Cliente', dados_por_bloco['Dados do Cliente'])}
+        ${criar_bloco_html('Dados da Proposta', dados_por_bloco['Dados da Proposta'])}
+        ${criar_bloco_html('Dados do Cliente', dados_por_bloco['Dados do Cliente'])}
     </div>
+
     ${criar_bloco_html('Dados da Empresa', dados_por_bloco['Dados da Empresa'])}
+
     <div class="contorno">
         <div class="titulo">
             Itens do Orçamento
         </div>
+
         ${tabelas}
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
-            <div>
-                ${divs_totais}
+
+        <div style="display: flex; gap: 20px; align-items: flex-start; justify-content: space-between;">
+            <div style="display: flex; flex-direction: column;">
+                ${divs_totais} <!-- Totais normais -->
             </div>
 
-            <div id="parceiro" style="display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: left;"></div>
+            <div style="display: flex; flex-direction: column;">
+                ${divs_lpuParceiros} <!-- Exibição separada de LPU, Informado e Desvio -->
+            </div>
         </div>
     </div>
 
     ${criar_bloco_html('Considerações', { Considerações: informacoes.consideracoes })}
 
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-    ${criar_bloco_html('Contato Analista', dados_por_bloco['Contato Analista'])}
-    ${criar_bloco_html('Contato Vendedor', dados_por_bloco['Contato Vendedor'])}
+        ${criar_bloco_html('Contato Analista', dados_por_bloco['Contato Analista'])}
+        ${criar_bloco_html('Contato Vendedor', dados_por_bloco['Contato Vendedor'])}
     </div>
+
     <div style="height: 200px;"></div>
-    `
+`;
+
+    // Aguarda um pequeno tempo para garantir que a tabela foi gerada antes de calcular os desvios
+    setTimeout(() => {
+        document.querySelectorAll('.numero-bonito').forEach(input => {
+            calcularDesvio(input.id.replace('input-parceiro-', ''));
+        });
+    }, 200);
+
+
     if (parceiro) {
         calcular_parceiro(true)
     }
+}
+
+function mostrarConcluido(codigoItem) {
+    let imgConcluido = document.getElementById(`concluido-${codigoItem}`);
+    if (imgConcluido) {
+        imgConcluido.style.display = "inline-block"; // Exibe a imagem
+    }
+}
+
+function salvarValorNaNuvem(codigoItem) {
+    let inputElement = document.getElementById(`input-parceiro-${codigoItem}`);
+    let imgConcluido = document.getElementById(`concluido-${codigoItem}`);
+    if (!inputElement) {
+        return;
+    }
+
+    let valorSalvo = inputElement.value.trim();
+    if (valorSalvo === "") {
+        return;
+    }
+
+    let id_historico_pdf = gerar_id_5_digitos(); // Gera um ID único
+    let acesso = JSON.parse(localStorage.getItem("acesso")) || "Desconhecido";
+    let dataHora = new Date().toLocaleString(); // Data e hora atual no formato legível
+
+    // Criação do objeto com os dados a serem salvos
+    let objetoSalvo = {
+        valor: valorSalvo,
+        usuario: acesso.usuario,
+        data: dataHora
+    };
+
+    // Constrói o caminho correto
+    let caminho = `dados_composicoes/${codigoItem}/lpu parceiro/historico_pdf/${id_historico_pdf}`;
+
+    enviar(caminho, objetoSalvo); // Envia o objeto completo para a nuvem
+    console.log(`✅ Valor salvo com sucesso em ${caminho}:`, objetoSalvo);
+
+    imgConcluido.style.display = "none"; // Oculta a imagem após salvar
+}
+
+function calcularDesvio(codigo) {
+
+    let labelLpuParceiro = document.querySelector(`#lpu-parceiro-${codigo} label`);
+    let inputParceiro = document.querySelector(`#input-parceiro-${codigo}`);
+    let tdDesvio = document.querySelector(`#desvio-${codigo}`);
+    if (!labelLpuParceiro || !inputParceiro || !tdDesvio) {
+        console.warn("❌ Erro: Algum dos campos necessários não foi encontrado!");
+        return;
+    }
+
+    let lpuParceiroValor = parseFloat(labelLpuParceiro.textContent.replace("R$", "").replace(",", ".").trim()) || 0;
+    let inputValor = parseFloat(inputParceiro.value.replace(",", ".").trim()) || 0;
+
+    let desvio = lpuParceiroValor - inputValor; // Calcula o desvio
+
+    tdDesvio.textContent = dinheiro(desvio); // Atualiza a célula com o valor formatado
 }
 
 function ativar_botao(input) {

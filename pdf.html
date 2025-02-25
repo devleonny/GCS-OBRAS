@@ -83,8 +83,11 @@
 
     td {
         border: 1px solid #151749;
-        font-size: 0.6em;
-        padding: 5px;
+        font-size: 0.5vw;
+        padding: 5px !important;
+        margin: 0 !important;
+        text-align: center;
+        white-space: normal;
     }
 
     .total_rodape {
@@ -93,6 +96,7 @@
         color: white;
         text-align: right;
         padding: 10px;
+        white-space: normal;
     }
 
     .div_tabela {
@@ -183,9 +187,9 @@
 
     #ocultar {
         background-color: #151749;
-        position: fixed; 
-        bottom: 10px; 
-        left: 100px; 
+        position: fixed;
+        bottom: 10px;
+        left: 100px;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -238,9 +242,10 @@
         border-radius: 5px;
         display: inline-block;
         margin: 5px;
+        min-width: 50px;
+        max-width: 100px; /* Limita o crescimento */
         text-align: center;
     }
-
 </style>
 </head>
 
