@@ -109,6 +109,11 @@ function inserirDados(dados, nome_da_base) {
 }
 
 function executarTransacao(db, nome_da_base, dados) {
+    
+    if (!dados) {
+        return
+    }
+
     const transaction = db.transaction([nome_da_base], 'readwrite');
     const store = transaction.objectStore(nome_da_base);
 
@@ -1202,16 +1207,21 @@ async function espelhar_atualizacao(objeto) {
         if (!removido) return;
     } else {
         let atualizarValor = (dados, chaves, valor) => {
+            if (chaves.length === 0)
+                return;
+            let chaveAtual = chaves[0];
+
+            // se a chave não existir ou for null, inicializar a chave como um objeto vazio
+            if (dados[chaveAtual] === null || dados[chaveAtual] === undefined) {
+                dados[chaveAtual] = {};
+            }
+
             if (chaves.length === 1) {
-                dados[chaves[0]] = valor;
+                dados[chaveAtual] = valor;
             } else {
-                if (!dados[chaves[0]]) {
-                    dados[chaves[0]] = {};
-                }
-                atualizarValor(dados[chaves[0]], chaves.slice(1), valor);
+                atualizarValor(dados[chaveAtual], chaves.slice(1), valor);
             }
         };
-        atualizarValor(dados, chaves, objeto.valor);
     }
 
     await inserirDados(dados, arquivo);
