@@ -1437,22 +1437,24 @@ function definirCorTexto(corHex) {
 }
 
 async function carregarDadosDaNuvem() {
-    // 🔍 Verifica se já há dados salvos localmente
-    let dadosRecebidos = await receber("dados_kanban");
 
-    console.log("Dados Recebidos!!!")
+    // 🔥 Exibe o overlay carregando
+    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
+        let dadosRecebidos = await receber("dados_kanban");
 
-    if (dadosRecebidos) {
-        // 🚨 Corrige `etiquetasGlobais` caso seja um array antigo
-        if (!dadosRecebidos.etiquetasGlobais || typeof dadosRecebidos.etiquetasGlobais !== "object") {
-            dadosRecebidos.etiquetasGlobais = {};
+        console.log("Dados Recebidos!!!");
+
+        if (dadosRecebidos) {
+            if (!dadosRecebidos.etiquetasGlobais || typeof dadosRecebidos.etiquetasGlobais !== "object") {
+                dadosRecebidos.etiquetasGlobais = {};
+            }
+
+            localStorage.setItem("dados_kanban", JSON.stringify(dadosRecebidos));
+            inicializarEtiquetasGlobais();
+            carregarListas();
+            renderizarQuadro();
         }
-
-        localStorage.setItem("dados_kanban", JSON.stringify(dadosRecebidos));
-        inicializarEtiquetasGlobais(); // 🔥 Inicializa etiquetas
-        carregarListas();
-        renderizarQuadro();
-    }
+        document.getElementById("aguarde").remove()
 }
 
 function aplicarLimitador(input, maxCaracteres, idAviso) {
@@ -1611,3 +1613,4 @@ function removerAnexo(idTarefa, linkAnexo) {
     // Atualiza a interface
     renderizarAnexos(idTarefa);
 }
+
