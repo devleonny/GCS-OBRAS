@@ -828,9 +828,7 @@ function criar_manutencao(id) {
 
         <label>${termo} <strong> Requisição de Materiais </strong> </label>
 
-        <div style="position: relative;">
-
-            ${overlay_aguarde()}
+        <div style="position: relative;" id="tela">
 
             <div style="background-color: white; border-radius: 3px; padding: 5px; font-size: 0.9vw; width: 70vw;">
 
@@ -1109,9 +1107,8 @@ function mostrar_tabela(tabela) {
 }
 
 async function enviar_manutencao(id) {
-
-    let aguarde = document.getElementById('aguarde')
-    aguarde.style.display = 'flex;'
+    
+    document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde())
 
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let campos = ['codigo_tecnico', 'codigo_cliente', 'comentario', 'status_manutencao', 'data', 'chamado']
