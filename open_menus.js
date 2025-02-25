@@ -21,7 +21,7 @@ localStorage.removeItem('timestamps')
 function overlay_aguarde() {
 
     let elemento = `           
-    <div id="aguarde" style="display: none; 
+    <div id="aguarde" style="display: flex; 
                 align-items: center; 
                 justify-content: center; 
                 background-color: rgba(0, 0, 0, 0.7);
