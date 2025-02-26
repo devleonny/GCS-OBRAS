@@ -1455,6 +1455,7 @@ async function carregarDadosDaNuvem() {
         carregarListas();
         renderizarQuadro();
     }
+    
     document.getElementById("aguarde").remove()
     
 }

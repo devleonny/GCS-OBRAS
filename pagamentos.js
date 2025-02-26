@@ -858,6 +858,8 @@ function fechar_detalhes() {
 
 async function atualizar_pagamentos_menu() {
 
+    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
+
     await lista_setores()
 
     await inserirDados(await receber('lista_pagamentos'), 'lista_pagamentos')
@@ -875,6 +877,8 @@ async function atualizar_pagamentos_menu() {
     for (coluna in filtrosAtivosPagamentos) {
         pesquisar_em_pagamentos(coluna, filtrosAtivosPagamentos[coluna])
     }
+
+    document.getElementById("aguarde").remove()
 
 }
 
