@@ -36,10 +36,8 @@ function overlay_aguarde() {
                 border-radius: 3px;
             ">
         <img src="gifs/loading.gif" style="width: 5vw;">
-        <label style="color: white; font-size: 1.1vw;">Aguarde...</label>
     </div>
     `
-
     return elemento
 }
 
