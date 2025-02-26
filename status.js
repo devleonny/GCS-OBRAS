@@ -207,7 +207,7 @@ async function painel_adicionar_pedido() {
         
         <hr style="width: 80%">
 
-        <div id="testando" style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px;">
+        <div id="painel_novo_pedido" style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px;">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <p class="novo_titulo" style="cursor: pointer; color: #222">Escolha o tipo do <strong>Pedido</strong> </p> 
                 <select id="tipo">
@@ -3114,8 +3114,13 @@ function close_chave() {
 
 async function salvar_anexo(chave1, chave2) {
 
+    let painel_novo_pedido = document.getElementById("painel_novo_pedido")
 
-    document.getElementById("testando").insertAdjacentHTML("beforebegin", overlay_aguarde())
+    if (painel_novo_pedido) {
+
+        painel_novo_pedido.insertAdjacentHTML("beforebegin", overlay_aguarde())
+
+    }
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var elemento = chave1 !== undefined
@@ -3198,8 +3203,6 @@ async function salvar_anexo(chave1, chave2) {
                         div_anexos.insertAdjacentHTML('beforeend', resposta);
                     }
 
-                    document.getElementById("aguarde").remove()
-
 
                 } else {
 
@@ -3223,7 +3226,6 @@ async function salvar_anexo(chave1, chave2) {
                     if (estrutura) {
                         estrutura.remove();
                     }
-                    document.getElementById("aguarde").remove()
 
                     abrir_esquema(id_orcam);
                 }
@@ -3234,9 +3236,18 @@ async function salvar_anexo(chave1, chave2) {
         .catch(error => {
             openPopup_v2(`Erro ao fazer upload: ${error.message}`);
             console.error(error);
-            document.getElementById("aguarde").remove()
-        });
+        })
+        .finally(i => {
 
+            let aguarde = document.getElementById("aguarde")
+
+            if (aguarde) {
+
+                document.getElementById("aguarde").remove()
+
+            }
+
+        })
 
 }
 
