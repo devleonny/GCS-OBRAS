@@ -11,7 +11,7 @@ async function recuperar_estoque() {
 }
 
 async function carregar_estoque() {
-    
+
     document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
 
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
@@ -56,13 +56,14 @@ async function carregar_estoque() {
         }
     })
 
-    dados_estoque = Object.fromEntries(
-        Object.entries(dados_estoque).sort(([, a], [, b]) => 
-            (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0)
-        )
-    );
-    
-    for (item in dados_estoque) {
+    let dados_estoque_ordenado = Object.entries(dados_estoque)
+        .sort(([, a], [, b]) => (b.timestamp || 0) - (a.timestamp || 0))
+        .reduce((acc, [key, value]) => {
+            acc[key] = value;
+            return acc;
+        }, {});
+
+    for (item in dados_estoque_ordenado) {
 
         let dados_item = dados_estoque[item]
 
@@ -88,7 +89,7 @@ async function carregar_estoque() {
                 `
             } else if (chave.includes('valor_compra')) {
 
-                    valor = calcular_maior(dados_item.valor_compra)
+                valor = calcular_maior(dados_item.valor_compra)
 
                 let color = valor == 0 ? '#222' : 'white'
 
