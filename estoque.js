@@ -1,6 +1,6 @@
 let filtrosAtivosEstoques = {}
 let filtrosRelatorio = {}
-let colunas = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'localizacao_novo', 'estoque_usado', 'localizacao_usado', 'inventario', 'valor_compra']
+let colunas = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'estoque_usado', 'estoque_sp', 'valor_compra']
 
 carregar_estoque()
 
@@ -76,8 +76,8 @@ async function carregar_estoque() {
             let cor = ''
             let valor = ''
 
-            if (chave == 'descricao' || chave == 'inventario') {
-                elemento = `<textarea style="border: none; border-radius: 0px;" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>${info}</textarea>`
+            if (chave == 'descricao') {
+                elemento = `<textarea style="border: none; border-radius: 0px; width: 100%;" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>${info}</textarea>`
 
             } else if (chave == 'Excluir') {
 
@@ -98,7 +98,7 @@ async function carregar_estoque() {
 
             } else if (chave.includes('estoque')) {
 
-                quantidade = info.quantidade
+                quantidade = info.quantidade || 0
 
                 for (his in info.historico) {
 
@@ -117,7 +117,7 @@ async function carregar_estoque() {
             }
 
             if (quantidade !== '') {
-                cor = conversor(quantidade) > 0 ? '#4CAF50' : '#B12425'
+                cor = conversor(quantidade) > 0 ? '#4CAF50' : '#b36060'
             }
 
             if (valor !== '') {
@@ -146,7 +146,7 @@ async function carregar_estoque() {
 
     let acumulado = `
         <div style="height: max-content; max-height: 70vh; width: max-content; max-width: 90vw; overflow: auto; background-color: #222222bf; border-radius: 5px;">
-            <table class="tabela_e" id="tabela_estoque">
+            <table class="tabela_e" id="tabela_estoque"">
                 <thead>
                     <tr>${thc}</tr>
                     <tr id="thead_pesquisa">${ths}</tr>
@@ -386,7 +386,7 @@ async function abrir_valores(codigo) {
             </div>
 
             <div style="background-color: #B12425; white; border-radius: 3px; width: 100%; border-radius: 3px;">
-                <table class="tabela_e" style="width: 100%; border-collapse: collapse;">
+                <table class="tabela_e" style="width: 100%;">
                     <thead>
                         <th>Valor</th>
                         <th>Data</th>
@@ -563,7 +563,7 @@ async function abrir_estoque(codigo, stq) {
             </div>
 
             <div style="background-color: #B12425; white; border-radius: 3px; width: 100%; border-radius: 3px;">
-                <table class="tabela_e" style="width: 100%; border-collapse: collapse;">
+                <table class="tabela_e" style="width: 100%;">
                     <thead>
                         <th>Sin</th>
                         <th>Qt.</th>
@@ -816,9 +816,11 @@ async function salvar_item(button) {
             quantidade: 0,
             historico: {}
         },
+        estoque_sp: {
+            quantidade: 0,
+            historico: {}
+        },
         descricao: inputs[3].value,
-        localizacao_novo: '',
-        localizacao_usado: '',
         inventario: '',
         timestamp: new Date().getTime()
     }
