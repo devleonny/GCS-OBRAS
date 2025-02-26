@@ -1866,24 +1866,24 @@ async function abrir_esquema(id) {
             }
 
             blocos_por_status['PAINEL'] = `
-            <div class="contorno_botoes" style="width: ; display: flex; flex-direction: column; align-items: start; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
+            <div class="contorno_botoes" style="font-size: 1vw; display: flex; flex-direction: column; align-items: start; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
                 <label>Gestão de Custos</label>
                 ${pags}
                 <hr style="width: 100%;">
-                <label>${dados_orcamentos[id].total_geral} <label style="font-size: 0.6em;">Valor do Pedido</label></label>
+                 <label style="font-size: 0.8vw;">${dados_orcamentos[id].total_geral} <label style="font-size: 0.8vw;">Valor do Pedido</label></label>
                 <hr style="width: 100%;">
-                <label onclick="valores_manuais()" style="font-size: 12px;">➕ Adicionar Valor Manual</label>
+                <label onclick="valores_manuais()" style="font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
     
                 <div id="lista-valores-manuais">
                     ${Object.entries(dados_orcamentos[id].valoresManuais || {}).length > 0
                     ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
                             <div style="display: flex; align-items: center; gap: 5px;">
-                                <label style="font-size: 12px">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
+                                <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
                                 <button onclick="removerValorManual('${id}', '${chave}')" 
-                                    style="background: none; border: none; color: red; cursor: pointer; font-size: 14px;">❌</button>
+                                    style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
                             </div>
                         `).join("")
-                    : "<label style='font-size: 12px; color: gray;'>Nenhum valor manual adicionado.</label>"
+                    : "<label style='font-size: 0.8vw; color: gray;'>Nenhum valor manual adicionado.</label>"
                 }
                 </div>
 
@@ -3113,6 +3113,9 @@ function close_chave() {
 }
 
 async function salvar_anexo(chave1, chave2) {
+
+    document.getElementById("status").insertAdjacentHTML("beforebegin", overlay_aguarde())
+
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var elemento = chave1 !== undefined
         ? document.getElementById(`adicionar_anexo_${chave1}_${chave2}`)
@@ -3233,6 +3236,8 @@ async function salvar_anexo(chave1, chave2) {
             openPopup_v2(`Erro ao fazer upload: ${error.message}`);
             console.error(error);
         });
+
+    document.getElementById("aguarde").remove()
 
     remover_popup();
 }

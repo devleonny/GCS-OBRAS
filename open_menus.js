@@ -31,7 +31,7 @@ function overlay_aguarde() {
                 left: 0;
                 width: 100%;
                 height: 100%;
-                z-index: 10;
+                z-index: 9999;
                 font-size: 1.5em;
                 border-radius: 3px;
             ">
