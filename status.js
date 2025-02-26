@@ -3113,6 +3113,9 @@ function close_chave() {
 }
 
 async function salvar_anexo(chave1, chave2) {
+
+    document.getElementById("status").insertAdjacentHTML("beforebegin", overlay_aguarde())
+
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var elemento = chave1 !== undefined
         ? document.getElementById(`adicionar_anexo_${chave1}_${chave2}`)
@@ -3233,6 +3236,8 @@ async function salvar_anexo(chave1, chave2) {
             openPopup_v2(`Erro ao fazer upload: ${error.message}`);
             console.error(error);
         });
+
+    document.getElementById("aguarde").remove()
 
     remover_popup();
 }
