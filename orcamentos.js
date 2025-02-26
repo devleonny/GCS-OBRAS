@@ -1134,7 +1134,7 @@ async function enviar_manutencao(id) {
 
     let tabela = document.getElementById('linhas_manutencao')
     let linhas = tabela.querySelectorAll('.linha')
-    console.log(tabela)
+
     let pecas = {}
     linhas.forEach(linha => {
         let celulas = linha.querySelectorAll('input, textarea')
@@ -1287,7 +1287,7 @@ async function sugestoes(textarea, div, base) {
 
 }
 
-function definir_campo(elemento, div, string_html, omie, id) {
+async function definir_campo(elemento, div, string_html, omie, id) { 
 
     let campo = String(div).split('_')[1]
 
@@ -1297,8 +1297,40 @@ function definir_campo(elemento, div, string_html, omie, id) {
         endereco.innerHTML = string_html.replace(/&apos;/g, "'").replace(/&quot;/g, '"');
 
     } else {
+
         let input_aleatorio = document.getElementById(`input_${campo}`)
         input_aleatorio.value = id
+
+        let dados_estoque = await recuperarDados('dados_estoque') || {}
+        let estoques = ['estoque', 'estoque_usado']
+
+        let dic_quantidades = {}
+
+        estoques.forEach(estoque => {
+
+            let estoque_do_objeto = dados_estoque[id][estoque]
+            let historicos = estoque_do_objeto.historico
+            dic_quantidades[estoque] = estoque_do_objeto.quantidade
+
+            for (his in historicos) {
+                let historico = historicos[his]
+    
+                if (historico.operacao == 'entrada') {
+                    dic_quantidades[estoque] += historico.quantidade
+                } else if (historico.operacao == 'saida') {
+                    dic_quantidades[estoque] -= historico.quantidade
+                }
+            }
+
+            let div_linha = input_aleatorio.parentElement.parentElement
+
+            let inputs = div_linha.querySelectorAll('input, textarea')
+
+            inputs[4].value = dic_quantidades.estoque
+            inputs[5].value = dic_quantidades.estoque_usado
+
+        })
+
     }
 
     let codigo = document.getElementById(`codigo_${campo}`)
