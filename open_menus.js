@@ -107,7 +107,7 @@ function inserirDados(dados, nome_da_base) {
 }
 
 function executarTransacao(db, nome_da_base, dados) {
-    
+
     if (!dados) {
         return
     }
@@ -619,7 +619,7 @@ async function lista_setores() {
     });
 }
 
-async function obter_departamentos_fixos() { 
+async function obter_departamentos_fixos() {
 
     return new Promise((resolve, reject) => {
         var url = 'https://leonny.dev.br/departamentos_fixos';
@@ -1243,8 +1243,8 @@ async function espelhar_atualizacao(objeto) {
     if (arquivo == 'lista_pagamentos' && document.title === 'PAGAMENTOS') {
         await consultar_pagamentos()
     }
-    
-    if (arquivo === "dados_kanban" && document.title === "KANBAN"){
+
+    if (arquivo === "dados_kanban" && document.title === "KANBAN") {
         carregarDadosDaNuvem()
     }
 
@@ -1332,11 +1332,11 @@ async function anexo_v2(arquivoInput) {
 function sincronizar_pagamentos() {
 
     fetch('https://leonny.dev.br/sincronizar', { method: 'POST' })
-    .then(response => response.text())
-    .then(data => {
-        console.log(data);
-    })
-    .catch(error => console.error('Erro na requisição:', error));
+        .then(response => response.text())
+        .then(data => {
+            console.log(data);
+        })
+        .catch(error => console.error('Erro na requisição:', error));
 
 }
 
