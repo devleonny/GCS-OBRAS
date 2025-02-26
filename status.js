@@ -3114,7 +3114,8 @@ function close_chave() {
 
 async function salvar_anexo(chave1, chave2) {
 
-    document.getElementById("status").insertAdjacentHTML("beforebegin", overlay_aguarde())
+
+    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var elemento = chave1 !== undefined
@@ -3127,13 +3128,6 @@ async function salvar_anexo(chave1, chave2) {
         openPopup_v2('Nenhum arquivo selecionado...');
         return;
     }
-
-    openPopup_v2(`
-        <div id="carregandhu" style="display: flex; align-items: center; justify-content: center;">
-        </div>
-    `);
-
-    carregamento('carregandhu');
 
     let promises = [];
 
@@ -3204,6 +3198,9 @@ async function salvar_anexo(chave1, chave2) {
                         div_anexos.insertAdjacentHTML('beforeend', resposta);
                     }
 
+                    document.getElementById("aguarde").remove()
+
+
                 } else {
 
                     if (Array.isArray(dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos) || !dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos) {
@@ -3226,6 +3223,8 @@ async function salvar_anexo(chave1, chave2) {
                     if (estrutura) {
                         estrutura.remove();
                     }
+                    document.getElementById("aguarde").remove()
+
                     abrir_esquema(id_orcam);
                 }
 
@@ -3235,11 +3234,10 @@ async function salvar_anexo(chave1, chave2) {
         .catch(error => {
             openPopup_v2(`Erro ao fazer upload: ${error.message}`);
             console.error(error);
+            document.getElementById("aguarde").remove()
         });
 
-    document.getElementById("aguarde").remove()
 
-    remover_popup();
 }
 
 
