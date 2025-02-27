@@ -24,6 +24,8 @@ var fluxograma = {
     'FINALIZADO': { cor: 'blue', modulos: ['RELATÓRIOS'] },
 }
 
+let totalValoresPedidos; // Variável global
+
 async function resumo_orcamentos() {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let setores = JSON.parse(localStorage.getItem('dados_setores')) || {};
@@ -1386,7 +1388,7 @@ async function exibir_todos_os_status(id) {
     })
 
     acumulado += `
-        <hr style="width: 80%">
+        <hr style="width: 100%">
         <div style="display: flex; align-items: start; justify-content: space-between; gap: 20px;">
             <div style="display: flex; flex-direction: column; justify-content: center;">
                 ${acumulado_botoes}
@@ -1552,6 +1554,13 @@ async function abrir_esquema(id) {
         `;
         var contador = 1;
 
+        acumulado +=`
+        
+        <div style=" display: flex; width: 100%; gap: 4vw;" id="div_geral">
+        <div style="max-width: 90%; display: flex; flex-direction: column;" id="painel_pedidos">
+
+        `
+
         for (chave_pedido in todos_os_status) {
 
             let lista_interna = todos_os_status[chave_pedido].historico;
@@ -1671,7 +1680,7 @@ async function abrir_esquema(id) {
                     </div>
                     <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
                         <label><strong>Valor:</strong></label>
-                        <input style="border-radius: 2px; width: 8vw; font-size: 0.7vw;" value="${sst.valor}" oninput="mostrar_botao_pedido(this)">
+                        <input class="valores_pedidos" style="border-radius: 2px; width: 8vw; font-size: 0.7vw;" value="${sst.valor}" oninput="mostrar_botao_pedido(this)">
                         <img src="imagens/concluido.png" style="display: none; width: 1vw;" onclick="atualizar_pedido('${chave_pedido}', '${chave2}', 'valor', this)">
                     </div>
                     <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
@@ -1865,34 +1874,8 @@ async function abrir_esquema(id) {
                 cor_indicador = '#B12425'
             }
 
-            blocos_por_status['PAINEL'] = `
-            <div class="contorno_botoes" style="font-size: 1vw; display: flex; flex-direction: column; align-items: start; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
-                <label>Gestão de Custos</label>
-                ${pags}
-                <hr style="width: 100%;">
-                 <label style="font-size: 0.8vw;">${dados_orcamentos[id].total_geral} <label style="font-size: 0.8vw;">Valor do Pedido</label></label>
-                <hr style="width: 100%;">
-                <label onclick="valores_manuais()" style="font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
-    
-                <div id="lista-valores-manuais">
-                    ${Object.entries(dados_orcamentos[id].valoresManuais || {}).length > 0
-                    ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
-                            <div style="display: flex; align-items: center; gap: 5px;">
-                                <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
-                                <button onclick="removerValorManual('${id}', '${chave}')" 
-                                    style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
-                            </div>
-                        `).join("")
-                    : "<label style='font-size: 0.8vw; color: gray;'>Nenhum valor manual adicionado.</label>"
-                }
-                </div>
-
-                <hr style="width: 100%;">
-                <label>${dinheiro(calcularResultado(dados_orcamentos[id]))}</label>
-            </div>
-
-            `
             let blocos = ''
+
             for (div in blocos_por_status) {
                 let divisao = blocos_por_status[div]
                 blocos += `
@@ -1906,7 +1889,7 @@ async function abrir_esquema(id) {
             //29
             var linhas = `
                 <div style="display: flex; flex-direction: column; gap: 15px;">
-                    <hr style="width: 95%;">
+                    <hr style="width: 100%;">
 
                     <div style="display: flex;">
                         <div
@@ -1968,6 +1951,55 @@ async function abrir_esquema(id) {
 
         };
 
+        setTimeout(() => {
+            let totalValoresPedidos = somarValoresPedidos(); // Soma todos os valores dos pedidos
+            let totalValoresManuais = somarValoresManuais(dados_orcamentos[id]); // Soma os valores manuais
+            
+            let totalFinal = totalValoresPedidos - totalValoresManuais; // Cálculo final
+        
+            console.log("Total calculado:", totalFinal);
+        
+            // Atualiza o HTML no span específico
+            let valorPedidoSpan = document.getElementById('valor_pedido');
+            if (valorPedidoSpan) {
+                valorPedidoSpan.textContent = dinheiro(totalValoresPedidos);
+            }
+            let valorTotalSpan = document.getElementById('valor_total_pedido');
+            if(valorTotalSpan){
+                valorTotalSpan.textContent = dinheiro(totalFinal)
+            }
+        }, 200);
+              
+
+        acumulado += `
+        </div>
+        <div class="contorno_botoes" style="font-size: 1vw; display: flex; flex-direction: column; align-items: center; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
+                <label>Gestão de Custos</label>
+                ${pags}
+                <hr style="width: 100%;">
+                 <label style="font-size: 0.8vw;"> <span id="valor_pedido">0,00</span> <label style="font-size: 0.8vw;">Valor do Pedido</label></label>
+                <hr style="width: 100%;">
+                <label onclick="valores_manuais()" style="font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
+    
+                <div id="lista-valores-manuais">
+                    ${Object.entries(dados_orcamentos[id].valoresManuais || {}).length > 0
+                    ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
+                                <button onclick="removerValorManual('${id}', '${chave}')" 
+                                    style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
+                            </div>
+                        `).join("")
+                    : "<label style='font-size: 0.8vw; color: gray;'>Nenhum valor manual adicionado.</label>"
+                }
+                </div>
+
+                <hr style="width: 100%;">
+                <label><span id="valor_total_pedido">0,00</span></label>
+            </div>
+        </div>
+        `
+        
         var estruturaHtml = `
         <div id="estrutura" class="status" style="display: flex; flex-direction: column; gap: 10px; width: 100%; overflow: auto;">
         <span class="close" onclick="fechar_estrutura()">&times;</span>
@@ -1979,6 +2011,32 @@ async function abrir_esquema(id) {
         fechar_espelho_ocorrencias();
     }
 
+}
+
+function somarValoresPedidos() {
+    let total = 0;
+
+    document.querySelectorAll('.valores_pedidos').forEach(input => {
+        let valor = input.value.replace(/[^\d,.-]/g, '').replace(',', '.'); // Remove caracteres inválidos
+        let numero = parseFloat(valor) || 0;
+        total += numero;
+    });
+
+    console.log("Total dos valores pedidos: R$", total.toFixed(2));
+    return total;
+}
+
+function somarValoresManuais(dados) {
+    let totalManuais = 0;
+    
+    if (dados.valoresManuais) {
+        Object.values(dados.valoresManuais).forEach(valorManual => {
+            let valor = parseFloat(valorManual.valorManual) || 0;
+            totalManuais += valor;
+        });
+    }
+    
+    return totalManuais;
 }
 
 async function atualizar_pedido(chave1, chave2, campo, img_select) {
