@@ -619,29 +619,6 @@ async function lista_setores() {
     });
 }
 
-async function obter_departamentos_fixos() {
-
-    return new Promise((resolve, reject) => {
-        var url = 'https://leonny.dev.br/departamentos_fixos';
-
-        fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erro ao carregar os dados');
-                }
-                return response.json();
-            })
-            .then(data => {
-                localStorage.setItem('departamentos_fixos', JSON.stringify(data));
-                resolve();
-            })
-            .catch(error => {
-                console.error('Ocorreu um erro:', error);
-                reject(error);
-            });
-    });
-}
-
 function fecharTabela(nome_tabela) {
     document.getElementById(nome_tabela).style.display = 'none'
     document.getElementById('overlay').style.display = 'none'

@@ -319,7 +319,7 @@ async function abrir_detalhes(id_pagamento) {
         for (his in pagamento.historico) {
 
             let justificativa = pagamento.historico[his]
-            
+
             if (justificativa.status.includes("Qualidade")) {
 
                 tem_qualidade = true
@@ -572,7 +572,7 @@ async function abrir_detalhes(id_pagamento) {
             <label style="cursor: pointer; margin-right: 5px;">Excluir pagamento</label>
         </div>
         `
-        if(pagamento.status == 'Pagamento Excluído'){
+        if (pagamento.status == 'Pagamento Excluído') {
             excluir_pagamento += `
             <div onclick="relancar_pagamento('${id_pagamento}')" style="display: flex; align-items: center; justify-content: center; gap: 10px; background-color: #d2d2d2; border-radius: 3px; cursor: pointer; padding: 3px;">
                 <img src="imagens/concluido.png" style="cursor: pointer;">
@@ -1064,7 +1064,7 @@ async function criar_pagamento_v2(chave1) {
         var codigo_cliente = document.getElementById('codigo_omie').textContent
 
         let descricao = `Solicitante: ${acesso.usuario} |`
-        
+
         // Categorias
         var valores = central_categorias.querySelectorAll('input[type="number"]');
         var textareas = central_categorias.querySelectorAll('textarea');
@@ -1230,7 +1230,7 @@ async function atualizar_departamentos() {
     departamentos.style.display = 'none'
     aguarde.style.display = 'flex'
 
-    await obter_departamentos_fixos()
+    await localStorage.setItem('departamentos_fixos', JSON.stringify(await receber('departamentos_fixos')))
 
     departamentos.style.display = 'flex'
     aguarde.style.display = 'none'
