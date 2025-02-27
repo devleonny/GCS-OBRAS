@@ -1386,7 +1386,7 @@ async function exibir_todos_os_status(id) {
     })
 
     acumulado += `
-        <hr style="width: 80%">
+        <hr style="width: 100%">
         <div style="display: flex; align-items: start; justify-content: space-between; gap: 20px;">
             <div style="display: flex; flex-direction: column; justify-content: center;">
                 ${acumulado_botoes}
@@ -1551,6 +1551,13 @@ async function abrir_esquema(id) {
         </div>    
         `;
         var contador = 1;
+
+        acumulado +=`
+        
+        <div style=" display: flex; width: 100%; gap: 4vw;" id="div_geral">
+        <div style="max-width: 90%; display: flex; flex-direction: column;" id="painel_pedidos">
+
+        `
 
         for (chave_pedido in todos_os_status) {
 
@@ -1865,34 +1872,8 @@ async function abrir_esquema(id) {
                 cor_indicador = '#B12425'
             }
 
-            blocos_por_status['PAINEL'] = `
-            <div class="contorno_botoes" style="font-size: 1vw; display: flex; flex-direction: column; align-items: start; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
-                <label>Gestão de Custos</label>
-                ${pags}
-                <hr style="width: 100%;">
-                 <label style="font-size: 0.8vw;">${dados_orcamentos[id].total_geral} <label style="font-size: 0.8vw;">Valor do Pedido</label></label>
-                <hr style="width: 100%;">
-                <label onclick="valores_manuais()" style="font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
-    
-                <div id="lista-valores-manuais">
-                    ${Object.entries(dados_orcamentos[id].valoresManuais || {}).length > 0
-                    ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
-                            <div style="display: flex; align-items: center; gap: 5px;">
-                                <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
-                                <button onclick="removerValorManual('${id}', '${chave}')" 
-                                    style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
-                            </div>
-                        `).join("")
-                    : "<label style='font-size: 0.8vw; color: gray;'>Nenhum valor manual adicionado.</label>"
-                }
-                </div>
-
-                <hr style="width: 100%;">
-                <label>${dinheiro(calcularResultado(dados_orcamentos[id]))}</label>
-            </div>
-
-            `
             let blocos = ''
+
             for (div in blocos_por_status) {
                 let divisao = blocos_por_status[div]
                 blocos += `
@@ -1906,7 +1887,7 @@ async function abrir_esquema(id) {
             //29
             var linhas = `
                 <div style="display: flex; flex-direction: column; gap: 15px;">
-                    <hr style="width: 95%;">
+                    <hr style="width: 100%;">
 
                     <div style="display: flex;">
                         <div
@@ -1967,6 +1948,35 @@ async function abrir_esquema(id) {
             contador++;
 
         };
+
+        acumulado += `
+        </div>
+        <div class="contorno_botoes" style="font-size: 1vw; display: flex; flex-direction: column; align-items: center; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
+                <label>Gestão de Custos</label>
+                ${pags}
+                <hr style="width: 100%;">
+                 <label style="font-size: 0.8vw;">${dados_orcamentos[id].total_geral} <label style="font-size: 0.8vw;">Valor do Pedido</label></label>
+                <hr style="width: 100%;">
+                <label onclick="valores_manuais()" style="font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
+    
+                <div id="lista-valores-manuais">
+                    ${Object.entries(dados_orcamentos[id].valoresManuais || {}).length > 0
+                    ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
+                                <button onclick="removerValorManual('${id}', '${chave}')" 
+                                    style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
+                            </div>
+                        `).join("")
+                    : "<label style='font-size: 0.8vw; color: gray;'>Nenhum valor manual adicionado.</label>"
+                }
+                </div>
+
+                <hr style="width: 100%;">
+                <label>${dinheiro(calcularResultado(dados_orcamentos[id]))}</label>
+            </div>
+        </div>
+        `
 
         var estruturaHtml = `
         <div id="estrutura" class="status" style="display: flex; flex-direction: column; gap: 10px; width: 100%; overflow: auto;">
