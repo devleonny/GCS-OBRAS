@@ -1513,7 +1513,7 @@ async function abrir_esquema(id) {
                 var levantamento = dados_orcamentos[id].levantamentos[chave]
 
                 levantamentos += `
-                <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;" onclick="abrirArquivo('${levantamento.link}')">
+                <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
                     <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                         <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
                         <label style="font-size: 0.8em;">${String(levantamento.nome).slice(0, 10)} ... ${String(levantamento.nome).slice(-7)}</label>
@@ -1723,7 +1723,7 @@ async function abrir_esquema(id) {
 
                         anxsss += `
                         <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                            <div onclick="abrirArquivo('${anx.link}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                                 <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
                                 <label style="font-size: 0.8em;">${String(anx.nome).slice(0, 10)} ... ${String(anx.nome).slice(-7)}</label>
                             </div>

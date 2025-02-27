@@ -899,7 +899,7 @@ async function salvar_levantamento(id_orcamento) {
 
 async function excluir_levantamento(id_orcamento, id_anexo) {
 
-    let dados_orcamentos = recuperarDados('dados_orcamentos') || {}
+    let dados_orcamentos =  await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcamento]
     delete orcamento.levantamentos[id_anexo]
 
