@@ -1705,7 +1705,6 @@ async function abrir_esquema(id) {
 
 
                 if (String(sst.status).includes('FATURADO')) {
-                    console.log(sst)
 
                     editar = `
                         <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="carregar_status_divs('FATURAMENTO', '${chave_pedido}', '${id}', '${JSON.stringify(sst).replace(/"/g, '&quot;')}', true, '${chave2}')">
@@ -1957,8 +1956,6 @@ async function abrir_esquema(id) {
             
             let totalFinal = totalValoresPedidos - totalValoresManuais; // Cálculo final
         
-            console.log("Total calculado:", totalFinal);
-        
             // Atualiza o HTML no span específico
             let valorPedidoSpan = document.getElementById('valor_pedido');
             if (valorPedidoSpan) {
@@ -2022,7 +2019,6 @@ function somarValoresPedidos() {
         total += numero;
     });
 
-    console.log("Total dos valores pedidos: R$", total.toFixed(2));
     return total;
 }
 
@@ -3171,142 +3167,73 @@ function close_chave() {
 }
 
 async function salvar_anexo(chave1, chave2) {
-
-    let painel_novo_pedido = document.getElementById("painel_novo_pedido")
+    let painel_novo_pedido = document.getElementById("painel_novo_pedido");
 
     if (painel_novo_pedido) {
-
-        painel_novo_pedido.insertAdjacentHTML("beforebegin", overlay_aguarde())
-
+        painel_novo_pedido.insertAdjacentHTML("beforebegin", overlay_aguarde());
     }
 
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    var elemento = chave1 !== undefined
+    let dados_orcamentos = await recuperarDados("dados_orcamentos") || {};
+    let elemento = chave1 !== undefined
         ? document.getElementById(`adicionar_anexo_${chave1}_${chave2}`)
         : document.getElementById(`adicionar_anexo`);
 
-    var files = elemento.files;
-
-    if (!files || files.length === 0) {
-        openPopup_v2('Nenhum arquivo selecionado...');
+    if (!elemento || !elemento.files || elemento.files.length === 0) {
+        openPopup_v2("Nenhum arquivo selecionado...");
         return;
     }
 
-    let promises = [];
+    try {
+        let anexos = await anexo_v2(elemento); // Nova função de upload
 
-    for (let file of files) {
-        let promise = new Promise((resolve, reject) => {
-            var reader = new FileReader();
-            reader.onload = async (e) => {
-                var base64 = e.target.result.split(',')[1];
-                var mimeType = file.type;
+        if (chave1 === undefined && chave2 === undefined) {
+            let div_anexos = document.getElementById("div_anexos");
+            if (div_anexos) {
+                div_anexos.style.alignItems = "normal";
 
-                try {
-                    var response = await fetch('http://localhost:3000/upload', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            name: file.name,
-                            mimeType: mimeType,
-                            base64: base64
-                        })
-                    });
+                anexos.forEach(anexo => {
+                    let id = gerar_id_5_digitos();
+                    anexos[id] = anexo;
 
-                    if (response.ok) {
-                        var result = await response.json();
-                        resolve({ file, result });
-                    } else {
-                        var errorResult = await response.json();
-                        reject(new Error(errorResult.message || 'Erro desconhecido ao fazer upload.'));
-                    }
-                } catch (error) {
-                    reject(error);
-                }
-            };
-
-            reader.readAsDataURL(file);
-        });
-
-        promises.push(promise);
-    }
-
-    Promise.all(promises)
-        .then(results => {
-            results.forEach(({ file, result }) => {
-                if (chave1 === undefined && chave2 === undefined) {
-                    let div_anexos = document.getElementById('div_anexos')
-
-                    if (div_anexos) {
-                        let id = gerar_id_5_digitos();
-
-                        anexos[id] = {
-                            nome: file.name,
-                            formato: file.type,
-                            link: result.fileId
-                        };
-
-                        let resposta = `
-                            <div id="${id}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                                <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                    <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                                    <label style="font-size: 0.8em;">${String(file.name).slice(0, 10)} ... ${String(file.name).slice(-7)}</label>
-                                </div>
-                                <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="remover_anexo('${id}')">
+                    let resposta = `
+                        <div id="${id}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+                            <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                                <label style="font-size: 0.8em;">${String(anexo.nome).slice(0, 10)} ... ${String(anexo.nome).slice(-7)}</label>
                             </div>
-                            `;
-
-                        div_anexos.style = 'align-items: normal';
-                        div_anexos.insertAdjacentHTML('beforeend', resposta);
-                    }
-
-
-                } else {
-
-                    if (Array.isArray(dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos) || !dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos) {
-                        dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos = {};
-                    }
-
-                    let id_anx = gerar_id_5_digitos()
-                    let anx = {
-                        nome: file.name,
-                        formato: file.type,
-                        link: result.fileId
-                    }
-
-                    dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos[id_anx] = anx
-
-                    inserirDados(dados_orcamentos, 'dados_orcamentos');
-                    enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/anexos/${id_anx}`, anx)
-
-                    var estrutura = document.getElementById('estrutura');
-                    if (estrutura) {
-                        estrutura.remove();
-                    }
-
-                    abrir_esquema(id_orcam);
-                }
-
-            });
-
-        })
-        .catch(error => {
-            openPopup_v2(`Erro ao fazer upload: ${error.message}`);
-            console.error(error);
-        })
-        .finally(i => {
-
-            let aguarde = document.getElementById("aguarde")
-
-            if (aguarde) {
-
-                document.getElementById("aguarde").remove()
-
+                            <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="remover_anexo('${id}')">
+                        </div>
+                    `;
+                    div_anexos.insertAdjacentHTML("beforeend", resposta);
+                });
+            }
+        } else {
+            // Garante que existe a estrutura para anexos
+            let historico = dados_orcamentos[id_orcam].status[chave1].historico[chave2];
+            if (!historico.anexos || Array.isArray(historico.anexos)) {
+                historico.anexos = {};
             }
 
-        })
+            anexos.forEach(anexo => {
+                let id_anx = gerar_id_5_digitos();
+                historico.anexos[id_anx] = anexo;
 
+                inserirDados(dados_orcamentos, "dados_orcamentos");
+                enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/anexos/${id_anx}`, anexo);
+            });
+
+            // Recarrega a interface
+            let estrutura = document.getElementById("estrutura");
+            if (estrutura) estrutura.remove();
+            abrir_esquema(id_orcam);
+        }
+    } catch (error) {
+        openPopup_v2(`Erro ao fazer upload: ${error.message}`);
+        console.error(error);
+    } finally {
+        let aguarde = document.getElementById("aguarde");
+        if (aguarde) aguarde.remove();
+    }
 }
 
 

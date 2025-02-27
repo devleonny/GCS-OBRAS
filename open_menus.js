@@ -846,80 +846,54 @@ function enviar_dados_generico(dados) {
 }
 
 async function salvar_levantamento(id_orcamento) {
+    let elemento = document.getElementById("adicionar_levantamento");
 
-    var elemento = document.getElementById('adicionar_levantamento')
-    var file = elemento.files[0];
+    if (!elemento || !elemento.files || elemento.files.length === 0) {
+        openPopup_v2("Nenhum arquivo selecionado...");
+        return;
+    }
 
-    if (file) {
+    try {
+        let anexos = await anexo_v2(elemento); // Nova função de upload
 
-        var fileInput = elemento
-        var file = fileInput.files[0];
-        var fileName = file.name
+        let anexo_dados = {};
+        anexos.forEach(anexo => {
+            let id_anexo = gerar_id_5_digitos();
+            anexo_dados[id_anexo] = anexo;
+        });
 
-        if (!file) {
-            openPopup_v2('Nenhum arquivo selecionado...');
-            return;
-        }
+        if (id_orcamento) {
+            let dados_orcamentos = await recuperarDados("dados_orcamentos") || {};
+            let orcamento_v2 = dados_orcamentos[id_orcamento] || {};
 
-        var reader = new FileReader();
-        reader.onload = async (e) => {
-            var base64 = e.target.result.split(',')[1];
-            var mimeType = file.type;
-
-            var response = await fetch('http://localhost:3000/upload', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    name: fileName,
-                    mimeType: mimeType,
-                    base64: base64
-                })
-            });
-
-            var result = await response.json();
-            if (response.ok) {
-
-                var anexo = {};
-                let id_anexo = gerar_id_5_digitos();
-
-                anexo[id_anexo] = {
-                    nome: fileName,
-                    formato: mimeType,
-                    link: result.fileId
-                };
-
-                if (id_orcamento) {
-                    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-                    let orcamento_v2 = dados_orcamentos[id_orcamento] || {};
-
-                    if (!orcamento_v2.levantamentos) {
-                        orcamento_v2.levantamentos = {};
-                    }
-
-                    orcamento_v2.levantamentos[id_anexo] = anexo[id_anexo];
-
-                    await enviar(`dados_orcamentos/${id_orcamento}/levantamentos/${id_anexo}`, anexo[id_anexo]);
-                    await inserirDados(dados_orcamentos, 'dados_orcamentos');
-                    abrir_esquema(id_orcamento);
-                } else {
-                    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
-
-                    if (!orcamento_v2.levantamentos) {
-                        orcamento_v2.levantamentos = {};
-                    }
-
-                    orcamento_v2.levantamentos[id_anexo] = anexo[id_anexo];
-                    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
-                    recuperar_preenchido();
-                }
-
+            if (!orcamento_v2.levantamentos) {
+                orcamento_v2.levantamentos = {};
             }
 
-        };
+            Object.assign(orcamento_v2.levantamentos, anexo_dados);
 
-        reader.readAsDataURL(file);
+            await inserirDados(dados_orcamentos, "dados_orcamentos");
+
+            for (let id_anexo in anexo_dados) {
+                await enviar(`dados_orcamentos/${id_orcamento}/levantamentos/${id_anexo}`, anexo_dados[id_anexo]);
+            }
+
+            abrir_esquema(id_orcamento);
+        } else {
+            let orcamento_v2 = JSON.parse(localStorage.getItem("orcamento_v2")) || {};
+
+            if (!orcamento_v2.levantamentos) {
+                orcamento_v2.levantamentos = {};
+            }
+
+            Object.assign(orcamento_v2.levantamentos, anexo_dados);
+
+            localStorage.setItem("orcamento_v2", JSON.stringify(orcamento_v2));
+            recuperar_preenchido();
+        }
+    } catch (error) {
+        openPopup_v2(`Erro ao fazer upload: ${error.message}`);
+        console.error(error);
     }
 }
 
