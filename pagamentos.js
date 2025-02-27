@@ -1,6 +1,6 @@
 var overlay = document.getElementById('overlay')
 var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-let filtrosAtivosPagamentos = {}
+//let filtrosAtivosPagamentos = {}
 
 consultar_pagamentos()
 
