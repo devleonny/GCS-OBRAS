@@ -1,5 +1,6 @@
 var overlay = document.getElementById('overlay')
 var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+let filtrosAtivosPagamentos = {}
 
 consultar_pagamentos()
 
@@ -617,7 +618,7 @@ async function abrir_detalhes(id_pagamento) {
 
         </label>
         
-        <div style="display: flex; flex-direction: column; aling-items: start; justify-content: center; gap: 3px;">
+        <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 3px;">
             ${anexos}
         </div>
 
@@ -1454,9 +1455,13 @@ async function salvar_anexos_pagamentos(input, id_pagamento) { //29
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     let pagamento = lista_pagamentos[id_pagamento]
 
-    anexos.forEach(anexo => {
+    anexos.forEach(anexo => {   
 
         if (id_pagamento !== undefined) {
+
+            if (!pagamento.anexos) {
+                pagamento.anexos = {}
+            }
 
             pagamento.anexos[anexo.link] = anexo
             enviar(`lista_pagamentos/${id_pagamento}/anexos/${anexo.link}`, anexo)
