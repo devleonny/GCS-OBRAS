@@ -32,7 +32,7 @@ async function carregar_estoque() {
     let dados_estoque = await recuperarDados('dados_estoque') || {}
 
     if (Object.keys(dados_estoque).length == 0) {
-        return recuperar_estoque()
+        return await recuperar_estoque()
     }
 
     let thc = ''
@@ -62,6 +62,8 @@ async function carregar_estoque() {
             acc[key] = value;
             return acc;
         }, {});
+
+
 
     for (item in dados_estoque_ordenado) {
 
