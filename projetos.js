@@ -9,8 +9,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
         await carregarDadosDaNuvem(); // Busca os dados da nuvem 
     }
-});
 
+});
 let idListaAtual = null;
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -86,17 +86,26 @@ function fecharModalConfirmacao() {
     if (fundoEscuro) fundoEscuro.classList.add("oculto"); // Esconde o fundo escuro
 }
 
-document.getElementById("botao-cancelar").addEventListener("click", fecharModalConfirmacao);
+document.addEventListener("DOMContentLoaded", function () {
+    let botaoCancelar = document.getElementById("botao-cancelar");
+    let fundoEscuro = document.getElementById("fundo-escuro");
 
-document.getElementById("fundo-escuro").addEventListener("click", () => {
-    const modaisAbertos = document.querySelectorAll(".modal:not(.oculto)");
-    modaisAbertos.forEach(modal => {
-        modal.classList.add("oculto"); // Fecha os modais abertos
-    });
+    if (botaoCancelar) {
+        botaoCancelar.addEventListener("click", fecharModalConfirmacao);
+    }
 
-    const fundoEscuro = document.getElementById("fundo-escuro");
-    if (fundoEscuro) fundoEscuro.classList.add("oculto"); // Esconde o fundo-escuro
+    if (fundoEscuro) {
+        fundoEscuro.addEventListener("click", () => {
+            const modaisAbertos = document.querySelectorAll(".modal:not(.oculto)");
+            modaisAbertos.forEach(modal => {
+                modal.classList.add("oculto"); // Fecha os modais abertos
+            });
+
+            fundoEscuro.classList.add("oculto"); // Esconde o fundo escuro
+        });
+    }
 });
+
 
 document.addEventListener("DOMContentLoaded", () => {
     const quadro = document.getElementById("quadro"); // Container das listas
@@ -366,12 +375,7 @@ async function confirmarAdicionarLista() {
 
 function renderizarQuadro() {
     let quadro = document.getElementById("quadro");
-    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || {};
-
-    // 🛠️ Garante que cada propriedade seja um objeto antes de acessar
-    dados.listas = dados.listas && typeof dados.listas === "object" ? dados.listas : {};
-    dados.tarefas = dados.tarefas && typeof dados.tarefas === "object" ? dados.tarefas : {};
-    dados.etiquetasGlobais = dados.etiquetasGlobais && typeof dados.etiquetasGlobais === "object" ? dados.etiquetasGlobais : {};
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
 
     quadro.innerHTML = Object.values(dados.listas)
         .map(lista => {
@@ -384,18 +388,25 @@ function renderizarQuadro() {
                         <button class="botao-excluir" onclick="abrirModalConfirmacao('lista', '${lista.id}', '${lista.titulo}')">❌</button>
                     </div>
                     <div class="tarefas" ondrop="soltar(event)" ondragover="permitirSoltar(event)">
-                        ${tarefasDaLista.map(tarefa => `
-                            <div class="tarefa" draggable="true" ondragstart="arrastar(event)" id="${tarefa.id}" 
-                                onclick="abrirModal('${tarefa.lista}', '${tarefa.id}')">
-                                <div class="etiquetas-tarefa">
-                                    ${Object.values(tarefa.etiquetas || {}).map(etiqueta => `
-                                        <span class="etiqueta-bolinha" style="background-color: ${etiqueta.cor};"></span>
-                                    `).join("") || ""}
+                        ${tarefasDaLista.map(tarefa => {
+                let etiquetasDaTarefa = Object.values(dados.etiquetasGlobais).filter(etiqueta =>
+                    Array.isArray(etiqueta.usos) && etiqueta.usos.includes(tarefa.id)
+                );
+
+                return `
+                                <div class="tarefa" draggable="true" ondragstart="arrastar(event)" id="${tarefa.id}" 
+                                    onclick="abrirModal('${lista.id}', '${tarefa.id}')")">
+                                    <div class="etiquetas-tarefa">
+                                        ${etiquetasDaTarefa.map(etiqueta => `
+                                            <span class="etiqueta-bolinha" style="background-color: ${etiqueta.cor};">
+                                            </span>
+                                        `).join("")}
+                                    </div>
+                                    <p>${tarefa.texto}</p>
+                                    <button class="botao-excluir-tarefa" onclick="abrirModalConfirmacao('tarefa', '${tarefa.id}', '${tarefa.texto}'); event.stopPropagation();">❌</button>
                                 </div>
-                                <p>${tarefa.texto}</p>
-                                <button class="botao-excluir-tarefa" onclick="abrirModalConfirmacao('tarefa', '${tarefa.id}', '${tarefa.texto}'); event.stopPropagation();">❌</button>
-                            </div>
-                        `).join("")}
+                            `;
+            }).join("")}
                     </div>
                     <button onclick="adicionarTarefa('${lista.id}')">➕ Adicionar Tarefa</button>
                 </div>
@@ -541,9 +552,6 @@ function soltar(evento) {
     // 🔥 Atualiza na nuvem o novo local da tarefa
     enviar(`dados_kanban/tarefas/${idTarefa}/lista`, idListaDestino);
 
-    // 🔥 Usa a nova função para salvar corretamente
-    salvarTarefas(dados.tarefas);
-
     // Atualiza Interface
     renderizarQuadro();
 }
@@ -617,18 +625,21 @@ async function abrirModal(idLista, idTarefa) {
             <div class="etiquetas">
                 <h3>Etiquetas</h3>
         <div id="lista-etiquetas">
-        ${Object.entries(tarefaAlvo.etiquetas || {}).map(([idEtiqueta, etiqueta]) => {
-            let corTexto = definirCorTexto(etiqueta.cor); // 🔥 Chama a função para definir a cor do texto
-            return `
+    ${Object.entries(dados.etiquetasGlobais || {})
+                .filter(([idEtiqueta, etiqueta]) => etiqueta.usos && etiqueta.usos.includes(idTarefa)) // 🔥 Filtra apenas as etiquetas da tarefa
+                .map(([idEtiqueta, etiqueta]) => {
+                    let corTexto = definirCorTexto(etiqueta.cor); // 🔥 Chama a função para definir a cor do texto
+                    return `
                 <span class="etiqueta" style="background-color: ${etiqueta.cor}; color: ${corTexto};">
                     ${etiqueta.nome}
                     <button class="botao-excluir"
-                        onclick="removerEtiqueta('${idLista}', '${idTarefa}', '${idEtiqueta}')"
+                        onclick="removerEtiquetaTarefa('${idTarefa}', '${idEtiqueta}', '${idLista}')"
                         style="color: ${corTexto}; border: none; background: transparent; font-size: 14px;">✖</button>
                 </span>
             `;
-        }).join("") || "<p style='color: gray;'>Nenhuma etiqueta</p>"}
-        </div>
+                }).join("") || "<p style='color: gray;'>Nenhuma etiqueta</p>"}
+</div>
+
         
         <button onclick="exibirOpcoesEtiquetas('${idLista}', '${idTarefa}')">➕ Adicionar Etiqueta</button>
             </div>
@@ -1104,32 +1115,35 @@ function salvarTituloTarefa(idLista, idTarefa) {
     abrirModal(idLista, idTarefa);
 }
 
-function adicionarEtiquetaTarefa(idLista, idTarefa, idEtiqueta) {
-    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
+function adicionarEtiquetaTarefa(idTarefa, idEtiqueta, idLista) {
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { etiquetasGlobais: {} };
 
-    let tarefaAlvo = dados.tarefas[idTarefa];
-
-    if (!tarefaAlvo) return;
-
-    if (!tarefaAlvo.etiquetas || typeof tarefaAlvo.etiquetas !== "object") {
-        tarefaAlvo.etiquetas = {}; // 🔥 Agora etiquetas é um objeto
+    if (!dados.etiquetasGlobais[idEtiqueta]) {
+        alert("❌ Erro: A etiqueta não foi encontrada! Tente novamente.");
+        return;
     }
 
-    if (!tarefaAlvo.etiquetas[idEtiqueta]) {
-        let etiqueta = dados.etiquetasGlobais[idEtiqueta];
+    let etiqueta = dados.etiquetasGlobais[idEtiqueta];
 
-        if (!etiqueta) {
-            alert("Etiqueta não encontrada.");
-            return;
-        }
-
-        tarefaAlvo.etiquetas[idEtiqueta] = etiqueta; // 🔥 Agora armazenamos como objeto
-        salvarTarefas(dados.tarefas);
-
-        // 🔥 Envia apenas a nova etiqueta para a nuvem
-        enviar(`dados_kanban/tarefas/${idTarefa}/etiquetas/${idEtiqueta}`, etiqueta);
+    if (!Array.isArray(etiqueta.usos)) {
+        etiqueta.usos = [];
     }
 
+    // 🔥 Se a tarefa já estiver na lista, não adiciona novamente
+    if (!etiqueta.usos.includes(idTarefa)) {
+        etiqueta.usos.push(idTarefa);
+    } else {
+        alert("❌ Esta tarefa já possui essa etiqueta!");
+        return;
+    }
+
+    // 🔥 Atualiza o localStorage
+    localStorage.setItem("dados_kanban", JSON.stringify(dados));
+
+    // 🔥 Atualiza na nuvem
+    enviar(`dados_kanban/etiquetasGlobais/${idEtiqueta}/usos`, etiqueta.usos);
+
+    // 🔄 Atualiza a interface corretamente
     renderizarQuadro();
     abrirModal(idLista, idTarefa);
 }
@@ -1137,7 +1151,6 @@ function adicionarEtiquetaTarefa(idLista, idTarefa, idEtiqueta) {
 function adicionarEtiquetaGlobal(idLista, idTarefa) {
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
 
-    // 📌 Garante que as estruturas essenciais existam
     if (!dados.etiquetasGlobais || typeof dados.etiquetasGlobais !== "object") {
         dados.etiquetasGlobais = {};
     }
@@ -1150,28 +1163,22 @@ function adicionarEtiquetaGlobal(idLista, idTarefa) {
         return;
     }
 
-    // 📌 Garante que `unicoID` retorna um valor válido
-    let idEtiqueta = unicoID();
-    if (!idEtiqueta) {
-        return;
-    }
+    let idEtiqueta = unicoID(); // 🔥 Gera um ID único para a etiqueta
 
-    let novaEtiqueta = { id: idEtiqueta, nome, cor };
+    let novaEtiqueta = { id: idEtiqueta, nome, cor, usos: [] };
 
-    // 📌 Salva no objeto local e no localStorage
+    // 🔥 Salva no localStorage ANTES de tentar usar
     dados.etiquetasGlobais[idEtiqueta] = novaEtiqueta;
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
 
-    // 🔥 Enviar apenas a nova etiqueta para a nuvem
-    enviar(`dados_kanban/etiquetasGlobais/${idEtiqueta}`, novaEtiqueta);
+    // 🔥 Enviar para a nuvem antes de adicionar à tarefa
+    enviar(`dados_kanban/etiquetasGlobais/${idEtiqueta}`, novaEtiqueta).then(() => {
+        // 🔥 Agora que foi salvo, podemos adicionar à tarefa
+        adicionarEtiquetaTarefa(idTarefa, idEtiqueta, idLista);
+    });
 
-    // 📌 Atualiza a interface e a persistência global
-    salvarEtiquetasGlobais(dados.etiquetasGlobais);
-
-    // 📌 Só adiciona à tarefa se IDs forem válidos
-    if (idLista && idTarefa) {
-        adicionarEtiquetaTarefa(idLista, idTarefa, idEtiqueta);
-    }
+    // 🔄 Atualiza a interface
+    exibirOpcoesEtiquetas(idLista, idTarefa);
 }
 
 function removerEtiquetaConfirmada(idEtiqueta) {
@@ -1191,29 +1198,27 @@ function removerEtiquetaConfirmada(idEtiqueta) {
     renderizarQuadro();
 }
 
-function removerEtiqueta(idLista, idTarefa, idEtiqueta) {
-    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
+function removerEtiquetaTarefa(idTarefa, idEtiqueta, idLista) {
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { etiquetasGlobais: {} };
 
-    let tarefaAlvo = dados.tarefas[idTarefa];
-
-    if (!tarefaAlvo || !tarefaAlvo.etiquetas || !tarefaAlvo.etiquetas[idEtiqueta]) {
+    if (!dados.etiquetasGlobais[idEtiqueta]) {
         return;
     }
 
-    // 🗑️ Remove a etiqueta da tarefa
-    delete tarefaAlvo.etiquetas[idEtiqueta];
+    let etiqueta = dados.etiquetasGlobais[idEtiqueta];
 
-    // 🔥 Atualiza no localStorage
+    // 🔥 Remove a tarefa da lista de usos
+    etiqueta.usos = etiqueta.usos.filter(tarefaId => tarefaId != idTarefa);
+
+    enviar(`dados_kanban/etiquetasGlobais/${idEtiqueta}/usos`, etiqueta.usos);
+
+    // 🔥 Atualiza o localStorage
     localStorage.setItem("dados_kanban", JSON.stringify(dados));
-
-    // 🔥 Remove da nuvem
-    deletar(`dados_kanban/tarefas/${idTarefa}/etiquetas/${idEtiqueta}`);
 
     // 🔄 Atualiza a interface
     renderizarQuadro();
-    abrirModal(idLista, idTarefa); // Reabre o modal atualizado
+    abrirModal(idLista, idTarefa);
 }
-
 
 function inicializarEtiquetasGlobais() {
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: {} };
@@ -1238,11 +1243,14 @@ function exibirOpcoesEtiquetas(idLista, idTarefa) {
             <h3>Escolha uma Etiqueta</h3>
             <div id="lista-etiquetas-globais">
                 ${Object.entries(etiquetasGlobais).length > 0
-            ? Object.entries(etiquetasGlobais).map(([idEtiqueta, etiqueta]) => `
-                    <div class="etiqueta-opcao" onclick="adicionarEtiquetaTarefa('${idLista}', '${idTarefa}', '${idEtiqueta}')">
+            ? Object.entries(etiquetasGlobais)
+            .filter(([idEtiqueta]) => idEtiqueta !== "timestamp") // 🔥 FILTRA "timestamp"
+            .map(([idEtiqueta, etiqueta]) => 
+                `
+                    <div class="etiqueta-opcao" data-id="${idEtiqueta}" style="cursor: pointer;">
                         <span class="etiqueta-bolinha" style="background-color: ${etiqueta.cor};"></span>
                         <span class="etiqueta-nome">${etiqueta.nome}</span>
-                        <button class="botao-editar-etiqueta" onclick="editarEtiqueta('${idEtiqueta}'); event.stopPropagation();">✏️</button>
+                        <button class="botao-editar-etiqueta" onclick="editarEtiqueta('${idEtiqueta}', '${idLista}', '${idTarefa}'); event.stopPropagation();">✏️</button>
                         <button class="botao-excluir" onclick="abrirModalConfirmacao('etiquetaGlobal', '${idEtiqueta}', '${etiqueta.nome}'); event.stopPropagation();">❌</button>
                     </div>
                 `).join("")
@@ -1266,10 +1274,16 @@ function exibirOpcoesEtiquetas(idLista, idTarefa) {
         if (opcoesEtiquetas) {
             opcoesEtiquetas.scrollIntoView({ behavior: "smooth", block: "start" });
         }
-    }, 200);
+        document.querySelectorAll(".etiqueta-opcao").forEach(etiqueta => {
+            etiqueta.addEventListener("click", function () {
+                let idEtiqueta = this.getAttribute("data-id");
+                adicionarEtiquetaTarefa(idTarefa, idEtiqueta, idLista);
+            });
+        });
+    }, 100);
 }
 
-function editarEtiqueta(idEtiqueta) {
+function editarEtiqueta(idEtiqueta, idLista, idTarefa) {
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: {} };
     let etiqueta = dados.etiquetasGlobais[idEtiqueta];
 
@@ -1290,7 +1304,7 @@ function editarEtiqueta(idEtiqueta) {
         <input type="text" id="editar-etiqueta-nome" value="${etiqueta.nome}" />
         <label>Cor:</label>
         <input type="color" id="editar-etiqueta-cor" value="${etiqueta.cor}" />
-        <button onclick="salvarEdicaoEtiqueta('${idEtiqueta}')">Salvar</button>
+        <button onclick="salvarEdicaoEtiqueta('${idEtiqueta}','${idLista}', '${idTarefa}')">Salvar</button>
         <button onclick="fecharModalEdicao()">Cancelar</button>
     `;
 
@@ -1306,7 +1320,7 @@ function editarEtiqueta(idEtiqueta) {
     }, 200);
 }
 
-function salvarEdicaoEtiqueta(idEtiqueta) {
+function salvarEdicaoEtiqueta(idEtiqueta, idLista, idTarefa) {
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, etiquetasGlobais: {} };
     let etiqueta = dados.etiquetasGlobais[idEtiqueta];
 
@@ -1330,7 +1344,7 @@ function salvarEdicaoEtiqueta(idEtiqueta) {
     enviar(`dados_kanban/etiquetasGlobais/${idEtiqueta}/cor`, novaCor);
 
     fecharModalEdicao();
-    exibirOpcoesEtiquetas();
+    abrirModal(idLista, idTarefa)
 }
 
 function deletarEtiquetaGlobalConfirmada(idEtiqueta) {
@@ -1445,6 +1459,8 @@ async function carregarDadosDaNuvem() {
 
     console.log("Dados Recebidos!!!");
 
+    document.getElementById("aguarde").remove()
+
     if (dadosRecebidos) {
         if (!dadosRecebidos.etiquetasGlobais || typeof dadosRecebidos.etiquetasGlobais !== "object") {
             dadosRecebidos.etiquetasGlobais = {};
@@ -1455,9 +1471,8 @@ async function carregarDadosDaNuvem() {
         carregarListas();
         renderizarQuadro();
     }
-    
-    document.getElementById("aguarde").remove()
-    
+
+
 }
 
 function aplicarLimitador(input, maxCaracteres, idAviso) {
