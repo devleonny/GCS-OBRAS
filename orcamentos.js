@@ -588,7 +588,7 @@ async function abrir_manutencao(id) {
 
             for (his in historicos) {
                 let historico = historicos[his]
-    
+
                 if (historico.operacao == 'entrada') {
                     dic_quantidades[estoque] += historico.quantidade
                 } else if (historico.operacao == 'saida') {
@@ -604,7 +604,7 @@ async function abrir_manutencao(id) {
         celulas[3].value = peca.comentario
         celulas[4].value = dic_quantidades.estoque
         celulas[5].value = dic_quantidades.estoque_usado
-        
+
         i++
     }
 
@@ -835,7 +835,7 @@ async function criar_manutencao(id) {
 
         <div style="position: relative;" id="tela">
 
-            <div style="background-color: white; border-radius: 3px; padding: 5px; font-size: 0.9vw; width: 70vw;">
+            <div id="div_geral" style="background-color: white; border-radius: 3px; padding: 5px; font-size: 0.9vw; width: 70vw;">
                 <div style="position: relative; display: flex; align-items: center; justify-content: start; color: #222; background-color: #d2d2d2; padding: 5px; border-radius: 3px;">
                     <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
                         <label style="font-size: 1.2vw;">Cliente | Loja</label>
@@ -909,6 +909,12 @@ async function criar_manutencao(id) {
     }
 
     acumulado += `
+            <div class="contorno_botoes"
+                style="background-color: brown; display: flex; align-items: center; justify-content: center; gap: 10px;"
+                onclick="atualizar_base_clientes_manutencao()">
+                <img src="imagens/atualizar_2.png" style="cursor: pointer; width: 40px;">
+                <label>Atualizar Base Clientes</label>
+            </div>
                 </div>
             </div>
         </div>
@@ -919,6 +925,26 @@ async function criar_manutencao(id) {
     `;
 
     openPopup_v2(acumulado);
+}
+
+async function atualizar_base_clientes_manutencao() {
+
+    var div_geral = document.getElementById('div_geral')
+    div_geral.insertAdjacentHTML("beforebegin", overlay_aguarde())
+    let aguarde = document.getElementById("aguarde")
+
+    if (div_geral) {
+
+        await recuperar_clientes()
+
+    }
+
+    if(aguarde){
+
+        aguarde.remove()
+
+    }
+
 }
 
 async function excluir_manutencao(idManutencao) {
@@ -940,13 +966,13 @@ async function excluir_manutencao(idManutencao) {
 }
 
 async function confirmar_exclusao(idManutencao) {
-        await deletar(`dados_manutencao/${idManutencao}`);
-        
-        // Remove localmente se necessário
-        let dados_manutencao = await recuperarDados("dados_manutencao") || {};
-        delete dados_manutencao[idManutencao];
-        await inserirDados(dados_manutencao, "dados_manutencao");
-        f5()
+    await deletar(`dados_manutencao/${idManutencao}`);
+
+    // Remove localmente se necessário
+    let dados_manutencao = await recuperarDados("dados_manutencao") || {};
+    delete dados_manutencao[idManutencao];
+    await inserirDados(dados_manutencao, "dados_manutencao");
+    f5()
 }
 
 
@@ -1273,7 +1299,7 @@ async function sugestoes(textarea, div, base) {
 
 }
 
-async function definir_campo(elemento, div, string_html, omie, id) { 
+async function definir_campo(elemento, div, string_html, omie, id) {
 
     let campo = String(div).split('_')[1]
 
@@ -1300,7 +1326,7 @@ async function definir_campo(elemento, div, string_html, omie, id) {
 
             for (his in historicos) {
                 let historico = historicos[his]
-    
+
                 if (historico.operacao == 'entrada') {
                     dic_quantidades[estoque] += historico.quantidade
                 } else if (historico.operacao == 'saida') {
