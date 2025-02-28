@@ -542,7 +542,7 @@ async function carregar_itens(apenas_visualizar, requisicao, editar) {
 
             var lista_interna = todos_os_status[chave_pedido].historico;
 
-            Object.keys(lista_interna).forEach(chave2 => {
+            for(chave2 in lista_interna){
 
                 var sst = lista_interna[chave2]
 
@@ -560,7 +560,8 @@ async function carregar_itens(apenas_visualizar, requisicao, editar) {
 
                 }
 
-            })
+            }
+
         })
 
         infos.forEach(item => {
