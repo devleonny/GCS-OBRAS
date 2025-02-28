@@ -884,6 +884,37 @@ async function criar_manutencao(id) {
                     </div>
                 </div>
 
+                <div class="tabela_manutencao">
+                    <div class="linha"
+                        style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
+                        <div style="width: 25vw;">
+                            <label>Descrição</label>
+                        </div>
+                        <div style="width: 10vw;">
+                            <label>Quantidade</label>
+                        </div>
+                        <div style="width: 20vw;">
+                            <label>Comentário</label>
+                        </div>
+                        <div style="width: 10vw;">
+                            <label>Estoque</label>
+                        </div>
+                        <div style="width: 10vw;">
+                            <label>Estoque Usado</label>
+                        </div>
+                        <div style="width: 5vw;">
+                            <label>Remover</label>
+                        </div>
+                    </div>
+
+                    <div id="linhas_manutencao">
+                        <div id="excluir_inicial" class="linha" style="width: 70vw;">
+                            <label>Lista Vazia</label>
+                        </div>
+                    </div>
+
+                </div>
+
                 <br>
 
                 <div style="display: flex; align-items: start; justify-content: left; gap: 5px;">
