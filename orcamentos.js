@@ -809,70 +809,58 @@ async function capturar_html_pdf(id) {
     await abrir_manutencao(id)
 }
 
+async function criar_manutencao(id) {
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {};
+    let dados_manutencao = await recuperarDados('dados_manutencao') || {};
 
-function criar_manutencao(id) {
-
-    let termo = 'Editar'
-    let botao = 'Atualizar'
+    let termo = 'Editar';
+    let botao = 'Atualizar';
     let pdf = `
         <div onclick="capturar_html_pdf('${id}')" class="contorno_botoes" style="background-color: #B12425; display: flex; align-items: center; justify-content: center; gap: 10px;">
             <img src="imagens/pdf.png" style="cursor: pointer; width: 40px;">
             <label>PDF</label>
-        </div>`
-    if (id == undefined) {
-        termo = 'Criar'
-        botao = 'Enviar para Logística'
-        pdf = ''
-        id = gerar_id_5_digitos()
+        </div>`;
+
+    if (!id) { // Se id for undefined, significa que estamos criando um novo registro
+        termo = 'Criar';
+        botao = 'Enviar para Logística';
+        pdf = '';
+        id = gerar_id_5_digitos(); // Gera um novo ID
     }
 
     let acumulado = `
         <img src="imagens/BG.png" style="height: 70px; position: absolute; top: 0; left: 0;">
 
-        <label>${termo} <strong> Requisição de Materiais </strong> </label>
+        <label>${termo} <strong> Requisição de Materiais </strong></label>
 
         <div style="position: relative;" id="tela">
 
             <div style="background-color: white; border-radius: 3px; padding: 5px; font-size: 0.9vw; width: 70vw;">
-
-                <div
-                    style="position: relative; display: flex; align-items: center; justify-content: start; color: #222; background-color: #d2d2d2; padding: 5px; border-radius: 3px;">
+                <div style="position: relative; display: flex; align-items: center; justify-content: start; color: #222; background-color: #d2d2d2; padding: 5px; border-radius: 3px;">
                     <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
-
                         <label style="font-size: 1.2vw;">Cliente | Loja</label>
                         <label id="codigo_cliente" style="display: none"></label>
                         <div style="position: relative;">
-                            <textarea type="text" id="cliente" oninput="sugestoes(this, 'sug_cliente', 'clientes')"
-                                placeholder="..."></textarea>
+                            <textarea type="text" id="cliente" oninput="sugestoes(this, 'sug_cliente', 'clientes')" placeholder="..."></textarea>
                             <div class="autocomplete-list" id="sug_cliente"></div>
                         </div>
-
-                        <div id="endereco_cliente"
-                            style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;">
-                        </div>
-
+                        <div id="endereco_cliente" style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;"></div>
                     </div>
 
                     <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
                         <label style="font-size: 1.2vw;">TÉCNICO</label>
                         <label id="codigo_tecnico" style="display: none"></label>
                         <div style="position: relative;">
-                            <textarea type="text" id="tecnico" oninput="sugestoes(this, 'sug_tecnico', 'clientes')"
-                                placeholder="..."></textarea>
+                            <textarea type="text" id="tecnico" oninput="sugestoes(this, 'sug_tecnico', 'clientes')" placeholder="..."></textarea>
                             <div class="autocomplete-list" id="sug_tecnico"></div>
                         </div>
-
-                        <div id="endereco_tecnico"
-                            style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;">
-                        </div>
+                        <div id="endereco_tecnico" style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;"></div>
                     </div>
 
                     <div style="display: flex; flex-direction: column; align-items: start; gap: 5px;">
-                        <div
-                            style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: start; gap: 20px;">
+                        <div style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: start; gap: 20px;">
                             <label style="font-size: 1.2vw;">Status Manutenção</label>
-                            <select id="status_manutencao"
-                                style="padding: 5px; border-radius: 3px; cursor: pointer; width: 10vw; font-size: 0.8vw;">
+                            <select id="status_manutencao" style="padding: 5px; border-radius: 3px; cursor: pointer; width: 10vw; font-size: 0.8vw;">
                                 <option>MANUTENÇÃO</option>
                                 <option>REQUISIÇÃO AVULSA</option>
                                 <option>MATERIAL SEPARADO</option>
@@ -881,88 +869,86 @@ function criar_manutencao(id) {
                                 <option>REPROVADO</option>
                             </select>
                         </div>
-                        <div
-                            style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
+                        <div style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
                             <label style="font-size: 1.2vw;">Kit Técnico</label>
-                            <input id="kit" type="checkbox" style="width: 2vw; height: 2vw; cursor: pointer;"
-                                onclick="alterar_kit(this)">
+                            <input id="kit" type="checkbox" style="width: 2vw; height: 2vw; cursor: pointer;" onclick="alterar_kit(this)">
                         </div>
-                        <div id="div_chamado"
-                            style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
+                        <div id="div_chamado" style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
                             <label style="font-size: 1.2vw;">Chamado</label>
-                            <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text"
-                                placeholder="..." id="chamado">
+                            <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text" placeholder="..." id="chamado">
                         </div>
-                        <div
-                            style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
+                        <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
                             <label style="font-size: 1.2vw;">Comentário</label>
                             <textarea type="text" placeholder="..." id="comentario"></textarea>
                         </div>
                     </div>
-
-                </div>
-
-                <br>
-
-                <div class="tabela_manutencao">
-                    <div class="linha"
-                        style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
-                        <div style="width: 25vw;">
-                            <label>Descrição</label>
-                        </div>
-                        <div style="width: 10vw;">
-                            <label>Quantidade</label>
-                        </div>
-                        <div style="width: 20vw;">
-                            <label>Comentário</label>
-                        </div>
-                        <div style="width: 10vw;">
-                            <label>Estoque</label>
-                        </div>
-                        <div style="width: 10vw;">
-                            <label>Estoque Usado</label>
-                        </div>
-                        <div style="width: 5vw;">
-                            <label>Remover</label>
-                        </div>
-                    </div>
-
-                    <div id="linhas_manutencao">
-                        <div id="excluir_inicial" class="linha" style="width: 70vw;">
-                            <label>Lista Vazia</label>
-                        </div>
-                    </div>
-
                 </div>
 
                 <br>
 
                 <div style="display: flex; align-items: start; justify-content: left; gap: 5px;">
-                    <div onclick="adicionar_linha_manut()" class="contorno_botoes"
-                        style="background-color: #151749; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <div onclick="adicionar_linha_manut()" class="contorno_botoes" style="background-color: #151749; display: flex; align-items: center; justify-content: center; gap: 10px;">
                         <img src="imagens/chamados.png" style="cursor: pointer; width: 40px;">
                         <label>Adicionar Peça</label>
                     </div>
-                    <div onclick="enviar_manutencao('${id}')" class="contorno_botoes"
-                        style="background-color: green; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <div onclick="enviar_manutencao('${id}')" class="contorno_botoes" style="background-color: green; display: flex; align-items: center; justify-content: center; gap: 10px;">
                         <img src="imagens/estoque.png" style="cursor: pointer; width: 40px;">
                         <label>${botao}</label>
                     </div>
-                    ${pdf}
+                    ${pdf}`;
+
+    // Verifica se o botão de exclusão deve ser exibido
+    if (id && dados_manutencao[id] && (acesso.permissao === "adm" || acesso.usuario === dados_manutencao[id].usuario)) {
+        acumulado += `
+            <div class="contorno_botoes"
+                style="background-color: red; display: flex; align-items: center; justify-content: center; gap: 10px;"
+                onclick="excluir_manutencao('${id}')">
+                <img src="imagens/excluir.png" style="cursor: pointer; width: 40px;">
+                <label>Excluir</label>
+            </div>`;
+    }
+
+    acumulado += `
                 </div>
-
             </div>
-
         </div>
 
         <div id="historico"></div>
 
-        <label id="data"
-            style="position: absolute; bottom: 10px; right: 20px; font-size: 0.8vw;">${data_atual('completa')}</label>
-    
-    `
-    openPopup_v2(acumulado)
+        <label id="data" style="position: absolute; bottom: 10px; right: 20px; font-size: 0.8vw;">${data_atual('completa')}</label>
+    `;
+
+    openPopup_v2(acumulado);
 }
+
+async function excluir_manutencao(idManutencao) {
+    openPopup_v2(`
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <label style="font-size: 1.2vw;">Tem certeza que deseja excluir esta manutenção?</label>
+            <div style="display: flex; gap: 20px;">
+                <button onclick="confirmar_exclusao('${idManutencao}')" 
+                    style="background-color: red; color: white; padding: 10px 20px; border: none; cursor: pointer; font-size: 1vw;">
+                    Sim, excluir
+                </button>
+                <button onclick="fecharPopup()" 
+                    style="background-color: gray; color: white; padding: 10px 20px; border: none; cursor: pointer; font-size: 1vw;">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    `);
+}
+
+async function confirmar_exclusao(idManutencao) {
+        await deletar(`dados_manutencao/${idManutencao}`);
+        
+        // Remove localmente se necessário
+        let dados_manutencao = await recuperarDados("dados_manutencao") || {};
+        delete dados_manutencao[idManutencao];
+        await inserirDados(dados_manutencao, "dados_manutencao");
+        f5()
+}
+
 
 function alterar_kit(checkbox) {
     let chamado = document.getElementById('chamado')
