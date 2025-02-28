@@ -648,6 +648,7 @@ async function abrir_manutencao(id) {
                     <label><strong>Data:</strong> ${historico.data}</label>
                     <label><strong>Status:</strong> ${historico.status_manutencao}</label>
                     <label><strong>Usuário:</strong> ${historico.usuario}</label>
+                    <label><strong>Criado Por:</strong>${historico.criadoPor}</label>
                     <label><strong>Comentário:</strong></label>
                     <textarea style="width: 20vw;" readOnly>${historico.comentario}</textarea>
                 </div>
@@ -1163,6 +1164,11 @@ async function enviar_manutencao(id) {
     manutencao.analista = acesso.nome_completo
 
     let dados_manutencao = await recuperarDados('dados_manutencao') || {}
+    //Adiciona o campo Criado Por apenas se for uma nova requisição
+    if (dados_manutencao[id]) {
+        manutencao.criadoPor = acesso.nome_completo;
+    }
+    
 
     if (dados_manutencao[id]) {
         manutencao.historico = {}
@@ -1173,6 +1179,7 @@ async function enviar_manutencao(id) {
         }
 
         manutencao.historico[gerar_id_5_digitos()] = dados_manutencao[id]
+        manutencao.criadoPor = dados_manutencao[id].criadoPor
     }
 
     let tabela = document.getElementById('linhas_manutencao')
