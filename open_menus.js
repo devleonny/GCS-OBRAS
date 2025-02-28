@@ -1196,7 +1196,7 @@ async function espelhar_atualizacao(objeto) {
     }
 
     if (arquivo === "dados_kanban" && document.title === "KANBAN") {
-        carregarDadosDaNuvem()
+        carregarListas();
     }
 
 }
