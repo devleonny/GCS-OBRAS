@@ -1526,7 +1526,6 @@ async function atualizar_base_clientes() {
 
     }
 
-
 }
 
 function calcular_custo() {
