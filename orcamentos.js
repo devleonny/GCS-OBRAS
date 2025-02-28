@@ -529,7 +529,7 @@ async function abrir_manutencao(id) {
         dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
     }
 
-    criar_manutencao(id)
+    await criar_manutencao(id)
     let manutencao = dados_manutencao[id]
     let pecas = manutencao.pecas
 
