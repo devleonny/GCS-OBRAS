@@ -1111,7 +1111,7 @@ function botao_novo_pedido(id) {
 
 function botao_novo_pagamento(id) {
     return `
-    <div class="contorno_botoes" style="background-color: #097fe6" onclick="tela_pagamento('${id}')">
+    <div class="contorno_botoes" style="background-color: #097fe6" onclick="tela_pagamento()">
         <label>Novo <strong>Pagamento</strong></label>
     </div>   
 `}

@@ -40,7 +40,7 @@ async function consultar_pagamentos() {
     var pagamentosFiltrados = Object.keys(lista_pagamentos)
         .map(pagamento => {
 
-            var pg = lista_pagamentos[pagamento];
+            var pg = lista_pagamentos[pagamento]; //29
             var valor_categorias = pg.param[0].categorias.map(cat =>
                 `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
             ).join('');
@@ -202,7 +202,7 @@ async function consultar_pagamentos() {
     var div_titulos = `
     <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; width: 30%;">
 
-        <div class="contorno_botoes" style="background-color: #097fe6" onclick="tela_pagamento()">
+        <div class="contorno_botoes" style="background-color: #097fe6" onclick="tela_pagamento(true)">
             <label>Novo <strong>Pagamento</strong></label>
         </div>
 
@@ -264,25 +264,14 @@ async function abrir_detalhes(id_pagamento) {
         dados_clientes_invertido[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
     }
 
-    dados_clientes = dados_clientes_invertido;
+    dados_clientes = dados_clientes_invertido // Cod Omie em evidência;
 
-    let label_pedido = ''
     let pagamento = lista_pagamentos[id_pagamento]
+
+    console.log(pagamento)
 
     if (dados_orcamentos[pagamento.id_orcamento]) {
         cc = dados_orcamentos[pagamento.id_orcamento].dados_orcam.cliente_selecionado
-
-        if (dados_orcamentos[pagamento.id_orcamento].status[pagamento.id_pedido]) {
-            let historico = dados_orcamentos[pagamento.id_orcamento].status[pagamento.id_pedido].historico
-            for (chave2 in historico) {
-                if (historico[chave2].status == 'PEDIDO') {
-                    label_pedido = `
-                    <label><strong>Número do Pedido • </strong>${historico[chave2].pedido}</label>
-                    `
-                }
-            }
-        }
-
     } else {
         cc = pagamento.id_orcamento
     }
@@ -475,11 +464,11 @@ async function abrir_detalhes(id_pagamento) {
                     orcamento = dados_orcamentos[pagamento.id_orcamento]
                 }
 
-                if (orcamento.status && orcamento.status[pagamento.id_pedido] && orcamento.status[pagamento.id_pedido].historico) {
-                    var his = orcamento.status[pagamento.id_pedido].historico
+                if (orcamento.status && orcamento.status.historico && orcamento.status.historico) {
+                    var his = orcamento.status.historico
                     for (hist in his) {
                         var item_historico = his[hist]
-                        if (String(item_historico.status).includes('ANEXADO')) {
+                        if (String(item_historico.status).includes('PEDIDO')) {
                             let anexos = item_historico.anexos
 
                             for (anx in anexos) {
@@ -593,7 +582,6 @@ async function abrir_detalhes(id_pagamento) {
             <label><strong>Centro de Custo</strong> • ${cc}</label>
             <img src="gifs/alerta.gif" style="width: 30px; cursor: pointer;" onclick="alterar_centro_de_custo('${id_pagamento}')">
         </div>
-        ${label_pedido}
         <label><strong>Data de Solicitação</strong> • ${pagamento.data_registro}</label>
         <label><strong>Data de Pagamento</strong> • ${pagamento.param[0].data_vencimento}</label>
 
@@ -991,7 +979,7 @@ function alterar_centro_de_custo(id) {
     <div class="autocomplete-container">
         <label id="id_orcamento" style="display: none;"></label>
         <textarea style="width: 80%;" type="text" class="autocomplete-input" id="cc"
-            placeholder="42017... ou D7777 ou SAM'S... ou LOGÍSTICA..." oninput="carregar_opcoes_cc(this)"></textarea>
+            placeholder="Chamado D7777 ou Loja SAM'S... ou Setor LOGÍSTICA..." oninput="carregar_opcoes_cc(this)"></textarea>
         <div class="autocomplete-list"></div>
     </div>
 
@@ -1002,15 +990,12 @@ function alterar_centro_de_custo(id) {
 
 async function salvar_centro_de_custo(id) {
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-    let id_pedido = document.getElementById('id_pedido').textContent
     let id_orcamento = document.getElementById('id_orcamento').textContent
     var pagamento = lista_pagamentos[id]
 
     pagamento.id_orcamento = id_orcamento
-    pagamento.id_pedido = id_pedido
 
     enviar(`lista_pagamentos/${id}/id_orcamento`, id_orcamento)
-    enviar(`lista_pagamentos/${id}/id_pedido`, id_pedido)
 
     await inserirDados(lista_pagamentos, 'lista_pagamentos');
     fechar_e_abrir(id)
@@ -1046,11 +1031,9 @@ async function salvar_comentario_pagamento(id) {
 }
 
 
-async function criar_pagamento_v2(id) {
+async function criar_pagamento_v2() {
 
     if (!await calculadora_pagamento()) {
-
-        id_orcam = id
 
         var id_pagamento = unicoID()
         var acesso = JSON.parse(localStorage.getItem('acesso'))
@@ -1141,17 +1124,16 @@ async function criar_pagamento_v2(id) {
 
         var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
-        var depart = ''
-        if (chave1 == '') {
-            depart = id_orcam
-        }
-
         let ultimo_pagamento = JSON.parse(localStorage.getItem('ultimo_pagamento')) || {}
+
+        if (!id_orcam) { // Caso a tela atual seja a de pagamentos; e neste caso a variável global não existirá;
+            var id_orcam = document.getElementById('id_orcamento').textContent
+        }
 
         var pagamento = {
             'id_pagamento': id_pagamento,
             'id_orcamento': id_orcam,
-            'departamento': depart,
+            'departamento': id_orcam,
             'data_registro': data_atual('completa'),
             'anexos': ultimo_pagamento.anexos,
             'anexos_parceiros': ultimo_pagamento.anexos_parceiros,
@@ -1236,7 +1218,7 @@ function ordenar() {
     return ordem
 }
 
-async function tela_pagamento(id) {
+async function tela_pagamento(tela_atual_em_orcamentos) {
 
     ordem = 0
 
@@ -1251,7 +1233,7 @@ async function tela_pagamento(id) {
     }, 1000);
 
     var datalist = ''
-    if (id == undefined) {
+    if (tela_atual_em_orcamentos) {
 
         datalist += `
         <div class="ordem">
@@ -1264,7 +1246,7 @@ async function tela_pagamento(id) {
                 <div class="autocomplete-container">
                     <label id="id_orcamento" style="display: none;"></label>
                     <textarea style="width: 80%;" type="text" class="autocomplete-input"
-                        placeholder="42017... ou D7777 ou SAM'S... ou LOGÍSTICA..." oninput="carregar_opcoes_cc(this)" id="cc"></textarea>
+                        placeholder="Chamado D7777 ou Loja SAM'S... ou Setor LOGÍSTICA..." oninput="carregar_opcoes_cc(this)" id="cc"></textarea>
                     <div class="autocomplete-list"></div>
                 </div>
 
@@ -1429,7 +1411,7 @@ async function tela_pagamento(id) {
                 <label>Total do pagamento</label>
                 <label style="font-size: 2.0em;" id="total_de_pagamento">R$ 0,00</label>
                 <label id="liberar_botao" class="contorno_botoes" style="background-color: green; display: none;"
-                    onclick="criar_pagamento_v2('${id}')">Salvar Pagamento</label>
+                    onclick="criar_pagamento_v2()">Salvar Pagamento</label>
             </div>
 
         </div>
@@ -1650,15 +1632,13 @@ async function calculadora_pagamento() {
 
         }
 
-        if (document.getElementById('id_orcamento') && document.getElementById('id_pedido')) {
+        if (document.getElementById('id_orcamento')) {
 
             let id_orcamento = document.getElementById('id_orcamento').textContent
-            let id_pedido = document.getElementById('id_pedido').textContent
 
-            if (id_orcamento !== '' && id_pedido !== '') {
+            if (id_orcamento !== '') {
                 colorir('green', 'cc_numero')
                 ultimo_pagamento.id_orcamento = id_orcamento
-                ultimo_pagamento.id_pedido = id_pedido
             } else {
                 bloqueio = true
                 colorir('#B12425', 'cc_numero')
@@ -1812,13 +1792,13 @@ async function recuperar_ultimo_pagamento() {
             cliente_selecionado = dados_orcamentos[ultimo_pagamento.id_orcamento].dados_orcam.cliente_selecionado
         }
 
-        if (document.getElementById('cc') && document.getElementById('id_orcamento') && document.getElementById('id_pedido')) {
+        if (document.getElementById('cc') && document.getElementById('id_orcamento')) {
 
             document.getElementById('cc').value = cliente_selecionado || ''
             document.getElementById('id_orcamento').textContent = ultimo_pagamento.id_orcamento || ''
-            document.getElementById('id_pedido').textContent = ultimo_pagamento.id_pedido || ''
 
         }
+
         document.getElementById('descricao_pagamento').value = ultimo_pagamento.descricao || ''
         let forma_pagamento = document.getElementById('forma_pagamento')
 
