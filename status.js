@@ -948,7 +948,7 @@ async function salvar_pedido(chave) {
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
 
-    abrir_esquema(id_orcam)
+    await abrir_esquema(id_orcam)
 }
 
 async function salvar_notas(chave) {
@@ -1078,7 +1078,7 @@ async function salvar_requisicao(chave) {
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
 
-    abrir_esquema(id_orcam)
+    await abrir_esquema(id_orcam)
 
     itens_adicionais = {}
 }
@@ -1439,6 +1439,71 @@ async function abrir_esquema(id) {
         let tem_pagamento = false
         let pagamentos_painel = {}
         var historico = orcamento.status.historico || {}
+
+        for (pag in lista_pagamentos) {
+
+            var pagamento = lista_pagamentos[pag]
+            var comentario = 'Sem observação'
+            if (pagamento.param[0].observacao) {
+                comentario = pagamento.param[0].observacao.replace(/\|/g, '<br>')
+            }
+
+            if (pagamento.id_orcamento == id) {
+                string_pagamentos += `
+                <div style="display: flex; flex-direction: column; border-radius: 5px; border: solid 1px white; padding: 10px; background-color: white; color: #222;">
+                        
+                    <label style="display: flex; gap: 10px;"><strong>${pagamento.status}</strong></label>
+                    <label><strong>Data:</strong> ${pagamento.param[0].data_previsao}</label>
+                    <label><strong>Observação:</strong><br>${comentario}</label>
+                    `
+                pagamento.param[0].categorias.forEach(cat => {
+                    var nome_cat = ''
+                    categorias[cat.codigo_categoria] ? nome_cat = categorias[cat.codigo_categoria] : nome_cat = cat.codigo_categoria
+                    string_pagamentos += `
+                        <label><strong>Categoria:</strong> ${nome_cat} • R$ ${dinheiro(cat.valor)}</label>
+                        `
+
+                    if (!pagamentos_painel[pagamento.status]) {
+                        pagamentos_painel[pagamento.status] = 0
+                    }
+                    pagamentos_painel[pagamento.status] += Number(cat.valor)
+
+                })
+                string_pagamentos += `
+                    </div>
+                    `
+                tem_pagamento = true
+            }
+
+        }
+
+        if (tem_pagamento) {
+
+            if (!blocos_por_status['PAGAMENTOS']) {
+                blocos_por_status['PAGAMENTOS'] = ''
+            }
+
+            blocos_por_status['PAGAMENTOS'] = `
+            <div class="bloko"
+            style="background-color: #097fe6; height: max-content; overflow-y: auto;">
+                <div style="display: flex; justify-content: center; align-items: center;">
+                    <label style="color: white; font-size: 1.3vw;">Pagamentos</label>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
+                    <img src="imagens/pesquisar.png" style="width: 1vw;">
+                    <input style="width: 12vw; font-size: 0.7vw; padding: 3px; border-radius: 3px;" placeholder="Pesquisar pagamento" oninput="pesquisar_pagamentos(this)">
+                </div>
+                <div style="height: max-content; max-height: 500px; overflow: auto;">
+                    <div class="escondido" style="display: none; flex-direction: column; justify-content: start; align-items: center; gap: 10px;">
+                        ${string_pagamentos}
+                    </div>
+                </div>
+
+                <div style="cursor: pointer; background-color: #097fe6; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
+                    <label style="color: white; font-size: 0.9vw;">▼</label>
+                </div>
+            </div>
+        `}
 
         for (chave in historico) {
 
@@ -2455,9 +2520,11 @@ function toggle_comentario(id) {
     }
 }
 
-function pesquisar_pagamentos(chave) {
-    var todos_os_pagamentos = document.getElementById('div_pagamentos_pesquisa_' + chave)
-    var pesquisa = String(document.getElementById(chave).value).toLowerCase()
+function pesquisar_pagamentos(input) {
+    let div_do_input = input.parentElement
+    let div_pagamentos = div_do_input.nextElementSibling
+    let todos_os_pagamentos = div_pagamentos.querySelector('.escondido')
+    let pesquisa = String(input.value).toLowerCase()
 
     if (todos_os_pagamentos) {
         var divs = todos_os_pagamentos.querySelectorAll('div')

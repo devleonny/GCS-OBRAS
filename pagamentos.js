@@ -1125,9 +1125,10 @@ async function criar_pagamento_v2() {
         var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
         let ultimo_pagamento = JSON.parse(localStorage.getItem('ultimo_pagamento')) || {}
+        let id_orcamento = document.getElementById('id_orcamento')
 
-        if (!id_orcam) { // Caso a tela atual seja a de pagamentos; e neste caso a variável global não existirá;
-            var id_orcam = document.getElementById('id_orcamento').textContent
+        if (id_orcamento) {
+            id_orcam = id_orcamento.textContent
         }
 
         var pagamento = {
