@@ -1465,11 +1465,11 @@ async function recuperarCotacoes() {
 
     document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
 
-    const resposta = await fetch(
-        'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=cotacoes'
-    );
+    // const resposta = await fetch(
+    //     'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=cotacoes'
+    // );
 
-    const dados = await resposta.json();
+    const dados = await receber("dados_cotacao");
 
     // Inicializar o objeto para armazenar as cotações
     let cotacoes = {};
@@ -1573,7 +1573,6 @@ async function removerCotacao(elemento) {
 
     console.log(`Cotação removida com ID: ${idCotacao}`);
 }
-
 
 let ordemAtual = {
     coluna: null,
