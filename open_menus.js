@@ -18,6 +18,14 @@ localStorage.removeItem('lista_pagamentos')
 localStorage.removeItem('dados_pagamentos')
 localStorage.removeItem('timestamps')
 
+function inicial_maiuscula(string) {
+    if (string == undefined) {
+        return ''
+    }
+    string.includes('_') ? string = string.split('_').join(' ') : ''
+    return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+}
+
 function overlay_aguarde() {
 
     let elemento = `           
@@ -978,7 +986,7 @@ function filtrar_tabela(coluna, id, elementoTH) {
         }
     })
 
-    elementoTH.insertAdjacentHTML('beforeend', `<img src="imagens/${simbolo}" style="border-radius: 3px; position: absolute; top: 3px; right: 3px; width: 20px; background-color: #222;">`)
+    elementoTH.insertAdjacentHTML('beforeend', `<img src="imagens/${simbolo}" style="border-radius: 3px; position: absolute; top: 3px; right: 3px; width: 20px; background-color: #d2d2d2;">`)
 }
 
 function capturarValorCelula(celula) {
@@ -1200,26 +1208,6 @@ async function espelhar_atualizacao(objeto) {
     }
 
     await inserirDados(dados, arquivo);
-
-    if (arquivo === "dados_orcamentos" && document.title === "ORÇAMENTOS") {
-        await preencher_orcamentos_v2();
-    }
-
-    if (arquivo === "dados_composicoes" && document.title === "COMPOSIÇÕES") {
-        carregar_tabela_v2();
-    }
-
-    if (arquivo === "dados_composicoes" && document.title === "Criar Orçamento") {
-        tabela_produtos_v2()
-    }
-
-    if (arquivo === "dados_estoque" && document.title === "ESTOQUE") {
-        await retomar_paginacao();
-    }
-
-    if (arquivo == 'lista_pagamentos' && document.title === 'PAGAMENTOS') {
-        await consultar_pagamentos()
-    }
 
     if (arquivo === "dados_kanban" && document.title === "KANBAN") {
         carregarDadosDaNuvem()

@@ -41,7 +41,7 @@ async function carregar_estoque() {
     colunas.forEach((col, i) => {
 
         let indice_correto = i + 1
-        let coluna = String(col).toUpperCase()
+        let coluna = inicial_maiuscula(col)
         thc += `<th style="cursor: pointer; position: relative;" onclick="filtrar_tabela('${indice_correto}', 'tabela_estoque', this)">${coluna}</th>`
 
         if (coluna == 'EXCLUIR') {
@@ -148,7 +148,7 @@ async function carregar_estoque() {
     }
 
     let acumulado = `
-        <div style="height: max-content; max-height: 70vh; width: max-content; max-width: 90vw; overflow: auto; background-color: #222222bf; border-radius: 5px;">
+        <div style="height: max-content; max-height: 70vh; width: max-content; max-width: 90vw; overflow: auto; background-color: #d2d2d2; border-radius: 5px;">
             <table class="tabela_e" id="tabela_estoque"">
                 <thead>
                     <tr>${thc}</tr>

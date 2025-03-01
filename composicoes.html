@@ -52,9 +52,8 @@
             font-size: 0.8em;
         }
 
-        .tabela td {
-            white-space: nowrap;
-            background-color: #eaeaea;
+        th {
+            color: #222;
         }
 
         .numero-bonito {
@@ -82,7 +81,6 @@
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
             z-index: 1000;
             width: 320px;
-            /* Ajuste para um tamanho melhor */
         }
 
         .modal-filtros-header {
@@ -137,7 +135,6 @@
             background: white;
             border-bottom: 1px solid #ddd;
             cursor: pointer;
-            transition: background 0.2s;
         }
 
         .lista-filtros label:hover {
@@ -149,6 +146,7 @@
             width: 18px;
             height: 18px;
         }
+        
     </style>
 </head>
 
@@ -162,36 +160,41 @@
 
             <label class="novo_titulo" style="font-size: 2.0em;">Composições</label>
 
-            <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                    onclick="window.location.href='inicial.html'">
-                    <label style="color: white;">Voltar</label>
-                    <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
+            <div style="display: flex; justify-content: center; gap: 2vw;">
+                <div style="display: flex; flex-direction: column; gap: 10px; height: 100%;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
+                        onclick="window.location.href='inicial.html'">
+                        <label style="color: white;">Voltar</label>
+                        <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
+                        onclick="recuperar_composicoes()">
+                        <label style="color: white;">Atualizar</label>
+                        <img src="imagens/atualizar_2.png" style="width: 25px; cursor: pointer;">
+                    </div>
                 </div>
 
-                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                    onclick="recuperar_composicoes()">
-                    <label style="color: white;">Atualizar</label>
-                    <img src="imagens/atualizar_2.png" style="width: 25px; cursor: pointer;">
-                </div>
+                <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
 
-                <div id="adicionar_item"
-                    style="display: none; align-items: center; justify-content: center; gap: 10px; cursor: pointer;"
-                    onclick="cadastrar_editar_item()">
-                    <label style="color: white;">Cadastrar Item</label>
-                    <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
-                </div>
-                <div id="btn-criar-lpu"
-                    style="display: none; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
-                    <label style="color: white;">Cadastrar LPU</label>
-                    <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
-                </div>
-                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                    onclick="abrirModalFiltros()">
-                    <label style="color: white;">Filtrar Campos</label>
-                    <img src="imagens/pesquisar.png" style="width: 25px; cursor: pointer;">
-                </div>
+                    <div id="adicionar_item"
+                        style="display: none; align-items: center; justify-content: center; gap: 10px; cursor: pointer;"
+                        onclick="cadastrar_editar_item()">
+                        <label style="color: white;">Cadastrar Item</label>
+                        <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
+                    </div>
+                    <div id="btn-criar-lpu"
+                        style="display: none; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                        <label style="color: white;">Cadastrar LPU</label>
+                        <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
+                        onclick="abrirModalFiltros()">
+                        <label style="color: white;">Filtrar Campos</label>
+                        <img src="imagens/pesquisar.png" style="width: 25px; cursor: pointer;">
+                    </div>
 
+                </div>
             </div>
         </div>
 

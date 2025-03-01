@@ -86,7 +86,7 @@ async function carregar_tabela_v2() {
         if (adicionar_item) {
             adicionar_item.style.display = 'flex';
         }
-        if(btn_criar_lpu){
+        if (btn_criar_lpu) {
             btn_criar_lpu.style.display = 'flex';
         }
     }
@@ -96,7 +96,7 @@ async function carregar_tabela_v2() {
     var tsc = {};
 
     cabecalhos.forEach((cab, i) => {
-        ths[cab] = `<th style="position: relative; cursor: pointer;">${cab.toUpperCase()}</th>`
+        ths[cab] = `<th style="position: relative; cursor: pointer; text-align: left;">${inicial_maiuscula(cab)}</th>`
         tsc[cab] = `
             <th style="background-color: white; position: relative; border-radius: 0px;">
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
@@ -206,7 +206,7 @@ async function carregar_tabela_v2() {
             <div id="pc">
                 ${painel_colunas}
             </div>
-            <div style="resize: both; overflow: auto; height: 600px; width:92.5vw; background-color: #222222bf; border-radius: 3px;">
+            <div style="resize: both; overflow: auto; height: max-content; max-height: 70vh; width: max-content; max-width: 92.5vw; background-color: #d2d2d2; border-radius: 3px;">
                 <table style="border-collapse: collapse;" id="tabela_composicoes">
                     <thead id="thead1">${thead}</thead>
                     <thead id="tsearch">${tsearch}</thead>
@@ -1209,7 +1209,7 @@ function salvarNovaLPU() {
         return;
     }
 
-    if(!nomeLPU.includes("lpu")){
+    if (!nomeLPU.includes("lpu")) {
         texto_aviso.style.display = "flex"
         texto_aviso.textContent = "É necessário ter LPU no nome!!!"
         return;

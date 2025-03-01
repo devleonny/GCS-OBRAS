@@ -71,25 +71,17 @@
             text-align: center;
         }
 
-        #orcamentos {
+        #chamados {
+            background-color: #d2d2d2;
             max-height: 70vh;
             height: max-content;
+            border-radius: 5px;
             width: 90vw;
             overflow: auto;
         }
 
         th {
             color: #222;
-        }
-
-        .label_etiquetas {
-            text-align: center;
-            color: white;
-            border-radius: 5px;
-            padding: 2px;
-            margin: 2px;
-            display: inline-block;
-            word-wrap: break-word;
         }
 
         .numero-bonito {
@@ -151,6 +143,7 @@
         #toolbar label {
             cursor: pointer;
         }
+        
     </style>
 </head>
 
@@ -165,7 +158,7 @@
             <img src="imagens/BG.png" style="width: 150px;">
             <div
                 style="display: flex; align-items: center; justify-content: center; flex-direction: column; color: white;">
-                <label class="novo_titulo">Orçamentos</label>
+                <label class="novo_titulo">Chamados</label>
                 <label id="nome_filtro"></label>
             </div>
 
@@ -187,18 +180,23 @@
                     </div>
 
                     <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="window.location.href = 'adicionar.html'">
-                        <label style="color: white;">Criar Orçamento</label>
-                        <img src="imagens/projeto.png" style="width: 25px; cursor: pointer;">
+                        onclick="criar_manutencao()">
+                        <label style="color: white;">Criar Manutenção</label>
+                        <img src="imagens/chamados.png" style="width: 25px; cursor: pointer;">
                     </div>
 
                 </div>
             </div>
         </div>
 
-        <div id="tabelas" style="display: flex; flex-direction: column; align-items: center; justify-content: start;">
-            <div id="toolbar"></div>
-            <div id="orcamentos"></div>
+        <div style="display: flex; gap: 10px;">
+
+            <div id="tabelas"
+                style="display: flex; flex-direction: column; align-items: center; justify-content: start;">
+                <div id="toolbar"></div>
+                <div id="chamados"></div>
+            </div>
+
         </div>
 
     </div>
@@ -206,9 +204,6 @@
 </body>
 
 <script src="open_menus.js"></script>
-<script src="status.js"></script>
-<script src="orcamentos.js"></script>
-<script src="pagamentos.js"></script>
-<script src="gerar_excel.js"></script>
+<script src="chamados.js"></script>
 
 </html>

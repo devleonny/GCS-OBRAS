@@ -1,6 +1,6 @@
 var overlay = document.getElementById('overlay')
 var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-//let filtrosAtivosPagamentos = {}
+let filtrosAtivosPagamentos = {}
 
 consultar_pagamentos()
 
@@ -41,7 +41,6 @@ async function consultar_pagamentos() {
         .map(pagamento => {
 
             var pg = lista_pagamentos[pagamento];
-
             var valor_categorias = pg.param[0].categorias.map(cat =>
                 `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
             ).join('');
@@ -171,7 +170,7 @@ async function consultar_pagamentos() {
     colunas.forEach((coluna, i) => {
 
         cabecalho1 += `
-            <th style="background-color: #B12425;">${coluna}</th>
+            <th>${coluna}</th>
             `
         cabecalho2 += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
@@ -217,7 +216,7 @@ async function consultar_pagamentos() {
         <div style="display: flex; justify-content: center; align-items: start; gap: 10px;">
             ${div_titulos}
             <div style="border-radius: 5px; height: 800px; overflow-y: auto;">
-                <table id="pagamentos" style="color: #222; font-size: 0.8em; border-collapse: collapse; table-layout: fixed;">
+                <table id="pagamentos" style="color: #222; font-size: 0.8em; border-collapse: collapse;">
                     <thead>
                         ${cabecalho1}
                     </thead>
@@ -991,7 +990,6 @@ function alterar_centro_de_custo(id) {
 
     <div class="autocomplete-container">
         <label id="id_orcamento" style="display: none;"></label>
-        <label id="id_pedido" style="display: none;"></label>
         <textarea style="width: 80%;" type="text" class="autocomplete-input" id="cc"
             placeholder="42017... ou D7777 ou SAM'S... ou LOGÍSTICA..." oninput="carregar_opcoes_cc(this)"></textarea>
         <div class="autocomplete-list"></div>
@@ -1048,16 +1046,11 @@ async function salvar_comentario_pagamento(id) {
 }
 
 
-async function criar_pagamento_v2(chave1) {
+async function criar_pagamento_v2(id) {
 
     if (!await calculadora_pagamento()) {
 
-        if (document.getElementById('id_pedido')) {
-            chave1 = document.getElementById('id_pedido').textContent
-        }
-        if (document.getElementById('id_orcamento')) {
-            id_orcam = document.getElementById('id_orcamento').textContent
-        }
+        id_orcam = id
 
         var id_pagamento = unicoID()
         var acesso = JSON.parse(localStorage.getItem('acesso'))
@@ -1157,7 +1150,6 @@ async function criar_pagamento_v2(chave1) {
 
         var pagamento = {
             'id_pagamento': id_pagamento,
-            'id_pedido': chave1,
             'id_orcamento': id_orcam,
             'departamento': depart,
             'data_registro': data_atual('completa'),
@@ -1244,7 +1236,7 @@ function ordenar() {
     return ordem
 }
 
-async function tela_pagamento(chave1) {
+async function tela_pagamento(id) {
 
     ordem = 0
 
@@ -1259,7 +1251,7 @@ async function tela_pagamento(chave1) {
     }, 1000);
 
     var datalist = ''
-    if (chave1 == undefined) {
+    if (id == undefined) {
 
         datalist += `
         <div class="ordem">
@@ -1271,7 +1263,6 @@ async function tela_pagamento(chave1) {
 
                 <div class="autocomplete-container">
                     <label id="id_orcamento" style="display: none;"></label>
-                    <label id="id_pedido" style="display: none;"></label>
                     <textarea style="width: 80%;" type="text" class="autocomplete-input"
                         placeholder="42017... ou D7777 ou SAM'S... ou LOGÍSTICA..." oninput="carregar_opcoes_cc(this)" id="cc"></textarea>
                     <div class="autocomplete-list"></div>
@@ -1438,7 +1429,7 @@ async function tela_pagamento(chave1) {
                 <label>Total do pagamento</label>
                 <label style="font-size: 2.0em;" id="total_de_pagamento">R$ 0,00</label>
                 <label id="liberar_botao" class="contorno_botoes" style="background-color: green; display: none;"
-                    onclick="criar_pagamento_v2('${chave1}')">Salvar Pagamento</label>
+                    onclick="criar_pagamento_v2('${id}')">Salvar Pagamento</label>
             </div>
 
         </div>
@@ -1455,7 +1446,7 @@ async function salvar_anexos_pagamentos(input, id_pagamento) { //29
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     let pagamento = lista_pagamentos[id_pagamento]
 
-    anexos.forEach(anexo => {   
+    anexos.forEach(anexo => {
 
         if (id_pagamento !== undefined) {
 
@@ -2229,36 +2220,21 @@ async function carregar_opcoes_cc(textarea) {
         var orc = dados_orcamentos[id];
         let contrato = String(orc.dados_orcam.contrato).toLowerCase()
         let cliente = String(orc.dados_orcam.cliente_selecionado).toLocaleLowerCase()
-        if (orc.status) {
-            for (let chave1 in orc.status) {
 
-                let historico = orc.status[chave1].historico
-                let pedido = '???'
-                for (chave2 in historico) {
-                    if (historico[chave2].status == 'PEDIDO') {
-                        pedido = String(historico[chave2].pedido).toLowerCase()
-                        break
-                    }
-                }
+        if (contrato.includes(pesquisa) || cliente.includes(pesquisa)) {
 
-                if (pedido.includes(pesquisa) || contrato.includes(pesquisa) || cliente.includes(pesquisa)) {
-
-                    opcoes += `
-                    <div onclick="selecionar_cc('${id}', '${chave1}', '${cliente}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px;">
-                        <label style="width: 100%; font-size: 0.8vw;"><strong>Pedido</strong> ${pedido}</label>
-                        <label style="width: 100%; font-size: 0.8vw;"><strong>Analista</strong> ${orc.dados_orcam.analista}</label>
-                        <label style="width: 100%; font-size: 0.8vw;"><strong>Chamado</strong> ${orc.dados_orcam.contrato}</label>
-                        <label style="width: 100%; font-size: 1.0vw;">${orc.dados_orcam.cliente_selecionado}</label>
-                    </div>
-                    `
-                }
-            }
+            opcoes += `
+                <div onclick="selecionar_cc('${id}', '${cliente}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px;">
+                    <label style="width: 100%; font-size: 0.8vw;"><strong>Chamado</strong> ${orc.dados_orcam.contrato}</label>
+                    <label style="width: 100%; font-size: 1.0vw;">${orc.dados_orcam.cliente_selecionado}</label>
+                    <label style="width: 100%; font-size: 0.8vw;"><strong>Analista</strong> ${orc.dados_orcam.analista}</label>
+                </div>
+                `
         }
 
     }
 
     document.getElementById('id_orcamento').textContent = ''
-    document.getElementById('id_pedido').textContent = ''
 
     if (pesquisa == '') {
         opcoes = ''
@@ -2268,10 +2244,9 @@ async function carregar_opcoes_cc(textarea) {
     await calculadora_pagamento()
 }
 
-function selecionar_cc(id_orcamento, id_pedido, cliente) {
-    document.getElementById('id_orcamento').textContent = id_orcamento
-    let b = document.getElementById('id_pedido')
-    b.textContent = id_pedido
+function selecionar_cc(id_orcamento, cliente) {
+    let b = document.getElementById('id_orcamento')
+    b.textContent = id_orcamento
     let textarea = b.nextElementSibling
 
     textarea.value = cliente.toUpperCase()

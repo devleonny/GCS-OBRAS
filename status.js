@@ -8,20 +8,19 @@ var data_status = dataAtual.toLocaleString('pt-BR', {
     dateStyle: 'short',
     timeStyle: 'short'
 });
-var anexos = {}
 
 var fluxograma = {
-    'INCLUIR PEDIDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS'] },
-    'PEDIDO': { cor: '#4CAF50', modulos: ['PROJETOS', 'RELATÓRIOS'], proximo: 'FAZER REQUISIÇÃO', campo: 'PEDIDO' },
-    'REQUISIÇÃO': { cor: '#B12425', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], proximo: 'SEPARAR MATERIAL', campo: 'REQUISIÇÃO' },
-    'MATERIAL SEPARADO': { cor: '#b17724', modulos: ['FINANCEIRO', 'LOGÍSTICA', 'RELATÓRIOS'], proximo: 'EMITIR A NOTA', campo: 'REQUISIÇÃO' },
-    'FATURADO': { cor: '#ff4500', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], proximo: 'ENVIAR MATERIAL' },
-    'MATERIAL ENVIADO': { cor: '#b17724', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], proximo: 'CONFIRMAR RECEBIMENTO', campo: 'REQUISIÇÃO' },
-    'MATERIAL RECEBIDO': { cor: '#b17724', modulos: ['RELATÓRIOS'], campo: 'REQUISIÇÃO' },
-    'COTAÇÃO PENDENTE': { cor: '#0a989f', modulos: ['LOGÍSTICA', 'RELATÓRIOS'], proximo: 'FINALIZAR COTAÇÃO' },
-    'COTAÇÃO FINALIZADA': { cor: '#0a989f', modulos: ['RELATÓRIOS'] },
-    'RETORNO DE MATERIAIS': { cor: '#aacc14', modulos: ['RELATÓRIOS'] },
-    'FINALIZADO': { cor: 'blue', modulos: ['RELATÓRIOS'] },
+    'INCLUIR PEDIDO': { cor: '#4CAF50' },
+    'PEDIDO': { cor: '#4CAF50' },
+    'REQUISIÇÃO': { cor: '#B12425' },
+    'MATERIAL SEPARADO': { cor: '#b17724' },
+    'FATURADO': { cor: '#ff4500' },
+    'MATERIAL ENVIADO': { cor: '#b17724' },
+    'MATERIAL RECEBIDO': { cor: '#b17724' },
+    'COTAÇÃO PENDENTE': { cor: '#0a989f' },
+    'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
+    'RETORNO DE MATERIAIS': { cor: '#aacc14' },
+    'FINALIZADO': { cor: 'blue' }
 }
 
 let totalValoresPedidos; // Variável global
@@ -209,7 +208,7 @@ async function painel_adicionar_pedido() {
         
         <hr style="width: 80%">
 
-        <div id="painel_novo_pedido" style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px;">
+        <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px;">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <p class="novo_titulo" style="cursor: pointer; color: #222">Escolha o tipo do <strong>Pedido</strong> </p> 
                 <select id="tipo">
@@ -242,16 +241,6 @@ async function painel_adicionar_pedido() {
                 <textarea rows="5" id="comentario_status"></textarea>
             </div>
 
-            <div id="div_anexos" style="display: flex; flex-direction: column; justify-content: right; align-items: center; gap: 10px;">
-            </div>
-
-            <div class="contorno_botoes"> 
-                <img src="imagens/anexo2.png" style="width: 15px;">
-                <label for="adicionar_anexo">Anexar arquivos
-                    <input type="file" id="adicionar_anexo" style="display: none;" onchange="salvar_anexo()" multiple> 
-                </label>
-            </div>
-            
             <hr style="width: 80%">
 
             <button style="background-color: #4CAF50; width: 100%;" onclick="salvar_pedido()">Salvar</button>
@@ -265,16 +254,11 @@ async function painel_adicionar_pedido() {
     document.body.insertAdjacentHTML('beforeend', acumulado)
 }
 
+async function painel_adicionar_notas(chave) {
 
-async function painel_adicionar_notas(chave, sst, editar, chave2) {
-
-    if (sst) {
-        sst = JSON.parse(sst)
-    }
-
-    var painel_status = document.getElementById('status')
-    if (painel_status) {
-        painel_status.remove()
+    var estrutura = document.getElementById('estrutura')
+    if (estrutura) {
+        estrutura.remove()
     }
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
@@ -284,10 +268,7 @@ async function painel_adicionar_notas(chave, sst, editar, chave2) {
         timeStyle: 'short'
     });
 
-    var funcao = `salvar_notas()`
-    if (chave !== undefined) {
-        funcao = `salvar_notas('${chave}', ${editar}, '${chave2}')`;
-    }
+    chave == undefined ? chave = gerar_id_5_digitos() : chave
 
     var acumulado = `
         <div id="status" class="status" style="display: flex; overflow: auto;">
@@ -313,39 +294,28 @@ async function painel_adicionar_notas(chave, sst, editar, chave2) {
             <div style="display: flex; flex-direction: column; justify-content: center; align-items: start;"
                 <label><strong>Número da Nota</strong></label>
                 <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
-                    <input type="number" class="pedido" id="nota" value="${sst?.notas?.[0]?.nota || ''}">
+                    <input type="number" class="pedido" id="nota">
                     <select id="tipo">
-                        <option ${sst?.notas?.[0]?.modalidade === "Remessa" ? "selected" : ""}>Remessa</option>
-                        <option ${sst?.notas?.[0]?.modalidade === "Venda" ? "selected" : ""}>Venda</option>
-                        <option ${sst?.notas?.[0]?.modalidade === "Serviço" ? "selected" : ""}>Serviço</option>
-                        <option ${sst?.notas?.[0]?.modalidade === "Venda + Serviço" ? "selected" : ""}>Venda + Serviço</option>
+                        <option>Remessa</option>
+                        <option>Venda</option>
+                        <option>Serviço</option>
+                        <option>Venda + Serviço</option>
                     </select>
                 </div>
                 <label><strong>Valor da Nota</strong></label>
-                <input type="number" class="pedido" id="valorNota" value="${sst?.notas?.[0]?.valorNota || ''}">
+                <input type="number" class="pedido" id="valorNota">
                 <label><strong>Valor do Frete</strong></label>
-                <input type="number" class="pedido" id="valorFrete" value="${sst?.notas?.[0]?.valorFrete || ''}">
+                <input type="number" class="pedido" id="valorFrete">
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
                 <label><strong>Comentário</strong></label>
-                <textarea rows="5" style="width: 80%;" id="comentario_status">${sst?.comentario || ''}</textarea>
-            </div>
-
-            <div id="div_anexos"
-                style="display: flex; flex-direction: column; justify-content: right; align-items: center; gap: 10px;">
-            </div>
-
-            <div class="contorno_botoes">
-                <img src="imagens/anexo2.png" style="width: 15px;">
-                <label for="adicionar_anexo">Anexar arquivos
-                    <input type="file" id="adicionar_anexo" style="display: none;" onchange="salvar_anexo()" multiple>
-                </label>
+                <textarea rows="5" style="width: 80%;" id="comentario_status"></textarea>
             </div>
 
             <hr style="width: 80%">
 
-            <button style="background-color: #4CAF50" onclick="${funcao}">Salvar</button>
+            <button style="background-color: #4CAF50" onclick="salvar_notas('${chave}')">Salvar</button>
 
         </div>
     `
@@ -536,31 +506,25 @@ async function carregar_itens(apenas_visualizar, requisicao, editar) {
         let mod_livre = true
         let qtde_editar = qtde
 
-        var todos_os_status = dados_orcamentos[id_orcam].status;
+        var historico = dados_orcamentos[id_orcam].status.historico
 
-        Object.keys(todos_os_status).forEach(chave_pedido => {
+        Object.keys(historico).forEach(chave => {
 
-            var lista_interna = todos_os_status[chave_pedido].historico;
+            var sst = historico[chave]
 
-            Object.keys(lista_interna).forEach(chave2 => {
+            if (sst.requisicoes) {
 
-                var sst = lista_interna[chave2]
+                for (let requisicao of sst.requisicoes) {
 
-                if (sst.requisicoes) {
+                    if (requisicao.codigo == item.codigo) {
 
-                    for (let requisicao of sst.requisicoes) {
-
-                        if (requisicao.codigo == item.codigo) {
-
-                            qtde_editar -= requisicao.qtde_enviar
-
-                        }
+                        qtde_editar -= requisicao.qtde_enviar
 
                     }
 
                 }
 
-            })
+            }
         })
 
         infos.forEach(item => {
@@ -939,45 +903,8 @@ function mostrar_itens_adicionais() {
     }
 }
 
-async function carregar_status_divs(valor, chave, id, sst, editar, chave2) { // "valor" é o último status no array de status que vem do script de orçamentos;
-
-    var estrutura = document.getElementById('estrutura')
-    if (estrutura) {
-        estrutura.remove()
-    }
-
-    if (chave == undefined) {
-        chave = gerar_id_5_digitos()
-    }
-
-    overlay.style.display = 'block'
-
-    if (id) {
-        id_orcam = id
-        dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-        orcamento = dados_orcamentos[id_orcam]
-    }
-
-    if (!valor || valor == 'AGUARDANDO') {
-
-        return painel_adicionar_pedido()
-
-    } else if (String(valor).includes('ANEXADO')) {
-
-        return detalhar_requisicao(chave)
-
-    } else if (String(valor).includes('FATURAMENTO') || String(valor).includes('REMESSA')) {
-
-        return painel_adicionar_notas(chave, sst, editar, chave2)
-
-    }
-
-}
-
 async function salvar_pedido(chave) {
-
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    let chave_his = gerar_id_5_digitos();
     let data = document.getElementById('data')
     let comentario_status = document.getElementById('comentario_status')
     let valor = document.getElementById('valor')
@@ -1003,42 +930,28 @@ async function salvar_pedido(chave) {
     }
 
     let novo_lancamento = {
-        status: '',
-        historico: {}
-    };
-
-    novo_lancamento.historico[chave_his] = {
-        status: '',
+        status: 'PEDIDO',
         data: data.textContent,
         executor: acesso.usuario,
         comentario: comentario_status.value,
-        anexos: anexos,
         valor: Number(valor.value),
         tipo: tipo.value,
         pedido: pedido.value
     };
 
-    novo_lancamento.historico[chave_his].status = `PEDIDO`
-
     if (!orcamento.status) {
-        orcamento.status = {}
+        orcamento.status = { historico: {} };
     }
 
-    if (!orcamento.status[chave]) {
-        orcamento.status[chave] = {}
-    }
+    orcamento.status.historico[chave] = novo_lancamento;
 
-    orcamento.status[chave] = novo_lancamento;
-
-    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}`, novo_lancamento)
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
 
     abrir_esquema(id_orcam)
-
 }
 
-async function salvar_notas(chave, editar, chave2) {
-
+async function salvar_notas(chave) {
     let nota = document.getElementById('nota')
     let valorNota = document.getElementById('valorNota')
     let valorFrete = document.getElementById('valorFrete')
@@ -1053,26 +966,14 @@ async function salvar_notas(chave, editar, chave2) {
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
     if (!orcamento.status) {
-        orcamento.status = {};
+        orcamento.status = { historico: {} };
     }
 
-    var novo_lancamento = orcamento.status[chave];
-
-    if (editar) {
-        var chave_his = chave2
-    } else {
-
-        var chave_his = gerar_id_5_digitos();
-
-    }
-
-    novo_lancamento.historico[chave_his] = {
-        status: '',
+    var novo_lancamento = {
+        status: 'FATURADO',
         data: data.textContent,
         executor: acesso.usuario,
         comentario: comentario_status.value,
-        anexos: anexos,
-        status: 'FATURADO',
         notas: [{
             nota: nota.value,
             modalidade: tipo.value,
@@ -1081,46 +982,33 @@ async function salvar_notas(chave, editar, chave2) {
         }]
     };
 
-    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/historico/${chave_his}`, novo_lancamento.historico[chave_his])
+    chave == undefined ? chave = gerar_id_5_digitos() : chave
 
+    orcamento.status.historico[chave] = novo_lancamento;
+
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
 
-    abrir_esquema(id_orcam)
+    await abrir_esquema(id_orcam)
 
-    anexos = {}
     itens_adicionais = {}
 }
 
-async function salvar_requisicao(chave, chave2) {
-
+async function salvar_requisicao(chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
     let pendencias = []
     let interromper_processo = false
 
     if (!orcamento.status) {
-        orcamento.status = {};
+        orcamento.status = { historico: {} };
     }
 
-    if (chave2 == undefined) {
-        chave2 = gerar_id_5_digitos()
-    }
-
-    if (!orcamento.status[chave]) {
-        orcamento.status[chave] = { historico: {} };
-    }
-
-    var pedido = orcamento.status[chave].pedido
-    var novo_lancamento = orcamento.status[chave];
-
-    await calcular_requisicao()
-
-    novo_lancamento.historico[chave2] = {
+    var novo_lancamento = {
         status: 'REQUISIÇÃO',
         data: data_status,
         executor: acesso.usuario,
         comentario: comentario_status.value,
-        anexos: anexos,
         requisicoes: [],
         adicionais: itens_adicionais,
         total_sem_icms: total_s_icms.textContent,
@@ -1135,7 +1023,6 @@ async function salvar_requisicao(chave, chave2) {
         var lista_partnumbers = {};
 
         trs.forEach(tr => {
-
             var tds = tr.querySelectorAll('td');
             var codigo = tds[0].textContent
             var partnumber = tds[1].querySelector('input')?.value || '';
@@ -1146,11 +1033,10 @@ async function salvar_requisicao(chave, chave2) {
             if (qtde !== '' && partnumber === '') {
                 interromper_processo = true
                 pendencias.push(tds[1].querySelector('input'))
-
             }
 
             if (qtde !== '') {
-                novo_lancamento.historico[chave2].requisicoes.push({
+                novo_lancamento.requisicoes.push({
                     codigo: codigo,
                     partnumber: partnumber,
                     tipo: tipo,
@@ -1162,17 +1048,14 @@ async function salvar_requisicao(chave, chave2) {
             if (partnumber !== '') {
                 lista_partnumbers[codigo] = partnumber;
             }
-
         });
 
         if (orcamento.modalidade !== 'MODALIDADE LIVRE') {
             atualizar_partnumber(lista_partnumbers)
         }
-
     }
 
     if (interromper_processo) {
-
         pendencias.forEach(element => {
             element.style.backgroundColor = '#B12425'
         })
@@ -1183,10 +1066,9 @@ async function salvar_requisicao(chave, chave2) {
                 <label> Preencha os PARTNUMBERs pendentes [Vermelho]</label>
             </div>
         `);
-
     }
 
-    novo_lancamento.historico[chave2].pedido_selecionado = pedido;
+    orcamento.status.historico[chave] = novo_lancamento;
 
     var painel_status = document.getElementById('status')
     if (painel_status) {
@@ -1194,11 +1076,10 @@ async function salvar_requisicao(chave, chave2) {
     }
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/historico/${chave2}`, novo_lancamento.historico[chave2])
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
 
     abrir_esquema(id_orcam)
 
-    anexos = {}
     itens_adicionais = {}
 }
 
@@ -1222,15 +1103,15 @@ function fechar_espelho_ocorrencias() {
 
 function botao_novo_pedido(id) {
     return `
-    <div class="contorno_botoes" style="background-color: ${fluxograma['PEDIDO'].cor}" onclick="carregar_status_divs('AGUARDANDO', undefined, '${id}')">
+    <div class="contorno_botoes" style="background-color: ${fluxograma['PEDIDO'].cor}" onclick="painel_adicionar_pedido()">
         <label>Novo <strong>Pedido </strong></label>
     </div>
 `
 }
 
-function botao_novo_pagamento(ch_pedido) {
+function botao_novo_pagamento(id) {
     return `
-    <div class="contorno_botoes" style="background-color: #097fe6" onclick="tela_pagamento('${ch_pedido}')">
+    <div class="contorno_botoes" style="background-color: #097fe6" onclick="tela_pagamento('${id}')">
         <label>Novo <strong>Pagamento</strong></label>
     </div>   
 `}
@@ -1300,7 +1181,7 @@ async function exibir_todos_os_status(id) {
         </div>
     `
 
-    if ((modulo == 'PROJETOS' && document.title !== 'Projetos' && analista == acesso.nome_completo) || (acesso.permissao == 'adm' || acesso.permissao == 'fin')) {
+    if ((document.title !== 'Projetos' && analista == acesso.nome_completo) || (acesso.permissao == 'adm' || acesso.permissao == 'fin')) {
         acumulado_botoes += `
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_excluir('${id}')">
             <img src="imagens/apagar.png" style="width: 48px; height: 48px; margin: 3px;">
@@ -1313,9 +1194,7 @@ async function exibir_todos_os_status(id) {
         `
     }
 
-    if (modulo == 'PROJETOS' || modulo == 'RELATÓRIOS' || document.title == 'Projetos') {
-        acumulado_botoes += botao_novo_pedido(id)
-    }
+    acumulado_botoes += botao_novo_pedido(id)
 
     let data = new Date().toLocaleString('pt-BR', {
         dateStyle: 'short',
@@ -1483,7 +1362,6 @@ function abrirArquivo(link) {
 }
 
 async function abrir_esquema(id) {
-
     overlay.style.display = 'block'
     var status = document.getElementById('status')
     if (status) {
@@ -1497,21 +1375,18 @@ async function abrir_esquema(id) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
-
+    let orcamento = dados_orcamentos[id]
     var categorias = Object.fromEntries(
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
     )
 
-    if (dados_orcamentos[id] && dados_orcamentos[id].status) {
-        var todos_os_status = dados_orcamentos[id].status;
+    console.log(orcamento)
 
+    if (orcamento && orcamento.status) {
         var levantamentos = ''
-        if (dados_orcamentos[id].levantamentos) {
-
-            for (chave in dados_orcamentos[id].levantamentos) {
-
-                var levantamento = dados_orcamentos[id].levantamentos[chave]
-
+        if (orcamento.levantamentos) {
+            for (chave in orcamento.levantamentos) {
+                var levantamento = orcamento.levantamentos[chave]
                 levantamentos += `
                 <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;" onclick="abrirArquivo('${levantamento.link}')">
                     <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
@@ -1532,11 +1407,9 @@ async function abrir_esquema(id) {
                 <label>Atualizar</label>
             </div>
             • 
-            ${botao_novo_pedido(id)}
-            • 
             <div style="display: flex; flex-direction: column; justify-content: center; align-items: start; font-size: 1.2vw; color: #222;">
-                <label>${dados_orcamentos[id].dados_orcam.contrato}</label>
-                <label>${dados_orcamentos[id].dados_orcam.cliente_selecionado}</label>
+                <label>${orcamento.dados_orcam.contrato}</label>
+                <label>${orcamento.dados_orcam.cliente_selecionado}</label>
             </div>
             • 
             <div style="display: flex; flex-direction: column; align-items: start;">
@@ -1551,254 +1424,133 @@ async function abrir_esquema(id) {
             </div>
 
         </div>    
-        `;
-        var contador = 1;
+        `
 
-        acumulado +=`
+        acumulado += `
         
         <div style=" display: flex; width: 100%; gap: 4vw;" id="div_geral">
         <div style="max-width: 90%; display: flex; flex-direction: column;" id="painel_pedidos">
 
         `
 
-        for (chave_pedido in todos_os_status) {
+        let blocos_por_status = {}
+        let links_requisicoes = ''
+        let string_pagamentos = ''
+        let tem_pagamento = false
+        let pagamentos_painel = {}
+        var historico = orcamento.status.historico || {}
 
-            let lista_interna = todos_os_status[chave_pedido].historico;
-            let blocos_por_status = {}
-            let links_requisicoes = ''
-            let string_pagamentos = ''
-            let tem_pagamento = false
-            let pagamentos_painel = {}
+        for (chave in historico) {
 
-            for (pag in lista_pagamentos) {
+            let sst = historico[chave]
 
-                var pagamento = lista_pagamentos[pag]
-                var comentario = 'Sem observação'
-                if (pagamento.param[0].observacao) {
-                    comentario = pagamento.param[0].observacao.replace(/\|/g, '<br>')
-                }
+            links_requisicoes = ''
+            let editar = ''
 
-                if (pagamento.id_pedido == chave_pedido) { //29 Verificar um padrão para associar;
-                    string_pagamentos += `
-                    <div style="display: flex; flex-direction: column; border-radius: 5px; border: solid 1px white; padding: 10px; background-color: white; color: #222;">
-                            
-                        <label style="display: flex; gap: 10px;"><strong>${pagamento.status}</strong></label>
-                        <label><strong>Data:</strong> ${pagamento.param[0].data_previsao}</label>
-                        <label><strong>Observação:</strong><br>${comentario}</label>
-                        `
-                    pagamento.param[0].categorias.forEach(cat => {
-                        var nome_cat = ''
-                        categorias[cat.codigo_categoria] ? nome_cat = categorias[cat.codigo_categoria] : nome_cat = cat.codigo_categoria
-                        string_pagamentos += `
-                            <label><strong>Categoria:</strong> ${nome_cat} • R$ ${dinheiro(cat.valor)}</label>
-                            `
-
-                        if (!pagamentos_painel[pagamento.status]) {
-                            pagamentos_painel[pagamento.status] = 0
-                        }
-                        pagamentos_painel[pagamento.status] += Number(cat.valor)
-
-                    })
-                    string_pagamentos += `
-                        </div>
-                        `
-                    tem_pagamento = true
-                }
-
-            }
-
-            if (tem_pagamento) {
-
-                if (!blocos_por_status['PAGAMENTOS']) {
-                    blocos_por_status['PAGAMENTOS'] = ''
-                }
-
-                blocos_por_status['PAGAMENTOS'] = `
-                <div class="bloko"
-                style="background-color: #097fe6; height: max-content; overflow-y: auto;">
-                    <div style="display: flex; justify-content: center; align-items: center;">
-                        <label style="color: white; font-size: 1.3vw;">Pagamentos</label>
-                    </div>
-                    <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
-                        <img src="imagens/pesquisar.png" style="width: 1vw;">
-                        <input id="${chave_pedido}" style="width: 12vw; font-size: 0.7vw; padding: 3px; border-radius: 3px;" placeholder="Pesquisar pagamento" oninput="pesquisar_pagamentos('${chave_pedido}')">
-                    </div>
-                    <div style="height: max-content; max-height: 500px; overflow: auto;">
-                        <div class="escondido" id="div_pagamentos_pesquisa_${chave_pedido}" style="display: none; flex-direction: column; justify-content: start; align-items: center; gap: 10px;">
-                            ${string_pagamentos}
-                        </div>
-                    </div>
-
-                    <div style="cursor: pointer; background-color: #097fe6; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
-                        <label style="color: white; font-size: 0.9vw;">▼</label>
-                    </div>
-                </div>
-            `}
-
-            for (chave2 in lista_interna) {
-
-                var sst = lista_interna[chave2]
-                var anxsss = ''
-                links_requisicoes = ''
-                let editar = ''
-
-                if (sst.status.includes('REQUISIÇÃO') || sst.status.includes('MATERIAL')) {
-
-                    links_requisicoes += `
-                    <div class="anexos" style="cursor: pointer; display: flex; gap: 10px; justify-content: left; align-items: center;">
+            if (sst.status.includes('REQUISIÇÃO') || sst.status.includes('MATERIAL')) {
+                links_requisicoes += `
+                    <div onclick="detalhar_requisicao('${chave}', true)" class="anexos" style="cursor: pointer; display: flex; gap: 10px; justify-content: left; align-items: center;">
                         <img src="gifs/lampada.gif" style="width: 25px">
-                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                            <label style="cursor: pointer;" onclick="detalhar_requisicao('${chave_pedido}', true, '${chave2}')"><strong>REQUISIÇÃO DISPONÍVEL</strong></label>
-                            <label style="font-size: 0.7em;">Clique Aqui</label>
+                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; cursor: pointer;">
+                            <label style="cursor: pointer;"><strong>REQUISIÇÃO DISPONÍVEL</strong></label>
+                            <label style="font-size: 0.7em; cursor: pointer;">Clique Aqui</label>
                         </div>
                     </div>
                     `
-                    editar = `
-                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="detalhar_requisicao('${chave_pedido}', false, '${chave2}', true)">
+                editar = `
+                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}', false, true)">
                             <img src="imagens/editar4.png">
                             <label>Editar</label>
                         </div>
                     `
-                }
+            }
 
-                let dados_pedidos = ''
-                let opcoes = ['Serviço', 'Venda', 'Venda + Serviço']
-                let html_opcoes = ''
-                opcoes.forEach(op => {
-                    html_opcoes += `
+            let dados_pedidos = ''
+            let opcoes = ['Serviço', 'Venda', 'Venda + Serviço']
+            let html_opcoes = ''
+            opcoes.forEach(op => {
+                html_opcoes += `
                     <option ${sst.tipo == op ? 'selected' : ''}>${op}</option>
                     `
-                })
+            })
 
-                if (String(sst.status).includes('PEDIDO')) {
-
-                    dados_pedidos = `
+            if (String(sst.status).includes('PEDIDO')) {
+                dados_pedidos = `
                     <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
                         <label><strong>Pedido:</strong></label>
                         <input style="border-radius: 2px; width: 8vw; font-size: 0.7vw;" value="${sst.pedido}" oninput="mostrar_botao_pedido(this)">
-                        <img src="imagens/concluido.png" style="display: none; width: 1vw;" onclick="atualizar_pedido('${chave_pedido}', '${chave2}', 'pedido', this)">
+                        <img src="imagens/concluido.png" style="display: none; width: 1vw;" onclick="atualizar_pedido('${chave}', 'pedido', this)">
                     </div>
                     <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
                         <label><strong>Valor:</strong></label>
                         <input class="valores_pedidos" style="border-radius: 2px; width: 8vw; font-size: 0.7vw;" value="${sst.valor}" oninput="mostrar_botao_pedido(this)">
-                        <img src="imagens/concluido.png" style="display: none; width: 1vw;" onclick="atualizar_pedido('${chave_pedido}', '${chave2}', 'valor', this)">
+                        <img src="imagens/concluido.png" style="display: none; width: 1vw;" onclick="atualizar_pedido('${chave}', 'valor', this)">
                     </div>
                     <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
                         <label><strong>Tipo:</strong></label>
-                        <select style="text-align: center; border: none; padding: 0px; margin: 0px; font-size: 0.7vw;" onchange="atualizar_pedido('${chave_pedido}', '${chave2}', 'tipo', this)">
+                        <select style="text-align: center; border: none; padding: 0px; margin: 0px; font-size: 0.7vw;" onchange="atualizar_pedido('${chave}', 'tipo', this)">
                             ${html_opcoes}
                         </select>
                     </div>                                        
                     `
-                }
+            }
 
-                if (String(sst.status).includes('RETORNO')) {
-
-                    editar = `
-                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="retorno_de_materiais('${chave_pedido}', '${id}', false)">
+            if (String(sst.status).includes('RETORNO')) {
+                editar = `
+                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="retorno_de_materiais('${chave}')">
                             <img src="imagens/editar4.png">
                             <label>Editar</label>
                         </div>
                     `
+            }
 
-                }
-
-
-                if (String(sst.status).includes('FATURADO')) {
-                    console.log(sst)
-
-                    editar = `
-                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="carregar_status_divs('FATURAMENTO', '${chave_pedido}', '${id}', '${JSON.stringify(sst).replace(/"/g, '&quot;')}', true, '${chave2}')">
+            if (String(sst.status).includes('FATURADO')) {
+                editar = `
+                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="painel_adicionar_notas('${chave}')">
                             <img src="imagens/editar4.png">
                             <label>Editar</label>
                         </div>
                     `
+            }
 
-                }
+            var notas = ''
+            if (sst.notas) {
+                notas += `${sst.notas[0].nota}`
+            }
+            var valorNota = 0
+            if (sst.notas) {
+                valorNota += Number(sst.notas[0].valorNota)
+            }
 
-                if (sst.anexos) {
-
-                    Object.keys(sst.anexos).forEach(key_anx => {
-
-                        var anx = sst.anexos[key_anx]
-
-                        anxsss += `
-                        <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                            <div onclick="abrirArquivo('${anx.link}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                                <label style="font-size: 0.8em;">${String(anx.nome).slice(0, 10)} ... ${String(anx.nome).slice(-7)}</label>
-                            </div>
-                            <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="chamar_excluir_anexo('${chave_pedido}', '${chave2}', '${key_anx}')">
-                        </div>
-                    `
-                    })
-
-                }
-
-                var notas = ''
-                if (sst.notas) {
-                    notas += `${sst.notas[0].nota}`
-                }
-                var valorNota = 0
-                if (sst.notas) {
-                    valorNota += Number(sst.notas[0].valorNota)
-                }
-
-                var totais = ''
-                if (sst.requisicoes) {
-
-                    var infos = calcular_quantidades(sst.requisicoes, dados_orcamentos[id].dados_composicoes)
-
-                    totais += `
-
+            var totais = ''
+            if (sst.requisicoes) {
+                var infos = calcular_quantidades(sst.requisicoes, dados_orcamentos[id].dados_composicoes)
+                totais += `
                     <div style="display: flex; flex-direction: column;">
                         <label><strong>Total sem ICMS: </strong><br>${sst.total_sem_icms}</label>
                         <label><strong>Total com ICMS: </strong><br>${sst.total_com_icms}</label>
                     </div>
-
                     <div class="contorno_botoes" style="border-radius: 3px; padding: 5px; background-color: ${infos.cor};">
                         <label style="font-size: 0.7vw;">${infos.label_porcentagem}</label>
                     </div>
+                `
+            }
 
-                    `
-                }
+            var coments = ''
+            if (sst.comentario) {
+                var coments = sst.comentario.replace(/\n/g, '<br>')
+            }
 
-                var coments = ''
-                if (sst.comentario) {
-                    var coments = sst.comentario.replace(/\n/g, '<br>')
-                }
+            let campo = fluxograma[sst.status]?.campo || sst.status
 
-                let status_dinamico = sst.status
-                if (sst.status.includes('MATERIAL')) {
-                    let opcoes = ['MATERIAL SEPARADO', 'MATERIAL ENVIADO', 'MATERIAL RECEBIDO']
-                    let string_opcoes = ''
+            if (!blocos_por_status[campo]) {
+                blocos_por_status[campo] = ''
+            }
 
-                    opcoes.forEach(op => {
-                        let selected = sst.status == op;
-                        string_opcoes += `<option ${selected ? 'selected' : ''}>${op}</option>`;
-                    });
-
-                    status_dinamico = `
-                    <select onchange="alterar_status('${chave_pedido}', '${chave2}', this)" style="font-size: 0.7vw; padding: 0px; margin: 0px; border: none; text-align: center; cursor: pointer;">
-                        ${string_opcoes}
-                    </select>
-                    `
-                }
-
-                let campo = fluxograma[sst.status]?.campo || sst.status
-
-                if (!blocos_por_status[campo]) {
-                    blocos_por_status[campo] = ''
-                }
-
-                blocos_por_status[campo] += `
+            blocos_por_status[campo] += `
                     <div class="bloko" style="gap: 0px; border: 1px solid ${fluxograma[sst.status].cor}; background-color: white; justify-content: center;">
                         <div style="cursor: pointer; display: flex; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-radius-top-right: 3px; border-radius-top-left: 3px;">
-                            <span class="close" style="font-size: 2vw; position: absolute; top: 15px; right: 15px;" onclick="deseja_apagar('${chave_pedido}', '${chave2}')">&times;</span>
-                            <div style="display: flex; align-items: center; justify-content: start; gap: 3px;">
-                                <label><strong>Status:</strong></label>
-                                ${status_dinamico}
-                            </div>
+                            <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="deseja_apagar('${chave}')">&times;</span>
                             <label><strong>Executor: </strong>${sst.executor}</label>
                             <label><strong>Data: </strong>${sst.data}</label>
 
@@ -1809,30 +1561,34 @@ async function abrir_esquema(id) {
                                 ${sst.notas ? `<label><strong>Valor NF: </strong>${dinheiro(valorNota)}</label>` : ''}
                                 ${totais}
                                 ${links_requisicoes}
-                                ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${chave2}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
+                                ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${chave}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
 
                                 <div class="contorno_botoes" style="background-color: ${fluxograma[sst.status].cor}">
                                     <img src="imagens/anexo2.png">
-                                    <label for="adicionar_anexo_${chave_pedido}_${chave2}">Anexo
-                                        <input type="file" id="adicionar_anexo_${chave_pedido}_${chave2}" style="display: none;" onchange="salvar_anexo('${chave_pedido}', '${chave2}')" multiple>  
+                                    <label>Anexo
+                                        <input type="file" style="display: none;" onchange="salvar_anexo('${chave}', this)" multiple>  
                                     </label>
                                 </div>
-                                <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave2}')" style="background-color: ${fluxograma[sst.status].cor}">
+
+                                <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                                    ${await carregar_anexos(chave)}
+                                </div>
+
+                                <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave}')" style="background-color: ${fluxograma[sst.status].cor}">
                                     <img src="imagens/comentario.png">
                                     <label>Comentário</label>
                                 </div>
 
                                 ${editar}
 
-                                <div id="comentario_${chave2}" style="display: none; justify-content: space-evenly; align-items: center;">
+                                <div id="comentario_${chave}" style="display: none; justify-content: space-evenly; align-items: center;">
                                     <textarea placeholder="Comente algo aqui..."></textarea>
-                                    <label class="contorno_botoes" style="background-color: green;" onclick="salvar_comentario('${chave_pedido}', '${chave2}')">Salvar</label>
-                                    <label class="contorno_botoes" style="background-color: #B12425;" onclick="toggle_comentario('comentario_${chave2}')">&times;</label>
+                                    <label class="contorno_botoes" style="background-color: green;" onclick="salvar_comentario('${chave}')">Salvar</label>
+                                    <label class="contorno_botoes" style="background-color: #B12425;" onclick="toggle_comentario('comentario_${chave}')">&times;</label>
                                 </div>
-                                <div id="caixa_comentarios_${chave2}" style="display: flex; flex-direction: column;">
-                                    ${await carregar_comentarios(chave_pedido, chave2)}
+                                <div id="caixa_comentarios_${chave}" style="display: flex; flex-direction: column;">
+                                    ${await carregar_comentarios(chave)}
                                 </div>
-                                ${anxsss}
                             </div>
                         </div>
 
@@ -1843,96 +1599,88 @@ async function abrir_esquema(id) {
                     </div>
 
                 `
-            }
+        }
 
-            if (todos_os_status[chave_pedido].valor) {
-                valor_do_pedido = dinheiro(conversor(todos_os_status[chave_pedido].valor))
-            }
+        var pags = ''
+        var total_pago = 0
 
-            var pags = ''
-            var total_pago = 0
-
-            for (pg in pagamentos_painel) {
-
-                pags += `
+        for (pg in pagamentos_painel) {
+            pags += `
                 <div style="display: flex; flex-direction: column; align-items: start;">
-                <label style="font-size: 0.7em;"><strong>${pg}</strong></label>
-                <label style="font-size: 1.2em;">${dinheiro(pagamentos_painel[pg])}</label>
+                    <label style="font-size: 0.7em;"><strong>${pg}</strong></label>
+                    <label style="font-size: 1.2em;">${dinheiro(pagamentos_painel[pg])}</label>
                 </div>
                 `
-                if (pg == 'PAGO') {
-                    total_pago += pagamentos_painel[pg]
-                }
+            if (pg == 'PAGO') {
+                total_pago += pagamentos_painel[pg]
             }
+        }
 
-            var porcentagem = total_pago / conversor(todos_os_status[chave_pedido].valor) * 100
+        let blocos = ''
 
-            var cor_indicador = 'orangered'
-            if (porcentagem < 35) {
-                cor_indicador = 'green'
-            } else if (porcentagem > 40) {
-                cor_indicador = '#B12425'
-            }
-
-            let blocos = ''
-
-            for (div in blocos_por_status) {
-                let divisao = blocos_por_status[div]
-                blocos += `
+        for (div in blocos_por_status) {
+            let divisao = blocos_por_status[div]
+            blocos += `
                 <div style="display: flex; flex-direction: column; justify-content: start; align-items: center; width: 16vw; overflow-y: auto; gap: 10px;">
                     ${divisao}
                 </div>
                 `
-            }
+        }
 
-            let finalizado = todos_os_status[chave_pedido].finalizado ? 'checked' : ''
-            //29
-            var linhas = `
+        let opcoes = ''
+        for (fluxo in fluxograma) {
+
+            opcoes += `
+                <option ${orcamento.status?.atual == fluxo ? 'selected' : ''}>${fluxo}</option>
+            `
+        }
+
+        let selects = `
+        <select onchange="alterar_status(this)">
+            ${opcoes}
+        </select>
+        `
+
+        var linhas = `
                 <div style="display: flex; flex-direction: column; gap: 15px;">
                     <hr style="width: 100%;">
 
                     <div style="display: flex;">
-                        <div
-                            style="display: flex; align-items: center; font-size: 1.5em; font-weight: bold; background-color: #444; color: #fff; padding: 5px 10px; border-bottom-left-radius: 5px; border-top-left-radius: 5px;">
-                            ${contador}
-                        </div>
 
                         <div style="display: flex; flex-direction: column; gap: 10px; padding: 3px;">
 
                             <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">  
 
-                                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                    <input type="checkbox" style="width: 30px; height: 30px;" onchange="finalizar_pedido('${chave_pedido}', this)" ${finalizado}>
-                                    <label><strong>Marcar como FINALIZADO?</strong></label>
-                                </div>
+                                ${selects}
 
                             </div>
 
                             <div style="display: flex; gap: 10px; font-size: 0.9vw;">
-                                ${botao_novo_pagamento(chave_pedido)}
+                                ${botao_novo_pagamento(id)}
+                                ${botao_novo_pedido(id)}
                                 <div class="contorno_botoes" style="background-color: ${fluxograma['REQUISIÇÃO'].cor}"
-                                    onclick="detalhar_requisicao('${chave_pedido}')">
+                                    onclick="detalhar_requisicao()">
                                     <label>Nova <strong>Requisição</strong></label>
                                 </div>
                                 <div class="contorno_botoes" style="background-color: ${fluxograma['MATERIAL ENVIADO'].cor}"
-                                    onclick="envio_de_material('${chave_pedido}', undefined)">
+                                    onclick="envio_de_material(undefined)">
                                     <label>Enviar <strong>Material</strong></label>
                                 </div>
                                 <div class="contorno_botoes" style="background-color: ${fluxograma['FATURADO'].cor};"
-                                    onclick="carregar_status_divs('FATURAMENTO', '${chave_pedido}', '${id}')">
+                                    onclick="painel_adicionar_notas()">
                                     <label>Nova <strong>Nota Fiscal</strong></label>
                                 </div>
                                 <div class="contorno_botoes" style="background-color: ${fluxograma['COTAÇÃO PENDENTE'].cor};"
-                                    onclick="iniciar_cotacao('${chave_pedido}', '${id}')">
+                                    onclick="iniciar_cotacao('${id}')">
                                     <label>Nova <strong>Cotação</strong></label>
                                 </div>
                                 <div class="contorno_botoes" style="background-color: ${fluxograma['RETORNO DE MATERIAIS'].cor};"
-                                    onclick="retorno_de_materiais('${chave_pedido}', '${id}', true)">
+                                    onclick="retorno_de_materiais('${id}')">
                                     <label>Retorno de <strong>Materiais</strong></label>
                                 </div>
                                 <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
                                     <img src="gifs/atencao.gif" style="width: 2vw;">
-                                    <label style="text-decoration: underline; cursor: pointer;" onclick="deseja_apagar('${chave_pedido}')">
+                                    <label style="text-decoration: underline; cursor: pointer;" onclick="deseja_apagar('${chave}')">
                                         Excluir este número de Pedido
                                     </label>
                                 </div>                                
@@ -1946,32 +1694,29 @@ async function abrir_esquema(id) {
                 </div>
             `;
 
-            acumulado += linhas;
-            contador++;
+        acumulado += linhas;
 
-        };
+    };
 
-        setTimeout(() => {
-            let totalValoresPedidos = somarValoresPedidos(); // Soma todos os valores dos pedidos
-            let totalValoresManuais = somarValoresManuais(dados_orcamentos[id]); // Soma os valores manuais
-            
-            let totalFinal = totalValoresPedidos - totalValoresManuais; // Cálculo final
-        
-            console.log("Total calculado:", totalFinal);
-        
-            // Atualiza o HTML no span específico
-            let valorPedidoSpan = document.getElementById('valor_pedido');
-            if (valorPedidoSpan) {
-                valorPedidoSpan.textContent = dinheiro(totalValoresPedidos);
-            }
-            let valorTotalSpan = document.getElementById('valor_total_pedido');
-            if(valorTotalSpan){
-                valorTotalSpan.textContent = dinheiro(totalFinal)
-            }
-        }, 200);
-              
+    setTimeout(() => {
+        let totalValoresPedidos = somarValoresPedidos(); // Soma todos os valores dos pedidos
+        let totalValoresManuais = somarValoresManuais(dados_orcamentos[id]); // Soma os valores manuais
 
-        acumulado += `
+        let totalFinal = totalValoresPedidos - totalValoresManuais; // Cálculo final
+
+        // Atualiza o HTML no span específico
+        let valorPedidoSpan = document.getElementById('valor_pedido');
+        if (valorPedidoSpan) {
+            valorPedidoSpan.textContent = dinheiro(totalValoresPedidos);
+        }
+        let valorTotalSpan = document.getElementById('valor_total_pedido');
+        if (valorTotalSpan) {
+            valorTotalSpan.textContent = dinheiro(totalFinal)
+        }
+    }, 200);
+
+
+    acumulado += `
         </div>
         <div class="contorno_botoes" style="font-size: 1vw; display: flex; flex-direction: column; align-items: center; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
                 <label>Gestão de Custos</label>
@@ -1983,15 +1728,15 @@ async function abrir_esquema(id) {
     
                 <div id="lista-valores-manuais">
                     ${Object.entries(dados_orcamentos[id].valoresManuais || {}).length > 0
-                    ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
+            ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
                             <div style="display: flex; align-items: center; gap: 5px;">
                                 <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
                                 <button onclick="removerValorManual('${id}', '${chave}')" 
                                     style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
                             </div>
                         `).join("")
-                    : "<label style='font-size: 0.8vw; color: gray;'>Nenhum valor manual adicionado.</label>"
-                }
+            : "<label style='font-size: 0.8vw; color: gray;'>Nenhum valor manual adicionado.</label>"
+        }
                 </div>
 
                 <hr style="width: 100%;">
@@ -1999,18 +1744,16 @@ async function abrir_esquema(id) {
             </div>
         </div>
         `
-        
-        var estruturaHtml = `
+
+    var estruturaHtml = `
         <div id="estrutura" class="status" style="display: flex; flex-direction: column; gap: 10px; width: 100%; overflow: auto;">
         <span class="close" onclick="fechar_estrutura()">&times;</span>
         ${acumulado}
         </div>
         `;
-        document.body.insertAdjacentHTML('beforeend', estruturaHtml);
+    document.body.insertAdjacentHTML('beforeend', estruturaHtml);
 
-        fechar_espelho_ocorrencias();
-    }
-
+    fechar_espelho_ocorrencias();
 }
 
 function somarValoresPedidos() {
@@ -2022,20 +1765,19 @@ function somarValoresPedidos() {
         total += numero;
     });
 
-    console.log("Total dos valores pedidos: R$", total.toFixed(2));
     return total;
 }
 
 function somarValoresManuais(dados) {
     let totalManuais = 0;
-    
+
     if (dados.valoresManuais) {
         Object.values(dados.valoresManuais).forEach(valorManual => {
             let valor = parseFloat(valorManual.valorManual) || 0;
             totalManuais += valor;
         });
     }
-    
+
     return totalManuais;
 }
 
@@ -2054,7 +1796,7 @@ async function atualizar_pedido(chave1, chave2, campo, img_select) {
     campo !== 'tipo' ? img_select.style.display = 'none' : ''
 }
 
-function mostrar_botao_pedido(elemento) { //29
+function mostrar_botao_pedido(elemento) {
     let img = elemento.nextElementSibling;
     img.style.display = 'block'
 }
@@ -2073,14 +1815,26 @@ async function finalizar_pedido(chave1, checkbox) {
 
 }
 
-async function alterar_status(chave1, chave2, select) {
+async function alterar_status(select, id) {
+
+    let tela_orcamentos = false
+    if (id !== undefined) {
+        id_orcam = id
+        tela_orcamentos = true
+    }
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    dados_orcamentos[id_orcam].status[chave1].historico[chave2].status = select.value
+    dados_orcamentos[id_orcam].status.atual = select.value
 
-    enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/status`, select.value)
+    enviar(`dados_orcamentos/${id_orcam}/status/atual`, select.value)
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
+
+    if (tela_orcamentos) {
+        select.parentElement.parentElement.style.display = 'none'
+    } else {
+        await preencher_orcamentos_v2()
+    }
 
 }
 
@@ -2249,7 +2003,7 @@ async function iniciar_cotacao(chave, id_orcam) {
 
     enviar_dados_generico(dados) // 29 Mantém por enquanto...
 
-    abrir_esquema(id_orcam)
+    await abrir_esquema(id_orcam)
 
 }
 
@@ -2299,7 +2053,7 @@ async function salvarValorManual() {
     let valor = document.getElementById("valor-manual").value.trim();
 
     if (!nome || !valor) {
-        alert("⚠️ Por favor, preencha todos os campos.");
+        openPopup_v2("⚠️ Por favor, preencha todos os campos.");
         return;
     }
 
@@ -2365,32 +2119,13 @@ function calcularResultado(orcamento) {
 }
 
 
-async function retorno_de_materiais(chave_pedido, id, qualBotao) {
+async function retorno_de_materiais(chave) {
+
+    chave == undefined ? chave = gerar_id_5_digitos() : chave
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let orcamento = dados_orcamentos[id];
-    let retornoAtual = undefined
-    let chave2 = 0
-
-    Object.entries(orcamento.status[chave_pedido].historico).forEach(([chave, item]) => {
-        if (item.status.includes("RETORNO")) {
-            retornoAtual = item.materiaisRetorno;
-            chave2 = chave; // Armazena a chave do objeto
-        }
-    });
-
-
-    if (retornoAtual && qualBotao) {
-
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Já existe um Retorno de Materiais no Pedido</label>
-            </div>
-        `)
-
-    }
+    let orcamento = dados_orcamentos[id_orcam];
 
     let acumulado = `
 
@@ -2401,48 +2136,30 @@ async function retorno_de_materiais(chave_pedido, id, qualBotao) {
     </div>
     
     <table id="tabelaRetornoMateriais" style="border-collapse: collapse; border: 1px solid black; background-color: white; width: 100%; text-align: center;">
-
         <tr style="border: 1px solid black;">
-
             <th style="border: 1px solid black; color: black; padding: 8px;">Descrição</th>
             <th style="border: 1px solid black; color: black; padding: 8px;">Quantidade Disponivel</th>
             <th style="border: 1px solid black; color: black; padding: 8px;">Quantidade para Retorno</th>
+        </tr>
+        `
 
-        </tr>`
+    Object.values(orcamento.dados_composicoes).forEach(item => {
 
-    if (retornoAtual) {
+        acumulado += `
+        <tr style="border: 1px solid black;">
+            <td class="dados_descricao_retorno" data-codigo="${item.codigo}" style="border: 1px solid black; color: black; padding: 8px;">${dados_composicoes[item.codigo].descricao}</td>
+            <td style="border: 1px solid black; color: black; padding: 8px;">${item.qtde}</td>
+            <td style="border: 1px solid black; color: black; padding: 8px;"><input class="dados_qtde_retorno" type="number" " ></td>
+        </tr>
+        `
 
-        Object.values(orcamento.dados_composicoes).forEach(item => {
-
-            acumulado += `<tr style="border: 1px solid black;">
-
-        <td class="dados_descricao_retorno" data-codigo="${item.codigo}" style="border: 1px solid black; color: black; padding: 8px;">${dados_composicoes[item.codigo].descricao}</td>
-        <td style="border: 1px solid black; color: black; padding: 8px;">${item.qtde}</td>
-        <td style="border: 1px solid black; color: black; padding: 8px;"><input class="dados_qtde_retorno" type="number" value="${retornoAtual[item.codigo]}" ></td>
-
-    </tr>`
-
-        })
-    } else {
-
-        Object.values(orcamento.dados_composicoes).forEach(item => {
-
-            acumulado += `<tr style="border: 1px solid black;">
-
-        <td class="dados_descricao_retorno" data-codigo="${item.codigo}" style="border: 1px solid black; color: black; padding: 8px;">${dados_composicoes[item.codigo].descricao}</td>
-        <td style="border: 1px solid black; color: black; padding: 8px;">${item.qtde}</td>
-        <td style="border: 1px solid black; color: black; padding: 8px;"><input class="dados_qtde_retorno" type="number" " ></td>
-
-    </tr>`
-
-        })
-    }
+    })
 
     acumulado += `
     
     </table>
     
-    <button id="botao_salvar_retorno" onclick="salvar_materiais_retorno('${chave_pedido}', '${chave2}')">Salvar</button>
+    <button id="botao_salvar_retorno" onclick="salvar_materiais_retorno('${chave}')">Salvar</button>
 
     `
 
@@ -2450,7 +2167,7 @@ async function retorno_de_materiais(chave_pedido, id, qualBotao) {
 
 }
 
-async function salvar_materiais_retorno(chave_pedido, chave2) {
+async function salvar_materiais_retorno(chave) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
@@ -2472,16 +2189,12 @@ async function salvar_materiais_retorno(chave_pedido, chave2) {
 
     remover_popup()
 
-    if (chave2 == '0') {
-        chave2 = unicoID()
-    }
     let data_completa = new Date().toLocaleString('pt-BR', {
         dateStyle: 'short',
         timeStyle: 'short'
     });
 
-    orcamento.status[chave_pedido].status = 'RETORNO DE MATERIAIS'
-    orcamento.status[chave_pedido].historico[chave2] = {
+    orcamento.status.historico[chave] = {
         status: 'RETORNO DE MATERIAIS',
         data: data_completa,
         executor: acesso.usuario,
@@ -2489,9 +2202,9 @@ async function salvar_materiais_retorno(chave_pedido, chave2) {
     };
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${id_orcam}/status/${chave_pedido}/historico/${chave2}`, orcamento.status[chave_pedido].historico[chave2])
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
 
-    abrir_esquema(id_orcam)
+    await abrir_esquema(id_orcam)
 
 }
 
@@ -2513,8 +2226,7 @@ async function recuperarCotacoes() {
     localStorage.setItem("dados_cotacao", JSON.stringify(cotacoes));
 }
 
-async function registrar_envio_material(chave1, id_orcam, chave2) {
-
+async function registrar_envio_material(chave) {
     var campos = ['rastreio', 'transportadora', 'custo_frete', 'nf', 'comentario_envio', 'volumes', 'data_saida', 'previsao', 'entrega']
     var status = {
         envio: {}
@@ -2533,33 +2245,23 @@ async function registrar_envio_material(chave1, id_orcam, chave2) {
         } else {
             status.envio[campo] = valor
         }
-
     })
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let historico = dados_orcamentos[id_orcam].status[chave1].historico
+    let historico = dados_orcamentos[id_orcam].status.historico
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let st = status.envio.entrega !== '' ? 'MATERIAL ENTREGUE' : 'MATERIAL ENVIADO'
 
-    status.anexos = {}
     status.executor = acesso.usuario
     status.data = data_status
     status.status = st
-    dados_orcamentos[id_orcam].status[chave1].status = st
 
-    let id = gerar_id_5_digitos()
-    if (chave2 !== undefined) {
-        id = chave2
-    }
-
-    historico[id] = status
+    historico[chave] = status
     remover_popup()
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${id}`, status)
-    await enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/status`, st)
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, status)
     abrir_esquema(id_orcam)
-
 }
 
 function calcular_quantidades(requisicoes, itens_no_orcamento) {
@@ -2627,10 +2329,11 @@ function calcular_quantidades(requisicoes, itens_no_orcamento) {
 }
 
 function calcular_quantidades_v2(historico, itens_no_orcamento) {
+    let quantidades = {}
 
-    for (chave2 in historico) {
-        if (historico[chave2].requisicoes) {
-            var requisicoes = historico[chave2].requisicoes
+    for (chave in historico) {
+        if (historico[chave].requisicoes) {
+            var requisicoes = historico[chave].requisicoes
 
             requisicoes.forEach(item => {
                 if (!quantidades[item.codigo]) {
@@ -2653,52 +2356,46 @@ function calcular_quantidades_v2(historico, itens_no_orcamento) {
     }
 
     return quantidades
-
 }
 
-function confirmar_exclusao_comentario(id_comentario, chave1, chave2) {
-
+function confirmar_exclusao_comentario(id_comentario, chave) {
     openPopup_v2(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
             <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
             <label>Excluir o comentário?</label>
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-            <button onclick="excluir_comentario('${id_comentario}', '${chave1}', '${chave2}')" style="background-color: green">Confirmar</button>
+            <button onclick="excluir_comentario('${id_comentario}', '${chave}')" style="background-color: green">Confirmar</button>
             <button onclick="remover_popup()">Cancelar</button>
             </div>
         </div>
         `)
 }
 
-async function excluir_comentario(id_comentario, chave1, chave2) {
+async function excluir_comentario(id_comentario, chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let comentarios = dados_orcamentos[id_orcam].status[chave1].historico[chave2].comentarios || {}
+    let comentarios = dados_orcamentos[id_orcam].status.historico[chave].comentarios || {}
 
     delete comentarios[id_comentario]
 
     remover_popup()
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await deletar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/comentarios/${id_comentario}`)
-    await carregar_comentarios(chave1, chave2)
-
+    await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/comentarios/${id_comentario}`)
+    await carregar_comentarios(chave)
 }
 
-async function carregar_comentarios(chave1, chave2) {
-
+async function carregar_comentarios(chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let comentss = ''
-    if (dados_orcamentos[id_orcam].status[chave1] && dados_orcamentos[id_orcam].status[chave1].historico[chave2]) {
-
-        let comentarios = dados_orcamentos[id_orcam].status[chave1].historico[chave2].comentarios || {}
+    if (dados_orcamentos[id_orcam].status.historico[chave]) {
+        let comentarios = dados_orcamentos[id_orcam].status.historico[chave].comentarios || {}
 
         for (it in comentarios) {
-
             let item = comentarios[it]
             let excluir = ''
 
             if (acesso.usuario == item.usuario || acesso.permissao == 'adm') {
-                excluir = ` •<label onclick="confirmar_exclusao_comentario('${it}', '${chave1}', '${chave2}')" style="text-decoration: underline; cursor: pointer;"> Excluir</label>`
+                excluir = ` •<label onclick="confirmar_exclusao_comentario('${it}', '${chave}')" style="text-decoration: underline; cursor: pointer;"> Excluir</label>`
             }
 
             comentss += `
@@ -2708,22 +2405,19 @@ async function carregar_comentarios(chave1, chave2) {
             </div>
             `
         }
-
     }
 
-    let div_caixa = document.getElementById(`caixa_comentarios_${chave2}`)
+    let div_caixa = document.getElementById(`caixa_comentarios_${chave}`)
     if (div_caixa) {
         div_caixa.innerHTML = comentss
     }
 
     return comentss
-
 }
 
-async function salvar_comentario(chave1, chave2) {
-
-    toggle_comentario(`comentario_${chave2}`)
-    let id_div = `comentario_${chave2}`
+async function salvar_comentario(chave) {
+    toggle_comentario(`comentario_${chave}`)
+    let id_div = `comentario_${chave}`
     let textarea = document.getElementById(id_div).querySelector('textarea')
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
@@ -2733,12 +2427,12 @@ async function salvar_comentario(chave1, chave2) {
 
     var comentario = {
         id: id,
-        chave2: chave2,
         comentario: textarea.value,
         data: data_atual('completa'),
         usuario: acesso.usuario
     }
-    let cartao = orcamento.status[chave1].historico[chave2]
+
+    let cartao = orcamento.status.historico[chave]
     if (!cartao.comentarios) {
         cartao.comentarios = {}
     }
@@ -2747,9 +2441,9 @@ async function salvar_comentario(chave1, chave2) {
 
     textarea.value = ''
 
-    await enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/comentarios/${id}`, comentario)
-    await carregar_comentarios(chave1, chave2)
-
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/comentarios/${id}`, comentario)
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await carregar_comentarios(chave)
 }
 
 function toggle_comentario(id) {
@@ -2761,156 +2455,21 @@ function toggle_comentario(id) {
     }
 }
 
-function selecionar_etiqueta() {
-
-    var dados_etiquetas = JSON.parse(localStorage.getItem('dados_etiquetas')) || {}
-
-    var etiquetas = ''
-    Object.keys(dados_etiquetas).forEach(et => {
-
-        var etiqueta = dados_etiquetas[et]
-        etiquetas += `
-        <div class="contorno_botoes" style="background-color: ${etiqueta.cor}; font-size: 0.7em;" onclick="associar_etiqueta('${id_orcam}', '${et}')">
-        ${etiqueta.nome}
-        </div>
-        `
-    })
-
-    var acumulado = `
-    <label class="novo_titulo">Etiquetas</label>
-    <div class="contorno_botoes" style="background-color: white; display; flex; gap: 10px; justify-content: center; align-items: center;">
-        <input placeholder="Nova Etiqueta" id="etiqueta_nome">
-        <input type="color" id="etiqueta_cor">
-        <label style="color: #222;" onclick="nova_etiqueta()">Salvar</label>
-    </div>
-    <div>
-    ${etiquetas}
-    </div>
-    `
-
-    openPopup_v2(acumulado)
-
-}
-
-function nova_etiqueta() {
-
-    var cor = document.getElementById('etiqueta_cor')
-    var nome = document.getElementById('etiqueta_nome')
-
-    if (cor && nome) {
-
-        var id = unicoID()
-        var dados_etiquetas = JSON.parse(localStorage.getItem('dados_etiquetas')) || {}
-
-        dados_etiquetas[id] = {
-            nome: nome.value,
-            cor: cor.value
-        }
-
-        nova_etiqueta_api(id, nome.value, cor.value)
-
-        localStorage.setItem('dados_etiquetas', JSON.stringify(dados_etiquetas))
-
-        remover_popup()
-        selecionar_etiqueta()
-
-    }
-}
-
-function nova_etiqueta_api(id, nome, cor) {
-
-    var dados = {
-        'tabela': 'nova_etiqueta',
-        'nome': nome,
-        'cor': cor,
-        'id': id
-    }
-
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(dados)
-    })
-
-}
-
-async function associar_etiqueta(id, id_etiqueta) {
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
-    if (!dados_orcamentos[id].etiqueta) {
-        dados_orcamentos[id].etiqueta = {}
-    }
-    var dt = data_atual('completa')
-    dados_orcamentos[id].etiqueta[id_etiqueta] = dt
-
-    atualizar_etiqueta(id, id_etiqueta, dt)
-
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
-
-    fechar_estrutura()
-    abrir_esquema(id)
-
-    inicializar()
-}
-
-
-function remover_etiqueta(id, id_etiqueta) {
-
-    openPopup_v2(`
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-            <label>Remover a etiqueta?</label>
-            <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-            <button onclick="remover_mesmo_a_etiqueta('${id}', '${id_etiqueta}')" style="background-color: green">Confirmar</button>
-            <button onclick="remover_popup()">Cancelar</button>
-            </div>
-        </div>
-        `)
-
-}
-
-async function remover_mesmo_a_etiqueta(id, id_etiqueta) {
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    delete dados_orcamentos[id].etiqueta[id_etiqueta]
-
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
-
-    atualizar_etiqueta(id, id_etiqueta, undefined, 'excluir')
-
-    fechar_estrutura()
-    abrir_esquema(id)
-
-    remover_popup()
-
-    var quadro = document.getElementById('quadro')
-    if (quadro) {
-        inicializar()
-    }
-}
-
 function pesquisar_pagamentos(chave) {
-
     var todos_os_pagamentos = document.getElementById('div_pagamentos_pesquisa_' + chave)
     var pesquisa = String(document.getElementById(chave).value).toLowerCase()
 
     if (todos_os_pagamentos) {
-
         var divs = todos_os_pagamentos.querySelectorAll('div')
 
         divs.forEach(div => {
-
             var mostrar = false
             var labels = div.querySelectorAll('label')
 
             labels.forEach(label => {
-
                 if (label.textContent.toLocaleLowerCase().includes(pesquisa) || pesquisa == '') {
                     mostrar = true
                 }
-
             })
 
             if (mostrar) {
@@ -2919,31 +2478,22 @@ function pesquisar_pagamentos(chave) {
                 div.style.display = 'none'
             }
         })
-
     }
-
 }
 
-function chamar_excluir_anexo(chave_pedido, chave2, key_anx) {
-
-    openPopup_v2("Deseja excluir o anexo?", true, `excluir_anexo('${chave_pedido}', '${chave2}', '${key_anx}')`)
-
-}
-
-
-async function excluir_anexo(chave, chave2, chave_anexo) {
-
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
-    delete dados_orcamentos[id_orcam].status[chave].historico[chave2].anexos[chave_anexo]
-
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
-
-    excluir_status_na_nuvem(chave, chave2, chave_anexo)
+async function excluir_anexo(chave, id_anexo, img) {
 
     remover_popup()
 
-    abrir_esquema(id_orcam)
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+
+    delete dados_orcamentos[id_orcam].status.historico[chave].anexos[id_anexo]
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+
+    deletar(`dados_orcamentos/${id_orcam}/status/historico/anexos/${id_anexo}`)
+
+    img.parentElement.remove()
 
 }
 
@@ -2975,12 +2525,26 @@ async function chamar_excluir(id) {
         `)
 }
 
-async function detalhar_requisicao(chave, apenas_visualizar, chave2, editar) {
+async function detalhar_requisicao(chave) {
+
+    let visualizar = true
+    if (chave == undefined) {
+        chave = gerar_id_5_digitos()
+        visualizar = false
+    }
 
     var painel_status = document.getElementById('status')
     if (painel_status) {
         painel_status.remove()
     }
+
+    var estrutura = document.getElementById('estrutura')
+    if (estrutura) {
+        estrutura.remove()
+    }
+    fechar_espelho_ocorrencias()
+    overlay.style.display = 'block'
+
 
     itens_adicionais = {}
     var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
@@ -2990,26 +2554,18 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2, editar) {
         timeStyle: 'short'
     });
 
-    var estrutura = document.getElementById('estrutura')
-    if (estrutura) {
-        estrutura.remove()
-    }
-
-    fechar_espelho_ocorrencias()
-
-    overlay.style.display = 'block'
-
     dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     orcamento = dados_orcamentos[id_orcam];
 
     var requisicao = {}
     var menu_flutuante = ''
+    var nome_cliente = orcamento.dados_orcam.cliente_selecionado
 
-    if (chave2) {
-
+    if (chave && orcamento.status.historico[chave]) {
+        let cartao = orcamento.status.historico[chave]
         menu_flutuante = `
         <div class="menu_flutuante" id="menu_flutuante">
-            <div class="icone" onclick="gerarpdf('${orcamento.dados_orcam.cliente_selecionado}', '${orcamento.status[chave].pedido}')">
+            <div class="icone" onclick="gerarpdf('${orcamento.dados_orcam.cliente_selecionado}', '${cartao.pedido}')">
                 <img src="imagens/pdf.png">
                 <label>PDF</label>
             </div>
@@ -3020,12 +2576,12 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2, editar) {
         </div> 
         `
 
-        if (orcamento.status[chave].historico[chave2].adicionais) {
-            itens_adicionais = orcamento.status[chave].historico[chave2].adicionais
+        if (cartao.adicionais) {
+            itens_adicionais = cartao.adicionais
         }
 
-        if (orcamento.status[chave].historico[chave2].requisicoes) {
-            orcamento.status[chave].historico[chave2].requisicoes.forEach(item => {
+        if (cartao.requisicoes) {
+            cartao.requisicoes.forEach(item => {
                 requisicao[item.codigo] = {
                     partnumber: item.partnumber,
                     requisicao: item.requisicao,
@@ -3037,21 +2593,16 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2, editar) {
 
     }
 
-    var nome_cliente = orcamento.dados_orcam.cliente_selecionado
     var campos = ''
     var toolbar = ''
 
-    if (!apenas_visualizar) {
+    if (!visualizar) {
         toolbar += `
         <div style="display: flex; gap: 10px; justify-content: center; align-items: center; background-color: #151749; border-top-left-radius: 5px; border-top-right-radius: 5px">
             <img src="imagens/pesquisar.png" style="width: 25px; height: 25px; padding: 5px;">
             <input id="pesquisa1" style="padding: 10px; border-radius: 5px; margin: 10px; width: 50%;" placeholder="Pesquisar" oninput="pesquisar_na_requisicao()">
         </div>
         `
-        var funcao = `salvar_requisicao('${chave}', '${chave2}')`
-        if (chave2 == undefined) {
-            funcao = `salvar_requisicao('${chave}')`
-        }
 
         campos = `
         <div class="contorno" style="width: 500px;">
@@ -3071,7 +2622,7 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2, editar) {
                     <textarea rows="3" id="comentario_status" style="width: 80%;"></textarea>
                 </div>
 
-                <label class="contorno_botoes" style="background-color: #4CAF50; " onclick="${funcao}">Salvar Requisição</label>
+                <label class="contorno_botoes" style="background-color: #4CAF50; " onclick="salvar_requisicao('${chave}')">Salvar Requisição</label>
             </div>
         </div>
         `
@@ -3105,7 +2656,6 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2, editar) {
                 <label style="color: #222"><strong>Cidade</strong> ${orcamento.dados_orcam.cidade}</label>
                 <label style="color: #222"><strong>Estado</strong> ${orcamento.dados_orcam.estado}</label>
                 <label style="color: #222"><strong>Chamado</strong> ${orcamento.dados_orcam.contrato}</label>
-                <label style="color: #222"><strong>Número do Pedido</strong> ${orcamento.status[chave].pedido}</label>
                 <label style="color: #222"><strong>Condições</strong> ${orcamento.dados_orcam.condicoes}</label>
             </div>
         </div>
@@ -3142,27 +2692,21 @@ async function detalhar_requisicao(chave, apenas_visualizar, chave2, editar) {
                 <th style="text-align: center;">Requisição</th>
             </thead>
             <tbody>
-            ${await carregar_itens(apenas_visualizar, requisicao, editar)}
+            ${await carregar_itens(visualizar, requisicao)}
             </tbody>
         </table>
     <div>
     `
     var elementus_tus = `
     <div id="status" class="status" style="display: flex; width: 100%; overflow: auto;">
-    ${elementus}
+        ${elementus}
     </div>
     `
 
     document.body.insertAdjacentHTML('beforeend', elementus_tus)
 
-    var comentario_status = document.getElementById('comentario_status')
-    if (comentario_status && chave2 !== undefined) {
-        comentario_status.value = orcamento.status[chave].historico[chave2].comentario
-    }
-
     await calcular_requisicao()
     mostrar_itens_adicionais()
-
 }
 
 function close_chave() {
@@ -3170,223 +2714,98 @@ function close_chave() {
     document.getElementById('alerta').remove()
 }
 
-async function salvar_anexo(chave1, chave2) {
-
-    let painel_novo_pedido = document.getElementById("painel_novo_pedido")
-
-    if (painel_novo_pedido) {
-
-        painel_novo_pedido.insertAdjacentHTML("beforebegin", overlay_aguarde())
-
-    }
+async function salvar_anexo(chave, input) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    var elemento = chave1 !== undefined
-        ? document.getElementById(`adicionar_anexo_${chave1}_${chave2}`)
-        : document.getElementById(`adicionar_anexo`);
 
-    var files = elemento.files;
-
-    if (!files || files.length === 0) {
+    if (input.files.length === 0) {
         openPopup_v2('Nenhum arquivo selecionado...');
         return;
     }
 
-    let promises = [];
+    let anexos = await anexo_v2(input) // Retorna uma lista [{}, {}]
 
-    for (let file of files) {
-        let promise = new Promise((resolve, reject) => {
-            var reader = new FileReader();
-            reader.onload = async (e) => {
-                var base64 = e.target.result.split(',')[1];
-                var mimeType = file.type;
+    anexos.forEach(anexo => {
 
-                try {
-                    var response = await fetch('http://localhost:3000/upload', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            name: file.name,
-                            mimeType: mimeType,
-                            base64: base64
-                        })
-                    });
+        if (Array.isArray(dados_orcamentos[id_orcam].status.historico[chave].anexos) || !dados_orcamentos[id_orcam].status.historico[chave].anexos) {
+            dados_orcamentos[id_orcam].status.historico[chave].anexos = {};
+        }
 
-                    if (response.ok) {
-                        var result = await response.json();
-                        resolve({ file, result });
-                    } else {
-                        var errorResult = await response.json();
-                        reject(new Error(errorResult.message || 'Erro desconhecido ao fazer upload.'));
-                    }
-                } catch (error) {
-                    reject(error);
-                }
-            };
+        let id = gerar_id_5_digitos()
 
-            reader.readAsDataURL(file);
-        });
-
-        promises.push(promise);
-    }
-
-    Promise.all(promises)
-        .then(results => {
-            results.forEach(({ file, result }) => {
-                if (chave1 === undefined && chave2 === undefined) {
-                    let div_anexos = document.getElementById('div_anexos')
-
-                    if (div_anexos) {
-                        let id = gerar_id_5_digitos();
-
-                        anexos[id] = {
-                            nome: file.name,
-                            formato: file.type,
-                            link: result.fileId
-                        };
-
-                        let resposta = `
-                            <div id="${id}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                                <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                    <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                                    <label style="font-size: 0.8em;">${String(file.name).slice(0, 10)} ... ${String(file.name).slice(-7)}</label>
-                                </div>
-                                <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="remover_anexo('${id}')">
-                            </div>
-                            `;
-
-                        div_anexos.style = 'align-items: normal';
-                        div_anexos.insertAdjacentHTML('beforeend', resposta);
-                    }
-
-
-                } else {
-
-                    if (Array.isArray(dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos) || !dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos) {
-                        dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos = {};
-                    }
-
-                    let id_anx = gerar_id_5_digitos()
-                    let anx = {
-                        nome: file.name,
-                        formato: file.type,
-                        link: result.fileId
-                    }
-
-                    dados_orcamentos[id_orcam].status[chave1].historico[chave2].anexos[id_anx] = anx
-
-                    inserirDados(dados_orcamentos, 'dados_orcamentos');
-                    enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/anexos/${id_anx}`, anx)
-
-                    var estrutura = document.getElementById('estrutura');
-                    if (estrutura) {
-                        estrutura.remove();
-                    }
-
-                    abrir_esquema(id_orcam);
-                }
-
-            });
-
-        })
-        .catch(error => {
-            openPopup_v2(`Erro ao fazer upload: ${error.message}`);
-            console.error(error);
-        })
-        .finally(i => {
-
-            let aguarde = document.getElementById("aguarde")
-
-            if (aguarde) {
-
-                document.getElementById("aguarde").remove()
-
-            }
-
-        })
-
-}
-
-
-function remover_anexo(id) {
-    let div = document.getElementById(id)
-    if (anexos && div) {
-        div.remove()
-        delete anexos[id]
-    }
-}
-
-// `https://drive.google.com/file/d/${exemplo}/view?usp=drivesdk`
-
-async function excluir_status_na_nuvem(chave1, chave2, chave_anexo) {
-
-    var dados = {
-        'id': id_orcam,
-        'tabela': 'orcamento_status',
-        'operacao': 'excluir_anexo',
-        chave1,
-        chave2,
-        chave_anexo
-    }
-
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(dados)
+        dados_orcamentos[id_orcam].status.historico[chave].anexos[id] = anexo
+        enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/anexos/${id}`, anexo)
     })
 
+    await inserirDados(dados_orcamentos, 'dados_orcamentos');
+
+    let div = input.parentElement.parentElement.nextElementSibling // input > label > div pai > div seguinte;
+
+    div.innerHTML = await carregar_anexos(chave)
+
 }
 
-function deseja_apagar(chave1, chave2) {
+async function carregar_anexos(chave) {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[id_orcam]
+    let anexos_divs = ''
+    let anexos = orcamento.status.historico[chave].anexos
 
-    let funcao = chave2 == undefined ? `apagar_status_historico('${chave1}')` : `apagar_status_historico('${chave1}', '${chave2}')`
+    if (anexos) {
+
+        for (id in anexos) {
+            var anexo = anexos[id]
+            anexos_divs += `
+                <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+                    <div onclick="abrirArquivo('${anexo.link}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                        <label style="font-size: 0.8em;">${String(anexo.nome).slice(0, 10)} ... ${String(anexo.nome).slice(-7)}</label>
+                    </div>
+                    <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="excluir_anexo('${chave}', '${id}', this)">
+                </div>
+            `
+        }
+    }
+
+    return anexos_divs
+
+}
+
+function deseja_apagar(chave) {
 
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
             <label>Deseja apagar essa informação?</label>
             <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
-                <button style="background-color: green" onclick="${funcao}">Confirmar</button>
+                <button style="background-color: green" onclick="apagar_status_historico('${chave}')">Confirmar</button>
                 <button onclick="remover_popup()">Cancelar</button>
             </div>
         </div>
         `)
 }
 
-async function apagar_status_historico(chave1, chave2) {
+async function apagar_status_historico(chave) {
 
     remover_popup()
 
-    remover_cotacao(chave2)
+    remover_cotacao(chave)
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    if (chave2 == undefined || chave2 == 'undefined') {
-        delete dados_orcamentos[id_orcam].status[chave1]
-        await deletar(`dados_orcamentos/${id_orcam}/status/${chave1}`)
-
-    } else {
-        delete dados_orcamentos[id_orcam].status[chave1].historico[chave2]
-        await deletar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}`)
-
-    }
+    delete dados_orcamentos[id_orcam].status.historico[chave]
+    await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`)
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     fechar_estrutura()
-    abrir_esquema(id_orcam)
+    await abrir_esquema(id_orcam)
 
 }
 
-function remover_cotacao(chave2) {
-
+function remover_cotacao(chave) { //29
     let status = "excluido";
     let operacao = "excluir";
-    let idCotacao = chave2
+    let idCotacao = chave
 
     const cotacaoParaExcluir = { operacao, status, idCotacao };
 
@@ -3396,11 +2815,9 @@ function remover_cotacao(chave2) {
     };
 
     enviar_dados_generico(payload);
-
 }
 
 async function atualizar_partnumber(dicionario) {
-
     for (codigo in dicionario) {
         let partnumber = dicionario[codigo]
         await enviar(`dados_composicoes/${codigo}/partnumber`, partnumber)
@@ -3416,16 +2833,13 @@ function getComputedStylesAsText(element) {
     return styleText;
 }
 
-
 const { ipcRenderer } = require('electron');
 
 ipcRenderer.on('open-save-dialog', (event, { htmlContent, nomeArquivo }) => {
     ipcRenderer.send('save-dialog', { htmlContent, nomeArquivo });
 });
 
-
 async function gerarpdf(cliente, pedido) {
-
     if (menu_flutuante) {
         menu_flutuante.style.display = 'none'
     }
@@ -3515,20 +2929,18 @@ async function gerarpdf(cliente, pedido) {
     if (menu_flutuante) {
         menu_flutuante.style.display = 'flex'
     }
-
 }
 
-async function envio_de_material(chave1, chave2) {
-
+async function envio_de_material(chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam]
     let envio = {}
-    let funcao = `registrar_envio_material('${chave1}', '${id_orcam}')`
     let comentario = ''
-    if (chave2 !== undefined) {
-        envio = orcamento.status[chave1].historico[chave2].envio
-        funcao = `registrar_envio_material('${chave1}', '${id_orcam}', '${chave2}')`
-        comentario = orcamento.status[chave1].historico[chave2].comentario
+    if (chave !== undefined) {
+        envio = orcamento.status.historico[chave].envio
+        comentario = orcamento.status.historico[chave].comentario
+    } else {
+        chave = gerar_id_5_digitos()
     }
 
     let transportadoras = ['JAMEF', 'CORREIOS', 'RODOVIÁRIA', 'JADLOG', 'AÉREO', 'OUTRAS']
@@ -3606,10 +3018,9 @@ async function envio_de_material(chave1, chave2) {
 
         <hr style="width: 80%;">
 
-        <button style="background-color: #4CAF50; width: 100%; margin: 0px;" onclick="${funcao}">Salvar</button>
+        <button style="background-color: #4CAF50; width: 100%; margin: 0px;" onclick="registrar_envio_material('${chave}')">Salvar</button>
       
     </div>
     `
     openPopup_v2(acumulado)
-
 }
