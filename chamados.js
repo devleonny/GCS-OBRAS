@@ -77,26 +77,27 @@ function filtrar_manutencoes(ultimo_status, col, texto) {
         }
 
         let label = `
-            <div onclick="filtrar_manutencoes('${st}')" 
-                style="background-color:${bg}; 
-                color: #222; 
-                display: flex; 
-                justify-content: center; 
-                align-items: center; 
-                gap: 20px;
-                cursor: pointer;
-                padding: 10px;
-                font-size: 0.8vw;
-                color: #222;
-                border-top-left-radius: 5px;
-                border-top-right-radius: 5px;
-                ">
+        <div onclick="filtrar_orcamentos('${st}')" 
+            style="background-color:${bg}; 
+            color: #222; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            gap: 3px;
+            cursor: pointer;
+            padding: 10px;
+            font-size: 0.8vw;
+            color: #222;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+            ">
 
-                <label>${inicial_maiuscula(st)}</label>
-                <label style="background-color: ${bg2}; color: #d2d2d2; border-radius: 3px; padding-left: 10px; padding-right: 10px;">${contadores[st]}</label>
+            <label>${inicial_maiuscula(st)}</label>
+            <label style="text-align: center; background-color: ${bg2}; color: #d2d2d2; border-radius: 3px; padding-left: 10px; padding-right: 10px; width: 50%;">${contadores[st]}</label>
 
-            </div>
-            `
+        </div>
+        `
         toolbar.insertAdjacentHTML('beforeend', label)
 
     })

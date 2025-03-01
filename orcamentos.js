@@ -89,9 +89,10 @@ function filtrar_orcamentos(ultimo_status, col, texto) {
                     style="background-color:${bg}; 
                     color: #222; 
                     display: flex; 
+                    flex-direction: column;
                     justify-content: center; 
                     align-items: center; 
-                    gap: 20px;
+                    gap: 3px;
                     cursor: pointer;
                     padding: 10px;
                     font-size: 0.8vw;
@@ -101,7 +102,7 @@ function filtrar_orcamentos(ultimo_status, col, texto) {
                     ">
 
                     <label>${inicial_maiuscula(st)}</label>
-                    <label style="background-color: ${bg2}; color: #d2d2d2; border-radius: 3px; padding-left: 10px; padding-right: 10px;">${contadores[st]}</label>
+                    <label style="text-align: center; background-color: ${bg2}; color: #d2d2d2; border-radius: 3px; padding-left: 10px; padding-right: 10px; width: 50%;">${contadores[st]}</label>
 
                 </div>
                 `
