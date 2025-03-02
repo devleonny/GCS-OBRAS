@@ -928,7 +928,7 @@ input[type=range]::-moz-range-thumb {
 
 .block {
     display: flex;
-    gap: 2vw;
+    gap: 10px;
     justify-content: left;
     text-align: center;
     align-items: center;
