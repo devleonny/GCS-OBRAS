@@ -478,7 +478,7 @@ function criar_manutencao(id) {
     let botao = 'Atualizar'
     let pdf = `
         <div onclick="capturar_html_pdf('${id}')" class="contorno_botoes" style="background-color: #B12425; display: flex; align-items: center; justify-content: center; gap: 10px;">
-            <img src="imagens/pdf.png" style="cursor: pointer; width: 40px;">
+            <img src="imagens/pdf.png" style="cursor: pointer; width: 2vw;">
             <label>PDF</label>
         </div>`
     if (id == undefined) {
@@ -599,18 +599,23 @@ function criar_manutencao(id) {
 
                 <br>
 
-                <div style="display: flex; align-items: start; justify-content: left; gap: 5px;">
+                <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
                     <div onclick="adicionar_linha_manut()" class="contorno_botoes"
                         style="background-color: #151749; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        <img src="imagens/chamados.png" style="cursor: pointer; width: 40px;">
+                        <img src="imagens/chamados.png" style="cursor: pointer; width: 2vw;">
                         <label>Adicionar Peça</label>
                     </div>
                     <div onclick="enviar_manutencao('${id}')" class="contorno_botoes"
                         style="background-color: green; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        <img src="imagens/estoque.png" style="cursor: pointer; width: 40px;">
+                        <img src="imagens/estoque.png" style="cursor: pointer; width: 2vw">
                         <label>${botao}</label>
                     </div>
                     ${pdf}
+
+                    <div onclick="confirmar_exclusao('${id}')" class="bex">
+                        <img src="imagens/cancel.png" style="cursor: pointer; width: 2vw;">
+                        <label">Excluir Manutenção</label>
+                    </div>
                 </div>
 
             </div>
@@ -624,6 +629,33 @@ function criar_manutencao(id) {
     
     `
     openPopup_v2(acumulado)
+}
+
+function confirmar_exclusao(id) {
+
+    openPopup_v2(`
+        <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
+            <img src="gifs/alerta.gif" style="width: 3vw;">
+            <label>Confirmar exclusão?</label>
+            <button style="font-size: 1vw;" onclick="excluir_manutencao('${id}')">Confirmar</button>
+        </div>
+        `)
+
+}
+
+async function excluir_manutencao(id) {
+    let dados_manutencao = await recuperarDados('dados_manutencao') || {}
+
+    delete dados_manutencao[id]
+
+    await inserirDados(dados_manutencao, 'dados_manutencao')
+
+    deletar(`dados_manutencao/${id}`)
+
+    remover_popup()
+
+    await carregar_manutencoes()
+
 }
 
 function alterar_kit(checkbox) {

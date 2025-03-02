@@ -1196,86 +1196,10 @@ async function exibir_todos_os_status(id) {
 
     acumulado_botoes += botao_novo_pedido(id)
 
-    let data = new Date().toLocaleString('pt-BR', {
-        dateStyle: 'short',
-        timeStyle: 'short'
-    });
-
-    let responsaveis = ['Gerente']
-    let painel_aprovacao = ''
-    if (conversor(orcamento.total_geral) > 21000) {
-        responsaveis.push('Diretoria')
-    }
-
-    responsaveis.forEach(responsavel => {
-        if (orcamento.aprovacao && orcamento.aprovacao[responsavel]) {
-            let aprovado = orcamento.aprovacao[responsavel]
-            let cor = aprovado.status == 'aprovado' ? '#4CAF50' : '#B12425'
-            let img = aprovado.status == 'aprovado' ? 'concluido' : 'remover'
-            let botao_cancelar = ''
-            if (
-                acesso.permissao == 'adm' ||
-                (responsavel == 'Gerente' && (acesso.permissao == 'gerente' || acesso.permissao == 'diretoria') ||
-                    (responsavel == 'Diretoria' && acesso.permissao == 'diretoria')
-                )
-            ) {
-                botao_cancelar = `<button style="background-color: #222;" onclick="remover_reprovacao('${responsavel}')">Cancelar</button>`
-            }
-
-            painel_aprovacao += `
-            <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-                <div class="contorno">
-                    <div class="avenida_contorno" style="margin: 0px; padding: 3px; background-color: ${cor}47;">
-                        <div style="position: relative; display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                            <label style="padding: 5px;">${String(aprovado.status).toUpperCase()} por ${aprovado.usuario} <strong>${responsavel}</strong></label>
-                            <textarea rows="3" style="width: 100%; padding: 0px; border: none;" readOnly>${aprovado.justificativa}</textarea>
-                            <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-                                <label style="font-size: 0.8vw;">${aprovado.data}</label>
-                                ${botao_cancelar}
-                            </div>
-                        </div>
-                    </div>
-                </div>    
-                <img src="imagens/${img}.png">
-            </div>
-            `
-        } else {
-
-            if (
-                acesso.permissao == 'adm' ||
-                (responsavel == 'Gerente' && acesso.permissao == 'gerente') ||
-                (responsavel == 'Diretoria' && acesso.permissao == 'diretoria')
-            ) {
-
-                painel_aprovacao += `
-                <div class="contorno">
-                    <div class="avenida_contorno" style="margin: 0px; background-color: #097fe661;">
-                        <div style="position: relative; display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                            <label>Aprovação ${responsavel}</label>
-                            <textarea rows="3" id="justificativa_${responsavel}"></textarea>
-                            <label>${data}</label>
-                        </div>
-                        <div style="display: flex; align-items: center; justify-content: center;">
-                            <button style="background-color: green;" onclick="aprovar_orcamento('${responsavel}', true, '${data}')">Aprovar</button>
-                            <button onclick="aprovar_orcamento('${responsavel}', false, '${data}')">Reprovar</button>
-                        </div>
-                    </div>
-                </div>
-            `
-            }
-        }
-    })
-
     acumulado += `
         <hr style="width: 100%">
-        <div style="display: flex; align-items: start; justify-content: space-between; gap: 20px;">
-            <div style="display: flex; flex-direction: column; justify-content: center;">
-                ${acumulado_botoes}
-            </div>
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <label>Aprovações deste Orçamento</label>
-                ${painel_aprovacao}
-            </div>
+        <div style="display: flex; flex-direction: column; justify-content: center;">
+            ${acumulado_botoes}
         </div>
     `
     var elementus = `
