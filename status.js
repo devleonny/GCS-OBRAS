@@ -1863,6 +1863,7 @@ async function alterar_status(select, id) {
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     if (tela_orcamentos) {
+        filtrar_orcamentos(undefined, undefined, undefined, true)
         select.parentElement.parentElement.style.display = 'none'
     } else {
         await preencher_orcamentos_v2()

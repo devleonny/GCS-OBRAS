@@ -5,7 +5,7 @@ var filtro;
 
 preencher_orcamentos_v2()
 
-function filtrar_orcamentos(ultimo_status, col, texto) {
+function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 
     if (ultimo_status !== undefined) {
         filtro = ultimo_status
@@ -60,6 +60,8 @@ function filtrar_orcamentos(ultimo_status, col, texto) {
         if (filtro !== 'TODOS' || (filtro == 'TODOS' && mostrarLinha)) {
             contadores['TODOS']++
         }
+
+        mostrarLinha == !apenas_toolbar
 
         mostrarLinha ? tr.style.display = 'table-row' : tr.style.display = 'none'
 

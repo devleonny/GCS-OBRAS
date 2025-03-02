@@ -40,13 +40,14 @@ async function consultar_pagamentos() {
     var pagamentosFiltrados = Object.keys(lista_pagamentos)
         .map(pagamento => {
 
-            var pg = lista_pagamentos[pagamento]; //29
+            var pg = lista_pagamentos[pagamento];
+
             var valor_categorias = pg.param[0].categorias.map(cat =>
                 `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
             ).join('');
             var nome_orcamento = orcamentos[pg.id_orcamento]
                 ? orcamentos[pg.id_orcamento].dados_orcam.cliente_selecionado
-                : pg.departamento;
+                : pg.id_orcamento;
             var data_registro = pg.data_registro || pg.param[0].data_previsao;
 
             return {
@@ -561,14 +562,12 @@ async function abrir_detalhes(id_pagamento) {
             <label style="cursor: pointer; margin-right: 5px;">Excluir pagamento</label>
         </div>
         `
-        if (pagamento.status == 'Pagamento Excluído') {
-            excluir_pagamento += `
-            <div onclick="relancar_pagamento('${id_pagamento}')" style="display: flex; align-items: center; justify-content: center; gap: 10px; background-color: #d2d2d2; border-radius: 3px; cursor: pointer; padding: 3px;">
-                <img src="imagens/concluido.png" style="cursor: pointer;">
-                <label style="cursor: pointer; margin-right: 5px;">Refazer Pagamento</label>
-            </div>
-            `
-        }
+        excluir_pagamento += `
+        <div onclick="relancar_pagamento('${id_pagamento}')" style="display: flex; align-items: center; justify-content: center; gap: 10px; background-color: #d2d2d2; border-radius: 3px; cursor: pointer; padding: 3px;">
+            <img src="imagens/concluido.png" style="cursor: pointer;">
+            <label style="cursor: pointer; margin-right: 5px;">Refazer Pagamento</label>
+        </div>
+        `
     }
 
     acumulado += `
