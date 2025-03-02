@@ -77,7 +77,7 @@ function filtrar_manutencoes(ultimo_status, col, texto) {
         }
 
         let label = `
-        <div onclick="filtrar_orcamentos('${st}')" 
+        <div onclick="filtrar_manutencoes('${st}')" 
             style="background-color:${bg}; 
             color: #222; 
             display: flex; 
@@ -177,7 +177,7 @@ async function carregar_manutencoes() {
     if (linhas !== '') {
         div_chamados.innerHTML = tabela
 
-        filtrar_manutencoes('MANUTENÇÃO')
+        filtrar_manutencoes('TODOS')
     }
 }
 

@@ -16,7 +16,7 @@ var fluxograma = {
     'MATERIAL SEPARADO': { cor: '#b17724' },
     'FATURADO': { cor: '#ff4500' },
     'MATERIAL ENVIADO': { cor: '#b17724' },
-    'MATERIAL RECEBIDO': { cor: '#b17724' },
+    'MATERIAL ENTREGUE': { cor: '#b17724' },
     'COTAÇÃO PENDENTE': { cor: '#0a989f' },
     'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
     'RETORNO DE MATERIAIS': { cor: '#aacc14' },
@@ -1390,10 +1390,10 @@ async function abrir_esquema(id) {
                 levantamentos += `
                 <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
                     <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                        <img src="imagens/anexo2.png" style="width: 2vw;">
                         <label style="font-size: 0.8em;">${String(levantamento.nome).slice(0, 10)} ... ${String(levantamento.nome).slice(-7)}</label>
                     </div>
-                    <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="excluir_levantamento('${id}', '${chave}')">
+                    <img src="imagens/cancel.png" style="width: 2vw; cursor: pointer;" onclick="excluir_levantamento('${id}', '${chave}')">
                 </div>                
                 `
             }
@@ -1403,8 +1403,8 @@ async function abrir_esquema(id) {
         <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
         
             <div onclick="abrir_esquema('${id_orcam}')" style="display: flex; flex-direction: column; justify-content: left; align-items: center; cursor: pointer;">
-                <img src="imagens/atualizar2.png" style="width: 50px;">
-                <label>Atualizar</label>
+                <img src="imagens/atualizar2.png" style="width: 3vw;">
+                <label style="font-size: 1vw;">Atualizar</label>
             </div>
             • 
             <div style="display: flex; flex-direction: column; justify-content: center; align-items: start; font-size: 1.2vw; color: #222;">
@@ -1414,23 +1414,21 @@ async function abrir_esquema(id) {
             • 
             <div style="display: flex; flex-direction: column; align-items: start;">
                 <div class="contorno_botoes" style="background-color: #222;">
-                    <img src="imagens/anexo2.png" style="width: 15px;">
-                    <label for="adicionar_levantamento">Anexar levantamento
+                    <img src="imagens/anexo2.png" style="width: 2vw;">
+                    <label style="font-size: 1vw;" for="adicionar_levantamento">Anexar levantamento
                         <input type="file" id="adicionar_levantamento" style="display: none;"
                             onchange="salvar_levantamento('${id}')">
                     </label>
                 </div>
                 ${levantamentos}
             </div>
+            • 
+            <div onclick="mostrar_painel()" class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+                <img src="Imagens/pesquisar.png" style="width: 2vw;">
+                <label style="font-size: 1vw;">Exibir Painel de Custos</label>
+            </div>
 
         </div>    
-        `
-
-        acumulado += `
-        
-        <div style=" display: flex; width: 100%; gap: 4vw;" id="div_geral">
-        <div style="max-width: 90%; display: flex; flex-direction: column;" id="painel_pedidos">
-
         `
 
         let blocos_por_status = {}
@@ -1449,18 +1447,13 @@ async function abrir_esquema(id) {
             }
 
             if (pagamento.id_orcamento == id) {
-                string_pagamentos += `
-                <div style="display: flex; flex-direction: column; border-radius: 5px; border: solid 1px white; padding: 10px; background-color: white; color: #222;">
-                        
-                    <label style="display: flex; gap: 10px;"><strong>${pagamento.status}</strong></label>
-                    <label><strong>Data:</strong> ${pagamento.param[0].data_previsao}</label>
-                    <label><strong>Observação:</strong><br>${comentario}</label>
-                    `
+
+                let pagamentos_localizados = ''
                 pagamento.param[0].categorias.forEach(cat => {
-                    var nome_cat = ''
-                    categorias[cat.codigo_categoria] ? nome_cat = categorias[cat.codigo_categoria] : nome_cat = cat.codigo_categoria
-                    string_pagamentos += `
-                        <label><strong>Categoria:</strong> ${nome_cat} • R$ ${dinheiro(cat.valor)}</label>
+
+                    pagamentos_localizados += `
+                        <label><strong>Categoria:</strong> ${categorias[cat.codigo_categoria] ?
+                            categorias[cat.codigo_categoria] : cat.codigo_categoria} • R$ ${dinheiro(cat.valor)}</label>
                         `
 
                     if (!pagamentos_painel[pagamento.status]) {
@@ -1469,9 +1462,17 @@ async function abrir_esquema(id) {
                     pagamentos_painel[pagamento.status] += Number(cat.valor)
 
                 })
+
                 string_pagamentos += `
-                    </div>
-                    `
+                <div style="display: flex; flex-direction: column; border-radius: 5px; border: solid 1px white; padding: 10px; background-color: white; color: #222;">
+                        
+                    <label style="display: flex; gap: 10px;"><strong>${pagamento.status}</strong></label>
+                    <label><strong>Data:</strong> ${pagamento.param[0].data_previsao}</label>
+                    <label><strong>Observação:</strong><br>${comentario}</label>
+                    ${pagamentos_localizados}
+
+                </div>
+                `
                 tem_pagamento = true
             }
 
@@ -1512,7 +1513,7 @@ async function abrir_esquema(id) {
             links_requisicoes = ''
             let editar = ''
 
-            if (sst.status.includes('REQUISIÇÃO') || sst.status.includes('MATERIAL')) {
+            if (sst.status.includes('REQUISIÇÃO')) {
                 links_requisicoes += `
                     <div onclick="detalhar_requisicao('${chave}', true)" class="anexos" style="cursor: pointer; display: flex; gap: 10px; justify-content: left; align-items: center;">
                         <img src="gifs/lampada.gif" style="width: 25px">
@@ -1523,10 +1524,10 @@ async function abrir_esquema(id) {
                     </div>
                     `
                 editar = `
-                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}', false, true)">
-                            <img src="imagens/editar4.png">
-                            <label>Editar</label>
-                        </div>
+                    <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}', false, true)">
+                        <img src="imagens/editar4.png">
+                        <label>Editar</label>
+                    </div>
                     `
             }
 
@@ -1562,19 +1563,19 @@ async function abrir_esquema(id) {
 
             if (String(sst.status).includes('RETORNO')) {
                 editar = `
-                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="retorno_de_materiais('${chave}')">
-                            <img src="imagens/editar4.png">
-                            <label>Editar</label>
-                        </div>
+                    <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="retorno_de_materiais('${chave}')">
+                        <img src="imagens/editar4.png">
+                        <label>Editar</label>
+                    </div>
                     `
             }
 
             if (String(sst.status).includes('FATURADO')) {
                 editar = `
-                        <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="painel_adicionar_notas('${chave}')">
-                            <img src="imagens/editar4.png">
-                            <label>Editar</label>
-                        </div>
+                    <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="painel_adicionar_notas('${chave}')">
+                        <img src="imagens/editar4.png">
+                        <label>Editar</label>
+                    </div>
                     `
             }
 
@@ -1607,27 +1608,44 @@ async function abrir_esquema(id) {
             }
 
             let campo = fluxograma[sst.status]?.campo || sst.status
-
             if (!blocos_por_status[campo]) {
                 blocos_por_status[campo] = ''
             }
 
+            let dados_envio = ''
+            if (sst.envio) { // Cartão específico de envio de materias... {.envio}
+                dados_envio = `
+                <label><strong>Rastreio: </strong>${sst.envio.rastreio}</label>
+                <label><strong>Transportadora: </strong>${sst.envio.transportadora}</label>
+                <label><strong>Volumes: </strong>${sst.envio.volumes}</label>
+                <label><strong>Data de Saída: </strong>${sst.envio.data_saida}</label>
+                <label><strong>Previsão: </strong>${sst.envio.previsao}</label>
+                `
+
+                editar = `
+                <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="envio_de_material('${chave}')">
+                    <img src="imagens/editar4.png">
+                    <label>Editar</label>
+                </div>
+                `
+            }
+
             blocos_por_status[campo] += `
                     <div class="bloko" style="gap: 0px; border: 1px solid ${fluxograma[sst.status].cor}; background-color: white; justify-content: center;">
-                        <div style="cursor: pointer; display: flex; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-radius-top-right: 3px; border-radius-top-left: 3px;">
+                        <div style="cursor: pointer; display: flex; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
                             <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="deseja_apagar('${chave}')">&times;</span>
                             <label><strong>Executor: </strong>${sst.executor}</label>
                             <label><strong>Data: </strong>${sst.data}</label>
-
+                            <label><strong>Comentário: </strong> <br> ${coments}</label>
+                            ${dados_envio}
+                            ${dados_pedidos}
+                            ${sst.notas ? `<label><strong>NF: </strong>${notas}</label>` : ''}
+                            ${sst.notas ? `<label><strong>Valor NF: </strong>${dinheiro(valorNota)}</label>` : ''}
+                            ${totais}
+                            ${links_requisicoes}
+                            ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${chave}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
+                            
                             <div class="escondido" style="display: none;">
-                                <label><strong>Comentário: </strong> <br> ${coments}</label>
-                                ${dados_pedidos}
-                                ${sst.notas ? `<label><strong>NF: </strong>${notas}</label>` : ''}
-                                ${sst.notas ? `<label><strong>Valor NF: </strong>${dinheiro(valorNota)}</label>` : ''}
-                                ${totais}
-                                ${links_requisicoes}
-                                ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${chave}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
-
                                 <div class="contorno_botoes" style="background-color: ${fluxograma[sst.status].cor}">
                                     <img src="imagens/anexo2.png">
                                     <label>Anexo
@@ -1701,12 +1719,11 @@ async function abrir_esquema(id) {
         }
 
         let selects = `
-        <select onchange="alterar_status(this)">
+        <select onchange="alterar_status(this)" style="font-size: 1vw;">
             ${opcoes}
         </select>
         `
-
-        var linhas = `
+        acumulado += `
                 <div style="display: flex; flex-direction: column; gap: 15px;">
                     <hr style="width: 100%;">
 
@@ -1757,68 +1774,108 @@ async function abrir_esquema(id) {
                         ${blocos}
                     </div>
                 </div>
-            `;
-
-        acumulado += linhas;
+            `
 
     };
 
-    setTimeout(() => {
-        let totalValoresPedidos = somarValoresPedidos(); // Soma todos os valores dos pedidos
-        let totalValoresManuais = somarValoresManuais(dados_orcamentos[id]); // Soma os valores manuais
+    let painel_custos = `
 
-        let totalFinal = totalValoresPedidos - totalValoresManuais; // Cálculo final
+        <div id="overlay_de_custos" style="
+        display: none; 
+        background-color: rgba(0, 0, 0, 0.7);
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        z-index: 1001;
+        border-radius: 3px;"></div>
 
-        // Atualiza o HTML no span específico
-        let valorPedidoSpan = document.getElementById('valor_pedido');
-        if (valorPedidoSpan) {
-            valorPedidoSpan.textContent = dinheiro(totalValoresPedidos);
-        }
-        let valorTotalSpan = document.getElementById('valor_total_pedido');
-        if (valorTotalSpan) {
-            valorTotalSpan.textContent = dinheiro(totalFinal)
-        }
-    }, 200);
+        <div id="painel_custos" class="contorno_botoes" style="
+        resize: both;
+        overflow: auto;
+        position: absolute; 
+        top: 10%; 
+        left: 5%; 
+        font-size: 1vw; 
+        display: none; 
+        flex-direction: column; 
+        align-items: center; 
+        padding: 10px; 
+        border-radius: 5px; 
+        background-color: #222; 
+        color: white;
+        z-index: 1002;">
 
+            <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="mostrar_painel()">&times;</span>
+            <label>Gestão de Custos</label>
+            ${pags}
+            <hr style="width: 100%;">
+            <label style="font-size: 0.8vw;"> <span id="valor_pedido">0,00</span> <label style="font-size: 0.8vw;">Valor do Pedido</label></label>
+            <hr style="width: 100%;">
+            <label onclick="valores_manuais()" style="font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
 
-    acumulado += `
-        </div>
-        <div class="contorno_botoes" style="font-size: 1vw; display: flex; flex-direction: column; align-items: center; padding: 10px; border-radius: 5px; background-color: #222222bf; color: white;">
-                <label>Gestão de Custos</label>
-                ${pags}
-                <hr style="width: 100%;">
-                 <label style="font-size: 0.8vw;"> <span id="valor_pedido">0,00</span> <label style="font-size: 0.8vw;">Valor do Pedido</label></label>
-                <hr style="width: 100%;">
-                <label onclick="valores_manuais()" style="font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
-    
-                <div id="lista-valores-manuais">
-                    ${Object.entries(dados_orcamentos[id].valoresManuais || {}).length > 0
-            ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
-                            <div style="display: flex; align-items: center; gap: 5px;">
-                                <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
-                                <button onclick="removerValorManual('${id}', '${chave}')" 
-                                    style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
-                            </div>
-                        `).join("")
-            : "<label style='font-size: 0.8vw; color: gray;'>Nenhum valor manual adicionado.</label>"
-        }
-                </div>
-
-                <hr style="width: 100%;">
-                <label><span id="valor_total_pedido">0,00</span></label>
+            <div id="lista-valores-manuais">
+                ${Object.entries(dados_orcamentos[id].valoresManuais || {}).length > 0
+                ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
+                                    <button onclick="removerValorManual('${id}', '${chave}')" 
+                                        style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
+                                </div>
+                            `).join("")
+                : "<label style='font-size: 0.8vw; color: gray;'>Nenhum valor manual adicionado.</label>"}
             </div>
+
+            <hr style="width: 100%;">
+            <label><span id="valor_total_pedido">0,00</span></label>
         </div>
         `
 
     var estruturaHtml = `
         <div id="estrutura" class="status" style="display: flex; flex-direction: column; gap: 10px; width: 100%; overflow: auto;">
         <span class="close" onclick="fechar_estrutura()">&times;</span>
-        ${acumulado}
+
+        <div style="max-width: 90%; display: flex; flex-direction: column;">
+            ${acumulado}
         </div>
+
+        ${painel_custos}
         `;
     document.body.insertAdjacentHTML('beforeend', estruturaHtml);
 
+    // É só esperar a página incluir os elementos acima, simples... não precisa de timeInterval...
+    let totalValoresPedidos = somarValoresPedidos();
+    let totalValoresManuais = somarValoresManuais(dados_orcamentos[id]);
+    let totalFinal = totalValoresPedidos - totalValoresManuais;
+    let valorPedidoSpan = document.getElementById('valor_pedido');
+    let valorTotalSpan = document.getElementById('valor_total_pedido');
+
+    if (valorPedidoSpan) {
+        valorPedidoSpan.textContent = dinheiro(totalValoresPedidos);
+    }
+
+    if (valorTotalSpan) {
+        valorTotalSpan.textContent = dinheiro(totalFinal)
+    }
+
     fechar_espelho_ocorrencias();
+}
+
+function mostrar_painel() {
+    let painel_custos = document.getElementById('painel_custos')
+    let overlay_de_custos = document.getElementById('overlay_de_custos')
+    let estrutura = document.getElementById('estrutura')
+    if (painel_custos) {
+        if (painel_custos.style.display == 'flex') {
+            painel_custos.style.display = 'none'
+            overlay_de_custos.style.display = 'none'
+
+        } else {
+            painel_custos.style.display = 'flex'
+            overlay_de_custos.style.display = 'block'
+            overlay_de_custos.style.height = estrutura.scrollHeight + 'px';
+        }
+    }
 }
 
 function somarValoresPedidos() {
@@ -1846,16 +1903,16 @@ function somarValoresManuais(dados) {
     return totalManuais;
 }
 
-async function atualizar_pedido(chave1, chave2, campo, img_select) {
+async function atualizar_pedido(chave, campo, img_select) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
     let orcamento = dados_orcamentos[id_orcam]
 
     let elemento = campo == 'tipo' ? img_select : img_select.previousElementSibling;
 
-    orcamento.status[chave1].historico[chave2][campo] = elemento.value
+    orcamento.status.historico[chave][campo] = elemento.value
 
-    enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/historico/${chave2}/${campo}`, elemento.value)
+    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/${campo}`, elemento.value)
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     campo !== 'tipo' ? img_select.style.display = 'none' : ''
@@ -1864,20 +1921,6 @@ async function atualizar_pedido(chave1, chave2, campo, img_select) {
 function mostrar_botao_pedido(elemento) {
     let img = elemento.nextElementSibling;
     img.style.display = 'block'
-}
-
-async function finalizar_pedido(chave1, checkbox) {
-
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let pedido = dados_orcamentos[id_orcam].status[chave1]
-    let situacao;
-    checkbox.checked ? situacao = true : situacao = false
-
-    pedido.finalizado = situacao
-
-    enviar(`dados_orcamentos/${id_orcam}/status/${chave1}/finalizado`, situacao)
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
-
 }
 
 async function alterar_status(select, id) {
@@ -2292,7 +2335,7 @@ async function recuperarCotacoes() {
 }
 
 async function registrar_envio_material(chave) {
-    var campos = ['rastreio', 'transportadora', 'custo_frete', 'nf', 'comentario_envio', 'volumes', 'data_saida', 'previsao', 'entrega']
+    var campos = ['rastreio', 'transportadora', 'custo_frete', 'nf', 'comentario_envio', 'volumes', 'data_saida', 'previsao']
     var status = {
         envio: {}
     }
@@ -2315,7 +2358,7 @@ async function registrar_envio_material(chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let historico = dados_orcamentos[id_orcam].status.historico
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    let st = status.envio.entrega !== '' ? 'MATERIAL ENTREGUE' : 'MATERIAL ENVIADO'
+    let st = 'MATERIAL ENVIADO'
 
     status.executor = acesso.usuario
     status.data = data_status
@@ -3028,13 +3071,6 @@ async function envio_de_material(chave) {
     <div id="painel_envio_de_material">
 
         <div class="pergunta">
-            <label>Status do Material</label>
-            <select>
-
-            </select>
-        </div>
-
-        <div class="pergunta">
             <label>Número de rastreio</label>
             <input id="rastreio" value="${envio?.rastreio || ""}">
         </div>
@@ -3075,15 +3111,6 @@ async function envio_de_material(chave) {
             <label>Previsão de Entrega</label>
             <input type="date" id="previsao" value="${envio.previsao}">
         </div>
-
-        <hr style="width: 80%;">
-
-        <div class="pergunta">
-            <label>Apenas quando o material for entregue, preencha esta data</label>
-            <input type="date" id="entrega" value="${envio.entrega}">
-        </div>
-
-        <hr style="width: 80%;">
 
         <button style="background-color: #4CAF50; width: 100%; margin: 0px;" onclick="registrar_envio_material('${chave}')">Salvar</button>
       
