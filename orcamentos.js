@@ -520,156 +520,161 @@ async function recuperar_orcamentos() {
 }
 
 async function abrir_manutencao(id) {
-    let dados_manutencao = await recuperarDados('dados_manutencao') || {}
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let dados_estoque = await recuperarDados('dados_estoque') || {}
-    let dados_clientes_omie = {}
+    let dados_manutencao = await recuperarDados('dados_manutencao') || {};
+    let dados_clientes = await recuperarDados('dados_clientes') || {};
+    let dados_estoque = await recuperarDados('dados_estoque') || {};
+    let dados_clientes_omie = {};
 
     for (cnpj in dados_clientes) {
-        dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
+        dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj];
     }
 
-    await criar_manutencao(id)
-    let manutencao = dados_manutencao[id]
-    let pecas = manutencao.pecas
+    await criar_manutencao(id);
+    let manutencao = dados_manutencao[id];
+    let pecas = manutencao.pecas;
 
-    document.getElementById('comentario').value = manutencao.comentario
-    document.getElementById('status_manutencao').value = manutencao.status_manutencao
-    document.getElementById('chamado').value = manutencao.chamado
+    document.getElementById('comentario').value = manutencao.comentario;
+    document.getElementById('status_manutencao').value = manutencao.status_manutencao;
+    document.getElementById('chamado').value = manutencao.chamado;
 
     if (manutencao.chamado == 'KIT TÉCNICO') {
-        document.getElementById('kit').checked = true
-        document.getElementById('div_chamado').style.display = 'none'
+        document.getElementById('kit').checked = true;
+        document.getElementById('div_chamado').style.display = 'none';
     }
 
-    let pessoas = ['tecnico', 'cliente']
+    let pessoas = ['tecnico', 'cliente'];
 
     pessoas.forEach(pessoa => {
-
-        let chave = `codigo_${pessoa}`
+        let chave = `codigo_${pessoa}`;
 
         if (manutencao[chave] && manutencao[chave] !== '') {
-
-            let item = dados_clientes_omie[manutencao[chave]]
-            document.getElementById(chave).textContent = manutencao[chave]
-            document.getElementById(pessoa).value = item.nome
+            let item = dados_clientes_omie[manutencao[chave]];
+            document.getElementById(chave).textContent = manutencao[chave];
+            document.getElementById(pessoa).value = item.nome;
             document.getElementById(`endereco_${pessoa}`).innerHTML = `
                 <label><strong>CNPJ/CPF:</strong> ${item.cnpj}</label>
                 <label style="text-align: left;"><strong>Rua/Bairro:</strong> ${item.bairro}</label>
                 <label><strong>CEP:</strong> ${item.cep}</label>
                 <label><strong>Cidade:</strong> ${item.cidade}</label>
                 <label><strong>Estado:</strong> ${item.estado}</label>        
-            `
+            `;
         }
-    })
+    });
 
-    let tamanho = Object.keys(pecas).length
+    let tamanho = Object.keys(pecas).length;
     for (let i = 0; i < tamanho; i++) {
-        adicionar_linha_manut()
+        adicionar_linha_manut();
     }
 
-    let linhas_manutencao = document.getElementById('linhas_manutencao')
-    let linhas = linhas_manutencao.querySelectorAll('.linha')
+    let linhas_manutencao = document.getElementById('linhas_manutencao');
+    let linhas = linhas_manutencao.querySelectorAll('.linha');
 
-    let i = 0
+    let i = 0;
     for (id_peca in pecas) {
-        let peca = pecas[id_peca]
-        let celulas = linhas[i].querySelectorAll('input, textarea')
+        let peca = pecas[id_peca];
+        let celulas = linhas[i].querySelectorAll('input, textarea');
 
-        let estoques = ['estoque', 'estoque_usado']
+        let estoques = ['estoque', 'estoque_usado'];
 
-        let dic_quantidades = {}
+        let dic_quantidades = {};
 
         estoques.forEach(estoque => {
-
-            let estoque_do_objeto = dados_estoque[peca.codigo][estoque]
-            let historicos = estoque_do_objeto.historico
-            dic_quantidades[estoque] = estoque_do_objeto.quantidade
+            let estoque_do_objeto = dados_estoque[peca.codigo][estoque];
+            let historicos = estoque_do_objeto.historico;
+            dic_quantidades[estoque] = estoque_do_objeto.quantidade;
 
             for (his in historicos) {
-                let historico = historicos[his]
+                let historico = historicos[his];
 
                 if (historico.operacao == 'entrada') {
-                    dic_quantidades[estoque] += historico.quantidade
+                    dic_quantidades[estoque] += historico.quantidade;
                 } else if (historico.operacao == 'saida') {
-                    dic_quantidades[estoque] -= historico.quantidade
+                    dic_quantidades[estoque] -= historico.quantidade;
                 }
             }
+        });
 
-        })
+        celulas[0].value = peca.descricao;
+        celulas[1].value = peca.codigo;
+        celulas[2].value = peca.quantidade;
+        celulas[3].value = peca.comentario;
+        celulas[4].value = dic_quantidades.estoque;
+        celulas[5].value = dic_quantidades.estoque_usado;
 
-        celulas[0].value = peca.descricao
-        celulas[1].value = peca.codigo
-        celulas[2].value = peca.quantidade
-        celulas[3].value = peca.comentario
-        celulas[4].value = dic_quantidades.estoque
-        celulas[5].value = dic_quantidades.estoque_usado
-
-        i++
+        i++;
     }
 
-    let div_historico = document.getElementById('historico')
+    let div_historico = document.getElementById('historico');
 
-    let historicos = {}
-    if (manutencao.historico) {
-        historicos = manutencao.historico
-    }
+    let historicos = manutencao.historico || {};
+    let infos = '';
 
-    historicos[id] = manutencao // Acrescentei o objeto atual para que ele entre no histórico;
-    let infos = ''
+    // Exibe o primeiro registro (criação) com "Criado Por"
+    infos += `
+        <div style="display: flex; align-items: center; justify-content: space-evenly;">
+            <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; font-size: 0.8vw;">
+                <label><strong>Data:</strong> ${manutencao.data}</label>
+                <label><strong>Status:</strong> ${manutencao.status_manutencao}</label>
+                <label><strong>Usuário:</strong> ${manutencao.usuario}</label>
+                <label><strong>Criado Por:</strong> ${manutencao.criadoPor}</label>
+                <label><strong>Comentário:</strong></label>
+                <textarea style="width: 20vw;" readOnly>${manutencao.comentario}</textarea>
+            </div>
+            <img src="imagens/avencer.png">
+        </div>
+        <hr style="width: 80%;">
+    `;
 
-    for (his in historicos) {
-        let historico = historicos[his]
+    // Exibe os registros subsequentes (alterações) com "Alterado Por"
+    for (let his in historicos) {
+        let historico = historicos[his];
         let imagem;
 
-        switch (historico.status_manutencao) {
+        switch (historico.status) {
             case 'MANUTENÇÃO':
-                imagem = 'avencer'
-                break
+                imagem = 'avencer';
+                break;
             case 'REQUISIÇÃO AVULSA':
-                imagem = 'avulso'
-                break
+                imagem = 'avulso';
+                break;
             case 'MATERIAL SEPARADO':
-                imagem = 'estoque'
-                break
+                imagem = 'estoque';
+                break;
             case 'MATERIAL ENVIADO':
-                imagem = 'logistica'
-                break
+                imagem = 'logistica';
+                break;
             case 'MATERIAL RECEBIDO':
-                imagem = 'concluido'
-                break
+                imagem = 'concluido';
+                break;
             default:
-                imagem = 'cancel'
+                imagem = 'cancel';
         }
 
         infos += `
             <div style="display: flex; align-items: center; justify-content: space-evenly;">
                 <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; font-size: 0.8vw;">
                     <label><strong>Data:</strong> ${historico.data}</label>
-                    <label><strong>Status:</strong> ${historico.status_manutencao}</label>
+                    <label><strong>Status:</strong> ${historico.status}</label>
                     <label><strong>Usuário:</strong> ${historico.usuario}</label>
-                    <label><strong>Criado Por:</strong>${historico.criadoPor}</label>
+                    <label><strong>Alterado Por:</strong> ${historico.alteradoPor}</label>
                     <label><strong>Comentário:</strong></label>
                     <textarea style="width: 20vw;" readOnly>${historico.comentario}</textarea>
                 </div>
                 <img src="imagens/${imagem}.png">
             </div>
             <hr style="width: 80%;">
-            `
+        `;
     }
 
     let elemento = `
         <br>
-            
-            <div style="background-color: #151749; border-top-left-radius: 3px; border-top-right-radius: 3px; width: 70vw; padding: 5px;">Histórico</div>
+        <div style="background-color: #151749; border-top-left-radius: 3px; border-top-right-radius: 3px; width: 70vw; padding: 5px;">Histórico</div>
+        <div style="width: 70vw; background-color: #d2d2d2; color: #222; padding: 5px;">
+            ${infos}
+        </div>
+    `;
 
-            <div style="width: 70vw; background-color: #d2d2d2; color: #222; padding: 5px;">
-                ${infos}
-            </div>
-        `
-
-    div_historico.insertAdjacentHTML('beforeend', elemento)
-
+    div_historico.insertAdjacentHTML('beforeend', elemento);
 }
 
 async function capturar_html_pdf(id) {
@@ -1154,78 +1159,95 @@ function mostrar_tabela(tabela) {
 }
 
 async function enviar_manutencao(id) {
+    document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde());
 
-    document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde())
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {};
+    let campos = ['codigo_tecnico', 'codigo_cliente', 'comentario', 'status_manutencao', 'data', 'chamado'];
+    let manutencao = {};
+    manutencao.usuario = acesso.usuario;
+    manutencao.analista = acesso.nome_completo;
 
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    let campos = ['codigo_tecnico', 'codigo_cliente', 'comentario', 'status_manutencao', 'data', 'chamado']
-    let manutencao = {}
-    manutencao.usuario = acesso.usuario
-    manutencao.analista = acesso.nome_completo
+    let dados_manutencao = await recuperarDados('dados_manutencao') || {};
 
-    let dados_manutencao = await recuperarDados('dados_manutencao') || {}
-    //Adiciona o campo Criado Por apenas se for uma nova requisição
-    if (dados_manutencao[id]) {
+    // Se for uma nova requisição, adiciona o campo "criadoPor"
+    if (!dados_manutencao[id]) {
         manutencao.criadoPor = acesso.nome_completo;
+    } else {
+        // Se for uma atualização, copia o campo "criadoPor" do registro original
+        manutencao.criadoPor = dados_manutencao[id].criadoPor;
     }
-    
+
+    // Adiciona o campo "alteradoPor" em todas as atualizações
+    manutencao.alteradoPor = acesso.nome_completo;
+
+    campos.forEach(campo => {
+        let elemento = document.getElementById(campo);
+        if (elemento) {
+            manutencao[campo] = elemento.value || elemento.textContent;
+        }
+    })
 
     if (dados_manutencao[id]) {
-        manutencao.historico = {}
-
+        // Copia o histórico existente, se houver
         if (dados_manutencao[id].historico) {
-            manutencao.historico = dados_manutencao[id].historico
-            delete dados_manutencao[id].historico
+            manutencao.historico = dados_manutencao[id].historico;
+        } else {
+            manutencao.historico = {};
         }
 
-        manutencao.historico[gerar_id_5_digitos()] = dados_manutencao[id]
-        manutencao.criadoPor = dados_manutencao[id].criadoPor
+        // Adiciona um novo registro ao histórico com os campos: data, status, usuário, alteradoPor e comentário
+        manutencao.historico[gerar_id_5_digitos()] = {
+            data: data_atual('completa'),
+            status: manutencao.status_manutencao,
+            usuario: manutencao.usuario,
+            alteradoPor: manutencao.alteradoPor,
+            comentario: manutencao.comentario
+        };
     }
 
-    let tabela = document.getElementById('linhas_manutencao')
-    let linhas = tabela.querySelectorAll('.linha')
+    let tabela = document.getElementById('linhas_manutencao');
+    let linhas = tabela.querySelectorAll('.linha');
 
-    let pecas = {}
+    let pecas = {};
     linhas.forEach(linha => {
-        let celulas = linha.querySelectorAll('input, textarea')
+        let celulas = linha.querySelectorAll('input, textarea');
         if (celulas.length > 0) {
             pecas[gerar_id_5_digitos()] = {
                 descricao: celulas[0].value,
                 codigo: celulas[1].value,
                 quantidade: celulas[2].value,
                 comentario: celulas[3].value
-            }
+            };
         }
-    })
+    });
 
-    manutencao.pecas = pecas
+    manutencao.pecas = pecas;
 
     campos.forEach(campo => {
-        let elemento = document.getElementById(campo)
+        let elemento = document.getElementById(campo);
         if (elemento) {
-            manutencao[campo] = elemento.value || elemento.textContent
+            manutencao[campo] = elemento.value || elemento.textContent;
         }
-    })
+    });
 
-    let kit = document.getElementById('kit')
+    let kit = document.getElementById('kit');
     if (kit.checked) {
-        manutencao.chamado = 'KIT TÉCNICO'
+        manutencao.chamado = 'KIT TÉCNICO';
     }
 
-    enviar(`dados_manutencao/${id}`, manutencao)
-    dados_manutencao[id] = manutencao
+    enviar(`dados_manutencao/${id}`, manutencao);
+    dados_manutencao[id] = manutencao;
 
-    await inserirDados(dados_manutencao, 'dados_manutencao')
+    await inserirDados(dados_manutencao, 'dados_manutencao');
 
-    let chamados = document.getElementById('chamados')
+    let chamados = document.getElementById('chamados');
     if (chamados) {
-        chamados.remove()
+        chamados.remove();
     }
 
-    await preencher_orcamentos_v2()
+    await preencher_orcamentos_v2();
 
-    remover_popup()
-
+    remover_popup();
 }
 
 function adicionar_linha_manut() {
