@@ -61,8 +61,6 @@ function filtrar_manutencoes(ultimo_status, col, texto) {
         mostrarLinha ? tr.style.display = 'table-row' : tr.style.display = 'none'
     })
 
-    console.log(contadores)
-
     let toolbar = document.getElementById('toolbar')
     toolbar.innerHTML = ''
     contadores.listas = [...new Set(contadores.listas)]
@@ -104,12 +102,15 @@ function filtrar_manutencoes(ultimo_status, col, texto) {
 
 }
 
-async function carregar_manutencoes() {
+async function carregar_manutencoes(sincronizar) {
+
+    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
+
     let dados_manutencao = await recuperarDados('dados_manutencao') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let dados_clientes_omie = {}
 
-    if (Object.keys(dados_manutencao).length == 0) {
+    if (Object.keys(dados_manutencao).length == 0 || sincronizar) {
         await inserirDados(await receber('dados_manutencao'), 'dados_manutencao')
         dados_manutencao = await recuperarDados('dados_manutencao') || {}
     }
@@ -178,6 +179,11 @@ async function carregar_manutencoes() {
         div_chamados.innerHTML = tabela
 
         filtrar_manutencoes('TODOS')
+    }
+
+    let aguarde = document.getElementById('aguarde')
+    if (aguarde) {
+        aguarde.remove()
     }
 }
 

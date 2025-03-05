@@ -1166,7 +1166,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 .tabela {
-    background-color: #151749;
+    background-color: #d2d2d2;
     border-collapse: collapse;
     border-top-left-radius: 5px;
     border-bottom-left-radius: 5px;
@@ -1183,7 +1183,9 @@ input[type=range]::-moz-range-thumb {
 }
 
 .tabela td {
+    font-size: 0.8vw;
     text-align: left;
+    color: black;
 }
 
 .contorno {

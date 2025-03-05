@@ -531,9 +531,8 @@ function remover_item(elemento) {
     elemento.parentElement.remove()
 }
 
-async function abrir_historico_de_precos(codigo, tabela, label) {
+async function abrir_historico_de_precos(codigo, tabela) {
 
-    console.log(label)
 
     let overlay = document.getElementById('overlay')
     if (overlay) {
@@ -567,7 +566,7 @@ async function abrir_historico_de_precos(codigo, tabela, label) {
             <td>${historico[cotacao].data}</td>
             <td>${historico[cotacao].usuario}</td>
             <td>${historico[cotacao].fornecedor}</td>
-            <td><input type="checkbox" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_preco_ativo('${codigo}', '${cotacao}', '${tabela}', ${label})" ${marcado}></td>
+            <td><input type="checkbox" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_preco_ativo('${codigo}', '${cotacao}', '${tabela}')" ${marcado}></td>
             <td>
                 <div style="display: flex; align-items: center; justify-content; width: 100%;">
                     <img src="imagens/cancel.png" style="width: 25px; cursor: pointer;" onclick="excluir_cotacao('${codigo}', '${tabela}', '${cotacao}')">
@@ -600,19 +599,19 @@ async function abrir_historico_de_precos(codigo, tabela, label) {
         <div id="tabela_historico" style="display: ${visibilidade}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
             <table class="tabela">
                 <thead>
-                    <th style="color: white;">Custo de Compra</th>
-                    <th style="color: white;">% Margem</th>
-                    <th style="color: white;">Valor Final</th>
-                    <th style="color: white;">Data da Cotação</th>
-                    <th style="color: white;">Feito por</th>
-                    <th style="color: white;">Fornecedor</th>
-                    <th style="color: white;">Ativo</th>
-                    <th style="color: white;">Excluir</th>
+                    <th>Custo de Compra</th>
+                    <th>% Margem</th>
+                    <th>Valor Final</th>
+                    <th>Data da Cotação</th>
+                    <th>Feito por</th>
+                    <th>Fornecedor</th>
+                    <th>Ativo</th>
+                    <th>Excluir</th>
                 </thead>
                 <tbody>${linhas}</tbody>
             </table>
         </div>
-        <div onclick="adicionar_nova_cotacao('${codigo}', '${tabela}')" class="contorno_botoes" style="background-color: #151749; display: flex; align-items: center; justify-content: center; gap: 10px;">
+        <div onclick="adicionar_nova_cotacao('${codigo}', '${tabela}')" class="bot_adicionar">
             <img src="imagens/preco.png" style="cursor: pointer; width: 40px;">
             <label>Adicionar Preço</label>
         </div>
@@ -728,9 +727,8 @@ async function atualizar() {
 
 }
 
-async function salvar_preco_ativo(codigo, id_preco, lpu, label) {
+async function salvar_preco_ativo(codigo, id_preco, lpu) {
 
-    console.log(label)
     var dados_composicoes = await recuperarDados('dados_composicoes') || {};
     var produto = dados_composicoes[codigo];
     var historico_preco = document.getElementById('historico_preco');
@@ -958,7 +956,10 @@ function calcular() {
 
 async function cadastrar_editar_item(codigo) {
 
-    overlay.style.display = 'block'
+    let overlay = document.getElementById('overlay')
+    if (overlay) {
+        overlay.style.display = 'block'
+    }
 
     let colunas = ['descricao', 'descricaocarrefour', 'substituto', 'sapid', 'refid', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}

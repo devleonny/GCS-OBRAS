@@ -217,7 +217,7 @@ async function consultar_pagamentos() {
         <div style="display: flex; justify-content: center; align-items: start; gap: 10px;">
             ${div_titulos}
             <div style="border-radius: 5px; height: 800px; overflow-y: auto;">
-                <table id="pagamentos" style="color: #222; font-size: 0.8em; border-collapse: collapse;">
+                <table id="pagamentos" class="tabela">
                     <thead>
                         ${cabecalho1}
                     </thead>
@@ -268,8 +268,6 @@ async function abrir_detalhes(id_pagamento) {
     dados_clientes = dados_clientes_invertido // Cod Omie em evidência;
 
     let pagamento = lista_pagamentos[id_pagamento]
-
-    console.log(pagamento)
 
     if (dados_orcamentos[pagamento.id_orcamento]) {
         cc = dados_orcamentos[pagamento.id_orcamento].dados_orcam.cliente_selecionado
