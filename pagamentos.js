@@ -321,7 +321,7 @@ async function abrir_detalhes(id_pagamento) {
             } else if (justificativa.status.includes('Reprovado')) {
                 cor = '#B12425'
                 imagem = "imagens/remover.png"
-            } else if (justificativa.status.includes('Aguardando') && tem_qualidade && item.status.includes('Qualidade')) {
+            } else if (justificativa.status.includes('Aguardando') && tem_qualidade) {
                 cor = '#D97302'
                 imagem = "imagens/avencer.png"
             } else if (justificativa.status.includes('Aguardando') && tem_qualidade && item.status.includes('Diretoria')) {
