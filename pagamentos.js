@@ -437,25 +437,14 @@ async function abrir_detalhes(id_pagamento) {
         var infos = ''
         for (campo in campos) {
             var info_existente = ''
-            if (campo == 'orcamento') {
-                if (dados_orcamentos[pagamento.id_orcamento]) {
-                    info_existente += `
+            if (campo == 'orcamento' && dados_orcamentos[pagamento.id_orcamento]) {
+
+                info_existente += `
                     <div class="anexos" onclick="ir_pdf('${pagamento.id_orcamento}')" style="border: solid 1px green;">
                         <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
                         <label style="cursor: pointer; font-size: 0.6em;"><strong>Orçamento disponível</strong></label>
                     </div>
-                `} else {
-
-                    `
-
-                    <div class="anexos" onclick="ir_pdf('${pagamento.id_orcamento}')" style="border: solid 1px red;">
-                        <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
-                    </div>
-                    
-                    `
-
-                }
-
+                `
             }
 
             if (campo == 'pedido') {
@@ -497,7 +486,7 @@ async function abrir_detalhes(id_pagamento) {
                             <label>${label_elemento}</label>
                             <label class="contorno_botoes" for="anexo_${campo}" style="justify-content: center; border-radius: 50%;">
                                 <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
-                                <input type="file" style="display: none;" onchange="salvar_anexos_parceiros(this, '${campo}','${pagamento.id_pagamento}')">
+                                <input type="file" id="anexo_${campo}" style="display: none;" onchange="salvar_anexos_parceiros(this, '${campo}','${pagamento.id_pagamento}')">
                             </label>
                         </div> 
                     
@@ -726,29 +715,20 @@ async function excluir_anexo_complementares(id_pagamento, anx) {
 
 }
 
-async function excluir_anexo_parceiro(id_pagamento, item, anx) {
+async function excluir_anexo_parceiro(id_pagamento, campo, anx) {
 
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
 
     if (
         lista_pagamentos[id_pagamento] &&
         lista_pagamentos[id_pagamento].anexos_parceiros &&
-        lista_pagamentos[id_pagamento].anexos_parceiros[item] &&
-        lista_pagamentos[id_pagamento].anexos_parceiros[item][anx]
+        lista_pagamentos[id_pagamento].anexos_parceiros[campo] &&
+        lista_pagamentos[id_pagamento].anexos_parceiros[campo][anx]
     ) {
 
-        delete lista_pagamentos[id_pagamento].anexos_parceiros[item][anx]
+        delete lista_pagamentos[id_pagamento].anexos_parceiros[campo][anx]
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
-
-        let dados = {
-            tabela: 'anexos_parceiros',
-            operacao: 'excluir',
-            id_pagamento: id_pagamento,
-            item: item,
-            anx: anx
-        }
-
-        enviar_dados_generico(dados)
+        deletar(`lista_pagamentos/${id_pagamento}/anexos_parceiros/${campo}/${anx}`)
         await abrir_detalhes(id_pagamento)
     }
 
@@ -1423,7 +1403,7 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
 
 }
 
-async function salvar_anexos_pagamentos(input, id_pagamento) { //29
+async function salvar_anexos_pagamentos(input, id_pagamento) {
     let anexos = await anexo_v2(input)
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     let pagamento = lista_pagamentos[id_pagamento]
@@ -1993,7 +1973,7 @@ function formatarCpfCnpj(numero) {
     }
 }
 
-async function cadastrarCliente(nome, cnpj_cpf) { //29
+async function cadastrarCliente(nome, cnpj_cpf) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/cadastrar", {
             method: "POST",
@@ -2039,10 +2019,11 @@ async function remover_anx(anx) {
 
 }
 
-async function salvar_anexos_parceiros(input, campo, id_pagamento) { //29
+async function salvar_anexos_parceiros(input, campo, id_pagamento) {
+
     let anexos = await anexo_v2(input)
 
-    if (id_pagamento == undefined) {
+    if (id_pagamento == undefined) { // O anexo do parceiro é incluído no formulário de pagamento; (Pagamento ainda não existe)
 
         anexos.forEach(anexo => {
             let ultimo_pagamento = JSON.parse(localStorage.getItem('ultimo_pagamento')) || {}
@@ -2060,9 +2041,53 @@ async function salvar_anexos_parceiros(input, campo, id_pagamento) { //29
             localStorage.setItem('ultimo_pagamento', JSON.stringify(ultimo_pagamento))
         })
 
+        await recuperar_ultimo_pagamento()
+
+    } else { // O anexo deve ser incluído no pagamento já existente;
+
+        let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+
+        let pagamento = lista_pagamentos[id_pagamento]
+
+        if (!pagamento.anexos_parceiros) {
+            pagamento.anexos_parceiros = {}
+        }
+
+        if (!pagamento.anexos_parceiros[campo]) {
+            pagamento.anexos_parceiros[campo] = {}
+        }
+
+        anexos.forEach(anexo => {
+
+            let id = gerar_id_5_digitos()
+
+            if (pagamento.anexos_parceiros[campo][id]) {
+                pagamento.anexos_parceiros[campo][id] = {}
+            }
+
+            pagamento.anexos_parceiros[campo][id] = anexo
+            enviar(`lista_pagamentos/${id_pagamento}/anexos_parceiros/${campo}/${id}`, anexo)
+
+            let container = document.getElementById(`container_${campo}`)
+            let string_anexo = `
+            <div style="display: flex; justify-content: left; align-items: center; gap: 10px;">
+                <div onclick="abrirArquivo('${anexo.link}')" class="anexos" style="border: solid 1px green; cursor: pointer;">
+                    <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
+                    <label style="cursor: pointer; font-size: 0.6em;"><strong>${String(anexo.nome).slice(0, 10)} ... ${String(anexo.nome).slice(-7)}</strong></label>
+                </div>
+                <img src="imagens/cancel.png" style="width: 25px; heigth: 25px; cursor: pointer;" onclick="excluir_anexo_parceiro('${id_pagamento}', '${campo}', '${id}')">
+            </div>
+            `
+
+            if (container) {
+                container.insertAdjacentHTML('beforeend', string_anexo)
+            }
+        })
+
+        await inserirDados(lista_pagamentos, 'lista_pagamentos')
+
     }
 
-    await recuperar_ultimo_pagamento()
 
 }
 

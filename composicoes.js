@@ -131,7 +131,7 @@ async function carregar_tabela_v2() {
                 }
 
                 var estilo = preco_final !== '' ? 'valor_preenchido' : 'valor_zero';
-                conteudo = `<label class="${estilo}" onclick="abrir_historico_de_precos('${codigo}', '${chave}')"> ${dinheiro(conversor(preco_final))}</label>`;
+                conteudo = `<label class="${estilo}" onclick="abrir_historico_de_precos('${codigo}', '${chave}', this)"> ${dinheiro(conversor(preco_final))}</label>`;
 
             } else if (chave == 'agrupamentos') {
 
@@ -531,7 +531,14 @@ function remover_item(elemento) {
     elemento.parentElement.remove()
 }
 
-async function abrir_historico_de_precos(codigo, tabela) {
+async function abrir_historico_de_precos(codigo, tabela, label) {
+
+    console.log(label)
+
+    let overlay = document.getElementById('overlay')
+    if (overlay) {
+        overlay.style.display = 'block'
+    }
 
     var marcado = ''
     var acumulado = ''
@@ -547,14 +554,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
     }
 
     var historico = produto[tabela].historico
-
-    overlay.style.display = 'block'
     var linhas = ''
-
-    var imagem = 'https://i.imgur.com/Nb8sPs0.png'
-    if (dados_composicoes[codigo].imagem && dados_composicoes[codigo].imagem !== '') {
-        imagem = dados_composicoes[codigo].imagem
-    }
 
     for (cotacao in historico) {
         dados_composicoes[codigo][tabela].ativo == cotacao ? marcado = 'checked' : marcado = ''
@@ -567,7 +567,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
             <td>${historico[cotacao].data}</td>
             <td>${historico[cotacao].usuario}</td>
             <td>${historico[cotacao].fornecedor}</td>
-            <td><input type="checkbox" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_preco_ativo('${codigo}', '${cotacao}', '${tabela}')" ${marcado}></td>
+            <td><input type="checkbox" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_preco_ativo('${codigo}', '${cotacao}', '${tabela}', ${label})" ${marcado}></td>
             <td>
                 <div style="display: flex; align-items: center; justify-content; width: 100%;">
                     <img src="imagens/cancel.png" style="width: 25px; cursor: pointer;" onclick="excluir_cotacao('${codigo}', '${tabela}', '${cotacao}')">
@@ -600,14 +600,14 @@ async function abrir_historico_de_precos(codigo, tabela) {
         <div id="tabela_historico" style="display: ${visibilidade}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
             <table class="tabela">
                 <thead>
-                    <th>Custo de Compra</th>
-                    <th>% Margem</th>
-                    <th>Valor Final</th>
-                    <th>Data da Cotação</th>
-                    <th>Feito por</th>
-                    <th>Fornecedor</th>
-                    <th>Ativo</th>
-                    <th>Excluir</th>
+                    <th style="color: white;">Custo de Compra</th>
+                    <th style="color: white;">% Margem</th>
+                    <th style="color: white;">Valor Final</th>
+                    <th style="color: white;">Data da Cotação</th>
+                    <th style="color: white;">Feito por</th>
+                    <th style="color: white;">Fornecedor</th>
+                    <th style="color: white;">Ativo</th>
+                    <th style="color: white;">Excluir</th>
                 </thead>
                 <tbody>${linhas}</tbody>
             </table>
@@ -728,7 +728,9 @@ async function atualizar() {
 
 }
 
-async function salvar_preco_ativo(codigo, id_preco, lpu) {
+async function salvar_preco_ativo(codigo, id_preco, lpu, label) {
+
+    console.log(label)
     var dados_composicoes = await recuperarDados('dados_composicoes') || {};
     var produto = dados_composicoes[codigo];
     var historico_preco = document.getElementById('historico_preco');
@@ -882,8 +884,9 @@ async function salvar_cotacao(codigo, lpu) {
 
                 produto[lpu].historico[id] = dados;
 
-                await enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, dados);
                 await inserirDados(dados_composicoes, 'dados_composicoes');
+                await enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, dados);
+
             }
         }
 
