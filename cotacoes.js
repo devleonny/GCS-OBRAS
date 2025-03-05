@@ -3,7 +3,7 @@ let quantidadeFornecedores = 0;
 
 
 document.addEventListener("DOMContentLoaded", async () => {
-    obter_materiais();
+
     adicionarLinha();
     await recuperarCotacoes();
     
@@ -208,8 +208,9 @@ function adicionarLinha() {
     atualizarQuantidadeItens();
 }
 
-function mostrarSugestoes(input, partnumberCell, estoqueCell) {
-    const listaMateriais = JSON.parse(localStorage.getItem("dados_materiais")) || {};
+async function mostrarSugestoes(input, partnumberCell, estoqueCell) {
+
+    let dados_estoque = await recuperarDados("dados_estoque"); // 🔥 Obtém os dados atualizados do estoque
     const valor = input.value.toLowerCase();
 
     // Verifica se o contêiner global de sugestões já existe, senão cria
@@ -229,20 +230,20 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
         return;
     }
 
-    // Filtra os itens baseados no texto digitado, usando includes em partnumber e descricao
-    const itensFiltrados = Object.values(listaMateriais)
-        .filter(item =>
+    // 🔥 Filtra os itens do estoque com base no texto digitado
+    const itensFiltrados = Object.entries(dados_estoque)
+        .filter(([id, item]) =>
             (item.partnumber && item.partnumber.toLowerCase().includes(valor)) ||
             (item.descricao && item.descricao.toLowerCase().includes(valor))
         )
-        .sort((a, b) => a.partnumber.localeCompare(b.partnumber)); // Opcional: ordena os resultados
+        .sort((a, b) => a[1].partnumber.localeCompare(b[1].partnumber)); // Ordena os resultados
 
     if (itensFiltrados.length === 0) {
         sugestoes.style.display = "none"; // Oculta se não houver resultados
         return;
     }
 
-    itensFiltrados.forEach(item => {
+    itensFiltrados.forEach(([id, item]) => {
         const sugestao = document.createElement("div");
         sugestao.textContent = `${item.descricao} (${item.partnumber})`; // Mostra o nome e o partnumber
         sugestao.style.padding = "8px";
@@ -253,7 +254,7 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
         sugestao.onclick = () => {
             input.value = item.descricao; // Preenche o campo com o nome do item
             partnumberCell.querySelector("input").value = item.partnumber || ""; // Preenche o partnumber correspondente
-            estoqueCell.querySelector("input").value = item.estoque ?? 0; // Preenche o estoque
+            estoqueCell.querySelector("input").value = item.estoque?.quantidade ?? 0; // 🔥 Obtém a quantidade do estoque corretamente
             sugestoes.style.display = "none"; // Oculta após seleção
         };
 
@@ -267,7 +268,6 @@ function mostrarSugestoes(input, partnumberCell, estoqueCell) {
     sugestoes.style.width = `${rect.width}px`;
     sugestoes.style.display = "block"; // Exibe as sugestões
 }
-
 
 let nomeFornecedor = "";
 
@@ -735,7 +735,6 @@ async function filtroFornecedores() {
 
     }
 
-
     );
 
     resultados.forEach(fornecedor => {
@@ -754,11 +753,13 @@ async function filtroFornecedores() {
 
 }
 
-function salvarObjeto(finalizar = false, reabrir = false) {
+async function salvarObjeto(finalizar = false, reabrir = false) {
     const informacoes = salvarInformacoes();
     const dados = salvarDados();
     const valorFinal = salvarValorFinal();
     const operacao = localStorage.getItem("operacao");
+
+    console.log(informacoes)
 
     // Define o status corretamente
     let status = "Pendente";
@@ -767,13 +768,8 @@ function salvarObjeto(finalizar = false, reabrir = false) {
 
     const novaCotacao = { informacoes, dados, valorFinal, operacao, status };
 
-    // Envia a nova cotação para a API
-    const payload = {
-        tabela: "cotacoes",
-        cotacao: novaCotacao,
-    };
-
-    enviar_dados_generico(payload);
+    // 🔥 Envia a nova cotação para a API usando enviar()
+    enviar(`dados_cotacao/${informacoes.id}`, novaCotacao);
 
     // Exibe mensagem de sucesso
     const aviso = document.getElementById("salvarAviso");
@@ -791,8 +787,8 @@ function salvarObjeto(finalizar = false, reabrir = false) {
 
     // Atualiza a tabela com os novos dados
     fecharModalApelido();
-    fecharModalFinalizar()
-    fecharModalReabrir()
+    fecharModalFinalizar();
+    fecharModalReabrir();
     carregarCotacoesSalvas();
 }
 
@@ -1465,27 +1461,15 @@ async function recuperarCotacoes() {
 
     document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
 
-    // const resposta = await fetch(
-    //     'https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=cotacoes'
-    // );
-
-    const dados = await receber("dados_cotacao");
-
-    // Inicializar o objeto para armazenar as cotações
-    let cotacoes = {};
-
-    // Transformar a lista de cotações em um objeto com ID como chave
-    dados.forEach((cotacao) => {
-        const id = cotacao.informacoes.id;
-        cotacoes[id] = cotacao;
-    });
+    const cotacoes = await receber("dados_cotacao");
 
     // Salvar no localStorage como um objeto
     localStorage.setItem("dados_cotacao", JSON.stringify(cotacoes));
 
     // Recarregar a tabela de cotações salvas
     carregarCotacoesSalvas();
-    document.getElementById("aguarde").remove()
+    document.getElementById("aguarde").remove();
+
 }
 
 
@@ -1509,50 +1493,39 @@ async function removerCotacao(elemento) {
     // Remove a linha da tabela
     linha.remove();
 
-    let status = "excluido";
-    let operacao = "excluir";
-
-    const cotacaoParaExcluir = { operacao, status, idCotacao };
-
-    const payload = {
-        tabela: "cotacoes",
-        cotacao: cotacaoParaExcluir,
-    };
-
-    enviar_dados_generico(payload);
-
-
-    // Remove a cotação do localStorage
+    // 🔥 Remove a cotação do localStorage
     let cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+    let cotacaoAtual = cotacoes[idCotacao];
 
-    let cotacaoAtual = cotacoes[idCotacao]
+    if (!cotacaoAtual) {
+        console.warn(`Cotação com ID ${idCotacao} não encontrada.`);
+        return;
+    }
 
     const idOrcamento = cotacaoAtual.informacoes.idOrcamento || "";
     const chavePedido = cotacaoAtual.informacoes.chavePedido || "";
 
+    // 🔥 Se houver um orçamento associado, remove a referência no status
+    if (idOrcamento && chavePedido) {
+        let dados_orcamentos = await recuperarDados("dados_orcamentos") || {};
 
-    if (idOrcamento != "" || chavePedido != "") {
-
-        let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
-        if (idCotacao == undefined || idCotacao == 'undefined') {
-
-            delete dados_orcamentos[idOrcamento].status[chavePedido]
-            await deletar(`dados_orcamentos/${id_orcam}/status/${chavePedido}`)
-
+        if (idCotacao === undefined || idCotacao === "undefined") {
+            delete dados_orcamentos[idOrcamento].status[chavePedido];
+            deletar(`dados_orcamentos/${idOrcamento}/status/${chavePedido}`);
         } else {
-
-            delete dados_orcamentos[idOrcamento].status[chavePedido].historico[idCotacao]
-            await deletar(`dados_orcamentos/${idOrcamento}/status/${chavePedido}/historico/${idCotacao}`)
-
+            delete dados_orcamentos[idOrcamento].status[chavePedido].historico[idCotacao];
+            deletar(`dados_orcamentos/${idOrcamento}/status/${chavePedido}/historico/${idCotacao}`);
         }
 
-        await enviar('PUT', `dados_orcamentos/${idOrcamento}/timestamp`, Date.now())
-        await inserirDados(dados_orcamentos, 'dados_orcamentos')
-
+        enviar("PUT", `dados_orcamentos/${idOrcamento}/timestamp`, Date.now());
+        inserirDados(dados_orcamentos, "dados_orcamentos");
     }
 
-    delete cotacaoAtual;
+    // 🔥 Remove a cotação na nuvem
+    deletar(`dados_cotacao/${idCotacao}`);
+
+    // 🔥 Remove a cotação do localStorage
+    delete cotacoes[idCotacao];
     localStorage.setItem("dados_cotacao", JSON.stringify(cotacoes));
 
     // Verifica se ainda existem cotações
