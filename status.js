@@ -181,6 +181,11 @@ async function painel_adicionar_pedido() {
 
     let painel_status = document.getElementById('status')
     let espelho_ocorrencias = document.getElementById('espelho_ocorrencias')
+    let estrutura = document.getElementById('estrutura')
+
+    if (estrutura) {
+        estrutura.remove()
+    }
 
     if (painel_status) {
         painel_status.remove()
@@ -2767,7 +2772,7 @@ async function salvar_anexo(chave, input) {
 
     anexos.forEach(anexo => {
 
-        if (Array.isArray(dados_orcamentos[id_orcam].status.historico[chave].anexos) || !dados_orcamentos[id_orcam].status.historico[chave].anexos) {
+        if ((dados_orcamentos[id_orcam].status.historico[chave].anexos && Array.isArray(dados_orcamentos[id_orcam].status.historico[chave].anexos) || !dados_orcamentos[id_orcam].status.historico[chave].anexos)) {
             dados_orcamentos[id_orcam].status.historico[chave].anexos = {};
         }
 
@@ -2789,7 +2794,7 @@ async function carregar_anexos(chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam]
     let anexos_divs = ''
-    let anexos = orcamento.status.historico[chave].anexos
+    let anexos = orcamento.status.historico[chave]?.anexos || {}
 
     if (anexos) {
 
