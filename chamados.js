@@ -173,6 +173,7 @@ async function carregar_manutencoes(sincronizar) {
             <tbody id="manutencoes">${linhas}</tbody>
         </table>
     `
+
     let div_chamados = document.getElementById('chamados')
 
     if (linhas !== '') {
@@ -622,6 +623,14 @@ function criar_manutencao(id) {
                         <img src="imagens/cancel.png" style="cursor: pointer; width: 2vw;">
                         <label">Excluir Manutenção</label>
                     </div>
+                    <div onclick="atualizar_base_clientes()" class="bex" style="background-color: brown; color: white;">
+                        <img src="imagens/atualizar.png" style="cursor: pointer; width: 2vw;">
+                        <label">Sincronizar Clientes/Técnicos</label>
+                    </div>
+                    <div onclick="recuperar_estoque()" class="bex" style="background-color: black; color: white;">
+                        <img src="imagens/sync.png" style="cursor: pointer; width: 2vw;">
+                        <label">Sincronizar Estoque</label>
+                    </div>
                 </div>
 
             </div>
@@ -735,14 +744,9 @@ async function enviar_manutencao(id) {
 
     await inserirDados(dados_manutencao, 'dados_manutencao')
 
-    let chamados = document.getElementById('chamados')
-    if (chamados) {
-        chamados.remove()
-    }
-
-    await preencher_orcamentos_v2()
-
     remover_popup()
+
+    await carregar_manutencoes()
 
 }
 
@@ -907,4 +911,39 @@ async function definir_campo(elemento, div, string_html, omie, id) {
     }
     document.getElementById(campo).value = elemento.textContent
     document.getElementById(div).innerHTML = '' // Sugestões
+}
+
+async function atualizar_base_clientes() {
+
+    if (document.getElementById('tela')) {
+
+        document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde())
+
+        await recuperar_clientes()
+
+        let aguarde = document.getElementById('aguarde')
+        if (aguarde) {
+            aguarde.remove()
+        }
+
+    }
+
+}
+
+async function recuperar_estoque() {
+
+    if (document.getElementById('tela')) {
+
+        document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde())
+
+        let estoque_nuvem = await receber('dados_estoque') || {}
+        await inserirDados(estoque_nuvem, 'dados_estoque')
+
+        let aguarde = document.getElementById('aguarde')
+        if (aguarde) {
+            aguarde.remove()
+        }
+
+    }
+
 }
