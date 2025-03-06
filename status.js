@@ -25,6 +25,11 @@ var fluxograma = {
 
 let totalValoresPedidos; // Variável global
 
+async function sincronizar_e_reabrir() {
+    await recuperar_orcamentos()
+    await abrir_esquema(id_orcam)
+}
+
 async function resumo_orcamentos() {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let setores = JSON.parse(localStorage.getItem('dados_setores')) || {};
@@ -1326,7 +1331,7 @@ async function abrir_esquema(id) {
         var acumulado = `
         <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
         
-            <div onclick="abrir_esquema('${id_orcam}')" style="display: flex; flex-direction: column; justify-content: left; align-items: center; cursor: pointer;">
+            <div onclick="sincronizar_e_reabrir()" style="display: flex; flex-direction: column; justify-content: left; align-items: center; cursor: pointer;">
                 <img src="imagens/atualizar2.png" style="width: 3vw;">
                 <label style="font-size: 1vw;">Atualizar</label>
             </div>
@@ -1740,14 +1745,14 @@ async function abrir_esquema(id) {
 
             <div id="lista-valores-manuais">
                 ${Object.entries(dados_orcamentos[id].valoresManuais || {}).length > 0
-                ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
+            ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
                                 <div style="display: flex; align-items: center; gap: 5px;">
                                     <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
                                     <button onclick="removerValorManual('${id}', '${chave}')" 
                                         style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
                                 </div>
                             `).join("")
-                : "<label style='font-size: 0.8vw; color: gray;'>Nenhum valor manual adicionado.</label>"}
+            : "<label style='font-size: 0.8vw; color: gray;'>Nenhum valor manual adicionado.</label>"}
             </div>
 
             <hr style="width: 100%;">
