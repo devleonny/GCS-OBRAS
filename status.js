@@ -1076,7 +1076,7 @@ async function salvar_requisicao(chave) {
     }
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
+    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
 
     await abrir_esquema(id_orcam)
 
@@ -1348,7 +1348,7 @@ async function abrir_esquema(id) {
             </div>
             • 
             <div onclick="mostrar_painel()" class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-                <img src="Imagens/pesquisar.png" style="width: 2vw;">
+                <img src="imagens/pesquisar.png" style="width: 2vw;">
                 <label style="font-size: 1vw;">Exibir Painel de Custos</label>
             </div>
 

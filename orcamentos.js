@@ -273,9 +273,6 @@ async function recuperar_orcamentos() {
     let dados_orcamentos = await receber('dados_orcamentos') || {}
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
-    let dados_manutencao = await receber('dados_manutencao') || {}
-    await inserirDados(dados_manutencao, 'dados_manutencao')
-
     if (document.title == 'ORÇAMENTOS') {
 
         await preencher_orcamentos_v2()
