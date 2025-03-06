@@ -173,8 +173,9 @@ async function carregar_manutencoes(sincronizar) {
             <tbody id="manutencoes">${linhas}</tbody>
         </table>
     `
-    let div_chamados = document.getElementById('chamados')
 
+    let div_chamados = document.getElementById('chamados')
+    
     if (linhas !== '') {
         div_chamados.innerHTML = tabela
 
@@ -735,14 +736,9 @@ async function enviar_manutencao(id) {
 
     await inserirDados(dados_manutencao, 'dados_manutencao')
 
-    let chamados = document.getElementById('chamados')
-    if (chamados) {
-        chamados.remove()
-    }
-
-    await preencher_orcamentos_v2()
-
     remover_popup()
+    
+    await carregar_manutencoes()
 
 }
 
