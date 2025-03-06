@@ -429,25 +429,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     showPopup("Por favor, selecione um técnico válido.");
                 } else {
                     // Verifica se o técnico já está na agenda atual
-                    const isDuplicate = Object.values(storedData).some((tech) => {
-                        if (String(tech.omie) !== String(validTechnician.omie)) {
-                            return false; // Se não for o mesmo técnico, ignora
-                        }
-                    
-                        // Permite adicionar se a agenda estiver vazia ou não existir
-                        const agendaExists = tech.agendas?.[currentKey];
-                        return agendaExists && Object.keys(agendaExists).length > 0;
-                    });
-                    
+                    const isDuplicate = Object.values(storedData).some(
+                        (tech) =>
+                            String(tech.omie) === String(validTechnician.omie) &&
+                            tech.agendas?.[currentKey]
+                    );
+
                     if (isDuplicate) {
                         // Técnico duplicado: Reverte o valor para o anterior
                         tecnicoInput.value = previousName;
                         tecnicoInput.dataset.omie = previousOmie;
                         showPopup("Este técnico já está na agenda atual!");
-                        return;
-                    }
-                    
-                    else {
+                    } else {
                         // Técnico válido e não duplicado
                         const newOmie = String(validTechnician.omie);
 
@@ -518,26 +511,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const dayDropdown = document.createElement("div");
             dayDropdown.className = "dropdown-options";
+
+            // 🔥 Evita que o dropdown feche antes de registrar a seleção
+            dayDropdown.addEventListener("mousedown", (event) => {
+                event.preventDefault();
+            });
+
             departments.forEach((dept) => {
                 const option = document.createElement("div");
                 option.className = "dropdown-option";
                 option.textContent = dept.nome;
                 option.dataset.codigo = dept.codigo;
-                option.addEventListener("click", () => {
+
+                // Evento de clique na opção do dropdown
+                option.addEventListener("mousedown", (event) => {
+                    event.preventDefault(); // 🔥 Evita perda de foco antes de salvar
+
+                    // 🔥 Atualiza corretamente o nome e código do departamento
+                    const truncatedName = dept.nome.length > 3 ? dept.nome.slice(0, 3) + "..." : dept.nome;
+                    dayInput.value = truncatedName;
+                    dayInput.title = dept.nome;
+                    dayInput.dataset.codigo = dept.codigo;
+
+                    // 🔥 Aplica a cor do departamento na célula
+                    dayCell.style.backgroundColor = dept.color;
+                    adjustTextColor(dayCell, dept.color);
+
+                    // 🔥 Fecha o dropdown após salvar
                     setTimeout(() => {
-                        const truncatedName = dept.nome.length > 3 ? dept.nome.slice(0, 3) + "..." : dept.nome;
-                        dayInput.value = truncatedName;
-                        dayInput.title = dept.nome;
-
-                        // 🔥 Certifique-se de que está salvando corretamente
-                        dayInput.dataset.codigo = dept.codigo?.trim() || "";
-                        console.log("✅ Código salvo no dataset:", dayInput.dataset.codigo);
-
                         dayDropdown.style.display = "none";
-                        dayCell.style.backgroundColor = dept.color;
-                        adjustTextColor(dayCell, dept.color);
-                        saveTechniciansToLocalStorage();
-                    }, 100);
+                    }, 50);
+
+                    saveTechniciansToLocalStorage(); // 🔥 Sempre salva os dados após a seleção
                 });
 
                 dayDropdown.appendChild(option);
@@ -585,18 +590,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     // Se já há um código salvo, não precisa validar novamente
                     if (dayInput.dataset.codigo && dayInput.dataset.codigo !== "null") {
                         console.log("✅ O input já possui um código válido:", dayInput.dataset.codigo);
+                        dayDropdown.style.display = "none";
                         return;
                     }
-
-                    console.log("🔍 Lista de departamentos carregada:", departments);
 
                     const userInput = dayInput.value.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                     const datasetCodigo = dayInput.dataset.codigo ? String(dayInput.dataset.codigo).trim() : "";
-
-                    if (!departments || !Array.isArray(departments) || departments.length === 0) {
-                        console.error("❌ ERRO: A lista de departamentos não foi carregada corretamente.");
-                        return;
-                    }
 
                     const validDepartment = departments.find((dept) => {
                         const deptName = dept.nome.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -614,10 +613,10 @@ document.addEventListener("DOMContentLoaded", () => {
                         dayInput.dataset.codigo = "";
                         dayCell.style.backgroundColor = "";
                         dayCell.style.color = "";
-                        dayDropdown.style.display = "none";
                     } else {
                         console.log(`✅ Departamento válido: ${validDepartment.nome} (${validDepartment.codigo})`);
                     }
+                    dayDropdown.style.display = "none";
                 }, 100);
             });
 
