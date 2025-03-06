@@ -253,6 +253,7 @@ async function abrir_detalhes(id_pagamento) {
     var dados_clientes = await recuperarDados('dados_clientes') || {};
     var dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
+    var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
     var cc = 'Erro 404'
     var categorias_invertidas = {}
     Object.keys(dados_categorias).forEach(cat => {
@@ -302,17 +303,9 @@ async function abrir_detalhes(id_pagamento) {
     var cor = '#222'
     if (pagamento.historico) {
 
-        let tem_qualidade = false
-
         for (his in pagamento.historico) {
 
             let justificativa = pagamento.historico[his]
-
-            if (justificativa.status.includes("Qualidade")) {
-
-                tem_qualidade = true
-
-            }
 
             var imagem = "imagens/remover.png"
             if (justificativa.status.includes('Aprovado')) {
@@ -321,10 +314,10 @@ async function abrir_detalhes(id_pagamento) {
             } else if (justificativa.status.includes('Reprovado')) {
                 cor = '#B12425'
                 imagem = "imagens/remover.png"
-            } else if (justificativa.status.includes('Aguardando') && tem_qualidade) {
+            } else if (justificativa.status.includes('Aguardando')) {
                 cor = '#D97302'
                 imagem = "imagens/avencer.png"
-            } else if (justificativa.status.includes('Aguardando') && tem_qualidade && item.status.includes('Diretoria')) {
+            } else if (dados_setores[justificativa.usuario].permissao == 'qualidade') {
                 cor = '#32a5e7'
                 imagem = "imagens/qualidade.png"
             } else if (justificativa.status.includes('Aguardando')) {
@@ -345,7 +338,6 @@ async function abrir_detalhes(id_pagamento) {
                 <img src="${imagem}">
             </div>
             `
-
         }
 
     }
@@ -390,8 +382,9 @@ async function abrir_detalhes(id_pagamento) {
         <label>${dinheiro(pagamento.param[0].valor_documento)}</label>
         </div>
         `
+    let permissao = dados_setores[acesso.usuario].permissao
     var acumulado = ''
-    if (pagamento.param[0].valor_documento > 500 && (pagamento.status.includes('Aguardando') || pagamento.status.includes('Reprovado')) && (acesso.permissao == 'gerente' || acesso.permissao == 'adm' || acesso.permissao == 'diretoria' || acesso.permissao == 'fin' || pagamento.criado == acesso.usuario || (acesso.permissao == "qualidade" && categoria_atual.includes("Parceiros")))) {
+    if (pagamento.param[0].valor_documento > 500 && (pagamento.status.includes('Aguardando') || pagamento.status.includes('Reprovado')) && (permissao == 'gerente' || permissao == 'adm' || permissao == 'diretoria' || permissao == 'fin' || pagamento.criado == acesso.usuario || (permissao == "qualidade" && categoria_atual.includes("Parceiros")))) {
         acumulado += `
         <div class="balao">
 
@@ -413,7 +406,7 @@ async function abrir_detalhes(id_pagamento) {
     }
 
     var botao_editar = ''
-    if (acesso.usuario == pagamento.criado || (acesso.permissao == 'adm' || acesso.permissao == 'fin' || acesso.permissao == 'gerente')) {
+    if (acesso.usuario == pagamento.criado || (permissao == 'adm' || permissao == 'fin' || permissao == 'gerente')) {
         botao_editar = `
             <button style="position: absolute; top: 0; right: 0;" onclick="editar_comentario('${id_pagamento}')">Editar</button>
         `
@@ -542,7 +535,7 @@ async function abrir_detalhes(id_pagamento) {
     }
 
     let excluir_pagamento = ''
-    if (acesso.permissao == 'adm') {
+    if (permissao == 'adm') {
         excluir_pagamento = `
         <div onclick="deseja_excluir_pagamento('${id_pagamento}')" style="display: flex; align-items: center; justify-content: center; gap: 10px; background-color: #d2d2d2; border-radius: 3px; cursor: pointer; padding: 3px;">
             <img src="imagens/remover.png" style="cursor: pointer;">
@@ -875,23 +868,23 @@ async function atualizar_feedback(resposta, id_pagamento) {
     var usuario = acesso.usuario;
     var status = `Aprovado por ${usuario}`;
     var justificativa = document.getElementById('justificativa').value;
-
     let categoria_atual = pagamento.param[0].categorias[0].codigo_categoria
+    let permissao = dados_setores[acesso.usuario].permissao
 
-    if (resposta == 'Aprovar' && (acesso.permissao == 'gerente' || acesso.permissao == 'adm') && categoria_atual == "2.01.99" && setor == "INFRA") {
+    if (resposta == 'Aprovar' && (permissao == 'gerente' || permissao == 'adm') && categoria_atual == "2.01.99" && setor == "INFRA") {
         status = 'Aguardando aprovação da Qualidade';
-    } else if (resposta == 'Aprovar' && (acesso.permissao == 'gerente' || acesso.permissao == 'adm')) {
+    } else if (resposta == 'Aprovar' && (permissao == 'gerente' || permissao == 'adm')) {
         status = 'Aguardando aprovação da Diretoria';
-    } else if (resposta == 'Aprovar' && acesso.permissao == 'qualidade') {
+    } else if (resposta == 'Aprovar' && permissao == 'qualidade') {
         status = 'Aguardando aprovação da Diretoria';
-    } else if (resposta == 'Aprovar' && acesso.permissao == 'diretoria') {
+    } else if (resposta == 'Aprovar' && permissao == 'diretoria') {
         status = 'Aprovado pela Diretoria';
         lancar_pagamento(pagamento)
-    } else if (resposta == 'Aprovar' && acesso.permissao == 'fin') {
+    } else if (resposta == 'Aprovar' && permissao == 'fin') {
         status = 'Aprovado pelo Financeiro';
         lancar_pagamento(pagamento)
     } else if (resposta == 'Reprovar') {
-        status = `Reprovado por ${acesso.permissao}`;
+        status = `Reprovado por ${permissao}`;
     } else {
         status = 'Aguardando aprovação da Gerência';
     }
@@ -1131,7 +1124,7 @@ async function criar_pagamento_v2() {
         if (conversor(total) < 500) {
             pagamento.status = 'Pagamento salvo localmente'
             lancar_pagamento(pagamento)
-        } else if (acesso.permissao == 'gerente') {
+        } else if (permissao == 'gerente') {
             pagamento.status = 'Aguardando aprovação da Diretoria'
         } else {
             pagamento.status = 'Aguardando aprovação da Gerência'

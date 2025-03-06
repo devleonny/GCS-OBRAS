@@ -1,4 +1,5 @@
-var acesso = JSON.parse(localStorage.getItem('acesso'))
+var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
 var versao = 'v3.0.5'
 
 document.addEventListener('keydown', function (event) {
@@ -11,12 +12,7 @@ function f5() {
     location.reload();
 }
 
-//Provisoriamente;
-localStorage.removeItem('dados_cliente')
-localStorage.removeItem('dados_composicoes')
-localStorage.removeItem('lista_pagamentos')
-localStorage.removeItem('dados_pagamentos')
-localStorage.removeItem('timestamps')
+identificacao_user()
 
 function inicial_maiuscula(string) {
     if (string == undefined) {
@@ -75,7 +71,6 @@ async function reprocessar_offline() {
         }
     }
 }
-
 
 function inserirDados(dados, nome_da_base) {
     const request = indexedDB.open('Bases');
@@ -193,15 +188,25 @@ async function recuperarDados(nome_da_base) {
     });
 }
 
+async function identificacao_user() {
 
-if (acesso && document.title !== 'PDF') {
-    var texto = `
-    <div style="position: relative; display: fixed;">
-        <label onclick="openPopup_v2('Deseja se desconectar?', true, 'sair()')"
-        style="cursor: pointer; position: absolute; top: 10px; right: 10px; color: white; font-family: 'Poppins', sans-serif;">${acesso.usuario} • ${acesso.permissao} • Desconectar • ${versao}</label>
-    </div>
-    `
-    document.body.insertAdjacentHTML('beforebegin', texto)
+    if (acesso && document.title !== 'PDF') {
+
+        if (Object.keys(dados_setores).length == 0) {
+            await lista_setores()
+            dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+        }
+
+        let permissao = dados_setores[acesso.usuario].permissao
+        var texto = `
+            <div style="position: relative; display: fixed;">
+                <label onclick="openPopup_v2('Deseja se desconectar?', true, 'sair()')"
+                style="cursor: pointer; position: absolute; top: 10px; right: 10px; color: white; font-family: 'Poppins', sans-serif;">${acesso.usuario} • ${permissao} • Desconectar • ${versao}</label>
+            </div>
+        `
+        document.body.insertAdjacentHTML('beforebegin', texto)
+    }
+
 }
 
 function openPopup_v2(mensagem, exibir_botoes, funcao_confirmar) {
@@ -907,7 +912,7 @@ async function salvar_levantamento(id_orcamento) {
 
 async function excluir_levantamento(id_orcamento, id_anexo) {
 
-    let dados_orcamentos =  await recuperarDados('dados_orcamentos') || {}
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcamento]
     delete orcamento.levantamentos[id_anexo]
 
