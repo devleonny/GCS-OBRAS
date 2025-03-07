@@ -1184,7 +1184,7 @@ async function espelhar_atualizacao(objeto) {
     await inserirDados(dados, arquivo);
 
     if (arquivo === "dados_kanban" && document.title === "KANBAN") {
-        carregarListas();
+        // carregarListas()
     }
 
 }

@@ -537,7 +537,6 @@ function soltar(evento) {
     }
 
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {}, etiquetasGlobais: {} };
-
     let tarefaMovida = dados.tarefas[idTarefa];
 
     if (!tarefaMovida) {
@@ -546,13 +545,15 @@ function soltar(evento) {
 
     let idListaOrigem = tarefaMovida.lista;
 
-    // 🔥 Atualiza a lista da tarefa
+    // 🔥 Atualiza a lista da tarefa **localmente** antes de enviar para a nuvem
     tarefaMovida.lista = idListaDestino;
+    dados.tarefas[idTarefa] = tarefaMovida;
+    localStorage.setItem("dados_kanban", JSON.stringify(dados)); // 🔥 Salva no localStorage imediatamente
 
-    // 🔥 Atualiza na nuvem o novo local da tarefa
+    // 🔥 Atualiza na nuvem o novo local da tarefa (mas sem depender disso para atualizar a UI)
     enviar(`dados_kanban/tarefas/${idTarefa}/lista`, idListaDestino);
 
-    // Atualiza Interface
+    // 🔄 Atualiza a interface na hora!
     renderizarQuadro();
 }
 
