@@ -1320,10 +1320,10 @@ async function abrir_esquema(id) {
         var levantamentos = ''
         if (orcamento.levantamentos) {
             for (chave in orcamento.levantamentos) {
-                var levantamento = orcamento.levantamentos[chave]
+                var levantamento = orcamento.levantamentos[chave] 
                 levantamentos += `
                 <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                    <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="abrirArquivo('${levantamento.link}')">
                         <img src="imagens/anexo2.png" style="width: 2vw;">
                         <label style="font-size: 0.8em;">${String(levantamento.nome).slice(0, 10)} ... ${String(levantamento.nome).slice(-7)}</label>
                     </div>
@@ -2847,7 +2847,7 @@ async function apagar_status_historico(chave) {
 
 }
 
-function remover_cotacao(chave) { //29
+function remover_cotacao(chave) {
     let status = "excluido";
     let operacao = "excluir";
     let idCotacao = chave
