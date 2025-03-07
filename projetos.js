@@ -592,6 +592,70 @@ async function abrirModal(idLista, idTarefa) {
         nomeOrcamento = `${cliente} - ${contrato}`;
     }
 
+    let pedidos = [];
+
+    if (idOrcamento && orcamentos[idOrcamento]) {
+        let historico = orcamentos[idOrcamento].status?.historico || {};
+
+        // 🔍 Percorre os pedidos no histórico
+        Object.values(historico).forEach(item => {
+            if (item.status === "PEDIDO") {
+                pedidos.push({
+                    tipo: item.tipo.toLowerCase(), // "serviço" ou "venda"
+                    pedido: item.pedido
+                });
+            }
+        });
+    }
+
+    // 🔍 Organiza os pedidos por tipo
+    let pedidosVenda = pedidos.filter(p => p.tipo === "venda");
+    let pedidosServico = pedidos.filter(p => p.tipo === "serviço");
+    let pedidosVendaServico = pedidos.filter(p => p.tipo === "venda + serviço");
+
+    console.log(pedidosVendaServico)
+
+    let pedidosHTML = "";
+
+    console.log(pedidos)
+
+    // 🔥 Renderiza dinamicamente os inputs com base nos pedidos
+    if (pedidosVendaServico.length) {
+        // Se houver ambos, exibe "Pedido + Venda"
+        pedidosVendaServico.forEach(p => {
+            pedidosHTML += `
+                <div>
+                    <label>Pedido + Venda:</label>
+                    <input type="text" value="${p.pedido}" readonly>
+                </div>
+            `;
+        });
+    } 
+
+    if (pedidosVenda.length) {
+        // Se houver apenas pedidos de venda
+        pedidosVenda.forEach(p => {
+            pedidosHTML += `
+                <div>
+                    <label>Pedido de Venda:</label>
+                    <input type="text" value="${p.pedido}" readonly>
+                </div>
+            `;
+        });
+    } 
+
+    if (pedidosServico.length) {
+        // Se houver apenas pedidos de serviço
+        pedidosServico.forEach(p => {
+            pedidosHTML += `
+                <div>
+                    <label>Pedido de Serviço:</label>
+                    <input type="text" value="${p.pedido}" readonly>
+                </div>
+            `;
+        });
+    }
+
     let listaAlvo = dados.listas[idLista];
 
     if (!listaAlvo) {
@@ -665,14 +729,7 @@ async function abrirModal(idLista, idTarefa) {
                 <label>Entrega:</label>
                 <input type="date" id="input-entrega" value="${tarefaAlvo.descricao.entrega}">
             </div>
-            <div>
-                <label>Pedido de Serviço:</label>
-                <input type="text" id="input-pedido-servico" value="${tarefaAlvo.descricao.pedidoServico}">
-            </div>
-            <div>
-                <label>Pedido de Venda:</label>
-                <input type="text" id="input-pedido-venda" value="${tarefaAlvo.descricao.pedidoVenda}">
-            </div>
+            ${pedidosHTML} <!-- 🛠️ Aqui serão inseridos os pedidos dinamicamente -->
             <div>
                 <label>Escopo:</label>
                 <input type="text" id="input-escopo" value="${tarefaAlvo.descricao.escopo}">
