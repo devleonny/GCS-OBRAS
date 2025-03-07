@@ -613,11 +613,7 @@ async function abrirModal(idLista, idTarefa) {
     let pedidosServico = pedidos.filter(p => p.tipo === "serviço");
     let pedidosVendaServico = pedidos.filter(p => p.tipo === "venda + serviço");
 
-    console.log(pedidosVendaServico)
-
     let pedidosHTML = "";
-
-    console.log(pedidos)
 
     // 🔥 Renderiza dinamicamente os inputs com base nos pedidos
     if (pedidosVendaServico.length) {
@@ -630,7 +626,7 @@ async function abrirModal(idLista, idTarefa) {
                 </div>
             `;
         });
-    } 
+    }
 
     if (pedidosVenda.length) {
         // Se houver apenas pedidos de venda
@@ -642,7 +638,7 @@ async function abrirModal(idLista, idTarefa) {
                 </div>
             `;
         });
-    } 
+    }
 
     if (pedidosServico.length) {
         // Se houver apenas pedidos de serviço
@@ -719,7 +715,7 @@ async function abrirModal(idLista, idTarefa) {
             </div>
             <div>
                 <label>Endereço da Loja:</label>
-                <input type="text" id="input-endereco" value="${tarefaAlvo.descricao.endereco}">
+                <textarea class="textarea-modal" id="input-endereco" rows="2">${tarefaAlvo.descricao.endereco}</textarea>
             </div>
             <div>
                 <label>Start:</label>
@@ -732,8 +728,8 @@ async function abrirModal(idLista, idTarefa) {
             ${pedidosHTML} <!-- 🛠️ Aqui serão inseridos os pedidos dinamicamente -->
             <div>
                 <label>Escopo:</label>
-                <input type="text" id="input-escopo" value="${tarefaAlvo.descricao.escopo}">
-            </div>
+                <textarea class="textarea-modal" id="input-escopo" rows="4">${tarefaAlvo.descricao.escopo}</textarea>
+            </div>  
             <div>
                 <label>Equipe:</label>
                 <input type="text" id="input-equipe" value="${tarefaAlvo.descricao.equipe}">
@@ -831,6 +827,9 @@ async function abrirModal(idLista, idTarefa) {
                         let endereco = `${dadosOrcamento.cidade || ""}, ${dadosOrcamento.bairro || ""}, ${dadosOrcamento.cep || ""}`.trim();
                         let start = dadosOrcamento.data ? dadosOrcamento.data.split("T")[0] : "";
 
+                        // 🔥 Agora buscamos `consideracoes` para preencher o campo Escopo
+                        let escopo = dadosOrcamento.consideracoes || ""; // Se não existir, fica vazio
+
                         // 🔍 Busca os pedidos dentro do histórico
                         let pedidosServico = [];
                         let pedidosVenda = [];
@@ -848,8 +847,6 @@ async function abrirModal(idLista, idTarefa) {
                         let pedidoServico = pedidosServico.length > 0 ? pedidosServico.join(", ") : "";
                         let pedidoVenda = pedidosVenda.length > 0 ? pedidosVenda.join(", ") : "";
 
-                        // 🔥 Garante que escopo e equipe sejam strings vazias caso não existam
-                        let escopo = dadosOrcamento.escopo || "";
                         let equipe = dadosOrcamento.equipe || "";
 
                         // 🚀 Salva automaticamente no localStorage

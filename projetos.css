@@ -800,6 +800,19 @@ input[type="file"]#input-anexos:hover {
     background: #282a3a;
 }
 
+.textarea-modal{
+    width: 60%;
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    height: 38px; /* Altura igual ao input */
+    font-family: inherit;
+    background-color: #1e1e2f;
+    color: white;
+    margin-bottom: 10px;
+}
+
 /* Scroll personalizado */
 ::-webkit-scrollbar {
     width: 8px;
