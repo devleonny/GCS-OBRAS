@@ -1,4 +1,5 @@
 var acesso = JSON.parse(localStorage.getItem('acesso'))
+var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
 var versao = 'v3.0.5'
 
 document.addEventListener('keydown', function (event) {
@@ -9,6 +10,28 @@ document.addEventListener('keydown', function (event) {
 
 function f5() {
     location.reload();
+}
+
+identificacao_user()
+async function identificacao_user() {
+
+    if (acesso && document.title !== 'PDF') {
+
+        if (Object.keys(dados_setores).length == 0) {
+            await lista_setores()
+            dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+        }
+
+        let permissao = dados_setores[acesso.usuario].permissao
+        var texto = `
+            <div style="position: relative; display: fixed;">
+                <label onclick="openPopup_v2('Deseja se desconectar?', true, 'sair()')"
+                style="cursor: pointer; position: absolute; top: 10px; right: 10px; color: white; font-family: 'Poppins', sans-serif;">${acesso.usuario} • ${permissao} • Desconectar • ${versao}</label>
+            </div>
+        `
+        document.body.insertAdjacentHTML('beforebegin', texto)
+    }
+
 }
 
 function inicial_maiuscula(string) {
@@ -184,17 +207,6 @@ async function recuperarDados(nome_da_base) {
             reject(event.target.error);
         };
     });
-}
-
-
-if (acesso && document.title !== 'PDF') {
-    var texto = `
-    <div style="position: relative; display: fixed;">
-        <label onclick="openPopup_v2('Deseja se desconectar?', true, 'sair()')"
-        style="cursor: pointer; position: absolute; top: 10px; right: 10px; color: white; font-family: 'Poppins', sans-serif;">${acesso.usuario} • ${acesso.permissao} • Desconectar • ${versao}</label>
-    </div>
-    `
-    document.body.insertAdjacentHTML('beforebegin', texto)
 }
 
 function openPopup_v2(mensagem, exibir_botoes, funcao_confirmar) {
