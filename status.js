@@ -1175,15 +1175,6 @@ async function exibir_todos_os_status(id) {
             <label style="cursor: pointer;">Baixar Orçamento em Excel</label>
         </div>
     `
-
-    if (orcamento.lpu_ativa == 'LPU CARREFOUR') {
-        acumulado_botoes += `
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="rir('${id}')">
-            <img src="imagens/carrefour.png" style="width: 48px; height: 48px; margin: 3px;">
-            <label style="cursor: pointer;">Itens Reais em Excel</label>
-        </div> 
-    `}
-
     acumulado_botoes += `
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_duplicar('${id}')">
             <img src="imagens/duplicar.png">
