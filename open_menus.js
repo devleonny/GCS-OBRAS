@@ -11,13 +11,6 @@ function f5() {
     location.reload();
 }
 
-//Provisoriamente;
-localStorage.removeItem('dados_cliente')
-localStorage.removeItem('dados_composicoes')
-localStorage.removeItem('lista_pagamentos')
-localStorage.removeItem('dados_pagamentos')
-localStorage.removeItem('timestamps')
-
 function inicial_maiuscula(string) {
     if (string == undefined) {
         return ''
