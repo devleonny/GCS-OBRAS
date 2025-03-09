@@ -311,15 +311,15 @@ async function abrir_detalhes(id_pagamento) {
             if (justificativa.status.includes('Aprovado')) {
                 cor = '#4CAF50'
                 imagem = "imagens/concluido.png"
+            } else if (dados_setores[justificativa.usuario].permissao == 'qualidade') {
+                cor = '#32a5e7'
+                imagem = "imagens/qualidade.png"
             } else if (justificativa.status.includes('Reprovado')) {
                 cor = '#B12425'
                 imagem = "imagens/remover.png"
             } else if (justificativa.status.includes('Aguardando')) {
                 cor = '#D97302'
                 imagem = "imagens/avencer.png"
-            } else if (dados_setores[justificativa.usuario].permissao == 'qualidade') {
-                cor = '#32a5e7'
-                imagem = "imagens/qualidade.png"
             } else if (justificativa.status.includes('Aguardando')) {
                 cor = '#D97302'
                 imagem = "imagens/avencer.png"
@@ -509,7 +509,7 @@ async function abrir_detalhes(id_pagamento) {
                     <label>Resumo de Custo</label>          
                 </div>
                 <div style="background-color: #222; border-radius: 5px; margin: 5px;">
-                    <table style="font-size: 1vw; padding: 5px;">
+                    <table class="tabela">
                         <thead>
                             <th>Valor Orçado Válido</th>
                             <th>A Pagar</th>
