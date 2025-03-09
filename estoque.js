@@ -80,7 +80,7 @@ async function carregar_estoque() {
             let valor = ''
 
             if (chave == 'descricao') {
-                elemento = `<textarea style="border: none; border-radius: 0px; width: 100%;" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>${info}</textarea>`
+                elemento = `<textarea style="font-size; 0.7vw; border: none; border-radius: 0px; width: 15vw;" oninput="exibir_botao(this, '${chave}')" ${apenas_leitura}>${info}</textarea>`
 
             } else if (chave == 'Excluir') {
 
@@ -149,7 +149,7 @@ async function carregar_estoque() {
 
     let acumulado = `
         <div style="height: max-content; max-height: 70vh; width: max-content; max-width: 90vw; overflow: auto; background-color: #d2d2d2; border-radius: 5px;">
-            <table class="tabela_e" id="tabela_estoque"">
+            <table id="tabela_estoque"">
                 <thead>
                     <tr>${thc}</tr>
                     <tr id="thead_pesquisa">${ths}</tr>

@@ -65,73 +65,68 @@ function carregar_layout_modalidade_livre() {
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
     orcamento_livre.innerHTML = `
-
         <div id="menu_superior"
-            style="position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 3px; background-color: #222222bc; width: 100%; padding: 20px;">
+            style="position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 3px; background-color: #d2d2d2; width: 100%; padding: 20px;">
 
-        
-            <div style="display: flex; justify-content: left; align-items: center;">
 
-                <div
-                    style="position: relative; display: flex; justify-content: center; align-items: center; border-radius: 3px;">
-                    <img src="imagens/BG.png" style="height: 200px;">
-
-                </div>
+            <div style="display: flex; justify-content: left; align-items: center; gap: 5vw;">
 
                 <div
-                    style="display: flex; flex-direction: column; justify-content: space-evenly; align-items: left; gap: 20px;">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; border-radius: 3px; background-color: #222222bc;">
-                        <button onclick="toggleTabela()" style="background-color: rgb(179, 116, 0);">
-                            Dados Cliente</button>
-                        <button style="background-color: green;" onclick="enviar_dados()">Salvar
-                            Orçamento</button>
-                        <button style="background-color: #B12425;" onclick="apagar_orçamento()">
-                            Apagar Orçamento</button>
+                    style="display: flex; flex-direction: column; justify-content: center; align-items: start; border-radius: 3px;">
+
+                    <div class="btn_menu" onclick="toggleTabela()">
+                        <img src="imagens/gerente.png">
+                        <label>Dados Cliente</label>
+                    </div>
+                    <div class="btn_menu" onclick="enviar_dados()">
+                        <img src="imagens/salvo.png">
+                        <label>Salvar Orçamento</label>
+                    </div>
+                    <div class="btn_menu" onclick="apagar_orçamento()">
+                        <img src="imagens/remover.png">
+                        <label>Apagar Orçamento</label>
                     </div>
 
-                <div style="display: flex; gap: 10px; justify-content: center; align-items: center; color: white; font-size: 1.2em; margin: 10px;">
+                    <div class="btn_menu" onclick="retornar_ao_orcamento_tradicional()">
+                        <img src="gifs/alerta.gif" style="width: 25px; cursor: pointer;">
+                        <label style="cursor: pointer;">Modalidade Tradicional</label>
+                    </div>
 
-                <textarea id="entrada_itens" rows="2" cols="30" placeholder="Descrição | Quantidade | Valor"></textarea>
-
-                <div style="display: flex; flex-direction: column; gap: 3px; justify-content: center; align-items: center; color: white; margin: 3px;">
-                    
-
-                    <select id="tipo_importar" style="background-color: #222222bc; border-radius: 3px; color: white; width: 100%;">
-                    <option>SERVIÇO</option>
-                    <option>VENDA</option>
-                    </select>
-
-                    <div onclick="importar()" style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: center; border-radius: 5px; background-color: #222222bc; padding: 5px;">
-                        <img src="imagens/baixar.png" style="width: 30px; cursor: pointer;"> 
-                        <label style="cursor: pointer;">Importar</label>    
+                    <div class="btn_menu" onclick="window.location.href='inicial.html'">
+                        <img src="imagens/voltar_2.png">
+                        <label>Voltar</label>
                     </div>
 
                 </div>
 
-            </div>
+                <div style="display: flex; flex-direction: column; gap: 10px; justify-content: center; align-items: start; color: white; font-size: 1.2em; margin: 10px;">
 
-                </div>
+                    <div style="display: flex; gap: 3px; justify-content: center; align-items: center; color: white; margin: 3px;">
 
-                <div onclick="retornar_ao_orcamento_tradicional()"
-                    style="position: absolute; right: 10px; top: 3px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 3px; padding: 5px;">
-                    <img src="gifs/alerta.gif" style="width: 25px; cursor: pointer;">
-                    <label style="cursor: pointer;">Orçamento Tradicional?</label>
+                        <select id="tipo_importar" style="background-color: white; color: #222; height: 6vh;">
+                            <option>SERVIÇO</option>
+                            <option>VENDA</option>
+                        </select>
+
+                        <div onclick="importar()" class="btn_menu">
+                            <img src="imagens/baixar.png" style="width: 2vw;">
+                            <label style="cursor: pointer;">Importar</label>
+                        </div>
+
+                    </div>
+
+                    <label><strong>Ordem:</strong> Descrição, Quantidade e Valor</label>
+
+                    <textarea id="entrada_itens" rows="5" style="width: 100%; background-color: white; color: #222; border: none;"></textarea>
                 </div>
 
                 <div
-                    style="display: flex; flex-direction: column; justify-content: left; align-items: center; border-radius: 3px; color: white; width: 300px;">
+                    style="display: flex; flex-direction: column; justify-content: center; align-items: start; border-radius: 3px; color: white; width: 300px;">
                     <label style="white-space: nowrap; margin-right: 2vw; font-size: 1.0em;">TOTAL
                         GERAL</label>
                     <label style="white-space: nowrap; font-size: 3.0em;" id="tt_geral"></label>
                 </div>
 
-            </div>
-
-            <div style="position: absolute; top: 40px; right: 5px; display: flex; align-items: center; justify-content: right; margin: 5px; gap: 10px;"
-                onclick="window.location.href='inicial.html'">
-                <label style="color: white;">Voltar</label>
-                <img src="imagens/voltar.png" style="cursor: pointer; width: 30px;">
             </div>
 
         </div>

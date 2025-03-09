@@ -419,8 +419,8 @@ async function recuperar_clientes() {
     if (acompanhamento_dados_clientes) {
         acompanhamento_dados_clientes.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: left;">
-        <img src="gifs/loading.gif" style="width: 50px">
-        <label>Aguarde alguns segundos... </label>
+            <img src="gifs/loading.gif" style="width: 50px">
+            <label>Aguarde alguns segundos... </label>
         </div>
         `
     }
@@ -518,9 +518,9 @@ async function recuperar_clientes() {
         dados_clientes_provisorios = data
         carregar_datalist_clientes()
         acompanhamento_dados_clientes.innerHTML = `
-            <img src="gifs/alerta.gif" style="width: 30px;">
-            <label style="text-decoration: underline; cursor: pointer;" onclick="recuperar_clientes()">Clique aqui para sincronizar com o Omie os dados do Cliente...</label>
-        `
+            <img src="imagens/omie.png">
+            <label style="cursor: pointer;">Atualizar OMIE Clientes</label>
+            `
     }
 
 }
@@ -981,8 +981,6 @@ function capturarValorCelula(celula) {
     return valor;
 }
 
-
-
 //--- NOVO SERVIÇO DE ARMAZENAMENTO ---\\
 async function receber(chave) {
     const url = `https://leonny.dev.br/dados?chave=${chave}`;
@@ -1004,8 +1002,7 @@ async function receber(chave) {
         const data = await response.json();
         return data;
     } catch (error) {
-        console.error("Erro ao obter dados:", error);
-        return null;
+        return {};
     }
 }
 
@@ -1187,6 +1184,10 @@ async function espelhar_atualizacao(objeto) {
         // carregarListas()
     }
 
+    if (arquivo == 'aprovacoes') {
+        aprovacoes_pendentes()
+    }
+
 }
 
 async function gerar_pdf_online(htmlString, nome) {
@@ -1341,4 +1342,99 @@ function data_atual(estilo, nivel) {
     } else if (estilo === 'curta') {
         return dataAtual.toLocaleDateString('pt-BR');
     }
+}
+
+aprovacoes_pendentes()
+async function aprovacoes_pendentes() {
+
+    let painel_aprovacoes = document.getElementById('painel_aprovacoes')
+    if (painel_aprovacoes) {
+        painel_aprovacoes.remove()
+    }
+
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+
+    let aprovacoes = await receber('aprovacoes') || {}
+    let acumulado = ''
+
+    for (id in aprovacoes) {
+        let item = aprovacoes[id]
+
+        if (item.aprovacao && item.aprovacao.status) {
+
+            if (orcamento_v2.aprovacao && orcamento_v2.aprovacao.id == id) {
+                orcamento_v2.aprovacao.status = item.aprovacao.status
+                orcamento_v2.aprovacao.justificativa = item.aprovacao.justificativa
+                localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+
+                let aguardando_aprovacao = document.getElementById('aguardando_aprovacao')
+                if (aguardando_aprovacao) {
+                    await enviar_dados()
+                }
+            }
+
+            continue
+        }
+
+        acumulado += `
+            <div style="width: 30vw; background-color: #d2d2d2; color: #222; border-radius: 3px; padding: 5px; display: flex; justify-content: start; align-items: start; flex-direction: column;">
+                <label>Autorização de Desconto</label>
+                <hr style="width: 100%">    
+                
+                <div style="display: flex; justify-content: space-between; width: 100%;">
+                    <label style="font-size: 1.5vw;">Total Sem Desconto</label>
+                    <label>${item.total_sem_desconto}</label>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; width: 100%;">
+                    <label style="font-size: 1.5vw;">Total Final</label>
+                    <label>${item.total_geral}</label>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; width: 100%;">
+                    <label style="font-size: 1.5vw;">Desconto em Dinheiro</label>
+                    <label>${item.desconto_dinheiro}</label>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; width: 100%;">
+                    <label style="font-size: 1.5vw;">Desconto Percentual</label>
+                    <label>${Number(item.desconto_porcentagem)}%</label>
+                </div>
+
+                <hr style="width: 100%;">
+                <div style="width: 100%; position: relative; color: #222; border-radius: 3px; padding: 5px; display: flex; justify-content: center; align-items: start; flex-direction: column;">
+                    <label>Justificativa</label>
+                    <textarea rows="5" style="background-color: white; border: none; width: 90%; color: #222;"></textarea>
+
+                    <div style="display: flex; justify-content: left; gap: 5px;">
+                        <button style="background-color: #4CAF50;" onclick="resposta_desconto(this, '${id}', 'aprovado')">Autorizar</button>
+                        <button style="background-color: #B12425;" onclick="resposta_desconto(this, '${id}', 'reprovado')">Reprovar</button>
+                    </div>
+                </div>
+            </div>
+
+        `
+    }
+
+    let painel = `
+    <div id="painel_aprovacoes" style="z-index: 4444; position: fixed; bottom: 2vw; right: 2vw; display: flex; align-items: center; justify-content: start; flex-direction: column; gap: 5px; height: 70vh; overflow: auto;">
+        ${acumulado}
+    </div>
+    `
+    document.body.insertAdjacentHTML('beforeend', painel)
+}
+
+function resposta_desconto(botao, id, status) {
+
+    let justificativa = botao.parentElement.parentElement.querySelector('textarea').value
+
+    let aprovacao = {
+        status,
+        justificativa
+    }
+
+    enviar(`aprovacoes/${id}/aprovacao`, aprovacao)
+
+    botao.parentElement.parentElement.parentElement.remove()
+
 }
