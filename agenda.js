@@ -497,6 +497,8 @@ document.addEventListener("DOMContentLoaded", () => {
             dayInput.className = "dropdown-input";
             dayInput.style.backgroundColor = "transparent";
 
+            dayInput.dataset.day = dayNumber;
+
             const deptCode = agenda[dayNumber] || "";
             const dept = departments.find((d) => d.codigo === deptCode);
             if (dept) {
@@ -586,39 +588,66 @@ document.addEventListener("DOMContentLoaded", () => {
                     console.log("🔍 Debug do input antes da validação:");
                     console.log("👉 Valor digitado:", dayInput.value);
                     console.log("👉 Código dataset antes da validação:", dayInput.dataset.codigo);
-
-                    // Se já há um código salvo, não precisa validar novamente
-                    if (dayInput.dataset.codigo && dayInput.dataset.codigo !== "null") {
-                        console.log("✅ O input já possui um código válido:", dayInput.dataset.codigo);
-                        dayDropdown.style.display = "none";
-                        return;
-                    }
-
+            
                     const userInput = dayInput.value.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                     const datasetCodigo = dayInput.dataset.codigo ? String(dayInput.dataset.codigo).trim() : "";
+            
+                    let storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
+                    const currentKey = getAgendaKey();
+                    const technicianOmie = tecnicoInput.dataset.omie;
+            
+                    if (!technicianOmie || !storedData[technicianOmie] || !storedData[technicianOmie].agendas) {
+                        console.warn("⚠️ Técnico não encontrado ou sem agenda registrada.");
+                        return;
+                    }
+            
+                    // Se o campo foi apagado pelo usuário
+                    if (userInput === "") {
+                        console.log("❌ Campo de departamento apagado. Removendo associação.");
+                        
+                        // 🔥 Remove do localStorage e da nuvem
+                        delete storedData[technicianOmie].agendas[currentKey][dayInput.dataset.day];
+                        
+                        localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
+                        deletar(`dados_agenda_tecnicos/${technicianOmie}/agendas/${currentKey}/${dayInput.dataset.day}`);
 
+                        dayInput.dataset.codigo = ""; // Remove o código do departamento
+                        dayCell.style.backgroundColor = "white"; // 🔥 Volta ao fundo original
+                        dayCell.style.color = ""; // 🔥 Ajusta a cor do texto de volta ao normal
+                        dayDropdown.style.display = "none";
+            
+                        return;
+                    }
+            
                     const validDepartment = departments.find((dept) => {
                         const deptName = dept.nome.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                         const deptCode = String(dept.codigo).trim();
                         return deptName == userInput || deptCode == datasetCodigo;
                     });
-
+            
                     if (!validDepartment) {
-                        console.log("🔍 Lista de departamentos:", departments);
-                        console.log("🔍 Valor digitado:", dayInput.value);
-                        console.log("🔍 Valor tratado:", userInput);
-                        console.log("🔍 Código dataset:", datasetCodigo);
-
-                        dayInput.value = "";
-                        dayInput.dataset.codigo = "";
-                        dayCell.style.backgroundColor = "";
-                        dayCell.style.color = "";
+                        console.log("⚠️ Departamento inválido! Limpando campo.");
+                        dayInput.value = ""; // Apaga o texto
+                        dayInput.dataset.codigo = ""; // Remove qualquer código inválido
+                        dayCell.style.backgroundColor = "white"; // 🔥 Volta ao fundo original
+                        dayCell.style.color = ""; // 🔥 Ajusta a cor do texto
                     } else {
                         console.log(`✅ Departamento válido: ${validDepartment.nome} (${validDepartment.codigo})`);
+                        dayInput.dataset.codigo = validDepartment.codigo;
+                        dayCell.style.backgroundColor = validDepartment.color;
+                        dayCell.style.color = isColorDark(validDepartment.color) ? "white" : "black";
+            
+                        // 🔥 Atualiza no localStorage
+                        storedData[technicianOmie].agendas[currentKey][dayInput.dataset.day] = validDepartment.codigo;
+                        localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
+            
+                        // 🔥 Atualiza na nuvem
+                        enviar(`dados_agenda_tecnicos/${technicianOmie}/agendas/${currentKey}/${dayInput.dataset.day}`, validDepartment.codigo);
                     }
+            
                     dayDropdown.style.display = "none";
                 }, 100);
-            });
+            });            
 
             dayCell.appendChild(dayInput);
             dayCell.appendChild(dayDropdown);
