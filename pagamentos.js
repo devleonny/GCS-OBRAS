@@ -380,8 +380,20 @@ async function abrir_detalhes(id_pagamento) {
         </div>
         `
     let permissao = dados_setores[acesso.usuario].permissao
+
+    let status_atual = ultimo_status(pagamento.historico)
+
     var acumulado = ''
-    if (pagamento.param[0].valor_documento > 500 && (pagamento.status.includes('Aguardando') || pagamento.status.includes('Reprovado')) && (permissao == 'gerente' || permissao == 'adm' || permissao == 'diretoria' || permissao == 'fin' || pagamento.criado == acesso.usuario || (permissao == "qualidade" && categoria_atual.includes("Parceiros")))) {
+    if (
+        pagamento.param[0].valor_documento > 500 &&
+        (status_atual.includes('Aguardando') || status_atual.includes('Reprovado')) &&
+        (permissao == 'gerente' || 
+            permissao == 'adm' || 
+            permissao == 'diretoria' || 
+            permissao == 'fin' || 
+            pagamento.criado == acesso.usuario || 
+            (permissao == "qualidade" && categoria_atual.includes("Parceiros")))
+    ) {
         acumulado += `
         <div class="balao">
 
@@ -551,7 +563,7 @@ async function abrir_detalhes(id_pagamento) {
         <span class="close" onclick="fechar_detalhes()">&times;</span>
         ${acoes_orcamento}
         ${excluir_pagamento}
-        <label><strong>Status atual • </strong> ${pagamento.status}</label>
+        <label><strong>Status atual • </strong> ${status_atual}</label>
         <label><strong>Quem recebe? • </strong> ${cliente}</label>
         <div id="centro_de_custo_div" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
             <label><strong>Centro de Custo</strong> • ${cc}</label>
@@ -589,7 +601,7 @@ async function abrir_detalhes(id_pagamento) {
     `
 
     var elementus = `
-    <div id="detalhes" class="status" style="display: flex;">
+    <div id="detalhes" class="status" style="display: flex; width: 50vw;">
         ${acumulado}
     </div>
     
@@ -1161,6 +1173,23 @@ async function criar_pagamento_v2() {
 
     }
 
+}
+
+function ultimo_status(obj) {
+    let lastEntry = null;
+
+    for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            const entry = obj[key];
+            const entryDate = new Date(entry.data.split(", ").reverse().join(" "));
+
+            if (!lastEntry || entryDate > lastEntry.date) {
+                lastEntry = { status: entry.status, date: entryDate };
+            }
+        }
+    }
+
+    return lastEntry ? lastEntry.status : 'Aguardando aprovação da Gerência';
 }
 
 function encerrarIntervalos() {
