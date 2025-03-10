@@ -1305,8 +1305,6 @@ async function abrir_esquema(id) {
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
     )
 
-    console.log(orcamento)
-
     if (orcamento && orcamento.status) {
         var levantamentos = ''
         if (orcamento.levantamentos) {
@@ -1771,12 +1769,14 @@ async function abrir_esquema(id) {
     // É só esperar a página incluir os elementos acima, simples... não precisa de timeInterval...
     let totalValoresPedidos = somarValoresPedidos();
     let totalValoresManuais = somarValoresManuais(dados_orcamentos[id]);
-    let totalFinal = totalValoresPedidos - totalValoresManuais;
+    let totalFinal = conversor(orcamento.total_geral) - totalValoresManuais;
     let valorPedidoSpan = document.getElementById('valor_pedido');
     let valorTotalSpan = document.getElementById('valor_total_pedido');
 
+    console.log(conversor(orcamento.total_geral));
+
     if (valorPedidoSpan) {
-        valorPedidoSpan.textContent = dinheiro(totalValoresPedidos);
+        valorPedidoSpan.textContent = orcamento.total_geral;
     }
 
     if (valorTotalSpan) {
