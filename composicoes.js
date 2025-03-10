@@ -771,7 +771,7 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
         });
 
         let algumMarcado = false;
-
+        
         // 🔥 Agora percorre e marca apenas o checkbox correto
         for (let tr of trs) {
             let tds = tr.querySelectorAll('td');
@@ -1106,7 +1106,7 @@ async function cadastrar_alterar(codigo) {
     dados_composicoes[codigo] = { ...dados_composicoes[codigo], ...dadosAtualizados };
 
     await inserirDados(dados_composicoes, 'dados_composicoes');
-    await enviar(`dados_composicoes/${codigo}`, dadosAtualizados);
+    await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
 
     remover_popup();
     carregar_tabela_v2();
