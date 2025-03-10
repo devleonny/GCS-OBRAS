@@ -1046,7 +1046,7 @@ async function total() {
                         desconto_geral.value = totais[tot].valor
                     }
 
-                    desconto_calculo = desconto_geral.value
+                    desconto_calculo = Number(desconto_geral.value)
 
                 }
             }

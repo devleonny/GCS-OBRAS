@@ -505,27 +505,26 @@ async function abrir_detalhes(id_pagamento) {
                     <label class="numero">${ordenar()}</label>
                     <label>Resumo de Custo</label>          
                 </div>
-                <div style="background-color: #222; border-radius: 5px; margin: 5px;">
-                    <table class="tabela">
-                        <thead>
-                            <th>Valor Orçado Válido</th>
-                            <th>A Pagar</th>
-                            <th>%</th>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td style="color: #222; white-space: nowrap;">
-                                <div id="container_resumo" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                    <label id="v_orcado">${dinheiro(v_orcado)}</label>
-                                    <img src="imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="editar_resumo('${pagamento.id_pagamento}')">
-                                </div>
-                                </td>
-                                <td style="color: #222; white-space: nowrap;" id="v_pago">${dinheiro(habilitar_painel_parceiro.valor)}</td>
-                                <td style="color: #222;" id="resultado">${resultado}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                <br>
+                <table class="tabela">
+                    <thead>
+                        <th>Valor Orçado Válido</th>
+                        <th>A Pagar</th>
+                        <th>%</th>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="color: #222; white-space: nowrap;">
+                            <div id="container_resumo" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                <label id="v_orcado">${dinheiro(v_orcado)}</label>
+                                <img src="imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="editar_resumo('${pagamento.id_pagamento}')">
+                            </div>
+                            </td>
+                            <td style="color: #222; white-space: nowrap;" id="v_pago">${dinheiro(habilitar_painel_parceiro.valor)}</td>
+                            <td style="color: #222;" id="resultado">${resultado}</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
         `
@@ -1524,8 +1523,8 @@ function incluir_campos_adicionais() {
         
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
             <label id="recebedor_numero" class="numero">${ordenar()}</label>
-            <div style="background-color: #222; border-radius: 5px; margin: 5px;">
-                <table style="font-size: 1vw; padding: 5px;">
+            <div style="background-color: #d2d2d2;">
+                <table style="font-size: 1vw;">
                     <thead>
                         <th>Valor Orçado Válido</th>
                         <th>A Pagar</th>
