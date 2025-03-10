@@ -762,7 +762,19 @@ function exibir_botao(elemento, chave) {
 
 }
 
-function incluir_linha() {
+async function incluir_linha() {
+    let estoque_nuvem = await receber('dados_estoque') || {};
+
+    let categoriasSet = new Set();
+    let marcasSet = new Set();
+
+    Object.values(estoque_nuvem).forEach(item => {
+        if (item.categoria) categoriasSet.add(item.categoria);
+        if (item.marca) marcasSet.add(item.marca);
+    });
+
+    let categoriasArray = Array.from(categoriasSet);
+    let marcasArray = Array.from(marcasSet);
 
     let acumulado = `
     <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
@@ -772,17 +784,19 @@ function incluir_linha() {
 
         <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
             <label>PartNumber</label>
-            <input>
+            <input value="CADASTRAR">
         </div>
 
-        <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
+        <div style="position: relative; display: flex; justify-content: center; flex-direction: column; align-items: start;">
             <label>Categoria</label>
-            <input>
+            <input id="categorias">
+            <div id="categorias-dropdown"></div> <!-- 🔥 Dropdown de categoria -->
         </div>
 
-        <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
+        <div style="position: relative; display: flex; justify-content: center; flex-direction: column; align-items: start;">
             <label>Marca</label>
-            <input>
+            <input id="marca">
+            <div id="marca-dropdown"></div> <!-- 🔥 Dropdown de marca -->
         </div>
 
         <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
@@ -793,9 +807,96 @@ function incluir_linha() {
         <button onclick="salvar_item(this)">Salvar</button>
 
     </div>
-    `
-    openPopup_v2(acumulado)
+    `;
 
+    openPopup_v2(acumulado);
+
+    // 🔥 Ativa os auto-completes após abrir o popup
+    setupAutoComplete("categorias", "categorias-dropdown", categoriasArray);
+    setupAutoComplete("marca", "marca-dropdown", marcasArray);
+}
+
+/**
+ * Configura o auto-complete no campo de categorias.
+ */
+function setupAutoComplete(inputId, dropdownId, dataArray) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+
+    // 🔥 Estilizando o dropdown corretamente
+    dropdown.style.position = "absolute";
+    dropdown.style.width = `${input.offsetWidth}px`; // 🔥 Ajusta a largura para bater com o input
+    dropdown.style.left = `${input.offsetLeft}px`; // 🔥 Alinha com o input
+    dropdown.style.top = `${input.offsetTop + input.offsetHeight}px`; // 🔥 Fica logo abaixo do input
+    dropdown.style.backgroundColor = "#fff";
+    dropdown.style.border = "1px solid #ccc";
+    dropdown.style.borderRadius = "5px"; // 🔥 Bordas arredondadas
+    dropdown.style.boxShadow = "0px 4px 8px rgba(0,0,0,0.2)"; // 🔥 Sombreamento leve
+    dropdown.style.maxHeight = "150px";
+    dropdown.style.overflowY = "auto";
+    dropdown.style.zIndex = "1000"; // 🔥 Mantém o dropdown acima de outros elementos
+    dropdown.style.display = "none"; // Começa escondido
+
+    // 🖱 Evento de entrada no input
+    input.addEventListener("input", () => {
+        const search = input.value.trim().toLowerCase();
+        dropdown.innerHTML = ""; // Limpa opções anteriores
+
+        if (!search) {
+            dropdown.style.display = "none"; // Esconde se vazio
+            return;
+        }
+
+        // Filtra opções que começam com a entrada do usuário
+        const filtered = dataArray.filter(item => item.toLowerCase().includes(search));
+
+        if (filtered.length === 0) {
+            dropdown.style.display = "none"; // Se não houver resultados, esconde
+            return;
+        }
+
+        filtered.forEach(item => {
+            const option = document.createElement("div");
+            option.textContent = item;
+            option.style.padding = "8px";
+            option.style.cursor = "pointer";
+            option.style.borderBottom = "1px solid #eee";
+            option.style.transition = "background 0.3s";
+            option.style.fontSize = "14px";
+
+            // 🔥 Efeito hover para melhorar a UX
+            option.addEventListener("mouseenter", () => {
+                option.style.backgroundColor = "#f5f5f5";
+            });
+
+            option.addEventListener("mouseleave", () => {
+                option.style.backgroundColor = "white";
+            });
+
+            option.addEventListener("click", () => {
+                input.value = item; // Define o valor selecionado
+                dropdown.style.display = "none"; // Esconde o dropdown
+            });
+
+            dropdown.appendChild(option);
+        });
+
+        dropdown.style.display = "block"; // Mostra o dropdown
+    });
+
+    // 🔥 Reposiciona o dropdown caso a tela seja redimensionada
+    window.addEventListener("resize", () => {
+        dropdown.style.width = `${input.offsetWidth}px`;
+        dropdown.style.left = `${input.offsetLeft}px`;
+        dropdown.style.top = `${input.offsetTop + input.offsetHeight}px`;
+    });
+
+    // Oculta o dropdown quando clica fora
+    document.addEventListener("click", (e) => {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = "none";
+        }
+    });
 }
 
 async function salvar_item(button) {
