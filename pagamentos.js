@@ -242,7 +242,6 @@ async function consultar_pagamentos() {
 
 async function abrir_detalhes(id_pagamento) {
 
-    var overlay = document.getElementById('overlay')
     if (overlay) {
         overlay.style.display = 'block'
     }
