@@ -1327,6 +1327,7 @@ function alterar_input_tabela(codigo) {
 
 function item_existente(tipo, codigo, quantidade) {
 
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2'))
     let linhas = document.getElementById(`linhas_${tipo.toLocaleLowerCase()}`)
     let trs = linhas.querySelectorAll('tr')
     let incluir = true
@@ -1334,9 +1335,7 @@ function item_existente(tipo, codigo, quantidade) {
     trs.forEach(tr => {
 
         let tds = tr.querySelectorAll('td')
-        let acrescimo = 0
-
-        tds.length == 10 ? acrescimo = 1 : ''
+        let acrescimo = orcamento_v2.lpu_ativa !== 'LPU CARREFOUR' ? 0 : 1
 
         if (tds[0].textContent == codigo) {
 

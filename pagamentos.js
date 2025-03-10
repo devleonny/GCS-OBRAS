@@ -1,4 +1,3 @@
-let overlay = document.getElementById('overlay')
 let filtrosAtivosPagamentos = {}
 
 consultar_pagamentos()

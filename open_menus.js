@@ -274,7 +274,6 @@ function remover_popup() {
         }
     })
 
-    var overlay = document.getElementById('overlay')
     if (overlay && !manter_overlay) {
         overlay.style.display = 'none'
     }
