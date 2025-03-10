@@ -537,8 +537,8 @@ async function tabela_produtos_v2(tipo_tabela) {
             tsh += `
             <th style="background-color: white; border-radius: 0px;">
                 <div style="position: relative;">
-                    <img src="imagens/pesquisar2.png" style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
                     <input placeholder="${col}" style="margin-left: 25px; text-align: left;" oninput="pesquisar_v2(this, ${i})">
+                    <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
                 </div>
             </th>
             `

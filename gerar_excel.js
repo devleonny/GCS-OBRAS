@@ -25,23 +25,16 @@ async function ir_excel(orcam_) {
 
         let estado = `${orcamento.dados_orcam.estado}`
         let nome_arquivo = `${orcamento.dados_orcam.cliente_selecionado} ${orcamento.dados_orcam.contrato}`
-        let REF;
-
-        if (orcamento['lpu_ativa']) {
-            REF = String(orcamento['lpu_ativa']).split('LPU ')[1]
-        } else {
-            REF = 'CARREFOUR'
-        }
-
+        let carrefour = orcamento.lpu_ativa == 'LPU CARREFOUR' ? true : false
         var venda_headers;
         var servico_headers;
 
-        if (REF == 'CARREFOUR') {
+        if (carrefour) {
             venda_headers = [
-                ['Item', 'SAP ID', 'REF ID', "NCM", "Descrição", "Quantidade", "Valor Unit Liq", "Valor Total Liq", "%ICMS", "Valor UNIT", "Valor Total"]
+                ['Item', 'SAP ID', 'REF ID', "NCM", 'Descrição Real', "Descrição Carrefour", "Quantidade", "Valor Unit Liq", "Valor Total Liq", "%ICMS", "Valor UNIT", "Valor Total"]
             ];
             servico_headers = [
-                ['Item', 'SAP ID', 'REF ID', "NCM", "Descrição", "Quantidade", "Valor UNIT", "Valor Total"]
+                ['Item', 'SAP ID', 'REF ID', "NCM", 'Descrição Real', "Descrição", "Quantidade", "Valor UNIT", "Valor Total"]
             ];
         } else {
             venda_headers = [
@@ -55,18 +48,20 @@ async function ir_excel(orcam_) {
         var venda_data = [];
         var servico_data = [];
 
-        Object.keys(orcamento.dados_composicoes).forEach(it => {
+        for (it in orcamento.dados_composicoes) {
             var item = orcamento.dados_composicoes[it]
-            var unit_ = conversor(item.custo);
-            var total_ = conversor(item.total);
-            let valor_unit_liq = item.tipo == "VENDA" ? unit_ - (unit_ * (estado == 'BA' ? 0.205 : 0.12)) : unit_;
-            let valor_total_liq = item.tipo == "VENDA" ? total_ - (total_ * (estado == 'BA' ? 0.205 : 0.12)) : total_;
+            item.qtde = conversor(item.qtde)
+            var vl_unitario = conversor(item.custo)
+            var total_linha = vl_unitario * item.qtde
+            let valor_unit_liq = item.tipo == "VENDA" ? vl_unitario - (vl_unitario * (estado == 'BA' ? 0.205 : 0.12)) : vl_unitario;
+            let valor_total_liq = item.tipo == "VENDA" ? total_linha - (total_linha * (estado == 'BA' ? 0.205 : 0.12)) : total_linha;
             let porcent_icms = item.tipo == "VENDA" ? (estado == 'BA' ? '20,5%' : '12%') : '0%';
 
+            if (carrefour) {
 
-            if (REF == 'CARREFOUR') {
-
+                let descricao_real = ''
                 if (dados_composicoes[item.codigo] && dados_composicoes[item.codigo].substituto) {
+                    descricao_real = dados_composicoes[item.codigo].descricao
                     item.codigo = dados_composicoes[item.codigo].substituto
                 }
 
@@ -82,27 +77,29 @@ async function ir_excel(orcam_) {
                         sapId,
                         refId,
                         item.ncm,
+                        descricao_real,
                         item.descricao,
-                        Number(item.qtde).toFixed(2).replace('.', ','),
+                        item.qtde,
                         valor_unit_liq,
                         valor_total_liq,
                         porcent_icms,
-                        unit_,
-                        total_
+                        vl_unitario,
+                        total_linha
                     ]);
-                    total_venda += total_;
+                    total_venda += total_linha;
                 } else {
                     servico_data.push([
                         item.codigo,
                         sapId,
                         refId,
                         item.ncm,
+                        descricao_real,
                         item.descricao,
-                        Number(item.qtde).toFixed(2).replace('.', ','),
-                        unit_,
-                        total_
+                        item.qtde,
+                        vl_unitario,
+                        total_linha
                     ]);
-                    total_servico += total_;
+                    total_servico += total_linha;
                 }
 
             } else { // No caso de serem outras tabelas;
@@ -117,27 +114,27 @@ async function ir_excel(orcam_) {
                         item.codigo,
                         item.ncm,
                         item.descricao,
-                        Number(item.qtde).toFixed(2).replace('.', ','),
+                        item.qtde,
                         valor_unit_liq,
                         valor_total_liq,
                         porcent_icms,
-                        unit_,
-                        total_
+                        vl_unitario,
+                        total_linha
                     ]);
-                    total_venda += total_;
+                    total_venda += total_linha;
                 } else {
                     servico_data.push([
                         item.codigo,
                         item.ncm,
                         item.descricao,
-                        Number(item.qtde).toFixed(2).replace('.', ','),
-                        unit_,
-                        total_
+                        item.qtde,
+                        vl_unitario,
+                        total_linha
                     ]);
-                    total_servico += total_;
+                    total_servico += total_linha;
                 }
             }
-        });
+        }
 
         ws_orcamento.addRow(['', 'Orçamento: ' + nome_arquivo + ' - TOTAL: ' + orcamento['total_geral']]);
 
@@ -146,7 +143,7 @@ async function ir_excel(orcam_) {
             ws_orcamento.addRows(servico_headers);
             ws_orcamento.addRows(servico_data);
 
-            if (REF == 'CARREFOUR') {
+            if (carrefour) {
                 ws_orcamento.addRow(['', '', '', '', '', '', 'Total Serviço', total_servico]);
             } else {
                 ws_orcamento.addRow(['', '', '', '', 'Total Serviço', total_servico]);
@@ -186,7 +183,7 @@ async function ir_excel(orcam_) {
             ws_orcamento.addRows(venda_headers);
             ws_orcamento.addRows(venda_data);
 
-            if (REF == 'CARREFOUR') {
+            if (carrefour) {
                 ws_orcamento.addRow(['', '', '', '', '', '', '', '', '', 'Total Venda', total_venda]);
             } else {
                 ws_orcamento.addRow(['', '', '', '', '', '', '', 'Total Venda', total_venda]);
@@ -217,9 +214,7 @@ async function ir_excel(orcam_) {
             });
         }
 
-
-
-        if (REF == 'CARREFOUR') {
+        if (carrefour) {
             ['G', 'H', 'J', 'K'].forEach(col => {
                 ws_orcamento.getColumn(col).numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-';
             });
@@ -238,9 +233,9 @@ async function ir_excel(orcam_) {
         }
 
         ws_orcamento.columns.forEach(column => {
-            if (column._number == 5 && REF == 'CARREFOUR') {
+            if (column._number == 5 && carrefour) {
                 column.width = 50;
-            } else if (column._number == 3 && REF != 'CARREFOUR') {
+            } else if (column._number == 3 && !carrefour) {
                 column.width = 50;
             } else {
                 column.width = 14;
