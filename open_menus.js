@@ -239,7 +239,7 @@ function dicionario(item) {
 function mostrar_ocultar_alertas() {
     var alertas_div = document.getElementById('alertas_div')
     var icone_alerta = document.getElementById('icone_alerta')
-    var overlay = document.getElementById('overlay')
+
     if (alertas_div && icone_alerta) {
         alertas_div.classList.toggle('show');
 
