@@ -1,5 +1,4 @@
-var overlay = document.getElementById('overlay')
-var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+let overlay = document.getElementById('overlay')
 let filtrosAtivosPagamentos = {}
 
 consultar_pagamentos()
@@ -1092,8 +1091,6 @@ async function criar_pagamento_v2() {
             }
         ]
 
-        var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-
         let ultimo_pagamento = JSON.parse(localStorage.getItem('ultimo_pagamento')) || {}
         let id_orcamento = document.getElementById('id_orcamento')
 
@@ -1120,6 +1117,12 @@ async function criar_pagamento_v2() {
                 v_orcado: v_orcado.value,
             }
         }
+
+        if (Object.keys(dados_setores).length == 0) {
+            dados_setores = await receber('dados_setores')
+        }
+
+        let permissao = dados_setores[acesso.usuario].permissao
 
         if (conversor(total) < 500) {
             pagamento.status = 'Pagamento salvo localmente'
