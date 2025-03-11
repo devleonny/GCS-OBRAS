@@ -101,7 +101,7 @@ async function atualizar_lista_de_lpus() {
 
         var LPUS = [];
         var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-        var div_tabela_de_preco = document.getElementById('div_tabela_de_preco')
+        var lpu = document.getElementById('lpu')
 
         var LPUS = [
             ...new Set(
@@ -114,18 +114,12 @@ async function atualizar_lista_de_lpus() {
 
         var opcoes = ''
         LPUS.forEach(lpu => {
-            opcoes += `<option>${lpu}</option>`
+            if (lpu !== 'LPU EQUIPAMENTOS') { // Desativado provisoriamente;
+                opcoes += `<option>${lpu}</option>`
+            }
         })
 
-        var acumulado = `
-        <div style="color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 3px; padding: 5px;">
-            <label style="font-size: 1em;">Tabela de preço</label>
-            <select id="lpu" onchange="alterar_tabela_lpu(this)" style="background-color: white; border-radius: 3px; padding: 5px; color: #222;">
-                ${opcoes}
-            </select>
-        </div>
-        `
-        div_tabela_de_preco.innerHTML = acumulado
+        lpu.innerHTML = opcoes
 
         var select_lpu = document.getElementById('lpu')
 
@@ -136,20 +130,6 @@ async function atualizar_lista_de_lpus() {
         if (select_lpu.value !== '') {
             orcamento_v2.lpu_ativa = select_lpu.value
             localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
-        }
-
-        if (!orcamento_v2.dados_composicoes || Object.keys(orcamento_v2.dados_composicoes).length == 0) {
-            openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center; margin-bottom: 20px;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Escolha a tabela de Preços</label>
-            </div>
-            <div style="display: flex; gap: 10px; flex-direction: column; align-items: center; justify-content: center;">
-                <select id="lpu" onchange="alterar_tabela_lpu(this)" style="background-color: white; border-radius: 3px; padding: 5px; color: #222;">
-                    ${opcoes}
-                </select>
-            </div>
-        `)
         }
 
         resolve()
@@ -187,9 +167,11 @@ async function carregar_tabelas() {
         document.getElementById(`thead_${tabela}`).innerHTML = `
 
             <th>Código</th>${coluna_carrefour}
-            <th>Como aparecerá na ${orcamento_v2.lpu_ativa}</th><th>Medida</th>
+            <th>Como aparecerá na ${orcamento_v2.lpu_ativa}</th>
+            <th>Medida</th>
             <th>Quantidade</th>
             <th>Custo Unitário</th>
+            ${orcamento_v2.lpu_ativa !== 'LPU CARREFOUR' ? '<th>Desconto</th>' : ''}
             <th>Valor Total</th>
             <th>Tipo</th>
             <th>Imagem *Ilustrativa</th>
@@ -197,6 +179,15 @@ async function carregar_tabelas() {
 
         `
     })
+
+    let desconto_geral = document.getElementById('desconto_geral')
+    if (orcamento_v2.desconto_geral) {
+        desconto_geral.value = orcamento_v2.desconto_geral
+    }
+
+    if (orcamento_v2.tipo_de_desconto) {
+        desconto_geral.previousElementSibling.value = orcamento_v2.tipo_de_desconto
+    }
 
     if (orcamento_v2.dados_composicoes) {
 
@@ -291,6 +282,13 @@ async function enviar_dados() {
         `);
     }
 
+    let desconto_porcentagem = document.getElementById('desconto_porcentagem')
+    if (desconto_porcentagem && Number(desconto_porcentagem.value) > 0) {
+        if (!(orcamento_v2.aprovacao && orcamento_v2.aprovacao.status === 'aprovado')) {
+            return autorizar_desconto();
+        }
+    }
+
     if (orcamento_v2.dados_composicoes_orcamento || orcamento_v2.dados_composicoes_orcamento === null) {
         delete orcamento_v2.dados_composicoes_orcamento;
     }
@@ -360,6 +358,51 @@ async function enviar_dados() {
 
     localStorage.removeItem('orcamento_v2');
     location.href = 'orcamentos.html';
+
+}
+
+async function autorizar_desconto() {
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+
+    if (!orcamento_v2.aprovacao) {
+        orcamento_v2.aprovacao = {}
+    }
+
+    orcamento_v2.aprovacao.id = orcamento_v2.aprovacao.id || gerar_id_5_digitos();
+    let id = orcamento_v2.aprovacao.id;
+
+    let dados = {
+        desconto_porcentagem: document.getElementById('desconto_porcentagem').value,
+        total_sem_desconto: document.getElementById('total_sem_desconto').textContent,
+        desconto_dinheiro: document.getElementById('desconto_dinheiro').textContent,
+        total_geral: document.getElementById('total_geral').textContent
+    }
+
+    let mensagem = `
+        <img src="gifs/loading.gif" style="width: 5vw;">
+        <label>Algum Gerente deve autorizar este desconto... </label>
+    `
+    if (orcamento_v2.aprovacao.status && orcamento_v2.aprovacao.status == 'reprovado') {
+        mensagem = `
+        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <img src="imagens/cancel.png" style="width: 3vw;">
+            <div style="display: flex; align-items: center; justify-content: start; gap: 5px; flex-direction: column;">
+                <label>Solicitação reprovada</label>
+                <label>${orcamento_v2.aprovacao.justificativa}</label>
+            </div>
+        </div>
+        `
+    } else {
+
+        await enviar(`aprovacoes/${id}`, dados)
+        localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+    }
+
+    openPopup_v2(`
+            <div id="aguardando_aprovacao" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                ${mensagem}
+            </div>
+        `)
 
 }
 
@@ -471,7 +514,9 @@ async function tabela_produtos_v2(tipo_tabela) {
                             <td style="text-align: center;">${td_quantidade}</td>
                             <td>${produto.unidade}</td>
                             <td style="white-space: nowrap;">${dinheiro(preco)}</td>
-                            <td style="text-align: center;"><img src="${imagem}" style="width: 70px; cursor: pointer;" onclick="ampliar_especial(this, '${pod}')"></td>
+                            <td style="text-align: center;">
+                                <img src="${imagem}" style="width: 70px; cursor: pointer;" onclick="ampliar_especial(this, '${pod}')">
+                            </td>
                         </tr>
                     `
                 }
@@ -492,8 +537,8 @@ async function tabela_produtos_v2(tipo_tabela) {
             tsh += `
             <th style="background-color: white; border-radius: 0px;">
                 <div style="position: relative;">
-                    <img src="imagens/pesquisar2.png" style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
                     <input placeholder="${col}" style="margin-left: 25px; text-align: left;" oninput="pesquisar_v2(this, ${i})">
+                    <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
                 </div>
             </th>
             `
@@ -695,12 +740,13 @@ async function total() {
 
     let tabelas = ['serviço', 'venda']
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-
+    let desconto_acumulado = 0
     let totais = {
         serviço: { valor: 0, exibir: 'none' },
         venda: { valor: 0, exibir: 'none' },
-        geral: { valor: 0, exibir: 'none' }
+        geral: { valor: 0, exibir: 'none', bruto: 0 }
     }
 
     tabelas.forEach(tabela => {
@@ -721,12 +767,11 @@ async function total() {
                 codigo = codigo.replace('[AVULSO]', '').trim()
             }
 
-            let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
             let valor_unitario = 0
             let substituto = ''
             let acrescimo = 0
 
-            if (tds.length == 10) { // Quantidade correspondente a mais 1 coluna: CARREFOUR;
+            if (lpu == 'lpu carrefour') { // Quantidade correspondente a mais 1 coluna: CARREFOUR;
                 acrescimo = 1
             }
 
@@ -828,11 +873,53 @@ async function total() {
 
             valor_unitario += total // Somando ao total do agrupamento, caso exista;
             let quantidade = Number(tds[3 + acrescimo].querySelector('input').value)
-            let valor_total = valor_unitario * quantidade
+            let total_linha = valor_unitario * quantidade
             let label_icms_unitario = ''
             let label_icms_total = ''
-            let tipo = tds[6 + acrescimo].textContent
+            let cod = tds[0].textContent
+            let tipo = dados_composicoes[cod].tipo
             let estilo = 'input_valor'
+
+            // Desconto;
+            let desconto = 0
+            if (lpu !== 'lpu carrefour') {
+
+                var tipo_desconto = tds[5 + acrescimo].querySelector('select')
+                var valor_desconto = tds[5 + acrescimo].querySelector('input')
+
+                if (tipo_desconto.value == 'Porcentagem') {
+                    if (valor_desconto.value < 0) {
+                        valor_desconto.value = 0
+                    } else if (valor_desconto.value > 100) {
+                        valor_desconto.value = 100
+                    }
+
+                    desconto = valor_desconto.value / 100 * total_linha
+
+                } else {
+                    if (valor_desconto.value < 0) {
+                        valor_desconto.value = 0
+                    } else if (valor_desconto.value > total_linha) {
+                        valor_desconto.value = total_linha
+                    }
+
+                    desconto = Number(valor_desconto.value)
+
+                }
+
+                if (desconto == 0) {
+                    tipo_desconto.classList = 'desconto_off'
+                    valor_desconto.classList = 'desconto_off'
+                } else {
+                    tipo_desconto.classList = 'desconto_on'
+                    valor_desconto.classList = 'desconto_on'
+                }
+
+                totais.geral.bruto += total_linha // Valor bruto sem desconto;
+                total_linha = total_linha - desconto
+                desconto_acumulado += desconto
+            }
+            // Final da lógica do Desconto;
 
             if (lpu.includes('equipamentos') && precos.custo > 0) {
                 valor_unitario = calcular_equipamentos(precos, 20).calculo
@@ -841,10 +928,11 @@ async function total() {
             if (tipo == 'VENDA' && orcamento_v2.dados_orcam) {
 
                 let icms = orcamento_v2.dados_orcam.estado == 'BA' ? 0.205 : 0.12;
+
                 if (icms) {
 
                     let unit_sem_icms = valor_unitario - (valor_unitario * icms)
-                    let total_sem_icms = unit_sem_icms * conversor(quantidade);
+                    let total_sem_icms = (1 - icms) * total_linha
                     label_icms_unitario += `
                         <label class="label_imposto_porcentagem">SEM ICMS ${dinheiro(unit_sem_icms)}</label>
                     `
@@ -855,12 +943,11 @@ async function total() {
 
             }
 
-            totais[tipo.toLowerCase()].valor += valor_total
-            totais.geral.valor += valor_total
+            totais[String(tipo).toLowerCase()].valor += total_linha
+            totais.geral.valor += total_linha
             estilo = valor_unitario == 0 ? 'label_zerada' : estilo;
 
             let total_unitario = `
-
             <div>
                 <label class="${estilo}"> ${dinheiro(valor_unitario)}</label>
                 ${label_icms_unitario}
@@ -868,14 +955,19 @@ async function total() {
             `
             let total_geral = `
             <div>
-                <label class="${estilo}"> ${dinheiro(quantidade * valor_unitario)}</label>
+                <label class="${estilo}"> ${dinheiro(total_linha)}</label>
                 ${label_icms_total}
             </div>
-
             `
-            tds[4 + acrescimo].innerHTML = total_unitario
-            tds[5 + acrescimo].innerHTML = total_geral
 
+            tds[4 + acrescimo].innerHTML = total_unitario
+            if (lpu == 'lpu carrefour') {
+                acrescimo = 0
+            }
+            tds[6 + acrescimo].innerHTML = total_geral
+            tds[7 + acrescimo].innerHTML = `
+            <label style="margin: 3px;">${tipo}</label>
+            `
             //Equipamentos;
             equipamentos(tds[4 + acrescimo])
             if (lpu.includes('equipamentos') && valor_unitario !== 0) {
@@ -898,14 +990,32 @@ async function total() {
             item_salvo.codigo = codigo
             item_salvo.qtde = quantidade
             item_salvo.custo = valor_unitario
-            item_salvo.total = valor_total
             item_salvo.tipo = tipo
+
+            if (lpu !== 'lpu carrefour' && Number(valor_desconto.value) !== 0) {
+                item_salvo.tipo_desconto = tipo_desconto.value
+                item_salvo.desconto = Number(valor_desconto.value)
+            } else {
+                delete item_salvo.tipo_desconto
+                delete item_salvo.desconto
+            }
 
         })
 
     })
 
-    let esta_quieto = true
+    let esta_quieto = true;
+    let desconto_calculo = 0;
+    let desconto_geral = document.getElementById('desconto_geral')
+    let tipo_de_desconto = desconto_geral.previousElementSibling
+
+    if (desconto_geral !== '') {
+        orcamento_v2.desconto_geral = desconto_geral.value
+        orcamento_v2.tipo_de_desconto = tipo_de_desconto.value
+    } else {
+        delete orcamento_v2.desconto_geral
+        delete orcamento_v2.tipo_de_desconto
+    }
 
     for (tot in totais) {
 
@@ -913,11 +1023,67 @@ async function total() {
 
             document.getElementById(tot).style.display = totais[tot].exibir
             totais[tot].exibir == 'block' ? esta_quieto = false : ''
+            document.getElementById(`total_${tot}`).textContent = dinheiro(totais[tot].valor)
 
+        } else if (lpu !== 'lpu carrefour') {
+
+            if (desconto_geral.value !== '') {
+                if (tipo_de_desconto.value == 'Porcentagem') {
+
+                    if (desconto_geral.value < 0) {
+                        desconto_geral.value = 0
+                    } else if (desconto_geral.value > 100) {
+                        desconto_geral.value = 100
+                    }
+
+                    desconto_calculo = (desconto_geral.value / 100) * totais[tot].valor
+
+                } else {
+
+                    if (desconto_geral.value < 0) {
+                        desconto_geral.value = 0
+                    } else if (desconto_geral.value > totais[tot].valor) {
+                        desconto_geral.value = totais[tot].valor
+                    }
+
+                    desconto_calculo = Number(desconto_geral.value)
+
+                }
+            }
+        }
+    }
+
+    desconto_geral_linhas = desconto_acumulado + desconto_calculo
+    document.getElementById(`total_geral`).textContent = dinheiro(totais.geral.valor - desconto_calculo)
+
+    let painel_desconto = document.getElementById('desconto_total')
+    if (lpu !== 'lpu carrefour') {
+        desconto_geral.parentElement.parentElement.style.display = 'flex'
+
+        if (desconto_geral_linhas > totais.geral.valor) {
+            desconto_geral_linhas = totais.geral.valor
         }
 
-        document.getElementById(`total_${tot}`).textContent = dinheiro(totais[tot].valor)
+        let desc_porc = desconto_geral_linhas == 0 ? 0 : (desconto_geral_linhas / totais.geral.bruto * 100).toFixed(2)
 
+        painel_desconto.innerHTML = `
+            <div class="resumo">
+                <label>RESUMO</label>
+                <hr style="width: 100%;">
+                <label>Total sem Desconto</label>
+                <label style="font-size: 1.5vw;" id="total_sem_desconto">${dinheiro(totais.geral.bruto)}</label>
+                <br>
+                <label>Desconto R$</label>
+                <label style="font-size: 1.5vw;" id="desconto_dinheiro">${dinheiro(desconto_geral_linhas)}</label>
+                <br>
+                <label>Desconto %</label>
+                <label style="font-size: 1.5vw;">${desc_porc}%</label>
+                <input style="display: none" id="desconto_porcentagem" value="${desc_porc}">
+            </div>
+        `
+    } else {
+        desconto_geral.parentElement.parentElement.style.display = 'none'
+        painel_desconto.innerHTML = ''
     }
 
     orcamento_v2.total_geral = dinheiro(totais.geral.valor)
@@ -930,12 +1096,10 @@ async function total() {
     let aleatorio = Math.floor(Math.random() * metaforas.length)
 
     if (esta_quieto) {
-
         quieto.innerHTML = `
         <label class="novo_titulo">${metaforas[aleatorio]}</label>
         `
     }
-
 }
 
 function exibir_descricao(elemento) {
@@ -990,10 +1154,13 @@ async function incluir_item(codigo, nova_quantidade, especial) {
     }
 
     var item = dados_composicoes[codigo]
-
     var colunas_carrefour = '';
     var imagem = dados_composicoes[codigo]?.imagem || 'https://i.imgur.com/Nb8sPs0.png';
     var lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
+    if (!orcamento_v2.dados_composicoes) {
+        orcamento_v2.dados_composicoes = {}
+    }
+    let produto = orcamento_v2?.dados_composicoes[codigo] || {}
 
     if (lpu == 'lpu carrefour') {
 
@@ -1008,14 +1175,12 @@ async function incluir_item(codigo, nova_quantidade, especial) {
         }
 
         colunas_carrefour = `
-
         <td>
             <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
                 <img src="imagens/carrefour.png" style="width: 3vw;">
                 <label>${td_descricao}</label>
             </div>
         </td>
-
         `
     }
 
@@ -1032,10 +1197,23 @@ async function incluir_item(codigo, nova_quantidade, especial) {
                 <input oninput="total()" type="number" class="numero-bonito" value="${nova_quantidade}">
             </td>
             <td style="position: relative;"></td>
+
+            ${lpu !== 'lpu carrefour' ?
+            `<td>
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
+                        <select onchange="total()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
+                            <option ${produto?.tipo_desconto == 'Porcentagem' ? 'selected' : ''}>Porcentagem</option>
+                            <option ${produto?.tipo_desconto == 'Dinheiro' ? 'selected' : ''}>Dinheiro</option>
+                        </select>
+                        <input type="number" oninput="total()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;" value="${produto?.desconto || ''}">
+                    </div>
+                </td>
+                ` : ''}
+
             <td></td>
-            <td style="text-align: center;"><label>${item.tipo}</label></td>
+            <td></td>
             <td style="text-align: center;">
-                <img onclick="ampliar_especial(this, '${item.codigo}')" src="${imagem}" style="width: 50px; cursor: pointer;">
+                <img onclick="ampliar_especial(this, '${item.codigo}')" src="${imagem}" style="width: 3vw; cursor: pointer;">
             </td>
             <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo_original}')" style="cursor: pointer;"></td>
         </tr>
@@ -1149,6 +1327,7 @@ function alterar_input_tabela(codigo) {
 
 function item_existente(tipo, codigo, quantidade) {
 
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2'))
     let linhas = document.getElementById(`linhas_${tipo.toLocaleLowerCase()}`)
     let trs = linhas.querySelectorAll('tr')
     let incluir = true
@@ -1156,9 +1335,7 @@ function item_existente(tipo, codigo, quantidade) {
     trs.forEach(tr => {
 
         let tds = tr.querySelectorAll('td')
-        let acrescimo = 0
-
-        tds.length == 10 ? acrescimo = 1 : ''
+        let acrescimo = orcamento_v2.lpu_ativa !== 'LPU CARREFOUR' ? 0 : 1
 
         if (tds[0].textContent == codigo) {
 

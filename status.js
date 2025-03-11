@@ -1175,15 +1175,6 @@ async function exibir_todos_os_status(id) {
             <label style="cursor: pointer;">Baixar Orçamento em Excel</label>
         </div>
     `
-
-    if (orcamento.lpu_ativa == 'LPU CARREFOUR') {
-        acumulado_botoes += `
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="rir('${id}')">
-            <img src="imagens/carrefour.png" style="width: 48px; height: 48px; margin: 3px;">
-            <label style="cursor: pointer;">Itens Reais em Excel</label>
-        </div> 
-    `}
-
     acumulado_botoes += `
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_duplicar('${id}')">
             <img src="imagens/duplicar.png">
@@ -1313,8 +1304,6 @@ async function abrir_esquema(id) {
     var categorias = Object.fromEntries(
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
     )
-
-    console.log(orcamento)
 
     if (orcamento && orcamento.status) {
         var levantamentos = ''
@@ -1780,12 +1769,14 @@ async function abrir_esquema(id) {
     // É só esperar a página incluir os elementos acima, simples... não precisa de timeInterval...
     let totalValoresPedidos = somarValoresPedidos();
     let totalValoresManuais = somarValoresManuais(dados_orcamentos[id]);
-    let totalFinal = totalValoresPedidos - totalValoresManuais;
+    let totalFinal = conversor(orcamento.total_geral) - totalValoresManuais;
     let valorPedidoSpan = document.getElementById('valor_pedido');
     let valorTotalSpan = document.getElementById('valor_total_pedido');
 
+    console.log(conversor(orcamento.total_geral));
+
     if (valorPedidoSpan) {
-        valorPedidoSpan.textContent = dinheiro(totalValoresPedidos);
+        valorPedidoSpan.textContent = orcamento.total_geral;
     }
 
     if (valorTotalSpan) {

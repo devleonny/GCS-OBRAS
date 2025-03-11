@@ -65,6 +65,21 @@ function filtrar_manutencoes(ultimo_status, col, texto) {
     toolbar.innerHTML = ''
     contadores.listas = [...new Set(contadores.listas)]
 
+    // Acesse o array dentro do objeto `contadores`
+    const listaOriginal = contadores.listas;
+
+    // Nova ordem desejada
+    const ordemDesejada = [
+        "TODOS",
+        "MANUTENÇÃO",
+        "REQUISIÇÃO AVULSA",
+        "MATERIAL SEPARADO",
+        "MATERIAL ENVIADO"
+    ];
+
+    // Remove "MATERIAL RECEBIDO" e reordena
+    contadores.listas = ordemDesejada.filter(item => listaOriginal.includes(item));
+
     contadores.listas.forEach(st => {
 
         let bg = '#797979'

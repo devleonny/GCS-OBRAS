@@ -201,7 +201,7 @@ function fecharPopUps(id) {
 }
 
 // Chamada da função para exibir o pop-up secundário
-aparecerPopupResumoOrcamentos();
+//aparecerPopupResumoOrcamentos();
 
 // aparecerPopupAprovadosGerencia()
 
