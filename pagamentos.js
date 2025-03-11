@@ -600,7 +600,7 @@ async function abrir_detalhes(id_pagamento) {
     `
     var elementus = `
     <div id="detalhes" class="status" style="display: flex; width: 50vw; overflow: hidden; padding: 0px;">
-        <div style="background-color: #d2d2d2; width: 100%; height: 6vh; display: flex; justify-content: space-between; align-items: center;">
+        <div style="background-color: #d2d2d2; width: 100%; display: flex; justify-content: space-between; align-items: center;">
             <label style="margin-left: 1vw;">Detalhes do Pagamento</label>
             <label style="font-size: 1.5vw; text-align: center; color: white; background-color: #B12425; cursor: pointer; width: 3vw; height: 100%;" onclick="fechar_detalhes()">&times;</label>
         </div>
