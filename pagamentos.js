@@ -559,8 +559,7 @@ async function abrir_detalhes(id_pagamento) {
     }
 
     acumulado += `
-    <div style="display: flex; gap: 10px; flex-direction: column; align-items: baseline; text-align: left;">
-        <span class="close" onclick="fechar_detalhes()">&times;</span>
+    <div style="display: flex; gap: 10px; flex-direction: column; align-items: baseline; text-align: left; overflow: auto; padding: 2vw;">
         ${acoes_orcamento}
         ${excluir_pagamento}
         <label><strong>Status atual • </strong> ${status_atual}</label>
@@ -576,7 +575,7 @@ async function abrir_detalhes(id_pagamento) {
 
         ${info_adicional_parceiro}
 
-        <div id="comentario" class="contorno">
+        <div id="comentario" class="contorno" style="width: 90%;">
             <div class="contorno_interno">
                 <label><strong>Observações </strong> •  ${ultima_alteracao} <br> ${pagamento.param[0].observacao.replace(/\||\n/g, "<br>")}</label>
                 ${botao_editar}
@@ -599,12 +598,14 @@ async function abrir_detalhes(id_pagamento) {
         <label><strong>Histórico </strong> • ${historico}</label>
     </div>
     `
-
     var elementus = `
-    <div id="detalhes" class="status" style="display: flex; width: 50vw;">
+    <div id="detalhes" class="status" style="display: flex; width: 50vw; overflow: hidden; padding: 0px;">
+        <div style="background-color: #d2d2d2; width: 100%; height: 6vh; display: flex; justify-content: space-between; align-items: center;">
+            <label style="margin-left: 1vw;">Detalhes do Pagamento</label>
+            <label style="font-size: 1.5vw; text-align: center; color: white; background-color: #B12425; cursor: pointer; width: 3vw; height: 100%;" onclick="fechar_detalhes()">&times;</label>
+        </div>
         ${acumulado}
     </div>
-    
     `
     var detalhes = document.getElementById('detalhes')
     if (detalhes) {
