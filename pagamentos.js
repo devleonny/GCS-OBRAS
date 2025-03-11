@@ -417,7 +417,7 @@ async function abrir_detalhes(id_pagamento) {
     var botao_editar = ''
     if (acesso.usuario == pagamento.criado || (permissao == 'adm' || permissao == 'fin' || permissao == 'gerente')) {
         botao_editar = `
-            <button style="position: absolute; top: 0; right: 0;" onclick="editar_comentario('${id_pagamento}')">Editar</button>
+            <label style="position: absolute; top: 1vw; right: 1vw; text-decoration: underline; font-size: 0.9vw;" onclick="editar_comentario('${id_pagamento}')">Editar</label>
         `
     }
 
