@@ -1,0 +1,47 @@
+body {
+    font-size: 0.9em;
+    background: linear-gradient(45deg, #151749, #B12425);
+    font-family: 'Poppins', sans-serif;
+}
+
+#content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.top {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #222222bf;
+    padding: 10px;
+    border-radius: 5px;
+    color: white;
+}
+
+.title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.menu {
+    display: flex;
+    gap: 10px;
+    flex-direction: column;
+}
+
+.menu div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.menu .icon {
+    width: 25px;
+    cursor: pointer;
+}

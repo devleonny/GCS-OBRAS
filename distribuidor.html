@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distribuidor</title>
+    <link rel="stylesheet" type="text/css" href="distribuidor.css">
+    <link rel="stylesheet" href="gcsobras.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <div id="content">
+
+        <div class="top">
+            <img src="imagens/BG.png" style="width: 150px;">
+            <div class="title">
+                <label class="novo_titulo">Distribuidor</label>
+            </div>
+
+            <div class="menu">
+                <div onclick="window.location.href='inicial.html'">
+                    <label>Menu Inicial</label>
+                    <img src="imagens/voltar.png" class="icon">
+                </div>
+                <div onclick="carregar_dados()">
+                    <label>Atualizar</label>
+                    <img src="imagens/atualizar_2.png" class="icon">
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+
+            <div id="tabelas"
+                style="display: flex; flex-direction: column; align-items: center; justify-content: start;">
+                <div id="toolbar"></div>
+                <div id="distribuidores"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="distribuidor.js"></script>
+    <script src="open_menus.js"></script>
+
+</body>
+</html>
