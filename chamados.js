@@ -283,12 +283,13 @@ async function abrir_manutencao(id) {
 
         })
 
-        celulas[0].value = peca.descricao
-        celulas[1].value = peca.codigo
-        celulas[2].value = peca.quantidade
-        celulas[3].value = peca.comentario
-        celulas[4].value = dic_quantidades.estoque
-        celulas[5].value = dic_quantidades.estoque_usado
+        celulas[0].value = peca.partnumber || dados_estoque[peca.codigo].partnumber
+        celulas[1].value = peca.descricao
+        celulas[2].value = peca.codigo
+        celulas[3].value = peca.quantidade
+        celulas[4].value = peca.comentario
+        celulas[5].value = dic_quantidades.estoque
+        celulas[6].value = dic_quantidades.estoque_usado
 
         i++
     }
@@ -381,6 +382,7 @@ async function capturar_html_pdf(id) {
 
     let dados_manutencao = await recuperarDados('dados_manutencao') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
     let dados_clientes_omie = {}
     for (cnpj in dados_clientes) {
         dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
@@ -417,11 +419,15 @@ async function capturar_html_pdf(id) {
     `
 
     let pecas = manutencao.pecas
+
+
+
     let linhas = ''
     for (pc in pecas) {
         let peca = pecas[pc]
         linhas += `
         <tr>
+            <td>${peca.partnumber || dados_estoque[peca.codigo].partnumber}</td>
             <td style="text-align: center;">${peca.quantidade}</td>
             <td>${peca.comentario}</td>
             <td>${peca.descricao}</td>
@@ -433,6 +439,7 @@ async function capturar_html_pdf(id) {
         <label style="font-size: 1.5em;">REQUISIÇÃO ${manutencao.chamado}</label>
         <table>
             <thead>
+                <th>Part Number</th>
                 <th>Quantidade</th>
                 <th>Comentário</th>
                 <th>Descrição</th>
@@ -523,10 +530,18 @@ function criar_manutencao(id) {
             <img src="imagens/pdf.png" style="cursor: pointer; width: 2vw;">
             <label>PDF</label>
         </div>`
+    let excluir = `
+        <div onclick="confirmar_exclusao('${id}')" class="bex">
+            <img src="imagens/cancel.png" style="cursor: pointer; width: 2vw;">
+            <label">Excluir Manutenção</label>
+        </div>
+    `
+
     if (id == undefined) {
         termo = 'Criar'
         botao = 'Enviar para Logística'
         pdf = ''
+        excluir = ''
         id = gerar_id_5_digitos()
     }
 
@@ -612,6 +627,9 @@ function criar_manutencao(id) {
                 <div class="tabela_manutencao">
                     <div class="linha"
                         style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
+                        <div style="width: 8vw;">
+                            <label>Part Number</label>
+                        </div>
                         <div style="width: 25vw;">
                             <label>Descrição</label>
                         </div>
@@ -654,11 +672,7 @@ function criar_manutencao(id) {
                         <label>${botao}</label>
                     </div>
                     ${pdf}
-
-                    <div onclick="confirmar_exclusao('${id}')" class="bex">
-                        <img src="imagens/cancel.png" style="cursor: pointer; width: 2vw;">
-                        <label">Excluir Manutenção</label>
-                    </div>
+                    ${excluir}
                     <div onclick="atualizar_base_clientes()" class="bex" style="background-color: brown; color: white;">
                         <img src="imagens/atualizar.png" style="cursor: pointer; width: 2vw;">
                         <label">Sincronizar Clientes/Técnicos</label>
@@ -769,10 +783,11 @@ async function enviar_manutencao(id) {
         let celulas = linha.querySelectorAll('input, textarea')
         if (celulas.length > 0) {
             pecas[gerar_id_5_digitos()] = {
-                descricao: celulas[0].value,
-                codigo: celulas[1].value,
-                quantidade: celulas[2].value,
-                comentario: celulas[3].value
+                partnumber: celulas[0].value,
+                descricao: celulas[1].value,
+                codigo: celulas[2].value,
+                quantidade: celulas[3].value,
+                comentario: celulas[4].value
             }
         }
     })
@@ -815,6 +830,9 @@ function adicionar_linha_manut() {
         let linha = `
         <div class="linha_completa">
             <div class="linha">
+                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
+                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="text">
+                </div>
                 <div style="position: relative; width: 25vw; height: 30px; background-color: #b5b5b5;">
                     <textarea style="background-color: transparent;" type="text" id="${aleatorio}" oninput="sugestoes(this, 'sug_${aleatorio}', 'estoque')"></textarea>
                     <div class="autocomplete-list" id="sug_${aleatorio}"></div>
@@ -936,6 +954,7 @@ async function definir_campo(elemento, div, string_html, omie, id) {
             let historicos = estoque_do_objeto.historico
             dic_quantidades[estoque] = estoque_do_objeto.quantidade
 
+
             for (his in historicos) {
                 let historico = historicos[his]
 
@@ -950,8 +969,9 @@ async function definir_campo(elemento, div, string_html, omie, id) {
 
             let inputs = div_linha.querySelectorAll('input, textarea')
 
-            inputs[4].value = dic_quantidades.estoque
-            inputs[5].value = dic_quantidades.estoque_usado
+            inputs[0].value = dados_estoque[id].partnumber
+            inputs[5].value = dic_quantidades.estoque
+            inputs[6].value = dic_quantidades.estoque_usado
 
         })
 
