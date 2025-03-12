@@ -381,34 +381,33 @@ async function abrir_detalhes(id_pagamento) {
         `
     let permissao = dados_setores[acesso.usuario].permissao
 
-    let status_atual = ultimo_status(pagamento.historico)
-
     var acumulado = ''
     if (
         pagamento.param[0].valor_documento > 500 &&
-        (status_atual.includes('Aguardando') || status_atual.includes('Reprovado')) &&
-        (permissao == 'gerente' || 
-            permissao == 'adm' || 
-            permissao == 'diretoria' || 
-            permissao == 'fin' || 
-            pagamento.criado == acesso.usuario || 
+        (pagamento.status.includes('Aguardando') || pagamento.status.includes('Reprovado')) &&
+        (permissao == 'gerente' ||
+            permissao == 'adm' ||
+            permissao == 'diretoria' ||
+            permissao == 'fin' ||
+            pagamento.criado == acesso.usuario ||
             (permissao == "qualidade" && categoria_atual.includes("Parceiros")))
     ) {
         acumulado += `
         <div class="balao">
 
-            <div style="display: flex; align-items: center; justify-content: center;">
+            <div style="display: flex; align-items: center; justify-content: center; width: 100%;">
 
-                <img src="gifs/alerta.gif">
+                <img src="gifs/alerta.gif" style="width: 3vw;">
 
-                <label style="margin: 10px;">Responda a solicitação aqui</label>
+                <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; width: 100%; gap: 3px;">
+                    <label style="font-size: 1.3vw;">Responda a solicitação aqui</label>
 
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px;">
-                    <textarea id="justificativa" placeholder="Descreva o motivo da aprovação/reprovação" oninput="auxiliar(this)"></textarea>
-                    <button id="aprovar" style="display: none; background-color: green; padding: 5px;" onclick="atualizar_feedback('Aprovar', '${id_pagamento}')">Aprovar</button>
-                    <button id="reprovar" onclick="atualizar_feedback('Reprovar', '${id_pagamento}')" style="display: none; padding: 5px;">Reprovar</button>
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px; width: 70%;">
+                        <textarea id="justificativa" style="width: 100%;" placeholder="Descreva o motivo da aprovação/reprovação" oninput="auxiliar(this)"></textarea>
+                        <button id="aprovar" style="display: none; background-color: green; padding: 5px;" onclick="atualizar_feedback('Aprovar', '${id_pagamento}')">Aprovar</button>
+                        <button id="reprovar" onclick="atualizar_feedback('Reprovar', '${id_pagamento}')" style="display: none; padding: 5px;">Reprovar</button>
+                    </div>
                 </div>
-
             </div>
         </div>
         `
@@ -562,7 +561,7 @@ async function abrir_detalhes(id_pagamento) {
     <div style="display: flex; gap: 10px; flex-direction: column; align-items: baseline; text-align: left; overflow: auto; padding: 2vw;">
         ${acoes_orcamento}
         ${excluir_pagamento}
-        <label><strong>Status atual • </strong> ${status_atual}</label>
+        <label><strong>Status atual • </strong> ${pagamento.status}</label>
         <label><strong>Quem recebe? • </strong> ${cliente}</label>
         <div id="centro_de_custo_div" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
             <label><strong>Centro de Custo</strong> • ${cc}</label>
@@ -882,18 +881,21 @@ async function atualizar_feedback(resposta, id_pagamento) {
 
     if (resposta == 'Aprovar' && (permissao == 'gerente' || permissao == 'adm') && categoria_atual == "2.01.99" && setor == "INFRA") {
         status = 'Aguardando aprovação da Qualidade';
-    } else if (resposta == 'Aprovar' && (permissao == 'gerente' || permissao == 'adm')) {
+
+    } else if (resposta == 'Aprovar' && (permissao == 'gerente' || permissao == 'adm' || permissao == 'qualidade')) {
         status = 'Aguardando aprovação da Diretoria';
-    } else if (resposta == 'Aprovar' && permissao == 'qualidade') {
-        status = 'Aguardando aprovação da Diretoria';
+
     } else if (resposta == 'Aprovar' && permissao == 'diretoria') {
         status = 'Aprovado pela Diretoria';
         lancar_pagamento(pagamento)
+
     } else if (resposta == 'Aprovar' && permissao == 'fin') {
         status = 'Aprovado pelo Financeiro';
         lancar_pagamento(pagamento)
+
     } else if (resposta == 'Reprovar') {
         status = `Reprovado por ${permissao}`;
+
     } else {
         status = 'Aguardando aprovação da Gerência';
     }
@@ -905,19 +907,18 @@ async function atualizar_feedback(resposta, id_pagamento) {
         data: dataFormatada
     };
 
+    let id_justificativa = gerar_id_5_digitos()
+    pagamento.status = status
     if (!pagamento.historico) {
         pagamento.historico = {};
     }
-
-    let id_justificativa = gerar_id_5_digitos()
-    pagamento.status = status
     pagamento.historico[id_justificativa] = historico
 
-    enviar(`lista_pagamentos/${id_pagamento}/status`, status)
-    enviar(`lista_pagamentos/${id_pagamento}/historico/${id_justificativa}`, historico)
-
     await inserirDados(lista_pagamentos, 'lista_pagamentos');
-    fechar_e_abrir(id_pagamento)
+    await fechar_e_abrir(id_pagamento, true)//29
+
+    await enviar(`lista_pagamentos/${id_pagamento}/historico/${id_justificativa}`, historico)
+    await enviar(`lista_pagamentos/${id_pagamento}/status`, status)
 }
 
 
@@ -942,10 +943,20 @@ async function editar_comentario(id) {
 
 }
 
-function fechar_e_abrir(id) {
+async function fechar_e_abrir(id, fechar) {
+
     fechar_detalhes()
-    consultar_pagamentos()
-    abrir_detalhes(id)
+
+    await consultar_pagamentos()
+
+    for (coluna in filtrosAtivosPagamentos) {
+        pesquisar_em_pagamentos(coluna, filtrosAtivosPagamentos[coluna])
+    }
+
+    if (!fechar) {
+        abrir_detalhes(id)
+    }
+
 }
 
 function alterar_centro_de_custo(id) {
@@ -977,7 +988,7 @@ async function salvar_centro_de_custo(id) {
     enviar(`lista_pagamentos/${id}/id_orcamento`, id_orcamento)
 
     await inserirDados(lista_pagamentos, 'lista_pagamentos');
-    fechar_e_abrir(id)
+    await fechar_e_abrir(id)
 
 }
 
@@ -1005,7 +1016,7 @@ async function salvar_comentario_pagamento(id) {
 
     await inserirDados(lista_pagamentos, 'lista_pagamentos')
 
-    fechar_e_abrir(id)
+    await fechar_e_abrir(id)
 
 }
 
@@ -1176,23 +1187,6 @@ async function criar_pagamento_v2() {
 
 }
 
-function ultimo_status(obj) {
-    let lastEntry = null;
-
-    for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-            const entry = obj[key];
-            const entryDate = new Date(entry.data.split(", ").reverse().join(" "));
-
-            if (!lastEntry || entryDate > lastEntry.date) {
-                lastEntry = { status: entry.status, date: entryDate };
-            }
-        }
-    }
-
-    return lastEntry ? lastEntry.status : 'Aguardando aprovação da Gerência';
-}
-
 function encerrarIntervalos() {
     clearInterval(intervaloCompleto);
     clearInterval(intervaloCurto);
@@ -1309,7 +1303,7 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
 
             </div>
 
-            <div id="container_cnpj_cpf" style="display: none; align-items: center; gap: 10px;">
+            <div id="container_cnpj_cpf" style="display: none; align-items: center; gap: 10px; width: 100%;">
 
                 <div class="numero" style="background-color: transparent;">
                     <img src="gifs/alerta.gif" style="width: 30px; height: 30px;">
@@ -1319,10 +1313,10 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
                     <div
                         style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
                         <div style="display: flex; align-items: center; justify-content: center; width: 100%;">
-                            <input style="width: 200px;" type="text" id="cnpj_cpf" oninput="calculadora_pagamento()"
+                            <input style="width: 80%;" type="text" id="cnpj_cpf" oninput="calculadora_pagamento()"
                                 placeholder="Digite o CNPJ ou CPF aqui...">
                             <img src="imagens/confirmar.png" onclick="botao_cadastrar_cliente()" id="botao_cadastrar_cliente"
-                                style="margin: 10px; cursor: pointer; width: 30px;">
+                                style="margin: 10px; cursor: pointer; width: 2vw;">
                         </div>
 
                         <label style="font-size: 0.7em;">Esse <strong>recebedor</strong> parece novo...
@@ -2284,8 +2278,8 @@ function pesquisar_em_pagamentos(coluna, texto) {
 
     filtrosAtivosPagamentos[coluna] = texto.toLowerCase();
 
-    var tabela_itens = document.getElementById('body');
-    var trs = tabela_itens.querySelectorAll('tr');
+    var tbody = document.getElementById('body');
+    var trs = tbody.querySelectorAll('tr');
 
     var thead_pesquisa = document.getElementById('thead_pesquisa');
     var inputs = thead_pesquisa.querySelectorAll('input');

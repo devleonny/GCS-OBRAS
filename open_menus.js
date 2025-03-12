@@ -1057,7 +1057,8 @@ function enviar(caminho, info) {
             })
             .then(text => text ? JSON.parse(text) : {})
             .then(data => resolve(data))
-            .catch(() => {
+            .catch((erro) => {
+                console.error("Erro ao enviar:", erro);
                 salvar_offline(objeto, 'enviar');
                 resolve();
             });

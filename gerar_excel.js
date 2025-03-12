@@ -44,23 +44,26 @@ async function ir_excel(orcam_) {
 
         var venda_data = [];
         var servico_data = [];
-        let linha = 3
         let tabelas = ['SERVIÇO', 'VENDA']
+        let linha = 3
 
         tabelas.forEach(tabela => {
 
             for (it in orcamento.dados_composicoes) {
 
-                var item = orcamento.dados_composicoes[it]
+                let item = orcamento.dados_composicoes[it]
+                item.tipo = item.tipo ? item.tipo : dados_composicoes[item.codigo].tipo
+
                 if (item.tipo !== tabela) {
                     continue
                 }
 
                 item.qtde = conversor(item.qtde)
                 var vl_unitario = conversor(item.custo)
-                let porcent_icms = item.tipo == "VENDA" ? (estado == 'BA' ? 0.205 : 0.12) : 0; // ICMS como número
+                let porcent_icms = 0
 
                 if (carrefour) {
+
                     let descricao_real = dados_composicoes[item.codigo].descricao // REAL
 
                     if (dados_composicoes[item.codigo] && dados_composicoes[item.codigo].substituto) {
@@ -74,6 +77,7 @@ async function ir_excel(orcam_) {
                     var refId = dados_composicoes[item.codigo].refid
 
                     if (item.tipo == 'VENDA') {
+                        porcent_icms = estado == 'BA' ? 0.205 : 0.12
                         venda_data.push([
                             item.codigo,
                             sapId,
@@ -110,6 +114,7 @@ async function ir_excel(orcam_) {
                     }
 
                     if (item.tipo == 'VENDA') {
+                        porcent_icms = estado == 'BA' ? 0.205 : 0.12
                         venda_data.push([
                             item.codigo,
                             item.ncm,
@@ -137,9 +142,6 @@ async function ir_excel(orcam_) {
 
             }
 
-            if (linha !== 3) {
-                linha += 3
-            }
         })
 
         let headerRow = ws_orcamento.addRow(['', 'Orçamento: ' + nome_arquivo + ' - TOTAL: ' + orcamento.total_geral]);
@@ -224,12 +226,12 @@ async function ir_excel(orcam_) {
             ['H', 'I', 'K', 'L'].forEach(col => {
                 ws_orcamento.getColumn(col).numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-';
             });
-            ws_orcamento.getColumn('J').numFmt = '0.00%'; // Formata %ICMS como porcentagem
+            ws_orcamento.getColumn('J').numFmt = '0.00%';
         } else {
             ['E', 'F', 'G', 'H', 'I'].forEach(col => {
                 ws_orcamento.getColumn(col).numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-';
             });
-            ws_orcamento.getColumn('G').numFmt = '0.00%'; // Formata %ICMS como porcentagem
+            ws_orcamento.getColumn('G').numFmt = '0.00%';
             ws_orcamento.getColumn(4).eachCell({ includeEmpty: true }, function (cell) {
                 cell.alignment = { horizontal: 'center' };
             });

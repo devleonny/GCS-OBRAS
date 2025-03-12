@@ -248,7 +248,7 @@ async function preencher_orcamentos_v2() {
             div_orcamentos.innerHTML = ''
             let tabela = `
                     <table id="orcamentos_" class="tabela" style="position: relative; font-size: 0.8vw; background-color: #d2d2d2;">
-                        <thead style="position: sticky; top: 0;">
+                        <thead>
                             <tr>${ths}</tr>
                             <tr id="tsh">${tsh}</tr>
                         </thead>

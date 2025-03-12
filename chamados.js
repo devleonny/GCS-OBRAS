@@ -543,6 +543,7 @@ function criar_manutencao(id) {
                             <select id="status_manutencao"
                                 style="padding: 5px; border-radius: 3px; cursor: pointer; width: 10vw; font-size: 0.8vw;">
                                 <option>MANUTENÇÃO</option>
+                                <option>EMITIR NOTA</option>
                                 <option>REQUISIÇÃO AVULSA</option>
                                 <option>MATERIAL SEPARADO</option>
                                 <option>MATERIAL ENVIADO</option>
