@@ -42,12 +42,12 @@ async function ir_excel(orcam_) {
             ];
         }
 
-        var venda_data = [];
-        var servico_data = [];
-        let tabelas = ['SERVIÇO', 'VENDA']
-        let linha = 3
+        let listagem = {
+            VENDA: [],
+            SERVIÇO: []
+        }
 
-        tabelas.forEach(tabela => {
+        for (tabela in listagem) {
 
             for (it in orcamento.dados_composicoes) {
 
@@ -70,7 +70,6 @@ async function ir_excel(orcam_) {
                         item.codigo = dados_composicoes[item.codigo].substituto
                     }
 
-                    item.tipo = dados_composicoes[item.codigo].tipo
                     item.descricao = dados_composicoes[item.codigo].descricaocarrefour
                     item.ncm = dados_composicoes[item.codigo].ncm
                     var sapId = dados_composicoes[item.codigo].sapid
@@ -78,7 +77,8 @@ async function ir_excel(orcam_) {
 
                     if (item.tipo == 'VENDA') {
                         porcent_icms = estado == 'BA' ? 0.205 : 0.12
-                        venda_data.push([
+
+                        listagem[tabela].push([
                             item.codigo,
                             sapId,
                             refId,
@@ -86,14 +86,14 @@ async function ir_excel(orcam_) {
                             descricao_real,
                             item.descricao,
                             item.qtde,
-                            { formula: `K${linha}*(1-J${linha})` },
-                            { formula: `G${linha}*H${linha}` },
+                            { formula: `K@*(1-J@)` },
+                            { formula: `G@*H@` },
                             porcent_icms,
                             vl_unitario,
-                            { formula: `G${linha}*K${linha}` }
+                            { formula: `G@*K@` }
                         ]);
-                    } else {
-                        servico_data.push([
+                    } else if (item.tipo == 'SERVIÇO') {
+                        listagem[tabela].push([
                             item.codigo,
                             sapId,
                             refId,
@@ -102,7 +102,7 @@ async function ir_excel(orcam_) {
                             item.descricao,
                             item.qtde,
                             vl_unitario,
-                            { formula: `G${linha}*H${linha}` }
+                            { formula: `G@*H@` }
                         ]);
                     }
 
@@ -115,46 +115,55 @@ async function ir_excel(orcam_) {
 
                     if (item.tipo == 'VENDA') {
                         porcent_icms = estado == 'BA' ? 0.205 : 0.12
-                        venda_data.push([
+                        listagem[tabela].push([
                             item.codigo,
                             item.ncm,
                             item.descricao,
                             item.qtde,
-                            { formula: `H${linha}*(1-G${linha})` },
-                            { formula: `D${linha}*E${linha}` },
+                            { formula: `H@*(1-G@)` },
+                            { formula: `D@*E@` },
                             porcent_icms,
                             vl_unitario,
-                            { formula: `D${linha}*H${linha}` }
+                            { formula: `D@*H@` }
                         ]);
-                    } else {
-                        servico_data.push([
+                    } else if (item.tipo == 'SERVIÇO') {
+                        listagem[tabela].push([
                             item.codigo,
                             item.ncm,
                             item.descricao,
                             item.qtde,
                             vl_unitario,
-                            { formula: `D${linha}*E${linha}` }
+                            { formula: `D@*E@` }
                         ]);
                     }
                 }
 
-                linha++
-
             }
 
-        })
+        }
 
         let headerRow = ws_orcamento.addRow(['', 'Orçamento: ' + nome_arquivo + ' - TOTAL: ' + orcamento.total_geral]);
         ws_orcamento.mergeCells(`B${headerRow.number}:O${headerRow.number}`);
 
-        if (servico_data.length !== 0) {
+        console.log(listagem)
+
+        if (listagem.SERVIÇO.length !== 0) {
+
             ws_orcamento.addRows(servico_headers);
-            ws_orcamento.addRows(servico_data);
+
+            listagem.SERVIÇO.forEach(linha => {
+                linha.forEach(celula => {
+                    if (dicionario(celula) && celula.formula) {
+                        celula.formula = celula.formula.replace(/@/g, 1 + ws_orcamento.lastRow.number);
+                    }
+                })
+                ws_orcamento.addRow(linha);
+            })
 
             if (carrefour) {
-                ws_orcamento.addRow(['', '', '', '', '', '', '', 'Total Serviço', { formula: `SUM(I${1 + ws_orcamento.lastRow.number - servico_data.length}:I${ws_orcamento.lastRow.number})` }]);
+                ws_orcamento.addRow(['', '', '', '', '', '', '', 'Total Serviço', { formula: `SUM(I${1 + ws_orcamento.lastRow.number - listagem.SERVIÇO.length}:I${ws_orcamento.lastRow.number})` }]);
             } else {
-                ws_orcamento.addRow(['', '', '', '', '', 'Total Serviço', { formula: `SUM(F${1 + ws_orcamento.lastRow.number - servico_data.length}:F${ws_orcamento.lastRow.number})` }]);
+                ws_orcamento.addRow(['', '', '', '', '', 'Total Serviço', { formula: `SUM(F${1 + ws_orcamento.lastRow.number - listagem.SERVIÇO.length}:F${ws_orcamento.lastRow.number})` }]);
             }
 
             ws_orcamento.getRow(ws_orcamento.lastRow.number).eachCell((cell) => {
@@ -169,7 +178,7 @@ async function ir_excel(orcam_) {
                 };
             });
 
-            ws_orcamento.getRow(ws_orcamento.lastRow.number - servico_data.length - 1).eachCell((cell) => {
+            ws_orcamento.getRow(ws_orcamento.lastRow.number - listagem.SERVIÇO.length - 1).eachCell((cell) => {
                 cell.fill = {
                     type: 'pattern',
                     pattern: 'solid',
@@ -182,18 +191,26 @@ async function ir_excel(orcam_) {
             });
         }
 
-        if (venda_data.length !== 0) {
-            if (servico_data.length !== 0) {
+        if (listagem.VENDA.length !== 0) {
+            if (listagem.SERVIÇO.length !== 0) {
                 ws_orcamento.addRow([]);
             }
 
             ws_orcamento.addRows(venda_headers);
-            ws_orcamento.addRows(venda_data);
+
+            listagem.VENDA.forEach(linha => {
+                linha.forEach(celula => {
+                    if (dicionario(celula) && celula.formula) {
+                        celula.formula = celula.formula.replace(/@/g, 1 + ws_orcamento.lastRow.number);
+                    }
+                })
+                ws_orcamento.addRow(linha);
+            })
 
             if (carrefour) {
-                ws_orcamento.addRow(['', '', '', '', '', '', '', '', '', '', 'Total Venda', { formula: `SUM(L${1 + ws_orcamento.lastRow.number - venda_data.length}:L${ws_orcamento.lastRow.number})` }]);
+                ws_orcamento.addRow(['', '', '', '', '', '', '', '', '', '', 'Total Venda', { formula: `SUM(L${1 + ws_orcamento.lastRow.number - listagem.VENDA.length}:L${ws_orcamento.lastRow.number})` }]);
             } else {
-                ws_orcamento.addRow(['', '', '', '', '', '', '', 'Total Venda', { formula: `SUM(I${1 + ws_orcamento.lastRow.number - venda_data.length}:I${ws_orcamento.lastRow.number})` }]);
+                ws_orcamento.addRow(['', '', '', '', '', '', '', 'Total Venda', { formula: `SUM(I${1 + ws_orcamento.lastRow.number - listagem.VENDA.length}:I${ws_orcamento.lastRow.number})` }]);
             }
 
             ws_orcamento.getRow(ws_orcamento.lastRow.number).eachCell((cell) => {
@@ -208,7 +225,7 @@ async function ir_excel(orcam_) {
                 };
             });
 
-            ws_orcamento.getRow(ws_orcamento.lastRow.number - venda_data.length - 1).eachCell((cell) => {
+            ws_orcamento.getRow(ws_orcamento.lastRow.number - listagem.VENDA.length - 1).eachCell((cell) => {
                 cell.fill = {
                     type: 'pattern',
                     pattern: 'solid',
@@ -274,8 +291,8 @@ async function ir_excel(orcam_) {
             ['', 'Grupo Costa Silva'],
             [],
             ['Orçamento: ' + nome_arquivo],
-            ["TOTAL DE VENDA", { formula: `SUM(Orçamento!L${ws_orcamento.lastRow.number - venda_data.length}:L${ws_orcamento.lastRow.number})` }],
-            ["TOTAL DE SERVIÇO", { formula: `SUM(Orçamento!I${ws_orcamento.lastRow.number - servico_data.length}:I${ws_orcamento.lastRow.number})` }],
+            ["TOTAL DE VENDA", { formula: `SUM(Orçamento!L${ws_orcamento.lastRow.number - listagem.VENDA.length}:L${ws_orcamento.lastRow.number})` }],
+            ["TOTAL DE SERVIÇO", { formula: `SUM(Orçamento!I${ws_orcamento.lastRow.number - listagem.SERVIÇO.length}:I${ws_orcamento.lastRow.number})` }],
             ["TOTAL GERAL", { formula: `SUM(B4:B5)` }],
             [],
             [escopo]
