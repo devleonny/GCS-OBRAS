@@ -70,7 +70,7 @@ async function carregar_distribuidores(sincronizar) {
     })
 
     let tabela = `
-        <table id="chamados" class="tabela" style="font-size: 0.8vw; width: 100%">
+        <table id="distribuidores" class="tabela" style="font-size: 0.8vw; width: 100%">
             <thead>
                 <tr>${ths}</tr>
                 <tr>${tsh}</tr>
@@ -106,7 +106,8 @@ function filtrar_distribuidor(ultimo_status, col, texto) {
         filtro_distribuidor[col] = String(texto).toLowerCase()
     }
 
-    let tbody = document.getElementById('distribuidores')
+    let tbody = document.getElementById('distribuidor-body')
+    console.log(tbody)
     let trs = tbody.querySelectorAll('tr')
     let contadores = {
         TODOS: 0,
