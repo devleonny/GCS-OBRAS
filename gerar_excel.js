@@ -14,8 +14,6 @@ async function ir_excel(orcam_) {
 
     reader.onloadend = () => {
         const base64data = reader.result.replace(/^data:image\/(png|jpg);base64,/, '');
-        console.log(base64data);
-
 
         const imageId = wb.addImage({
             base64: base64data,
@@ -163,7 +161,7 @@ async function ir_excel(orcam_) {
             if (carrefour) {
                 ws_orcamento.addRow(['', '', '', '', '', '', '', 'Total Serviço', { formula: `SUM(I${1 + ws_orcamento.lastRow.number - listagem.SERVIÇO.length}:I${ws_orcamento.lastRow.number})` }]);
             } else {
-                ws_orcamento.addRow(['', '', '', '', '', 'Total Serviço', { formula: `SUM(F${1 + ws_orcamento.lastRow.number - listagem.SERVIÇO.length}:F${ws_orcamento.lastRow.number})` }]);
+                ws_orcamento.addRow(['', '', '', '', 'Total Serviço', { formula: `SUM(F${1 + ws_orcamento.lastRow.number - listagem.SERVIÇO.length}:F${ws_orcamento.lastRow.number})` }]);
             }
 
             ws_orcamento.getRow(ws_orcamento.lastRow.number).eachCell((cell) => {
@@ -287,24 +285,37 @@ async function ir_excel(orcam_) {
 
         var escopo = orcamento.dados_orcam.consideracoes;
 
-        var ws_total_data = [
-            ['', 'Grupo Costa Silva'],
-            [],
-            ['Orçamento: ' + nome_arquivo],
-            ["TOTAL DE VENDA", { formula: `SUM(Orçamento!L${ws_orcamento.lastRow.number - listagem.VENDA.length}:L${ws_orcamento.lastRow.number - 1})` }],
-            ["TOTAL DE SERVIÇO", { formula: `SUM(Orçamento!I3:I${3 + listagem.SERVIÇO.length - 1})` }],
-            ["TOTAL GERAL", { formula: `SUM(B4:B5)` }],
-            [],
-            [escopo]
-        ];
+        let col_serviço = carrefour ? 'I' : 'F'
+        let col_venda = carrefour ? 'L' : 'I'
+
+        ws_total.addRows([['', 'Grupo Costa Silva']])
+
+        ws_total.addRows([[],
+        ['Orçamento: ' + nome_arquivo]])
+
+        let manter_total = 0
+        let fct = 4 // limite da até onde a célula receberá formatação (A4 a A6)
+
         if (listagem.SERVIÇO.length !== 0) {
-            ws_total_data.push(["TOTAL DE SERVIÇO", { formula: `SUM(Orçamento!I3:I${3 + listagem.SERVIÇO.length - 1})` }])
+            ws_total.addRows([["TOTAL DE SERVIÇO", { formula: `SUM(Orçamento!${col_serviço}3:${col_serviço + (3 + listagem.SERVIÇO.length - 1)})` }]])
+            manter_total++
         }
 
         if (listagem.VENDA.length !== 0) {
-            ["TOTAL DE VENDA", { formula: `SUM(Orçamento!L${ws_orcamento.lastRow.number - listagem.VENDA.length}:L${ws_orcamento.lastRow.number - 1})` }]
+            ws_total.addRows([["TOTAL DE VENDA", { formula: `SUM(Orçamento!${col_venda + (ws_orcamento.lastRow.number - listagem.VENDA.length)}:${col_venda + (ws_orcamento.lastRow.number - 1)})` }]])
+            manter_total++
         }
-        ws_total.addRows(ws_total_data);
+
+        if (manter_total == 2) {
+            ws_total.addRow(["TOTAL GERAL", { formula: `SUM(B4:B5)` }])
+            fct = 6
+        } else {
+            ws_total.addRows([[], []])
+        }
+
+        ws_total.addRows([
+            [],
+            [escopo]])
 
         const gcs_nome = ws_total.getCell('B1');
         gcs_nome.font = {
@@ -340,7 +351,7 @@ async function ir_excel(orcam_) {
 
         ws_total.getRow(1).height = 3 * 28.35;
 
-        for (let i = 4; i <= 6; i++) {
+        for (let i = 4; i <= fct; i++) {
             let cell = ws_total.getCell('A' + i);
             cell.fill = {
                 type: 'pattern',
