@@ -74,10 +74,10 @@ function filtrar_manutencoes(ultimo_status, col, texto) {
         "MANUTENÇÃO",
         "REQUISIÇÃO AVULSA",
         "MATERIAL SEPARADO",
-        "MATERIAL ENVIADO"
+        "MATERIAL ENVIADO",
+        "REPROVADO"
     ];
 
-    // Remove "MATERIAL RECEBIDO" e reordena
     contadores.listas = ordemDesejada.filter(item => listaOriginal.includes(item));
 
     contadores.listas.forEach(st => {
@@ -325,7 +325,7 @@ async function abrir_manutencao(id) {
             case 'MATERIAL ENVIADO':
                 imagem = 'logistica'
                 break
-            case 'MATERIAL RECEBIDO':
+            case 'MATERIAL ENTREGUE':
                 imagem = 'concluido'
                 break
             default:
@@ -597,7 +597,7 @@ function criar_manutencao(id) {
                                 <option>REQUISIÇÃO AVULSA</option>
                                 <option>MATERIAL SEPARADO</option>
                                 <option>MATERIAL ENVIADO</option>
-                                <option>MATERIAL RECEBIDO</option>
+                                <option>MATERIAL ENTREGUE</option>
                                 <option>REPROVADO</option>
                             </select>
                         </div>
