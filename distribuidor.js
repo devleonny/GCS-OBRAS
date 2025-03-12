@@ -31,16 +31,37 @@ async function carregar_distribuidores(sincronizar) {
 
         status_toolbar.push(distribuidor.status_distribuidor)
 
+        if(distribuidor.valor_pedido){
+            distribuidor.valor_pedido = dinheiro(distribuidor.valor_pedido)
+        }
+
+        let tipo_pedido = ''
+
+        if(distribuidor.tipo_pedido == "SEM PEDIDO"){
+
+            tipo_pedido = `
+            <td><label style="font-size: 0.8vw;">${distribuidor.tipo_pedido}</label></td>
+            `
+
+        }else{
+
+            tipo_pedido = `
+            <td><label style="font-size: 0.5vw;">${distribuidor.tipo_pedido}</label> <br> ${distribuidor.numero_pedido || ''}</td>
+            `
+
+        }
+
         linhas += `
             <tr>
                 <td>${distribuidor.data}</td>
                 <td>${distribuidor.status_distribuidor}</td>
+                ${tipo_pedido}
                 <td>${distribuidor.chamado || 'SEM CHAMADO'}</td>
                 <td>${dados_clientes.nome || '--'}</td>
                 <td>${dados_tecnicos.nome || '--'}</td>
                 <td>${dados_clientes.cidade || '--'}</td>
                 <td>${salvarPrimeiroUsuario(distribuidor?.historico || distribuidor.usuario)}</td>
-                <td>${dinheiro(distribuidor.valor) || '--'}</td>
+                <td>${distribuidor.valor_pedido || '--'}</td>
                 <td style="text-align: center;">
                     <img onclick="abrir_distribuidor('${id}')" src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;">
                 </td>
@@ -49,7 +70,7 @@ async function carregar_distribuidores(sincronizar) {
 
     }
     
-    let colunas = ['Última alteração', 'Status', 'Chamado', 'Loja', 'Técnico', 'Cidade', 'Analista', 'Valor', 'Ações']
+    let colunas = ['Última alteração', 'Status', 'Pedido', 'Chamado', 'Loja', 'Técnico', 'Cidade', 'Analista', 'Valor', 'Ações']
     let ths = "";
     let tsh = "";
 
@@ -294,9 +315,25 @@ function criar_distribuidor(id) {
                             <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text"
                                 placeholder="..." id="chamado">
                         </div>
-                        <div id="div_valor"
+                        <div
+                            style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: start; gap: 20px;">
+                            <label style="font-size: 1.2vw;">Tipo do Pedido</label>
+                            <select id="tipo_pedido"
+                                style="padding: 5px; border-radius: 3px; cursor: pointer; width: 10vw; font-size: 0.8vw;">
+                                <option>SEM PEDIDO</option>
+                                <option>VENDA</option>
+                                <option>SERVIÇO</option>
+                                <option>SERVIÇO + VENDA</option>
+                            </select>
+                        </div>
+                        <div id="div_numero_pedido"
                             style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
-                            <label style="font-size: 1.2vw;">Valor</label>
+                            <label style="font-size: 1.2vw;">Número do Pedido</label>
+                            <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text" id="numero">
+                        </div>
+                        <div id="div_valor_pedido"
+                            style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
+                            <label style="font-size: 1.2vw;">Valor do Pedido</label>
                             <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="number" id="valor">
                         </div>
                         <div
@@ -506,7 +543,11 @@ async function enviar_distribuidor(id) {
     // Atualiza o status atual da requisição
     distribuidor.status_distribuidor = document.getElementById('status_distribuidor').value;
 
-    distribuidor.valor = document.getElementById('valor').value
+    distribuidor.tipo_pedido = document.getElementById('tipo_pedido').value;
+
+    distribuidor.numero_pedido = document.getElementById('numero').value
+
+    distribuidor.valor_pedido = document.getElementById('valor').value
 
     // Adiciona uma nova entrada ao histórico
     let novaAtualizacao = {
@@ -519,15 +560,6 @@ async function enviar_distribuidor(id) {
     // Gera uma chave única para a nova atualização
     let chaveAtualizacao = gerar_id_5_digitos();
     distribuidor.historico[chaveAtualizacao] = novaAtualizacao;
-
-
-    /*campos.forEach(campo => {
-        let elemento = document.getElementById(campo);
-        if (elemento) {
-            distribuidor[campo] = elemento.value || elemento.textContent;
-        }
-    });*/
-
 
     let tabela = document.getElementById('linhas_distribuidor')
     let linhas = tabela.querySelectorAll('.linha')
@@ -713,7 +745,9 @@ async function abrir_distribuidor(id) {
     document.getElementById('comentario').value = distribuidor.comentario
     document.getElementById('status_distribuidor').value = distribuidor.status_distribuidor
     document.getElementById('chamado').value = distribuidor.chamado
-    document.getElementById('valor').value = distribuidor.valor
+    document.getElementById('tipo_pedido').value = distribuidor.tipo_pedido
+    document.getElementById('numero').value = distribuidor.numero_pedido
+    document.getElementById('valor').value = distribuidor.valor_pedido
 
     let pessoas = ['tecnico', 'cliente']
 
