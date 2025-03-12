@@ -170,7 +170,7 @@ function filtrar_distribuidor(ultimo_status, col, texto) {
         "MATERIAL ENVIADO"
     ];
 
-    // Remove "MATERIAL RECEBIDO" e reordena
+    // Remove "MATERIAL ENTREGUE" e reordena
     contadores.listas = ordemDesejada.filter(item => listaOriginal.includes(item));
 
     contadores.listas.forEach(st => {
@@ -284,7 +284,7 @@ function criar_distribuidor(id) {
                                 <option>REQUISIÇÃO AVULSA</option>
                                 <option>MATERIAL SEPARADO</option>
                                 <option>MATERIAL ENVIADO</option>
-                                <option>MATERIAL RECEBIDO</option>
+                                <option>MATERIAL ENTREGUE</option>
                                 <option>REPROVADO</option>
                             </select>
                         </div>
@@ -806,7 +806,7 @@ async function abrir_distribuidor(id) {
             case 'MATERIAL ENVIADO':
                 imagem = 'logistica'
                 break
-            case 'MATERIAL RECEBIDO':
+            case 'MATERIAL ENTREGUE':
                 imagem = 'concluido'
                 break
             default:
