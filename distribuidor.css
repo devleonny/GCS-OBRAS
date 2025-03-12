@@ -45,3 +45,153 @@ body {
     width: 25px;
     cursor: pointer;
 }
+
+body {
+    font-size: 0.8em;
+    background: linear-gradient(45deg, #151749, #B12425);
+    animation: none;
+}
+
+body::before {
+    animation: none;
+    background: none;
+}
+
+table {
+    width: 100%;
+    vertical-align: middle;
+    margin: 0 auto;
+}
+
+textarea {
+    font-size: 0.8vw;
+    color: #222;
+    width: 80%;
+}
+
+.top {
+    position: relative;
+    display: flex;
+    width: 100%;
+    margin: 5px;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #222222bf;
+    padding: 10px;
+    border-radius: 5px;
+    gap: 20px;
+}
+
+.formato_status {
+    cursor: pointer;
+    display: inline-block;
+    color: white;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+input {
+    text-align: center;
+}
+
+.quantidade_requisicao {
+    cursor: pointer;
+    height: 20px;
+    background-color: #c8fcc4;
+    border-radius: 5px;
+    color: #151749;
+    font-weight: bold;
+    box-shadow: 1px 1px #151749;
+    text-align: center;
+}
+
+#chamados {
+    background-color: #d2d2d2;
+    max-height: 70vh;
+    height: max-content;
+    border-radius: 5px;
+    width: 90vw;
+    overflow: auto;
+}
+
+th {
+    color: #222;
+}
+
+.numero-bonito {
+    cursor: pointer;
+    text-align: center;
+    height: 30px;
+    width: 300px;
+    background-color: #4CAF507c;
+    border-radius: 3px;
+    margin: 5px;
+}
+
+.tabela_distribuidor {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+}
+
+.tabela_distribuidor td {
+    padding: 0px;
+    margin: 0px;
+}
+
+.tabela_distribuidor textarea {
+    border-radius: 0px;
+    padding: 3px;
+    border: none;
+    width: 95%;
+}
+
+#linhas_distribuidor {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+}
+
+.linha {
+    text-align: center;
+    background-color: #d2d2d2;
+    color: #222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 70vw;
+    gap: 1px;
+}
+
+#toolbar {
+    margin-left: 2vw;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: start;
+    gap: 10px;
+}
+
+#toolbar label {
+    cursor: pointer;
+}
+
+.bex {
+    border-radius: 3px;
+    padding: 5px;
+    background-color: #d2d2d2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    color: #222;
+}
+
+.bex:hover {
+    transition: 0.2s ease-in-out;
+    background-color: #222;
+    color: white;
+}
