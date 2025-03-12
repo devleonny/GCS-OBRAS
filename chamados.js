@@ -325,7 +325,7 @@ async function abrir_manutencao(id) {
             case 'MATERIAL ENVIADO':
                 imagem = 'logistica'
                 break
-            case 'MATERIAL ENTREGUE':
+            case 'FINALIZADO':
                 imagem = 'concluido'
                 break
             default:
@@ -596,7 +596,7 @@ function criar_manutencao(id) {
                                 <option>REQUISIÇÃO AVULSA</option>
                                 <option>MATERIAL SEPARADO</option>
                                 <option>MATERIAL ENVIADO</option>
-                                <option>MATERIAL ENTREGUE</option>
+                                <option>FINALIZADO</option>
                                 <option>REPROVADO</option>
                             </select>
                         </div>
