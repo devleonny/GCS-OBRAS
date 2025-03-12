@@ -145,8 +145,6 @@ async function ir_excel(orcam_) {
         let headerRow = ws_orcamento.addRow(['', 'Orçamento: ' + nome_arquivo + ' - TOTAL: ' + orcamento.total_geral]);
         ws_orcamento.mergeCells(`B${headerRow.number}:O${headerRow.number}`);
 
-        console.log(listagem)
-
         if (listagem.SERVIÇO.length !== 0) {
 
             ws_orcamento.addRows(servico_headers);
