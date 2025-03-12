@@ -65,6 +65,21 @@ function filtrar_manutencoes(ultimo_status, col, texto) {
     toolbar.innerHTML = ''
     contadores.listas = [...new Set(contadores.listas)]
 
+    // Acesse o array dentro do objeto `contadores`
+    const listaOriginal = contadores.listas;
+
+    // Nova ordem desejada
+    const ordemDesejada = [
+        "TODOS",
+        "MANUTENÇÃO",
+        "REQUISIÇÃO AVULSA",
+        "MATERIAL SEPARADO",
+        "MATERIAL ENVIADO"
+    ];
+
+    // Remove "MATERIAL RECEBIDO" e reordena
+    contadores.listas = ordemDesejada.filter(item => listaOriginal.includes(item));
+
     contadores.listas.forEach(st => {
 
         let bg = '#797979'
@@ -136,7 +151,7 @@ async function carregar_manutencoes(sincronizar) {
                 <td>${dados_clientes.nome || '--'}</td>
                 <td>${dados_tecnicos.nome || '--'}</td>
                 <td>${dados_clientes.cidade || '--'}</td>
-                <td>${manutencao.analista}</td>
+                <td>${salvarPrimeiroUsuario(manutencao?.historico || manutencao.usuario)}</td>
                 <td style="text-align: center;">
                     <img onclick="abrir_manutencao('${id}')" src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;">
                 </td>
@@ -198,9 +213,10 @@ async function abrir_manutencao(id) {
         dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
     }
 
-    criar_manutencao(id)
+    await criar_manutencao(id)
     let manutencao = dados_manutencao[id]
     let pecas = manutencao.pecas
+    console.log(manutencao);
 
     document.getElementById('comentario').value = manutencao.comentario
     document.getElementById('status_manutencao').value = manutencao.status_manutencao
@@ -279,14 +295,18 @@ async function abrir_manutencao(id) {
 
     let div_historico = document.getElementById('historico')
 
-    let historicos = {}
+    let historicos = manutencao.historico || {};/*{}
     if (manutencao.historico) {
         historicos = manutencao.historico
-    }
+    } codigo antigo*/
 
-    historicos[id] = manutencao // Acrescentei o objeto atual para que ele entre no histórico;
-    let infos = ''
+    //historicos[id] = manutencao // Acrescentei o objeto atual para que ele entre no histórico; - codigo antigo
 
+    //exibe o primeiro registro (criação) com "Criado Por" e container principal
+    let infos = "";
+
+
+    //exibe os registro subsequentes (alterações) com "Alterado Por"
     for (his in historicos) {
         let historico = historicos[his]
         let imagem;
@@ -312,18 +332,17 @@ async function abrir_manutencao(id) {
         }
 
         infos += `
-            <div style="display: flex; align-items: center; justify-content: space-evenly;">
+        <div style="display: flex; align-items: center; justify-content: space-evenly; margin-bottom: 10px;">
                 <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; font-size: 0.8vw;">
-                    <label><strong>Data:</strong> ${historico.data}</label>
-                    <label><strong>Status:</strong> ${historico.status_manutencao}</label>
-                    <label><strong>Usuário:</strong> ${historico.usuario}</label>
-                    <label><strong>Comentário:</strong></label>
-                    <textarea style="width: 20vw;" readOnly>${historico.comentario}</textarea>
+                    <label><strong>Data: </strong>${historico.data}</label>
+                    <label><strong>Status: </strong>${historico.status_manutencao}</label>
+                    <label><strong>Usuário: </strong>${historico.usuario}</label>
+                    <label><strong>Comentário: </strong></label>
+                    <textarea style="width: 100%; background-color: white; border: 1px solid #ccc; padding: 5px; resize: none;" readonly>${historico.comentario}</textarea>
                 </div>
-                <img src="imagens/${imagem}.png">
+                <img src="imagens/${imagem}.png" style="width: 50px; margin-left: 10px;">
             </div>
-            <hr style="width: 80%;">
-            `
+    `;
     }
 
     let elemento = `
@@ -338,6 +357,22 @@ async function abrir_manutencao(id) {
 
     div_historico.insertAdjacentHTML('beforeend', elemento)
 
+
+
+}
+
+function salvarPrimeiroUsuario(historico) {
+
+    
+    // Verifica se o objeto de histórico existe e não está vazio
+    if (historico && dicionario(historico)) {
+        // Obtém a primeira chave do objeto
+        const primeiraChave = Object.keys(historico)[0];
+        // Retorna o nome do usuário do primeiro registro
+        return historico[primeiraChave].usuario
+    }
+    // Retorna null se o histórico estiver vazio ou não existir
+    return historico;
 }
 
 async function capturar_html_pdf(id) {
@@ -699,16 +734,32 @@ async function enviar_manutencao(id) {
 
     let dados_manutencao = await recuperarDados('dados_manutencao') || {}
 
-    if (dados_manutencao[id]) {
-        manutencao.historico = {}
+    manutencao.historico = dados_manutencao[id]?.historico || {}
 
-        if (dados_manutencao[id].historico) {
-            manutencao.historico = dados_manutencao[id].historico
-            delete dados_manutencao[id].historico
+    // Atualiza o status atual da requisição
+    manutencao.status_manutencao = document.getElementById('status_manutencao').value;
+
+
+    // Adiciona uma nova entrada ao histórico
+    let novaAtualizacao = {
+        data: data_atual("completa"),
+        status_manutencao: manutencao.status_manutencao,
+        usuario: manutencao.usuario,
+        comentario: document.getElementById('comentario').value
+    };
+
+    // Gera uma chave única para a nova atualização
+    let chaveAtualizacao = gerar_id_5_digitos();
+    manutencao.historico[chaveAtualizacao] = novaAtualizacao;
+
+
+    /*campos.forEach(campo => {
+        let elemento = document.getElementById(campo);
+        if (elemento) {
+            manutencao[campo] = elemento.value || elemento.textContent;
         }
+    });*/
 
-        manutencao.historico[gerar_id_5_digitos()] = dados_manutencao[id]
-    }
 
     let tabela = document.getElementById('linhas_manutencao')
     let linhas = tabela.querySelectorAll('.linha')
