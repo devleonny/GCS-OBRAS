@@ -531,12 +531,11 @@ function criar_manutencao(id) {
             <label>PDF</label>
         </div>`
     let excluir = `
-        <div onclick="confirmar_exclusao('${id}')" class="bex">
-            <img src="imagens/cancel.png" style="cursor: pointer; width: 2vw;">
-            <label">Excluir Manutenção</label>
+        <div style="background-color: transparent;;" onclick="confirmar_exclusao('${id}')" class="bex">
+            <img src="imagens/cancel.png" style="cursor: pointer; width: 1vw; height: 1vw;">
+            <label style="font-size: 1vw; color: white; cursor: pointer;">Excluir Manutenção</label>
         </div>
     `
-
     if (id == undefined) {
         termo = 'Criar'
         botao = 'Enviar para Logística'
@@ -672,7 +671,6 @@ function criar_manutencao(id) {
                         <label>${botao}</label>
                     </div>
                     ${pdf}
-                    ${excluir}
                     <div onclick="atualizar_base_clientes()" class="bex" style="background-color: brown; color: white;">
                         <img src="imagens/atualizar.png" style="cursor: pointer; width: 2vw;">
                         <label">Sincronizar Clientes/Técnicos</label>
@@ -691,6 +689,8 @@ function criar_manutencao(id) {
 
         <label id="data"
             style="position: absolute; bottom: 10px; right: 20px; font-size: 0.8vw;">${data_atual('completa')}</label>
+        <label id="excluir"
+            style="position: absolute; bottom: 2x; left: 20px; font-size: 0.8vw; cursor: pointer;">${excluir}</label>
     
     `
     openPopup_v2(acumulado)
