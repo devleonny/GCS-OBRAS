@@ -7,13 +7,15 @@ async function ir_excel(orcam_) {
     var ws_orcamento = wb.addWorksheet('Orçamento');
     var ws_total = wb.addWorksheet('TOTAL');
 
-    const response = await fetch('https://i.imgur.com/Nb8sPs0.png');
+    const response = await fetch('https://i.postimg.cc/dQHpVMK6/IMG-Nb8s-Ps0.png');
     const imageBlob = await response.blob();
     const reader = new FileReader();
     reader.readAsDataURL(imageBlob);
 
     reader.onloadend = () => {
         const base64data = reader.result.replace(/^data:image\/(png|jpg);base64,/, '');
+        console.log(base64data);
+
 
         const imageId = wb.addImage({
             base64: base64data,
@@ -246,7 +248,7 @@ async function ir_excel(orcam_) {
             ['E', 'F', 'G', 'H', 'I'].forEach(col => {
                 ws_orcamento.getColumn(col).numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-';
             });
-            ws_orcamento.getColumn('G').numFmt = '0.00%';
+            ws_orcamento.getColumn('G').numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-';
             ws_orcamento.getColumn(4).eachCell({ includeEmpty: true }, function (cell) {
                 cell.alignment = { horizontal: 'center' };
             });
@@ -289,13 +291,19 @@ async function ir_excel(orcam_) {
             ['', 'Grupo Costa Silva'],
             [],
             ['Orçamento: ' + nome_arquivo],
-            ["TOTAL DE VENDA", { formula: `SUM(Orçamento!L${ws_orcamento.lastRow.number - listagem.VENDA.length}:L${ws_orcamento.lastRow.number})` }],
-            ["TOTAL DE SERVIÇO", { formula: `SUM(Orçamento!I${ws_orcamento.lastRow.number - listagem.SERVIÇO.length}:I${ws_orcamento.lastRow.number})` }],
+            ["TOTAL DE VENDA", { formula: `SUM(Orçamento!L${ws_orcamento.lastRow.number - listagem.VENDA.length}:L${ws_orcamento.lastRow.number - 1})` }],
+            ["TOTAL DE SERVIÇO", { formula: `SUM(Orçamento!I3:I${3 + listagem.SERVIÇO.length - 1})` }],
             ["TOTAL GERAL", { formula: `SUM(B4:B5)` }],
             [],
             [escopo]
         ];
+        if (listagem.SERVIÇO.length !== 0) {
+            ws_total_data.push(["TOTAL DE SERVIÇO", { formula: `SUM(Orçamento!I3:I${3 + listagem.SERVIÇO.length - 1})` }])
+        }
 
+        if (listagem.VENDA.length !== 0) {
+            ["TOTAL DE VENDA", { formula: `SUM(Orçamento!L${ws_orcamento.lastRow.number - listagem.VENDA.length}:L${ws_orcamento.lastRow.number - 1})` }]
+        }
         ws_total.addRows(ws_total_data);
 
         const gcs_nome = ws_total.getCell('B1');
