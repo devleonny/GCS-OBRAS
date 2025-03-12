@@ -342,8 +342,8 @@ async function abrir_detalhes(id_pagamento) {
     var acoes_orcamento = ''
     if (dados_orcamentos[pagamento.id_orcamento]) {
         acoes_orcamento += `
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="exibir_todos_os_status('${pagamento.id_orcamento}')">
-            <img src="imagens/pasta.png" style="width: 48px; height: 48px; margin: 3px;">
+        <div class="btn_detalhes" onclick="exibir_todos_os_status('${pagamento.id_orcamento}')">
+            <img src="imagens/pasta.png">
             <label style="cursor: pointer;">Consultar Orçamento</label>
         </div>    
         `
@@ -544,14 +544,14 @@ async function abrir_detalhes(id_pagamento) {
     let excluir_pagamento = ''
     if (permissao == 'adm') {
         excluir_pagamento = `
-        <div onclick="deseja_excluir_pagamento('${id_pagamento}')" style="display: flex; align-items: center; justify-content: center; gap: 10px; background-color: #d2d2d2; border-radius: 3px; cursor: pointer; padding: 3px;">
-            <img src="imagens/remover.png" style="cursor: pointer;">
+        <div onclick="deseja_excluir_pagamento('${id_pagamento}')" class="btn_detalhes">
+            <img src="imagens/remover.png">
             <label style="cursor: pointer; margin-right: 5px;">Excluir pagamento</label>
         </div>
         `
         excluir_pagamento += `
-        <div onclick="relancar_pagamento('${id_pagamento}')" style="display: flex; align-items: center; justify-content: center; gap: 10px; background-color: #d2d2d2; border-radius: 3px; cursor: pointer; padding: 3px;">
-            <img src="imagens/concluido.png" style="cursor: pointer;">
+        <div onclick="relancar_pagamento('${id_pagamento}')" class="btn_detalhes">
+            <img src="imagens/concluido.png">
             <label style="cursor: pointer; margin-right: 5px;">Refazer Pagamento</label>
         </div>
         `
