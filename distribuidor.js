@@ -341,8 +341,12 @@ function criar_distribuidor(id) {
                             <label style="font-size: 1.2vw;">Comentário</label>
                             <textarea type="text" placeholder="..." id="comentario"></textarea>
                         </div>
+                        <div class="anexos" style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
+                            <label style="font-size: 1.2vw;">Anexos</label>
+                            <input type="file" id="input-anexos" multiple onchange="salvar_anexos_distribuidor(this, '${id}')">
+                            <div id="lista-anexos"></div>
+                        </div>
                     </div>
-
                 </div>
 
                 <br>
@@ -739,6 +743,7 @@ async function abrir_distribuidor(id) {
     }
 
     await criar_distribuidor(id)
+    if(id) renderizarAnexos(id)
     let distribuidor = dados_distribuidor[id]
     let pecas = distribuidor.pecas
 
@@ -822,7 +827,6 @@ async function abrir_distribuidor(id) {
     //exibe o primeiro registro (criação) com "Criado Por" e container principal
     let infos = "";
 
-
     //exibe os registro subsequentes (alterações) com "Alterado Por"
     for (his in historicos) {
         let historico = historicos[his]
@@ -873,8 +877,6 @@ async function abrir_distribuidor(id) {
         `
 
     div_historico.insertAdjacentHTML('beforeend', elemento)
-
-
 
 }
 
@@ -1015,3 +1017,87 @@ async function capturar_html_pdf(id) {
     remover_popup()
     await abrir_distribuidor(id)
 }
+
+async function salvar_anexos_distribuidor(input, id) {
+    if (!id) {
+        console.log("Erro: Nenhum Distribuidor foi selecionada!");
+        return;
+    }
+
+    let anexos = await anexo_v2(input); // Simulação da função de upload
+    await inserirDados(await receber('dados_distribuidor'), 'dados_distribuidor')
+    let dados_distribuidores = await recuperarDados('dados_distribuidor') || {}
+
+    let dados_distribuidor = dados_distribuidores[id]
+    
+    if (!dados_distribuidor.anexos) {
+        dados_distribuidor.anexos = {};
+    }
+    
+    console.log(dados_distribuidor)
+
+    anexos.forEach(anexo => {
+        dados_distribuidor.anexos[anexo.link] = anexo;
+        enviar(`dados_distribuidor/${id}/anexos/${anexo.link}`, anexo);
+    });
+
+    // Atualiza localmente
+    await inserirDados(await receber('dados_distribuidor'), 'dados_distribuidor')
+
+    // Recarrega os anexos no modal
+    renderizarAnexos(id);
+}
+
+async function renderizarAnexos(id) {
+    let listaAnexos = document.getElementById("lista-anexos");
+    if (!listaAnexos) return;
+
+    await inserirDados(await receber('dados_distribuidor'), 'dados_distribuidor')
+    let dados_distribuidores = await recuperarDados('dados_distribuidor') || {}
+
+    let dados_distribuidor = dados_distribuidores[id]
+
+    if (!dados_distribuidor.anexos || Object.keys(dados_distribuidor.anexos).length === 0) {
+        listaAnexos.innerHTML = "<p style='color: gray;'>Nenhum anexo encontrado.</p>";
+        return;
+    }
+
+    listaAnexos.innerHTML = Object.values(dados_distribuidor.anexos)
+        .map(anexo => {
+            let nomeFormatado = anexo.nome.length > 15
+                ? `${anexo.nome.slice(0, 6)}...${anexo.nome.slice(-6)}`
+                : anexo.nome;
+
+            return `
+            <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+                <div style="cursor: pointer;" class="anexo-item" onclick="abrirArquivo('${anexo.link}')">
+                    <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                    <label title="${anexo.nome}">${nomeFormatado}</label>
+                </div>
+                <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="removerAnexo('${id}', '${anexo.link}')">
+            </div>
+                </div>
+            `;
+        })
+        .join("");
+
+}
+
+async function removerAnexo(id, linkAnexo) {
+    
+    await inserirDados(await receber('dados_distribuidor'), 'dados_distribuidor')
+    let dados_distribuidores = await recuperarDados('dados_distribuidor') || {}
+
+    let dados_distribuidor = dados_distribuidores[id]
+
+    if (!dados_distribuidor || !dados_distribuidor.anexos || !dados_distribuidor.anexos[linkAnexo]) return;
+
+    // Remove da nuvem
+    deletar(`dados_distribuidor/${id}/anexos/${linkAnexo}`);
+
+    await inserirDados(await receber('dados_distribuidor'), 'dados_distribuidor')
+
+    // Atualiza a interface
+    renderizarAnexos(id);
+}
+
