@@ -89,7 +89,10 @@ function orcamento_que_deve_voltar(){
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
 
-    localStorage.setItem('orcamento_que_deve_voltar', JSON.stringify(orcamento_v2.id))
+    if(orcamento_v2.id) {
+        localStorage.setItem('orcamento_que_deve_voltar', JSON.stringify(orcamento_v2.id))
+    }
+    
 
 }
 

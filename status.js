@@ -1,4 +1,4 @@
-// Lógicas de Status
+id_orcam// Lógicas de Status
 var itens_adicionais = {}
 var overlay = document.getElementById('overlay');
 var acesso = JSON.parse(localStorage.getItem('acesso')) || {};
@@ -16,12 +16,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         orcamento_que_deve_voltar = orcamento_que_deve_voltar.replace(/"/g, "");
 
-        exibir_todos_os_status(orcamento_que_deve_voltar);
-        
+        exibir_todos_os_status(orcamento_que_deve_voltar)     
+
         // 🔥 Remove os dados do localStorage após exibição
         localStorage.removeItem("orcamento_que_deve_voltar");
-
     }
+
+    
 });
 
 
@@ -1358,6 +1359,8 @@ async function exibir_todos_os_status(id) {
     }
 
     id_orcam = id
+    console.log(id, id_orcam);
+    
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
