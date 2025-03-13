@@ -128,7 +128,6 @@ function filtrar_distribuidor(ultimo_status, col, texto) {
     }
 
     let tbody = document.getElementById('distribuidor-body')
-    console.log(tbody)
     let trs = tbody.querySelectorAll('tr')
     let contadores = {
         TODOS: 0,
@@ -543,6 +542,11 @@ async function enviar_distribuidor(id) {
     let dados_distribuidor = await recuperarDados('dados_distribuidor') || {}
 
     distribuidor.historico = dados_distribuidor[id]?.historico || {}
+
+    if (distribuidores_pendentes[id]?.anexos) {
+        distribuidor.anexos = distribuidores_pendentes[id].anexos;
+        delete distribuidores_pendentes[id]; // Remove após adicionar
+    }
 
     // Atualiza o status atual da requisição
     distribuidor.status_distribuidor = document.getElementById('status_distribuidor').value;
@@ -1018,23 +1022,35 @@ async function capturar_html_pdf(id) {
     await abrir_distribuidor(id)
 }
 
+let distribuidores_pendentes = {};
+
 async function salvar_anexos_distribuidor(input, id) {
     if (!id) {
-        console.log("Erro: Nenhum Distribuidor foi selecionada!");
         return;
     }
 
     let anexos = await anexo_v2(input); // Simulação da função de upload
-    await inserirDados(await receber('dados_distribuidor'), 'dados_distribuidor')
-    let dados_distribuidores = await recuperarDados('dados_distribuidor') || {}
+    await inserirDados(await receber('dados_distribuidor'), 'dados_distribuidor');
+    let dados_distribuidores = await recuperarDados('dados_distribuidor') || {};
 
-    let dados_distribuidor = dados_distribuidores[id]
-    
+    let dados_distribuidor = dados_distribuidores[id];
+
+    // 🛑 Se o distribuidor ainda não existe, salva os anexos temporariamente
+    if (!dados_distribuidor) {
+        if (!distribuidores_pendentes[id]) {
+            distribuidores_pendentes[id] = { anexos: {} };
+        }
+        anexos.forEach(anexo => {
+            distribuidores_pendentes[id].anexos[anexo.link] = anexo;
+        });
+        renderizarAnexos(id);
+        return;
+    }
+
+    // 🔥 Garante que a estrutura de anexos exista
     if (!dados_distribuidor.anexos) {
         dados_distribuidor.anexos = {};
     }
-    
-    console.log(dados_distribuidor)
 
     anexos.forEach(anexo => {
         dados_distribuidor.anexos[anexo.link] = anexo;
@@ -1042,7 +1058,7 @@ async function salvar_anexos_distribuidor(input, id) {
     });
 
     // Atualiza localmente
-    await inserirDados(await receber('dados_distribuidor'), 'dados_distribuidor')
+    await inserirDados(dados_distribuidores, 'dados_distribuidor');
 
     // Recarrega os anexos no modal
     renderizarAnexos(id);
@@ -1052,17 +1068,25 @@ async function renderizarAnexos(id) {
     let listaAnexos = document.getElementById("lista-anexos");
     if (!listaAnexos) return;
 
-    await inserirDados(await receber('dados_distribuidor'), 'dados_distribuidor')
-    let dados_distribuidores = await recuperarDados('dados_distribuidor') || {}
+    // 🔥 Recupera dados do banco
+    await inserirDados(await receber('dados_distribuidor'), 'dados_distribuidor');
+    let dados_distribuidores = await recuperarDados('dados_distribuidor') || {};
+    
+    let dados_distribuidor = dados_distribuidores[id] || {}; // Se não existir, inicia vazio
+    let anexosBanco = dados_distribuidor.anexos || {}; // Anexos já salvos no banco
+    let anexosPendentes = distribuidores_pendentes[id]?.anexos || {}; // Anexos pendentes
 
-    let dados_distribuidor = dados_distribuidores[id]
+    // 🔹 Combina os anexos do banco e os pendentes
+    let anexos = { ...anexosBanco, ...anexosPendentes };
 
-    if (!dados_distribuidor.anexos || Object.keys(dados_distribuidor.anexos).length === 0) {
+    // 🔸 Se ainda não há anexos, exibir mensagem
+    if (Object.keys(anexos).length === 0) {
         listaAnexos.innerHTML = "<p style='color: gray;'>Nenhum anexo encontrado.</p>";
         return;
     }
 
-    listaAnexos.innerHTML = Object.values(dados_distribuidor.anexos)
+    // 🔹 Renderiza os anexos (banco + pendentes)
+    listaAnexos.innerHTML = Object.values(anexos)
         .map(anexo => {
             let nomeFormatado = anexo.nome.length > 15
                 ? `${anexo.nome.slice(0, 6)}...${anexo.nome.slice(-6)}`
@@ -1076,11 +1100,9 @@ async function renderizarAnexos(id) {
                 </div>
                 <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="removerAnexo('${id}', '${anexo.link}')">
             </div>
-                </div>
             `;
         })
         .join("");
-
 }
 
 async function removerAnexo(id, linkAnexo) {
