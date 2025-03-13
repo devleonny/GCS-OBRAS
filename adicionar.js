@@ -85,6 +85,14 @@ function apagar_orçamento() {
 
 }
 
+function orcamento_que_deve_voltar(){
+
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+
+    localStorage.setItem('orcamento_que_deve_voltar', JSON.stringify(orcamento_v2.id))
+
+}
+
 function confirmar_exclusao() {
 
     localStorage.removeItem('orcamento_v2')
