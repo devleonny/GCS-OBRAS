@@ -174,9 +174,8 @@ async function preencher_orcamentos_v2() {
                             <label style="font-size: 0.8em; margin: 2px;">${nota.modalidade}</label>
                             <label style="font-size: 1.1em; margin: 2px;"><strong>${nota.nota}</strong></label>
                         </div>
-                        `
+                    `
                 }
-
             }
         }
 

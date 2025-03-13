@@ -1058,21 +1058,3 @@ async function atualizar_base_clientes() {
     }
 
 }
-
-async function recuperar_estoque() {
-
-    if (document.getElementById('tela')) {
-
-        document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde())
-
-        let estoque_nuvem = await receber('dados_estoque') || {}
-        await inserirDados(estoque_nuvem, 'dados_estoque')
-
-        let aguarde = document.getElementById('aguarde')
-        if (aguarde) {
-            aguarde.remove()
-        }
-
-    }
-
-}

@@ -10,6 +10,47 @@ body {
     min-height: 100vh;
 }
 
+.tabela_manutencao {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+}
+
+.tabela_manutencao td {
+    padding: 0px;
+    margin: 0px;
+}
+
+.tabela_manutencao textarea {
+    border-radius: 0px;
+    padding: 3px;
+    border: none;
+    width: 95%;
+}
+
+#linhas_manutencao {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+}
+
+.linha {
+    text-align: center;
+    background-color: #d2d2d2;
+    color: #222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 70vw;
+    gap: 1px;
+}
+
+.linha label {
+    font-size: 0.8vw;
+}
+
 .balao {
     padding: 5px;
     color: white;

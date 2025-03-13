@@ -767,41 +767,69 @@ function abrir_adicionais(codigo) {
 
     var acumulado = `
 
-    <img src="imagens/BG.png" style="height: 80px; position: absolute; top: -15px; left: 5px;">
+        <img src="imagens/bg.png" style="width: 7vw; position: absolute; left: 0; top: 0;">
+        <label>Itens Adicionais</label>
 
-    <div style="display: flex; align-items: center; justify-content: space-evenly;">
-        <label style="font-size: 2.5vw;">Itens Adicionais</label> 
-    </div>
+        <br>
 
-    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: white; border-radius: 5px;">
+        <div id="tela" style="display: flex; flex-direction: column; align-items: start; justify-content: center; background-color: white; border-radius: 3px; padding: 5px;">
+            <div class="tabela_manutencao">
+                <div class="linha"
+                    style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
+                    <div style="width: 8vw;">
+                        <label>Part Number</label>
+                    </div>
+                    <div style="width: 25vw;">
+                        <label>Descrição</label>
+                    </div>
+                    <div style="width: 10vw;">
+                        <label>Quantidade</label>
+                    </div>
+                    <div style="width: 20vw;">
+                        <label>Unidade</label>
+                    </div>
+                    <div style="width: 10vw;">
+                        <label>Estoque</label>
+                    </div>
+                    <div style="width: 10vw;">
+                        <label>Estoque Usado</label>
+                    </div>
+                    <div style="width: 5vw;">
+                        <label>Remover</label>
+                    </div>
+                </div>
 
-        <div id="painel_cotacoes" style="background-color: #B12425; border-radius: 5px; font-size: 1.0vw; color: #222;">
+                <div id="linhas_manutencao">
+                    <div id="excluir_inicial" class="linha" style="width: 70vw;">
+                        <label>Lista Vazia</label>
+                    </div>
+                </div>
 
-            <table style="border-collapse: collapse; ">
+            </div>
 
-                <thead>
-                    <th>Remover</th>
-                    <th>Partnumber</th>
-                    <th>Descrição</th>
-                    <th>Unidade</th>
-                    <th>Quantidade</th>
-                    <th>Estoque</th>
-                </thead>
-                <tbody>
-                </tbody>
+            <br>
 
-            </table>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px; width: 100%;">
 
+                <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <div onclick="adicionar_linha_manut()" class="contorno_botoes"
+                        style="background-color: #151749; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <img src="imagens/chamados.png" style="cursor: pointer; width: 2vw;">
+                        <label>Adicionar Peça</label>
+                    </div>
+                    <div onclick="recuperar_estoque()" class="contorno_botoes" style="background-color: #151749; color: white;">
+                        <img src="imagens/sync.png" style="cursor: pointer; width: 2vw;">
+                        <label">Sincronizar Estoque</label>
+                    </div>
+                </div>
+
+                <div onclick="salvar_itens_adicionais('${codigo}')" class="contorno_botoes"
+                    style="background-color: green; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <img src="imagens/estoque.png" style="cursor: pointer; width: 2vw">
+                    <label>Salvar</label>
+                </div>
+            </div>
         </div>
-
-        <div style="display: flex; gap: 10px; justify-content: space-between; width: 80%; margin: 10px; cursor: pointer;">
-            <img src="imagens/baixar.png" onclick="adicionar_linha_materiais()">
-
-            <label style="background-color: #4CAF50; box-shadow: 0 0px 0px transparent;" class="contorno_botoes"
-            onclick="salvar_itens_adicionais('${codigo}')">Salvar</label>
-        </div>
-
-    </div>
     `
 
     openPopup_v2(acumulado)
@@ -823,36 +851,210 @@ function abrir_adicionais(codigo) {
 
 }
 
-function salvar_itens_adicionais(codigo) {
+function adicionar_linha_manut() {
+    let tbody = document.getElementById('linhas_manutencao')
+    let aleatorio = gerar_id_5_digitos()
 
-    var tabela = painel_cotacoes.querySelector('table');
-    var tbody = tabela.querySelector('tbody')
-    var trs = tbody.querySelectorAll('tr')
+    let excluir_inicial = document.getElementById('excluir_inicial')
+    if (excluir_inicial) {
+        excluir_inicial.remove()
+    }
+
+    if (tbody) {
+        let linha = `
+        <div class="linha_completa">
+            <div class="linha">
+                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
+                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="text">
+                </div>
+                <div style="position: relative; width: 25vw; height: 30px; background-color: #b5b5b5;">
+                    <textarea style="background-color: transparent;" type="text" id="${aleatorio}" oninput="sugestoes(this, 'sug_${aleatorio}', 'estoque')"></textarea>
+                    <div class="autocomplete-list" id="sug_${aleatorio}"></div>
+                    <input id="input_${aleatorio}" style="display: none;">
+                </div>
+
+                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
+                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="number">
+                </div>
+
+                <div style="width: 20vw; height: 30px; background-color: #b5b5b5;">
+                    <select style="width: 100%; background-color: transparent;">
+                        <option>UND</option>
+                        <option>METRO</option>
+                        <option>CX</option>
+                        <option>PCT</option>
+                    </select>
+                </div>
+
+                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
+                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" readOnly>
+                </div>
+
+                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
+                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" readOnly>
+                </div>
+
+                <div style="width: 5vw;">
+                    <img src="imagens/remover.png" onclick="remover_esta_linha(this)" style="width: 30px; cursor: pointer;">
+                </div>
+            </div>
+            <hr style="width: 100%; margin: 0px;">
+        </div>
+        `
+        tbody.insertAdjacentHTML('beforeend', linha)
+    }
+}
+
+function remover_esta_linha(div_menor) {
+    let linha_completa = div_menor.closest('.linha_completa')
+    if (linha_completa) {
+        linha_completa.remove()
+    }
+}
+
+async function sugestoes(textarea, div, base) {
+
+    let div_sugestoes = document.getElementById(div)
+    let query = String(textarea.value).toUpperCase()
+    div_sugestoes.innerHTML = '';
+
+    if (query === '') {
+        let campo = div.split('_')[1]
+        let endereco = document.getElementById(`endereco_${campo}`)
+
+        if (endereco) {
+            document.getElementById(`codigo_${campo}`).innerHTML = ''
+            endereco.innerHTML = ''
+            return
+        }
+
+        return
+    }
+
+    let dados = await recuperarDados(`dados_${base}`) || {}
+    let opcoes = ''
+
+    for (id in dados) {
+        let item = dados[id]
+        let info;
+        let dados_endereco;
+        let cod_omie;
+
+        if (base == 'clientes') {
+            cod_omie = item.omie
+            info = String(item.nome)
+            dados_endereco = `
+            <label><strong>CNPJ/CPF:</strong> ${item.cnpj}</label>
+            <label style="text-align: left;"><strong>Rua/Bairro:</strong> ${item.bairro}</label>
+            <label><strong>CEP:</strong> ${item.cep}</label>
+            <label><strong>Cidade:</strong> ${item.cidade}</label>
+            <label><strong>Estado:</strong> ${item.estado}</label>
+        `.replace(/'/g, "&apos;")
+                .replace(/"/g, "&quot;")
+                .replace(/\r?\n|\r/g, "");
+
+        } else if (base == 'estoque') {
+            info = String(item.descricao)
+        }
+
+        if (info.includes(query)) {
+            opcoes += `
+                    <div onclick="definir_campo(this, '${div}', '${dados_endereco}', '${cod_omie}', '${id}')" class="autocomplete-item" style="font-size: 0.8vw;">${info}</div>
+                `
+        }
+    }
+
+    div_sugestoes.innerHTML = opcoes
+
+}
+
+async function definir_campo(elemento, div, string_html, omie, id) {
+
+    let campo = String(div).split('_')[1]
+
+    if (campo == 'tecnico' || campo == 'cliente') {
+
+        let endereco = document.getElementById(`endereco_${campo}`)
+        endereco.innerHTML = string_html.replace(/&apos;/g, "'").replace(/&quot;/g, '"');
+
+    } else {
+
+        let input_aleatorio = document.getElementById(`input_${campo}`)
+        input_aleatorio.value = id
+
+        let dados_estoque = await recuperarDados('dados_estoque') || {}
+        let estoques = ['estoque', 'estoque_usado']
+
+        let dic_quantidades = {}
+
+        estoques.forEach(estoque => {
+
+            let estoque_do_objeto = dados_estoque[id][estoque]
+            let historicos = estoque_do_objeto.historico
+            dic_quantidades[estoque] = estoque_do_objeto.quantidade
+
+
+            for (his in historicos) {
+                let historico = historicos[his]
+
+                if (historico.operacao == 'entrada') {
+                    dic_quantidades[estoque] += historico.quantidade
+                } else if (historico.operacao == 'saida') {
+                    dic_quantidades[estoque] -= historico.quantidade
+                }
+            }
+
+            let div_linha = input_aleatorio.parentElement.parentElement
+
+            let inputs = div_linha.querySelectorAll('input, textarea, select')
+
+            inputs[0].value = dados_estoque[id].partnumber
+            inputs[5].value = dic_quantidades.estoque
+            inputs[6].value = dic_quantidades.estoque_usado
+
+        })
+
+    }
+
+    let codigo = document.getElementById(`codigo_${campo}`)
+    if (codigo) {
+        codigo.textContent = omie
+    }
+    document.getElementById(campo).value = elemento.textContent
+    document.getElementById(div).innerHTML = '' // Sugestões
+}
+
+
+function salvar_itens_adicionais(codigo) {
 
     if (itens_adicionais[codigo]) {
         delete itens_adicionais[codigo]
     }
 
-    itens_adicionais[codigo] = {}
+    let linhas = document.querySelectorAll('.linhas')
 
-    var adicionais = itens_adicionais[codigo]
+    linhas.forEach(linha => {
+        let valores = linha.querySelectorAll('input, textarea, select')
 
-    trs.forEach(tr => {
-        var tds = tr.querySelectorAll('td')
-        var descricao = tds[2].querySelector('input').value
+        itens_adicionais[codigo] = {}
 
-        if (descricao !== '') {
+        var adicionais = itens_adicionais[codigo]
 
-            if (!adicionais[descricao]) {
-                adicionais[descricao] = {}
+        if (valores[1].value !== '') {
+
+            let cod = valores[1].id
+
+            if (!adicionais[cod]) {
+                adicionais[cod] = {}
             }
 
-            adicionais[descricao].partnumber = tds[1].textContent
-            adicionais[descricao].descricao = tds[2].querySelector('input').value
-            adicionais[descricao].unidade = tds[3].querySelector('input').value
-            adicionais[descricao].qtde = Number(tds[4].querySelector('input').value)
+            adicionais[cod].partnumber = valores[0].value
+            adicionais[cod].descricao = valores[1].value
+            adicionais[cod].qtde = valores[2].value
+            adicionais[cod].unidade = valores[3].value
 
         }
+
     })
 
     mostrar_itens_adicionais()
@@ -1309,10 +1511,10 @@ async function abrir_esquema(id) {
         var levantamentos = ''
         if (orcamento.levantamentos) {
             for (chave in orcamento.levantamentos) {
-                var levantamento = orcamento.levantamentos[chave]
+                var levantamento = orcamento.levantamentos[chave] 
                 levantamentos += `
                 <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                    <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <div onclick="abrirArquivo('${levantamento.link}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                         <img src="imagens/anexo2.png" style="width: 2vw;">
                         <label style="font-size: 0.8em;">${String(levantamento.nome).slice(0, 10)} ... ${String(levantamento.nome).slice(-7)}</label>
                     </div>
@@ -1772,8 +1974,6 @@ async function abrir_esquema(id) {
     let totalFinal = conversor(orcamento.total_geral) - totalValoresManuais;
     let valorPedidoSpan = document.getElementById('valor_pedido');
     let valorTotalSpan = document.getElementById('valor_total_pedido');
-
-    console.log(conversor(orcamento.total_geral));
 
     if (valorPedidoSpan) {
         valorPedidoSpan.textContent = orcamento.total_geral;
@@ -2838,7 +3038,7 @@ async function apagar_status_historico(chave) {
 
 }
 
-function remover_cotacao(chave) { //29
+function remover_cotacao(chave) { 
     let status = "excluido";
     let operacao = "excluir";
     let idCotacao = chave
