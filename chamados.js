@@ -222,6 +222,20 @@ async function abrir_manutencao(id) {
     document.getElementById('status_manutencao').value = manutencao.status_manutencao
     document.getElementById('chamado').value = manutencao.chamado
 
+    let div_NF = document.getElementById("div_NF")
+
+    if(manutencao.status_manutencao == "MATERIAL ENVIADO" || manutencao.status_manutencao == "FINALIZADO"){
+
+        div_NF.style.display = "flex"
+
+        if(manutencao.nf){
+
+            document.getElementById("NF").value = manutencao.nf
+
+        }
+
+    }
+
     if (manutencao.chamado == 'KIT TÉCNICO') {
         document.getElementById('kit').checked = true
         document.getElementById('div_chamado').style.display = 'none'
@@ -589,7 +603,7 @@ function criar_manutencao(id) {
                         <div
                             style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: start; gap: 20px;">
                             <label style="font-size: 1.2vw;">Status Manutenção</label>
-                            <select id="status_manutencao"
+                            <select onchange="aparecer_campo_nf(this)" id="status_manutencao"
                                 style="padding: 5px; border-radius: 3px; cursor: pointer; width: 10vw; font-size: 0.8vw;">
                                 <option>MANUTENÇÃO</option>
                                 <option>EMITIR NOTA</option>
@@ -611,6 +625,12 @@ function criar_manutencao(id) {
                             <label style="font-size: 1.2vw;">Chamado</label>
                             <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text"
                                 placeholder="..." id="chamado">
+                        </div>
+                        <div id="div_NF"
+                            style="display: none; position: relative; width: 25vw; align-items: center; justify-content: left; gap: 20px;">
+                            <label style="font-size: 1.2vw;">NF</label>
+                            <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text"
+                                placeholder="..." id="NF">
                         </div>
                         <div
                             style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
@@ -693,6 +713,7 @@ function criar_manutencao(id) {
             style="position: absolute; bottom: 2x; left: 20px; font-size: 0.8vw; cursor: pointer;">${excluir}</label>
     
     `
+
     openPopup_v2(acumulado)
 }
 
@@ -720,6 +741,23 @@ async function excluir_manutencao(id) {
     remover_popup()
 
     await carregar_manutencoes()
+
+}
+
+function aparecer_campo_nf(input_status){
+
+    
+    if(input_status.value == "MATERIAL ENVIADO" || input_status.value == "FINALIZADO"){
+        
+        let div_NF = document.getElementById("div_NF")
+
+        div_NF.style.display = "flex"
+
+    }else{
+
+        div_NF.style.display = "none"
+
+    }
 
 }
 
@@ -753,6 +791,25 @@ async function enviar_manutencao(id) {
     // Atualiza o status atual da requisição
     manutencao.status_manutencao = document.getElementById('status_manutencao').value;
 
+    let NF = document.getElementById("NF")
+
+    if(NF){
+
+        if(NF.value){
+
+            manutencao.nf = NF.value
+
+        }else{
+
+            manutencao.nf = ""
+
+        }
+
+    }else{
+
+        manutencao.nf = ""
+
+    }
 
     // Adiciona uma nova entrada ao histórico
     let novaAtualizacao = {
