@@ -9,6 +9,22 @@ var data_status = dataAtual.toLocaleString('pt-BR', {
     timeStyle: 'short'
 });
 
+document.addEventListener("DOMContentLoaded", async () => {
+    let orcamento_que_deve_voltar = localStorage.getItem("orcamento_que_deve_voltar");
+
+    if (orcamento_que_deve_voltar) {
+
+        orcamento_que_deve_voltar = orcamento_que_deve_voltar.replace(/"/g, "");
+
+        exibir_todos_os_status(orcamento_que_deve_voltar);
+        
+        // 🔥 Remove os dados do localStorage após exibição
+        localStorage.removeItem("orcamento_que_deve_voltar");
+
+    }
+});
+
+
 var fluxograma = {
     'INCLUIR PEDIDO': { cor: '#4CAF50' },
     'PEDIDO': { cor: '#4CAF50' },
@@ -1142,6 +1158,7 @@ async function exibir_todos_os_status(id) {
     id_orcam = id
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+
     var orcamento = dados_orcamentos[id]
 
     var acumulado = ''
