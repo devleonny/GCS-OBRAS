@@ -11,6 +11,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
 });
+
+document.addEventListener("DOMContentLoaded", () => {
+    const btnFiltrar = document.querySelector(".btn-filtrar");
+    
+    if (btnFiltrar) {
+        btnFiltrar.addEventListener("click", exibirCampoFiltro);
+    }
+});
+
 let idListaAtual = null;
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -1737,3 +1746,88 @@ function removerAnexo(idTarefa, linkAnexo) {
     renderizarAnexos(idTarefa);
 }
 
+function exibirCampoFiltro() {
+    let btnFiltrar = document.querySelector(".btn-filtrar"); // 🔥 Recupera o botão
+
+    if (!btnFiltrar) {
+        console.error("Erro: Botão de filtro não encontrado!");
+        return;
+    }
+
+    let inputFiltro = document.getElementById("input-filtro");
+
+    if (!inputFiltro) {
+        const containerFiltro = document.createElement("div");
+        containerFiltro.id = "container-filtro";
+        containerFiltro.style.position = "relative";
+
+        inputFiltro = document.createElement("input");
+        inputFiltro.id = "input-filtro";
+        inputFiltro.type = "text";
+        inputFiltro.placeholder = "Digite para buscar tarefas...";
+        inputFiltro.className = "filtro-input";
+        inputFiltro.autocomplete = "off";
+        
+        const listaSugestoes = document.createElement("ul");
+        listaSugestoes.id = "lista-sugestoes";
+        listaSugestoes.className = "sugestoes-lista";
+
+        containerFiltro.appendChild(inputFiltro);
+        containerFiltro.appendChild(listaSugestoes);
+
+        btnFiltrar.parentNode.insertBefore(containerFiltro, btnFiltrar.nextSibling);
+
+        inputFiltro.addEventListener("input", buscarTarefas);
+        document.addEventListener("click", (event) => {
+            if (!containerFiltro.contains(event.target)) {
+                listaSugestoes.style.display = "none";
+            }
+        });
+    } else {
+        inputFiltro.parentNode.remove();
+    }
+}
+
+function buscarTarefas() {
+    const termoBusca = this.value.trim().toLowerCase();
+    const listaSugestoes = document.getElementById("lista-sugestoes");
+    const containerFiltro = document.getElementById("container-filtro"); // 🔥 Container do input de busca
+
+    listaSugestoes.innerHTML = ""; // Limpa sugestões anteriores
+
+    if (!termoBusca) {
+        listaSugestoes.style.display = "none";
+        return;
+    }
+
+    let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { tarefas: {} };
+    let tarefas = Object.values(dados.tarefas);
+
+    let tarefasFiltradas = tarefas.filter(tarefa => 
+        tarefa.texto && tarefa.texto.toLowerCase().includes(termoBusca) // ✅ Verifica se `tarefa.texto` existe
+    );
+
+    if (tarefasFiltradas.length === 0) {
+        listaSugestoes.style.display = "none";
+        return;
+    }
+
+    tarefasFiltradas.forEach(tarefa => {
+        let li = document.createElement("li");
+        li.textContent = tarefa.texto;
+        li.className = "sugestao-item";
+
+        li.addEventListener("click", () => {
+            abrirModal(tarefa.lista, tarefa.id); // 🔥 Abre a tarefa
+
+            // 🔥 Remove o input e as sugestões após selecionar uma tarefa
+            if (containerFiltro) {
+                containerFiltro.remove();
+            }
+        });
+
+        listaSugestoes.appendChild(li);
+    });
+
+    listaSugestoes.style.display = "block";
+}
