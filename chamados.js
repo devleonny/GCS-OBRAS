@@ -134,14 +134,24 @@ async function carregar_manutencoes(sincronizar) {
         dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
     }
 
+     // 🔥 ORDENANDO DO MAIS RECENTE PARA O MENOS RECENTE
+     let listaManutencoes = Object.entries(dados_manutencao).sort((a, b) => {
+        let [dataA, horaA] = a[1].data.split(", "); // Separando data e hora
+        let [dataB, horaB] = b[1].data.split(", ");
+
+        let dataHoraA = new Date(dataA.split("/").reverse().join("-") + "T" + horaA);
+        let dataHoraB = new Date(dataB.split("/").reverse().join("-") + "T" + horaB);
+
+        return dataHoraB - dataHoraA; // Ordem decrescente (mais recente primeiro)
+    });
+
     let linhas = ''
     let status_toolbar = []
-    for (id in dados_manutencao) {
-        let manutencao = dados_manutencao[id]
-        let dados_clientes = dados_clientes_omie[manutencao.codigo_cliente] || {}
-        let dados_tecnicos = dados_clientes_omie[manutencao.codigo_tecnico] || {}
+    listaManutencoes.forEach(([id, manutencao]) => {
+        let dados_clientes = dados_clientes_omie[manutencao.codigo_cliente] || {};
+        let dados_tecnicos = dados_clientes_omie[manutencao.codigo_tecnico] || {};
 
-        status_toolbar.push(manutencao.status_manutencao)
+        status_toolbar.push(manutencao.status_manutencao);
 
         linhas += `
             <tr>
@@ -157,9 +167,8 @@ async function carregar_manutencoes(sincronizar) {
                     <img onclick="abrir_manutencao('${id}')" src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;">
                 </td>
             </tr>
-            `
-
-    }
+        `;
+    });
 
     let colunas = ['Última alteração', 'Status', 'Chamado', 'Loja', 'Técnico', 'Cidade', 'Analista', 'Previsão', 'Ações']
     let ths = ''
