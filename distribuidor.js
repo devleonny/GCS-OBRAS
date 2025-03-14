@@ -232,6 +232,7 @@ function filtrar_distribuidor(ultimo_status, col, texto) {
 
 function criar_distribuidor(id) {
 
+    distribuidores_pendentes = {}
     let termo = 'Editar'
     let botao = 'Atualizar'
     let pdf = `
