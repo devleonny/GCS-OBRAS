@@ -1,4 +1,4 @@
-// Lógicas de Status
+id_orcam// Lógicas de Status
 var itens_adicionais = {}
 var overlay = document.getElementById('overlay');
 var acesso = JSON.parse(localStorage.getItem('acesso')) || {};
@@ -16,12 +16,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         orcamento_que_deve_voltar = orcamento_que_deve_voltar.replace(/"/g, "");
 
-        exibir_todos_os_status(orcamento_que_deve_voltar);
+        exibir_todos_os_status(orcamento_que_deve_voltar)     
 
         // 🔥 Remove os dados do localStorage após exibição
         localStorage.removeItem("orcamento_que_deve_voltar");
-
     }
+
+    
 });
 
 
@@ -192,9 +193,11 @@ async function resumo_orcamentos() {
     openPopup_v2(acumulado);
 }
 
+let anexos_pendentes = [];
 
 async function painel_adicionar_pedido() {
 
+    anexos_pendentes = []
     let espelho_ocorrencias = document.getElementById('espelho_ocorrencias')
 
     if (espelho_ocorrencias) {
@@ -254,6 +257,14 @@ async function painel_adicionar_pedido() {
             <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
                 <label>Comentário</label>
                 <textarea rows="5" id="comentario_status"></textarea>
+            </div>
+
+            <hr style="width: 80%">
+
+            <div class="anexos" style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
+                <label style="font-size: 1.2vw;">Anexos</label>
+                <input type="file" id="input-anexos" multiple onchange="adicionar_anexos_pendentes(this)">
+                <div id="lista-anexos-pendentes"></div>
             </div>
 
             <hr style="width: 80%">
@@ -1038,12 +1049,42 @@ async function salvar_pedido(chave) {
         orcamento.status = { historico: {} };
     }
 
+    if (anexos_pendentes.length > 0) {
+        console.log("📂 Enviando anexos para anexo_v2...", anexos_pendentes);
+
+        let anexos_enviados = await anexo_v2({ files: anexos_pendentes });
+
+        console.log("📂 Anexos recebidos:", anexos_enviados);
+
+        if (anexos_enviados && anexos_enviados.length > 0) {
+            novo_lancamento.anexos = {}; // 🔥 Apenas cria a chave se houver anexos
+            
+            anexos_enviados.forEach((anexo) => {
+                let id_anexo = gerar_id_5_digitos(); 
+                novo_lancamento.anexos[id_anexo] = {
+                    formato: "servidor",
+                    link: anexo.link, 
+                    nome: anexo.nome
+                };
+            });
+        }
+    }
+
     orcamento.status.historico[chave] = novo_lancamento;
 
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
 
     await abrir_esquema(id_orcam)
+
+    anexos_pendentes = [];
+    
+    if(document.getElementById("lista-anexos-pendentes")){
+
+    document.getElementById("lista-anexos-pendentes").innerHTML = "";
+
+    }
+
 }
 
 async function salvar_notas(chave) {
@@ -1077,6 +1118,7 @@ async function salvar_notas(chave) {
     chave == undefined ? chave = gerar_id_5_digitos() : chave
 
     orcamento.status.historico[chave] = novo_lancamento;
+    
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
     await abrir_esquema(id_orcam)
@@ -1212,6 +1254,8 @@ async function exibir_todos_os_status(id) {
     }
 
     id_orcam = id
+    console.log(id, id_orcam);
+    
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
@@ -2177,7 +2221,6 @@ async function removerValorManual(id_orcam, idValorManual) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
 
     if (!dados_orcamentos[id_orcam]?.valoresManuais || !dados_orcamentos[id_orcam].valoresManuais[idValorManual]) {
-        console.warn("⚠️ Valor manual não encontrado.");
         return;
     }
 
@@ -3089,4 +3132,39 @@ async function envio_de_material(chave) {
     </div>
     `
     openPopup_v2(acumulado)
+}
+
+function adicionar_anexos_pendentes(input) {
+    let listaAnexos = document.getElementById("lista-anexos-pendentes");
+
+    for (let file of input.files) {
+        // 🔥 Verifica se o arquivo já foi adicionado para evitar duplicatas
+        if (!anexos_pendentes.some(f => f.name === file.name)) {
+            anexos_pendentes.push(file); // 🔥 Adiciona ao array global
+
+            // 🔥 Adiciona na tela
+            let div = document.createElement("div");
+            div.style.display = "flex";
+            div.style.alignItems = "center";
+            div.style.gap = "10px";
+
+            let label = document.createElement("label");
+            label.textContent = file.name;
+
+            let btnRemover = document.createElement("button");
+            btnRemover.textContent = "❌";
+            btnRemover.style.background = "none";
+            btnRemover.style.border = "none";
+            btnRemover.style.color = "red";
+            btnRemover.style.cursor = "pointer";
+            btnRemover.onclick = function () {
+                anexos_pendentes = anexos_pendentes.filter((f) => f !== file);
+                div.remove();
+            };
+
+            div.appendChild(label);
+            div.appendChild(btnRemover);
+            listaAnexos.appendChild(div);
+        }
+    }
 }

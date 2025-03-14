@@ -1267,6 +1267,16 @@ async function lancar_pagamento(pagamento) {
     })
 }
 
+function formatarData(dataISO) {
+    if (!dataISO) return "--"; // Retorna um placeholder caso a data seja inválida ou vazia
+
+    let partes = dataISO.split("-");
+    if (partes.length === 3) {
+        return `${partes[2]}/${partes[1]}/${partes[0]}`; // Converte "YYYY-MM-DD" para "DD/MM/YYYY"
+    }
+    return dataISO; // Retorna a data original caso não esteja no formato esperado
+}
+
 async function anexo_v2(arquivoInput) {
     return new Promise((resolve, reject) => {
         const formData = new FormData();

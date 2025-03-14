@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ORÇAMENTOS</title>
+    <title>CHAMADOS</title>
     <link rel="stylesheet" type="text/css" href="gcsobras.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.2.1/exceljs.min.js"></script>
@@ -159,11 +159,19 @@
                         <img src="imagens/atualizar_2.png" style="width: 25px; cursor: pointer;">
                     </div>
 
+
                     <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
                         onclick="criar_manutencao()">
                         <label style="color: white;">Criar Manutenção</label>
                         <img src="imagens/chamados.png" style="width: 25px; cursor: pointer;">
                     </div>
+
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label style="color: white;">Filtrar Datas:</label>
+                        <input id="dataDe" class="datas_estoque" type="date" oninput="filtrarTabelaPorData()">
+                        <input id="dataAte" class="datas_estoque" type="date" oninput="filtrarTabelaPorData()">
+                    </div>
+
 
                 </div>
             </div>

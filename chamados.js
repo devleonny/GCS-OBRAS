@@ -134,14 +134,24 @@ async function carregar_manutencoes(sincronizar) {
         dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
     }
 
+     // 🔥 ORDENANDO DO MAIS RECENTE PARA O MENOS RECENTE
+     let listaManutencoes = Object.entries(dados_manutencao).sort((a, b) => {
+        let [dataA, horaA] = a[1].data.split(", "); // Separando data e hora
+        let [dataB, horaB] = b[1].data.split(", ");
+
+        let dataHoraA = new Date(dataA.split("/").reverse().join("-") + "T" + horaA);
+        let dataHoraB = new Date(dataB.split("/").reverse().join("-") + "T" + horaB);
+
+        return dataHoraB - dataHoraA; // Ordem decrescente (mais recente primeiro)
+    });
+
     let linhas = ''
     let status_toolbar = []
-    for (id in dados_manutencao) {
-        let manutencao = dados_manutencao[id]
-        let dados_clientes = dados_clientes_omie[manutencao.codigo_cliente] || {}
-        let dados_tecnicos = dados_clientes_omie[manutencao.codigo_tecnico] || {}
+    listaManutencoes.forEach(([id, manutencao]) => {
+        let dados_clientes = dados_clientes_omie[manutencao.codigo_cliente] || {};
+        let dados_tecnicos = dados_clientes_omie[manutencao.codigo_tecnico] || {};
 
-        status_toolbar.push(manutencao.status_manutencao)
+        status_toolbar.push(manutencao.status_manutencao);
 
         linhas += `
             <tr>
@@ -152,15 +162,15 @@ async function carregar_manutencoes(sincronizar) {
                 <td>${dados_tecnicos.nome || '--'}</td>
                 <td>${dados_clientes.cidade || '--'}</td>
                 <td>${salvarPrimeiroUsuario(manutencao?.historico || manutencao.usuario)}</td>
+                <td>${formatarData(manutencao.previsao) || '--'}</td>
                 <td style="text-align: center;">
                     <img onclick="abrir_manutencao('${id}')" src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;">
                 </td>
             </tr>
-            `
+        `;
+    });
 
-    }
-
-    let colunas = ['Última alteração', 'Status', 'Chamado', 'Loja', 'Técnico', 'Cidade', 'Analista', 'Ações']
+    let colunas = ['Última alteração', 'Status', 'Chamado', 'Loja', 'Técnico', 'Cidade', 'Analista', 'Previsão', 'Ações']
     let ths = ''
     let tsh = ''
     colunas.forEach((col, i) => {
@@ -221,14 +231,15 @@ async function abrir_manutencao(id) {
     document.getElementById('comentario').value = manutencao.comentario
     document.getElementById('status_manutencao').value = manutencao.status_manutencao
     document.getElementById('chamado').value = manutencao.chamado
+    document.getElementById('previsao').value = manutencao.previsao;
 
     let div_NF = document.getElementById("div_NF")
 
-    if(manutencao.status_manutencao == "MATERIAL ENVIADO" || manutencao.status_manutencao == "FINALIZADO"){
+    if (manutencao.status_manutencao == "MATERIAL ENVIADO" || manutencao.status_manutencao == "FINALIZADO") {
 
         div_NF.style.display = "flex"
 
-        if(manutencao.nf){
+        if (manutencao.nf) {
 
             document.getElementById("NF").value = manutencao.nf
 
@@ -378,7 +389,7 @@ async function abrir_manutencao(id) {
 
 function salvarPrimeiroUsuario(historico) {
 
-    
+
     // Verifica se o objeto de histórico existe e não está vazio
     if (historico && dicionario(historico)) {
         // Obtém a primeira chave do objeto
@@ -626,6 +637,12 @@ function criar_manutencao(id) {
                             <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text"
                                 placeholder="..." id="chamado">
                         </div>
+                        <div id="div_previsao"
+                            style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
+                            <label style="font-size: 1.2vw;">Previsão</label>
+                            <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="date"
+                                placeholder="..." id="previsao">
+                        </div>
                         <div id="div_NF"
                             style="display: none; position: relative; width: 25vw; align-items: center; justify-content: left; gap: 20px;">
                             <label style="font-size: 1.2vw;">NF</label>
@@ -744,16 +761,16 @@ async function excluir_manutencao(id) {
 
 }
 
-function aparecer_campo_nf(input_status){
+function aparecer_campo_nf(input_status) {
 
-    
-    if(input_status.value == "MATERIAL ENVIADO" || input_status.value == "FINALIZADO"){
-        
+
+    if (input_status.value == "MATERIAL ENVIADO" || input_status.value == "FINALIZADO") {
+
         let div_NF = document.getElementById("div_NF")
 
         div_NF.style.display = "flex"
 
-    }else{
+    } else {
 
         div_NF.style.display = "none"
 
@@ -791,25 +808,23 @@ async function enviar_manutencao(id) {
     // Atualiza o status atual da requisição
     manutencao.status_manutencao = document.getElementById('status_manutencao').value;
 
-    let NF = document.getElementById("NF")
+    let previsao = document.getElementById('previsao');
 
-    if(NF){
-
-        if(NF.value){
-
-            manutencao.nf = NF.value
-
-        }else{
-
-            manutencao.nf = ""
-
+    if (previsao && previsao.value) {
+        // Converte "DD/MM/YYYY" para "YYYY-MM-DD" se necessário
+        let partes = previsao.value.split("/");
+        if (partes.length === 3) {
+            manutencao.previsao = `${partes[2]}-${partes[1]}-${partes[0]}`;
+        } else {
+            manutencao.previsao = previsao.value;
         }
-
-    }else{
-
-        manutencao.nf = ""
-
+    } else {
+        manutencao.previsao = "";
     }
+
+
+    let NF = document.getElementById("NF");
+    manutencao.nf = NF && NF.value ? NF.value : "";
 
     // Adiciona uma nova entrada ao histórico
     let novaAtualizacao = {
@@ -822,15 +837,6 @@ async function enviar_manutencao(id) {
     // Gera uma chave única para a nova atualização
     let chaveAtualizacao = gerar_id_5_digitos();
     manutencao.historico[chaveAtualizacao] = novaAtualizacao;
-
-
-    /*campos.forEach(campo => {
-        let elemento = document.getElementById(campo);
-        if (elemento) {
-            manutencao[campo] = elemento.value || elemento.textContent;
-        }
-    });*/
-
 
     let tabela = document.getElementById('linhas_manutencao')
     let linhas = tabela.querySelectorAll('.linha')
@@ -1057,4 +1063,47 @@ async function atualizar_base_clientes() {
 
     }
 
+}
+
+async function filtrarTabelaPorData() {
+    let dataDe = document.getElementById("dataDe").value;
+    let dataAte = document.getElementById("dataAte").value;
+    let trs = document.querySelectorAll("#manutencoes tr");
+    let encontrou = false;
+
+    // 🔥 Remove a mensagem antes de começar a filtragem
+    let mensagem = document.getElementById("aviso-vazio");
+    if (mensagem) mensagem.remove();
+
+    trs.forEach(tr => {
+        let tds = tr.querySelectorAll("td");
+        let dataCelula = tds[7]?.textContent.trim();
+        let previsaoFormatada = dataCelula.split("/").reverse().join("-"); // "DD/MM/YYYY" -> "YYYY-MM-DD"
+
+        let incluir = false;
+
+        if (dataDe && dataAte) {
+            incluir = (previsaoFormatada >= dataDe && previsaoFormatada <= dataAte);
+        } else if (dataDe) {
+            incluir = (previsaoFormatada >= dataDe);
+        } else if (dataAte) {
+            incluir = (previsaoFormatada <= dataAte);
+        } else {
+            incluir = true; // Se nenhuma data for selecionada, mostra tudo
+        }
+
+        tr.style.display = incluir ? "table-row" : "none";
+
+        if (incluir) encontrou = true; // 🔥 Marca que encontrou pelo menos uma manutenção
+    });
+
+    let tbody = document.getElementById("manutencoes");
+
+    // 🔥 Se não encontrou nenhuma, adiciona a mensagem
+    if (!encontrou) {
+        let aviso = document.createElement("tr");
+        aviso.id = "aviso-vazio";
+        aviso.innerHTML = `<td colspan="9" style="text-align:center; font-weight:bold; color:black;">Nenhuma manutenção encontrada</td>`;
+        tbody.appendChild(aviso);
+    }
 }
