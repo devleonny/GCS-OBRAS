@@ -265,7 +265,7 @@ function remover_popup() {
         pop = document.getElementById('temp_pop')
     }
 
-    var telas = ['status', 'espelho_ocorrencias', 'estrutura', 'detalhes', 'imagem_upload']
+    var telas = ['status', 'espelho_ocorrencias', 'detalhes', 'imagem_upload']
     var manter_overlay = false
     telas.forEach(tl => {
         var tela = document.getElementById(tl)

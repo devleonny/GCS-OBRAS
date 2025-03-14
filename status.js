@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         orcamento_que_deve_voltar = orcamento_que_deve_voltar.replace(/"/g, "");
 
         exibir_todos_os_status(orcamento_que_deve_voltar);
-        
+
         // 🔥 Remove os dados do localStorage após exibição
         localStorage.removeItem("orcamento_que_deve_voltar");
 
@@ -195,17 +195,7 @@ async function resumo_orcamentos() {
 
 async function painel_adicionar_pedido() {
 
-    let painel_status = document.getElementById('status')
     let espelho_ocorrencias = document.getElementById('espelho_ocorrencias')
-    let estrutura = document.getElementById('estrutura')
-
-    if (estrutura) {
-        estrutura.remove()
-    }
-
-    if (painel_status) {
-        painel_status.remove()
-    }
 
     if (espelho_ocorrencias) {
         espelho_ocorrencias.remove()
@@ -219,8 +209,7 @@ async function painel_adicionar_pedido() {
     });
 
     var acumulado = `
-    <div id="status" class="status" style="display: flex; overflow: auto;">
-        
+
         <span class="close" onclick="fechar_status()">×</span>
 
         <label style="position: absolute; top: 5px; left: 5px; font-size: 0.6em;" id="data">${data}</label>
@@ -273,19 +262,18 @@ async function painel_adicionar_pedido() {
 
         </div>
 
-    </div>
+    `
 
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', acumulado)
+    let painel = document.getElementById('status')
+    if (painel) {
+        painel.innerHTML = acumulado
+        painel.style.width = '40vw'
+    } else {
+        document.body.insertAdjacentHTML('beforeend', acumulado)
+    }
 }
 
 async function painel_adicionar_notas(chave) {
-
-    var estrutura = document.getElementById('estrutura')
-    if (estrutura) {
-        estrutura.remove()
-    }
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var cliente = dados_orcamentos[id_orcam].dados_orcam.cliente_selecionado
@@ -296,56 +284,63 @@ async function painel_adicionar_notas(chave) {
 
     chave == undefined ? chave = gerar_id_5_digitos() : chave
 
+    let st = dados_orcamentos[id_orcam].status?.historico[chave] || {}
+    let notas = st.notas ? st.notas[0] : {}
+
     var acumulado = `
-        <div id="status" class="status" style="display: flex; overflow: auto;">
 
-            <span class="close" onclick="fechar_status()">×</span>
-            <label style="position: absolute; top: 5px; left: 5px; font-size: 0.6em;" id="data">${data}</label>
+        <span class="close" onclick="fechar_status()">×</span>
+        <label style="position: absolute; top: 5px; left: 5px; font-size: 0.6em;" id="data">${data}</label>
 
-            <div style="display: flex; justify-content: space-evenly; align-items: center;">
-                <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
-            </div>
-
-            <br>
-            
-            <div id="container_status"></div>
-
-            <hr style="width: 80%">
-
-            <div style="display: flex; flex-direction: column; align-items: start: justify-content: center; gap: 5px;">
-                <label class="novo_titulo" style="color: #222;">Inclua o número da Nota</label>
-                <label>Remessa, Venda ou Serviço</label>
-            </div>
-
-            <div style="display: flex; flex-direction: column; justify-content: center; align-items: start;"
-                <label><strong>Número da Nota</strong></label>
-                <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
-                    <input type="number" class="pedido" id="nota">
-                    <select id="tipo">
-                        <option>Remessa</option>
-                        <option>Venda</option>
-                        <option>Serviço</option>
-                        <option>Venda + Serviço</option>
-                    </select>
-                </div>
-                <label><strong>Valor da Nota</strong></label>
-                <input type="number" class="pedido" id="valorNota">
-                <label><strong>Valor do Frete</strong></label>
-                <input type="number" class="pedido" id="valorFrete">
-            </div>
-
-            <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-                <label><strong>Comentário</strong></label>
-                <textarea rows="5" style="width: 80%;" id="comentario_status"></textarea>
-            </div>
-
-            <hr style="width: 80%">
-
-            <button style="background-color: #4CAF50" onclick="salvar_notas('${chave}')">Salvar</button>
-
+        <div style="display: flex; justify-content: space-evenly; align-items: center;">
+            <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
         </div>
+
+        <br>
+        
+        <div id="container_status"></div>
+
+        <hr style="width: 80%">
+
+        <div style="display: flex; flex-direction: column; align-items: start: justify-content: center; gap: 5px;">
+            <label class="novo_titulo" style="color: #222;">Inclua o número da Nota</label>
+            <label>Remessa, Venda ou Serviço</label>
+        </div>
+
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: start;"
+            <label><strong>Número da Nota</strong></label>
+            <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
+                <input type="number" class="pedido" id="nota" value="${notas?.nota || ''}">
+                <select id="tipo">
+                    <option ${notas?.modalidade == 'Remessa' ? 'selected' : ''}>Remessa</option>
+                    <option ${notas?.modalidade == 'Venda' ? 'selected' : ''}>Venda</option>
+                    <option ${notas?.modalidade == 'Serviço' ? 'selected' : ''}>Serviço</option>
+                    <option ${notas?.modalidade == 'Venda + Serviço' ? 'selected' : ''}>Venda + Serviço</option>
+                </select>
+            </div>
+            <label><strong>Valor da Nota</strong></label>
+            <input type="number" class="pedido" id="valorNota" value="${notas?.valorNota || ''}">
+            <label><strong>Valor do Frete</strong></label>
+            <input type="number" class="pedido" id="valorFrete" value="${notas?.valorFrete || ''}">
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+            <label><strong>Comentário</strong></label>
+            <textarea rows="5" style="width: 80%;" id="comentario_status">${st?.comentario || ''}</textarea>
+        </div>
+
+        <hr style="width: 80%">
+
+        <button style="background-color: #4CAF50" onclick="salvar_notas('${chave}')">Salvar</button>
+
     `
-    document.body.insertAdjacentHTML('beforeend', acumulado)
+    let painel = document.getElementById('status')
+    if (painel) {
+        painel.innerHTML = acumulado
+        painel.style.width = '40vw'
+    } else {
+        document.body.insertAdjacentHTML('beforeend', acumulado)
+    }
 }
 
 function ocultar_pedido(elemento) {
@@ -459,19 +454,6 @@ async function calcular_requisicao(sincronizar) {
 
 }
 
-function alterar_todos(valor_ref) {
-    var trs = tabela_requisicoes.querySelectorAll('tr')
-    trs.forEach(tr => {
-        var tds = tr.querySelectorAll('td');
-        if (tds[7]) {
-            var select = tds[7].querySelector('select');
-            if (select) {
-                select.value = valor_ref;
-            }
-        }
-    })
-}
-
 function pesquisar_na_requisicao() {
 
     var pesquisa1 = document.getElementById('pesquisa1');
@@ -504,10 +486,6 @@ function pesquisar_na_requisicao() {
 
 async function carregar_itens(apenas_visualizar, requisicao, editar) {
 
-    if (!id_orcam) {
-        return ''
-    }
-
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     var dados_composicoes = await recuperarDados('dados_composicoes') || {}
     var orcamento = dados_orcamentos[id_orcam]
@@ -527,12 +505,11 @@ async function carregar_itens(apenas_visualizar, requisicao, editar) {
         var qtde = item.qtde
         var qtde_na_requisicao = 0
         var tipo = dados_composicoes[codigo]?.tipo || item.tipo
-        var infos = ['descricao', 'descricaocarrefour', 'modelo', 'fabricante']
         var elements = ''
         let mod_livre = true
         let qtde_editar = qtde
 
-        var historico = dados_orcamentos[id_orcam].status.historico
+        var historico = dados_orcamentos.id_orcam?.status.historico || {}
 
         Object.keys(historico).forEach(chave => {
 
@@ -553,20 +530,13 @@ async function carregar_itens(apenas_visualizar, requisicao, editar) {
             }
         })
 
-        infos.forEach(item => {
-
-            if (dados_composicoes[codigo] && dados_composicoes[codigo][item]) {
-                elements += `
-                <label>
-                <strong>${item.toUpperCase()}</strong> 
-                <br> 
-                ${dados_composicoes[codigo][item]}
-                </label>
+        if (dados_composicoes[codigo]) {
+            elements += `
+                <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong> <br>${dados_composicoes[codigo].descricao}</label>
+                <label style="font-size: 0.8vw;"><strong>FABRICANTE</strong> ${dados_composicoes[codigo].fabricante} • <strong>MODELO</strong> ${dados_composicoes[codigo].modelo}</label>
                 `
-                mod_livre = false
-            }
-
-        })
+            mod_livre = false
+        }
 
         if (mod_livre) {
             elements = `
@@ -575,12 +545,12 @@ async function carregar_itens(apenas_visualizar, requisicao, editar) {
         }
 
         var part_number = `
-            <input value="${dados_composicoes[codigo]?.omie || ''}" class="pedido" style="font-size: 1.2em; width: 100%; height: 40px; padding: 0px; margin: 0px;">
+            <input value="${dados_composicoes[codigo]?.omie || ''}" class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;">
         `
 
         // Ajustando o select para ter a opção correta selecionada;
         var selectTipo = `
-            <select onchange="calcular_requisicao()">
+            <select onchange="calcular_requisicao()" style="border: none;">
                 <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
                 <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
             </select>
@@ -637,17 +607,14 @@ async function carregar_itens(apenas_visualizar, requisicao, editar) {
         }
 
         var quantidade = `
-        <div style="display: flex; flex-direction: column; align-items: start; justify-content: space-evenly; gap: 10px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
 
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
-                <label><strong>Quantidade a enviar</strong></label>
-                <input class="pedido" type="number" style="width: 100%; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${requisicao[codigo]?.qtde_enviar || qtde_na_requisicao}">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
+                <label>Quantidade a enviar</label>
+                <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${requisicao[codigo]?.qtde_enviar || qtde_na_requisicao}">
             </div>
 
-            <div class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px; background-color: #222; font-size: 1.2em;">
-                <label><strong>Orçamento</strong></label>
-                <label class="num">${quantidadeAtual || qtde_editar}</label>   
-            </div>
+            <label class="num">${quantidadeAtual || qtde_editar}</label>  
 
         </div>
         `
@@ -660,16 +627,17 @@ async function carregar_itens(apenas_visualizar, requisicao, editar) {
             <option>Fornecido pelo Cliente</option>
         </select>
         `
-
+        let aux = `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`
         if (apenas_visualizar) {
             part_number = `<label style="font-size: 1.2em;">${requisicao[codigo]?.partnumber || ''}</label>`
             selectTipo = `<label style="font-size: 1.2em; margin: 10px;">${requisicao[codigo]?.tipo || ''}</label>`
             quantidade = `<label style="font-size: 1.2em;">${requisicao[codigo]?.qtde_enviar || ''}</label>`
             opcoes = `<label style="font-size: 1.2em;">${requisicao[codigo]?.requisicao || ''}</label>`
+            aux = ''
         }
 
         var linha = `
-            <tr style="background-color: white;">
+            <tr class="lin_req" style="background-color: white;">
                 <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
                 <td style="text-align: center;">
                 ${part_number}
@@ -678,7 +646,7 @@ async function carregar_itens(apenas_visualizar, requisicao, editar) {
                     <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
                     ${elements}
                     </div>
-                    <img src="imagens/construcao.png" style="position: absolute; bottom: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">
+                    ${aux}
                 </td>
                 <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
                     ${selectTipo}
@@ -703,7 +671,8 @@ async function carregar_itens(apenas_visualizar, requisicao, editar) {
                 </td>
             </tr>
         `
-        if (apenas_visualizar == undefined || !apenas_visualizar || (apenas_visualizar && requisicao && requisicao[codigo] && requisicao[codigo].qtde_enviar)) {
+
+        if (!apenas_visualizar || (requisicao && requisicao[codigo] && requisicao[codigo].qtde_enviar)) {
             linhas += linha
         }
 
@@ -716,70 +685,7 @@ function remover_linha_materiais(element) {
     element.closest('tr').remove()
 }
 
-function adicionar_linha_materiais(descricao, und, qtde) {
-
-    var painel_cotacoes = document.getElementById('painel_cotacoes');
-
-    if (painel_cotacoes) {
-
-        var tabela = painel_cotacoes.querySelector('table');
-        var materiais = JSON.parse(localStorage.getItem('dados_materiais')) || {}
-        var tbody = tabela.querySelector('tbody');
-        var itens = ''
-
-        for (material in materiais) {
-            var item = materiais[material]
-            itens += `
-        <option>${item.descricao}</option>
-        `
-        }
-
-        var linha = `
-        <tr>
-            <td><img src="imagens/excluir.png" onclick="remover_linha_materiais(this)" style="cursor: pointer;"></td>
-            <td>?</td>
-            <td style="width: 300px;">
-            <input list="itens" onchange="mostrar_estoque()" placeholder="Digite o nome do material" style="width: 300px;">
-            <datalist id="itens">
-                ${itens}
-            </datalist>
-            </td>
-            <td><input value="UND"></td>
-            <td><input placeholder="0"></td>
-            <td></td>
-        </tr>
-    `;
-
-        tbody.insertAdjacentHTML('beforeend', linha);
-
-        if (descricao !== undefined) {
-            var trs = tbody.querySelectorAll('tr')
-            var tds = trs[trs.length - 1].querySelectorAll('td')
-            tds[2].querySelector('input').value = descricao
-            tds[3].querySelector('input').value = und
-            tds[4].querySelector('input').value = qtde
-        }
-    }
-}
-
-function mostrar_estoque() {
-
-    var tabela = painel_cotacoes.querySelector('table');
-    var materiais = JSON.parse(localStorage.getItem('dados_materiais')) || {}
-    var tbody = tabela.querySelector('tbody')
-    var trs = tbody.querySelectorAll('tr')
-
-    trs.forEach(tr => {
-        var tds = tr.querySelectorAll('td')
-        var chave_desc = tds[2].querySelector('input').value
-
-        tds[1].textContent = materiais[chave_desc].partnumber
-        tds[5].textContent = materiais[chave_desc].estoque
-    })
-
-}
-
-function abrir_adicionais(codigo) {
+async function abrir_adicionais(codigo) {
 
     var acumulado = `
 
@@ -825,7 +731,7 @@ function abrir_adicionais(codigo) {
 
             <br>
 
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px; width: 100%;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px;">
 
                 <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
                     <div onclick="adicionar_linha_manut()" class="contorno_botoes"
@@ -835,7 +741,7 @@ function abrir_adicionais(codigo) {
                     </div>
                     <div onclick="recuperar_estoque()" class="contorno_botoes" style="background-color: #151749; color: white;">
                         <img src="imagens/sync.png" style="cursor: pointer; width: 2vw;">
-                        <label">Sincronizar Estoque</label>
+                        <label>Sincronizar Estoque</label>
                     </div>
                 </div>
 
@@ -857,19 +763,17 @@ function abrir_adicionais(codigo) {
 
             for (ad in adicionais) {
                 var dados = adicionais[ad]
-                adicionar_linha_materiais(ad, dados.unidade, dados.qtde)
+                adicionar_linha_manut(ad, dados)
             }
-
-            mostrar_estoque()
 
         }
     }
 
 }
 
-function adicionar_linha_manut() {
+function adicionar_linha_manut(ad, dados) {
     let tbody = document.getElementById('linhas_manutencao')
-    let aleatorio = gerar_id_5_digitos()
+    let aleatorio = ad ? ad : gerar_id_5_digitos()
 
     let excluir_inicial = document.getElementById('excluir_inicial')
     if (excluir_inicial) {
@@ -881,24 +785,24 @@ function adicionar_linha_manut() {
         <div class="linha_completa">
             <div class="linha">
                 <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="text">
+                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="text" value="${dados?.partnumber || ''}">
                 </div>
                 <div style="position: relative; width: 25vw; height: 30px; background-color: #b5b5b5;">
-                    <textarea style="background-color: transparent;" type="text" id="${aleatorio}" oninput="sugestoes(this, 'sug_${aleatorio}', 'estoque')"></textarea>
-                    <div class="autocomplete-list" id="sug_${aleatorio}"></div>
+                    <textarea style="background-color: transparent; height: 100%; resize: none; border: none; outline: none;" type="text" id="${aleatorio}" oninput="sugestoes(this, 'sug_${aleatorio}', 'estoque')">${dados?.descricao || ''}</textarea>
+                    <div class="autocomplete-list" id="sug_${aleatorio}"></div> 
                     <input id="input_${aleatorio}" style="display: none;">
                 </div>
 
                 <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="number">
+                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="number" value="${dados?.qtde || ''}">
                 </div>
 
                 <div style="width: 20vw; height: 30px; background-color: #b5b5b5;">
                     <select style="width: 100%; background-color: transparent;">
-                        <option>UND</option>
-                        <option>METRO</option>
-                        <option>CX</option>
-                        <option>PCT</option>
+                        <option ${dados?.unidade == 'UND' ? 'checked' : ''}>UND</option>
+                        <option ${dados?.unidade == 'METRO' ? 'checked' : ''}>METRO</option>
+                        <option ${dados?.unidade == 'CX' ? 'checked' : ''}>CX</option>
+                        <option ${dados?.unidade == 'PCT' ? 'checked' : ''}>PCT</option>
                     </select>
                 </div>
 
@@ -910,7 +814,7 @@ function adicionar_linha_manut() {
                     <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" readOnly>
                 </div>
 
-                <div style="width: 5vw;">
+                <div style="width: 5vw; display: flex; align-items: center; justify-content: center;">
                     <img src="imagens/remover.png" onclick="remover_esta_linha(this)" style="width: 30px; cursor: pointer;">
                 </div>
             </div>
@@ -953,29 +857,12 @@ async function sugestoes(textarea, div, base) {
     for (id in dados) {
         let item = dados[id]
         let info;
-        let dados_endereco;
-        let cod_omie;
 
-        if (base == 'clientes') {
-            cod_omie = item.omie
-            info = String(item.nome)
-            dados_endereco = `
-            <label><strong>CNPJ/CPF:</strong> ${item.cnpj}</label>
-            <label style="text-align: left;"><strong>Rua/Bairro:</strong> ${item.bairro}</label>
-            <label><strong>CEP:</strong> ${item.cep}</label>
-            <label><strong>Cidade:</strong> ${item.cidade}</label>
-            <label><strong>Estado:</strong> ${item.estado}</label>
-        `.replace(/'/g, "&apos;")
-                .replace(/"/g, "&quot;")
-                .replace(/\r?\n|\r/g, "");
-
-        } else if (base == 'estoque') {
-            info = String(item.descricao)
-        }
+        info = String(item.descricao)
 
         if (info.includes(query)) {
             opcoes += `
-                    <div onclick="definir_campo(this, '${div}', '${dados_endereco}', '${cod_omie}', '${id}')" class="autocomplete-item" style="font-size: 0.8vw;">${info}</div>
+                    <div onclick="definir_campo(this, '${div}', '${id}')" class="autocomplete-item" style="font-size: 0.8vw;">${info}</div>
                 `
         }
     }
@@ -984,99 +871,77 @@ async function sugestoes(textarea, div, base) {
 
 }
 
-async function definir_campo(elemento, div, string_html, omie, id) {
+async function definir_campo(elemento, div, id) {
 
     let campo = String(div).split('_')[1]
 
-    if (campo == 'tecnico' || campo == 'cliente') {
+    let input_aleatorio = document.getElementById(`input_${campo}`)
+    input_aleatorio.value = id
 
-        let endereco = document.getElementById(`endereco_${campo}`)
-        endereco.innerHTML = string_html.replace(/&apos;/g, "'").replace(/&quot;/g, '"');
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+    let estoques = ['estoque', 'estoque_usado']
 
-    } else {
+    let dic_quantidades = {}
 
-        let input_aleatorio = document.getElementById(`input_${campo}`)
-        input_aleatorio.value = id
+    estoques.forEach(estoque => {
 
-        let dados_estoque = await recuperarDados('dados_estoque') || {}
-        let estoques = ['estoque', 'estoque_usado']
-
-        let dic_quantidades = {}
-
-        estoques.forEach(estoque => {
-
-            let estoque_do_objeto = dados_estoque[id][estoque]
-            let historicos = estoque_do_objeto.historico
-            dic_quantidades[estoque] = estoque_do_objeto.quantidade
+        let estoque_do_objeto = dados_estoque[id][estoque]
+        let historicos = estoque_do_objeto.historico
+        dic_quantidades[estoque] = estoque_do_objeto.quantidade
 
 
-            for (his in historicos) {
-                let historico = historicos[his]
+        for (his in historicos) {
+            let historico = historicos[his]
 
-                if (historico.operacao == 'entrada') {
-                    dic_quantidades[estoque] += historico.quantidade
-                } else if (historico.operacao == 'saida') {
-                    dic_quantidades[estoque] -= historico.quantidade
-                }
+            if (historico.operacao == 'entrada') {
+                dic_quantidades[estoque] += historico.quantidade
+            } else if (historico.operacao == 'saida') {
+                dic_quantidades[estoque] -= historico.quantidade
             }
+        }
 
-            let div_linha = input_aleatorio.parentElement.parentElement
+        let div_linha = input_aleatorio.parentElement.parentElement
 
-            let inputs = div_linha.querySelectorAll('input, textarea, select')
+        let inputs = div_linha.querySelectorAll('input, textarea, select')
 
-            inputs[0].value = dados_estoque[id].partnumber
-            inputs[5].value = dic_quantidades.estoque
-            inputs[6].value = dic_quantidades.estoque_usado
+        inputs[0].value = dados_estoque[id].partnumber
+        inputs[5].value = dic_quantidades.estoque
+        inputs[6].value = dic_quantidades.estoque_usado
 
-        })
+    })
 
-    }
-
-    let codigo = document.getElementById(`codigo_${campo}`)
-    if (codigo) {
-        codigo.textContent = omie
-    }
     document.getElementById(campo).value = elemento.textContent
     document.getElementById(div).innerHTML = '' // Sugestões
 }
 
-
 function salvar_itens_adicionais(codigo) {
+    let tabela = document.getElementById('linhas_manutencao')
+    let linhas = tabela.querySelectorAll('.linha')
 
-    if (itens_adicionais[codigo]) {
-        delete itens_adicionais[codigo]
-    }
+    itens_adicionais[codigo] = {}
 
-    let linhas = document.querySelectorAll('.linhas')
+    let adicionais = itens_adicionais[codigo]
 
     linhas.forEach(linha => {
         let valores = linha.querySelectorAll('input, textarea, select')
+        let cod = valores[1].id
 
-        itens_adicionais[codigo] = {}
-
-        var adicionais = itens_adicionais[codigo]
-
-        if (valores[1].value !== '') {
-
-            let cod = valores[1].id
-
+        if (cod !== '') {
             if (!adicionais[cod]) {
                 adicionais[cod] = {}
             }
 
             adicionais[cod].partnumber = valores[0].value
             adicionais[cod].descricao = valores[1].value
-            adicionais[cod].qtde = valores[2].value
-            adicionais[cod].unidade = valores[3].value
-
+            adicionais[cod].qtde = valores[3].value
+            adicionais[cod].unidade = valores[4].value
         }
-
     })
 
     mostrar_itens_adicionais()
     remover_popup()
-
 }
+
 
 function mostrar_itens_adicionais() {
     var tabela_requisicoes = document.getElementById('tabela_requisicoes')
@@ -1088,39 +953,43 @@ function mostrar_itens_adicionais() {
 
         trs.forEach(tr => {
             var tds = tr.querySelectorAll('td')
+            let codigo = tds[0]?.textContent || undefined
 
-            var codigo = tds[0].textContent
-
-            var container = document.getElementById(`container_${codigo}`)
-            if (container) {
-                container.remove()
+            let local = document.getElementById(`tabela_${codigo}`)
+            if (local) {
+                local.remove()
             }
 
             if (itens_adicionais[codigo]) {
 
                 var adicionais = itens_adicionais[codigo]
-                var div = ''
-
+                let linhas = ''
                 for (ad in adicionais) {
 
                     var adicional = adicionais[ad]
 
-                    div += `
-                    <div class="div_adicionais">
-                        <label>${adicional.qtde}</label>
-                        <label>${adicional.unidade}</label>
-                        <label>${adicional.partnumber}</label>
-                        <label>${adicional.descricao}</label>
-                    </div>
+                    linhas += `
+                    <tr>
+                        <td>${adicional.qtde}</td>
+                        <td>${adicional.unidade}</td>
+                        <td>${adicional.partnumber}</td>
+                        <td>${adicional.descricao}</td>
+                    </tr>
                     `
                 }
 
                 var acumulado = `
-                <div id="container_${codigo}" class="contorno" style="width: 80%;">
-                    <div style="padding: 5px; background-color: #99999940; border-radius: 3px; font-size: 0.6vw; display: flex; flex-direction: column; justify-content: center; align-items: start; gap: 2px;">
+                <div id="tabela_${codigo}" style="padding: 5px; border-radius: 3px; display: flex; flex-direction: column; justify-content: center; align-items: start; gap: 2px;">
                     <label><strong>ITENS ADICIONAIS</strong></label>
-                        ${div}
-                    </div>
+                    <table class="tabela">
+                        <thead>
+                            <th>Qtde</th>
+                            <th>Unidade</th>
+                            <th>Partnumber</th>
+                            <th>Descricao</th>
+                        </thead>
+                        <tbody style="font-size: 0.6vw; ">${linhas}</tbody>
+                    </table>
                 </div>
                 `
 
@@ -1147,8 +1016,6 @@ async function salvar_pedido(chave) {
             </div>
         `);
     }
-
-    fechar_status() // Só fechar após coletar a informação necessária;
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
@@ -1186,9 +1053,6 @@ async function salvar_notas(chave) {
     let tipo = document.getElementById('tipo')
     let data = document.getElementById('data')
     let comentario_status = document.getElementById('comentario_status')
-
-    fechar_status()
-
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
@@ -1214,10 +1078,10 @@ async function salvar_notas(chave) {
 
     orcamento.status.historico[chave] = novo_lancamento;
 
-    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
-
     await abrir_esquema(id_orcam)
+
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
 
     itens_adicionais = {}
 }
@@ -1225,8 +1089,6 @@ async function salvar_notas(chave) {
 async function salvar_requisicao(chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
-    let pendencias = []
-    let interromper_processo = false
 
     if (!orcamento.status) {
         orcamento.status = { historico: {} };
@@ -1243,57 +1105,47 @@ async function salvar_requisicao(chave) {
         total_com_icms: total_c_icms.textContent
     };
 
-    var tabela_requisicoes = document.getElementById('tabela_requisicoes')
-    var tbody = tabela_requisicoes.querySelector('tbody');
+    var linhas = document.querySelectorAll('.lin_req');
+    var lista_partnumbers = {};
 
-    if (tbody) {
-        var trs = tbody.querySelectorAll('tr');
-        var lista_partnumbers = {};
+    for (let linha of linhas) {
 
-        trs.forEach(tr => {
-            var tds = tr.querySelectorAll('td');
-            var codigo = tds[0].textContent
-            var partnumber = tds[1].querySelector('input')?.value || '';
-            var requisicao = tds[7].querySelector('select')?.value || '';
-            var tipo = tds[3].querySelector('select')?.value || '';
-            var qtde = tds[4].querySelector('input')?.value || '';
+        let valores = linha.querySelectorAll('input, select');
 
-            if (qtde !== '' && partnumber === '') {
-                interromper_processo = true
-                pendencias.push(tds[1].querySelector('input'))
-            }
+        if (valores.length == 0) { continue }
+        let tds = linha.querySelectorAll('td')
 
-            if (qtde !== '') {
-                novo_lancamento.requisicoes.push({
-                    codigo: codigo,
-                    partnumber: partnumber,
-                    tipo: tipo,
-                    qtde_enviar: qtde,
-                    requisicao: requisicao
-                });
-            }
+        let codigo = tds[0].textContent
+        let partnumber = valores[0].value
+        let tipo = valores[1].value
+        let qtde = valores[2].value
+        let requisicao = valores[3].value
 
-            if (partnumber !== '') {
-                lista_partnumbers[codigo] = partnumber;
-            }
-        });
-
-        if (orcamento.modalidade !== 'MODALIDADE LIVRE') {
-            atualizar_partnumber(lista_partnumbers)
+        if (partnumber == '' && qtde !== '') {
+            return openPopup_v2(`
+                    <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                        <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                        <label> Preencha os PARTNUMBERs pendentes</label>
+                    </div>
+                `);
         }
+
+        if (qtde != '') {
+            novo_lancamento.requisicoes.push({
+                codigo: codigo,
+                partnumber: partnumber,
+                tipo: tipo,
+                qtde_enviar: qtde,
+                requisicao: requisicao
+            });
+        }
+
+        lista_partnumbers[codigo] = partnumber;
+
     }
 
-    if (interromper_processo) {
-        pendencias.forEach(element => {
-            element.style.backgroundColor = '#B12425'
-        })
-
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label> Preencha os PARTNUMBERs pendentes [Vermelho]</label>
-            </div>
-        `);
+    if (orcamento.modalidade !== 'MODALIDADE LIVRE') {
+        atualizar_partnumber(lista_partnumbers)
     }
 
     orcamento.status.historico[chave] = novo_lancamento;
@@ -1311,14 +1163,16 @@ async function salvar_requisicao(chave) {
     itens_adicionais = {}
 }
 
-async function fechar_status() {
-    var status = document.getElementById('status')
-    if (status) {
-        status.remove()
-    }
-    remover_popup()
+async function fechar_status(destruir) {
 
-    await abrir_esquema(id_orcam)
+    var status = document.getElementById('status')
+    if (destruir) {
+        status.remove()
+    } else {
+        await abrir_esquema(id_orcam)
+    }
+
+    remover_popup()
 }
 
 function fechar_espelho_ocorrencias() {
@@ -1363,28 +1217,20 @@ async function exibir_todos_os_status(id) {
 
     var orcamento = dados_orcamentos[id]
 
-    var acumulado = ''
-
-    acumulado += `
-    <span class="close" onclick="fechar_espelho_ocorrencias()">&times;</span>
-    <div style="display: flex; gap: 10px">
-        <label class="novo_titulo" style="color: #222; margin-right: 10vw;" id="cliente_status">${orcamento.dados_orcam.cliente_selecionado}</label>
-    </div>
+    var acumulado = `
+        <span class="close" onclick="fechar_espelho_ocorrencias()">&times;</span>
+        <div style="display: flex; gap: 10px">
+            <label class="novo_titulo" style="color: #222; margin-right: 10vw;" id="cliente_status">${orcamento.dados_orcam.cliente_selecionado}</label>
+        </div>
     `
-
     var analista = orcamento.dados_orcam.analista
     var acumulado_botoes = ''
 
-    if (orcamento.status) {
-        acumulado_botoes += `
+    acumulado_botoes += `
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="abrir_esquema('${id}')">
             <img src="imagens/esquema.png" style="width: 48px; height: 48px; margin: 3px;">
             <label style="cursor: pointer;">Histórico</label>
         </div>
-        `
-    }
-
-    acumulado_botoes += `
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_pdf('${id}')">
             <img src="imagens/pdf.png" style="width: 55px;">
             <label style="cursor: pointer;">Abrir Orçamento em PDF</label>
@@ -1393,8 +1239,6 @@ async function exibir_todos_os_status(id) {
             <img src="imagens/excel.png">
             <label style="cursor: pointer;">Baixar Orçamento em Excel</label>
         </div>
-    `
-    acumulado_botoes += `
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_duplicar('${id}')">
             <img src="imagens/duplicar.png">
             <label style="cursor: pointer;">Duplicar Orçamento</label>
@@ -1413,8 +1257,6 @@ async function exibir_todos_os_status(id) {
         </div>         
         `
     }
-
-    acumulado_botoes += botao_novo_pedido(id)
 
     acumulado += `
         <hr style="width: 100%">
@@ -1507,28 +1349,20 @@ function abrirArquivo(link) {
 
 async function abrir_esquema(id) {
     overlay.style.display = 'block'
-    var status = document.getElementById('status')
-    if (status) {
-        status.remove()
-    }
-    var estrutura = document.getElementById('estrutura')
-    if (estrutura) {
-        estrutura.remove()
-    }
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
     let orcamento = dados_orcamentos[id]
-    var categorias = Object.fromEntries(
+    let categorias = Object.fromEntries(
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
     )
 
-    if (orcamento && orcamento.status) {
+    if (orcamento) {
         var levantamentos = ''
         if (orcamento.levantamentos) {
             for (chave in orcamento.levantamentos) {
-                var levantamento = orcamento.levantamentos[chave] 
+                var levantamento = orcamento.levantamentos[chave]
                 levantamentos += `
                 <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
                     <div onclick="abrirArquivo('${levantamento.link}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
@@ -1578,7 +1412,7 @@ async function abrir_esquema(id) {
         let string_pagamentos = ''
         let tem_pagamento = false
         let pagamentos_painel = {}
-        var historico = orcamento.status.historico || {}
+        var historico = orcamento.status?.historico || {}
 
         for (pag in lista_pagamentos) {
 
@@ -1657,7 +1491,7 @@ async function abrir_esquema(id) {
 
             if (sst.status.includes('REQUISIÇÃO')) {
                 links_requisicoes += `
-                    <div onclick="detalhar_requisicao('${chave}', true)" class="anexos" style="cursor: pointer; display: flex; gap: 10px; justify-content: left; align-items: center;">
+                    <div onclick="detalhar_requisicao('${chave}')" class="anexos" style="cursor: pointer; display: flex; gap: 10px; justify-content: left; align-items: center;">
                         <img src="gifs/lampada.gif" style="width: 25px">
                         <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; cursor: pointer;">
                             <label style="cursor: pointer;"><strong>REQUISIÇÃO DISPONÍVEL</strong></label>
@@ -1666,7 +1500,7 @@ async function abrir_esquema(id) {
                     </div>
                     `
                 editar = `
-                    <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}', false, true)">
+                    <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}', true)">
                         <img src="imagens/editar4.png">
                         <label>Editar</label>
                     </div>
@@ -1723,11 +1557,12 @@ async function abrir_esquema(id) {
 
             var notas = ''
             if (sst.notas) {
-                notas += `${sst.notas[0].nota}`
-            }
-            var valorNota = 0
-            if (sst.notas) {
-                valorNota += Number(sst.notas[0].valorNota)
+                notas += `
+                <label><strong>NF: </strong>${sst.notas[0].nota}</label>
+                <label><strong>Valor NF: </strong>${dinheiro(sst.notas[0].valorNota)}</label>
+                <label><strong>Valor FRETE: </strong>${dinheiro(sst.notas[0].valorFrete)}</label>
+                <label><strong>Tipo: </strong>${sst.notas[0].modalidade}</label>
+                `
             }
 
             var totais = ''
@@ -1781,8 +1616,7 @@ async function abrir_esquema(id) {
                             <label><strong>Comentário: </strong> <br> ${coments}</label>
                             ${dados_envio}
                             ${dados_pedidos}
-                            ${sst.notas ? `<label><strong>NF: </strong>${notas}</label>` : ''}
-                            ${sst.notas ? `<label><strong>Valor NF: </strong>${dinheiro(valorNota)}</label>` : ''}
+                            ${notas}
                             ${totais}
                             ${links_requisicoes}
                             ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${chave}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
@@ -1815,10 +1649,10 @@ async function abrir_esquema(id) {
                                     ${await carregar_comentarios(chave)}
                                 </div>
                             </div>
+                            <br>
                         </div>
-
                         <div style="cursor: pointer; background-color: ${fluxograma[sst.status].cor}; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
-                            <label style="color: white; font-size: 0.9vw;">▼</label>
+                            <label style="color: white; font-size: 0.9vw;">ver mais</label>
                         </div>
 
                     </div>
@@ -1904,8 +1738,8 @@ async function abrir_esquema(id) {
                                 </div>
                                 <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
                                     <img src="gifs/atencao.gif" style="width: 2vw;">
-                                    <label style="text-decoration: underline; cursor: pointer;" onclick="deseja_apagar('${chave}')">
-                                        Excluir este número de Pedido
+                                    <label style="text-decoration: underline; cursor: pointer;" onclick="deseja_apagar()">
+                                        Excluir TODO o Histórico?
                                     </label>
                                 </div>                                
                             </div>
@@ -1922,15 +1756,15 @@ async function abrir_esquema(id) {
 
     let painel_custos = `
 
-        <div id="overlay_de_custos" style="
-        display: none; 
-        background-color: rgba(0, 0, 0, 0.7);
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        z-index: 1001;
-        border-radius: 3px;"></div>
+            <div id="overlay_de_custos" style="
+            display: none; 
+            background-color: rgba(0, 0, 0, 0.7);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            z-index: 1001;
+            border-radius: 3px;"></div>
 
         <div id="painel_custos" class="contorno_botoes" style="
         resize: both;
@@ -1973,17 +1807,24 @@ async function abrir_esquema(id) {
         </div>
         `
 
-    var estruturaHtml = `
-        <div id="estrutura" class="status" style="display: flex; flex-direction: column; gap: 10px; width: 100%; overflow: auto;">
-        <span class="close" onclick="fechar_estrutura()">&times;</span>
+    let estruturaHtml = `
+        <div id="status" class="status" style="display: flex; flex-direction: column; gap: 10px; width: 100%; overflow: auto;">
+            <span class="close" onclick="fechar_status(true)">&times;</span>
 
-        <div style="max-width: 90%; display: flex; flex-direction: column;">
-            ${acumulado}
+            <div style="max-width: 90%; display: flex; flex-direction: column;">
+                ${acumulado}
+            </div>
+
+            ${painel_custos}
         </div>
+        `
 
-        ${painel_custos}
-        `;
-    document.body.insertAdjacentHTML('beforeend', estruturaHtml);
+    let painel = document.getElementById('status')
+    if (painel) {
+        painel.innerHTML = estruturaHtml
+    } else {
+        document.body.insertAdjacentHTML('beforeend', estruturaHtml);
+    }
 
     // É só esperar a página incluir os elementos acima, simples... não precisa de timeInterval...
     let totalValoresPedidos = somarValoresPedidos();
@@ -2006,7 +1847,7 @@ async function abrir_esquema(id) {
 function mostrar_painel() {
     let painel_custos = document.getElementById('painel_custos')
     let overlay_de_custos = document.getElementById('overlay_de_custos')
-    let estrutura = document.getElementById('estrutura')
+    let estrutura = document.getElementById('status')
     if (painel_custos) {
         if (painel_custos.style.display == 'flex') {
             painel_custos.style.display = 'none'
@@ -2099,7 +1940,7 @@ function exibirItens(div) {
         let exibir = item.style.display !== 'flex';
         item.style.display = exibir ? 'flex' : 'none';
 
-        exibir ? label.textContent = '▲' : label.textContent = '▼'
+        exibir ? label.textContent = 'menos' : label.textContent = 'ver mais'
 
     });
 }
@@ -2750,14 +2591,6 @@ async function excluir_anexo(chave, id_anexo, img) {
 
 }
 
-function fechar_estrutura() {
-    var estrutura = document.getElementById('estrutura')
-    if (estrutura) {
-        estrutura.remove()
-    }
-    remover_popup()
-}
-
 async function chamar_duplicar(id) {
     fechar_espelho_ocorrencias()
     duplicar(id)
@@ -2778,26 +2611,16 @@ async function chamar_excluir(id) {
         `)
 }
 
-async function detalhar_requisicao(chave) {
+async function detalhar_requisicao(chave, editar) {
 
-    let visualizar = true
-    if (chave == undefined) {
+    let visualizar = (editar || !chave) ? false : true
+
+    if (!chave) {
         chave = gerar_id_5_digitos()
-        visualizar = false
     }
 
-    var painel_status = document.getElementById('status')
-    if (painel_status) {
-        painel_status.remove()
-    }
-
-    var estrutura = document.getElementById('estrutura')
-    if (estrutura) {
-        estrutura.remove()
-    }
     fechar_espelho_ocorrencias()
     overlay.style.display = 'block'
-
 
     itens_adicionais = {}
     var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
@@ -2814,17 +2637,13 @@ async function detalhar_requisicao(chave) {
     var menu_flutuante = ''
     var nome_cliente = orcamento.dados_orcam.cliente_selecionado
 
-    if (chave && orcamento.status.historico[chave]) {
+    if (chave && orcamento.status && orcamento.status.historico && orcamento.status.historico[chave]) {
         let cartao = orcamento.status.historico[chave]
         menu_flutuante = `
         <div class="menu_flutuante" id="menu_flutuante">
             <div class="icone" onclick="gerarpdf('${orcamento.dados_orcam.cliente_selecionado}', '${cartao.pedido}')">
                 <img src="imagens/pdf.png">
                 <label>PDF</label>
-            </div>
-            <div class="icone" onclick="excel()">
-                <img src="imagens/excel.png">
-                <label>Excel</label>
             </div>
         </div> 
         `
@@ -2881,9 +2700,7 @@ async function detalhar_requisicao(chave) {
         `
     }
 
-    var elementus = `   
-    <span class="close" onclick="fechar_status()" id="span">&times;</span>
-
+    var elementus = `
     ${menu_flutuante}
 
     <div style="display: flex; align-items: center; justify-content: center; width: 100%; background-color: #151749; border-radius: 3px;">
@@ -2945,18 +2762,29 @@ async function detalhar_requisicao(chave) {
                 <th style="text-align: center;">Requisição</th>
             </thead>
             <tbody>
-            ${await carregar_itens(visualizar, requisicao)}
+                ${await carregar_itens(visualizar, requisicao)}
             </tbody>
         </table>
     <div>
     `
     var elementus_tus = `
-    <div id="status" class="status" style="display: flex; width: 100%; overflow: auto;">
+    <div style="background-color: #d2d2d2; width: 100%; display: flex; justify-content: space-between; align-items: center;">
+        <label style="margin-left: 1vw;">Requisição</label>
+        <label style="font-size: 1.5vw; text-align: center; color: white; background-color: #B12425; cursor: pointer; width: 3vw; height: 100%;" onclick="fechar_status()">&times;</label>
+    </div>
+    <div style="display: flex; flex-direction: column; padding: 2vw; overflow: auto;">
         ${elementus}
     </div>
     `
 
-    document.body.insertAdjacentHTML('beforeend', elementus_tus)
+    let painel = document.getElementById('status')
+    if (painel) {
+        painel.innerHTML = elementus_tus
+        painel.style.width = '90vw'
+        painel.style.padding = '0px'
+    } else {
+        document.body.insertAdjacentHTML('beforeend', elementus_tus)
+    }
 
     await calcular_requisicao()
     mostrar_itens_adicionais()
@@ -3026,11 +2854,13 @@ async function carregar_anexos(chave) {
 
 function deseja_apagar(chave) {
 
+    let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
+
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
             <label>Deseja apagar essa informação?</label>
             <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
-                <button style="background-color: green" onclick="apagar_status_historico('${chave}')">Confirmar</button>
+                <button style="background-color: green" onclick="${funcao}">Confirmar</button>
                 <button onclick="remover_popup()">Cancelar</button>
             </div>
         </div>
@@ -3040,22 +2870,21 @@ function deseja_apagar(chave) {
 async function apagar_status_historico(chave) {
 
     remover_popup()
-
-    remover_cotacao(chave)
-
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    delete dados_orcamentos[id_orcam].status.historico[chave]
-    await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`)
+    if (!chave) {
+        delete dados_orcamentos[id_orcam].status.historico
+        await deletar(`dados_orcamentos/${id_orcam}/status/historico`)
+    } else {
+        delete dados_orcamentos[id_orcam].status.historico[chave]
+        await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`)
+    }
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-
-    fechar_estrutura()
     await abrir_esquema(id_orcam)
-
 }
 
-function remover_cotacao(chave) { 
+function remover_cotacao(chave) {
     let status = "excluido";
     let operacao = "excluir";
     let idCotacao = chave
