@@ -541,15 +541,13 @@ async function abrir_detalhes(id_pagamento) {
         `
     }
 
-    let excluir_pagamento = ''
+    let btns = ''
     if (permissao == 'adm') {
-        excluir_pagamento = `
+        btns = `
         <div onclick="deseja_excluir_pagamento('${id_pagamento}')" class="btn_detalhes">
             <img src="imagens/remover.png">
             <label style="cursor: pointer; margin-right: 5px;">Excluir pagamento</label>
         </div>
-        `
-        excluir_pagamento += `
         <div onclick="relancar_pagamento('${id_pagamento}')" class="btn_detalhes">
             <img src="imagens/concluido.png">
             <label style="cursor: pointer; margin-right: 5px;">Refazer Pagamento</label>
@@ -560,7 +558,7 @@ async function abrir_detalhes(id_pagamento) {
     acumulado += `
     <div style="display: flex; gap: 10px; flex-direction: column; align-items: baseline; text-align: left; overflow: auto; padding: 2vw;">
         ${acoes_orcamento}
-        ${excluir_pagamento}
+        ${btns}
         <label><strong>Status atual • </strong> ${pagamento.status}</label>
         <label><strong>Quem recebe? • </strong> ${cliente}</label>
         <div id="centro_de_custo_div" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
