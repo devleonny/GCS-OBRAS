@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    
+
 
     checkRegionBeforeAdding();
     // Função para gerar uma cor aleatória
@@ -583,6 +583,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
             });
 
+            let previousValue = dayInput.value.trim();
+
             dayInput.addEventListener("blur", () => {
                 setTimeout(async () => {
 
@@ -597,16 +599,21 @@ document.addEventListener("DOMContentLoaded", () => {
                         return;
                     }
 
+                    const wasValueChanged = previousValue !== dayInput.value.trim(); 
+
                     // Se o campo foi apagado pelo usuário
                     if (userInput === "") {
 
+                        if(wasValueChanged){
+
                         deletar(`dados_agenda_tecnicos/${technicianOmie}/agendas/${currentKey}/${dayInput.dataset.day}`);
+
+                        }
 
                         // 🔥 Remove do localStorage e da nuvem
                         if (storedData[technicianOmie].agendas[currentKey]) {
                             delete storedData[technicianOmie].agendas[currentKey][dayInput.dataset.day];
                         }
-                        
 
                         localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
 
@@ -646,6 +653,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 }, 100);
             });
 
+            // Atualiza o valor anterior quando o campo recebe foco
+            dayInput.addEventListener("focus", () => {
+                previousValue = dayInput.value.trim();  // Salva o valor antes da edição
+            });
+
             dayCell.appendChild(dayInput);
             dayCell.appendChild(dayDropdown);
             newRow.appendChild(dayCell);
@@ -674,59 +686,59 @@ document.addEventListener("DOMContentLoaded", () => {
         removeButton.addEventListener("click", () => {
             const currentKey = getAgendaKey(); // Obtém a chave atual da agenda (exemplo: "2025_0")
             const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
-        
+
             // Configura o modal de confirmação
             const deleteModal = document.getElementById("delete-modal");
             const confirmDeleteBtn = document.getElementById("confirm-delete-btn");
             const cancelDeleteBtn = document.getElementById("cancel-delete-btn");
-        
+
             deleteModal.style.display = "block"; // Exibe o modal
-        
+
             // Função para confirmar exclusão
             const confirmHandler = () => {
                 if (storedData[technician.omie] && storedData[technician.omie].agendas) {
                     // 🔥 Remove apenas a agenda específica do mês/ano atual
                     delete storedData[technician.omie].agendas[currentKey];
-        
+
                     // Verifica se o técnico ainda tem outras agendas
                     if (Object.keys(storedData[technician.omie].agendas).length === 0) {
                         delete storedData[technician.omie]; // Remove completamente se não houver mais agendas
                     }
-        
+
                     // Atualiza o `localStorage`
                     localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
-        
+
                     // 🔥 Atualiza na nuvem
                     deletar(`dados_agenda_tecnicos/${technician.omie}/agendas/${currentKey}`);
-        
+
                 }
-        
+
                 // Remove a linha da tabela
                 newRow.remove();
                 loadTechniciansFromLocalStorage(); // Atualiza a interface
-        
+
                 // Fecha o modal
                 deleteModal.style.display = "none";
-        
+
                 // Remove os event listeners para evitar duplicações
                 confirmDeleteBtn.removeEventListener("click", confirmHandler);
-                if(cancelDeleteBtn)cancelDeleteBtn.addEventListener("click", cancelHandler);
+                if (cancelDeleteBtn) cancelDeleteBtn.addEventListener("click", cancelHandler);
             };
-        
+
             // Função para cancelar a exclusão
             const cancelHandler = () => {
                 deleteModal.style.display = "none"; // Fecha o modal
-        
+
                 // Remove os event listeners para evitar duplicação
                 confirmDeleteBtn.removeEventListener("click", confirmHandler);
-                if(cancelDeleteBtn)cancelDeleteBtn.addEventListener("click", cancelHandler);
+                if (cancelDeleteBtn) cancelDeleteBtn.addEventListener("click", cancelHandler);
             };
-        
+
             // Adiciona os event listeners
             confirmDeleteBtn.addEventListener("click", confirmHandler);
-            if(cancelDeleteBtn)cancelDeleteBtn.addEventListener("click", cancelHandler);
+            if (cancelDeleteBtn) cancelDeleteBtn.addEventListener("click", cancelHandler);
 
-        });        
+        });
 
         actionsCell.appendChild(removeButton);
         newRow.appendChild(actionsCell);
@@ -752,14 +764,14 @@ document.addEventListener("DOMContentLoaded", () => {
     function saveTechniciansToLocalStorage() {
         const key = getAgendaKey(); // Obtém a chave do mês/ano atual
         if (!key) return;
-    
+
         const storedData = JSON.parse(localStorage.getItem("dados_agenda_tecnicos")) || {};
-    
+
         Array.from(techniciansBody.children).forEach((row) => {
             const tecnicoInput = row.querySelector("td input.dropdown-input");
             let technicianOmie = tecnicoInput.dataset.omie?.trim();
             let technicianNome = tecnicoInput.value.trim();
-    
+
             // 🔥 Se não tem código Omie, tenta encontrar pelo nome
             if (!technicianOmie || technicianOmie === "undefined") {
                 const matchedTechnician = technicianOptions.find(tech => tech.nome.trim().toLowerCase() === technicianNome.toLowerCase());
@@ -770,22 +782,22 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
             }
-    
+
             let agendaAtualizada = {};
             let hasDepartment = false;
-    
+
             // 🔥 Percorre os inputs dos dias para verificar se há pelo menos um departamento selecionado
             const dayInputs = Array.from(row.querySelectorAll("td input.dropdown-input")).slice(1);
             dayInputs.forEach((cell, index) => {
                 const codigo = cell.dataset.codigo?.trim();
-                const dia = String(index + 1); 
-    
+                const dia = String(index + 1);
+
                 if (codigo && codigo !== "null") {
                     agendaAtualizada[dia] = codigo;
-                    hasDepartment = true; 
+                    hasDepartment = true;
                 }
             });
-    
+
             // 🔥 Apenas salva se o técnico tiver pelo menos UM departamento
             if (hasDepartment) {
                 // 🔥 Mantém os dados antigos do técnico antes de sobrescrever
@@ -797,21 +809,21 @@ document.addEventListener("DOMContentLoaded", () => {
                         regiao_atual: regionSelect.value,
                     };
                 }
-    
+
                 // 🔥 Mantém os meses anteriores e adiciona o novo mês/ano
                 storedData[technicianOmie].agendas[key] = agendaAtualizada;
-    
+
                 // 🔥 Atualiza o LocalStorage
                 localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
-    
-            
-            } 
+
+
+            }
         });
-    
+
         // 🔥 Atualiza apenas com técnicos válidos no localStorage
         localStorage.setItem("dados_agenda_tecnicos", JSON.stringify(storedData));
     }
-    
+
     function loadTechniciansFromLocalStorage() {
         if (isLoading) return;
 
