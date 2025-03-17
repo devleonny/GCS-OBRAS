@@ -551,6 +551,18 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             dayInput.addEventListener("focus", () => {
+
+                const tecnicoInput = newRow.querySelector("td input.dropdown-input") //Obtém o input do técnico
+                const tecnicoOmie = tecnicoInput.dataset.omie //Obtém o código Omie do técnico
+
+                //Verifica se há  um técnico definido
+                if (!tecnicoOmie || tecnicoOmie.trim() === "") {
+                    showPopup ("Selecione um técnico antes de editar os dias.")
+                    dayInput.blur(); //Remove o foco do Input dia
+                    return
+                }
+
+                //Se houver um técnico definido, exibe o dropdown.
                 dayDropdown.style.display = "block"; // Exibe o dropdown
                 positionDropdown(dayInput, dayDropdown); // Posiciona o dropdown abaixo do input
 
