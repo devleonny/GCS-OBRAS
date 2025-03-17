@@ -1061,10 +1061,6 @@ async function salvar_notas(chave) {
 
     chave == undefined ? chave = gerar_id_5_digitos() : chave
 
-    if (!orcamento.status.historico[chave]) {
-        orcamento.status.historico[chave] = {}
-    }
-
     orcamento.status.historico[chave].status = 'FATURADO'
     orcamento.status.historico[chave].data = data.textContent
     orcamento.status.historico[chave].executor = acesso.usuario
@@ -1822,7 +1818,7 @@ async function abrir_esquema(id) {
     let painel = document.getElementById('status')
     if (painel) {
         painel.remove()
-    }
+    } 
 
     document.body.insertAdjacentHTML('beforeend', estruturaHtml);
 
