@@ -1219,14 +1219,19 @@ input[type=range]::-moz-range-thumb {
 
 .tabela th,
 .tabela td {
-    font-size: 0.8em;
+    font-size: 0.8vw;
     overflow: hidden;
     padding: 8px;
     border-bottom: 1px solid transparent;
 }
 
-.tabela td {
+.tabela input {
     font-size: 0.8vw;
+    background-color: transparent;
+}
+
+.tabela td {
+    font-size: 0.7vw;
     text-align: left;
     color: black;
 }

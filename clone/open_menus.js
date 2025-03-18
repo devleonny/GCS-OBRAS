@@ -316,23 +316,31 @@ function ampliar(url) {
     div.classList.toggle('show');
 }
 
-function conversor(stringMonetario) {
-    if (typeof stringMonetario === 'number') {
-        return stringMonetario;
-    } else if (!stringMonetario || stringMonetario.trim() === "") {
-        return 0;
-    } else {
-        stringMonetario = stringMonetario.trim();
-        stringMonetario = stringMonetario.replace(/[^\d,]/g, '');
-        stringMonetario = stringMonetario.replace(',', '.');
-        var valorNumerico = parseFloat(stringMonetario);
-
-        if (isNaN(valorNumerico)) {
-            return 0;
-        }
-
-        return valorNumerico;
+function conversor(valor) {
+    if (typeof valor === 'number') {
+        return valor;
     }
+
+    if (!valor || typeof valor !== 'string' || valor.trim() === "") {
+        return 0; 
+    }
+
+    valor = valor.trim();
+
+    const isBRFormat = valor.includes(',') && !valor.includes('.'); // Ex: "1.000,25"
+    const isUSFormat = valor.includes('.') && valor.includes(','); // Ex: "1,000.25"
+
+    if (isUSFormat) {
+        valor = valor.replace(/,/g, '');
+    } else if (isBRFormat) {
+        valor = valor.replace(/\./g, '').replace(',', '.');
+    } else {
+        valor = valor.replace(/[^0-9.]/g, '');
+    }
+
+    const numero = parseFloat(valor);
+
+    return isNaN(numero) ? 0 : numero;
 }
 
 function dinheiro(valor) {

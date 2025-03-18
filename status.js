@@ -1210,8 +1210,6 @@ async function exibir_todos_os_status(id) {
     }
 
     id_orcam = id
-    console.log(id, id_orcam);
-
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
@@ -1354,6 +1352,10 @@ async function abrir_esquema(id) {
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
     let orcamento = dados_orcamentos[id]
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    let setor = dados_setores[acesso.usuario].setor
+    let permissao = dados_setores[acesso.usuario].permissao
     let categorias = Object.fromEntries(
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
     )
@@ -1596,7 +1598,7 @@ async function abrir_esquema(id) {
                 <label><strong>Transportadora: </strong>${sst.envio.transportadora}</label>
                 <label><strong>Volumes: </strong>${sst.envio.volumes}</label>
                 <label><strong>Data de Saída: </strong>${sst.envio.data_saida}</label>
-                <label><strong>Previsão: </strong>${sst.envio.previsao}</label>
+                <label><strong>Data de Entrega: </strong>${sst.envio.previsao}</label>
                 `
 
                 editar = `
@@ -1720,10 +1722,16 @@ async function abrir_esquema(id) {
                                     onclick="detalhar_requisicao()">
                                     <label>Nova <strong>Requisição</strong></label>
                                 </div>
+                                
+                                ${(permissao == 'adm' || setor == 'LOGÍSTICA') ? `                                
+                                    
                                 <div class="contorno_botoes" style="background-color: ${fluxograma['MATERIAL ENVIADO'].cor}"
                                     onclick="envio_de_material(undefined)">
                                     <label>Enviar <strong>Material</strong></label>
                                 </div>
+                                
+                                ` : ''}
+
                                 <div class="contorno_botoes" style="background-color: ${fluxograma['FATURADO'].cor};"
                                     onclick="painel_adicionar_notas()">
                                     <label>Nova <strong>Nota Fiscal</strong></label>
@@ -1732,10 +1740,16 @@ async function abrir_esquema(id) {
                                     onclick="iniciar_cotacao('${id}')">
                                     <label>Nova <strong>Cotação</strong></label>
                                 </div>
+
+                                ${(permissao == 'adm' || setor == 'LOGÍSTICA') ? `  
+
                                 <div class="contorno_botoes" style="background-color: ${fluxograma['RETORNO DE MATERIAIS'].cor};"
                                     onclick="retorno_de_materiais('${id}')">
                                     <label>Retorno de <strong>Materiais</strong></label>
                                 </div>
+                                
+                                ` : '' }
+
                                 <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
                                     <img src="gifs/atencao.gif" style="width: 2vw;">
                                     <label style="text-decoration: underline; cursor: pointer;" onclick="deseja_apagar()">
@@ -3079,7 +3093,7 @@ async function envio_de_material(chave) {
         </div>
 
         <div class="pergunta">
-            <label>Previsão de Entrega</label>
+            <label>Data de Entrega</label>
             <input type="date" id="previsao" value="${envio.previsao}">
         </div>
 

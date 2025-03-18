@@ -100,8 +100,8 @@ async function carregar_tabela_v2() {
         tsc[cab] = `
             <th style="background-color: white; position: relative; border-radius: 0px;">
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%;" placeholder="..." oninput="pesquisar_em_composicoes(this)">
-            </th>`;
+                <input style="width: 100%; padding: 0px;" placeholder="..." oninput="pesquisar_em_composicoes(this)">
+            </th>`
     });
 
     colunas.forEach(col => {
@@ -131,7 +131,7 @@ async function carregar_tabela_v2() {
                 }
 
                 var estilo = preco_final !== '' ? 'valor_preenchido' : 'valor_zero';
-                conteudo = `<label class="${estilo}" onclick="abrir_historico_de_precos('${codigo}', '${chave}', this)"> ${dinheiro(conversor(preco_final))}</label>`;
+                conteudo = `<label class="${estilo}" onclick="abrir_historico_de_precos('${codigo}', '${chave}')"> ${dinheiro(conversor(preco_final))}</label>`;
 
             } else if (chave == 'agrupamentos') {
 
@@ -533,7 +533,6 @@ function remover_item(elemento) {
 
 async function abrir_historico_de_precos(codigo, tabela) {
 
-
     let overlay = document.getElementById('overlay')
     if (overlay) {
         overlay.style.display = 'block'
@@ -567,10 +566,8 @@ async function abrir_historico_de_precos(codigo, tabela) {
             <td>${historico[cotacao].usuario}</td>
             <td>${historico[cotacao].fornecedor}</td>
             <td><input type="checkbox" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_preco_ativo('${codigo}', '${cotacao}', '${tabela}')" ${marcado}></td>
-            <td>
-                <div style="display: flex; align-items: center; justify-content; width: 100%;">
-                    <img src="imagens/cancel.png" style="width: 25px; cursor: pointer;" onclick="excluir_cotacao('${codigo}', '${tabela}', '${cotacao}')">
-                </div>
+            <td style="text-align: center;">
+                <img src="imagens/cancel.png" style="width: 2vw; cursor: pointer;" onclick="excluir_cotacao('${codigo}', '${tabela}', '${cotacao}')">
             </td>
         </tr>
         `
@@ -589,32 +586,37 @@ async function abrir_historico_de_precos(codigo, tabela) {
         <label>Valores de Venda</label>
     </div>
 
-    <div id="historico_preco" style="background-color: white; padding: 5px; border-radius: 5px;">
+    <div style="display: flex; justify-content: left; align-items: start; gap: 5px; background-color: white; padding: 5px; border-radius: 5px; color: #222;">
+        <div id="historico_preco">
 
-        <div style="color: #222; display: flex; flex-direction: column; justify-content: start; align-items: start;">
-            <label>Descrição</label>
-            <textarea style="font-size: 1.2em; width: 80%;" readOnly>${dados_composicoes[codigo].descricao}</textarea>
+            <div style="color: #222; display: flex; flex-direction: column; justify-content: start; align-items: start;">
+                <label>Descrição</label>
+                <textarea style="font-size: 1.5vw; width: 95%;" readOnly>${dados_composicoes[codigo].descricao}</textarea>
+            </div>
+
+            <label>Histórico de Precificações</label>
+            <div id="tabela_historico" style="display: ${visibilidade}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
+                <table class="tabela">
+                    <thead>
+                        <th>Compra</th>
+                        <th>% Margem</th>
+                        <th>Pr. Venda</th>
+                        <th>Data</th>
+                        <th>Usuário</th>
+                        <th>Fornecedor</th>
+                        <th>Ativo</th>
+                        <th>Excluir</th>
+                    </thead>
+                    <tbody>${linhas}</tbody>
+                </table>
+            </div>
+            <div onclick="adicionar_nova_cotacao('${codigo}', '${tabela}', this)" class="bot_adicionar">
+                <img src="imagens/preco.png" style="cursor: pointer; width: 40px;">
+                <label>Adicionar Preço</label>
+            </div>
         </div>
 
-        <div id="tabela_historico" style="display: ${visibilidade}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
-            <table class="tabela">
-                <thead>
-                    <th>Custo de Compra</th>
-                    <th>% Margem</th>
-                    <th>Valor Final</th>
-                    <th>Data da Cotação</th>
-                    <th>Feito por</th>
-                    <th>Fornecedor</th>
-                    <th>Ativo</th>
-                    <th>Excluir</th>
-                </thead>
-                <tbody>${linhas}</tbody>
-            </table>
-        </div>
-        <div onclick="adicionar_nova_cotacao('${codigo}', '${tabela}')" class="bot_adicionar">
-            <img src="imagens/preco.png" style="cursor: pointer; width: 40px;">
-            <label>Adicionar Preço</label>
-        </div>
+        <div></div>
     </div>
     `
 
@@ -624,106 +626,6 @@ async function abrir_historico_de_precos(codigo, tabela) {
     }
 
     openPopup_v2(acumulado)
-
-}
-
-async function excluir_cotacao(codigo, lpu, cotacao) {
-    var historico_preco = document.getElementById('historico_preco');
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {};
-
-    if (historico_preco) {
-        var tabela = historico_preco.querySelector('table');
-
-        // 🔥 Adicionar o aviso de "Aguarde..." dentro do container
-        const aviso = document.createElement('div');
-        aviso.id = "aviso-aguarde";
-        aviso.style = `
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-            font-size: 1.5em;
-            border-radius: 5px;
-        `;
-        aviso.innerHTML = `<div>Aguarde...</div>`;
-        historico_preco.style.position = "relative"; // Garante o posicionamento correto
-        historico_preco.appendChild(aviso);
-
-        // 🔥 Reduz a opacidade da tabela enquanto o aviso está ativo
-        tabela.style.opacity = "0.3";
-
-        // 🔥 Lógica de exclusão da cotação
-        if (dados_composicoes[codigo] && dados_composicoes[codigo][lpu]) {
-            let cotacoes = dados_composicoes[codigo][lpu];
-
-            // Remove o preço ativo, se ele for a cotação atual
-            if (cotacoes.ativo == cotacao) {
-                cotacoes.ativo = "";
-                await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
-            }
-
-            // Remove a cotação do histórico
-            delete cotacoes.historico[cotacao];
-
-            // Atualiza o banco de dados
-            await inserirDados(dados_composicoes, 'dados_composicoes');
-            await deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`);
-        }
-
-        // 🔥 Restaurar a tabela e abrir o histórico
-        tabela.style.opacity = "1"; // Restaura a opacidade
-        await abrir_historico_de_precos(codigo, lpu); // 🛠️ Processa o histórico antes de remover o aviso
-        aviso.remove(); // Remover aviso somente após abrir_historico_de_precos
-    }
-}
-
-function adicionar_nova_cotacao(codigo, lpu) {
-    var historico_preco = document.getElementById('historico_preco')
-    let tabela_historico = document.getElementById('tabela_historico')
-    tabela_historico.style.display = 'flex'
-
-    if (historico_preco) {
-        var tabela = historico_preco.querySelector('table')
-        var tbody = tabela.querySelector('tbody')
-
-        var linha = `
-        <tr style="color: #222; font-size: 0.7em;">
-            <td><input class="numero-bonito" type="number" oninput="calcular()"></td>
-            <td><input class="numero-bonito" type="number" oninput="calcular()"></td>
-            <td>R$ 0,00 </td>
-            <td>${data_atual('completa')}</td>
-            <td>${acesso.usuario}</td>
-            <td><input class="numero-bonito"></td>
-            <td>
-                <img src="imagens/concluido.png" onclick="salvar_cotacao('${codigo}', '${lpu}')" style="width: 30px; cursor: pointer;">
-            </td>
-            <td>
-                <img src="imagens/cancel.png" style="width: 30px; cursor: pointer;" onclick="remover_esta_linha(this)">
-            </td>
-        </tr>
-        `
-        tbody.insertAdjacentHTML('beforeend', linha)
-    }
-}
-
-function remover_esta_linha(elemento) {
-    let tr = elemento.closest('tr')
-    tr.remove()
-}
-
-async function atualizar() {
-
-    carregamento('composicoes_')
-    await recuperar_dados_composicoes()
-
-    carregar_tabela_v2()
 
 }
 
@@ -822,15 +724,12 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
     }
 }
 
-async function salvar_cotacao(codigo, lpu) {
+async function excluir_cotacao(codigo, lpu, cotacao) {
     var historico_preco = document.getElementById('historico_preco');
     var dados_composicoes = await recuperarDados('dados_composicoes') || {};
-    var produto = dados_composicoes[codigo];
 
     if (historico_preco) {
         var tabela = historico_preco.querySelector('table');
-        var tbody = tabela.querySelector('tbody');
-        var trs = tbody.querySelectorAll('tr');
 
         // 🔥 Adicionar o aviso de "Aguarde..." dentro do container
         const aviso = document.createElement('div');
@@ -851,41 +750,28 @@ async function salvar_cotacao(codigo, lpu) {
             border-radius: 5px;
         `;
         aviso.innerHTML = `<div>Aguarde...</div>`;
-        historico_preco.style.position = "relative"; // Garante que o aviso seja posicionado corretamente
+        historico_preco.style.position = "relative"; // Garante o posicionamento correto
         historico_preco.appendChild(aviso);
 
         // 🔥 Reduz a opacidade da tabela enquanto o aviso está ativo
         tabela.style.opacity = "0.3";
 
-        for (let tr of trs) {
-            var inputs = tr.querySelectorAll('input');
-            var tds = tr.querySelectorAll('td');
+        // 🔥 Lógica de exclusão da cotação
+        if (dados_composicoes[codigo] && dados_composicoes[codigo][lpu]) {
+            let cotacoes = dados_composicoes[codigo][lpu];
 
-            if (inputs.length > 1) {
-                var dados = {
-                    custo: conversorParaCotacao(inputs[0].value),
-                    margem: inputs[1].value,
-                    valor: conversor(tds[2].textContent),
-                    data: tds[3].textContent,
-                    usuario: acesso.usuario,
-                    fornecedor: inputs[2].value,
-                };
-
-                if (!produto[lpu]) {
-                    produto[lpu] = {};
-                }
-                if (!produto[lpu].historico) {
-                    produto[lpu].historico = {};
-                }
-
-                var id = gerar_id_5_digitos();
-
-                produto[lpu].historico[id] = dados;
-
-                await inserirDados(dados_composicoes, 'dados_composicoes');
-                await enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, dados);
-
+            // Remove o preço ativo, se ele for a cotação atual
+            if (cotacoes.ativo == cotacao) {
+                cotacoes.ativo = "";
+                await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
             }
+
+            // Remove a cotação do histórico
+            delete cotacoes.historico[cotacao];
+
+            // Atualiza o banco de dados
+            await inserirDados(dados_composicoes, 'dados_composicoes');
+            await deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`);
         }
 
         // 🔥 Restaurar a tabela e abrir o histórico
@@ -895,62 +781,426 @@ async function salvar_cotacao(codigo, lpu) {
     }
 }
 
-function conversorParaCotacao(valor) {
-    if (typeof valor === 'number') {
-        return valor; // Retorna diretamente se já for um número
+async function adicionar_nova_cotacao(codigo, lpu, botao) {
+
+    let div = botao.parentElement.nextElementSibling
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let produto = dados_composicoes[codigo]
+    let acumulado = ''
+    let painel = `
+        <div style="font-size: 0.8vw; background-color: #d2d2d2; padding: 5px; border-radius: 3px; display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 2px;">
+            <label>NF de Compra</label>
+            <input style="background-color: #91b7d9;" id="nota">
+            ${produto.tipo == 'VENDA' ? `<label>Fornecedor</label>
+            <input style="background-color: #91b7d9;" id="fornecedor">` : ''}
+            <label onclick="salvar_preco('${codigo}', '${lpu}')" class="contorno_botoes" style="background-color: #4CAF50;">Salvar</label>
+        </div>
+    `
+
+    if (produto.tipo == 'VENDA') {
+        acumulado = `
+        <div style="display: flex; align-items: start; justify-content: start; gap: 10px;">
+            <table class="tabela">
+                <thead>
+                    <th>Dados Iniciais</th>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Preço Unitário</td>
+                        <td style="background-color: #91b7d9;"><input id="custo" oninput="calcular('${div}')"></td>
+                    </tr>
+                    <tr>
+                        <td>Frete de Compra (5%)</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>ICMS Creditado em nota</td>
+                        <td><input value="4%"></td>
+                    </tr>
+                    <tr>
+                        <td>Aliquota ICMS (Bahia) (20,5%)</td>
+                        <td><input value="20.5%"></td>
+                    </tr>                   
+                    <tr>
+                        <td>ICMS a ser pago (DIFAL)</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>Valor do ICMS de Entrada</td>
+                        <td></td>
+                    </tr>   
+                    <tr>
+                        <td>Valor de Custo</td>
+                        <td></td>
+                    </tr>                                      
+                    <tr>
+                        <td>Margem de Acréscimo (%)</td>
+                        <td style="background-color: #91b7d9;"><input id="margem" type="number" oninput="calcular()"></td>
+                    </tr>
+                    <tr>
+                        <td>Preço de Venda</td>
+                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular()"></td>
+                    </tr>
+                    <tr>
+                        <td>Frete de Venda (5%)</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 1vw;">
+                <table class="tabela">
+                    <thead>
+                        <th>Resultados</th>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>LUCRO LIQUIDO</td>
+                            <td>R$ 0,00</td>
+                        </tr>
+                        <tr>
+                            <td>PERCENTUAL DE LUCRO</td>
+                            <td>0%</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                ${painel}
+
+            </div>
+        </div>
+        <br>
+        <table class="tabela">
+            <thead>
+                <th>Presunções dos Impostos de Saída</th>
+                <th>Percentuais</th>
+                <th>Valor</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
+                    <td><input value="8%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
+                    <td><input value="12%" readOnly></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        <br>
+        <table class="tabela">
+            <thead>
+                <th>Impostos a Serem Pagos</th>
+                <th>Percentuais</th>
+                <th>Valor</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td><input value="15%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td><input value="10%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>CSLL a ser Pago (9%) da Presunção</td>
+                    <td><input value="9%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
+                    <td><input value="0.65%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
+                    <td><input value="3%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>O Imposto sobre Circulação de Mercadorias e Serviços (ICMS) (12%) do faturamento</td>
+                    <td><input value="12%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>Total</td>
+                    <td></td>
+                </tr>                                                                               
+            </tbody>
+        </table>
+        `
+    } else { // Serviço
+
+        acumulado = `
+
+        <div style="display: flex; align-items: center; justify-content: space-evenly;">
+
+            <table class="tabela">
+                <tbody>
+                    <thead>
+                        <th>Preço do Serviço</th>
+                    </thead>
+                    <tr>
+                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular('servico')"></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table class="tabela">
+                <thead>
+                    <th>Resultados</th>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>LUCRO LIQUIDO</td>
+                        <td>R$ 0,00</td>
+                    </tr>
+                    <tr>
+                        <td>PERCENTUAL DE LUCRO</td>
+                        <td> 0%</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            ${painel}
+
+        </div>
+        <br>
+        <table class="tabela">
+            <thead>
+                <th>Presunções dos Impostos de Saída</th>
+                <th>Percentuais</th>
+                <th>Valor</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
+                    <td>32%</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
+                    <td>32%</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        <br>
+        <table class="tabela">
+            <thead>
+                <th>Impostos a Serem Pagos</th>
+                <th>Percentuais</th>
+                <th>Valor</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td><input value="8%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td><input value="8%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>CSLL a ser Pago (9%) da Presunção</td>
+                    <td><input value="9%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
+                    <td><input value="0.65%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
+                    <td><input value="3%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>O Imposto Sobre Serviços ( ISS )(5%) (Incide sobre o faturamento)</td>
+                    <td><input value="5%" readOnly></td>
+                    <td></td>
+                </tr>                
+                <tr>
+                    <td></td>
+                    <td>Total</td>
+                    <td>R$ 0,00</td>
+                </tr>                                                                               
+            </tbody>
+        </table>
+        `
     }
 
-    if (!valor || typeof valor !== 'string' || valor.trim() === "") {
-        return 0; // Retorna 0 para valores nulos, vazios ou inválidos
-    }
+    div.innerHTML = acumulado
 
-    // Remove espaços em branco
-    valor = valor.trim();
-
-    // Identificar formatos
-    const isBRFormat = valor.includes(',') && !valor.includes('.'); // Ex: "1.000,25"
-    const isUSFormat = valor.includes('.') && valor.includes(','); // Ex: "1,000.25"
-
-    if (isUSFormat) {
-        // Formato US: Remove vírgulas e mantém o ponto como decimal
-        valor = valor.replace(/,/g, '');
-    } else if (isBRFormat) {
-        // Formato BR: Remove pontos de milhar e substitui vírgula por ponto
-        valor = valor.replace(/\./g, '').replace(',', '.');
-    } else {
-        // Caso geral: Remove qualquer caracter que não seja número ou ponto
-        valor = valor.replace(/[^0-9.]/g, '');
-    }
-
-    // Tenta converter para float
-    const numero = parseFloat(valor);
-
-    // Retorna o número convertido ou 0 se não for válido
-    return isNaN(numero) ? 0 : numero;
 }
 
+async function salvar_preco(codigo, lpu) {
 
-function calcular() {
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let produto = dados_composicoes[codigo]
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
-    var historico_preco = document.getElementById('historico_preco')
-    if (historico_preco) {
-        var tabela = historico_preco.querySelector('table')
-        var tbody = tabela.querySelector('tbody')
-        var trs = tbody.querySelectorAll('tr')
-
-        trs.forEach(tr => {
-            var inputs = tr.querySelectorAll('input')
-
-            if (inputs.length > 1) {
-
-                var tds = tr.querySelectorAll('td')
-                var custo = Number(inputs[0].value)
-                var margem = Number(inputs[1].value)
-
-                tds[2].textContent = dinheiro(custo * (1 + (margem / 100)))
-            }
-        })
+    if (!produto[lpu]) {
+        produto[lpu] = {
+            historico: {}
+        }
     }
+
+    let historico = produto[lpu].historico
+    let id = gerar_id_5_digitos()
+
+    historico[id] = {
+        margem: 0,
+        custo: Number(document.getElementById('final').value),
+        valor: Number(document.getElementById('final').value),
+        data: dt(),
+        usuario: acesso.usuario,
+        nota: document.getElementById('nota').value,
+        fornecedor: '--'
+    }
+
+    if (produto.tipo == 'VENDA') {
+        historico[id].fornecedor = document.getElementById('fornecedor').value
+        historico[id].custo = Number(document.getElementById('custo').value)
+        historico[id].margem = Number(document.getElementById('margem').value)
+    }
+    
+    await inserirDados(dados_composicoes,'dados_composicoes')
+
+    remover_popup()
+
+    await abrir_historico_de_precos(codigo, lpu)
+}
+
+function calcular(tipo) {
+
+    let historico_preco = document.getElementById('historico_preco')
+    let tabelas = historico_preco.nextElementSibling.querySelectorAll('table')
+
+    if (tipo == 'servico') {
+
+        let tds = tabelas[0].querySelectorAll('td') // 1ª Tabela;
+
+        let valor_servico = Number(tds[0].querySelector('input').value)
+
+        tds = tabelas[2].querySelectorAll('td')
+
+        let aliq_lp = valor_servico * 0.32 // Alíquota do Lucro Presumido;
+        let presuncao_csll = valor_servico * 0.32 // Presunção CSLL;
+
+        tds[2].textContent = dinheiro(aliq_lp)
+        tds[5].textContent = dinheiro(presuncao_csll)
+
+        tds = tabelas[3].querySelectorAll('td')
+
+        let irpj = aliq_lp * 0.15
+        let adicional_irpj = aliq_lp * 0.10
+        let presuncao_csll_a_ser_pago = presuncao_csll * 0.09
+        let pis = valor_servico * 0.0065
+        let cofins = valor_servico * 0.03
+        let iss = valor_servico * 0.05
+        let total_impostos = irpj + adicional_irpj + presuncao_csll_a_ser_pago + pis + cofins + iss
+
+        tds[2].textContent = dinheiro(irpj)
+        tds[5].textContent = dinheiro(adicional_irpj)
+        tds[8].textContent = dinheiro(presuncao_csll_a_ser_pago)
+        tds[11].textContent = dinheiro(pis)
+        tds[14].textContent = dinheiro(cofins)
+        tds[17].textContent = dinheiro(iss)
+        tds[20].textContent = dinheiro(total_impostos)
+
+        tds = tabelas[1].querySelectorAll('td')
+        let lucro_liq = valor_servico - total_impostos
+
+        tds[1].textContent = dinheiro(lucro_liq)
+        tds[3].textContent = `${(lucro_liq / valor_servico * 100).toFixed(2)}%`
+
+    } else {
+
+        let tds = tabelas[0].querySelectorAll('td') // 1ª Tabela
+
+        let preco_compra = Number(tds[1].querySelector('input').value)
+        let frete = preco_compra * 0.05
+        let icms_creditado = conversor(tds[5].querySelector('input').value)
+        let icms_aliquota = conversor(tds[7].querySelector('input').value)
+        let difal = icms_aliquota - icms_creditado
+        let icms_entrada = difal / 100 * preco_compra
+        let margem = Number(tds[15].querySelector('input').value)
+        let valor_custo = icms_entrada + preco_compra + frete
+        let preco_venda = (1 + margem / 100) * valor_custo
+        let frete_venda = preco_venda * 0.05
+
+        tds[3].textContent = dinheiro(frete)
+        tds[9].textContent = `${difal}%`
+        tds[11].textContent = dinheiro(icms_entrada)
+        tds[13].textContent = dinheiro(valor_custo)
+        tds[17].querySelector('input').value = preco_venda
+        tds[19].textContent = dinheiro(frete_venda)
+
+        tds = tabelas[2].querySelectorAll('td') // 2ª Tabela
+        let porc_LP = conversor(tds[1].querySelector('input').value) / 100 // Lucro Presumido
+
+        tds[2].textContent = dinheiro(preco_venda * porc_LP)
+
+        let porc_CSLL = conversor(tds[4].querySelector('input').value) / 100 // CSLL
+
+        tds[5].textContent = dinheiro(preco_venda * porc_CSLL)
+
+        tds = tabelas[2].querySelectorAll('td') // 3ª Tabela
+        let lucro_presumido = preco_venda * 0.08
+        let presuncao_csll = preco_venda * 0.12
+
+        tds[2].textContent = dinheiro(lucro_presumido)
+        tds[5].textContent = dinheiro(presuncao_csll)
+
+        tds = tabelas[3].querySelectorAll('td') // 4ª Tabela
+
+        let irpj = lucro_presumido * 0.15
+        let adicional_irpj = lucro_presumido * 0.1
+        let presuncao_csll_a_ser_pago = presuncao_csll * 0.09
+        let pis = preco_venda * 0.0065
+        let cofins = preco_venda * 0.03
+        let icms = preco_venda * 0.12
+
+        let total_impostos = irpj + adicional_irpj + presuncao_csll_a_ser_pago + pis + cofins + icms
+
+        tds[2].textContent = dinheiro(irpj)
+        tds[5].textContent = dinheiro(adicional_irpj)
+        tds[8].textContent = dinheiro(presuncao_csll_a_ser_pago)
+        tds[11].textContent = dinheiro(pis)
+        tds[14].textContent = dinheiro(cofins)
+        tds[17].textContent = dinheiro(icms)
+        tds[20].textContent = dinheiro(total_impostos)
+
+        tds = tabelas[1].querySelectorAll('td') // Tabela resumo
+        let total_custos = valor_custo + total_impostos + frete_venda
+        let lucro_liquido = preco_venda - total_custos
+        tds[1].textContent = dinheiro(lucro_liquido)
+        tds[3].textContent = `${(lucro_liquido / valor_custo * 100).toFixed(2)}%`
+
+    }
+
+}
+
+function remover_esta_linha(elemento) {
+    let tr = elemento.closest('tr')
+    tr.remove()
+}
+
+async function atualizar() {
+
+    carregamento('composicoes_')
+    await recuperar_dados_composicoes()
+
+    carregar_tabela_v2()
 
 }
 
@@ -1025,13 +1275,11 @@ async function cadastrar_editar_item(codigo) {
     <div id="cadastrar_item" style="background-color: white; color: #222; padding: 5px; border-radius: 5px;">
 
         <div id="elementos" style="display: flex; flex-direction: column; gap: 5px;">
-        ${elementos}
+            ${elementos}
         </div>
-        <div id="novo_campo" style="margin: 10px; display: flex; gap: 10px; align-items: center; justify-content: right; border-radius: 3px; padding: 10px; background-color: #222; color: white;">
-            <label>Novo campo?</label>
-            <input placeholder="Campo" id="campo" style="padding: 5px; border-radius: 3px;">
-            <input placeholder="Valor" id="valor" style="padding: 5px; border-radius: 3px;">
-        </div>
+
+        <br>
+
         <button style="background-color: #4CAF50; width: 100%; margin: 0px;" onclick="${funcao}">Salvar</buttton>
     </div>
     `
@@ -1091,15 +1339,6 @@ async function cadastrar_alterar(codigo) {
             dadosAtualizados[item.textContent] = valor.value;
         }
     });
-
-    let novo_campo = document.getElementById('nova_lpu');
-    if (novo_campo) {
-        let campo = document.getElementById('campo').value;
-        let valor = document.getElementById('valor').value;
-        if (campo !== '' && valor !== '') {
-            dadosAtualizados[campo] = valor;
-        }
-    }
 
     dadosAtualizados.codigo = codigo;
 
