@@ -558,9 +558,9 @@ async function abrir_historico_de_precos(codigo, tabela) {
         dados_composicoes[codigo][tabela].ativo == cotacao ? marcado = 'checked' : marcado = ''
 
         linhas += `
-        <tr style="font-size: 0.7em; color: #222;">
+        <tr>
             <td>${dinheiro(historico[cotacao].custo)}</td>
-            <td>${historico[cotacao].margem}</td>
+            <td style="text-align: center;">${historico[cotacao].margem}</td>
             <td>${dinheiro(historico[cotacao].valor)}</td>
             <td>${historico[cotacao].data}</td>
             <td>${historico[cotacao].usuario}</td>
@@ -568,6 +568,9 @@ async function abrir_historico_de_precos(codigo, tabela) {
             <td><input type="checkbox" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_preco_ativo('${codigo}', '${cotacao}', '${tabela}')" ${marcado}></td>
             <td style="text-align: center;">
                 <img src="imagens/cancel.png" style="width: 2vw; cursor: pointer;" onclick="excluir_cotacao('${codigo}', '${tabela}', '${cotacao}')">
+            </td>
+            <td style="text-align: center;">
+                <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="adicionar_nova_cotacao('${codigo}', '${tabela}', '${cotacao}')">
             </td>
         </tr>
         `
@@ -580,46 +583,53 @@ async function abrir_historico_de_precos(codigo, tabela) {
 
     acumulado = `
 
-    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
+    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 5vh;">
 
     <div style="display: flex; justify-content: space-evenly; width: 100%;">
         <label>Valores de Venda</label>
     </div>
 
-    <div style="display: flex; justify-content: left; align-items: start; gap: 5px; background-color: white; padding: 5px; border-radius: 5px; color: #222;">
-        <div id="historico_preco">
-
-            <div style="color: #222; display: flex; flex-direction: column; justify-content: start; align-items: start;">
-                <label>Descrição</label>
-                <textarea style="font-size: 1.5vw; width: 95%;" readOnly>${dados_composicoes[codigo].descricao}</textarea>
+    <div style="display: flex; justify-content: left; align-items: start; flex-direction: column; background-color: white; padding: 5px; border-radius: 5px; color: #222;">
+        <div id="historico_preco" style="position: relative;">
+            
+            <div style="display: flex; justify-content: left; align-items: center; gap: 5px;">
+                <img style="width: 7vw;" src="${dados_composicoes[codigo].imagem !== '' ? dados_composicoes[codigo].imagem : 'https://i.imgur.com/Nb8sPs0.png'}">
+                <div style="color: #222; display: flex; flex-direction: column; justify-content: start; align-items: start;">
+                    <label style="font-size: 0.8vw;">Descrição</label>
+                    <label>${dados_composicoes[codigo].descricao}</label>
+                </div>
             </div>
 
-            <label>Histórico de Precificações</label>
+            <div onclick="adicionar_nova_cotacao('${codigo}', '${tabela}')" class="bot_adicionar">
+                <img src="imagens/preco.png">
+                <label>Adicionar Preço</label>
+            </div>
+
+            <hr style="width: 100%;">
+
+            <label>Histórico de Preços</label>
+
             <div id="tabela_historico" style="display: ${visibilidade}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
                 <table class="tabela">
                     <thead>
                         <th>Compra</th>
-                        <th>% Margem</th>
+                        <th>Margem %</th>
                         <th>Pr. Venda</th>
                         <th>Data</th>
                         <th>Usuário</th>
                         <th>Fornecedor</th>
                         <th>Ativo</th>
                         <th>Excluir</th>
+                        <th>Detalhes</th>
                     </thead>
                     <tbody>${linhas}</tbody>
                 </table>
             </div>
-            <div onclick="adicionar_nova_cotacao('${codigo}', '${tabela}', this)" class="bot_adicionar">
-                <img src="imagens/preco.png" style="cursor: pointer; width: 40px;">
-                <label>Adicionar Preço</label>
-            </div>
         </div>
-
         <div></div>
     </div>
-    `
 
+    `
     var historico_preco = document.getElementById('historico_preco')
     if (historico_preco) {
         historico_preco.remove()
@@ -673,7 +683,7 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
         });
 
         let algumMarcado = false;
-        
+
         // 🔥 Agora percorre e marca apenas o checkbox correto
         for (let tr of trs) {
             let tds = tr.querySelectorAll('td');
@@ -781,14 +791,15 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
     }
 }
 
-async function adicionar_nova_cotacao(codigo, lpu, botao) {
+async function adicionar_nova_cotacao(codigo, lpu) {
 
-    let div = botao.parentElement.nextElementSibling
+    let historico_preco = document.getElementById('historico_preco')
+    let div = historico_preco.nextElementSibling
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let produto = dados_composicoes[codigo]
     let acumulado = ''
     let painel = `
-        <div style="font-size: 0.8vw; background-color: #d2d2d2; padding: 5px; border-radius: 3px; display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 2px;">
+        <div style="color: #222; font-size: 0.8vw; background-color: #d2d2d2; padding: 5px; border-radius: 3px; display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 2px;">
             <label>NF de Compra</label>
             <input style="background-color: #91b7d9;" id="nota">
             ${produto.tipo == 'VENDA' ? `<label>Fornecedor</label>
@@ -938,7 +949,7 @@ async function adicionar_nova_cotacao(codigo, lpu, botao) {
 
         acumulado = `
 
-        <div style="display: flex; align-items: center; justify-content: space-evenly;">
+        <div style="display: flex; align-items: center; justify-content: space-evenly; width: 100%;">
 
             <table class="tabela">
                 <tbody>
@@ -1038,7 +1049,14 @@ async function adicionar_nova_cotacao(codigo, lpu, botao) {
         `
     }
 
-    div.innerHTML = acumulado
+    div.innerHTML = `
+    <div style="color: #222; background-color: white; border-radius: 3px; padding: 5px; display: flex; justify-content: center; align-items: start; flex-direction: column;">
+        <hr style="width: 100%;">
+        <label>Gestão de Preço</label>
+        <br>
+        ${acumulado}
+
+    </div>`
 
 }
 
@@ -1072,9 +1090,10 @@ async function salvar_preco(codigo, lpu) {
         historico[id].custo = Number(document.getElementById('custo').value)
         historico[id].margem = Number(document.getElementById('margem').value)
     }
-    
-    await inserirDados(dados_composicoes,'dados_composicoes')
 
+    await inserirDados(dados_composicoes, 'dados_composicoes')
+
+    enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, historico[id])
     remover_popup()
 
     await abrir_historico_de_precos(codigo, lpu)

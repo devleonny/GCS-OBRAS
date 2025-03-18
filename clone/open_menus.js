@@ -228,7 +228,7 @@ function openPopup_v2(mensagem, exibir_botoes, funcao_confirmar) {
     <div id="temp_pop" class="popup" style="display: block;">
         <div class="popup-content">
             <span class="close" onclick="remover_popup()">&times;</span>
-            <p>${mensagem}</p>
+            ${mensagem}
             ${botoes}
         </div>
     </div>

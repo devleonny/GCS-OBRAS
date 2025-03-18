@@ -1096,30 +1096,6 @@ function salvar_offline(objeto, operacao) {
     localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
 }
 
-async function proximo_sequencial() {
-
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
-    var chamados_sequenciais = [0]
-
-    for (orc in dados_orcamentos) {
-
-        var orcamento = dados_orcamentos[orc]
-        if (orcamento.dados_orcam && orcamento.dados_orcam.contrato) {
-            var chamado = orcamento.dados_orcam.contrato
-            if (chamado.slice(0, 4) == 'ORC_') {
-                chamados_sequenciais.push(Number(chamado.replace('ORC_', '')))
-            }
-        }
-
-    }
-
-    var proximo = Math.max(...chamados_sequenciais) + 1
-
-    return proximo
-
-}
-
 function dt() {
     let dt = new Date().toLocaleString('pt-BR', {
         dateStyle: 'short',
@@ -1258,7 +1234,6 @@ async function lancar_pagamento(pagamento) {
             })
             .then(data => {
                 resolve(data);
-                resolve()
             })
             .catch(err => {
                 console.error("Erro ao gerar PDF:", err)
@@ -1474,4 +1449,27 @@ function resposta_desconto(botao, id, status) {
 
     botao.parentElement.parentElement.parentElement.remove()
 
+}
+
+async function verificar_chamado_existente(chamado, id_atual, sequencial) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/chamado", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({chamado, id_atual, sequencial})
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
 }
