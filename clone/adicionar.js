@@ -85,14 +85,14 @@ function apagar_orçamento() {
 
 }
 
-function orcamento_que_deve_voltar(){
+function orcamento_que_deve_voltar() {
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
 
-    if(orcamento_v2.id) {
+    if (orcamento_v2.id) {
         localStorage.setItem('orcamento_que_deve_voltar', JSON.stringify(orcamento_v2.id))
     }
-    
+
 
 }
 
@@ -232,6 +232,41 @@ function removerItem(codigo) {
 
 }
 
+// testes()
+
+// async function testes() {
+
+//     let orcamentos = await receber("dados_orcamentos")
+
+//     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
+
+//     let dados_orcam = orcamento_v2.dados_orcam;
+
+//     console.log(dados_orcam.contrato)
+
+//     Object.entries(orcamentos).forEach(([idOrcamento, dados]) => {
+
+//         let contrato = dados.dados_orcam.contrato;
+
+//         if (contrato) {
+
+//             if(contrato == dados_orcam.contrato){
+
+//                 console.log(contrato)
+//                 return openPopup_v2(`
+//                     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+//                         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+//                         <label>Chamado já Existente</label>
+//                     </div>
+//                 `);
+
+//             }
+
+//         }
+//     })
+
+// }
+
 async function enviar_dados() {
     salvar_preenchido();
 
@@ -247,6 +282,7 @@ async function enviar_dados() {
     }
 
     let dados_orcam = orcamento_v2.dados_orcam;
+    let chamado = dados_orcam.contrato
 
     if (dados_orcam.cliente_selecionado === '') {
         return openPopup_v2(`
@@ -257,7 +293,7 @@ async function enviar_dados() {
         `);
     }
 
-    if (dados_orcam.contrato === '') {
+    if (chamado === '') {
         return openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
@@ -266,7 +302,16 @@ async function enviar_dados() {
         `);
     }
 
-    if (dados_orcam.contrato.slice(0, 1) !== 'D' && dados_orcam.contrato !== 'sequencial' && dados_orcam.contrato.slice(0, 3) !== 'ORC') {
+    if (chamado !== 'sequencial' && await verificar_chamado_existente(chamado, orcamento_v2.id)) {
+        return openPopup_v2(`
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Chamado já Existente</label>
+            </div>
+        `)
+    }
+
+    if (chamado.slice(0, 1) !== 'D' && chamado !== 'sequencial' && chamado.slice(0, 3) !== 'ORC') {
         return openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
@@ -347,7 +392,7 @@ async function enviar_dados() {
     orcamento_v2.tabela = 'orcamentos';
 
     if (orcamento_v2.dados_orcam.contrato == 'sequencial') {
-        let sequencial = `ORC_${await proximo_sequencial()}`
+        let sequencial = `ORC_${await verificar_chamado_existente(undefined, undefined, true)}`
         orcamento_v2.dados_orcam.contrato = sequencial
     }
 

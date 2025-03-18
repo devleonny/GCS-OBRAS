@@ -1488,3 +1488,26 @@ function resposta_desconto(botao, id, status) {
     botao.parentElement.parentElement.parentElement.remove()
 
 }
+
+async function verificar_chamado_existente(chamado, id_atual, sequencial) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/chamado", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({chamado, id_atual, sequencial})
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
+}

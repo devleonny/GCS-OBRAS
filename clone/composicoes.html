@@ -177,6 +177,13 @@
             border-radius: 3px;
         }
 
+        .icones_toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: end;
+            gap: 10px;
+        }
+
     </style>
 </head>
 
@@ -192,34 +199,33 @@
 
             <div style="display: flex; justify-content: center; gap: 2vw;">
                 <div style="display: flex; flex-direction: column; gap: 10px; height: 100%;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="window.location.href='inicial.html'">
+                    <div class="icones_toolbar" onclick="window.location.href='inicial.html'">
                         <label style="color: white;">Voltar</label>
                         <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
                     </div>
 
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="recuperar_composicoes()">
+                    <div class="icones_toolbar" onclick="recuperar_composicoes()">
                         <label style="color: white;">Atualizar</label>
                         <img src="imagens/atualizar_2.png" style="width: 25px; cursor: pointer;">
+                    </div>
+
+                    <div class="icones_toolbar" onclick="para_excel()">
+                        <label style="color: white;">Excel</label>
+                        <img src="imagens/excel.png" style="width: 25px; cursor: pointer;">
                     </div>
                 </div>
 
                 <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
 
-                    <div id="adicionar_item"
-                        style="display: none; align-items: center; justify-content: center; gap: 10px; cursor: pointer;"
-                        onclick="cadastrar_editar_item()">
+                    <div id="adicionar_item" class="icones_toolbar" onclick="cadastrar_editar_item()">
                         <label style="color: white;">Cadastrar Item</label>
                         <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
                     </div>
-                    <div id="btn-criar-lpu"
-                        style="display: none; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                    <div id="btn-criar-lpu" class="icones_toolbar">
                         <label style="color: white;">Cadastrar LPU</label>
                         <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
                     </div>
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="abrirModalFiltros()">
+                    <div class="icones_toolbar" onclick="abrirModalFiltros()">
                         <label style="color: white;">Filtrar Campos</label>
                         <img src="imagens/pesquisar.png" style="width: 25px; cursor: pointer;">
                     </div>
