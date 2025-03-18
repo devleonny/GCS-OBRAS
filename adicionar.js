@@ -85,14 +85,14 @@ function apagar_orçamento() {
 
 }
 
-function orcamento_que_deve_voltar(){
+function orcamento_que_deve_voltar() {
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
 
-    if(orcamento_v2.id) {
+    if (orcamento_v2.id) {
         localStorage.setItem('orcamento_que_deve_voltar', JSON.stringify(orcamento_v2.id))
     }
-    
+
 
 }
 
@@ -232,10 +232,46 @@ function removerItem(codigo) {
 
 }
 
+// testes()
+
+// async function testes() {
+
+//     let orcamentos = await receber("dados_orcamentos")
+
+//     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
+
+//     let dados_orcam = orcamento_v2.dados_orcam;
+
+//     console.log(dados_orcam.contrato)
+
+//     Object.entries(orcamentos).forEach(([idOrcamento, dados]) => {
+
+//         let contrato = dados.dados_orcam.contrato;
+
+//         if (contrato) {
+
+//             if(contrato == dados_orcam.contrato){
+
+//                 console.log(contrato)
+//                 return openPopup_v2(`
+//                     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+//                         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+//                         <label>Chamado já Existente</label>
+//                     </div>
+//                 `);
+
+//             }
+
+//         }
+//     })
+
+// }
+
 async function enviar_dados() {
     salvar_preenchido();
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
+
 
     if (!orcamento_v2.dados_orcam) {
         return openPopup_v2(`
@@ -265,6 +301,31 @@ async function enviar_dados() {
             </div>
         `);
     }
+
+    let orcamentos = await receber("dados_orcamentos");
+
+    let contrato_existente = false;
+    let id_atual = orcamento_v2.id;
+
+    Object.entries(orcamentos).forEach(([idOrcamento, dados]) => {
+        let contrato = dados.dados_orcam.contrato;
+
+        if (contrato) {
+            if (contrato == dados_orcam.contrato && idOrcamento !== id_atual) {
+                contrato_existente = true;
+            }
+        }
+    });
+
+    if (contrato_existente) {
+        return openPopup_v2(`
+        <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <label>Chamado já Existente</label>
+        </div>
+    `);
+    }
+
 
     if (dados_orcam.contrato.slice(0, 1) !== 'D' && dados_orcam.contrato !== 'sequencial' && dados_orcam.contrato.slice(0, 3) !== 'ORC') {
         return openPopup_v2(`

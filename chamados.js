@@ -958,6 +958,8 @@ async function sugestoes(textarea, div, base) {
     let dados = await recuperarDados(`dados_${base}`) || {}
     let opcoes = ''
 
+    console.log(dados["055.733.205-21"])
+
     for (id in dados) {
         let item = dados[id]
         let info;
