@@ -321,8 +321,12 @@ function conversor(valor) {
         return valor;
     }
 
+    if (String(valor).includes('R$')) {
+        valor = valor.replace('R$', '')
+    }
+
     if (!valor || typeof valor !== 'string' || valor.trim() === "") {
-        return 0; 
+        return 0;
     }
 
     valor = valor.trim();
@@ -1494,7 +1498,7 @@ async function verificar_chamado_existente(chamado, id_atual, sequencial) {
         fetch("https://leonny.dev.br/chamado", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({chamado, id_atual, sequencial})
+            body: JSON.stringify({ chamado, id_atual, sequencial })
         })
             .then(response => {
                 if (!response.ok) {

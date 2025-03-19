@@ -49,7 +49,6 @@ async function atualizar_precos() {
         menu_superior.style.display = 'flex'
 
         await carregar_tabelas()
-        tabela_produtos_v2()
         await atualizar_lista_de_lpus()
 
         carregar_datalist_clientes()
@@ -143,18 +142,21 @@ async function atualizar_lista_de_lpus() {
             localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
         }
 
+        alterar_tabela_lpu()
+
         resolve()
     })
 }
 
-function alterar_tabela_lpu(elemento) {
-    var select_da_lpu = document.querySelectorAll('.select_da_lpu')
-    select_da_lpu.forEach(select => {
-        select.value = elemento.value
-    })
-    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-    orcamento_v2.lpu_ativa = elemento.value
-    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+function alterar_tabela_lpu(tabela_lpu) {
+
+    if (tabela_lpu) {
+        document.getElementById('lpu').value = tabela_lpu
+        var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+        orcamento_v2.lpu_ativa = tabela_lpu
+        localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+    }
+
     tabela_produtos_v2()
     carregar_tabelas()
 }
@@ -302,7 +304,7 @@ async function enviar_dados() {
         `);
     }
 
-    if (chamado !== 'sequencial' && await verificar_chamado_existente(chamado, orcamento_v2.id)) {
+    if (chamado !== 'sequencial' && await verificar_chamado_existente(chamado, orcamento_v2.id, true).situacao) {
         return openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
@@ -486,14 +488,6 @@ function pesquisar_v2(elemento, col) {
 
         tr.style.display = mostrar_linha ? 'table-row' : 'none';
     });
-}
-
-function mudar_tabela_pesquisa(tabela) {
-
-    tabela_atual = tabela
-    tabela_produtos_v2()
-    total()
-
 }
 
 async function recuperar_composicoes(tipo_tabela) {

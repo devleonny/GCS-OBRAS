@@ -1206,8 +1206,6 @@ async function exibir_todos_os_status(id) {
     }
 
     id_orcam = id
-    console.log(id, id_orcam);
-
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 

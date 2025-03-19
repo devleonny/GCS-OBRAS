@@ -15,7 +15,6 @@ document.getElementById("btn-criar-lpu").addEventListener("click", function () {
     `);
 });
 
-
 function pesquisar_em_composicoes(elemento) {
     var tabela = composicoes_.querySelector('table');
     var tbody = tabela.querySelector('tbody');
@@ -42,6 +41,7 @@ function pesquisar_em_composicoes(elemento) {
         tr.style.display = exibir ? '' : 'none';
     });
 }
+
 carregar_tabela_v2()
 
 async function recuperar_composicoes() {
@@ -522,9 +522,7 @@ async function incluir_agrupamento(elemento, cod, qtde) {
             `
             div_agrupamentos.insertAdjacentHTML('beforeend', item)
         }
-
     }
-
 }
 
 function remover_item(elemento) {
@@ -559,7 +557,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
 
         linhas += `
         <tr>
-            <td>${dinheiro(historico[cotacao].custo)}</td>
+            <td>${dinheiro(historico[cotacao]?.valor_custo || historico[cotacao]?.custo)}</td>
             <td style="text-align: center;">${historico[cotacao].margem}</td>
             <td>${dinheiro(historico[cotacao].valor)}</td>
             <td>${historico[cotacao].data}</td>
@@ -612,7 +610,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
             <div id="tabela_historico" style="display: ${visibilidade}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
                 <table class="tabela">
                     <thead>
-                        <th>Compra</th>
+                        <th>Valor de Custo</th>
                         <th>Margem %</th>
                         <th>Pr. Venda</th>
                         <th>Data</th>
@@ -628,7 +626,6 @@ async function abrir_historico_de_precos(codigo, tabela) {
         </div>
         <div></div>
     </div>
-
     `
     var historico_preco = document.getElementById('historico_preco')
     if (historico_preco) {
@@ -799,12 +796,13 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
     let produto = dados_composicoes[codigo]
     let acumulado = ''
     let funcao = cotacao ? `salvar_preco('${codigo}', '${lpu}', '${cotacao}')` : `salvar_preco('${codigo}', '${lpu}')`
+
     let painel = `
         <div style="color: #222; font-size: 0.8vw; background-color: #d2d2d2; padding: 5px; border-radius: 3px; display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 2px;">
             <label>NF de Compra</label>
-            <input style="background-color: #91b7d9;" id="nota" value="${produto[lpu]?.historico[cotacao].nota || ''}">
+            <input style="background-color: #91b7d9;" id="nota" value="${produto[lpu]?.historico[cotacao]?.nota || ''}">
             ${produto.tipo == 'VENDA' ? `<label>Fornecedor</label>
-            <input style="background-color: #91b7d9;" id="fornecedor" value="${produto[lpu]?.historico[cotacao].fornecedor || ''}">` : ''}
+            <input style="background-color: #91b7d9;" id="fornecedor" value="${produto[lpu]?.historico[cotacao]?.fornecedor || ''}">` : ''}
             <label onclick="${funcao}" class="contorno_botoes" style="background-color: #4CAF50;">Salvar</label>
         </div>
     `
@@ -819,20 +817,20 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                 <tbody>
                     <tr>
                         <td>Preço Unitário</td>
-                        <td style="background-color: #91b7d9;"><input id="custo" oninput="calcular('${div}')" value="${produto[lpu]?.historico[cotacao].custo || ''}"></td>
+                        <td style="background-color: #91b7d9;"><input id="custo" oninput="calcular()" value="${produto[lpu]?.historico[cotacao]?.custo || ''}"></td>
                     </tr>
                     <tr>
                         <td>Frete de Compra (5%)</td>
                         <td></td>
                     </tr>
                     <tr>
-                        <td>ICMS Creditado em nota</td>
-                        <td><input value="4%"></td>
+                        <td>ICMS Creditado em nota (%)</td>
+                        <td style="background-color: #91b7d9;"><input id="icms_creditado" oninput="calcular()" value="${produto[lpu]?.historico[cotacao]?.icms_creditado || ''}"></td>
                     </tr>
                     <tr>
-                        <td>Aliquota ICMS (Bahia) (20,5%)</td>
-                        <td><input value="20.5%"></td>
-                    </tr>                   
+                        <td>Aliquota ICMS (Bahia)</td>
+                        <td><input value="20.5%" value="20.5%" readOnly></td>
+                    </tr>
                     <tr>
                         <td>ICMS a ser pago (DIFAL)</td>
                         <td></td>
@@ -840,18 +838,18 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                     <tr>
                         <td>Valor do ICMS de Entrada</td>
                         <td></td>
-                    </tr>   
+                    </tr>
                     <tr>
                         <td>Valor de Custo</td>
-                        <td></td>
+                        <td id="valor_custo"></td>
                     </tr>                                      
                     <tr>
                         <td>Margem de Acréscimo (%)</td>
-                        <td style="background-color: #91b7d9;"><input id="margem" type="number" oninput="calcular()" value="${produto[lpu]?.historico[cotacao].margem || ''}"></td>
+                        <td style="background-color: #91b7d9;"><input id="margem" type="number" oninput="calcular()" value="${produto[lpu]?.historico[cotacao]?.margem || ''}"></td>
                     </tr>
                     <tr>
                         <td>Preço de Venda</td>
-                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular()" value="${produto[lpu]?.historico[cotacao].valor || ''}"></td>
+                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular(undefined, 'final')" value="${produto[lpu]?.historico[cotacao]?.valor || ''}"></td>
                     </tr>
                     <tr>
                         <td>Frete de Venda (5%)</td>
@@ -958,7 +956,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                         <th>Preço do Serviço</th>
                     </thead>
                     <tr>
-                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular('servico')" value="${produto[lpu]?.historico[cotacao].custo || ''}"></td>
+                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular('servico')" value="${produto[lpu]?.historico[cotacao]?.custo || ''}"></td>
                     </tr>
                 </tbody>
             </table>
@@ -1089,6 +1087,8 @@ async function salvar_preco(codigo, lpu, cotacao) {
     }
 
     if (produto.tipo == 'VENDA') {
+        historico[id].valor_custo = conversor(document.getElementById('valor_custo').textContent)
+        historico[id].icms_creditado = Number(document.getElementById('icms_creditado').value)
         historico[id].fornecedor = document.getElementById('fornecedor').value
         historico[id].custo = Number(document.getElementById('custo').value)
         historico[id].margem = Number(document.getElementById('margem').value)
@@ -1102,7 +1102,7 @@ async function salvar_preco(codigo, lpu, cotacao) {
     await abrir_historico_de_precos(codigo, lpu)
 }
 
-function calcular(tipo) {
+function calcular(tipo, campo) {
 
     let historico_preco = document.getElementById('historico_preco')
     let tabelas = historico_preco.nextElementSibling.querySelectorAll('table')
@@ -1155,16 +1155,26 @@ function calcular(tipo) {
         let icms_aliquota = conversor(tds[7].querySelector('input').value)
         let difal = icms_aliquota - icms_creditado
         let icms_entrada = difal / 100 * preco_compra
-        let margem = Number(tds[15].querySelector('input').value)
         let valor_custo = icms_entrada + preco_compra + frete
-        let preco_venda = (1 + margem / 100) * valor_custo
-        let frete_venda = preco_venda * 0.05
 
         tds[3].textContent = dinheiro(frete)
         tds[9].textContent = `${difal}%`
         tds[11].textContent = dinheiro(icms_entrada)
         tds[13].textContent = dinheiro(valor_custo)
-        tds[17].querySelector('input').value = preco_venda.toFixed(2)
+
+        let margem = Number(tds[15].querySelector('input').value)
+        let preco_venda = (1 + margem / 100) * valor_custo
+
+        if (campo == 'final') {
+            preco_venda = Number(tds[17].querySelector('input').value)
+            margem = ((preco_venda / valor_custo - 1) * 100).toFixed(2)
+            tds[15].querySelector('input').value = margem
+
+        } else {
+            tds[17].querySelector('input').value = preco_venda.toFixed(2)
+        }
+
+        let frete_venda = preco_venda * 0.05
         tds[19].textContent = dinheiro(frete_venda)
 
         tds = tabelas[2].querySelectorAll('td') // 2ª Tabela

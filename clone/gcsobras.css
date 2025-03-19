@@ -1225,11 +1225,6 @@ input[type=range]::-moz-range-thumb {
     border-bottom: 1px solid transparent;
 }
 
-.tabela input {
-    font-size: 0.8vw;
-    background-color: transparent;
-}
-
 .tabela td {
     font-size: 0.7vw;
     text-align: left;
