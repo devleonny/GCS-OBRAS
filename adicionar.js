@@ -302,7 +302,8 @@ async function enviar_dados() {
         `);
     }
 
-    if (chamado !== 'sequencial' && await verificar_chamado_existente(chamado, orcamento_v2.id)) {
+    if (chamado !== 'sequencial' && await verificar_chamado_existente(chamado, orcamento_v2.id).situacao) {
+
         return openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">

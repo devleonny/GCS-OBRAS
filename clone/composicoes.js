@@ -590,7 +590,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
     </div>
 
     <div style="display: flex; justify-content: left; align-items: start; flex-direction: column; background-color: white; padding: 5px; border-radius: 5px; color: #222;">
-        <div id="historico_preco" style="position: relative;">
+        <div id="historico_preco" style="display: flex; flex-direction: column; align-items: start; justify-content: center; position: relative; width: 100%;">
             
             <div style="display: flex; justify-content: left; align-items: center; gap: 5px;">
                 <img style="width: 7vw;" src="${dados_composicoes[codigo].imagem !== '' ? dados_composicoes[codigo].imagem : 'https://i.imgur.com/Nb8sPs0.png'}">
@@ -605,9 +605,9 @@ async function abrir_historico_de_precos(codigo, tabela) {
                 <label>Adicionar Preço</label>
             </div>
 
-            <hr style="width: 100%;">
-
             <label>Histórico de Preços</label>
+
+            <hr style="width: 100%;">
 
             <div id="tabela_historico" style="display: ${visibilidade}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
                 <table class="tabela">
@@ -791,20 +791,21 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
     }
 }
 
-async function adicionar_nova_cotacao(codigo, lpu) {
+async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
 
     let historico_preco = document.getElementById('historico_preco')
     let div = historico_preco.nextElementSibling
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let produto = dados_composicoes[codigo]
     let acumulado = ''
+    let funcao = cotacao ? `salvar_preco('${codigo}', '${lpu}', '${cotacao}')` : `salvar_preco('${codigo}', '${lpu}')`
     let painel = `
         <div style="color: #222; font-size: 0.8vw; background-color: #d2d2d2; padding: 5px; border-radius: 3px; display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 2px;">
             <label>NF de Compra</label>
-            <input style="background-color: #91b7d9;" id="nota">
+            <input style="background-color: #91b7d9;" id="nota" value="${produto[lpu]?.historico[cotacao].nota || ''}">
             ${produto.tipo == 'VENDA' ? `<label>Fornecedor</label>
-            <input style="background-color: #91b7d9;" id="fornecedor">` : ''}
-            <label onclick="salvar_preco('${codigo}', '${lpu}')" class="contorno_botoes" style="background-color: #4CAF50;">Salvar</label>
+            <input style="background-color: #91b7d9;" id="fornecedor" value="${produto[lpu]?.historico[cotacao].fornecedor || ''}">` : ''}
+            <label onclick="${funcao}" class="contorno_botoes" style="background-color: #4CAF50;">Salvar</label>
         </div>
     `
 
@@ -818,7 +819,7 @@ async function adicionar_nova_cotacao(codigo, lpu) {
                 <tbody>
                     <tr>
                         <td>Preço Unitário</td>
-                        <td style="background-color: #91b7d9;"><input id="custo" oninput="calcular('${div}')"></td>
+                        <td style="background-color: #91b7d9;"><input id="custo" oninput="calcular('${div}')" value="${produto[lpu]?.historico[cotacao].custo || ''}"></td>
                     </tr>
                     <tr>
                         <td>Frete de Compra (5%)</td>
@@ -846,11 +847,11 @@ async function adicionar_nova_cotacao(codigo, lpu) {
                     </tr>                                      
                     <tr>
                         <td>Margem de Acréscimo (%)</td>
-                        <td style="background-color: #91b7d9;"><input id="margem" type="number" oninput="calcular()"></td>
+                        <td style="background-color: #91b7d9;"><input id="margem" type="number" oninput="calcular()" value="${produto[lpu]?.historico[cotacao].margem || ''}"></td>
                     </tr>
                     <tr>
                         <td>Preço de Venda</td>
-                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular()"></td>
+                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular()" value="${produto[lpu]?.historico[cotacao].valor || ''}"></td>
                     </tr>
                     <tr>
                         <td>Frete de Venda (5%)</td>
@@ -957,7 +958,7 @@ async function adicionar_nova_cotacao(codigo, lpu) {
                         <th>Preço do Serviço</th>
                     </thead>
                     <tr>
-                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular('servico')"></td>
+                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular('servico')" value="${produto[lpu]?.historico[cotacao].custo || ''}"></td>
                     </tr>
                 </tbody>
             </table>
@@ -1051,16 +1052,18 @@ async function adicionar_nova_cotacao(codigo, lpu) {
 
     div.innerHTML = `
     <div style="color: #222; background-color: white; border-radius: 3px; padding: 5px; display: flex; justify-content: center; align-items: start; flex-direction: column;">
-        <hr style="width: 100%;">
+
         <label>Gestão de Preço</label>
-        <br>
+        <hr style="width: 100%;">
         ${acumulado}
 
     </div>`
 
+    calcular(produto.tipo == 'SERVIÇO' ? 'servico' : undefined)
+
 }
 
-async function salvar_preco(codigo, lpu) {
+async function salvar_preco(codigo, lpu, cotacao) {
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let produto = dados_composicoes[codigo]
@@ -1073,7 +1076,7 @@ async function salvar_preco(codigo, lpu) {
     }
 
     let historico = produto[lpu].historico
-    let id = gerar_id_5_digitos()
+    let id = cotacao ? cotacao : gerar_id_5_digitos()
 
     historico[id] = {
         margem: 0,
@@ -1161,7 +1164,7 @@ function calcular(tipo) {
         tds[9].textContent = `${difal}%`
         tds[11].textContent = dinheiro(icms_entrada)
         tds[13].textContent = dinheiro(valor_custo)
-        tds[17].querySelector('input').value = preco_venda
+        tds[17].querySelector('input').value = preco_venda.toFixed(2)
         tds[19].textContent = dinheiro(frete_venda)
 
         tds = tabelas[2].querySelectorAll('td') // 2ª Tabela

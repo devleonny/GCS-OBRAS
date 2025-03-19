@@ -100,28 +100,13 @@ async function importar_imagem(local_img, codigo) {
                     </div>
                     `
 
-                } else { //No caso de existir, vem de item existente;
+                } else { // No caso de existir, vem de item existente;
 
                     dados_composicoes[codigo].imagem = src_
 
+                    enviar(`dados_composicoes/${codigo}/imagem`, src_)
                     inserirDados(dados_composicoes, 'dados_composicoes')
 
-                    var composicao = {
-                        'tabela': 'composicoes',
-                        'imagem': src_,
-                        'campo': 'imagem',
-                        'codigo': codigo,
-                    }
-
-                    // Enviando dados para a API
-                    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec', {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(composicao)
-                    });
                 }
             }
 
