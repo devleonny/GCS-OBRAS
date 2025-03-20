@@ -488,9 +488,14 @@ async function carregar_itens(apenas_visualizar, requisicao, editar) {
     var dados_composicoes = await recuperarDados('dados_composicoes') || {}
     var orcamento = dados_orcamentos[id_orcam]
 
+<<<<<<< Updated upstream
     orcamento = await conversor_composicoes_orcamento(orcamento)
 
     var linhas = ''
+=======
+    let linhas = '';
+    let linhas = '';
+>>>>>>> Stashed changes
 
     if (!orcamento.dados_composicoes || Object.keys(orcamento.dados_composicoes).length == 0) {
         return ''
@@ -1858,6 +1863,105 @@ async function abrir_esquema(id) {
     fechar_espelho_ocorrencias();
 }
 
+<<<<<<< Updated upstream
+=======
+function abrirModalTipoRequisicao() {
+    const modal = `
+        <div id="modalTipoRequisicao" style="
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        ">
+            <label style="font-size: 1.2em; margin-bottom: 20px; display: block;">Selecione o tipo de requisição:</label>
+            <button onclick="escolherTipoRequisicao('completa')" style="
+                background-color: #4CAF50;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                margin-right: 10px;
+            ">Requisição Completa</button>
+            <button onclick="escolherTipoRequisicao('infraestrutura')" style="
+                background-color: #2196F3;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            ">Requisição de Infraestrutura</button>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+function fecharModalTipoRequisicao() {
+    const modal = document.getElementById('modalTipoRequisicao');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function escolherTipoRequisicao(tipo) {
+    fecharModalTipoRequisicao(); // Fecha o modal
+    detalhar_requisicao(undefined, undefined, tipo); // Abre a requisição com o tipo escolhido
+}
+function abrirModalTipoRequisicao() {
+    const modal = `
+        <div id="modalTipoRequisicao" style="
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        ">
+            <label style="font-size: 1.2em; margin-bottom: 20px; display: block;">Selecione o tipo de requisição:</label>
+            <button onclick="escolherTipoRequisicao('completa')" style="
+                background-color: #4CAF50;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                margin-right: 10px;
+            ">Requisição Completa</button>
+            <button onclick="escolherTipoRequisicao('infraestrutura')" style="
+                background-color: #2196F3;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            ">Requisição de Infraestrutura</button>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+function fecharModalTipoRequisicao() {
+    const modal = document.getElementById('modalTipoRequisicao');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function escolherTipoRequisicao(tipo) {
+    fecharModalTipoRequisicao(); // Fecha o modal
+    detalhar_requisicao(undefined, undefined, tipo); // Abre a requisição com o tipo escolhido
+}
+>>>>>>> Stashed changes
 function mostrar_painel() {
     let painel_custos = document.getElementById('painel_custos')
     let overlay_de_custos = document.getElementById('overlay_de_custos')
