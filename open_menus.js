@@ -471,12 +471,11 @@ async function recuperar_clientes() {
         }
     }
 
+    let clientes = {};
     for (modalidade in resultado) {
 
         let data = resultado[modalidade].data
         let hora = resultado[modalidade].hora
-
-        let clientes = {};
         let objeto = await dados_clientes_por_pagina(1, data, hora, modalidade);
 
         if (objeto.faultstring) {
@@ -493,6 +492,7 @@ async function recuperar_clientes() {
         function alimentar_objeto(dados) {
             dados.clientes_cadastro.forEach((item) => {
                 clientes[item.cnpj_cpf] = {
+                    inativo: item.inativo,
                     nome: item.nome_fantasia,
                     cnpj: item.cnpj_cpf,
                     cep: item.cep,
@@ -515,12 +515,21 @@ async function recuperar_clientes() {
             });
         }
 
-        for (cliente in clientes) {
-            dados_clientes[cliente] = clientes[cliente]
+    }
+
+    for (cnpj in clientes) {
+
+        let cliente = clientes[cnpj]
+
+        if (cliente.inativo == 'S' && dados_clientes[cnpj]) {
+            delete dados_clientes[cnpj]
+        } else {
+            dados_clientes[cnpj] = cliente
         }
 
-        await inserirDados(dados_clientes, 'dados_clientes')
     }
+
+    await inserirDados(dados_clientes, 'dados_clientes')
 
     if (acompanhamento_dados_clientes) {
         dados_clientes_provisorios = data
@@ -1456,7 +1465,7 @@ async function verificar_chamado_existente(chamado, id_atual, sequencial) {
         fetch("https://leonny.dev.br/chamado", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({chamado, id_atual, sequencial})
+            body: JSON.stringify({ chamado, id_atual, sequencial })
         })
             .then(response => {
                 if (!response.ok) {

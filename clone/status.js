@@ -4,6 +4,7 @@ var overlay = document.getElementById('overlay');
 var acesso = JSON.parse(localStorage.getItem('acesso')) || {};
 var id_orcam = ''
 var dataAtual = new Date();
+let pagamentos_painel = {}
 var data_status = dataAtual.toLocaleString('pt-BR', {
     dateStyle: 'short',
     timeStyle: 'short'
@@ -1405,7 +1406,7 @@ async function abrir_esquema(id) {
         let links_requisicoes = ''
         let string_pagamentos = ''
         let tem_pagamento = false
-        let pagamentos_painel = {}
+        pagamentos_painel = {}
         var historico = orcamento.status?.historico || {}
 
         for (pag in lista_pagamentos) {
@@ -1654,23 +1655,7 @@ async function abrir_esquema(id) {
                 `
         }
 
-        var pags = ''
-        var total_pago = 0
-
-        for (pg in pagamentos_painel) {
-            pags += `
-                <div style="display: flex; flex-direction: column; align-items: start;">
-                    <label style="font-size: 0.7em;"><strong>${pg}</strong></label>
-                    <label style="font-size: 1.2em;">${dinheiro(pagamentos_painel[pg])}</label>
-                </div>
-                `
-            if (pg == 'PAGO') {
-                total_pago += pagamentos_painel[pg]
-            }
-        }
-
         let blocos = ''
-
         for (div in blocos_por_status) {
             let divisao = blocos_por_status[div]
             blocos += `
@@ -1748,59 +1733,6 @@ async function abrir_esquema(id) {
 
     };
 
-    let painel_custos = `
-
-            <div id="overlay_de_custos" style="
-            display: none; 
-            background-color: rgba(0, 0, 0, 0.7);
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            z-index: 1001;
-            border-radius: 3px;"></div>
-
-        <div id="painel_custos" class="contorno_botoes" style="
-        resize: both;
-        overflow: auto;
-        position: absolute; 
-        top: 10%; 
-        left: 5%; 
-        font-size: 1vw; 
-        display: none; 
-        flex-direction: column; 
-        align-items: center; 
-        padding: 10px; 
-        border-radius: 5px; 
-        background-color: #222; 
-        color: white;
-        z-index: 1002;">
-
-            <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="mostrar_painel()">&times;</span>
-            <label>Gestão de Custos</label>
-            ${pags}
-            <hr style="width: 100%;">
-            <label style="font-size: 0.8vw;"> <span id="valor_pedido">0,00</span> <label style="font-size: 0.8vw;">Valor do Pedido</label></label>
-            <hr style="width: 100%;">
-            <label onclick="valores_manuais()" style="font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
-
-            <div id="lista-valores-manuais">
-                ${Object.entries(dados_orcamentos[id].valoresManuais || {}).length > 0
-            ? Object.entries(dados_orcamentos[id].valoresManuais).map(([chave, valor]) => `
-                                <div style="display: flex; align-items: center; gap: 5px;">
-                                    <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
-                                    <button onclick="removerValorManual('${id}', '${chave}')" 
-                                        style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
-                                </div>
-                            `).join("")
-            : "<label style='font-size: 0.8vw; color: gray;'>Nenhum valor manual adicionado.</label>"}
-            </div>
-
-            <hr style="width: 100%;">
-            <label><span id="valor_total_pedido">0,00</span></label>
-        </div>
-        `
-
     let estruturaHtml = `
         <div id="status" class="status" style="display: flex; flex-direction: column; gap: 10px; width: 100%; overflow: auto;">
             <span class="close" onclick="fechar_status(true)">&times;</span>
@@ -1808,21 +1740,78 @@ async function abrir_esquema(id) {
             <div style="max-width: 90%; display: flex; flex-direction: column;">
                 ${acumulado}
             </div>
-
-            ${painel_custos}
         </div>
         `
 
     let painel = document.getElementById('status')
     if (painel) {
         painel.remove()
-    } 
+    }
 
     document.body.insertAdjacentHTML('beforeend', estruturaHtml);
 
-    // É só esperar a página incluir os elementos acima, simples... não precisa de timeInterval...
-    let totalValoresPedidos = somarValoresPedidos();
-    let totalValoresManuais = somarValoresManuais(dados_orcamentos[id]);
+    fechar_espelho_ocorrencias();
+}
+
+async function mostrar_painel() {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    var pags = ''
+    var total_pago = 0
+
+    for (pg in pagamentos_painel) {
+        pags += `
+            <div style="display: flex; flex-direction: column; align-items: start;">
+                <label style="font-size: 0.7em;"><strong>${pg}</strong></label>
+                <label style="font-size: 1.2em;">${dinheiro(pagamentos_painel[pg])}</label>
+            </div>
+            `
+        if (pg == 'PAGO') {
+            total_pago += pagamentos_painel[pg]
+        }
+    }
+
+    let acumulado = `
+
+        <label style="font-size: 1.5vw;">Resumo e Gestão de Custo do Orçamento</label>
+
+        <div style="display: flex; justify-content: center; align-items: center;">
+            
+            <div style="width: 40vw; background-color: #d2d2d2; padding: 5px; border-radius: 5px;">
+                <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="fechar_status()">&times;</span>
+                <label>Gestão de Custos</label>
+                    ${pags}
+                <hr style="width: 100%;">
+                <label style="font-size: 0.8vw;"> <span id="valor_pedido">0,00</span> <label style="font-size: 0.8vw;">Valor do Pedido</label></label>
+                <hr style="width: 100%;">
+                <label onclick="valores_manuais()" style="font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
+
+                <div id="lista-valores-manuais">
+                    ${Object.entries(dados_orcamentos[id_orcam].valoresManuais || {}).length > 0
+                ? Object.entries(dados_orcamentos[id_orcam].valoresManuais).map(([chave, valor]) => `
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
+                            <button onclick="removerValorManual('${id_orcam}', '${chave}')" 
+                                style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
+                        </div>
+                    `).join("")
+                : "<label style='font-size: 0.8vw; color: gray;'>Nenhum valor manual adicionado.</label>"}
+                </div>
+
+                <hr style="width: 100%;">
+                <label><span id="valor_total_pedido">0,00</span></label>
+            </div>
+
+            <div></div>
+
+        </div>
+    `
+
+    let painel = document.getElementById('status')
+    if (painel) {
+        painel.innerHTML = acumulado
+    }
+
+    let totalValoresManuais = somarValoresManuais(dados_orcamentos[id_orcam]);
     let totalFinal = conversor(orcamento.total_geral) - totalValoresManuais;
     let valorPedidoSpan = document.getElementById('valor_pedido');
     let valorTotalSpan = document.getElementById('valor_total_pedido');
@@ -1834,37 +1823,6 @@ async function abrir_esquema(id) {
     if (valorTotalSpan) {
         valorTotalSpan.textContent = dinheiro(totalFinal)
     }
-
-    fechar_espelho_ocorrencias();
-}
-
-function mostrar_painel() {
-    let painel_custos = document.getElementById('painel_custos')
-    let overlay_de_custos = document.getElementById('overlay_de_custos')
-    let estrutura = document.getElementById('status')
-    if (painel_custos) {
-        if (painel_custos.style.display == 'flex') {
-            painel_custos.style.display = 'none'
-            overlay_de_custos.style.display = 'none'
-
-        } else {
-            painel_custos.style.display = 'flex'
-            overlay_de_custos.style.display = 'block'
-            overlay_de_custos.style.height = estrutura.scrollHeight + 'px';
-        }
-    }
-}
-
-function somarValoresPedidos() {
-    let total = 0;
-
-    document.querySelectorAll('.valores_pedidos').forEach(input => {
-        let valor = input.value.replace(/[^\d,.-]/g, '').replace(',', '.'); // Remove caracteres inválidos
-        let numero = parseFloat(valor) || 0;
-        total += numero;
-    });
-
-    return total;
 }
 
 function somarValoresManuais(dados) {

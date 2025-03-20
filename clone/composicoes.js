@@ -1246,14 +1246,8 @@ async function cadastrar_editar_item(codigo) {
     let colunas = ['descricao', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados = dados_composicoes[codigo] || {}
-    let n_codigo = codigo
-    if (codigo !== undefined) {
-        colunas = Object.keys(dados)
-    } else {
-        n_codigo = `gcs-${gerar_id_5_digitos()}`
-    }
-    let funcao = codigo == undefined ? `cadastrar_alterar('${n_codigo}')` : `cadastrar_alterar('${codigo}')`
 
+    let funcao = codigo ? `cadastrar_alterar('${codigo}')` : `cadastrar_alterar()`
     let elementos = ''
 
     colunas.forEach(col => {
@@ -1293,18 +1287,18 @@ async function cadastrar_editar_item(codigo) {
 
     var acumulado = `
 
-    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
+    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 5vh;">
 
-    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
-        <label style="font-size: 0.7em;">${n_codigo}</label>
-        <img src="imagens/cancel.png" style="width: 15px; cursor: pointer;" onclick="confirmar_exclusao_item('${n_codigo}')">
-    </div>
+    ${codigo ? `<div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
+        <label style="font-size: 0.7em;">${codigo}</label>
+        <img src="imagens/cancel.png" style="width: 15px; cursor: pointer;" onclick="confirmar_exclusao_item('${codigo}')">
+    </div>` : ''}
 
     <div style="display: flex; justify-content: space-evenly; width: 100%;">
         <label>Dados do Item</label>
     </div>
 
-    <div id="cadastrar_item" style="background-color: white; color: #222; padding: 5px; border-radius: 5px;">
+    <div id="cadastrar_item" style="background-color: white; color: #222; padding: 5px; border-radius: 5px; margin: 1vw;">
 
         <div id="elementos" style="display: flex; flex-direction: column; gap: 5px;">
             ${elementos}
@@ -1355,6 +1349,8 @@ async function cadastrar_alterar(codigo) {
     let elementos = document.getElementById('elementos');
     if (!elementos) return;
 
+    codigo = codigo ? codigo : await verificar_codigo_existente(true) // Verificar com o servidor o último código sequencial;
+
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     if (!dados_composicoes[codigo]) {
         dados_composicoes[codigo] = {};
@@ -1381,6 +1377,29 @@ async function cadastrar_alterar(codigo) {
 
     remover_popup();
     carregar_tabela_v2();
+}
+
+async function verificar_codigo_existente(clone) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/codigo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ clone })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
 }
 
 async function abrirModalFiltros() {
