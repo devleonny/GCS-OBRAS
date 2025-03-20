@@ -487,6 +487,9 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
 =======
 const tipo_requisicao_infraestrutura = "Requisição de Infraestrutura" 
 async function carregar_itens(apenas_visualizar, requisicao, tipo_requisicao, itens_adicionais) {
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
@@ -505,7 +508,10 @@ async function carregar_itens(apenas_visualizar, requisicao, tipo_requisicao, it
     let itensFiltrados = [];
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
     // Função para criar uma linha da tabela
     function criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements) {
         return `
@@ -561,6 +567,7 @@ async function carregar_itens(apenas_visualizar, requisicao, tipo_requisicao, it
     Object.keys(orcamento.dados_composicoes).forEach(codigo => {
         let item = orcamento.dados_composicoes[codigo];
         let tipo = dados_composicoes[codigo]?.tipo || item.tipo;
+<<<<<<< Updated upstream
 >>>>>>> Stashed changes
 
     for (id in orcamento.dados_composicoes) {
@@ -673,10 +680,25 @@ async function carregar_itens(apenas_visualizar, requisicao, tipo_requisicao, it
             }
         });
 
+=======
+
+        // Filtra os itens com base no tipo de requisição
+        if (tipo_requisicao === "Requisição de Infraestrutura" && tipo !== "SERVIÇO") {
+            return; // Ignora itens que não são do tipo "SERVIÇO"
+        }
+
+        // Quantidade na requisição (se existir)
+        let qtde_na_requisicao = requisicao[codigo]?.qtde_enviar || '';
+        let qtde_editar = item.qtde;
+
+        // Descrição e informações do item
+        let elements = '';
+>>>>>>> Stashed changes
         if (dados_composicoes[codigo]) {
             elements += `
                 <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong> <br>${dados_composicoes[codigo].descricao}</label>
                 <label style="font-size: 0.8vw;"><strong>FABRICANTE</strong> ${dados_composicoes[codigo].fabricante} • <strong>MODELO</strong> ${dados_composicoes[codigo].modelo}</label>
+<<<<<<< Updated upstream
                 `;
             mod_livre = false;
         }
@@ -742,11 +764,21 @@ async function carregar_itens(apenas_visualizar, requisicao, tipo_requisicao, it
 
         linhas += criarLinha(codigo, item, tipo, qtde_na_requisicao, quantidadeAtual || qtde_editar, part_number, elements, aux, apenas_visualizar);
 =======
+=======
+            `;
+        } else {
+            elements = `<label>${item.descricao}</label>`;
+        }
+
+>>>>>>> Stashed changes
         // Part Number
         let partnumber = dados_composicoes[codigo]?.omie || '';
 
         // Cria a linha da tabela
         linhas += criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements);
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     });
 
@@ -755,6 +787,7 @@ async function carregar_itens(apenas_visualizar, requisicao, tipo_requisicao, it
         Object.keys(itens_adicionais).forEach(codigo => {
             let item = itens_adicionais[codigo];
             let tipo = "SERVIÇO"; // Itens adicionais são sempre do tipo SERVIÇO
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
             let elements = `
@@ -983,6 +1016,12 @@ async function abrir_adicionais(codigo) {
             }
 
         }
+=======
+
+            // Cria a linha da tabela para os itens adicionais
+            linhas += criarLinha(codigo, item, tipo, item.qtde || 0, item.qtde || 0, item.partnumber || '', item.descricao || '');
+        });
+>>>>>>> Stashed changes
 =======
 
             // Cria a linha da tabela para os itens adicionais
