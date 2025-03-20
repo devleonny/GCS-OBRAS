@@ -866,7 +866,7 @@ async function abrir_adicionais(codigo) {
                 </div>
 
                 <div id="linhas_manutencao">
-                    <div id="excluir_inicial" class="linha" style="width: 70vw;">
+                    <div id="excluir_inicial" class="linha" style="width: 70vw; height: 30px;">
                         <label>Lista Vazia</label>
                     </div>
                 </div>
@@ -875,7 +875,7 @@ async function abrir_adicionais(codigo) {
 
             <br>
 
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px; width: 100%;">
 
                 <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
                     <div onclick="adicionar_linha_manut()" class="contorno_botoes"
