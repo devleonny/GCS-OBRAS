@@ -360,7 +360,9 @@ function carregarFiltros() {
         });
 
         // Aplica o filtro na tabela
+        setTimeout(() => {
         aplicarFiltroCheck(indice);
+        }, 100)
     });
 
     // Se não houver filtros no localStorage, marca todos os checkboxes para as colunas
