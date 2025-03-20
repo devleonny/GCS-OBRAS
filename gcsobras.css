@@ -1227,7 +1227,7 @@ input[type=range]::-moz-range-thumb {
 
 .tabela td {
     font-size: 0.8vw;
-    text-align: left;
+    text-align: center;
     color: black;
 }
 
@@ -1276,6 +1276,7 @@ input[type=range]::-moz-range-thumb {
     padding: 10px;
     margin: 10px;
     border-radius: 5px;
+    text-align: center;
 }
 
 .conteiner_pedido {
