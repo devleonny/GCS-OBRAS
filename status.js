@@ -489,8 +489,7 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
 
     orcamento = await conversor_composicoes_orcamento(orcamento);
 
-    var linhas = '';
-    console.log(tipoRequisicao);
+    let linhas = '';
 
     if (!orcamento.dados_composicoes || Object.keys(orcamento.dados_composicoes).length == 0) {
         return '';
@@ -525,10 +524,14 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
                 <td style="text-align: center;">
                     ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.partnumber || ''}</label>` : partnumber}
                 </td>
+                <td style="text-align: center;">
+                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.partnumber || ''}</label>` : partnumber}
+                </td>
                 <td style="position: relative;">
                     <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
                         ${elements}
                     </div>
+                    ${aux}
                     ${aux}
                 </td>
                 <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
@@ -538,8 +541,23 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
                             <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
                         </select>
                     `}
+                    ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${requisicao[codigo]?.tipo || ''}</label>` : `
+                        <select onchange="calcular_requisicao()" style="border: none;">
+                            <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
+                            <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
+                        </select>
+                    `}
                 </td>
                 <td style="text-align: center;">
+                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.qtde_enviar || ''}</label>` : `
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
+                                <label>Quantidade a enviar</label>
+                                <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
+                            </div>
+                            <label class="num">${qtde_editar}</label>  
+                        </div>
+                    `}
                     ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.qtde_enviar || ''}</label>` : `
                         <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
                             <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
@@ -563,6 +581,15 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
                     <label style="color: red; font-size: 1.0em;"></label>
                 </td>
                 <td>
+                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.requisicao || ''}</label>` : `
+                        <select style="border: none; cursor: pointer;">
+                            <option>Nada a fazer</option>
+                            <option>Estoque AC</option>
+                            <option>Comprar</option>
+                            <option>Enviar do CD</option>
+                            <option>Fornecido pelo Cliente</option>
+                        </select>
+                    `}
                     ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.requisicao || ''}</label>` : `
                         <select style="border: none; cursor: pointer;">
                             <option>Nada a fazer</option>
@@ -2015,6 +2042,54 @@ async function abrir_esquema(id) {
     fechar_espelho_ocorrencias();
 }
 
+function abrirModalTipoRequisicao() {
+    const modal = `
+        <div id="modalTipoRequisicao" style="
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        ">
+            <label style="font-size: 1.2em; margin-bottom: 20px; display: block;">Selecione o tipo de requisição:</label>
+            <button onclick="escolherTipoRequisicao('completa')" style="
+                background-color: #4CAF50;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                margin-right: 10px;
+            ">Requisição Completa</button>
+            <button onclick="escolherTipoRequisicao('infraestrutura')" style="
+                background-color: #2196F3;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            ">Requisição de Infraestrutura</button>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+function fecharModalTipoRequisicao() {
+    const modal = document.getElementById('modalTipoRequisicao');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function escolherTipoRequisicao(tipo) {
+    fecharModalTipoRequisicao(); // Fecha o modal
+    detalhar_requisicao(undefined, undefined, tipo); // Abre a requisição com o tipo escolhido
+}
 function mostrar_painel() {
     let painel_custos = document.getElementById('painel_custos')
     let overlay_de_custos = document.getElementById('overlay_de_custos')
