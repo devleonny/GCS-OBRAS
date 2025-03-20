@@ -1772,18 +1772,39 @@ async function mostrar_painel() {
         }
     }
 
+    let linhas = ''
+
+    for (id in orcamento.dados_composicoes) {
+        let produto = dados_composicoes[id]
+        let lpu = orcamento.lpu_ativa.toLowerCase()
+        let tabela = produto[lpu]
+        let qtde = orcamento.dados_composicoes[id].qtde
+        let cotacao = tabela?.historico[tabela?.ativo]
+
+        linhas += `
+        <tr>
+            <td>${produto.codigo}</td>
+            <td>${qtde}</td>
+            <td>${cotacao?.valor_custo || 'R$ 0,00'}</td>
+            <td>${cotacao?.valor || 'R$ 0,00'}</td>
+            <td>${cotacao?.margem || '%'}</td>
+        </tr>
+        
+        `
+    }
+
     let acumulado = `
 
         <label style="font-size: 1.5vw;">Resumo e Gestão de Custo do Orçamento</label>
 
-        <div style="display: flex; justify-content: center; align-items: center;">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 2vw;">
             
-            <div style="width: 40vw; background-color: #d2d2d2; padding: 5px; border-radius: 5px;">
+            <div style="width: 40% ; background-color: #d2d2d2; padding: 5px; border-radius: 5px;">
                 <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="fechar_status()">&times;</span>
                 <label>Gestão de Custos</label>
                     ${pags}
                 <hr style="width: 100%;">
-                <label style="font-size: 0.8vw;"> <span id="valor_pedido">0,00</span> <label style="font-size: 0.8vw;">Valor do Pedido</label></label>
+                <label style="font-size: 0.8vw;"> <span id="valor_pedido">0,00</span> <label style="font-size: 0.8vw;">Valor do Orçamento</label></label>
                 <hr style="width: 100%;">
                 <label onclick="valores_manuais()" style="font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
 
@@ -1803,16 +1824,25 @@ async function mostrar_painel() {
                 <label><span id="valor_total_pedido">0,00</span></label>
             </div>
 
-            <div></div>
+            <div style="width: 50%;">
+                <table class="tabela">
+                    <thead>
+                            <th>Código</th>
+                            <th>Quantidade</th>
+                            <th>Valor de Custo</th>
+                            <th>Valor de Venda</th>
+                            <th>Margem</th>
+                    </thead>
+                    <tbody>
+                        ${linhas}
+                    </tbody>
+                </table>
+            </div>
 
         </div>
     `
 
     //console.log(orcamento.dados_composicoes)
-
-    for(id in orcamento.dados_composicoes){
-        console.log(dados_composicoes[id])
-    }
 
     let painel = document.getElementById('status')
     if (painel) {
