@@ -1755,6 +1755,8 @@ async function abrir_esquema(id) {
 
 async function mostrar_painel() {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let orcamento = dados_orcamentos[id_orcam]
     var pags = ''
     var total_pago = 0
 
@@ -1786,8 +1788,8 @@ async function mostrar_painel() {
                 <label onclick="valores_manuais()" style="font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
 
                 <div id="lista-valores-manuais">
-                    ${Object.entries(dados_orcamentos[id_orcam].valoresManuais || {}).length > 0
-                ? Object.entries(dados_orcamentos[id_orcam].valoresManuais).map(([chave, valor]) => `
+                    ${Object.entries(orcamento.valoresManuais || {}).length > 0
+                ? Object.entries(orcamento.valoresManuais).map(([chave, valor]) => `
                         <div style="display: flex; align-items: center; gap: 5px;">
                             <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
                             <button onclick="removerValorManual('${id_orcam}', '${chave}')" 
@@ -1806,12 +1808,18 @@ async function mostrar_painel() {
         </div>
     `
 
+    //console.log(orcamento.dados_composicoes)
+
+    for(id in orcamento.dados_composicoes){
+        console.log(dados_composicoes[id])
+    }
+
     let painel = document.getElementById('status')
     if (painel) {
         painel.innerHTML = acumulado
     }
 
-    let totalValoresManuais = somarValoresManuais(dados_orcamentos[id_orcam]);
+    let totalValoresManuais = somarValoresManuais(orcamento);
     let totalFinal = conversor(orcamento.total_geral) - totalValoresManuais;
     let valorPedidoSpan = document.getElementById('valor_pedido');
     let valorTotalSpan = document.getElementById('valor_total_pedido');
