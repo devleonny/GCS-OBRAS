@@ -482,7 +482,12 @@ function pesquisar_na_requisicao() {
     }
 }
 
+<<<<<<< Updated upstream
 async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisicao) {
+=======
+const tipo_requisicao_infraestrutura = "Requisição de Infraestrutura" 
+async function carregar_itens(apenas_visualizar, requisicao, tipo_requisicao, itens_adicionais) {
+>>>>>>> Stashed changes
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let orcamento = dados_orcamentos[id_orcam];
@@ -499,6 +504,64 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
     // Filtra os itens com base no tipo de requisição
     let itensFiltrados = [];
 
+<<<<<<< Updated upstream
+=======
+    // Função para criar uma linha da tabela
+    function criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements) {
+        return `
+            <tr class="lin_req" style="background-color: white;">
+                <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
+                <td style="text-align: center;">${partnumber}</td>
+                <td style="position: relative;">
+                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
+                        ${elements}
+                    </div>
+                </td>
+                <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
+                    <select onchange="calcular_requisicao()" style="border: none;">
+                        <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
+                        <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
+                    </select>
+                </td>
+                <td style="text-align: center;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
+                            <label>Quantidade a enviar</label>
+                            <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
+                        </div>
+                        <label class="num">${qtde_editar}</label>  
+                    </div>
+                </td>
+                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                    <label></label>
+                    <br>
+                    <br>
+                    <label style="color: red; font-size: 1.0em;"></label>
+                </td>
+                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                    <label></label>
+                    <br>
+                    <br>
+                    <label style="color: red; font-size: 1.0em;"></label>
+                </td>
+                <td>
+                    <select style="border: none; cursor: pointer;">
+                        <option>Nada a fazer</option>
+                        <option>Estoque AC</option>
+                        <option>Comprar</option>
+                        <option>Enviar do CD</option>
+                        <option>Fornecido pelo Cliente</option>
+                    </select>
+                </td>
+            </tr>
+        `;
+    }
+
+    // Adiciona os itens do orçamento
+    Object.keys(orcamento.dados_composicoes).forEach(codigo => {
+        let item = orcamento.dados_composicoes[codigo];
+        let tipo = dados_composicoes[codigo]?.tipo || item.tipo;
+>>>>>>> Stashed changes
 
     for (id in orcamento.dados_composicoes) {
         let item = orcamento.dados_composicoes[id]
@@ -516,6 +579,7 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
     }
 
 
+<<<<<<< Updated upstream
 
     // Função para criar uma linha da tabela
     function criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements, aux, apenas_visualizar) {
@@ -677,6 +741,13 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
         }
 
         linhas += criarLinha(codigo, item, tipo, qtde_na_requisicao, quantidadeAtual || qtde_editar, part_number, elements, aux, apenas_visualizar);
+=======
+        // Part Number
+        let partnumber = dados_composicoes[codigo]?.omie || '';
+
+        // Cria a linha da tabela
+        linhas += criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements);
+>>>>>>> Stashed changes
     });
 
     // Adiciona os itens adicionais
@@ -684,6 +755,7 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
         Object.keys(itens_adicionais).forEach(codigo => {
             let item = itens_adicionais[codigo];
             let tipo = "SERVIÇO"; // Itens adicionais são sempre do tipo SERVIÇO
+<<<<<<< Updated upstream
 
             let elements = `
                 <label>${item.descricao}</label>
@@ -911,8 +983,15 @@ async function abrir_adicionais(codigo) {
             }
 
         }
+=======
+
+            // Cria a linha da tabela para os itens adicionais
+            linhas += criarLinha(codigo, item, tipo, item.qtde || 0, item.qtde || 0, item.partnumber || '', item.descricao || '');
+        });
+>>>>>>> Stashed changes
     }
 
+    return linhas;
 }
 
 function adicionar_linha_manut(ad, dados) {
