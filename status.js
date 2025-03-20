@@ -482,27 +482,11 @@ function pesquisar_na_requisicao() {
     }
 }
 
-<<<<<<< Updated upstream
 async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisicao) {
-=======
+
 const tipo_requisicao_infraestrutura = "Requisição de Infraestrutura" 
-async function carregar_itens(apenas_visualizar, requisicao, tipo_requisicao, itens_adicionais) {
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
+ {
+
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let orcamento = dados_orcamentos[id_orcam];
@@ -516,195 +500,11 @@ async function carregar_itens(apenas_visualizar, requisicao, tipo_requisicao, it
         return '';
     }
 
-    // Filtra os itens com base no tipo de requisição
-    let itensFiltrados = [];
+    let linhas = '';
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-    // Função para criar uma linha da tabela
-    function criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements) {
-        return `
-            <tr class="lin_req" style="background-color: white;">
-                <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
-                <td style="text-align: center;">${partnumber}</td>
-                <td style="position: relative;">
-                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
-                        ${elements}
-                    </div>
-                </td>
-                <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
-                    <select onchange="calcular_requisicao()" style="border: none;">
-                        <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
-                        <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
-                    </select>
-                </td>
-                <td style="text-align: center;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
-                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
-                            <label>Quantidade a enviar</label>
-                            <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
-                        </div>
-                        <label class="num">${qtde_editar}</label>  
-                    </div>
-                </td>
-                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                    <label></label>
-                    <br>
-                    <br>
-                    <label style="color: red; font-size: 1.0em;"></label>
-                </td>
-                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                    <label></label>
-                    <br>
-                    <br>
-                    <label style="color: red; font-size: 1.0em;"></label>
-                </td>
-                <td>
-                    <select style="border: none; cursor: pointer;">
-                        <option>Nada a fazer</option>
-                        <option>Estoque AC</option>
-                        <option>Comprar</option>
-                        <option>Enviar do CD</option>
-                        <option>Fornecido pelo Cliente</option>
-                    </select>
-                </td>
-            </tr>
-        `;
-    }
-
-    // Adiciona os itens do orçamento
     Object.keys(orcamento.dados_composicoes).forEach(codigo => {
         let item = orcamento.dados_composicoes[codigo];
         let tipo = dados_composicoes[codigo]?.tipo || item.tipo;
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-
-    for (id in orcamento.dados_composicoes) {
-        let item = orcamento.dados_composicoes[id]
-        if (tipoRequisicao === 'infraestrutura') {
-            const descricao = dados_composicoes[item.codigo].descricao.toLowerCase();
-            if ((
-                descricao.includes('eletrocalha') ||
-                descricao.includes('eletroduto') ||
-                descricao.includes('perfilado')
-            )) {
-
-                itensFiltrados.push(item)
-            }
-        } else { itensFiltrados.push(item) }
-    }
-
-
-<<<<<<< Updated upstream
-
-    // Função para criar uma linha da tabela
-    function criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements, aux, apenas_visualizar) {
-        return `
-            <tr class="lin_req" style="background-color: white;">
-                <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
-                <td style="text-align: center;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.partnumber || ''}</label>` : partnumber}
-                </td>
-                <td style="position: relative;">
-                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
-                        ${elements}
-                    </div>
-                    ${aux}
-                </td>
-                <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${requisicao[codigo]?.tipo || ''}</label>` : `
-                        <select onchange="calcular_requisicao()" style="border: none;">
-                            <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
-                            <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
-                        </select>
-                    `}
-                </td>
-                <td style="text-align: center;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.qtde_enviar || ''}</label>` : `
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
-                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
-                                <label>Quantidade a enviar</label>
-                                <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
-                            </div>
-                            <label class="num">${qtde_editar}</label>  
-                        </div>
-                    `}
-                </td>
-                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                    <label></label>
-                    <br>
-                    <br>
-                    <label style="color: red; font-size: 1.0em;"></label>
-                </td>
-                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                    <label></label>
-                    <br>
-                    <br>
-                    <label style="color: red; font-size: 1.0em;"></label>
-                </td>
-                <td>
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.requisicao || ''}</label>` : `
-                        <select style="border: none; cursor: pointer;">
-                            <option>Nada a fazer</option>
-                            <option>Estoque AC</option>
-                            <option>Comprar</option>
-                            <option>Enviar do CD</option>
-                            <option>Fornecido pelo Cliente</option>
-                        </select>
-                    `}
-                </td>
-            </tr>
-        `;
-    }
-
-    itensFiltrados.forEach(item => {
-        var codigo = item.codigo;
-        var qtde = item.qtde;
-        var qtde_na_requisicao = 0;
-        var tipo = dados_composicoes[codigo]?.tipo || item.tipo;
-        var elements = '';
-        let mod_livre = true;
-        let qtde_editar = qtde;
-        // Object.keys(orcamento.dados_composicoes).forEach(it => {
-        //     var item = orcamento.dados_composicoes[it];
-        //     var codigo = item.codigo;
-        //     var qtde = item.qtde;
-        //     var qtde_na_requisicao = 0;
-        //     var tipo = dados_composicoes[codigo]?.tipo || item.tipo;
-        //     var elements = '';
-        //     let mod_livre = true;
-        //     let qtde_editar = qtde;
-
-        var historico = dados_orcamentos.id_orcam?.status.historico || {};
-
-        Object.keys(historico).forEach(chave => {
-            var sst = historico[chave];
-
-            if (sst.requisicoes) {
-                for (let requisicao of sst.requisicoes) {
-                    if (requisicao.codigo == item.codigo) {
-                        qtde_editar -= requisicao.qtde_enviar;
-                    }
-                }
-            }
-        });
-
-=======
 
         // Filtra os itens com base no tipo de requisição
         if (tipo_requisicao === "Requisição de Infraestrutura" && tipo !== "SERVIÇO") {
@@ -717,259 +517,88 @@ async function carregar_itens(apenas_visualizar, requisicao, tipo_requisicao, it
 
         // Descrição e informações do item
         let elements = '';
->>>>>>> Stashed changes
         if (dados_composicoes[codigo]) {
             elements += `
                 <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong> <br>${dados_composicoes[codigo].descricao}</label>
                 <label style="font-size: 0.8vw;"><strong>FABRICANTE</strong> ${dados_composicoes[codigo].fabricante} • <strong>MODELO</strong> ${dados_composicoes[codigo].modelo}</label>
-<<<<<<< Updated upstream
-                `;
-            mod_livre = false;
-        }
-
-        if (mod_livre) {
-            elements = `
-            <label>${item.descricao}</label>
-            `;
-        }
-
-        var part_number = `
-            <input value="${dados_composicoes[codigo]?.omie || ''}" class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;">
-        `;
-
-        // // Ajustando o select para ter a opção correta selecionada;
-        // var selectTipo = `
-        //     <select onchange="calcular_requisicao()" style="border: none;">
-        //         <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
-        //         <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
-        //     </select>
-        // `;
-
-        if (requisicao) {
-            qtde_na_requisicao = requisicao[codigo]?.qtde_enviar || '';
-        }
-
-        let somasQtde = 0;
-
-        let q = 0;
-
-        if (editar) {
-            Object.values(orcamento?.status || []).forEach(status => {
-                if (status.historico) {
-                    Object.entries(status.historico).forEach(([chave, historico]) => {
-                        if (historico.status.includes("REQUISIÇÃO")) {
-                            for (let requisicaoUnica of historico.requisicoes) {
-                                if (requisicaoUnica.codigo == codigo) {
-                                    somasQtde += Number(requisicaoUnica.qtde_enviar);
-                                    q++;
-                                }
-                            }
-                        }
-                    });
-                }
-            });
-        }
-
-        let quantidadeAtual = undefined;
-
-        if (Number(requisicao[codigo]?.qtde_enviar) != NaN) {
-            quantidadeAtual = qtde - qtde_editar + Number(requisicao[codigo]?.qtde_enviar);
-        }
-
-        if (q == 1) {
-            quantidadeAtual = qtde_editar;
-        }
-
-        let aux = `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`;
-
-        if (apenas_visualizar) {
-            aux = '';
-        }
-
-        linhas += criarLinha(codigo, item, tipo, qtde_na_requisicao, quantidadeAtual || qtde_editar, part_number, elements, aux, apenas_visualizar);
-=======
-=======
             `;
         } else {
             elements = `<label>${item.descricao}</label>`;
         }
 
->>>>>>> Stashed changes
         // Part Number
-        let partnumber = dados_composicoes[codigo]?.omie || '';
+        let part_number = `
+            <input value="${dados_composicoes[codigo]?.omie || ''}" class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;">
+        `;
 
-        // Cria a linha da tabela
-        linhas += criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements);
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
+        // Select de Tipo (SERVIÇO ou VENDA)
+        let selectTipo = `
+            <select onchange="calcular_requisicao()" style="border: none;">
+                <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
+                <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
+            </select>
+        `;
+
+        // Quantidade a enviar
+        let quantidade = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
+                <label>Quantidade a enviar</label>
+                <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
+            </div>
+            <label class="num">${qtde_editar}</label>  
+        </div>
+        `;
+
+        // Opções de requisição
+        let opcoes = `
+        <select style="border: none; cursor: pointer;">
+            <option>Nada a fazer</option>
+            <option>Estoque AC</option>
+            <option>Comprar</option>
+            <option>Enviar do CD</option>
+            <option>Fornecido pelo Cliente</option>
+        </select>
+        `;
+
+        // Linha da tabela
+        let linha = `
+            <tr class="lin_req" style="background-color: white;">
+                <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
+                <td style="text-align: center;">${part_number}</td>
+                <td style="position: relative;">
+                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
+                        ${elements}
+                    </div>
+                    ${aux}
+                </td>
+                <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">${selectTipo}</td>
+                <td style="text-align: center;">${quantidade}</td>
+                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                    <label></label>
+                    <br>
+                    <br>
+                    <label style="color: red; font-size: 1.0em;"></label>
+                </td>
+                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                    <label></label>
+                    <br>
+                    <br>
+                    <label style="color: red; font-size: 1.0em;"></label>
+                </td>
+                <td>${opcoes}</td>
+            </tr>
+        `;
+
+        linhas += linha;
     });
 
-    // Adiciona os itens adicionais
-    if (itens_adicionais) {
-        Object.keys(itens_adicionais).forEach(codigo => {
-            let item = itens_adicionais[codigo];
-            let tipo = "SERVIÇO"; // Itens adicionais são sempre do tipo SERVIÇO
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-            let elements = `
-                <label>${item.descricao}</label>
-            `;
-
-            let partnumber = `
-                <input value="${item.partnumber || ''}" class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;">
-            `;
-
-            let aux = `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`;
-
-            linhas += criarLinha(codigo, item, tipo, item.qtde || 0, item.qtde || 0, partnumber, elements, aux, apenas_visualizar);
-        });
-    }
-
     return linhas;
-    //     var quantidade = `
-    //     <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
-
-    //         <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
-    //             <label>Quantidade a enviar</label>
-    //             <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${requisicao[codigo]?.qtde_enviar || qtde_na_requisicao}">
-    //         </div>
-
-    //         <label class="num">${quantidadeAtual || qtde_editar}</label>  
-
-    //     </div>
-    //     `
-    //     var opcoes = `
-    //     <select style="border: none; cursor: pointer;">
-    //         <option>Nada a fazer</option>
-    //         <option>Estoque AC</option>
-    //         <option>Comprar</option>
-    //         <option>Enviar do CD</option>
-    //         <option>Fornecido pelo Cliente</option>
-    //     </select>
-    //     `
-    //     let aux = `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`
-    //     if (apenas_visualizar) {
-    //         part_number = `<label style="font-size: 1.2em;">${requisicao[codigo]?.partnumber || ''}</label>`
-    //         selectTipo = `<label style="font-size: 1.2em; margin: 10px;">${requisicao[codigo]?.tipo || ''}</label>`
-    //         quantidade = `<label style="font-size: 1.2em;">${requisicao[codigo]?.qtde_enviar || ''}</label>`
-    //         opcoes = `<label style="font-size: 1.2em;">${requisicao[codigo]?.requisicao || ''}</label>`
-    //         aux = ''
-    //     }
-
-    //     var linha = `
-    //         <tr class="lin_req" style="background-color: white;">
-    //             <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
-    //             <td style="text-align: center;">
-    //             ${part_number}
-    //             </td>
-    //             <td style="position: relative;">
-    //                 <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
-    //                 ${elements}
-    //                 </div>
-    //                 ${aux}
-    //             </td>
-    //             <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
-    //                 ${selectTipo}
-    //             </td>
-    //             <td style="text-align: center;">
-    //                 ${quantidade}
-    //             </td>
-    //             <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-    //                 <label></label>
-    //                 <br>
-    //                 <br>
-    //                 <label style="color: red; font-size: 1.0em;"></label>
-    //             </td>
-    //             <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-    //                 <label></label>
-    //                 <br>
-    //                 <br>
-    //                 <label style="color: red; font-size: 1.0em;"></label>
-    //             </td>
-    //             <td>
-    //                 ${opcoes}
-    //             </td>
-    //         </tr>
-    //     `
-
-    //     if (!apenas_visualizar || (requisicao && requisicao[codigo] && requisicao[codigo].qtde_enviar)) {
-    //         linhas += linha
-    //     }
-
-    // })
-
-    // return linhas
 }
 
-function abrirModalTipoRequisicao() {
-    const modal = `
-        <div id="modalTipoRequisicao" style="
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-        ">
-            <div style="text-align: center">
-                <label style="font-size: 1.2em; margin-bottom: 20px; display: block; justify-content: center;"><strong>Selecione o tipo de requisição:</strong></label>
-                <button onclick="escolherTipoRequisicao('Requisição Completa')" style="
-                    background-color: #4CAF50;
-                    color: white;
-                    padding: 10px 20px;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    margin-right: 10px;
-                ">Requisição Completa</button>
-                <button onclick="escolherTipoRequisicao('infraestrutura')" style="
-                    background-color: #2196F3;
-                    color: white;
-                    padding: 10px 20px;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                ">Requisição de Infraestrutura</button>
-            </div>
-        </div>
-    `;
 
-    document.body.insertAdjacentHTML('beforeend', modal);
-}
 
-function escolherTipoRequisicao(tipo) {
-    fecharModalTipoRequisicao();
-    detalhar_requisicao(undefined, undefined, tipo); // Passa o tipo de requisição
-}
 
-function fecharModalTipoRequisicao() {
-    const modal = document.getElementById('modalTipoRequisicao');
-    if (modal) {
-        modal.remove();
-    }
-}
 function remover_linha_materiais(element) {
     element.closest('tr').remove()
 }
@@ -1056,45 +685,8 @@ async function abrir_adicionais(codigo) {
             }
 
         }
-=======
-
-            // Cria a linha da tabela para os itens adicionais
-            linhas += criarLinha(codigo, item, tipo, item.qtde || 0, item.qtde || 0, item.partnumber || '', item.descricao || '');
-        });
->>>>>>> Stashed changes
-=======
-
-            // Cria a linha da tabela para os itens adicionais
-            linhas += criarLinha(codigo, item, tipo, item.qtde || 0, item.qtde || 0, item.partnumber || '', item.descricao || '');
-        });
->>>>>>> Stashed changes
-=======
-
-            // Cria a linha da tabela para os itens adicionais
-            linhas += criarLinha(codigo, item, tipo, item.qtde || 0, item.qtde || 0, item.partnumber || '', item.descricao || '');
-        });
->>>>>>> Stashed changes
-=======
-
-            // Cria a linha da tabela para os itens adicionais
-            linhas += criarLinha(codigo, item, tipo, item.qtde || 0, item.qtde || 0, item.partnumber || '', item.descricao || '');
-        });
->>>>>>> Stashed changes
-=======
-
-            // Cria a linha da tabela para os itens adicionais
-            linhas += criarLinha(codigo, item, tipo, item.qtde || 0, item.qtde || 0, item.partnumber || '', item.descricao || '');
-        });
->>>>>>> Stashed changes
-=======
-
-            // Cria a linha da tabela para os itens adicionais
-            linhas += criarLinha(codigo, item, tipo, item.qtde || 0, item.qtde || 0, item.partnumber || '', item.descricao || '');
-        });
->>>>>>> Stashed changes
     }
 
-    return linhas;
 }
 
 function adicionar_linha_manut(ad, dados) {
@@ -3441,4 +3033,5 @@ async function envio_de_material(chave) {
     </div>
     `
     openPopup_v2(acumulado)
-}
+}}
+
