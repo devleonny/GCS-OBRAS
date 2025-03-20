@@ -485,8 +485,7 @@ function pesquisar_na_requisicao() {
 async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisicao) {
 
 const tipo_requisicao_infraestrutura = "Requisição de Infraestrutura" 
- {
-
+async function carregar_itens(apenas_visualizar, requisicao, tipo_requisicao, itens_adicionais) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let orcamento = dados_orcamentos[id_orcam];
@@ -502,6 +501,59 @@ const tipo_requisicao_infraestrutura = "Requisição de Infraestrutura"
 
     let linhas = '';
 
+    // Função para criar uma linha da tabela
+    function criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements) {
+        return `
+            <tr class="lin_req" style="background-color: white;">
+                <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
+                <td style="text-align: center;">${partnumber}</td>
+                <td style="position: relative;">
+                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
+                        ${elements}
+                    </div>
+                </td>
+                <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
+                    <select onchange="calcular_requisicao()" style="border: none;">
+                        <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
+                        <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
+                    </select>
+                </td>
+                <td style="text-align: center;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
+                            <label>Quantidade a enviar</label>
+                            <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
+                        </div>
+                        <label class="num">${qtde_editar}</label>  
+                    </div>
+                    ${aux}
+                </td>
+                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                    <label></label>
+                    <br>
+                    <br>
+                    <label style="color: red; font-size: 1.0em;"></label>
+                </td>
+                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                    <label></label>
+                    <br>
+                    <br>
+                    <label style="color: red; font-size: 1.0em;"></label>
+                </td>
+                <td>
+                    <select style="border: none; cursor: pointer;">
+                        <option>Nada a fazer</option>
+                        <option>Estoque AC</option>
+                        <option>Comprar</option>
+                        <option>Enviar do CD</option>
+                        <option>Fornecido pelo Cliente</option>
+                    </select>
+                </td>
+            </tr>
+        `;
+    }
+
+    // Adiciona os itens do orçamento
     Object.keys(orcamento.dados_composicoes).forEach(codigo => {
         let item = orcamento.dados_composicoes[codigo];
         let tipo = dados_composicoes[codigo]?.tipo || item.tipo;
@@ -527,166 +579,24 @@ const tipo_requisicao_infraestrutura = "Requisição de Infraestrutura"
         }
 
         // Part Number
-        let part_number = `
-            <input value="${dados_composicoes[codigo]?.omie || ''}" class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;">
-        `;
+        let partnumber = dados_composicoes[codigo]?.omie || '';
 
-        // Select de Tipo (SERVIÇO ou VENDA)
-        let selectTipo = `
-            <select onchange="calcular_requisicao()" style="border: none;">
-                <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
-                <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
-            </select>
-        `;
-
-        // Quantidade a enviar
-        let quantidade = `
-        <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
-                <label>Quantidade a enviar</label>
-                <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
-            </div>
-            <label class="num">${qtde_editar}</label>  
-        </div>
-        `;
-
-        // Opções de requisição
-        let opcoes = `
-        <select style="border: none; cursor: pointer;">
-            <option>Nada a fazer</option>
-            <option>Estoque AC</option>
-            <option>Comprar</option>
-            <option>Enviar do CD</option>
-            <option>Fornecido pelo Cliente</option>
-        </select>
-        `;
-
-        // Linha da tabela
-        let linha = `
-            <tr class="lin_req" style="background-color: white;">
-                <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
-                <td style="text-align: center;">${part_number}</td>
-                <td style="position: relative;">
-                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
-                        ${elements}
-                    </div>
-                    ${aux}
-                </td>
-                <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">${selectTipo}</td>
-                <td style="text-align: center;">${quantidade}</td>
-                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                    <label></label>
-                    <br>
-                    <br>
-                    <label style="color: red; font-size: 1.0em;"></label>
-                </td>
-                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                    <label></label>
-                    <br>
-                    <br>
-                    <label style="color: red; font-size: 1.0em;"></label>
-                </td>
-                <td>${opcoes}</td>
-            </tr>
-        `;
-
-        linhas += linha;
+        // Cria a linha da tabela
+        linhas += criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements);
     });
 
-    return linhas;
-}
+    // Adiciona os itens adicionais
+    if (itens_adicionais) {
+        Object.keys(itens_adicionais).forEach(codigo => {
+            let item = itens_adicionais[codigo];
+            let tipo = "SERVIÇO"; // Itens adicionais são sempre do tipo SERVIÇO
 
-
-
-
-function remover_linha_materiais(element) {
-    element.closest('tr').remove()
-}
-
-async function abrir_adicionais(codigo) {
-
-    var acumulado = `
-
-        <img src="imagens/bg.png" style="width: 7vw; position: absolute; left: 0; top: 0;">
-        <label>Itens Adicionais</label>
-
-        <br>
-
-        <div id="tela" style="display: flex; flex-direction: column; align-items: start; justify-content: center; background-color: white; border-radius: 3px; padding: 5px;">
-            <div class="tabela_manutencao">
-                <div class="linha"
-                    style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
-                    <div style="width: 8vw;">
-                        <label>Part Number</label>
-                    </div>
-                    <div style="width: 25vw;">
-                        <label>Descrição</label>
-                    </div>
-                    <div style="width: 10vw;">
-                        <label>Quantidade</label>
-                    </div>
-                    <div style="width: 20vw;">
-                        <label>Unidade</label>
-                    </div>
-                    <div style="width: 10vw;">
-                        <label>Estoque</label>
-                    </div>
-                    <div style="width: 10vw;">
-                        <label>Estoque Usado</label>
-                    </div>
-                    <div style="width: 5vw;">
-                        <label>Remover</label>
-                    </div>
-                </div>
-
-                <div id="linhas_manutencao">
-                    <div id="excluir_inicial" class="linha" style="width: 70vw;">
-                        <label>Lista Vazia</label>
-                    </div>
-                </div>
-
-            </div>
-
-            <br>
-
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px;">
-
-                <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-                    <div onclick="adicionar_linha_manut()" class="contorno_botoes"
-                        style="background-color: #151749; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        <img src="imagens/chamados.png" style="cursor: pointer; width: 2vw;">
-                        <label>Adicionar Peça</label>
-                    </div>
-                    <div onclick="recuperar_estoque()" class="contorno_botoes" style="background-color: #151749; color: white;">
-                        <img src="imagens/sync.png" style="cursor: pointer; width: 2vw;">
-                        <label>Sincronizar Estoque</label>
-                    </div>
-                </div>
-
-                <div onclick="salvar_itens_adicionais('${codigo}')" class="contorno_botoes"
-                    style="background-color: green; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    <img src="imagens/estoque.png" style="cursor: pointer; width: 2vw">
-                    <label>Salvar</label>
-                </div>
-            </div>
-        </div>
-    `
-
-    openPopup_v2(acumulado)
-
-    for (cd in itens_adicionais) {
-
-        if (cd == codigo) {
-            var adicionais = itens_adicionais[cd]
-
-            for (ad in adicionais) {
-                var dados = adicionais[ad]
-                adicionar_linha_manut(ad, dados)
-            }
-
-        }
+            // Cria a linha da tabela para os itens adicionais
+            linhas += criarLinha(codigo, item, tipo, item.qtde || 0, item.qtde || 0, item.partnumber || '', item.descricao || '');
+        });
     }
 
+    return linhas;
 }
 
 function adicionar_linha_manut(ad, dados) {
