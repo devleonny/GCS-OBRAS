@@ -298,44 +298,50 @@ function atualizarFiltrosLocalStorage() {
     localStorage.setItem('filtrosAtivosEstoques', JSON.stringify(filtrosAtivosEstoques));
 }
 
-// A função para aplicar o filtro agora usa os checkboxes corretamente
+let debounceTimeout = null;
+
 function aplicarFiltroCheck(indice) {
-    let tabela = document.getElementById('tabela_estoque');
-    let linhas = tabela.querySelectorAll('tbody tr');
-    let checkboxes = document.querySelectorAll('.filtro-item:checked');
-    let valoresSelecionados = Array.from(checkboxes).map(cb => cb.value);
+    // Limita a execução, esperando um tempo antes de aplicar o filtro
+    if (debounceTimeout) clearTimeout(debounceTimeout);
 
-    // Atualiza o estado dos filtrosAtivosEstoques
-    if (valoresSelecionados.length === 0) {
-        delete filtrosAtivosEstoques[indice];
-    } else {
-        filtrosAtivosEstoques[indice] = valoresSelecionados;
-    }
+    debounceTimeout = setTimeout(() => {
+        let tabela = document.getElementById('tabela_estoque');
+        let linhas = tabela.querySelectorAll('tbody tr');
+        let checkboxes = document.querySelectorAll('.filtro-item:checked');
+        let valoresSelecionados = Array.from(checkboxes).map(cb => cb.value);
 
-    // Salva no localStorage após cada alteração
-    atualizarFiltrosLocalStorage();
-
-    // Aplica os filtros
-    linhas.forEach(linha => {
-        let mostrar = true;
-
-        for (let col in filtrosAtivosEstoques) {
-            let celula = linha.cells[col];
-            let valorCelula = celula ? celula.innerText.trim() : '';
-
-            let input = celula?.querySelector("input, textarea, label");
-            if (input) {
-                valorCelula = input.value || input.textContent.trim();
-            }
-
-            if (!filtrosAtivosEstoques[col].includes(valorCelula)) {
-                mostrar = false;
-                break;
-            }
+        // Atualiza o estado dos filtrosAtivosEstoques
+        if (valoresSelecionados.length === 0) {
+            delete filtrosAtivosEstoques[indice];
+        } else {
+            filtrosAtivosEstoques[indice] = valoresSelecionados;
         }
 
-        linha.style.display = mostrar ? '' : 'none';
-    });
+        // Salva no localStorage após cada alteração
+        atualizarFiltrosLocalStorage();
+
+        // Aplica os filtros
+        linhas.forEach(linha => {
+            let mostrar = true;
+
+            for (let col in filtrosAtivosEstoques) {
+                let celula = linha.cells[col];
+                let valorCelula = celula ? celula.innerText.trim() : '';
+
+                let input = celula?.querySelector("input, textarea, label");
+                if (input) {
+                    valorCelula = input.value || input.textContent.trim();
+                }
+
+                if (!filtrosAtivosEstoques[col].includes(valorCelula)) {
+                    mostrar = false;
+                    break;
+                }
+            }
+
+            linha.style.display = mostrar ? '' : 'none';
+        });
+    }, 300); // Espera 300ms após o usuário parar de interagir para aplicar o filtro
 }
 
 // Função de carregamento de filtros do localStorage
