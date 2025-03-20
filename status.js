@@ -490,6 +490,9 @@ async function carregar_itens(apenas_visualizar, requisicao, tipo_requisicao, it
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -517,7 +520,10 @@ async function carregar_itens(apenas_visualizar, requisicao, tipo_requisicao, it
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
@@ -791,6 +797,9 @@ async function carregar_itens(apenas_visualizar, requisicao, tipo_requisicao, it
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
@@ -805,6 +814,7 @@ async function carregar_itens(apenas_visualizar, requisicao, tipo_requisicao, it
         Object.keys(itens_adicionais).forEach(codigo => {
             let item = itens_adicionais[codigo];
             let tipo = "SERVIÇO"; // Itens adicionais são sempre do tipo SERVIÇO
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
@@ -1036,6 +1046,12 @@ async function abrir_adicionais(codigo) {
             }
 
         }
+=======
+
+            // Cria a linha da tabela para os itens adicionais
+            linhas += criarLinha(codigo, item, tipo, item.qtde || 0, item.qtde || 0, item.partnumber || '', item.descricao || '');
+        });
+>>>>>>> Stashed changes
 =======
 
             // Cria a linha da tabela para os itens adicionais
