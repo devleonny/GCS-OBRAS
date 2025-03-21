@@ -47,6 +47,9 @@ body {
     gap: 1px;
 }
 
+.linha-itens-adicionais {
+    background-color: #5e5f5f;
+}
 .linha label {
     font-size: 0.8vw;
 }
@@ -1226,7 +1229,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 .tabela td {
-    font-size: 0.8vw;
+    font-size: 0.9vw;
     text-align: left;
     color: black;
 }
@@ -1307,7 +1310,7 @@ input[type=range]::-moz-range-thumb {
     background-color: #222;
     display: flex;
     width: 100%;
-    justify-content: right;
+    justify-content: space-between;
     margin: 2px;
     cursor: pointer;
     color: white;

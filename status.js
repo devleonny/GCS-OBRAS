@@ -562,7 +562,7 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
                 <td>
                     ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.requisicao || ''}</label>` : `
                         <select style="border: none; cursor: pointer;">
-                            <option>Nada a fazer</option>
+                            <option style="text-align: center;">Nada a fazer</option>
                             <option>Estoque AC</option>
                             <option>Comprar</option>
                             <option>Enviar do CD</option>
@@ -747,68 +747,66 @@ async function abrir_adicionais(codigo) {
     var acumulado = `
 
         <img src="imagens/bg.png" style="width: 7vw; position: absolute; left: 0; top: 0;">
-        <label>Itens Adicionais</label>
+<label>Itens Adicionais</label>
 
-        <br>
+<br>
 
-        <div id="tela" style="display: flex; flex-direction: column; align-items: start; justify-content: center; background-color: white; border-radius: 3px; padding: 5px;">
-            <div class="tabela_manutencao">
-                <div class="linha"
-                    style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
-                    <div style="width: 8vw;">
-                        <label>Part Number</label>
-                    </div>
-                    <div style="width: 25vw;">
-                        <label>Descrição</label>
-                    </div>
-                    <div style="width: 10vw;">
-                        <label>Quantidade</label>
-                    </div>
-                    <div style="width: 20vw;">
-                        <label>Unidade</label>
-                    </div>
-                    <div style="width: 10vw;">
-                        <label>Estoque</label>
-                    </div>
-                    <div style="width: 10vw;">
-                        <label>Estoque Usado</label>
-                    </div>
-                    <div style="width: 5vw;">
-                        <label>Remover</label>
-                    </div>
-                </div>
-
-                <div id="linhas_manutencao">
-                    <div id="excluir_inicial" class="linha" style="width: 70vw;">
-                        <label>Lista Vazia</label>
-                    </div>
-                </div>
-
+<div id="tela" style="display: flex; flex-direction: column; align-items: start; justify-content: center; background-color: white; border-radius: 3px; padding: 5px;">
+    <div class="tabela_manutencao">
+        <div class="linha"
+            style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
+            <div style="width: 8vw;">
+                <label>Part Number</label>
             </div>
-
-            <br>
-
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px;">
-
-                <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-                    <div onclick="adicionar_linha_manut()" class="contorno_botoes"
-                        style="background-color: #151749; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        <img src="imagens/chamados.png" style="cursor: pointer; width: 2vw;">
-                        <label>Adicionar Peça</label>
-                    </div>
-                    <div onclick="recuperar_estoque()" class="contorno_botoes" style="background-color: #151749; color: white;">
-                        <img src="imagens/sync.png" style="cursor: pointer; width: 2vw;">
-                        <label>Sincronizar Estoque</label>
-                    </div>
-                </div>
-
-                <div onclick="salvar_itens_adicionais('${codigo}')" class="contorno_botoes"
-                    style="background-color: green; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    <img src="imagens/estoque.png" style="cursor: pointer; width: 2vw">
-                    <label>Salvar</label>
-                </div>
+            <div style="width: 25vw;">
+                <label>Descrição</label>
+            </div>
+            <div style="width: 10vw;">
+                <label>Quantidade</label>
+            </div>
+            <div style="width: 20vw;">
+                <label>Unidade</label>
+            </div>
+            <div style="width: 10vw;">
+                <label>Estoque</label>
+            </div>
+            <div style="width: 10vw;">
+                <label>Estoque Usado</label>
+            </div>
+            <div style="width: 5vw;">
+                <label>Remover</label>
             </div>
         </div>
+
+        <div id="linhas_manutencao">
+            <div id="excluir_inicial" class="linha" style="width: 70vw;">
+                <label>Lista Vazia</label>
+            </div>
+        </div>
+    </div>
+
+    <br>
+
+    <div style="display: flex; align-items: center; width: 100% ">
+        <div style="display: flex; align-items: center; gap: 5px;">
+            <div onclick="adicionar_linha_manut()" class="contorno_botoes"
+                style="background-color: #151749; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <img src="imagens/chamados.png" style="cursor: pointer; width: 2vw;">
+                <label>Adicionar Peça</label>
+            </div>
+            <div onclick="recuperar_estoque()" class="contorno_botoes" style="background-color: #151749; color: white;">
+                <img src="imagens/sync.png" style="cursor: pointer; width: 2vw;">
+                <label>Sincronizar Estoque</label>
+            </div>
+        </div>
+
+        <div onclick="salvar_itens_adicionais('${codigo}')" class="contorno_botoes"
+            style="background-color: green; display: flex; align-items: center; justify-content: center; gap: 10px; margin-left: auto;">
+            <img src="imagens/estoque.png" style="cursor: pointer; width: 2vw">
+            <label>Salvar</label>
+        </div>
+    </div>
+</div>
     `
 
     openPopup_v2(acumulado)
@@ -1029,15 +1027,15 @@ function mostrar_itens_adicionais() {
                     var adicional = adicionais[ad]
 
                     let linha = `
-                    <tr>
-                        <td>---</td>
+                    <tr class="linha-itens-adicionais">
+                        <td style="text-align: center;">---</td>
                         <td>${adicional.partnumber}</td>
                         <td>${adicional.descricao}</td>
-                        <td>ADICIONAL</td>
-                        <td>${adicional.qtde}</td>
-                        <td>---</td>
-                        <td>---</td>
-                        <td>
+                        <td style="text-align: center;">ADICIONAL</td>
+                        <td style="text-align: center;">${adicional.qtde}</td>
+                        <td style="text-align: center;">---</td>
+                        <td style="text-align: center;">---</td>
+                        <td style="text-align: center;">
                             ${tds[7].querySelector("select").value}
                          </td>
 
