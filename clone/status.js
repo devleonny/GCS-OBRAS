@@ -1792,12 +1792,190 @@ async function mostrar_painel() {
         
         `
     }
+    let produto = {}
+    let lpu = ''
+
+    let impostos_venda = `
+        <div style="display: flex; align-items: start; justify-content: start; gap: 10px;">
+            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 1vw;">
+                <table class="tabela">
+                    <thead>
+                        <th>Resultados</th>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>LUCRO LIQUIDO</td>
+                            <td>R$ 0,00</td>
+                        </tr>
+                        <tr>
+                            <td>PERCENTUAL DE LUCRO</td>
+                            <td>0%</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+        <br>
+        <table class="tabela">
+            <thead>
+                <th>Presunções dos Impostos de Saída</th>
+                <th>Percentuais</th>
+                <th>Valor</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
+                    <td><input value="8%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
+                    <td><input value="12%" readOnly></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        <br>
+        <table class="tabela">
+            <thead>
+                <th>Impostos a Serem Pagos</th>
+                <th>Percentuais</th>
+                <th>Valor</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td><input value="15%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td><input value="10%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>CSLL a ser Pago (9%) da Presunção</td>
+                    <td><input value="9%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
+                    <td><input value="0.65%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
+                    <td><input value="3%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>O Imposto sobre Circulação de Mercadorias e Serviços (ICMS) (12%) do faturamento</td>
+                    <td><input value="12%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>Total</td>
+                    <td></td>
+                </tr>                                                                               
+            </tbody>
+        </table>
+        `
+
+        let impostos_servico = `
+
+        <div style="display: flex; align-items: center; justify-content: space-evenly; width: 100%;">
+
+            <table class="tabela">
+                <thead>
+                    <th>Resultados</th>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>LUCRO LIQUIDO</td>
+                        <td>R$ 0,00</td>
+                    </tr>
+                    <tr>
+                        <td>PERCENTUAL DE LUCRO</td>
+                        <td> 0%</td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </div>
+        <br>
+        <table class="tabela">
+            <thead>
+                <th>Presunções dos Impostos de Saída</th>
+                <th>Percentuais</th>
+                <th>Valor</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
+                    <td>32%</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
+                    <td>32%</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        <br>
+        <table class="tabela">
+            <thead>
+                <th>Impostos a Serem Pagos</th>
+                <th>Percentuais</th>
+                <th>Valor</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td><input value="8%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td><input value="8%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>CSLL a ser Pago (9%) da Presunção</td>
+                    <td><input value="9%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
+                    <td><input value="0.65%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
+                    <td><input value="3%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>O Imposto Sobre Serviços ( ISS )(5%) (Incide sobre o faturamento)</td>
+                    <td><input value="5%" readOnly></td>
+                    <td></td>
+                </tr>                
+                <tr>
+                    <td></td>
+                    <td>Total</td>
+                    <td>R$ 0,00</td>
+                </tr>                                                                               
+            </tbody>
+        </table>
+        `
 
     let acumulado = `
 
         <label style="font-size: 1.5vw;">Resumo e Gestão de Custo do Orçamento</label>
 
-        <div style="display: flex; justify-content: center; align-items: center; gap: 2vw;">
+        <div style="display: flex; justify-content: center; align-items: start; gap: 2vw;">
             
             <div style="width: 40% ; background-color: #d2d2d2; padding: 5px; border-radius: 5px;">
                 <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="fechar_status()">&times;</span>
@@ -1824,7 +2002,7 @@ async function mostrar_painel() {
                 <label><span id="valor_total_pedido">0,00</span></label>
             </div>
 
-            <div style="width: 50%;">
+            <div style="width: 50%; display: flex; flex-direction: column; justify-content: center; gap: 3px;">
                 <table class="tabela">
                     <thead>
                             <th>Código</th>
@@ -1837,10 +2015,17 @@ async function mostrar_painel() {
                         ${linhas}
                     </tbody>
                 </table>
+                
+                ${impostos_venda}
+
+                ${impostos_servico}
+
             </div>
 
         </div>
     `
+
+    //29
 
     //console.log(orcamento.dados_composicoes)
 

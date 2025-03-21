@@ -490,7 +490,6 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
     orcamento = await conversor_composicoes_orcamento(orcamento);
 
     var linhas = '';
-    console.log(tipoRequisicao);
 
     if (!orcamento.dados_composicoes || Object.keys(orcamento.dados_composicoes).length == 0) {
         return '';
@@ -498,7 +497,6 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
 
     // Filtra os itens com base no tipo de requisição
     let itensFiltrados = [];
-
 
     for (id in orcamento.dados_composicoes) {
         let item = orcamento.dados_composicoes[id]
@@ -513,9 +511,8 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
                 itensFiltrados.push(item)
             }
         } else { itensFiltrados.push(item) }
+
     }
-
-
 
     // Função para criar uma linha da tabela
     function criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements, aux, apenas_visualizar) {
@@ -577,7 +574,8 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
         `;
     }
 
-    itensFiltrados.forEach(item => {
+
+    for (item of itensFiltrados) {
         var codigo = item.codigo;
         var qtde = item.qtde;
         var qtde_na_requisicao = 0;
@@ -585,16 +583,6 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
         var elements = '';
         let mod_livre = true;
         let qtde_editar = qtde;
-        // Object.keys(orcamento.dados_composicoes).forEach(it => {
-        //     var item = orcamento.dados_composicoes[it];
-        //     var codigo = item.codigo;
-        //     var qtde = item.qtde;
-        //     var qtde_na_requisicao = 0;
-        //     var tipo = dados_composicoes[codigo]?.tipo || item.tipo;
-        //     var elements = '';
-        //     let mod_livre = true;
-        //     let qtde_editar = qtde;
-
         var historico = dados_orcamentos.id_orcam?.status.historico || {};
 
         Object.keys(historico).forEach(chave => {
@@ -626,14 +614,6 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
         var part_number = `
             <input value="${dados_composicoes[codigo]?.omie || ''}" class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;">
         `;
-
-        // // Ajustando o select para ter a opção correta selecionada;
-        // var selectTipo = `
-        //     <select onchange="calcular_requisicao()" style="border: none;">
-        //         <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
-        //         <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
-        //     </select>
-        // `;
 
         if (requisicao) {
             qtde_na_requisicao = requisicao[codigo]?.qtde_enviar || '';
@@ -676,8 +656,13 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
             aux = '';
         }
 
-        linhas += criarLinha(codigo, item, tipo, qtde_na_requisicao, quantidadeAtual || qtde_editar, part_number, elements, aux, apenas_visualizar);
-    });
+        if (apenas_visualizar && qtde_na_requisicao == 0) {
+            continue
+        }
+
+        linhas += criarLinha(codigo, item, tipo, qtde_na_requisicao, quantidadeAtual || qtde_editar, part_number, elements, aux, apenas_visualizar)
+
+    };
 
     // Adiciona os itens adicionais
     if (itens_adicionais) {
@@ -700,79 +685,7 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
     }
 
     return linhas;
-    //     var quantidade = `
-    //     <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
 
-    //         <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
-    //             <label>Quantidade a enviar</label>
-    //             <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${requisicao[codigo]?.qtde_enviar || qtde_na_requisicao}">
-    //         </div>
-
-    //         <label class="num">${quantidadeAtual || qtde_editar}</label>  
-
-    //     </div>
-    //     `
-    //     var opcoes = `
-    //     <select style="border: none; cursor: pointer;">
-    //         <option>Nada a fazer</option>
-    //         <option>Estoque AC</option>
-    //         <option>Comprar</option>
-    //         <option>Enviar do CD</option>
-    //         <option>Fornecido pelo Cliente</option>
-    //     </select>
-    //     `
-    //     let aux = `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`
-    //     if (apenas_visualizar) {
-    //         part_number = `<label style="font-size: 1.2em;">${requisicao[codigo]?.partnumber || ''}</label>`
-    //         selectTipo = `<label style="font-size: 1.2em; margin: 10px;">${requisicao[codigo]?.tipo || ''}</label>`
-    //         quantidade = `<label style="font-size: 1.2em;">${requisicao[codigo]?.qtde_enviar || ''}</label>`
-    //         opcoes = `<label style="font-size: 1.2em;">${requisicao[codigo]?.requisicao || ''}</label>`
-    //         aux = ''
-    //     }
-
-    //     var linha = `
-    //         <tr class="lin_req" style="background-color: white;">
-    //             <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
-    //             <td style="text-align: center;">
-    //             ${part_number}
-    //             </td>
-    //             <td style="position: relative;">
-    //                 <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
-    //                 ${elements}
-    //                 </div>
-    //                 ${aux}
-    //             </td>
-    //             <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
-    //                 ${selectTipo}
-    //             </td>
-    //             <td style="text-align: center;">
-    //                 ${quantidade}
-    //             </td>
-    //             <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-    //                 <label></label>
-    //                 <br>
-    //                 <br>
-    //                 <label style="color: red; font-size: 1.0em;"></label>
-    //             </td>
-    //             <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-    //                 <label></label>
-    //                 <br>
-    //                 <br>
-    //                 <label style="color: red; font-size: 1.0em;"></label>
-    //             </td>
-    //             <td>
-    //                 ${opcoes}
-    //             </td>
-    //         </tr>
-    //     `
-
-    //     if (!apenas_visualizar || (requisicao && requisicao[codigo] && requisicao[codigo].qtde_enviar)) {
-    //         linhas += linha
-    //     }
-
-    // })
-
-    // return linhas
 }
 
 function abrirModalTipoRequisicao() {
