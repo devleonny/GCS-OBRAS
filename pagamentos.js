@@ -264,7 +264,7 @@ async function abrir_detalhes(id_pagamento) {
     }
 
     dados_clientes = dados_clientes_invertido // Cod Omie em evidência;
-
+    
     let pagamento = lista_pagamentos[id_pagamento]
 
     if (dados_orcamentos[pagamento.id_orcamento]) {
@@ -361,9 +361,9 @@ async function abrir_detalhes(id_pagamento) {
     }
 
     var categoria_atual = ''
-    pagamento.param[0].categorias.forEach(item => {
+    pagamento.param[0].categorias.forEach((item, indice) => {
         valores += `
-            <label><strong>${dinheiro(item.valor)}</strong> - ${categorias_invertidas[item.codigo_categoria]}</label>
+            <label><strong>${dinheiro(item.valor)}</strong> - ${categorias_invertidas[item.codigo_categoria]} <img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 5px; top: 8px;" src="imagens/editar.png" onclick="modal_mudar_valor_pagamento('${id_pagamento}', '${indice}')"></label>
         `
         if (String(categorias_invertidas[item.codigo_categoria]).includes('Parceiros')) {
             habilitar_painel_parceiro.ativar = true
@@ -651,6 +651,74 @@ function deseja_excluir_pagamento(id) {
             <label onclick="confirmar_exclusao_pagamento('${id}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
         </div>
         `)
+
+}
+
+async function modal_mudar_valor_pagamento(id, indice){
+
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
+    let pagamento = lista_pagamentos[id]
+    var categorias_invertidas = {}
+    Object.keys(dados_categorias).forEach(cat => {
+        categorias_invertidas[dados_categorias[cat]] = cat
+    })
+
+    let categoria = pagamento.param[0].categorias[indice]
+
+    console.log(pagamento)
+
+    return openPopup_v2(`
+        <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <label>Mudar valor do Pagamento</label>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
+                <label>Categoria: ${categorias_invertidas[categoria.codigo_categoria]}</label>
+                <label>Valor Atual: ${dinheiro(categoria.valor)}</label>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <input id="valor-mudado" type="number">
+            </div>
+            <label onclick="mudar_valor_pagamento('${id}', ${indice})" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
+        </div>
+        `)
+
+}
+
+async function mudar_valor_pagamento(id, indice) {
+
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    let pagamento = lista_pagamentos[id]
+
+    let categoria = pagamento.param[0].categorias
+
+    let novoValorDocumento = 0
+
+    Object.entries(categoria).forEach((item, indice2) => {
+
+        if(indice2 != indice){
+
+        novoValorDocumento += item[1].valor
+
+        }
+
+    })
+
+    let valorMudado = Number(document.getElementById('valor-mudado').value)
+
+    novoValorDocumento += valorMudado
+
+    enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/valor`, valorMudado)
+    enviar(`lista_pagamentos/${id}/param[0]/valor_documento`, novoValorDocumento)
+
+    await inserirDados(lista_pagamentos, 'lista_pagamentos')
+    await consultar_pagamentos()
+
+    remover_popup()
+    fechar_detalhes()
+    await atualizar_pagamentos_menu()
+    abrir_detalhes(id)
 
 }
 
