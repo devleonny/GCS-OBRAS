@@ -360,10 +360,19 @@ async function abrir_detalhes(id_pagamento) {
         valor: 0
     }
 
+console.log(acesso)
+
     var categoria_atual = ''
     pagamento.param[0].categorias.forEach((item, indice) => {
+
+        let displayLabel = 'none';
+
+        if (acesso.permissao === 'adm') {
+            displayLabel = 'inline';
+        }
+
         valores += `
-            <label><strong>${dinheiro(item.valor)}</strong> - ${categorias_invertidas[item.codigo_categoria]} <img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 5px; top: 8px;" src="imagens/editar.png" onclick="modal_mudar_valor_pagamento('${id_pagamento}', '${indice}')"></label>
+            <label><strong>${dinheiro(item.valor)}</strong> - ${categorias_invertidas[item.codigo_categoria]} <img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 5px; top: 8px; display: ${displayLabel};" src="imagens/editar.png" onclick="modal_editar_pagamento('${id_pagamento}', '${indice}')"><img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 10px; top: 8px; display: ${displayLabel};" src="imagens/excluir.png"></label>
         `
         if (String(categorias_invertidas[item.codigo_categoria]).includes('Parceiros')) {
             habilitar_painel_parceiro.ativar = true
@@ -654,7 +663,7 @@ function deseja_excluir_pagamento(id) {
 
 }
 
-async function modal_mudar_valor_pagamento(id, indice){
+async function modal_editar_pagamento(id, indice){
 
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
@@ -666,7 +675,25 @@ async function modal_mudar_valor_pagamento(id, indice){
 
     let categoria = pagamento.param[0].categorias[indice]
 
-    console.log(pagamento)
+    let div_select_categorias = `
+    
+        <label>Nova Categoria</label>
+        <select id="categoria_mudada">
+            <option selected>Selecione</option>
+
+    `
+
+    Object.entries(dados_categorias).forEach(([categoria, codigo]) =>{
+
+        div_select_categorias += `
+        
+            <option data-codigo="${codigo}">${categoria}</option>
+        
+        `
+
+    })
+
+    div_select_categorias += "</select>"
 
     return openPopup_v2(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
@@ -678,46 +705,64 @@ async function modal_mudar_valor_pagamento(id, indice){
                 <label>Valor Atual: ${dinheiro(categoria.valor)}</label>
             </div>
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <input id="valor-mudado" type="number">
+                <label>Novo Valor</label>
+                <input id="valor_mudado" type="number">
             </div>
-            <label onclick="mudar_valor_pagamento('${id}', ${indice})" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                ${div_select_categorias}
+            </div>
+            <label onclick="editar_pagamento('${id}', ${indice})" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
         </div>
         `)
 
 }
 
-async function mudar_valor_pagamento(id, indice) {
+async function editar_pagamento(id, indice) {
 
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     let pagamento = lista_pagamentos[id]
 
     let categoria = pagamento.param[0].categorias
 
+    let valorMudado = Number(document.getElementById('valor_mudado').value)
+    let categoriaMudada = document.getElementById('categoria_mudada')
+
+    if(valorMudado != 0){
+        
     let novoValorDocumento = 0
 
     Object.entries(categoria).forEach((item, indice2) => {
-
+        
         if(indice2 != indice){
-
+            
         novoValorDocumento += item[1].valor
 
         }
 
     })
 
-    let valorMudado = Number(document.getElementById('valor-mudado').value)
-
     novoValorDocumento += valorMudado
-
+    
     enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/valor`, valorMudado)
     enviar(`lista_pagamentos/${id}/param[0]/valor_documento`, novoValorDocumento)
 
+    }
+
+    if(categoriaMudada != "Selecione"){
+
+        let codigoMudado = categoriaMudada.options[categoriaMudada.selectedIndex].dataset.codigo;
+        enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/codigo_categoria`, codigoMudado)
+
+    }
+
     await inserirDados(lista_pagamentos, 'lista_pagamentos')
-    await consultar_pagamentos()
 
     remover_popup()
+
     fechar_detalhes()
+
     await atualizar_pagamentos_menu()
+
     abrir_detalhes(id)
 
 }
