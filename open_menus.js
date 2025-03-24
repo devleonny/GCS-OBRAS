@@ -1156,7 +1156,7 @@ async function espelhar_atualizacao(objeto) {
             let current = obj;
 
             for (let i = 0; i < keys.length - 1; i++) {
-                if (!current[keys[i]]) return false;
+                if (!current || !current[keys[i]]) return false;
                 current = current[keys[i]];
             }
 
