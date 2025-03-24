@@ -561,8 +561,10 @@ async function abrir_estoque(codigo, stq) {
     let div_historico = ''
     if (estoque.historico && Object.keys(estoque.historico).length > 0) {
         div_historico = `
+            <hr style="width: 99%;">
+
             <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-                <label>Histórico</label>
+                <label style="color: #222; font-size: 1.5vw;">Histórico</label>
             </div>
 
             <div style="background-color: #B12425; white; border-radius: 3px; width: 100%; border-radius: 3px;">
@@ -593,52 +595,62 @@ async function abrir_estoque(codigo, stq) {
             <label>Movimentação de estoque</label>
         </div>
 
-        <div style="color: #222; position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px;">
-            <img src="imagens/LG.png" style="width: 70px; height: 70px;">
-            <label style="width: 300px; text-align: left;">${item.descricao}</label>
-        </div>
+        <div style="background-color: white; border-radius: 5px;"> 
 
-        <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px; height: 140px;">
+            <div style="color: #222; position: relative; display: flex; justify-content: start; align-items: center; margin: 2px; gap: 3vw;">
+                <img src="imagens/LG.png" style="width: 5vw;">
+                <div style="display: flex; justify-content: center; align-items: start; flex-direction: column;">
+                    <label style="font-size: 0.7vw;">Descrição</label>
+                    <label style="font-size: 1.0vw;">${item.descricao}</label>
+                </div>
+            </div>
+
+            <hr style="width: 99%;">
+
+            <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; margin: 2px; height: 140px;">
+                
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <label style="color: #222;">Saída</label>
+                    <input class="numero-bonito" style="background-color: #B12425;" id="saida" oninput="inputs(this)">
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <label style="color: #222;">Entrada</label>
+                    <input class="numero-bonito" id="entrada" oninput="inputs(this)">
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <label style="color: #222;">Comentário</label>
+                    <textarea maxlength="100" placeholder="Comentário" id="comentario"></textarea>
+                </div>
+
+                <img src="imagens/concluido.png" style="cursor: pointer;" onclick="salvar_movimento('${codigo}', '${stq}')">
+
+            </div>
+
+            <hr style="width: 99%;">
+
+            <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; height: 130px;">
             
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <label style="color: #222;">Saída</label>
-                <input class="numero-bonito" style="background-color: #B12425;" id="saida" oninput="inputs(this)">
-            </div>
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <label style="color: #222;">Entrada</label>
-                <input class="numero-bonito" id="entrada" oninput="inputs(this)">
-            </div>
-
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <label style="color: #222;">Comentário</label>
-                <textarea maxlength="100" placeholder="Comentário" id="comentario"></textarea>
-            </div>
-
-            <img src="imagens/concluido.png" style="cursor: pointer;" onclick="salvar_movimento('${codigo}', '${stq}')">
-
-        </div>
-
-        <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px; height: 130px;">
-         
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 60%;">
-                <label style="color: #222;">Saldo Atual</label>
-                <label style="background-color: #4CAF50; font-size: 35px; height: 50px; width: 90%; border-radius: 5px;">${atual}</label>
-            </div>
-        
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-
-                <label style="color: #222;">Saldo Inicial</label>
-
-                <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
-                    <input class="numero-bonito" style="background-color: #B12425;" value="${inicial}">
-                    <img src="imagens/concluido.png" style="cursor: pointer; width: 30px; height: 30px;" onclick="salvar_movimento('${codigo}', '${stq}', this)">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 60%;">
+                    <label style="color: #222;">Saldo Atual</label>
+                    <label style="background-color: #4CAF50; font-size: 35px; height: 50px; width: 90%; border-radius: 5px;">${atual}</label>
                 </div>
             
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+
+                    <label style="color: #222;">Saldo Inicial</label>
+
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
+                        <input class="numero-bonito" style="background-color: #B12425;" value="${inicial}">
+                        <img src="imagens/concluido.png" style="cursor: pointer; width: 30px; height: 30px;" onclick="salvar_movimento('${codigo}', '${stq}', this)">
+                    </div>
+                
+                </div>
             </div>
 
-        </div>
+            ${div_historico}
 
-        ${div_historico}
+        </div>
 
     `
 
