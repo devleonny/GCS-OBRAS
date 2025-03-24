@@ -83,6 +83,28 @@ select {
   padding-left: 10px;
 }
 
+.calendar-table td.left-header{
+  display: inline-flex;
+}
+
+.edit-btn{
+
+  height: 30px;
+  width: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: transparent;
+
+}
+
+.imagem-editar{
+
+  width: 20px;
+  height: 20px;
+
+}
+
 .calendar-table td {
   color: black; /* Define a cor padrão do texto no TD */
 }
