@@ -521,6 +521,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     dayInput.dataset.codigo = selectedDept.codigo; // 🔥 Garante que o código seja salvo corretamente
                     dayCell.style.backgroundColor = selectedDept.color;
                     adjustTextColor(dayCell, selectedDept.color);
+                    salvarDepartamentoEspecifico(dayInput, dayCell, dayDropdown, tecnicoInput, previousValue);
                     saveTechniciansToLocalStorage();
                 });
             });
@@ -544,10 +545,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             let previousValue = dayInput.value.trim();
-
-            dayInput.addEventListener("blur", () => {
-                salvarDepartamentoEspecifico(dayInput, dayCell, dayDropdown, tecnicoInput, previousValue);
-            });
 
             // Atualiza o valor anterior quando o campo recebe foco
             dayInput.addEventListener("focus", () => {
