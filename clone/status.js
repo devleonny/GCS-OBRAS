@@ -1757,8 +1757,8 @@ async function mostrar_painel() {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento = dados_orcamentos[id_orcam]
-    var pags = ''
-    var total_pago = 0
+    let pags = ''
+    let total_pago = 0
 
     for (pg in pagamentos_painel) {
         pags += `
@@ -1772,7 +1772,22 @@ async function mostrar_painel() {
         }
     }
 
-    let linhas = ''
+    let linhas = {
+        SERVIÇO: {
+            orcamento: '',
+            impostos: '',
+            total_custo: 0,
+            total_orcado: 0,
+            total_impostos: 0
+        },
+        VENDA: {
+            orcamento: '',
+            impostos: '',
+            total_custo: 0,
+            total_orcado: 0,
+            total_impostos: 0
+        }
+    }
 
     for (id in orcamento.dados_composicoes) {
         let produto = dados_composicoes[id]
@@ -1781,42 +1796,45 @@ async function mostrar_painel() {
         let qtde = orcamento.dados_composicoes[id].qtde
         let cotacao = tabela?.historico[tabela?.ativo]
 
-        linhas += `
+        let custo_unit = cotacao?.valor_custo || 0
+        let custo_total = custo_unit * qtde
+
+        let vl_unit = cotacao?.valor || 0
+        let total = vl_unit * qtde
+
+        linhas[produto.tipo].total_custo += custo_total
+        linhas[produto.tipo].total_orcado += total
+
+        linhas[produto.tipo].orcamento += `
         <tr>
             <td>${produto.codigo}</td>
             <td>${qtde}</td>
-            <td>${cotacao?.valor_custo || 'R$ 0,00'}</td>
-            <td>${cotacao?.valor || 'R$ 0,00'}</td>
-            <td>${cotacao?.margem || '%'}</td>
+            ${produto.tipo == 'VENDA' ? `
+            <td>${dinheiro(custo_unit)}</td>
+            <td>${dinheiro(custo_total)}</td>
+            <td>${cotacao?.margem || '--'}</td>
+            ` : ''}
+            <td>${dinheiro(vl_unit)}</td>
+            <td>${dinheiro(total)}</td>
         </tr>
-        
         `
     }
-    let produto = {}
-    let lpu = ''
 
-    let impostos_venda = `
-        <div style="display: flex; align-items: start; justify-content: start; gap: 10px;">
-            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 1vw;">
-                <table class="tabela">
-                    <thead>
-                        <th>Resultados</th>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>LUCRO LIQUIDO</td>
-                            <td>R$ 0,00</td>
-                        </tr>
-                        <tr>
-                            <td>PERCENTUAL DE LUCRO</td>
-                            <td>0%</td>
-                        </tr>
-                    </tbody>
-                </table>
+    let porcentagem_icms = orcamento.dados_orcam.estado == 'BA' ? 0.205 : 0.12
 
-            </div>
-        </div>
-        <br>
+    let aliq_lp_venda = linhas.VENDA.total_orcado * 0.08
+    let aliq_presuncao_venda = linhas.VENDA.total_orcado * 0.12
+    let irpj_venda = aliq_lp_venda * 0.15
+    let ad_irpj_venda = aliq_lp_venda * 0.10
+    let csll_venda = aliq_presuncao_venda * 0.09
+    let pis_venda = linhas.VENDA.total_orcado * 0.0065
+    let cofins_venda = linhas.VENDA.total_orcado * 0.03
+    let icms = linhas.VENDA.total_orcado * porcentagem_icms
+    linhas.VENDA.total_impostos = irpj_venda + ad_irpj_venda + csll_venda + pis_venda + cofins_venda + icms
+
+    linhas.VENDA.impostos = `
+
+        <label>Impostos de Venda</label>
         <table class="tabela">
             <thead>
                 <th>Presunções dos Impostos de Saída</th>
@@ -1827,12 +1845,12 @@ async function mostrar_painel() {
                 <tr>
                     <td>Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
                     <td><input value="8%" readOnly></td>
-                    <td></td>
+                    <td>${dinheiro(aliq_lp_venda)}</td>
                 </tr>
                 <tr>
                     <td>Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
                     <td><input value="12%" readOnly></td>
-                    <td></td>
+                    <td>${dinheiro(aliq_presuncao_venda)}</td>
                 </tr>
             </tbody>
         </table>
@@ -1847,64 +1865,56 @@ async function mostrar_painel() {
                 <tr>
                     <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
                     <td><input value="15%" readOnly></td>
-                    <td></td>
+                    <td>${dinheiro(irpj_venda)}</td>
                 </tr>
                 <tr>
                     <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
                     <td><input value="10%" readOnly></td>
-                    <td></td>
+                    <td>${dinheiro(ad_irpj_venda)}</td>
                 </tr>
                 <tr>
                     <td>CSLL a ser Pago (9%) da Presunção</td>
                     <td><input value="9%" readOnly></td>
-                    <td></td>
+                    <td>${dinheiro(csll_venda)}</td>
                 </tr>
                 <tr>
                     <td>O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
                     <td><input value="0.65%" readOnly></td>
-                    <td></td>
+                    <td>${dinheiro(pis_venda)}</td>
                 </tr>
                 <tr>
                     <td>A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
                     <td><input value="3%" readOnly></td>
-                    <td></td>
+                    <td>${dinheiro(cofins_venda)}</td>
                 </tr>
                 <tr>
-                    <td>O Imposto sobre Circulação de Mercadorias e Serviços (ICMS) (12%) do faturamento</td>
-                    <td><input value="12%" readOnly></td>
-                    <td></td>
+                    <td>O Imposto sobre Circulação de Mercadorias e Serviços (ICMS) (${(porcentagem_icms * 100).toFixed(1)}%) do faturamento</td>
+                    <td><input value="${(porcentagem_icms * 100).toFixed(1)}%" readOnly></td>
+                    <td>${dinheiro(icms)}</td>
                 </tr>
-                <tr>
+                <tr style="background-color: #535151;">
                     <td></td>
                     <td>Total</td>
-                    <td></td>
+                    <td>${dinheiro(linhas.VENDA.total_impostos)}</td>
                 </tr>                                                                               
             </tbody>
         </table>
         `
 
-        let impostos_servico = `
+    let aliq_lucro_presumido = linhas.SERVIÇO.total_orcado * 0.32
+    let aliq_presuncao = linhas.SERVIÇO.total_orcado * 0.32
 
-        <div style="display: flex; align-items: center; justify-content: space-evenly; width: 100%;">
+    let irpj = aliq_presuncao * 0.15
+    let ad_irpj = aliq_presuncao * 0.10
+    let csll_presuncao = aliq_presuncao * 0.09
+    let pis = linhas.SERVIÇO.total_orcado * 0.0065
+    let cofins = linhas.SERVIÇO.total_orcado * 0.03
+    let iss = linhas.SERVIÇO.total_orcado * 0.05
+    linhas.SERVIÇO.total_impostos = irpj + ad_irpj + csll_presuncao + pis + cofins + iss
 
-            <table class="tabela">
-                <thead>
-                    <th>Resultados</th>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>LUCRO LIQUIDO</td>
-                        <td>R$ 0,00</td>
-                    </tr>
-                    <tr>
-                        <td>PERCENTUAL DE LUCRO</td>
-                        <td> 0%</td>
-                    </tr>
-                </tbody>
-            </table>
+    linhas.SERVIÇO.impostos = `
 
-        </div>
-        <br>
+        <label>Impostos Serviço</label>
         <table class="tabela">
             <thead>
                 <th>Presunções dos Impostos de Saída</th>
@@ -1914,13 +1924,13 @@ async function mostrar_painel() {
             <tbody>
                 <tr>
                     <td>Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
-                    <td>32%</td>
-                    <td></td>
+                    <td style="text-align: center;">32%</td>
+                    <td>${dinheiro(aliq_lucro_presumido)}</td>
                 </tr>
                 <tr>
                     <td>Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
-                    <td>32%</td>
-                    <td></td>
+                    <td style="text-align: center;">32%</td>
+                    <td>${dinheiro(aliq_presuncao)}</td>
                 </tr>
             </tbody>
         </table>
@@ -1934,118 +1944,181 @@ async function mostrar_painel() {
             <tbody>
                 <tr>
                     <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
-                    <td><input value="8%" readOnly></td>
-                    <td></td>
+                    <td><input value="15%" readOnly></td>
+                    <td>${dinheiro(irpj)}</td>
                 </tr>
                 <tr>
                     <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
-                    <td><input value="8%" readOnly></td>
-                    <td></td>
+                    <td><input value="10%" readOnly></td>
+                    <td>${dinheiro(ad_irpj)}</td>
                 </tr>
                 <tr>
                     <td>CSLL a ser Pago (9%) da Presunção</td>
                     <td><input value="9%" readOnly></td>
-                    <td></td>
+                    <td>${dinheiro(csll_presuncao)}</td>
                 </tr>
                 <tr>
                     <td>O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
                     <td><input value="0.65%" readOnly></td>
-                    <td></td>
+                    <td>${dinheiro(pis)}</td>
                 </tr>
                 <tr>
                     <td>A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
                     <td><input value="3%" readOnly></td>
-                    <td></td>
+                    <td>${dinheiro(cofins)}</td>
                 </tr>
                 <tr>
                     <td>O Imposto Sobre Serviços ( ISS )(5%) (Incide sobre o faturamento)</td>
                     <td><input value="5%" readOnly></td>
-                    <td></td>
+                    <td>${dinheiro(iss)}</td>
                 </tr>                
-                <tr>
+                <tr style="background-color: #535151;">
                     <td></td>
                     <td>Total</td>
-                    <td>R$ 0,00</td>
+                    <td>${dinheiro(linhas.SERVIÇO.total_impostos)}</td>
                 </tr>                                                                               
             </tbody>
         </table>
         `
 
-    let acumulado = `
+    let tabelas = ''
+    let impostos = ''
+    let total_custos = ''
 
-        <label style="font-size: 1.5vw;">Resumo e Gestão de Custo do Orçamento</label>
+    for (tipo in linhas) {
+        let tab = linhas[tipo]
 
-        <div style="display: flex; justify-content: center; align-items: start; gap: 2vw;">
-            
-            <div style="width: 40% ; background-color: #d2d2d2; padding: 5px; border-radius: 5px;">
-                <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="fechar_status()">&times;</span>
-                <label>Gestão de Custos</label>
-                    ${pags}
-                <hr style="width: 100%;">
-                <label style="font-size: 0.8vw;"> <span id="valor_pedido">0,00</span> <label style="font-size: 0.8vw;">Valor do Orçamento</label></label>
-                <hr style="width: 100%;">
-                <label onclick="valores_manuais()" style="font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
+        if (tab.orcamento != '') {
 
-                <div id="lista-valores-manuais">
-                    ${Object.entries(orcamento.valoresManuais || {}).length > 0
-                ? Object.entries(orcamento.valoresManuais).map(([chave, valor]) => `
-                        <div style="display: flex; align-items: center; gap: 5px;">
-                            <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
-                            <button onclick="removerValorManual('${id_orcam}', '${chave}')" 
-                                style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
-                        </div>
-                    `).join("")
-                : "<label style='font-size: 0.8vw; color: gray;'>Nenhum valor manual adicionado.</label>"}
-                </div>
-
-                <hr style="width: 100%;">
-                <label><span id="valor_total_pedido">0,00</span></label>
-            </div>
-
-            <div style="width: 50%; display: flex; flex-direction: column; justify-content: center; gap: 3px;">
+            tabelas += `
+                <label>${tipo}</label>
                 <table class="tabela">
                     <thead>
-                            <th>Código</th>
-                            <th>Quantidade</th>
-                            <th>Valor de Custo</th>
-                            <th>Valor de Venda</th>
+                        <th>Código</th>
+                        <th>Quantidade</th>
+                        ${tipo == 'VENDA' ? `
+                            <th>Custo Unit</th>
+                            <th>Custo Total</th>
                             <th>Margem</th>
+                        ` : ''}
+                        <th>Valor de ${tipo.toLocaleLowerCase()}</th>
+                        <th>Total de ${tipo.toLocaleLowerCase()}</th>
                     </thead>
                     <tbody>
-                        ${linhas}
+                        ${tab.orcamento}
+                        <tr style="background-color: #535151;">
+                            <td></td>
+
+                            ${tipo == 'VENDA' ? `
+                            <td></td>
+                            <td></td>
+                            <td>${dinheiro(tab.total_custo)}</td>` 
+                            : ''}
+
+                            <td></td>
+                            <td></td>
+                            <td>${dinheiro(tab.total_orcado)}</td>
+                        </tr>
                     </tbody>
+
                 </table>
-                
-                ${impostos_venda}
+                <hr style="width: 100%;">
+                ${tab.impostos}
+            `
+            impostos += `
+                <br>
+                <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                    <label style="font-size: 0.7vw;">Impostos de ${tipo.toLowerCase()}</label>
+                    <label>${dinheiro(tab.total_impostos)}</label>
+                </div>
+            `
+            if (tipo == 'VENDA') {
+                total_custos = `
+                    <br>
+                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                        <label style="font-size: 0.7vw;">Total de Custo (Compra de Material)</label>
+                        <label>${dinheiro(linhas.VENDA.total_custo)}</label>
+                    </div>
+                `
+            }
+        }
+    }
 
-                ${impostos_servico}
+    let total_orcamento = linhas.SERVIÇO.total_orcado + linhas.VENDA.total_orcado
+    let totalValoresManuais = somarValoresManuais(orcamento)
+    let soma_custos = totalValoresManuais + linhas.SERVIÇO.total_impostos + linhas.VENDA.total_impostos + linhas.VENDA.total_custo
+    let lucro_liquido = total_orcamento - soma_custos
+    let lucro_porcentagem = (lucro_liquido / total_orcamento * 100).toFixed(2)
 
-            </div>
+    let acumulado = `
 
+        <div style="background-color: #d2d2d2; width: 100%; display: flex; justify-content: space-between; align-items: center;">
+            <label style="margin-left: 1vw;">Detalhamento dos Custos no Orçamento</label>
+            <label style="font-size: 1.5vw; text-align: center; color: white; background-color: #B12425; cursor: pointer; width: 3vw; height: 100%;" onclick="fechar_status()">×</label>
         </div>
+
+        <div style="overflow: auto;">
+            <br>
+            <div style="display: flex; justify-content: center; align-items: start; gap: 2vw;">
+                <div style="width: 40% ; background-color: #e3e3e3; padding: 5px; border-radius: 5px;">
+                    <label>Gestão de Custos</label>
+                        ${pags}
+                    <hr style="width: 100%;">
+                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                        <label style="font-size: 0.7vw;">Valor do Orçamento</label>
+                        <label>${dinheiro(total_orcamento)}</label>
+                    </div>
+                    <hr style="width: 100%;">
+
+                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                        <label>Valores Lançados</label>
+                        <label onclick="valores_manuais()" style="cursor: pointer; font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
+                    </div>
+
+                    <div id="lista-valores-manuais">
+                        ${Object.entries(orcamento.valoresManuais || {}).length > 0
+            ? Object.entries(orcamento.valoresManuais).map(([chave, valor]) => `
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
+                                <button onclick="removerValorManual('${id_orcam}', '${chave}')" 
+                                    style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
+                            </div>
+                        `).join("")
+            : "<label style='font-size: 0.7vw; color: gray;'>Nenhum valor manual adicionado.</label>"}
+                    </div>
+
+                    <hr style="width: 100%;">
+
+                    ${impostos}
+
+                    ${total_custos}
+
+                    <br>
+                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                        <label style="font-size: 0.7vw;">Lucro Líquido</label>
+                        <label>${dinheiro(lucro_liquido)} (${lucro_porcentagem}%)</label>
+                    </div>
+
+                </div>
+
+                <div style="width: 50%; display: flex; flex-direction: column; justify-content: center; gap: 3px;">
+                    <label>Orçamento por Item</label>
+                    
+                    ${tabelas}
+                </div>
+            </div>
+            <br>
+        </div>
+
     `
-
-    //29
-
-    //console.log(orcamento.dados_composicoes)
 
     let painel = document.getElementById('status')
     if (painel) {
         painel.innerHTML = acumulado
+        painel.style.padding = '0px'
+        painel.style.gap = '0px'
     }
 
-    let totalValoresManuais = somarValoresManuais(orcamento);
-    let totalFinal = conversor(orcamento.total_geral) - totalValoresManuais;
-    let valorPedidoSpan = document.getElementById('valor_pedido');
-    let valorTotalSpan = document.getElementById('valor_total_pedido');
-
-    if (valorPedidoSpan) {
-        valorPedidoSpan.textContent = orcamento.total_geral;
-    }
-
-    if (valorTotalSpan) {
-        valorTotalSpan.textContent = dinheiro(totalFinal)
-    }
 }
 
 function somarValoresManuais(dados) {

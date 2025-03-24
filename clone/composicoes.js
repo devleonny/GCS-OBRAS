@@ -1010,12 +1010,12 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
             <tbody>
                 <tr>
                     <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
-                    <td><input value="8%" readOnly></td>
+                    <td><input value="15%" readOnly></td>
                     <td></td>
                 </tr>
                 <tr>
                     <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
-                    <td><input value="8%" readOnly></td>
+                    <td><input value="10%" readOnly></td>
                     <td></td>
                 </tr>
                 <tr>

@@ -358,7 +358,7 @@ async function abrir_manutencao(id) {
         }
 
         infos += `
-        <div style="display: flex; align-items: center; justify-content: space-evenly; margin-bottom: 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-evenly; margin-bottom: 10px;">
                 <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; font-size: 0.8vw;">
                     <label><strong>Data: </strong>${historico.data}</label>
                     <label><strong>Status: </strong>${historico.status_manutencao}</label>
@@ -368,7 +368,8 @@ async function abrir_manutencao(id) {
                 </div>
                 <img src="imagens/${imagem}.png" style="width: 50px; margin-left: 10px;">
             </div>
-    `;
+            <hr style="width: 100%;">
+        `;
     }
 
     let elemento = `
