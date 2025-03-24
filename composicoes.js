@@ -533,12 +533,6 @@ function remover_item(elemento) {
 
 async function abrir_historico_de_precos(codigo, tabela) {
 
-
-    let overlay = document.getElementById('overlay')
-    if (overlay) {
-        overlay.style.display = 'block'
-    }
-
     var marcado = ''
     var acumulado = ''
     var dados_composicoes = await recuperarDados('dados_composicoes') || {}
@@ -585,10 +579,6 @@ async function abrir_historico_de_precos(codigo, tabela) {
 
     <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
 
-    <div style="display: flex; justify-content: space-evenly; width: 100%;">
-        <label>Valores de Venda</label>
-    </div>
-
     <div id="historico_preco" style="background-color: white; padding: 5px; border-radius: 5px;">
 
         <div style="color: #222; display: flex; flex-direction: column; justify-content: start; align-items: start;">
@@ -623,7 +613,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
         historico_preco.remove()
     }
 
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, 'Valores de Venda')
 
 }
 
@@ -956,11 +946,6 @@ function calcular() {
 
 async function cadastrar_editar_item(codigo) {
 
-    let overlay = document.getElementById('overlay')
-    if (overlay) {
-        overlay.style.display = 'block'
-    }
-
     let colunas = ['descricao', 'descricaocarrefour', 'substituto', 'sapid', 'refid', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados = dados_composicoes[codigo] || {}
@@ -1018,10 +1003,6 @@ async function cadastrar_editar_item(codigo) {
         <img src="imagens/cancel.png" style="width: 15px; cursor: pointer;" onclick="confirmar_exclusao_item('${n_codigo}')">
     </div>
 
-    <div style="display: flex; justify-content: space-evenly; width: 100%;">
-        <label>Dados do Item</label>
-    </div>
-
     <div id="cadastrar_item" style="background-color: white; color: #222; padding: 5px; border-radius: 5px;">
 
         <div id="elementos" style="display: flex; flex-direction: column; gap: 5px;">
@@ -1035,7 +1016,7 @@ async function cadastrar_editar_item(codigo) {
         <button style="background-color: #4CAF50; width: 100%; margin: 0px;" onclick="${funcao}">Salvar</buttton>
     </div>
     `
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, 'Dados do Item')
 }
 
 async function confirmar_exclusao_item(codigo) {

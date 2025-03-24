@@ -50,6 +50,7 @@ body {
 .linha-itens-adicionais {
     background-color: #5e5f5f;
 }
+
 .linha label {
     font-size: 0.8vw;
 }
@@ -1067,34 +1068,6 @@ input[type=range]::-moz-range-thumb {
     align-items: start;
     justify-content: left;
     gap: 10px
-}
-
-/* Popup */
-.popup {
-    display: none;
-    position: fixed;
-    z-index: 2000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.5);
-}
-
-.popup-content {
-    position: relative;
-    background-color: #222;
-    color: white;
-    border-radius: 20px;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    min-width: 40%;
-    max-width: max-content;
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-    text-align: center;
-    font-size: 1.4em;
 }
 
 .close {

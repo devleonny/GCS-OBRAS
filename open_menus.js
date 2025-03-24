@@ -25,13 +25,19 @@ async function identificacao_user() {
         let permissao = dados_setores[acesso.usuario].permissao
         var texto = `
             <div style="position: relative; display: fixed;">
-                <label onclick="openPopup_v2('Deseja se desconectar?', true, 'sair()')"
+                <label onclick="deseja_sair()"
                 style="cursor: pointer; position: absolute; top: 10px; right: 10px; color: white; font-family: 'Poppins', sans-serif;">${acesso.usuario} • ${permissao} • Desconectar • ${versao}</label>
             </div>
         `
         document.body.insertAdjacentHTML('beforebegin', texto)
     }
 
+}
+
+function deseja_sair() {
+    openPopup_v2(`
+        <button onclick="sair()" style="background-color: green">Confirmar</button>
+        `, 'Deseja Sair?')
 }
 
 function inicial_maiuscula(string) {
@@ -209,27 +215,65 @@ async function recuperarDados(nome_da_base) {
     });
 }
 
-function openPopup_v2(mensagem, exibir_botoes, funcao_confirmar) {
+function openPopup_v2(elementoHTML, titulo) {
 
-    var botoes = ''
-    if (exibir_botoes) {
-        botoes += `
-        <div style="display: flex; gap: 20px; align-items: center; justify-content: center;">
-            <button style="background-color: green;" onclick="${funcao_confirmar}">Confirmar</button>
-            <button onclick="remover_popup()">Cancelar</button>
-        </div>
-    `}
+    let popup_v2 = `
+    <div id="temp_pop" style="
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.7);">
 
-    var popup_v2 = `
-    <div id="temp_pop" class="popup" style="display: block;">
-        <div class="popup-content">
-            <span class="close" onclick="remover_popup()">&times;</span>
-            <p>${mensagem}</p>
-            ${botoes}
+        <div style="
+        display: flex;
+        flex-direction: column; 
+        align-items: center; 
+        background-color: white;
+        max-width: 90vw;
+        text-align: center;
+        font-size: 1.0vw;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);">
+
+            <div style="
+            width: 100%;
+            background-color: #3b444c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;">
+                <label style="margin-left: 1vw; margin-right: 3vw; color: white;">${titulo || 'GCS'}</label>
+                <label style="border-top-right-radius: 5px; font-size: 1.5vw; text-align: center; color: white; background-color: #B12425; cursor: pointer; width: 3vw; height: 100%;" onclick="remover_popup()">×</label>
+            </div>
+
+            <div style="
+                overflow: auto;
+                max-height: 70vh;
+                padding: 5px;">
+
+                ${elementoHTML}
+
+            </div>
+
         </div>
-    </div>
-    `
-    document.body.insertAdjacentHTML('beforeend', popup_v2)
+
+    </div>    
+    `;
+
+    let temp_pop = document.getElementById('temp_pop');
+    if (temp_pop) {
+        temp_pop.innerHTML = popup_v2;
+    } else {
+        document.body.insertAdjacentHTML('beforeend', popup_v2);
+    }
+
 }
 
 function dicionario(item) {

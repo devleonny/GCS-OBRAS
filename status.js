@@ -2688,7 +2688,7 @@ async function chamar_excluir(id) {
             <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
             <label>Deseja realmente excluir o orçamento?</label>
         </div>
-        <button onclick="apagar('${id}')">Confirmar</button>
+        <button style="background-color: green;" onclick="apagar('${id}')">Confirmar</button>
         `)
 }
 
@@ -2942,7 +2942,6 @@ function deseja_apagar(chave) {
             <label>Deseja apagar essa informação?</label>
             <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
                 <button style="background-color: green" onclick="${funcao}">Confirmar</button>
-                <button onclick="remover_popup()">Cancelar</button>
             </div>
         </div>
         `)
@@ -3117,10 +3116,6 @@ async function envio_de_material(chave) {
     })
 
     var acumulado = `
-    <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
-        <img src="imagens/logistica.png" style="width: 50px;">
-        <label class="novo_titulo">Registrar Envio de Material</label>
-    </div>
     <div id="painel_envio_de_material">
 
         <div class="pergunta">
@@ -3169,5 +3164,5 @@ async function envio_de_material(chave) {
       
     </div>
     `
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, 'Envio de Material')
 }

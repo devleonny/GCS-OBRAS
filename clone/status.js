@@ -3108,7 +3108,6 @@ function deseja_apagar(chave) {
             <label>Deseja apagar essa informação?</label>
             <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
                 <button style="background-color: green" onclick="${funcao}">Confirmar</button>
-                <button onclick="remover_popup()">Cancelar</button>
             </div>
         </div>
         `)

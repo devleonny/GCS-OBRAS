@@ -1167,7 +1167,7 @@ async function criar_pagamento_v2() {
                 <img src="imagens/concluido.png" style="width: 3vw; height: 3vw;">
                 <label>Pagamento Solicitado</label>
             </div>                
-        `);
+        `)
 
         var esquema = document.getElementById('esquema')
         if (esquema) {
@@ -1215,8 +1215,6 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
 
     ordem = 0
 
-    overlay.style.display = 'block'
-
     intervaloCompleto = setInterval(function () {
         document.getElementById('tempo').textContent = data_atual('completa');
     }, 1000);
@@ -1256,11 +1254,6 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
     }
 
     var acumulado = `
-        <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
-
-        <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-            <label>Solicitação de Pagamento</label>
-        </div>
 
         <div
             style="display: flex; flex-direction: column; align-items: center; justify-content: left; gap: 5px; font-size: 0.9vw; background-color: #ececec; color: #222; padding: 2vw; border-radius: 5px;">
@@ -1410,7 +1403,7 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
         </div>
     `;
 
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, 'Solicitação de Pagamento')
 
     await recuperar_ultimo_pagamento()
 

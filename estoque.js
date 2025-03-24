@@ -262,14 +262,15 @@ async function abrir_valores(codigo) {
         <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
         <label style="position: absolute; bottom: 5px; right: 15px; font-size: 0.7em;" id="data">${data}</label>
 
-        <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-            <label>Informar valor de Compra</label>
+        <div style="color: #222; position: relative; display: flex; justify-content: start; align-items: center; margin: 2px; gap: 3vw;">
+            <img src="imagens/LG.png" style="width: 5vw;">
+            <div style="display: flex; justify-content: center; align-items: start; flex-direction: column;">
+                <label style="font-size: 0.7vw;">Descrição</label>
+                <label style="font-size: 1.0vw;">${item.descricao}</label>
+            </div>
         </div>
 
-        <div style="color: #222; position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px;">
-            <img src="imagens/LG.png" style="width: 70px; height: 70px;">
-            <label style="width: 300px; text-align: left;">${item.descricao}</label>
-        </div>
+        <hr style="width: 100%;">
 
         <div style="display: flex; align-items: center; justify-content: space-evenly; gap: 10px; background-color: white; border-radius: 5px; margin: 5px; padding: 10px;">
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
@@ -375,14 +376,14 @@ async function abrir_valores(codigo) {
         let valor = calcular_cmc(item.valor_compra)
         acumulado += `
 
-            <hr style="width: 80%;">
+            <hr style="width: 100%;">
 
             <div style="display: flex; justify-content: center; align-items: center; width: 100%; gap: 10px;">
                 <label>CMC - Custo Médio de Compra</label>
                 <label style="border-radius: 5px; padding: 10px; font-size: 35px; color: white; background-color: #097fe6; margin: 5px;">${dinheiro(valor)}</label>
             </div>
 
-            <hr style="width: 80%;">
+            <hr style="width: 100%;">
 
             <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
                 <label>Histórico</label>
@@ -407,7 +408,7 @@ async function abrir_valores(codigo) {
         `
     }
 
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, 'Informar valor de Compra')
 }
 
 async function salvar_dados_compra(codigo, cpr, campo, img) {
@@ -591,10 +592,6 @@ async function abrir_estoque(codigo, stq) {
         <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
         <label style="position: absolute; bottom: 5px; right: 15px; font-size: 0.7em;" id="data">${data}</label>
 
-        <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-            <label>Movimentação de estoque</label>
-        </div>
-
         <div style="background-color: white; border-radius: 5px;"> 
 
             <div style="color: #222; position: relative; display: flex; justify-content: start; align-items: center; margin: 2px; gap: 3vw;">
@@ -654,7 +651,7 @@ async function abrir_estoque(codigo, stq) {
 
     `
 
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, 'Movimentação de estoque')
 
 }
 
@@ -790,7 +787,6 @@ async function incluir_linha() {
 
     let acumulado = `
     <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
-    <label style="font-size: 1.5vw;">Cadastro de Item</label>
 
     <div class="formulario">
 
@@ -821,7 +817,7 @@ async function incluir_linha() {
     </div>
     `;
 
-    openPopup_v2(acumulado);
+    openPopup_v2(acumulado, 'Cadastro de Item');
 
     // 🔥 Ativa os auto-completes após abrir o popup
     setupAutoComplete("categorias", "categorias-dropdown", categoriasArray);
@@ -1067,11 +1063,6 @@ async function retomar_paginacao(codigo, stq) {
 function relatorio_movimento() {
 
     let acumulado = `
-    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;;">
-
-    <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-        <label>Relatório de Movimentos</label>
-    </div>
 
     <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; background-color: white; border-radius: 5px; margin: 5px; padding: 20px; height: 80px; gap: 20px;">
         
@@ -1095,7 +1086,7 @@ function relatorio_movimento() {
     <div id="relatorio"></div>
     `
 
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, 'Relatório de Movimentos')
 
 }
 
@@ -1208,7 +1199,7 @@ async function atualizar_dados_relatorio() {
             thsearch = ''
             linhas = `
             <tr>
-                <td colspan="9" style="color: #222;">Sem resultados<td>
+                <td colspan="10" style="color: #222;">Sem resultados<td>
             </tr>
             `
         }
