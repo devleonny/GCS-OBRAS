@@ -717,6 +717,12 @@ function criar_manutencao(id) {
                         <img src="imagens/sync.png" style="cursor: pointer; width: 2vw;">
                         <label">Sincronizar Estoque</label>
                     </div>
+
+                    <div class="anexos" style="background-color:rgb(4, 129, 88); color: white; flex-direction: column; ">
+                        <img src="imagens/anexo.png" style="cursor: pointer; width: 2vw;">
+                        <label style="font-size: 0.9vw">ANEXAR RELATÓRIOS</label>
+                        <input type="file"; id="" multiple onchange="salvar_anexos_distribuidor(this, '${id}')" style="width:100%; max-width: 100%" >
+                    </div>
                 </div>
 
             </div>
@@ -1109,4 +1115,45 @@ async function filtrarTabelaPorData() {
         aviso.innerHTML = `<td colspan="9" style="text-align:center; font-weight:bold; color:black;">Nenhuma manutenção encontrada</td>`;
         tbody.appendChild(aviso);
     }
+}
+
+
+async function salvar_anexos_chamados(input, id) {
+    if (!id) {
+        return;
+    }
+
+    let anexos = await anexo_v2(input); // Simulação da função de upload
+    await inserirDados(await receber('dados_distribuidor'), 'dados_distribuidor');
+    let dados_distribuidores = await recuperarDados('dados_distribuidor') || {};
+
+    let dados_distribuidor = dados_distribuidores[id];
+
+    // 🛑 Se o distribuidor ainda não existe, salva os anexos temporariamente
+    if (!dados_distribuidor) {
+        if (!distribuidores_pendentes[id]) {
+            distribuidores_pendentes[id] = { anexos: {} };
+        }
+        anexos.forEach(anexo => {
+            distribuidores_pendentes[id].anexos[anexo.link] = anexo;
+        });
+        renderizarAnexos(id);
+        return;
+    }
+
+    // 🔥 Garante que a estrutura de anexos exista
+    if (!dados_distribuidor.anexos) {
+        dados_distribuidor.anexos = {};
+    }
+
+    anexos.forEach(anexo => {
+        dados_distribuidor.anexos[anexo.link] = anexo;
+        enviar(`dados_distribuidor/${id}/anexos/${anexo.link}`, anexo);
+    });
+
+    // Atualiza localmente
+    await inserirDados(dados_distribuidores, 'dados_distribuidor');
+
+    // Recarrega os anexos no modal
+    renderizarAnexos(id);
 }
