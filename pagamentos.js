@@ -345,9 +345,18 @@ async function abrir_detalhes(id_pagamento) {
         <div class="btn_detalhes" onclick="exibir_todos_os_status('${pagamento.id_orcamento}')">
             <img src="imagens/pasta.png">
             <label style="cursor: pointer;">Consultar Orçamento</label>
-        </div>    
+        </div>   
         `
     }
+
+    acoes_orcamento = `
+    
+        <div onclick="duplicar_pagamento('${id_pagamento}')" class="btn_detalhes">
+            <img src="imagens/reembolso.png">
+            <label style="cursor: pointer; margin-right: 5px;">Duplicar Pagamento</label>
+        </div> 
+    
+    `
 
     var ultima_alteracao = ''
     if (pagamento.ultima_alteracao) {
@@ -359,8 +368,6 @@ async function abrir_detalhes(id_pagamento) {
         ativar: false,
         valor: 0
     }
-
-console.log(acesso)
 
     var categoria_atual = ''
     pagamento.param[0].categorias.forEach((item, indice) => {
@@ -695,13 +702,6 @@ async function confirmar_exclusao_categoria(id, indice){
 
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     let pagamento = lista_pagamentos[id]
-
-    console.log(pagamento)
-
-    console.log(id)
-    console.log(indice)
-
-    console.log(`lista_pagamentos/${id}/param[0]/categorias[${indice}]`)
 
     deletar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]`)
 
@@ -2462,5 +2462,71 @@ function pesquisar_em_pagamentos(coluna, texto) {
 
         tr.style.display = mostrarLinha ? '' : 'none';
     });
+
+}
+
+async function duplicar_pagamento(id_pagamento) {
+
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
+
+    let categorias_invertidas = {}
+    Object.keys(dados_categorias).forEach(cat => {
+        categorias_invertidas[dados_categorias[cat]] = cat
+    })
+
+    let pagamento = lista_pagamentos[id_pagamento]
+
+    let contador = 0;
+
+    let categorias = []
+
+    Object.entries(pagamento.param[0].categorias).forEach(categoriaPagamento =>{
+        
+        Object.entries(categorias_invertidas).forEach(([chave, nomecategoria]) => {
+
+            if(categoriaPagamento[1].codigo_categoria == chave){
+                
+                categorias[contador] = {
+                    nome: nomecategoria,
+                    codigo: chave,
+                    valor: categoriaPagamento[1].valor
+                };
+
+                contador++
+
+            }
+
+        })
+
+    })
+
+    let novo_ultimo_pagamento = {}
+
+    novo_ultimo_pagamento.categorias = categorias
+    novo_ultimo_pagamento.data_vencimento = pagamento.param[0].data_vencimento.replace(/\//g, "-");
+    novo_ultimo_pagamento.id_orcamento = pagamento.id_orcamento
+    novo_ultimo_pagamento.recebedor = pagamento.param[0].codigo_cliente_fornecedor
+
+    let observacao = pagamento.param[0].observacao;
+
+    let partes = observacao.split('|');
+
+    let descricaoParte = partes[2]?.trim();
+
+    let chavePixParte = partes[1]?.split('Chave PIX:')[1]?.trim();
+
+    if (!chavePixParte && partes[1]) {
+        descricaoParte = partes[1]?.trim();
+    }
+
+    novo_ultimo_pagamento.descricao = descricaoParte || '';
+
+    novo_ultimo_pagamento.pix = chavePixParte || '';
+
+
+    localStorage.setItem('ultimo_pagamento', JSON.stringify(novo_ultimo_pagamento))
+
+    tela_pagamento(true)
 
 }
