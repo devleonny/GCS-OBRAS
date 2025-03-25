@@ -548,7 +548,7 @@ async function abrir_detalhes(id_pagamento) {
             <img src="imagens/remover.png">
             <label style="cursor: pointer; margin-right: 5px;">Excluir pagamento</label>
         </div>
-        <div onclick="relancar_pagamento('${id_pagamento}')" class="btn_detalhes">
+        <div onclick="refazer_pagamento('${id_pagamento}')" class="btn_detalhes">
             <img src="imagens/concluido.png">
             <label style="cursor: pointer; margin-right: 5px;">Refazer Pagamento</label>
         </div>
@@ -654,7 +654,7 @@ function deseja_excluir_pagamento(id) {
 
 }
 
-async function relancar_pagamento(id) {
+async function refazer_pagamento(id) {
 
     remover_popup()
     fechar_detalhes()

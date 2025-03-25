@@ -1288,7 +1288,7 @@ async function lancar_pagamento(pagamento) {
                 return response.text();
             })
             .then(data => {
-                resolve(data);
+                resolve();
             })
             .catch(err => {
                 console.error("Erro ao gerar PDF:", err)
