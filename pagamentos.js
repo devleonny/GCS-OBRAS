@@ -372,7 +372,7 @@ console.log(acesso)
         }
 
         valores += `
-            <label><strong>${dinheiro(item.valor)}</strong> - ${categorias_invertidas[item.codigo_categoria]} <img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 5px; top: 8px; display: ${displayLabel};" src="imagens/editar.png" onclick="modal_editar_pagamento('${id_pagamento}', '${indice}')"><img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 10px; top: 8px; display: ${displayLabel};" src="imagens/excluir.png"></label>
+            <label><strong>${dinheiro(item.valor)}</strong> - ${categorias_invertidas[item.codigo_categoria]} <img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 5px; top: 8px; display: ${displayLabel};" src="imagens/editar.png" onclick="modal_editar_pagamento('${id_pagamento}', '${indice}')"><img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 10px; top: 8px; display: ${displayLabel};" src="imagens/excluir.png" onclick="deseja_excluir_categoria('${id_pagamento}', '${indice}')"></label>
         `
         if (String(categorias_invertidas[item.codigo_categoria]).includes('Parceiros')) {
             habilitar_painel_parceiro.ativar = true
@@ -660,6 +660,60 @@ function deseja_excluir_pagamento(id) {
             <label onclick="confirmar_exclusao_pagamento('${id}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
         </div>
         `)
+
+}
+
+async function deseja_excluir_categoria(id, indice) {
+
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
+    let pagamento = lista_pagamentos[id]
+    var categorias_invertidas = {}
+    Object.keys(dados_categorias).forEach(cat => {
+        categorias_invertidas[dados_categorias[cat]] = cat
+    })
+
+    let categoria = pagamento.param[0].categorias[indice]
+
+    return openPopup_v2(`
+        <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Deseja realmente excluir essa categoria?</label>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
+                <label>Categoria: ${categorias_invertidas[categoria.codigo_categoria]}</label>
+                <label>Valor Atual: ${dinheiro(categoria.valor)}</label>
+            </div>
+            <label onclick="confirmar_exclusao_categoria('${id}', '${indice}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
+        </div>
+        `)
+
+}
+
+async function confirmar_exclusao_categoria(id, indice){
+
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    let pagamento = lista_pagamentos[id]
+
+    console.log(pagamento)
+
+    console.log(id)
+    console.log(indice)
+
+    console.log(`lista_pagamentos/${id}/param[0]/categorias[${indice}]`)
+
+    deletar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]`)
+
+    await inserirDados(lista_pagamentos, 'lista_pagamentos')
+
+    remover_popup()
+
+    fechar_detalhes()
+
+    await atualizar_pagamentos_menu()
+
+    abrir_detalhes(id)
 
 }
 
