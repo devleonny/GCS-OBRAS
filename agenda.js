@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const regionSelect = document.getElementById("region-select");
     const syncDataBtn = document.getElementById("sync-data-btn");
     const addLineBtn = document.getElementById("add-line-btn");
+    const addLineBtn2 = document.getElementById("add-line-btn-2");
     const updateDataBtn = document.getElementById("update-data-btn");
 
     recuperar_clientes()
@@ -150,6 +151,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Botão para adicionar nova linha
     addLineBtn.addEventListener("click", () => {
+        if (regionSelect.value === "todas") {
+            // Mostra aviso se a região for "Todas as Regiões"
+            showPopup("Escolha uma região para adicionar um Técnico.");
+        } else {
+            // Adiciona a nova linha normalmente
+            addNewRow();
+        }
+    });
+
+    addLineBtn2.addEventListener("click", () => {
         if (regionSelect.value === "todas") {
             // Mostra aviso se a região for "Todas as Regiões"
             showPopup("Escolha uma região para adicionar um Técnico.");
@@ -958,7 +969,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const deleteModal = document.getElementById("delete-modal"); // Modal de confirmação de exclusão
         const confirmDeleteBtn = document.getElementById("confirm-delete-btn");
-        const cancelDeleteBtn = document.getElementById("cancel-delete-btn");
 
         // Preenche o dropdown com as regiões disponíveis
         regionSelect.innerHTML = `
@@ -1034,17 +1044,10 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         };
 
-        // Função para cancelar a exclusão
-        const cancelDeleteHandler = () => {
-            // Fecha o modal de confirmação de exclusão
-            deleteModal.style.display = "none";
-        };
-
         // Adiciona os event listeners para os botões
         confirmBtn.addEventListener("click", confirmHandler);
         deleteBtn.addEventListener("click", openDeleteModal); // Abre o modal de exclusão
         confirmDeleteBtn.addEventListener("click", deleteHandler); // Confirma a exclusão
-        cancelDeleteBtn.addEventListener("click", cancelDeleteHandler); // Cancela a exclusão
     }
 
     async function atualizarDados() {
