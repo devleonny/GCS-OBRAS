@@ -80,7 +80,9 @@ function fechar_ir_orcamentos() {
 
 function apagar_orçamento() {
 
-    openPopup_v2('Tem certeza que deseja apagar o Orçamento?', true, 'confirmar_exclusao()')
+    openPopup_v2(`
+        <button onclick="confirmar_exclusao()" style="background-color: green;">Confirmar</button>
+        `, 'Tem certeza que deseja apagar o Orçamento?')
 
 }
 
