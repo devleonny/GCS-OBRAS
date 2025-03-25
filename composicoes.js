@@ -949,32 +949,36 @@ async function cadastrar_editar_item(codigo) {
     let colunas = ['descricao', 'descricaocarrefour', 'substituto', 'sapid', 'refid', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados = dados_composicoes[codigo] || {}
-    let n_codigo = codigo
+    let excluir = ''
     if (codigo !== undefined) {
         colunas = Object.keys(dados)
+        excluir = `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
+                <label style="font-size: 0.7em;">${codigo}</label>
+                <img src="imagens/cancel.png" style="width: 15px; cursor: pointer;" onclick="confirmar_exclusao_item('${codigo}')">
+            </div>
+        `
     } else {
-        n_codigo = `gcs-${gerar_id_5_digitos()}`
+        codigo = `gcs-${await verificar_codigo_existente()}`
     }
-    let funcao = codigo == undefined ? `cadastrar_alterar('${n_codigo}')` : `cadastrar_alterar('${codigo}')`
 
     let elementos = ''
 
     colunas.forEach(col => {
-        let valor = codigo !== undefined ? dados[col] : ''
-        let campo = `<input style="background-color: #a2d7a4; padding: 5px; border-radius: 3px;" value="${valor}">`
+        let campo = `<input style="background-color: #a2d7a4; padding: 5px; border-radius: 3px;" value="${dados?.[col] || ''}">`
 
         if (col.includes('desc')) {
             campo = `
-            <textarea style="background-color: #a2d7a4; width: 100%; border: none;">${valor}</textarea>
+            <textarea style="background-color: #a2d7a4; width: 95%; border: none;">${dados?.[col] || ''}</textarea>
             `
         } else if (col == 'tipo') {
             campo = `
-            <div>
-                <select style="cursor: pointer;">
-                    <option>VENDA</option>
-                    <option>SERVIÇO</option>
-                </select>
-            </div>
+                <div>
+                    <select style="cursor: pointer;">
+                        <option ${dados[col] == 'VENDA' ? 'selected': ''}>VENDA</option>
+                        <option ${dados[col] == 'SERVIÇO' ? 'selected': ''}>SERVIÇO</option>
+                    </select>
+                </div>
             `
         }
 
@@ -986,8 +990,8 @@ async function cadastrar_editar_item(codigo) {
             col !== 'material infra' &&
             col !== 'parceiro') {
             elementos += `
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <label style="width: 30%; text-align: right;">${col}</label>
+            <div style="display: flex; gap: 1px; align-items: start; justify-content: center; flex-direction: column;">
+                <label>${col}</label>
                 ${campo}
             </div>
             `
@@ -996,25 +1000,19 @@ async function cadastrar_editar_item(codigo) {
 
     var acumulado = `
 
-    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
-
-    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
-        <label style="font-size: 0.7em;">${n_codigo}</label>
-        <img src="imagens/cancel.png" style="width: 15px; cursor: pointer;" onclick="confirmar_exclusao_item('${n_codigo}')">
-    </div>
-
-    <div id="cadastrar_item" style="background-color: white; color: #222; padding: 5px; border-radius: 5px;">
+    <div id="cadastrar_item" style="width: 20vw; background-color: white; color: #222; padding: 5px; border-radius: 5px;">
 
         <div id="elementos" style="display: flex; flex-direction: column; gap: 5px;">
-        ${elementos}
+            ${elementos}
         </div>
-        <div id="novo_campo" style="margin: 10px; display: flex; gap: 10px; align-items: center; justify-content: right; border-radius: 3px; padding: 10px; background-color: #222; color: white;">
-            <label>Novo campo?</label>
-            <input placeholder="Campo" id="campo" style="padding: 5px; border-radius: 3px;">
-            <input placeholder="Valor" id="valor" style="padding: 5px; border-radius: 3px;">
+        <br>
+        <div style="display: flex; justify-content: left; align-items: center;">
+            <button style="background-color: #4CAF50; margin: 0px;" onclick="cadastrar_alterar('${codigo}')">Salvar</buttton>
         </div>
-        <button style="background-color: #4CAF50; width: 100%; margin: 0px;" onclick="${funcao}">Salvar</buttton>
+        <br>
     </div>
+
+    ${excluir}
     `
     openPopup_v2(acumulado, 'Dados do Item')
 }
@@ -1072,15 +1070,6 @@ async function cadastrar_alterar(codigo) {
             dadosAtualizados[item.textContent] = valor.value;
         }
     });
-
-    let novo_campo = document.getElementById('nova_lpu');
-    if (novo_campo) {
-        let campo = document.getElementById('campo').value;
-        let valor = document.getElementById('valor').value;
-        if (campo !== '' && valor !== '') {
-            dadosAtualizados[campo] = valor;
-        }
-    }
 
     dadosAtualizados.codigo = codigo;
 
@@ -1220,4 +1209,27 @@ function para_excel() {
 
     XLSX.utils.book_append_sheet(workbook, worksheet, "Preços");
     XLSX.writeFile(workbook, 'lpu.xlsx');
+}
+
+async function verificar_codigo_existente(clone) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/codigo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ clone })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
 }

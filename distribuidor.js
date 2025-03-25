@@ -241,9 +241,9 @@ function criar_distribuidor(id) {
             <label>PDF</label>
         </div>`
         let excluir = `
-        <div style="background-color: transparent;;" onclick="confirmar_exclusao('${id}')" class="bex">
+        <div style="background-color: transparent;" onclick="confirmar_exclusao('${id}')">
             <img src="imagens/cancel.png" style="cursor: pointer; width: 1vw; height: 1vw;">
-            <label style="font-size: 1vw; color: white; cursor: pointer;">Excluir Manutenção</label>
+            <label style="font-size: 1vw; cursor: pointer;">Excluir Manutenção</label>
         </div>
     `
     if (id == undefined) {
@@ -255,9 +255,6 @@ function criar_distribuidor(id) {
     }
 
     let acumulado = `
-        <img src="imagens/BG.png" style="height: 70px; position: absolute; top: 0; left: 0;">
-
-        <label>${termo} <strong> Requisição de Materiais </strong> </label>
 
         <div style="position: relative;" id="tela">
 
@@ -418,7 +415,7 @@ function criar_distribuidor(id) {
             style="position: absolute; bottom: 2x; left: 20px; font-size: 0.8vw; cursor: pointer;">${excluir}</label>
     
     `
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, `${termo} Requisição de Materiais`)
 }
 
 function adicionar_linha_dist() {

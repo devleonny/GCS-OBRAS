@@ -231,6 +231,8 @@ function openPopup_v2(elementoHTML, titulo) {
     background-color: rgba(0, 0, 0, 0.7);">
 
         <div style="
+        padding-bottom: 2vh;
+        position: relative;
         display: flex;
         flex-direction: column; 
         align-items: center; 

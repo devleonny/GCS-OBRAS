@@ -557,9 +557,9 @@ function criar_manutencao(id) {
             <label>PDF</label>
         </div>`
     let excluir = `
-        <div style="background-color: transparent;;" onclick="confirmar_exclusao('${id}')" class="bex">
+        <div style="background-color: transparent;" onclick="confirmar_exclusao('${id}')">
             <img src="imagens/cancel.png" style="cursor: pointer; width: 1vw; height: 1vw;">
-            <label style="font-size: 1vw; color: white; cursor: pointer;">Excluir Manutenção</label>
+            <label style="font-size: 1vw; cursor: pointer;">Excluir Manutenção</label>
         </div>
     `
     if (id == undefined) {
@@ -571,16 +571,12 @@ function criar_manutencao(id) {
     }
 
     let acumulado = `
-        <img src="imagens/BG.png" style="height: 70px; position: absolute; top: 0; left: 0;">
-
-        <label>${termo} <strong> Requisição de Materiais </strong> </label>
 
         <div style="position: relative;" id="tela">
 
             <div style="background-color: white; border-radius: 3px; padding: 5px; font-size: 0.9vw; width: 70vw;">
 
-                <div
-                    style="position: relative; display: flex; align-items: center; justify-content: start; color: #222; background-color: #d2d2d2; padding: 5px; border-radius: 3px;">
+                <div style="position: relative; display: flex; align-items: center; justify-content: start; color: #222; background-color: #d2d2d2; padding: 5px; border-radius: 3px;">
                     <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
 
                         <label style="font-size: 1.2vw;">Cliente | Loja</label>
@@ -723,16 +719,14 @@ function criar_manutencao(id) {
 
         </div>
 
+        <label id="data" style="position: absolute; bottom: 0; right: 20px; font-size: 0.8vw;">${data_atual('completa')}</label>
+        <label id="excluir" style="position: absolute; bottom: 0; left: 20px; font-size: 0.8vw; cursor: pointer;">${excluir}</label>
+
         <div id="historico"></div>
 
-        <label id="data"
-            style="position: absolute; bottom: 10px; right: 20px; font-size: 0.8vw;">${data_atual('completa')}</label>
-        <label id="excluir"
-            style="position: absolute; bottom: 2x; left: 20px; font-size: 0.8vw; cursor: pointer;">${excluir}</label>
-    
     `
 
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, `${termo} Requisição de Materiais`)
 }
 
 function confirmar_exclusao(id) {
@@ -741,9 +735,9 @@ function confirmar_exclusao(id) {
         <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
             <img src="gifs/alerta.gif" style="width: 3vw;">
             <label>Confirmar exclusão?</label>
-            <button style="font-size: 1vw;" onclick="excluir_manutencao('${id}')">Confirmar</button>
         </div>
-        `)
+        <button style="font-size: 1vw; background-color: green;" onclick="excluir_manutencao('${id}')">Confirmar</button>
+    `)
 
 }
 
