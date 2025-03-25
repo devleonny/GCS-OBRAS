@@ -689,42 +689,29 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
 }
 
 function abrirModalTipoRequisicao() {
-    const modal = `
-        <div id="modalTipoRequisicao" style="
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-        ">
-            <div style="text-align: center">
-                <label style="font-size: 1.2em; margin-bottom: 20px; display: block; justify-content: center;"><strong>Selecione o tipo de requisição:</strong></label>
-                <button onclick="escolherTipoRequisicao('Requisição Completa')" style="
-                    background-color: #4CAF50;
-                    color: white;
-                    padding: 10px 20px;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    margin-right: 10px;
-                ">Requisição Completa</button>
-                <button onclick="escolherTipoRequisicao('infraestrutura')" style="
-                    background-color: #2196F3;
-                    color: white;
-                    padding: 10px 20px;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                ">Requisição de Infraestrutura</button>
-            </div>
+    let modal = `
+        <div style="text-align: center">
+            <button onclick="escolherTipoRequisicao('Requisição Completa')" style="
+                background-color: #4CAF50;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                margin-right: 10px;
+            ">Requisição Completa</button>
+            <button onclick="escolherTipoRequisicao('infraestrutura')" style="
+                background-color: #2196F3;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            ">Requisição de Infraestrutura</button>
         </div>
     `;
 
-    document.body.insertAdjacentHTML('beforeend', modal);
+    openPopup_v2(modal, 'Escolha o tipo de Requisição');
 }
 
 function escolherTipoRequisicao(tipo) {
