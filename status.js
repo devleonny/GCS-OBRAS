@@ -1559,7 +1559,7 @@ async function abrir_esquema(id) {
             links_requisicoes = ''
             let editar = ''
 
-            if (sst.status.includes('REQUISIÇÃO')) {
+            if (sst?.status.includes('REQUISIÇÃO')) {
                 links_requisicoes += `
                     <div onclick="detalhar_requisicao('${chave}')" class="anexos" style="cursor: pointer; display: flex; gap: 10px; justify-content: left; align-items: center;">
                         <img src="gifs/lampada.gif" style="width: 25px">
