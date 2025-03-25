@@ -259,7 +259,6 @@ async function abrir_valores(codigo) {
     })
 
     let acumulado = `
-        <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
         <label style="position: absolute; bottom: 5px; right: 15px; font-size: 0.7em;" id="data">${data}</label>
 
         <div style="color: #222; position: relative; display: flex; justify-content: start; align-items: center; margin: 2px; gap: 3vw;">
@@ -589,7 +588,6 @@ async function abrir_estoque(codigo, stq) {
 
         <label id="movimento" style="display: none;">${codigo}/${stq}</label>
 
-        <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
         <label style="position: absolute; bottom: 5px; right: 15px; font-size: 0.7em;" id="data">${data}</label>
 
         <div style="background-color: white; border-radius: 5px;"> 
@@ -629,13 +627,13 @@ async function abrir_estoque(codigo, stq) {
             <div style="position: relative; display: flex; justify-content: space-evenly; align-items: center; height: 130px;">
             
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 60%;">
-                    <label style="color: #222;">Saldo Atual</label>
-                    <label style="background-color: #4CAF50; font-size: 35px; height: 50px; width: 90%; border-radius: 5px;">${atual}</label>
+                    <label>Saldo Atual</label>
+                    <label style="color: white; background-color: #4CAF50; font-size: 35px; height: 50px; width: 90%; border-radius: 5px;">${atual}</label>
                 </div>
             
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
 
-                    <label style="color: #222;">Saldo Inicial</label>
+                    <label>Saldo Inicial</label>
 
                     <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
                         <input class="numero-bonito" style="background-color: #B12425;" value="${inicial}">
@@ -786,7 +784,6 @@ async function incluir_linha() {
     let marcasArray = Array.from(marcasSet);
 
     let acumulado = `
-    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
 
     <div class="formulario">
 

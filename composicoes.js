@@ -577,8 +577,6 @@ async function abrir_historico_de_precos(codigo, tabela) {
 
     acumulado = `
 
-    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
-
     <div id="historico_preco" style="background-color: white; padding: 5px; border-radius: 5px;">
 
         <div style="color: #222; display: flex; flex-direction: column; justify-content: start; align-items: start;">
