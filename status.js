@@ -516,20 +516,18 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
 
     // Função para criar uma linha da tabela
     function criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements, aux, apenas_visualizar, seEditar, valoresTotais) {
-       
-        if(!seEditar){
+
+        if (!seEditar) {
 
             qtde_editar -= qtde_na_requisicao
             qtde_na_requisicao = ""
 
-        }else{
+        } else {
 
             Object.values(valoresTotais).forEach(item => {
 
-                if(item.codigoRequisicao == codigo){
+                if (item.codigoRequisicao == codigo) {
 
-                    console.log(item)
-                    
                     qtde_editar += qtde_na_requisicao - item.qtdeTotal
 
                 }
@@ -1472,6 +1470,11 @@ async function abrir_esquema(id) {
                 <img src="imagens/pesquisar.png" style="width: 2vw;">
                 <label style="font-size: 1vw;">Exibir Painel de Custos</label>
             </div>
+            • 
+            <div onclick="mostrar_itens_restantes('${id_orcam}')" class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+                <img src="imagens/interrogacao.png" style="width: 2vw;">
+                <label style="font-size: 1vw;">Itens Pendentes</label>
+            </div>
 
         </div>    
         `
@@ -1940,6 +1943,91 @@ function mostrar_painel() {
             overlay_de_custos.style.height = estrutura.scrollHeight + 'px';
         }
     }
+}
+
+async function mostrar_itens_restantes(id_orcam) {
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let orcamento = dados_orcamentos[id_orcam]
+    let itens_no_orcamento = orcamento.dados_composicoes
+    let valoresTotais = {}
+
+    let acumulado = `
+
+        <table class="tabela">
+
+            <tr>
+                <th>Codigo</th>
+                <th>Item</th>
+                <th>Itens Orçados</th>
+                <th>Itens Pendentes</th>
+            </tr>
+
+    `
+
+    if (orcamento.status) {
+
+        Object.values(orcamento.status.historico).forEach(item => {
+
+            if (item.status.includes("REQUISIÇÃO")) {
+
+                item.requisicoes.forEach(item2 => {
+
+                    if (valoresTotais[item2.codigo]) {
+
+                        valoresTotais[item2.codigo].qtdeTotal += Number(item2.qtde_enviar);
+
+                    } else {
+
+                        valoresTotais[item2.codigo] = {
+
+                            qtdeTotal: Number(item2.qtde_enviar),
+                            codigoRequisicao: item2.codigo
+
+                        }
+
+                    }
+
+                })
+
+            }
+
+        })
+
+    }
+
+    Object.values(itens_no_orcamento).forEach(item => {
+
+        let deduzirTotal = 0
+
+        if (valoresTotais[item.codigo]) {
+
+            deduzirTotal = valoresTotais[item.codigo].qtdeTotal
+
+        }
+
+        acumulado += `
+        
+            <tr style="border: 1px solid black;">
+                <td>${item.codigo}</td>
+                <td>${dados_composicoes[item.codigo].descricao}</td>
+                <td>${item.qtde}</td>
+                <td>${item.qtde - deduzirTotal}</td>
+            </tr>
+
+        `
+
+    })
+
+    acumulado += `
+    
+        </table>
+    
+    `
+
+    openPopup_v2(acumulado, "Itens Pendentes")
+
 }
 
 function somarValoresPedidos() {
@@ -2726,15 +2814,15 @@ async function detalhar_requisicao(chave, editar, tipoRequisicao) {
         Object.values(orcamento.status.historico).forEach(item => {
 
             if (item.status.includes("REQUISIÇÃO")) {
-                
+
                 item.requisicoes.forEach(item2 => {
 
-                    
-                    if(requisicao[item2.codigo]){
-                        
+
+                    if (requisicao[item2.codigo]) {
+
                         requisicao[item2.codigo].qtde_enviar += Number(item2.qtde_enviar);
 
-                    }else{
+                    } else {
 
                         requisicao[item2.codigo] = {
                             partnumber: item2.partnumber,
@@ -2751,19 +2839,19 @@ async function detalhar_requisicao(chave, editar, tipoRequisicao) {
 
         })
 
-    }else{
+    } else {
 
         Object.values(orcamento.status.historico).forEach(item => {
 
             if (item.status.includes("REQUISIÇÃO")) {
-                
+
                 item.requisicoes.forEach(item2 => {
 
-                    if(valoresTotais[item2.codigo]){
-    
+                    if (valoresTotais[item2.codigo]) {
+
                         valoresTotais[item2.codigo].qtdeTotal += Number(item2.qtde_enviar);
 
-                    }else{
+                    } else {
 
                         valoresTotais[item2.codigo] = {
 
@@ -2780,7 +2868,7 @@ async function detalhar_requisicao(chave, editar, tipoRequisicao) {
 
         })
 
-        
+
     }
 
     if (chave && orcamento.status && orcamento.status.historico && orcamento.status.historico[chave]) {
