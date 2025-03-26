@@ -278,15 +278,7 @@ function abrirModal() {
     const input = document.getElementById("pesquisarFornecedor");
     if (input) {
         input.addEventListener("input", () => filtroFornecedores());
-    } else {
-        console.error("Elemento com id='pesquisarFornecedor' não encontrado.");
     }
-}
-
-function abrirModalFinalizar(){
-
-
-
 }
 
 function fecharModal() {
@@ -295,6 +287,10 @@ function fecharModal() {
 }
 
 function salvarFornecedor() {
+
+    const tabela = document.querySelector("#cotacaoTable tbody");
+    let quantidadeFornecedores = document.querySelectorAll(".fornecedor").length; // +1 para o novo fornecedor
+
     // Verifica quantos fornecedores já existem no localStorage se a operação for "editar"
     let operacao = localStorage.getItem("operacao");
     let fornecedoresExistentes = 0;
@@ -308,11 +304,7 @@ function salvarFornecedor() {
         }
     }
 
-    // Atualiza a quantidade de fornecedores
-    quantidadeFornecedores = fornecedoresExistentes + 1;
-
     // Conta quantas linhas existem atualmente na tabela
-    const tabela = document.querySelector("#cotacaoTable tbody");
     const numeroLinhas = tabela.querySelectorAll("tr").length; // Total de linhas na tabela
 
     const input = document.getElementById("pesquisarFornecedor");
@@ -396,8 +388,6 @@ function salvarFornecedor() {
 
                 let inputEstoque = document.querySelector(`#estoque-${linhaAtualQuantidade}`)
 
-                console.log(inputEstoque)
-
                 inputEstoque.addEventListener("input", () => {
 
                     let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
@@ -444,13 +434,13 @@ function salvarFornecedor() {
 
         thNomeFornecedor.textContent = nomeFornecedor;
 
+        thNomeFornecedor.className = "fornecedor"
+
         trNomeFornecedor.appendChild(thNomeFornecedor);
 
         trTopicostabela.append(thPrecoUnitario, thPrecoTotal);
 
         fecharModal();
-
-        console.log("Fornecedor salvo:", nomeFornecedor);
 
 
     } else {
@@ -759,8 +749,6 @@ async function salvarObjeto(finalizar = false, reabrir = false) {
     const valorFinal = salvarValorFinal();
     const operacao = localStorage.getItem("operacao");
 
-    console.log(informacoes)
-
     // Define o status corretamente
     let status = "Pendente";
     if (finalizar) status = "Finalizada";
@@ -775,8 +763,6 @@ async function salvarObjeto(finalizar = false, reabrir = false) {
     const aviso = document.getElementById("salvarAviso");
     aviso.style.display = "block";
     setTimeout(() => (aviso.style.display = "none"), 3000);
-
-    console.log(`Cotação ${finalizar ? "Finalizada" : reabrir ? "Reaberta" : "Salva"}:`, informacoes.apelidoCotacao);
 
     // Atualiza os botões corretamente
     atualizarBotoesFinalizarReabrir(status);
@@ -850,7 +836,6 @@ function salvarDados() {
     const linhas = tabela.querySelectorAll("tbody tr");
 
     if (linhas.length === 0) {
-        console.warn("Não há itens na tabela para salvar.");
         return [];
     }
 
@@ -923,8 +908,6 @@ function abrirModalApelido() {
         const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
         const cotacaoEditandoID = localStorage.getItem("cotacaoEditandoID");
         const cotacaoAtual = cotacoes[cotacaoEditandoID];
-
-        console.log(cotacaoAtual)
 
         if (cotacaoAtual && cotacaoAtual.informacoes.apelidoCotacao) {
             input.value = cotacaoAtual.informacoes.apelidoCotacao;
@@ -1008,7 +991,6 @@ function editarCotacao(id) {
     const cotacao = cotacoes[id];
 
     if (!cotacao) {
-        console.error(`Cotação com ID ${id} não encontrada.`);
         return;
     }
 
@@ -1019,14 +1001,10 @@ function editarCotacao(id) {
     // Preenche o formulário com os dados da cotação
     preencherFormularioCotacao(cotacao);
 
-    console.log(cotacao.status)
-
     // Atualiza os botões de Finalizar/Reabrir com base no status da cotação
     setTimeout(() => {
         atualizarBotoesFinalizarReabrir(cotacao.status);
     }, 100); // Pequeno delay para garantir atualização
-
-    console.log(`Cotação editada: ID ${id}, Status: ${cotacao.status}`);
 
     // Atualiza o valor de "Quantidade de Itens"
     atualizarQuantidadeItens();
@@ -1056,8 +1034,6 @@ function editarCotacao(id) {
     // Exibe o botão de exportar PDF
     const botaoPDF = document.getElementById("botaoExportarPDF");
     botaoPDF.style.display = "inline-block";
-
-    console.log(`Cotação editada: ID ${id}`);
 }
 
 
@@ -1280,7 +1256,6 @@ function excluirFornecedor(nomeFornecedor) {
     );
 
     if (indiceFornecedor === -1) {
-        console.error("Fornecedor não encontrado:", nomeFornecedor);
         return;
     }
 
@@ -1317,8 +1292,6 @@ function excluirFornecedor(nomeFornecedor) {
         cotacoes[idCotacao].valorFinal = cotacoes[idCotacao].valorFinal.filter((f) => f.nome !== nomeFornecedor);
         localStorage.setItem("dados_cotacao", JSON.stringify(cotacoes));
     }
-
-    console.log(`Fornecedor "${nomeFornecedor}" excluído com sucesso.`);
 
     // Verificar se ainda há fornecedores e atualizar o cabeçalho
     verificarFornecedores();
@@ -1381,8 +1354,6 @@ function adicionarPrecoUnitarioPrecoTotal(dado, novaLinha, numeroItem) {
             let quantidadeAtual = Number(document.querySelector(`#quantidade-${numeroItem}`).value) || 0;
 
             const precoUnitarioAtual = Number(inputPrecoUnitario.value) || 0;
-
-            console.log(document.querySelector(`#estoque-${numeroItem}`))
 
             let valorEstoque = Number(document.querySelector(`#estoque-${numeroItem}`).value) || 0
 
@@ -1498,7 +1469,6 @@ async function removerCotacao(elemento) {
     let cotacaoAtual = cotacoes[idCotacao];
 
     if (!cotacaoAtual) {
-        console.warn(`Cotação com ID ${idCotacao} não encontrada.`);
         return;
     }
 
@@ -1543,8 +1513,6 @@ async function removerCotacao(elemento) {
         linhaMensagem.appendChild(celulaMensagem);
         tabelaBody.appendChild(linhaMensagem);
     }
-
-    console.log(`Cotação removida com ID: ${idCotacao}`);
 }
 
 let ordemAtual = {
@@ -1711,7 +1679,6 @@ function exportarTabelaParaPDF() {
     const cotacao = cotacoes[idCotacao];
 
     if (!cotacao) {
-        console.error("Cotação não encontrada!");
         return;
     }
 
@@ -1977,7 +1944,6 @@ function atualizarBotoesFinalizarReabrir(status) {
         botaoReabrir.style.display = "none";
     }
 
-    console.log(`Botões atualizados: Finalizar(${botaoFinalizar.style.display}), Reabrir(${botaoReabrir.style.display})`);
 }
 
 function abrirModalReabrir() {
