@@ -1,6 +1,13 @@
-let tabela_atual = undefined
+let tabela_atual;
+let filtros_produtos = {}
 
-var filtros_produtos = {}
+function apagar_orçamento() {
+
+    openPopup_v2(`
+        <button onclick="confirmar_exclusao()" style="background-color: green;">Confirmar</button>
+        `, 'Tem certeza que deseja apagar o Orçamento?')
+
+}
 
 let metaforas = [
     "Um monitor sem imagens para exibir",
@@ -76,16 +83,6 @@ function fechar_ir_orcamentos() {
 
     location.href = 'orcamentos.html'
 
-}
-
-function apagar_orçamento() {
-
-    openPopup_v2('Indisponível...')
-/*
-    openPopup_v2(`
-        <button onclick="confirmar_exclusao()" style="background-color: green;">Confirmar</button>
-        `, 'Tem certeza que deseja apagar o Orçamento?')
-*/
 }
 
 function orcamento_que_deve_voltar() {
