@@ -4,8 +4,11 @@ let filtros_produtos = {}
 function apagar_orçamento() {
 
     openPopup_v2(`
-        <button onclick="confirmar_exclusao()" style="background-color: green;">Confirmar</button>
-        `, 'Tem certeza que deseja apagar o Orçamento?')
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <label>Tem certeza que deseja apagar o Orçamento?</label>
+            <button onclick="confirmar_exclusao()" style="background-color: green;">Confirmar</button>
+        </div>
+        `, 'Atenção')
 
 }
 

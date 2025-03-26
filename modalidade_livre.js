@@ -8,16 +8,15 @@ function retornar_ao_orcamento_tradicional() {
 
     openPopup_v2(`
 
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column; margin: 2vw;">
+
                 <label>O orçamento atual será descartado e um novo será aberto na modalidade <strong>tradicional</strong>, tudo bem?</label>
-                <div style="display: flex; justify-content: space-evenly; align-items: center;">
+                
                 <button onclick="carregar_layout_modalidade_tradicional()" style="background-color: green;">Confirmar</button>
-                <button onclick="remover_popup()">Cancelar</button>
-                </div>
+
             </div>   
 
-        `)
+        `, 'Atenção')
 
 }
 
@@ -37,16 +36,15 @@ function modalidade_livre_de_orcamento() {
 
     openPopup_v2(`
 
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+        <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column; margin: 2vw;">
+
             <label>O orçamento atual será descartado e um novo será aberto na modalidade <strong>livre</strong>, tudo bem?</label>
-            <div style="display: flex; justify-content: space-evenly; align-items: center;">
+
             <button onclick="carregar_layout_modalidade_livre()" style="background-color: green;">Confirmar</button>
-            <button onclick="remover_popup()">Cancelar</button>
-            </div>
+
         </div>   
         
-        `)
+        `, 'Aviso')
 
 }
 
