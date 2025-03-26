@@ -1472,8 +1472,8 @@ async function abrir_esquema(id) {
             </div>
             • 
             <div onclick="mostrar_itens_restantes('${id_orcam}')" class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-                <img src="imagens/interrogacao2.png" style="width: 2vw;">
-                <label style="font-size: 1vw;">Itens Restantes</label>
+                <img src="imagens/interrogacao.png" style="width: 2vw;">
+                <label style="font-size: 1vw;">Itens Pendentes</label>
             </div>
 
         </div>    
@@ -1961,43 +1961,47 @@ async function mostrar_itens_restantes(id_orcam) {
                 <th>Codigo</th>
                 <th>Item</th>
                 <th>Itens Orçados</th>
-                <th>Itens que faltam Requisição</th>
+                <th>Itens Pendentes</th>
             </tr>
 
     `
 
-    Object.values(orcamento.status.historico).forEach(item => {
+    if (orcamento.status) {
 
-        if (item.status.includes("REQUISIÇÃO")) {
+        Object.values(orcamento.status.historico).forEach(item => {
 
-            item.requisicoes.forEach(item2 => {
+            if (item.status.includes("REQUISIÇÃO")) {
 
-                if (valoresTotais[item2.codigo]) {
+                item.requisicoes.forEach(item2 => {
 
-                    valoresTotais[item2.codigo].qtdeTotal += Number(item2.qtde_enviar);
+                    if (valoresTotais[item2.codigo]) {
 
-                } else {
+                        valoresTotais[item2.codigo].qtdeTotal += Number(item2.qtde_enviar);
 
-                    valoresTotais[item2.codigo] = {
+                    } else {
 
-                        qtdeTotal: Number(item2.qtde_enviar),
-                        codigoRequisicao: item2.codigo
+                        valoresTotais[item2.codigo] = {
+
+                            qtdeTotal: Number(item2.qtde_enviar),
+                            codigoRequisicao: item2.codigo
+
+                        }
 
                     }
 
-                }
+                })
 
-            })
+            }
 
-        }
+        })
 
-    })
+    }
 
     Object.values(itens_no_orcamento).forEach(item => {
 
         let deduzirTotal = 0
 
-        if(valoresTotais[item.codigo]) {
+        if (valoresTotais[item.codigo]) {
 
             deduzirTotal = valoresTotais[item.codigo].qtdeTotal
 
@@ -2022,7 +2026,7 @@ async function mostrar_itens_restantes(id_orcam) {
     
     `
 
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, "Itens Pendentes")
 
 }
 
