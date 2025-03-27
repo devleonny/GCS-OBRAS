@@ -399,7 +399,7 @@ async function enviar_dados() {
     orcamento_v2.tabela = 'orcamentos';
 
     if (orcamento_v2.dados_orcam.contrato == 'sequencial') {
-        let sequencial = `ORC_${await verificar_chamado_existente(undefined, undefined, true)}`
+        let sequencial = `ORC_${await verificar_chamado_existente(undefined, undefined, true).proximo}`
         orcamento_v2.dados_orcam.contrato = sequencial
     }
 
