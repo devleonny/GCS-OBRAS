@@ -286,11 +286,10 @@ th {
 
 /* Input de upload de arquivos estilizado */
 input[type="file"]#input-anexos {
-    background: transparent;
     color: black;
     border-radius: 5px;
     padding: 8px;
-    font-size: 14px;
+    font-size: 1vw;
     border: 1px solid #3a3c4e;
     cursor: pointer;
 }
