@@ -313,8 +313,8 @@ async function abrir_manutencao(id) {
         celulas[2].value = peca.codigo
         celulas[3].value = peca.quantidade
         celulas[4].value = peca.comentario
-        celulas[5].value = dic_quantidades.estoque
-        celulas[6].value = dic_quantidades.estoque_usado
+        celulas[5].value = dic_quantidades?.estoque || 0
+        celulas[6].value = dic_quantidades?.estoque_usado || 0
 
         i++
     }

@@ -88,7 +88,7 @@ async function carregar_tabela() {
             let info = dados_departamentos[cod_departamento]?.descricao || cod_departamento
 
             celulas_dias += `
-                <td>
+                <td id="${cod_departamento}">
                     <input id="${i}_${omie_tecnico}" style="cursor: pointer; width: 3vw; background-color: transparent;" onmouseover="nome_em_destaque(this, true)" oninput="sugestoes(this)" value="${info}">
                 </td>
                 `
@@ -126,7 +126,7 @@ async function carregar_tabela() {
 
     let tabela = `
         <div class="fundo_tabela" id="dados_agenda">
-            <table class="tabela">
+            <table class="tabela" style="table-layout: fixed;">
                 <thead>
                     ${ths}
                 </thead>
@@ -422,3 +422,40 @@ function nome_em_destaque(elemento, mostrar) {
     }
 
 }
+
+// Função para arrastar;
+let segurando = false;
+let celula_inicial = null;
+let celulas_selecionadas = [];
+
+document.addEventListener("mousedown", function (event) {
+    if (event.target.tagName === "INPUT") {
+        segurando = true;
+        celula_inicial = event.target;
+        celulas_selecionadas = [celula_inicial];
+    }
+});
+
+document.addEventListener("mousemove", function (event) {
+    if (segurando && event.target.tagName === "INPUT") {
+        let cell = event.target;
+        if (!celulas_selecionadas.includes(cell)) {
+            celulas_selecionadas.push(cell);
+        }
+    }
+});
+
+document.addEventListener("mouseup", function () {
+    if (segurando) {
+
+        let cod_departamento = celula_inicial.parentElement.id
+        let nome_do_departamento = celula_inicial.value
+
+        celulas_selecionadas.forEach(cell => {
+            definir_campo(cell.id, cod_departamento, nome_do_departamento)
+        });
+        
+        segurando = false;
+        celulas_selecionadas = [];
+    }
+});

@@ -17,6 +17,13 @@
   box-shadow: 1px 1px #222;
 }
 
+td:first-child {
+  white-space: nowrap;
+  width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 select,
 .campos {
   cursor: pointer;
