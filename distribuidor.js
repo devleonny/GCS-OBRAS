@@ -1086,7 +1086,7 @@ async function renderizarAnexos(id) {
     // 🔹 Renderiza os anexos (banco + pendentes)
     listaAnexos.innerHTML = Object.values(anexos)
         .map(anexo => {
-            let nomeFormatado = anexo.nome.length > 15
+            let nomeFormatado = anexo.nome.length > 25
                 ? `${anexo.nome.slice(0, 6)}...${anexo.nome.slice(-6)}`
                 : anexo.nome;
 
