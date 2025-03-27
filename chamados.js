@@ -224,10 +224,11 @@ async function abrir_manutencao(id) {
     }
 
     await criar_manutencao(id)
-    if(id) renderizarAnexos(id)
+    if (id) renderizarAnexos(id)
     let manutencao = dados_manutencao[id]
     let pecas = manutencao.pecas
-    console.log(manutencao);
+
+    console.log(manutencao)
 
     document.getElementById('comentario').value = manutencao.comentario
     document.getElementById('status_manutencao').value = manutencao.status_manutencao
@@ -285,7 +286,7 @@ async function abrir_manutencao(id) {
     let i = 0
     for (id_peca in pecas) {
         let peca = pecas[id_peca]
-        let celulas = linhas[i].querySelectorAll('input, textarea')
+        let celulas = linhas[i].querySelectorAll('input, select, textarea')
 
         let estoques = ['estoque', 'estoque_usado']
 
@@ -293,7 +294,7 @@ async function abrir_manutencao(id) {
 
         estoques.forEach(estoque => {
 
-            let estoque_do_objeto = dados_estoque[peca.codigo][estoque]
+            let estoque_do_objeto = dados_estoque[peca.codigo]?.[estoque] || 0
             let historicos = estoque_do_objeto.historico
             dic_quantidades[estoque] = estoque_do_objeto.quantidade
 
@@ -309,13 +310,13 @@ async function abrir_manutencao(id) {
 
         })
 
-        celulas[0].value = peca.partnumber || dados_estoque[peca.codigo].partnumber
+        celulas[0].value = peca.partnumber || dados_estoque[peca.codigo]?.partnumber
         celulas[1].value = peca.descricao
         celulas[2].value = peca.codigo
         celulas[3].value = peca.quantidade
         celulas[4].value = peca.comentario
-        celulas[5].value = dic_quantidades?.estoque || 0
-        celulas[6].value = dic_quantidades?.estoque_usado || 0
+        celulas[5].value = dic_quantidades.estoque
+        celulas[6].value = dic_quantidades.estoque_usado
 
         i++
     }
@@ -553,18 +554,18 @@ async function criar_manutencao(id) {
     let acesso = JSON.parse(localStorage.getItem("acesso"))
 
     dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
-    
+
     let permissao = dados_setores[acesso.usuario].setor
 
     let setor = dados_setores[acesso.usuario].setor
 
     let displayBotaoAnexos = ""
 
-    if(permissao == "adm" || setor == "LOGÍSTICA"){
+    if (permissao == "adm" || setor == "LOGÍSTICA") {
 
         displayBotaoAnexos = "flex"
 
-    }else{
+    } else {
 
         displayBotaoAnexos = "none"
 
@@ -864,7 +865,7 @@ async function enviar_manutencao(id) {
 
     let pecas = {}
     linhas.forEach(linha => {
-        let celulas = linha.querySelectorAll('input, textarea')
+        let celulas = linha.querySelectorAll('input, select, textarea')
         if (celulas.length > 0) {
             pecas[gerar_id_5_digitos()] = {
                 partnumber: celulas[0].value,
@@ -1220,8 +1221,6 @@ async function removerAnexo(id, linkAnexo) {
     let dados_manutencao = dados_manutencoes[id]
 
     if (!dados_manutencao || !dados_manutencao.anexos || !dados_manutencao.anexos[linkAnexo]) return;
-
-    console.log("passei")
 
     // Remove da nuvem
     deletar(`dados_manutencao/${id}/anexos/${linkAnexo}`);
