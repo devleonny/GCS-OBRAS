@@ -134,8 +134,8 @@ async function carregar_manutencoes(sincronizar) {
         dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
     }
 
-     // 🔥 ORDENANDO DO MAIS RECENTE PARA O MENOS RECENTE
-     let listaManutencoes = Object.entries(dados_manutencao).sort((a, b) => {
+    // 🔥 ORDENANDO DO MAIS RECENTE PARA O MENOS RECENTE
+    let listaManutencoes = Object.entries(dados_manutencao).sort((a, b) => {
         let [dataA, horaA] = a[1].data.split(", "); // Separando data e hora
         let [dataB, horaB] = b[1].data.split(", ");
 
@@ -224,6 +224,7 @@ async function abrir_manutencao(id) {
     }
 
     await criar_manutencao(id)
+    if(id) renderizarAnexos(id)
     let manutencao = dados_manutencao[id]
     let pecas = manutencao.pecas
     console.log(manutencao);
@@ -547,7 +548,27 @@ async function capturar_html_pdf(id) {
 }
 
 
-function criar_manutencao(id) {
+async function criar_manutencao(id) {
+
+    let acesso = JSON.parse(localStorage.getItem("acesso"))
+
+    dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    
+    let permissao = dados_setores[acesso.usuario].setor
+
+    let setor = dados_setores[acesso.usuario].setor
+
+    let displayBotaoAnexos = ""
+
+    if(permissao == "adm" || setor == "LOGÍSTICA"){
+
+        displayBotaoAnexos = "flex"
+
+    }else{
+
+        displayBotaoAnexos = "none"
+
+    }
 
     let termo = 'Editar'
     let botao = 'Atualizar'
@@ -650,6 +671,11 @@ function criar_manutencao(id) {
                             style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
                             <label style="font-size: 1.2vw;">Comentário</label>
                             <textarea type="text" placeholder="..." id="comentario"></textarea>
+                        </div>
+                        <div class="anexos" style="position: relative; width: 25vw; display: ${displayBotaoAnexos}; flex-direction: column; align-items: start;">
+                            <label style="font-size: 1.2vw;">Anexos</label>
+                            <input type="file" id="input-anexos" multiple onchange="salvar_anexos_manutencao(this, '${id}')">
+                            <div id="lista-anexos"></div>
                         </div>
                     </div>
 
@@ -1102,3 +1128,107 @@ async function filtrarTabelaPorData() {
         tbody.appendChild(aviso);
     }
 }
+
+let manutencoes_pendentes = {};
+
+async function salvar_anexos_manutencao(input, id) {
+    if (!id) {
+        return;
+    }
+
+    let anexos = await anexo_v2(input); // Simulação da função de upload
+    await inserirDados(await receber('dados_manutencao'), 'dados_manutencao');
+    let dados_manutencoes = await recuperarDados('dados_manutencao') || {};
+
+    let dados_manutencao = dados_manutencoes[id];
+
+    // 🛑 Se o manutencao ainda não existe, salva os anexos temporariamente
+    if (!dados_manutencao) {
+        if (!manutencoes_pendentes[id]) {
+            manutencoes_pendentes[id] = { anexos: {} };
+        }
+        anexos.forEach(anexo => {
+            manutencoes_pendentes[id].anexos[anexo.link] = anexo;
+        });
+        renderizarAnexos(id);
+        return;
+    }
+
+    // 🔥 Garante que a estrutura de anexos exista
+    if (!dados_manutencao.anexos) {
+        dados_manutencao.anexos = {};
+    }
+
+    anexos.forEach(anexo => {
+        dados_manutencao.anexos[anexo.link] = anexo;
+        enviar(`dados_manutencao/${id}/anexos/${anexo.link}`, anexo);
+    });
+
+    // Atualiza localmente
+    await inserirDados(dados_manutencoes, 'dados_manutencao');
+
+    // Recarrega os anexos no modal
+    renderizarAnexos(id);
+}
+
+async function renderizarAnexos(id) {
+    let listaAnexos = document.getElementById("lista-anexos");
+    if (!listaAnexos) return;
+
+    // 🔥 Recupera dados do banco
+    await inserirDados(await receber('dados_manutencao'), 'dados_manutencao');
+    let dados_manutencoes = await recuperarDados('dados_manutencao') || {};
+
+    let dados_manutencao = dados_manutencoes[id] || {}; // Se não existir, inicia vazio
+    let anexosBanco = dados_manutencao.anexos || {}; // Anexos já salvos no banco
+    let anexosPendentes = manutencoes_pendentes[id]?.anexos || {}; // Anexos pendentes
+
+    // 🔹 Combina os anexos do banco e os pendentes
+    let anexos = { ...anexosBanco, ...anexosPendentes };
+
+    // 🔸 Se ainda não há anexos, exibir mensagem
+    if (Object.keys(anexos).length === 0) {
+        listaAnexos.innerHTML = "<p style='color: gray;'>Nenhum anexo encontrado.</p>";
+        return;
+    }
+
+    // 🔹 Renderiza os anexos (banco + pendentes)
+    listaAnexos.innerHTML = Object.values(anexos)
+        .map(anexo => {
+            let nomeFormatado = anexo.nome.length > 25
+                ? `${anexo.nome.slice(0, 6)}...${anexo.nome.slice(-6)}`
+                : anexo.nome;
+
+            return `
+            <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+                <div style="cursor: pointer;" class="anexo-item" onclick="abrirArquivo('${anexo.link}')">
+                    <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                    <label title="${anexo.nome}">${nomeFormatado}</label>
+                </div>
+                <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="removerAnexo('${id}', '${anexo.link}')">
+            </div>
+            `;
+        })
+        .join("");
+}
+
+async function removerAnexo(id, linkAnexo) {
+
+    await inserirDados(await receber('dados_manutencao'), 'dados_manutencao')
+    let dados_manutencoes = await recuperarDados('dados_manutencao') || {}
+
+    let dados_manutencao = dados_manutencoes[id]
+
+    if (!dados_manutencao || !dados_manutencao.anexos || !dados_manutencao.anexos[linkAnexo]) return;
+
+    console.log("passei")
+
+    // Remove da nuvem
+    deletar(`dados_manutencao/${id}/anexos/${linkAnexo}`);
+
+    await inserirDados(await receber('dados_manutencao'), 'dados_manutencao')
+
+    // Atualiza a interface
+    renderizarAnexos(id);
+}
+

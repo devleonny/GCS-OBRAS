@@ -264,7 +264,7 @@ async function abrir_detalhes(id_pagamento) {
     }
 
     dados_clientes = dados_clientes_invertido // Cod Omie em evidência;
-    
+
     let pagamento = lista_pagamentos[id_pagamento]
 
     if (dados_orcamentos[pagamento.id_orcamento]) {
@@ -698,7 +698,7 @@ async function deseja_excluir_categoria(id, indice) {
 
 }
 
-async function confirmar_exclusao_categoria(id, indice){
+async function confirmar_exclusao_categoria(id, indice) {
 
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     let pagamento = lista_pagamentos[id]
@@ -717,7 +717,7 @@ async function confirmar_exclusao_categoria(id, indice){
 
 }
 
-async function modal_editar_pagamento(id, indice){
+async function modal_editar_pagamento(id, indice) {
 
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
@@ -737,7 +737,7 @@ async function modal_editar_pagamento(id, indice){
 
     `
 
-    Object.entries(dados_categorias).forEach(([categoria, codigo]) =>{
+    Object.entries(dados_categorias).forEach(([categoria, codigo]) => {
 
         div_select_categorias += `
         
@@ -781,28 +781,28 @@ async function editar_pagamento(id, indice) {
     let valorMudado = Number(document.getElementById('valor_mudado').value)
     let categoriaMudada = document.getElementById('categoria_mudada')
 
-    if(valorMudado != 0){
-        
-    let novoValorDocumento = 0
+    if (valorMudado != 0) {
 
-    Object.entries(categoria).forEach((item, indice2) => {
-        
-        if(indice2 != indice){
-            
-        novoValorDocumento += item[1].valor
+        let novoValorDocumento = 0
 
-        }
+        Object.entries(categoria).forEach((item, indice2) => {
 
-    })
+            if (indice2 != indice) {
 
-    novoValorDocumento += valorMudado
-    
-    enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/valor`, valorMudado)
-    enviar(`lista_pagamentos/${id}/param[0]/valor_documento`, novoValorDocumento)
+                novoValorDocumento += item[1].valor
+
+            }
+
+        })
+
+        novoValorDocumento += valorMudado
+
+        enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/valor`, valorMudado)
+        enviar(`lista_pagamentos/${id}/param[0]/valor_documento`, novoValorDocumento)
 
     }
 
-    if(categoriaMudada != "Selecione"){
+    if (categoriaMudada != "Selecione") {
 
         let codigoMudado = categoriaMudada.options[categoriaMudada.selectedIndex].dataset.codigo;
         enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/codigo_categoria`, codigoMudado)
@@ -1249,15 +1249,35 @@ async function criar_pagamento_v2() {
 
         } else if (formaSelecionada === 'Boleto') {
 
-            var data_vencimento = document.querySelector("#data_vencimento").value
+            let data_vencimento = document.querySelector("#data_vencimento").value;
 
-            const [ano, mes, dia] = data_vencimento.split("-")
+            const [ano, mes, dia] = data_vencimento.split("-");
 
-            data_vencimento = `${dia}/${mes}/${ano}`
+            data_vencimento = `${dia}/${mes}/${ano}`;
 
-            descricao += `Data de Vencimento do Boleto: ${data_vencimento} |`
+            const dataVencimento = new Date(ano, mes - 1, dia);
 
-            objetoDataVencimento = data_vencimento
+            const diaSemana = dataVencimento.getDay();
+
+            if (diaSemana === 0 || diaSemana === 6) {
+                const diasParaAdicionar = diaSemana === 0 ? 1 : 2;
+                dataVencimento.setDate(dataVencimento.getDate() + diasParaAdicionar);
+
+                let novoDia = dataVencimento.getDate();
+                let novoMes = dataVencimento.getMonth() + 1;
+                let novoAno = dataVencimento.getFullYear();
+
+                novoDia = novoDia.toString().padStart(2, '0');
+                novoMes = novoMes.toString().padStart(2, '0');
+
+                data_vencimento = `${novoDia}/${novoMes}/${novoAno}`;
+                descricao += `Data de Vencimento do Boleto: ${data_vencimento} |`;
+
+            } else {
+                descricao += `Data de Vencimento do Boleto: ${data_vencimento} |`;
+            }
+
+            objetoDataVencimento = data_vencimento;
 
         }
 
@@ -2481,12 +2501,12 @@ async function duplicar_pagamento(id_pagamento) {
 
     let categorias = []
 
-    Object.entries(pagamento.param[0].categorias).forEach(categoriaPagamento =>{
-        
+    Object.entries(pagamento.param[0].categorias).forEach(categoriaPagamento => {
+
         Object.entries(categorias_invertidas).forEach(([chave, nomecategoria]) => {
 
-            if(categoriaPagamento[1].codigo_categoria == chave){
-                
+            if (categoriaPagamento[1].codigo_categoria == chave) {
+
                 categorias[contador] = {
                     nome: nomecategoria,
                     codigo: chave,
