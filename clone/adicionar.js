@@ -304,7 +304,7 @@ async function enviar_dados() {
         `);
     }
 
-    let existente = await verificar_chamado_existente(chamado, orcamento_v2.id, undefined, true)
+    let existente = await verificar_chamado_existente(chamado, orcamento_v2.id, false, true)
 
     if (chamado !== 'sequencial' && existente?.situacao) {
         return openPopup_v2(`
