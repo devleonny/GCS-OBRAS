@@ -1493,12 +1493,12 @@ function resposta_desconto(botao, id, status) {
 
 }
 
-async function verificar_chamado_existente(chamado, id_atual, sequencial) {
+async function verificar_chamado_existente(chamado, id_atual, sequencial, clone) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/chamado", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chamado, id_atual, sequencial })
+            body: JSON.stringify({ chamado, id_atual, sequencial, clone })
         })
             .then(response => {
                 if (!response.ok) {
