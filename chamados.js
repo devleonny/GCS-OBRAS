@@ -228,8 +228,6 @@ async function abrir_manutencao(id) {
     let manutencao = dados_manutencao[id]
     let pecas = manutencao.pecas
 
-    console.log(manutencao)
-
     document.getElementById('comentario').value = manutencao.comentario
     document.getElementById('status_manutencao').value = manutencao.status_manutencao
     document.getElementById('chamado').value = manutencao.chamado
