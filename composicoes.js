@@ -109,8 +109,12 @@ async function carregar_tabela_v2() {
         tsearch += tsc[col];
     });
 
+    let checkboxItensinativos = document.querySelector("#checkboxItensInativos")
+
     for (let [codigo, produto] of Object.entries(dados_composicoes).reverse()) {
         var tds = {};
+
+        if(!checkboxItensinativos.checked && produto.status == "INATIVO") continue
 
         colunas.forEach(chave => {
             var conteudo = produto[chave] || '';
@@ -944,9 +948,16 @@ function calcular() {
 
 async function cadastrar_editar_item(codigo) {
 
-    let colunas = ['descricao', 'descricaocarrefour', 'substituto', 'sapid', 'refid', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
+    let colunas = ['descricao', 'descricaocarrefour', 'substituto', 'sapid', 'refid', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie', 'status']
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados = dados_composicoes[codigo] || {}
+
+    if(!dados.status){
+
+        dados.status = "ATIVO"
+
+    }
+
     let excluir = ''
     if (codigo !== undefined) {
         colunas = Object.keys(dados)
@@ -978,6 +989,17 @@ async function cadastrar_editar_item(codigo) {
                     </select>
                 </div>
             `
+        } else if(col == 'status'){
+
+            campo = `
+                <div>
+                    <select style="cursor: pointer;">
+                        <option ${dados[col] == 'ATIVO' ? 'selected': ''}>ATIVO</option>
+                        <option ${dados[col] == 'INATIVO' ? 'selected': ''}>INATIVO</option>
+                    </select>
+                </div>
+            `
+
         }
 
         if (
