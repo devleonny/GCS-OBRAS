@@ -1336,12 +1336,16 @@ async function anexo_v2(arquivoInput) {
     });
 }
 
-function sincronizar_pagamentos() {
+function sincronizar(script) {
 
-    fetch('https://leonny.dev.br/sincronizar', { method: 'POST' })
+    fetch('https://leonny.dev.br/sincronizar', {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ script })
+    })
         .then(response => response.text())
         .then(data => {
-            console.log(data);
+            console.log(JSON.parse(data));
         })
         .catch(error => console.error('Erro na requisição:', error));
 
