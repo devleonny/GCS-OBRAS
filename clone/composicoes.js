@@ -1111,7 +1111,7 @@ function calcular(tipo, campo) {
 
         let tds = tabelas[0].querySelectorAll('td') // 1ª Tabela;
 
-        let valor_servico = Number(tds[0].querySelector('input').value)
+        let valor_servico = conversor(tds[0].querySelector('input').value)
 
         tds = tabelas[2].querySelectorAll('td')
 
@@ -1149,7 +1149,7 @@ function calcular(tipo, campo) {
 
         let tds = tabelas[0].querySelectorAll('td') // 1ª Tabela
 
-        let preco_compra = Number(tds[1].querySelector('input').value)
+        let preco_compra = conversor(tds[1].querySelector('input').value)
         let frete = preco_compra * 0.05
         let icms_creditado = conversor(tds[5].querySelector('input').value)
         let icms_aliquota = conversor(tds[7].querySelector('input').value)
@@ -1162,11 +1162,11 @@ function calcular(tipo, campo) {
         tds[11].textContent = dinheiro(icms_entrada)
         tds[13].textContent = dinheiro(valor_custo)
 
-        let margem = Number(tds[15].querySelector('input').value)
+        let margem = conversor(tds[15].querySelector('input').value)
         let preco_venda = (1 + margem / 100) * valor_custo
 
         if (campo == 'final') {
-            preco_venda = Number(tds[17].querySelector('input').value)
+            preco_venda = conversor(tds[17].querySelector('input').value)
             margem = ((preco_venda / valor_custo - 1) * 100).toFixed(2)
             tds[15].querySelector('input').value = margem
 

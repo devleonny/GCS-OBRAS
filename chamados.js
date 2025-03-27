@@ -553,7 +553,7 @@ async function criar_manutencao(id) {
 
     dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
 
-    let permissao = dados_setores[acesso.usuario].setor
+    let permissao = dados_setores[acesso.usuario].permissao
 
     let setor = dados_setores[acesso.usuario].setor
 
