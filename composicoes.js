@@ -109,8 +109,12 @@ async function carregar_tabela_v2() {
         tsearch += tsc[col];
     });
 
+    let checkboxItensinativos = document.querySelector("#checkboxItensInativos")
+
     for (let [codigo, produto] of Object.entries(dados_composicoes).reverse()) {
         var tds = {};
+
+        if(!checkboxItensinativos.checked && produto.status == "INATIVO") continue
 
         colunas.forEach(chave => {
             var conteudo = produto[chave] || '';
