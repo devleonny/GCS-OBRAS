@@ -10,17 +10,22 @@
 }
 
 #etiqueta {
-  background-color: white; 
-  padding: 5px; 
-  border-radius: 5px; 
+  background-color: white;
+  padding: 5px;
+  border-radius: 5px;
   position: absolute;
   box-shadow: 1px 1px #222;
 }
 
-select {
+select,
+.campos {
   cursor: pointer;
   border-radius: 2px;
   padding: 5px;
+}
+
+.campos {
+  width: 95%;
 }
 
 .select_regiao {

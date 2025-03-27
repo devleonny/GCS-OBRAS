@@ -1,4 +1,5 @@
 let departamentos = {}
+let filtro_tecnicos = {}
 
 let semana = {
     "0": "Dom",
@@ -68,8 +69,8 @@ async function carregar_tabela() {
                 <label>${i}</label>
                 <label>${semana[data.getDay()]}</label>
             </div>
-        </th>`
-
+        </th>
+        `
     }
 
     for (omie_tecnico in dados_agenda_tecnicos) {
@@ -153,6 +154,11 @@ async function carregar_tabela() {
                     <option>2025</option>
                     <option>2026</option>
                 </select>
+            </div>
+            <hr style="width: 100%;">
+            <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 2px;">
+                <label>Técnico</label>
+                <input class="campos" oninput="filtrar_por_regiao()" id="campo_tecnico_pesquisa">
             </div>
             <hr style="width: 100%;">
             <label>Regiões</label>
@@ -266,6 +272,7 @@ async function definir_campo(input_id, omie_departamento, descricao) {
 
 async function filtrar_por_regiao() {
 
+    let campo_tecnico_pesquisa = String(document.getElementById('campo_tecnico_pesquisa').value).toLowerCase()
     let dados_agenda_tecnicos = await recuperarDados('dados_agenda_tecnicos') || {}
     let tabela = document.querySelector('table')
     let tbody = tabela.querySelector('tbody')
@@ -290,6 +297,11 @@ async function filtrar_por_regiao() {
         mostrar_linha = ativos.includes(regiao_do_tecnico)
 
         ativos.length == 0 ? mostrar_linha = true : ''
+
+        if (campo_tecnico_pesquisa !== '') {
+            let nome_tecnico = String(tds[0].querySelector('label').textContent).toLowerCase()
+            mostrar_linha = mostrar_linha && nome_tecnico.includes(campo_tecnico_pesquisa)
+        }
 
         mostrar_linha ? tr.style.display = 'table-row' : tr.style.display = 'none'
     })
