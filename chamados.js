@@ -549,10 +549,12 @@ async function capturar_html_pdf(id) {
 async function criar_manutencao(id) {
 
     let acesso = JSON.parse(localStorage.getItem("acesso"))
-
+    
     dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
 
     let permissao = dados_setores[acesso.usuario].permissao
+    
+    
 
     let setor = dados_setores[acesso.usuario].setor
 
@@ -568,6 +570,7 @@ async function criar_manutencao(id) {
 
     }
 
+  
     let termo = 'Editar'
     let botao = 'Atualizar'
     let pdf = `

@@ -1459,6 +1459,7 @@ async function abrir_esquema(id) {
                 <label>${orcamento.dados_orcam.cliente_selecionado}</label>
             </div>
             • 
+            <br>
             <div style="display: flex; flex-direction: column; align-items: start;">
                 <div class="contorno_botoes" style="background-color: #222;">
                     <img src="imagens/anexo2.png" style="width: 2vw;">

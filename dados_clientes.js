@@ -62,7 +62,13 @@ async function carregar_datalist_clientes() {
 }
 
 function limpar_campos() {
-    openPopup_v2('Limpar os campos?', true, `executar_limpar_campos()`)
+    openPopup_v2(`
+        <div style="gap: 10px; display: flex; align-items: center; flex-direction: column;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <label>Deseja limpar campos?</label>
+            </div>
+            <label onclick="executar_limpar_campos()" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
+        </div>`)
 }
 
 function executar_limpar_campos() {
