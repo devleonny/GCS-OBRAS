@@ -744,11 +744,11 @@ async function criar_manutencao(id) {
                         <label>${botao}</label>
                     </div>
                     ${pdf}
-                    <div onclick="atualizar_base_clientes()" class="bex" style="background-color: brown; color: white;">
+                    <div onclick="atualizar_base_clientes()" class="bex" style="background-color: #151749; color: white;">
                         <img src="imagens/atualizar.png" style="cursor: pointer; width: 2vw;">
                         <label">Sincronizar Clientes/Técnicos</label>
                     </div>
-                    <div onclick="recuperar_estoque()" class="bex" style="background-color: black; color: white;">
+                    <div onclick="recuperar_estoque()" class="bex" style="background-color: #151749; color: white;">
                         <img src="imagens/sync.png" style="cursor: pointer; width: 2vw;">
                         <label">Sincronizar Estoque</label>
                     </div>
