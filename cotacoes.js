@@ -5,13 +5,12 @@ let quantidadeFornecedores = 0;
 document.addEventListener("DOMContentLoaded", async () => {
 
     adicionarLinha();
-    await recuperarCotacoes();
-    
+
     const idEdicao = localStorage.getItem("cotacaoEditandoID");
     const operacao = localStorage.getItem("operacao");
     const iniciouPorClique = localStorage.getItem("iniciouPorClique");
     const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
-    
+
     // Só chama editarCotacao se a flag indicar que foi pelo link específico
     if (idEdicao && operacao === "editar" && iniciouPorClique === "true") {
         editarCotacao(idEdicao);
@@ -756,6 +755,10 @@ async function salvarObjeto(finalizar = false, reabrir = false) {
 
     const novaCotacao = { informacoes, dados, valorFinal, operacao, status };
 
+    const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+    cotacoes[informacoes.id] = novaCotacao;
+    localStorage.setItem("dados_cotacao", JSON.stringify(cotacoes));
+
     // 🔥 Envia a nova cotação para a API usando enviar()
     enviar(`dados_cotacao/${informacoes.id}`, novaCotacao);
 
@@ -931,6 +934,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("novaCotacaoButton").addEventListener("click", () => {
         document.getElementById("cotacoesSalvasContainer").style.display = "none";
         document.getElementById("novaCotacaoContainer").style.display = "block";
+        document.querySelector(".button-container").style.display = "flex"
+        document.getElementById("botao-voltar-menu").style.display = "none"
+        document.getElementById("botao-voltar-tabela").style.display = "flex"
         localStorage.setItem("operacao", "incluir");
 
     });
@@ -973,6 +979,7 @@ function carregarCotacoesSalvas() {
             <td>${cotacao.informacoes.criador}</td>
             <td>${cotacao.dados.length}</td>
             <td>${cotacao.valorFinal.length}</td>
+            <td>${cotacao.status}</td>
             <td>
                 <img src="imagens/editar.png" alt="Editar" class="img-editar" onclick="editarCotacao('${id}')">
                 <img src="imagens/excluir.png" alt="Excluir" class="img-excluir" onclick="removerCotacao(this)">
@@ -982,13 +989,17 @@ function carregarCotacoesSalvas() {
 
         tabelaBody.appendChild(linha);
     });
-    
+
 }
 
 
 function editarCotacao(id) {
     const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
     const cotacao = cotacoes[id];
+
+    document.querySelector(".button-container").style.display = "flex"
+    document.getElementById("botao-voltar-menu").style.display = "none"
+    document.getElementById("botao-voltar-tabela").style.display = "flex"
 
     if (!cotacao) {
         return;
@@ -1424,7 +1435,7 @@ function removerLinha(elemento) {
     atualizarQuantidadeItens();
 }
 
-function voltarParaTabela() {
+async function voltarParaTabela() {
     f5()
 }
 
@@ -1477,7 +1488,7 @@ async function removerCotacao(elemento) {
 
     // 🔥 Se houver um orçamento associado, remove a referência no status
     if (idOrcamento && chavePedido) {
-        
+
         let dados_orcamentos = await recuperarDados("dados_orcamentos") || {};
 
         delete dados_orcamentos[idOrcamento].status.historico[idCotacao];
