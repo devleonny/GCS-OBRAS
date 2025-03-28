@@ -1380,35 +1380,7 @@ async function aprovar_orcamento(responsavel, aprovar, data) {
     await preencher_orcamentos_v2()
 }
 
-function verificar_timestamp_nome(nome) {
-    let regex = /^(\d{13})\.\w+$/;
-    let match = nome.match(regex);
-
-    if (match) {
-        let timestamp = parseInt(match[1]);
-        let data = new Date(timestamp);
-        return !isNaN(data.getTime()) && data.getFullYear() > 2000;
-    }
-
-    return false;
-}
-
 const { shell } = require('electron');
-
-function abrirArquivo(link) {
-
-    if (verificar_timestamp_nome(link)) { // Se for um link composto por timestamp, então vem do servidor;
-        link = `https://leonny.dev.br/uploads/${link}`
-    } else { // Antigo Google;
-        link = `https://drive.google.com/file/d/${link}/view?usp=drivesdk`
-    }
-
-    try {
-        shell.openExternal(link);
-    } catch {
-        window.open(link, '_blank');
-    }
-}
 
 async function abrir_esquema(id) {
     overlay.style.display = 'block'

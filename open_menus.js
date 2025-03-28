@@ -34,6 +34,34 @@ async function identificacao_user() {
 
 }
 
+function verificar_timestamp_nome(nome) {
+    let regex = /^(\d{13})\.\w+$/;
+    let match = nome.match(regex);
+
+    if (match) {
+        let timestamp = parseInt(match[1]);
+        let data = new Date(timestamp);
+        return !isNaN(data.getTime()) && data.getFullYear() > 2000;
+    }
+
+    return false;
+}
+
+function abrirArquivo(link) {
+
+    if (verificar_timestamp_nome(link)) { // Se for um link composto por timestamp, então vem do servidor;
+        link = `https://leonny.dev.br/uploads/${link}`
+    } else { // Antigo Google;
+        link = `https://drive.google.com/file/d/${link}/view?usp=drivesdk`
+    }
+
+    try {
+        shell.openExternal(link);
+    } catch {
+        window.open(link, '_blank');
+    }
+}
+
 function deseja_sair() {
     openPopup_v2(`
         <button onclick="sair()" style="background-color: green">Confirmar</button>

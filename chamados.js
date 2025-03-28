@@ -643,42 +643,50 @@ async function criar_manutencao(id) {
                                 <option>REPROVADO</option>
                             </select>
                         </div>
+
                         <div
                             style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
                             <label style="font-size: 1.2vw;">Kit Técnico</label>
                             <input id="kit" type="checkbox" style="width: 2vw; height: 2vw; cursor: pointer;"
                                 onclick="alterar_kit(this)">
                         </div>
+
                         <div id="div_chamado"
                             style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
                             <label style="font-size: 1.2vw;">Chamado</label>
                             <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text"
                                 placeholder="..." id="chamado">
                         </div>
+
                         <div id="div_previsao"
                             style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
                             <label style="font-size: 1.2vw;">Previsão</label>
                             <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="date"
                                 placeholder="..." id="previsao">
                         </div>
+
                         <div id="div_NF"
                             style="display: none; position: relative; width: 25vw; align-items: center; justify-content: left; gap: 20px;">
                             <label style="font-size: 1.2vw;">NF</label>
                             <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text"
                                 placeholder="..." id="NF">
                         </div>
+
                         <div
                             style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
                             <label style="font-size: 1.2vw;">Comentário</label>
                             <textarea type="text" placeholder="..." id="comentario"></textarea>
                         </div>
 
-                        <div style="display: flex; align-items; justify-content: center; align-items: center; gap: 5px;">
-                            <label style="font-size: 1.2vw;">Anexos</label>
-                            <label class="contorno_botoes" for="anexo_pedido" style="display: ${displayBotaoAnexos}; justify-content: center; border-radius: 50%;">
-                                <img src="imagens/anexo.png" style="cursor: pointer; width: 1vw;">
-                                <input type="file" id="anexo_pedido" style="display: none;" onchange="salvar_anexos_manutencao(this, '${id}')">
-                            </label>
+                        <div style="display: flex; justify-content: start; align-items: center; gap: 5px; width: 100%;">
+                            <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
+                                <label style="font-size: 1.2vw;">Anexos</label>
+                                <label class="contorno_botoes" for="anexo_pedido" style="display: ${displayBotaoAnexos}; justify-content: center; border-radius: 50%;">
+                                    <img src="imagens/anexo.png" style="cursor: pointer; width: 1vw;">
+                                    <input type="file" id="anexo_pedido" style="display: none;" onchange="salvar_anexos_manutencao(this, '${id}')">
+                                </label>
+                            </div>
+                            <label onclick="mostrar_anexos(this)" style="text-decoration: underline; cursor: pointer;">Exibir</label>
                         </div>
                         
                         <div id="lista-anexos" style="display: none; align-items: start; justify-content: start; flex-direction: column;"></div>
@@ -758,6 +766,19 @@ async function criar_manutencao(id) {
     `
 
     openPopup_v2(acumulado, `${termo} Requisição de Materiais`)
+}
+
+function mostrar_anexos(label) {
+
+    label.textContent = label.textContent === 'Exibir' ? 'Ocultar' : 'Exibir';
+
+    let display = 'none'
+
+    if (label.textContent !== 'Exibir') {
+        display = 'flex'
+    }
+
+    label.parentElement.nextElementSibling.style.display = display
 }
 
 function confirmar_exclusao(id) {
@@ -893,6 +914,13 @@ async function enviar_manutencao(id) {
     let kit = document.getElementById('kit')
     if (kit.checked) {
         manutencao.chamado = 'KIT TÉCNICO'
+    }
+
+    // Anexos 
+    if (dados_manutencao?.[id].anexos) {
+        manutencao.anexos = {
+            ...dados_manutencao[id].anexos
+        }
     }
 
     enviar(`dados_manutencao/${id}`, manutencao)
@@ -1173,20 +1201,17 @@ async function salvar_anexos_manutencao(input, id) {
     await inserirDados(dados_manutencoes, 'dados_manutencao');
 
     // Recarrega os anexos no modal
-    renderizarAnexos(id);
+    await renderizarAnexos(id);
+
 }
 
 async function renderizarAnexos(id) {
     let listaAnexos = document.getElementById("lista-anexos");
     if (!listaAnexos) return;
 
-    listaAnexos.style.display = 'flex'
-    // 🔥 Recupera dados do banco
-    await inserirDados(await receber('dados_manutencao'), 'dados_manutencao');
     let dados_manutencoes = await recuperarDados('dados_manutencao') || {};
-
-    let dados_manutencao = dados_manutencoes[id] || {}; // Se não existir, inicia vazio
-    let anexosBanco = dados_manutencao.anexos || {}; // Anexos já salvos no banco
+    let manutencao = dados_manutencoes[id] || {}; // Se não existir, inicia vazio
+    let anexosBanco = manutencao.anexos || {}; // Anexos já salvos no banco
     let anexosPendentes = manutencoes_pendentes[id]?.anexos || {}; // Anexos pendentes
 
     // 🔹 Combina os anexos do banco e os pendentes
@@ -1194,9 +1219,10 @@ async function renderizarAnexos(id) {
 
     // 🔸 Se ainda não há anexos, exibir mensagem
     if (Object.keys(anexos).length === 0) {
+        listaAnexos.textContent = 'Sem anexos disponíveis'
         return;
     }
-
+    
     // 🔹 Renderiza os anexos (banco + pendentes)
     listaAnexos.innerHTML = Object.values(anexos)
         .map(anexo => {
