@@ -226,12 +226,12 @@ async function abrir_manutencao(id) {
     await criar_manutencao(id)
     if (id) renderizarAnexos(id)
     let manutencao = dados_manutencao[id]
-    let pecas = manutencao.pecas
+    let pecas = manutencao?.pecas || {}
 
-    document.getElementById('comentario').value = manutencao.comentario
-    document.getElementById('status_manutencao').value = manutencao.status_manutencao
-    document.getElementById('chamado').value = manutencao.chamado
-    document.getElementById('previsao').value = manutencao.previsao;
+    document.getElementById('comentario').value = manutencao?.comentario || ''
+    document.getElementById('status_manutencao').value = manutencao?.status_manutencao || ''
+    document.getElementById('chamado').value = manutencao?.chamado || ''
+    document.getElementById('previsao').value = manutencao?.previsao || ''
 
     let div_NF = document.getElementById("div_NF")
 
@@ -284,7 +284,7 @@ async function abrir_manutencao(id) {
     let i = 0
     for (id_peca in pecas) {
         let peca = pecas[id_peca]
-        let celulas = linhas[i].querySelectorAll('input, select, textarea')
+        let celulas = linhas[i].querySelectorAll('input, textarea')
 
         let estoques = ['estoque', 'estoque_usado']
 
@@ -869,7 +869,7 @@ async function enviar_manutencao(id) {
 
     let pecas = {}
     linhas.forEach(linha => {
-        let celulas = linha.querySelectorAll('input, select, textarea')
+        let celulas = linha.querySelectorAll('input, textarea')
         if (celulas.length > 0) {
             pecas[gerar_id_5_digitos()] = {
                 partnumber: celulas[0].value,
