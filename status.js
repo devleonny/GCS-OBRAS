@@ -208,9 +208,7 @@ async function painel_adicionar_pedido() {
 
     var acumulado = `
 
-        <span class="close" onclick="fechar_status()">×</span>
-
-        <label style="position: absolute; top: 5px; left: 5px; font-size: 0.6em;" id="data">${data}</label>
+        <label style="position: absolute; bottom: 5px; right: 5px; font-size: 0.6em;" id="data">${data}</label>
 
         <div style="display: flex; justify-content: space-evenly; align-items: center;">
             <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
@@ -221,7 +219,7 @@ async function painel_adicionar_pedido() {
         
         <hr style="width: 80%">
 
-        <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px;">
+        <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px; padding: 10px">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <p class="novo_titulo" style="cursor: pointer; color: #222">Escolha o tipo do <strong>Pedido</strong> </p> 
                 <select id="tipo">
@@ -256,19 +254,27 @@ async function painel_adicionar_pedido() {
 
             <hr style="width: 80%">
 
-            <button style="background-color: #4CAF50; width: 100%;" onclick="salvar_pedido()">Salvar</button>
+            <button style="background-color: #4CAF50; width: 95%;" onclick="salvar_pedido()">Salvar</button>
+
+            <div id="aviso_campo_branco" style="display: none; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Não deixe campos em Branco</label>
+            </div>
 
         </div>
 
     `
 
-    let painel = document.getElementById('status')
-    if (painel) {
-        painel.innerHTML = acumulado
-        painel.style.width = '40vw'
-    } else {
-        document.body.insertAdjacentHTML('beforeend', acumulado)
-    }
+    // let painel = document.getElementById('status')
+    // if (painel) {
+    //     painel.innerHTML = acumulado
+    //     painel.style.width = '40vw'
+    // } else {
+    //     document.body.insertAdjacentHTML('beforeend', acumulado)
+    // }
+
+    openPopup_v2(acumulado, "Novo Pedido")
+
 }
 
 async function painel_adicionar_notas(chave) {
@@ -287,10 +293,9 @@ async function painel_adicionar_notas(chave) {
 
     var acumulado = `
 
-        <span class="close" onclick="fechar_status()">×</span>
-        <label style="position: absolute; top: 5px; left: 5px; font-size: 0.6em;" id="data">${data}</label>
+        <label style="position: absolute; bottom: 5px; right: 5px; font-size: 0.6em;" id="data">${data}</label>
 
-        <div style="display: flex; justify-content: space-evenly; align-items: center;">
+        <div style="display: flex; justify-content: space-evenly; align-items: center; padding: 10px;">
             <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
         </div>
 
@@ -305,11 +310,12 @@ async function painel_adicionar_notas(chave) {
             <label>Remessa, Venda ou Serviço</label>
         </div>
 
-        <div style="display: flex; flex-direction: column; justify-content: center; align-items: start;"
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: start; padding: 10px;"
             <label><strong>Número da Nota</strong></label>
             <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
                 <input type="number" class="pedido" id="nota" value="${notas?.nota || ''}">
                 <select id="tipo">
+                    <option>Selecione</option>
                     <option ${notas?.modalidade == 'Remessa' ? 'selected' : ''}>Remessa</option>
                     <option ${notas?.modalidade == 'Venda' ? 'selected' : ''}>Venda</option>
                     <option ${notas?.modalidade == 'Serviço' ? 'selected' : ''}>Serviço</option>
@@ -322,7 +328,7 @@ async function painel_adicionar_notas(chave) {
             <input type="number" class="pedido" id="valorFrete" value="${notas?.valorFrete || ''}">
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+        <div style="display: flex; flex-direction: column; gap: 3px; align-items: start; padding: 10px;">
             <label><strong>Comentário</strong></label>
             <textarea rows="5" style="width: 80%;" id="comentario_status">${st?.comentario || ''}</textarea>
         </div>
@@ -331,14 +337,15 @@ async function painel_adicionar_notas(chave) {
 
         <button style="background-color: #4CAF50" onclick="salvar_notas('${chave}')">Salvar</button>
 
+        <div id="aviso_campo_branco" style="display: none; gap: 10px; align-items: center; justify-content: center;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <label>Não deixe campos em Branco</label>
+        </div>
+
     `
-    let painel = document.getElementById('status')
-    if (painel) {
-        painel.innerHTML = acumulado
-        painel.style.width = '40vw'
-    } else {
-        document.body.insertAdjacentHTML('beforeend', acumulado)
-    }
+    
+    openPopup_v2(acumulado, "Nova Nota Fiscal")
+
 }
 
 function ocultar_pedido(elemento) {
@@ -1072,12 +1079,19 @@ async function salvar_pedido(chave) {
     let pedido = document.getElementById('pedido')
 
     if (valor.value == '' || tipo.value == 'Selecione' || pedido.value == '') {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Não deixe campos em Branco</label>
-            </div>
-        `);
+        
+        let aviso_campo_branco = document.getElementById("aviso_campo_branco")
+
+        aviso_campo_branco.style.display = "flex"
+
+        setTimeout(() => {
+            
+            aviso_campo_branco.style.display = "none"
+
+        }, 3000);
+
+        return
+
     }
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
@@ -1119,6 +1133,22 @@ async function salvar_notas(chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    if(tipo.value == "Selecione" || nota.value == "" || valorNota.value == "" || valorFrete.value == ""){
+
+        let aviso_campo_branco = document.getElementById("aviso_campo_branco")
+
+        aviso_campo_branco.style.display = "flex"
+
+        setTimeout(() => {
+            
+            aviso_campo_branco.style.display = "none"
+
+        }, 3000);
+
+        return
+
+    }
 
     if (!orcamento.status) {
         orcamento.status = { historico: {} };
@@ -1397,6 +1427,8 @@ async function abrir_esquema(id) {
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
     )
 
+    let desejaApagar = "deseja_apagar"
+
     if (orcamento) {
         var levantamentos = ''
         if (orcamento.levantamentos) {
@@ -1651,10 +1683,16 @@ async function abrir_esquema(id) {
                 `
             }
 
+            if(String(sst.status).includes('COTAÇÃO')){
+
+                desejaApagar = "deseja_apagar_cotacao"
+
+            }
+
             blocos_por_status[campo] += `
                     <div class="bloko" style="gap: 0px; border: 1px solid ${fluxograma[sst.status].cor}; background-color: white; justify-content: center;">
                         <div style="cursor: pointer; display: flex; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
-                            <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="deseja_apagar('${chave}')">&times;</span>
+                            <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="${desejaApagar}('${chave}')">&times;</span>
                             <label><strong>Executor: </strong>${sst.executor}</label>
                             <label><strong>Data: </strong>${sst.data}</label>
                             <label><strong>Comentário: </strong> <br> ${coments}</label>
@@ -2086,24 +2124,26 @@ function exibirItens(div) {
     });
 }
 
-async function iniciar_cotacao(chave, id_orcam) {
+async function iniciar_cotacao(id_orcam) {
+
+    document.getElementById("status").insertAdjacentHTML("beforebegin", overlay_aguarde())
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento = dados_orcamentos[id_orcam]
     let itens_do_orcamento = dados_orcamentos[id_orcam].dados_composicoes
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    let todos_os_status = orcamento.status[chave].historico
+    let todos_os_status = orcamento.status.historico
     let itens = {} // Dicionário;
     let tem_requisicao = false
 
     for (chave2 in todos_os_status) {
 
-        let teste = todos_os_status[chave2]
+        let status = todos_os_status[chave2]
 
-        if (String(teste.status).includes('FATURAMENTO')) {
+        if (String(status.status).includes('REQUISIÇÃO')) {
 
-            if (teste.requisicoes) {
+            if (status.requisicoes) {
 
                 tem_requisicao = true
 
@@ -2126,7 +2166,7 @@ async function iniciar_cotacao(chave, id_orcam) {
 
     for (chave2 in todos_os_status) {
         let his = todos_os_status[chave2]
-        if (String(his.status).includes('FATURAMENTO')) {
+        if (String(his.status).includes('REQUISIÇÃO')) {
 
             let requisicao = his.requisicoes
 
@@ -2195,7 +2235,7 @@ async function iniciar_cotacao(chave, id_orcam) {
 
     // Fim
 
-    let id_compartilhado = unicoID()
+    let id_compartilhado = gerar_id_5_digitos()
     let data = new Date()
     let nova_cotacao = {
         informacoes: {
@@ -2218,8 +2258,7 @@ async function iniciar_cotacao(chave, id_orcam) {
         timeStyle: 'short'
     });
 
-    orcamento.status[chave].status = 'COTAÇÃO PENDENTE'
-    orcamento.status[chave].historico[id_compartilhado] = {
+    orcamento.status.historico[id_compartilhado] = {
         status: 'COTAÇÃO PENDENTE',
         data: data_completa,
         executor: acesso.usuario,
@@ -2227,14 +2266,10 @@ async function iniciar_cotacao(chave, id_orcam) {
     };
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/historico/${id_compartilhado}`, orcamento.status[chave].historico[id_compartilhado])
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${id_compartilhado}`, orcamento.status.historico[id_compartilhado])
+    await enviar(`dados_cotacao/${id_compartilhado}`, nova_cotacao)
 
-    let dados = {
-        tabela: 'cotacoes',
-        cotacao: nova_cotacao
-    }
-
-    enviar_dados_generico(dados) // 29 Mantém por enquanto...
+    document.getElementById("aguarde").remove()
 
     await abrir_esquema(id_orcam)
 
@@ -3087,6 +3122,39 @@ async function apagar_status_historico(chave) {
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await abrir_esquema(id_orcam)
+}
+
+function deseja_apagar_cotacao(chave){
+
+    openPopup_v2(`
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <label>Deseja apagar essa informação?</label>
+            <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
+                <button style="background-color: green" onclick="apagar_status_historico_cotacao('${chave}')">Confirmar</button>
+            </div>
+        </div>
+        `)
+
+}
+
+async function apagar_status_historico_cotacao(chave) {
+
+    remover_popup()
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+
+    if (!chave) {
+        delete dados_orcamentos[id_orcam].status.historico
+        await deletar(`dados_orcamentos/${id_orcam}/status/historico`)
+    } else {
+        delete dados_orcamentos[id_orcam].status.historico[chave]
+        await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`)
+    }
+
+    await deletar(`dados_cotacao/${chave}`);
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await abrir_esquema(id_orcam)
+
 }
 
 function remover_cotacao(chave) {
