@@ -2393,44 +2393,33 @@ async function retorno_de_materiais(chave) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
-
-    let acumulado = `
-
-    <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
-
-        <label class="novo_titulo">Retorno de Materiais</label>
-
-    </div>
-    
-    <table id="tabelaRetornoMateriais" style="border-collapse: collapse; border: 1px solid black; background-color: white; width: 100%; text-align: center;">
-        <tr style="border: 1px solid black;">
-            <th style="border: 1px solid black; color: black; padding: 8px;">Descrição</th>
-            <th style="border: 1px solid black; color: black; padding: 8px;">Quantidade Disponivel</th>
-            <th style="border: 1px solid black; color: black; padding: 8px;">Quantidade para Retorno</th>
-        </tr>
-        `
+    let linhas = ''
 
     Object.values(orcamento.dados_composicoes).forEach(item => {
-
-        acumulado += `
-        <tr style="border: 1px solid black;">
-            <td class="dados_descricao_retorno" data-codigo="${item.codigo}" style="border: 1px solid black; color: black; padding: 8px;">${dados_composicoes[item.codigo].descricao}</td>
-            <td style="border: 1px solid black; color: black; padding: 8px;">${item.qtde}</td>
-            <td style="border: 1px solid black; color: black; padding: 8px;"><input class="dados_qtde_retorno" type="number" " ></td>
+        linhas += `
+        <tr>
+            <td data-codigo="${item.codigo}">${dados_composicoes[item.codigo].descricao}</td>
+            <td style="text-align: center;">${item.qtde}</td>
+            <td><input style="background-color: #4CAF50; padding: 3px; border-radius: 3px;" type="number"></td>
         </tr>
         `
-
     })
 
-    acumulado += `
-    
+    let acumulado = `
+    <table id="tabelaRetornoMateriais" class="tabela" style="width: 50vw;">
+        <thead>
+            <th>Descrição</th>
+            <th>Quantidade Disponivel</th>
+            <th>Quantidade para Retorno</th>
+        </thead>
+        <tbody>
+            ${linhas}
+        </tbody>
     </table>
-    
-    <button id="botao_salvar_retorno" onclick="salvar_materiais_retorno('${chave}')">Salvar</button>
-
+    <hr style="width: 80%;">
+    <button style="background-color: #4CAF50;" onclick="salvar_materiais_retorno('${chave}')">Salvar</button>
     `
-
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, 'Retorno de Materiais')
 
 }
 
@@ -3353,7 +3342,9 @@ async function envio_de_material(chave) {
             <input type="date" id="previsao" value="${envio.previsao}">
         </div>
 
-        <button style="background-color: #4CAF50; width: 100%; margin: 0px;" onclick="registrar_envio_material('${chave}')">Salvar</button>
+        <hr style="width: 80%;">
+
+        <button style="background-color: #4CAF50; margin: 0px;" onclick="registrar_envio_material('${chave}')">Salvar</button>
       
     </div>
     `
