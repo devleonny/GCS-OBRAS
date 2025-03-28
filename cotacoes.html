@@ -21,7 +21,7 @@
 
         <img src="imagens/BG.png" style="width: 150px;">
         <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; color: white;">
-            <label class="novo_titulo" id="nome_modulo">KANBAN</label>
+            <label class="novo_titulo" id="nome_modulo">COTAÇÕES</label>
             <label id="nome_filtro"></label>
         </div>
 
@@ -65,6 +65,7 @@
                     <th id="criadorHeader" onclick="ordenarTabela('criador')">Criador</th>
                     <th id="itensHeader" onclick="ordenarTabela('itens')">Quantidade de Itens</th>
                     <th id="fornecedorHeader" onclick="ordenarTabela('fornecedor')">Quantidade de Fornecedores</th>
+                    <th id="fornecedorHeader" onclick="ordenarTabela('status')">Status</th>
                     <th>Ações</th>
                 </tr>
                 <tr id="searchRow">
@@ -95,6 +96,12 @@
                     <th>
                         <div class="input-container">
                             <input type="text" placeholder="..." oninput="filtrarTabela(4, this.value)">
+                            <img src="imagens/pesquisar2.png" alt="Pesquisar">
+                        </div>
+                    </th>
+                    <th>
+                        <div class="input-container">
+                            <input type="text" placeholder="..." oninput="filtrarTabela(5, this.value)">
                             <img src="imagens/pesquisar2.png" alt="Pesquisar">
                         </div>
                     </th>
