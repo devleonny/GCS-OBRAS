@@ -208,9 +208,7 @@ async function painel_adicionar_pedido() {
 
     var acumulado = `
 
-        <span class="close" onclick="fechar_status()">×</span>
-
-        <label style="position: absolute; top: 5px; left: 5px; font-size: 0.6em;" id="data">${data}</label>
+        <label style="position: absolute; bottom: 5px; right: 5px; font-size: 0.6em;" id="data">${data}</label>
 
         <div style="display: flex; justify-content: space-evenly; align-items: center;">
             <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
@@ -221,7 +219,7 @@ async function painel_adicionar_pedido() {
         
         <hr style="width: 80%">
 
-        <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px;">
+        <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px; padding: 10px">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <p class="novo_titulo" style="cursor: pointer; color: #222">Escolha o tipo do <strong>Pedido</strong> </p> 
                 <select id="tipo">
@@ -256,19 +254,27 @@ async function painel_adicionar_pedido() {
 
             <hr style="width: 80%">
 
-            <button style="background-color: #4CAF50; width: 100%;" onclick="salvar_pedido()">Salvar</button>
+            <button style="background-color: #4CAF50; width: 95%;" onclick="salvar_pedido()">Salvar</button>
+
+            <div id="aviso_campo_branco" style="display: none; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Não deixe campos em Branco</label>
+            </div>
 
         </div>
 
     `
 
-    let painel = document.getElementById('status')
-    if (painel) {
-        painel.innerHTML = acumulado
-        painel.style.width = '40vw'
-    } else {
-        document.body.insertAdjacentHTML('beforeend', acumulado)
-    }
+    // let painel = document.getElementById('status')
+    // if (painel) {
+    //     painel.innerHTML = acumulado
+    //     painel.style.width = '40vw'
+    // } else {
+    //     document.body.insertAdjacentHTML('beforeend', acumulado)
+    // }
+
+    openPopup_v2(acumulado, "Novo Pedido")
+
 }
 
 async function painel_adicionar_notas(chave) {
@@ -287,10 +293,9 @@ async function painel_adicionar_notas(chave) {
 
     var acumulado = `
 
-        <span class="close" onclick="fechar_status()">×</span>
-        <label style="position: absolute; top: 5px; left: 5px; font-size: 0.6em;" id="data">${data}</label>
+        <label style="position: absolute; bottom: 5px; right: 5px; font-size: 0.6em;" id="data">${data}</label>
 
-        <div style="display: flex; justify-content: space-evenly; align-items: center;">
+        <div style="display: flex; justify-content: space-evenly; align-items: center; padding: 10px;">
             <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
         </div>
 
@@ -305,11 +310,12 @@ async function painel_adicionar_notas(chave) {
             <label>Remessa, Venda ou Serviço</label>
         </div>
 
-        <div style="display: flex; flex-direction: column; justify-content: center; align-items: start;"
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: start; padding: 10px;"
             <label><strong>Número da Nota</strong></label>
             <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
                 <input type="number" class="pedido" id="nota" value="${notas?.nota || ''}">
                 <select id="tipo">
+                    <option>Selecione</option>
                     <option ${notas?.modalidade == 'Remessa' ? 'selected' : ''}>Remessa</option>
                     <option ${notas?.modalidade == 'Venda' ? 'selected' : ''}>Venda</option>
                     <option ${notas?.modalidade == 'Serviço' ? 'selected' : ''}>Serviço</option>
@@ -322,7 +328,7 @@ async function painel_adicionar_notas(chave) {
             <input type="number" class="pedido" id="valorFrete" value="${notas?.valorFrete || ''}">
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+        <div style="display: flex; flex-direction: column; gap: 3px; align-items: start; padding: 10px;">
             <label><strong>Comentário</strong></label>
             <textarea rows="5" style="width: 80%;" id="comentario_status">${st?.comentario || ''}</textarea>
         </div>
@@ -331,14 +337,15 @@ async function painel_adicionar_notas(chave) {
 
         <button style="background-color: #4CAF50" onclick="salvar_notas('${chave}')">Salvar</button>
 
+        <div id="aviso_campo_branco" style="display: none; gap: 10px; align-items: center; justify-content: center;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <label>Não deixe campos em Branco</label>
+        </div>
+
     `
-    let painel = document.getElementById('status')
-    if (painel) {
-        painel.innerHTML = acumulado
-        painel.style.width = '40vw'
-    } else {
-        document.body.insertAdjacentHTML('beforeend', acumulado)
-    }
+    
+    openPopup_v2(acumulado, "Nova Nota Fiscal")
+
 }
 
 function ocultar_pedido(elemento) {
@@ -1072,12 +1079,19 @@ async function salvar_pedido(chave) {
     let pedido = document.getElementById('pedido')
 
     if (valor.value == '' || tipo.value == 'Selecione' || pedido.value == '') {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Não deixe campos em Branco</label>
-            </div>
-        `);
+        
+        let aviso_campo_branco = document.getElementById("aviso_campo_branco")
+
+        aviso_campo_branco.style.display = "flex"
+
+        setTimeout(() => {
+            
+            aviso_campo_branco.style.display = "none"
+
+        }, 3000);
+
+        return
+
     }
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
@@ -1119,6 +1133,22 @@ async function salvar_notas(chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    if(tipo.value == "Selecione" || nota.value == "" || valorNota.value == "" || valorFrete.value == ""){
+
+        let aviso_campo_branco = document.getElementById("aviso_campo_branco")
+
+        aviso_campo_branco.style.display = "flex"
+
+        setTimeout(() => {
+            
+            aviso_campo_branco.style.display = "none"
+
+        }, 3000);
+
+        return
+
+    }
 
     if (!orcamento.status) {
         orcamento.status = { historico: {} };
