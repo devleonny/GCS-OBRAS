@@ -1,47 +1,82 @@
 body {
-    margin: 0; /* Remove qualquer margem extra */
-    padding: 0; /* Remove padding extra */
-    display: flex;
-    justify-content: center; /* Centraliza o conteúdo horizontalmente */
-    align-items: center; /* Centraliza o conteúdo verticalmente */
-    min-height: 100vh; /* Garante altura total da tela */
-    overflow: hidden; /* Evita overflow indesejado */
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #1e1e2f;
+    /* Fundo escuro */
+    color: #000000;
+    /* Texto branco */
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(45deg, #151749, #B12425);
+    animation: none;
 }
 
-th {
-    cursor: pointer; /* Adiciona cursor de ponteiro para indicar interatividade */
-    position: relative; /* Necessário para posicionar o ícone */
+tr {
+    display: table-row;
+}
+
+.top {
+    position: relative;
+    display: flex;
+    width: 95%;
+    margin: 40px 0 20px 0;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #222222bf;
+    padding: 10px;
+    border-radius: 5px;
+    gap: 20px;
+}
+
+table {
+    position: relative;
+    margin: 0 auto;
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    gap: 20px;
+}
+
+#cotacoesSalvasContainer {
+    max-height: 70vh;
+    height: max-content;
+    width: 90vw;
+    overflow: auto;
+}
+
+#novaCotacaoContainer {
+    max-height: 70vh;
+    height: max-content;
+    width: 90vw;
+    overflow: auto;
+}
+
+#cotacaoTable{
+    table-layout: auto;
+}
+
+.container-botao {
+    display: flex;
+    justify-content: flex-end;
+    /* Alinha o botão no canto direito */
+    width: 95%;
+    padding: 10px;
 }
 
 th span.ordem-icone {
     position: absolute;
-    right: 8px; /* Ajuste conforme necessário */
+    right: 8px;
+    /* Ajuste conforme necessário */
     font-size: 0.8em;
-    color: #666; /* Cor discreta */
-    pointer-events: none; /* Não interfere no clique do cabeçalho */
+    color: #666;
+    /* Cor discreta */
+    pointer-events: none;
+    /* Não interfere no clique do cabeçalho */
 }
 
 th.ordenado span.ordem-icone {
-    color: #000; /* Destaca o ícone do cabeçalho ordenado */
-}
-
-
-table th, table td {
-    border: 1px solid #ccc;
-    padding: 8px;
-    text-align: center;
-}
-
-table th {
-    background-color: #007bff;
-    color: #ffffff;
-    font-weight: bold;
-}
-
-table td {
-    background-color: #f9f9f9;
-    color: #333;
-    position: relative;
+    color: #000;
+    /* Destaca o ícone do cabeçalho ordenado */
 }
 
 .title-row {
@@ -59,12 +94,18 @@ table td {
 }
 
 button {
-    padding: 10px 20px; /* Tamanho do botão */
-    background-color: #007bff; /* Cor do botão */
-    color: white; /* Cor do texto */
-    border: none; /* Remove bordas padrão */
-    border-radius: 5px; /* Bordas arredondadas */
-    cursor: pointer; /* Adiciona ponteiro ao passar o mouse */
+    padding: 10px 20px;
+    /* Tamanho do botão */
+    background-color: #007bff;
+    /* Cor do botão */
+    color: white;
+    /* Cor do texto */
+    border: none;
+    /* Remove bordas padrão */
+    border-radius: 5px;
+    /* Bordas arredondadas */
+    cursor: pointer;
+    /* Adiciona ponteiro ao passar o mouse */
 }
 
 .remove-img {
@@ -78,7 +119,8 @@ button {
 }
 
 .parent-container {
-    position: relative; /* Define o contexto de empilhamento para o auto-complete */
+    position: relative;
+    /* Define o contexto de empilhamento para o auto-complete */
 }
 
 #autocomplete-container {
@@ -90,6 +132,7 @@ button {
     overflow-y: auto;
     z-index: 1000;
 }
+
 #autocomplete-container div:hover {
     background-color: #f4f4f4;
 }
@@ -97,15 +140,23 @@ button {
 
 .autocomplete-suggestions {
     position: absolute;
-    top: 100%; /* Move o auto-complete para logo abaixo do input */
+    top: 100%;
+    /* Move o auto-complete para logo abaixo do input */
     left: 0;
-    background-color: #fff; /* Fundo sólido */
-    border: 1px solid #ccc; /* Adiciona uma borda */
-    max-height: 150px; /* Limita a altura para rolagem */
-    overflow-y: auto; /* Permite scroll vertical */
-    z-index: 1050; /* Garante que o auto-complete fique acima de outros elementos */
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Sombra leve */
-    width: 100%; /* Faz com que o auto-complete tenha a mesma largura do input */
+    background-color: #fff;
+    /* Fundo sólido */
+    border: 1px solid #ccc;
+    /* Adiciona uma borda */
+    max-height: 150px;
+    /* Limita a altura para rolagem */
+    overflow-y: auto;
+    /* Permite scroll vertical */
+    z-index: 1050;
+    /* Garante que o auto-complete fique acima de outros elementos */
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+    /* Sombra leve */
+    width: 100%;
+    /* Faz com que o auto-complete tenha a mesma largura do input */
 }
 
 
@@ -130,10 +181,14 @@ button {
 
 
 .button-container {
-    display: flex; /* Deixa os botões alinhados em linha */
+    display: none;
+    /* Deixa os botões alinhados em linha */
     justify-content: space-around;
-    gap: 10px; /* Espaçamento entre os botões */
-    margin-top: 10px; /* Espaçamento superior */
+    gap: 10px;
+    /* Espaçamento entre os botões */
+    margin-top: 10px;
+    /* Espaçamento superior */
+    width: 70vw;
 }
 
 .modal {
@@ -151,14 +206,22 @@ button {
 }
 
 .modal-content {
-    position: relative; /* Garante que o botão .close seja posicionado em relação ao modal */
-    padding: 20px; /* Espaçamento interno */
-    border: 1px solid #888; /* Borda do modal */
-    width: 50%; /* Largura do modal */
-    margin: 15% auto; /* Centraliza o modal */
-    border-radius: 8px; /* Bordas arredondadas */
-    background-color: #fff; /* Fundo do modal */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adiciona sombra */
+    position: relative;
+    /* Garante que o botão .close seja posicionado em relação ao modal */
+    padding: 20px;
+    /* Espaçamento interno */
+    border: 1px solid #888;
+    /* Borda do modal */
+    width: 50%;
+    /* Largura do modal */
+    margin: 15% auto;
+    /* Centraliza o modal */
+    border-radius: 8px;
+    /* Bordas arredondadas */
+    background-color: #fff;
+    /* Fundo do modal */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    /* Adiciona sombra */
 }
 
 .modal-content h2 {
@@ -200,30 +263,50 @@ button {
 }
 
 .close {
-    position: absolute; /* Posiciona dentro do modal */
-    top: 10px; /* Ajusta a posição no topo */
-    right: 10px; /* Ajusta a posição à direita */
-    color: white; /* Cor do texto (branco) */
-    font-size: 20px; /* Tamanho da fonte */
-    font-weight: bold; /* Peso da fonte */
-    background-color: red; /* Fundo vermelho */
-    border: none; /* Remove a borda */
-    cursor: pointer; /* Adiciona o cursor de clique */
-    border-radius: 50%; /* Botão arredondado */
-    width: 30px; /* Largura do botão */
-    height: 30px; /* Altura do botão */
-    display: flex; /* Centraliza o conteúdo */
-    justify-content: center; /* Centraliza horizontalmente */
-    align-items: center; /* Centraliza verticalmente */
-    z-index: 1001; /* Garante que fique acima do conteúdo */
-    transition: opacity 0.3s ease; /* Adiciona uma transição suave */
-    box-shadow: none; /* Remove sombra */
+    position: absolute;
+    /* Posiciona dentro do modal */
+    top: 10px;
+    /* Ajusta a posição no topo */
+    right: 10px;
+    /* Ajusta a posição à direita */
+    color: white;
+    /* Cor do texto (branco) */
+    font-size: 20px;
+    /* Tamanho da fonte */
+    font-weight: bold;
+    /* Peso da fonte */
+    background-color: red;
+    /* Fundo vermelho */
+    border: none;
+    /* Remove a borda */
+    cursor: pointer;
+    /* Adiciona o cursor de clique */
+    border-radius: 50%;
+    /* Botão arredondado */
+    width: 30px;
+    /* Largura do botão */
+    height: 30px;
+    /* Altura do botão */
+    display: flex;
+    /* Centraliza o conteúdo */
+    justify-content: center;
+    /* Centraliza horizontalmente */
+    align-items: center;
+    /* Centraliza verticalmente */
+    z-index: 1001;
+    /* Garante que fique acima do conteúdo */
+    transition: opacity 0.3s ease;
+    /* Adiciona uma transição suave */
+    box-shadow: none;
+    /* Remove sombra */
 }
 
 .close:hover,
 .close:focus {
-    opacity: 0.8; /* Reduz opacidade ao passar o mouse */
-    outline: none; /* Remove o foco padrão */
+    opacity: 0.8;
+    /* Reduz opacidade ao passar o mouse */
+    outline: none;
+    /* Remove o foco padrão */
 }
 
 .modal-content button {
@@ -268,78 +351,10 @@ button {
     color: #000;
 }
 
-.table-container {
-    margin: 0 auto;
-    max-width: 120rem;
-    width: 95%; /* Faz o contêiner ocupar 95% da largura disponível */
-    overflow-x: auto; /* Scroll horizontal apenas se necessário */
-    overflow-y: auto; /* Scroll vertical apenas se necessário */
-    border: 1px solid #ccc; /* Borda para visualização */
-    border-radius: 5px; /* Bordas arredondadas */
-    background-color: #ffffff; /* Fundo branco */
-    position: relative;
-    margin-bottom: 20px;
-    max-height: 500px; /* Limita a altura máxima em 80% da altura da janela */
-}
-
-
-table {
-    width: 100%; /* Permite ajuste automático */
-    min-width: 1000px; /* Aumente a largura mínima */
-    border-collapse: collapse; /* Remove espaços entre bordas */
-    background-color: #ffffff; /* Fundo branco */
-}
-
-table th, table td {
-    text-align: center; /* Centraliza o texto */
-    padding: 8px; /* Adiciona espaçamento interno */
-}
-
-.table-container::-webkit-scrollbar {
-    height: 15px; /* Altura do scroll */
-}
-
-.table-container::-webkit-scrollbar-thumb {
-    border-radius: 5px; /* Bordas arredondadas do scroll */
-}
-
-.table-container::-webkit-scrollbar-track {
-    background: #f1f1f1; /* Fundo do scroll */
-}
-/* Estilo da tabela de cotações salvas */
-#cotacoesSalvasTable {
-    width: 100%;
-    border-collapse: collapse;
-    /* Importante: usar display:block para permitir o scroll no tbody */
-    display: block; 
-    /* color: #aacc14; */
-}
-
-#cotacoesSalvasTable {
-    max-height: 650px; /* Defina aqui o valor máximo de altura desejado */
-    overflow-y: auto;  /* Exibe barra de rolagem vertical quando necessário */
-}
-
-#cotacoesSalvasTable th, #cotacoesSalvasTable td {
-    border: 1px solid #ccc;
-    padding: 8px;
-    text-align: center;
-}
-
-#cotacoesSalvasTable th {
-    background-color: #007bff;
-    color: #fff;
-    font-weight: bold;
-}
-
-#cotacoesSalvasTable tbody tr:hover {
-    background-color: #f9f9f9;
-    cursor: pointer;
-}
-
-#cotacoesSalvasTable th:first-child,
-#cotacoesSalvasTable td:first-child {
-    text-align: left;
+th {
+    color: #222;
+    background-color: #d2d2d2;
+    border-radius: 0;
 }
 
 /* Botão de Nova Cotação */
@@ -392,11 +407,14 @@ table th, table td {
 
 .top-right-container {
     position: absolute;
-    top: 50px; /* Ajuste do top */
+    top: 50px;
+    /* Ajuste do top */
     right: 10px;
     display: flex;
-    flex-direction: column; /* Coloca os botões em cima um do outro */
-    gap: 10px; /* Espaçamento entre os botões */
+    flex-direction: column;
+    /* Coloca os botões em cima um do outro */
+    gap: 10px;
+    /* Espaçamento entre os botões */
 }
 
 .action-button {
@@ -405,12 +423,15 @@ table th, table td {
     gap: 8px;
     cursor: pointer;
     border-radius: 5px;
-    box-shadow: none; /* Remove a sombra */
-    transition: transform 0.3s ease; /* Efeito de hover */
+    box-shadow: none;
+    /* Remove a sombra */
+    transition: transform 0.3s ease;
+    /* Efeito de hover */
 }
 
 .action-button:hover {
-    transform: scale(1.05); /* Aumenta o tamanho no hover */
+    transform: scale(1.05);
+    /* Aumenta o tamanho no hover */
 }
 
 .action-button img {
@@ -419,7 +440,8 @@ table th, table td {
 }
 
 .action-button span {
-    color: #ffffff; /* Altera a cor para branco */
+    color: #ffffff;
+    /* Altera a cor para branco */
     font-size: 14px;
     font-family: 'Poppins', sans-serif;
     font-weight: 600;
@@ -439,56 +461,18 @@ table th, table td {
     height: auto;
 }
 
-/* Títulos */
-.titulo-principal, .novo_titulo {
-    border: 0;
-    font-size: 2rem;
-    color: #ffffff;
-    font-family: 'Poppins', sans-serif;
-    text-transform: uppercase;
-    margin: 0;
-    background-color: transparent;
-    text-align: center;
-}
-
-#mensagemCargasOrdenadas {
-    position: absolute;
-    top: 20px; /* Ajuste conforme necessário */
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #fff; /* Fundo branco */
-    color: #333; /* Cor do texto */
-    font-size: 14px;
-    font-weight: bold;
-    padding: 10px 20px;
-    border: 1px solid #ccc; /* Borda cinza */
-    border-radius: 10px; /* Bordas arredondadas */
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2); /* Sombra suave */
-    z-index: 1000;
-    display: none; /* Escondido por padrão */
-}
-
 #searchRow th {
-    background-color: transparent; /* Remove o fundo azul */
-    color: #333; /* Cor do texto */
-    font-weight: normal; /* Texto normal */
+    background-color: white;
+    /* Remove o fundo azul */
+    color: #333;
+    /* Cor do texto */
+    font-weight: normal;
+    /* Texto normal */
 }
 
 /* Estilo dos inputs dentro da linha de busca */
 #searchRow th input {
-    width: 90%; /* Ajusta a largura do input */
-    padding: 5px; /* Espaçamento interno */
-    border: 1px solid #ccc; /* Borda discreta */
-    border-radius: 4px; /* Bordas arredondadas */
-    background-color: #fff; /* Fundo branco */
-    color: #333; /* Cor do texto */
-}
-
-/* Foco nos inputs da linha de busca */
-#searchRow th input:focus {
-    border-color: #007bff; /* Cor da borda ao focar */
-    outline: none; /* Remove o contorno padrão */
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Sombra suave ao focar */
+    border-color: transparent;
 }
 
 /* Estilo para o contêiner do input e da imagem */
@@ -500,7 +484,8 @@ table th, table td {
 
 /* Estilo do input */
 .input-container input {
-    width: 90%; /* Ajusta a largura do input */
+    width: 90%;
+    /* Ajusta a largura do input */
     padding: 5px;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -510,8 +495,11 @@ table th, table td {
 
 /* Estilo da imagem da lupa */
 .input-container img {
-    width: 16px; /* Define o tamanho da imagem */
+    width: 16px;
+    /* Define o tamanho da imagem */
     height: 16px;
-    margin-left: 5px; /* Espaço entre o input e a imagem */
-    cursor: pointer; /* Adiciona um cursor ao passar o mouse */
+    margin-left: 5px;
+    /* Espaço entre o input e a imagem */
+    cursor: pointer;
+    /* Adiciona um cursor ao passar o mouse */
 }

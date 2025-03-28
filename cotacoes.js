@@ -5,7 +5,6 @@ let quantidadeFornecedores = 0;
 document.addEventListener("DOMContentLoaded", async () => {
 
     adicionarLinha();
-    await recuperarCotacoes();
     
     const idEdicao = localStorage.getItem("cotacaoEditandoID");
     const operacao = localStorage.getItem("operacao");
@@ -931,6 +930,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("novaCotacaoButton").addEventListener("click", () => {
         document.getElementById("cotacoesSalvasContainer").style.display = "none";
         document.getElementById("novaCotacaoContainer").style.display = "block";
+        document.querySelector(".button-container").style.display = "flex"
+        document.getElementById("botao-voltar-menu").style.display = "none"
+        document.getElementById("botao-voltar-tabela").style.display = "flex"
         localStorage.setItem("operacao", "incluir");
 
     });
@@ -989,6 +991,10 @@ function carregarCotacoesSalvas() {
 function editarCotacao(id) {
     const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
     const cotacao = cotacoes[id];
+
+    document.querySelector(".button-container").style.display = "flex"
+    document.getElementById("botao-voltar-menu").style.display = "none"
+    document.getElementById("botao-voltar-tabela").style.display = "flex"
 
     if (!cotacao) {
         return;

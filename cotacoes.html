@@ -8,7 +8,7 @@
 
     <title>COTAÇÕES</title>
 
-    <link rel="stylesheet" type="text/css" href="gcsobras.css">
+    <link rel="stylesheet" href="gcsobras.css">
     <link rel="stylesheet" href="cotacoes.css">
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
@@ -17,25 +17,47 @@
 
 <body>
 
-    <div class="top-right-container">
-        <div class="action-button" onclick="voltarParaInicio()">
-            <img src="imagens/voltar.png" alt="Voltar">
-            <span>Tela Inicial</span>
+    <div class="top">
+
+        <img src="imagens/BG.png" style="width: 150px;">
+        <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; color: white;">
+            <label class="novo_titulo" id="nome_modulo">KANBAN</label>
+            <label id="nome_filtro"></label>
         </div>
-        <div class="action-button" onclick="recuperarCotacoes()">
-            <img src="imagens/atualizar_2.png" alt="Atualizar">
-            <span>Atualizar</span>
+
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 10px; height: 100%;">
+                <!--PRIMEIRA COLUNA DE ÍCONES-->
+            </div>
+
+            <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
+                <div id="botao-voltar-menu" style="display: flex; align-items: center; justify-content: center; gap: 10px;"
+                    onclick="window.location.href='inicial.html'">
+                    <label style="color: white;">Menu Inicial</label>
+                    <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
+                </div>
+                <div id="botao-voltar-tabela" style="display: none; align-items: center; justify-content: center; gap: 10px;"
+                    onclick="voltarParaTabela()">
+                    <label style="color: white;">Voltar</label>
+                    <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
+                    onclick="recuperarCotacoes()">
+                    <label style="color: white;">Atualizar</label>
+                    <img src="imagens/atualizar_2.png" style="width: 25px; cursor: pointer;">
+                </div>
+                <div id="novaCotacaoButton"
+                    style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <label style="color: white;">Adicionar Nova Cotação</label>
+                    <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
+                </div>
+            </div>
         </div>
     </div>
 
 
     <div id="cotacoesSalvasContainer">
-        <div id="mensagemCargasOrdenadas" class="cotacoes-ordenadas-mensagem"></div>
-        <div class="titulo-principal-container">
-            <img src="imagens/BG.png" alt="Logo" class="logo">
-            <label class="titulo-principal">Cotações Salvas</label>
-        </div>
-        <table id="cotacoesSalvasTable">
+        <table id="cotacoesSalvasTable" class="tabela">
             <thead>
                 <tr>
                     <th id="apelidoHeader" onclick="ordenarTabela('apelido')">Apelido</th>
@@ -48,33 +70,31 @@
                 <tr id="searchRow">
                     <th>
                         <div class="input-container">
-                            <input type="text" placeholder="Pesquisar Apelido" oninput="filtrarTabela(0, this.value)">
+                            <input type="text" placeholder="..." oninput="filtrarTabela(0, this.value)">
                             <img src="imagens/pesquisar2.png" alt="Pesquisar">
                         </div>
                     </th>
                     <th>
                         <div class="input-container">
-                            <input type="text" placeholder="Pesquisar Data" oninput="filtrarTabela(1, this.value)">
+                            <input type="text" placeholder="..." oninput="filtrarTabela(1, this.value)">
                             <img src="imagens/pesquisar2.png" alt="Pesquisar">
                         </div>
                     </th>
                     <th>
                         <div class="input-container">
-                            <input type="text" placeholder="Pesquisar Criador" oninput="filtrarTabela(2, this.value)">
+                            <input type="text" placeholder="..." oninput="filtrarTabela(2, this.value)">
                             <img src="imagens/pesquisar2.png" alt="Pesquisar">
                         </div>
                     </th>
                     <th>
                         <div class="input-container">
-                            <input type="text" placeholder="Pesquisar Qtde Itens"
-                                oninput="filtrarTabela(3, this.value)">
+                            <input type="text" placeholder="..." oninput="filtrarTabela(3, this.value)">
                             <img src="imagens/pesquisar2.png" alt="Pesquisar">
                         </div>
                     </th>
                     <th>
                         <div class="input-container">
-                            <input type="text" placeholder="Pesquisar Qtde Fornecedores"
-                                oninput="filtrarTabela(4, this.value)">
+                            <input type="text" placeholder="..." oninput="filtrarTabela(4, this.value)">
                             <img src="imagens/pesquisar2.png" alt="Pesquisar">
                         </div>
                     </th>
@@ -91,19 +111,12 @@
             <!-- Linhas serão preenchidas dinamicamente -->
         </tbody>
         </table>
-        <div class="button-container">
-            <button id="novaCotacaoButton" class="btn-nova-cotacao">Nova Cotação</button>
-        </div>
     </div>
 
     <!-- Tela de Criação de Nova Cotação -->
     <div id="novaCotacaoContainer" style="display: none;">
-        <div class="titulo-principal-container">
-            <img src="imagens/BG.png" alt="Logo" class="logo">
-            <label class="novo_titulo">Sistema de Cotações</label>
-        </div>
         <div class="table-container">
-            <table id="cotacaoTable">
+            <table class="tabela" id="cotacaoTable">
                 <thead>
                     <tr class="title-row">
                         <th colspan="7">Requisição de Materiais</th>
@@ -142,17 +155,20 @@
                 </tfoot>
             </table>
         </div>
+        </div>
 
         <div class="button-container">
             <button onclick="adicionarLinha()">Adicionar Item</button>
             <button onclick="abrirModal()">Adicionar Fornecedor</button>
             <button onclick="abrirModalApelido()">Salvar</button>
             <p id="salvarAviso" class="salvar-aviso" style="display: none;">Cotação salva com sucesso!</p>
-            <button onclick="voltarParaTabela()" class="btn-voltar">Voltar</button>
             <button id="botaoFinalizarCotacao" onclick="abrirModalFinalizar()">Finalizar Cotação</button>
-            <button id="botaoReabrirCotacao" onclick="abrirModalReabrir()" style="display: none;">Reabrir Cotação</button>
-            <button id="botaoExportarPDF" onclick="exportarTabelaParaPDF()" style="display: none;">Exportar para PDF</button>
+            <button id="botaoReabrirCotacao" onclick="abrirModalReabrir()" style="display: none;">Reabrir
+                Cotação</button>
+            <button id="botaoExportarPDF" onclick="exportarTabelaParaPDF()" style="display: none;">Exportar para
+                PDF</button>
         </div>
+
 
         <div id="fornecedorModal" class="modal">
             <div class="modal-content">
