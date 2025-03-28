@@ -1477,18 +1477,14 @@ async function removerCotacao(elemento) {
 
     // 🔥 Se houver um orçamento associado, remove a referência no status
     if (idOrcamento && chavePedido) {
+        
         let dados_orcamentos = await recuperarDados("dados_orcamentos") || {};
 
-        if (idCotacao === undefined || idCotacao === "undefined") {
-            delete dados_orcamentos[idOrcamento].status[chavePedido];
-            deletar(`dados_orcamentos/${idOrcamento}/status/${chavePedido}`);
-        } else {
-            delete dados_orcamentos[idOrcamento].status[chavePedido].historico[idCotacao];
-            deletar(`dados_orcamentos/${idOrcamento}/status/${chavePedido}/historico/${idCotacao}`);
-        }
+        delete dados_orcamentos[idOrcamento].status.historico[idCotacao];
+        deletar(`dados_orcamentos/${idOrcamento}/status/historico/${idCotacao}`);
 
-        enviar("PUT", `dados_orcamentos/${idOrcamento}/timestamp`, Date.now());
         inserirDados(dados_orcamentos, "dados_orcamentos");
+
     }
 
     // 🔥 Remove a cotação na nuvem
