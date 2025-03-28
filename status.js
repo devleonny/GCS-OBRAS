@@ -1423,6 +1423,7 @@ function verificar_timestamp_nome(nome) {
     return false;
 }
 
+
 const { shell } = require('electron');
 
 function abrirArquivo(link) {
@@ -1432,7 +1433,7 @@ function abrirArquivo(link) {
     } else { // Antigo Google;
         link = `https://drive.google.com/file/d/${link}/view?usp=drivesdk`
     }
-
+    
     try {
         shell.openExternal(link);
     } catch {
@@ -1454,6 +1455,8 @@ async function abrir_esquema(id) {
     let categorias = Object.fromEntries(
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
     )
+
+    let desejaApagar = "deseja_apagar"
 
     if (orcamento) {
         var levantamentos = ''
@@ -1709,10 +1712,16 @@ async function abrir_esquema(id) {
                 `
             }
 
+            if(String(sst.status).includes('COTAÇÃO')){
+
+                desejaApagar = "deseja_apagar_cotacao"
+
+            }
+
             blocos_por_status[campo] += `
                     <div class="bloko" style="gap: 0px; border: 1px solid ${fluxograma[sst.status].cor}; background-color: white; justify-content: center;">
                         <div style="cursor: pointer; display: flex; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
-                            <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="deseja_apagar('${chave}')">&times;</span>
+                            <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="${desejaApagar}('${chave}')">&times;</span>
                             <label><strong>Executor: </strong>${sst.executor}</label>
                             <label><strong>Data: </strong>${sst.data}</label>
                             <label><strong>Comentário: </strong> <br> ${coments}</label>
@@ -2144,24 +2153,26 @@ function exibirItens(div) {
     });
 }
 
-async function iniciar_cotacao(chave, id_orcam) {
+async function iniciar_cotacao(id_orcam) {
+
+    document.getElementById("status").insertAdjacentHTML("beforebegin", overlay_aguarde())
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento = dados_orcamentos[id_orcam]
     let itens_do_orcamento = dados_orcamentos[id_orcam].dados_composicoes
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    let todos_os_status = orcamento.status[chave].historico
+    let todos_os_status = orcamento.status.historico
     let itens = {} // Dicionário;
     let tem_requisicao = false
 
     for (chave2 in todos_os_status) {
 
-        let teste = todos_os_status[chave2]
+        let status = todos_os_status[chave2]
 
-        if (String(teste.status).includes('FATURAMENTO')) {
+        if (String(status.status).includes('REQUISIÇÃO')) {
 
-            if (teste.requisicoes) {
+            if (status.requisicoes) {
 
                 tem_requisicao = true
 
@@ -2184,7 +2195,7 @@ async function iniciar_cotacao(chave, id_orcam) {
 
     for (chave2 in todos_os_status) {
         let his = todos_os_status[chave2]
-        if (String(his.status).includes('FATURAMENTO')) {
+        if (String(his.status).includes('REQUISIÇÃO')) {
 
             let requisicao = his.requisicoes
 
@@ -2253,7 +2264,7 @@ async function iniciar_cotacao(chave, id_orcam) {
 
     // Fim
 
-    let id_compartilhado = unicoID()
+    let id_compartilhado = gerar_id_5_digitos()
     let data = new Date()
     let nova_cotacao = {
         informacoes: {
@@ -2276,8 +2287,7 @@ async function iniciar_cotacao(chave, id_orcam) {
         timeStyle: 'short'
     });
 
-    orcamento.status[chave].status = 'COTAÇÃO PENDENTE'
-    orcamento.status[chave].historico[id_compartilhado] = {
+    orcamento.status.historico[id_compartilhado] = {
         status: 'COTAÇÃO PENDENTE',
         data: data_completa,
         executor: acesso.usuario,
@@ -2285,14 +2295,10 @@ async function iniciar_cotacao(chave, id_orcam) {
     };
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${id_orcam}/status/${chave}/historico/${id_compartilhado}`, orcamento.status[chave].historico[id_compartilhado])
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${id_compartilhado}`, orcamento.status.historico[id_compartilhado])
+    await enviar(`dados_cotacao/${id_compartilhado}`, nova_cotacao)
 
-    let dados = {
-        tabela: 'cotacoes',
-        cotacao: nova_cotacao
-    }
-
-    enviar_dados_generico(dados) // 29 Mantém por enquanto...
+    document.getElementById("aguarde").remove()
 
     await abrir_esquema(id_orcam)
 
@@ -3145,6 +3151,39 @@ async function apagar_status_historico(chave) {
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await abrir_esquema(id_orcam)
+}
+
+function deseja_apagar_cotacao(chave){
+
+    openPopup_v2(`
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <label>Deseja apagar essa informação?</label>
+            <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
+                <button style="background-color: green" onclick="apagar_status_historico_cotacao('${chave}')">Confirmar</button>
+            </div>
+        </div>
+        `)
+
+}
+
+async function apagar_status_historico_cotacao(chave) {
+
+    remover_popup()
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+
+    if (!chave) {
+        delete dados_orcamentos[id_orcam].status.historico
+        await deletar(`dados_orcamentos/${id_orcam}/status/historico`)
+    } else {
+        delete dados_orcamentos[id_orcam].status.historico[chave]
+        await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`)
+    }
+
+    await deletar(`dados_cotacao/${chave}`);
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await abrir_esquema(id_orcam)
+
 }
 
 function remover_cotacao(chave) {
