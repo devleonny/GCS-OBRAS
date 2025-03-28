@@ -95,8 +95,6 @@ async function preencher_v2(parceiro) {
     var orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
     var dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
-    console.log(dados_composicoes)
-
     orcamento_v2 = await conversor_composicoes_orcamento(orcamento_v2)
 
     // LÓGICA DOS DADOS
@@ -487,7 +485,6 @@ function salvarValorNaNuvem(codigoItem) {
     let caminho = `dados_composicoes/${codigoItem}/lpu parceiro/historico_pdf/${id_historico_pdf}`;
 
     enviar(caminho, objetoSalvo); // Envia o objeto completo para a nuvem
-    console.log(`✅ Valor salvo com sucesso em ${caminho}:`, objetoSalvo);
 
     imgConcluido.style.display = "none"; // Oculta a imagem após salvar
 }

@@ -373,8 +373,8 @@ async function preencher_v2(parceiro) {
     var divs_lpuParceiros = '';
 
     // 🔥 Criando a exibição separada para LPU, Informado e Desvio
-    if(parceiro){
-    divs_lpuParceiros += `
+    if (parceiro) {
+        divs_lpuParceiros += `
                         <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%;">
                             <div class="totais" style="color: ${lpuParceiros.LPU.cor}; background-color: transparent; text-align: right;">
                                 LPU: ${dinheiro(lpuParceiros.LPU.valor)}
@@ -487,7 +487,6 @@ function salvarValorNaNuvem(codigoItem) {
     let caminho = `dados_composicoes/${codigoItem}/lpu parceiro/historico_pdf/${id_historico_pdf}`;
 
     enviar(caminho, objetoSalvo); // Envia o objeto completo para a nuvem
-    console.log(`✅ Valor salvo com sucesso em ${caminho}:`, objetoSalvo);
 
     imgConcluido.style.display = "none"; // Oculta a imagem após salvar
 }
