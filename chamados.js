@@ -375,7 +375,7 @@ async function abrir_manutencao(id) {
     let elemento = `
         <br>
             
-            <div style="background-color: #151749; border-top-left-radius: 3px; border-top-right-radius: 3px; width: 70vw; padding: 5px;">Histórico</div>
+            <div style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px; width: 70vw; padding: 5px;">Histórico</div>
 
             <div style="width: 70vw; background-color: #d2d2d2; color: #222; padding: 5px;">
                 ${infos}
@@ -389,7 +389,6 @@ async function abrir_manutencao(id) {
 }
 
 function salvarPrimeiroUsuario(historico) {
-
 
     // Verifica se o objeto de histórico existe e não está vazio
     if (historico && dicionario(historico)) {
@@ -575,13 +574,16 @@ async function criar_manutencao(id) {
         <div onclick="capturar_html_pdf('${id}')" class="contorno_botoes" style="background-color: #B12425; display: flex; align-items: center; justify-content: center; gap: 10px;">
             <img src="imagens/pdf.png" style="cursor: pointer; width: 2vw;">
             <label>PDF</label>
-        </div>`
+        </div>
+        `
+
     let excluir = `
-        <div style="background-color: transparent;" onclick="confirmar_exclusao('${id}')">
-            <img src="imagens/cancel.png" style="cursor: pointer; width: 1vw; height: 1vw;">
-            <label style="font-size: 1vw; cursor: pointer;">Excluir Manutenção</label>
+        <div style="position: absolute; bottom: 0; left: 2vw; display: flex; justify-content: center; align-items: center; gap: 5px;" onclick="confirmar_exclusao('${id}')">
+            <img src="imagens/cancel.png" style="cursor: pointer; width: 1vw;">
+            <label style="font-size: 0.8vw; cursor: pointer;">Excluir Manutenção</label>
         </div>
     `
+
     if (id == undefined) {
         termo = 'Criar'
         botao = 'Enviar para Logística'
@@ -591,7 +593,6 @@ async function criar_manutencao(id) {
     }
 
     let acumulado = `
-
         <div style="position: relative;" id="tela">
 
             <div style="background-color: white; border-radius: 3px; padding: 5px; font-size: 0.9vw; width: 70vw;">
@@ -671,11 +672,16 @@ async function criar_manutencao(id) {
                             <label style="font-size: 1.2vw;">Comentário</label>
                             <textarea type="text" placeholder="..." id="comentario"></textarea>
                         </div>
-                        <div class="anexos" style="position: relative; width: 25vw; display: ${displayBotaoAnexos}; flex-direction: column; align-items: start;">
+
+                        <div style="display: flex; align-items; justify-content: center; align-items: center; gap: 5px;">
                             <label style="font-size: 1.2vw;">Anexos</label>
-                            <input type="file" id="input-anexos" multiple onchange="salvar_anexos_manutencao(this, '${id}')">
-                            <div id="lista-anexos"></div>
+                            <label class="contorno_botoes" for="anexo_pedido" style="display: ${displayBotaoAnexos}; justify-content: center; border-radius: 50%;">
+                                <img src="imagens/anexo.png" style="cursor: pointer; width: 1vw;">
+                                <input type="file" id="anexo_pedido" style="display: none;" onchange="salvar_anexos_manutencao(this, '${id}')">
+                            </label>
                         </div>
+                        
+                        <div id="lista-anexos" style="display: none; align-items: start; justify-content: start; flex-direction: column;"></div>
                     </div>
 
                 </div>
@@ -744,8 +750,8 @@ async function criar_manutencao(id) {
 
         </div>
 
-        <label id="data" style="position: absolute; bottom: 0; right: 20px; font-size: 0.8vw;">${data_atual('completa')}</label>
-        <label id="excluir" style="position: absolute; bottom: 0; left: 20px; font-size: 0.8vw; cursor: pointer;">${excluir}</label>
+        <label id="data" style="position: absolute; bottom: 0; right: 1vw; font-size: 0.8vw;">${data_atual('completa')}</label>
+        ${excluir}
 
         <div id="historico"></div>
 
@@ -1174,6 +1180,7 @@ async function renderizarAnexos(id) {
     let listaAnexos = document.getElementById("lista-anexos");
     if (!listaAnexos) return;
 
+    listaAnexos.style.display = 'flex'
     // 🔥 Recupera dados do banco
     await inserirDados(await receber('dados_manutencao'), 'dados_manutencao');
     let dados_manutencoes = await recuperarDados('dados_manutencao') || {};
@@ -1187,7 +1194,6 @@ async function renderizarAnexos(id) {
 
     // 🔸 Se ainda não há anexos, exibir mensagem
     if (Object.keys(anexos).length === 0) {
-        listaAnexos.innerHTML = "<p style='color: gray;'>Nenhum anexo encontrado.</p>";
         return;
     }
 
@@ -1200,7 +1206,7 @@ async function renderizarAnexos(id) {
 
             return `
             <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                <div style="cursor: pointer;" class="anexo-item" onclick="abrirArquivo('${anexo.link}')">
+                <div style="cursor: pointer;" class="contorno_interno" onclick="abrirArquivo('${anexo.link}')">
                     <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
                     <label title="${anexo.nome}">${nomeFormatado}</label>
                 </div>

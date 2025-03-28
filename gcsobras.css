@@ -1216,6 +1216,9 @@ input[type=range]::-moz-range-thumb {
 }
 
 .contorno_interno {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 5px;
     border-radius: 3px;
     background-color: #99999940;
