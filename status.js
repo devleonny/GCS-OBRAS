@@ -420,7 +420,7 @@ async function calcular_requisicao(sincronizar) {
                     }
 
                     var qtde = tds[4].querySelector('input') ? tds[4].querySelector('input').value : tds[4].textContent
-                    var custo = conversor(itens[codigo].custo)
+                    var custo = conversor(itens[codigo]?.custo)
                     var unt_sem_icms = custo - (custo * icms)
 
                     var labels_unitarios = tds[5].querySelectorAll('label')
@@ -673,12 +673,22 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
     };
 
     // Adiciona os itens adicionais
-    if (itens_adicionais) {
-        Object.keys(itens_adicionais).forEach(codigo => {
-            let item = itens_adicionais[codigo];
-            let tipo = "SERVIÇO"; // Itens adicionais são sempre do tipo SERVIÇO
+    if (itens_adicionais && Object.keys(itens_adicionais).length > 0) {
+        for (const codigo in itens_adicionais) {
+            if (itens_adicionais.hasOwnProperty(codigo) && itens_adicionais[codigo]) {
+                let item = itens_adicionais[codigo];
+                let tipo = "SERVIÇO"
 
-            let elements = `
+                //Verificar se o item já foi adicionado pra evitar duplicação
+                let jaExiste = false;
+                for (const itemExistente of itensFiltrados) {
+                    if(itemExistente.codigo === codigo) {
+                        jaExiste = true
+                        break
+                    }
+                }
+                if (!jaExiste) {
+                    let elements = `
                 <label>${item.descricao}</label>
             `;
 
@@ -689,7 +699,9 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
             let aux = `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`;
 
             linhas += criarLinha(codigo, item, tipo, item.qtde || 0, item.qtde || 0, partnumber, elements, aux, apenas_visualizar);
-        });
+                }
+            }
+        }
     }
 
     return linhas;
@@ -1025,7 +1037,7 @@ function mostrar_itens_adicionais() {
                         <td style="text-align: center;">---</td>
                         <td style="text-align: center;">---</td>
                         <td style="text-align: center;">
-                            ${tds[7].querySelector("select").value}
+                            ${tds[7].querySelector("select")?.value || "---"}
                          </td>
 
                     </tr>
