@@ -249,13 +249,13 @@ async function abrir_detalhes(id_pagamento) {
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     var dados_clientes = await recuperarDados('dados_clientes') || {};
     var dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
+    let dados_categorias = await recuperarDados('dados_categorias')
+    if (!dados_categorias) {
+        dados_categorias = await receber('dados_categorias')
+        inserirDados(dados_categorias, 'dados_categorias')
+    }
     var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
     var cc = 'Erro 404'
-    var categorias_invertidas = {}
-    Object.keys(dados_categorias).forEach(cat => {
-        categorias_invertidas[dados_categorias[cat]] = cat
-    })
 
     var dados_clientes_invertido = {};
 
@@ -379,13 +379,13 @@ async function abrir_detalhes(id_pagamento) {
         }
 
         valores += `
-            <label><strong>${dinheiro(item.valor)}</strong> - ${categorias_invertidas[item.codigo_categoria]} <img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 5px; top: 8px; display: ${displayLabel};" src="imagens/editar.png" onclick="modal_editar_pagamento('${id_pagamento}', '${indice}')"><img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 10px; top: 8px; display: ${displayLabel};" src="imagens/excluir.png" onclick="deseja_excluir_categoria('${id_pagamento}', '${indice}')"></label>
+            <label><strong>${dinheiro(item.valor)}</strong> - ${dados_categorias[item.codigo_categoria]} <img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 5px; top: 8px; display: ${displayLabel};" src="imagens/editar.png" onclick="modal_editar_pagamento('${id_pagamento}', '${indice}')"><img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 10px; top: 8px; display: ${displayLabel};" src="imagens/excluir.png" onclick="deseja_excluir_categoria('${id_pagamento}', '${indice}')"></label>
         `
-        if (String(categorias_invertidas[item.codigo_categoria]).includes('Parceiros')) {
+        if (String(dados_categorias[item.codigo_categoria]).includes('Parceiros')) {
             habilitar_painel_parceiro.ativar = true
             habilitar_painel_parceiro.valor += item.valor
         }
-        categoria_atual = categorias_invertidas[item.codigo_categoria]
+        categoria_atual = dados_categorias[item.codigo_categoria]
     })
 
     var div_valores = `
@@ -673,12 +673,12 @@ function deseja_excluir_pagamento(id) {
 async function deseja_excluir_categoria(id, indice) {
 
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-    var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
+    let dados_categorias = await recuperarDados('dados_categorias')
+    if (!dados_categorias) {
+        dados_categorias = await receber('dados_categorias')
+        inserirDados(dados_categorias, 'dados_categorias')
+    }
     let pagamento = lista_pagamentos[id]
-    var categorias_invertidas = {}
-    Object.keys(dados_categorias).forEach(cat => {
-        categorias_invertidas[dados_categorias[cat]] = cat
-    })
 
     let categoria = pagamento.param[0].categorias[indice]
 
@@ -689,7 +689,7 @@ async function deseja_excluir_categoria(id, indice) {
                 <label>Deseja realmente excluir essa categoria?</label>
             </div>
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
-                <label>Categoria: ${categorias_invertidas[categoria.codigo_categoria]}</label>
+                <label>Categoria: ${dados_categorias[categoria.codigo_categoria]}</label>
                 <label>Valor Atual: ${dinheiro(categoria.valor)}</label>
             </div>
             <label onclick="confirmar_exclusao_categoria('${id}', '${indice}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
@@ -720,12 +720,12 @@ async function confirmar_exclusao_categoria(id, indice) {
 async function modal_editar_pagamento(id, indice) {
 
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-    var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
+    let dados_categorias = await recuperarDados('dados_categorias')
+    if (!dados_categorias) {
+        dados_categorias = await receber('dados_categorias')
+        inserirDados(dados_categorias, 'dados_categorias')
+    }
     let pagamento = lista_pagamentos[id]
-    var categorias_invertidas = {}
-    Object.keys(dados_categorias).forEach(cat => {
-        categorias_invertidas[dados_categorias[cat]] = cat
-    })
 
     let categoria = pagamento.param[0].categorias[indice]
 
@@ -737,7 +737,7 @@ async function modal_editar_pagamento(id, indice) {
 
     `
 
-    Object.entries(dados_categorias).forEach(([categoria, codigo]) => {
+    Object.entries(dados_categorias).forEach(([codigo, categoria]) => {
 
         div_select_categorias += `
         
@@ -750,24 +750,45 @@ async function modal_editar_pagamento(id, indice) {
     div_select_categorias += "</select>"
 
     return openPopup_v2(`
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <label>Mudar valor do Pagamento</label>
+        <div style="display: flex; flex-direction: column; gap: 15px; align-items: center; padding: 20px; font-family: 'Poppins', sans-serif; font-size: 14px;">
+            
+            <!-- Categoria e valor atual -->
+            <div style="text-align: center; color: #333;">
+                <p><strong>Categoria:</strong> ${dados_categorias[categoria.codigo_categoria]}</p>
+                <p><strong>Valor Atual:</strong> ${dinheiro(categoria.valor)}</p>
             </div>
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
-                <label>Categoria: ${categorias_invertidas[categoria.codigo_categoria]}</label>
-                <label>Valor Atual: ${dinheiro(categoria.valor)}</label>
+    
+            <!-- Campo novo valor -->
+            <div style="width: 100%; display: flex; flex-direction: column; align-items: flex-start;">
+                <label for="valor_mudado" style="margin-bottom: 5px;">Novo Valor</label>
+                <input id="valor_mudado" type="number" style="width: 95%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 5px;">
             </div>
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <label>Novo Valor</label>
-                <input id="valor_mudado" type="number">
-            </div>
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+    
+            <!-- Select de categoria -->
+            <div style="width: 100%; display: flex; flex-direction: column; align-items: flex-start;">
                 ${div_select_categorias}
             </div>
-            <label onclick="editar_pagamento('${id}', ${indice})" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
+    
+            <!-- Botão Confirmar -->
+            <label onclick="editar_pagamento('${id}', ${indice})"
+                class="contorno_botoes"
+                style="
+                    background-color: #B12425;
+                    color: white;
+                    font-weight: bold;
+                    padding: 10px 20px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    margin-top: 10px;
+                    transition: background 0.3s ease;
+                "
+                onmouseover="this.style.backgroundColor='#911d1d'"
+                onmouseout="this.style.backgroundColor='#B12425'"
+            >
+                Confirmar
+            </label>
         </div>
-        `)
+    `, "Mudar valor do Pagamento")    
 
 }
 
@@ -797,15 +818,15 @@ async function editar_pagamento(id, indice) {
 
         novoValorDocumento += valorMudado
 
-        enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/valor`, valorMudado)
-        enviar(`lista_pagamentos/${id}/param[0]/valor_documento`, novoValorDocumento)
+        await enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/valor`, valorMudado)
+        await enviar(`lista_pagamentos/${id}/param[0]/valor_documento`, novoValorDocumento)
 
     }
 
     if (categoriaMudada != "Selecione") {
 
         let codigoMudado = categoriaMudada.options[categoriaMudada.selectedIndex].dataset.codigo;
-        enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/codigo_categoria`, codigoMudado)
+        await enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/codigo_categoria`, codigoMudado)
 
     }
 
@@ -2488,12 +2509,11 @@ function pesquisar_em_pagamentos(coluna, texto) {
 async function duplicar_pagamento(id_pagamento) {
 
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-    let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
-
-    let categorias_invertidas = {}
-    Object.keys(dados_categorias).forEach(cat => {
-        categorias_invertidas[dados_categorias[cat]] = cat
-    })
+    let dados_categorias = await recuperarDados('dados_categorias')
+    if (!dados_categorias) {
+        dados_categorias = await receber('dados_categorias')
+        inserirDados(dados_categorias, 'dados_categorias')
+    }
 
     let pagamento = lista_pagamentos[id_pagamento]
 
@@ -2503,7 +2523,7 @@ async function duplicar_pagamento(id_pagamento) {
 
     Object.entries(pagamento.param[0].categorias).forEach(categoriaPagamento => {
 
-        Object.entries(categorias_invertidas).forEach(([chave, nomecategoria]) => {
+        Object.entries(dados_categorias).forEach(([chave, nomecategoria]) => {
 
             if (categoriaPagamento[1].codigo_categoria == chave) {
 
