@@ -28,12 +28,16 @@ tr {
     gap: 20px;
 }
 
+thead, th, tr, td {
+    border-radius: 0 !important;
+}
+
 table {
     position: relative;
     margin: 0 auto;
     width: 100%;
     padding: 10px;
-    border-radius: 5px;
+    border-radius: 0 !important;
     gap: 20px;
 }
 
@@ -49,6 +53,19 @@ table {
     height: max-content;
     width: 90vw;
     overflow: auto;
+}
+
+#toolbar {
+    margin: 0 auto 0 auto; /* remove o espaçamento superior e reduz o inferior */
+    width: 90%;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 10px;
+}
+
+#toolbar label {
+    cursor: pointer;
 }
 
 #cotacaoTable{

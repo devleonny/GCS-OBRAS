@@ -932,11 +932,14 @@ document.addEventListener("DOMContentLoaded", () => {
     carregarCotacoesSalvas();
 
     document.getElementById("novaCotacaoButton").addEventListener("click", () => {
+
         document.getElementById("cotacoesSalvasContainer").style.display = "none";
+        document.getElementById("toolbar").style.display = "none";
         document.getElementById("novaCotacaoContainer").style.display = "block";
         document.querySelector(".button-container").style.display = "flex"
         document.getElementById("botao-voltar-menu").style.display = "none"
         document.getElementById("botao-voltar-tabela").style.display = "flex"
+
         localStorage.setItem("operacao", "incluir");
 
     });
@@ -975,11 +978,11 @@ function carregarCotacoesSalvas() {
 
         linha.innerHTML = `
             <td>${cotacao.informacoes.apelidoCotacao || 'Sem Apelido'}</td>
+            <td>${cotacao.status}</td>
             <td>${cotacao.informacoes.data}</td>
             <td>${cotacao.informacoes.criador}</td>
             <td>${cotacao.dados.length}</td>
             <td>${cotacao.valorFinal.length}</td>
-            <td>${cotacao.status}</td>
             <td>
                 <img src="imagens/editar.png" alt="Editar" class="img-editar" onclick="editarCotacao('${id}')">
                 <img src="imagens/excluir.png" alt="Excluir" class="img-excluir" onclick="removerCotacao(this)">
@@ -992,6 +995,85 @@ function carregarCotacoesSalvas() {
 
 }
 
+function filtrarCotacoesPorStatus(statusSelecionado = "Todos") {
+    const tabela = document.getElementById("cotacoesSalvasTable");
+    const linhas = tabela.querySelectorAll("tbody tr");
+
+    const contadores = {
+        Todos: 0,
+        Pendente: 0,
+        Finalizada: 0,
+        listas: ["Todos", "Pendente", "Finalizada"]
+    };
+
+    linhas.forEach((linha) => {
+        const status = linha.children[1]?.textContent?.trim();
+        const mostrar = statusSelecionado === "Todos" || status === statusSelecionado;
+
+        linha.style.display = mostrar ? "table-row" : "none";
+
+        // Conta todos os status
+        if (contadores[status] !== undefined) contadores[status]++;
+        contadores.Todos++;
+    });
+
+    // Renderizar a toolbar
+    const toolbar = document.getElementById("toolbar");
+    toolbar.innerHTML = "";
+
+    const cores = {
+        ativo: {
+            bg: "#d2d2d2",
+            bgContador: "#222",
+            colorContador: "#d2d2d2"
+        },
+        inativo: {
+            bg: "#797979",
+            bgContador: "#3d3c3c",
+            colorContador: "#d2d2d2"
+        }
+    };
+
+    contadores.listas.forEach((status) => {
+        const ativo = status === statusSelecionado;
+        const estilo = ativo ? cores.ativo : cores.inativo;
+
+        const labelHTML = `
+        <div onclick="filtrarCotacoesPorStatus('${status}')"
+            style="background-color:${estilo.bg};
+                   color: #222;
+                   display: flex;
+                   flex-direction: column;
+                   justify-content: center;
+                   align-items: center;
+                   gap: 3px;
+                   cursor: pointer;
+                   padding: 10px;
+                   font-size: 0.8vw;
+                   border-top-left-radius: 5px;
+                   border-top-right-radius: 5px;">
+
+            <label>${status.charAt(0).toUpperCase() + status.slice(1)}</label>
+            <label style="text-align: center;
+                          background-color: ${estilo.bgContador};
+                          color: ${estilo.colorContador};
+                          border-radius: 3px;
+                          padding-left: 10px;
+                          padding-right: 10px;
+                          width: 50%;">${contadores[status]}</label>
+        </div>
+        `;
+
+        toolbar.insertAdjacentHTML("beforeend", labelHTML);
+    });
+}
+
+const interval = setInterval(() => {
+    if (document.getElementById("toolbar")) {
+        filtrarCotacoesPorStatus("Todos");
+        clearInterval(interval);
+    }
+}, 50); // tenta a cada 50ms // Inicializa com "TODOS"
 
 function editarCotacao(id) {
     const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
@@ -1040,6 +1122,7 @@ function editarCotacao(id) {
 
     // Exibe a tela de edição
     document.getElementById("cotacoesSalvasContainer").style.display = "none";
+    document.getElementById("toolbar").style.display = "none";
     document.getElementById("novaCotacaoContainer").style.display = "block";
 
     // Exibe o botão de exportar PDF
@@ -1433,10 +1516,6 @@ function removerLinha(elemento) {
     const linha = elemento.parentElement.parentElement;
     linha.remove();
     atualizarQuantidadeItens();
-}
-
-async function voltarParaTabela() {
-    f5()
 }
 
 async function recuperarCotacoes() {
@@ -1924,8 +2003,6 @@ function formatarParaReal(valor) {
 }
 
 function voltarParaTabela() {
-    const botaoPDF = document.getElementById("botaoExportarPDF");
-    botaoPDF.style.display = "none"; // Oculta o botão
     f5();
 }
 
