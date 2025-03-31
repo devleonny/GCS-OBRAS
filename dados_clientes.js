@@ -265,12 +265,12 @@ function recuperar_preenchido() {
             var levantamento = orcamento_v2.levantamentos[chave]
 
             acumulado += `
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <div style="align-items: center; width: max-content; font-size: 0.7em; display: flex; justify-content; left; box-shadow: 2px 2px #94a0ab; background-color: #e9e9e9; color: #555; padding: 5px; margin:5px; border-radius: 5px;">
-                    <img src="imagens/anexo2.png" style="width: 3vw;">
-                    <label><strong>${encurtar_texto(levantamento.nome, 10)}</strong></label>
+            <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+                <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                    <img src="imagens/anexo2.png" style="width: 25px; height: 20px;">
+                    <label style="font-size: 0.8em; cursor: pointer;"><strong>${encurtar_texto(levantamento.nome, 10)}</strong></label>
                 </div>
-                <label style="text-decoration: underline; font-size: 0.7em; cursor: pointer;" onclick="excluir_levantamento('${chave}')">Excluir</label>
+                <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="excluir_levantamento('${chave}')">
             </div>
             `
         }
