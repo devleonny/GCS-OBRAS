@@ -1460,7 +1460,7 @@ async function abrir_esquema(id) {
             </div>
             • 
             <br>
-            <div style="display: flex; flex-direction: column; align-items: start;">
+            <div class="contorno" style="display: flex; justify-content: center; align-items: center; width: max-content; gap: 10px; background-color: #222; color: white:">
                 <div class="contorno_botoes" style="background-color: #222;">
                     <img src="imagens/anexo2.png" style="width: 2vw;">
                     <label style="font-size: 1vw;" for="adicionar_levantamento">Anexar levantamento
