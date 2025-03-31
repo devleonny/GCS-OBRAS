@@ -3142,7 +3142,7 @@ async function gerarpdf(cliente, pedido) {
         menu_flutuante.style.display = 'none'
     }
 
-    var status = document.getElementById('status')
+    var janela = document.querySelector('.janela')
 
     var htmlContent = `
     <!DOCTYPE html>
@@ -3214,7 +3214,7 @@ async function gerarpdf(cliente, pedido) {
         </style>
     </head>
     <body>
-        ${status.innerHTML}
+        ${janela.innerHTML}
     </body>
     </html>`;
 
