@@ -1385,15 +1385,6 @@ function ordenar() {
 async function tela_pagamento(tela_atual_em_orcamentos) {
 
     ordem = 0
-
-    intervaloCompleto = setInterval(function () {
-        document.getElementById('tempo').textContent = data_atual('completa');
-    }, 1000);
-
-    intervaloCurto = setInterval(function () {
-        document.getElementById('tempo_real').textContent = data_atual('curta');
-    }, 1000);
-
     var datalist = ''
     if (tela_atual_em_orcamentos) {
 
@@ -1575,6 +1566,17 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
     `;
 
     openPopup_v2(acumulado, 'Solicitação de Pagamento')
+
+    intervaloCompleto = setInterval(function () {
+        if (!tempo || !tempo.textContent) {
+            clearInterval(intervaloCompleto)
+        }
+        document.getElementById('tempo').textContent = data_atual('completa')
+    }, 1000);
+
+    intervaloCurto = setInterval(function () {
+        document.getElementById('tempo_real').textContent = data_atual('curta');
+    }, 1000);
 
     await recuperar_ultimo_pagamento()
 
@@ -1865,17 +1867,20 @@ async function calculadora_pagamento() {
             painel_parceiro.style.display = 'none'
         }
 
-        if (atraso_na_data > 0) {
-            clearInterval(intervaloCurto);
-            intervaloCurto = setInterval(function () {
-                tempo_real.textContent = data_atual('curta', atraso_na_data);
-            }, 1000);
+        let tempo_real = document.getElementById('tempo_real')
+        if (tempo_real) {
+            if (atraso_na_data > 0) {
+                clearInterval(intervaloCurto);
+                intervaloCurto = setInterval(function () {
+                    tempo_real.textContent = data_atual('curta', atraso_na_data);
+                }, 1000);
 
-        } else {
-            clearInterval(intervaloCurto);
-            intervaloCurto = setInterval(function () {
-                tempo_real.textContent = data_atual('curta');
-            }, 1000);
+            } else {
+                clearInterval(intervaloCurto);
+                intervaloCurto = setInterval(function () {
+                    tempo_real.textContent = data_atual('curta');
+                }, 1000);
+            }
         }
 
         let container_cnpj_cpf = document.getElementById('container_cnpj_cpf')
