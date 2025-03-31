@@ -251,7 +251,7 @@ async function recuperarDados(nome_da_base) {
     });
 }
 
-function openPopup_v2(elementoHTML, titulo, nao_abrir_status) {
+function openPopup_v2(elementoHTML, titulo, nao_remover_anteriores) {
 
     let popup_v2 = `
     <div id="temp_pop" style="
@@ -280,7 +280,7 @@ function openPopup_v2(elementoHTML, titulo, nao_abrir_status) {
                     <div class="botao_popup" onclick="ajustar_janela(true)">
                         <img src="imagens/max.png">
                     </div>
-                    <div class="botao_popup" style="border-top-right-radius: 5px; background-color: #b12425;" onclick="remover_popup(${nao_abrir_status ? true : false})">
+                    <div class="botao_popup" style="border-top-right-radius: 5px; background-color: #b12425;" onclick="remover_popup()">
                         <label>×</label>
                     </div>
 
@@ -298,10 +298,7 @@ function openPopup_v2(elementoHTML, titulo, nao_abrir_status) {
     </div>
     `;
 
-    let temp_pop = document.getElementById('temp_pop');
-    if (temp_pop) {
-        temp_pop.remove()
-    }
+    remover_popup(nao_remover_anteriores)
 
     document.body.insertAdjacentHTML('beforeend', popup_v2);
 
@@ -386,17 +383,20 @@ function mostrar_ocultar_alertas() {
     }
 }
 
-async function remover_popup(nao_abrir_status) {
+async function remover_popup(nao_remover_anteriores) {
 
-    var pop = document.getElementById('temp_pop')
-    while (pop) {
-        pop.remove()
-        pop = document.getElementById('temp_pop')
+    let pop_ups = document.querySelectorAll('#temp_pop')
+    if (pop_ups.length >= 2) {
+        pop_ups[pop_ups.length - 1].remove()
+        return
     }
 
-    if (id_orcam && !nao_abrir_status) {
-        await abrir_esquema(id_orcam)
+    if (!nao_remover_anteriores) {
+        pop_ups.forEach(pop => {
+            pop.remove()
+        })
     }
+
 
 }
 
@@ -1339,6 +1339,34 @@ async function gerar_pdf_online(htmlString, nome) {
 
 }
 
+async function refazer_pagamento(id_pagamento) {
+
+    openPopup_v2(`
+        <div style="margin: 1vw; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <img src="gifs/loading.gif" style="width: 5vw;">
+            <label>Aguarde...</label>
+        </div>
+        `, 'Aviso', true)
+
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+
+    if (lista_pagamentos[id_pagamento]) {
+        remover_popup()
+        let pagamento = lista_pagamentos[id_pagamento]
+        console.log(await lancar_pagamento(pagamento))
+        pagamento.status = 'Pagamento salvo localmente'
+        await inserirDados(lista_pagamentos, 'lista_pagamentos')
+        await abrir_detalhes(id_pagamento)
+    } else {
+        openPopup_v2(`
+            <div style="margin: 1vw;">
+                <label>Atualize os pagamentos e tente novamente.</label>
+            </div>
+            `, 'Aviso', true)
+    }
+
+}
+
 async function lancar_pagamento(pagamento) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/lancar_pagamento", {
@@ -1353,7 +1381,7 @@ async function lancar_pagamento(pagamento) {
                 return response.text();
             })
             .then(data => {
-                resolve();
+                resolve(data);
             })
             .catch(err => {
                 console.error("Erro ao gerar PDF:", err)

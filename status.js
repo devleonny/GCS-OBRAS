@@ -264,7 +264,7 @@ async function painel_adicionar_pedido() {
 
     `
 
-    openPopup_v2(acumulado, "Novo Pedido")
+    openPopup_v2(acumulado, "Novo Pedido", true)
 
 }
 
@@ -335,7 +335,7 @@ async function painel_adicionar_notas(chave) {
 
     `
 
-    openPopup_v2(acumulado, "Nova Nota Fiscal")
+    openPopup_v2(acumulado, "Nova Nota Fiscal", true)
 
 }
 
@@ -682,7 +682,7 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
                 //Verificar se o item já foi adicionado pra evitar duplicação
                 let jaExiste = false;
                 for (const itemExistente of itensFiltrados) {
-                    if(itemExistente.codigo === codigo) {
+                    if (itemExistente.codigo === codigo) {
                         jaExiste = true
                         break
                     }
@@ -692,13 +692,13 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
                 <label>${item.descricao}</label>
             `;
 
-            let partnumber = `
+                    let partnumber = `
                 <input value="${item.partnumber || ''}" class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;">
             `;
 
-            let aux = `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`;
+                    let aux = `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`;
 
-            linhas += criarLinha(codigo, item, tipo, item.qtde || 0, item.qtde || 0, partnumber, elements, aux, apenas_visualizar);
+                    linhas += criarLinha(codigo, item, tipo, item.qtde || 0, item.qtde || 0, partnumber, elements, aux, apenas_visualizar);
                 }
             }
         }
@@ -731,7 +731,7 @@ function abrirModalTipoRequisicao() {
         </div>
     `;
 
-    openPopup_v2(modal, 'Escolha o tipo de Requisição');
+    openPopup_v2(modal, 'Escolha o tipo de Requisição', true);
 }
 
 function escolherTipoRequisicao(tipo) {
@@ -810,7 +810,7 @@ async function abrir_adicionais(codigo) {
         </div>
     `
 
-    openPopup_v2(acumulado, 'Itens Adicionais')
+    openPopup_v2(acumulado, 'Itens Adicionais', true)
 
     for (cd in itens_adicionais) {
 
@@ -1898,10 +1898,9 @@ async function abrir_esquema(id) {
         </div>
         `
 
-    openPopup_v2(estruturaHtml, 'Histórico do Orçamento', true) // True aqui vai impedir que a janela do Histórico reabra automaticamente;
+    openPopup_v2(estruturaHtml, 'Histórico do Orçamento')
 
     // É só esperar a página incluir os elementos acima, simples... não precisa de timeInterval...
-    let totalValoresPedidos = somarValoresPedidos();
     let totalValoresManuais = somarValoresManuais(dados_orcamentos[id]);
     let totalFinal = conversor(orcamento.total_geral) - totalValoresManuais;
     let valorPedidoSpan = document.getElementById('valor_pedido');
@@ -2396,7 +2395,7 @@ async function retorno_de_materiais(chave) {
     <hr style="width: 80%;">
     <button style="background-color: #4CAF50;" onclick="salvar_materiais_retorno('${chave}')">Salvar</button>
     `
-    openPopup_v2(acumulado, 'Retorno de Materiais')
+    openPopup_v2(acumulado, 'Retorno de Materiais', true)
 
 }
 
@@ -2969,7 +2968,7 @@ async function detalhar_requisicao(chave, editar, tipoRequisicao) {
     <div>
     `
 
-    openPopup_v2(acumulado, 'Requisição')
+    openPopup_v2(acumulado, 'Requisição', true)
 
     await calcular_requisicao()
     mostrar_itens_adicionais()
@@ -3303,5 +3302,5 @@ async function envio_de_material(chave) {
       
     </div>
     `
-    openPopup_v2(acumulado, 'Envio de Material')
+    openPopup_v2(acumulado, 'Envio de Material', true)
 }
