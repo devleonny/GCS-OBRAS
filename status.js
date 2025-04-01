@@ -1157,6 +1157,8 @@ async function salvar_notas(chave) {
     }]
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
+
+    remover_popup()
     await abrir_esquema(id_orcam)
 
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
