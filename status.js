@@ -1045,22 +1045,7 @@ function mostrar_itens_adicionais() {
                     tr.insertAdjacentHTML("afterend", linha)
                 }
 
-                var acumulado = `
-                <div id="tabela_${codigo}" style="padding: 5px; border-radius: 3px; display: flex; flex-direction: column; justify-content: center; align-items: start; gap: 2px;">
-                    <label><strong>ITENS ADICIONAIS</strong></label>
-                    <table class="tabela">
-                        <thead>
-                            <th>Qtde</th>
-                            <th>Unidade</th>
-                            <th>Partnumber</th>
-                            <th>Descricao</th>
-                        </thead>
-                        <tbody style="font-size: 0.6vw; ">${linhas}</tbody>
-                    </table>
-                </div>
-                `
 
-                // tds[2].querySelector('div').insertAdjacentHTML('beforeend', acumulado)
             }
 
         })

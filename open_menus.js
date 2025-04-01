@@ -309,8 +309,11 @@ let janela_original_simples = { width: '', height: '', maxWidth: '', maxHeight: 
 let maximizado = false;
 
 function ajustar_janela(ampliar) {
-    let janela_fora = document.querySelector('.janela_fora');
-    let janela = document.querySelector('.janela');
+    let janela_fora = document.querySelectorAll('.janela_fora')
+    let janela = document.querySelectorAll('.janela')
+
+    janela_fora = janela_fora[janela_fora.length - 1]
+    janela = janela[janela.length - 1]
 
     if (!janela_fora || !janela) return;
 
@@ -386,17 +389,19 @@ function mostrar_ocultar_alertas() {
 async function remover_popup(nao_remover_anteriores) {
 
     let pop_ups = document.querySelectorAll('#temp_pop')
-    if (pop_ups.length >= 2) {
-        pop_ups[pop_ups.length - 1].remove()
+
+    if (nao_remover_anteriores) {
         return
     }
 
-    if (!nao_remover_anteriores) {
+    if (pop_ups.length > 1) {
+        pop_ups[pop_ups.length - 1].remove()
+
+    } else {
         pop_ups.forEach(pop => {
             pop.remove()
         })
     }
-
 
 }
 

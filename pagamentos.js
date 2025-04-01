@@ -772,7 +772,7 @@ async function modal_editar_pagamento(id, indice) {
                 Confirmar
             </label>
         </div>
-    `, "Mudar valor do Pagamento")    
+    `, "Mudar valor do Pagamento", true)    
 
 }
 
