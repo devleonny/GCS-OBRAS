@@ -241,10 +241,6 @@ async function consultar_pagamentos() {
 
 async function abrir_detalhes(id_pagamento) {
 
-    if (overlay) {
-        overlay.style.display = 'block'
-    }
-
     ordem = 0
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     var dados_clientes = await recuperarDados('dados_clientes') || {};
@@ -340,6 +336,7 @@ async function abrir_detalhes(id_pagamento) {
     }
 
     var acoes_orcamento = ''
+
     if (dados_orcamentos[pagamento.id_orcamento]) {
         acoes_orcamento += `
         <div class="btn_detalhes" onclick="exibir_todos_os_status('${pagamento.id_orcamento}')">
@@ -349,7 +346,7 @@ async function abrir_detalhes(id_pagamento) {
         `
     }
 
-    acoes_orcamento = `
+    acoes_orcamento += `
     
         <div onclick="duplicar_pagamento('${id_pagamento}')" class="btn_detalhes">
             <img src="imagens/reembolso.png">
@@ -572,7 +569,7 @@ async function abrir_detalhes(id_pagamento) {
     }
 
     acumulado += `
-    <div style="display: flex; gap: 10px; flex-direction: column; align-items: baseline; text-align: left; overflow: auto; padding: 2vw;">
+    <div style="max-width: 50vw; display: flex; gap: 10px; flex-direction: column; align-items: baseline; text-align: left; overflow: auto; padding: 2vw;">
         ${acoes_orcamento}
         ${btns}
         <label><strong>Status atual • </strong> ${pagamento.status}</label>
@@ -611,21 +608,8 @@ async function abrir_detalhes(id_pagamento) {
         <label><strong>Histórico </strong> • ${historico}</label>
     </div>
     `
-    var elementus = `
-    <div id="detalhes" class="status" style="display: flex; width: 50vw; overflow: hidden; padding: 0px;">
-        <div style="background-color: #d2d2d2; width: 100%; display: flex; justify-content: space-between; align-items: center;">
-            <label style="margin-left: 1vw;">Detalhes do Pagamento</label>
-            <label style="font-size: 1.5vw; text-align: center; color: white; background-color: #B12425; cursor: pointer; width: 3vw; height: 100%;" onclick="fechar_detalhes()">&times;</label>
-        </div>
-        ${acumulado}
-    </div>
-    `
-    var detalhes = document.getElementById('detalhes')
-    if (detalhes) {
-        detalhes.remove()
-    }
-    document.body.insertAdjacentHTML('beforeend', elementus)
-    overlay.style.display = 'block'
+
+    openPopup_v2(acumulado, 'Detalhes do Pagamento')
 
     // Depois que se abre o pagamento, percorra os anexos e preencha cada item;
     if (pagamento.anexos_parceiros) {
@@ -788,7 +772,7 @@ async function modal_editar_pagamento(id, indice) {
                 Confirmar
             </label>
         </div>
-    `, "Mudar valor do Pagamento")    
+    `, "Mudar valor do Pagamento", true)    
 
 }
 
@@ -1422,15 +1406,6 @@ function ordenar() {
 async function tela_pagamento(tela_atual_em_orcamentos) {
 
     ordem = 0
-
-    intervaloCompleto = setInterval(function () {
-        document.getElementById('tempo').textContent = data_atual('completa');
-    }, 1000);
-
-    intervaloCurto = setInterval(function () {
-        document.getElementById('tempo_real').textContent = data_atual('curta');
-    }, 1000);
-
     var datalist = ''
     if (tela_atual_em_orcamentos) {
 
@@ -1612,6 +1587,17 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
     `;
 
     openPopup_v2(acumulado, 'Solicitação de Pagamento')
+
+    intervaloCompleto = setInterval(function () {
+        if (!tempo || !tempo.textContent) {
+            clearInterval(intervaloCompleto)
+        }
+        document.getElementById('tempo').textContent = data_atual('completa')
+    }, 1000);
+
+    intervaloCurto = setInterval(function () {
+        document.getElementById('tempo_real').textContent = data_atual('curta');
+    }, 1000);
 
     await recuperar_ultimo_pagamento()
 
@@ -1902,17 +1888,20 @@ async function calculadora_pagamento() {
             painel_parceiro.style.display = 'none'
         }
 
-        if (atraso_na_data > 0) {
-            clearInterval(intervaloCurto);
-            intervaloCurto = setInterval(function () {
-                tempo_real.textContent = data_atual('curta', atraso_na_data);
-            }, 1000);
+        let tempo_real = document.getElementById('tempo_real')
+        if (tempo_real) {
+            if (atraso_na_data > 0) {
+                clearInterval(intervaloCurto);
+                intervaloCurto = setInterval(function () {
+                    tempo_real.textContent = data_atual('curta', atraso_na_data);
+                }, 1000);
 
-        } else {
-            clearInterval(intervaloCurto);
-            intervaloCurto = setInterval(function () {
-                tempo_real.textContent = data_atual('curta');
-            }, 1000);
+            } else {
+                clearInterval(intervaloCurto);
+                intervaloCurto = setInterval(function () {
+                    tempo_real.textContent = data_atual('curta');
+                }, 1000);
+            }
         }
 
         let container_cnpj_cpf = document.getElementById('container_cnpj_cpf')

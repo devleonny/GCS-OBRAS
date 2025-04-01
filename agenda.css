@@ -24,6 +24,28 @@ td:first-child {
   text-overflow: ellipsis;
 }
 
+.selecionado {
+  background-color: rgba(0, 123, 255);
+  border: 1px solid blue;
+}
+
+.com-triangulo {
+  cursor: pointer;
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-top: 1vw solid #222;
+  border-left: 1vw solid transparent;
+}
+
+.com-triangulo:hover {
+  transition: 0.1s ease-in-out;
+  border-top: 1vw solid #B12425;
+}
+
 select,
 .campos {
   cursor: pointer;

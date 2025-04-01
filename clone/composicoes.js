@@ -175,6 +175,16 @@ async function carregar_tabela_v2() {
                     `
                 alinhamento = 'center';
 
+            } else if (chave == 'setor') {
+
+                conteudo = `
+                <select style="cursor: pointer;" onchange="alterar_setor('${codigo}', this)">
+                    <option ${produto?.setor == '' ? 'selected' : ''}></option>
+                    <option ${produto?.setor == 'IP' ? 'selected' : ''}>IP</option>
+                    <option ${produto?.setor == 'ANALOGICO' ? 'selected' : ''}>ANALOGICO</option>
+                </select>
+                `
+
             } else if (chave == 'material infra') {
 
                 var stats = ''
@@ -231,6 +241,18 @@ async function carregar_tabela_v2() {
         }
     }
 
+}
+
+async function alterar_setor(codigo, select) {
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
+    let produto = dados_composicoes[codigo]
+
+    produto.setor = select.value
+
+    enviar(`dados_composicoes/${codigo}/setor`, select.value)
+
+    await inserirDados(dados_composicoes, 'dados_composicoes')
 }
 
 async function atualizar_status_material(codigo, elemento) {

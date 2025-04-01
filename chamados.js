@@ -917,10 +917,8 @@ async function enviar_manutencao(id) {
     }
 
     // Anexos 
-    if (dados_manutencao?.[id].anexos) {
-        manutencao.anexos = {
-            ...dados_manutencao[id].anexos
-        }
+    manutencao.anexos = {
+        ...dados_manutencao[id]?.anexos || {}
     }
 
     enviar(`dados_manutencao/${id}`, manutencao)

@@ -12,6 +12,14 @@ function f5() {
     location.reload();
 }
 
+// Provisório
+
+localStorage.removeItem('technicians')
+localStorage.removeItem('departments')
+localStorage.removeItem('modulo_ativo')
+localStorage.removeItem('current_settings')
+localStorage.removeItem('dados_agenda_tecnicos')
+
 identificacao_user()
 async function identificacao_user() {
 
@@ -243,7 +251,7 @@ async function recuperarDados(nome_da_base) {
     });
 }
 
-function openPopup_v2(elementoHTML, titulo) {
+function openPopup_v2(elementoHTML, titulo, nao_remover_anteriores) {
 
     let popup_v2 = `
     <div id="temp_pop" style="
@@ -258,35 +266,28 @@ function openPopup_v2(elementoHTML, titulo) {
     justify-content: center;
     background-color: rgba(0, 0, 0, 0.7);">
 
-        <div style="
-        padding-bottom: 2vh;
-        position: relative;
-        display: flex;
-        flex-direction: column; 
-        align-items: center; 
-        background-color: white;
-        max-width: 90vw;
-        text-align: center;
-        font-size: 1.0vw;
-        border-radius: 10px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);">
+        <div class="janela_fora">
+            
+            <div style="background-color: transparent; width: 100%; display: flex; justify-content: center; align-items: center;">
+                <div class="botao_popup" style="pointer-events: none; width: 100%; display: flex; justify-content: space-between; align-items: center; border-top-left-radius: 5px;">
+                    <label style="margin-left: 1vw; margin-right: 3vw; color: white;">${titulo || 'GCS'}</label>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center;">
 
-            <div style="
-            width: 100%;
-            background-color: #3b444c;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;">
-                <label style="margin-left: 1vw; margin-right: 3vw; color: white;">${titulo || 'GCS'}</label>
-                <label style="border-top-right-radius: 5px; font-size: 1.5vw; text-align: center; color: white; background-color: #B12425; cursor: pointer; width: 3vw; height: 100%;" onclick="remover_popup()">×</label>
+                    <div class="botao_popup" onclick="ajustar_janela(false)">
+                        <label>_</label>
+                    </div>
+                    <div class="botao_popup" onclick="ajustar_janela(true)">
+                        <img src="imagens/max.png">
+                    </div>
+                    <div class="botao_popup" style="border-top-right-radius: 5px; background-color: #b12425;" onclick="remover_popup()">
+                        <label>×</label>
+                    </div>
+
+                </div>
             </div>
-
-            <div style="
-                overflow: auto;
-                max-height: 70vh;
-                padding: 5px;">
+            
+            <div class="janela">
 
                 ${elementoHTML}
 
@@ -294,17 +295,72 @@ function openPopup_v2(elementoHTML, titulo) {
 
         </div>
 
-    </div>    
+    </div>
     `;
 
-    let temp_pop = document.getElementById('temp_pop');
-    if (temp_pop) {
-        temp_pop.innerHTML = popup_v2;
-    } else {
-        document.body.insertAdjacentHTML('beforeend', popup_v2);
-    }
+    remover_popup(nao_remover_anteriores)
+
+    document.body.insertAdjacentHTML('beforeend', popup_v2);
 
 }
+
+let janela_original = { width: '', height: '', maxWidth: '', maxHeight: '' };
+let janela_original_simples = { width: '', height: '', maxWidth: '', maxHeight: '' };
+let maximizado = false;
+
+function ajustar_janela(ampliar) {
+    let janela_fora = document.querySelectorAll('.janela_fora')
+    let janela = document.querySelectorAll('.janela')
+
+    janela_fora = janela_fora[janela_fora.length - 1]
+    janela = janela[janela.length - 1]
+
+    if (!janela_fora || !janela) return;
+
+    if (ampliar) {
+        if (!maximizado) {
+            // Salvar tamanhos originais da janela principal
+            let estilosFora = getComputedStyle(janela_fora);
+            janela_original.width = estilosFora.width;
+            janela_original.height = estilosFora.height;
+            janela_original.maxWidth = estilosFora.maxWidth;
+            janela_original.maxHeight = estilosFora.maxHeight;
+
+            // Salvar tamanhos originais da janela simples
+            let estilosJanela = getComputedStyle(janela);
+            janela_original_simples.width = estilosJanela.width;
+            janela_original_simples.height = estilosJanela.height;
+            janela_original_simples.maxWidth = estilosJanela.maxWidth;
+            janela_original_simples.maxHeight = estilosJanela.maxHeight;
+        }
+
+        // Maximizar
+        janela_fora.style.width = '100vw';
+        janela_fora.style.maxWidth = '100vw';
+        janela_fora.style.height = '98vh';
+        janela_fora.style.maxHeight = '100vh';
+
+        janela.style.width = '100%';
+        janela.style.height = '100vh';
+        janela.style.maxHeight = '100vh';
+
+        maximizado = true;
+    } else {
+        // Restaurar tamanhos originais
+        janela_fora.style.width = janela_original.width;
+        janela_fora.style.maxWidth = janela_original.maxWidth;
+        janela_fora.style.height = janela_original.height;
+        janela_fora.style.maxHeight = janela_original.maxHeight;
+
+        janela.style.width = janela_original_simples.width;
+        janela.style.height = janela_original_simples.height;
+        janela.style.maxWidth = janela_original_simples.maxWidth;
+        janela.style.maxHeight = janela_original_simples.maxHeight;
+
+        maximizado = false;
+    }
+}
+
 
 function dicionario(item) {
     return typeof item === "object" && item !== null && item.constructor === Object;
@@ -330,35 +386,22 @@ function mostrar_ocultar_alertas() {
     }
 }
 
-function remover_popup() {
+async function remover_popup(nao_remover_anteriores) {
 
-    var pop = document.getElementById('temp_pop')
+    let pop_ups = document.querySelectorAll('#temp_pop')
 
-    while (pop) {
-        pop.remove()
-        pop = document.getElementById('temp_pop')
+    if (nao_remover_anteriores) {
+        return
     }
 
-    var telas = ['status', 'espelho_ocorrencias', 'detalhes', 'imagem_upload']
-    var manter_overlay = false
-    telas.forEach(tl => {
-        var tela = document.getElementById(tl)
-        if (tela) {
-            manter_overlay = true
-        }
-    })
+    if (pop_ups.length > 1) {
+        pop_ups[pop_ups.length - 1].remove()
 
-    if (!overlay) {
-        var overlay = document.getElementById('overlay')
+    } else {
+        pop_ups.forEach(pop => {
+            pop.remove()
+        })
     }
-
-    if (overlay && !manter_overlay) {
-        overlay.style.display = 'none'
-    }
-
-    try {
-        encerrarIntervalos()
-    } catch { }
 
 }
 
@@ -948,7 +991,6 @@ async function salvar_levantamento(id_orcamento) {
     let elemento = document.getElementById("adicionar_levantamento");
 
     if (!elemento || !elemento.files || elemento.files.length === 0) {
-        openPopup_v2("Nenhum arquivo selecionado...");
         return;
     }
 
@@ -1302,6 +1344,34 @@ async function gerar_pdf_online(htmlString, nome) {
 
 }
 
+async function refazer_pagamento(id_pagamento) {
+
+    openPopup_v2(`
+        <div style="margin: 1vw; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <img src="gifs/loading.gif" style="width: 5vw;">
+            <label>Aguarde...</label>
+        </div>
+        `, 'Aviso', true)
+
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+
+    if (lista_pagamentos[id_pagamento]) {
+        remover_popup()
+        let pagamento = lista_pagamentos[id_pagamento]
+        console.log(await lancar_pagamento(pagamento))
+        pagamento.status = 'Pagamento salvo localmente'
+        await inserirDados(lista_pagamentos, 'lista_pagamentos')
+        await abrir_detalhes(id_pagamento)
+    } else {
+        openPopup_v2(`
+            <div style="margin: 1vw;">
+                <label>Atualize os pagamentos e tente novamente.</label>
+            </div>
+            `, 'Aviso', true)
+    }
+
+}
+
 async function lancar_pagamento(pagamento) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/lancar_pagamento", {
@@ -1316,7 +1386,7 @@ async function lancar_pagamento(pagamento) {
                 return response.text();
             })
             .then(data => {
-                resolve();
+                resolve(data);
             })
             .catch(err => {
                 console.error("Erro ao gerar PDF:", err)
