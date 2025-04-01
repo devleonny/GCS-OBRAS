@@ -1219,6 +1219,8 @@ async function salvar_requisicao(chave) {
 
     }
 
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
+
     if (orcamento.modalidade !== 'MODALIDADE LIVRE') {
         atualizar_partnumber(lista_partnumbers)
     }
@@ -1231,7 +1233,6 @@ async function salvar_requisicao(chave) {
     }
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
 
     await abrir_esquema(id_orcam)
 
