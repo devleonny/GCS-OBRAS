@@ -7,6 +7,7 @@
     <title>ESTOQUE</title>
     <link rel="stylesheet" type="text/css" href="gcsobras.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         body {
@@ -77,7 +78,6 @@
         .formulario button {
             background-color: #4CAF50;
         }
-
     </style>
 </head>
 
@@ -93,27 +93,29 @@
             <div style="display: flex; justify-content: center; gap: 10px;">
 
                 <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="recuperar_estoque()">
+                    <div class="icones_toolbar" onclick="para_excel('tabela_estoque')">
+                        <label style="color: white;">Excel</label>
+                        <img src="imagens/excel.png" style="width: 25px; cursor: pointer;">
+                    </div>
+
+                    <div class="icones_toolbar" onclick="relatorio_movimento()">
+                        <label style="color: white;">Relatório</label>
+                        <img src="imagens/relatorio2.png" style="width: 25px; cursor: pointer;">
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
+                    <div class="icones_toolbar" onclick="recuperar_estoque()">
                         <label style="color: white;">Atualizar</label>
                         <img src="imagens/atualizar_2.png" style="width: 25px; cursor: pointer;">
                     </div>
 
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="window.location.href='inicial.html'">
+                    <div class="icones_toolbar" onclick="window.location.href='inicial.html'">
                         <label style="color: white;">Voltar</label>
                         <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
                     </div>
 
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="relatorio_movimento()">
-                        <label style="color: white;">Relatório</label>
-                        <img src="imagens/relatorio2.png" style="width: 25px; cursor: pointer;">
-                    </div>
-
-                    <div id="adicionar_item"
-                        style="display: none; align-items: center; justify-content: center; gap: 10px; cursor: pointer;"
-                        onclick="incluir_linha()">
+                    <div id="adicionar_item" class="icones_toolbar" onclick="incluir_linha()">
                         <label style="color: white;">Cadastrar Item</label>
                         <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
                     </div>

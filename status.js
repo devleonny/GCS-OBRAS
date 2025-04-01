@@ -1099,8 +1099,11 @@ async function salvar_pedido(chave) {
     orcamento.status.historico[chave].tipo = tipo.value
     orcamento.status.historico[chave].pedido = pedido.value
 
-    await inserirDados(dados_orcamentos, 'dados_orcamentos');
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+
+    remover_popup()
     await abrir_esquema(id_orcam)
+
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
 
 }
@@ -1153,7 +1156,9 @@ async function salvar_notas(chave) {
         valorFrete: valorFrete.value
     }]
 
-    await inserirDados(dados_orcamentos, 'dados_orcamentos');
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+
+    remover_popup()
     await abrir_esquema(id_orcam)
 
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
@@ -1162,6 +1167,12 @@ async function salvar_notas(chave) {
 }
 
 async function salvar_requisicao(chave) {
+
+    // Overlay
+    let janela = document.querySelectorAll('.janela')
+    janela = janela[janela.length - 1] // A última que existir
+    janela.insertAdjacentHTML('beforeend', overlay_aguarde())
+
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
 
@@ -1202,7 +1213,7 @@ async function salvar_requisicao(chave) {
                         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                         <label> Preencha os PARTNUMBERs pendentes</label>
                     </div>
-                `);
+                `, 'Aviso', true);
         }
 
         if (qtde != '') {
@@ -1227,28 +1238,17 @@ async function salvar_requisicao(chave) {
 
     orcamento.status.historico[chave] = novo_lancamento;
 
-    var painel_status = document.getElementById('status')
-    if (painel_status) {
-        painel_status.remove()
-    }
-
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
+    remover_popup()
     await abrir_esquema(id_orcam)
 
     itens_adicionais = {}
-}
 
-async function fechar_status(destruir) {
-
-    var status = document.getElementById('status')
-    if (destruir) {
-        status.remove()
-    } else {
-        await abrir_esquema(id_orcam)
+    let aguarde = document.getElementById('aguarde')
+    if (aguarde) {
+        aguarde.remove()
     }
-
-    remover_popup()
 }
 
 function botao_novo_pedido(id) {
@@ -1375,13 +1375,6 @@ async function aprovar_orcamento(responsavel, aprovar, data) {
 const { shell } = require('electron');
 
 async function abrir_esquema(id) {
-
-    openPopup_v2(`
-        <div style="display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 2vh;">
-            <img src="gifs/loading.gif" style="width: 3vw;">
-            <label>Aguarde...</label>
-        </div>
-        `)
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
@@ -1535,7 +1528,7 @@ async function abrir_esquema(id) {
 
             if (sst.status.includes('REQUISIÇÃO')) {
                 links_requisicoes += `
-                    <div onclick="detalhar_requisicao('${chave}')" class="anexos" style="cursor: pointer; display: flex; gap: 10px; justify-content: left; align-items: center;">
+                    <div onclick="detalhar_requisicao('${chave}')" class="label_requisicao">
                         <img src="gifs/lampada.gif" style="width: 25px">
                         <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; cursor: pointer;">
                             <label style="cursor: pointer;"><strong>REQUISIÇÃO DISPONÍVEL</strong></label>
@@ -1872,7 +1865,7 @@ async function abrir_esquema(id) {
             <hr style="width: 100%;">
             <label><span id="valor_total_pedido">0,00</span></label>
         </div>
-        `
+    `
 
     let estruturaHtml = `
         <div id="status" style="display: flex; flex-direction: column; gap: 10px; width: 100%; overflow: auto;">
@@ -1882,9 +1875,15 @@ async function abrir_esquema(id) {
 
             ${painel_custos}
         </div>
-        `
+    `
 
-    openPopup_v2(estruturaHtml, 'Histórico do Orçamento')
+    let status = document.getElementById('status')
+    if (status) {
+        let janela = status.parentElement // Elemento Janela do status;
+        janela.innerHTML = estruturaHtml
+    } else {
+        openPopup_v2(estruturaHtml, 'Histórico do Orçamento')
+    }
 
     // É só esperar a página incluir os elementos acima, simples... não precisa de timeInterval...
     let totalValoresManuais = somarValoresManuais(dados_orcamentos[id]);
@@ -2420,9 +2419,11 @@ async function salvar_materiais_retorno(chave) {
     };
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
 
+    remover_popup()
     await abrir_esquema(id_orcam)
+
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
 
 }
 
@@ -2475,11 +2476,13 @@ async function registrar_envio_material(chave) {
     status.status = st
 
     historico[chave] = status
+
     remover_popup()
+    await abrir_esquema(id_orcam)
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, status)
-    abrir_esquema(id_orcam)
+
 }
 
 function calcular_quantidades(requisicoes, itens_no_orcamento) {
@@ -3006,15 +3009,7 @@ async function carregar_anexos(chave) {
 
         for (id in anexos) {
             var anexo = anexos[id]
-            anexos_divs += `
-                <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                    <div onclick="abrirArquivo('${anexo.link}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                        <label style="font-size: 0.8em;">${String(anexo.nome).slice(0, 10)} ... ${String(anexo.nome).slice(-7)}</label>
-                    </div>
-                    <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="excluir_anexo('${chave}', '${id}', this)">
-                </div>
-            `
+            anexos_divs += criarAnexoVisual(anexo.nome, anexo.link, `excluir_anexo('${chave}', '${id}', this)`)
         }
     }
 
@@ -3027,13 +3022,13 @@ function deseja_apagar(chave) {
     let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
 
     openPopup_v2(`
-        <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
             <label>Deseja apagar essa informação?</label>
             <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
                 <button style="background-color: green" onclick="${funcao}">Confirmar</button>
             </div>
         </div>
-        `)
+        `, 'Aviso', true)
 }
 
 async function apagar_status_historico(chave) {
@@ -3124,11 +3119,9 @@ ipcRenderer.on('open-save-dialog', (event, { htmlContent, nomeArquivo }) => {
 });
 
 async function gerarpdf(cliente, pedido) {
-    if (menu_flutuante) {
-        menu_flutuante.style.display = 'none'
-    }
 
-    var janela = document.querySelector('.janela')
+    var janela = document.querySelectorAll('.janela')
+    janela = janela[janela.length - 1]
 
     var htmlContent = `
     <!DOCTYPE html>
@@ -3210,9 +3203,6 @@ async function gerarpdf(cliente, pedido) {
 
     await gerar_pdf_online(htmlContent, `REQUISICAO_${cliente}_${pedido}`);
 
-    if (menu_flutuante) {
-        menu_flutuante.style.display = 'flex'
-    }
 }
 
 async function envio_de_material(chave) {

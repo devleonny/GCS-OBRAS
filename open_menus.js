@@ -414,6 +414,26 @@ function mostrar_ocultar_alertas() {
     }
 }
 
+function para_excel(tabela_id) {
+    const tabelaOriginal = document.getElementById(tabela_id);
+    if (!tabelaOriginal) return;
+
+    const tabelaClone = tabelaOriginal.cloneNode(true);
+
+    const inputs = tabelaClone.querySelectorAll('input, textarea');
+    inputs.forEach(input => {
+        const cell = input.closest('td, th'); 
+        if (cell) {
+            cell.textContent = input.value;
+        }
+    });
+
+    const worksheet = XLSX.utils.table_to_sheet(tabelaClone);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
+    XLSX.writeFile(workbook, 'dados.xlsx');
+}
+
 async function remover_popup(nao_remover_anteriores) {
 
     let pop_ups = document.querySelectorAll('#temp_pop')
@@ -429,6 +449,11 @@ async function remover_popup(nao_remover_anteriores) {
         pop_ups.forEach(pop => {
             pop.remove()
         })
+    }
+
+    let aguarde = document.getElementById('aguarde')
+    if (aguarde) {
+        aguarde.remove()
     }
 
 }
