@@ -110,7 +110,7 @@ async function carregar_tabela(sincronizar) {
             celulas_dias += `
                 <td id="${cod_departamento}" style="position: relative;">
                     <div style="display: ${info != '' ? 'block' : 'none'}" class="com-triangulo" onclick="apagar_dia('${i}', '${omie_tecnico}', this)"></div>
-                    <input id="${i}_${omie_tecnico}" style="cursor: grab; width: 3vw; background-color: transparent;" onmouseover="nome_em_destaque(this, true)" oninput="sugestoes(this)" value="${info}">
+                    <input id="${i}_${omie_tecnico}" style="cursor: grab; width: 3vw; background-color: transparent;" onmouseout="nome_em_destaque(this, false)" onmouseover="nome_em_destaque(this, true)" oninput="sugestoes(this)" value="${info}">
                     <label style="display: none;">${agenda?.[i]?.usuario || ''}</label>
                     <label style="display: none;">${agenda?.[i]?.data || ''}</label>
                 </td>
@@ -425,13 +425,6 @@ async function definir_campo(input_id, omie_departamento, descricao) {
         return
     }
 
-    let input = document.getElementById(input_id)
-    input.parentElement.id = omie_departamento // ID da td é o cod_departamento; 
-    input.previousElementSibling.style.display = omie_departamento != '' ? 'block' : 'none'
-    input.value = descricao
-
-    colorir_tabela()
-
     let dados_agenda_tecnicos = await recuperarDados('dados_agenda_tecnicos')
     let dia_tecnico = input_id.split('_')
     let omie_tecnico = dia_tecnico[1]
@@ -465,6 +458,15 @@ async function definir_campo(input_id, omie_departamento, descricao) {
         usuario: acesso.usuario,
         data: dt()
     }
+
+    let input = document.getElementById(input_id)
+    input.parentElement.id = omie_departamento // ID da td é o cod_departamento; 
+    input.previousElementSibling.style.display = omie_departamento != '' ? 'block' : 'none'
+    input.value = descricao
+    input.nextElementSibling.textContent = acesso.usuario
+    input.nextElementSibling.nextElementSibling.textContent = dt()
+
+    colorir_tabela()
 
     tecnico.agendas[chave_da_agenda][dia] = dados
     await enviar(`dados_agenda_tecnicos/${omie_tecnico}/agendas/${chave_da_agenda}/${dia}`, dados)
