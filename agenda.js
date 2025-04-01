@@ -111,6 +111,8 @@ async function carregar_tabela(sincronizar) {
                 <td id="${cod_departamento}" style="position: relative;">
                     <div style="display: ${info != '' ? 'block' : 'none'}" class="com-triangulo" onclick="apagar_dia('${i}', '${omie_tecnico}', this)"></div>
                     <input id="${i}_${omie_tecnico}" style="cursor: grab; width: 3vw; background-color: transparent;" onmouseover="nome_em_destaque(this, true)" oninput="sugestoes(this)" value="${info}">
+                    <label style="display: none;">${agenda?.[i]?.usuario || ''}</label>
+                    <label style="display: none;">${agenda?.[i]?.data || ''}</label>
                 </td>
                 `
         }
@@ -228,7 +230,9 @@ async function apagar_dia(dia, omie_tecnico, div) {
 
     await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
 
-    await definir_campo(div.nextElementSibling.id, '', '') // Input que vem na sequência
+    div.style.display = 'none'
+    div.nextElementSibling.value = ''
+    colorir_tabela()
 
 }
 
@@ -375,7 +379,7 @@ async function escolher_tecnico(omie_tecnico, nome_tecnico) {
                 <label>Técnico já existente na base!</label>
             </div>
             `
-            , 'Aviso')
+            , 'Aviso', true)
         return
 
     } else {
@@ -396,7 +400,7 @@ async function salvar_tecnico(omie_tecnico) {
 
     dados_agenda_tecnicos[omie_tecnico] = {
         omie: omie_tecnico,
-        regial_atual: 'Sem Região',
+        regiao_atual: 'Sem Região',
         agendas: {}
     }
 
@@ -447,16 +451,23 @@ async function definir_campo(input_id, omie_departamento, descricao) {
     }
 
     if (!tecnico.agendas[chave_da_agenda][dia]) {
-        tecnico.agendas[chave_da_agenda][dia]  = {}
+        tecnico.agendas[chave_da_agenda][dia] = {}
     }
 
     if (tecnico.agendas[chave_da_agenda][dia]?.departamento == omie_departamento) {
         return
     }
 
-    tecnico.agendas[chave_da_agenda][dia].departamento = omie_departamento
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
-    await enviar(`dados_agenda_tecnicos/${omie_tecnico}/agendas/${chave_da_agenda}/${dia}/departamento`, omie_departamento)
+    let dados = {
+        departamento: omie_departamento,
+        usuario: acesso.usuario,
+        data: dt()
+    }
+
+    tecnico.agendas[chave_da_agenda][dia] = dados
+    await enviar(`dados_agenda_tecnicos/${omie_tecnico}/agendas/${chave_da_agenda}/${dia}`, dados)
 
     inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
 
@@ -669,13 +680,17 @@ function nome_em_destaque(elemento, mostrar) {
 
     if (mostrar && elemento.value !== '') {
 
+        let usuario = elemento.nextElementSibling
+        let data = usuario.nextElementSibling
         let posicao = elemento.getBoundingClientRect()
         let left = posicao.left + window.scrollX
         let top = posicao.bottom + window.scrollY
 
         let acumulado = `
-            <div id="etiqueta" style="top: ${top}px; left: ${left}px;">
+            <div id="etiqueta" style="top: ${top}px; left: ${left}px; display: flex; align-items: start; justify-content: start; gap: 5px; flex-direction: column;">
                 <label>${elemento.value}</label>
+                <label>${usuario.textContent}</label>
+                <label>${data.textContent}</label>
             </div>
         `
         document.body.insertAdjacentHTML('beforeend', acumulado)

@@ -10,11 +10,11 @@
 }
 
 #etiqueta {
+  font-size: 0.8vw;
   background-color: white;
   padding: 5px;
-  border-radius: 5px;
+  border-radius: 2px;
   position: absolute;
-  box-shadow: 1px 1px #222;
 }
 
 td:first-child {

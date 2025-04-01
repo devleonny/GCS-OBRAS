@@ -54,6 +54,7 @@ function inicial_maiuscula(string) {
     return palavras.join(' ');
 }
 
+
 function overlay_aguarde() {
 
     let elemento = `           
