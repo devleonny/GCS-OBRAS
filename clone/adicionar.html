@@ -588,13 +588,13 @@
                 </div>
                 <div class="linha">
                     <label>Considerações</label>
-                    <div style="display: flex; align-items: start; justify-content: space-between;">
+                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: space-between;">
                         <textarea id="consideracoes" rows="5" style="width: 20vw"
                             placeholder="Escopo do orçamento..."></textarea>
 
                         <div
                             style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                            <div class="contorno_botoes" style="background-color: #222;">
+                            <div class="contorno_botoes" style="background-color: #222; width: 100%;">
                                 <img src="imagens/anexo2.png" style="width: 15px;">
                                 <label style="width: 100%;" for="adicionar_levantamento">Anexar levantamento
                                     <input type="file" id="adicionar_levantamento" style="display: none;"
@@ -659,22 +659,23 @@
 
             <div id="menu_superior">
 
-                <div
-                    style="margin-left: 3vw; display: flex; flex-direction: column; justify-content: center; align-items: start; border-radius: 3px;">
+                <div style="margin-left: 3vw; display: flex; flex-direction: column; justify-content: center; align-items: start; border-radius: 3px;">
 
                     <div class="btn_menu" onclick="toggleTabela()">
                         <img src="imagens/gerente.png">
                         <label>Dados Cliente</label>
                     </div>
+
                     <div class="btn_menu" onclick="enviar_dados()">
                         <img src="imagens/salvo.png">
                         <label>Salvar Orçamento</label>
                     </div>
+
                     <div class="btn_menu" onclick="apagar_orçamento()">
                         <img src="imagens/remover.png">
                         <label>Apagar Orçamento</label>
                     </div>
-
+                    
                     <div class="btn_menu" onclick="modalidade_livre_de_orcamento()">
                         <img src="gifs/alerta.gif">
                         <label style="cursor: pointer;">Modalidade livre</label>
