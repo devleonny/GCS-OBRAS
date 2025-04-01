@@ -1707,13 +1707,13 @@ function renderizarAnexos(idTarefa) {
             return criarAnexoVisual(
                 anexo.nome,
                 anexo.link,
-                `removerAnexo('${idTarefa}', '${anexo.link}')`
+                `removerAnexoKanban('${idTarefa}', '${anexo.link}')`
             );
         })
         .join("");
 }
 
-function removerAnexo(idTarefa, linkAnexo) {
+function removerAnexoKanban(idTarefa, linkAnexo) {
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {} };
     let tarefa = dados.tarefas[idTarefa];
 
