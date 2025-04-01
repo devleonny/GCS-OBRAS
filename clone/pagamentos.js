@@ -18,7 +18,7 @@ async function consultar_pagamentos() {
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
     }
 
-    let dados_categorias = await recuperarDados('dados_categorias')
+    let dados_categorias = await recuperarDados('dados_categorias') || {}
     if (!dados_categorias) {
         dados_categorias = await receber('dados_categorias')
         inserirDados(dados_categorias, 'dados_categorias')
@@ -35,37 +35,34 @@ async function consultar_pagamentos() {
         clientes[cliente.omie] = cliente
     })
 
-    let pagamentosFiltrados = []
-    if (Object.keys(lista_pagamentos).length > 1) {
-        pagamentosFiltrados = Object.keys(lista_pagamentos)
-            .map(pagamento => {
 
-                var pg = lista_pagamentos[pagamento];
+    let pagamentosFiltrados = Object.keys(lista_pagamentos)
+        .map(pagamento => {
 
-                var valor_categorias = pg.param[0].categorias.map(cat =>
-                    `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
-                ).join('');
-                var nome_orcamento = orcamentos[pg.id_orcamento]
-                    ? orcamentos[pg.id_orcamento].dados_orcam.cliente_selecionado
-                    : pg.id_orcamento;
-                var data_registro = pg.data_registro || pg.param[0].data_previsao;
+            var pg = lista_pagamentos[pagamento];
 
-                return {
-                    id: pagamento,
-                    param: pg.param,
-                    data_registro,
-                    data_previsao: pg.param[0].data_previsao,
-                    nome_orcamento,
-                    valor_categorias,
-                    status: pg.status,
-                    observacao: pg.param[0].observacao,
-                    criado: pg.criado,
-                    anexos: pg.anexos
-                };
-            })
-            .filter(Boolean);
+            var valor_categorias = pg.param[0].categorias.map(cat =>
+                `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
+            ).join('');
+            var nome_orcamento = orcamentos[pg.id_orcamento]
+                ? orcamentos[pg.id_orcamento].dados_orcam.cliente_selecionado
+                : pg.id_orcamento;
+            var data_registro = pg.data_registro || pg.param[0].data_previsao;
 
-    }
+            return {
+                id: pagamento,
+                param: pg.param,
+                data_registro,
+                data_previsao: pg.param[0].data_previsao,
+                nome_orcamento,
+                valor_categorias,
+                status: pg.status,
+                observacao: pg.param[0].observacao,
+                criado: pg.criado,
+                anexos: pg.anexos
+            };
+        })
+        .filter(Boolean);
 
     const parseDate = (data) => {
         const [dia, mes, ano] = data.split('/').map(Number);
