@@ -12,7 +12,7 @@ document.getElementById("btn-criar-lpu").addEventListener("click", function () {
             <label id="texto-aviso" style="display: none; color: red;"></label>
             <button onclick="salvarNovaLPU()" style="background-color: #026CED; color: white; padding: 10px; border: none; cursor: pointer; width: 80%;">Salvar</button>
         </div>
-    `);
+    `, 'Nova LPU');
 });
 
 function pesquisar_em_composicoes(elemento) {
@@ -371,7 +371,7 @@ async function abrir_agrupamentos(codigo) {
 
         </div>    
     `
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, 'Agrupamentos')
 
     if (produto.agrupamentos) {
         var div_agrupamentos = document.getElementById('div_agrupamentos')
@@ -555,11 +555,6 @@ function remover_item(elemento) {
 
 async function abrir_historico_de_precos(codigo, tabela) {
 
-    let overlay = document.getElementById('overlay')
-    if (overlay) {
-        overlay.style.display = 'block'
-    }
-
     var marcado = ''
     var acumulado = ''
     var dados_composicoes = await recuperarDados('dados_composicoes') || {}
@@ -605,17 +600,11 @@ async function abrir_historico_de_precos(codigo, tabela) {
 
     acumulado = `
 
-    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 5vh;">
-
-    <div style="display: flex; justify-content: space-evenly; width: 100%;">
-        <label>Valores de Venda</label>
-    </div>
-
     <div style="display: flex; justify-content: left; align-items: start; flex-direction: column; background-color: white; padding: 5px; border-radius: 5px; color: #222;">
         <div id="historico_preco" style="display: flex; flex-direction: column; align-items: start; justify-content: center; position: relative; width: 100%;">
             
             <div style="display: flex; justify-content: left; align-items: center; gap: 5px;">
-                <img style="width: 7vw;" src="${dados_composicoes[codigo].imagem !== '' ? dados_composicoes[codigo].imagem : 'https://i.imgur.com/Nb8sPs0.png'}">
+                <img style="width: 7vw;" src="${dados_composicoes[codigo]?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}">
                 <div style="color: #222; display: flex; flex-direction: column; justify-content: start; align-items: start;">
                     <label style="font-size: 0.8vw;">Descrição</label>
                     <label>${dados_composicoes[codigo].descricao}</label>
@@ -651,12 +640,8 @@ async function abrir_historico_de_precos(codigo, tabela) {
         <div></div>
     </div>
     `
-    var historico_preco = document.getElementById('historico_preco')
-    if (historico_preco) {
-        historico_preco.remove()
-    }
 
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, 'Valores de Venda')
 
 }
 
@@ -1262,11 +1247,6 @@ async function atualizar() {
 
 async function cadastrar_editar_item(codigo) {
 
-    let overlay = document.getElementById('overlay')
-    if (overlay) {
-        overlay.style.display = 'block'
-    }
-
     let colunas = ['descricao', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados = dados_composicoes[codigo] || {}
@@ -1311,16 +1291,10 @@ async function cadastrar_editar_item(codigo) {
 
     var acumulado = `
 
-    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 5vh;">
-
     ${codigo ? `<div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
         <label style="font-size: 0.7em;">${codigo}</label>
         <img src="imagens/cancel.png" style="width: 15px; cursor: pointer;" onclick="confirmar_exclusao_item('${codigo}')">
     </div>` : ''}
-
-    <div style="display: flex; justify-content: space-evenly; width: 100%;">
-        <label>Dados do Item</label>
-    </div>
 
     <div id="cadastrar_item" style="background-color: white; color: #222; padding: 5px; border-radius: 5px; margin: 1vw;">
 
@@ -1333,7 +1307,7 @@ async function cadastrar_editar_item(codigo) {
         <button style="background-color: #4CAF50; width: 100%; margin: 0px;" onclick="${funcao}">Salvar</buttton>
     </div>
     `
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, 'Dados do Item')
 }
 
 async function confirmar_exclusao_item(codigo) {

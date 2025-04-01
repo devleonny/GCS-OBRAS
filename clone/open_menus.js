@@ -12,6 +12,14 @@ function f5() {
     location.reload();
 }
 
+// Provisório
+
+localStorage.removeItem('technicians')
+localStorage.removeItem('departments')
+localStorage.removeItem('modulo_ativo')
+localStorage.removeItem('current_settings')
+localStorage.removeItem('dados_agenda_tecnicos')
+
 identificacao_user()
 async function identificacao_user() {
 
@@ -25,7 +33,7 @@ async function identificacao_user() {
         let permissao = dados_setores[acesso.usuario].permissao
         var texto = `
             <div style="position: relative; display: fixed;">
-                <label onclick="openPopup_v2('Deseja se desconectar?', true, 'sair()')"
+                <label onclick="deseja_sair()"
                 style="cursor: pointer; position: absolute; top: 10px; right: 10px; color: white; font-family: 'Poppins', sans-serif;">${acesso.usuario} • ${permissao} • Desconectar • ${versao}</label>
             </div>
         `
@@ -34,26 +42,47 @@ async function identificacao_user() {
 
 }
 
-function inicial_maiuscula(string) {
-    if (!string) return '';
+function verificar_timestamp_nome(nome) {
+    let regex = /^(\d{13})\.\w+$/;
+    let match = nome.match(regex);
 
-    string = string.includes('_') ? string.split('_').join(' ') : string;
-
-    let palavras = string.split(' ');
-
-    if (palavras[0].toLowerCase() === 'lpu') {
-        palavras[0] = 'LPU';
-    } else {
-        palavras[0] = palavras[0].charAt(0).toUpperCase() + palavras[0].slice(1).toLowerCase();
+    if (match) {
+        let timestamp = parseInt(match[1]);
+        let data = new Date(timestamp);
+        return !isNaN(data.getTime()) && data.getFullYear() > 2000;
     }
 
-    for (let i = 1; i < palavras.length; i++) {
-        palavras[i] = palavras[i].charAt(0).toUpperCase() + palavras[i].slice(1).toLowerCase();
-    }
-
-    return palavras.join(' ');
+    return false;
 }
 
+function abrirArquivo(link) {
+
+    if (verificar_timestamp_nome(link)) { // Se for um link composto por timestamp, então vem do servidor;
+        link = `https://leonny.dev.br/uploads/${link}`
+    } else { // Antigo Google;
+        link = `https://drive.google.com/file/d/${link}/view?usp=drivesdk`
+    }
+
+    try {
+        shell.openExternal(link);
+    } catch {
+        window.open(link, '_blank');
+    }
+}
+
+function deseja_sair() {
+    openPopup_v2(`
+        <button onclick="sair()" style="background-color: green">Confirmar</button>
+        `, 'Deseja Sair?')
+}
+
+function inicial_maiuscula(string) {
+    if (string == undefined) {
+        return ''
+    }
+    string.includes('_') ? string = string.split('_').join(' ') : ''
+    return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+}
 
 function overlay_aguarde() {
 
@@ -226,27 +255,143 @@ async function recuperarDados(nome_da_base) {
     });
 }
 
-function openPopup_v2(mensagem, exibir_botoes, funcao_confirmar) {
+function openPopup_v2(elementoHTML, titulo, nao_remover_anteriores) {
 
-    var botoes = ''
-    if (exibir_botoes) {
-        botoes += `
-        <div style="display: flex; gap: 20px; align-items: center; justify-content: center;">
-            <button style="background-color: green;" onclick="${funcao_confirmar}">Confirmar</button>
-            <button onclick="remover_popup()">Cancelar</button>
-        </div>
-    `}
+    let popup_v2 = `
+    <div id="temp_pop" style="
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.7);">
 
-    var popup_v2 = `
-    <div id="temp_pop" class="popup" style="display: block;">
-        <div class="popup-content">
-            <span class="close" onclick="remover_popup()">&times;</span>
-            ${mensagem}
-            ${botoes}
+        <div class="janela_fora">
+            
+            <div style="background-color: transparent; width: 100%; display: flex; justify-content: center; align-items: center;">
+                <div class="botao_popup" style="pointer-events: none; width: 100%; display: flex; justify-content: space-between; align-items: center; border-top-left-radius: 5px;">
+                    <label style="margin-left: 1vw; margin-right: 3vw; color: white;">${titulo || 'GCS'}</label>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center;">
+
+                    <div class="botao_popup" onclick="ajustar_janela(false)">
+                        <label>_</label>
+                    </div>
+                    <div class="botao_popup" onclick="ajustar_janela(true)">
+                        <img src="imagens/max.png">
+                    </div>
+                    <div class="botao_popup" style="border-top-right-radius: 5px; background-color: #b12425;" onclick="remover_popup()">
+                        <label>×</label>
+                    </div>
+
+                </div>
+            </div>
+            
+            <div class="janela">
+
+                ${elementoHTML}
+
+            </div>
+
         </div>
+
     </div>
-    `
-    document.body.insertAdjacentHTML('beforeend', popup_v2)
+    `;
+
+    remover_popup(nao_remover_anteriores)
+
+    document.body.insertAdjacentHTML('beforeend', popup_v2);
+
+}
+
+function criarAnexoVisual(nome, link_anexo, funcao_excluir) {
+
+    let displayExcluir = 'flex'
+
+    if(!funcao_excluir) {
+
+        displayExcluir = 'none'
+
+    }
+
+    // Formata o nome para exibição curta
+    const nomeFormatado = nome.length > 15
+        ? `${nome.slice(0, 6)}...${nome.slice(-6)}`
+        : nome;
+
+    return `
+        <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+            <div onclick="abrirArquivo('${link_anexo}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 15vw;">
+                <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                <label style="cursor: pointer;" title="${nome}">${nomeFormatado}</label>
+            </div>
+            <button style="display: ${displayExcluir};" class="botao-excluir-anexo" onclick="${funcao_excluir}">
+                <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="${funcao_excluir}">
+            </button>
+        </div>
+    `;
+}
+
+
+let janela_original = { width: '', height: '', maxWidth: '', maxHeight: '' };
+let janela_original_simples = { width: '', height: '', maxWidth: '', maxHeight: '' };
+let maximizado = false;
+
+function ajustar_janela(ampliar) {
+    let janela_fora = document.querySelectorAll('.janela_fora')
+    let janela = document.querySelectorAll('.janela')
+
+    janela_fora = janela_fora[janela_fora.length - 1]
+    janela = janela[janela.length - 1]
+
+    if (!janela_fora || !janela) return;
+
+    if (ampliar) {
+        if (!maximizado) {
+            // Salvar tamanhos originais da janela principal
+            let estilosFora = getComputedStyle(janela_fora);
+            janela_original.width = estilosFora.width;
+            janela_original.height = estilosFora.height;
+            janela_original.maxWidth = estilosFora.maxWidth;
+            janela_original.maxHeight = estilosFora.maxHeight;
+
+            // Salvar tamanhos originais da janela simples
+            let estilosJanela = getComputedStyle(janela);
+            janela_original_simples.width = estilosJanela.width;
+            janela_original_simples.height = estilosJanela.height;
+            janela_original_simples.maxWidth = estilosJanela.maxWidth;
+            janela_original_simples.maxHeight = estilosJanela.maxHeight;
+        }
+
+        // Maximizar
+        janela_fora.style.width = '100vw';
+        janela_fora.style.maxWidth = '100vw';
+        janela_fora.style.height = '98vh';
+        janela_fora.style.maxHeight = '100vh';
+
+        janela.style.width = '100%';
+        janela.style.height = '100vh';
+        janela.style.maxHeight = '100vh';
+
+        maximizado = true;
+    } else {
+        // Restaurar tamanhos originais
+        janela_fora.style.width = janela_original.width;
+        janela_fora.style.maxWidth = janela_original.maxWidth;
+        janela_fora.style.height = janela_original.height;
+        janela_fora.style.maxHeight = janela_original.maxHeight;
+
+        janela.style.width = janela_original_simples.width;
+        janela.style.height = janela_original_simples.height;
+        janela.style.maxWidth = janela_original_simples.maxWidth;
+        janela.style.maxHeight = janela_original_simples.maxHeight;
+
+        maximizado = false;
+    }
 }
 
 function dicionario(item) {
@@ -273,35 +418,47 @@ function mostrar_ocultar_alertas() {
     }
 }
 
-function remover_popup() {
+function para_excel(tabela_id) {
+    const tabelaOriginal = document.getElementById(tabela_id);
+    if (!tabelaOriginal) return;
 
-    var pop = document.getElementById('temp_pop')
+    const tabelaClone = tabelaOriginal.cloneNode(true);
 
-    while (pop) {
-        pop.remove()
-        pop = document.getElementById('temp_pop')
-    }
-
-    var telas = ['status', 'espelho_ocorrencias', 'detalhes', 'imagem_upload']
-    var manter_overlay = false
-    telas.forEach(tl => {
-        var tela = document.getElementById(tl)
-        if (tela) {
-            manter_overlay = true
+    const inputs = tabelaClone.querySelectorAll('input, textarea');
+    inputs.forEach(input => {
+        const cell = input.closest('td, th'); 
+        if (cell) {
+            cell.textContent = input.value;
         }
-    })
+    });
 
-    if (!overlay) {
-        var overlay = document.getElementById('overlay')
+    const worksheet = XLSX.utils.table_to_sheet(tabelaClone);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
+    XLSX.writeFile(workbook, 'dados.xlsx');
+}
+
+async function remover_popup(nao_remover_anteriores) {
+
+    let pop_ups = document.querySelectorAll('#temp_pop')
+
+    if (nao_remover_anteriores) {
+        return
     }
 
-    if (overlay && !manter_overlay) {
-        overlay.style.display = 'none'
+    if (pop_ups.length > 1) {
+        pop_ups[pop_ups.length - 1].remove()
+
+    } else {
+        pop_ups.forEach(pop => {
+            pop.remove()
+        })
     }
 
-    try {
-        encerrarIntervalos()
-    } catch { }
+    let aguarde = document.getElementById('aguarde')
+    if (aguarde) {
+        aguarde.remove()
+    }
 
 }
 
@@ -329,35 +486,23 @@ function ampliar(url) {
     div.classList.toggle('show');
 }
 
-function conversor(valor) {
-    if (typeof valor === 'number') {
-        return valor;
-    }
-
-    if (String(valor).includes('R$')) {
-        valor = valor.replace('R$', '')
-    }
-
-    if (!valor || typeof valor !== 'string' || valor.trim() === "") {
+function conversor(stringMonetario) {
+    if (typeof stringMonetario === 'number') {
+        return stringMonetario;
+    } else if (!stringMonetario || stringMonetario.trim() === "") {
         return 0;
-    }
-
-    valor = valor.trim();
-
-    const isBRFormat = valor.includes(',') && !valor.includes('.'); // Ex: "1.000,25"
-    const isUSFormat = valor.includes('.') && valor.includes(','); // Ex: "1,000.25"
-
-    if (isUSFormat) {
-        valor = valor.replace(/,/g, '');
-    } else if (isBRFormat) {
-        valor = valor.replace(/\./g, '').replace(',', '.');
     } else {
-        valor = valor.replace(/[^0-9.]/g, '');
+        stringMonetario = stringMonetario.trim();
+        stringMonetario = stringMonetario.replace(/[^\d,]/g, '');
+        stringMonetario = stringMonetario.replace(',', '.');
+        var valorNumerico = parseFloat(stringMonetario);
+
+        if (isNaN(valorNumerico)) {
+            return 0;
+        }
+
+        return valorNumerico;
     }
-
-    const numero = parseFloat(valor);
-
-    return isNaN(numero) ? 0 : numero;
 }
 
 function dinheiro(valor) {
@@ -500,12 +645,11 @@ async function recuperar_clientes() {
         }
     }
 
+    let clientes = {};
     for (modalidade in resultado) {
 
         let data = resultado[modalidade].data
         let hora = resultado[modalidade].hora
-
-        let clientes = {};
         let objeto = await dados_clientes_por_pagina(1, data, hora, modalidade);
 
         if (objeto.faultstring) {
@@ -522,6 +666,7 @@ async function recuperar_clientes() {
         function alimentar_objeto(dados) {
             dados.clientes_cadastro.forEach((item) => {
                 clientes[item.cnpj_cpf] = {
+                    inativo: item.inativo,
                     nome: item.nome_fantasia,
                     cnpj: item.cnpj_cpf,
                     cep: item.cep,
@@ -544,12 +689,21 @@ async function recuperar_clientes() {
             });
         }
 
-        for (cliente in clientes) {
-            dados_clientes[cliente] = clientes[cliente]
+    }
+
+    for (cnpj in clientes) {
+
+        let cliente = clientes[cnpj]
+
+        if (cliente.inativo == 'S' && dados_clientes[cnpj]) {
+            delete dados_clientes[cnpj]
+        } else {
+            dados_clientes[cnpj] = cliente
         }
 
-        await inserirDados(dados_clientes, 'dados_clientes')
     }
+
+    await inserirDados(dados_clientes, 'dados_clientes')
 
     if (acompanhamento_dados_clientes) {
         dados_clientes_provisorios = data
@@ -894,7 +1048,6 @@ async function salvar_levantamento(id_orcamento) {
     let elemento = document.getElementById("adicionar_levantamento");
 
     if (!elemento || !elemento.files || elemento.files.length === 0) {
-        openPopup_v2("Nenhum arquivo selecionado...");
         return;
     }
 
@@ -1038,7 +1191,7 @@ function capturarValorCelula(celula) {
 
 //--- NOVO SERVIÇO DE ARMAZENAMENTO ---\\
 async function receber(chave) {
-    const url = `https://leonny.dev.br/dados?chave=${chave}&app=clone`;
+    const url = `https://leonny.dev.br/dados?chave=${chave}`;
 
     let obs = {
         method: "GET",
@@ -1069,14 +1222,14 @@ async function deletar(chave) {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ chave, app: 'clone' })
+            body: JSON.stringify({ chave })
         })
             .then(response => response.json())
             .then(data => {
                 resolve(data);
             })
             .catch(() => {
-                salvar_offline({ chave: chave, app: 'clone' }, 'deletar')
+                salvar_offline({ chave: chave }, 'deletar')
                 resolve();
             });
     });
@@ -1086,8 +1239,7 @@ function enviar(caminho, info) {
     return new Promise((resolve) => {
         let objeto = {
             caminho: caminho,
-            valor: info,
-            app: 'clone'
+            valor: info
         };
 
         fetch("https://leonny.dev.br/salvar", {
@@ -1124,30 +1276,6 @@ function salvar_offline(objeto, operacao) {
     dados_offline[operacao][id] = objeto
 
     localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
-}
-
-async function proximo_sequencial() {
-
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
-    var chamados_sequenciais = [0]
-
-    for (orc in dados_orcamentos) {
-
-        var orcamento = dados_orcamentos[orc]
-        if (orcamento.dados_orcam && orcamento.dados_orcam.contrato) {
-            var chamado = orcamento.dados_orcam.contrato
-            if (chamado.slice(0, 4) == 'ORC_') {
-                chamados_sequenciais.push(Number(chamado.replace('ORC_', '')))
-            }
-        }
-
-    }
-
-    var proximo = Math.max(...chamados_sequenciais) + 1
-
-    return proximo
-
 }
 
 function dt() {
@@ -1201,7 +1329,7 @@ async function espelhar_atualizacao(objeto) {
             let current = obj;
 
             for (let i = 0; i < keys.length - 1; i++) {
-                if (!current[keys[i]]) return false;
+                if (!current || !current[keys[i]]) return false;
                 current = current[keys[i]];
             }
 
@@ -1273,6 +1401,34 @@ async function gerar_pdf_online(htmlString, nome) {
 
 }
 
+async function refazer_pagamento(id_pagamento) {
+
+    openPopup_v2(`
+        <div style="margin: 1vw; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <img src="gifs/loading.gif" style="width: 5vw;">
+            <label>Aguarde...</label>
+        </div>
+        `, 'Aviso', true)
+
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+
+    if (lista_pagamentos[id_pagamento]) {
+        remover_popup()
+        let pagamento = lista_pagamentos[id_pagamento]
+        console.log(await lancar_pagamento(pagamento))
+        pagamento.status = 'Pagamento salvo localmente'
+        await inserirDados(lista_pagamentos, 'lista_pagamentos')
+        await abrir_detalhes(id_pagamento)
+    } else {
+        openPopup_v2(`
+            <div style="margin: 1vw;">
+                <label>Atualize os pagamentos e tente novamente.</label>
+            </div>
+            `, 'Aviso', true)
+    }
+
+}
+
 async function lancar_pagamento(pagamento) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/lancar_pagamento", {
@@ -1288,7 +1444,6 @@ async function lancar_pagamento(pagamento) {
             })
             .then(data => {
                 resolve(data);
-                resolve()
             })
             .catch(err => {
                 console.error("Erro ao gerar PDF:", err)
@@ -1336,12 +1491,16 @@ async function anexo_v2(arquivoInput) {
     });
 }
 
-function sincronizar_pagamentos() {
+function sincronizar(script) {
 
-    fetch('https://leonny.dev.br/sincronizar', { method: 'POST' })
+    fetch('https://leonny.dev.br/sincronizar', {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ script })
+    })
         .then(response => response.text())
         .then(data => {
-            console.log(data);
+            console.log(JSON.parse(data));
         })
         .catch(error => console.error('Erro na requisição:', error));
 
@@ -1506,12 +1665,12 @@ function resposta_desconto(botao, id, status) {
 
 }
 
-async function verificar_chamado_existente(chamado, id_atual, sequencial, clone) {
+async function verificar_chamado_existente(chamado, id_atual, sequencial) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/chamado", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chamado, id_atual, sequencial, clone })
+            body: JSON.stringify({ chamado, id_atual, sequencial })
         })
             .then(response => {
                 if (!response.ok) {
