@@ -422,6 +422,11 @@ async function remover_popup(nao_remover_anteriores) {
         })
     }
 
+    let aguarde = document.getElementById('aguarde')
+    if (aguarde) {
+        aguarde.remove()
+    }
+
 }
 
 function sair() {

@@ -1099,8 +1099,11 @@ async function salvar_pedido(chave) {
     orcamento.status.historico[chave].tipo = tipo.value
     orcamento.status.historico[chave].pedido = pedido.value
 
-    await inserirDados(dados_orcamentos, 'dados_orcamentos');
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+
+    remover_popup()
     await abrir_esquema(id_orcam)
+
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
 
 }
@@ -1234,13 +1237,9 @@ async function salvar_requisicao(chave) {
 
     orcamento.status.historico[chave] = novo_lancamento;
 
-    var painel_status = document.getElementById('status')
-    if (painel_status) {
-        painel_status.remove()
-    }
-
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
+    remover_popup()
     await abrir_esquema(id_orcam)
 
     itens_adicionais = {}
@@ -1249,18 +1248,6 @@ async function salvar_requisicao(chave) {
     if (aguarde) {
         aguarde.remove()
     }
-}
-
-async function fechar_status(destruir) {
-
-    var status = document.getElementById('status')
-    if (destruir) {
-        status.remove()
-    } else {
-        await abrir_esquema(id_orcam)
-    }
-
-    remover_popup()
 }
 
 function botao_novo_pedido(id) {
@@ -1387,13 +1374,6 @@ async function aprovar_orcamento(responsavel, aprovar, data) {
 const { shell } = require('electron');
 
 async function abrir_esquema(id) {
-
-    openPopup_v2(`
-        <div style="display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 2vh;">
-            <img src="gifs/loading.gif" style="width: 3vw;">
-            <label>Aguarde...</label>
-        </div>
-        `)
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
@@ -1547,7 +1527,7 @@ async function abrir_esquema(id) {
 
             if (sst.status.includes('REQUISIÇÃO')) {
                 links_requisicoes += `
-                    <div onclick="detalhar_requisicao('${chave}')" class="anexos" style="cursor: pointer; display: flex; gap: 10px; justify-content: left; align-items: center;">
+                    <div onclick="detalhar_requisicao('${chave}')" class="label_requisicao">
                         <img src="gifs/lampada.gif" style="width: 25px">
                         <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; cursor: pointer;">
                             <label style="cursor: pointer;"><strong>REQUISIÇÃO DISPONÍVEL</strong></label>
@@ -1884,7 +1864,7 @@ async function abrir_esquema(id) {
             <hr style="width: 100%;">
             <label><span id="valor_total_pedido">0,00</span></label>
         </div>
-        `
+    `
 
     let estruturaHtml = `
         <div id="status" style="display: flex; flex-direction: column; gap: 10px; width: 100%; overflow: auto;">
@@ -1894,9 +1874,15 @@ async function abrir_esquema(id) {
 
             ${painel_custos}
         </div>
-        `
+    `
 
-    openPopup_v2(estruturaHtml, 'Histórico do Orçamento')
+    let status = document.getElementById('status')
+    if (status) {
+        let janela = status.parentElement // Elemento Janela do status;
+        janela.innerHTML = estruturaHtml
+    } else {
+        openPopup_v2(estruturaHtml, 'Histórico do Orçamento')
+    }
 
     // É só esperar a página incluir os elementos acima, simples... não precisa de timeInterval...
     let totalValoresManuais = somarValoresManuais(dados_orcamentos[id]);
@@ -2432,9 +2418,11 @@ async function salvar_materiais_retorno(chave) {
     };
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
 
+    remover_popup()
     await abrir_esquema(id_orcam)
+    
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
 
 }
 
@@ -2487,11 +2475,13 @@ async function registrar_envio_material(chave) {
     status.status = st
 
     historico[chave] = status
+
     remover_popup()
+    await abrir_esquema(id_orcam)
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, status)
-    abrir_esquema(id_orcam)
+
 }
 
 function calcular_quantidades(requisicoes, itens_no_orcamento) {
@@ -3018,15 +3008,7 @@ async function carregar_anexos(chave) {
 
         for (id in anexos) {
             var anexo = anexos[id]
-            anexos_divs += `
-                <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                    <div onclick="abrirArquivo('${anexo.link}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                        <label style="font-size: 0.8em;">${String(anexo.nome).slice(0, 10)} ... ${String(anexo.nome).slice(-7)}</label>
-                    </div>
-                    <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="excluir_anexo('${chave}', '${id}', this)">
-                </div>
-            `
+            anexos_divs += criarAnexoVisual(anexo.nome, anexo.link, `excluir_anexo('${chave}', '${id}', this)`)
         }
     }
 
