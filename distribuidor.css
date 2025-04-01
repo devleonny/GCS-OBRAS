@@ -280,10 +280,6 @@ th {
     height: 24px;
 }
 
-.botao-excluir-anexo:hover {
-    background: #ff1a1a;
-}
-
 /* Input de upload de arquivos estilizado */
 input[type="file"]#input-anexos {
     color: black;
@@ -291,6 +287,7 @@ input[type="file"]#input-anexos {
     padding: 8px;
     font-size: 1vw;
     border: 1px solid #3a3c4e;
+    background-color: transparent;
     cursor: pointer;
 }
 
