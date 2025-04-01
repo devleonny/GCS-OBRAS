@@ -305,6 +305,15 @@ function openPopup_v2(elementoHTML, titulo, nao_remover_anteriores) {
 }
 
 function criarAnexoVisual(nome, link_anexo, funcao_excluir) {
+
+    let displayExcluir = 'flex'
+
+    if(!funcao_excluir) {
+
+        displayExcluir = 'none'
+
+    }
+
     // Formata o nome para exibição curta
     const nomeFormatado = nome.length > 15
         ? `${nome.slice(0, 6)}...${nome.slice(-6)}`
@@ -314,9 +323,9 @@ function criarAnexoVisual(nome, link_anexo, funcao_excluir) {
         <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
             <div onclick="abrirArquivo('${link_anexo}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 15vw;">
                 <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                <label title="${nome}">${nomeFormatado}</label>
+                <label style="cursor: pointer;" title="${nome}">${nomeFormatado}</label>
             </div>
-            <button class="botao-excluir-anexo" onclick="${funcao_excluir}">
+            <button style="display: ${displayExcluir};" class="botao-excluir-anexo" onclick="${funcao_excluir}">
                 <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="${funcao_excluir}">
             </button>
         </div>

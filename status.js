@@ -2617,7 +2617,7 @@ async function carregar_comentarios(chave) {
             }
 
             comentss += `
-            <div class="anexos" style="width: 95%; margin: 0px; margin-top: 5px;">
+            <div class="anexos2" style="width: 95%; margin: 0px; margin-top: 5px;">
                 <label>${item.comentario.replace(/\n/g, '<br>')}
                 <br><strong>${item.data} • ${item.usuario}</strong>${excluir}</label>
             </div>
