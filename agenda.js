@@ -184,7 +184,7 @@ async function carregar_tabela(sincronizar) {
 
             <label>Técnico</label>
             <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 2px;">
-                <input class="campos" oninput="filtrar_por_regiao()" id="campo_tecnico_pesquisa">
+                <input class="campos" oninput="filtrar_por_regiao()" id="campo_tecnico_pesquisa" placeholder="Pesquisar">
             </div>
 
             <hr style="width: 100%;">
