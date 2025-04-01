@@ -1216,21 +1216,6 @@ function salvarNovaLPU() {
     remover_popup();
 }
 
-function para_excel() {
-
-    let tabela = document.getElementById('tabela_composicoes')
-
-    if (!tabela) {
-        return;
-    }
-
-    let worksheet = XLSX.utils.table_to_sheet(tabela);
-    let workbook = XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Preços");
-    XLSX.writeFile(workbook, 'lpu.xlsx');
-}
-
 async function verificar_codigo_existente(clone) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/codigo", {

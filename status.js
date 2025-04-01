@@ -1156,7 +1156,7 @@ async function salvar_notas(chave) {
         valorFrete: valorFrete.value
     }]
 
-    await inserirDados(dados_orcamentos, 'dados_orcamentos');
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     remover_popup()
     await abrir_esquema(id_orcam)
@@ -1172,7 +1172,6 @@ async function salvar_requisicao(chave) {
     let janela = document.querySelectorAll('.janela')
     janela = janela[janela.length - 1] // A última que existir
     janela.insertAdjacentHTML('beforeend', overlay_aguarde())
-
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
