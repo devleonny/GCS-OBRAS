@@ -2421,7 +2421,7 @@ async function salvar_materiais_retorno(chave) {
 
     remover_popup()
     await abrir_esquema(id_orcam)
-    
+
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
 
 }
@@ -3021,13 +3021,13 @@ function deseja_apagar(chave) {
     let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
 
     openPopup_v2(`
-        <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
             <label>Deseja apagar essa informação?</label>
             <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
                 <button style="background-color: green" onclick="${funcao}">Confirmar</button>
             </div>
         </div>
-        `)
+        `, 'Aviso', true)
 }
 
 async function apagar_status_historico(chave) {
