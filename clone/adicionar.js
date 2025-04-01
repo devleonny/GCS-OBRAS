@@ -1,6 +1,16 @@
-let tabela_atual = undefined
+let tabela_atual;
+let filtros_produtos = {}
 
-var filtros_produtos = {}
+function apagar_orçamento() {
+
+    openPopup_v2(`
+        <div style="display: flex; flex-direction: column; align-items: center; margin: 2vw;">
+            <label>Tem certeza que deseja apagar o Orçamento?</label>
+            <button onclick="confirmar_exclusao()" style="background-color: green;">Confirmar</button>
+        </div>
+        `, 'Atenção')
+
+}
 
 let metaforas = [
     "Um monitor sem imagens para exibir",
@@ -75,17 +85,6 @@ function backtop() {
 function fechar_ir_orcamentos() {
 
     location.href = 'orcamentos.html'
-
-}
-
-function apagar_orçamento() {
-
-    openPopup_v2(`
-        <div style="display: flex; flex-direction: column; align-items: center; margin: 2vw;">
-            <label>Tem certeza que deseja apagar o Orçamento?</label>
-            <button onclick="confirmar_exclusao()" style="background-color: green;">Confirmar</button>
-        </div>
-        `, 'Atenção')
 
 }
 
@@ -309,7 +308,7 @@ async function enviar_dados() {
         `);
     }
 
-    let existente = await verificar_chamado_existente(chamado, orcamento_v2.id, false, true)
+    let existente = await verificar_chamado_existente(chamado, orcamento_v2.id, false)
 
     if (chamado !== 'sequencial' && existente?.situacao) {
         return openPopup_v2(`
@@ -401,7 +400,7 @@ async function enviar_dados() {
     orcamento_v2.tabela = 'orcamentos';
 
     if (orcamento_v2.dados_orcam.contrato == 'sequencial') {
-        let sequencial = await verificar_chamado_existente(undefined, undefined, true, true)
+        let sequencial = await verificar_chamado_existente(undefined, undefined, true)
         orcamento_v2.dados_orcam.contrato = `ORC_${sequencial.proximo}`
     }
 
@@ -497,6 +496,14 @@ function pesquisar_v2(elemento, col) {
     });
 }
 
+function mudar_tabela_pesquisa(tabela) {
+
+    tabela_atual = tabela
+    tabela_produtos_v2()
+    total()
+
+}
+
 async function recuperar_composicoes(tipo_tabela) {
     let nuvem = await receber('dados_composicoes')
     await inserirDados(nuvem, 'dados_composicoes')
@@ -541,7 +548,7 @@ async function tabela_produtos_v2(tipo_tabela) {
                     preco = historico[ativo].valor
                 }
 
-                if (preco !== 0) {
+                if (preco !== 0 && produto.status != "INATIVO") {
 
                     let td_quantidade = `
                     <input type="number" class="numero-bonito" oninput="incluir_item('${pod}', this.value)">
