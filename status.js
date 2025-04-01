@@ -1162,6 +1162,13 @@ async function salvar_notas(chave) {
 }
 
 async function salvar_requisicao(chave) {
+
+    // Overlay
+    let janela = document.querySelectorAll('.janela')
+    janela = janela[janela.length - 1] // A última que existir
+    janela.insertAdjacentHTML('beforeend', overlay_aguarde())
+
+
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
 
@@ -1202,7 +1209,7 @@ async function salvar_requisicao(chave) {
                         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                         <label> Preencha os PARTNUMBERs pendentes</label>
                     </div>
-                `);
+                `, 'Aviso', true);
         }
 
         if (qtde != '') {
@@ -1237,6 +1244,11 @@ async function salvar_requisicao(chave) {
     await abrir_esquema(id_orcam)
 
     itens_adicionais = {}
+
+    let aguarde = document.getElementById('aguarde')
+    if (aguarde) {
+        aguarde.remove()
+    }
 }
 
 async function fechar_status(destruir) {
@@ -3124,11 +3136,9 @@ ipcRenderer.on('open-save-dialog', (event, { htmlContent, nomeArquivo }) => {
 });
 
 async function gerarpdf(cliente, pedido) {
-    if (menu_flutuante) {
-        menu_flutuante.style.display = 'none'
-    }
 
-    var janela = document.querySelector('.janela')
+    var janela = document.querySelectorAll('.janela')
+    janela = janela[janela.length - 1]
 
     var htmlContent = `
     <!DOCTYPE html>
@@ -3210,9 +3220,6 @@ async function gerarpdf(cliente, pedido) {
 
     await gerar_pdf_online(htmlContent, `REQUISICAO_${cliente}_${pedido}`);
 
-    if (menu_flutuante) {
-        menu_flutuante.style.display = 'flex'
-    }
 }
 
 async function envio_de_material(chave) {

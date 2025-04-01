@@ -104,7 +104,7 @@ async function carregar_tabela(sincronizar) {
         }
 
         for (let i = 1; i <= dias; i++) { // tds, células da agenda de cada técnico
-            let cod_departamento = agenda[i] ? agenda[i] : ''
+            let cod_departamento = agenda?.[i]?.departamento || ''
             let info = dados_departamentos[cod_departamento]?.descricao || cod_departamento
 
             celulas_dias += `
@@ -224,6 +224,8 @@ async function apagar_dia(dia, omie_tecnico, div) {
 
     delete tecnico?.agendas[ano_mes]?.[dia]
 
+    deletar(`dados_agenda_tecnicos/${omie_tecnico}/agendas/${ano_mes}/${dia}`)
+
     await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
 
     await definir_campo(div.nextElementSibling.id, '', '') // Input que vem na sequência
@@ -261,6 +263,8 @@ async function apagar_agenda(omie_tecnico) {
     let tecnico = dados_agenda_tecnicos[omie_tecnico]
 
     delete tecnico?.agendas[ano_mes]
+
+    deletar(`dados_agenda_tecnicos/${omie_tecnico}/agendas/${ano_mes}`)
 
     await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
 
@@ -413,7 +417,7 @@ async function definir_campo(input_id, omie_departamento, descricao) {
         div_sugestoes.remove()
     }
 
-    if (input_id == '') {
+    if (input_id == '' || omie_departamento == '') {
         return
     }
 
@@ -442,11 +446,19 @@ async function definir_campo(input_id, omie_departamento, descricao) {
         tecnico.agendas[chave_da_agenda] = {}
     }
 
-    tecnico.agendas[chave_da_agenda][dia] = omie_departamento
+    if (!tecnico.agendas[chave_da_agenda][dia]) {
+        tecnico.agendas[chave_da_agenda][dia]  = {}
+    }
 
-    await enviar(`dados_agenda_tecnicos/${omie_tecnico}/agendas/${chave_da_agenda}/${dia}`, omie_departamento)
+    if (tecnico.agendas[chave_da_agenda][dia]?.departamento == omie_departamento) {
+        return
+    }
 
-    await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
+    tecnico.agendas[chave_da_agenda][dia].departamento = omie_departamento
+
+    await enviar(`dados_agenda_tecnicos/${omie_tecnico}/agendas/${chave_da_agenda}/${dia}/departamento`, omie_departamento)
+
+    inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
 
 }
 
@@ -506,7 +518,9 @@ async function abrir_detalhes(codigo_tecnico) {
     let tecnico = dados_agenda_tecnicos[codigo_tecnico]
     let atual = tecnico.regiao_atual
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    let opcoes = ''
+    let opcoes = `
+        <option></option>
+    `
 
     regioes.forEach(regiao => {
         opcoes += `
@@ -517,7 +531,7 @@ async function abrir_detalhes(codigo_tecnico) {
     let acumulado = `
     <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; margin: 2vw; gap: 2vh;">
         <label>Região atual do Técnico</label>
-        <select onchange="atualizar_regiao(this, ${codigo_tecnico})" class="select_regiao">
+        <select onchange="alterar_regiao(this, ${codigo_tecnico})" class="select_regiao">
             ${opcoes}
         </select>
     </div>
@@ -566,17 +580,21 @@ async function apagar_tecnico(omie_tecnico) {
 
     delete dados_agenda_tecnicos[omie_tecnico]
 
+    deletar(`dados_agenda_tecnicos/${omie_tecnico}`)
+
     await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
 
     carregar_tabela()
 
 }
 
-async function atualizar_regiao(select, codigo_tecnico) {
+async function alterar_regiao(select, codigo_tecnico) {
 
     let dados_agenda_tecnicos = await recuperarDados('dados_agenda_tecnicos') || {}
     let tecnico = dados_agenda_tecnicos[codigo_tecnico]
     tecnico.regiao_atual = select.value
+
+    enviar(`dados_agenda_tecnicos/${codigo_tecnico}/regiao_atual`, select.value)
 
     await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
 
@@ -690,17 +708,21 @@ document.addEventListener("mousemove", function (event) {
     }
 });
 
-document.addEventListener("mouseup", async function () {
+document.addEventListener("mouseup", function () {
     if (segurando) {
         let cod_departamento = celula_inicial?.parentElement.id;
         let nome_do_departamento = celula_inicial?.value;
 
-        for (let cell of celulas_selecionadas) {
-            await definir_campo(cell.id, cod_departamento, nome_do_departamento);
-            cell.parentElement.classList.remove('selecionado'); // TD
-        }
+        let celulas_para_atualizar = [...celulas_selecionadas];
 
         segurando = false;
         celulas_selecionadas = [];
+
+        (async () => {
+            for (let cell of celulas_para_atualizar) {
+                await definir_campo(cell.id, cod_departamento, nome_do_departamento);
+                cell.parentElement.classList.remove('selecionado'); // TD
+            }
+        })();
     }
 });
