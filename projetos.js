@@ -1704,23 +1704,13 @@ function renderizarAnexos(idTarefa) {
 
     listaAnexos.innerHTML = Object.values(tarefa.anexos)
         .map(anexo => {
-            let nomeFormatado = anexo.nome.length > 15
-                ? `${anexo.nome.slice(0, 6)}...${anexo.nome.slice(-6)}`
-                : anexo.nome;
-
-            return `
-            <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                <div style="cursor: pointer;" class="anexo-item" onclick="abrirArquivo('${anexo.link}')">
-                    <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                    <label title="${anexo.nome}">${nomeFormatado}</label>
-                </div>
-                <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="removerAnexo('${idTarefa}', '${anexo.link}')">
-            </div>
-                </div>
-            `;
+            return criarAnexoVisual(
+                anexo.nome,
+                anexo.link,
+                `removerAnexo('${idTarefa}', '${anexo.link}')`
+            );
         })
         .join("");
-
 }
 
 function removerAnexo(idTarefa, linkAnexo) {
