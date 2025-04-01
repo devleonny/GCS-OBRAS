@@ -35,11 +35,23 @@ async function identificacao_user() {
 }
 
 function inicial_maiuscula(string) {
-    if (string == undefined) {
-        return ''
+    if (!string) return '';
+
+    string = string.includes('_') ? string.split('_').join(' ') : string;
+
+    let palavras = string.split(' ');
+
+    if (palavras[0].toLowerCase() === 'lpu') {
+        palavras[0] = 'LPU';
+    } else {
+        palavras[0] = palavras[0].charAt(0).toUpperCase() + palavras[0].slice(1).toLowerCase();
     }
-    string.includes('_') ? string = string.split('_').join(' ') : ''
-    return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+
+    for (let i = 1; i < palavras.length; i++) {
+        palavras[i] = palavras[i].charAt(0).toUpperCase() + palavras[i].slice(1).toLowerCase();
+    }
+
+    return palavras.join(' ');
 }
 
 function overlay_aguarde() {
@@ -1493,12 +1505,12 @@ function resposta_desconto(botao, id, status) {
 
 }
 
-async function verificar_chamado_existente(chamado, id_atual, sequencial) {
+async function verificar_chamado_existente(chamado, id_atual, sequencial, clone) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/chamado", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chamado, id_atual, sequencial })
+            body: JSON.stringify({ chamado, id_atual, sequencial, clone })
         })
             .then(response => {
                 if (!response.ok) {

@@ -304,7 +304,9 @@ async function enviar_dados() {
         `);
     }
 
-    if (chamado !== 'sequencial' && await verificar_chamado_existente(chamado, orcamento_v2.id, true).situacao) {
+    let existente = await verificar_chamado_existente(chamado, orcamento_v2.id, false, true)
+
+    if (chamado !== 'sequencial' && existente?.situacao) {
         return openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
@@ -394,8 +396,8 @@ async function enviar_dados() {
     orcamento_v2.tabela = 'orcamentos';
 
     if (orcamento_v2.dados_orcam.contrato == 'sequencial') {
-        let sequencial = `ORC_${await verificar_chamado_existente(undefined, undefined, true)}`
-        orcamento_v2.dados_orcam.contrato = sequencial
+        let sequencial = await verificar_chamado_existente(undefined, undefined, true, true)
+        orcamento_v2.dados_orcam.contrato = `ORC_${sequencial.proximo}`
     }
 
     if (!orcamento_v2.id) {

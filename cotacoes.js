@@ -5,13 +5,12 @@ let quantidadeFornecedores = 0;
 document.addEventListener("DOMContentLoaded", async () => {
 
     adicionarLinha();
-    await recuperarCotacoes();
-    
+
     const idEdicao = localStorage.getItem("cotacaoEditandoID");
     const operacao = localStorage.getItem("operacao");
     const iniciouPorClique = localStorage.getItem("iniciouPorClique");
     const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
-    
+
     // Só chama editarCotacao se a flag indicar que foi pelo link específico
     if (idEdicao && operacao === "editar" && iniciouPorClique === "true") {
         editarCotacao(idEdicao);
@@ -278,15 +277,7 @@ function abrirModal() {
     const input = document.getElementById("pesquisarFornecedor");
     if (input) {
         input.addEventListener("input", () => filtroFornecedores());
-    } else {
-        console.error("Elemento com id='pesquisarFornecedor' não encontrado.");
     }
-}
-
-function abrirModalFinalizar(){
-
-
-
 }
 
 function fecharModal() {
@@ -295,6 +286,10 @@ function fecharModal() {
 }
 
 function salvarFornecedor() {
+
+    const tabela = document.querySelector("#cotacaoTable tbody");
+    let quantidadeFornecedores = document.querySelectorAll(".fornecedor").length; // +1 para o novo fornecedor
+
     // Verifica quantos fornecedores já existem no localStorage se a operação for "editar"
     let operacao = localStorage.getItem("operacao");
     let fornecedoresExistentes = 0;
@@ -308,11 +303,7 @@ function salvarFornecedor() {
         }
     }
 
-    // Atualiza a quantidade de fornecedores
-    quantidadeFornecedores = fornecedoresExistentes + 1;
-
     // Conta quantas linhas existem atualmente na tabela
-    const tabela = document.querySelector("#cotacaoTable tbody");
     const numeroLinhas = tabela.querySelectorAll("tr").length; // Total de linhas na tabela
 
     const input = document.getElementById("pesquisarFornecedor");
@@ -396,8 +387,6 @@ function salvarFornecedor() {
 
                 let inputEstoque = document.querySelector(`#estoque-${linhaAtualQuantidade}`)
 
-                console.log(inputEstoque)
-
                 inputEstoque.addEventListener("input", () => {
 
                     let quantidadeAtual = Number(document.querySelector(`#quantidade-${linhaQuantidade}`).value) || 0;
@@ -444,13 +433,13 @@ function salvarFornecedor() {
 
         thNomeFornecedor.textContent = nomeFornecedor;
 
+        thNomeFornecedor.className = "fornecedor"
+
         trNomeFornecedor.appendChild(thNomeFornecedor);
 
         trTopicostabela.append(thPrecoUnitario, thPrecoTotal);
 
         fecharModal();
-
-        console.log("Fornecedor salvo:", nomeFornecedor);
 
 
     } else {
@@ -759,14 +748,16 @@ async function salvarObjeto(finalizar = false, reabrir = false) {
     const valorFinal = salvarValorFinal();
     const operacao = localStorage.getItem("operacao");
 
-    console.log(informacoes)
-
     // Define o status corretamente
     let status = "Pendente";
     if (finalizar) status = "Finalizada";
     if (reabrir) status = "Pendente"; // Garante que ao reabrir, o status seja Pendente
 
     const novaCotacao = { informacoes, dados, valorFinal, operacao, status };
+
+    const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
+    cotacoes[informacoes.id] = novaCotacao;
+    localStorage.setItem("dados_cotacao", JSON.stringify(cotacoes));
 
     // 🔥 Envia a nova cotação para a API usando enviar()
     enviar(`dados_cotacao/${informacoes.id}`, novaCotacao);
@@ -775,8 +766,6 @@ async function salvarObjeto(finalizar = false, reabrir = false) {
     const aviso = document.getElementById("salvarAviso");
     aviso.style.display = "block";
     setTimeout(() => (aviso.style.display = "none"), 3000);
-
-    console.log(`Cotação ${finalizar ? "Finalizada" : reabrir ? "Reaberta" : "Salva"}:`, informacoes.apelidoCotacao);
 
     // Atualiza os botões corretamente
     atualizarBotoesFinalizarReabrir(status);
@@ -850,7 +839,6 @@ function salvarDados() {
     const linhas = tabela.querySelectorAll("tbody tr");
 
     if (linhas.length === 0) {
-        console.warn("Não há itens na tabela para salvar.");
         return [];
     }
 
@@ -924,8 +912,6 @@ function abrirModalApelido() {
         const cotacaoEditandoID = localStorage.getItem("cotacaoEditandoID");
         const cotacaoAtual = cotacoes[cotacaoEditandoID];
 
-        console.log(cotacaoAtual)
-
         if (cotacaoAtual && cotacaoAtual.informacoes.apelidoCotacao) {
             input.value = cotacaoAtual.informacoes.apelidoCotacao;
         } else {
@@ -946,8 +932,14 @@ document.addEventListener("DOMContentLoaded", () => {
     carregarCotacoesSalvas();
 
     document.getElementById("novaCotacaoButton").addEventListener("click", () => {
+
         document.getElementById("cotacoesSalvasContainer").style.display = "none";
+        document.getElementById("toolbar").style.display = "none";
         document.getElementById("novaCotacaoContainer").style.display = "block";
+        document.querySelector(".button-container").style.display = "flex"
+        document.getElementById("botao-voltar-menu").style.display = "none"
+        document.getElementById("botao-voltar-tabela").style.display = "flex"
+
         localStorage.setItem("operacao", "incluir");
 
     });
@@ -986,6 +978,7 @@ function carregarCotacoesSalvas() {
 
         linha.innerHTML = `
             <td>${cotacao.informacoes.apelidoCotacao || 'Sem Apelido'}</td>
+            <td>${cotacao.status}</td>
             <td>${cotacao.informacoes.data}</td>
             <td>${cotacao.informacoes.criador}</td>
             <td>${cotacao.dados.length}</td>
@@ -999,16 +992,98 @@ function carregarCotacoesSalvas() {
 
         tabelaBody.appendChild(linha);
     });
-    
+
 }
 
+function filtrarCotacoesPorStatus(statusSelecionado = "Todos") {
+    const tabela = document.getElementById("cotacoesSalvasTable");
+    const linhas = tabela.querySelectorAll("tbody tr");
+
+    const contadores = {
+        Todos: 0,
+        Pendente: 0,
+        Finalizada: 0,
+        listas: ["Todos", "Pendente", "Finalizada"]
+    };
+
+    linhas.forEach((linha) => {
+        const status = linha.children[1]?.textContent?.trim();
+        const mostrar = statusSelecionado === "Todos" || status === statusSelecionado;
+
+        linha.style.display = mostrar ? "table-row" : "none";
+
+        // Conta todos os status
+        if (contadores[status] !== undefined) contadores[status]++;
+        contadores.Todos++;
+    });
+
+    // Renderizar a toolbar
+    const toolbar = document.getElementById("toolbar");
+    toolbar.innerHTML = "";
+
+    const cores = {
+        ativo: {
+            bg: "#d2d2d2",
+            bgContador: "#222",
+            colorContador: "#d2d2d2"
+        },
+        inativo: {
+            bg: "#797979",
+            bgContador: "#3d3c3c",
+            colorContador: "#d2d2d2"
+        }
+    };
+
+    contadores.listas.forEach((status) => {
+        const ativo = status === statusSelecionado;
+        const estilo = ativo ? cores.ativo : cores.inativo;
+
+        const labelHTML = `
+        <div onclick="filtrarCotacoesPorStatus('${status}')"
+            style="background-color:${estilo.bg};
+                   color: #222;
+                   display: flex;
+                   flex-direction: column;
+                   justify-content: center;
+                   align-items: center;
+                   gap: 3px;
+                   cursor: pointer;
+                   padding: 10px;
+                   font-size: 0.8vw;
+                   border-top-left-radius: 5px;
+                   border-top-right-radius: 5px;">
+
+            <label>${status.charAt(0).toUpperCase() + status.slice(1)}</label>
+            <label style="text-align: center;
+                          background-color: ${estilo.bgContador};
+                          color: ${estilo.colorContador};
+                          border-radius: 3px;
+                          padding-left: 10px;
+                          padding-right: 10px;
+                          width: 50%;">${contadores[status]}</label>
+        </div>
+        `;
+
+        toolbar.insertAdjacentHTML("beforeend", labelHTML);
+    });
+}
+
+const interval = setInterval(() => {
+    if (document.getElementById("toolbar")) {
+        filtrarCotacoesPorStatus("Todos");
+        clearInterval(interval);
+    }
+}, 50); // tenta a cada 50ms // Inicializa com "TODOS"
 
 function editarCotacao(id) {
     const cotacoes = JSON.parse(localStorage.getItem("dados_cotacao")) || {};
     const cotacao = cotacoes[id];
 
+    document.querySelector(".button-container").style.display = "flex"
+    document.getElementById("botao-voltar-menu").style.display = "none"
+    document.getElementById("botao-voltar-tabela").style.display = "flex"
+
     if (!cotacao) {
-        console.error(`Cotação com ID ${id} não encontrada.`);
         return;
     }
 
@@ -1019,14 +1094,10 @@ function editarCotacao(id) {
     // Preenche o formulário com os dados da cotação
     preencherFormularioCotacao(cotacao);
 
-    console.log(cotacao.status)
-
     // Atualiza os botões de Finalizar/Reabrir com base no status da cotação
     setTimeout(() => {
         atualizarBotoesFinalizarReabrir(cotacao.status);
     }, 100); // Pequeno delay para garantir atualização
-
-    console.log(`Cotação editada: ID ${id}, Status: ${cotacao.status}`);
 
     // Atualiza o valor de "Quantidade de Itens"
     atualizarQuantidadeItens();
@@ -1051,13 +1122,12 @@ function editarCotacao(id) {
 
     // Exibe a tela de edição
     document.getElementById("cotacoesSalvasContainer").style.display = "none";
+    document.getElementById("toolbar").style.display = "none";
     document.getElementById("novaCotacaoContainer").style.display = "block";
 
     // Exibe o botão de exportar PDF
     const botaoPDF = document.getElementById("botaoExportarPDF");
     botaoPDF.style.display = "inline-block";
-
-    console.log(`Cotação editada: ID ${id}`);
 }
 
 
@@ -1280,7 +1350,6 @@ function excluirFornecedor(nomeFornecedor) {
     );
 
     if (indiceFornecedor === -1) {
-        console.error("Fornecedor não encontrado:", nomeFornecedor);
         return;
     }
 
@@ -1317,8 +1386,6 @@ function excluirFornecedor(nomeFornecedor) {
         cotacoes[idCotacao].valorFinal = cotacoes[idCotacao].valorFinal.filter((f) => f.nome !== nomeFornecedor);
         localStorage.setItem("dados_cotacao", JSON.stringify(cotacoes));
     }
-
-    console.log(`Fornecedor "${nomeFornecedor}" excluído com sucesso.`);
 
     // Verificar se ainda há fornecedores e atualizar o cabeçalho
     verificarFornecedores();
@@ -1381,8 +1448,6 @@ function adicionarPrecoUnitarioPrecoTotal(dado, novaLinha, numeroItem) {
             let quantidadeAtual = Number(document.querySelector(`#quantidade-${numeroItem}`).value) || 0;
 
             const precoUnitarioAtual = Number(inputPrecoUnitario.value) || 0;
-
-            console.log(document.querySelector(`#estoque-${numeroItem}`))
 
             let valorEstoque = Number(document.querySelector(`#estoque-${numeroItem}`).value) || 0
 
@@ -1453,10 +1518,6 @@ function removerLinha(elemento) {
     atualizarQuantidadeItens();
 }
 
-function voltarParaTabela() {
-    f5()
-}
-
 async function recuperarCotacoes() {
 
     document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
@@ -1498,7 +1559,6 @@ async function removerCotacao(elemento) {
     let cotacaoAtual = cotacoes[idCotacao];
 
     if (!cotacaoAtual) {
-        console.warn(`Cotação com ID ${idCotacao} não encontrada.`);
         return;
     }
 
@@ -1507,18 +1567,14 @@ async function removerCotacao(elemento) {
 
     // 🔥 Se houver um orçamento associado, remove a referência no status
     if (idOrcamento && chavePedido) {
+
         let dados_orcamentos = await recuperarDados("dados_orcamentos") || {};
 
-        if (idCotacao === undefined || idCotacao === "undefined") {
-            delete dados_orcamentos[idOrcamento].status[chavePedido];
-            deletar(`dados_orcamentos/${idOrcamento}/status/${chavePedido}`);
-        } else {
-            delete dados_orcamentos[idOrcamento].status[chavePedido].historico[idCotacao];
-            deletar(`dados_orcamentos/${idOrcamento}/status/${chavePedido}/historico/${idCotacao}`);
-        }
+        delete dados_orcamentos[idOrcamento].status.historico[idCotacao];
+        deletar(`dados_orcamentos/${idOrcamento}/status/historico/${idCotacao}`);
 
-        enviar("PUT", `dados_orcamentos/${idOrcamento}/timestamp`, Date.now());
         inserirDados(dados_orcamentos, "dados_orcamentos");
+
     }
 
     // 🔥 Remove a cotação na nuvem
@@ -1543,8 +1599,6 @@ async function removerCotacao(elemento) {
         linhaMensagem.appendChild(celulaMensagem);
         tabelaBody.appendChild(linhaMensagem);
     }
-
-    console.log(`Cotação removida com ID: ${idCotacao}`);
 }
 
 let ordemAtual = {
@@ -1711,7 +1765,6 @@ function exportarTabelaParaPDF() {
     const cotacao = cotacoes[idCotacao];
 
     if (!cotacao) {
-        console.error("Cotação não encontrada!");
         return;
     }
 
@@ -1950,8 +2003,6 @@ function formatarParaReal(valor) {
 }
 
 function voltarParaTabela() {
-    const botaoPDF = document.getElementById("botaoExportarPDF");
-    botaoPDF.style.display = "none"; // Oculta o botão
     f5();
 }
 
@@ -1977,7 +2028,6 @@ function atualizarBotoesFinalizarReabrir(status) {
         botaoReabrir.style.display = "none";
     }
 
-    console.log(`Botões atualizados: Finalizar(${botaoFinalizar.style.display}), Reabrir(${botaoReabrir.style.display})`);
 }
 
 function abrirModalReabrir() {

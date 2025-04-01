@@ -771,7 +771,7 @@ async function abrirModal(idLista, idTarefa) {
         </div>`;
 
         // Renderizar as atividades dentro do modal
-        renderizarAtividades(tarefaAlvo.atividades, tarefaAlvo.historico, idTarefa);
+        renderizarAtividades(tarefaAlvo.atividades, tarefaAlvo.historico, idLista, idTarefa);
 
         setTimeout(() => {
             let orcamentoLink = document.getElementById("orcamento-link");
@@ -1529,11 +1529,6 @@ function excluirComentario(idLista, idTarefa, idComentario) {
 
     let acesso = JSON.parse(localStorage.getItem("acesso")) || {};
     let usuarioLogado = acesso.usuario || "Usuário desconhecido";
-
-    if (tarefaAlvo.atividades[idComentario].criador !== usuarioLogado) {
-        alert("❌ Você só pode excluir os comentários que você criou!");
-        return;
-    }
 
     // 🗑️ Remove o comentário da estrutura local
     delete tarefaAlvo.atividades[idComentario];

@@ -30,94 +30,21 @@
           <label style="color: white; cursor: pointer;">Menu Inicial</label>
           <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
         </div>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; " id="update-data-btn">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="carregar_tabela(true)">
           <label style="color: white; cursor: pointer;">Atualizar</label>
           <img src="imagens/atualizar_2.png" style="width: 25px; cursor: pointer;">
         </div>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;" id="add-line-btn">
-          <label style="color: white; cursor: pointer;">Adicionar Novo Técnico</label>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="abrir_opcoes()">
+          <label style="color: white; cursor: pointer;">Novo Técnico</label>
           <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
         </div>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;" id="sync-data-btn">
-          <label style="color: white; cursor: pointer;">Sincronizar</label>
-          <img src="imagens/sync.png" style="width: 25px; cursor: pointer;">
-        </div>
       </div>
     </div>
   </div>
 
-  <div class="controls">
-    <label for="region-select">Região:</label>
-    <select id="region-select">
-      <option value="todas">Todas as Regiões</option>
-      <option value="norte">Norte</option>
-      <option value="nordeste">Nordeste</option>
-      <option value="centro-oeste">Centro-Oeste</option>
-      <option value="sudeste">Sudeste</option>
-      <option value="sul">Sul</option>
-    </select>
-
-
-    <label for="month-select">Mês:</label>
-    <select id="month-select"></select>
-
-    <label for="year-select">Ano:</label>
-    <input type="number" id="year-select" value="" min="1900" max="2100" step="1">
-  </div>
-
-
-  <div class="calendar-header">
-    <div class="month-year">
-      <span id="month-name"></span>
-    </div>
-    <div class="calendar-table-container">
-      <table class="calendar-table">
-        <thead>
-          <tr id="days-row">
-            <!-- Linha de dias será gerada dinamicamente -->
-          </tr>
-        </thead>
-        <tbody id="technicians-body">
-          <!-- Linhas serão adicionadas dinamicamente -->
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <div id="popup-modal" class="modal">
-    <div class="modal-content">
-      <span class="close" id="close-modal-btn">&times;</span>
-      <p id="modal-message"></p>
-      <button id="close-button">Fechar</button>
-    </div>
-  </div>
-
-  <div id="edit-modal" class="modal">
-    <div class="modal-content">
-      <span class="close-modal-btn">&times;</span> <!-- Adiciona o X vermelho -->
-      <h2>Editar Região</h2>
-      <label for="edit-region-select">Região Atual:</label>
-      <select id="edit-region-select"></select>
-      <div class="modal-buttons">
-        <button id="edit-confirm-btn">Confirmar</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="delete-modal" class="modal">
-    <div class="modal-content">
-      <span class="close-modal-btn">&times;</span> <!-- Adiciona o X vermelho -->
-      <h2>Confirmar Exclusão</h2>
-      <p>Tem certeza que deseja remover este técnico desta agenda?</p>
-      <div class="modal-buttons">
-        <button id="confirm-delete-btn">Excluir</button>
-      </div>
-    </div>
-  </div>
-
-
-  <script src="agenda.js"></script>
-  <script src="open_menus.js"></script>
 </body>
+
+<script src="open_menus.js"></script>
+<script src="agenda.js"></script>
 
 </html>

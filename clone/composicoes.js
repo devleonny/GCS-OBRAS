@@ -175,6 +175,18 @@ async function carregar_tabela_v2() {
                     `
                 alinhamento = 'center';
 
+            } else if (chave == 'sistema') {
+
+                conteudo = `
+                <select style="cursor: pointer;" onchange="alterar_setor('${codigo}', this)">
+                    <option ${produto?.sistema == '' ? 'selected' : ''}></option>
+                    <option ${produto?.sistema == 'IP' ? 'selected' : ''}>IP</option>
+                    <option ${produto?.sistema == 'ANALÓGICO' ? 'selected' : ''}>ANALÓGICO</option>
+                    <option ${produto?.sistema == 'ALARME' ? 'selected' : ''}>ALARME</option>
+                    <option ${produto?.sistema == 'CONTROLE DE ACESSO' ? 'selected' : ''}>CONTROLE DE ACESSO</option>
+                </select>
+                `
+
             } else if (chave == 'material infra') {
 
                 var stats = ''
@@ -231,6 +243,18 @@ async function carregar_tabela_v2() {
         }
     }
 
+}
+
+async function alterar_setor(codigo, select) {
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
+    let produto = dados_composicoes[codigo]
+
+    produto.setor = select.value
+
+    enviar(`dados_composicoes/${codigo}/setor`, select.value)
+
+    await inserirDados(dados_composicoes, 'dados_composicoes')
 }
 
 async function atualizar_status_material(codigo, elemento) {
@@ -1010,12 +1034,12 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
             <tbody>
                 <tr>
                     <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
-                    <td><input value="8%" readOnly></td>
+                    <td><input value="15%" readOnly></td>
                     <td></td>
                 </tr>
                 <tr>
                     <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
-                    <td><input value="8%" readOnly></td>
+                    <td><input value="10%" readOnly></td>
                     <td></td>
                 </tr>
                 <tr>
@@ -1111,7 +1135,7 @@ function calcular(tipo, campo) {
 
         let tds = tabelas[0].querySelectorAll('td') // 1ª Tabela;
 
-        let valor_servico = Number(tds[0].querySelector('input').value)
+        let valor_servico = conversor(tds[0].querySelector('input').value)
 
         tds = tabelas[2].querySelectorAll('td')
 
@@ -1149,7 +1173,7 @@ function calcular(tipo, campo) {
 
         let tds = tabelas[0].querySelectorAll('td') // 1ª Tabela
 
-        let preco_compra = Number(tds[1].querySelector('input').value)
+        let preco_compra = conversor(tds[1].querySelector('input').value)
         let frete = preco_compra * 0.05
         let icms_creditado = conversor(tds[5].querySelector('input').value)
         let icms_aliquota = conversor(tds[7].querySelector('input').value)
@@ -1162,11 +1186,11 @@ function calcular(tipo, campo) {
         tds[11].textContent = dinheiro(icms_entrada)
         tds[13].textContent = dinheiro(valor_custo)
 
-        let margem = Number(tds[15].querySelector('input').value)
+        let margem = conversor(tds[15].querySelector('input').value)
         let preco_venda = (1 + margem / 100) * valor_custo
 
         if (campo == 'final') {
-            preco_venda = Number(tds[17].querySelector('input').value)
+            preco_venda = conversor(tds[17].querySelector('input').value)
             margem = ((preco_venda / valor_custo - 1) * 100).toFixed(2)
             tds[15].querySelector('input').value = margem
 
@@ -1246,14 +1270,8 @@ async function cadastrar_editar_item(codigo) {
     let colunas = ['descricao', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados = dados_composicoes[codigo] || {}
-    let n_codigo = codigo
-    if (codigo !== undefined) {
-        colunas = Object.keys(dados)
-    } else {
-        n_codigo = `gcs-${gerar_id_5_digitos()}`
-    }
-    let funcao = codigo == undefined ? `cadastrar_alterar('${n_codigo}')` : `cadastrar_alterar('${codigo}')`
 
+    let funcao = codigo ? `cadastrar_alterar('${codigo}')` : `cadastrar_alterar()`
     let elementos = ''
 
     colunas.forEach(col => {
@@ -1293,18 +1311,18 @@ async function cadastrar_editar_item(codigo) {
 
     var acumulado = `
 
-    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
+    <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 5vh;">
 
-    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
-        <label style="font-size: 0.7em;">${n_codigo}</label>
-        <img src="imagens/cancel.png" style="width: 15px; cursor: pointer;" onclick="confirmar_exclusao_item('${n_codigo}')">
-    </div>
+    ${codigo ? `<div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
+        <label style="font-size: 0.7em;">${codigo}</label>
+        <img src="imagens/cancel.png" style="width: 15px; cursor: pointer;" onclick="confirmar_exclusao_item('${codigo}')">
+    </div>` : ''}
 
     <div style="display: flex; justify-content: space-evenly; width: 100%;">
         <label>Dados do Item</label>
     </div>
 
-    <div id="cadastrar_item" style="background-color: white; color: #222; padding: 5px; border-radius: 5px;">
+    <div id="cadastrar_item" style="background-color: white; color: #222; padding: 5px; border-radius: 5px; margin: 1vw;">
 
         <div id="elementos" style="display: flex; flex-direction: column; gap: 5px;">
             ${elementos}
@@ -1355,6 +1373,8 @@ async function cadastrar_alterar(codigo) {
     let elementos = document.getElementById('elementos');
     if (!elementos) return;
 
+    codigo = codigo ? codigo : await verificar_codigo_existente(true) // Verificar com o servidor o último código sequencial;
+
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     if (!dados_composicoes[codigo]) {
         dados_composicoes[codigo] = {};
@@ -1381,6 +1401,29 @@ async function cadastrar_alterar(codigo) {
 
     remover_popup();
     carregar_tabela_v2();
+}
+
+async function verificar_codigo_existente(clone) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/codigo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ clone })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
 }
 
 async function abrirModalFiltros() {

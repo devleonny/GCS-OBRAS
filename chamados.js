@@ -134,8 +134,8 @@ async function carregar_manutencoes(sincronizar) {
         dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
     }
 
-     // 🔥 ORDENANDO DO MAIS RECENTE PARA O MENOS RECENTE
-     let listaManutencoes = Object.entries(dados_manutencao).sort((a, b) => {
+    // 🔥 ORDENANDO DO MAIS RECENTE PARA O MENOS RECENTE
+    let listaManutencoes = Object.entries(dados_manutencao).sort((a, b) => {
         let [dataA, horaA] = a[1].data.split(", "); // Separando data e hora
         let [dataB, horaB] = b[1].data.split(", ");
 
@@ -224,14 +224,14 @@ async function abrir_manutencao(id) {
     }
 
     await criar_manutencao(id)
+    if (id) renderizarAnexos(id)
     let manutencao = dados_manutencao[id]
-    let pecas = manutencao.pecas
-    console.log(manutencao);
+    let pecas = manutencao?.pecas || {}
 
-    document.getElementById('comentario').value = manutencao.comentario
-    document.getElementById('status_manutencao').value = manutencao.status_manutencao
-    document.getElementById('chamado').value = manutencao.chamado
-    document.getElementById('previsao').value = manutencao.previsao;
+    document.getElementById('comentario').value = manutencao?.comentario || ''
+    document.getElementById('status_manutencao').value = manutencao?.status_manutencao || ''
+    document.getElementById('chamado').value = manutencao?.chamado || ''
+    document.getElementById('previsao').value = manutencao?.previsao || ''
 
     let div_NF = document.getElementById("div_NF")
 
@@ -292,7 +292,7 @@ async function abrir_manutencao(id) {
 
         estoques.forEach(estoque => {
 
-            let estoque_do_objeto = dados_estoque[peca.codigo][estoque]
+            let estoque_do_objeto = dados_estoque[peca.codigo]?.[estoque] || 0
             let historicos = estoque_do_objeto.historico
             dic_quantidades[estoque] = estoque_do_objeto.quantidade
 
@@ -308,7 +308,7 @@ async function abrir_manutencao(id) {
 
         })
 
-        celulas[0].value = peca.partnumber || dados_estoque[peca.codigo].partnumber
+        celulas[0].value = peca.partnumber || dados_estoque[peca.codigo]?.partnumber
         celulas[1].value = peca.descricao
         celulas[2].value = peca.codigo
         celulas[3].value = peca.quantidade
@@ -358,7 +358,7 @@ async function abrir_manutencao(id) {
         }
 
         infos += `
-        <div style="display: flex; align-items: center; justify-content: space-evenly; margin-bottom: 10px;">
+            <div style="display: flex; align-items: center; justify-content: space-evenly; margin-bottom: 10px;">
                 <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; font-size: 0.8vw;">
                     <label><strong>Data: </strong>${historico.data}</label>
                     <label><strong>Status: </strong>${historico.status_manutencao}</label>
@@ -368,13 +368,14 @@ async function abrir_manutencao(id) {
                 </div>
                 <img src="imagens/${imagem}.png" style="width: 50px; margin-left: 10px;">
             </div>
-    `;
+            <hr style="width: 100%;">
+        `;
     }
 
     let elemento = `
         <br>
             
-            <div style="background-color: #151749; border-top-left-radius: 3px; border-top-right-radius: 3px; width: 70vw; padding: 5px;">Histórico</div>
+            <div style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px; width: 70vw; padding: 5px;">Histórico</div>
 
             <div style="width: 70vw; background-color: #d2d2d2; color: #222; padding: 5px;">
                 ${infos}
@@ -388,7 +389,6 @@ async function abrir_manutencao(id) {
 }
 
 function salvarPrimeiroUsuario(historico) {
-
 
     // Verifica se o objeto de histórico existe e não está vazio
     if (historico && dicionario(historico)) {
@@ -546,7 +546,27 @@ async function capturar_html_pdf(id) {
 }
 
 
-function criar_manutencao(id) {
+async function criar_manutencao(id) {
+
+    let acesso = JSON.parse(localStorage.getItem("acesso"))
+
+    dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+
+    let permissao = dados_setores[acesso.usuario].permissao
+
+    let setor = dados_setores[acesso.usuario].setor
+
+    let displayBotaoAnexos = ""
+
+    if (permissao == "adm" || setor == "LOGÍSTICA") {
+
+        displayBotaoAnexos = "flex"
+
+    } else {
+
+        displayBotaoAnexos = "none"
+
+    }
 
     let termo = 'Editar'
     let botao = 'Atualizar'
@@ -554,13 +574,16 @@ function criar_manutencao(id) {
         <div onclick="capturar_html_pdf('${id}')" class="contorno_botoes" style="background-color: #B12425; display: flex; align-items: center; justify-content: center; gap: 10px;">
             <img src="imagens/pdf.png" style="cursor: pointer; width: 2vw;">
             <label>PDF</label>
-        </div>`
+        </div>
+        `
+
     let excluir = `
-        <div style="background-color: transparent;;" onclick="confirmar_exclusao('${id}')" class="bex">
-            <img src="imagens/cancel.png" style="cursor: pointer; width: 1vw; height: 1vw;">
-            <label style="font-size: 1vw; color: white; cursor: pointer;">Excluir Manutenção</label>
+        <div style="position: absolute; bottom: 0; left: 2vw; display: flex; justify-content: center; align-items: center; gap: 5px;" onclick="confirmar_exclusao('${id}')">
+            <img src="imagens/cancel.png" style="cursor: pointer; width: 1vw;">
+            <label style="font-size: 0.8vw; cursor: pointer;">Excluir Manutenção</label>
         </div>
     `
+
     if (id == undefined) {
         termo = 'Criar'
         botao = 'Enviar para Logística'
@@ -570,16 +593,11 @@ function criar_manutencao(id) {
     }
 
     let acumulado = `
-        <img src="imagens/BG.png" style="height: 70px; position: absolute; top: 0; left: 0;">
-
-        <label>${termo} <strong> Requisição de Materiais </strong> </label>
-
         <div style="position: relative;" id="tela">
 
             <div style="background-color: white; border-radius: 3px; padding: 5px; font-size: 0.9vw; width: 70vw;">
 
-                <div
-                    style="position: relative; display: flex; align-items: center; justify-content: start; color: #222; background-color: #d2d2d2; padding: 5px; border-radius: 3px;">
+                <div style="position: relative; display: flex; align-items: center; justify-content: start; color: #222; background-color: #d2d2d2; padding: 5px; border-radius: 3px;">
                     <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
 
                         <label style="font-size: 1.2vw;">Cliente | Loja</label>
@@ -625,35 +643,53 @@ function criar_manutencao(id) {
                                 <option>REPROVADO</option>
                             </select>
                         </div>
+
                         <div
                             style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
                             <label style="font-size: 1.2vw;">Kit Técnico</label>
                             <input id="kit" type="checkbox" style="width: 2vw; height: 2vw; cursor: pointer;"
                                 onclick="alterar_kit(this)">
                         </div>
+
                         <div id="div_chamado"
                             style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
                             <label style="font-size: 1.2vw;">Chamado</label>
                             <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text"
                                 placeholder="..." id="chamado">
                         </div>
+
                         <div id="div_previsao"
                             style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
                             <label style="font-size: 1.2vw;">Previsão</label>
                             <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="date"
                                 placeholder="..." id="previsao">
                         </div>
+
                         <div id="div_NF"
                             style="display: none; position: relative; width: 25vw; align-items: center; justify-content: left; gap: 20px;">
                             <label style="font-size: 1.2vw;">NF</label>
                             <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text"
                                 placeholder="..." id="NF">
                         </div>
+
                         <div
                             style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
                             <label style="font-size: 1.2vw;">Comentário</label>
                             <textarea type="text" placeholder="..." id="comentario"></textarea>
                         </div>
+
+                        <div style="display: flex; justify-content: start; align-items: center; gap: 5px; width: 100%;">
+                            <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
+                                <label style="font-size: 1.2vw;">Anexos</label>
+                                <label class="contorno_botoes" for="anexo_pedido" style="display: ${displayBotaoAnexos}; justify-content: center; border-radius: 50%;">
+                                    <img src="imagens/anexo.png" style="cursor: pointer; width: 1vw;">
+                                    <input type="file" id="anexo_pedido" style="display: none;" onchange="salvar_anexos_manutencao(this, '${id}')">
+                                </label>
+                            </div>
+                            <label onclick="mostrar_anexos(this)" style="text-decoration: underline; cursor: pointer;">Exibir</label>
+                        </div>
+                        
+                        <div id="lista-anexos" style="display: none; align-items: start; justify-content: start; flex-direction: column;"></div>
                     </div>
 
                 </div>
@@ -708,11 +744,11 @@ function criar_manutencao(id) {
                         <label>${botao}</label>
                     </div>
                     ${pdf}
-                    <div onclick="atualizar_base_clientes()" class="bex" style="background-color: brown; color: white;">
+                    <div onclick="atualizar_base_clientes()" class="bex" style="background-color: #151749; color: white;">
                         <img src="imagens/atualizar.png" style="cursor: pointer; width: 2vw;">
                         <label">Sincronizar Clientes/Técnicos</label>
                     </div>
-                    <div onclick="recuperar_estoque()" class="bex" style="background-color: black; color: white;">
+                    <div onclick="recuperar_estoque()" class="bex" style="background-color: #151749; color: white;">
                         <img src="imagens/sync.png" style="cursor: pointer; width: 2vw;">
                         <label">Sincronizar Estoque</label>
                     </div>
@@ -722,16 +758,27 @@ function criar_manutencao(id) {
 
         </div>
 
+        <label id="data" style="position: absolute; bottom: 0; right: 1vw; font-size: 0.8vw;">${data_atual('completa')}</label>
+        ${excluir}
+
         <div id="historico"></div>
 
-        <label id="data"
-            style="position: absolute; bottom: 10px; right: 20px; font-size: 0.8vw;">${data_atual('completa')}</label>
-        <label id="excluir"
-            style="position: absolute; bottom: 2x; left: 20px; font-size: 0.8vw; cursor: pointer;">${excluir}</label>
-    
     `
 
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, `${termo} Requisição de Materiais`)
+}
+
+function mostrar_anexos(label) {
+
+    label.textContent = label.textContent === 'Exibir' ? 'Ocultar' : 'Exibir';
+
+    let display = 'none'
+
+    if (label.textContent !== 'Exibir') {
+        display = 'flex'
+    }
+
+    label.parentElement.nextElementSibling.style.display = display
 }
 
 function confirmar_exclusao(id) {
@@ -740,9 +787,9 @@ function confirmar_exclusao(id) {
         <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
             <img src="gifs/alerta.gif" style="width: 3vw;">
             <label>Confirmar exclusão?</label>
-            <button style="font-size: 1vw;" onclick="excluir_manutencao('${id}')">Confirmar</button>
         </div>
-        `)
+        <button style="font-size: 1vw; background-color: green;" onclick="excluir_manutencao('${id}')">Confirmar</button>
+    `)
 
 }
 
@@ -869,6 +916,11 @@ async function enviar_manutencao(id) {
         manutencao.chamado = 'KIT TÉCNICO'
     }
 
+    // Anexos 
+    manutencao.anexos = {
+        ...dados_manutencao[id]?.anexos || {}
+    }
+
     enviar(`dados_manutencao/${id}`, manutencao)
     dados_manutencao[id] = manutencao
 
@@ -957,8 +1009,6 @@ async function sugestoes(textarea, div, base) {
 
     let dados = await recuperarDados(`dados_${base}`) || {}
     let opcoes = ''
-
-    console.log(dados["055.733.205-21"])
 
     for (id in dados) {
         let item = dados[id]
@@ -1109,3 +1159,103 @@ async function filtrarTabelaPorData() {
         tbody.appendChild(aviso);
     }
 }
+
+let manutencoes_pendentes = {};
+
+async function salvar_anexos_manutencao(input, id) {
+    if (!id) {
+        return;
+    }
+
+    let anexos = await anexo_v2(input); // Simulação da função de upload
+    await inserirDados(await receber('dados_manutencao'), 'dados_manutencao');
+    let dados_manutencoes = await recuperarDados('dados_manutencao') || {};
+
+    let dados_manutencao = dados_manutencoes[id];
+
+    // 🛑 Se o manutencao ainda não existe, salva os anexos temporariamente
+    if (!dados_manutencao) {
+        if (!manutencoes_pendentes[id]) {
+            manutencoes_pendentes[id] = { anexos: {} };
+        }
+        anexos.forEach(anexo => {
+            manutencoes_pendentes[id].anexos[anexo.link] = anexo;
+        });
+        renderizarAnexos(id);
+        return;
+    }
+
+    // 🔥 Garante que a estrutura de anexos exista
+    if (!dados_manutencao.anexos) {
+        dados_manutencao.anexos = {};
+    }
+
+    anexos.forEach(anexo => {
+        dados_manutencao.anexos[anexo.link] = anexo;
+        enviar(`dados_manutencao/${id}/anexos/${anexo.link}`, anexo);
+    });
+
+    // Atualiza localmente
+    await inserirDados(dados_manutencoes, 'dados_manutencao');
+
+    // Recarrega os anexos no modal
+    await renderizarAnexos(id);
+
+}
+
+async function renderizarAnexos(id) {
+    let listaAnexos = document.getElementById("lista-anexos");
+    if (!listaAnexos) return;
+
+    let dados_manutencoes = await recuperarDados('dados_manutencao') || {};
+    let manutencao = dados_manutencoes[id] || {}; // Se não existir, inicia vazio
+    let anexosBanco = manutencao.anexos || {}; // Anexos já salvos no banco
+    let anexosPendentes = manutencoes_pendentes[id]?.anexos || {}; // Anexos pendentes
+
+    // 🔹 Combina os anexos do banco e os pendentes
+    let anexos = { ...anexosBanco, ...anexosPendentes };
+
+    // 🔸 Se ainda não há anexos, exibir mensagem
+    if (Object.keys(anexos).length === 0) {
+        listaAnexos.textContent = 'Sem anexos disponíveis'
+        return;
+    }
+    
+    // 🔹 Renderiza os anexos (banco + pendentes)
+    listaAnexos.innerHTML = Object.values(anexos)
+        .map(anexo => {
+            let nomeFormatado = anexo.nome.length > 25
+                ? `${anexo.nome.slice(0, 6)}...${anexo.nome.slice(-6)}`
+                : anexo.nome;
+
+            return `
+            <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+                <div style="cursor: pointer;" class="contorno_interno" onclick="abrirArquivo('${anexo.link}')">
+                    <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                    <label title="${anexo.nome}">${nomeFormatado}</label>
+                </div>
+                <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="removerAnexo('${id}', '${anexo.link}')">
+            </div>
+            `;
+        })
+        .join("");
+}
+
+async function removerAnexo(id, linkAnexo) {
+
+    await inserirDados(await receber('dados_manutencao'), 'dados_manutencao')
+    let dados_manutencoes = await recuperarDados('dados_manutencao') || {}
+
+    let dados_manutencao = dados_manutencoes[id]
+
+    if (!dados_manutencao || !dados_manutencao.anexos || !dados_manutencao.anexos[linkAnexo]) return;
+
+    // Remove da nuvem
+    deletar(`dados_manutencao/${id}/anexos/${linkAnexo}`);
+
+    await inserirDados(await receber('dados_manutencao'), 'dados_manutencao')
+
+    // Atualiza a interface
+    renderizarAnexos(id);
+}
+

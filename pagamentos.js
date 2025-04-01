@@ -241,21 +241,17 @@ async function consultar_pagamentos() {
 
 async function abrir_detalhes(id_pagamento) {
 
-    if (overlay) {
-        overlay.style.display = 'block'
-    }
-
     ordem = 0
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     var dados_clientes = await recuperarDados('dados_clientes') || {};
     var dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    var dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
+    let dados_categorias = await recuperarDados('dados_categorias')
+    if (!dados_categorias) {
+        dados_categorias = await receber('dados_categorias')
+        inserirDados(dados_categorias, 'dados_categorias')
+    }
     var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
     var cc = 'Erro 404'
-    var categorias_invertidas = {}
-    Object.keys(dados_categorias).forEach(cat => {
-        categorias_invertidas[dados_categorias[cat]] = cat
-    })
 
     var dados_clientes_invertido = {};
 
@@ -340,14 +336,24 @@ async function abrir_detalhes(id_pagamento) {
     }
 
     var acoes_orcamento = ''
+
     if (dados_orcamentos[pagamento.id_orcamento]) {
         acoes_orcamento += `
         <div class="btn_detalhes" onclick="exibir_todos_os_status('${pagamento.id_orcamento}')">
             <img src="imagens/pasta.png">
             <label style="cursor: pointer;">Consultar Orçamento</label>
-        </div>    
+        </div>   
         `
     }
+
+    acoes_orcamento += `
+    
+        <div onclick="duplicar_pagamento('${id_pagamento}')" class="btn_detalhes">
+            <img src="imagens/reembolso.png">
+            <label style="cursor: pointer; margin-right: 5px;">Duplicar Pagamento</label>
+        </div> 
+    
+    `
 
     var ultima_alteracao = ''
     if (pagamento.ultima_alteracao) {
@@ -361,15 +367,22 @@ async function abrir_detalhes(id_pagamento) {
     }
 
     var categoria_atual = ''
-    pagamento.param[0].categorias.forEach(item => {
+    pagamento.param[0].categorias.forEach((item, indice) => {
+
+        let displayLabel = 'none';
+
+        if (acesso.permissao === 'adm') {
+            displayLabel = 'inline';
+        }
+
         valores += `
-            <label><strong>${dinheiro(item.valor)}</strong> - ${categorias_invertidas[item.codigo_categoria]}</label>
+            <label><strong>${dinheiro(item.valor)}</strong> - ${dados_categorias[item.codigo_categoria]} <img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 5px; top: 8px; display: ${displayLabel};" src="imagens/editar.png" onclick="modal_editar_pagamento('${id_pagamento}', '${indice}')"><img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 10px; top: 8px; display: ${displayLabel};" src="imagens/excluir.png" onclick="deseja_excluir_categoria('${id_pagamento}', '${indice}')"></label>
         `
-        if (String(categorias_invertidas[item.codigo_categoria]).includes('Parceiros')) {
+        if (String(dados_categorias[item.codigo_categoria]).includes('Parceiros')) {
             habilitar_painel_parceiro.ativar = true
             habilitar_painel_parceiro.valor += item.valor
         }
-        categoria_atual = categorias_invertidas[item.codigo_categoria]
+        categoria_atual = dados_categorias[item.codigo_categoria]
     })
 
     var div_valores = `
@@ -548,7 +561,7 @@ async function abrir_detalhes(id_pagamento) {
             <img src="imagens/remover.png">
             <label style="cursor: pointer; margin-right: 5px;">Excluir pagamento</label>
         </div>
-        <div onclick="relancar_pagamento('${id_pagamento}')" class="btn_detalhes">
+        <div onclick="refazer_pagamento('${id_pagamento}')" class="btn_detalhes">
             <img src="imagens/concluido.png">
             <label style="cursor: pointer; margin-right: 5px;">Refazer Pagamento</label>
         </div>
@@ -556,7 +569,7 @@ async function abrir_detalhes(id_pagamento) {
     }
 
     acumulado += `
-    <div style="display: flex; gap: 10px; flex-direction: column; align-items: baseline; text-align: left; overflow: auto; padding: 2vw;">
+    <div style="max-width: 50vw; display: flex; gap: 10px; flex-direction: column; align-items: baseline; text-align: left; overflow: auto; padding: 2vw;">
         ${acoes_orcamento}
         ${btns}
         <label><strong>Status atual • </strong> ${pagamento.status}</label>
@@ -595,21 +608,8 @@ async function abrir_detalhes(id_pagamento) {
         <label><strong>Histórico </strong> • ${historico}</label>
     </div>
     `
-    var elementus = `
-    <div id="detalhes" class="status" style="display: flex; width: 50vw; overflow: hidden; padding: 0px;">
-        <div style="background-color: #d2d2d2; width: 100%; display: flex; justify-content: space-between; align-items: center;">
-            <label style="margin-left: 1vw;">Detalhes do Pagamento</label>
-            <label style="font-size: 1.5vw; text-align: center; color: white; background-color: #B12425; cursor: pointer; width: 3vw; height: 100%;" onclick="fechar_detalhes()">&times;</label>
-        </div>
-        ${acumulado}
-    </div>
-    `
-    var detalhes = document.getElementById('detalhes')
-    if (detalhes) {
-        detalhes.remove()
-    }
-    document.body.insertAdjacentHTML('beforeend', elementus)
-    overlay.style.display = 'block'
+
+    openPopup_v2(acumulado, 'Detalhes do Pagamento')
 
     // Depois que se abre o pagamento, percorra os anexos e preencha cada item;
     if (pagamento.anexos_parceiros) {
@@ -651,6 +651,178 @@ function deseja_excluir_pagamento(id) {
             <label onclick="confirmar_exclusao_pagamento('${id}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
         </div>
         `)
+
+}
+
+async function deseja_excluir_categoria(id, indice) {
+
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    let dados_categorias = await recuperarDados('dados_categorias')
+    if (!dados_categorias) {
+        dados_categorias = await receber('dados_categorias')
+        inserirDados(dados_categorias, 'dados_categorias')
+    }
+    let pagamento = lista_pagamentos[id]
+
+    let categoria = pagamento.param[0].categorias[indice]
+
+    return openPopup_v2(`
+        <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Deseja realmente excluir essa categoria?</label>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
+                <label>Categoria: ${dados_categorias[categoria.codigo_categoria]}</label>
+                <label>Valor Atual: ${dinheiro(categoria.valor)}</label>
+            </div>
+            <label onclick="confirmar_exclusao_categoria('${id}', '${indice}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
+        </div>
+        `)
+
+}
+
+async function confirmar_exclusao_categoria(id, indice) {
+
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    let pagamento = lista_pagamentos[id]
+
+    deletar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]`)
+
+    await inserirDados(lista_pagamentos, 'lista_pagamentos')
+
+    remover_popup()
+
+    fechar_detalhes()
+
+    await atualizar_pagamentos_menu()
+
+    abrir_detalhes(id)
+
+}
+
+async function modal_editar_pagamento(id, indice) {
+
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    let dados_categorias = await recuperarDados('dados_categorias')
+    if (!dados_categorias) {
+        dados_categorias = await receber('dados_categorias')
+        inserirDados(dados_categorias, 'dados_categorias')
+    }
+    let pagamento = lista_pagamentos[id]
+
+    let categoria = pagamento.param[0].categorias[indice]
+
+    let div_select_categorias = `
+    
+        <label>Nova Categoria</label>
+        <select id="categoria_mudada">
+            <option selected>Selecione</option>
+
+    `
+
+    Object.entries(dados_categorias).forEach(([codigo, categoria]) => {
+
+        div_select_categorias += `
+        
+            <option data-codigo="${codigo}">${categoria}</option>
+        
+        `
+
+    })
+
+    div_select_categorias += "</select>"
+
+    return openPopup_v2(`
+        <div style="display: flex; flex-direction: column; gap: 15px; align-items: center; padding: 20px; font-family: 'Poppins', sans-serif; font-size: 14px;">
+            
+            <!-- Categoria e valor atual -->
+            <div style="text-align: center; color: #333;">
+                <p><strong>Categoria:</strong> ${dados_categorias[categoria.codigo_categoria]}</p>
+                <p><strong>Valor Atual:</strong> ${dinheiro(categoria.valor)}</p>
+            </div>
+    
+            <!-- Campo novo valor -->
+            <div style="width: 100%; display: flex; flex-direction: column; align-items: flex-start;">
+                <label for="valor_mudado" style="margin-bottom: 5px;">Novo Valor</label>
+                <input id="valor_mudado" type="number" style="width: 95%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 5px;">
+            </div>
+    
+            <!-- Select de categoria -->
+            <div style="width: 100%; display: flex; flex-direction: column; align-items: flex-start;">
+                ${div_select_categorias}
+            </div>
+    
+            <!-- Botão Confirmar -->
+            <label onclick="editar_pagamento('${id}', ${indice})"
+                class="contorno_botoes"
+                style="
+                    background-color: #B12425;
+                    color: white;
+                    font-weight: bold;
+                    padding: 10px 20px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    margin-top: 10px;
+                    transition: background 0.3s ease;
+                "
+                onmouseover="this.style.backgroundColor='#911d1d'"
+                onmouseout="this.style.backgroundColor='#B12425'"
+            >
+                Confirmar
+            </label>
+        </div>
+    `, "Mudar valor do Pagamento", true)    
+
+}
+
+async function editar_pagamento(id, indice) {
+
+    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    let pagamento = lista_pagamentos[id]
+
+    let categoria = pagamento.param[0].categorias
+
+    let valorMudado = Number(document.getElementById('valor_mudado').value)
+    let categoriaMudada = document.getElementById('categoria_mudada')
+
+    if (valorMudado != 0) {
+
+        let novoValorDocumento = 0
+
+        Object.entries(categoria).forEach((item, indice2) => {
+
+            if (indice2 != indice) {
+
+                novoValorDocumento += item[1].valor
+
+            }
+
+        })
+
+        novoValorDocumento += valorMudado
+
+        await enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/valor`, valorMudado)
+        await enviar(`lista_pagamentos/${id}/param[0]/valor_documento`, novoValorDocumento)
+
+    }
+
+    if (categoriaMudada != "Selecione") {
+
+        let codigoMudado = categoriaMudada.options[categoriaMudada.selectedIndex].dataset.codigo;
+        await enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/codigo_categoria`, codigoMudado)
+
+    }
+
+    await inserirDados(lista_pagamentos, 'lista_pagamentos')
+
+    remover_popup()
+
+    fechar_detalhes()
+
+    await atualizar_pagamentos_menu()
+
+    abrir_detalhes(id)
 
 }
 
@@ -1082,15 +1254,35 @@ async function criar_pagamento_v2() {
 
         } else if (formaSelecionada === 'Boleto') {
 
-            var data_vencimento = document.querySelector("#data_vencimento").value
+            let data_vencimento = document.querySelector("#data_vencimento").value;
 
-            const [ano, mes, dia] = data_vencimento.split("-")
+            const [ano, mes, dia] = data_vencimento.split("-");
 
-            data_vencimento = `${dia}/${mes}/${ano}`
+            data_vencimento = `${dia}/${mes}/${ano}`;
 
-            descricao += `Data de Vencimento do Boleto: ${data_vencimento} |`
+            const dataVencimento = new Date(ano, mes - 1, dia);
 
-            objetoDataVencimento = data_vencimento
+            const diaSemana = dataVencimento.getDay();
+
+            if (diaSemana === 0 || diaSemana === 6) {
+                const diasParaAdicionar = diaSemana === 0 ? 1 : 2;
+                dataVencimento.setDate(dataVencimento.getDate() + diasParaAdicionar);
+
+                let novoDia = dataVencimento.getDate();
+                let novoMes = dataVencimento.getMonth() + 1;
+                let novoAno = dataVencimento.getFullYear();
+
+                novoDia = novoDia.toString().padStart(2, '0');
+                novoMes = novoMes.toString().padStart(2, '0');
+
+                data_vencimento = `${novoDia}/${novoMes}/${novoAno}`;
+                descricao += `Data de Vencimento do Boleto: ${data_vencimento} |`;
+
+            } else {
+                descricao += `Data de Vencimento do Boleto: ${data_vencimento} |`;
+            }
+
+            objetoDataVencimento = data_vencimento;
 
         }
 
@@ -1167,7 +1359,7 @@ async function criar_pagamento_v2() {
                 <img src="imagens/concluido.png" style="width: 3vw; height: 3vw;">
                 <label>Pagamento Solicitado</label>
             </div>                
-        `);
+        `)
 
         var esquema = document.getElementById('esquema')
         if (esquema) {
@@ -1214,17 +1406,6 @@ function ordenar() {
 async function tela_pagamento(tela_atual_em_orcamentos) {
 
     ordem = 0
-
-    overlay.style.display = 'block'
-
-    intervaloCompleto = setInterval(function () {
-        document.getElementById('tempo').textContent = data_atual('completa');
-    }, 1000);
-
-    intervaloCurto = setInterval(function () {
-        document.getElementById('tempo_real').textContent = data_atual('curta');
-    }, 1000);
-
     var datalist = ''
     if (tela_atual_em_orcamentos) {
 
@@ -1256,11 +1437,6 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
     }
 
     var acumulado = `
-        <img src="imagens/BG.png" style="position: absolute; top: 0px; left: 5px; height: 70px;">
-
-        <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-            <label>Solicitação de Pagamento</label>
-        </div>
 
         <div
             style="display: flex; flex-direction: column; align-items: center; justify-content: left; gap: 5px; font-size: 0.9vw; background-color: #ececec; color: #222; padding: 2vw; border-radius: 5px;">
@@ -1410,7 +1586,18 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
         </div>
     `;
 
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, 'Solicitação de Pagamento')
+
+    intervaloCompleto = setInterval(function () {
+        if (!tempo || !tempo.textContent) {
+            clearInterval(intervaloCompleto)
+        }
+        document.getElementById('tempo').textContent = data_atual('completa')
+    }, 1000);
+
+    intervaloCurto = setInterval(function () {
+        document.getElementById('tempo_real').textContent = data_atual('curta');
+    }, 1000);
 
     await recuperar_ultimo_pagamento()
 
@@ -1701,17 +1888,20 @@ async function calculadora_pagamento() {
             painel_parceiro.style.display = 'none'
         }
 
-        if (atraso_na_data > 0) {
-            clearInterval(intervaloCurto);
-            intervaloCurto = setInterval(function () {
-                tempo_real.textContent = data_atual('curta', atraso_na_data);
-            }, 1000);
+        let tempo_real = document.getElementById('tempo_real')
+        if (tempo_real) {
+            if (atraso_na_data > 0) {
+                clearInterval(intervaloCurto);
+                intervaloCurto = setInterval(function () {
+                    tempo_real.textContent = data_atual('curta', atraso_na_data);
+                }, 1000);
 
-        } else {
-            clearInterval(intervaloCurto);
-            intervaloCurto = setInterval(function () {
-                tempo_real.textContent = data_atual('curta');
-            }, 1000);
+            } else {
+                clearInterval(intervaloCurto);
+                intervaloCurto = setInterval(function () {
+                    tempo_real.textContent = data_atual('curta');
+                }, 1000);
+            }
         }
 
         let container_cnpj_cpf = document.getElementById('container_cnpj_cpf')
@@ -2302,5 +2492,70 @@ function pesquisar_em_pagamentos(coluna, texto) {
 
         tr.style.display = mostrarLinha ? '' : 'none';
     });
+
+}
+
+async function duplicar_pagamento(id_pagamento) {
+
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    let dados_categorias = await recuperarDados('dados_categorias')
+    if (!dados_categorias) {
+        dados_categorias = await receber('dados_categorias')
+        inserirDados(dados_categorias, 'dados_categorias')
+    }
+
+    let pagamento = lista_pagamentos[id_pagamento]
+
+    let contador = 0;
+
+    let categorias = []
+
+    Object.entries(pagamento.param[0].categorias).forEach(categoriaPagamento => {
+
+        Object.entries(dados_categorias).forEach(([chave, nomecategoria]) => {
+
+            if (categoriaPagamento[1].codigo_categoria == chave) {
+
+                categorias[contador] = {
+                    nome: nomecategoria,
+                    codigo: chave,
+                    valor: categoriaPagamento[1].valor
+                };
+
+                contador++
+
+            }
+
+        })
+
+    })
+
+    let novo_ultimo_pagamento = {}
+
+    novo_ultimo_pagamento.categorias = categorias
+    novo_ultimo_pagamento.data_vencimento = pagamento.param[0].data_vencimento.replace(/\//g, "-");
+    novo_ultimo_pagamento.id_orcamento = pagamento.id_orcamento
+    novo_ultimo_pagamento.recebedor = pagamento.param[0].codigo_cliente_fornecedor
+
+    let observacao = pagamento.param[0].observacao;
+
+    let partes = observacao.split('|');
+
+    let descricaoParte = partes[2]?.trim();
+
+    let chavePixParte = partes[1]?.split('Chave PIX:')[1]?.trim();
+
+    if (!chavePixParte && partes[1]) {
+        descricaoParte = partes[1]?.trim();
+    }
+
+    novo_ultimo_pagamento.descricao = descricaoParte || '';
+
+    novo_ultimo_pagamento.pix = chavePixParte || '';
+
+
+    localStorage.setItem('ultimo_pagamento', JSON.stringify(novo_ultimo_pagamento))
+
+    tela_pagamento(true)
 
 }
