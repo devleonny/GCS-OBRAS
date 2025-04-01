@@ -361,7 +361,6 @@ function ajustar_janela(ampliar) {
     }
 }
 
-
 function dicionario(item) {
     return typeof item === "object" && item !== null && item.constructor === Object;
 }
