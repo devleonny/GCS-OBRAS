@@ -1392,18 +1392,13 @@ async function abrir_esquema(id) {
 
     if (orcamento) {
         var levantamentos = ''
+        
         if (orcamento.levantamentos) {
             for (chave in orcamento.levantamentos) {
                 var levantamento = orcamento.levantamentos[chave]
-                levantamentos += `
-                <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                    <div onclick="abrirArquivo('${levantamento.link}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        <img src="imagens/anexo2.png" style="width: 2vw;">
-                        <label style="font-size: 0.8em;">${String(levantamento.nome).slice(0, 10)} ... ${String(levantamento.nome).slice(-7)}</label>
-                    </div>
-                    <img src="imagens/cancel.png" style="width: 2vw; cursor: pointer;" onclick="excluir_levantamento('${id}', '${chave}')">
-                </div>                
-                `
+
+                levantamentos += criarAnexoVisual(levantamento.nome, levantamento.link, `excluir_levantamento('${id}', '${chave}')`)
+
             }
         }
 
@@ -1421,10 +1416,10 @@ async function abrir_esquema(id) {
             </div>
             • 
             <br>
-            <div class="contorno" style="display: flex; justify-content: center; align-items: center; width: max-content; gap: 10px; background-color: #222; color: white:">
-                <div class="contorno_interno" style="background-color: #222;">
+            <div style="display: flex; justify-content: start; align-items: start; flex-direction: column; gap: 2px;">
+                <div class="contorno_botoes">
                     <img src="imagens/anexo2.png" style="width: 2vw;">
-                    <label style="font-size: 1vw;" for="adicionar_levantamento">Anexar levantamento
+                    <label style="font-size: 0.8vw; color: white;" for="adicionar_levantamento"> Anexar levantamento
                         <input type="file" id="adicionar_levantamento" style="display: none;"
                             onchange="salvar_levantamento('${id}')">
                     </label>
@@ -1434,12 +1429,12 @@ async function abrir_esquema(id) {
             • 
             <div onclick="mostrar_painel()" class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px;">
                 <img src="imagens/pesquisar.png" style="width: 2vw;">
-                <label style="font-size: 1vw;">Exibir Painel de Custos</label>
+                <label style="font-size: 0.8vw;">Exibir Painel de Custos</label>
             </div>
             • 
             <div onclick="mostrar_itens_restantes('${id_orcam}')" class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px;">
                 <img src="imagens/interrogacao.png" style="width: 2vw;">
-                <label style="font-size: 1vw;">Itens Pendentes</label>
+                <label style="font-size: 0.8vw;">Itens Pendentes</label>
             </div>
 
         </div>    
