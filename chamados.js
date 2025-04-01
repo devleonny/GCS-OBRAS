@@ -321,16 +321,9 @@ async function abrir_manutencao(id) {
 
     let div_historico = document.getElementById('historico')
 
-    let historicos = manutencao.historico || {};/*{}
-    if (manutencao.historico) {
-        historicos = manutencao.historico
-    } codigo antigo*/
+    let historicos = manutencao.historico || {};
 
-    //historicos[id] = manutencao // Acrescentei o objeto atual para que ele entre no histórico; - codigo antigo
-
-    //exibe o primeiro registro (criação) com "Criado Por" e container principal
     let infos = "";
-
 
     //exibe os registro subsequentes (alterações) com "Alterado Por"
     for (his in historicos) {
@@ -1224,24 +1217,16 @@ async function renderizarAnexos(id) {
     // 🔹 Renderiza os anexos (banco + pendentes)
     listaAnexos.innerHTML = Object.values(anexos)
         .map(anexo => {
-            let nomeFormatado = anexo.nome.length > 25
-                ? `${anexo.nome.slice(0, 6)}...${anexo.nome.slice(-6)}`
-                : anexo.nome;
-
-            return `
-            <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                <div style="cursor: pointer;" class="contorno_interno" onclick="abrirArquivo('${anexo.link}')">
-                    <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                    <label title="${anexo.nome}">${nomeFormatado}</label>
-                </div>
-                <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="removerAnexo('${id}', '${anexo.link}')">
-            </div>
-            `;
+            return criarAnexoVisual(
+                anexo.nome,
+                anexo.link,
+                `removerAnexoChamados('${id}', '${anexo.link}')`
+            );
         })
         .join("");
 }
 
-async function removerAnexo(id, linkAnexo) {
+async function removerAnexoChamados(id, linkAnexo) {
 
     await inserirDados(await receber('dados_manutencao'), 'dados_manutencao')
     let dados_manutencoes = await recuperarDados('dados_manutencao') || {}

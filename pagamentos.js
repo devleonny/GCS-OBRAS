@@ -281,15 +281,8 @@ async function abrir_detalhes(id_pagamento) {
 
         var anexo = pagamento.anexos[anx]
 
-        anexos += `
-        <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-            <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;" onclick="abrirArquivo('${anexo.link}')">
-                <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                <label style="font-size: 0.8em; cursor: pointer;">${String(anexo.nome).slice(0, 10)} ... ${String(anexo.nome).slice(-7)}</label>
-            </div>
-            <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="excluir_anexo_complementares('${id_pagamento}', '${anx}')">
-        </div>
-        `
+        anexos += criarAnexoVisual(anexo.nome, anexo.link, `excluir_anexo_complementares('${id_pagamento}', '${anx}')`);
+
     }
 
     var historico = ''
@@ -452,9 +445,11 @@ async function abrir_detalhes(id_pagamento) {
             if (campo == 'orcamento' && dados_orcamentos[pagamento.id_orcamento]) {
 
                 info_existente += `
-                    <div class="anexos" onclick="ir_pdf('${pagamento.id_orcamento}')" style="border: solid 1px green;">
-                        <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
-                        <label style="cursor: pointer; font-size: 0.6em;"><strong>Orçamento disponível</strong></label>
+                    <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
+                        <div onclick="ir_pdf('${pagamento.id_orcamento}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 15vw;">
+                            <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+                            <label style="cursor: pointer;"><strong>Orçamento disponível</strong></label>
+                        </div>
                     </div>
                 `
             }
@@ -475,12 +470,9 @@ async function abrir_detalhes(id_pagamento) {
 
                             for (anx in anexos) {
                                 let anexo = anexos[anx]
-                                info_existente += `
-                                <div onclick="abrirArquivo('${anexo.link}')" class="anexos" style="border: solid 1px green;">
-                                    <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
-                                    <label style="cursor: pointer; font-size: 0.6em"><strong>${String(anexo.nome).slice(0, 20)} ... ${String(anexo.nome).slice(-7)}</strong></label>
-                                </div>                              
-                                `
+
+                                info_existente += criarAnexoVisual(anexo.nome, anexo.link);
+
                             }
                         }
                     }
@@ -621,15 +613,8 @@ async function abrir_detalhes(id_pagamento) {
 
                 var anexo = anexos_on[anx]
 
-                var element = `
-                <div style="display: flex; justify-content: left; align-items: center; gap: 10px;">
-                    <div onclick="abrirArquivo('${anexo.link}')" class="anexos" style="border: solid 1px green; cursor: pointer;">
-                        <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
-                        <label style="cursor: pointer; font-size: 0.6em;"><strong>${String(anexo.nome).slice(0, 10)} ... ${String(anexo.nome).slice(-7)}</strong></label>
-                    </div>
-                    <img src="imagens/cancel.png" style="width: 25px; heigth: 25px; cursor: pointer;" onclick="excluir_anexo_parceiro('${id_pagamento}', '${item}', '${anx}')">
-                </div>
-                `
+                let element = criarAnexoVisual(anexo.nome, anexo.link, `excluir_anexo_parceiro('${id_pagamento}', '${item}', '${anx}')`);
+
                 document.getElementById(`container_${item}`).insertAdjacentHTML('beforeend', element)
 
             }
@@ -772,7 +757,7 @@ async function modal_editar_pagamento(id, indice) {
                 Confirmar
             </label>
         </div>
-    `, "Mudar valor do Pagamento", true)    
+    `, "Mudar valor do Pagamento", true)
 
 }
 
@@ -2051,15 +2036,8 @@ async function recuperar_ultimo_pagamento() {
 
                     let anexo = anexos[id_anx]
 
-                    let resposta = `
-                    <div id="${id_anx}" class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                        <div class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;" onclick="abrirArquivo('${anexo.link}')">
-                            <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                            <label style="font-size: 0.8em; cursor: pointer;">${String(anexo.nome).slice(0, 20)} ... ${String(anexo.nome).slice(-7)}</label>
-                        </div>
-                        <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="excluir_anexo_parceiro_2('${campo}', '${id_anx}')">
-                    </div>
-                    `
+                    let resposta = criarAnexoVisual(anexo.nome, anexo.link, `excluir_anexo_parceiro_2('${campo}', '${id_anx}')`);
+
                     if (local) {
                         local.insertAdjacentHTML('beforeend', resposta)
                     }
@@ -2272,15 +2250,8 @@ async function salvar_anexos_parceiros(input, campo, id_pagamento) {
             enviar(`lista_pagamentos/${id_pagamento}/anexos_parceiros/${campo}/${id}`, anexo)
 
             let container = document.getElementById(`container_${campo}`)
-            let string_anexo = `
-            <div style="display: flex; justify-content: left; align-items: center; gap: 10px;">
-                <div onclick="abrirArquivo('${anexo.link}')" class="anexos" style="border: solid 1px green; cursor: pointer;">
-                    <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
-                    <label style="cursor: pointer; font-size: 0.6em;"><strong>${String(anexo.nome).slice(0, 10)} ... ${String(anexo.nome).slice(-7)}</strong></label>
-                </div>
-                <img src="imagens/cancel.png" style="width: 25px; heigth: 25px; cursor: pointer;" onclick="excluir_anexo_parceiro('${id_pagamento}', '${campo}', '${id}')">
-            </div>
-            `
+
+            let string_anexo = criarAnexoVisual(anexo.nome, anexo.link, `excluir_anexo_parceiro('${id_pagamento}', '${campo}', '${id}')`);
 
             if (container) {
                 container.insertAdjacentHTML('beforeend', string_anexo)

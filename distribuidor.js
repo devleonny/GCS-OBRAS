@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
 let filtro_distribuidor = {}
 let filtro;
 
-async function carregar_distribuidores(sincronizar) {
+async function carregar_distribuidores(sincronizar = false) {
     document.body.insertAdjacentHTML("beforebegin", overlay_aguarde());
 
     let dados_distribuidor = await recuperarDados('dados_distribuidor') || {}
@@ -20,38 +20,46 @@ async function carregar_distribuidores(sincronizar) {
     for (cnpj in dados_clientes) {
         dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
     }
-    
+
     let linhas = ""
     let status_toolbar = []
 
-    for (id in dados_distribuidor) {
-        let distribuidor = dados_distribuidor[id]
-        let dados_clientes = dados_clientes_omie[distribuidor.codigo_cliente] || {}
-        let dados_tecnicos = dados_clientes_omie[distribuidor.codigo_tecnico] || {}
+    if (Object.keys(dados_distribuidor).length === 0) {
+        linhas = `
+            <tr>
+                <td colspan="10" style="text-align: center; color: gray;">Nenhum distribuidor encontrado.</td>
+            </tr>
+        `;
+    } else {
 
-        status_toolbar.push(distribuidor.status_distribuidor)
+        for (id in dados_distribuidor) {
+            let distribuidor = dados_distribuidor[id]
+            let dados_clientes = dados_clientes_omie[distribuidor.codigo_cliente] || {}
+            let dados_tecnicos = dados_clientes_omie[distribuidor.codigo_tecnico] || {}
 
-        if(distribuidor.valor_pedido){
-            distribuidor.valor_pedido = dinheiro(distribuidor.valor_pedido)
-        }
+            status_toolbar.push(distribuidor.status_distribuidor)
 
-        let tipo_pedido = ''
+            if (distribuidor.valor_pedido) {
+                distribuidor.valor_pedido = dinheiro(distribuidor.valor_pedido)
+            }
 
-        if(distribuidor.tipo_pedido == "SEM PEDIDO"){
+            let tipo_pedido = ''
 
-            tipo_pedido = `
+            if (distribuidor.tipo_pedido == "SEM PEDIDO") {
+
+                tipo_pedido = `
             <td><label style="font-size: 0.8vw;">${distribuidor.tipo_pedido}</label></td>
             `
 
-        }else{
+            } else {
 
-            tipo_pedido = `
+                tipo_pedido = `
             <td><label style="font-size: 0.5vw;">${distribuidor.tipo_pedido}</label> <br> ${distribuidor.numero_pedido || ''}</td>
             `
 
-        }
+            }
 
-        linhas += `
+            linhas += `
             <tr>
                 <td>${distribuidor.data}</td>
                 <td>${distribuidor.status_distribuidor}</td>
@@ -68,8 +76,10 @@ async function carregar_distribuidores(sincronizar) {
             </tr>
             `
 
+        }
+
     }
-    
+
     let colunas = ['Última alteração', 'Status', 'Pedido', 'Chamado', 'Loja', 'Técnico', 'Cidade', 'Analista', 'Valor', 'Ações']
     let ths = "";
     let tsh = "";
@@ -136,7 +146,7 @@ function filtrar_distribuidor(ultimo_status, col, texto) {
 
     trs.forEach(tr => {
         let tds = tr.querySelectorAll('td')
-        let status = tds[1].textContent
+        let status = tds[1]?.textContent
         var mostrarLinha = true;
 
         for (var col in filtro_distribuidor) {
@@ -240,7 +250,7 @@ function criar_distribuidor(id) {
             <img src="imagens/pdf.png" style="cursor: pointer; width: 2vw;">
             <label>PDF</label>
         </div>`
-        let excluir = `
+    let excluir = `
         <div style="background-color: transparent;" onclick="confirmar_exclusao('${id}')">
             <img src="imagens/cancel.png" style="cursor: pointer; width: 1vw; height: 1vw;">
             <label style="font-size: 1vw; cursor: pointer;">Excluir Manutenção</label>
@@ -623,7 +633,7 @@ async function excluir_distribuidor(id) {
 
     await inserirDados(dados_distribuidor, 'dados_distribuidor')
 
-    deletar(`dados_distribuidor/${id}`)
+    await deletar(`dados_distribuidor/${id}`)
 
     remover_popup()
 
@@ -722,7 +732,7 @@ async function definir_campo(elemento, div, string_html, omie, id) {
 
 function salvarPrimeiroUsuario(historico) {
 
-    
+
     // Verifica se o objeto de histórico existe e não está vazio
     if (historico && dicionario(historico)) {
         // Obtém a primeira chave do objeto
@@ -745,7 +755,7 @@ async function abrir_distribuidor(id) {
     }
 
     await criar_distribuidor(id)
-    if(id) renderizarAnexos(id)
+    if (id) renderizarAnexos(id)
     let distribuidor = dados_distribuidor[id]
     let pecas = distribuidor.pecas
 
@@ -1050,10 +1060,12 @@ async function salvar_anexos_distribuidor(input, id) {
         dados_distribuidor.anexos = {};
     }
 
-    anexos.forEach(anexo => {
+    // Usando for...of para aguardar cada iteração
+    for (const anexo of anexos) {
         dados_distribuidor.anexos[anexo.link] = anexo;
-        enviar(`dados_distribuidor/${id}/anexos/${anexo.link}`, anexo);
-    });
+        await enviar(`dados_distribuidor/${id}/anexos/${anexo.link}`, anexo);  // Agora aguarda corretamente
+    }
+
 
     // Atualiza localmente
     await inserirDados(dados_distribuidores, 'dados_distribuidor');
@@ -1069,7 +1081,7 @@ async function renderizarAnexos(id) {
     // 🔥 Recupera dados do banco
     await inserirDados(await receber('dados_distribuidor'), 'dados_distribuidor');
     let dados_distribuidores = await recuperarDados('dados_distribuidor') || {};
-    
+
     let dados_distribuidor = dados_distribuidores[id] || {}; // Se não existir, inicia vazio
     let anexosBanco = dados_distribuidor.anexos || {}; // Anexos já salvos no banco
     let anexosPendentes = distribuidores_pendentes[id]?.anexos || {}; // Anexos pendentes
@@ -1086,25 +1098,17 @@ async function renderizarAnexos(id) {
     // 🔹 Renderiza os anexos (banco + pendentes)
     listaAnexos.innerHTML = Object.values(anexos)
         .map(anexo => {
-            let nomeFormatado = anexo.nome.length > 25
-                ? `${anexo.nome.slice(0, 6)}...${anexo.nome.slice(-6)}`
-                : anexo.nome;
-
-            return `
-            <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-                <div style="cursor: pointer;" class="anexo-item" onclick="abrirArquivo('${anexo.link}')">
-                    <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
-                    <label title="${anexo.nome}">${nomeFormatado}</label>
-                </div>
-                <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="removerAnexo('${id}', '${anexo.link}')">
-            </div>
-            `;
+            return criarAnexoVisual(
+                anexo.nome,
+                anexo.link,
+                `removerAnexoDistribuidor('${id}', '${anexo.link}')`
+            );
         })
         .join("");
 }
 
-async function removerAnexo(id, linkAnexo) {
-    
+async function removerAnexoDistribuidor(id, linkAnexo) {
+
     await inserirDados(await receber('dados_distribuidor'), 'dados_distribuidor')
     let dados_distribuidores = await recuperarDados('dados_distribuidor') || {}
 
