@@ -548,7 +548,7 @@ async function tabela_produtos_v2(tipo_tabela) {
                     preco = historico[ativo].valor
                 }
 
-                if (preco !== 0) {
+                if (preco !== 0 && produto.status != "INATIVO") {
 
                     let td_quantidade = `
                     <input type="number" class="numero-bonito" oninput="incluir_item('${pod}', this.value)">
