@@ -1465,3 +1465,101 @@ input[type=range]::-moz-range-thumb {
     padding: 10px;
     color: #999;
 }
+
+.anexos {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: #2b2d42;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #3a3c4e;
+    color: white;
+    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    width: 95%;
+    cursor: default;
+    
+}
+
+#lista-anexos {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    width: 50%;
+    cursor: default;
+}
+
+.anexos h3 {
+    color: #ffcc00;
+    font-size: 16px;
+    text-align: left;
+}
+
+.anexo-item {
+    display: flex;
+    align-items: center;
+    background: #1e1e2f;
+    padding: 8px;
+    border-radius: 8px;
+    gap: 10px;
+    width: 100%;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.anexo-item:hover {
+    background: #2b2d42;
+}
+
+.anexo-item img {
+    width: 25px;
+    height: 25px;
+}
+
+.anexo-item label {
+    font-size: 14px;
+    color: white;
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.botao-excluir-anexo {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #ff5c5c;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+}
+
+.botao-excluir-anexo:hover {
+    background: transparent;
+}
+
+/* Input de upload de arquivos estilizado */
+input[type="file"]#input-anexos {
+    background: #1e1e2f;
+    color: white;
+    border-radius: 5px;
+    padding: 8px;
+    font-size: 14px;
+    border: 1px solid #3a3c4e;
+    cursor: pointer;
+}
+
+input[type="file"]#input-anexos:hover {
+    background: #282a3a;
+}
