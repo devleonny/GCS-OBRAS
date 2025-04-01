@@ -178,7 +178,7 @@ async function carregar_tabela_v2() {
             } else if (chave == 'sistema') {
 
                 conteudo = `
-                <select style="cursor: pointer;" onchange="alterar_setor('${codigo}', this)">
+                <select style="cursor: pointer;" onchange="alterar_sistema('${codigo}', this)">
                     <option ${produto?.sistema == '' ? 'selected' : ''}></option>
                     <option ${produto?.sistema == 'IP' ? 'selected' : ''}>IP</option>
                     <option ${produto?.sistema == 'ANALÓGICO' ? 'selected' : ''}>ANALÓGICO</option>
@@ -245,14 +245,14 @@ async function carregar_tabela_v2() {
 
 }
 
-async function alterar_setor(codigo, select) {
+async function alterar_sistema(codigo, select) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
     let produto = dados_composicoes[codigo]
 
     produto.setor = select.value
 
-    enviar(`dados_composicoes/${codigo}/setor`, select.value)
+    enviar(`dados_composicoes/${codigo}/sistema`, select.value)
 
     await inserirDados(dados_composicoes, 'dados_composicoes')
 }
