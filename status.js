@@ -429,6 +429,13 @@ async function calcular_requisicao(sincronizar) {
                     }
 
                     var qtde = tds[4].querySelector('input') ? tds[4].querySelector('input').value : tds[4].textContent
+                    if(!itens[codigo]){
+
+                        openPopup_v2("Orçamento antigo, chamar T.I")
+
+                        return
+
+                    }
                     var custo = conversor(itens[codigo].custo)
                     var unt_sem_icms = custo - (custo * icms)
 
@@ -1237,6 +1244,8 @@ async function salvar_requisicao(chave) {
 
     }
 
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
+
     if (orcamento.modalidade !== 'MODALIDADE LIVRE') {
         atualizar_partnumber(lista_partnumbers)
     }
@@ -1249,7 +1258,6 @@ async function salvar_requisicao(chave) {
     }
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
 
     await abrir_esquema(id_orcam)
 
