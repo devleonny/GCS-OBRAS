@@ -78,10 +78,20 @@ function executar_limpar_campos() {
     document.getElementById('consideracoes').value = ''
     document.getElementById('tipo_de_frete').value = ''
     document.getElementById('transportadora').value = ''
+    
+    // Limpar campos de texto (textContent)
+    document.getElementById('cep').textContent = ''
+    document.getElementById('estado').textContent = ''
+    document.getElementById('cidade').textContent = ''
+    document.getElementById('bairro').textContent = ''
 
-    salvar_preenchido()
-    remover_popup()
-}
+    
+   
+       salvar_preenchido();
+       remover_popup();
+   }
+   
+   
 
 function carregar_pagamentos() {
     let dados_pagamentos = ["A definir", "15 dias", "30 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
