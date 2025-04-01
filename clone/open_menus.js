@@ -1191,7 +1191,7 @@ function capturarValorCelula(celula) {
 
 //--- NOVO SERVIÇO DE ARMAZENAMENTO ---\\
 async function receber(chave) {
-    const url = `https://leonny.dev.br/dados?chave=${chave}`;
+    const url = `https://leonny.dev.br/dados?chave=${chave}&app=clone`;
 
     let obs = {
         method: "GET",
@@ -1239,7 +1239,8 @@ function enviar(caminho, info) {
     return new Promise((resolve) => {
         let objeto = {
             caminho: caminho,
-            valor: info
+            valor: info,
+            app: 'clone'
         };
 
         fetch("https://leonny.dev.br/salvar", {
