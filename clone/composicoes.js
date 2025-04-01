@@ -175,13 +175,15 @@ async function carregar_tabela_v2() {
                     `
                 alinhamento = 'center';
 
-            } else if (chave == 'setor') {
+            } else if (chave == 'sistema') {
 
                 conteudo = `
                 <select style="cursor: pointer;" onchange="alterar_setor('${codigo}', this)">
-                    <option ${produto?.setor == '' ? 'selected' : ''}></option>
-                    <option ${produto?.setor == 'IP' ? 'selected' : ''}>IP</option>
-                    <option ${produto?.setor == 'ANALOGICO' ? 'selected' : ''}>ANALOGICO</option>
+                    <option ${produto?.sistema == '' ? 'selected' : ''}></option>
+                    <option ${produto?.sistema == 'IP' ? 'selected' : ''}>IP</option>
+                    <option ${produto?.sistema == 'ANALÓGICO' ? 'selected' : ''}>ANALÓGICO</option>
+                    <option ${produto?.sistema == 'ALARME' ? 'selected' : ''}>ALARME</option>
+                    <option ${produto?.sistema == 'CONTROLE DE ACESSO' ? 'selected' : ''}>CONTROLE DE ACESSO</option>
                 </select>
                 `
 
