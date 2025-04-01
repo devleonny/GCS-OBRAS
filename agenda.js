@@ -32,7 +32,6 @@ iniciar_agendas()
 async function iniciar_agendas() {
     await carregar_tabela()
     filtrar_por_regiao()
-    await ativar_selecao()
 }
 
 async function carregar_tabela(sincronizar) {
@@ -399,6 +398,8 @@ async function salvar_tecnico(omie_tecnico) {
 
     await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
 
+    enviar(`dados_agenda_tecnicos/${omie_tecnico}`, dados_agenda_tecnicos[omie_tecnico])
+
     remover_popup()
 
     await carregar_tabela()
@@ -669,46 +670,37 @@ let segurando = false;
 let celula_inicial = null;
 let celulas_selecionadas = [];
 
-async function ativar_selecao() {
+document.addEventListener("mousedown", function (event) {
+    if (event.target.tagName === "INPUT") {
+        segurando = true;
+        celula_inicial = event.target;
+        celulas_selecionadas = [celula_inicial];
 
-    let fundo_tabela = document.querySelector('.fundo_tabela')
+        celula_inicial.parentElement.classList.add('selecionado'); // Aplica-se ao TD...
+    }
+});
 
-    fundo_tabela.addEventListener("mousedown", function (event) {
-        if (event.target.tagName === "INPUT") {
-            segurando = true;
-            celula_inicial = event.target;
-            celulas_selecionadas = [celula_inicial];
-
-            celula_inicial.parentElement.classList.add('selecionado'); // Aplica-se ao TD... 
+document.addEventListener("mousemove", function (event) {
+    if (segurando && event.target.tagName === "INPUT") {
+        let cell = event.target;
+        if (!celulas_selecionadas.includes(cell)) {
+            celulas_selecionadas.push(cell);
+            cell.parentElement.classList.add('selecionado'); // TD
         }
-    });
+    }
+});
 
-    fundo_tabela.addEventListener("mousemove", function (event) {
-        if (segurando && event.target.tagName === "INPUT") {
-            let cell = event.target;
-            if (!celulas_selecionadas.includes(cell)) {
-                celulas_selecionadas.push(cell);
+document.addEventListener("mouseup", async function () {
+    if (segurando) {
+        let cod_departamento = celula_inicial?.parentElement.id;
+        let nome_do_departamento = celula_inicial?.value;
 
-                cell.parentElement.classList.add('selecionado'); // TD
-            }
+        for (let cell of celulas_selecionadas) {
+            await definir_campo(cell.id, cod_departamento, nome_do_departamento);
+            cell.parentElement.classList.remove('selecionado'); // TD
         }
-    });
 
-    fundo_tabela.addEventListener("mouseup", async function () {
-        if (segurando) {
-
-            let cod_departamento = celula_inicial.parentElement.id
-            let nome_do_departamento = celula_inicial.value
-
-            for (let cell of celulas_selecionadas) {
-                await definir_campo(cell.id, cod_departamento, nome_do_departamento)
-
-                cell.parentElement.classList.remove('selecionado'); // TD
-            }
-
-            segurando = false;
-            celulas_selecionadas = [];
-        }
-    })
-
-}
+        segurando = false;
+        celulas_selecionadas = [];
+    }
+});
