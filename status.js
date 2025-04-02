@@ -498,22 +498,32 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
 
     for (id in orcamento.dados_composicoes) {
         let item = orcamento.dados_composicoes[id]
+        let itemComposicao = dados_composicoes[item.codigo] || {};
+        let descricao = itemComposicao.descricao || item.descricao || '';
+        let tipo = itemComposicao.tipo || item.tipo || '';
+
+        descricao = String(descricao).toLowerCase()
         if (tipoRequisicao === 'infraestrutura') {
-            const descricao = dados_composicoes[item.codigo].descricao.toLowerCase();
             if ((
                 descricao.includes('eletrocalha') ||
                 descricao.includes('eletroduto') ||
-                descricao.includes('perfilado')
+                descricao.includes('perfilado') ||
+                descricao.includes('sealtubo')
             )) {
-
                 itensFiltrados.push(item)
             }
-        } else { itensFiltrados.push(item) }
+        } else if (tipoRequisicao === "equipamentos") {
+            if (tipo === "VENDA") {
+                itensFiltrados.push(item)
+            }
+        } else {
+            itensFiltrados.push(item)
+        }
 
     }
 
     // Função para criar uma linha da tabela
-    function criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements, aux, apenas_visualizar, seEditar, valoresTotais) {
+    function criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements, aux, apenas_visualizar, seEditar, valoresTotais,) {
 
         if (!seEditar) {
 
@@ -711,7 +721,7 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
 function abrirModalTipoRequisicao() {
     let modal = `
         <div style="text-align: center">
-            <button onclick="escolherTipoRequisicao('Requisição Completa')" style="
+            <button onclick="escolherTipoRequisicao('equipamentos')" style="
                 background-color: #4CAF50;
                 color: white;
                 padding: 10px 20px;
@@ -719,7 +729,7 @@ function abrirModalTipoRequisicao() {
                 border-radius: 5px;
                 cursor: pointer;
                 margin-right: 10px;
-            ">Requisição Completa</button>
+            ">Requisição de Equipamentos</button>
             <button onclick="escolherTipoRequisicao('infraestrutura')" style="
                 background-color: #2196F3;
                 color: white;
@@ -1167,7 +1177,6 @@ async function salvar_notas(chave) {
 }
 
 async function salvar_requisicao(chave) {
-
     // Overlay
     let janela = document.querySelectorAll('.janela')
     janela = janela[janela.length - 1] // A última que existir
@@ -1193,9 +1202,9 @@ async function salvar_requisicao(chave) {
 
     var linhas = document.querySelectorAll('.lin_req');
     var lista_partnumbers = {};
+    var temItensValidos = false;
 
     for (let linha of linhas) {
-
         let valores = linha.querySelectorAll('input, select');
 
         if (valores.length == 0) { continue }
@@ -1216,18 +1225,50 @@ async function salvar_requisicao(chave) {
                 `, 'Aviso', true);
         }
 
-        if (qtde != '') {
+        // Verifica se é um item adicional (linha com fundo cinza)
+        let isAdicional = linha.style.backgroundColor === 'rgb(240, 240, 240)' || 
+                         linha.getAttribute('data-adicional') === 'true';
+
+        // Se for um item adicional ou se o usuário explicitamente colocou 0 ou vazio, inclui na requisição
+        if (isAdicional || qtde === '0' || qtde === '') {
+            novo_lancamento.requisicoes.push({
+                codigo: codigo,
+                partnumber: partnumber,
+                tipo: tipo,
+                qtde_enviar: qtde === '' ? '0' : qtde, // Converte vazio para 0
+                requisicao: requisicao,
+                isAdicional: isAdicional
+            });
+
+            lista_partnumbers[codigo] = partnumber;
+            temItensValidos = true;
+            continue;
+        }
+
+        // Para itens principais com valor > 0
+        if (qtde > 0) {
             novo_lancamento.requisicoes.push({
                 codigo: codigo,
                 partnumber: partnumber,
                 tipo: tipo,
                 qtde_enviar: qtde,
-                requisicao: requisicao
+                requisicao: requisicao,
+                isAdicional: isAdicional
             });
+
+            lista_partnumbers[codigo] = partnumber;
+            temItensValidos = true;
         }
+    }
 
-        lista_partnumbers[codigo] = partnumber;
-
+    // Se não houver itens válidos, mostra mensagem de erro
+    if (!temItensValidos) {
+        return openPopup_v2(`
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Nenhum item válido foi informado</label>
+            </div>
+        `, 'Aviso', true);
     }
 
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
