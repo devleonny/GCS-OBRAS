@@ -223,20 +223,25 @@ function abrirFiltroColuna(indice, coluna) {
             </div>
 
             <div style="margin: 5px 0;">
-                <input type="checkbox" id="filtro-todos" ${Object.keys(filtrosAtivosEstoques[indice] || {}).length === 0 ? 'checked' : ''} onchange="selecionarTodos(${indice}, this.checked)">
+                <input type="checkbox" id="filtro-todos" 
+                ${!filtrosAtivosEstoques[indice] || filtrosAtivosEstoques[indice].length === valoresArray.length ? 'checked' : ''} 
+                onchange="selecionarTodos(${indice}, this.checked)">
                 <label for="filtro-todos"><em>Selecionar Todos</em></label>
             </div>
             <hr>
             <div id="filtro-opcoes">
                 ${valoresArray.map(valor => `
-                    <div class="filtro-item-div">
-                        <input type="checkbox" class="filtro-item" value="${valor}" ${filtrosAtivosEstoques[indice]?.includes(valor) ? 'checked' : ''} onchange="aplicarFiltroCheck(${indice})">
-                        <label>${valor}</label>
+                    <div class="filtro-item-div" style="display: flex; align-items: start; gap: 5px;">
+                        <input type="checkbox" class="filtro-item" value="${valor}" 
+                            ${!filtrosAtivosEstoques[indice] || filtrosAtivosEstoques[indice].includes(valor) ? 'checked' : ''} 
+                            onchange="aplicarFiltroCheck(${indice})">
+                        <label style="white-space: normal; word-break: break-word;">${valor}</label>
                     </div>
                 `).join('')}
             </div>
         </div>
     `;
+
 
     let popup = document.getElementById('popup-filtro');
     if (popup) popup.remove(); // Removendo popup antigo, se houver
@@ -244,11 +249,13 @@ function abrirFiltroColuna(indice, coluna) {
     document.body.insertAdjacentHTML("beforeend", filtroHTML);
 
     let popupNovo = document.getElementById('popup-filtro');
-    let colunaHeader = tabela.querySelectorAll('th')[indice]; // Pegando o header correto
+    let colunaHeader = tabela.querySelectorAll('thead tr:first-child th')[indice - 1];
     let rect = colunaHeader.getBoundingClientRect();
 
     popupNovo.style.left = `${rect.left}px`;
     popupNovo.style.top = `${rect.bottom}px`;
+    popupNovo.style.minWidth = `${rect.width}px`;
+    popupNovo.style.maxWidth = `${rect.width}px`;
 
     // Fechar popup ao clicar fora
     setTimeout(() => {
@@ -276,114 +283,53 @@ function filtrarValores(indice, pesquisa) {
     });
 }
 
-// Ajusta a função selecionarTodos para garantir que todos os checkboxes da coluna sejam marcados/desmarcados corretamente
 function selecionarTodos(indice, checked) {
-    let checkboxes = document.querySelectorAll(`#popup-filtro input.filtro-item`);
-    
-    // Marca/desmarca todos os checkboxes da coluna
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = checked;
+    let checkboxes = document.querySelectorAll(`#popup-filtro .filtro-item-div`);
+
+    checkboxes.forEach(div => {
+        if (div.style.display !== "none") {
+            let checkbox = div.querySelector("input.filtro-item");
+            checkbox.checked = checked;
+        }
     });
 
-    // Aplica os filtros
     aplicarFiltroCheck(indice);
-
-    // Atualiza o estado dos filtros no localStorage
-    atualizarFiltrosLocalStorage();
 }
 
-// Esta função vai salvar o estado do filtro no localStorage sempre que for alterado.
-function atualizarFiltrosLocalStorage() {
-    // Guardar o estado dos filtros no localStorage
-    localStorage.setItem('filtrosAtivosEstoques', JSON.stringify(filtrosAtivosEstoques));
-}
-
-let debounceTimeout = null;
 
 function aplicarFiltroCheck(indice) {
-    // Limita a execução, esperando um tempo antes de aplicar o filtro
-    if (debounceTimeout) clearTimeout(debounceTimeout);
+    let tabela = document.getElementById('tabela_estoque');
+    let linhas = tabela.querySelectorAll('tbody tr');
+    let checkboxes = document.querySelectorAll(`#popup-filtro .filtro-item`);
 
-    debounceTimeout = setTimeout(() => {
-        let tabela = document.getElementById('tabela_estoque');
-        let linhas = tabela.querySelectorAll('tbody tr');
-        let checkboxes = document.querySelectorAll('.filtro-item:checked');
-        let valoresSelecionados = Array.from(checkboxes).map(cb => cb.value);
+    // Atualiza os valores filtrados da coluna
+    let selecionados = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
 
-        // Atualiza o estado dos filtrosAtivosEstoques
-        if (valoresSelecionados.length === 0) {
-            delete filtrosAtivosEstoques[indice];
-        } else {
-            filtrosAtivosEstoques[indice] = valoresSelecionados;
+    filtrosAtivosEstoques[indice] = selecionados;
+
+    linhas.forEach(linha => {
+        let mostrar = true;
+
+        for (let col in filtrosAtivosEstoques) {
+            let celula = linha.cells[col];
+            if (!celula) continue;
+
+            let valorCelula = celula.innerText.trim();
+            let input = celula.querySelector("input, textarea, label");
+
+            if (input) {
+                valorCelula = input.value || input.textContent.trim();
+            }
+
+            if (!filtrosAtivosEstoques[col].includes(valorCelula)) {
+                mostrar = false;
+                break;
+            }
         }
 
-        // Salva no localStorage após cada alteração
-        atualizarFiltrosLocalStorage();
-
-        // Aplica os filtros
-        linhas.forEach(linha => {
-            let mostrar = true;
-
-            for (let col in filtrosAtivosEstoques) {
-                let celula = linha.cells[col];
-                let valorCelula = celula ? celula.innerText.trim() : '';
-
-                let input = celula?.querySelector("input, textarea, label");
-                if (input) {
-                    valorCelula = input.value || input.textContent.trim();
-                }
-
-                if (!filtrosAtivosEstoques[col].includes(valorCelula)) {
-                    mostrar = false;
-                    break;
-                }
-            }
-
-            linha.style.display = mostrar ? '' : 'none';
-        });
-    }, 300); // Espera 300ms após o usuário parar de interagir para aplicar o filtro
-}
-
-// Função de carregamento de filtros do localStorage
-function carregarFiltros() {
-    let filtrosSalvos = JSON.parse(localStorage.getItem('filtrosAtivosEstoques')) || {};
-
-    // Aplica os filtros armazenados (restaurar os estados dos checkboxes)
-    filtrosAtivosEstoques = filtrosSalvos;
-
-    // Para cada coluna com filtro, re-aplica o estado de cada checkbox
-    Object.keys(filtrosAtivosEstoques).forEach(indice => {
-        let valores = filtrosAtivosEstoques[indice];
-        let checkboxes = document.querySelectorAll(`.filtro-item`);
-        
-        // Atualiza os checkboxes de acordo com os valores salvos no localStorage
-        checkboxes.forEach(checkbox => {
-            if (valores.includes(checkbox.value)) {
-                checkbox.checked = true;
-            } else {
-                checkbox.checked = false;
-            }
-        });
-
-        // Aplica o filtro na tabela
-        setTimeout(() => {
-        aplicarFiltroCheck(indice);
-        }, 100)
+        linha.style.display = mostrar ? '' : 'none'; // Aplica o filtro de exibição
     });
-
-    // Se não houver filtros no localStorage, marca todos os checkboxes para as colunas
-    if (Object.keys(filtrosAtivosEstoques).length === 0) {
-        // Para cada coluna, marcar todos os checkboxes como selecionados
-        document.querySelectorAll('.filtro-item').forEach(checkbox => {
-            checkbox.checked = true; // Marca todos
-        });
-        // Chama a função para aplicar o filtro (exibir todos os dados)
-        aplicarFiltroCheck();
-    }
 }
-
-// Chama esta função ao carregar a página/aba ou quando o modal for aberto
-carregarFiltros();
 
 function adicionarImagemFiltro() {
     let tabela = document.getElementById('tabela_estoque');
