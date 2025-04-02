@@ -371,7 +371,7 @@
             width: 100%;
             display: flex;
             align-items: center;
-            justify-content: left;
+            justify-content: center;
             border-radius: 3px;
             padding: 5px;
             background-color: white;
@@ -379,6 +379,7 @@
         }
 
         .linha label {
+            text-align: left;
             width: 50%;
         }
 
@@ -511,157 +512,13 @@
             </div>
         </div>
 
-        <div id="tabela_dados_cliente">
-
-            <span class="close" onclick="toggleTabela()">&times;</span>
-
-            <div style="display: flex; justify-content: start; align-items: center;">
-                <div style="display: flex; flex-direction: column; gap: 10px; align-items: left; margin: 5px;">
-
-                    <div id="acompanhamento_dados_clientes" class="btn" onclick="recuperar_clientes()">
-                        <img src="imagens/omie.png">
-                        <label style="cursor: pointer;">Atualizar OMIE Clientes</label>
-                    </div>
-
-                </div>
-
-                <div onclick="limpar_campos()" class="btn">
-                    <img src="imagens/limpar.png" style="width: 2vw;">
-                    <label style="cursor: pointer;">Limpar Campos</label>
-                </div>
-            </div>
-
-            <div
-                style="display: flex; flex-direction: column; gap: 5px; justify-content: center; align-items: start; border-radius: 3px; margin: 5px;">
-                <label style="font-size: 1.5vw;">Dados do Cliente</label>
-                <div class="linha">
-                    <label>nº do Chamado</label>
-                    <div style="display: flex; gap: 10px;">
-                        <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
-                            <input id="chamado_off" style="height: 35px; width: 35px; cursor: pointer;" type="checkbox"
-                                onchange="salvar_preenchido()">
-                            <label>Sem Chamado</label>
-                        </div>
-                        <input type="text" id="contrato" placeholder="nº do Chamado" onchange="salvar_preenchido()">
-                    </div>
-                </div>
-
-                <div class="linha">
-                    <label>CNPJ</label>
-                    <input type="text" id="cnpj" placeholder="CNPJ" oninput="preencher('cnpj')">
-                </div>
-                <div class="linha">
-                    <label>Cliente</label>
-                    <div class="autocomplete-container">
-                        <textarea style="width: 100%;" type="text" class="autocomplete-input" id="cliente_selecionado"
-                            placeholder="Escreva o nome do Cliente... "></textarea>
-                        <div class="autocomplete-list" id="suggestions"></div>
-                    </div>
-                </div>
-                <div class="linha">
-                    <label>CEP</label>
-                    <label id="cep">...</label>
-                </div>
-                <div class="linha">
-                    <label>Endereço</label>
-                    <label id="bairro">...</label>
-                </div>
-                <div class="linha">
-                    <label>Cidade</label>
-                    <label id="cidade">...</label>
-                </div>
-                <div class="linha">
-                    <label>Estado</label>
-                    <label id="estado">...</label>
-                </div>
-                <div class="linha">
-                    <label>Tipo de Frete</label>
-                    <select id="tipo_de_frete" onchange="salvar_preenchido()">
-                        <option>--</option>
-                        <option>CIF</option>
-                        <option>FOB</option>
-                    </select>
-                </div>
-                <div class="linha">
-                    <label>Transportadora</label>
-                    <input type="text" id="transportadora" placeholder="Transportadora" oninput="salvar_preenchido()">
-                </div>
-                <div class="linha">
-                    <label>Considerações</label>
-                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: space-between;">
-                        <textarea id="consideracoes" rows="5" style="width: 20vw"
-                            placeholder="Escopo do orçamento..."></textarea>
-
-                        <div
-                            style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                            <div class="contorno_botoes" style="background-color: #222; width: 100%;">
-                                <img src="imagens/anexo2.png" style="width: 15px;">
-                                <label style="width: 100%;" for="adicionar_levantamento">Anexar levantamento
-                                    <input type="file" id="adicionar_levantamento" style="display: none;"
-                                        onchange="salvar_levantamento()">
-                                </label>
-                            </div>
-                            <div id="levantamentos"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="linha">
-                    <label>Condições de Pagamento</label>
-                    <select id="condicoes" oninput="salvar_preenchido()"></select>
-                </div>
-                <br>
-                <div class="linha">
-                    <label>Garantia</label>
-                    <input id="garantia" placeholder="1 Ano" oninput="salvar_preenchido()">
-                </div>
-
-                <label style="font-size: 1.5vw;">Dados do Analista</label>
-                <div class="linha">
-                    <label>Analista</label>
-                    <label id="analista"></label>
-                </div>
-
-                <div class="linha">
-                    <label>E-mail</label>
-                    <label style="width: 70%;" id="email_analista"></label>
-                </div>
-
-                <div class="linha">
-                    <label>Telefone</label>
-                    <label id="telefone_analista"></label>
-                </div>
-
-                <label style="font-size: 1.5vw;">Dados do Vendedor</label>
-                <div class="linha">
-                    <label>Vendedor</label>
-                    <select style="text-align: center; width: 100%;" id="vendedor" oninput="salvar_preenchido()">
-                    </select>
-                </div>
-                <div class="linha">
-                    <label>E-mail</label>
-                    <label style="width: 70%;" id="email_vendedor"></label>
-                </div>
-                <div class="linha">
-                    <label>Telefone</label>
-                    <label id="telefone_vendedor"></label>
-                </div>
-
-            </div>
-
-            <div
-                style="width: 100%; display: flex; gap: 10px; align-items: end; justify-content: right; margin-top: 5vh;">
-                <label><strong>Data de criação</strong> ou <strong>Alteração</strong></label>
-                <label id="data"></label>
-            </div>
-        </div>
-
         <div id="orcamento_padrao">
 
             <div id="menu_superior">
 
                 <div style="margin-left: 3vw; display: flex; flex-direction: column; justify-content: center; align-items: start; border-radius: 3px;">
 
-                    <div class="btn_menu" onclick="toggleTabela()">
+                    <div class="btn_menu" onclick="painel_clientes()">
                         <img src="imagens/gerente.png">
                         <label>Dados Cliente</label>
                     </div>
@@ -777,14 +634,11 @@
 
     <div id="orcamento_livre"></div>
 
-    <div id="overlay"></div>
-
 </body>
 
 <script src="modalidade_livre.js"></script>
 <script src="open_menus.js"></script>
-<script src="dados_clientes.js"></script>
 <script src="upload_imagens.js"></script>
-<script src="adicionar.js"></script>
+<script src="criar_orcamento.js"></script>
 
 </html>

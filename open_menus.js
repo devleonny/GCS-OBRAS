@@ -320,14 +320,12 @@ function criarAnexoVisual(nome, link_anexo, funcao_excluir) {
         : nome;
 
     return `
-        <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
-            <div onclick="abrirArquivo('${link_anexo}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 15vw;">
-                <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
+        <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 2px; background-color: #222; color: white;">
+            <div onclick="abrirArquivo('${link_anexo}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 2px;">
+                <img src="imagens/anexo2.png" style="width: 2vw;">
                 <label style="cursor: pointer;" title="${nome}">${nomeFormatado}</label>
             </div>
-            <button style="display: ${displayExcluir};" class="botao-excluir-anexo" onclick="${funcao_excluir}">
-                <img src="imagens/cancel.png" style="width: 25px; height: 25px; cursor: pointer;" onclick="${funcao_excluir}">
-            </button>
+            <img src="imagens/cancel.png" style="display: ${displayExcluir}; width: 2vw; cursor: pointer;" onclick="${funcao_excluir}">
         </div>
     `;
 }
@@ -544,7 +542,7 @@ function criar_orcamento_janela() {
     const { ipcRenderer } = require('electron');
 
     //novo 28/08/2024;
-    ipcRenderer.invoke('open-new-window', 'adicionar.html');
+    ipcRenderer.invoke('open-new-window', 'criar_orcamento.html');
     //window.location.href = ('pdf.html');
 }
 
@@ -938,105 +936,6 @@ function carregamento(local) {
     </div>
     `
     local_elemento.insertAdjacentHTML('beforeend', elemento)
-}
-
-async function conversor_composicoes_orcamento(orcamento) {
-
-    if ("dados_composicoes_orcamento" in orcamento) {
-
-        var composicoes = await recuperarDados('dados_composicoes') || {};
-
-        var dados_composicoes = orcamento.dados_composicoes
-        var dados_composicoes_orcamento = orcamento.dados_composicoes_orcamento
-
-        var new_dados_composicoes = {}
-        dados_composicoes.forEach(item => {
-            new_dados_composicoes[item.codigo] = {
-                codigo: item.codigo,
-                custo: conversor(item.custo),
-                qtde: item.qtde,
-                total: conversor(item.total),
-                tipo: item.tipo
-            }
-        })
-
-        for (codigo_subs in dados_composicoes_orcamento) {
-
-            var itens = dados_composicoes_orcamento[codigo_subs]
-
-            for (codigo_certo in itens) {
-
-                var subs = composicoes[codigo_certo].substituto
-
-                if (subs == '') {
-                    subs = codigo_certo
-                }
-
-                if (new_dados_composicoes[subs]) {
-                    delete new_dados_composicoes[subs]
-                }
-
-                var quantidade = conversor(itens[codigo_certo].qtde)
-                var ativo = composicoes[subs]['lpu carrefour'].ativo
-                var historico = composicoes[subs]['lpu carrefour'].historico
-                var unitario = historico[ativo].valor
-
-                var ativo_certo = composicoes[codigo_certo]['lpu carrefour'].ativo
-                var historico_certo = composicoes[codigo_certo]['lpu carrefour'].historico
-                var unitario_certo = historico_certo[ativo_certo].valor
-
-                quantidade = Math.ceil((unitario_certo / unitario)) * quantidade
-
-                new_dados_composicoes[codigo_certo] = { // Cria o item nosso no dicionário dados_composicoes
-                    codigo: codigo_certo,
-                    custo: unitario,
-                    qtde: quantidade,
-                    total: quantidade * unitario,
-                    tipo: composicoes[codigo_certo].tipo
-                }
-
-            }
-
-        }
-
-        delete orcamento.dados_composicoes_orcamento
-        orcamento.dados_composicoes = new_dados_composicoes
-
-        fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec', {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(orcamento)
-        })
-
-    }
-
-    return orcamento
-
-}
-
-function encurtar_texto(texto, limite) {
-
-    texto = String(texto)
-    if (texto.length > limite) {
-        return texto.slice(0, limite) + "...";
-    }
-    return texto;
-}
-
-function enviar_dados_generico(dados) {
-
-    fetch('https://script.google.com/a/macros/hopent.com.br/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec', {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(dados)
-    })
-
 }
 
 async function salvar_levantamento(id_orcamento) {

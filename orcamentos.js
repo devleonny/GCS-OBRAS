@@ -286,11 +286,9 @@ async function editar(orcam_) {
 
     var orcamento_v2 = dados_orcamentos[orcam_]
 
-    orcamento_v2 = await conversor_composicoes_orcamento(orcamento_v2)
-
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
-    window.location.href = 'adicionar.html'
+    window.location.href = 'criar_orcamento.html'
 
 }
 
@@ -299,8 +297,6 @@ async function duplicar(orcam_) {
     let acesso = JSON.parse(localStorage.getItem('acesso'))
 
     var orcamento_v2 = dados_orcamentos[orcam_]
-
-    orcamento_v2 = await conversor_composicoes_orcamento(orcamento_v2)
 
     delete orcamento_v2.id
 
@@ -311,7 +307,7 @@ async function duplicar(orcam_) {
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
-    window.location.href = 'adicionar.html'
+    window.location.href = 'criar_orcamento.html'
 }
 
 function salvar_dados_em_excel() {

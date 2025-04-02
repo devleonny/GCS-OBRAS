@@ -61,8 +61,6 @@ async function atualizar_precos() {
         await carregar_tabelas()
         await atualizar_lista_de_lpus()
 
-        carregar_datalist_clientes()
-
         atualizando.style.display = 'none'
         penumbra.style.display = 'block'
 
@@ -71,14 +69,6 @@ async function atualizar_precos() {
         carregar_layout_modalidade_livre()
 
     }
-
-}
-
-document.getElementById('data').textContent = new Date().toLocaleDateString('pt-BR')
-
-function backtop() {
-
-    window.scrollTo(0, 0);
 
 }
 
@@ -102,8 +92,8 @@ function orcamento_que_deve_voltar() {
 function confirmar_exclusao() {
 
     localStorage.removeItem('orcamento_v2')
-    location.href = 'adicionar.html'
-    temp_pop.remove()
+    location.href = 'criar_orcamento.html'
+    remover_popup()
 
 }
 
@@ -238,43 +228,7 @@ function removerItem(codigo) {
 
 }
 
-// testes()
-
-// async function testes() {
-
-//     let orcamentos = await receber("dados_orcamentos")
-
-//     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
-
-//     let dados_orcam = orcamento_v2.dados_orcam;
-
-//     console.log(dados_orcam.contrato)
-
-//     Object.entries(orcamentos).forEach(([idOrcamento, dados]) => {
-
-//         let contrato = dados.dados_orcam.contrato;
-
-//         if (contrato) {
-
-//             if(contrato == dados_orcam.contrato){
-
-//                 console.log(contrato)
-//                 return openPopup_v2(`
-//                     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-//                         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-//                         <label>Chamado já Existente</label>
-//                     </div>
-//                 `);
-
-//             }
-
-//         }
-//     })
-
-// }
-
 async function enviar_dados() {
-    salvar_preenchido();
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
 
@@ -1411,5 +1365,409 @@ function item_existente(tipo, codigo, quantidade) {
     })
 
     return incluir
+
+}
+
+async function carregar_clientes(textarea) {
+
+    let div = textarea.nextElementSibling;
+    let dados_clientes = await recuperarDados('dados_clientes') || {};
+    let pesquisa = String(textarea.value).replace(/[.-]/g, '').toLowerCase()
+    let opcoes = ''
+    div.innerHTML = ''
+
+    for (cnpj in dados_clientes) {
+        var cliente = dados_clientes[cnpj]
+        let nome = cliente.nome.toLowerCase()
+        let cnpj_sem_format = cnpj.replace(/[.-]/g, '')
+
+        if (nome.includes(pesquisa) || cnpj_sem_format.includes(pesquisa)) {
+            opcoes += `
+            <div onclick="selecionar_cliente('${cnpj}', '${cliente.nome}', this)" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: start; justify-content: start; padding: 2px; border-bottom: solid 1px #d2d2d2;">
+                <label style="width: 90%; font-size: 0.8vw;">${cliente.nome}</label>
+                <label style="width: 90%; font-size: 0.7vw;"><strong>${cnpj}</strong></label>
+            </div>
+        `}
+    }
+
+    if (pesquisa == '') {
+        document.getElementById('cnpj').textContent = '...'
+        document.getElementById('cnpj').textContent = '...'
+        document.getElementById('cep').textContent = '...'
+        document.getElementById('bairro').textContent = '...'
+        document.getElementById('cidade').textContent = '...'
+        document.getElementById('estado').textContent = '...'
+        return
+    }
+
+    div.innerHTML = opcoes
+
+}
+
+async function selecionar_cliente(cnpj, nome, div_opcao) {
+
+    let dados_clientes = await recuperarDados('dados_clientes') || {};
+    let cliente = dados_clientes[cnpj]
+
+    document.getElementById('cnpj').textContent = cnpj
+    document.getElementById('cep').textContent = cliente.cep
+    document.getElementById('bairro').textContent = cliente.bairro
+    document.getElementById('cidade').textContent = cliente.cidade
+    document.getElementById('estado').textContent = cliente.estado
+
+    let div = div_opcao.parentElement
+    let textarea = div.previousElementSibling
+
+    textarea.value = nome
+
+    div.innerHTML = ''
+
+    salvar_preenchido()
+
+}
+
+function limpar_campos() {
+    openPopup_v2(`
+        <div style="gap: 10px; display: flex; align-items: center; flex-direction: column;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <label>Deseja limpar campos?</label>
+            </div>
+            <label onclick="executar_limpar_campos()" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
+        </div>`)
+}
+
+function executar_limpar_campos() {
+
+    document.getElementById('cnpj').value = ''
+    document.getElementById('cliente_selecionado').value = ''
+    document.getElementById('consideracoes').value = ''
+    document.getElementById('tipo_de_frete').value = ''
+    document.getElementById('transportadora').value = ''
+
+    // Limpar campos de texto (textContent)
+    document.getElementById('cep').textContent = ''
+    document.getElementById('estado').textContent = ''
+    document.getElementById('cidade').textContent = ''
+    document.getElementById('bairro').textContent = ''
+
+    salvar_preenchido();
+    remover_popup();
+}
+
+function pagina_adicionar() {
+    salvar_preenchido()
+    window.location.href = 'criar_orcamento.html'
+}
+
+function vendedores_analistas() {
+    var dados_vendedores = {
+        'GRUPO COSTA SILVA': {
+            email: 'comercial@acsolucoesintegradas.com.br',
+            telefone: '(71) 3901-3655'
+        },
+        'Sérgio Bergamini': {
+            email: 'sergio.bergamini@acsolucoesintegradas.com.br',
+            telefone: '(11) 98938-2759'
+        },
+        'Fernando Queiroz': {
+            email: 'fernando.queiroz@acsolucoesintegradas.com.br',
+            telefone: '(11) 99442-8826'
+        }
+    }
+
+    var vendedores = Object.keys(dados_vendedores)
+
+    var select = document.getElementById('vendedor')
+
+    select.addEventListener('change', function () {
+        atualizar_dados_vendedores()
+        salvar_preenchido()
+    })
+
+    vendedores.forEach(function (vend_) {
+        var option = document.createElement('option')
+        option.textContent = vend_
+        select.appendChild(option)
+    })
+
+    var dados_acesso = JSON.parse(localStorage.getItem('acesso'))
+
+    document.getElementById('analista').textContent = dados_acesso.nome_completo
+    document.getElementById('email_analista').textContent = dados_acesso.email
+    document.getElementById('telefone_analista').textContent = dados_acesso.telefone
+
+    atualizar_dados_vendedores()
+
+}
+
+function atualizar_dados_vendedores() {
+
+    var dados_vendedores = JSON.parse(localStorage.getItem('vendedores'))
+    var vendedor = document.getElementById('vendedor').value
+    document.getElementById('email_vendedor').textContent = dados_vendedores[vendedor]['email']
+    document.getElementById('telefone_vendedor').textContent = dados_vendedores[vendedor]['telefone']
+
+}
+
+function salvar_preenchido() {
+
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
+
+    let dados_analista = {
+        email: document.getElementById('email_analista').textContent,
+        nome: document.getElementById('analista').textContent,
+        telefone: document.getElementById('telefone_analista').textContent
+    };
+
+    if (orcamento_v2.id) {
+        dados_analista.email = orcamento_v2.dados_orcam.email_analista;
+        dados_analista.telefone = orcamento_v2.dados_orcam.telefone_analista;
+        dados_analista.nome = orcamento_v2.dados_orcam.analista;
+    }
+
+    let contrato = document.getElementById('contrato')
+    let checkbox = document.getElementById('chamado_off')
+
+    if (checkbox.checked) {
+        orcamento_v2.dados_orcam.contrato = 'sequencial'
+        contrato.style.display = 'none'
+
+    } else if (contrato.value == 'sequencial' || orcamento_v2.dados_orcam.contrato == 'sequencial') {
+        orcamento_v2.dados_orcam.contrato = ''
+        contrato.value = ''
+        contrato.style.display = 'block'
+
+    } else {
+        orcamento_v2.dados_orcam.contrato = contrato.value
+        contrato.style.display = 'block'
+    }
+
+    orcamento_v2.dados_orcam = {
+        ...orcamento_v2.dados_orcam,
+        analista: dados_analista.nome,
+        estado: document.getElementById('estado').textContent,
+        bairro: document.getElementById('bairro').textContent,
+        cep: document.getElementById('cep').textContent,
+        cidade: document.getElementById('cidade').textContent,
+        cliente_selecionado: document.getElementById('cliente_selecionado').value,
+        cnpj: document.getElementById('cnpj').textContent,
+        condicoes: document.getElementById('condicoes').value,
+        consideracoes: document.getElementById('consideracoes').value,
+        data: new Date(),
+        email_analista: dados_analista.email,
+        email_vendedor: document.getElementById('email_vendedor').textContent,
+        garantia: document.getElementById('garantia').value,
+        telefone_analista: dados_analista.telefone,
+        transportadora: document.getElementById('transportadora').value,
+        telefone_vendedor: document.getElementById('telefone_vendedor').textContent,
+        tipo_de_frete: document.getElementById('tipo_de_frete').value,
+        vendedor: document.getElementById('vendedor').value,
+    };
+
+    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
+
+    if (orcamento_v2.lpu_ativa === 'MODALIDADE LIVRE') {
+        total_v2();
+    } else {
+        total();
+    }
+
+}
+
+function tipo_elemento(element) {
+    if ('value' in element && (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT')) {
+        return 'value';
+    }
+    return 'textContent';
+}
+
+function excluir_levantamento(chave) {
+    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+
+    if (orcamento_v2.levantamentos) {
+
+        delete orcamento_v2.levantamentos[chave]
+
+        localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+
+    }
+}
+
+function painel_clientes() {
+
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let dados_orcam = orcamento_v2?.dados_orcam || {}
+    let levantamentos = ''
+
+    let dados_pagamentos = ["A definir", "15 dias", "30 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
+    let condicoes = ''
+    dados_pagamentos.forEach(pag => {
+        condicoes += `
+            <option ${dados_orcam?.condicoes == pag ? 'selected' : ''}>${pag}</option>
+        `
+    })
+
+    for (chave in orcamento_v2?.levantamentos || {}) {
+        var levantamento = orcamento_v2.levantamentos[chave]
+
+        levantamentos += criarAnexoVisual(levantamento.nome, levantamento.link, `excluir_levantamento('${chave}')`)
+
+    }
+
+    let acumulado = `
+
+    <div style="background-color: #d2d2d2; padding: 10px;">
+        <div style="display: flex; justify-content: start; align-items: center;">
+            <div style="display: flex; flex-direction: column; gap: 10px; align-items: left; margin: 5px;">
+
+                <div id="acompanhamento_dados_clientes" class="btn" onclick="recuperar_clientes()">
+                    <img src="imagens/omie.png">
+                    <label style="cursor: pointer;">Atualizar OMIE Clientes</label>
+                </div>
+
+            </div>
+
+            <div onclick="limpar_campos()" class="btn">
+                <img src="imagens/limpar.png" style="width: 2vw;">
+                <label style="cursor: pointer;">Limpar Campos</label>
+            </div>
+        </div>
+
+        <div
+            style="display: flex; flex-direction: column; gap: 5px; justify-content: center; align-items: start; border-radius: 3px; margin: 5px;">
+            <label style="font-size: 1.5vw;">Dados do Cliente</label>
+            <div class="linha">
+
+                <label>nº do Chamado</label>
+                <div style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 2px; flex-direction: column;">
+                    <input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" onchange="salvar_preenchido()" value="${dados_orcam?.contrato || ''}">
+
+                    <div style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 2px;">
+                        <input id="chamado_off" style="width: max-content; cursor: pointer;" type="checkbox"
+                            onchange="salvar_preenchido()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
+                        <label style="width: max-content;">Sem Chamado</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="linha">
+                <label>Cliente</label>
+                <div class="autocomplete-container">
+                    <textarea style="width: 100%; font-size: 1.0vw;" class="autocomplete-input" id="cliente_selecionado"
+                        placeholder="Escreva o nome do Cliente..." oninput="carregar_clientes(this)">${dados_orcam?.cliente_selecionado || '...'}</textarea>
+                    <div class="autocomplete-list"></div>
+                </div>
+            </div>
+
+            <div class="linha">
+                <label>CNPJ/CPF</label>
+                <label id="cnpj">${dados_orcam?.cnpj || '...'}</label>
+            </div>
+            <div class="linha">
+                <label>CEP</label>
+                <label id="cep">${dados_orcam?.cep || '...'}</label>
+            </div>
+            <div class="linha">
+                <label>Endereço</label>
+                <label id="bairro">${dados_orcam?.bairro || '...'}</label>
+            </div>
+            <div class="linha">
+                <label>Cidade</label>
+                <label id="cidade">${dados_orcam?.cidade || '...'}</label>
+            </div>
+            <div class="linha">
+                <label>Estado</label>
+                <label id="estado">${dados_orcam?.estado || '...'}</label>
+            </div>
+            <div class="linha">
+                <label>Tipo de Frete</label>
+                <select id="tipo_de_frete" onchange="salvar_preenchido()">
+                    <option ${dados_orcam?.tipo_de_frete == '--' ? 'selected' : ''}>--</option>
+                    <option ${dados_orcam?.tipo_de_frete == 'CIF' ? 'selected' : ''}>CIF</option>
+                    <option ${dados_orcam?.tipo_de_frete == 'FOB' ? 'selected' : ''}>FOB</option>
+                </select>
+            </div>
+            <div class="linha">
+                <label>Transportadora</label>
+                <input type="text" id="transportadora" placeholder="Transportadora" oninput="salvar_preenchido()" value="${dados_orcam?.transportadora || ''}">
+            </div>
+            <div class="linha">
+                <label>Considerações</label>
+                <div style="display: flex; flex-direction: column; align-items: start; justify-content: space-between;">
+                    <textarea id="consideracoes" oninput="salvar_preenchido()" rows="5" style="width: 100%; font-size: 1.0vw;"
+                        placeholder="Escopo do orçamento...">${dados_orcam?.consideracoes || ''}</textarea>
+
+                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                        <div class="contorno_botoes" style="background-color: #222; width: 100%;">
+                            <img src="imagens/anexo2.png" style="width: 15px;">
+                            <label style="width: 100%;" for="adicionar_levantamento">Anexar levantamento
+                                <input type="file" id="adicionar_levantamento" style="display: none;"
+                                    onchange="salvar_levantamento()">
+                            </label>
+                        </div>
+                        <div>
+                            ${levantamentos}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="linha">
+                <label>Condições de Pagamento</label>
+                <select id="condicoes" oninput="salvar_preenchido()">
+                    ${condicoes}
+                </select>
+            </div>
+
+            <br>
+
+            <div class="linha">
+                <label>Garantia</label>
+                <input id="garantia" placeholder="1 Ano" oninput="salvar_preenchido()" value="${dados_orcam?.garantia || ''}">
+            </div>
+
+            <label style="font-size: 1.5vw;">Dados do Analista</label>
+            <div class="linha">
+                <label>Analista</label>
+                <label id="analista">${dados_orcam?.analista || ''}</label>
+            </div>
+
+            <div class="linha">
+                <label>E-mail</label>
+                <label style="width: 70%;" id="email_analista">${dados_orcam?.email_analista || ''}</label>
+            </div>
+
+            <div class="linha">
+                <label>Telefone</label>
+                <label id="telefone_analista">${dados_orcam?.telefone_analista || ''}</label>
+            </div>
+
+            <label style="font-size: 1.5vw;">Dados do Vendedor</label>
+            <div class="linha">
+                <label>Vendedor</label>
+                <select style="text-align: center; width: 100%;" id="vendedor" oninput="salvar_preenchido()">
+                </select>
+            </div>
+            <div class="linha">
+                <label>E-mail</label>
+                <label style="width: 70%;" id="email_vendedor"></label>
+            </div>
+            <div class="linha">
+                <label>Telefone</label>
+                <label id="telefone_vendedor"></label>
+            </div>
+
+        </div>
+
+        <div style="width: 100%; display: flex; gap: 10px; align-items: end; justify-content: right; margin-top: 5vh;">
+            <label><strong>Data de criação</strong> ou <strong>Alteração</strong></label>
+            <label id="data">${new Date(dados_orcam?.data).toLocaleDateString('pt-BR') || ''}</label>
+        </div>
+    </div>
+    `
+
+    openPopup_v2(acumulado, 'Dados do Cliente')
+
+    // Processos para inicialização;
+    vendedores_analistas()
 
 }

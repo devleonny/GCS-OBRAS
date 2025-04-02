@@ -102,7 +102,7 @@ function orcamento_que_deve_voltar() {
 function confirmar_exclusao() {
 
     localStorage.removeItem('orcamento_v2')
-    location.href = 'adicionar.html'
+    location.href = 'criar_orcamento.html'
     temp_pop.remove()
 
 }
