@@ -95,8 +95,6 @@ async function preencher_v2(parceiro) {
     var orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
     var dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
-    orcamento_v2 = await conversor_composicoes_orcamento(orcamento_v2)
-
     // LÓGICA DOS DADOS
     var informacoes = orcamento_v2.dados_orcam
 

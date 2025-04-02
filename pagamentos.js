@@ -903,13 +903,6 @@ async function atualizar_resumo(id_pagamento) {
 
     var v_pago = conversor(document.getElementById('v_pago').textContent)
     var v_orcado = Number(document.getElementById('v_orcado').value)
-
-    var dados = {
-        id_pagamento: id_pagamento,
-        tabela: 'anexos_parceiros',
-        resumo: { v_pago, v_orcado }
-    }
-
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
 
     var pagamento = lista_pagamentos[id_pagamento]
@@ -920,10 +913,11 @@ async function atualizar_resumo(id_pagamento) {
 
     pagamento.resumo = { v_pago, v_orcado }
 
-    inserirDados(lista_pagamentos, 'lista_pagamentos');
-    abrir_detalhes(id_pagamento)
+    enviar(`lista_pagamentos/${id_pagamento}/resumo`, pagamento.resumo)
 
-    enviar_dados_generico(dados)
+    await inserirDados(lista_pagamentos, 'lista_pagamentos');
+    await abrir_detalhes(id_pagamento)
+
 }
 
 function colorir_parceiros() {

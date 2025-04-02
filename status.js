@@ -369,8 +369,6 @@ async function calcular_requisicao(sincronizar) {
         let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
         var orcamento = dados_orcamentos[id_orcam]
 
-        await conversor_composicoes_orcamento(orcamento)
-
         var itens = orcamento.dados_composicoes
         var estado = orcamento.dados_orcam.estado
 
@@ -484,8 +482,6 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let orcamento = dados_orcamentos[id_orcam];
-
-    orcamento = await conversor_composicoes_orcamento(orcamento);
 
     var linhas = '';
 
@@ -3078,18 +3074,9 @@ async function apagar_status_historico_cotacao(chave) {
 }
 
 function remover_cotacao(chave) {
-    let status = "excluido";
-    let operacao = "excluir";
-    let idCotacao = chave
 
-    const cotacaoParaExcluir = { operacao, status, idCotacao };
+    deletar(`dados_cotacoes/${chave}`)
 
-    const payload = {
-        tabela: "cotacoes",
-        cotacao: cotacaoParaExcluir,
-    };
-
-    enviar_dados_generico(payload);
 }
 
 async function atualizar_partnumber(dicionario) {
