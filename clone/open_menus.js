@@ -548,7 +548,7 @@ function criar_orcamento_janela() {
     const { ipcRenderer } = require('electron');
 
     //novo 28/08/2024;
-    ipcRenderer.invoke('open-new-window', 'adicionar.html');
+    ipcRenderer.invoke('open-new-window', 'criar_orcamento.html');
     //window.location.href = ('pdf.html');
 }
 
@@ -1221,14 +1221,14 @@ async function deletar(chave) {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ chave })
+            body: JSON.stringify({ chave, app: 'clone' })
         })
             .then(response => response.json())
             .then(data => {
                 resolve(data);
             })
             .catch(() => {
-                salvar_offline({ chave: chave }, 'deletar')
+                salvar_offline({ chave: chave, app: 'clone' }, 'deletar')
                 resolve();
             });
     });
