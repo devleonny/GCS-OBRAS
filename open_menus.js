@@ -308,7 +308,7 @@ function criarAnexoVisual(nome, link_anexo, funcao_excluir) {
 
     let displayExcluir = 'flex'
 
-    if(!funcao_excluir) {
+    if (!funcao_excluir) {
 
         displayExcluir = 'none'
 
@@ -420,7 +420,7 @@ function para_excel(tabela_id) {
 
     const inputs = tabelaClone.querySelectorAll('input, textarea');
     inputs.forEach(input => {
-        const cell = input.closest('td, th'); 
+        const cell = input.closest('td, th');
         if (cell) {
             cell.textContent = input.value;
         }
@@ -1565,6 +1565,29 @@ async function verificar_chamado_existente(chamado, id_atual, sequencial) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chamado, id_atual, sequencial })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
+}
+
+async function servicos(servico) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/servicos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ servico })
         })
             .then(response => {
                 if (!response.ok) {

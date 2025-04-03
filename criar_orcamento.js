@@ -72,6 +72,14 @@ async function atualizar_precos() {
 
 }
 
+// Modalidade Livre ativação remota;
+verificar_modalidade_livre()
+
+async function verificar_modalidade_livre() {
+    let mostrar = await servicos('livre')
+    document.getElementById('mod_livre').style.display = mostrar ? 'flex' : 'none'
+}
+
 function fechar_ir_orcamentos() {
 
     location.href = 'orcamentos.html'
