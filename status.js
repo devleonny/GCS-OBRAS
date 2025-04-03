@@ -1291,13 +1291,8 @@ async function salvar_requisicao(chave) {
         atualizar_partnumber(lista_partnumbers)
     }
 
-    
-
-    
-    
-
     itens_adicionais = {}
-    document.getElementById('aguarde')?.remove()
+    let aguarde = document.getElementById('aguarde')
     if (aguarde) {
         aguarde.remove()
     }
