@@ -615,7 +615,7 @@ async function tabela_produtos_v2(tipo_tabela) {
             `
         })
 
-        console.log(acesso)
+        let acesso = JSON.parse(localStorage.getItem('acesso'))
 
         let displayLocacao = 'none'
 
