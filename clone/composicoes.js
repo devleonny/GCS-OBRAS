@@ -829,7 +829,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                         <td style="background-color: #91b7d9;"><input id="custo" oninput="calcular()" value="${produto[lpu]?.historico[cotacao]?.custo || ''}"></td>
                     </tr>
                     <tr>
-                        <td>Frete de Compra (5%)</td>
+                        <td>Frete de Compra (2%)</td>
                         <td></td>
                     </tr>
                     <tr>
@@ -838,7 +838,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                     </tr>
                     <tr>
                         <td>Aliquota ICMS (Bahia)</td>
-                        <td><input value="20.5%" value="20.5%" readOnly></td>
+                        <td><input value="20,5%" readOnly></td>
                     </tr>
                     <tr>
                         <td>ICMS a ser pago (DIFAL)</td>
@@ -1159,7 +1159,7 @@ function calcular(tipo, campo) {
         let tds = tabelas[0].querySelectorAll('td') // 1ª Tabela
 
         let preco_compra = conversor(tds[1].querySelector('input').value)
-        let frete = preco_compra * 0.05
+        let frete = preco_compra * 0.02
         let icms_creditado = conversor(tds[5].querySelector('input').value)
         let icms_aliquota = conversor(tds[7].querySelector('input').value)
         let difal = icms_aliquota - icms_creditado
