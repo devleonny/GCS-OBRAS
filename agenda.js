@@ -35,12 +35,16 @@ async function iniciar_agendas() {
 }
 
 async function sincronizar_departamentos() {
-    document.body.insertAdjacentHTML('beforeend', overlay_aguarde())
 
+    let aguarde = document.getElementById('aguarde')
+    if (!aguarde) {
+        document.body.insertAdjacentHTML('beforeend', overlay_aguarde())
+    }
+    
     await sincronizar('departamentos')
     let dados_departamentos = await receber('dados_departamentos')
     await inserirDados(dados_departamentos, 'dados_departamentos')
-    
+
     remover_popup()
     return dados_departamentos
 }
@@ -55,7 +59,7 @@ async function carregar_tabela(sinc) {
 
     let dados_departamentos = await recuperarDados('dados_departamentos') || {}
     if (Object.keys(dados_departamentos) == 0) {
-        dados_departamentos =  await sincronizar_departamentos() 
+        dados_departamentos = await sincronizar_departamentos()
     }
 
     for (id in dados_clientes) {
