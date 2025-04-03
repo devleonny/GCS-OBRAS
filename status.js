@@ -495,35 +495,41 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
 
     // Filtra os itens com base no tipo de requisição
     let itensFiltrados = [];
+    let todos_os_itens = {
+        infra: [],
+        equipamentos: []
+    }
 
     for (id in orcamento.dados_composicoes) {
         let item = orcamento.dados_composicoes[id]
         let itemComposicao = dados_composicoes[item.codigo] || {};
         let descricao = itemComposicao.descricao || item.descricao || '';
-        let tipo = itemComposicao.tipo || item.tipo || '';
 
         descricao = String(descricao).toLowerCase()
-        if (tipoRequisicao === 'infraestrutura') {
-            if ((
-                descricao.includes('eletrocalha') ||
-                descricao.includes('eletroduto') ||
-                descricao.includes('perfilado') ||
-                descricao.includes('sealtubo')
-            )) {
-                itensFiltrados.push(item)
-            }
-        } else if (tipoRequisicao === "equipamentos") {
-            if (tipo === "VENDA") {
-                itensFiltrados.push(item)
-            }
-        } else {
-            itensFiltrados.push(item)
-        }
 
+        if ((
+            descricao.includes('eletrocalha') ||
+            descricao.includes('eletroduto') ||
+            descricao.includes('perfilado') ||
+            descricao.includes('sealtubo')
+        )) {
+            itensFiltrados.push(item)
+            todos_os_itens.infra.push(item)
+        } else {
+            todos_os_itens.equipamentos.push(item)
+        }
+    }
+
+    if (tipoRequisicao == 'equipamentos') {
+        itensFiltrados = todos_os_itens.equipamentos
+    } else if (tipoRequisicao == 'infraestrutura') {
+        itensFiltrados = todos_os_itens.infra
+    } else {
+        itensFiltrados = todos_os_itens.infra + todos_os_itens.equipamentos
     }
 
     // Função para criar uma linha da tabela
-    function criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements, aux, apenas_visualizar, seEditar, valoresTotais,) {
+    function criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, descricao_item, aux, apenas_visualizar, seEditar, valoresTotais,) {
 
         if (!seEditar) {
 
@@ -544,61 +550,74 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
 
         }
 
+        // Obter a descrição do item corretamente
+        let descricao = '</label>Sem descrição</label>'
+        if (dados_composicoes[codigo]) {
+            descricao = `<label>${dados_composicoes[codigo].descricao}</label>
+            
+            <label style="font-size: 0.8vw;"><strong>FABRICANTE</strong> ${dados_composicoes[codigo].fabricante} • <strong>MODELO</strong> ${dados_composicoes[codigo].modelo || 'N/A'}</label>`
+
+        } else if (item.descricao) {
+            descricao = `<label>item.descricao</label>`
+        }
+
         return `
-            <tr class="lin_req" style="background-color: white;">
-                <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
-                <td style="text-align: center;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.partnumber || ''}</label>` : partnumber}
-                </td>
-                <td style="position: relative;">
-                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
-                        ${elements}
-                    </div>
-                    ${aux}
-                </td>
-                <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${requisicao[codigo]?.tipo || ''}</label>` : `
-                        <select onchange="calcular_requisicao()" style="border: none;">
-                            <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
-                            <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
-                        </select>
-                    `}
-                </td>
-                <td style="text-align: center;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.qtde_enviar || ''}</label>` : `
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
-                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
-                                <label>Quantidade a enviar</label>
-                                <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
-                            </div>
-                            <label class="num">${qtde_editar}</label>  
-                        </div>
-                    `}
-                </td>
-                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                    <label></label>
-                    <br>
-                    <br>
-                    <label style="color: red; font-size: 1.0em;"></label>
-                </td>
-                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                    <label></label>
-                    <br>
-                    <br>
-                    <label style="color: red; font-size: 1.0em;"></label>
-                </td>
-                <td>
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.requisicao || ''}</label>` : `
-                        <select style="border: none; cursor: pointer;">
-                            <option style="text-align: center;">Nada a fazer</option>
-                            <option>Estoque AC</option>
-                            <option>Comprar</option>
-                            <option>Enviar do CD</option>
-                            <option>Fornecido pelo Cliente</option>
-                        </select>
-                    `}
-                </td>
-            </tr>
+              <tr class="lin_req" style="background-color: white;">
+                  <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
+                  <td style="text-align: center;">
+                      ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.partnumber || ''}</label>` : partnumber}
+                  </td>
+                  <td style="position: relative;">
+                      <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
+                          <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong></label>
+                          <br>
+                          ${descricao}
+                      </div>
+                      ${aux}
+                  </td>
+                  <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
+                      ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${requisicao[codigo]?.tipo || ''}</label>` : `
+                          <select onchange="calcular_requisicao()" style="border: none;">
+                              <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
+                              <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
+                          </select>
+                      `}
+                  </td>
+                  <td style="text-align: center;">
+                      ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.qtde_enviar || ''}</label>` : `
+                          <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
+                              <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
+                                  <label>Quantidade a enviar</label>
+                                  <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
+                              </div>
+                              <label class="num">${qtde_editar}</label>  
+                          </div>
+                      `}
+                  </td>
+                  <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                      <label></label>
+                      <br>
+                      <br>
+                      <label style="color: red; font-size: 1.0em;"></label>
+                  </td>
+                  <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                      <label></label>
+                      <br>
+                      <br>
+                      <label style="color: red; font-size: 1.0em;"></label>
+                  </td>
+                  <td>
+                      ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.requisicao || ''}</label>` : `
+                          <select style="border: none; cursor: pointer;">
+                              <option style="text-align: center;">Nada a fazer</option>
+                              <option>Estoque AC</option>
+                              <option>Comprar</option>
+                              <option>Enviar do CD</option>
+                              <option>Fornecido pelo Cliente</option>
+                          </select>
+                      `}
+                  </td>
+              </tr>
         `;
     }
 
@@ -608,7 +627,7 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
         var qtde = item.qtde;
         var qtde_na_requisicao = 0;
         var tipo = dados_composicoes[codigo]?.tipo || item.tipo;
-        var elements = '';
+        var descricao_item = '';
         let mod_livre = true;
         let qtde_editar = qtde;
         var historico = dados_orcamentos.id_orcam?.status.historico || {};
@@ -625,8 +644,9 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
             }
         });
 
+        console.log(dados_composicoes[codigo])
         if (dados_composicoes[codigo]) {
-            elements += `
+            descricao_item += `
                 <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong> <br>${dados_composicoes[codigo].descricao}</label>
                 <label style="font-size: 0.8vw;"><strong>FABRICANTE</strong> ${dados_composicoes[codigo].fabricante} • <strong>MODELO</strong> ${dados_composicoes[codigo].modelo}</label>
                 `;
@@ -634,7 +654,7 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
         }
 
         if (mod_livre) {
-            elements = `
+            descricao_item = `
             <label>${item.descricao}</label>
             `;
         }
@@ -644,7 +664,7 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
         `;
 
         if (requisicao) {
-            qtde_na_requisicao = requisicao[codigo]?.qtde_enviar || '';
+            qtde_na_requisicao = requisicao[codigo]?.qtde_enviar || 0;
         }
 
         let somasQtde = 0;
@@ -674,11 +694,11 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
             aux = '';
         }
 
-        if (apenas_visualizar && qtde_na_requisicao == 0) {
+        if (apenas_visualizar) {
             continue
         }
 
-        linhas += criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, part_number, elements, aux, apenas_visualizar, seEditar, valoresTotais)
+        linhas += criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, part_number, descricao_item, aux, apenas_visualizar, seEditar, valoresTotais)
 
     };
 
@@ -1177,46 +1197,51 @@ async function salvar_notas(chave) {
 }
 
 async function salvar_requisicao(chave) {
-    // Overlay
+
     let janela = document.querySelectorAll('.janela')
     janela = janela[janela.length - 1] // A última que existir
     janela.insertAdjacentHTML('beforeend', overlay_aguarde())
-
+    //Carregar dados existentes
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
-
+    //Inicializar estruturas se não existirem
     if (!orcamento.status) {
         orcamento.status = { historico: {} };
     }
 
+    if (!orcamento.status.historico) {
+        orcamento.status.historico = {}
+    }
+    //Criar novo lançamento
     var novo_lancamento = {
         status: 'REQUISIÇÃO',
         data: data_status,
         executor: acesso.usuario,
-        comentario: comentario_status.value,
+        comentario: document.getElementById("comentario_status").value,
         requisicoes: [],
         adicionais: itens_adicionais,
-        total_sem_icms: total_s_icms.textContent,
-        total_com_icms: total_c_icms.textContent
+        total_sem_icms: document.getElementById("total_s_icms").textContent,
+        total_com_icms: document.getElementById("total_c_icms").textContent
     };
 
+    //Processar itens da tabela
     var linhas = document.querySelectorAll('.lin_req');
     var lista_partnumbers = {};
     var temItensValidos = false;
 
     for (let linha of linhas) {
         let valores = linha.querySelectorAll('input, select');
-
         if (valores.length == 0) { continue }
-        let tds = linha.querySelectorAll('td')
 
+        let tds = linha.querySelectorAll('td')
         let codigo = tds[0].textContent
         let partnumber = valores[0].value
         let tipo = valores[1].value
-        let qtde = valores[2].value
+        let qtde = Number(valores[2].value)
         let requisicao = valores[3].value
 
-        if (partnumber == '' && qtde !== '') {
+        if (partnumber == '' && qtde > 0) {
+            document.getElementById("aguarde")?.remove();
             return openPopup_v2(`
                     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
@@ -1225,35 +1250,14 @@ async function salvar_requisicao(chave) {
                 `, 'Aviso', true);
         }
 
-        // Verifica se é um item adicional (linha com fundo cinza)
-        let isAdicional = linha.style.backgroundColor === 'rgb(240, 240, 240)' || 
-                         linha.getAttribute('data-adicional') === 'true';
-
-        // Se for um item adicional ou se o usuário explicitamente colocou 0 ou vazio, inclui na requisição
-        if (isAdicional || qtde === '0' || qtde === '') {
-            novo_lancamento.requisicoes.push({
-                codigo: codigo,
-                partnumber: partnumber,
-                tipo: tipo,
-                qtde_enviar: qtde === '' ? '0' : qtde, // Converte vazio para 0
-                requisicao: requisicao,
-                isAdicional: isAdicional
-            });
-
-            lista_partnumbers[codigo] = partnumber;
-            temItensValidos = true;
-            continue;
-        }
-
         // Para itens principais com valor > 0
-        if (qtde > 0) {
+        if (qtde > 0 || itens_adicionais[codigo]) {
             novo_lancamento.requisicoes.push({
                 codigo: codigo,
                 partnumber: partnumber,
                 tipo: tipo,
                 qtde_enviar: qtde,
                 requisicao: requisicao,
-                isAdicional: isAdicional
             });
 
             lista_partnumbers[codigo] = partnumber;
@@ -1263,6 +1267,7 @@ async function salvar_requisicao(chave) {
 
     // Se não houver itens válidos, mostra mensagem de erro
     if (!temItensValidos) {
+        document.getElementById("aguarde")?.remove();
         return openPopup_v2(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
@@ -1271,25 +1276,33 @@ async function salvar_requisicao(chave) {
         `, 'Aviso', true);
     }
 
+    //Atualizar dados localmente primeiro
+    orcamento.status.historico[chave] = novo_lancamento
+    dados_orcamentos[id_orcam] = orcamento;
+
+    //Salvar no localstorage
+    await inserirDados(dados_orcamentos, "dados_orcamentos");
+
+    //Envio para nuvem
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
 
+    //Atualizar partnumbers se necessário
     if (orcamento.modalidade !== 'MODALIDADE LIVRE') {
         atualizar_partnumber(lista_partnumbers)
     }
 
-    orcamento.status.historico[chave] = novo_lancamento;
+    
 
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
-
-    remover_popup()
-    await abrir_esquema(id_orcam)
+    
+    
 
     itens_adicionais = {}
-
-    let aguarde = document.getElementById('aguarde')
+    document.getElementById('aguarde')?.remove()
     if (aguarde) {
         aguarde.remove()
     }
+    remover_popup()
+    await abrir_esquema(id_orcam)
 }
 
 function botao_novo_pedido(id) {
@@ -1433,7 +1446,7 @@ async function abrir_esquema(id) {
 
     if (orcamento) {
         var levantamentos = ''
-        
+
         if (orcamento.levantamentos) {
             for (chave in orcamento.levantamentos) {
                 var levantamento = orcamento.levantamentos[chave]
