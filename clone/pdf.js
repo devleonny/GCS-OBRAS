@@ -248,8 +248,8 @@ async function preencher_v2(parceiro) {
                 item.tipo = dados.tipo
                 item.sapid = dados.sapid
                 item.refid = dados.refid
-                item.descricao = carrefour ? dados.descricaocarrefour : item.descricao = dados.descricao
-                item.imagem = item.imagem ? item.imagem : dados.imagem
+                item.descricao = carrefour ? dados.descricaocarrefour : dados.descricao
+                item.imagem = item?.imagem || dados.imagem
                 item.unidade = dados.unidade
                 item.custo = conversor(item.custo)
             }

@@ -538,7 +538,7 @@ async function ir_pdf(orcam_) {
         ipcRenderer.invoke('open-new-window', pdfUrl);
 
     } catch {
-        window.location.href = `https://devleonny.github.io/GCS-OBRAS/pdf.html`;
+        window.location.href = `https://devleonny.github.io/GCS-OBRAS/clone/pdf.html`;
     }
 }
 
