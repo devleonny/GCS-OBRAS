@@ -1001,6 +1001,10 @@ async function cadastrar_editar_item(codigo) {
                 </div>
             `
 
+        } else if (col == 'locacao') {
+
+            return
+
         }
 
         if (
@@ -1041,8 +1045,6 @@ async function cadastrar_editar_item(codigo) {
 async function abrir_historico_de_locacoes(codigo) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let produto = dados_composicoes[codigo];
-
-    console.log(produto)
 
     if (!produto.locacao) {
         produto.locacao = {};
