@@ -213,6 +213,12 @@
             border-collapse: collapse;
         }
 
+        #cabecalho_locacao{
+            background-color: blue;
+            border-radius: 5px;
+            border-collapse: collapse;
+        }
+
         #cabecalho_venda,
         #tabela_composicoes {
             width: 100%;
@@ -225,6 +231,8 @@
         #cabecalho_venda td,
         #cabecalho_serviço th,
         #cabecalho_serviço td,
+        #cabecalho_locacao th,
+        #cabecalho_locacao td
         #tabela_composicoes th,
         #tabela_composicoes td,
         #tabela_itens th,
@@ -235,7 +243,8 @@
         }
 
         #cabecalho_venda th,
-        #cabecalho_serviço th {
+        #cabecalho_serviço th,
+        #cabecalho_locacao th {
             background-color: transparent;
         }
 
@@ -301,6 +310,19 @@
             align-items: center;
             font-size: 2.0em;
             background-color: green;
+            color: white;
+            padding: 5px;
+            transition: ease-in;
+            cursor: pointer;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        .menu_top_locacao {
+            display: flex;
+            align-items: center;
+            font-size: 2.0em;
+            background-color: blue;
             color: white;
             padding: 5px;
             transition: ease-in;
@@ -622,6 +644,19 @@
                 </table>
             </div>
 
+            <div id="locacao" style="display: none; width: 100%; margin-bottom: 100px;">
+                <div style="display: flex; justify-content: right; width: 100%;">
+                    <div
+                        style="width: max-content; display: flex; align-items: center; justify-content: center; background-color: #d2d2d2; padding: 5px; border-top-right-radius: 3px; border-top-left-radius: 3px; margin-right: 10px;">
+                        <label style="margin-right: 3vw; font-size: 1.5vw;">Total de Locação</label>
+                        <label id="total_locacao" style="font-size: 1.5vw;">R$ -- </label>
+                    </div>
+                </div>
+                <table id="cabecalho_locacao" style="width: 100%;">
+                    <thead id="thead_locacao"></thead>
+                    <tbody id="linhas_locacao"></tbody>
+                </table>
+            </div>
 
             <div id="penumbra">
 
