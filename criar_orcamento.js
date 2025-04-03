@@ -615,12 +615,22 @@ async function tabela_produtos_v2(tipo_tabela) {
             `
         })
 
+        console.log(acesso)
+
+        let displayLocacao = 'none'
+
+        if(acesso.permissao == 'adm'){
+
+            displayLocacao = 'flex'
+
+        }
+
         var acumulado = `
         <div style="display: flex; justify-content: center; width: 100%; margin-top: 30px; gap: 10px;">
             <label class="menu_top_geral" onclick="tabela_produtos_v2()">Todos</label>
             <label class="menu_top_serviço" onclick="tabela_produtos_v2('SERVIÇO')">Serviço</label>
             <label class="menu_top_venda" onclick="tabela_produtos_v2('VENDA')">Venda</label>
-            <label class="menu_top_locacao" onclick="tabela_produtos_v2('LOCAÇÃO')">Locação</label>
+            <label style="display: ${displayLocacao}" class="menu_top_locacao" onclick="tabela_produtos_v2('LOCAÇÃO')">Locação</label>
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;" onclick="recuperar_composicoes()">
                 <img src="imagens/atualizar_2.png" style="width: 30px; cursor: pointer;">
                 <label style="color: white; cursor: pointer;">Atualizar</label>
