@@ -114,7 +114,7 @@ async function carregar_tabela_v2() {
     for (let [codigo, produto] of Object.entries(dados_composicoes).reverse()) {
         var tds = {};
 
-        if(!checkboxItensinativos.checked && produto.status == "INATIVO") continue
+        if (!checkboxItensinativos.checked && produto.status == "INATIVO") continue
 
         colunas.forEach(chave => {
             var conteudo = produto[chave] || '';
@@ -194,6 +194,7 @@ async function carregar_tabela_v2() {
         });
 
         tds.editar = `<td style="width: 70px;"><img src="imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')"></td>`;
+        tds.locacao = `<td style="width: 70px;"><img src="imagens/editar2.png" style="width: 30px; cursor: pointer;" onclick="abrir_historico_de_locacoes('${codigo}')"></td>`;
 
         var celulas = '';
         colunas.forEach(col => {
@@ -763,7 +764,7 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
         });
 
         let algumMarcado = false;
-        
+
         // 🔥 Agora percorre e marca apenas o checkbox correto
         for (let tr of trs) {
             let tds = tr.querySelectorAll('td');
@@ -952,7 +953,7 @@ async function cadastrar_editar_item(codigo) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados = dados_composicoes[codigo] || {}
 
-    if(!dados.status){
+    if (!dados.status) {
 
         dados.status = "ATIVO"
 
@@ -984,18 +985,18 @@ async function cadastrar_editar_item(codigo) {
             campo = `
                 <div>
                     <select style="cursor: pointer;">
-                        <option ${dados[col] == 'VENDA' ? 'selected': ''}>VENDA</option>
-                        <option ${dados[col] == 'SERVIÇO' ? 'selected': ''}>SERVIÇO</option>
+                        <option ${dados[col] == 'VENDA' ? 'selected' : ''}>VENDA</option>
+                        <option ${dados[col] == 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
                     </select>
                 </div>
             `
-        } else if(col == 'status'){
+        } else if (col == 'status') {
 
             campo = `
                 <div>
                     <select style="cursor: pointer;">
-                        <option ${dados[col] == 'ATIVO' ? 'selected': ''}>ATIVO</option>
-                        <option ${dados[col] == 'INATIVO' ? 'selected': ''}>INATIVO</option>
+                        <option ${dados[col] == 'ATIVO' ? 'selected' : ''}>ATIVO</option>
+                        <option ${dados[col] == 'INATIVO' ? 'selected' : ''}>INATIVO</option>
                     </select>
                 </div>
             `
@@ -1036,6 +1037,245 @@ async function cadastrar_editar_item(codigo) {
     `
     openPopup_v2(acumulado, 'Dados do Item')
 }
+
+async function abrir_historico_de_locacoes(codigo) {
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    let produto = dados_composicoes[codigo];
+
+    console.log(produto)
+
+    if (!produto.locacao) {
+        produto.locacao = {};
+    }
+
+    if (!produto.locacao.historico) {
+        produto.locacao.historico = {};
+    }
+
+    let historico = produto.locacao.historico;
+    let linhas = '';
+    let marcado = '';
+
+    for (let id in historico) {
+        let registro = historico[id];
+        let isAtivo = produto.locacao.ativo === id;
+        marcado = isAtivo ? 'checked' : '';
+
+        linhas += `
+        <tr style="font-size: 0.7em; color: #222;">
+            <td>${dinheiro(registro.valor)}</td>
+            <td>${registro.data}</td>
+            <td>${registro.usuario}</td>
+            <td>
+                <div style="display: flex; align-items: center; justify-content: center; width: 100%;">
+                    <input type="checkbox" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_locacao_ativa('${codigo}', '${id}')" ${marcado}>
+                </div>
+            </td>
+            <td>
+                <div style="display: flex; align-items: center; justify-content: center; width: 100%;">
+                    <img src="imagens/cancel.png" style="width: 25px; cursor: pointer;" onclick="excluir_valor_locacao('${codigo}', '${id}')">
+                </div>
+            </td>
+        </tr>
+    `;
+    }
+
+
+    let visibilidade = linhas ? 'flex' : 'none';
+
+    let acumulado = `
+    <div id="historico_locacao" style="background-color: white; padding: 5px; border-radius: 5px;">
+        <div style="display: flex; flex-direction: column;">
+            <label>Descrição</label>
+            <textarea style="font-size: 1.2em;" readonly>${produto.descricao}</textarea>
+        </div>
+
+        <div style="display: ${visibilidade}; padding-top: 10px;">
+            <table class="tabela" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Valor Diário</th>
+                        <th>Data</th>
+                        <th>Feito por</th>
+                        <th>Ativo</th>
+                        <th>Excluir</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${linhas}
+                </tbody>
+            </table>
+        </div>
+
+        <div onclick="adicionar_valor_locacao('${codigo}')" class="bot_adicionar" style="margin-top: 10px;">
+            <img src="imagens/preco.png" style="cursor: pointer; width: 40px;">
+            <label>Adicionar Valor Locação</label>
+        </div>
+    </div>
+    `;
+
+    openPopup_v2(acumulado, 'Histórico de Valores de Locação');
+}
+
+async function salvar_locacao_ativa(codigo, id_locacao) {
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    let produto = dados_composicoes[codigo];
+    let historico_locacao = document.getElementById('historico_locacao');
+
+    if (historico_locacao) {
+        let tabela = historico_locacao.querySelector('table');
+        let tbody = tabela.querySelector('tbody');
+        let trs = tbody.querySelectorAll('tr');
+
+        // 🔥 Exibir "aguarde" overlay
+        const aviso = document.createElement('div');
+        aviso.id = "aviso-aguarde";
+        aviso.style = `
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            font-size: 1.5em;
+            border-radius: 5px;
+        `;
+        aviso.innerHTML = `<div>Aguarde...</div>`;
+        historico_locacao.style.position = "relative";
+        historico_locacao.appendChild(aviso);
+        tabela.style.opacity = "0.3";
+
+        // 🔥 Desmarca todos os checkboxes antes de ativar o novo
+        trs.forEach(tr => {
+            let checkbox = tr.querySelectorAll('td')[3]?.querySelector('input');
+            if (checkbox) checkbox.checked = false;
+        });
+
+        // 🔥 Se já for o ativo, desativa
+        if (produto.locacao?.ativo === id_locacao) {
+            produto.locacao.ativo = "";
+            await inserirDados(dados_composicoes, 'dados_composicoes');
+            await enviar(`dados_composicoes/${codigo}/locacao/ativo`, "");
+
+            aviso.remove();
+            tabela.style.opacity = "1";
+            remover_popup();
+            return abrir_historico_de_locacoes(codigo);
+        }
+
+        // 🔥 Ativa novo id
+        produto.locacao.ativo = id_locacao;
+        await inserirDados(dados_composicoes, 'dados_composicoes');
+        await enviar(`dados_composicoes/${codigo}/locacao/ativo`, id_locacao);
+
+        aviso.remove();
+        tabela.style.opacity = "1";
+        remover_popup();
+        abrir_historico_de_locacoes(codigo);
+    }
+}
+
+async function excluir_valor_locacao(codigo, id_locacao) {
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    let produto = dados_composicoes[codigo];
+    let historico_locacao = document.getElementById('historico_locacao');
+
+    if (historico_locacao) {
+        let tabela = historico_locacao.querySelector('table');
+
+        const aviso = document.createElement('div');
+        aviso.id = "aviso-aguarde";
+        aviso.style = `
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            font-size: 1.5em;
+            border-radius: 5px;
+        `;
+        aviso.innerHTML = `<div>Aguarde...</div>`;
+        historico_locacao.style.position = "relative";
+        historico_locacao.appendChild(aviso);
+        tabela.style.opacity = "0.3";
+
+        if (produto.locacao?.ativo === id_locacao) {
+            produto.locacao.ativo = "";
+            await enviar(`dados_composicoes/${codigo}/locacao/ativo`, "");
+        }
+
+        delete produto.locacao.historico[id_locacao];
+        await inserirDados(dados_composicoes, 'dados_composicoes');
+        await deletar(`dados_composicoes/${codigo}/locacao/historico/${id_locacao}`);
+
+        tabela.style.opacity = "1";
+        await abrir_historico_de_locacoes(codigo);
+        aviso.remove();
+    }
+}
+
+function adicionar_valor_locacao(codigo) {
+    let historico_locacao = document.getElementById('historico_locacao');
+
+    let tabela = historico_locacao.querySelector('table');
+    let tbody = tabela.querySelector('tbody');
+
+    // 🔥 Força exibição se estava escondida
+    tabela.parentElement.style.display = 'flex';
+
+    let linha = `
+        <tr style="font-size: 0.8em; color: #222;">
+            <td><input type="number" class="numero-bonito"></td>
+            <td>${data_atual('completa')}</td>
+            <td>${acesso.usuario}</td>
+            <td>
+                <img src="imagens/concluido.png" style="width: 25px; cursor: pointer;" onclick="salvar_valor_locacao('${codigo}', this)">
+            </td>
+            <td>
+                <img src="imagens/cancel.png" style="width: 25px; cursor: pointer;" onclick="remover_esta_linha(this)">
+            </td>
+        </tr>
+    `;
+    tbody.insertAdjacentHTML('beforeend', linha);
+}
+
+async function salvar_valor_locacao(codigo, elemento) {
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    let produto = dados_composicoes[codigo];
+    if (!produto.locacao) produto.locacao = {};
+    if (!produto.locacao.historico) produto.locacao.historico = {};
+
+    let tr = elemento.closest('tr');
+    let inputs = tr.querySelectorAll('input');
+    let valor = inputs[0].value;
+
+    const registro = {
+        valor: conversor(valor),
+        data: data_atual('completa'),
+        usuario: acesso.usuario
+    };
+
+    const id = gerar_id_5_digitos();
+    produto.locacao.historico[id] = registro;
+
+    await inserirDados(dados_composicoes, 'dados_composicoes');
+    await enviar(`dados_composicoes/${codigo}/locacao/historico/${id}`, registro);
+
+    remover_popup();
+    abrir_historico_de_locacoes(codigo);
+}
+
 
 async function confirmar_exclusao_item(codigo) {
 
