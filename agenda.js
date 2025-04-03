@@ -34,16 +34,21 @@ async function iniciar_agendas() {
     filtrar_por_regiao()
 }
 
-async function carregar_tabela(sincronizar) {
+async function carregar_tabela(sinc) {
 
     let dados_agenda_tecnicos = await recuperarDados('dados_agenda_tecnicos')
     let dados_clientes = await recuperarDados('dados_clientes')
     let clientes_invertidos = {}
 
-    let dados_departamentos = recuperarDados('dados_departamentos') || {}
+    let dados_departamentos = await recuperarDados('dados_departamentos') || {}
     if (Object.keys(dados_departamentos) == 0) {
-        dados_departamentos = await receber('dados_departamentos')
-        await inserirDados(dados_departamentos, 'dados_departamentos')
+        openPopup_v2(`
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin: 2vw;">
+                <img src="gifs/loading.gif" style="width: 5vw;">
+                <label>Atualizando Bases...</label>
+            </div>
+            `, 'Aviso' )
+        await sincronizar('departamentos')
     }
 
     for (id in dados_clientes) {
@@ -51,7 +56,7 @@ async function carregar_tabela(sincronizar) {
         clientes_invertidos[cliente.omie] = cliente
     }
 
-    if (sincronizar || !dados_agenda_tecnicos || Object.keys(dados_agenda_tecnicos).length == 0) {
+    if (sinc || !dados_agenda_tecnicos || Object.keys(dados_agenda_tecnicos).length == 0) {
         document.body.insertAdjacentHTML('beforeend', overlay_aguarde())
         dados_agenda_tecnicos = await receber('dados_agenda_tecnicos')
         inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
