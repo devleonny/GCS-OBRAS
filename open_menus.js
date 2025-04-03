@@ -323,7 +323,7 @@ function criarAnexoVisual(nome, link_anexo, funcao_excluir) {
         <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 2px; background-color: #222; color: white;">
             <div onclick="abrirArquivo('${link_anexo}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 2px;">
                 <img src="imagens/anexo2.png" style="width: 2vw;">
-                <label style="cursor: pointer;" title="${nome}">${nomeFormatado}</label>
+                <label style="font-size: 0.7vw; cursor: pointer;" title="${nome}">${nomeFormatado}</label>
             </div>
             <img src="imagens/cancel.png" style="display: ${displayExcluir}; width: 2vw; cursor: pointer;" onclick="${funcao_excluir}">
         </div>

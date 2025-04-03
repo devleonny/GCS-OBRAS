@@ -1760,7 +1760,7 @@ function painel_clientes() {
 
         <div style="width: 100%; display: flex; gap: 10px; align-items: end; justify-content: right; margin-top: 5vh;">
             <label><strong>Data de criação</strong> ou <strong>Alteração</strong></label>
-            <label id="data">${new Date(dados_orcam?.data).toLocaleDateString('pt-BR') || ''}</label>
+            <label id="data">${new Date(dados_orcam?.data || new Date()).toLocaleDateString('pt-BR')}</label>
         </div>
     </div>
     `
