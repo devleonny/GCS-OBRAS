@@ -171,7 +171,7 @@ async function carregar_tabelas() {
         await recuperar_dados_composicoes()
     }
 
-    let tabelas = ['serviço', 'venda'];
+    let tabelas = ['serviço', 'venda', 'locacao'];
 
     tabelas.forEach(tabela => {
 
@@ -209,7 +209,7 @@ async function carregar_tabelas() {
         let itens = orcamento_v2.dados_composicoes
         for (codigo in itens) {
 
-            await incluir_item(codigo, itens[codigo].qtde)
+            await incluir_item(codigo, itens[codigo].qtde, undefined, itens[codigo].tipo)
 
         }
 
@@ -491,7 +491,49 @@ async function tabela_produtos_v2(tipo_tabela) {
         for (pod in dados_composicoes) {
             var produto = dados_composicoes[pod]
 
-            if (tipo_tabela == produto.tipo || tipo_tabela == undefined) {
+            if (tipo_tabela == "LOCAÇÃO" && produto.locacao?.ativo) {
+
+                let ativo = produto.locacao.ativo
+
+                let historico = produto.locacao.historico
+
+                let locacao = historico[ativo].valor
+
+                let td_quantidade = `
+                    <input type="number" class="numero-bonito" oninput="incluir_item('${pod}', this.value, undefined, '${tipo_tabela}')">
+                    `
+                if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[pod] && orcamento_v2.dados_composicoes[pod].agrupamentos) {
+                    td_quantidade = `
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                            <img src="gifs/lampada.gif" style="width: 25px; heigth: 25px;">
+                            <label>Lançar avulso</label>
+                        </div>
+                        <input type="number" class="numero-bonito" style="background-color: orange;" oninput="incluir_item('[AVULSO] ${pod}', this.value)">
+                        `
+                }
+
+                var imagem = 'https://i.imgur.com/Nb8sPs0.png'
+                if (produto.imagem) {
+                    imagem = produto.imagem
+                }
+
+                linhas += `
+                        <tr>
+                            <td style="white-space: nowrap;">${pod}</td>
+                            <td>${produto.descricao}</td>
+                            <td>${produto.fabricante}</td>
+                            <td>${produto.modelo}</td>
+                            <td>${produto.tipo}</td>
+                            <td style="text-align: center;">${td_quantidade}</td>
+                            <td>Diário</td>
+                            <td style="white-space: nowrap;">${dinheiro(locacao)}</td>
+                            <td style="text-align: center;">
+                                <img src="${imagem}" style="width: 70px; cursor: pointer;" onclick="ampliar_especial(this, '${pod}')">
+                            </td>
+                        </tr>
+                    `
+
+            } else if (tipo_tabela == produto.tipo || tipo_tabela == undefined) {
 
                 var preco = 0
                 var ativo = 0
@@ -530,6 +572,8 @@ async function tabela_produtos_v2(tipo_tabela) {
                         imagem = produto.imagem
                     }
 
+                    imagem = ''
+
                     linhas += `
                         <tr>
                             <td style="white-space: nowrap;">${pod}</td>
@@ -552,6 +596,7 @@ async function tabela_produtos_v2(tipo_tabela) {
         var cores = {
             VENDA: '#B12425',
             SERVIÇO: 'green',
+            LOCAÇÃO: 'blue',
             undefined: 'rgb(179, 116, 0)'
         }
 
@@ -575,6 +620,7 @@ async function tabela_produtos_v2(tipo_tabela) {
             <label class="menu_top_geral" onclick="tabela_produtos_v2()">Todos</label>
             <label class="menu_top_serviço" onclick="tabela_produtos_v2('SERVIÇO')">Serviço</label>
             <label class="menu_top_venda" onclick="tabela_produtos_v2('VENDA')">Venda</label>
+            <label class="menu_top_locacao" onclick="tabela_produtos_v2('LOCAÇÃO')">Locação</label>
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;" onclick="recuperar_composicoes()">
                 <img src="imagens/atualizar_2.png" style="width: 30px; cursor: pointer;">
                 <label style="color: white; cursor: pointer;">Atualizar</label>
@@ -764,7 +810,7 @@ function equipamentos(elemento, incluir, codigo) {
 
 async function total() {
 
-    let tabelas = ['serviço', 'venda']
+    let tabelas = ['serviço', 'venda', 'locacao']
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
     let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
@@ -772,6 +818,7 @@ async function total() {
     let totais = {
         serviço: { valor: 0, exibir: 'none' },
         venda: { valor: 0, exibir: 'none' },
+        locacao: { valor: 0, exibir: 'none' },
         geral: { valor: 0, exibir: 'none', bruto: 0 }
     }
 
@@ -897,13 +944,37 @@ async function total() {
 
             }
 
-            valor_unitario += total // Somando ao total do agrupamento, caso exista;
+            let cod = tds[0].textContent
+            let tipo = dados_composicoes[cod].tipo
             let quantidade = Number(tds[3 + acrescimo].querySelector('input').value)
+
+            if (tds[0].id == "codigo_locacao") {
+
+                let ativo = dados_composicoes[sub_ou_cod].locacao.ativo;
+                let historico = dados_composicoes[sub_ou_cod].locacao.historico;
+
+                precos = historico[ativo];
+                valor_unitario = precos.valor;
+
+                if (quantidade >= 30) {
+                    tds[3].textContent = quantidade === 30 ? "Mensal" : "Mensal + Diárias Proporcionais";
+                    valor_unitario = valor_unitario * 0.7; // 30% de desconto
+                } else if (quantidade >= 15) {
+                    tds[3].textContent = quantidade === 15 ? "Quinzenal" : "Quinzenal + Diárias Proporcionais";
+                    valor_unitario = valor_unitario * 0.8; // 20% de desconto
+                } else if (quantidade >= 7) {
+                    tds[3].textContent = quantidade === 7 ? "Semanal" : "Semanal + Diárias Proporcionais";
+                    valor_unitario = valor_unitario * 0.9; // 10% de desconto
+                }
+
+                tipo = "LOCACAO";
+
+            }
+
+            valor_unitario += total // Somando ao total do agrupamento, caso exista;
             let total_linha = valor_unitario * quantidade
             let label_icms_unitario = ''
             let label_icms_total = ''
-            let cod = tds[0].textContent
-            let tipo = dados_composicoes[cod].tipo
             let estilo = 'input_valor'
 
             // Desconto;
@@ -1171,7 +1242,7 @@ function mostrar_ocultar_itens(elemento_img) {
     }
 }
 
-async function incluir_item(codigo, nova_quantidade, especial) {
+async function incluir_item(codigo, nova_quantidade, especial, tipo_tabela) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
     let codigo_original = codigo
@@ -1179,14 +1250,21 @@ async function incluir_item(codigo, nova_quantidade, especial) {
         codigo = String(codigo).replace('[AVULSO]', '').trim()
     }
 
+    if (tipo_tabela == "LOCACAO") {
+
+        tipo_tabela = "LOCAÇÃO"
+
+    }
+
     var item = dados_composicoes[codigo]
-    var colunas_carrefour = '';
     var imagem = dados_composicoes[codigo]?.imagem || 'https://i.imgur.com/Nb8sPs0.png';
-    var lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
     if (!orcamento_v2.dados_composicoes) {
         orcamento_v2.dados_composicoes = {}
     }
     let produto = orcamento_v2?.dados_composicoes[codigo] || {}
+
+    var colunas_carrefour = '';
+    var lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
 
     if (lpu == 'lpu carrefour') {
 
@@ -1210,22 +1288,28 @@ async function incluir_item(codigo, nova_quantidade, especial) {
         `
     }
 
-    let linha = `
+    let linha;
+
+    if (tipo_tabela == "LOCAÇÃO") {
+
+        item.tipo = "LOCAÇÃO"
+
+        linha = `
         <tr>
-            <td>${codigo_original}</td>
+            <td id="codigo_locacao">${codigo_original}</td>
             <td style="position: relative;">
                 <label>${dados_composicoes[item.codigo].descricao}</label>
                 <div class="agrupados"></div>         
             </td>
             ${colunas_carrefour}
-            <td style="text-align: center;">${dados_composicoes[item.codigo].unidade}</td>
+            <td style="text-align: center;">Diário</td>
             <td style="text-align: center;">
                 <input oninput="total()" type="number" class="numero-bonito" value="${nova_quantidade}">
             </td>
             <td style="position: relative;"></td>
 
             ${lpu !== 'lpu carrefour' ?
-            `<td>
+                `<td>
                     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
                         <select onchange="total()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
                             <option ${produto?.tipo_desconto == 'Porcentagem' ? 'selected' : ''}>Porcentagem</option>
@@ -1245,9 +1329,57 @@ async function incluir_item(codigo, nova_quantidade, especial) {
         </tr>
         `
 
-    if (item_existente(item.tipo, codigo_original, nova_quantidade)) {
+    } else {
 
-        document.getElementById(`linhas_${String(item.tipo).toLowerCase()}`).insertAdjacentHTML('beforeend', linha)
+        linha = `
+        <tr>
+            <td>${codigo_original}</td>
+            <td style="position: relative;">
+                <label>${dados_composicoes[item.codigo].descricao}</label>
+                <div class="agrupados"></div>         
+            </td>
+            ${colunas_carrefour}
+            <td style="text-align: center;">${dados_composicoes[item.codigo].unidade}</td>
+            <td style="text-align: center;">
+                <input oninput="total()" type="number" class="numero-bonito" value="${nova_quantidade}">
+            </td>
+            <td style="position: relative;"></td>
+
+            ${lpu !== 'lpu carrefour' ?
+                `<td>
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
+                        <select onchange="total()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
+                            <option ${produto?.tipo_desconto == 'Porcentagem' ? 'selected' : ''}>Porcentagem</option>
+                            <option ${produto?.tipo_desconto == 'Dinheiro' ? 'selected' : ''}>Dinheiro</option>
+                        </select>
+                        <input type="number" oninput="total()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;" value="${produto?.desconto || ''}">
+                    </div>
+                </td>
+                ` : ''}
+
+            <td></td>
+            <td></td>
+            <td style="text-align: center;">
+                <img onclick="ampliar_especial(this, '${item.codigo}')" src="${imagem}" style="width: 3vw; cursor: pointer;">
+            </td>
+            <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo_original}')" style="cursor: pointer;"></td>
+        </tr>
+        `
+
+    }
+
+    if (item_existente(item.tipo, codigo_original, nova_quantidade, tipo_tabela)) {
+
+        if (tipo_tabela == "LOCAÇÃO") {
+
+            document.getElementById(`linhas_locacao`).insertAdjacentHTML('beforeend', linha)
+
+        } else {
+
+            document.getElementById(`linhas_${String(item.tipo).toLowerCase()}`).insertAdjacentHTML('beforeend', linha)
+
+        }
+
 
     }
 
@@ -1351,10 +1483,22 @@ function alterar_input_tabela(codigo) {
 
 }
 
-function item_existente(tipo, codigo, quantidade) {
+function item_existente(tipo, codigo, quantidade, tipo_tabela) {
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2'))
-    let linhas = document.getElementById(`linhas_${tipo.toLocaleLowerCase()}`)
+
+    let linhas;
+
+    if (tipo_tabela == "LOCAÇÃO") {
+
+        linhas = document.getElementById(`linhas_locacao`)
+
+    } else {
+
+        linhas = document.getElementById(`linhas_${tipo.toLocaleLowerCase()}`)
+
+    }
+
     let trs = linhas.querySelectorAll('tr')
     let incluir = true
 
