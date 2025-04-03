@@ -60,7 +60,7 @@ async function configs() {
         <label>Modalidade Livre</label>
     </div>
     `
-    
+
     openPopup_v2(acumulado, 'Configurações')
 
 }
@@ -1214,60 +1214,69 @@ function connectWebSocket() {
 }
 
 async function espelhar_atualizacao(objeto) {
-    if (!objeto.caminho && !objeto.chave) return;
 
-    let chaves = objeto.caminho ? objeto.caminho.split("/") : objeto.chave.split("/");
-    let arquivo = chaves.shift();
-    let dados = await recuperarDados(arquivo);
+    if (objeto.tipo == 'servico') {
 
-    if (objeto.tipo === "remocao") {
-        let deleteNestedValue = (obj, path) => {
-            const keys = path.split('/');
-            let current = obj;
+        if (objeto.servico == 'livre' && document.title == 'Criar Orçamento') {
+            f5()
+        }
 
-            for (let i = 0; i < keys.length - 1; i++) {
-                if (!current || !current[keys[i]]) return false;
-                current = current[keys[i]];
-            }
-
-            const lastKey = keys[keys.length - 1];
-            if (current.hasOwnProperty(lastKey)) {
-                delete current[lastKey];
-                return true;
-            }
-
-            return false;
-        };
-
-        let removido = deleteNestedValue(dados, chaves.join("/"));
-        if (!removido) return;
     } else {
-        let atualizarValor = (dados, chaves, valor) => {
-            if (chaves.length === 0)
-                return;
-            let chaveAtual = chaves[0];
 
-            // se a chave não existir ou for null, inicializar a chave como um objeto vazio
-            if (dados[chaveAtual] === null || dados[chaveAtual] === undefined) {
-                dados[chaveAtual] = {};
-            }
+        if (!objeto.caminho) {
+            return
+        }
 
-            if (chaves.length === 1) {
-                dados[chaveAtual] = valor;
-            } else {
-                atualizarValor(dados[chaveAtual], chaves.slice(1), valor);
-            }
-        };
-    }
+        let chaves = objeto.caminho ? objeto.caminho.split("/") : objeto.chave.split("/");
+        let arquivo = chaves.shift();
+        let dados = await recuperarDados(arquivo);
 
-    await inserirDados(dados, arquivo);
+        if (objeto.tipo == 'atualizacao') {
+            let atualizarValor = (dados, chaves, valor) => {
+                if (chaves.length === 0)
+                    return;
+                let chaveAtual = chaves[0];
 
-    if (arquivo === "dados_kanban" && document.title === "KANBAN") {
-        // carregarListas()
-    }
+                if (dados[chaveAtual] === null || dados[chaveAtual] === undefined) {
+                    dados[chaveAtual] = {};
+                }
 
-    if (arquivo == 'aprovacoes') {
-        aprovacoes_pendentes()
+                if (chaves.length === 1) {
+                    dados[chaveAtual] = valor;
+                } else {
+                    atualizarValor(dados[chaveAtual], chaves.slice(1), valor);
+                }
+            };
+
+        } else {
+            let deleteNestedValue = (obj, path) => {
+                const keys = path.split('/');
+                let current = obj;
+
+                for (let i = 0; i < keys.length - 1; i++) {
+                    if (!current || !current[keys[i]]) return false;
+                    current = current[keys[i]];
+                }
+
+                const lastKey = keys[keys.length - 1];
+                if (current.hasOwnProperty(lastKey)) {
+                    delete current[lastKey];
+                    return true;
+                }
+
+                return false;
+            };
+
+            let removido = deleteNestedValue(dados, chaves.join("/"));
+            if (!removido) return;
+        }
+
+        await inserirDados(dados, arquivo);
+
+        if (arquivo == 'aprovacoes') {
+            aprovacoes_pendentes()
+        }
+
     }
 
 }
