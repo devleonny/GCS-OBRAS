@@ -1,5 +1,3 @@
-var acesso = JSON.parse(localStorage.getItem('acesso'))
-var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
 var versao = 'v3.0.5'
 
 document.addEventListener('keydown', function (event) {
@@ -21,20 +19,29 @@ localStorage.removeItem('current_settings')
 localStorage.removeItem('dados_agenda_tecnicos')
 
 identificacao_user()
+
 async function identificacao_user() {
 
-    if (acesso && document.title !== 'PDF') {
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    acesso = await lista_setores(acesso.usuario)
+    let permissao = acesso.permissao
 
-        if (Object.keys(dados_setores).length == 0) {
-            await lista_setores()
-            dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
-        }
+    if (document.title !== 'PDF') {
 
-        let permissao = dados_setores[acesso.usuario].permissao
+        let config = ''
+
+        if (permissao == 'adm' || permissao == 'adm') {
+            config = `
+            <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;">
+        `}
+
         var texto = `
             <div style="position: relative; display: fixed;">
-                <label onclick="deseja_sair()"
-                style="cursor: pointer; position: absolute; top: 10px; right: 10px; color: white; font-family: 'Poppins', sans-serif;">${acesso.usuario} • ${permissao} • Desconectar • ${versao}</label>
+                <div style="position: absolute; top: 10px; right: 10px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                    ${config}
+                    <label onclick="deseja_sair()"
+                    style="cursor: pointer; color: white; font-family: 'Poppins', sans-serif;">${acesso.usuario} • ${permissao} • Desconectar • ${versao}</label>
+                </div>
             </div>
         `
         document.body.insertAdjacentHTML('beforebegin', texto)
@@ -72,8 +79,11 @@ function abrirArquivo(link) {
 
 function deseja_sair() {
     openPopup_v2(`
-        <button onclick="sair()" style="background-color: green">Confirmar</button>
-        `, 'Deseja Sair?')
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin: 2vw;">
+            <label>Deseja Sair?</label>
+            <button onclick="sair()" style="background-color: green">Sim</button>
+        </div>
+        `, 'Aviso')
 }
 
 function inicial_maiuscula(string) {
@@ -786,29 +796,6 @@ function baixar_em_excel(nome_tabela, filename) {
     filename = filename ? filename + '.xlsx' : 'excel_data.xlsx';
 
     XLSX.writeFile(wb, filename);
-}
-
-async function lista_setores() {
-
-    return new Promise((resolve, reject) => {
-        var url = 'https://leonny.dev.br/setores';
-
-        fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erro ao carregar os dados');
-                }
-                return response.json();
-            })
-            .then(data => {
-                localStorage.setItem('dados_setores', JSON.stringify(data));
-                resolve();
-            })
-            .catch(error => {
-                console.error('Ocorreu um erro:', error);
-                reject(error);
-            });
-    });
 }
 
 function fecharTabela(nome_tabela) {
@@ -1588,6 +1575,29 @@ async function servicos(servico) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ servico })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
+}
+
+async function lista_setores(usuario) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/setores", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ usuario })
         })
             .then(response => {
                 if (!response.ok) {

@@ -1662,7 +1662,7 @@ function painel_clientes() {
                 <label>Cliente</label>
                 <div class="autocomplete-container">
                     <textarea style="width: 100%; font-size: 1.0vw;" class="autocomplete-input" id="cliente_selecionado"
-                        placeholder="Escreva o nome do Cliente..." oninput="carregar_clientes(this)">${dados_orcam?.cliente_selecionado || '...'}</textarea>
+                        placeholder="Escreva o nome do Cliente..." oninput="carregar_clientes(this)">${dados_orcam?.cliente_selecionado || ''}</textarea>
                     <div class="autocomplete-list"></div>
                 </div>
             </div>
