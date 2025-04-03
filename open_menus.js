@@ -981,10 +981,10 @@ async function salvar_levantamento(id_orcamento) {
             Object.assign(orcamento_v2.levantamentos, anexo_dados);
 
             localStorage.setItem("orcamento_v2", JSON.stringify(orcamento_v2));
-            recuperar_preenchido();
+            painel_clientes()
         }
     } catch (error) {
-        openPopup_v2(`Erro ao fazer upload: ${error.message}`);
+        openPopup_v2(`Erro ao fazer upload: ${error.message}`, 'Aviso');
         console.error(error);
     }
 }
