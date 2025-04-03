@@ -1266,8 +1266,8 @@ async function cadastrar_editar_item(codigo) {
             campo = `
             <div>
                 <select style="cursor: pointer;">
-                    <option>VENDA</option>
-                    <option>SERVIÇO</option>
+                    <option ${valor == 'VENDA' ? 'selected' : ''}>VENDA</option>
+                    <option ${valor == 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
                 </select>
             </div>
             `
