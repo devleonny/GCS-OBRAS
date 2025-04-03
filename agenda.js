@@ -60,6 +60,7 @@ async function carregar_tabela(sinc) {
         document.body.insertAdjacentHTML('beforeend', overlay_aguarde())
         dados_agenda_tecnicos = await receber('dados_agenda_tecnicos')
         inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
+        await sincronizar('departamentos')
     }
 
     let select_ano = document.getElementById('ano')?.value || 2025

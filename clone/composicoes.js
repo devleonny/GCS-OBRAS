@@ -815,6 +815,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
             <label onclick="${funcao}" class="contorno_botoes" style="background-color: #4CAF50;">Salvar</label>
         </div>
     `
+    console.log(produto[lpu]?.historico[cotacao])
 
     if (produto.tipo == 'VENDA') {
         acumulado = `
