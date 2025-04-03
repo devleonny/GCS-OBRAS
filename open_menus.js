@@ -32,7 +32,7 @@ async function identificacao_user() {
 
         if (permissao == 'adm' || permissao == 'adm') {
             config = `
-            <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;">
+            <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;" onclick="configs()">
         `}
 
         var texto = `
@@ -46,6 +46,22 @@ async function identificacao_user() {
         `
         document.body.insertAdjacentHTML('beforebegin', texto)
     }
+
+}
+
+async function configs() {
+
+    let status = await servicos('livre')
+
+    let acumulado = `
+    <label>Gerencie recursos por aqui</label>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+        <input type="checkbox" style="width: 25px; height: 25px;" onchange="servicos('livre', this.checked)" ${status ? 'checked' : ''}>
+        <label>Modalidade Livre</label>
+    </div>
+    `
+    
+    openPopup_v2(acumulado, 'Configurações')
 
 }
 
@@ -1569,12 +1585,12 @@ async function verificar_chamado_existente(chamado, id_atual, sequencial) {
     })
 }
 
-async function servicos(servico) {
+async function servicos(servico, alteracao) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/servicos", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ servico })
+            body: JSON.stringify({ servico, alteracao })
         })
             .then(response => {
                 if (!response.ok) {

@@ -1,4 +1,5 @@
 let filtrosAtivosPagamentos = {}
+let dados_setores = {}
 
 consultar_pagamentos()
 
@@ -25,7 +26,7 @@ async function consultar_pagamentos() {
     }
 
     var orcamentos = await recuperarDados('dados_orcamentos') || {};
-    var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
     var dados_clientes = await recuperarDados('dados_clientes') || {};
     var clientes = {}
     var linhas = ''
@@ -250,7 +251,7 @@ async function abrir_detalhes(id_pagamento) {
         dados_categorias = await receber('dados_categorias')
         inserirDados(dados_categorias, 'dados_categorias')
     }
-    var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+
     var cc = 'Erro 404'
 
     var dados_clientes_invertido = {};
@@ -1003,7 +1004,6 @@ async function atualizar_feedback(resposta, id_pagamento) {
     var pagamento = lista_pagamentos[id_pagamento];
 
     let criado = pagamento.criado
-    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
     let setor = ""
     Object.keys(dados_setores).forEach(usuario => {
 
@@ -1309,7 +1309,7 @@ async function criar_pagamento_v2() {
         }
 
         if (Object.keys(dados_setores).length == 0) {
-            dados_setores = await receber('dados_setores')
+            dados_setores = await lista_setores()
         }
 
         let permissao = dados_setores[acesso.usuario].permissao
