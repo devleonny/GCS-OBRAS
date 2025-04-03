@@ -34,7 +34,20 @@ async function iniciar_agendas() {
     filtrar_por_regiao()
 }
 
+async function sincronizar_departamentos() {
+    document.body.insertAdjacentHTML('beforeend', overlay_aguarde())
+
+    await sincronizar('departamentos')
+    let dados_departamentos = await receber('dados_departamentos')
+    await inserirDados(dados_departamentos, 'dados_departamentos')
+    
+    remover_popup()
+    return dados_departamentos
+}
+
 async function carregar_tabela(sinc) {
+
+    document.body.insertAdjacentHTML('beforeend', overlay_aguarde())
 
     let dados_agenda_tecnicos = await recuperarDados('dados_agenda_tecnicos')
     let dados_clientes = await recuperarDados('dados_clientes')
@@ -42,13 +55,7 @@ async function carregar_tabela(sinc) {
 
     let dados_departamentos = await recuperarDados('dados_departamentos') || {}
     if (Object.keys(dados_departamentos) == 0) {
-        openPopup_v2(`
-            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin: 2vw;">
-                <img src="gifs/loading.gif" style="width: 5vw;">
-                <label>Atualizando Bases...</label>
-            </div>
-            `, 'Aviso' )
-        await sincronizar('departamentos')
+        dados_departamentos =  await sincronizar_departamentos() 
     }
 
     for (id in dados_clientes) {
@@ -57,10 +64,8 @@ async function carregar_tabela(sinc) {
     }
 
     if (sinc || !dados_agenda_tecnicos || Object.keys(dados_agenda_tecnicos).length == 0) {
-        document.body.insertAdjacentHTML('beforeend', overlay_aguarde())
         dados_agenda_tecnicos = await receber('dados_agenda_tecnicos')
-        inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
-        await sincronizar('departamentos')
+        await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
     }
 
     let select_ano = document.getElementById('ano')?.value || 2025
@@ -109,9 +114,9 @@ async function carregar_tabela(sinc) {
             agenda = tecnico.agendas[periodo]
         }
 
-        for (let i = 1; i <= dias; i++) { // tds, células da agenda de cada técnico
+        for (let i = 1; i <= dias; i++) { // tds, células da agenda de cada técnico;
             let cod_departamento = agenda?.[i]?.departamento || ''
-            let info = dados_departamentos[cod_departamento]?.descricao || cod_departamento
+            let info = dados_departamentos?.[cod_departamento]?.descricao || cod_departamento
 
             celulas_dias += `
                 <td id="${cod_departamento}" style="position: relative;">
@@ -214,11 +219,7 @@ async function carregar_tabela(sinc) {
 
     colorir_tabela()
 
-    let aguarde = document.getElementById('aguarde')
-    if (aguarde) {
-        aguarde.remove()
-    }
-
+    remover_popup()
 }
 
 async function apagar_dia(dia, omie_tecnico, div) {
