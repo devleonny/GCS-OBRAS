@@ -1533,6 +1533,10 @@ function salvar_preenchido() {
         dados_analista.nome = orcamento_v2.dados_orcam.analista;
     }
 
+    if (!orcamento_v2.dados_orcam) {
+        orcamento_v2.dados_orcam = {}
+    }
+
     let contrato = document.getElementById('contrato')
     let checkbox = document.getElementById('chamado_off')
 
@@ -1540,7 +1544,7 @@ function salvar_preenchido() {
         orcamento_v2.dados_orcam.contrato = 'sequencial'
         contrato.style.display = 'none'
 
-    } else if (contrato.value == 'sequencial' || orcamento_v2.dados_orcam.contrato == 'sequencial') {
+    } else if (contrato.value == 'sequencial' || orcamento_v2.dados_orcam?.contrato == 'sequencial') {
         orcamento_v2.dados_orcam.contrato = ''
         contrato.value = ''
         contrato.style.display = 'block'
@@ -1775,7 +1779,6 @@ function painel_clientes() {
 
     openPopup_v2(acumulado, 'Dados do Cliente')
 
-    // Processos para inicialização;
     vendedores_analistas()
 
 }
