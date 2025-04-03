@@ -288,7 +288,7 @@ async function editar(orcam_) {
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
-    window.location.href = 'criar_orcamento.html'
+    window.location.href = 'adicionar.html'
 
 }
 
@@ -307,7 +307,7 @@ async function duplicar(orcam_) {
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
-    window.location.href = 'criar_orcamento.html'
+    window.location.href = 'adicionar.html'
 }
 
 function salvar_dados_em_excel() {
