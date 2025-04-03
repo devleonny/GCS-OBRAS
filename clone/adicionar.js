@@ -308,7 +308,7 @@ async function enviar_dados() {
         `);
     }
 
-    let existente = await verificar_chamado_existente(chamado, orcamento_v2.id, false)
+    let existente = await verificar_chamado_existente(chamado, orcamento_v2.id, false, true)
 
     if (chamado !== 'sequencial' && existente?.situacao) {
         return openPopup_v2(`
@@ -400,7 +400,7 @@ async function enviar_dados() {
     orcamento_v2.tabela = 'orcamentos';
 
     if (orcamento_v2.dados_orcam.contrato == 'sequencial') {
-        let sequencial = await verificar_chamado_existente(undefined, undefined, true)
+        let sequencial = await verificar_chamado_existente(undefined, undefined, true, true)
         orcamento_v2.dados_orcam.contrato = `ORC_${sequencial.proximo}`
     }
 
