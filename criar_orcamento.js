@@ -206,10 +206,15 @@ async function carregar_tabelas() {
 
     if (orcamento_v2.dados_composicoes) {
 
-        let itens = orcamento_v2.dados_composicoes
-        for (codigo in itens) {
-            console.log(codigo)
-            await incluir_item(codigo, itens[codigo].qtde, undefined, itens[codigo].tipo)
+        if (orcamento_v2.dados_composicoes_orcamento) {
+            orcamento_v2 = await conversor_composicoes_orcamento(orcamento_v2)
+        }
+
+        for (codigo in orcamento_v2.dados_composicoes) {
+
+            let item = orcamento_v2.dados_composicoes[codigo]
+            
+            await incluir_item(codigo, item.qtde, undefined, item.tipo)
 
         }
 
@@ -617,7 +622,7 @@ async function tabela_produtos_v2(tipo_tabela) {
 
         let displayLocacao = 'none'
 
-        if(acesso.permissao == 'adm'){
+        if (acesso.permissao == 'adm') {
 
             displayLocacao = 'flex'
 
@@ -1934,5 +1939,71 @@ function painel_clientes() {
     openPopup_v2(acumulado, 'Dados do Cliente')
 
     vendedores_analistas()
+
+}
+
+async function conversor_composicoes_orcamento(orcamento) {
+
+    var composicoes = await recuperarDados('dados_composicoes') || {};
+    return new Promise((resolve, reject) => {
+        var dados_composicoes = orcamento.dados_composicoes
+        var dados_composicoes_orcamento = orcamento.dados_composicoes_orcamento
+
+        var new_dados_composicoes = {}
+        dados_composicoes.forEach(item => {
+            new_dados_composicoes[item.codigo] = {
+                codigo: item.codigo,
+                custo: conversor(item.custo),
+                qtde: item.qtde,
+                total: conversor(item.total),
+                tipo: item.tipo
+            }
+        })
+
+        for (codigo_subs in dados_composicoes_orcamento) {
+
+            var itens = dados_composicoes_orcamento[codigo_subs]
+
+            for (codigo_certo in itens) {
+
+                var subs = composicoes[codigo_certo].substituto
+
+                if (subs == '') {
+                    subs = codigo_certo
+                }
+
+                if (new_dados_composicoes[subs]) {
+                    delete new_dados_composicoes[subs]
+                }
+
+                var quantidade = conversor(itens[codigo_certo].qtde)
+                var ativo = composicoes[subs]['lpu carrefour'].ativo
+                var historico = composicoes[subs]['lpu carrefour'].historico
+                var unitario = historico[ativo].valor
+
+                var ativo_certo = composicoes[codigo_certo]['lpu carrefour'].ativo
+                var historico_certo = composicoes[codigo_certo]['lpu carrefour'].historico
+                var unitario_certo = historico_certo[ativo_certo].valor
+
+                quantidade = Math.ceil((unitario_certo / unitario)) * quantidade
+
+                new_dados_composicoes[codigo_certo] = { // Cria o item nosso no dicionário dados_composicoes
+                    codigo: codigo_certo,
+                    custo: unitario,
+                    qtde: quantidade,
+                    total: quantidade * unitario,
+                    tipo: composicoes[codigo_certo].tipo
+                }
+
+            }
+
+        }
+
+        delete orcamento.dados_composicoes_orcamento
+        orcamento.dados_composicoes = new_dados_composicoes
+
+        resolve(orcamento)
+
+    })
 
 }
