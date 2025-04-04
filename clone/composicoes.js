@@ -583,6 +583,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
             <td>${historico[cotacao].usuario}</td>
             <td>${historico[cotacao].fornecedor}</td>
             <td><input type="checkbox" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_preco_ativo('${codigo}', '${cotacao}', '${tabela}')" ${marcado}></td>
+            <td><textarea style="border: none;" readOnly>${historico[cotacao]?.comentario || ''}</textarea></td>
             <td style="text-align: center;">
                 <img src="imagens/cancel.png" style="width: 2vw; cursor: pointer;" onclick="excluir_cotacao('${codigo}', '${tabela}', '${cotacao}')">
             </td>
@@ -593,14 +594,9 @@ async function abrir_historico_de_precos(codigo, tabela) {
         `
     }
 
-    let visibilidade = 'flex'
-    if (linhas == '') {
-        visibilidade = 'none'
-    }
-
     acumulado = `
 
-    <div style="display: flex; justify-content: left; align-items: start; flex-direction: column; background-color: white; padding: 5px; border-radius: 5px; color: #222;">
+    <div style="min-width: 40vw; display: flex; justify-content: left; align-items: start; flex-direction: column; background-color: white; padding: 5px; border-radius: 5px; color: #222;">
         <div id="historico_preco" style="display: flex; flex-direction: column; align-items: start; justify-content: center; position: relative; width: 100%;">
             
             <div style="display: flex; justify-content: left; align-items: center; gap: 5px;">
@@ -620,7 +616,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
 
             <hr style="width: 100%;">
 
-            <div id="tabela_historico" style="display: ${visibilidade}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
+            <div id="tabela_historico" style="display: ${linhas == '' ? 'none' : 'flex'}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
                 <table class="tabela">
                     <thead>
                         <th>Valor de Custo</th>
@@ -630,6 +626,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
                         <th>Usuário</th>
                         <th>Fornecedor</th>
                         <th>Ativo</th>
+                        <th>Comentário</th>
                         <th>Excluir</th>
                         <th>Detalhes</th>
                     </thead>
@@ -806,16 +803,26 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
     let acumulado = ''
     let funcao = cotacao ? `salvar_preco('${codigo}', '${lpu}', '${cotacao}')` : `salvar_preco('${codigo}', '${lpu}')`
 
+    let dados = {}
+
+    if (lpu && cotacao) {
+        dados = produto[lpu].historico[cotacao]
+    }
+
     let painel = `
         <div style="color: #222; font-size: 0.8vw; background-color: #d2d2d2; padding: 5px; border-radius: 3px; display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 2px;">
             <label>NF de Compra</label>
-            <input style="background-color: #91b7d9;" id="nota" value="${produto[lpu]?.historico[cotacao]?.nota || ''}">
+            <input style="background-color: #91b7d9;" id="nota" value="${dados?.nota || ''}">
             ${produto.tipo == 'VENDA' ? `<label>Fornecedor</label>
-            <input style="background-color: #91b7d9;" id="fornecedor" value="${produto[lpu]?.historico[cotacao]?.fornecedor || ''}">` : ''}
+            <input style="background-color: #91b7d9;" id="fornecedor" value="${dados?.fornecedor || ''}">` : ''}
             <label onclick="${funcao}" class="contorno_botoes" style="background-color: #4CAF50;">Salvar</label>
         </div>
+
+        <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 5px;">
+            <label>Comentário</label>
+            <textarea id="comentario" rows="8" style="background-color: #91b7d9; border: none;">${dados?.comentario || ''}</textarea>
+        </div>
     `
-    console.log(produto[lpu]?.historico[cotacao])
 
     if (produto.tipo == 'VENDA') {
         acumulado = `
@@ -827,7 +834,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                 <tbody>
                     <tr>
                         <td>Preço Unitário</td>
-                        <td style="background-color: #91b7d9;"><input id="custo" oninput="calcular()" value="${produto[lpu]?.historico[cotacao]?.custo || ''}"></td>
+                        <td style="background-color: #91b7d9;"><input id="custo" oninput="calcular()" value="${dados?.custo || ''}"></td>
                     </tr>
                     <tr>
                         <td>Frete de Compra (2%)</td>
@@ -835,7 +842,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                     </tr>
                     <tr>
                         <td>ICMS Creditado em nota (%)</td>
-                        <td style="background-color: #91b7d9;"><input id="icms_creditado" oninput="calcular()" value="${produto[lpu]?.historico[cotacao]?.icms_creditado || ''}"></td>
+                        <td style="background-color: #91b7d9;"><input id="icms_creditado" oninput="calcular()" value="${dados?.icms_creditado || ''}"></td>
                     </tr>
                     <tr>
                         <td>Aliquota ICMS (Bahia)</td>
@@ -855,11 +862,11 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                     </tr>                                      
                     <tr>
                         <td>Margem de Acréscimo (%)</td>
-                        <td style="background-color: #91b7d9;"><input id="margem" type="number" oninput="calcular()" value="${produto[lpu]?.historico[cotacao]?.margem || ''}"></td>
+                        <td style="background-color: #91b7d9;"><input id="margem" type="number" oninput="calcular()" value="${dados?.margem || ''}"></td>
                     </tr>
                     <tr>
                         <td>Preço de Venda</td>
-                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular(undefined, 'final')" value="${produto[lpu]?.historico[cotacao]?.valor || ''}"></td>
+                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular(undefined, 'final')" value="${dados?.valor || ''}"></td>
                     </tr>
                     <tr>
                         <td>Frete de Venda (5%)</td>
@@ -966,7 +973,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                         <th>Preço do Serviço</th>
                     </thead>
                     <tr>
-                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular('servico')" value="${produto[lpu]?.historico[cotacao]?.custo || ''}"></td>
+                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular('servico')" value="${dados?.custo || ''}"></td>
                     </tr>
                 </tbody>
             </table>
@@ -1093,7 +1100,8 @@ async function salvar_preco(codigo, lpu, cotacao) {
         data: dt(),
         usuario: acesso.usuario,
         nota: document.getElementById('nota').value,
-        fornecedor: '--'
+        fornecedor: '--',
+        comentario: document.getElementById('comentario').value
     }
 
     if (produto.tipo == 'VENDA') {
