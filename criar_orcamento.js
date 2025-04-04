@@ -572,8 +572,6 @@ async function tabela_produtos_v2(tipo_tabela) {
                         imagem = produto.imagem
                     }
 
-                    imagem = ''
-
                     linhas += `
                         <tr>
                             <td style="white-space: nowrap;">${pod}</td>
