@@ -794,27 +794,27 @@ function baixar_em_excel(nome_tabela, filename) {
     XLSX.writeFile(wb, filename);
 }
 
-async function lista_setores() {
-
+async function lista_setores(usuario) {
     return new Promise((resolve, reject) => {
-        var url = 'https://leonny.dev.br/setores';
-
-        fetch(url)
+        fetch("https://leonny.dev.br/setores", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ usuario })
+        })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Erro ao carregar os dados');
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
                 }
                 return response.json();
             })
             .then(data => {
-                localStorage.setItem('dados_setores', JSON.stringify(data));
-                resolve();
+                resolve(data);
             })
-            .catch(error => {
-                console.error('Ocorreu um erro:', error);
-                reject(error);
+            .catch(err => {
+                console.error(err)
+                reject()
             });
-    });
+    })
 }
 
 function fecharTabela(nome_tabela) {

@@ -208,7 +208,7 @@ async function carregar_tabelas() {
 
         let itens = orcamento_v2.dados_composicoes
         for (codigo in itens) {
-
+            console.log(codigo)
             await incluir_item(codigo, itens[codigo].qtde, undefined, itens[codigo].tipo)
 
         }
@@ -1338,6 +1338,8 @@ async function incluir_item(codigo, nova_quantidade, especial, tipo_tabela) {
         `
 
     } else {
+
+        console.log(item)
 
         linha = `
         <tr>
