@@ -439,16 +439,24 @@ async function capturar_html_pdf(id) {
     let pecas = manutencao.pecas
 
 
+console.log("PEÇAS:", pecas)
+console.log("DADOS ESTOQUE:", dados_estoque);
 
     let linhas = ''
     for (pc in pecas) {
         let peca = pecas[pc]
+
+        if(!pecas) continue
+        let partnumber = peca.partnumber ?? (peca.codigo && dados_estoque[peca.codigo]?.partnumber || "CADASTRAR")
+        if (partnumber == "undefined") {
+            "CADASTRAR"
+        }
         linhas += `
         <tr>
-            <td>${peca.partnumber || dados_estoque[peca.codigo].partnumber}</td>
+            <td>${partnumber ?? "-"}</td>
             <td style="text-align: center;">${peca.quantidade}</td>
-            <td>${peca.comentario}</td>
-            <td>${peca.descricao}</td>
+            <td>${peca.comentario ?? "-"}</td>
+            <td>${peca.descricao ?? "-"}</td>
         </tr>
         `
     }
