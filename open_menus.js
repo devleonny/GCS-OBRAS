@@ -11,7 +11,6 @@ function f5() {
 }
 
 // Provisório
-
 localStorage.removeItem('technicians')
 localStorage.removeItem('departments')
 localStorage.removeItem('modulo_ativo')
@@ -26,7 +25,7 @@ async function identificacao_user() {
     acesso = await lista_setores(acesso.usuario)
     let permissao = acesso.permissao
 
-    if (document.title !== 'PDF') {
+    if (document.title !== 'PDF' && acesso.usuario) {
 
         let config = ''
 

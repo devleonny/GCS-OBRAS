@@ -670,20 +670,17 @@ async function deseja_excluir_categoria(id, indice) {
 
 async function confirmar_exclusao_categoria(id, indice) {
 
+    remover_popup()
+
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-    let pagamento = lista_pagamentos[id]
 
     deletar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]`)
 
     await inserirDados(lista_pagamentos, 'lista_pagamentos')
 
-    remover_popup()
-
-    fechar_detalhes()
-
     await atualizar_pagamentos_menu()
 
-    abrir_detalhes(id)
+    await abrir_detalhes(id)
 
 }
 
@@ -722,39 +719,31 @@ async function modal_editar_pagamento(id, indice) {
     return openPopup_v2(`
         <div style="display: flex; flex-direction: column; gap: 15px; align-items: center; padding: 20px; font-family: 'Poppins', sans-serif; font-size: 14px;">
             
-            <!-- Categoria e valor atual -->
             <div style="text-align: center; color: #333;">
                 <p><strong>Categoria:</strong> ${dados_categorias[categoria.codigo_categoria]}</p>
                 <p><strong>Valor Atual:</strong> ${dinheiro(categoria.valor)}</p>
             </div>
     
-            <!-- Campo novo valor -->
             <div style="width: 100%; display: flex; flex-direction: column; align-items: flex-start;">
                 <label for="valor_mudado" style="margin-bottom: 5px;">Novo Valor</label>
                 <input id="valor_mudado" type="number" style="width: 95%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 5px;">
             </div>
     
-            <!-- Select de categoria -->
             <div style="width: 100%; display: flex; flex-direction: column; align-items: flex-start;">
                 ${div_select_categorias}
             </div>
     
-            <!-- Botão Confirmar -->
             <label onclick="editar_pagamento('${id}', ${indice})"
                 class="contorno_botoes"
                 style="
-                    background-color: #B12425;
+                    background-color: #4CAF50;
                     color: white;
                     font-weight: bold;
                     padding: 10px 20px;
                     border-radius: 6px;
                     cursor: pointer;
                     margin-top: 10px;
-                    transition: background 0.3s ease;
-                "
-                onmouseover="this.style.backgroundColor='#911d1d'"
-                onmouseout="this.style.backgroundColor='#B12425'"
-            >
+                    transition: background 0.3s ease;">
                 Confirmar
             </label>
         </div>
@@ -763,6 +752,8 @@ async function modal_editar_pagamento(id, indice) {
 }
 
 async function editar_pagamento(id, indice) {
+
+    document.body.insertAdjacentHTML('beforeend', overlay_aguarde())
 
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     let pagamento = lista_pagamentos[id]
@@ -788,34 +779,34 @@ async function editar_pagamento(id, indice) {
 
         novoValorDocumento += valorMudado
 
-        await enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/valor`, valorMudado)
-        await enviar(`lista_pagamentos/${id}/param[0]/valor_documento`, novoValorDocumento)
+        pagamento.param[0].categorias[indice].valor = valorMudado
+        pagamento.param[0].valor_documento = novoValorDocumento
+
+        enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/valor`, valorMudado)
+        enviar(`lista_pagamentos/${id}/param[0]/valor_documento`, novoValorDocumento)
 
     }
 
     if (categoriaMudada != "Selecione") {
 
         let codigoMudado = categoriaMudada.options[categoriaMudada.selectedIndex].dataset.codigo;
-        await enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/codigo_categoria`, codigoMudado)
+        enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/codigo_categoria`, codigoMudado)
 
     }
 
     await inserirDados(lista_pagamentos, 'lista_pagamentos')
 
-    remover_popup()
-
-    fechar_detalhes()
-
     await atualizar_pagamentos_menu()
 
-    abrir_detalhes(id)
+    remover_popup()
+
+    await abrir_detalhes(id)
 
 }
 
 async function relancar_pagamento(id) {
 
     remover_popup()
-    fechar_detalhes()
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     let pagamento = lista_pagamentos[id]
 
@@ -829,7 +820,6 @@ async function relancar_pagamento(id) {
 async function confirmar_exclusao_pagamento(id) {
 
     remover_popup()
-    fechar_detalhes()
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
 
     delete lista_pagamentos[id]
@@ -922,11 +912,11 @@ async function atualizar_resumo(id_pagamento) {
 }
 
 function colorir_parceiros() {
-    var detalhes = document.getElementById('detalhes')
-    if (detalhes) {
 
-        var labels = detalhes.querySelectorAll('label.numero')
-        var divs = detalhes.querySelectorAll('div.container')
+    var labels = document.querySelectorAll('label.numero')
+    var divs = document.querySelectorAll('div.container')
+
+    if (labels) {
 
         divs.forEach((div, i) => {
             if (div.children.length == 0) {
@@ -944,7 +934,6 @@ function colorir_parceiros() {
                 labels[labels.length - 1].style.backgroundColor = 'green'
             }
         }
-
     }
 }
 
@@ -960,16 +949,6 @@ function auxiliar(elemento) {
         aprovar.style.display = 'block'
         reprovar.style.display = 'block'
     }
-}
-
-function fechar_detalhes() {
-
-    var detalhes = document.getElementById('detalhes')
-    if (detalhes) {
-        detalhes.remove()
-    }
-    remover_popup()
-
 }
 
 async function atualizar_pagamentos_menu() {
@@ -1093,8 +1072,6 @@ async function editar_comentario(id) {
 }
 
 async function fechar_e_abrir(id, fechar) {
-
-    fechar_detalhes()
 
     await consultar_pagamentos()
 
@@ -1614,7 +1591,6 @@ async function salvar_anexos_pagamentos(input, id_pagamento) {
 
     if (id_pagamento !== undefined) {
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
-        fechar_detalhes()
         abrir_detalhes(id_pagamento)
     }
 
