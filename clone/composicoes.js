@@ -80,6 +80,17 @@ async function carregar_tabela_v2() {
 
     var colunas = JSON.parse(localStorage.getItem('colunas_composicoes')) || [];
 
+    const idxCat = colunas.indexOf('categoria de equipamento');
+    const idxSis = colunas.indexOf('sistema');
+
+    if (idxCat !== -1 && idxSis !== -1 && Math.abs(idxCat - idxSis) !== 1) {
+        // Remove os dois
+        colunas = colunas.filter(c => c !== 'categoria de equipamento' && c !== 'sistema');
+        // Define a posição onde quer inserir (por exemplo, no início)
+        const posicao = 0;
+        colunas.splice(posicao, 0, 'categoria de equipamento', 'sistema');
+    }
+
     if (acesso.permissao == 'adm') {
         var adicionar_item = document.getElementById('adicionar_item');
         var btn_criar_lpu = document.getElementById('btn-criar-lpu')
@@ -175,13 +186,25 @@ async function carregar_tabela_v2() {
                     `
                 alinhamento = 'center';
 
+            } else if (chave == 'categoria de equipamento') {
+
+                conteudo = `
+                <select style="cursor: pointer;" onchange="alterar_categoria('${codigo}', this)">
+                    <option ${produto?.['categoria de equipamento'] == '' ? 'selected' : ''}></option>
+                    <option ${produto?.['categoria de equipamento'] == 'IP' ? 'selected' : ''}>IP</option>
+                    <option ${produto?.['categoria de equipamento'] == 'ANALÓGICO' ? 'selected' : ''}>ANALÓGICO</option>
+                    <option ${produto?.['categoria de equipamento'] == 'ALARME' ? 'selected' : ''}>ALARME</option>
+                    <option ${produto?.['categoria de equipamento'] == 'CONTROLE DE ACESSO' ? 'selected' : ''}>CONTROLE DE ACESSO</option>
+                </select>
+                `
+
             } else if (chave == 'sistema') {
 
                 conteudo = `
                 <select style="cursor: pointer;" onchange="alterar_sistema('${codigo}', this)">
                     <option ${produto?.sistema == '' ? 'selected' : ''}></option>
-                    <option ${produto?.sistema == 'IP' ? 'selected' : ''}>IP</option>
-                    <option ${produto?.sistema == 'ANALÓGICO' ? 'selected' : ''}>ANALÓGICO</option>
+                    <option ${produto?.sistema == 'CFTV' ? 'selected' : ''}>CFTV</option>
+                    <option ${produto?.sistema == 'EAS' ? 'selected' : ''}>EAS</option>
                     <option ${produto?.sistema == 'ALARME' ? 'selected' : ''}>ALARME</option>
                     <option ${produto?.sistema == 'CONTROLE DE ACESSO' ? 'selected' : ''}>CONTROLE DE ACESSO</option>
                 </select>
@@ -245,12 +268,24 @@ async function carregar_tabela_v2() {
 
 }
 
+async function alterar_categoria(codigo, select) {
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
+    let produto = dados_composicoes[codigo]
+
+    produto['categoria de equipamento'] = select.value
+
+    enviar(`dados_composicoes/${codigo}/categoria de equipamento`, select.value)
+
+    await inserirDados(dados_composicoes, 'dados_composicoes')
+}
+
 async function alterar_sistema(codigo, select) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
     let produto = dados_composicoes[codigo]
 
-    produto.setor = select.value
+    produto.sistema = select.value
 
     enviar(`dados_composicoes/${codigo}/sistema`, select.value)
 
