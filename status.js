@@ -429,6 +429,73 @@ async function calcular_requisicao(sincronizar) {
                     labels_totais[0].innerHTML = `${infos[1]} ${dinheiro(custo * qtde)}`
                     labels_totais[1].innerHTML = (qtde == '' || tipo == 'SERVIÇO') ? '' : `${infos[0]} ${dinheiro(unt_sem_icms * qtde)} `
 
+                    // Índice 7 - Valor de Compra (input do usuário)
+                    let valorCompraCom = 0
+
+                    // Se estiver em modo de edição, pega os valores dos inputs
+                    if(!sincronizar && tds[7].querySelectorAll("input").length > 0) {
+                        valorCompraCom = parseFloat(tds[7].querySelectorAll("input")[0].value) || 0;
+                        
+                    }
+
+                     // Índice 8 - Total de Compra (calculado: valor compra * quantidade)
+
+                    let totalCompraCom = valorCompraCom * qtde
+                
+                    // Índice 9 - Resultado (valor total - total compra)
+                    let valorTotalCom = custo * qtde
+                    
+
+                    let resultadoCom = valorTotalCom - totalCompraCom
+                   
+
+                     // Atualiza as células das novas colunas
+                     if (sincronizar) {
+                        // Modo visualização - apenas labels
+                        tds[7].innerHTML = `
+                            <label>---</label>
+                            <br>
+                            <br>
+                            <label style="color: red; font-size: 1.0em;">---</label>
+                        `;
+                        
+                        tds[8].innerHTML = `
+                            <label>0,00</label>
+                            <br>
+                            <br>
+                            <label style="color: red; font-size: 1.0em;">0,00</label>
+                        `;
+                        
+                        tds[9].innerHTML = `
+                            <label>0,00</label>
+                            <br>
+                            <br>
+                            <label style="color: red; font-size: 1.0em;">0,00</label>
+                        `;
+                    } else {
+                        // Modo edição - inputs para valor de compra
+                        tds[7].innerHTML = `
+                            <label><strong>c • COMPRA</strong> <br> 
+                            <input class="pedido valor-compra" type="number" style="width: 8vw; height: 30px;" 
+                                   value="${valorCompraCom}" oninput="calcularTotaisLinha(this)"></label>
+                        `;
+                        
+                        // Totais de compra (calculados)
+                        tds[8].innerHTML = `
+                            <label><strong>c • TOTAL</strong> <br> ${dinheiro(totalCompraCom)}</label>
+                           
+                        `;
+                        
+                        // Resultados (formatados com cores)
+                        tds[9].innerHTML = `
+                            <label><strong>c • RESULT</strong> <br> 
+                            <span style="color: ${resultadoCom >= 0 ? 'green' : 'red'}">${dinheiro(Math.abs(resultadoCom))}</span></label>
+                        `;
+                    }
+                    
+
+                   
+
                     total_sem_icms += unt_sem_icms * qtde
                     total_com_icms += qtde * custo
                 }
@@ -445,6 +512,48 @@ async function calcular_requisicao(sincronizar) {
         }
     }
 
+}
+
+// Função auxiliar para calcular totais quando o usuário edita um valor de compra
+function calcularTotaisLinha(input) {
+    var linha = input.closest('tr');
+    var tds = linha.querySelectorAll('td');
+    
+    // Obtém a quantidade
+    var qtde = parseFloat(tds[4].querySelector('input') ? tds[4].querySelector('input').value : tds[4].textContent) || 0;
+    
+    // Obtém os valores de compra
+    var valorCompraCom = parseFloat(tds[7].querySelectorAll('input')[0].value) || 0;
+    var valorCompraSem = parseFloat(tds[7].querySelectorAll('input')[1].value) || 0;
+    
+    // Calcula totais de compra
+    var totalCompraCom = valorCompraCom * qtde;
+    var totalCompraSem = valorCompraSem * qtde;
+    
+    // Obtém os valores totais (índice 6)
+    var valorTotalCom = conversor(tds[6].querySelector('label').textContent.replace(/[^\d,.-]/g, '')) || 0;
+    var valorTotalSemText = tds[6].querySelectorAll('label')[1]?.textContent || '0';
+    var valorTotalSem = conversor(valorTotalSemText.replace(/[^\d,.-]/g, '')) || 0;
+    
+    // Calcula resultados
+    var resultadoCom = valorTotalCom - totalCompraCom;
+    var resultadoSem = valorTotalSem - totalCompraSem;
+    
+    // Atualiza os totais de compra (índice 8)
+    tds[8].innerHTML = `
+        <label><strong>c • TOTAL</strong> <br> ${dinheiro(totalCompraCom)}</label>
+        <br>
+        <label style="color: red; font-size: 1.0em;"><strong>s • TOTAL</strong> <br> ${dinheiro(totalCompraSem)}</label>
+    `;
+    
+    // Atualiza os resultados (índice 9)
+    tds[9].innerHTML = `
+        <label><strong>c • RESULT</strong> <br> 
+        <span style="color: ${resultadoCom >= 0 ? 'green' : 'red'}">${dinheiro(Math.abs(resultadoCom))}</span></label>
+        <br>
+        <label style="color: red; font-size: 1.0em;"><strong>s • RESULT</strong> <br> 
+        <span style="color: ${resultadoSem >= 0 ? 'green' : 'red'}">${dinheiro(Math.abs(resultadoSem))}</span></label>
+    `;
 }
 
 function pesquisar_na_requisicao() {
@@ -634,6 +743,27 @@ async function carregar_itens(apenas_visualizar, requisicao, tipoRequisicao, edi
                       <br>
                       <label style="color: red; font-size: 1.0em;"></label>
                   </td>
+
+                  <td style="text-align: center;">
+                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">--</label>` : `
+                          <input 
+                            class="pedido valor-compra" 
+                            type="number" 
+                            style="width: 8vw; 
+                            padding: 0px; 
+                            margin: 0px; 
+                            height: 40px;" 
+                            oninput="calcular_requisicao(this)">`}
+                  </td>
+
+                  <td style="text-align: center;">
+                      <label class="total-compra" style="font-size: 1.2em;">0,00</label>
+                  </td>
+
+                  <td style="text-align: center;">
+                      <label class="resultado" style="font-size: 1.2em;">0,00</label>
+                  </td>
+                  
                   <td>
                       ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.requisicao || ''}</label>` : `
                           <select style="border: none; cursor: pointer;">
@@ -645,6 +775,8 @@ async function carregar_itens(apenas_visualizar, requisicao, tipoRequisicao, edi
                           </select>
                       `}
                   </td>
+
+                  
               </tr>
         `
     };
@@ -652,6 +784,8 @@ async function carregar_itens(apenas_visualizar, requisicao, tipoRequisicao, edi
     return linhas;
 
 }
+
+
 
 function abrirModalTipoRequisicao() {
     let modal = `
@@ -2902,6 +3036,9 @@ async function detalhar_requisicao(chave, editar, tipoRequisicao) {
                 <th style="text-align: center;">Quantidade</th>
                 <th style="text-align: center;">Valor Unitário</th>     
                 <th style="text-align: center;">Valor Total</th>         
+                <th style="text-align: center;">Valor de Compra</th>
+                <th style="text-align: center;">Total de Compra</th>
+                <th style="text-align: center;">Resultado</th>
                 <th style="text-align: center;">Requisição</th>
             </thead>
             <tbody>
