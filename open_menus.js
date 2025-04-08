@@ -437,8 +437,21 @@ function mostrar_ocultar_alertas() {
     }
 }
 
+
+async function carregarXLSX() {
+    if (typeof XLSX === 'undefined') {
+        await new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+            script.onload = resolve;
+            document.head.appendChild(script);
+        });
+    }
+}
 console.log("XLSX está disponível?", typeof XLSX !== 'undefined' ? "Sim" : "Não");
-function para_excel(tabela_id) {
+
+async function para_excel(tabela_id) {
+    await carregarXLSX()
     try {
         // Check if XLSX is available
         if (typeof XLSX === 'undefined' || !XLSX.utils || !XLSX.utils.table_to_sheet) {
