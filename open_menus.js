@@ -437,6 +437,7 @@ function mostrar_ocultar_alertas() {
     }
 }
 
+console.log("XLSX está disponível?", typeof XLSX !== 'undefined' ? "Sim" : "Não");
 function para_excel(tabela_id) {
     try {
         // Check if XLSX is available
