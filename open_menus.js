@@ -441,7 +441,7 @@ function para_excel(tabela_id) {
     try {
         // Check if XLSX is available
         if (typeof XLSX === 'undefined' || !XLSX.utils || !XLSX.utils.table_to_sheet) {
-            throw new Error("XLSX library not loaded. Please include SheetJS library.");
+            throw new Error("XLSX library não carregado.");
         }
 
         const tabelaOriginal = document.getElementById(tabela_id);
