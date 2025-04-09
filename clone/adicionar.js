@@ -238,41 +238,6 @@ function removerItem(codigo) {
 
 }
 
-// testes()
-
-// async function testes() {
-
-//     let orcamentos = await receber("dados_orcamentos")
-
-//     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
-
-//     let dados_orcam = orcamento_v2.dados_orcam;
-
-//     console.log(dados_orcam.contrato)
-
-//     Object.entries(orcamentos).forEach(([idOrcamento, dados]) => {
-
-//         let contrato = dados.dados_orcam.contrato;
-
-//         if (contrato) {
-
-//             if(contrato == dados_orcam.contrato){
-
-//                 console.log(contrato)
-//                 return openPopup_v2(`
-//                     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-//                         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-//                         <label>Chamado já Existente</label>
-//                     </div>
-//                 `);
-
-//             }
-
-//         }
-//     })
-
-// }
-
 async function enviar_dados() {
     salvar_preenchido();
 
@@ -571,7 +536,10 @@ async function tabela_produtos_v2(tipo_tabela) {
                     linhas += `
                         <tr>
                             <td style="white-space: nowrap;">${pod}</td>
-                            <td>${produto.descricao}</td>
+                            <td style="position: relative;">
+                                ${produto.descricao}
+                                ${(produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) ? `<img src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 1vw; width: 1.5vw; cursor: pointer;">` : ''}
+                            </td>
                             <td>${produto.fabricante}</td>
                             <td>${produto.modelo}</td>
                             <td>${produto.tipo}</td>
@@ -839,7 +807,7 @@ async function total() {
                 acrescimo = 1
             }
 
-            if (dados_composicoes[codigo_original] && dados_composicoes[codigo_original].agrupamentos) {
+            if (dados_composicoes[codigo_original] && dados_composicoes[codigo_original].agrupamentos && Object.keys(dados_composicoes[codigo_original].agrupamentos).length > 0) {
                 alternar_icones(tds[1], 'incluir', codigo_original)
             }
 
@@ -896,10 +864,12 @@ async function total() {
                 <div style="display: flex; flex-direction: column; padding: 5px; background-color: #99999940; border-radius: 3px; font-size: 0.8vw;">
                     ${elementos}
                     <hr style="width: 100%;">
+
                     <div style="display: flex; width: 100%; justify-content: right;">
                         <label>Total</label>
                         <label class="total">${dinheiro(total)}</label>
                     </div>
+
                 </div>
                 `
                 div.innerHTML = div_interna
@@ -1252,8 +1222,11 @@ async function incluir_item(codigo, nova_quantidade, especial) {
         <tr>
             <td>${codigo_original}</td>
             <td style="position: relative;">
-                <label>${dados_composicoes[item.codigo].descricao}</label>
-                <div class="agrupados"></div>         
+                <div style="display: flex; justify-content: start; align-items: center; gap: 10px;">
+                    <img src="imagens/construcao.png" style="width: 1.2vw; width: 2vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">
+                    <label>${dados_composicoes[item.codigo].descricao}</label>
+                </div>
+                <div class="agrupados"></div>
             </td>
             ${colunas_carrefour}
             <td style="text-align: center;">${dados_composicoes[item.codigo].unidade}</td>

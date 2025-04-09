@@ -1,6 +1,6 @@
-var acesso = JSON.parse(localStorage.getItem('acesso'))
-var dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
-var versao = 'v3.0.5'
+let acesso = JSON.parse(localStorage.getItem('acesso'))
+let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+let versao = 'v3.0.5'
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F5') {
@@ -26,8 +26,8 @@ async function identificacao_user() {
     if (acesso && document.title !== 'PDF') {
 
         if (Object.keys(dados_setores).length == 0) {
-            await lista_setores()
-            dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+            dados_setores = await lista_setores()
+            localStorage.setItem('dados_setores', JSON.stringify(dados_setores))
         }
 
         let permissao = dados_setores[acesso.usuario].permissao
@@ -493,8 +493,15 @@ function conversor(stringMonetario) {
         return 0;
     } else {
         stringMonetario = stringMonetario.trim();
-        stringMonetario = stringMonetario.replace(/[^\d,]/g, '');
-        stringMonetario = stringMonetario.replace(',', '.');
+        stringMonetario = stringMonetario.replace(/[^\d.,]/g, '');
+
+        if (stringMonetario.includes(',') && stringMonetario.includes('.')) {
+            stringMonetario = stringMonetario.replace(/\./g, '');
+            stringMonetario = stringMonetario.replace(',', '.');
+        } else {
+            stringMonetario = stringMonetario.replace(',', '.');
+        }
+
         var valorNumerico = parseFloat(stringMonetario);
 
         if (isNaN(valorNumerico)) {
@@ -504,6 +511,7 @@ function conversor(stringMonetario) {
         return valorNumerico;
     }
 }
+
 
 function dinheiro(valor) {
     if (valor === '') {

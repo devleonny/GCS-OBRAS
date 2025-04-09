@@ -438,10 +438,6 @@ async function capturar_html_pdf(id) {
 
     let pecas = manutencao.pecas
 
-
-console.log("PEÇAS:", pecas)
-console.log("DADOS ESTOQUE:", dados_estoque);
-
     let linhas = ''
     for (pc in pecas) {
         let peca = pecas[pc]

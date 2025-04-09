@@ -2,9 +2,8 @@ var dados = {}
 var filtrosAtivos = {};
 var composicoes_ = document.getElementById('composicoes_')
 var overlay = document.getElementById('overlay')
-var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
-document.getElementById("btn-criar-lpu").addEventListener("click", function () {
+function criar_lpu() {
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
             <label style="font-size: 1.2em;">Digite o nome da nova LPU:</label>
@@ -13,7 +12,7 @@ document.getElementById("btn-criar-lpu").addEventListener("click", function () {
             <button onclick="salvarNovaLPU()" style="background-color: #026CED; color: white; padding: 10px; border: none; cursor: pointer; width: 80%;">Salvar</button>
         </div>
     `, 'Nova LPU');
-});
+}
 
 function pesquisar_em_composicoes(elemento) {
     var tabela = composicoes_.querySelector('table');
@@ -80,6 +79,17 @@ async function carregar_tabela_v2() {
 
     var colunas = JSON.parse(localStorage.getItem('colunas_composicoes')) || [];
 
+    const idxCat = colunas.indexOf('categoria de equipamento');
+    const idxSis = colunas.indexOf('sistema');
+
+    if (idxCat !== -1 && idxSis !== -1 && Math.abs(idxCat - idxSis) !== 1) {
+        // Remove os dois
+        colunas = colunas.filter(c => c !== 'categoria de equipamento' && c !== 'sistema');
+        // Define a posição onde quer inserir (por exemplo, no início)
+        const posicao = 0;
+        colunas.splice(posicao, 0, 'categoria de equipamento', 'sistema');
+    }
+
     if (acesso.permissao == 'adm') {
         var adicionar_item = document.getElementById('adicionar_item');
         var btn_criar_lpu = document.getElementById('btn-criar-lpu')
@@ -89,6 +99,10 @@ async function carregar_tabela_v2() {
         if (btn_criar_lpu) {
             btn_criar_lpu.style.display = 'flex';
         }
+    }
+
+    if (!composicoes_) {
+        return
     }
     composicoes_.innerHTML = '';
 
@@ -175,13 +189,25 @@ async function carregar_tabela_v2() {
                     `
                 alinhamento = 'center';
 
+            } else if (chave == 'categoria de equipamento') {
+
+                conteudo = `
+                <select style="cursor: pointer;" onchange="alterar_categoria('${codigo}', this)">
+                    <option ${produto?.['categoria de equipamento'] == '' ? 'selected' : ''}></option>
+                    <option ${produto?.['categoria de equipamento'] == 'IP' ? 'selected' : ''}>IP</option>
+                    <option ${produto?.['categoria de equipamento'] == 'ANALÓGICO' ? 'selected' : ''}>ANALÓGICO</option>
+                    <option ${produto?.['categoria de equipamento'] == 'ALARME' ? 'selected' : ''}>ALARME</option>
+                    <option ${produto?.['categoria de equipamento'] == 'CONTROLE DE ACESSO' ? 'selected' : ''}>CONTROLE DE ACESSO</option>
+                </select>
+                `
+
             } else if (chave == 'sistema') {
 
                 conteudo = `
                 <select style="cursor: pointer;" onchange="alterar_sistema('${codigo}', this)">
                     <option ${produto?.sistema == '' ? 'selected' : ''}></option>
-                    <option ${produto?.sistema == 'IP' ? 'selected' : ''}>IP</option>
-                    <option ${produto?.sistema == 'ANALÓGICO' ? 'selected' : ''}>ANALÓGICO</option>
+                    <option ${produto?.sistema == 'CFTV' ? 'selected' : ''}>CFTV</option>
+                    <option ${produto?.sistema == 'EAS' ? 'selected' : ''}>EAS</option>
                     <option ${produto?.sistema == 'ALARME' ? 'selected' : ''}>ALARME</option>
                     <option ${produto?.sistema == 'CONTROLE DE ACESSO' ? 'selected' : ''}>CONTROLE DE ACESSO</option>
                 </select>
@@ -245,12 +271,24 @@ async function carregar_tabela_v2() {
 
 }
 
+async function alterar_categoria(codigo, select) {
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
+    let produto = dados_composicoes[codigo]
+
+    produto['categoria de equipamento'] = select.value
+
+    enviar(`dados_composicoes/${codigo}/categoria de equipamento`, select.value)
+
+    await inserirDados(dados_composicoes, 'dados_composicoes')
+}
+
 async function alterar_sistema(codigo, select) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
     let produto = dados_composicoes[codigo]
 
-    produto.setor = select.value
+    produto.sistema = select.value
 
     enviar(`dados_composicoes/${codigo}/sistema`, select.value)
 
@@ -324,12 +362,12 @@ async function abrir_agrupamentos(codigo) {
                 <table class="tabela" style="border-collapse: collapse;">
                     <thead>
                         <tr>
-                            <th>Marcação</th>
-                            <th>Código</th>
-                            <th>Descrição</th>
-                            <th>Modelo</th>
-                            <th>Unidade</th>
-                            <th>Tipo</th>
+                            <th style="color: #222;">Marcação</th>
+                            <th style="color: #222;">Código</th>
+                            <th style="color: #222;">Descrição</th>
+                            <th style="color: #222;">Modelo</th>
+                            <th style="color: #222;">Unidade</th>
+                            <th style="color: #222;">Tipo</th>
                         <tr>
                     </thead>
                     <thead>
@@ -408,6 +446,10 @@ async function salvar_agrupamentos(codigo) {
         remover_popup()
 
         carregar_tabela_v2()
+    }
+
+    if (document.title == 'Criar Orçamento') {
+        f5()
     }
 
 }
@@ -576,6 +618,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
 
         linhas += `
         <tr>
+            <td>${dinheiro(historico[cotacao]?.custo || 0)}</td>
             <td>${dinheiro(historico[cotacao]?.valor_custo || historico[cotacao]?.custo)}</td>
             <td style="text-align: center;">${historico[cotacao].margem}</td>
             <td>${dinheiro(historico[cotacao].valor)}</td>
@@ -619,6 +662,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
             <div id="tabela_historico" style="display: ${linhas == '' ? 'none' : 'flex'}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
                 <table class="tabela">
                     <thead>
+                        <th>Preço Unitário</th>
                         <th>Valor de Custo</th>
                         <th>Margem %</th>
                         <th>Pr. Venda</th>
@@ -834,7 +878,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                 <tbody>
                     <tr>
                         <td>Preço Unitário</td>
-                        <td style="background-color: #91b7d9;"><input id="custo" oninput="calcular()" value="${dados?.custo || ''}"></td>
+                        <td style="background-color: #91b7d9;"><input type="number" id="custo" oninput="calcular()" value="${dados?.custo || 0}"></td>
                     </tr>
                     <tr>
                         <td>Frete de Compra (2%)</td>
@@ -842,7 +886,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                     </tr>
                     <tr>
                         <td>ICMS Creditado em nota (%)</td>
-                        <td style="background-color: #91b7d9;"><input id="icms_creditado" oninput="calcular()" value="${dados?.icms_creditado || ''}"></td>
+                        <td style="background-color: #91b7d9;"><input id="icms_creditado" oninput="calcular()" value="${dados?.icms_creditado || 0}"></td>
                     </tr>
                     <tr>
                         <td>Aliquota ICMS (Bahia)</td>
@@ -866,7 +910,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                     </tr>
                     <tr>
                         <td>Preço de Venda</td>
-                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular(undefined, 'final')" value="${dados?.valor || ''}"></td>
+                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular(undefined, 'final')" value="${dados?.valor || 0}"></td>
                     </tr>
                     <tr>
                         <td>Frete de Venda (5%)</td>
@@ -1082,7 +1126,6 @@ async function salvar_preco(codigo, lpu, cotacao) {
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let produto = dados_composicoes[codigo]
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
     if (!produto[lpu]) {
         produto[lpu] = {
@@ -1094,23 +1137,21 @@ async function salvar_preco(codigo, lpu, cotacao) {
     let id = cotacao ? cotacao : gerar_id_5_digitos()
 
     historico[id] = {
-        margem: 0,
-        custo: Number(document.getElementById('final').value),
         valor: Number(document.getElementById('final').value),
         data: dt(),
         usuario: acesso.usuario,
         nota: document.getElementById('nota').value,
-        fornecedor: '--',
         comentario: document.getElementById('comentario').value
     }
 
     if (produto.tipo == 'VENDA') {
         historico[id].valor_custo = conversor(document.getElementById('valor_custo').textContent)
         historico[id].icms_creditado = Number(document.getElementById('icms_creditado').value)
-        historico[id].fornecedor = document.getElementById('fornecedor').value
-        historico[id].custo = Number(document.getElementById('custo').value)
-        historico[id].margem = Number(document.getElementById('margem').value)
     }
+
+    historico[id].margem = Number(document.getElementById('margem').value)
+    historico[id].fornecedor = document.getElementById('fornecedor').value
+    historico[id].custo = conversor(document.getElementById('custo').value)
 
     await inserirDados(dados_composicoes, 'dados_composicoes')
 
@@ -1180,7 +1221,7 @@ function calcular(tipo, campo) {
         tds[11].textContent = dinheiro(icms_entrada)
         tds[13].textContent = dinheiro(valor_custo)
 
-        let margem = conversor(tds[15].querySelector('input').value)
+        let margem = Number(tds[15].querySelector('input').value)
         let preco_venda = (1 + margem / 100) * valor_custo
 
         if (campo == 'final') {

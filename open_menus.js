@@ -437,24 +437,108 @@ function mostrar_ocultar_alertas() {
     }
 }
 
-function para_excel(tabela_id) {
-    const tabelaOriginal = document.getElementById(tabela_id);
-    if (!tabelaOriginal) return;
 
-    const tabelaClone = tabelaOriginal.cloneNode(true);
-
-    const inputs = tabelaClone.querySelectorAll('input, textarea');
-    inputs.forEach(input => {
-        const cell = input.closest('td, th');
-        if (cell) {
-            cell.textContent = input.value;
+// Improved XLSX loading function
+async function carregarXLSX() {
+    return new Promise((resolve, reject) => {
+        if (typeof XLSX !== 'undefined') {
+            resolve();
+            return;
         }
-    });
 
-    const worksheet = XLSX.utils.table_to_sheet(tabelaClone);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
-    XLSX.writeFile(workbook, 'dados.xlsx');
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+        script.onload = () => {
+            // Additional check to ensure XLSX is fully initialized
+            const checkInitialization = () => {
+                if (typeof XLSX !== 'undefined' && typeof XLSX.utils !== 'undefined') {
+                    resolve();
+                } else {
+                    setTimeout(checkInitialization, 100);
+                }
+            };
+            checkInitialization();
+        };
+        script.onerror = () => reject(new Error("Falha ao carregar a biblioteca XLSX"));
+        document.head.appendChild(script);
+    });
+}
+console.log("XLSX está disponível?", typeof XLSX !== 'undefined' ? "Sim" : "Não");
+
+async function para_excel(tabela_id) {
+    try {
+        // Ensure XLSX is fully loaded with all utilities
+        if (typeof XLSX === 'undefined' || typeof XLSX.utils === 'undefined') {
+            await carregarXLSX();
+            // Wait until utils are available
+            await new Promise((resolve, reject) => {
+                let attempts = 0;
+                const checkUtils = () => {
+                    attempts++;
+                    if (typeof XLSX !== 'undefined' && typeof XLSX.utils !== 'undefined') {
+                        resolve();
+                    } else if (attempts > 10) {
+                        reject(new Error("XLSX utils failed to load after 10 attempts"));
+                    } else {
+                        setTimeout(checkUtils, 100);
+                    }
+                };
+                checkUtils();
+            });
+        }
+
+        const tabelaOriginal = document.getElementById(tabela_id);
+        if (!tabelaOriginal) {
+            throw new Error(`Tabela com ID ${tabela_id} não encontrada`);
+        }
+
+        // Create deep clone of the table
+        const tabelaClone = tabelaOriginal.cloneNode(true);
+        
+        // Process all inputs in the cloned table
+        const inputs = tabelaClone.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+            const cell = input.closest('td, th');
+            if (cell) {
+                // Handle different input types
+                if (input.type === 'checkbox') {
+                    cell.textContent = input.checked ? 'Sim' : 'Não';
+                } else if (input.tagName === 'SELECT') {
+                    cell.textContent = input.options[input.selectedIndex]?.text || '';
+                } else {
+                    cell.textContent = input.value;
+                }
+            }
+        });
+
+        // Remove any unwanted elements
+        const elementsToRemove = tabelaClone.querySelectorAll('.no-export, [data-no-export]');
+        elementsToRemove.forEach(el => el.remove());
+
+        // Convert table to worksheet
+        const worksheet = XLSX.utils.table_to_sheet(tabelaClone);
+        
+        // Create workbook and add worksheet
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Dados");
+        
+        // Generate filename with current date
+        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const filename = `exportacao_${dateStr}.xlsx`;
+        
+        // Export the Excel file
+        XLSX.writeFile(workbook, filename);
+        
+    } catch (error) {
+        console.error("Erro ao exportar para Excel:", error);
+        openPopup_v2(`
+            <div style="color: white; padding: 20px;">
+                <h3>Erro ao exportar para Excel</h3>
+                <p>${error.message}</p>
+                <p>Por favor, tente novamente ou entre em contato com o suporte.</p>
+            </div>
+        `, 'Erro na Exportação');
+    }
 }
 
 async function remover_popup(nao_remover_anteriores) {
