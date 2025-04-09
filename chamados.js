@@ -697,8 +697,8 @@ async function criar_manutencao(id) {
                 <br>
 
                 <div class="tabela_manutencao">
-                    <div class="linha"
-                        style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
+
+                    <div class="linha" style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
                         <div style="width: 8vw;">
                             <label>Part Number</label>
                         </div>
