@@ -510,7 +510,7 @@ async function tabela_produtos_v2(tipo_tabela) {
                 if (produto[lpu] && produto[lpu].ativo && produto[lpu].historico) {
                     ativo = produto[lpu].ativo
                     historico = produto[lpu].historico
-                    preco = historico[ativo].valor
+                    preco = historico[ativo]?.valor || 0
                 }
 
                 if (produto.status != "INATIVO") {
