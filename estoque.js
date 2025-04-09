@@ -891,7 +891,7 @@ async function remover_historico(codigo, stq, chave) {
 
     remover_popup()
     await abrir_estoque(codigo, stq)
-    await retomar_paginacao(codigo, stq)
+    retomar_paginacao(codigo, stq)
 
 }
 
@@ -957,7 +957,7 @@ async function salvar_movimento(codigo, stq, inicial) {
     enviar(`dados_estoque/${codigo}/${stq}/historico/${id}`, movimento)
     
     if (inicial !== undefined) {
-        enviar(`dados_estoque/${codigo}/${stq}/quantidade`, estoque.quantidade)
+    enviar(`dados_estoque/${codigo}/${stq}/quantidade`, estoque.quantidade)
     }
     
     await retomar_paginacao(codigo, stq)
