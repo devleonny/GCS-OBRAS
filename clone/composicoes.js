@@ -358,12 +358,12 @@ async function abrir_agrupamentos(codigo) {
                 <table class="tabela" style="border-collapse: collapse;">
                     <thead>
                         <tr>
-                            <th>Marcação</th>
-                            <th>Código</th>
-                            <th>Descrição</th>
-                            <th>Modelo</th>
-                            <th>Unidade</th>
-                            <th>Tipo</th>
+                            <th style="color: #222;">Marcação</th>
+                            <th style="color: #222;">Código</th>
+                            <th style="color: #222;">Descrição</th>
+                            <th style="color: #222;">Modelo</th>
+                            <th style="color: #222;">Unidade</th>
+                            <th style="color: #222;">Tipo</th>
                         <tr>
                     </thead>
                     <thead>
@@ -610,6 +610,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
 
         linhas += `
         <tr>
+            <td>${dinheiro(historico[cotacao]?.custo || 0)}</td>
             <td>${dinheiro(historico[cotacao]?.valor_custo || historico[cotacao]?.custo)}</td>
             <td style="text-align: center;">${historico[cotacao].margem}</td>
             <td>${dinheiro(historico[cotacao].valor)}</td>
@@ -653,6 +654,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
             <div id="tabela_historico" style="display: ${linhas == '' ? 'none' : 'flex'}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
                 <table class="tabela">
                     <thead>
+                        <th>Preço Unitário</th>
                         <th>Valor de Custo</th>
                         <th>Margem %</th>
                         <th>Pr. Venda</th>
@@ -868,7 +870,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                 <tbody>
                     <tr>
                         <td>Preço Unitário</td>
-                        <td style="background-color: #91b7d9;"><input id="custo" oninput="calcular()" value="${dados?.custo || ''}"></td>
+                        <td style="background-color: #91b7d9;"><input type="number" id="custo" oninput="calcular()" value="${dados?.custo || 0}"></td>
                     </tr>
                     <tr>
                         <td>Frete de Compra (2%)</td>
@@ -876,7 +878,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                     </tr>
                     <tr>
                         <td>ICMS Creditado em nota (%)</td>
-                        <td style="background-color: #91b7d9;"><input id="icms_creditado" oninput="calcular()" value="${dados?.icms_creditado || ''}"></td>
+                        <td style="background-color: #91b7d9;"><input id="icms_creditado" oninput="calcular()" value="${dados?.icms_creditado || 0}"></td>
                     </tr>
                     <tr>
                         <td>Aliquota ICMS (Bahia)</td>
@@ -900,7 +902,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                     </tr>
                     <tr>
                         <td>Preço de Venda</td>
-                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular(undefined, 'final')" value="${dados?.valor || ''}"></td>
+                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular(undefined, 'final')" value="${dados?.valor || 0}"></td>
                     </tr>
                     <tr>
                         <td>Frete de Venda (5%)</td>
@@ -1127,23 +1129,21 @@ async function salvar_preco(codigo, lpu, cotacao) {
     let id = cotacao ? cotacao : gerar_id_5_digitos()
 
     historico[id] = {
-        margem: 0,
-        custo: Number(document.getElementById('custo').value),
         valor: Number(document.getElementById('final').value),
         data: dt(),
         usuario: acesso.usuario,
         nota: document.getElementById('nota').value,
-        fornecedor: '--',
         comentario: document.getElementById('comentario').value
     }
 
     if (produto.tipo == 'VENDA') {
         historico[id].valor_custo = conversor(document.getElementById('valor_custo').textContent)
         historico[id].icms_creditado = Number(document.getElementById('icms_creditado').value)
-        historico[id].fornecedor = document.getElementById('fornecedor').value
-        historico[id].custo = Number(document.getElementById('custo').value)
-        historico[id].margem = Number(document.getElementById('margem').value)
     }
+
+    historico[id].margem = Number(document.getElementById('margem').value)
+    historico[id].fornecedor = document.getElementById('fornecedor').value
+    historico[id].custo = conversor(document.getElementById('custo').value)
 
     await inserirDados(dados_composicoes, 'dados_composicoes')
 

@@ -238,41 +238,6 @@ function removerItem(codigo) {
 
 }
 
-// testes()
-
-// async function testes() {
-
-//     let orcamentos = await receber("dados_orcamentos")
-
-//     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
-
-//     let dados_orcam = orcamento_v2.dados_orcam;
-
-//     console.log(dados_orcam.contrato)
-
-//     Object.entries(orcamentos).forEach(([idOrcamento, dados]) => {
-
-//         let contrato = dados.dados_orcam.contrato;
-
-//         if (contrato) {
-
-//             if(contrato == dados_orcam.contrato){
-
-//                 console.log(contrato)
-//                 return openPopup_v2(`
-//                     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-//                         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-//                         <label>Chamado já Existente</label>
-//                     </div>
-//                 `);
-
-//             }
-
-//         }
-//     })
-
-// }
-
 async function enviar_dados() {
     salvar_preenchido();
 
@@ -568,10 +533,15 @@ async function tabela_produtos_v2(tipo_tabela) {
                         imagem = produto.imagem
                     }
 
+
+
                     linhas += `
                         <tr>
                             <td style="white-space: nowrap;">${pod}</td>
-                            <td>${produto.descricao}</td>
+                            <td style="position: relative;">
+                                ${produto.descricao}
+                                ${produto.agrupamentos ? `<img src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 3px; width: 1.5vw;">` : ''}
+                            </td>
                             <td>${produto.fabricante}</td>
                             <td>${produto.modelo}</td>
                             <td>${produto.tipo}</td>
@@ -896,9 +866,13 @@ async function total() {
                 <div style="display: flex; flex-direction: column; padding: 5px; background-color: #99999940; border-radius: 3px; font-size: 0.8vw;">
                     ${elementos}
                     <hr style="width: 100%;">
-                    <div style="display: flex; width: 100%; justify-content: right;">
-                        <label>Total</label>
-                        <label class="total">${dinheiro(total)}</label>
+
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <img src="imagens/baixar.png" style="width: 2vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">
+                        <div style="display: flex; width: 100%; justify-content: right;">
+                            <label>Total</label>
+                            <label class="total">${dinheiro(total)}</label>
+                        </div>
                     </div>
                 </div>
                 `
