@@ -1,12 +1,25 @@
 
-var itens_adicionais = {}
-var acesso = JSON.parse(localStorage.getItem('acesso')) || {};
-var id_orcam = ''
-var dataAtual = new Date();
-var data_status = dataAtual.toLocaleString('pt-BR', {
+let itens_adicionais = {}
+let id_orcam = ''
+let dataAtual = new Date();
+let data_status = dataAtual.toLocaleString('pt-BR', {
     dateStyle: 'short',
     timeStyle: 'short'
 });
+
+const fluxograma = {
+    'INCLUIR PEDIDO': { cor: '#4CAF50' },
+    'PEDIDO': { cor: '#4CAF50' },
+    'REQUISIÇÃO': { cor: '#B12425' },
+    'MATERIAL SEPARADO': { cor: '#b17724' },
+    'FATURADO': { cor: '#ff4500' },
+    'MATERIAL ENVIADO': { cor: '#b17724' },
+    'MATERIAL ENTREGUE': { cor: '#b17724' },
+    'COTAÇÃO PENDENTE': { cor: '#0a989f' },
+    'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
+    'RETORNO DE MATERIAIS': { cor: '#aacc14' },
+    'FINALIZADO': { cor: 'blue' }
+}
 
 document.addEventListener("DOMContentLoaded", async () => {
     let orcamento_que_deve_voltar = localStorage.getItem("orcamento_que_deve_voltar");
@@ -22,22 +35,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
 });
-
-var fluxograma = {
-    'INCLUIR PEDIDO': { cor: '#4CAF50' },
-    'PEDIDO': { cor: '#4CAF50' },
-    'REQUISIÇÃO': { cor: '#B12425' },
-    'MATERIAL SEPARADO': { cor: '#b17724' },
-    'FATURADO': { cor: '#ff4500' },
-    'MATERIAL ENVIADO': { cor: '#b17724' },
-    'MATERIAL ENTREGUE': { cor: '#b17724' },
-    'COTAÇÃO PENDENTE': { cor: '#0a989f' },
-    'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
-    'RETORNO DE MATERIAIS': { cor: '#aacc14' },
-    'FINALIZADO': { cor: 'blue' }
-}
-
-let totalValoresPedidos; // Variável global
 
 async function sincronizar_e_reabrir() {
     await recuperar_orcamentos()
@@ -1049,7 +1046,6 @@ function mostrar_itens_adicionais() {
 }
 
 async function salvar_pedido(chave) {
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let data = document.getElementById('data')
     let comentario_status = document.getElementById('comentario_status')
     let valor = document.getElementById('valor')
@@ -1113,7 +1109,6 @@ async function salvar_notas(chave) {
     let comentario_status = document.getElementById('comentario_status')
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
     if (tipo.value == "Selecione" || nota.value == "" || valorNota.value == "" || valorFrete.value == "") {
 
@@ -1264,8 +1259,6 @@ function botao_novo_pagamento(id) {
 
 async function exibir_todos_os_status(id) {
 
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-
     let detalhes = document.getElementById('detalhes')
     if (detalhes) {
         detalhes.remove()
@@ -1346,7 +1339,7 @@ async function remover_reprovacao(responsavel) {
 async function aprovar_orcamento(responsavel, aprovar, data) {
     let justificativa = document.getElementById(`justificativa_${responsavel}`)
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+
     let orcamento = dados_orcamentos[id_orcam]
     let aprov = {
         usuario: acesso.usuario,
@@ -1376,7 +1369,6 @@ async function abrir_esquema(id) {
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
     let orcamento = dados_orcamentos[id]
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
 
     if (Object.keys(dados_setores).length == 0) {
@@ -2095,7 +2087,6 @@ async function iniciar_cotacao(id_orcam) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento = dados_orcamentos[id_orcam]
     let itens_do_orcamento = dados_orcamentos[id_orcam].dados_composicoes
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let todos_os_status = orcamento.status.historico
     let itens = {} // Dicionário;
     let tem_requisicao = false
@@ -2390,7 +2381,6 @@ async function salvar_materiais_retorno(chave) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
     let tabelaRetornoMateriais = document.querySelector("#tabelaRetornoMateriais")
 
@@ -2470,7 +2460,6 @@ async function registrar_envio_material(chave) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let historico = dados_orcamentos[id_orcam].status.historico
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let st = 'MATERIAL ENVIADO'
 
     status.executor = acesso.usuario
@@ -2608,7 +2597,6 @@ async function excluir_comentario(id_comentario, chave) {
 
 async function carregar_comentarios(chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let comentss = ''
     if (dados_orcamentos[id_orcam].status.historico[chave]) {
         let comentarios = dados_orcamentos[id_orcam].status.historico[chave].comentarios || {}
@@ -2643,7 +2631,6 @@ async function salvar_comentario(chave) {
     let id_div = `comentario_${chave}`
     let textarea = document.getElementById(id_div).querySelector('textarea')
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let orcamento = dados_orcamentos[id_orcam]
 
     var id = gerar_id_5_digitos()
@@ -2751,7 +2738,6 @@ async function detalhar_requisicao(chave, editar, tipoRequisicao) {
     }
 
     itens_adicionais = {}
-    var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     var usuario = acesso.usuario
     var data = new Date().toLocaleString('pt-BR', {
         dateStyle: 'short',

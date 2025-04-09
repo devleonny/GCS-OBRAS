@@ -294,7 +294,6 @@ async function editar(orcam_) {
 
 async function duplicar(orcam_) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let acesso = JSON.parse(localStorage.getItem('acesso'))
 
     var orcamento_v2 = dados_orcamentos[orcam_]
 
