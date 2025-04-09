@@ -358,16 +358,15 @@ async function abrir_agrupamentos(codigo) {
 
             <hr style="width: 100%; margin: 10px;">
 
-            <div style="width: 80vw; overflow: auto; height: 500px; border-radius: 3px; background-color: #222; padding: 10px;">
                 <table class="tabela" style="border-collapse: collapse;">
                     <thead>
                         <tr>
-                            <th style="color: #222;">Marcação</th>
-                            <th style="color: #222;">Código</th>
-                            <th style="color: #222;">Descrição</th>
-                            <th style="color: #222;">Modelo</th>
-                            <th style="color: #222;">Unidade</th>
-                            <th style="color: #222;">Tipo</th>
+                            <th>Marcação</th>
+                            <th>Código</th>
+                            <th>Descrição</th>
+                            <th>Modelo</th>
+                            <th>Unidade</th>
+                            <th>Tipo</th>
                         <tr>
                     </thead>
                     <thead>
@@ -405,7 +404,7 @@ async function abrir_agrupamentos(codigo) {
                         ${linhas}
                     </tbody>
                 </table>
-            </div>
+
 
         </div>    
     `
@@ -1482,12 +1481,12 @@ async function cadastrar_editar_item(codigo) {
 
         if (col.includes('desc')) {
             campo = `
-            <textarea style="background-color: #a2d7a4; width: 100%; border: none;">${valor}</textarea>
+            <textarea rows="5" style="color: #222; background-color: #a2d7a4; width: 100%; border: none;">${valor}</textarea>
             `
         } else if (col == 'tipo') {
             campo = `
             <div>
-                <select style="cursor: pointer;">
+                <select style="width: 100%; cursor: pointer;">
                     <option ${valor == 'VENDA' ? 'selected' : ''}>VENDA</option>
                     <option ${valor == 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
                 </select>
