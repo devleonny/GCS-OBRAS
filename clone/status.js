@@ -1378,6 +1378,12 @@ async function abrir_esquema(id) {
     let orcamento = dados_orcamentos[id]
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+
+    if (Object.keys(dados_setores).length == 0) {
+        dados_setores = await lista_setores()
+        localStorage.setItem('dados_setores', JSON.stringify(dados_setores))
+    }
+
     let setor = dados_setores[acesso.usuario].setor
     let permissao = dados_setores[acesso.usuario].permissao
     let categorias = Object.fromEntries(
@@ -3538,8 +3544,8 @@ async function mostrar_painel() {
                             ${tipo == 'VENDA' ? `
                             <td></td>
                             <td></td>
-                            <td>${dinheiro(tab.total_custo)}</td>` 
-                            : ''}
+                            <td>${dinheiro(tab.total_custo)}</td>`
+                    : ''}
 
                             <td></td>
                             <td></td>
@@ -3581,6 +3587,7 @@ async function mostrar_painel() {
         <div style="overflow: auto;">
             <br>
             <div style="display: flex; justify-content: center; align-items: start; gap: 2vw;">
+            
                 <div style="width: 40% ; background-color: #e3e3e3; padding: 5px; border-radius: 5px;">
                     <label>Gestão de Custos</label>
                         ${pags}
