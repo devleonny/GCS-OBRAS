@@ -451,11 +451,12 @@ async function carregarXLSX() {
 console.log("XLSX está disponível?", typeof XLSX !== 'undefined' ? "Sim" : "Não");
 
 async function para_excel(tabela_id) {
-    await carregarXLSX()
     try {
-        // Check if XLSX is available
-        if (typeof XLSX === 'undefined' || !XLSX.utils || !XLSX.utils.table_to_sheet) {
-            throw new Error("XLSX library não carregado.");
+        // Ensure XLSX is loaded
+        if (typeof XLSX === 'undefined') {
+            await carregarXLSX();
+            // Add small delay to ensure library is fully loaded
+            await new Promise(resolve => setTimeout(resolve, 200));
         }
 
         const tabelaOriginal = document.getElementById(tabela_id);
