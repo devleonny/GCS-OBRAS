@@ -3303,7 +3303,8 @@ async function mostrar_painel() {
             impostos: '',
             total_custo: 0,
             total_orcado: 0,
-            total_impostos: 0
+            total_impostos: 0,
+            total_lucro: 0
         }
     }
 
@@ -3319,13 +3320,20 @@ async function mostrar_painel() {
 
         let vl_unit = cotacao?.valor || 0
         let total = vl_unit * qtde
+        let lucro_unit = total - custo_total
+
+        let descricao_produto = dados_composicoes[produto.codigo]?.descricao || 'Sem descrição'
 
         linhas[produto.tipo].total_custo += custo_total
         linhas[produto.tipo].total_orcado += total
+        linhas[produto.tipo].total_lucro += lucro_unit
 
         linhas[produto.tipo].orcamento += `
         <tr>
-            <td>${produto.codigo}</td>
+            ${produto.tipo == 'SERVIÇO' ? `
+            <td>${produto.codigo}</td>`
+            : ''}
+            <td>${descricao_produto}</td>
             <td>${qtde}</td>
             ${produto.tipo == 'VENDA' ? `
             <td>${dinheiro(custo_unit)}</td>
@@ -3334,6 +3342,9 @@ async function mostrar_painel() {
             ` : ''}
             <td>${dinheiro(vl_unit)}</td>
             <td>${dinheiro(total)}</td>
+            ${produto.tipo == 'VENDA' ? `
+            <td>${dinheiro(lucro_unit)}</td>
+            ` : ''}
         </tr>
         `
     }
@@ -3361,12 +3372,12 @@ async function mostrar_painel() {
             </thead>
             <tbody>
                 <tr>
-                    <td>Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
+                    <td style="font-size: 0.7em;">Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
                     <td><input value="8%" readOnly></td>
                     <td>${dinheiro(aliq_lp_venda)}</td>
                 </tr>
                 <tr>
-                    <td>Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
+                    <td style="font-size: 0.7em;">Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
                     <td><input value="12%" readOnly></td>
                     <td>${dinheiro(aliq_presuncao_venda)}</td>
                 </tr>
@@ -3381,32 +3392,32 @@ async function mostrar_painel() {
             </thead>
             <tbody>
                 <tr>
-                    <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td style="font-size: 0.7em;">O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
                     <td><input value="15%" readOnly></td>
                     <td>${dinheiro(irpj_venda)}</td>
                 </tr>
                 <tr>
-                    <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td style="font-size: 0.7em;">Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
                     <td><input value="10%" readOnly></td>
                     <td>${dinheiro(ad_irpj_venda)}</td>
                 </tr>
                 <tr>
-                    <td>CSLL a ser Pago (9%) da Presunção</td>
+                    <td style="font-size: 0.7em;">CSLL a ser Pago (9%) da Presunção</td>
                     <td><input value="9%" readOnly></td>
                     <td>${dinheiro(csll_venda)}</td>
                 </tr>
                 <tr>
-                    <td>O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
+                    <td style="font-size: 0.7em;">O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
                     <td><input value="0.65%" readOnly></td>
                     <td>${dinheiro(pis_venda)}</td>
                 </tr>
                 <tr>
-                    <td>A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
+                    <td style="font-size: 0.7em;">A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
                     <td><input value="3%" readOnly></td>
                     <td>${dinheiro(cofins_venda)}</td>
                 </tr>
                 <tr>
-                    <td>O Imposto sobre Circulação de Mercadorias e Serviços (ICMS) (${(porcentagem_icms * 100).toFixed(1)}%) do faturamento</td>
+                    <td style="font-size: 0.7em;">O Imposto sobre Circulação de Mercadorias e Serviços (ICMS) (${(porcentagem_icms * 100).toFixed(1)}%) do faturamento</td>
                     <td><input value="${(porcentagem_icms * 100).toFixed(1)}%" readOnly></td>
                     <td>${dinheiro(icms)}</td>
                 </tr>
@@ -3441,12 +3452,12 @@ async function mostrar_painel() {
             </thead>
             <tbody>
                 <tr>
-                    <td>Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
+                    <td style="font-size: 0.7em;">Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
                     <td style="text-align: center;">32%</td>
                     <td>${dinheiro(aliq_lucro_presumido)}</td>
                 </tr>
                 <tr>
-                    <td>Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
+                    <td style="font-size: 0.7em;">Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
                     <td style="text-align: center;">32%</td>
                     <td>${dinheiro(aliq_presuncao)}</td>
                 </tr>
@@ -3461,32 +3472,32 @@ async function mostrar_painel() {
             </thead>
             <tbody>
                 <tr>
-                    <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td style="font-size: 0.7em;">O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
                     <td><input value="15%" readOnly></td>
                     <td>${dinheiro(irpj)}</td>
                 </tr>
                 <tr>
-                    <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td style="font-size: 0.7em;">Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
                     <td><input value="10%" readOnly></td>
                     <td>${dinheiro(ad_irpj)}</td>
                 </tr>
                 <tr>
-                    <td>CSLL a ser Pago (9%) da Presunção</td>
+                    <td style="font-size: 0.7em;">CSLL a ser Pago (9%) da Presunção</td>
                     <td><input value="9%" readOnly></td>
                     <td>${dinheiro(csll_presuncao)}</td>
                 </tr>
                 <tr>
-                    <td>O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
+                    <td style="font-size: 0.7em;">O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
                     <td><input value="0.65%" readOnly></td>
                     <td>${dinheiro(pis)}</td>
                 </tr>
                 <tr>
-                    <td>A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
+                    <td style="font-size: 0.7em;">A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
                     <td><input value="3%" readOnly></td>
                     <td>${dinheiro(cofins)}</td>
                 </tr>
                 <tr>
-                    <td>O Imposto Sobre Serviços ( ISS )(5%) (Incide sobre o faturamento)</td>
+                    <td style="font-size: 0.7em;">O Imposto Sobre Serviços ( ISS )(5%) (Incide sobre o faturamento)</td>
                     <td><input value="5%" readOnly></td>
                     <td>${dinheiro(iss)}</td>
                 </tr>                
@@ -3509,39 +3520,54 @@ async function mostrar_painel() {
         if (tab.orcamento != '') {
 
             tabelas += `
-                <label>${tipo}</label>
-                <table class="tabela">
-                    <thead>
-                        <th>Código</th>
-                        <th>Quantidade</th>
-                        ${tipo == 'VENDA' ? `
-                            <th>Custo Unit</th>
-                            <th>Custo Total</th>
-                            <th>Margem</th>
-                        ` : ''}
-                        <th>Valor de ${tipo.toLocaleLowerCase()}</th>
-                        <th>Total de ${tipo.toLocaleLowerCase()}</th>
-                    </thead>
-                    <tbody>
-                        ${tab.orcamento}
-                        <tr style="background-color: #535151;">
-                            <td></td>
-
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <label>${tipo}</label>
+                    <table class="tabela">
+                        <thead>
+                            ${tipo == 'SERVIÇO' ? `
+                                <th>Código</th>
+                            ` : ''}
+                            <th>Descrição</th>
+                            <th>Quantidade</th>
                             ${tipo == 'VENDA' ? `
-                            <td></td>
-                            <td></td>
-                            <td>${dinheiro(tab.total_custo)}</td>`
-                    : ''}
+                                <th>Custo Unit</th>
+                                <th>Custo Total</th>
+                                <th>Margem</th>
+                            ` : ''}
+                            <th>Valor de ${tipo.toLocaleLowerCase()} Unit</th>
+                            <th>Total de ${tipo.toLocaleLowerCase()}</th>
+                            ${tipo == 'VENDA' ? `
 
-                            <td></td>
-                            <td></td>
-                            <td>${dinheiro(tab.total_orcado)}</td>
-                        </tr>
-                    </tbody>
+                                <th>Lucro Total</th>
+                            ` : ''}
+                        </thead>
+                        <tbody>
+                            ${tab.orcamento}
+                            <tr style="background-color: #535151;">
+                                ${tipo == 'VENDA' ? `
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td>${dinheiro(tab.total_custo)}</td>` 
+                                : ''}
 
-                </table>
-                <hr style="width: 100%;">
-                ${tab.impostos}
+                                ${tipo == 'SERVIÇO' ? `
+                                <td></td>
+                                <td></td>` 
+                                : ''}
+                                <td></td>
+                                <td></td>
+                                <td>${dinheiro(tab.total_orcado)}</td>
+
+                                ${tipo == 'VENDA' ? `
+                                <td>${dinheiro(tab.total_lucro)}</td>` 
+                                : ''}
+                            </tr>
+                        </tbody>
+
+                    </table>
+                </div>
+
             `
             impostos += `
                 <br>
@@ -3572,52 +3598,56 @@ async function mostrar_painel() {
 
         <div style="overflow: auto;">
             <br>
-            <div style="display: flex; justify-content: center; align-items: start; gap: 2vw;">
-            
-                <div style="width: 40% ; background-color: #e3e3e3; padding: 5px; border-radius: 5px;">
-                    <label>Gestão de Custos</label>
-                        ${pags}
-                    <hr style="width: 100%;">
-                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
-                        <label style="font-size: 0.7vw;">Valor do Orçamento</label>
-                        <label>${dinheiro(total_orcamento)}</label>
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: start; gap: 2vw;">
+                <div style="display: flex; justify-content: space-between; gap: 2vw;">
+                    <div style="width: 20%; background-color: #e3e3e3; padding: 5px; border-radius: 5px;">
+                        <label>Gestão de Custos</label>
+                            ${pags}
+                        <hr style="width: 100%;">
+                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                            <label style="font-size: 0.7vw;">Valor do Orçamento</label>
+                            <label>${dinheiro(total_orcamento)}</label>
+                        </div>
+                        <hr style="width: 100%;">
+
+
+                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                            <label>Valores Lançados</label>
+                            <label onclick="valores_manuais()" style="cursor: pointer; font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
+                        </div>
+
+                        <div id="lista-valores-manuais">
+                            ${Object.entries(orcamento.valoresManuais || {}).length > 0
+                ? Object.entries(orcamento.valoresManuais).map(([chave, valor]) => `
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
+                                    <button onclick="removerValorManual('${id_orcam}', '${chave}')" 
+                                        style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
+                                </div>
+                            `).join("")
+                : "<label style='font-size: 0.7vw; color: gray;'>Nenhum valor manual adicionado.</label>"}
+                        </div>
+
+                        <hr style="width: 100%;">
+
+                        ${impostos}
+
+                        ${total_custos}
+
+                        <br>
+                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                            <label style="font-size: 0.7vw;">Lucro Líquido</label>
+                            <label>${dinheiro(lucro_liquido)} (${lucro_porcentagem}%)</label>
+                        </div>
                     </div>
-                    <hr style="width: 100%;">
-
-                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
-                        <label>Valores Lançados</label>
-                        <label onclick="valores_manuais()" style="cursor: pointer; font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
+                    <div style="width: 40%;">
+                        ${linhas.VENDA.impostos}
                     </div>
-
-                    <div id="lista-valores-manuais">
-                        ${Object.entries(orcamento.valoresManuais || {}).length > 0
-            ? Object.entries(orcamento.valoresManuais).map(([chave, valor]) => `
-                            <div style="display: flex; align-items: center; gap: 5px;">
-                                <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
-                                <button onclick="removerValorManual('${id_orcam}', '${chave}')" 
-                                    style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
-                            </div>
-                        `).join("")
-            : "<label style='font-size: 0.7vw; color: gray;'>Nenhum valor manual adicionado.</label>"}
+                    <div style="width: 40%;">
+                        ${linhas.SERVIÇO.impostos}
                     </div>
-
-                    <hr style="width: 100%;">
-
-                    ${impostos}
-
-                    ${total_custos}
-
-                    <br>
-                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
-                        <label style="font-size: 0.7vw;">Lucro Líquido</label>
-                        <label>${dinheiro(lucro_liquido)} (${lucro_porcentagem}%)</label>
-                    </div>
-
                 </div>
-
-                <div style="width: 50%; display: flex; flex-direction: column; justify-content: center; gap: 3px;">
-                    <label>Orçamento por Item</label>
-                    
+                <div style="width: 100%; display: flex; flex-direction: column; gap: 2vw;">
                     ${tabelas}
                 </div>
             </div>
