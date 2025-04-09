@@ -437,24 +437,55 @@ function mostrar_ocultar_alertas() {
     }
 }
 
-function para_excel(tabela_id) {
-    const tabelaOriginal = document.getElementById(tabela_id);
-    if (!tabelaOriginal) return;
 
-    const tabelaClone = tabelaOriginal.cloneNode(true);
+async function carregarXLSX() {
+    if (typeof XLSX === 'undefined') {
+        await new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+            script.onload = resolve;
+            document.head.appendChild(script);
+        });
+    }
+}
+console.log("XLSX está disponível?", typeof XLSX !== 'undefined' ? "Sim" : "Não");
 
-    const inputs = tabelaClone.querySelectorAll('input, textarea');
-    inputs.forEach(input => {
-        const cell = input.closest('td, th');
-        if (cell) {
-            cell.textContent = input.value;
+async function para_excel(tabela_id) {
+    await carregarXLSX()
+    try {
+        // Check if XLSX is available
+        if (typeof XLSX === 'undefined' || !XLSX.utils || !XLSX.utils.table_to_sheet) {
+            throw new Error("XLSX library não carregado.");
         }
-    });
 
-    const worksheet = XLSX.utils.table_to_sheet(tabelaClone);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
-    XLSX.writeFile(workbook, 'dados.xlsx');
+        const tabelaOriginal = document.getElementById(tabela_id);
+        if (!tabelaOriginal) {
+            throw new Error(`Table with ID ${tabela_id} not found`);
+        }
+
+        const tabelaClone = tabelaOriginal.cloneNode(true);
+
+        // Process inputs in the cloned table
+        const inputs = tabelaClone.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            const cell = input.closest('td, th');
+            if (cell) {
+                cell.textContent = input.value;
+            }
+        });
+
+        // Convert table to worksheet
+        const worksheet = XLSX.utils.table_to_sheet(tabelaClone);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
+        
+        // Export the Excel file
+        XLSX.writeFile(workbook, 'dados.xlsx');
+        
+    } catch (error) {
+        console.error("Error exporting to Excel:", error);
+        openPopup_v2(`Erro ao exportar para Excel: ${error.message}`, 'Erro');
+    }
 }
 
 async function remover_popup(nao_remover_anteriores) {
