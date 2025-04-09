@@ -687,73 +687,79 @@ async function abrir_historico_de_precos(codigo, tabela) {
 }
 
 async function salvar_preco_ativo(codigo, id_preco, lpu) {
+    // 1. Criar loader visível
+    const loader = document.createElement('div');
+    loader.id = 'preco-loader';
+    loader.innerHTML = '<div style="font-size:1.5em">Atualizando preço...</div>';
+    loader.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    `;
+    document.body.appendChild(loader);
+
     try {
-        // 1. Adicionar loader
-        const loader = document.createElement('div');
-        loader.innerHTML = 'Atualizando preço...';
-        loader.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        `;
-        document.body.appendChild(loader);
+        // 2. Adicionar timeout para evitar loading infinito
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout ao salvar preço')), 10000)
+        );
 
-        // 2. Obter e atualizar dados
-        const dados_composicoes = await recuperarDados('dados_composicoes') || {};
-        const produto = dados_composicoes[codigo];
-        
-        if (!produto) {
-            throw new Error(`Produto ${codigo} não encontrado`);
-        }
+        // 3. Executar a lógica principal
+        const saveOperation = (async () => {
+            const dados_composicoes = await recuperarDados('dados_composicoes') || {};
+            const produto = dados_composicoes[codigo];
+            
+            if (!produto) throw new Error('Produto não encontrado');
+            
+            // Inicializar estrutura se não existir
+            produto[lpu] = produto[lpu] || { historico: {}, ativo: "" };
+            
+            // Alternar estado ativo
+            produto[lpu].ativo = produto[lpu].ativo === id_preco ? "" : id_preco;
+            
+            // Atualizar valor principal se estiver ativando
+            if (produto[lpu].ativo && produto[lpu].historico[produto[lpu].ativo]) {
+                produto[lpu].valor = produto[lpu].historico[produto[lpu].ativo].valor;
+            }
 
-        // Inicializa a LPU se não existir
-        if (!produto[lpu]) {
-            produto[lpu] = { historico: {}, ativo: "" };
-        }
+            // Salvar alterações
+            await Promise.all([
+                inserirDados(dados_composicoes, 'dados_composicoes'),
+                enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, produto[lpu].ativo),
+                produto[lpu].ativo && enviar(`dados_composicoes/${codigo}/${lpu}/valor`, produto[lpu].valor)
+            ]);
 
-        // Alterna o estado ativo
-        const novoEstado = produto[lpu].ativo === id_preco ? "" : id_preco;
-        produto[lpu].ativo = novoEstado;
+            return true;
+        })();
 
-        // Se estiver ativando, atualiza o valor principal
-        if (novoEstado && produto[lpu].historico[novoEstado]) {
-            produto[lpu].valor = produto[lpu].historico[novoEstado].valor;
-        }
-
-        // 3. Salvar no banco de dados
-        await Promise.all([
-            inserirDados(dados_composicoes, 'dados_composicoes'),
-            enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, novoEstado),
-            novoEstado && enviar(`dados_composicoes/${codigo}/${lpu}/valor`, produto[lpu].valor)
-        ]);
-
-        // 4. Atualizar interface - abordagem mais segura
-        loader.remove();
-        
-        // Fecha o popup se existir
-        if (document.getElementById('popup')) {
-            remover_popup();
-        }
-
-        // Recarrega os dados
-        await carregar_tabela_v2();
+        // 4. Executar com timeout
+        await Promise.race([saveOperation, timeoutPromise]);
 
     } catch (error) {
-        console.error('Erro em salvar_preco_ativo:', error);
-        document.querySelector('div[style*="position: fixed"]')?.remove();
-        
-        // Mostra erro apenas se não for um erro de DOM esperado
-        if (!error.message.includes('checked')) {
-            alert('Erro ao salvar preço ativo');
+        console.error('Erro:', error);
+        // Mostrar erro temporariamente no loader
+        if (loader) loader.innerHTML = `<div style="color:red;font-size:1.2em">Erro: ${error.message}</div>`;
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Mostrar erro por 2 segundos
+    } finally {
+        // 5. Sempre remover o loader e atualizar
+        if (loader && document.body.contains(loader)) {
+            document.body.removeChild(loader);
         }
+        
+        // Fechar popup se existir
+        const popup = document.getElementById('popup');
+        if (popup) popup.remove();
+        
+        // Recarregar dados
+        await carregar_tabela_v2();
     }
 }
 // async function salvar_preco_ativo(codigo, id_preco, lpu) {
