@@ -687,99 +687,175 @@ async function abrir_historico_de_precos(codigo, tabela) {
 }
 
 async function salvar_preco_ativo(codigo, id_preco, lpu) {
+    // 1. Criar loader visível
+    const loader = document.createElement('div');
+    loader.id = 'preco-loader';
+    loader.innerHTML = '<div style="font-size:1.5em">Atualizando preço...</div>';
+    loader.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    `;
+    document.body.appendChild(loader);
 
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {};
-    var produto = dados_composicoes[codigo];
-    var historico_preco = document.getElementById('historico_preco');
+    try {
+        // 2. Adicionar timeout para evitar loading infinito
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout ao salvar preço')), 10000)
+        );
 
-    if (historico_preco) {
-        var tabela = historico_preco.querySelector('table');
-        var tbody = tabela.querySelector('tbody');
-        var trs = tbody.querySelectorAll('tr');
-
-        // 🔥 Adicionar o aviso de "Aguarde..." dentro do container da tabela
-        const aviso = document.createElement('div');
-        aviso.id = "aviso-aguarde";
-        aviso.style = `
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            background-color: rgba(0, 0, 0, 0.7); 
-            color: white; 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            z-index: 10; 
-            font-size: 1.5em; 
-            border-radius: 5px;
-        `;
-        aviso.innerHTML = `<div>Aguarde...</div>`;
-        historico_preco.style.position = "relative"; // Garante que o aviso seja posicionado corretamente
-        historico_preco.appendChild(aviso);
-
-        // 🔥 Ocultar a tabela enquanto o aviso é exibido
-        tabela.style.opacity = "0.3"; // Reduz a opacidade da tabela
-
-        // 🔥 Desmarca todos os checkboxes antes de ativar o novo
-        trs.forEach(tr => {
-            let tds = tr.querySelectorAll('td');
-            let checkbox = tds[6].querySelector('input');
-            checkbox.checked = false; // Remove todas as marcações
-        });
-
-        let algumMarcado = false;
-
-        // 🔥 Agora percorre e marca apenas o checkbox correto
-        for (let tr of trs) {
-            let tds = tr.querySelectorAll('td');
-            let checkbox = tds[6].querySelector('input');
-
-            if (id_preco === produto[lpu]?.ativo) {
-                // Desmarcando o preço ativo
-                produto[lpu].ativo = "";
-                await inserirDados(dados_composicoes, 'dados_composicoes');
-                await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
-
-                // 🔥 Remover o aviso e restaurar a tabela
-                aviso.remove();
-                tabela.style.opacity = "1"; // Restaura a opacidade
-                carregar_tabela_v2();
-                return abrir_historico_de_precos(codigo, lpu);
+        // 3. Executar a lógica principal
+        const saveOperation = (async () => {
+            const dados_composicoes = await recuperarDados('dados_composicoes') || {};
+            const produto = dados_composicoes[codigo];
+            
+            if (!produto) throw new Error('Produto não encontrado');
+            
+            // Inicializar estrutura se não existir
+            produto[lpu] = produto[lpu] || { historico: {}, ativo: "" };
+            
+            // Alternar estado ativo
+            produto[lpu].ativo = produto[lpu].ativo === id_preco ? "" : id_preco;
+            
+            // Atualizar valor principal se estiver ativando
+            if (produto[lpu].ativo && produto[lpu].historico[produto[lpu].ativo]) {
+                produto[lpu].valor = produto[lpu].historico[produto[lpu].ativo].valor;
             }
 
-            if (checkbox.checked || id_preco) {
-                checkbox.checked = true; // Garante a marcação
-                produto[lpu].ativo = id_preco;
-                algumMarcado = true;
+            // Salvar alterações
+            await Promise.all([
+                inserirDados(dados_composicoes, 'dados_composicoes'),
+                enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, produto[lpu].ativo),
+                produto[lpu].ativo && enviar(`dados_composicoes/${codigo}/${lpu}/valor`, produto[lpu].valor)
+            ]);
 
-                await inserirDados(dados_composicoes, 'dados_composicoes');
-                await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco);
+            return true;
+        })();
 
-                historico_preco.remove();
+        // 4. Executar com timeout
+        await Promise.race([saveOperation, timeoutPromise]);
 
-                // 🔥 Remover o aviso e restaurar a tabela
-                aviso.remove();
-                tabela.style.opacity = "1"; // Restaura a opacidade
-                remover_popup();
-                return abrir_historico_de_precos(codigo, lpu);
-            }
+    } catch (error) {
+        console.error('Erro:', error);
+        // Mostrar erro temporariamente no loader
+        if (loader) loader.innerHTML = `<div style="color:red;font-size:1.2em">Erro: ${error.message}</div>`;
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Mostrar erro por 2 segundos
+    } finally {
+        // 5. Sempre remover o loader e atualizar
+        if (loader && document.body.contains(loader)) {
+            document.body.removeChild(loader);
         }
-
-        // 🔥 Se nenhum checkbox foi marcado, remove o ativo
-        if (!algumMarcado) {
-            produto[lpu].ativo = "";
-            await inserirDados(dados_composicoes, 'dados_composicoes');
-            await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
-        }
-
-        // 🔥 Remover o aviso e restaurar a tabela
-        aviso.remove();
-        tabela.style.opacity = "1"; // Restaura a opacidade
-        carregar_tabela_v2();
+        
+        // Fechar popup se existir
+        const popup = document.getElementById('popup');
+        if (popup) popup.remove();
+        
+        // Recarregar dados
+        await carregar_tabela_v2();
     }
 }
+// async function salvar_preco_ativo(codigo, id_preco, lpu) {
+
+//     var dados_composicoes = await recuperarDados('dados_composicoes') || {};
+//     var produto = dados_composicoes[codigo];
+//     var historico_preco = document.getElementById('historico_preco');
+
+//     if (historico_preco) {
+//         var tabela = historico_preco.querySelector('table');
+//         var tbody = tabela.querySelector('tbody');
+//         var trs = tbody.querySelectorAll('tr');
+
+//         // 🔥 Adicionar o aviso de "Aguarde..." dentro do container da tabela
+//         const aviso = document.createElement('div');
+//         aviso.id = "aviso-aguarde";
+//         aviso.style = `
+//             display: flex; 
+//             align-items: center; 
+//             justify-content: center; 
+//             background-color: rgba(0, 0, 0, 0.7); 
+//             color: white; 
+//             position: absolute; 
+//             top: 0; 
+//             left: 0; 
+//             width: 100%; 
+//             height: 100%; 
+//             z-index: 10; 
+//             font-size: 1.5em; 
+//             border-radius: 5px;
+//         `;
+//         aviso.innerHTML = `<div>Aguarde...</div>`;
+//         historico_preco.style.position = "relative"; // Garante que o aviso seja posicionado corretamente
+//         historico_preco.appendChild(aviso);
+
+//         // 🔥 Ocultar a tabela enquanto o aviso é exibido
+//         tabela.style.opacity = "0.3"; // Reduz a opacidade da tabela
+
+//         // 🔥 Desmarca todos os checkboxes antes de ativar o novo
+//         trs.forEach(tr => {
+//             let tds = tr.querySelectorAll('td');
+//             let checkbox = tds[6].querySelector('input');
+//             checkbox.checked = false; // Remove todas as marcações
+//         });
+
+//         let algumMarcado = false;
+
+//         // 🔥 Agora percorre e marca apenas o checkbox correto
+//         for (let tr of trs) {
+//             let tds = tr.querySelectorAll('td');
+//             let checkbox = tds[6].querySelector('input');
+
+//             if (id_preco === produto[lpu]?.ativo) {
+//                 // Desmarcando o preço ativo
+//                 produto[lpu].ativo = "";
+//                 await inserirDados(dados_composicoes, 'dados_composicoes');
+//                 await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
+
+//                 // 🔥 Remover o aviso e restaurar a tabela
+//                 aviso.remove();
+//                 tabela.style.opacity = "1"; // Restaura a opacidade
+//                 carregar_tabela_v2();
+//                 return abrir_historico_de_precos(codigo, lpu);
+//             }
+
+//             if (checkbox.checked || id_preco) {
+//                 checkbox.checked = true; // Garante a marcação
+//                 produto[lpu].ativo = id_preco;
+//                 algumMarcado = true;
+
+//                 await inserirDados(dados_composicoes, 'dados_composicoes');
+//                 await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco);
+
+//                 historico_preco.remove();
+
+//                 // 🔥 Remover o aviso e restaurar a tabela
+//                 aviso.remove();
+//                 tabela.style.opacity = "1"; // Restaura a opacidade
+//                 remover_popup();
+//                 return abrir_historico_de_precos(codigo, lpu);
+//             }
+//         }
+
+//         // 🔥 Se nenhum checkbox foi marcado, remove o ativo
+//         if (!algumMarcado) {
+//             produto[lpu].ativo = "";
+//             await inserirDados(dados_composicoes, 'dados_composicoes');
+//             await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
+//         }
+
+//         // 🔥 Remover o aviso e restaurar a tabela
+//         aviso.remove();
+//         tabela.style.opacity = "1"; // Restaura a opacidade
+//         carregar_tabela_v2();
+//     }
+// }
 
 async function excluir_cotacao(codigo, lpu, cotacao) {
     var historico_preco = document.getElementById('historico_preco');
@@ -1120,46 +1196,142 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
 
     calcular(produto.tipo == 'SERVIÇO' ? 'servico' : undefined)
 
+    setTimeout(() => {
+        document.getElementById('final').focus();
+    }, 100);
+
 }
 
 async function salvar_preco(codigo, lpu, cotacao) {
-
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    let produto = dados_composicoes[codigo]
-
-    if (!produto[lpu]) {
-        produto[lpu] = {
-            historico: {}
+    const loader = document.createElement('div');
+    loader.innerHTML = 'Salvando...';
+    loader.style.position = 'fixed';
+    // ... estilize o loader ...
+    document.body.appendChild(loader);
+    
+    try {
+        // ... código de salvamento ...
+    } finally {
+        loader.remove();
+    }
+    try {
+        // 1. Verificar se o produto existe
+        let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+        let produto = dados_composicoes[codigo];
+        
+        if (!produto) {
+            console.error(`Produto com código ${codigo} não encontrado`);
+            return;
         }
+
+        // 2. Obter elementos de forma segura com fallbacks
+        const getElementValue = (id, defaultValue = '') => {
+            const el = document.getElementById(id);
+            return el ? el.value : defaultValue;
+        };
+
+        const getElementNumber = (id, defaultValue = 0) => {
+            const val = getElementValue(id, defaultValue);
+            return val ? Number(val) : defaultValue;
+        };
+
+        // 3. Coletar valores com verificações
+        const valores = {
+            final: getElementNumber('final'),
+            nota: getElementValue('nota'),
+            comentario: getElementValue('comentario'),
+            margem: getElementNumber('margem'),
+            fornecedor: produto.tipo === 'VENDA' ? getElementValue('fornecedor') : '',
+            custo: produto.tipo === 'VENDA' ? getElementNumber('custo') : getElementNumber('final'),
+            valor_custo: produto.tipo === 'VENDA' ? conversor(document.querySelector('#valor_custo')?.textContent || '0') : 0,
+            icms_creditado: produto.tipo === 'VENDA' ? getElementNumber('icms_creditado') : 0
+        };
+
+        // 4. Validar valores obrigatórios
+        if (isNaN(valores.final) || valores.final <= 0) {
+            alert('Preço final inválido!');
+            return;
+        }
+
+        // 5. Preparar objeto de histórico
+        let historico = produto[lpu]?.historico || {};
+        let id = cotacao || gerar_id_5_digitos();
+
+        historico[id] = {
+            valor: valores.final,
+            data: dt(),
+            usuario: acesso.usuario,
+            nota: valores.nota,
+            comentario: valores.comentario,
+            margem: valores.margem,
+            fornecedor: valores.fornecedor,
+            custo: valores.custo
+        };
+
+        // Campos específicos para VENDA
+        if (produto.tipo === 'VENDA') {
+            historico[id].valor_custo = valores.valor_custo;
+            historico[id].icms_creditado = valores.icms_creditado;
+        }
+
+        // 6. Atualizar estrutura de dados
+        if (!produto[lpu]) {
+            produto[lpu] = { historico: {} };
+        }
+        produto[lpu].historico = historico;
+
+        // 7. Salvar no banco de dados
+        await inserirDados(dados_composicoes, 'dados_composicoes');
+        await enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, historico[id]);
+
+        // 8. Fechar popup e recarregar
+        remover_popup();
+        await abrir_historico_de_precos(codigo, lpu);
+
+    } catch (error) {
+        console.error('Erro ao salvar preço:', error);
+        alert('Ocorreu um erro ao salvar o preço. Verifique o console para mais detalhes.');
     }
-
-    let historico = produto[lpu].historico
-    let id = cotacao ? cotacao : gerar_id_5_digitos()
-
-    historico[id] = {
-        valor: Number(document.getElementById('final').value),
-        data: dt(),
-        usuario: acesso.usuario,
-        nota: document.getElementById('nota').value,
-        comentario: document.getElementById('comentario').value
-    }
-
-    if (produto.tipo == 'VENDA') {
-        historico[id].valor_custo = conversor(document.getElementById('valor_custo').textContent)
-        historico[id].icms_creditado = Number(document.getElementById('icms_creditado').value)
-    }
-
-    historico[id].margem = Number(document.getElementById('margem').value)
-    historico[id].fornecedor = document.getElementById('fornecedor').value
-    historico[id].custo = conversor(document.getElementById('custo').value)
-
-    await inserirDados(dados_composicoes, 'dados_composicoes')
-
-    enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, historico[id])
-    remover_popup()
-
-    await abrir_historico_de_precos(codigo, lpu)
 }
+
+// async function salvar_preco(codigo, lpu, cotacao) {
+
+//     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+//     let produto = dados_composicoes[codigo]
+
+//     if (!produto[lpu]) {
+//         produto[lpu] = {
+//             historico: {}
+//         }
+//     }
+
+//     let historico = produto[lpu].historico
+//     let id = cotacao ? cotacao : gerar_id_5_digitos()
+
+//     historico[id] = {
+//         valor: Number(document.getElementById('final').value),
+//         data: dt(),
+//         usuario: acesso.usuario,
+//         nota: document.getElementById('nota').value,
+//         comentario: document.getElementById('comentario').value
+//     }
+
+//     if (produto.tipo == 'VENDA') {
+//         historico[id].valor_custo = conversor(document.getElementById('valor_custo').textContent)
+//         historico[id].icms_creditado = Number(document.getElementById('icms_creditado').value)
+//     }
+
+//     historico[id].margem = Number(document.getElementById('margem').value)
+//     historico[id].fornecedor = document.getElementById('fornecedor').value
+//     historico[id].custo = conversor(document.getElementById('custo').value)
+
+//     await inserirDados(dados_composicoes, 'dados_composicoes')
+
+//     enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, historico[id])
+//     remover_popup()
+
+//     await abrir_historico_de_precos(codigo, lpu)
+// }
 
 function calcular(tipo, campo) {
 
