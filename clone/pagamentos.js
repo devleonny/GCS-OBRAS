@@ -1182,7 +1182,6 @@ async function criar_pagamento_v2() {
     if (!await calculadora_pagamento()) {
 
         var id_pagamento = unicoID()
-        var acesso = JSON.parse(localStorage.getItem('acesso'))
         var total = document.getElementById('total_de_pagamento').textContent
         var codigo_cliente = document.getElementById('codigo_omie').textContent
 

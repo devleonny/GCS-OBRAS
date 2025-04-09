@@ -14,7 +14,6 @@ async function carregar_estoque() {
 
     document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
 
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let autorizado = false
     let div_estoque = document.getElementById('estoque')
 
@@ -707,7 +706,6 @@ async function excluir_preco(codigo, cpr) {
 
 async function salvar_valor(codigo) {
 
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let dados_estoque = await recuperarDados('dados_estoque') || {}
     let data = document.getElementById('data')
 
@@ -759,7 +757,6 @@ function parseDataBR(dataBR) {
 async function abrir_estoque(codigo, stq) {
 
     let dados_estoque = await recuperarDados('dados_estoque') || {}
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let item = dados_estoque[codigo]
     let estoque = item[stq] || {}
     let atual = estoque.quantidade ? estoque.quantidade : 0
@@ -954,7 +951,6 @@ async function salvar_movimento(codigo, stq, inicial) {
     let comentario = document.getElementById('comentario')
     let entrada = document.getElementById('entrada')
     let saida = document.getElementById('saida')
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let id = gerar_id_5_digitos()
 
     remover_popup()

@@ -2,7 +2,6 @@ var dados = {}
 var filtrosAtivos = {};
 var composicoes_ = document.getElementById('composicoes_')
 var overlay = document.getElementById('overlay')
-var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
 document.getElementById("btn-criar-lpu").addEventListener("click", function () {
     openPopup_v2(`
@@ -1117,7 +1116,6 @@ async function salvar_preco(codigo, lpu, cotacao) {
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let produto = dados_composicoes[codigo]
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
     if (!produto[lpu]) {
         produto[lpu] = {
