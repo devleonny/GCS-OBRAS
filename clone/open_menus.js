@@ -312,7 +312,7 @@ function criarAnexoVisual(nome, link_anexo, funcao_excluir) {
 
     let displayExcluir = 'flex'
 
-    if(!funcao_excluir) {
+    if (!funcao_excluir) {
 
         displayExcluir = 'none'
 
@@ -426,7 +426,7 @@ function para_excel(tabela_id) {
 
     const inputs = tabelaClone.querySelectorAll('input, textarea');
     inputs.forEach(input => {
-        const cell = input.closest('td, th'); 
+        const cell = input.closest('td, th');
         if (cell) {
             cell.textContent = input.value;
         }
@@ -1567,7 +1567,6 @@ async function aprovacoes_pendentes() {
                     </div>
                 </div>
             </div>
-
         `
     }
 
@@ -1584,6 +1583,7 @@ function resposta_desconto(botao, id, status) {
     let justificativa = botao.parentElement.parentElement.querySelector('textarea').value
 
     let aprovacao = {
+        usuario: acesso.usuario,
         status,
         justificativa
     }

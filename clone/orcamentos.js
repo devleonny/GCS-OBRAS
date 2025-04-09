@@ -284,7 +284,11 @@ async function recuperar_orcamentos() {
 async function editar(orcam_) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    var orcamento_v2 = dados_orcamentos[orcam_]
+    let orcamento_v2 = dados_orcamentos[orcam_]
+
+    if (orcamento_v2.aprovacao) {
+        delete orcamento_v2.aprovacao
+    }
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
