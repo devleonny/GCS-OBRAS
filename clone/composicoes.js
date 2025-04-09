@@ -1128,7 +1128,7 @@ async function salvar_preco(codigo, lpu, cotacao) {
 
     historico[id] = {
         margem: 0,
-        custo: Number(document.getElementById('final').value),
+        custo: Number(document.getElementById('custo').value),
         valor: Number(document.getElementById('final').value),
         data: dt(),
         usuario: acesso.usuario,
