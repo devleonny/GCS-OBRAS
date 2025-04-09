@@ -466,6 +466,7 @@ async function carregarXLSX() {
 console.log("XLSX está disponível?", typeof XLSX !== 'undefined' ? "Sim" : "Não");
 
 async function para_excel(tabela_id) {
+
     try {
         // Ensure XLSX is fully loaded with all utilities
         if (typeof XLSX === 'undefined' || typeof XLSX.utils === 'undefined') {
@@ -495,8 +496,8 @@ async function para_excel(tabela_id) {
         // Create deep clone of the table
         const tabelaClone = tabelaOriginal.cloneNode(true);
         
-        // Process all inputs in the cloned table
-        const inputs = tabelaClone.querySelectorAll('input, textarea, select');
+        // Process inputs in the cloned table
+        const inputs = tabelaClone.querySelectorAll('input, textarea');
         inputs.forEach(input => {
             const cell = input.closest('td, th');
             if (cell) {
