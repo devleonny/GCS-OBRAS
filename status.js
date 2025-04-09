@@ -358,203 +358,293 @@ function ocultar_pedido(elemento) {
     }
 }
 
-async function calcular_requisicao(sincronizar) {
+// async function calcular_requisicao(sincronizar) {
+    
 
-    var tabela_requisicoes = document.getElementById('tabela_requisicoes')
+//     var tabela_requisicoes = document.getElementById('tabela_requisicoes')
 
-    if (tabela_requisicoes) {
-        var tbody = tabela_requisicoes.querySelector('tbody')
+//     if (tabela_requisicoes) {
+//         var tbody = tabela_requisicoes.querySelector('tbody')
+//         let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+//         var orcamento = dados_orcamentos[id_orcam]
+//         var itens = orcamento.dados_composicoes
+//         var estado = orcamento.dados_orcam.estado
 
-        let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-        var orcamento = dados_orcamentos[id_orcam]
+//         if (tbody) {
+//             var trs = tbody.querySelectorAll('tr')
+//             var total_sem_icms = 0
+//             var total_com_icms = 0
 
-        var itens = orcamento.dados_composicoes
-        var estado = orcamento.dados_orcam.estado
+//             trs.forEach(tr => {
 
-        if (tbody) {
-            var trs = tbody.querySelectorAll('tr')
+//                 if (tr.style.display !== 'none') {
+//                     var tds = tr.querySelectorAll('td')
+//                     var codigo = tds[0].textContent
 
-            var total_sem_icms = 0
-            var total_com_icms = 0
+//                     let quantidadeDisponivel = 0
+//                     if (tds[4].querySelector('label.num')) {
+//                         quantidadeDisponivel = tds[4].querySelector('label.num').textContent
+//                     } else {
+//                         quantidadeDisponivel = tds[4].querySelector('label').textContent
+//                     }
 
-            trs.forEach(tr => {
+//                     if (tds[4].querySelector('input') && tds[4].querySelector('input').value > conversor(quantidadeDisponivel)) {
+//                         tds[4].querySelector('input').value = conversor(quantidadeDisponivel)
+//                     }
 
-                if (tr.style.display !== 'none') {
-                    var tds = tr.querySelectorAll('td')
-                    var codigo = tds[0].textContent
+//                     var tipo = 'Error 404'
 
-                    let quantidadeDisponivel = 0
-                    if (tds[4].querySelector('label.num')) {
-                        quantidadeDisponivel = tds[4].querySelector('label.num').textContent
-                    } else {
-                        quantidadeDisponivel = tds[4].querySelector('label').textContent
-                    }
+//                     if (sincronizar) { // Incicialmente para carregar os tipos;
+//                         tipo = itens[codigo].tipo
+//                         tds[3].querySelector('select').value = tipo
 
-                    if (tds[4].querySelector('input') && tds[4].querySelector('input').value > conversor(quantidadeDisponivel)) {
-                        tds[4].querySelector('input').value = conversor(quantidadeDisponivel)
-                    }
+//                     } else {
+//                         tipo = tds[3].querySelector('select') ? tds[3].querySelector('select').value : tds[3].querySelector('label').textContent
+//                     }
 
-                    var tipo = 'Error 404'
+//                     var infos = ['', '']
+//                     if (tipo == 'VENDA') {
+//                         infos = ['<strong>s • ICMS</strong> <br>', '<strong>c • ICMS</strong> <br>']
+//                     }
 
-                    if (sincronizar) { // Incicialmente para carregar os tipos;
-                        tipo = itens[codigo].tipo
-                        tds[3].querySelector('select').value = tipo
+//                     var icms = 0
+//                     if (estado == 'BA' && tipo == 'VENDA') {
+//                         icms = 0.205
+//                     } else if (estado !== 'BA' && tipo == 'VENDA') {
+//                         icms = 0.12
+//                     }
 
-                    } else {
-                        tipo = tds[3].querySelector('select') ? tds[3].querySelector('select').value : tds[3].querySelector('label').textContent
-                    }
+//                     var qtde = tds[4].querySelector('input') ? tds[4].querySelector('input').value : tds[4].textContent
+//                     var custo = conversor(itens[codigo]?.custo)
+//                     var unt_sem_icms = custo - (custo * icms)
 
-                    var infos = ['', '']
-                    if (tipo == 'VENDA') {
-                        infos = ['<strong>s • ICMS</strong> <br>', '<strong>c • ICMS</strong> <br>']
-                    }
-
-                    var icms = 0
-                    if (estado == 'BA' && tipo == 'VENDA') {
-                        icms = 0.205
-                    } else if (estado !== 'BA' && tipo == 'VENDA') {
-                        icms = 0.12
-                    }
-
-                    var qtde = tds[4].querySelector('input') ? tds[4].querySelector('input').value : tds[4].textContent
-                    var custo = conversor(itens[codigo]?.custo)
-                    var unt_sem_icms = custo - (custo * icms)
-
-                    var labels_unitarios = tds[5].querySelectorAll('label')
-                    labels_unitarios[0].innerHTML = `${infos[1]} ${dinheiro(custo)}`
-                    labels_unitarios[1].innerHTML = (qtde == '' || tipo == 'SERVIÇO') ? '' : `${infos[0]} ${dinheiro(unt_sem_icms)}`
+//                     var labels_unitarios = tds[5].querySelectorAll('label')
+//                     labels_unitarios[0].innerHTML = `${infos[1]} ${dinheiro(custo)}`
+//                     labels_unitarios[1].innerHTML = (qtde == '' || tipo == 'SERVIÇO') ? '' : `${infos[0]} ${dinheiro(unt_sem_icms)}`
 
 
-                    var labels_totais = tds[6].querySelectorAll('label')
-                    labels_totais[0].innerHTML = `${infos[1]} ${dinheiro(custo * qtde)}`
-                    labels_totais[1].innerHTML = (qtde == '' || tipo == 'SERVIÇO') ? '' : `${infos[0]} ${dinheiro(unt_sem_icms * qtde)} `
+//                     var labels_totais = tds[6].querySelectorAll('label')
+//                     labels_totais[0].innerHTML = `${infos[1]} ${dinheiro(custo * qtde)}`
+//                     labels_totais[1].innerHTML = (qtde == '' || tipo == 'SERVIÇO') ? '' : `${infos[0]} ${dinheiro(unt_sem_icms * qtde)} `
 
-                    // Índice 7 - Valor de Compra (input do usuário)
-                    let valorCompraCom = 0
+//                     // Índice 7 - Valor de Compra (input do usuário)
+//                     let valorCompraCom = 0
 
-                    // Se estiver em modo de edição, pega os valores dos inputs
-                    if(!sincronizar && tds[7].querySelectorAll("input").length > 0) {
-                        valorCompraCom = parseFloat(tds[7].querySelectorAll("input")[0].value) || 0;
+//                     // Se estiver em modo de edição, pega os valores dos inputs
+//                     if(!sincronizar && tds[7].querySelectorAll("input").length > 0) {
+//                         valorCompraCom = parseFloat(tds[7].querySelectorAll("input")[0].value) || 0;
                         
-                    }
+//                     }
 
-                     // Índice 8 - Total de Compra (calculado: valor compra * quantidade)
+//                      // Índice 8 - Total de Compra (calculado: valor compra * quantidade)
 
-                    let totalCompraCom = valorCompraCom * qtde
+//                     let totalCompraCom = valorCompraCom * qtde
                 
-                    // Índice 9 - Resultado (valor total - total compra)
-                    let valorTotalCom = custo * qtde
+//                     // Índice 9 - Resultado (valor total - total compra)
+//                     let valorTotalCom = custo * qtde
                     
 
-                    let resultadoCom = valorTotalCom - totalCompraCom
+//                     let resultadoCom = valorTotalCom - totalCompraCom
                    
 
-                     // Atualiza as células das novas colunas
-                     if (sincronizar) {
-                        // Modo visualização - apenas labels
-                        tds[7].innerHTML = `
-                            <label>---</label>
-                            <br>
-                            <br>
-                            <label style="color: red; font-size: 1.0em;">---</label>
-                        `;
+//                      // Atualiza as células das novas colunas
+//                      if (sincronizar) {
+//                         // Modo visualização - apenas labels
+//                         tds[7].innerHTML = `
+//                             <label>---</label>
+//                             <br>
+//                             <br>
+//                             <label style="color: red; font-size: 1.0em;">---</label>
+//                         `;
                         
-                        tds[8].innerHTML = `
-                            <label>0,00</label>
-                            <br>
-                            <br>
-                            <label style="color: red; font-size: 1.0em;">0,00</label>
-                        `;
+//                         tds[8].innerHTML = `
+//                             <label>0,00</label>
+//                             <br>
+//                             <br>
+//                             <label style="color: red; font-size: 1.0em;">0,00</label>
+//                         `;
                         
-                        tds[9].innerHTML = `
-                            <label>0,00</label>
-                            <br>
-                            <br>
-                            <label style="color: red; font-size: 1.0em;">0,00</label>
-                        `;
-                    } else {
-                        // Modo edição - inputs para valor de compra
-                        tds[7].innerHTML = `
-                            <label><strong>c • COMPRA</strong> <br> 
-                            <input class="pedido valor-compra" type="number" style="width: 8vw; height: 30px;" 
-                                   value="${valorCompraCom}" oninput="calcularTotaisLinha(this)"></label>
-                        `;
+//                         tds[9].innerHTML = `
+//                             <label>0,00</label>
+//                             <br>
+//                             <br>
+//                             <label style="color: red; font-size: 1.0em;">0,00</label>
+//                         `;
+//                     } else {
+//                         // Modo edição - inputs para valor de compra
+//                         tds[7].innerHTML = `
+//                             <label><strong>COMPRA</strong> <br> 
+//                             <input class="pedido valor-compra" type="number" style="width: 8vw; height: 30px;" 
+//                                    value="${valorCompraCom}" oninput="calcular_requisicao()"></label>
+//                         `;
                         
-                        // Totais de compra (calculados)
-                        tds[8].innerHTML = `
-                            <label><strong>c • TOTAL</strong> <br> ${dinheiro(totalCompraCom)}</label>
+//                         // Totais de compra (calculados)
+//                         tds[8].innerHTML = `
+//                             <label><strong>TOTAL</strong> <br> ${dinheiro(totalCompraCom)}</label>
                            
-                        `;
+//                         `;
                         
-                        // Resultados (formatados com cores)
+//                         // Resultados (formatados com cores)
+//                         tds[9].innerHTML = `
+//                             <label><strong>Valor Total - Total de Compra</strong> <br> 
+//                             <span style="color: ${resultadoCom >= 0 ? 'green' : 'red'}">${dinheiro(Math.abs(resultadoCom))}</span></label>
+//                         `;
+//                     }
+                    
+
+                   
+
+//                     total_sem_icms += unt_sem_icms * qtde
+//                     total_com_icms += qtde * custo
+//                 }
+                
+//             })
+
+//             var total_c_icms = document.getElementById('total_c_icms')
+//             var total_s_icms = document.getElementById('total_s_icms')
+
+//             if (total_c_icms && total_s_icms) {
+//                 total_c_icms.textContent = dinheiro(total_com_icms)
+//                 total_s_icms.textContent = dinheiro(total_sem_icms)
+//             }
+
+//         }
+//     }
+
+//     calcularTotaisLinha()
+
+// }
+
+async function calcular_requisicao(sincronizar) {
+    var tabela_requisicoes = document.getElementById('tabela_requisicoes');
+
+    if (tabela_requisicoes) {
+        var tbody = tabela_requisicoes.querySelector('tbody');
+        let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+        var orcamento = dados_orcamentos[id_orcam];
+        var itens = orcamento.dados_composicoes;
+        var estado = orcamento.dados_orcam.estado;
+
+        if (tbody) {
+            var trs = tbody.querySelectorAll('tr');
+            var total_sem_icms = 0;
+            var total_com_icms = 0;
+
+            trs.forEach(tr => {
+                if (tr.style.display !== 'none') {
+                    var tds = tr.querySelectorAll('td');
+                    var codigo = tds[0].textContent;
+
+                    // Obter quantidade
+                    let qtdeInput = tds[4].querySelector('input');
+                    let qtde = qtdeInput ? parseFloat(qtdeInput.value) || 0 : 
+                               parseFloat(tds[4].textContent) || 0;
+
+                    // Obter tipo
+                    let tipoSelect = tds[3].querySelector('select');
+                    let tipo = tipoSelect ? tipoSelect.value : tds[3].textContent;
+
+                    // Obter valor de compra (se existir input)
+                    let valorCompraInput = tds[7].querySelector('input');
+                    let valorCompra = valorCompraInput ? parseFloat(valorCompraInput.value) || 0 : 0;
+
+                    // Calcular ICMS
+                    var icms = 0;
+                    if (estado == 'BA' && tipo == 'VENDA') {
+                        icms = 0.205;
+                    } else if (estado !== 'BA' && tipo == 'VENDA') {
+                        icms = 0.12;
+                    }
+
+                    // Calcular valores unitários
+                    var custo = conversor(itens[codigo]?.custo) || 0;
+                    var unt_sem_icms = custo - (custo * icms);
+
+                    // Atualizar valores unitários
+                    var labels_unitarios = tds[5].querySelectorAll('label');
+                    if (labels_unitarios.length >= 2) {
+                        labels_unitarios[0].innerHTML = `<strong>c • ICMS</strong> <br> ${dinheiro(custo)}`;
+                        labels_unitarios[1].innerHTML = (qtde == 0 || tipo == 'SERVIÇO') ? '' : 
+                                                      `<strong>s • ICMS</strong> <br> ${dinheiro(unt_sem_icms)}`;
+                    }
+
+                    // Atualizar valores totais
+                    var labels_totais = tds[6].querySelectorAll('label');
+                    if (labels_totais.length >= 2) {
+                        labels_totais[0].innerHTML = `<strong>c • ICMS</strong> <br> ${dinheiro(custo * qtde)}`;
+                        labels_totais[1].innerHTML = (qtde == 0 || tipo == 'SERVIÇO') ? '' : 
+                                                    `<strong>s • ICMS</strong> <br> ${dinheiro(unt_sem_icms * qtde)}`;
+                    }
+
+                    // Calcular totais de compra e resultado
+                    let totalCompra = valorCompra * qtde;
+                    let valorTotalCom = custo * qtde;
+                    let resultadoCom = valorTotalCom - totalCompra;
+
+                    // Atualizar células de compra, total compra e resultado
+                    if (!sincronizar) {
+                        // Modo edição
+                        tds[8].innerHTML = `<label><strong>TOTAL</strong> <br> ${dinheiro(totalCompra)}</label>`;
                         tds[9].innerHTML = `
-                            <label><strong>c • RESULT</strong> <br> 
+                            <label><strong>RESULTADO</strong> <br> 
                             <span style="color: ${resultadoCom >= 0 ? 'green' : 'red'}">${dinheiro(Math.abs(resultadoCom))}</span></label>
                         `;
                     }
-                    
 
-                   
-
-                    total_sem_icms += unt_sem_icms * qtde
-                    total_com_icms += qtde * custo
+                    // Somar totais
+                    total_sem_icms += unt_sem_icms * qtde;
+                    total_com_icms += qtde * custo;
                 }
-            })
+            });
 
-            var total_c_icms = document.getElementById('total_c_icms')
-            var total_s_icms = document.getElementById('total_s_icms')
+            // Atualizar totais gerais
+            var total_c_icms = document.getElementById('total_c_icms');
+            var total_s_icms = document.getElementById('total_s_icms');
 
             if (total_c_icms && total_s_icms) {
-                total_c_icms.textContent = dinheiro(total_com_icms)
-                total_s_icms.textContent = dinheiro(total_sem_icms)
+                total_c_icms.textContent = dinheiro(total_com_icms);
+                total_s_icms.textContent = dinheiro(total_sem_icms);
             }
-
         }
     }
-
 }
 
 // Função auxiliar para calcular totais quando o usuário edita um valor de compra
-function calcularTotaisLinha(input) {
-    var linha = input.closest('tr');
-    var tds = linha.querySelectorAll('td');
+// function calcularTotaisLinha(input) {
+//     var linha = input.closest('tr');
+//     var tds = linha.querySelectorAll('td');
     
-    // Obtém a quantidade
-    var qtde = parseFloat(tds[4].querySelector('input') ? tds[4].querySelector('input').value : tds[4].textContent) || 0;
+//     // Obtém a quantidade
+//     var qtde = parseFloat(tds[4].querySelector('input') ? tds[4].querySelector('input').value : tds[4].textContent) || 0;
     
-    // Obtém os valores de compra
-    var valorCompraCom = parseFloat(tds[7].querySelectorAll('input')[0].value) || 0;
-    var valorCompraSem = parseFloat(tds[7].querySelectorAll('input')[1].value) || 0;
+//     // Obtém os valores de compra
+//     var valorCompraCom = parseFloat(tds[7].querySelectorAll('input')[0].value) || 0;
+//     var valorCompraSem = parseFloat(tds[7].querySelectorAll('input')[1].value) || 0;
     
-    // Calcula totais de compra
-    var totalCompraCom = valorCompraCom * qtde;
-    var totalCompraSem = valorCompraSem * qtde;
+//     // Calcula totais de compra
+//     var totalCompraCom = valorCompraCom * qtde;
+//     var totalCompraSem = valorCompraSem * qtde;
     
-    // Obtém os valores totais (índice 6)
-    var valorTotalCom = conversor(tds[6].querySelector('label').textContent.replace(/[^\d,.-]/g, '')) || 0;
-    var valorTotalSemText = tds[6].querySelectorAll('label')[1]?.textContent || '0';
-    var valorTotalSem = conversor(valorTotalSemText.replace(/[^\d,.-]/g, '')) || 0;
+//     // Obtém os valores totais (índice 6)
+//     var valorTotalCom = conversor(tds[6].querySelector('label').textContent.replace(/[^\d,.-]/g, '')) || 0;
+//     var valorTotalSemText = tds[6].querySelectorAll('label')[1]?.textContent || '0';
+//     var valorTotalSem = conversor(valorTotalSemText.replace(/[^\d,.-]/g, '')) || 0;
     
-    // Calcula resultados
-    var resultadoCom = valorTotalCom - totalCompraCom;
-    var resultadoSem = valorTotalSem - totalCompraSem;
+//     // Calcula resultados
+//     var resultadoCom = valorTotalCom - totalCompraCom;
+//     var resultadoSem = valorTotalSem - totalCompraSem;
     
-    // Atualiza os totais de compra (índice 8)
-    tds[8].innerHTML = `
-        <label><strong>c • TOTAL</strong> <br> ${dinheiro(totalCompraCom)}</label>
-        <br>
-        <label style="color: red; font-size: 1.0em;"><strong>s • TOTAL</strong> <br> ${dinheiro(totalCompraSem)}</label>
-    `;
+//     // Atualiza os totais de compra (índice 8)
+//     tds[8].innerHTML = `
+//         <label><strong>VALOR TOTAL DE COMPRA</strong> <br> ${dinheiro(totalCompraCom)}</label>
+//      `;
     
-    // Atualiza os resultados (índice 9)
-    tds[9].innerHTML = `
-        <label><strong>c • RESULT</strong> <br> 
-        <span style="color: ${resultadoCom >= 0 ? 'green' : 'red'}">${dinheiro(Math.abs(resultadoCom))}</span></label>
-        <br>
-        <label style="color: red; font-size: 1.0em;"><strong>s • RESULT</strong> <br> 
-        <span style="color: ${resultadoSem >= 0 ? 'green' : 'red'}">${dinheiro(Math.abs(resultadoSem))}</span></label>
-    `;
-}
+//     // Atualiza os resultados (índice 9)
+//     tds[9].innerHTML = `
+//         <label><strong>RESULTADO</strong> <br> 
+//         <span style="color: ${resultadoCom >= 0 ? 'green' : 'red'}">${dinheiro(Math.abs(resultadoCom))}</span></label>
+//         `;
+// }
 
 function pesquisar_na_requisicao() {
 
@@ -753,7 +843,7 @@ async function carregar_itens(apenas_visualizar, requisicao, tipoRequisicao, edi
                             padding: 0px; 
                             margin: 0px; 
                             height: 40px;" 
-                            oninput="calcular_requisicao(this)">`}
+                            oninput="calcular_requisicao()">`}
                   </td>
 
                   <td style="text-align: center;">
