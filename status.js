@@ -477,12 +477,13 @@ function pesquisar_na_requisicao() {
     }
 }
 
-async function carregar_itens(apenas_visualizar, requisicao, tipoRequisicao, editar, valoresTotais) {
+async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let orcamento = dados_orcamentos[id_orcam];
+    let itensOrcamento = orcamento.dados_composicoes
+    let linhas = '';
 
-    var linhas = '';
     if (!orcamento.dados_composicoes || Object.keys(orcamento.dados_composicoes).length == 0) {
         return '';
     }
@@ -494,107 +495,54 @@ async function carregar_itens(apenas_visualizar, requisicao, tipoRequisicao, edi
         equipamentos: []
     }
 
-    for (id in orcamento.dados_composicoes) {
-        let item = orcamento.dados_composicoes[id]
-        let itemComposicao = dados_composicoes[item.codigo] || {};
-        let descricao = itemComposicao.descricao || item.descricao || '';
+    if (chave && orcamento.status.historico[chave]) {
 
-        descricao = String(descricao).toLowerCase()
+        itensFiltrados = orcamento.status.historico[chave].requisicoes
 
-        if ((
-            descricao.includes('eletrocalha') ||
-            descricao.includes('eletroduto') ||
-            descricao.includes('perfilado') ||
-            descricao.includes('sealtubo')
-        )) {
-            itensFiltrados.push(item)
-            todos_os_itens.infra.push(item)
-        } else {
-            todos_os_itens.equipamentos.push(item)
-        }
-    }
-
-    if (tipoRequisicao == 'equipamentos') {
-        itensFiltrados = todos_os_itens.equipamentos
-    } else if (tipoRequisicao == 'infraestrutura') {
-        itensFiltrados = todos_os_itens.infra
     } else {
-        itensFiltrados = [...todos_os_itens.infra, ...todos_os_itens.equipamentos]
+
+        for (id in orcamento.dados_composicoes) {
+            let item = orcamento.dados_composicoes[id]
+            let itemComposicao = dados_composicoes[item.codigo] || {};
+            let descricao = itemComposicao.descricao || item.descricao || '';
+
+            descricao = String(descricao).toLowerCase()
+
+            if ((
+                descricao.includes('eletrocalha') ||
+                descricao.includes('eletroduto') ||
+                descricao.includes('perfilado') ||
+                descricao.includes('sealtubo')
+            )) {
+                itensFiltrados.push(item)
+                todos_os_itens.infra.push(item)
+            } else {
+                todos_os_itens.equipamentos.push(item)
+            }
+        }
+
+        if (tipoRequisicao == 'equipamentos') {
+            itensFiltrados = todos_os_itens.equipamentos
+        } else if (tipoRequisicao == 'infraestrutura') {
+            itensFiltrados = todos_os_itens.infra
+        } else {
+            itensFiltrados = [...todos_os_itens.infra, ...todos_os_itens.equipamentos]
+        }
+
     }
 
     for (item of itensFiltrados) {
-        var codigo = item.codigo;
-        var qtde = item.qtde;
-        var qtde_na_requisicao = 0;
-        var tipo = dados_composicoes[codigo]?.tipo || item.tipo;
-        let qtde_editar = qtde;
-        var historico = dados_orcamentos.id_orcam?.status.historico || {};
-
-        Object.keys(historico).forEach(chave => {
-            var sst = historico[chave];
-
-            if (sst.requisicoes) {
-                for (let requisicao of sst.requisicoes) {
-                    if (requisicao.codigo == item.codigo) {
-                        qtde_editar -= requisicao.qtde_enviar;
-                    }
-                }
-            }
-        });
-
-        if (requisicao) {
-            qtde_na_requisicao = requisicao[codigo]?.qtde_enviar || 0;
-        }
-
-        let somasQtde = 0;
-
-        let q = 0;
-
-        if (editar) {
-            Object.values(orcamento?.status || []).forEach(status => {
-                if (status.historico) {
-                    Object.entries(status.historico).forEach(([chave, historico]) => {
-                        if (historico.status.includes("REQUISIÇÃO")) {
-                            for (let requisicaoUnica of historico.requisicoes) {
-                                if (requisicaoUnica.codigo == codigo) {
-                                    somasQtde += Number(requisicaoUnica.qtde_enviar);
-                                    q++;
-                                }
-                            }
-                        }
-                    });
-                }
-            });
-        }
-
-        if (!editar) {
-
-            qtde_editar -= qtde_na_requisicao
-            qtde_na_requisicao = 0
-
-        } else {
-
-            Object.values(valoresTotais).forEach(item => {
-
-                if (item.codigoRequisicao == codigo) {
-
-                    qtde_editar += qtde_na_requisicao - item.qtdeTotal
-
-                }
-
-            })
-
-        }
-
-        console.log(item)
+        let codigo = item.codigo;
+        let qtde = item?.qtde_editar || item.qtde || 0
+        let tipo = dados_composicoes[codigo]?.tipo || item.tipo;
 
         linhas += `
-              <tr class="lin_req" style="background-color: white;">
+            <tr class="lin_req" style="background-color: white;">
                   <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
                   <td style="text-align: center;">
                     ${apenas_visualizar ? `<label style="font-size: 1.2em;">
-                    ${requisicao[codigo]?.partnumber || '<input>'}</label>` :
-                    `<input class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;">`}
+                    ${item?.partnumber || '<input>'}</label>` :
+                `<input class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;">`}
                   </td>
                   <td style="position: relative;">
                       <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
@@ -604,7 +552,7 @@ async function carregar_itens(apenas_visualizar, requisicao, tipoRequisicao, edi
                       ${apenas_visualizar ? '' : `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`}
                   </td>
                   <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
-                      ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${requisicao[codigo]?.tipo || ''}</label>` : `
+                      ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${item?.tipo || ''}</label>` : `
                           <select onchange="calcular_requisicao()" style="border: none;">
                               <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
                               <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
@@ -612,13 +560,13 @@ async function carregar_itens(apenas_visualizar, requisicao, tipoRequisicao, edi
                       `}
                   </td>
                   <td style="text-align: center;">
-                      ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.qtde_enviar || ''}</label>` : `
+                      ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.qtde_enviar || ''}</label>` : `
                           <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
                               <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
                                   <label>Quantidade a enviar</label>
-                                  <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
+                                  <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde}">
                               </div>
-                              <label class="num">${qtde_editar}</label>  
+                              <label class="num">${itensOrcamento[codigo].qtde}</label>  
                           </div>
                       `}
                   </td>
@@ -635,7 +583,7 @@ async function carregar_itens(apenas_visualizar, requisicao, tipoRequisicao, edi
                       <label style="color: red; font-size: 1.0em;"></label>
                   </td>
                   <td>
-                      ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.requisicao || ''}</label>` : `
+                      ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.requisicao || ''}</label>` : `
                           <select style="border: none; cursor: pointer;">
                               <option style="text-align: center;">Nada a fazer</option>
                               <option>Estoque AC</option>
@@ -645,7 +593,7 @@ async function carregar_itens(apenas_visualizar, requisicao, tipoRequisicao, edi
                           </select>
                       `}
                   </td>
-              </tr>
+            </tr>
         `
     };
 
@@ -681,7 +629,7 @@ function abrirModalTipoRequisicao() {
 
 function escolherTipoRequisicao(tipo) {
     fecharModalTipoRequisicao();
-    detalhar_requisicao(undefined, undefined, tipo); // Passa o tipo de requisição
+    detalhar_requisicao(undefined, tipo); // Passa o tipo de requisição
 }
 
 function fecharModalTipoRequisicao() {
@@ -1487,7 +1435,7 @@ async function abrir_esquema(id) {
 
             if (sst.status.includes('REQUISIÇÃO')) {
                 links_requisicoes += `
-                    <div onclick="detalhar_requisicao('${chave}')" class="label_requisicao">
+                    <div onclick="detalhar_requisicao('${chave}', undefined, true)" class="label_requisicao">
                         <img src="gifs/lampada.gif" style="width: 25px">
                         <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; cursor: pointer;">
                             <label style="cursor: pointer;"><strong>REQUISIÇÃO DISPONÍVEL</strong></label>
@@ -2697,9 +2645,9 @@ async function chamar_excluir(id) {
         `)
 }
 
-async function detalhar_requisicao(chave, editar, tipoRequisicao) {
+async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
 
-    let visualizar = (editar || !chave) ? false : true
+    let visualizar = !chave ? false : true
 
     if (!chave) {
         chave = gerar_id_5_digitos()
@@ -2714,70 +2662,8 @@ async function detalhar_requisicao(chave, editar, tipoRequisicao) {
 
     dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     orcamento = dados_orcamentos[id_orcam];
-
-    var requisicao = {}
     var menu_flutuante = ''
     var nome_cliente = orcamento.dados_orcam.cliente_selecionado
-    let valoresTotais = {}
-
-    if (editar == undefined && tipoRequisicao != undefined) {
-
-        Object.values(orcamento.status?.historico || {}).forEach(item => {
-
-            if (item.status.includes("REQUISIÇÃO")) {
-
-                item.requisicoes.forEach(item2 => {
-
-                    if (requisicao[item2.codigo]) {
-
-                        requisicao[item2.codigo].qtde_enviar += Number(item2.qtde_enviar);
-
-                    } else {
-
-                        requisicao[item2.codigo] = {
-                            partnumber: item2.partnumber,
-                            requisicao: item2.requisicao,
-                            tipo: item2.tipo,
-                            qtde_enviar: Number(item2.qtde_enviar)
-                        }
-                    }
-
-                })
-
-            }
-
-        })
-
-    } else {
-
-        Object.values(orcamento.status.historico).forEach(item => {
-
-            if (item.status.includes("REQUISIÇÃO")) {
-
-                item.requisicoes.forEach(item2 => {
-
-                    if (valoresTotais[item2.codigo]) {
-
-                        valoresTotais[item2.codigo].qtdeTotal += Number(item2.qtde_enviar);
-
-                    } else {
-
-                        valoresTotais[item2.codigo] = {
-
-                            qtdeTotal: Number(item2.qtde_enviar),
-                            codigoRequisicao: item2.codigo
-
-                        }
-
-                    }
-
-                })
-
-            }
-
-        })
-
-    }
 
     itens_adicionais = {}
     if (chave && orcamento.status && orcamento.status.historico && orcamento.status.historico[chave]) {
@@ -2794,18 +2680,6 @@ async function detalhar_requisicao(chave, editar, tipoRequisicao) {
         if (cartao.adicionais) {
             itens_adicionais = cartao.adicionais
         }
-
-        if (cartao.requisicoes) {
-            cartao.requisicoes.forEach(item => {
-                requisicao[item.codigo] = {
-                    partnumber: item.partnumber,
-                    requisicao: item.requisicao,
-                    tipo: item.tipo,
-                    qtde_enviar: item.qtde_enviar
-                }
-            })
-        }
-
     }
 
     var campos = ''
@@ -2905,7 +2779,7 @@ async function detalhar_requisicao(chave, editar, tipoRequisicao) {
                 <th style="text-align: center;">Requisição</th>
             </thead>
             <tbody>
-                ${await carregar_itens(visualizar, requisicao, tipoRequisicao, editar, valoresTotais)}
+                ${await carregar_itens(apenas_visualizar, tipoRequisicao, chave)}
             </tbody>
         </table>
     <div>
