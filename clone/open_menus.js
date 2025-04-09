@@ -493,8 +493,15 @@ function conversor(stringMonetario) {
         return 0;
     } else {
         stringMonetario = stringMonetario.trim();
-        stringMonetario = stringMonetario.replace(/[^\d,]/g, '');
-        stringMonetario = stringMonetario.replace(',', '.');
+        stringMonetario = stringMonetario.replace(/[^\d.,]/g, '');
+
+        if (stringMonetario.includes(',') && stringMonetario.includes('.')) {
+            stringMonetario = stringMonetario.replace(/\./g, '');
+            stringMonetario = stringMonetario.replace(',', '.');
+        } else {
+            stringMonetario = stringMonetario.replace(',', '.');
+        }
+
         var valorNumerico = parseFloat(stringMonetario);
 
         if (isNaN(valorNumerico)) {
@@ -504,6 +511,7 @@ function conversor(stringMonetario) {
         return valorNumerico;
     }
 }
+
 
 function dinheiro(valor) {
     if (valor === '') {

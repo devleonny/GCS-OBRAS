@@ -1213,7 +1213,7 @@ function calcular(tipo, campo) {
         tds[11].textContent = dinheiro(icms_entrada)
         tds[13].textContent = dinheiro(valor_custo)
 
-        let margem = conversor(tds[15].querySelector('input').value)
+        let margem = Number(tds[15].querySelector('input').value)
         let preco_venda = (1 + margem / 100) * valor_custo
 
         if (campo == 'final') {
