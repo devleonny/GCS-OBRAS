@@ -688,9 +688,9 @@ async function abrir_historico_de_precos(codigo, tabela) {
 
 async function salvar_preco_ativo(codigo, id_preco, lpu) {
     try {
-        // Mostrar loader
+        // 1. Adicionar loader
         const loader = document.createElement('div');
-        loader.innerHTML = 'Salvando preço ativo...';
+        loader.innerHTML = 'Atualizando preço...';
         loader.style.cssText = `
             position: fixed;
             top: 0;
@@ -706,7 +706,7 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
         `;
         document.body.appendChild(loader);
 
-        // Obter dados atuais
+        // 2. Obter e atualizar dados
         const dados_composicoes = await recuperarDados('dados_composicoes') || {};
         const produto = dados_composicoes[codigo];
         
@@ -714,45 +714,46 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
             throw new Error(`Produto ${codigo} não encontrado`);
         }
 
-        // Verificar se a LPU existe
+        // Inicializa a LPU se não existir
         if (!produto[lpu]) {
             produto[lpu] = { historico: {}, ativo: "" };
         }
 
-        // Obter o preço do histórico
-        const historico = produto[lpu].historico[id_preco];
-        if (!historico) {
-            throw new Error(`Preço ${id_preco} não encontrado no histórico`);
-        }
-
-        // Determinar novo estado (alternar entre ativo/inativo)
+        // Alterna o estado ativo
         const novoEstado = produto[lpu].ativo === id_preco ? "" : id_preco;
-        
-        // Atualizar o preço ativo
         produto[lpu].ativo = novoEstado;
-        
-        // Se estivermos ativando, atualizar o preço principal
-        if (novoEstado === id_preco) {
-            // Atualiza o valor principal com o valor do histórico
-            produto[lpu].valor = historico.valor;
+
+        // Se estiver ativando, atualiza o valor principal
+        if (novoEstado && produto[lpu].historico[novoEstado]) {
+            produto[lpu].valor = produto[lpu].historico[novoEstado].valor;
         }
 
-        // Salvar alterações
+        // 3. Salvar no banco de dados
         await Promise.all([
             inserirDados(dados_composicoes, 'dados_composicoes'),
             enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, novoEstado),
-            enviar(`dados_composicoes/${codigo}/${lpu}/valor`, historico.valor)
+            novoEstado && enviar(`dados_composicoes/${codigo}/${lpu}/valor`, produto[lpu].valor)
         ]);
 
-        // Atualizar interface
+        // 4. Atualizar interface - abordagem mais segura
         loader.remove();
-        await abrir_historico_de_precos(codigo, lpu);
-        carregar_tabela_v2(); // Atualiza a tabela principal
+        
+        // Fecha o popup se existir
+        if (document.getElementById('popup')) {
+            remover_popup();
+        }
+
+        // Recarrega os dados
+        await carregar_tabela_v2();
 
     } catch (error) {
-        console.error('Erro ao salvar preço ativo:', error);
+        console.error('Erro em salvar_preco_ativo:', error);
         document.querySelector('div[style*="position: fixed"]')?.remove();
-        alert(`Erro: ${error.message}`);
+        
+        // Mostra erro apenas se não for um erro de DOM esperado
+        if (!error.message.includes('checked')) {
+            alert('Erro ao salvar preço ativo');
+        }
     }
 }
 // async function salvar_preco_ativo(codigo, id_preco, lpu) {
