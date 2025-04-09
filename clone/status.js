@@ -3548,8 +3548,6 @@ async function mostrar_painel() {
                     </tbody>
 
                 </table>
-                <hr style="width: 100%;">
-                ${tab.impostos}
             `
             impostos += `
                 <br>
