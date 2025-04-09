@@ -533,14 +533,12 @@ async function tabela_produtos_v2(tipo_tabela) {
                         imagem = produto.imagem
                     }
 
-
-
                     linhas += `
                         <tr>
                             <td style="white-space: nowrap;">${pod}</td>
                             <td style="position: relative;">
                                 ${produto.descricao}
-                                ${produto.agrupamentos ? `<img src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 3px; width: 1.5vw;">` : ''}
+                                ${(produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) ? `<img src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 1vw; width: 1.5vw; cursor: pointer;">` : ''}
                             </td>
                             <td>${produto.fabricante}</td>
                             <td>${produto.modelo}</td>
@@ -809,7 +807,7 @@ async function total() {
                 acrescimo = 1
             }
 
-            if (dados_composicoes[codigo_original] && dados_composicoes[codigo_original].agrupamentos) {
+            if (dados_composicoes[codigo_original] && dados_composicoes[codigo_original].agrupamentos && Object.keys(dados_composicoes[codigo_original].agrupamentos).length > 0) {
                 alternar_icones(tds[1], 'incluir', codigo_original)
             }
 
@@ -867,13 +865,11 @@ async function total() {
                     ${elementos}
                     <hr style="width: 100%;">
 
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <img src="imagens/baixar.png" style="width: 2vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">
-                        <div style="display: flex; width: 100%; justify-content: right;">
-                            <label>Total</label>
-                            <label class="total">${dinheiro(total)}</label>
-                        </div>
+                    <div style="display: flex; width: 100%; justify-content: right;">
+                        <label>Total</label>
+                        <label class="total">${dinheiro(total)}</label>
                     </div>
+
                 </div>
                 `
                 div.innerHTML = div_interna
@@ -1226,8 +1222,11 @@ async function incluir_item(codigo, nova_quantidade, especial) {
         <tr>
             <td>${codigo_original}</td>
             <td style="position: relative;">
-                <label>${dados_composicoes[item.codigo].descricao}</label>
-                <div class="agrupados"></div>         
+                <div style="display: flex; justify-content: start; align-items: center; gap: 10px;">
+                    <img src="imagens/construcao.png" style="width: 1.2vw; width: 2vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">
+                    <label>${dados_composicoes[item.codigo].descricao}</label>
+                </div>
+                <div class="agrupados"></div>
             </td>
             ${colunas_carrefour}
             <td style="text-align: center;">${dados_composicoes[item.codigo].unidade}</td>

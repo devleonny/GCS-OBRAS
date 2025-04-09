@@ -3,7 +3,7 @@ var filtrosAtivos = {};
 var composicoes_ = document.getElementById('composicoes_')
 var overlay = document.getElementById('overlay')
 
-document.getElementById("btn-criar-lpu").addEventListener("click", function () {
+function criar_lpu() {
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
             <label style="font-size: 1.2em;">Digite o nome da nova LPU:</label>
@@ -12,7 +12,7 @@ document.getElementById("btn-criar-lpu").addEventListener("click", function () {
             <button onclick="salvarNovaLPU()" style="background-color: #026CED; color: white; padding: 10px; border: none; cursor: pointer; width: 80%;">Salvar</button>
         </div>
     `, 'Nova LPU');
-});
+}
 
 function pesquisar_em_composicoes(elemento) {
     var tabela = composicoes_.querySelector('table');
@@ -99,6 +99,10 @@ async function carregar_tabela_v2() {
         if (btn_criar_lpu) {
             btn_criar_lpu.style.display = 'flex';
         }
+    }
+
+    if (!composicoes_) {
+        return
     }
     composicoes_.innerHTML = '';
 
@@ -442,6 +446,10 @@ async function salvar_agrupamentos(codigo) {
         remover_popup()
 
         carregar_tabela_v2()
+    }
+
+    if (document.title == 'Criar Orçamento') {
+        f5()
     }
 
 }
