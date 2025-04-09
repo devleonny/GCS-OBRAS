@@ -3581,45 +3581,52 @@ async function mostrar_painel() {
         <div style="overflow: auto;">
             <br>
             <div style="display: flex; justify-content: center; align-items: start; gap: 2vw;">
-                <div style="width: 40% ; background-color: #e3e3e3; padding: 5px; border-radius: 5px;">
-                    <label>Gestão de Custos</label>
-                        ${pags}
-                    <hr style="width: 100%;">
-                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
-                        <label style="font-size: 0.7vw;">Valor do Orçamento</label>
-                        <label>${dinheiro(total_orcamento)}</label>
+                <div style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 1vw;">
+                    <div style="width: 40% ; background-color: #e3e3e3; padding: 5px; border-radius: 5px;">
+                        <label>Gestão de Custos</label>
+                            ${pags}
+                        <hr style="width: 100%;">
+                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                            <label style="font-size: 0.7vw;">Valor do Orçamento</label>
+                            <label>${dinheiro(total_orcamento)}</label>
+                        </div>
+                        <hr style="width: 100%;">
+
+                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                            <label>Valores Lançados</label>
+                            <label onclick="valores_manuais()" style="cursor: pointer; font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
+                        </div>
+
+                        <div id="lista-valores-manuais">
+                            ${Object.entries(orcamento.valoresManuais || {}).length > 0
+                ? Object.entries(orcamento.valoresManuais).map(([chave, valor]) => `
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
+                                    <button onclick="removerValorManual('${id_orcam}', '${chave}')" 
+                                        style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
+                                </div>
+                            `).join("")
+                : "<label style='font-size: 0.7vw; color: gray;'>Nenhum valor manual adicionado.</label>"}
+                        </div>
+
+                        <hr style="width: 100%;">
+
+                        ${impostos}
+
+                        ${total_custos}
+
+                        <br>
+                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                            <label style="font-size: 0.7vw;">Lucro Líquido</label>
+                            <label>${dinheiro(lucro_liquido)} (${lucro_porcentagem}%)</label>
+                        </div>
                     </div>
-                    <hr style="width: 100%;">
-
-                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
-                        <label>Valores Lançados</label>
-                        <label onclick="valores_manuais()" style="cursor: pointer; font-size: 0.7vw;">➕ Adicionar Valor Manual</label>
+                    <div>
+                        ${linhas.VENDA.impostos}
                     </div>
-
-                    <div id="lista-valores-manuais">
-                        ${Object.entries(orcamento.valoresManuais || {}).length > 0
-            ? Object.entries(orcamento.valoresManuais).map(([chave, valor]) => `
-                            <div style="display: flex; align-items: center; gap: 5px;">
-                                <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
-                                <button onclick="removerValorManual('${id_orcam}', '${chave}')" 
-                                    style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
-                            </div>
-                        `).join("")
-            : "<label style='font-size: 0.7vw; color: gray;'>Nenhum valor manual adicionado.</label>"}
+                    <div>
+                        ${linhas.SERVIÇO.impostos}
                     </div>
-
-                    <hr style="width: 100%;">
-
-                    ${impostos}
-
-                    ${total_custos}
-
-                    <br>
-                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
-                        <label style="font-size: 0.7vw;">Lucro Líquido</label>
-                        <label>${dinheiro(lucro_liquido)} (${lucro_porcentagem}%)</label>
-                    </div>
-
                 </div>
 
                 <div style="width: 50%; display: flex; flex-direction: column; justify-content: center; gap: 3px;">
