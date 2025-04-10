@@ -3322,7 +3322,8 @@ async function mostrar_painel() {
         let total = vl_unit * qtde
         let lucro_unit = total - custo_total
 
-        let descricao_produto = dados_composicoes[produto.codigo]?.descricao || 'Sem descrição'
+        let descricao_produto = dados_composicoes[produto.codigo]?.descricao || 'Item sem descrição'
+        const itensRequisitados = dados_composicoes[produto.codigo]?.requisicao || 0
 
         linhas[produto.tipo].total_custo += custo_total
         linhas[produto.tipo].total_orcado += total
@@ -3331,17 +3332,17 @@ async function mostrar_painel() {
         linhas[produto.tipo].orcamento += `
         <tr>
             ${produto.tipo == 'SERVIÇO' ? `
-            <td>${produto.codigo}</td>`
-            : ''}
-            <td>${descricao_produto}</td>
-            <td>${qtde}</td>
+            <td style="font-size: 0.9em;">${produto.codigo}</td>`
+                : ''}
+            <td style="font-size: 0.9em;">${descricao_produto}</td>
+            <td style="font-size: 0.9em;">${qtde}</td>
             ${produto.tipo == 'VENDA' ? `
-            <td>${cotacao?.margem || '--'}</td>
+            <td style="font-size: 0.9em;">${cotacao?.margem || '--'}</td>
             ` : ''}
-            <td>${dinheiro(vl_unit)}</td>
-            <td>${dinheiro(total)}</td>
+            <td style="font-size: 0.9em;">${dinheiro(vl_unit)}</td>
+            <td style="font-size: 0.9em;">${dinheiro(total)}</td>
             ${produto.tipo == 'VENDA' ? `
-            <td>${dinheiro(lucro_unit)}</td>
+            <td style="font-size: 0.9em;">${dinheiro(lucro_unit)}</td>
             ` : ''}
         </tr>
         `
@@ -3363,10 +3364,10 @@ async function mostrar_painel() {
 
         <label>Impostos de Venda</label>
         <table class="tabela">
-            <thead>
-                <th style="font-size: 0.8em;">Presunções dos Impostos de Saída</th>
-                <th style="font-size: 0.8em;">Percentuais</th>
-                <th style="font-size: 0.8em;">Valor</th>
+            <thead style="background-color:rgb(185, 0, 0);">
+                <th style="font-size: 0.8em; color: rgb(236, 236, 236);">Presunções dos Impostos de Saída</th>
+                <th style="font-size: 0.8em; color: rgb(236, 236, 236);">Percentuais</th>
+                <th style="font-size: 0.8em; color: rgb(236, 236, 236);">Valor</th>
             </thead>
             <tbody>
                 <tr>
@@ -3383,10 +3384,10 @@ async function mostrar_painel() {
         </table>
         <br>
         <table class="tabela">
-            <thead>
-                <th style="font-size: 0.8em;">Impostos a Serem Pagos</th>
-                <th style="font-size: 0.8em;">Percentuais</th>
-                <th style="font-size: 0.8em;">Valor</th>
+            <thead style="background-color:rgb(185, 0, 0);">
+                <th style="font-size: 0.8em; color: rgb(236, 236, 236);">Impostos a Serem Pagos</th>
+                <th style="font-size: 0.8em; color: rgb(236, 236, 236);">Percentuais</th>
+                <th style="font-size: 0.8em; color: rgb(236, 236, 236);">Valor</th>
             </thead>
             <tbody>
                 <tr>
@@ -3421,7 +3422,7 @@ async function mostrar_painel() {
                 </tr>
                 <tr style="background-color: #535151;">
                     <td></td>
-                    <td>Total</td>
+                    <td style="font-size: 1em;">Total</td>
                     <td style="font-size: 0.9em;">${dinheiro(linhas.VENDA.total_impostos)}</td>
                 </tr>                                                                               
             </tbody>
@@ -3441,12 +3442,12 @@ async function mostrar_painel() {
 
     linhas.SERVIÇO.impostos = `
 
-        <label>Impostos Serviço</label>
+        <label>Impostos de Serviço</label>
         <table class="tabela">
-            <thead>
-                <th style="font-size: 0.8em;">Presunções dos Impostos de Saída</th>
-                <th style="font-size: 0.8em;">Percentuais</th>
-                <th style="font-size: 0.8em;">Valor</th>
+            <thead style="background-color:rgb(0, 138, 0);">
+                <th style="font-size: 0.8em; color: rgb(236, 236, 236);">Presunções dos Impostos de Saída</th>
+                <th style="font-size: 0.8em; color: rgb(236, 236, 236);">Percentuais</th>
+                <th style="font-size: 0.8em; color: rgb(236, 236, 236);">Valor</th>
             </thead>
             <tbody>
                 <tr>
@@ -3463,10 +3464,10 @@ async function mostrar_painel() {
         </table>
         <br>
         <table class="tabela">
-            <thead>
-                <th style="font-size: 0.8em;">Impostos a Serem Pagos</th>
-                <th style="font-size: 0.8em;">Percentuais</th>
-                <th style="font-size: 0.8em;">Valor</th>
+            <thead style="background-color:rgb(0, 138, 0);">
+                <th style="font-size: 0.8em; color: rgb(236, 236, 236);">Impostos a Serem Pagos</th>
+                <th style="font-size: 0.8em; color: rgb(236, 236, 236);">Percentuais</th>
+                <th style="font-size: 0.8em; color: rgb(236, 236, 236);">Valor</th>
             </thead>
             <tbody>
                 <tr>
@@ -3501,7 +3502,7 @@ async function mostrar_painel() {
                 </tr>                
                 <tr style="background-color: #535151;">
                     <td></td>
-                    <td>Total</td>
+                    <td style="font-size: 1em;">Total</td>
                     <td style="font-size: 0.9em;">${dinheiro(linhas.SERVIÇO.total_impostos)}</td>
                 </tr>                                                                               
             </tbody>
@@ -3519,47 +3520,48 @@ async function mostrar_painel() {
 
             tabelas += `
                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <label>${tipo}</label>
-                    <table class="tabela">
-                        <thead>
-                            ${tipo == 'SERVIÇO' ? `
-                                <th>Código</th>
-                            ` : ''}
-                            <th>Descrição</th>
-                            <th>Quantidade</th>
-                            ${tipo == 'VENDA' ? `
-                                <th>Margem</th>
-                            ` : ''}
-                            <th>Valor de ${tipo.toLocaleLowerCase()} Unit</th>
-                            <th>Total de ${tipo.toLocaleLowerCase()}</th>
-                            ${tipo == 'VENDA' ? `
-
-                                <th>Lucro Total</th>
-                            ` : ''}
-                        </thead>
-                        <tbody>
-                            ${tab.orcamento}
-                            <tr style="background-color: #535151;">
-                                ${tipo == 'VENDA' ? `
-                                <td></td>
-                                <td></td>` 
-                                : ''}
-
+                    <div>
+                        <label>${tipo}</label>
+                        <table class="tabela">
+                            <thead style="${tipo == 'SERVIÇO' ? 'background-color:rgb(0, 138, 0);' : 'background-color:rgb(185, 0, 0);'}">
                                 ${tipo == 'SERVIÇO' ? `
-                                <td></td>
-                                <td></td>` 
-                                : ''}
-                                <td></td>
-                                <td></td>
-                                <td>${dinheiro(tab.total_orcado)}</td>
-
+                                    <th style="color: #fff; font-size: 0.9em;">Código</th>
+                                ` : ''}
+                                <th style="color: #fff; font-size: 0.9em;">Descrição</th>
+                                <th style="color: #fff; font-size: 0.9em;">Quantidade</th>
                                 ${tipo == 'VENDA' ? `
-                                <td>${dinheiro(tab.total_lucro)}</td>` 
-                                : ''}
-                            </tr>
-                        </tbody>
+                                    <th style="color: #fff; font-size: 0.9em;">Margem</th>
+                                ` : ''}
+                                <th style="color: #fff; font-size: 0.9em;">Valor de ${tipo.toLocaleLowerCase()} Unit</th>
+                                <th style="color: #fff; font-size: 0.9em;">Total de ${tipo.toLocaleLowerCase()}</th>
+                                ${tipo == 'VENDA' ? `
+                                    <th style="color: #fff; font-size: 0.9em;">Lucro Total</th>
+                                ` : ''}
+                            </thead>
+                            <tbody>
+                                ${tab.orcamento}
+                                <tr style="background-color: #535151;">
+                                    ${tipo == 'VENDA' ? `
+                                    <td></td>
+                                    <td></td>`
+                    : ''}
 
-                    </table>
+                                    ${tipo == 'SERVIÇO' ? `
+                                    <td></td>
+                                    <td></td>`
+                    : ''}
+                                    <td></td>
+                                    <td></td>
+                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_orcado)}</td>
+
+                                    ${tipo == 'VENDA' ? `
+                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_lucro)}</td>`
+                    : ''}
+                                </tr>
+                            </tbody>
+
+                        </table>
+                    </div>
                 </div>
 
             `
@@ -3612,14 +3614,14 @@ async function mostrar_painel() {
 
                         <div id="lista-valores-manuais">
                             ${Object.entries(orcamento.valoresManuais || {}).length > 0
-                ? Object.entries(orcamento.valoresManuais).map(([chave, valor]) => `
+            ? Object.entries(orcamento.valoresManuais).map(([chave, valor]) => `
                                 <div style="display: flex; align-items: center; gap: 5px;">
                                     <label style="font-size: 0.8vw">${valor.nomeValorManual}: ${dinheiro(valor.valorManual)}</label>
                                     <button onclick="removerValorManual('${id_orcam}', '${chave}')" 
                                         style="background: none; border: none; color: red; cursor: pointer; font-size: 0.8vw;">❌</button>
                                 </div>
                             `).join("")
-                : "<label style='font-size: 0.7vw; color: gray;'>Nenhum valor manual adicionado.</label>"}
+            : "<label style='font-size: 0.7vw; color: gray;'>Nenhum valor manual adicionado.</label>"}
                         </div>
 
                         <hr style="width: 100%;">
@@ -3641,7 +3643,7 @@ async function mostrar_painel() {
                         ${linhas.SERVIÇO.impostos}
                     </div>
                 </div>
-                <div style="width: 100%; display: flex; flex-direction: column; gap: 2vw;">
+                <div style="width: 100%; display: flex; flex-direction: column-reverse; gap: 2vw;">
                     ${tabelas}
                 </div>
             </div>
