@@ -3336,8 +3336,6 @@ async function mostrar_painel() {
             <td>${descricao_produto}</td>
             <td>${qtde}</td>
             ${produto.tipo == 'VENDA' ? `
-            <td>${dinheiro(custo_unit)}</td>
-            <td>${dinheiro(custo_total)}</td>
             <td>${cotacao?.margem || '--'}</td>
             ` : ''}
             <td>${dinheiro(vl_unit)}</td>
@@ -3366,65 +3364,65 @@ async function mostrar_painel() {
         <label>Impostos de Venda</label>
         <table class="tabela">
             <thead>
-                <th>Presunções dos Impostos de Saída</th>
-                <th>Percentuais</th>
-                <th>Valor</th>
+                <th style="font-size: 0.8em;">Presunções dos Impostos de Saída</th>
+                <th style="font-size: 0.8em;">Percentuais</th>
+                <th style="font-size: 0.8em;">Valor</th>
             </thead>
             <tbody>
                 <tr>
                     <td style="font-size: 0.7em;">Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
                     <td><input value="8%" readOnly></td>
-                    <td>${dinheiro(aliq_lp_venda)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(aliq_lp_venda)}</td>
                 </tr>
                 <tr>
                     <td style="font-size: 0.7em;">Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
                     <td><input value="12%" readOnly></td>
-                    <td>${dinheiro(aliq_presuncao_venda)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(aliq_presuncao_venda)}</td>
                 </tr>
             </tbody>
         </table>
         <br>
         <table class="tabela">
             <thead>
-                <th>Impostos a Serem Pagos</th>
-                <th>Percentuais</th>
-                <th>Valor</th>
+                <th style="font-size: 0.8em;">Impostos a Serem Pagos</th>
+                <th style="font-size: 0.8em;">Percentuais</th>
+                <th style="font-size: 0.8em;">Valor</th>
             </thead>
             <tbody>
                 <tr>
                     <td style="font-size: 0.7em;">O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
                     <td><input value="15%" readOnly></td>
-                    <td>${dinheiro(irpj_venda)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(irpj_venda)}</td>
                 </tr>
                 <tr>
                     <td style="font-size: 0.7em;">Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
                     <td><input value="10%" readOnly></td>
-                    <td>${dinheiro(ad_irpj_venda)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(ad_irpj_venda)}</td>
                 </tr>
                 <tr>
                     <td style="font-size: 0.7em;">CSLL a ser Pago (9%) da Presunção</td>
                     <td><input value="9%" readOnly></td>
-                    <td>${dinheiro(csll_venda)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(csll_venda)}</td>
                 </tr>
                 <tr>
                     <td style="font-size: 0.7em;">O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
                     <td><input value="0.65%" readOnly></td>
-                    <td>${dinheiro(pis_venda)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(pis_venda)}</td>
                 </tr>
                 <tr>
                     <td style="font-size: 0.7em;">A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
                     <td><input value="3%" readOnly></td>
-                    <td>${dinheiro(cofins_venda)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(cofins_venda)}</td>
                 </tr>
                 <tr>
                     <td style="font-size: 0.7em;">O Imposto sobre Circulação de Mercadorias e Serviços (ICMS) (${(porcentagem_icms * 100).toFixed(1)}%) do faturamento</td>
                     <td><input value="${(porcentagem_icms * 100).toFixed(1)}%" readOnly></td>
-                    <td>${dinheiro(icms)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(icms)}</td>
                 </tr>
                 <tr style="background-color: #535151;">
                     <td></td>
                     <td>Total</td>
-                    <td>${dinheiro(linhas.VENDA.total_impostos)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(linhas.VENDA.total_impostos)}</td>
                 </tr>                                                                               
             </tbody>
         </table>
@@ -3446,65 +3444,65 @@ async function mostrar_painel() {
         <label>Impostos Serviço</label>
         <table class="tabela">
             <thead>
-                <th>Presunções dos Impostos de Saída</th>
-                <th>Percentuais</th>
-                <th>Valor</th>
+                <th style="font-size: 0.8em;">Presunções dos Impostos de Saída</th>
+                <th style="font-size: 0.8em;">Percentuais</th>
+                <th style="font-size: 0.8em;">Valor</th>
             </thead>
             <tbody>
                 <tr>
                     <td style="font-size: 0.7em;">Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
-                    <td style="text-align: center;">32%</td>
-                    <td>${dinheiro(aliq_lucro_presumido)}</td>
+                    <td style="text-align: center; font-size: 0.9em;">32%</td>
+                    <td style="font-size: 0.9em;">${dinheiro(aliq_lucro_presumido)}</td>
                 </tr>
                 <tr>
                     <td style="font-size: 0.7em;">Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
-                    <td style="text-align: center;">32%</td>
-                    <td>${dinheiro(aliq_presuncao)}</td>
+                    <td style="text-align: center; font-size: 0.9em;">32%</td>
+                    <td style="font-size: 0.9em;">${dinheiro(aliq_presuncao)}</td>
                 </tr>
             </tbody>
         </table>
         <br>
         <table class="tabela">
             <thead>
-                <th>Impostos a Serem Pagos</th>
-                <th>Percentuais</th>
-                <th>Valor</th>
+                <th style="font-size: 0.8em;">Impostos a Serem Pagos</th>
+                <th style="font-size: 0.8em;">Percentuais</th>
+                <th style="font-size: 0.8em;">Valor</th>
             </thead>
             <tbody>
                 <tr>
                     <td style="font-size: 0.7em;">O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
                     <td><input value="15%" readOnly></td>
-                    <td>${dinheiro(irpj)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(irpj)}</td>
                 </tr>
                 <tr>
                     <td style="font-size: 0.7em;">Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
                     <td><input value="10%" readOnly></td>
-                    <td>${dinheiro(ad_irpj)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(ad_irpj)}</td>
                 </tr>
                 <tr>
                     <td style="font-size: 0.7em;">CSLL a ser Pago (9%) da Presunção</td>
                     <td><input value="9%" readOnly></td>
-                    <td>${dinheiro(csll_presuncao)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(csll_presuncao)}</td>
                 </tr>
                 <tr>
                     <td style="font-size: 0.7em;">O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
                     <td><input value="0.65%" readOnly></td>
-                    <td>${dinheiro(pis)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(pis)}</td>
                 </tr>
                 <tr>
                     <td style="font-size: 0.7em;">A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
                     <td><input value="3%" readOnly></td>
-                    <td>${dinheiro(cofins)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(cofins)}</td>
                 </tr>
                 <tr>
                     <td style="font-size: 0.7em;">O Imposto Sobre Serviços ( ISS )(5%) (Incide sobre o faturamento)</td>
                     <td><input value="5%" readOnly></td>
-                    <td>${dinheiro(iss)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(iss)}</td>
                 </tr>                
                 <tr style="background-color: #535151;">
                     <td></td>
                     <td>Total</td>
-                    <td>${dinheiro(linhas.SERVIÇO.total_impostos)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(linhas.SERVIÇO.total_impostos)}</td>
                 </tr>                                                                               
             </tbody>
         </table>
@@ -3530,8 +3528,6 @@ async function mostrar_painel() {
                             <th>Descrição</th>
                             <th>Quantidade</th>
                             ${tipo == 'VENDA' ? `
-                                <th>Custo Unit</th>
-                                <th>Custo Total</th>
                                 <th>Margem</th>
                             ` : ''}
                             <th>Valor de ${tipo.toLocaleLowerCase()} Unit</th>
@@ -3546,9 +3542,7 @@ async function mostrar_painel() {
                             <tr style="background-color: #535151;">
                                 ${tipo == 'VENDA' ? `
                                 <td></td>
-                                <td></td>
-                                <td></td>
-                                <td>${dinheiro(tab.total_custo)}</td>` 
+                                <td></td>` 
                                 : ''}
 
                                 ${tipo == 'SERVIÇO' ? `
