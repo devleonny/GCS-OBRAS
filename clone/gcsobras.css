@@ -1286,6 +1286,7 @@ input[type=range]::-moz-range-thumb {
     border-bottom-left-radius: 5px;
     table-layout: fixed;
     overflow: hidden;
+    font-size: 0.7vw;
 }
 
 .tabela th,
