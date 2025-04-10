@@ -194,35 +194,8 @@
         justify-content: center;
         align-items: center;
         border-radius: 5px;
-        padding: 5px;
+        padding: 2px;
         gap: 2px;
-    }
-
-    .icone {
-        cursor: pointer;
-        font-size: 0.8em;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        background-color: rgba(255, 255, 255, 0.945);
-        border-radius: 3px;
-        transition: transform 0.3s ease, background-color 0.3s ease;
-    }
-
-    .icone:hover {
-        transform: scale(1.1);
-    }
-
-    .icone img {
-        padding: 5px;
-        width: 3vw;
-        cursor: pointer;
-    }
-
-    .icone label {
-        cursor: pointer;
-        padding: 5px;
     }
 
     .status {
@@ -243,8 +216,36 @@
         display: inline-block;
         margin: 5px;
         min-width: 50px;
-        max-width: 100px; /* Limita o crescimento */
+        max-width: 100px;
+        /* Limita o crescimento */
         text-align: center;
+    }
+
+    .icone {
+        cursor: pointer;
+        font-size: 0.8em;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background-color: rgba(255, 255, 255, 0.945);
+        border-radius: 3px;
+        transition: 0.2 ease-in-out;
+    }
+
+    .icone:hover {
+        background-color: #d2d2d2;
+    }
+
+    .icone img {
+        padding: 5px;
+        width: 3vw;
+        cursor: pointer;
+    }
+
+    .icone label {
+        cursor: pointer;
+        padding: 5px;
     }
 </style>
 </head>

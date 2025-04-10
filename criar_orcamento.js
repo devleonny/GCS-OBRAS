@@ -94,7 +94,6 @@ function orcamento_que_deve_voltar() {
         localStorage.setItem('orcamento_que_deve_voltar', JSON.stringify(orcamento_v2.id))
     }
 
-
 }
 
 function confirmar_exclusao() {
@@ -1120,7 +1119,7 @@ async function total() {
     let tipo_de_desconto = desconto_geral.previousElementSibling
 
     if (desconto_geral !== '') {
-        orcamento_v2.desconto_geral = desconto_geral.value
+        orcamento_v2.desconto_geral = conversor(desconto_geral.value)
         orcamento_v2.tipo_de_desconto = tipo_de_desconto.value
     } else {
         delete orcamento_v2.desconto_geral
@@ -1196,7 +1195,9 @@ async function total() {
         painel_desconto.innerHTML = ''
     }
 
-    orcamento_v2.total_geral = dinheiro(totais.geral.valor)
+    orcamento_v2.total_geral = dinheiro(totais.geral.valor - desconto_calculo)
+    orcamento_v2.total_bruto = totais.geral.bruto
+
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
     let quieto = document.getElementById('quieto')

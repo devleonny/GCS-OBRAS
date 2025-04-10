@@ -691,6 +691,7 @@ async function modal_editar_pagamento(id, indice) {
     if (!dados_categorias) {
         dados_categorias = await receber('dados_categorias')
         inserirDados(dados_categorias, 'dados_categorias')
+
     }
     let pagamento = lista_pagamentos[id]
 
@@ -978,9 +979,9 @@ async function atualizar_pagamentos_menu() {
 }
 
 async function atualizar_feedback(resposta, id_pagamento) {
-    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
 
-    var pagamento = lista_pagamentos[id_pagamento];
+    let pagamento = lista_pagamentos[id_pagamento];
 
     let criado = pagamento.criado
     let setor = ""
@@ -992,7 +993,7 @@ async function atualizar_feedback(resposta, id_pagamento) {
 
     })
 
-    var dataFormatada = new Date().toLocaleString('pt-BR', {
+    let dataFormatada = new Date().toLocaleString('pt-BR', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -1001,9 +1002,9 @@ async function atualizar_feedback(resposta, id_pagamento) {
         second: '2-digit'
     });
 
-    var usuario = acesso.usuario;
-    var status = `Aprovado por ${usuario}`;
-    var justificativa = document.getElementById('justificativa').value;
+    let usuario = acesso.usuario;
+    let status = `Aprovado por ${usuario}`;
+    let justificativa = document.getElementById('justificativa').value;
     let categoria_atual = pagamento.param[0].categorias[0].codigo_categoria
     let permissao = dados_setores[acesso.usuario].permissao
 
@@ -1028,7 +1029,7 @@ async function atualizar_feedback(resposta, id_pagamento) {
         status = 'Aguardando aprovação da Gerência';
     }
 
-    var historico = {
+    let historico = {
         status,
         usuario,
         justificativa,

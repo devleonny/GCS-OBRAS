@@ -413,11 +413,18 @@ async function autorizar_desconto() {
     `
     if (orcamento_v2.aprovacao.status && orcamento_v2.aprovacao.status == 'reprovado') {
         mensagem = `
-        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-            <img src="imagens/cancel.png" style="width: 3vw;">
-            <div style="display: flex; align-items: center; justify-content: start; gap: 5px; flex-direction: column;">
-                <label>Solicitação reprovada</label>
-                <label>${orcamento_v2.aprovacao.justificativa}</label>
+        <div style="display: flex; flex-direction: column; justify-content: center;">
+            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <img src="imagens/cancel.png" style="width: 3vw;">
+                <div style="display: flex; align-items: center; justify-content: start; gap: 5px; flex-direction: column;">
+                    <label>Solicitação reprovada</label>
+                    <label>${orcamento_v2.aprovacao.justificativa}</label>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <label>Tentar de novo?</label>
+                <button>Sim</button>
             </div>
         </div>
         `

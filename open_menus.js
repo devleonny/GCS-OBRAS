@@ -638,14 +638,13 @@ async function ir_pdf(orcam_) {
 
     try {
         const { ipcRenderer } = require('electron');
-        const pdfUrl = `pdf.html`;
+        const pdfUrl = `clone/pdf.html`;
         ipcRenderer.invoke('open-new-window', pdfUrl);
 
     } catch {
-        window.location.href = `https://devleonny.github.io/GCS-OBRAS/pdf.html`;
+        window.location.href = `pdf.html`;
     }
 }
-
 
 function criar_orcamento_janela() {
 
