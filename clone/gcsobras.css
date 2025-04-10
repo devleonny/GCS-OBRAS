@@ -1606,11 +1606,3 @@ input[type="file"]#input-anexos {
 input[type="file"]#input-anexos:hover {
     background: #282a3a;
 }
-
-.collapsed {
-    border-bottom: 1px solid #ccc;
-}
-
-#gcs-obras-table {
-    transition: height 0.3s ease;
-}
