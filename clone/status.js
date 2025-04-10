@@ -3331,9 +3331,6 @@ async function mostrar_painel() {
 
         linhas[produto.tipo].orcamento += `
         <tr>
-            ${produto.tipo == 'SERVIÇO' ? `
-            <td style="font-size: 0.9em;">${produto.codigo}</td>`
-                : ''}
             <td style="font-size: 0.9em;">${descricao_produto}</td>
             <td style="font-size: 0.9em;">${qtde}</td>
             ${produto.tipo == 'VENDA' ? `
@@ -3524,9 +3521,6 @@ async function mostrar_painel() {
                         <label>${tipo}</label>
                         <table class="tabela">
                             <thead style="${tipo == 'SERVIÇO' ? 'background-color:rgb(0, 138, 0);' : 'background-color:rgb(185, 0, 0);'}">
-                                ${tipo == 'SERVIÇO' ? `
-                                    <th style="color: #fff; font-size: 0.9em;">Código</th>
-                                ` : ''}
                                 <th style="color: #fff; font-size: 0.9em;">Descrição</th>
                                 <th style="color: #fff; font-size: 0.9em;">Quantidade</th>
                                 ${tipo == 'VENDA' ? `
@@ -3547,7 +3541,6 @@ async function mostrar_painel() {
                     : ''}
 
                                     ${tipo == 'SERVIÇO' ? `
-                                    <td></td>
                                     <td></td>`
                     : ''}
                                     <td></td>
