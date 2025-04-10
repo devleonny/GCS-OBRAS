@@ -442,7 +442,7 @@ async function capturar_html_pdf(id) {
     for (pc in pecas) {
         let peca = pecas[pc]
 
-        if(!pecas) continue
+        if (!pecas) continue
         let partnumber = peca.partnumber ?? (peca.codigo && dados_estoque[peca.codigo]?.partnumber || "CADASTRAR")
         if (partnumber == "undefined") {
             "CADASTRAR"
@@ -546,12 +546,12 @@ async function capturar_html_pdf(id) {
 async function criar_manutencao(id) {
 
     let acesso = JSON.parse(localStorage.getItem("acesso"))
-    
+
     dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
 
     let permissao = dados_setores[acesso.usuario].permissao
-    
-    
+
+
 
     let setor = dados_setores[acesso.usuario].setor
 
@@ -567,7 +567,7 @@ async function criar_manutencao(id) {
 
     }
 
-  
+
     let termo = 'Editar'
     let botao = 'Atualizar'
     let pdf = `
@@ -591,6 +591,26 @@ async function criar_manutencao(id) {
         excluir = ''
         id = gerar_id_5_digitos()
     }
+
+    // const acumuladoTable = `
+    //     <table style="position: relative; display: flex; align-items: center; justify-content: start; color: #222; background-color: #d2d2d2; padding: 5px; border-radius: 3px;">
+    //         <thead>
+    //             <th>Cliente | Loja</th>
+    //             <th>Técnico</th>
+    //             <th>Status de manutenção</th>
+    //             <th>Kit Técnico</th>
+    //             <th>Chamado</th>
+    //             <th>Previsão</th>
+    //             <th>Comentário</th>
+    //             <th>Anexos</th>
+    //         </thead>
+    //         <tbody>
+    //             <tr>
+    //                 <td>${dados_setores[acesso.usuario].cliente}</td>
+    //             </tr>
+    //         </tbody>
+    //     </table>
+    // `
 
     let acumulado = `
         <div style="position: relative;" id="tela">
@@ -1220,7 +1240,7 @@ async function renderizarAnexos(id) {
         listaAnexos.textContent = 'Sem anexos disponíveis'
         return;
     }
-    
+
     // 🔹 Renderiza os anexos (banco + pendentes)
     listaAnexos.innerHTML = Object.values(anexos)
         .map(anexo => {
