@@ -887,10 +887,11 @@ async function remover_historico(codigo, stq, chave) {
     }
 
     await inserirDados(dados_estoque, 'dados_estoque')
-    await deletar(`dados_estoque/${codigo}/${stq}/historico/${chave}`)
+    deletar(`dados_estoque/${codigo}/${stq}/historico/${chave}`)
 
     remover_popup()
     await abrir_estoque(codigo, stq)
+    retomar_paginacao(codigo, stq)
 
 }
 
@@ -953,12 +954,12 @@ async function salvar_movimento(codigo, stq, inicial) {
     estoque.historico[id] = movimento
 
     await inserirDados(dados_estoque, 'dados_estoque')
-    await enviar(`dados_estoque/${codigo}/${stq}/historico/${id}`, movimento)
-
+    enviar(`dados_estoque/${codigo}/${stq}/historico/${id}`, movimento)
+    
     if (inicial !== undefined) {
-        await enviar(`dados_estoque/${codigo}/${stq}/quantidade`, estoque.quantidade)
+    enviar(`dados_estoque/${codigo}/${stq}/quantidade`, estoque.quantidade)
     }
-
+    
     await retomar_paginacao(codigo, stq)
 
 }
@@ -1177,7 +1178,7 @@ async function remover_linha_excluir_item(elemento) {
         await inserirDados(dados_estoque, 'dados_estoque')
         await carregar_estoque()
     }
-
+    
 }
 
 async function confirmar_exclusao(codigo) {
