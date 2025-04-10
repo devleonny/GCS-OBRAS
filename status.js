@@ -584,9 +584,9 @@ async function calcular_requisicao(sincronizar) {
                     // Atualizar células de compra, total compra e resultado
                     if (!sincronizar) {
                         // Modo edição
-                        tds[8].innerHTML = `<label><strong>TOTAL</strong> <br> ${dinheiro(totalCompra)}</label>`;
+                        tds[8].innerHTML = `<label style="font-size: 0.8vw"><strong>Total</strong></strong> <br> ${dinheiro(totalCompra)}</label>`;
                         tds[9].innerHTML = `
-                            <label><strong>RESULTADO</strong> <br> 
+                            <label style="font-size: 0.8vw"><strong>Resultado</strong> <br> 
                             <span style="color: ${resultadoCom >= 0 ? 'green' : 'red'}">${dinheiro(Math.abs(resultadoCom))}</span></label>
                         `;
                     }
@@ -767,43 +767,55 @@ async function carregar_itens(apenas_visualizar, requisicao, tipoRequisicao, edi
         }
 
         if (!editar) {
-
             qtde_editar -= qtde_na_requisicao
             qtde_na_requisicao = 0
 
         } else {
 
             Object.values(valoresTotais).forEach(item => {
-
                 if (item.codigoRequisicao == codigo) {
-
                     qtde_editar += qtde_na_requisicao - item.qtdeTotal
-
                 }
-
             })
+        }
+        // Obter valores de compra para o modo de visualização
+        let valorCompra = 0;
+        let totalCompra = 0;
+        let resultado = 0;
 
+        
+        if (requisicao && requisicao[codigo]) {
+            valorCompra = requisicao[codigo].valorCompra || 0;
+            totalCompra = valorCompra * (requisicao[codigo].qtde_enviar || 0);
+            
+            // Calcular resultado (valor total - total compra)
+            let custo = conversor(item.custo) || 0;
+            let valorTotal = custo * (requisicao[codigo].qtde_enviar || 0);
+            resultado = valorTotal - totalCompra;
         }
 
-        console.log(item)
-
+        
         linhas += `
               <tr class="lin_req" style="background-color: white;">
                   <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
                   <td style="text-align: center;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">
-                    ${requisicao[codigo]?.partnumber || '<input>'}</label>` :
-                    `<input class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;">`}
+                    ${apenas_visualizar ? 
+                      `<label style="font-size: 1.2em;">${requisicao[codigo]?.partnumber || '---'}</label>` :
+                      `<input class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;" 
+                       value="${requisicao[codigo]?.partnumber || ''}">`}
                   </td>
                   <td style="position: relative;">
                       <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
                           <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong></label>
                           <label>${dados_composicoes[codigo] ? dados_composicoes[codigo].descricao : item.descricao}</label>
                       </div>
-                      ${apenas_visualizar ? '' : `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`}
+                      ${apenas_visualizar ? '' : 
+                       `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" 
+                        onclick="abrir_adicionais('${codigo}')">`}
                   </td>
                   <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
-                      ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${requisicao[codigo]?.tipo || ''}</label>` : `
+                      ${apenas_visualizar ? 
+                       `<label style="font-size: 1.2em; margin: 10px;">${requisicao[codigo]?.tipo || tipo}</label>` : `
                           <select onchange="calcular_requisicao()" style="border: none;">
                               <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
                               <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
@@ -811,64 +823,76 @@ async function carregar_itens(apenas_visualizar, requisicao, tipoRequisicao, edi
                       `}
                   </td>
                   <td style="text-align: center;">
-                      ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.qtde_enviar || ''}</label>` : `
+                      ${apenas_visualizar ? 
+                       `<label style="font-size: 1.2em;">${requisicao[codigo]?.qtde_enviar || ''}</label>` : `
                           <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
                               <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
                                   <label>Quantidade a enviar</label>
-                                  <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
+                                  <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" 
+                                         oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
                               </div>
                               <label class="num">${qtde_editar}</label>  
                           </div>
                       `}
                   </td>
                   <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                      <label></label>
+                      <label><strong>c • ICMS</strong> <br> ${dinheiro(conversor(item.custo))}</label>
                       <br>
                       <br>
-                      <label style="color: red; font-size: 1.0em;"></label>
+                      <label style="color: red; font-size: 1.0em;">
+                        ${tipo === 'SERVIÇO' ? '' : `<strong>s • ICMS</strong> <br> ${dinheiro(conversor(item.custo) - (conversor(item.custo) * 0.12))}`}
+                      </label>
                   </td>
                   <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                      <label></label>
+                      <label><strong>c • ICMS</strong> <br> ${dinheiro(conversor(item.custo) * (requisicao[codigo]?.qtde_enviar || 0))}</label>
                       <br>
                       <br>
-                      <label style="color: red; font-size: 1.0em;"></label>
+                      <label style="color: red; font-size: 1.0em;">
+                        ${tipo === 'SERVIÇO' ? '' : `<strong>s • ICMS</strong> <br> ${dinheiro((conversor(item.custo) - (conversor(item.custo) * 0.12) * (requisicao[codigo]?.qtde_enviar || 0)))}`}
+                      </label>
                   </td>
 
                   <td style="text-align: center;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">--</label>` : `
-                          <input 
-                            class="pedido valor-compra" 
-                            type="number" 
-                            style="width: 8vw; 
-                            padding: 0px; 
-                            margin: 0px; 
-                            height: 40px;" 
-                            oninput="calcular_requisicao()">`}
+                    ${apenas_visualizar ? 
+                     `<label style="font-size: 1.2em;">${valorCompra ? dinheiro(valorCompra) : '---'}</label>` : `
+                        <input 
+                          class="pedido valor-compra" 
+                          type="number" 
+                          style="width: 8vw; 
+                          padding: 0px; 
+                          margin: 0px; 
+                          height: 40px;" 
+                          value="${valorCompra || 0}"
+                          oninput="calcular_requisicao()">
+                    `}
                   </td>
 
                   <td style="text-align: center;">
-                      <label class="total-compra" style="font-size: 1.2em;">0,00</label>
+                      <label class="total-compra" style="font-size: 1.2em;">
+                        ${apenas_visualizar ? dinheiro(totalCompra) : '0,00'}
+                      </label>
                   </td>
 
                   <td style="text-align: center;">
-                      <label class="resultado" style="font-size: 1.2em;">0,00</label>
+                      <label class="resultado" style="font-size: 1.2em; color: ${resultado >= 0 ? 'green' : 'red'};">
+                        ${apenas_visualizar ? dinheiro(Math.abs(resultado)) : '0,00'}
+                      </label>
                   </td>
                   
                   <td>
-                      ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.requisicao || ''}</label>` : `
+                      ${apenas_visualizar ? 
+                       `<label style="font-size: 1.2em;">${requisicao[codigo]?.requisicao || '---'}</label>` : `
                           <select style="border: none; cursor: pointer;">
-                              <option style="text-align: center;">Nada a fazer</option>
-                              <option>Estoque AC</option>
-                              <option>Comprar</option>
-                              <option>Enviar do CD</option>
-                              <option>Fornecido pelo Cliente</option>
+                              <option ${!requisicao[codigo]?.requisicao ? 'selected' : ''}>Nada a fazer</option>
+                              <option ${requisicao[codigo]?.requisicao === 'Estoque AC' ? 'selected' : ''}>Estoque AC</option>
+                              <option ${requisicao[codigo]?.requisicao === 'Comprar' ? 'selected' : ''}>Comprar</option>
+                              <option ${requisicao[codigo]?.requisicao === 'Enviar do CD' ? 'selected' : ''}>Enviar do CD</option>
+                              <option ${requisicao[codigo]?.requisicao === 'Fornecido pelo Cliente' ? 'selected' : ''}>Fornecido pelo Cliente</option>
                           </select>
                       `}
                   </td>
-
-                  
               </tr>
-        `
+        `;
     };
 
     return linhas;
@@ -1359,7 +1383,8 @@ async function salvar_requisicao(chave) {
         requisicoes: [],
         adicionais: itens_adicionais,
         total_sem_icms: document.getElementById("total_s_icms").textContent,
-        total_com_icms: document.getElementById("total_c_icms").textContent
+        total_com_icms: document.getElementById("total_c_icms").textContent,
+        valores_compra: {}
     };
 
     //Processar itens da tabela
@@ -1377,6 +1402,8 @@ async function salvar_requisicao(chave) {
         let tipo = valores[1].value
         let qtde = Number(valores[2].value)
         let requisicao = valores[3].value
+        let valorCompra = Number(valores[4]?.value) || 0
+        let totalCompra = valorCompra * qtde
 
         if (partnumber == '' && qtde > 0) {
             document.getElementById("aguarde")?.remove();
@@ -1396,7 +1423,15 @@ async function salvar_requisicao(chave) {
                 tipo: tipo,
                 qtde_enviar: qtde,
                 requisicao: requisicao,
+                valorCompra: valorCompra,
+                totalCompra: totalCompra
             });
+            novo_lancamento.requisicoes.push(item)
+            //Armazenar os valores de compra separadamente para fácil acesso
+            novo_lancamento.valores_compra[codigo] = {
+                valorCompra: valorCompra,
+                totalCompra: totalCompra
+            };
 
             lista_partnumbers[codigo] = partnumber;
             temItensValidos = true;
@@ -3293,6 +3328,63 @@ async function gerarpdf(cliente, pedido) {
 
     var janela = document.querySelectorAll('.janela')
     janela = janela[janela.length - 1]
+
+    var tabela = janela.querySelector("#tabela_requisicoes");
+    if (tabela) {
+        //Ajustar largura das colunas para o PDF
+        tabela.querySelectorAll("th, td").forEach((celula, index) => {
+            if (index % 11 === 0) celula.style.width = "8%"; //Código
+            else if (index % 11 === 1) celula.style.width = "10%" //Part number
+            else if (index % 11 === 2) celula.style.width = "20%" //Informações do item
+            else if (index % 11 === 3) celula.style.width = "8%" //Tipo
+            else if (index % 11 === 4) celula.style.width = "8%" //Quantidade
+            else if (index % 11 === 5) celula.style.width = "10%" //Valor unitário
+            else if (index % 11 === 6) celula.style.width = "10%" //Valor Total
+            else if (index % 11 === 7) celula.style.width = "10%" //Valor de compra
+            else if (index % 11 === 8) celula.style.width = "10%" //Total de Compra
+            else if (index % 11 === 9) celula.style.width = "10%" //Resultado
+            else if (index % 11 === 10) celula.style.width = "6%" //Requisição
+        })
+
+       // Garantir que os valores de compra sejam exibidos corretamente
+       const linhas = tabela.querySelectorAll("tbody tr");
+       linhas.forEach(linha => {
+           const tds = linha.querySelectorAll("td");
+           if (tds.length >= 11) {
+               // Obter quantidade
+               const qtdeInput = tds[4].querySelector("input");
+               const qtde = qtdeInput ? parseFloat(qtdeInput.value) || 0 : 
+                          parseFloat(tds[4].textContent) || 0;
+
+               // Valor de compra
+               const valorCompraInput = tds[7].querySelector("input");
+               let valorCompra = valorCompraInput ? parseFloat(valorCompraInput.value) || 0 : 
+                               parseFloat(tds[7].textContent.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+               
+               // Calcular total de compra
+               const totalCompra = qtde * valorCompra;
+               
+               // Atualizar células se necessário
+               if (tds[7].textContent.trim() === "---" && valorCompraInput) {
+                   tds[7].textContent = dinheiro(valorCompra);
+               }
+               
+               if (tds[8].textContent.trim() === "0,00" || isNaN(parseFloat(tds[8].textContent.replace(/[^\d,.-]/g, '').replace(',', '.')))) {
+                   tds[8].textContent = dinheiro(totalCompra);
+               }
+               
+               // Calcular resultado (valor total - total compra)
+               const valorTotalText = tds[6].querySelector("label")?.textContent || tds[6].textContent;
+               const valorTotal = parseFloat(valorTotalText.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+               const resultado = valorTotal - totalCompra;
+               
+               if (tds[9].textContent.trim() === "0,00" || isNaN(parseFloat(tds[9].textContent.replace(/[^\d,.-]/g, '').replace(',', '.')))) {
+                   tds[9].textContent = dinheiro(Math.abs(resultado));
+                   tds[9].style.color = resultado >= 0 ? 'green' : 'red';
+               }
+           }
+       });
+   }
 
     var htmlContent = `
     <!DOCTYPE html>
