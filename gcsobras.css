@@ -1239,6 +1239,7 @@ input[type=range]::-moz-range-thumb {
 
 .tabela th,
 .tabela td {
+    color: black;
     font-size: 0.8vw;
     overflow: hidden;
     padding: 8px;
@@ -1248,7 +1249,6 @@ input[type=range]::-moz-range-thumb {
 .tabela td {
     font-size: 0.9vw;
     text-align: left;
-    color: black;
 }
 
 .contorno {
