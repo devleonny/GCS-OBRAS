@@ -40,12 +40,16 @@ async function atualizar_dados_pdf() {
         campo_atualizar.innerHTML = `
         <img src="gifs/loading.gif" style="width: 5vw;">
         `
-        await recuperar()
 
-        campo_atualizar.innerHTML = `
-            <img src="imagens/atualizar2.png">
-            <label>Atualizar</label>
-        `
+        await inserirDados(await receber['dados_composicoes'], 'dados_composicoes')
+
+        let dados_orcamentos = await receber['dados_orcamentos']
+        await inserirDados(dados_orcamentos, 'dados_orcamentos')
+        let pdf = JSON.parse(localStorage.getItem('pdf'))
+        let orcamento_v2 = dados_orcamentos[pdf.id]
+        localStorage.setItem('pdf', JSON.stringify(orcamento_v2))
+
+        f5()
     }
 }
 
@@ -184,11 +188,11 @@ async function preencher_v2() {
                 let dados = dados_composicoes[item.codigo]
 
                 // Garantir que os campos existam ou tenham valores padrão
-                item.descricao = await dados.descricao || item.descricao || "Descrição não disponível";
-                item.sapid = await dados.sapid || "N/A";
-                item.refid = await dados.refid || "N/A";
-                item.unidade = await dados.unidade || "UND";
-                item.imagem = await item.imagem || dados.imagem || 'https://i.imgur.com/Nb8sPs0.png';
+                item.descricao = dados.descricao || item.descricao || "Descrição não disponível";
+                item.sapid = dados.sapid || "N/A";
+                item.refid = dados.refid || "N/A";
+                item.unidade = dados.unidade || "UND";
+                item.imagem = item.imagem || dados.imagem || 'https://i.imgur.com/Nb8sPs0.png';
 
                 if (dados_composicoes[item.codigo].substituto !== '' && carrefour) {
                     item.codigo = dados_composicoes[item.codigo].substituto
@@ -199,11 +203,11 @@ async function preencher_v2() {
                 item.custo = conversor(item.custo);
             } else {
                 // Se não existir nos dados_composicoes, definir valores padrão
-                item.descricao = await item.descricao || "Descrição não disponível";
-                item.sapid = await item.sapid || "N/A";
-                item.refid = await item.refid || "N/A";
-                item.unidade = await item.unidade || "UND";
-                item.imagem = await item.imagem || 'https://i.imgur.com/Nb8sPs0.png';
+                item.descricao = item.descricao || "Descrição não disponível";
+                item.sapid = item.sapid || "N/A";
+                item.refid = item.refid || "N/A";
+                item.unidade = item.unidade || "UND";
+                item.imagem = item.imagem || 'https://i.imgur.com/Nb8sPs0.png';
             }
 
             item.total = item.custo * item.qtde;
