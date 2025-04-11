@@ -255,21 +255,19 @@ async function abrir_manutencao(id) {
     let pessoas = ['tecnico', 'cliente']
 
     pessoas.forEach(pessoa => {
-
         let chave = `codigo_${pessoa}`
 
         if (manutencao[chave] && manutencao[chave] !== '') {
-
-            let item = dados_clientes_omie[manutencao[chave]]
+            let item = dados_clientes_omie[manutencao[chave]] || {};
             document.getElementById(chave).textContent = manutencao[chave]
-            document.getElementById(pessoa).value = item.nome
+            document.getElementById(pessoa).value = item.nome || '--';
             document.getElementById(`endereco_${pessoa}`).innerHTML = `
-                <label><strong>CNPJ/CPF:</strong> ${item.cnpj}</label>
-                <label style="text-align: left;"><strong>Rua/Bairro:</strong> ${item.bairro}</label>
-                <label><strong>CEP:</strong> ${item.cep}</label>
-                <label><strong>Cidade:</strong> ${item.cidade}</label>
-                <label><strong>Estado:</strong> ${item.estado}</label>        
-            `
+            <label><strong>CNPJ/CPF:</strong> ${item.cnpj || '--'}</label>
+            <label style="text-align: left;"><strong>Rua/Bairro:</strong> ${item.bairro || '--'}</label>
+            <label><strong>CEP:</strong> ${item.cep || '--'}</label>
+            <label><strong>Cidade:</strong> ${item.cidade || '--'}</label>
+            <label><strong>Estado:</strong> ${item.estado || '--'}</label>        
+        `
         }
     })
 
@@ -551,8 +549,10 @@ async function criar_manutencao(id) {
     let permissao = "user"
     let setor = ""
 
+    const usuarioValido = acesso && acesso.usuario && dados_setores[acesso.usuario];
+
     // Check if acesso and acesso.usuario exist and the user exists in dados_setores
-    if (acesso && acesso.usuario && dados_setores[acesso.usuario]) {
+    if (usuarioValido) {
         permissao = dados_setores[acesso.usuario].permissao || "user"
         setor = dados_setores[acesso.usuario].setor || ""
     }
@@ -566,7 +566,7 @@ async function criar_manutencao(id) {
             <img src="imagens/pdf.png" style="cursor: pointer; width: 2vw;">
             <label>PDF</label>
         </div>
-        `
+    `
 
     let excluir = `
         <div style="position: absolute; bottom: 0; left: 2vw; display: flex; justify-content: center; align-items: center; gap: 5px;" onclick="confirmar_exclusao('${id}')">
