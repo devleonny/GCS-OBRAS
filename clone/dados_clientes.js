@@ -36,7 +36,7 @@ async function carregar_datalist_clientes() {
         var filtrados = []
 
         items.forEach(it => {
-            if (String(it).includes(query)) {
+            if (String(it).toUpperCase().includes(query)) {
                 filtrados.push(it)
             }
         })
