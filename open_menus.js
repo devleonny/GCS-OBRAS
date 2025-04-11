@@ -51,6 +51,9 @@ async function identificacao_user() {
 async function configs() {
 
     let status = await servicos('livre')
+    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+
+    let tabela  
 
     let acumulado = `
     <label>Gerencie recursos por aqui</label>
@@ -638,7 +641,7 @@ async function ir_pdf(orcam_) {
 
     try {
         const { ipcRenderer } = require('electron');
-        const pdfUrl = `clone/pdf.html`;
+        const pdfUrl = `pdf.html`;
         ipcRenderer.invoke('open-new-window', pdfUrl);
 
     } catch {
