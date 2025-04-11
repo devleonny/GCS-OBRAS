@@ -90,7 +90,7 @@ async function configs() {
     }
 
     let tabela = `
-    <table class="tabela">
+    <table class="tabela" style="width: max-content;">
         <thead>
             <tr>
                 <th>Usuários</th>

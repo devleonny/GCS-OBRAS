@@ -380,8 +380,9 @@ async function calcular_requisicao(sincronizar) {
             trs.forEach(tr => {
 
                 if (tr.style.display !== 'none') {
-                    var tds = tr.querySelectorAll('td')
-                    var codigo = tds[0].textContent
+                    let tds = tr.querySelectorAll('td')
+                    let codigo = tds[0].textContent
+                    let item = itens[codigo]
 
                     let quantidadeDisponivel = 0
                     if (tds[4].querySelector('label.num')) {
@@ -394,43 +395,49 @@ async function calcular_requisicao(sincronizar) {
                         tds[4].querySelector('input').value = conversor(quantidadeDisponivel)
                     }
 
-                    var tipo = 'Error 404'
+                    let tipo = 'Error 404'
 
                     if (sincronizar) { // Incicialmente para carregar os tipos;
-                        tipo = itens[codigo].tipo
+                        tipo = item.tipo
                         tds[3].querySelector('select').value = tipo
 
                     } else {
                         tipo = tds[3].querySelector('select') ? tds[3].querySelector('select').value : tds[3].querySelector('label').textContent
                     }
 
-                    var infos = ['', '']
+                    let infos = ['', '']
                     if (tipo == 'VENDA') {
                         infos = ['<strong>s • ICMS</strong> <br>', '<strong>c • ICMS</strong> <br>']
                     }
 
-                    var icms = 0
+                    let icms = 0
                     if (estado == 'BA' && tipo == 'VENDA') {
                         icms = 0.205
                     } else if (estado !== 'BA' && tipo == 'VENDA') {
                         icms = 0.12
                     }
 
-                    var qtde = tds[4].querySelector('input') ? tds[4].querySelector('input').value : tds[4].textContent
-                    var custo = conversor(itens[codigo]?.custo)
-                    var unt_sem_icms = custo - (custo * icms)
+                    let qtde = tds[4].querySelector('input') ? tds[4].querySelector('input').value : tds[4].textContent
+                    let custo = conversor(item.custo)
+                    let unt_sem_icms = custo - (custo * icms)
 
-                    var labels_unitarios = tds[5].querySelectorAll('label')
+                    let labels_unitarios = tds[5].querySelectorAll('label')
                     labels_unitarios[0].innerHTML = `${infos[1]} ${dinheiro(custo)}`
                     labels_unitarios[1].innerHTML = (qtde == '' || tipo == 'SERVIÇO') ? '' : `${infos[0]} ${dinheiro(unt_sem_icms)}`
 
+                    // Lógica dos descontos por linha, aplicado no total da linha;
+                    let total_do_item = custo * qtde
+                    if (item.tipo_desconto) {
+                        total_do_item = item.tipo_desconto == 'Dinheiro' ? total_do_item - item.desconto : total_do_item - (item.custo * item.desconto / 100)
+                    }
+                    let total_do_item_sem_icms = total_do_item - (total_do_item * icms)
 
-                    var labels_totais = tds[6].querySelectorAll('label')
-                    labels_totais[0].innerHTML = `${infos[1]} ${dinheiro(custo * qtde)}`
-                    labels_totais[1].innerHTML = (qtde == '' || tipo == 'SERVIÇO') ? '' : `${infos[0]} ${dinheiro(unt_sem_icms * qtde)} `
+                    let labels_totais = tds[6].querySelectorAll('label')
+                    labels_totais[0].innerHTML = `${infos[1]} ${dinheiro(total_do_item)}`
+                    labels_totais[1].innerHTML = (qtde == '' || tipo == 'SERVIÇO') ? '' : `${infos[0]} ${dinheiro(total_do_item_sem_icms)} `
 
-                    total_sem_icms += unt_sem_icms * qtde
-                    total_com_icms += qtde * custo
+                    total_sem_icms += total_do_item_sem_icms
+                    total_com_icms += total_do_item
                 }
             })
 
@@ -2752,10 +2759,10 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
             <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">Total</div>
             <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
                 <div style="display: flex; gap: 10px;">
-                    <label id="total_s_icms"></label>
-                    <label style="font-size: 0.8em;"> <strong>Líquido (s/Icms)</strong> </label> 
+                    <label id="total_s_icms" style="color: red"></label>
+                    <label style="font-size: 0.8em; color: red;"> <strong>Líquido (s/Icms)</strong> </label> 
                 </div>
-                <div style="display: flex; gap: 10px; color: red;">
+                <div style="display: flex; gap: 10px;">
                     <label id="total_c_icms"></label> 
                     <label style="font-size: 0.8em;"><strong>(c/Icms)</strong></label>
                 </div>
