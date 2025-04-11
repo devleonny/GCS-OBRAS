@@ -442,7 +442,7 @@ async function capturar_html_pdf(id) {
     for (pc in pecas) {
         let peca = pecas[pc]
 
-        if(!pecas) continue
+        if (!pecas) continue
         let partnumber = peca.partnumber ?? (peca.codigo && dados_estoque[peca.codigo]?.partnumber || "CADASTRAR")
         if (partnumber == "undefined") {
             "CADASTRAR"
@@ -544,30 +544,21 @@ async function capturar_html_pdf(id) {
 
 
 async function criar_manutencao(id) {
+    let acesso = JSON.parse(localStorage.getItem("acesso")) || {}
 
-    let acesso = JSON.parse(localStorage.getItem("acesso"))
-    
-    dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
 
-    let permissao = dados_setores[acesso.usuario].permissao
-    
-    
+    let permissao = "user"
+    let setor = ""
 
-    let setor = dados_setores[acesso.usuario].setor
-
-    let displayBotaoAnexos = ""
-
-    if (permissao == "adm" || setor == "LOGÍSTICA") {
-
-        displayBotaoAnexos = "flex"
-
-    } else {
-
-        displayBotaoAnexos = "none"
-
+    // Check if acesso and acesso.usuario exist and the user exists in dados_setores
+    if (acesso && acesso.usuario && dados_setores[acesso.usuario]) {
+        permissao = dados_setores[acesso.usuario].permissao || "user"
+        setor = dados_setores[acesso.usuario].setor || ""
     }
 
-  
+    let displayBotaoAnexos = (permissao == "adm" || setor == "LOGÍSTICA") ? "flex" : "none"
+
     let termo = 'Editar'
     let botao = 'Atualizar'
     let pdf = `
@@ -1220,7 +1211,7 @@ async function renderizarAnexos(id) {
         listaAnexos.textContent = 'Sem anexos disponíveis'
         return;
     }
-    
+
     // 🔹 Renderiza os anexos (banco + pendentes)
     listaAnexos.innerHTML = Object.values(anexos)
         .map(anexo => {
