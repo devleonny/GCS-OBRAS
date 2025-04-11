@@ -41,15 +41,21 @@ async function atualizar_dados_pdf() {
         <img src="gifs/loading.gif" style="width: 5vw;">
         `
 
-        await inserirDados(await receber['dados_composicoes'], 'dados_composicoes')
+        try {
+            await inserirDados(await receber('dados_composicoes'), 'dados_composicoes')
 
-        let dados_orcamentos = await receber['dados_orcamentos']
-        await inserirDados(dados_orcamentos, 'dados_orcamentos')
-        let pdf = JSON.parse(localStorage.getItem('pdf'))
-        let orcamento_v2 = dados_orcamentos[pdf.id]
-        localStorage.setItem('pdf', JSON.stringify(orcamento_v2))
-
-        f5()
+            let dados_orcamentos = await receber('dados_orcamentos')
+            await inserirDados(dados_orcamentos, 'dados_orcamentos')
+            let pdf = JSON.parse(localStorage.getItem('pdf'))
+            let orcamento_v2 = dados_orcamentos[pdf.id]
+            localStorage.setItem('pdf', JSON.stringify(orcamento_v2))
+        } catch (error) {
+            const ERROR_MESSAGE = 'Erro ao atualizar os itens da composição:'
+            console.log(ERROR_MESSAGE, error)
+            alert(ERROR_MESSAGE, error)
+        } finally {
+            f5()
+        }
     }
 }
 
