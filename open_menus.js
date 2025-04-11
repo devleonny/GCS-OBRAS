@@ -10,13 +10,6 @@ function f5() {
     location.reload();
 }
 
-// Provisório
-localStorage.removeItem('technicians')
-localStorage.removeItem('departments')
-localStorage.removeItem('modulo_ativo')
-localStorage.removeItem('current_settings')
-localStorage.removeItem('dados_agenda_tecnicos')
-
 identificacao_user()
 
 async function identificacao_user() {
@@ -51,7 +44,19 @@ async function identificacao_user() {
 async function configs() {
 
     let status = await servicos('livre')
-    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+
+    // timestamp para dados_setores: Sempre atualizado;
+    let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
+    let timestamp_atual_setores = await ultimo_timestamp('dados_setores')
+
+    if (timestamp_atual_setores.timestamp > (timestamps?.dados_setores || 0)) {
+        dados_setores = await lista_setores()
+        timestamps.dados_setores = timestamp_atual_setores.timestamp
+        localStorage.setItem('timestamps', JSON.stringify(timestamps))
+    } else {
+        dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    }
+
     let linhas = ''
     let listas = {
         permissoes: ['', 'adm', 'user', 'gerente', 'diretoria', 'editor', 'log'],

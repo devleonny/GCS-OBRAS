@@ -427,6 +427,8 @@ async function calcular_requisicao(sincronizar) {
 
                     // Lógica dos descontos por linha, aplicado no total da linha;
                     let total_do_item = custo * qtde
+
+                    console.log(total_do_item)
                     if (item.tipo_desconto) {
                         total_do_item = item.tipo_desconto == 'Dinheiro' ? total_do_item - item.desconto : total_do_item - (item.custo * item.desconto / 100)
                     }
@@ -436,13 +438,18 @@ async function calcular_requisicao(sincronizar) {
                     labels_totais[0].innerHTML = `${infos[1]} ${dinheiro(total_do_item)}`
                     labels_totais[1].innerHTML = (qtde == '' || tipo == 'SERVIÇO') ? '' : `${infos[0]} ${dinheiro(total_do_item_sem_icms)} `
 
-                    total_sem_icms += total_do_item_sem_icms
+                    total_sem_icms += tipo == 'VENDA' ? total_do_item_sem_icms : 0
                     total_com_icms += total_do_item
                 }
             })
 
             var total_c_icms = document.getElementById('total_c_icms')
             var total_s_icms = document.getElementById('total_s_icms')
+
+            if (orcamento.desconto_geral) {
+                total_com_icms = orcamento.tipo_de_desconto == 'Dinheiro' ? total_com_icms - orcamento.desconto_geral : total_com_icms - (total_com_icms * orcamento.desconto_geral / 100)
+                total_sem_icms = orcamento.tipo_de_desconto == 'Dinheiro' ? total_sem_icms - orcamento.desconto_geral : total_sem_icms - (total_sem_icms * orcamento.desconto_geral / 100)
+            }
 
             if (total_c_icms && total_s_icms) {
                 total_c_icms.textContent = dinheiro(total_com_icms)
