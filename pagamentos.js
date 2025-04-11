@@ -5,14 +5,14 @@ consultar_pagamentos()
 
 async function consultar_pagamentos() {
 
-    var div_pagamentos = document.getElementById('div_pagamentos')
+    let div_pagamentos = document.getElementById('div_pagamentos')
     if (!div_pagamentos) {
         return
     }
     div_pagamentos.innerHTML = ''
 
-    var acumulado = ''
-    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    let acumulado = ''
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
 
     if (Object.keys(lista_pagamentos).length == 0) {
         lista_pagamentos = await receber('lista_pagamentos')
@@ -25,29 +25,40 @@ async function consultar_pagamentos() {
         inserirDados(dados_categorias, 'dados_categorias')
     }
 
-    var orcamentos = await recuperarDados('dados_orcamentos') || {};
-    dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
-    var dados_clientes = await recuperarDados('dados_clientes') || {};
-    var clientes = {}
-    var linhas = ''
+    // timestamp para dados_setores: Sempre atualizado;
+    let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
+    let timestamp_atual_setores = await ultimo_timestamp('dados_setores')
+
+    if (timestamp_atual_setores.timestamp > (timestamps?.dados_setores || 0)) {
+        dados_setores = await lista_setores()
+        timestamps.dados_setores = timestamp_atual_setores.timestamp
+        localStorage.setItem('timestamps', JSON.stringify(timestamps))
+    } else {
+        dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    }
+
+    let orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let dados_clientes = await recuperarDados('dados_clientes') || {};
+    let clientes = {}
+    let linhas = ''
 
     Object.keys(dados_clientes).forEach(item => {
-        var cliente = dados_clientes[item]
+        let cliente = dados_clientes[item]
         clientes[cliente.omie] = cliente
     })
 
-    var pagamentosFiltrados = Object.keys(lista_pagamentos)
+    let pagamentosFiltrados = Object.keys(lista_pagamentos)
         .map(pagamento => {
 
-            var pg = lista_pagamentos[pagamento];
+            let pg = lista_pagamentos[pagamento];
 
-            var valor_categorias = pg.param[0].categorias.map(cat =>
+            let valor_categorias = pg.param[0].categorias.map(cat =>
                 `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
             ).join('');
-            var nome_orcamento = orcamentos[pg.id_orcamento]
+            let nome_orcamento = orcamentos[pg.id_orcamento]
                 ? orcamentos[pg.id_orcamento].dados_orcam.cliente_selecionado
                 : pg.id_orcamento;
-            var data_registro = pg.data_registro || pg.param[0].data_previsao;
+            let data_registro = pg.data_registro || pg.param[0].data_previsao;
 
             return {
                 id: pagamento,
@@ -71,7 +82,7 @@ async function consultar_pagamentos() {
 
     pagamentosFiltrados.sort((a, b) => parseDate(b.data_previsao) - parseDate(a.data_previsao));
 
-    var contadores = {
+    let contadores = {
         gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: "imagens/gerente.png" },
         qualidade: { qtde: 0, valor: 0, termo: 'qualidade', label: 'Aguardando aprovação da Qualidade', icone: "imagens/qualidade2.png" },
         diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: "imagens/diretoria.png" },

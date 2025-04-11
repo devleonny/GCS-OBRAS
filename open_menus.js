@@ -52,19 +52,87 @@ async function configs() {
 
     let status = await servicos('livre')
     let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    let linhas = ''
+    let listas = {
+        permissoes: ['', 'adm', 'user', 'gerente', 'diretoria', 'editor', 'log'],
+        setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE']
+    }
 
-    let tabela  
+    for (usuario in dados_setores) {
+
+        let dados = dados_setores[usuario]
+        let opcoes_permissao = ''
+        let opcoes_setores = ''
+
+        listas.permissoes.forEach(permissao => {
+            opcoes_permissao += `
+            <option ${dados?.permissao == permissao ? 'selected' : ''}>${permissao}</option>
+            `
+        })
+
+        listas.setores.forEach(setor => {
+            opcoes_setores += `
+            <option ${dados?.setor == setor ? 'selected' : ''}>${setor}</option>
+            `
+        })
+
+        linhas += `
+        <tr>
+            <td>${usuario}</td>
+            <td>
+                <select onchange="alterar_usuario('permissao', '${usuario}', this)" style="cursor: pointer;">${opcoes_permissao}</select>
+            </td>
+            <td>
+                <select onchange="alterar_usuario('setor', '${usuario}', this)" style="cursor: pointer;">${opcoes_setores}</select>
+            </td>
+        </tr>
+        `
+    }
+
+    let tabela = `
+    <table class="tabela">
+        <thead>
+            <tr>
+                <th>Usuários</th>
+                <th>Permissões</th>
+                <th>Setores</th>
+            </tr>
+        </thead>
+        <tbody>${linhas}</tbody>
+    </table>
+    `
 
     let acumulado = `
-    <label>Gerencie recursos por aqui</label>
-    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-        <input type="checkbox" style="width: 25px; height: 25px;" onchange="servicos('livre', this.checked)" ${status ? 'checked' : ''}>
-        <label>Modalidade Livre</label>
+    <div syle="display: flex; align-items: start; gap: 5px; justify-content: start; flex-direction: column;">
+        <label>Ative ou Desative a função:</label>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <input type="checkbox" style="width: 25px; height: 25px;" onchange="servicos('livre', this.checked)" ${status ? 'checked' : ''}>
+            <label>Modalidade Livre</label>
+        </div>
+
+        <hr style="width: 100%;">
+        <label>Gestão de Usuários</label>
+        ${tabela}
     </div>
     `
 
     openPopup_v2(acumulado, 'Configurações')
 
+}
+
+async function alterar_usuario(campo, usuario, select) {
+    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+
+    if (dados_setores[usuario]) {
+
+        let alteracao = await configuracoes(usuario, campo, select.value) // Se alterar no servidor, altera localmente;
+        if (alteracao.status) {
+            dados_setores[usuario][campo] = select.value
+            localStorage.setItem('dados_setores', JSON.stringify(dados_setores))
+        } else {
+            select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
+        }
+    }
 }
 
 function verificar_timestamp_nome(nome) {
@@ -498,7 +566,7 @@ async function para_excel(tabela_id) {
 
         // Create deep clone of the table
         const tabelaClone = tabelaOriginal.cloneNode(true);
-        
+
         // Process inputs in the cloned table
         const inputs = tabelaClone.querySelectorAll('input, textarea');
         inputs.forEach(input => {
@@ -521,18 +589,18 @@ async function para_excel(tabela_id) {
 
         // Convert table to worksheet
         const worksheet = XLSX.utils.table_to_sheet(tabelaClone);
-        
+
         // Create workbook and add worksheet
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Dados");
-        
+
         // Generate filename with current date
         const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
         const filename = `exportacao_${dateStr}.xlsx`;
-        
+
         // Export the Excel file
         XLSX.writeFile(workbook, filename);
-        
+
     } catch (error) {
         console.error("Erro ao exportar para Excel:", error);
         openPopup_v2(`
@@ -1663,6 +1731,52 @@ async function verificar_chamado_existente(chamado, id_atual, sequencial) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chamado, id_atual, sequencial })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
+}
+
+async function ultimo_timestamp(tabela) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/timestamps", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tabela })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
+}
+
+async function configuracoes(usuario, campo, valor) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/configuracoes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ usuario, campo, valor })
         })
             .then(response => {
                 if (!response.ok) {
