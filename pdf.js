@@ -177,29 +177,59 @@ async function preencher_v2() {
         })
 
         for (it in itens) {
-
-            let item = itens[it]
+            let item = await itens[it]
             let valor_historico_pdf = ""
 
             if (dados_composicoes[item.codigo]) {
-                item.descricao = dados_composicoes[item.codigo].descricao
+                let dados = dados_composicoes[item.codigo]
+
+                // Garantir que os campos existam ou tenham valores padrão
+                item.descricao = await dados.descricao || item.descricao || "Descrição não disponível";
+                item.sapid = await dados.sapid || "N/A";
+                item.refid = await dados.refid || "N/A";
+                item.unidade = await dados.unidade || "UND";
+                item.imagem = await item.imagem || dados.imagem || 'https://i.imgur.com/Nb8sPs0.png';
+
                 if (dados_composicoes[item.codigo].substituto !== '' && carrefour) {
                     item.codigo = dados_composicoes[item.codigo].substituto
-                    item.descricao = dados_composicoes[item.codigo].descricaocarrefour
+                    item.descricao = dados_composicoes[item.codigo].descricaocarrefour || item.descricao
                 }
-                let dados = dados_composicoes[item.codigo]
-                item.tipo = dados.tipo
-                item.sapid = dados.sapid
-                item.refid = dados.refid
-                item.descricao = carrefour ? dados.descricaocarrefour : item.descricao = dados.descricao
-                item.imagem = item.imagem ? item.imagem : dados.imagem
-                item.unidade = dados.unidade
-                item.custo = conversor(item.custo)
+
+                item.tipo = dados.tipo;
+                item.custo = conversor(item.custo);
+            } else {
+                // Se não existir nos dados_composicoes, definir valores padrão
+                item.descricao = await item.descricao || "Descrição não disponível";
+                item.sapid = await item.sapid || "N/A";
+                item.refid = await item.refid || "N/A";
+                item.unidade = await item.unidade || "UND";
+                item.imagem = await item.imagem || 'https://i.imgur.com/Nb8sPs0.png';
             }
 
-            item?.unidade || 'UND'
-            item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'
-            item.total = item.custo * item.qtde
+            item.total = item.custo * item.qtde;
+
+            // let item = itens[it]
+            // let valor_historico_pdf = ""
+
+            // if (dados_composicoes[item.codigo]) {
+            //     item.descricao = dados_composicoes[item.codigo].descricao
+            //     if (dados_composicoes[item.codigo].substituto !== '' && carrefour) {
+            //         item.codigo = dados_composicoes[item.codigo].substituto
+            //         item.descricao = dados_composicoes[item.codigo].descricaocarrefour
+            //     }
+            //     let dados = dados_composicoes[item.codigo]
+            //     item.tipo = dados.tipo
+            //     item.sapid = dados.sapid
+            //     item.refid = dados.refid
+            //     item.descricao = carrefour ? dados.descricaocarrefour : item.descricao = dados.descricao
+            //     item.imagem = item.imagem ? item.imagem : dados.imagem
+            //     item.unidade = dados.unidade
+            //     item.custo = conversor(item.custo)
+            // }
+
+            // item?.unidade || 'UND'
+            // item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'
+            // item.total = item.custo * item.qtde
 
             // Tem desconto unitário? % ou R$
             if (item.desconto) {
