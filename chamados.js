@@ -954,11 +954,11 @@ function adicionar_linha_manut() {
                 </div>
 
                 <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" readOnly>
+                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" readonly>
                 </div>
 
                 <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" readOnly>
+                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" readonly>
                 </div>
 
                 <div style="width: 5vw;">
@@ -1066,7 +1066,9 @@ async function definir_campo(elemento, div, string_html, omie, id) {
 
                 if (historico.operacao == 'entrada') {
                     dic_quantidades[estoque] += historico.quantidade
-                } else if (historico.operacao == 'saida') {
+                }
+
+                if (historico.operacao == 'saida') {
                     dic_quantidades[estoque] -= historico.quantidade
                 }
             }
@@ -1123,16 +1125,19 @@ async function filtrarTabelaPorData() {
         let dataCelula = tds[7]?.textContent.trim();
         let previsaoFormatada = dataCelula.split("/").reverse().join("-"); // "DD/MM/YYYY" -> "YYYY-MM-DD"
 
-        let incluir = false;
+        let incluir = (previsaoFormatada >= dataDe && previsaoFormatada <= dataAte);
 
-        if (dataDe && dataAte) {
-            incluir = (previsaoFormatada >= dataDe && previsaoFormatada <= dataAte);
-        } else if (dataDe) {
+        const dataNaoEncontrada = !(dataDe && dataAte)
+        if (dataNaoEncontrada) {
+            incluir = true;
+        }
+
+        if (dataDe) {
             incluir = (previsaoFormatada >= dataDe);
-        } else if (dataAte) {
+        }
+
+        if (dataAte) {
             incluir = (previsaoFormatada <= dataAte);
-        } else {
-            incluir = true; // Se nenhuma data for selecionada, mostra tudo
         }
 
         tr.style.display = incluir ? "table-row" : "none";
