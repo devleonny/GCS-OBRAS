@@ -177,18 +177,18 @@ async function preencher_v2() {
         })
 
         for (it in itens) {
-            let item = itens[it]
+            let item = await itens[it]
             let valor_historico_pdf = ""
 
             if (dados_composicoes[item.codigo]) {
                 let dados = dados_composicoes[item.codigo]
 
                 // Garantir que os campos existam ou tenham valores padrão
-                item.descricao = dados.descricao || item.descricao || "Descrição não disponível";
-                item.sapid = dados.sapid || "N/A";
-                item.refid = dados.refid || "N/A";
-                item.unidade = dados.unidade || "UND";
-                item.imagem = item.imagem || dados.imagem || 'https://i.imgur.com/Nb8sPs0.png';
+                item.descricao = await dados.descricao || item.descricao || "Descrição não disponível";
+                item.sapid = await dados.sapid || "N/A";
+                item.refid = await dados.refid || "N/A";
+                item.unidade = await dados.unidade || "UND";
+                item.imagem = await item.imagem || dados.imagem || 'https://i.imgur.com/Nb8sPs0.png';
 
                 if (dados_composicoes[item.codigo].substituto !== '' && carrefour) {
                     item.codigo = dados_composicoes[item.codigo].substituto
@@ -199,11 +199,11 @@ async function preencher_v2() {
                 item.custo = conversor(item.custo);
             } else {
                 // Se não existir nos dados_composicoes, definir valores padrão
-                item.descricao = item.descricao || "Descrição não disponível";
-                item.sapid = item.sapid || "N/A";
-                item.refid = item.refid || "N/A";
-                item.unidade = item.unidade || "UND";
-                item.imagem = item.imagem || 'https://i.imgur.com/Nb8sPs0.png';
+                item.descricao = await item.descricao || "Descrição não disponível";
+                item.sapid = await item.sapid || "N/A";
+                item.refid = await item.refid || "N/A";
+                item.unidade = await item.unidade || "UND";
+                item.imagem = await item.imagem || 'https://i.imgur.com/Nb8sPs0.png';
             }
 
             item.total = item.custo * item.qtde;
