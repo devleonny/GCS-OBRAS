@@ -149,7 +149,7 @@ async function carregar_estoque() {
 
     let acumulado = `
         <div style="height: max-content; max-height: 70vh; width: max-content; max-width: 90vw; overflow: auto; background-color: #d2d2d2; border-radius: 5px;">
-            <table id="tabela_estoque"">
+            <table class="tabela" id="tabela_estoque"">
                 <thead>
                     <tr>${thc}</tr>
                     <tr id="thead_pesquisa">${ths}</tr>

@@ -366,17 +366,14 @@ select {
     width: 80%
 }
 
-th {
-    border: 1px solid transparent;
-    border-radius: 5px;
-    padding: 5px;
-    color: white;
+th { 
+    background-color: #d2d2d2;
+    color:hsla(0, 0%, 13%, 0.85)
 }
 
 td {
     background-color: white;
     border: 1px solid transparent;
-    opacity: 0.9;
     vertical-align: middle;
     text-align: center;
     padding: 8px;
@@ -1171,6 +1168,7 @@ input[type=range]::-moz-range-thumb {
     overflow: auto;
     overflow-x: hidden;
 }
+
 .anexos2 {
     width: max-content;
     cursor: pointer;
@@ -1229,7 +1227,6 @@ input[type=range]::-moz-range-thumb {
 }
 
 .tabela {
-    background-color: #d2d2d2;
     border-collapse: collapse;
     border-top-left-radius: 5px;
     border-bottom-left-radius: 5px;
@@ -1239,14 +1236,11 @@ input[type=range]::-moz-range-thumb {
 
 .tabela th,
 .tabela td {
+    border: solid 1px #9a9a9a;
     color: black;
     font-size: 0.8vw;
     overflow: hidden;
     padding: 8px;
-    border-bottom: 1px solid transparent;
-}
-
-.tabela td {
     font-size: 0.9vw;
     text-align: left;
 }
