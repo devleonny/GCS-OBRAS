@@ -1210,7 +1210,7 @@ function filtrar_tabela(coluna, id, elementoTH) {
 
     tabela.setAttribute("data-order", ascendente ? "asc" : "desc")
 
-    let simbolo = ascendente ? 'a.png' : 'z.png'
+    let simbolo = ascendente ? 'up.png' : 'down.png'
 
     let tr = elementoTH.closest('tr')
     let ths = tr.querySelectorAll('th')
