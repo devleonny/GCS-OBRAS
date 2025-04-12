@@ -39,28 +39,22 @@ async function carregar_estoque() {
     let ths = ''
     let linhas = ''
     colunas.forEach((col, i) => {
-        let coluna = inicial_maiuscula(col);
 
-        thc += `
-            <th class="primeiroTh" style="cursor: pointer; position: relative;" onclick="filtrar_tabela('${i + 1}', 'tabela_estoque', this), adicionarImagemFiltro()">
-                ${coluna}
-            </th>
-        `;
+        let indice_correto = i + 1
+        let coluna = inicial_maiuscula(col)
+        thc += `<th style="cursor: pointer; position: relative;" onclick="filtrar_tabela('${indice_correto}', 'tabela_estoque', this)">${coluna}</th>`
 
-        if (coluna === 'EXCLUIR') {
-            ths += `<th style="background-color: white;"></th>`;
+        if (coluna == 'EXCLUIR') {
+            ths = `<th style="background-color: white; position: relative; border-radius: 0px;"></th>`
         } else {
             ths += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
-                <img src="imagens/pesquisar2.png" 
-                    style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 15px; cursor: pointer;">
-                <input style="width: 75%; font-size: 1.1vw; padding-left: 25px;" placeholder="..." 
-                    oninput="pesquisar_generico(${i + 1}, this.value, filtrosAtivosEstoques, 'body')">
+                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
+                <input style="width: 100%; font-size: 1.1vw;" style="text-align: center;" oninput="pesquisar_generico(${indice_correto}, this.value, filtrosAtivosEstoques, 'body')">
             </th>
-            `;
+            `
         }
-    });
-
+    })
 
     let dados_estoque_ordenado = Object.entries(dados_estoque)
         .sort(([, a], [, b]) => (b.timestamp || 0) - (a.timestamp || 0))
@@ -168,211 +162,8 @@ async function carregar_estoque() {
 
     div_estoque.innerHTML = acumulado
 
-    adicionarImagemFiltro();
-
-    aplicarFiltroCheckAposRecarregar()
-
     document.getElementById("aguarde").remove()
 
-}
-
-function abrirFiltroColuna(indice, coluna) {
-    let tabela = document.getElementById('tabela_estoque');
-    let linhas = tabela.querySelectorAll('tbody tr');
-    let valoresUnicos = new Set();
-
-    // Coleta os valores únicos da coluna
-    linhas.forEach(linha => {
-        let celula = linha.cells[indice]; // Pegando a célula da coluna correta
-
-        if (celula) {
-            let valor = celula.innerText.trim(); // Padrão
-            let input = celula.querySelector("input, textarea, label");
-
-            if (input) {
-                valor = input.value || input.textContent.trim();
-            }
-
-            if (valor) {
-                valoresUnicos.add(valor);
-            }
-        }
-    });
-
-    let valoresArray = Array.from(valoresUnicos).sort();
-
-    // Criando o HTML do popup de filtro
-    let filtroHTML = `
-        <div id="popup-filtro" style="
-            position: absolute;
-            background: white;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-shadow: 0px 4px 8px rgba(0,0,0,0.2);
-            z-index: 1000;
-            min-width: 200px;
-            max-height: 300px;
-            overflow-y: auto;
-        ">
-            <strong>Filtrar ${coluna}</strong>
-
-            <!-- Adicionando um campo de pesquisa dentro do filtro -->
-            <div style="margin-bottom: 10px;">
-                <input type="text" id="filtro-pesquisa" placeholder="Pesquisar..." style="width: 100%; padding: 5px; font-size: 14px;" oninput="filtrarValores(${indice}, this.value)">
-            </div>
-
-            <div style="margin: 5px 0;">
-                <input type="checkbox" id="filtro-todos" 
-                ${!filtrosAtivosEstoques[indice] || filtrosAtivosEstoques[indice].length === valoresArray.length ? 'checked' : ''} 
-                onchange="selecionarTodos(${indice}, this.checked)">
-                <label for="filtro-todos"><em>Selecionar Todos</em></label>
-            </div>
-            <hr>
-            <div id="filtro-opcoes">
-                ${valoresArray.map(valor => `
-                    <div class="filtro-item-div" style="display: flex; align-items: start; gap: 5px;">
-                        <input type="checkbox" class="filtro-item" value="${valor}" 
-                            ${!filtrosAtivosEstoques[indice] || filtrosAtivosEstoques[indice].includes(valor) ? 'checked' : ''} 
-                            onchange="aplicarFiltroCheck(${indice})">
-                        <label style="white-space: normal; word-break: break-word;">${valor}</label>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-
-
-    let popup = document.getElementById('popup-filtro');
-    if (popup) popup.remove(); // Removendo popup antigo, se houver
-
-    document.body.insertAdjacentHTML("beforeend", filtroHTML);
-
-    let popupNovo = document.getElementById('popup-filtro');
-    let colunaHeader = tabela.querySelectorAll('thead tr:first-child th')[indice - 1];
-    let rect = colunaHeader.getBoundingClientRect();
-
-    popupNovo.style.left = `${rect.left}px`;
-    popupNovo.style.top = `${rect.bottom}px`;
-    popupNovo.style.minWidth = `${rect.width}px`;
-    popupNovo.style.maxWidth = `${rect.width}px`;
-
-    // Fechar popup ao clicar fora
-    setTimeout(() => {
-        document.addEventListener("click", function fecharFiltro(event) {
-            if (!popupNovo.contains(event.target) && event.target !== colunaHeader) {
-                popupNovo.remove();
-                document.removeEventListener("click", fecharFiltro);
-            }
-        });
-    }, 100);
-}
-
-// Função para filtrar os valores enquanto o usuário digita no campo de pesquisa
-function filtrarValores(indice, pesquisa) {
-    let filtroInput = pesquisa.toLowerCase();
-    let filtroItems = document.querySelectorAll(`#popup-filtro .filtro-item-div`);
-
-    filtroItems.forEach(item => {
-        let label = item.querySelector('label').textContent.toLowerCase();
-        if (label.includes(filtroInput)) {
-            item.style.display = 'block'; // Mostrar o item
-        } else {
-            item.style.display = 'none'; // Esconder o item
-        }
-    });
-}
-
-function selecionarTodos(indice, checked) {
-    let checkboxes = document.querySelectorAll(`#popup-filtro .filtro-item-div`);
-
-    checkboxes.forEach(div => {
-        if (div.style.display !== "none") {
-            let checkbox = div.querySelector("input.filtro-item");
-            checkbox.checked = checked;
-        }
-    });
-
-    aplicarFiltroCheck(indice);
-}
-
-
-function aplicarFiltroCheck(indice) {
-    let tabela = document.getElementById('tabela_estoque');
-    let linhas = tabela.querySelectorAll('tbody tr');
-    let checkboxes = document.querySelectorAll(`#popup-filtro .filtro-item`);
-
-    // Atualiza os valores filtrados da coluna
-    let selecionados = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-
-    filtrosAtivosEstoques[indice] = selecionados;
-
-    linhas.forEach(linha => {
-        let mostrar = true;
-
-        for (let col in filtrosAtivosEstoques) {
-            let celula = linha.cells[col];
-            if (!celula) continue;
-
-            let valorCelula = celula.innerText.trim();
-            let input = celula.querySelector("input, textarea, label");
-
-            if (input) {
-                valorCelula = input.value || input.textContent.trim();
-            }
-
-            if (!filtrosAtivosEstoques[col].includes(valorCelula)) {
-                mostrar = false;
-                break;
-            }
-        }
-
-        linha.style.display = mostrar ? '' : 'none'; // Aplica o filtro de exibição
-    });
-}
-
-function adicionarImagemFiltro() {
-    let tabela = document.getElementById('tabela_estoque');
-    let ths = tabela.querySelectorAll('.primeiroTh');
-
-    ths.forEach((th, i) => {
-        if (i > 0 && i) { // Ignora a primeira coluna e a última
-            if (!th.querySelector('img[src="imagens/filtro.png"]')) {
-                let iconeFiltro = `
-                    <img src="imagens/filtro.png" 
-                        style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 15px; cursor: pointer;" 
-                        onclick="event.stopPropagation(); abrirFiltroColuna(${i + 1}, '${colunas[i]}')">
-                `;
-                th.insertAdjacentHTML('afterbegin', iconeFiltro); // Insere a imagem à esquerda
-            }
-        }
-    });
-}
-
-function aplicarFiltroCheckAposRecarregar() {
-    let tabela = document.getElementById('tabela_estoque');
-    let linhas = tabela.querySelectorAll('tbody tr');
-    let checkboxes = document.querySelectorAll('.filtro-item:checked');
-    let valoresSelecionados = Array.from(checkboxes).map(cb => cb.value);
-
-    // Aplica o filtro para cada coluna de acordo com os valores selecionados
-    linhas.forEach(linha => {
-        let mostrar = true;
-        for (let col in filtrosAtivosEstoques) {
-            let celula = linha.cells[col];
-            let valorCelula = celula ? celula.innerText.trim() : '';
-            let input = celula?.querySelector("input, textarea, label");
-            if (input) {
-                valorCelula = input.value || input.textContent.trim();
-            }
-
-            if (!filtrosAtivosEstoques[col]?.includes(valorCelula)) {
-                mostrar = false;
-                break;
-            }
-        }
-        linha.style.display = mostrar ? '' : 'none';
-    });
 }
 
 function calcular_cmc(objeto) {
@@ -887,11 +678,10 @@ async function remover_historico(codigo, stq, chave) {
     }
 
     await inserirDados(dados_estoque, 'dados_estoque')
-    deletar(`dados_estoque/${codigo}/${stq}/historico/${chave}`)
+    await deletar(`dados_estoque/${codigo}/${stq}/historico/${chave}`)
 
     remover_popup()
     await abrir_estoque(codigo, stq)
-    retomar_paginacao(codigo, stq)
 
 }
 
@@ -954,12 +744,12 @@ async function salvar_movimento(codigo, stq, inicial) {
     estoque.historico[id] = movimento
 
     await inserirDados(dados_estoque, 'dados_estoque')
-    enviar(`dados_estoque/${codigo}/${stq}/historico/${id}`, movimento)
-    
+    await enviar(`dados_estoque/${codigo}/${stq}/historico/${id}`, movimento)
+
     if (inicial !== undefined) {
-    enviar(`dados_estoque/${codigo}/${stq}/quantidade`, estoque.quantidade)
+        await enviar(`dados_estoque/${codigo}/${stq}/quantidade`, estoque.quantidade)
     }
-    
+
     await retomar_paginacao(codigo, stq)
 
 }
@@ -1178,7 +968,7 @@ async function remover_linha_excluir_item(elemento) {
         await inserirDados(dados_estoque, 'dados_estoque')
         await carregar_estoque()
     }
-    
+
 }
 
 async function confirmar_exclusao(codigo) {

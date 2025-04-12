@@ -85,10 +85,10 @@ async function configs() {
         <tr>
             <td>${usuario}</td>
             <td>
-                <select onchange="alterar_usuario('permissao', '${usuario}', this)" style="cursor: pointer;">${opcoes_permissao}</select>
+                <select style="font-size: 0.8vw;" onchange="alterar_usuario('permissao', '${usuario}', this)" style="cursor: pointer;">${opcoes_permissao}</select>
             </td>
             <td>
-                <select onchange="alterar_usuario('setor', '${usuario}', this)" style="cursor: pointer;">${opcoes_setores}</select>
+                <select style="font-size: 0.8vw;" onchange="alterar_usuario('setor', '${usuario}', this)" style="cursor: pointer;">${opcoes_setores}</select>
             </td>
         </tr>
         `
@@ -108,7 +108,7 @@ async function configs() {
     `
 
     let acumulado = `
-    <div syle="display: flex; align-items: start; gap: 5px; justify-content: start; flex-direction: column;">
+    <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 1vw;">
         <label>Ative ou Desative a função:</label>
         <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
             <input type="checkbox" style="width: 25px; height: 25px;" onchange="servicos('livre', this.checked)" ${status ? 'checked' : ''}>
@@ -884,8 +884,6 @@ async function recuperar_clientes() {
     await inserirDados(dados_clientes, 'dados_clientes')
 
     if (acompanhamento_dados_clientes) {
-        dados_clientes_provisorios = data
-        carregar_datalist_clientes()
         acompanhamento_dados_clientes.innerHTML = `
             <img src="imagens/omie.png">
             <label style="cursor: pointer;">Atualizar OMIE Clientes</label>
