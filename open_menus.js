@@ -59,7 +59,7 @@ async function configs() {
 
     let linhas = ''
     let listas = {
-        permissoes: ['', 'adm', 'user', 'gerente', 'diretoria', 'editor', 'log'],
+        permissoes: ['', 'adm', 'user', 'gerente', 'diretoria', 'editor', 'log', 'qualidade'],
         setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE']
     }
 
