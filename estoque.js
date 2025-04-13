@@ -1,5 +1,6 @@
 let filtrosAtivosEstoques = {}
 let filtrosRelatorio = {}
+let filtrosComplexos = {}
 let colunas = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'estoque_usado', 'estoque_sp', 'valor_compra']
 let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
@@ -42,18 +43,24 @@ async function carregar_estoque() {
 
         let indice_correto = i + 1
         let coluna = inicial_maiuscula(col)
-        thc += `<th style="cursor: pointer; position: relative;" onclick="filtrar_tabela('${indice_correto}', 'tabela_estoque', this)">${coluna}</th>`
+        thc += `
+            <th style="cursor: pointer; position: relative;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 2vw;">
+                    <label>${coluna}</label>
+                    ${coluna != 'Excluir' ? `<img src="imagens/aaz.png" style="width: 2vw;" onclick="filtroColunas(${indice_correto}, this, true)">` : ''}
+                </div>
+            </th>
+            `
 
-        if (coluna == 'EXCLUIR') {
+        coluna == 'Excluir' ?
             ths = `<th style="background-color: white; position: relative; border-radius: 0px;"></th>`
-        } else {
+            :
             ths += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
                 <input style="width: 100%; font-size: 1.1vw;" style="text-align: center;" oninput="pesquisar_generico(${indice_correto}, this.value, filtrosAtivosEstoques, 'body')">
             </th>
             `
-        }
     })
 
     let dados_estoque_ordenado = Object.entries(dados_estoque)
@@ -86,17 +93,15 @@ async function carregar_estoque() {
 
                 elemento = `
                     <div style="display: flex; align-items: center; justify-content: center;">
-                        <img src="imagens/cancel.png" style="cursor: pointer; width: 25px; height: 25px;" onclick="remover_linha_excluir_item(this)">
+                        <img src="imagens/cancel.png" style="cursor: pointer; width: 2vw;" onclick="remover_linha_excluir_item(this)">
                     </div>
                 `
             } else if (chave.includes('valor_compra')) {
 
                 valor = calcular_maior(dados_item.valor_compra)
 
-                let color = valor == 0 ? '#222' : 'white'
-
                 elemento = `
-                    <label style="color: ${color}; cursor: pointer; text-align: center;" onclick="abrir_valores('${item}', '${chave}')">${dinheiro(valor)}</label>
+                    <label  class="labelEstoque" style="background-color: ${valor != 0 ? '#097fe6bf' : ''};" onclick="abrir_valores('${item}', '${chave}')">${dinheiro(valor)}</label>
                     `
 
             } else if (chave.includes('estoque')) {
@@ -115,22 +120,18 @@ async function carregar_estoque() {
 
                 }
 
-                elemento = `<label style="cursor: pointer; font-size: 25px; text-align: center; color: white; width: 100%; padding: 5px;" onclick="abrir_estoque('${item}', '${chave}')">${quantidade}</label>`
+                if (quantidade !== '') {
+                    cor = conversor(quantidade) > 0 ? '#4CAF50bf' : '#b36060bf'
+                }
 
-            }
+                elemento = `<label class="labelEstoque" style="background-color: ${cor}" onclick="abrir_estoque('${item}', '${chave}')">${quantidade}</label>`
 
-            if (quantidade !== '') {
-                cor = conversor(quantidade) > 0 ? '#4CAF50' : '#b36060'
-            }
-
-            if (valor !== '') {
-                cor = conversor(valor) > 0 ? '#097fe6' : ''
             }
 
             tds += `
-                <td style="background-color: ${cor}">
+                <td>
                     <div style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
-                        <img src="imagens/concluido.png" style="display: none; width: 25px; height: 25px; cursor: pointer;" onclick="salvar_dados_estoque(this, '${item}', '${chave}')">
+                        <img src="imagens/concluido.png" style="display: none; width: 2vw; cursor: pointer;" onclick="salvar_dados_estoque(this, '${item}', '${chave}')">
                         ${elemento}
                     </div>
                 </td>
@@ -149,7 +150,7 @@ async function carregar_estoque() {
 
     let acumulado = `
         <div style="height: max-content; max-height: 70vh; width: max-content; max-width: 90vw; overflow: auto; background-color: #d2d2d2; border-radius: 5px;">
-            <table class="tabela" id="tabela_estoque"">
+            <table class="tabela" id="tabela_estoque">
                 <thead>
                     <tr>${thc}</tr>
                     <tr id="thead_pesquisa">${ths}</tr>
@@ -164,6 +165,189 @@ async function carregar_estoque() {
 
     document.getElementById("aguarde").remove()
 
+}
+
+function pegarValor(td) {
+    const input = td.querySelector('input');
+    if (input) return input.value;
+
+    const select = td.querySelector('select');
+    if (select) return select.options[select.selectedIndex].text;
+
+    const textarea = td.querySelector('textarea');
+    if (textarea) return textarea.value;
+
+    return td.textContent.trim();
+}
+
+function filtroColunas(col, th) {
+
+    let filtro = document.getElementById('filtro')
+    if (filtro) filtro.remove()
+
+    let tabela = document.getElementById('tabela_estoque')
+    let tbody = tabela.querySelector('tbody')
+    let trs = tbody.querySelectorAll('tr')
+    let opcoes = {
+        desmarcadas: '',
+        marcadas: ''
+    }
+    let termos = []
+
+    trs.forEach(tr => {
+
+        let tds = tr.querySelectorAll('td')
+        termos.push(pegarValor(tds[col]))
+
+    })
+
+    termos = [...new Set(termos)]
+
+    termos.forEach(op => {
+
+        let marcado = (filtrosComplexos?.[col] || []).includes(op)
+        opcoes[marcado ? 'marcadas' : 'desmarcadas'] += `
+        <div class="opcao">
+            <input type="checkbox" onchange="acumularPesquisa('${col}', '${op}', this)" ${marcado ? 'checked' : ''}>
+            <label>${op}</label>
+        </div>
+        `
+    })
+
+    let posicao = th.getBoundingClientRect()
+    let left = posicao.left + window.scrollX
+    let top = posicao.bottom + window.scrollY
+
+    let acumulado = `
+        <div id="filtro" class="filtro" style="top: ${top}px; left: ${left}px;">
+            <span class="close" onclick="this.parentElement.remove()">×</span>
+            <label class="opcao" style="width: 80%;" onclick="filtrar_tabela('${col}', 'tabela_estoque')">Filtrar A a Z</label>
+
+            <hr style="width: 100%;">
+            <label>Pesquisar</label>
+            <input oninput="filtrarOpcoes(this)" style="width: 95%;">
+
+            <div class="opcao">
+                <input type="checkbox" onchange="marcarTodos('${col}', this)" ${(filtrosComplexos?.[col] || []).length == termos.length ? 'checked' : ''}>
+                <label>Marcar todos</label>
+            </div>
+
+            <div id="caixaOpcoes">
+                ${opcoes.marcadas}
+                ${opcoes.desmarcadas}
+            </div>
+
+        </div>
+        `
+
+    document.body.insertAdjacentHTML('beforeend', acumulado)
+
+}
+
+function marcarTodos(col, inputTodos) {
+    let caixaOpcoes = document.getElementById('caixaOpcoes')
+    if (caixaOpcoes) {
+        let divs = caixaOpcoes.querySelectorAll('div')
+
+        divs.forEach(div => {
+
+            let inputDiv = div.querySelector('input')
+            let labelDiv = div.querySelector('label')
+            inputDiv.checked = inputTodos.checked
+
+            salvarTermos(col, labelDiv.textContent, inputDiv)
+
+        })
+    }
+
+    executarPesquisa()
+
+}
+
+function salvarTermos(col, termo, input) {
+    if (input.checked) {
+
+        if (!filtrosComplexos[col]) {
+            filtrosComplexos[col] = []
+        }
+
+        if (!filtrosComplexos[col].includes(termo)) {
+            filtrosComplexos[col].push(termo)
+        }
+
+    } else {
+
+        if (filtrosComplexos[col]) {
+            filtrosComplexos[col] = filtrosComplexos[col].filter(t => t !== termo);
+        }
+    }
+}
+
+function executarPesquisa() {
+    // Filtro cruzado
+    let tabela = document.getElementById('tabela_estoque')
+    let tbody = tabela.querySelector('tbody')
+    let trs = tbody.querySelectorAll('tr')
+
+    trs.forEach(tr => {
+
+        let tds = tr.querySelectorAll('td')
+        let mostrar = true
+
+        for (col in filtrosComplexos) {
+
+            if (!filtrosComplexos[col] || filtrosComplexos[col].length == 0) {
+                delete filtrosComplexos[col]
+                break
+            }
+
+            if (!filtrosComplexos[col].includes(pegarValor(tds[col]))) {
+                mostrar = false
+                break
+            }
+
+        }
+
+        tr.style.display = mostrar ? 'table-row' : 'none'
+
+    })
+
+    let thead = tabela.querySelector('thead')
+    let trsTH = thead.querySelectorAll('tr')
+    let ths = trsTH[0].querySelectorAll('th')
+
+    ths.forEach((th, i) => {
+        let col = i + 1 // Existe uma coluna oculta, então pula-se 1 coluna;
+        let img = th.querySelector('img')
+        if (img) {
+            img.src = filtrosComplexos[col] ? 'imagens/filtro.png' : 'imagens/aaz.png'
+        }
+    })
+
+}
+
+function acumularPesquisa(col, termo, input) {
+
+    salvarTermos(col, termo, input)
+    executarPesquisa()
+
+}
+
+function filtrarOpcoes(input) {
+
+    let caixaOpcoes = document.getElementById('caixaOpcoes')
+
+    if (caixaOpcoes) {
+        let divs = caixaOpcoes.querySelectorAll('div')
+
+        divs.forEach(div => {
+            let label = div.querySelector('label').textContent.toLowerCase()
+            let termo = input.value.toLowerCase()
+
+            label.includes(termo) ? div.style.display = '' : div.style.display = 'none'
+
+        })
+    }
 }
 
 function calcular_cmc(objeto) {
@@ -336,7 +520,7 @@ async function abrir_valores(codigo) {
                 readOnly = ''
                 exclusao = `
                     <div style="display: flex; justify-content: center; align-items: center;">
-                        <img src="imagens/cancel.png" style="width: 25px; heigth: 25px; cursor: pointer;" onclick="excluir_preco('${codigo}', '${cpr}')">
+                        <img src="imagens/cancel.png" style="width: 2vw; cursor: pointer;" onclick="excluir_preco('${codigo}', '${cpr}')">
                     </div>                
                 `
             }
@@ -348,19 +532,19 @@ async function abrir_valores(codigo) {
                 <td>${compra.unidade}</td>
                 <td>
                     <div style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
-                        <img src="imagens/concluido.png" style="display: none; width: 25px; height: 25px; cursor: pointer;" onclick="salvar_dados_compra('${codigo}', '${cpr}', 'conversao', this)">
+                        <img src="imagens/concluido.png" style="display: none; width: 2vw; cursor: pointer;" onclick="salvar_dados_compra('${codigo}', '${cpr}', 'conversao', this)">
                         <input class="numero-bonito" style="font-size: 1.2em;" value="${compra.conversao}" oninput="exibir_botao(this)" ${readOnly}>
                     </div>
                 </td>
                 <td>
                     <div style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
-                        <img src="imagens/concluido.png" style="display: none; width: 25px; height: 25px; cursor: pointer;" onclick="salvar_dados_compra('${codigo}', '${cpr}', 'fornecedor', this)">
+                        <img src="imagens/concluido.png" style="display: none; width: 2vw; cursor: pointer;" onclick="salvar_dados_compra('${codigo}', '${cpr}', 'fornecedor', this)">
                         <textarea maxlength="100" style="border-radius: 0px; border: none;" oninput="exibir_botao(this)" ${readOnly}>${compra.fornecedor}</textarea>
                     </div>
                 </td>
                 <td>
                     <div style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
-                        <img src="imagens/concluido.png" style="display: none; width: 25px; height: 25px; cursor: pointer;" onclick="salvar_dados_compra('${codigo}', '${cpr}', 'comentario', this)">
+                        <img src="imagens/concluido.png" style="display: none; width: 2vw; cursor: pointer;" onclick="salvar_dados_compra('${codigo}', '${cpr}', 'comentario', this)">
                         <textarea maxlength="100" style="border-radius: 0px; border: none;" oninput="exibir_botao(this)" ${readOnly}>${compra.comentario}</textarea>
                     </div>                
                 </td>
@@ -388,8 +572,8 @@ async function abrir_valores(codigo) {
                 <label>Histórico</label>
             </div>
 
-            <div style="background-color: #B12425; white; border-radius: 3px; width: 100%; border-radius: 3px;">
-                <table class="tabela_e" style="width: 100%;">
+            <div style="background-color: #d2d2d2; white; border-radius: 3px; width: 100%; border-radius: 3px;">
+                <table class="tabela">
                     <thead>
                         <th>Valor</th>
                         <th>Data</th>
@@ -523,7 +707,7 @@ async function abrir_estoque(codigo, stq) {
                 (historico.operacao == 'inicial' && acesso.permissao == 'adm') ||
                 (historico.operacao !== 'inicial' && (acesso.permissao == 'adm' || acesso.usuario == historico.usuario))
             ) {
-                exclusao = `<img src="imagens/cancel.png" style="cursor: pointer; width: 25px; height: 25px;" onclick="remover_historico('${codigo}', '${stq}','${chave}')">`
+                exclusao = `<img src="imagens/cancel.png" style="cursor: pointer; width: 2vw;" onclick="remover_historico('${codigo}', '${stq}','${chave}')">`
             }
 
             linhas += `
@@ -565,8 +749,8 @@ async function abrir_estoque(codigo, stq) {
                 <label style="color: #222; font-size: 1.5vw;">Histórico</label>
             </div>
 
-            <div style="background-color: #B12425; white; border-radius: 3px; width: 100%; border-radius: 3px;">
-                <table class="tabela_e" style="width: 100%;">
+            <div style="background-color: #d2d2d2; white; border-radius: 3px; width: 100%; border-radius: 3px;">
+                <table class="tabela">
                     <thead>
                         <th>Sin</th>
                         <th>Qt.</th>
@@ -613,10 +797,10 @@ async function abrir_estoque(codigo, stq) {
 
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                     <label style="color: #222;">Comentário</label>
-                    <textarea maxlength="100" placeholder="Comentário" id="comentario"></textarea>
+                    <textarea maxlength="100" rows="5" id="comentario"></textarea>
                 </div>
 
-                <img src="imagens/concluido.png" style="cursor: pointer;" onclick="salvar_movimento('${codigo}', '${stq}')">
+                <img src="imagens/concluido.png" style="width: 3vw; cursor: pointer;" onclick="salvar_movimento('${codigo}', '${stq}')">
 
             </div>
 
@@ -635,7 +819,7 @@ async function abrir_estoque(codigo, stq) {
 
                     <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
                         <input class="numero-bonito" style="background-color: #B12425;" value="${inicial}">
-                        <img src="imagens/concluido.png" style="cursor: pointer; width: 30px; height: 30px;" onclick="salvar_movimento('${codigo}', '${stq}', this)">
+                        <img src="imagens/concluido.png" style="cursor: pointer; width: 3vw;" onclick="salvar_movimento('${codigo}', '${stq}', this)">
                     </div>
                 
                 </div>
@@ -692,12 +876,6 @@ async function salvar_movimento(codigo, stq, inicial) {
     let id = gerar_id_5_digitos()
 
     remover_popup()
-    openPopup_v2(`
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="gifs/loading.gif" style="width: 70px;">
-            <label>Salvando...</label>
-        </div>
-    `)
 
     let dados_estoque = await recuperarDados('dados_estoque') || {}
     let item = dados_estoque[codigo]
@@ -933,7 +1111,9 @@ async function salvar_item(button) {
 
     dados_estoque[codigo] = item
     await inserirDados(dados_estoque, 'dados_estoque')
-    await enviar(`dados_estoque/${codigo}`, item)
+
+    await retomar_paginacao()
+    enviar(`dados_estoque/${codigo}`, item)
 
 }
 
@@ -1026,29 +1206,33 @@ async function salvar_dados_estoque(img, codigo, chave) {
 async function retomar_paginacao(codigo, stq) {
     await carregar_estoque()
 
-    let tabela_estoque = document.getElementById('tabela_estoque')
-    let thead = tabela_estoque.querySelector('thead')
-    let trs = thead.querySelectorAll('tr')
-    let ths = trs[1].querySelectorAll('th')
+    remover_popup()
 
-    for (coluna in filtrosAtivosEstoques) {
-        let texto = filtrosAtivosEstoques[coluna]
-        ths[coluna - 1].querySelector('input').value = texto
-        pesquisar_generico(coluna, texto, filtrosAtivosEstoques, 'tabela_estoque')
+    if (Object.keys(filtrosComplexos).length > 0) {
+        executarPesquisa()
+    } else {
+        let tabela_estoque = document.getElementById('tabela_estoque')
+        let thead = tabela_estoque.querySelector('thead')
+        let trs = thead.querySelectorAll('tr')
+        let ths = trs[1].querySelectorAll('th')
+
+        for (coluna in filtrosAtivosEstoques) {
+            let texto = filtrosAtivosEstoques[coluna]
+            ths[coluna - 1].querySelector('input').value = texto
+            pesquisar_generico(coluna, texto, filtrosAtivosEstoques, 'tabela_estoque')
+        }
     }
 
     let inputs = document.body.querySelectorAll('input.datas_estoque')
     if (inputs.length > 0) {
         let data_entrada = inputs[0].value
         let data_saida = inputs[1].value
-        remover_popup()
         relatorio_movimento()
         inputs = document.body.querySelectorAll('input.datas_estoque')
         inputs[0].value = data_entrada
         inputs[1].value = data_saida
         atualizar_dados_relatorio()
     } else if (codigo !== undefined && stq !== undefined) {
-        remover_popup()
         await abrir_estoque(codigo, stq)
     }
 
@@ -1165,7 +1349,7 @@ async function atualizar_dados_relatorio() {
                 <td>${item.operacao}</td>
                 <td>
                     <div>
-                        <img src="${img}" style="width: 25px; height: 25px;">
+                        <img src="${img}" style="width: 2vw;">
                     </div>
                 </td>
                 <td>${item.quantidade}</td>
@@ -1193,15 +1377,15 @@ async function atualizar_dados_relatorio() {
             thsearch = ''
             linhas = `
             <tr>
-                <td colspan="10" style="color: #222;">Sem resultados<td>
+                <td colspan="9" style="color: #222; text-align: center;">Sem resultados</td>
             </tr>
             `
         }
 
         let tabela = `
         <label>Relatório</label>
-        <div style="background-color: #097fe6; border-radius: 5px;">
-            <table class="tabela_e" style="width: 100%;">
+        <div style="border-radius: 5px;">
+            <table class="tabela">
                 <thead>
                     <tr>${ths}</tr>
                     <tr style="background-color: white;">${thsearch}</tr>

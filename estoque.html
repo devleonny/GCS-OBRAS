@@ -35,6 +35,14 @@
             gap: 20px;
         }
 
+        .labelEstoque {
+            cursor: pointer;
+            width: 60%;
+            color: black;
+            padding: 5px;
+            font-size: 0.9vw;
+        }
+
         th {
             color: #222;
             font-size: 0.7vw;
@@ -74,6 +82,61 @@
 
         .formulario button {
             background-color: #4CAF50;
+        }
+
+        .filtro {
+            position: relative;
+            padding: 10px;
+            width: 20vw;
+            border-radius: 3px;
+            position: absolute;
+            display: flex;
+            align-items: start;
+            justify-content: start;
+            gap: 5px;
+            flex-direction: column;
+            background-color: white;
+            box-shadow: 0px 0px 10px #222;
+        }
+
+        .filtro input {
+            background-color: #d2d2d2;
+            padding: 5px;
+            border: 1px solid #7d7d7d;
+        }
+
+        .opcao {
+            padding: 3px;
+            cursor: pointer;
+            width: 95%;
+            display: flex;
+            align-items: center;
+            justify-content: start;
+            gap: 5px;
+            transition: ease-in-out;
+        }
+
+        .opcao:hover {
+            background-color: #222222bf;
+            color: white;
+        }
+
+        #caixaOpcoes {
+            background-color: #ebe9e9;
+            width: 100%;
+            max-height: 30vh;
+            overflow: auto;
+            display: flex;
+            justify-content: start;
+            align-items: start;
+            flex-direction: column;
+            border: 1px solid #7d7d7d;
+        }
+
+        textarea,
+        input {
+            padding: 0px;
+            font-size: 0.8vw;
         }
     </style>
 </head>

@@ -1186,7 +1186,7 @@ async function recuperar_estoque() {
 
 }
 
-function filtrar_tabela(coluna, id, elementoTH) {
+function filtrar_tabela(coluna, id) {
 
     let tabela = document.getElementById(id)
     let linhas = Array.from(tabela.tBodies[0].rows)
@@ -1210,19 +1210,6 @@ function filtrar_tabela(coluna, id, elementoTH) {
 
     tabela.setAttribute("data-order", ascendente ? "asc" : "desc")
 
-    let simbolo = ascendente ? 'up.png' : 'down.png'
-
-    let tr = elementoTH.closest('tr')
-    let ths = tr.querySelectorAll('th')
-
-    ths.forEach(th => {
-        let img = th.querySelector('img')
-        if (img) {
-            img.remove()
-        }
-    })
-
-    elementoTH.insertAdjacentHTML('beforeend', `<img src="imagens/${simbolo}" style="border-radius: 3px; position: absolute; top: 3px; right: 3px; width: 20px; background-color: #d2d2d2;">`)
 }
 
 function capturarValorCelula(celula) {
