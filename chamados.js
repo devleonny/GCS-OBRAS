@@ -236,15 +236,11 @@ async function abrir_manutencao(id) {
     let div_NF = document.getElementById("div_NF")
 
     if (manutencao.status_manutencao == "MATERIAL ENVIADO" || manutencao.status_manutencao == "FINALIZADO") {
-
         div_NF.style.display = "flex"
 
         if (manutencao.nf) {
-
             document.getElementById("NF").value = manutencao.nf
-
         }
-
     }
 
     if (manutencao.chamado == 'KIT TÉCNICO') {
@@ -1080,7 +1076,6 @@ async function definir_campo(elemento, div, string_html, omie, id) {
             inputs[0].value = dados_estoque[id].partnumber
             inputs[5].value = dic_quantidades.estoque
             inputs[6].value = dic_quantidades.estoque_usado
-
         })
 
     }
