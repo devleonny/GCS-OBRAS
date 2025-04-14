@@ -509,7 +509,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
         equipamentos: []
     }
 
-    if (chave && orcamento.status.historico[chave]) {
+    if (chave && orcamento.status?.historico[chave]) {
 
         itensFiltrados = orcamento.status.historico[chave].requisicoes
 
@@ -547,7 +547,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
 
     for (item of itensFiltrados) {
         let codigo = item.codigo;
-        let qtde = item?.qtde_editar || item.qtde || 0
+        let qtde = item?.qtde_editar || 0
         let tipo = dados_composicoes[codigo]?.tipo || item.tipo;
 
         linhas += `
@@ -578,7 +578,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
                           <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
                               <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
                                   <label>Quantidade a enviar</label>
-                                  <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde}">
+                                  <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" min="0" value="${qtde}">
                               </div>
                               <label class="num">${itensOrcamento[codigo].qtde}</label>  
                           </div>
@@ -1307,8 +1307,8 @@ async function abrir_esquema(id) {
     let orcamento = dados_orcamentos[id]
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
-    let setor = dados_setores[acesso.usuario].setor
-    let permissao = dados_setores[acesso.usuario].permissao
+    let setor = dados_setores[acesso.usuario]?.setor
+    let permissao = dados_setores[acesso.usuario]?.permissao
     let categorias = Object.fromEntries(
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
     )
