@@ -309,7 +309,7 @@ async function abrir_detalhes(id_pagamento) {
             if (justificativa.status.includes('Aprovado')) {
                 cor = '#4CAF50'
                 imagem = "imagens/concluido.png"
-            } else if (dados_setores[justificativa.usuario].permissao == 'qualidade') {
+            } else if (dados_setores[justificativa.usuario]?.permissao == 'qualidade') {
                 cor = '#32a5e7'
                 imagem = "imagens/qualidade.png"
             } else if (justificativa.status.includes('Reprovado')) {
@@ -397,7 +397,7 @@ async function abrir_detalhes(id_pagamento) {
         <label>${dinheiro(pagamento.param[0].valor_documento)}</label>
         </div>
         `
-    let permissao = dados_setores[acesso.usuario].permissao
+    let permissao = dados_setores[acesso.usuario]?.permissao
 
     var acumulado = ''
     if (
