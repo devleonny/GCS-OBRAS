@@ -1376,8 +1376,8 @@ async function abrir_esquema(id) {
         localStorage.setItem('dados_setores', JSON.stringify(dados_setores))
     }
 
-    let setor = dados_setores[acesso.usuario].setor
-    let permissao = dados_setores[acesso.usuario].permissao
+    let setor = dados_setores[acesso.usuario]?.setor
+    let permissao = dados_setores[acesso.usuario]?.permissao
     let categorias = Object.fromEntries(
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
     )
