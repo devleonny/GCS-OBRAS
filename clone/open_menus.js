@@ -554,12 +554,12 @@ function conversor(stringMonetario) {
 }
 
 function dinheiro(valor) {
-    if (valor === '') {
-        return 'R$ 0,00';
-    } else {
+    if (valor !== '') {
         valor = Number(valor);
         return 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
+
+    return 'R$ 0,00';
 }
 
 function ir_para(modulo) {

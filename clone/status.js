@@ -3541,9 +3541,9 @@ async function mostrar_painel() {
                     : ''}
 
                                     ${tipo == 'SERVIÇO' ? `
-                                    <td></td>`
+                                    <td>Lucro de serviço</td>
+                                    <td>${dinheiro(tab.total_lucro)}</td>`
                     : ''}
-                                    <td></td>
                                     <td></td>
                                     <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_orcado)}</td>
 
