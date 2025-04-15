@@ -2805,6 +2805,12 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
     mostrar_itens_adicionais()
 }
 
+function verificarPermissaoEdicao(criador) {
+    const acesso = JSON.parse(localStorage.getItem('acesso')) || {};
+    // Permite edição se for ADM ou se for o criador do item
+    return acesso.permissao === 'adm' || acesso.usuario === criador;
+}
+
 function close_chave() {
     exibir_todos_os_status(id_orcam)
     document.getElementById('alerta').remove()
