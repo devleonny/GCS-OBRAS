@@ -522,6 +522,8 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
 
             descricao = String(descricao).toLowerCase()
 
+            todos_os_itens.equipamentos.push(item)
+
             if ((
                 descricao.includes('eletrocalha') ||
                 descricao.includes('eletroduto') ||
@@ -530,17 +532,17 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
             )) {
                 itensFiltrados.push(item)
                 todos_os_itens.infra.push(item)
-            } else {
-                todos_os_itens.equipamentos.push(item)
             }
         }
 
+        itensFiltrados = [...todos_os_itens.infra, ...todos_os_itens.equipamentos]
+
         if (tipoRequisicao == 'equipamentos') {
             itensFiltrados = todos_os_itens.equipamentos
-        } else if (tipoRequisicao == 'infraestrutura') {
+        }
+
+        if (tipoRequisicao == 'infraestrutura') {
             itensFiltrados = todos_os_itens.infra
-        } else {
-            itensFiltrados = [...todos_os_itens.infra, ...todos_os_itens.equipamentos]
         }
 
     }
@@ -858,7 +860,9 @@ async function definir_campo(elemento, div, id) {
 
             if (historico.operacao == 'entrada') {
                 dic_quantidades[estoque] += historico.quantidade
-            } else if (historico.operacao == 'saida') {
+            }
+
+            if (historico.operacao == 'saida') {
                 dic_quantidades[estoque] -= historico.quantidade
             }
         }
@@ -973,9 +977,7 @@ async function salvar_pedido(chave) {
         aviso_campo_branco.style.display = "flex"
 
         setTimeout(() => {
-
             aviso_campo_branco.style.display = "none"
-
         }, 3000);
 
         return
@@ -1032,9 +1034,7 @@ async function salvar_notas(chave) {
         aviso_campo_branco.style.display = "flex"
 
         setTimeout(() => {
-
             aviso_campo_branco.style.display = "none"
-
         }, 3000);
 
         return
@@ -1827,14 +1827,15 @@ function mostrar_painel() {
     let overlay_de_custos = document.getElementById('overlay_de_custos')
 
     if (painel_custos) {
-        if (painel_custos.style.display == 'flex') {
-            painel_custos.style.display = 'none'
-            overlay_de_custos.style.display = 'none'
-
-        } else {
+        if (painel_custos.style.display !== 'flex') {
             painel_custos.style.display = 'flex'
             overlay_de_custos.style.display = 'block'
+            return;
         }
+
+        painel_custos.style.display = 'none'
+        overlay_de_custos.style.display = 'none'
+
     }
 }
 

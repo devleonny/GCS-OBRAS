@@ -214,50 +214,8 @@ function executarTransacao(db, nome_da_base, dados) {
 }
 
 
-async function recuperarDados(nome_da_base) {
-    return new Promise((resolve, reject) => {
-
-        const request = indexedDB.open('Bases');
-
-        request.onsuccess = function (event) {
-            const db = event.target.result;
-
-            // Verificar se a store existe;
-            if (!db.objectStoreNames.contains(nome_da_base)) {
-                resolve(null);
-                return;
-            }
-
-            const transaction = db.transaction([nome_da_base], 'readonly');
-            const store = transaction.objectStore(nome_da_base);
-
-            const getRequest = store.get(1);
-
-            getRequest.onsuccess = function (event) {
-                let dados = event.target.result
-
-                if (dados && dados['id']) {
-                    delete dados['id']
-                }
-
-                resolve(event.target.result || null);
-            };
-
-            getRequest.onerror = function (event) {
-                reject(event.target.error);
-            };
-        };
-
-        request.onerror = function (event) {
-            reject(event.target.error);
-        };
-    });
-}
-
 // async function recuperarDados(nome_da_base) {
 //     return new Promise((resolve, reject) => {
-
-//         nome_da_base = `${nome_da_base}_clone`
 
 //         const request = indexedDB.open('Bases');
 
@@ -295,6 +253,48 @@ async function recuperarDados(nome_da_base) {
 //         };
 //     });
 // }
+
+async function recuperarDados(nome_da_base) {
+    return new Promise((resolve, reject) => {
+
+        nome_da_base = `${nome_da_base}_clone`
+
+        const request = indexedDB.open('Bases');
+
+        request.onsuccess = function (event) {
+            const db = event.target.result;
+
+            // Verificar se a store existe;
+            if (!db.objectStoreNames.contains(nome_da_base)) {
+                resolve(null);
+                return;
+            }
+
+            const transaction = db.transaction([nome_da_base], 'readonly');
+            const store = transaction.objectStore(nome_da_base);
+
+            const getRequest = store.get(1);
+
+            getRequest.onsuccess = function (event) {
+                let dados = event.target.result
+
+                if (dados && dados['id']) {
+                    delete dados['id']
+                }
+
+                resolve(event.target.result || null);
+            };
+
+            getRequest.onerror = function (event) {
+                reject(event.target.error);
+            };
+        };
+
+        request.onerror = function (event) {
+            reject(event.target.error);
+        };
+    });
+}
 
 function openPopup_v2(elementoHTML, titulo, nao_remover_anteriores) {
 
