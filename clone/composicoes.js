@@ -139,7 +139,7 @@ async function carregar_tabela_v2() {
                 var preco_final = produto[chave];
                 if (dicionario(produto[chave]) && produto[chave].historico && produto[chave].ativo) {
                     var ativo = produto[chave].ativo;
-                    preco_final = produto[chave].historico[ativo]?.valor;
+                    preco_final = produto[chave].historico[ativo].valor;
                 } else {
                     preco_final = '';
                 }
