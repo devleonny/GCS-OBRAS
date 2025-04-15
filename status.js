@@ -522,6 +522,8 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
 
             descricao = String(descricao).toLowerCase()
 
+            todos_os_itens.equipamentos.push(item)
+
             if ((
                 descricao.includes('eletrocalha') ||
                 descricao.includes('eletroduto') ||
@@ -530,17 +532,17 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
             )) {
                 itensFiltrados.push(item)
                 todos_os_itens.infra.push(item)
-            } else {
-                todos_os_itens.equipamentos.push(item)
             }
         }
 
+        itensFiltrados = [...todos_os_itens.infra, ...todos_os_itens.equipamentos]
+
         if (tipoRequisicao == 'equipamentos') {
             itensFiltrados = todos_os_itens.equipamentos
-        } else if (tipoRequisicao == 'infraestrutura') {
+        }
+
+        if (tipoRequisicao == 'infraestrutura') {
             itensFiltrados = todos_os_itens.infra
-        } else {
-            itensFiltrados = [...todos_os_itens.infra, ...todos_os_itens.equipamentos]
         }
 
     }
