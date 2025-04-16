@@ -2866,18 +2866,48 @@ async function carregar_anexos(chave) {
 
 }
 
-function deseja_apagar(chave) {
+async function deseja_apagar(chave) {
+    let dados_orcamentos = await recuperarDados("dados_orcamentos") || {};
+    let acesso = JSON.parse(localStorage.getItem("acesso")) || {}
 
-    let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
+    //Verificar se existe um histórico com a chave especificiado
+    if (chave && dados_orcamentos[id_orcam]?.status?.historico?.[chave]) {
+        let criador = dados_orcamentos[id_orcam].status.historico[chave].executor;
 
-    openPopup_v2(`
-        <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
-            <label>Deseja apagar essa informação?</label>
-            <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
-                <button style="background-color: green" onclick="${funcao}">Confirmar</button>
+        //Verificar se o usuário atual tem permissão para excluir o item
+        if (acesso.usuario !== criador && acesso.permissao !== "adm") {
+            return openPopup_v2 (`
+                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                    <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                    <label><strong>Você não tem permissão para excluir este item!</strong></label>
+                </div>`, "Aviso", true)
+        }
+
+        let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`;
+
+        openPopup_v2(`
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
+                <label>Deseja apagar essa informação?</label>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
+                    <button style="background-color: green" onclick="${funcao}">Confirmar</button>
+                    <button onclick="remover_popup()">Cancelar</button>
+                </div>
             </div>
-        </div>
-        `, 'Aviso', true)
+        `, 'Aviso', true);
+    }
+
+    // let verificar_permissao = chave 
+
+    // let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
+
+    // openPopup_v2(`
+    //     <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
+    //         <label>Deseja apagar essa informação?</label>
+    //         <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
+    //             <button style="background-color: green" onclick="${funcao}">Confirmar</button>
+    //         </div>
+    //     </div>
+    //     `, 'Aviso', true)
 }
 
 async function apagar_status_historico(chave) {
@@ -2897,16 +2927,43 @@ async function apagar_status_historico(chave) {
     await abrir_esquema(id_orcam)
 }
 
-function deseja_apagar_cotacao(chave) {
+async function deseja_apagar_cotacao(chave) {
+
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {};
+    
+    if (chave && dados_orcamentos[id_orcam]?.status?.historico?.[chave]) {
+        let criador = dados_orcamentos[id_orcam].status.historico[chave].executor;
+        
+        if (acesso.usuario !== criador && acesso.permissao !== 'adm') {
+            return openPopup_v2(`
+                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                    <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                    <label>Você não tem permissão para excluir esta cotação</label>
+                </div>
+            `, 'Aviso', true);
+        }
+    }
 
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
             <label>Deseja apagar essa informação?</label>
             <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
                 <button style="background-color: green" onclick="apagar_status_historico_cotacao('${chave}')">Confirmar</button>
+                <button onclick="remover_popup()">Cancelar</button>
             </div>
         </div>
-        `)
+    `, 'Aviso', true);
+
+    // openPopup_v2(`
+    //     <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
+    //         <label>Deseja apagar essa informação?</label>
+    //         <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
+    //             <button style="background-color: green" onclick="apagar_status_historico_cotacao('${chave}')">Confirmar</button>
+    //         </div>
+    //     </div>
+    //     `)
 
 }
 
