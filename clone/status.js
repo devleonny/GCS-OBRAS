@@ -3296,7 +3296,8 @@ async function mostrar_painel() {
             impostos: '',
             total_custo: 0,
             total_orcado: 0,
-            total_impostos: 0
+            total_impostos: 0,
+            total_lucro_liquido: 0
         },
         VENDA: {
             orcamento: '',
@@ -3537,12 +3538,13 @@ async function mostrar_painel() {
                                 <tr style="background-color: #535151;">
                                     ${tipo == 'VENDA' ? `
                                     <td></td>
+                                    <td></td>
                                     <td></td>`
                     : ''}
 
                                     ${tipo == 'SERVIÇO' ? `
-                                    <td>Lucro de serviço</td>
-                                    <td>${dinheiro(tab.total_lucro)}</td>`
+                                    <td style="font-size: 1em; font-weight: 600;">Lucro de serviço</td>
+                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_orcado - linhas.SERVIÇO.total_impostos)}</td>`
                     : ''}
                                     <td></td>
                                     <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_orcado)}</td>
