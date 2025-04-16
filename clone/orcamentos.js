@@ -101,7 +101,8 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
                     color: #222;
                     border-top-left-radius: 5px;
                     border-top-right-radius: 5px;
-                    ">
+                    "
+                >
 
                     <label>${inicial_maiuscula(st)}</label>
                     <label style="text-align: center; background-color: ${bg2}; color: #d2d2d2; border-radius: 3px; padding-left: 10px; padding-right: 10px; width: 50%;">${contadores[st]}</label>
