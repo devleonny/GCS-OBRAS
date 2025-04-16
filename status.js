@@ -3018,6 +3018,10 @@ async function apagar_status_historico_cotacao(chave) {
         return openPopup_v2("❌ Ação não autorizada!", "Erro", true);
     }
 
+    const verificandoExecutor = !item || (item.executor !== acesso.usuario && acesso.permissao !== 'adm')
+    console.log('Verficando: ', verificandoExecutor)
+    console.log('Verficando item : ', item)
+
     // ✅ Se passou, exclui
     delete dados_orcamentos[id_orcam].status.historico[chave];
     await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`);
