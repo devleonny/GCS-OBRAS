@@ -2050,7 +2050,7 @@ async function alterar_status(select, id) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    dados_orcamentos[id_orcam].status.atual = select.value
+    dados_orcamentos[id_orcam].status.atual = select?.value
 
     enviar(`dados_orcamentos/${id_orcam}/status/atual`, select.value)
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
@@ -3324,7 +3324,6 @@ async function mostrar_painel() {
         let lucro_unit = total - custo_total
 
         let descricao_produto = dados_composicoes[produto.codigo]?.descricao || 'Item sem descrição'
-        const itensRequisitados = dados_composicoes[produto.codigo]?.requisicao || 0
 
         linhas[produto.tipo].total_custo += custo_total
         linhas[produto.tipo].total_orcado += total
@@ -3523,7 +3522,7 @@ async function mostrar_painel() {
                         <table class="tabela">
                             <thead style="${tipo == 'SERVIÇO' ? 'background-color:rgb(0, 138, 0);' : 'background-color:rgb(185, 0, 0);'}">
                                 <th style="color: #fff; font-size: 0.9em;">Descrição</th>
-                                <th style="color: #fff; font-size: 0.9em;">Quantidade</th>
+                                <th style="color: #fff; font-size: 0.9em;">${tipo == 'VENDA' ? 'Requisitado' : 'Quantidade'}</th>
                                 ${tipo == 'VENDA' ? `
                                     <th style="color: #fff; font-size: 0.9em;">Margem</th>
                                 ` : ''}
