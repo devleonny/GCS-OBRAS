@@ -2867,184 +2867,66 @@ async function carregar_anexos(chave) {
 }
 
 async function deseja_apagar(chave) {
+       
+    let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
 
-    const dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    const acesso = JSON.parse(localStorage.getItem('acesso')) || {};
-
-    // 🔴 Verifica se o usuário tem permissão para excluir
-    if (chave) {
-        const item = dados_orcamentos[id_orcam]?.status?.historico?.[chave];
-        
-        // Se o item não existe, bloqueia
-        if (!item) {
-            return openPopup_v2("Item não encontrado!", "Erro", true);
-        }
-
-        // ⚠️ Se NÃO for o criador E NÃO for admin → BLOQUEIA
-        if (item.executor !== acesso.usuario && acesso.permissao !== 'adm') {
-            return openPopup_v2(`
-                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                    <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                    <label>❌ Apenas <strong>${item.executor}</strong> ou um <strong>ADMIN</strong> podem excluir este item!</label>
-                </div>
-            `, 'Acesso Negado', true);
-        }
-    } 
-    // Se for exclusão de TODO o histórico, só ADMIN pode
-    else if (acesso.permissao !== 'adm') {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>❌ Apenas <strong>ADMIN</strong> pode limpar todo o histórico!</label>
-            </div>
-        `, 'Acesso Negado', true);
-    }
-
-    // ✅ Se passou nas verificações, permite a exclusão
-    const funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`;
-    
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
-            <label>⚠️ Deseja realmente excluir?</label>
+            <label>Deseja apagar essa informação?</label>
             <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
-                <button style="background-color: #B12425;" onclick="${funcao}">EXCLUIR</button>
-                <button onclick="remover_popup()">CANCELAR</button>
+                <button style="background-color: green" onclick="${funcao}">Confirmar</button>
             </div>
         </div>
-    `, 'Confirmação', true);
-    
-    
-    // let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
-
-    // openPopup_v2(`
-    //     <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
-    //         <label>Deseja apagar essa informação?</label>
-    //         <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
-    //             <button style="background-color: green" onclick="${funcao}">Confirmar</button>
-    //         </div>
-    //     </div>
-    //     `, 'Aviso', true)
+        `, 'Aviso', true)
 }
 
 async function apagar_status_historico(chave) {
 
-    const dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    const acesso = JSON.parse(localStorage.getItem('acesso')) || {};
+    remover_popup()
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    // 🔴 Verificação EXTRA (caso o usuário tenha burlado o front-end)
-    if (chave) {
-        const item = dados_orcamentos[id_orcam]?.status?.historico?.[chave];
-        if (item && item.executor !== acesso.usuario && acesso.permissao !== 'adm') {
-            return openPopup_v2("❌ Ação não autorizada!", "Erro", true);
-        }
-    } else if (acesso.permissao !== 'adm') {
-        return openPopup_v2("❌ Apenas ADMIN pode limpar todo o histórico!", "Erro", true);
-    }
-
-    // ✅ Se passou, prossegue com a exclusão
     if (!chave) {
-        delete dados_orcamentos[id_orcam].status.historico;
-        await deletar(`dados_orcamentos/${id_orcam}/status/historico`);
+        delete dados_orcamentos[id_orcam].status.historico
+        await deletar(`dados_orcamentos/${id_orcam}/status/historico`)
     } else {
-        delete dados_orcamentos[id_orcam].status.historico[chave];
-        await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`);
+        delete dados_orcamentos[id_orcam].status.historico[chave]
+        await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`)
     }
 
-    await inserirDados(dados_orcamentos, 'dados_orcamentos');
-    await abrir_esquema(id_orcam);
-    remover_popup();
-
-    // remover_popup()
-    // let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
-    // if (!chave) {
-    //     delete dados_orcamentos[id_orcam].status.historico
-    //     await deletar(`dados_orcamentos/${id_orcam}/status/historico`)
-    // } else {
-    //     delete dados_orcamentos[id_orcam].status.historico[chave]
-    //     await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`)
-    // }
-
-    // await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    // await abrir_esquema(id_orcam)
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await abrir_esquema(id_orcam)
 }
 
 async function deseja_apagar_cotacao(chave) {
 
-    const dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    const acesso = JSON.parse(localStorage.getItem('acesso')) || {};
-    const item = dados_orcamentos[id_orcam]?.status?.historico?.[chave];
-    
-    // ⚠️ Se NÃO for o criador E NÃO for admin → BLOQUEIA
-    if (!item || (item.executor !== acesso.usuario && acesso.permissao !== 'adm')) {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>❌ Apenas <strong>${item?.executor || "o criador"}</strong> ou um <strong>ADMIN</strong> podem excluir esta cotação!</label>
-            </div>
-        `, 'Acesso Negado', true);
-    }
-
-    // ✅ Se passou, permite a exclusão
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <label>⚠️ Deseja realmente excluir esta cotação?</label>
+            <label>Deseja apagar essa informação?</label>
             <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
-                <button style="background-color: #B12425;" onclick="apagar_status_historico_cotacao('${chave}')">EXCLUIR</button>
-                <button onclick="remover_popup()">CANCELAR</button>
+                <button style="background-color: green" onclick="apagar_status_historico_cotacao('${chave}')">Confirmar</button>
             </div>
         </div>
-    `, 'Confirmação', true);
-
-    // openPopup_v2(`
-    //     <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
-    //         <label>Deseja apagar essa informação?</label>
-    //         <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
-    //             <button style="background-color: green" onclick="apagar_status_historico_cotacao('${chave}')">Confirmar</button>
-    //         </div>
-    //     </div>
-    //     `)
+        `)
 
 }
 
 async function apagar_status_historico_cotacao(chave) {
 
-    const dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    const acesso = JSON.parse(localStorage.getItem('acesso')) || {};
-    const item = dados_orcamentos[id_orcam]?.status?.historico?.[chave];
+        remover_popup()
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    // 🔴 Verificação EXTRA (segurança reforçada)
-    if (!item || (item.executor !== acesso.usuario && acesso.permissao !== 'adm')) {
-        return openPopup_v2("❌ Ação não autorizada!", "Erro", true);
+    if (!chave) {
+        delete dados_orcamentos[id_orcam].status.historico
+        await deletar(`dados_orcamentos/${id_orcam}/status/historico`)
+    } else {
+        delete dados_orcamentos[id_orcam].status.historico[chave]
+        await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`)
     }
 
-    const verificandoExecutor = !item || (item.executor !== acesso.usuario && acesso.permissao !== 'adm')
-    console.log('Verficando: ', verificandoExecutor)
-    console.log('Verficando item : ', item)
-
-    // ✅ Se passou, exclui
-    delete dados_orcamentos[id_orcam].status.historico[chave];
-    await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`);
     await deletar(`dados_cotacao/${chave}`);
-    await inserirDados(dados_orcamentos, 'dados_orcamentos');
-    await abrir_esquema(id_orcam);
-    remover_popup();
 
-    // remover_popup()
-    // let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
-    // if (!chave) {
-    //     delete dados_orcamentos[id_orcam].status.historico
-    //     await deletar(`dados_orcamentos/${id_orcam}/status/historico`)
-    // } else {
-    //     delete dados_orcamentos[id_orcam].status.historico[chave]
-    //     await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`)
-    // }
-
-    // await deletar(`dados_cotacao/${chave}`);
-
-    // await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    // await abrir_esquema(id_orcam)
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await abrir_esquema(id_orcam)
 
 }
 
