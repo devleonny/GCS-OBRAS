@@ -2868,35 +2868,50 @@ async function carregar_anexos(chave) {
 
 async function deseja_apagar(chave) {
 
-
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {};
+    const dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    const acesso = JSON.parse(localStorage.getItem('acesso')) || {};
     
-    // Verificar se existe um histórico com a chave especificada
-    if (chave && dados_orcamentos[id_orcam]?.status?.historico?.[chave]) {
-        let criador = dados_orcamentos[id_orcam].status.historico[chave].executor;
+    // Se for uma exclusão específica (com chave)
+    if (chave) {
+        const item = dados_orcamentos[id_orcam]?.status?.historico?.[chave];
         
-        // Verificar se o usuário atual tem permissão para excluir
-        if (acesso.usuario !== criador && acesso.permissao !== 'adm') {
+        // Verifica se o item existe e se o usuário tem permissão
+        if (!item) {
+            return openPopup_v2('Item não encontrado!', 'Erro', true);
+        }
+        
+        // Permissão: somente criador ou adm pode excluir
+        if (item.executor !== acesso.usuario && acesso.permissao !== 'adm') {
             return openPopup_v2(`
                 <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                     <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                    <label>Você não tem permissão para excluir este item</label>
+                    <label>Apenas o criador ou administrador pode excluir este item</label>
                 </div>
             `, 'Aviso', true);
         }
     }
-        let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`;
-
-        openPopup_v2(`
-            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
-                <label>Deseja apagar essa informação?</label>
-                <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
-                    <button style="background-color: green" onclick="${funcao}">Confirmar</button>
-                    <button onclick="remover_popup()">Cancelar</button>
-                </div>
+    // Se for exclusão de todo o histórico (sem chave)
+    else if (acesso.permissao !== 'adm') {
+        return openPopup_v2(`
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Apenas administradores podem excluir todo o histórico</label>
             </div>
         `, 'Aviso', true);
+    }
+
+    // Se passou nas verificações, mostra confirmação
+    const funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`;
+    
+    openPopup_v2(`
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
+            <label>Deseja apagar esta informação?</label>
+            <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
+                <button style="background-color: green" onclick="${funcao}">Confirmar</button>
+                <button onclick="remover_popup()">Cancelar</button>
+            </div>
+        </div>
+    `, 'Confirmação', true);
     
     
     // let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
@@ -2930,31 +2945,33 @@ async function apagar_status_historico(chave) {
 
 async function deseja_apagar_cotacao(chave) {
 
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {};
+    const dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    const acesso = JSON.parse(localStorage.getItem('acesso')) || {};
+    const item = dados_orcamentos[id_orcam]?.status?.historico?.[chave];
     
-    if (chave && dados_orcamentos[id_orcam]?.status?.historico?.[chave]) {
-        let criador = dados_orcamentos[id_orcam].status.historico[chave].executor;
-        
-        if (acesso.usuario !== criador && acesso.permissao !== 'adm') {
-            return openPopup_v2(`
-                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                    <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                    <label>Você não tem permissão para excluir esta cotação</label>
-                </div>
-            `, 'Aviso', true);
-        }
+    if (!item) {
+        return openPopup_v2('Cotação não encontrada!', 'Erro', true);
+    }
+    
+    // Permissão: somente criador ou adm pode excluir
+    if (item.executor !== acesso.usuario && acesso.permissao !== 'adm') {
+        return openPopup_v2(`
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Apenas o criador ou administrador pode excluir esta cotação</label>
+            </div>
+        `, 'Aviso', true);
     }
 
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <label>Deseja apagar essa informação?</label>
+            <label>Deseja apagar esta cotação?</label>
             <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
                 <button style="background-color: green" onclick="apagar_status_historico_cotacao('${chave}')">Confirmar</button>
                 <button onclick="remover_popup()">Cancelar</button>
             </div>
         </div>
-    `, 'Aviso', true);
+    `, 'Confirmação', true);
 
     // openPopup_v2(`
     //     <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
