@@ -509,7 +509,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
         equipamentos: []
     }
 
-    if (chave && orcamento.status.historico[chave]) {
+    if (chave && orcamento.status?.historico[chave]) {
 
         itensFiltrados = orcamento.status.historico[chave].requisicoes
 
@@ -522,6 +522,8 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
 
             descricao = String(descricao).toLowerCase()
 
+            todos_os_itens.equipamentos.push(item)
+
             if ((
                 descricao.includes('eletrocalha') ||
                 descricao.includes('eletroduto') ||
@@ -530,24 +532,24 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
             )) {
                 itensFiltrados.push(item)
                 todos_os_itens.infra.push(item)
-            } else {
-                todos_os_itens.equipamentos.push(item)
             }
         }
 
+        itensFiltrados = [...todos_os_itens.infra, ...todos_os_itens.equipamentos]
+
         if (tipoRequisicao == 'equipamentos') {
             itensFiltrados = todos_os_itens.equipamentos
-        } else if (tipoRequisicao == 'infraestrutura') {
+        }
+
+        if (tipoRequisicao == 'infraestrutura') {
             itensFiltrados = todos_os_itens.infra
-        } else {
-            itensFiltrados = [...todos_os_itens.infra, ...todos_os_itens.equipamentos]
         }
 
     }
 
     for (item of itensFiltrados) {
         let codigo = item.codigo;
-        let qtde = item?.qtde_editar || item.qtde || 0
+        let qtde = item?.qtde_editar || 0
         let tipo = dados_composicoes[codigo]?.tipo || item.tipo;
 
         linhas += `
@@ -578,7 +580,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
                           <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
                               <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
                                   <label>Quantidade a enviar</label>
-                                  <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde}">
+                                  <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" min="0" value="${qtde}">
                               </div>
                               <label class="num">${itensOrcamento[codigo].qtde}</label>  
                           </div>
@@ -858,7 +860,9 @@ async function definir_campo(elemento, div, id) {
 
             if (historico.operacao == 'entrada') {
                 dic_quantidades[estoque] += historico.quantidade
-            } else if (historico.operacao == 'saida') {
+            }
+
+            if (historico.operacao == 'saida') {
                 dic_quantidades[estoque] -= historico.quantidade
             }
         }
@@ -973,9 +977,7 @@ async function salvar_pedido(chave) {
         aviso_campo_branco.style.display = "flex"
 
         setTimeout(() => {
-
             aviso_campo_branco.style.display = "none"
-
         }, 3000);
 
         return
@@ -1032,9 +1034,7 @@ async function salvar_notas(chave) {
         aviso_campo_branco.style.display = "flex"
 
         setTimeout(() => {
-
             aviso_campo_branco.style.display = "none"
-
         }, 3000);
 
         return
@@ -1307,8 +1307,8 @@ async function abrir_esquema(id) {
     let orcamento = dados_orcamentos[id]
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
-    let setor = dados_setores[acesso.usuario].setor
-    let permissao = dados_setores[acesso.usuario].permissao
+    let setor = dados_setores[acesso.usuario]?.setor
+    let permissao = dados_setores[acesso.usuario]?.permissao
     let categorias = Object.fromEntries(
         Object.entries(dados_categorias).map(([chave, valor]) => [valor, chave])
     )
@@ -1827,14 +1827,15 @@ function mostrar_painel() {
     let overlay_de_custos = document.getElementById('overlay_de_custos')
 
     if (painel_custos) {
-        if (painel_custos.style.display == 'flex') {
-            painel_custos.style.display = 'none'
-            overlay_de_custos.style.display = 'none'
-
-        } else {
+        if (painel_custos.style.display !== 'flex') {
             painel_custos.style.display = 'flex'
             overlay_de_custos.style.display = 'block'
+            return;
         }
+
+        painel_custos.style.display = 'none'
+        overlay_de_custos.style.display = 'none'
+
     }
 }
 
@@ -2805,6 +2806,12 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
     mostrar_itens_adicionais()
 }
 
+function verificarPermissaoEdicao(criador) {
+    const acesso = JSON.parse(localStorage.getItem('acesso')) || {};
+    // Permite edição se for ADM ou se for o criador do item
+    return acesso.permissao === 'adm' || acesso.usuario === criador;
+}
+
 function close_chave() {
     exibir_todos_os_status(id_orcam)
     document.getElementById('alerta').remove()
@@ -2859,8 +2866,8 @@ async function carregar_anexos(chave) {
 
 }
 
-function deseja_apagar(chave) {
-
+async function deseja_apagar(chave) {
+       
     let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
 
     openPopup_v2(`
@@ -2890,7 +2897,7 @@ async function apagar_status_historico(chave) {
     await abrir_esquema(id_orcam)
 }
 
-function deseja_apagar_cotacao(chave) {
+async function deseja_apagar_cotacao(chave) {
 
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
@@ -2905,7 +2912,7 @@ function deseja_apagar_cotacao(chave) {
 
 async function apagar_status_historico_cotacao(chave) {
 
-    remover_popup()
+        remover_popup()
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
     if (!chave) {

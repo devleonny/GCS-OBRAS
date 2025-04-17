@@ -221,7 +221,7 @@ async function preencher_orcamentos_v2() {
 
         ths += `
             <th style="text-align: center;">${cab}</th>
-            `
+        `
         if (cab !== 'Ações' && cab !== 'Aprovação') {
             tsh += `
                 <th style="background-color: white; border-radius: 0px;">
@@ -230,7 +230,8 @@ async function preencher_orcamentos_v2() {
                         <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
                     </div>
                 </th>
-            `} else {
+            `
+        } else {
             tsh += `<th style="background-color: white; border-radius: 0px;"></th>`
         }
     })

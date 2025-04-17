@@ -30,7 +30,7 @@ async function identificacao_user() {
             localStorage.setItem('dados_setores', JSON.stringify(dados_setores))
         }
 
-        let permissao = dados_setores[acesso.usuario].permissao
+        let permissao = dados_setores[acesso.usuario]?.permissao
         var texto = `
             <div style="position: relative; display: fixed;">
                 <label onclick="deseja_sair()"
@@ -212,6 +212,47 @@ function executarTransacao(db, nome_da_base, dados) {
     };
 
 }
+
+
+// async function recuperarDados(nome_da_base) {
+//     return new Promise((resolve, reject) => {
+
+//         const request = indexedDB.open('Bases');
+
+//         request.onsuccess = function (event) {
+//             const db = event.target.result;
+
+//             // Verificar se a store existe;
+//             if (!db.objectStoreNames.contains(nome_da_base)) {
+//                 resolve(null);
+//                 return;
+//             }
+
+//             const transaction = db.transaction([nome_da_base], 'readonly');
+//             const store = transaction.objectStore(nome_da_base);
+
+//             const getRequest = store.get(1);
+
+//             getRequest.onsuccess = function (event) {
+//                 let dados = event.target.result
+
+//                 if (dados && dados['id']) {
+//                     delete dados['id']
+//                 }
+
+//                 resolve(event.target.result || null);
+//             };
+
+//             getRequest.onerror = function (event) {
+//                 reject(event.target.error);
+//             };
+//         };
+
+//         request.onerror = function (event) {
+//             reject(event.target.error);
+//         };
+//     });
+// }
 
 async function recuperarDados(nome_da_base) {
     return new Promise((resolve, reject) => {
@@ -513,12 +554,12 @@ function conversor(stringMonetario) {
 }
 
 function dinheiro(valor) {
-    if (valor === '') {
-        return 'R$ 0,00';
-    } else {
+    if (valor !== '') {
         valor = Number(valor);
         return 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
+
+    return 'R$ 0,00';
 }
 
 function ir_para(modulo) {

@@ -236,15 +236,11 @@ async function abrir_manutencao(id) {
     let div_NF = document.getElementById("div_NF")
 
     if (manutencao.status_manutencao == "MATERIAL ENVIADO" || manutencao.status_manutencao == "FINALIZADO") {
-
         div_NF.style.display = "flex"
 
         if (manutencao.nf) {
-
             document.getElementById("NF").value = manutencao.nf
-
         }
-
     }
 
     if (manutencao.chamado == 'KIT TÉCNICO') {
@@ -349,17 +345,25 @@ async function abrir_manutencao(id) {
         }
 
         infos += `
-            <div style="display: flex; align-items: center; justify-content: space-evenly; margin-bottom: 10px;">
-                <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; font-size: 0.8vw;">
-                    <label><strong>Data: </strong>${historico.data}</label>
-                    <label><strong>Status: </strong>${historico.status_manutencao}</label>
-                    <label><strong>Usuário: </strong>${historico.usuario}</label>
-                    <label><strong>Comentário: </strong></label>
-                    <textarea style="width: 100%; background-color: white; border: 1px solid #ccc; padding: 5px; resize: none;" readonly>${historico.comentario}</textarea>
+        <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px;">
+            <div style="display: flex; flex-direction: column; align-items: start; width: 35%;">
+                <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 5px;">
+                    <img src="imagens/${imagem}.png" style="width: 30px;">
+                    <div style="display: flex; gap: 0px; flex-direction: column">
+                        <label><strong>Data: </strong>${historico.data}</label><br>
+                        <label><strong>Status: </strong>${historico.status_manutencao}</label><br>
+                        <label><strong>Usuário: </strong>${historico.usuario}</label>
+                    </div>
                 </div>
-                <img src="imagens/${imagem}.png" style="width: 50px; margin-left: 10px;">
             </div>
-            <hr style="width: 100%;">
+            <div style="width: 70%; display: flex; text-align: center; align-items: center; gap: 8px">
+                <label style="text-align: center"><strong>Comentário: </strong></label>
+                <textarea style="width: 100%vw; height: 50px; background-color: white; border: 1px solid #ccc; 
+                        padding: 8px; resize: none; font-size: 0.9em;" readonly>${historico.comentario}</textarea>
+            </div>
+        </div>
+        <hr style="width: 100%; margin: 10px 0;">
+           
         `;
     }
 
@@ -378,6 +382,18 @@ async function abrir_manutencao(id) {
 
 
 }
+
+// <div style="display: flex; align-items: center; justify-content: space-evenly; margin-bottom: 10px;">
+//     <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; font-size: 0.8vw;">
+//         <label><strong>Data: </strong>${historico.data}</label>
+//         <label><strong>Status: </strong>${historico.status_manutencao}</label>
+//         <label><strong>Usuário: </strong>${historico.usuario}</label>
+//         <label><strong>Comentário: </strong></label>
+//         <textarea style="width: 100%; background-color: white; border: 1px solid #ccc; padding: 5px; resize: none;" readonly>${historico.comentario}</textarea>
+//     </div>
+//     <img src="imagens/${imagem}.png" style="width: 50px; margin-left: 10px;">
+// </div>
+// <hr style="width: 100%;">
 
 function salvarPrimeiroUsuario(historico) {
 
@@ -666,7 +682,7 @@ async function criar_manutencao(id) {
                         <div
                             style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
                             <label style="font-size: 1.2vw;">Comentário</label>
-                            <textarea type="text" placeholder="..." id="comentario"></textarea>
+                            <textarea type="text" placeholder="..." id="comentario" style="max-width: 280px;"></textarea>
                         </div>
 
                         <div style="display: flex; justify-content: start; align-items: center; gap: 5px; width: 100%;">
@@ -1080,7 +1096,6 @@ async function definir_campo(elemento, div, string_html, omie, id) {
             inputs[0].value = dados_estoque[id].partnumber
             inputs[5].value = dic_quantidades.estoque
             inputs[6].value = dic_quantidades.estoque_usado
-
         })
 
     }
