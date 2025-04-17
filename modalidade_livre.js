@@ -72,7 +72,7 @@ function carregar_layout_modalidade_livre() {
                 <div
                     style="display: flex; flex-direction: column; justify-content: center; align-items: start; border-radius: 3px;">
 
-                    <div class="btn_menu" onclick="toggleTabela()">
+                    <div class="btn_menu" onclick="painel_clientes()">
                         <img src="imagens/gerente.png">
                         <label>Dados Cliente</label>
                     </div>
