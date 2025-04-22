@@ -961,7 +961,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                     </tr>
                     <tr>
                         <td>ICMS Creditado em nota (%)</td>
-                        <td style="background-color: #91b7d9;"><input id="icms_creditado" oninput="calcular()" value="${dados?.icms_creditado || 0}"></td>
+                        <td style="background-color: #91b7d9;"><input id="icms_creditado" oninput="calcular()" value="${dados?.icms_creditado || ""}"></td>
                     </tr>
                     <tr>
                         <td>Aliquota ICMS (Bahia)</td>
@@ -1202,94 +1202,105 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
 }
 
 async function salvar_preco(codigo, lpu, cotacao) {
+    // Mostrar loader
     const loader = document.createElement('div');
-    loader.innerHTML = 'Salvando...';
-    loader.style.position = 'fixed';
-    // ... estilize o loader ...
+    loader.innerHTML = '<div style="font-size:1.5em">Salvando preço...</div>';
+    loader.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    `;
     document.body.appendChild(loader);
-    
-    try {
-        // ... código de salvamento ...
-    } finally {
-        loader.remove();
-    }
+
     try {
         // 1. Verificar se o produto existe
         let dados_composicoes = await recuperarDados('dados_composicoes') || {};
         let produto = dados_composicoes[codigo];
         
         if (!produto) {
-            console.error(`Produto com código ${codigo} não encontrado`);
+            alert('Produto não encontrado!');
             return;
         }
 
-        // 2. Obter elementos de forma segura com fallbacks
-        const getElementValue = (id, defaultValue = '') => {
-            const el = document.getElementById(id);
-            return el ? el.value : defaultValue;
-        };
+        // 2. Coletar valores dos campos
+        const final = Number(document.getElementById('final')?.value);
+        const custo = Number(document.getElementById('custo')?.value);
+        const icms_creditado = document.getElementById('icms_creditado')?.value;
+        const nota = document.getElementById('nota')?.value;
+        const comentario = document.getElementById('comentario')?.value;
+        const margem = Number(document.getElementById('margem')?.value);
+        const fornecedor = document.getElementById('fornecedor')?.value;
+        const valor_custo = conversor(document.querySelector('#valor_custo')?.textContent || '0');
 
-        const getElementNumber = (id, defaultValue = 0) => {
-            const val = getElementValue(id, defaultValue);
-            return val ? Number(val) : defaultValue;
-        };
-
-        // 3. Coletar valores com verificações
-        const valores = {
-            final: getElementNumber('final'),
-            nota: getElementValue('nota'),
-            comentario: getElementValue('comentario'),
-            margem: getElementNumber('margem'),
-            fornecedor: produto.tipo === 'VENDA' ? getElementValue('fornecedor') : '',
-            custo: produto.tipo === 'VENDA' ? getElementNumber('custo') : getElementNumber('final'),
-            valor_custo: produto.tipo === 'VENDA' ? conversor(document.querySelector('#valor_custo')?.textContent || '0') : 0,
-            icms_creditado: produto.tipo === 'VENDA' ? getElementNumber('icms_creditado') : 0
-        };
-
-        // 4. Validar valores obrigatórios
-        if (isNaN(valores.final) || valores.final <= 0) {
+        // 3. Validações obrigatórias
+        if (isNaN(final) || final <= 0) {
             alert('Preço final inválido!');
             return;
         }
 
-        // 5. Preparar objeto de histórico
+        // VALIDAÇÃO ESPECÍFICA PARA ICMS CREDITADO (OBRIGATÓRIO PARA PRODUTOS DE VENDA)
+        if (produto.tipo === 'VENDA') {
+            if (icms_creditado === "" || icms_creditado === null || icms_creditado === undefined) {
+                alert('O campo ICMS Creditado é obrigatório! Informe um valor.');
+                return;
+            }
+            
+            if (isNaN(Number(icms_creditado))) {
+                alert('ICMS Creditado deve ser um número válido!');
+                return;
+            }
+        }
+
+        // 4. Preparar objeto de histórico
         let historico = produto[lpu]?.historico || {};
         let id = cotacao || gerar_id_5_digitos();
 
         historico[id] = {
-            valor: valores.final,
+            valor: final,
             data: dt(),
             usuario: acesso.usuario,
-            nota: valores.nota,
-            comentario: valores.comentario,
-            margem: valores.margem,
-            fornecedor: valores.fornecedor,
-            custo: valores.custo
+            nota: nota,
+            comentario: comentario,
+            margem: margem,
+            fornecedor: fornecedor,
+            custo: custo,
+            valor_custo: valor_custo
         };
 
-        // Campos específicos para VENDA
+        // Adicionar ICMS creditado apenas para produtos de venda
         if (produto.tipo === 'VENDA') {
-            historico[id].valor_custo = valores.valor_custo;
-            historico[id].icms_creditado = valores.icms_creditado;
+            historico[id].icms_creditado = Number(icms_creditado);
         }
 
-        // 6. Atualizar estrutura de dados
+        // 5. Atualizar estrutura de dados
         if (!produto[lpu]) {
             produto[lpu] = { historico: {} };
         }
         produto[lpu].historico = historico;
 
-        // 7. Salvar no banco de dados
+        // 6. Salvar no banco de dados
         await inserirDados(dados_composicoes, 'dados_composicoes');
         await enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, historico[id]);
 
-        // 8. Fechar popup e recarregar
+        // 7. Fechar popup e recarregar
         remover_popup();
         await abrir_historico_de_precos(codigo, lpu);
 
     } catch (error) {
         console.error('Erro ao salvar preço:', error);
-        alert('Ocorreu um erro ao salvar o preço. Verifique o console para mais detalhes.');
+        alert('Erro ao salvar: ' + error.message);
+    } finally {
+        if (loader && document.body.contains(loader)) {
+            document.body.removeChild(loader);
+        }
     }
 }
 
