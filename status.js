@@ -2812,6 +2812,14 @@ function verificarPermissaoEdicao(criador) {
     return acesso.permissao === 'adm' || acesso.usuario === criador;
 }
 
+function verificarPermissaoExclusao({criador, chave}) {
+    const acessoUsuario = JSON.parse(localStorage.getItem('acesso')) || {};
+    const permitirAdmOuCriadorDoItem = acessoUsuario.permissao === 'adm' || acessoUsuario.usuario === criador
+
+    return permitirAdmOuCriadorDoItem ? apagar_status_historico(chave) : openPopup_v2(`
+        Você não tem permissão para excluir este item.`)
+}
+
 function close_chave() {
     exibir_todos_os_status(id_orcam)
     document.getElementById('alerta').remove()
@@ -2868,7 +2876,8 @@ async function carregar_anexos(chave) {
 
 async function deseja_apagar(chave) {
        
-    let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
+    //let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
+    let funcao = chave ? `verificarPermissaoExclusao({chave:'${chave}'})` : `verificarPermissaoExclusao()`
 
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
