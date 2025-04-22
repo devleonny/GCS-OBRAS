@@ -56,7 +56,7 @@ async function consultar_pagamentos() {
                 `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
             ).join('');
             let nome_orcamento = orcamentos[pg.id_orcamento]
-                ? orcamentos[pg.id_orcamento].dados_orcam.cliente_selecionado
+                ? orcamentos[pg.id_orcamento].dados_orcam?.cliente_selecionado
                 : pg.id_orcamento;
             let data_registro = pg.data_registro || pg.param[0].data_previsao;
 
@@ -276,7 +276,7 @@ async function abrir_detalhes(id_pagamento) {
     let pagamento = lista_pagamentos[id_pagamento]
 
     if (dados_orcamentos[pagamento.id_orcamento]) {
-        cc = dados_orcamentos[pagamento.id_orcamento].dados_orcam.cliente_selecionado
+        cc = dados_orcamentos[pagamento.id_orcamento].dados_orcam?.cliente_selecionado
     } else {
         cc = pagamento.id_orcamento
     }
@@ -1939,7 +1939,7 @@ async function recuperar_ultimo_pagamento() {
         let cliente_selecionado = ultimo_pagamento.id_orcamento
 
         if (dados_orcamentos[ultimo_pagamento.id_orcamento] && dados_orcamentos[ultimo_pagamento.id_orcamento].dados_orcam.cliente_selecionado) {
-            cliente_selecionado = dados_orcamentos[ultimo_pagamento.id_orcamento].dados_orcam.cliente_selecionado
+            cliente_selecionado = dados_orcamentos[ultimo_pagamento.id_orcamento].dados_orcam?.cliente_selecionado
         }
 
         if (document.getElementById('cc') && document.getElementById('id_orcamento')) {
