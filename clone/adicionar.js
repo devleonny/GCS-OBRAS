@@ -1227,7 +1227,7 @@ async function incluir_item(codigo, nova_quantidade, especial) {
             <td style="position: relative;">
                 <div style="display: flex; justify-content: start; align-items: center; gap: 10px;">
                     <img src="imagens/construcao.png" style="width: 1.2vw; width: 2vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">
-                    <label>${dados_composicoes[item?.codigo]?.descricao}</label>
+                    <label>${dados_composicoes[item.codigo].descricao}</label>
                 </div>
                 <div class="agrupados"></div>
             </td>
