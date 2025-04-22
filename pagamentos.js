@@ -1029,7 +1029,7 @@ async function atualizar_feedback(resposta, id_pagamento) {
         status = 'Aprovado pela Diretoria';
         lancar_pagamento(pagamento)
 
-    } else if (resposta == 'Aprovar' && permissao == 'fin') {
+    } else if (resposta == 'Aprovar' && (permissao == 'fin' || (setor == 'RH' && permissao == 'gerente'))) {
         status = 'Aprovado pelo Financeiro';
         lancar_pagamento(pagamento)
 
