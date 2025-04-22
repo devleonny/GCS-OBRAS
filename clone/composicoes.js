@@ -1205,7 +1205,7 @@ async function salvar_preco(codigo, lpu, cotacao) {
     // Mostrar loader
     const loader = document.createElement('div');
     loader.innerHTML = '<div style="font-size:1.5em">Salvando preço...</div>';
-    loader.openPopup_v2 = `
+    loader.style.cssText = `
         position: fixed;
         top: 0;
         left: 0;
@@ -1230,31 +1230,31 @@ async function salvar_preco(codigo, lpu, cotacao) {
             return;
         }
 
-        // 2. Coletar valores dos campos
-        const final = Number(document.getElementById('final')?.value);
-        const custo = Number(document.getElementById('custo')?.value);
-        const icms_creditado = document.getElementById('icms_creditado')?.value;
-        const nota = document.getElementById('nota')?.value;
-        const comentario = document.getElementById('comentario')?.value;
-        const margem = Number(document.getElementById('margem')?.value);
-        const fornecedor = document.getElementById('fornecedor')?.value;
-        const valor_custo = conversor(document.querySelector('#valor_custo')?.textContent || '0');
+        // 2. Coletar valores dos campos - DE FORMA NÃO-DESTRUTIVA
+        const getValue = (id) => {
+            const el = document.getElementById(id);
+            return el ? el.value : null;
+        };
+
+        const final = parseFloat(getValue('final')) || 0;
+        const custo = parseFloat(getValue('custo')) || 0;
+        const icms_creditado = getValue('icms_creditado');
+        const nota = getValue('nota');
+        const comentario = getValue('comentario');
+        const margem = parseFloat(getValue('margem')) || 0;
+        const fornecedor = getValue('fornecedor');
+        const valor_custo = parseFloat(document.querySelector('#valor_custo')?.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
 
         // 3. Validações obrigatórias
-        if (isNaN(final) || final <= 0) {
+        if (final <= 0) {
             alert('Preço final inválido!');
             return;
         }
 
-        // VALIDAÇÃO ESPECÍFICA PARA ICMS CREDITADO (OBRIGATÓRIO PARA PRODUTOS DE VENDA)
+        // VALIDAÇÃO DO ICMS CREDITADO (APENAS PARA PRODUTOS DE VENDA)
         if (produto.tipo === 'VENDA') {
-            if (icms_creditado === "" || icms_creditado === null || icms_creditado === undefined) {
-                alert('O campo ICMS Creditado é obrigatório! Informe um valor.');
-                return;
-            }
-            
-            if (isNaN(Number(icms_creditado))) {
-                alert('ICMS Creditado deve ser um número válido!');
+            if (icms_creditado === null || icms_creditado === "" || isNaN(parseFloat(icms_creditado))) {
+                alert('O campo ICMS Creditado é obrigatório! Informe um valor numérico (pode ser 0).');
                 return;
             }
         }
@@ -1267,28 +1267,28 @@ async function salvar_preco(codigo, lpu, cotacao) {
             valor: final,
             data: dt(),
             usuario: acesso.usuario,
-            nota: nota,
-            comentario: comentario,
+            nota: nota || '',
+            comentario: comentario || '',
             margem: margem,
-            fornecedor: fornecedor,
+            fornecedor: fornecedor || '',
             custo: custo,
             valor_custo: valor_custo
         };
 
         // Adicionar ICMS creditado apenas para produtos de venda
         if (produto.tipo === 'VENDA') {
-            historico[id].icms_creditado = Number(icms_creditado);
+            historico[id].icms_creditado = parseFloat(icms_creditado);
         }
 
         // 5. Atualizar estrutura de dados
-        if (!produto[lpu]) {
-            produto[lpu] = { historico: {} };
-        }
+        produto[lpu] = produto[lpu] || { historico: {} };
         produto[lpu].historico = historico;
 
         // 6. Salvar no banco de dados
-        await inserirDados(dados_composicoes, 'dados_composicoes');
-        await enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, historico[id]);
+        await Promise.all([
+            inserirDados(dados_composicoes, 'dados_composicoes'),
+            enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, historico[id])
+        ]);
 
         // 7. Fechar popup e recarregar
         remover_popup();
