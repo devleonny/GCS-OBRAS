@@ -541,37 +541,81 @@ async function carregarXLSX() {
 }
 
 
-async function para_excel(tabela_id, nome_arquivo = 'dados') {
+async function para_excel(tabela_id, nome_personalizado) {
     try {
-        // Carrega a biblioteca SheetJS dinamicamente se não estiver disponível
+        // 1. Verificação e carregamento da biblioteca
         if (typeof XLSX === 'undefined') {
-            await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+                script.onload = resolve;
+                script.onerror = () => reject(new Error('Falha ao carregar a biblioteca XLSX'));
+                document.head.appendChild(script);
+            });
         }
 
+        // 2. Verificação da tabela
         const tabela = document.getElementById(tabela_id);
         if (!tabela) {
-            throw new Error(`Tabela com ID ${tabela_id} não encontrada`);
+            throw new Error(`Tabela com ID '${tabela_id}' não encontrada`);
         }
 
-        // Converter tabela para worksheet
-        const worksheet = XLSX.utils.table_to_sheet(tabela);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Planilha1");
+        // 3. Clone e preparação da tabela
+        const tabelaClone = tabela.cloneNode(true);
+        
+        // Processar elementos interativos
+        tabelaClone.querySelectorAll('input, textarea, select').forEach(elemento => {
+            const celula = elemento.closest('td, th');
+            if (celula) {
+                if (elemento.type === 'checkbox') {
+                    celula.textContent = elemento.checked ? 'Sim' : 'Não';
+                } else if (elemento.tagName === 'SELECT') {
+                    celula.textContent = elemento.options[elemento.selectedIndex]?.text || '';
+                } else {
+                    celula.textContent = elemento.value;
+                }
+            }
+        });
 
-        // Gerar arquivo e disparar download
-        XLSX.writeFile(workbook, `${nome_arquivo}.xlsx`, {
+        // Remover elementos não exportáveis
+        tabelaClone.querySelectorAll('[data-no-export], .no-export').forEach(el => el.remove());
+
+        // 4. Conversão para Excel
+        const worksheet = XLSX.utils.table_to_sheet(tabelaClone);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Dados");
+
+        // 5. Nome do arquivo
+        const data = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const nomeArquivo = nome_personalizado 
+            ? `${nome_personalizado}_${data}.xlsx` 
+            : `exportacao_${data}.xlsx`;
+
+        // 6. Exportação
+        XLSX.writeFile(workbook, nomeArquivo, {
             compression: true
         });
 
     } catch (erro) {
-        console.error("Erro na exportação para Excel:", erro);
+        console.error("Erro detalhado:", erro);
+        
+        // Mensagem amigável para o usuário
+        let mensagem = erro.message;
+        if (erro.message.includes('XLSX is not defined')) {
+            mensagem = "Biblioteca de exportação não carregada. Recarregue a página e tente novamente.";
+        }
+        
         openPopup_v2(`
-            <div style="color: #b71c1c; padding: 20px;">
-                <h3>Erro na exportação</h3>
-                <p>${erro.message}</p>
-                <button onclick="remover_popup()">Fechar</button>
+            <div style="color: #b71c1c; padding: 20px; text-align: center;">
+                <h3>⚠️ Erro na Exportação</h3>
+                <p>${mensagem}</p>
+                <div style="margin-top: 20px;">
+                    <button onclick="remover_popup()" style="padding: 8px 16px; background: #b71c1c; color: white; border: none; border-radius: 4px;">
+                        Fechar
+                    </button>
+                </div>
             </div>
-        `, "Erro");
+        `, 'Erro na Exportação');
     }
 }
 
