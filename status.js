@@ -2876,11 +2876,10 @@ async function carregar_anexos(chave) {
 }
 
 async function deseja_apagar(chave) {
-
     // Recupera quem criou o item
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    let criador = dados_orcamentos[id_orcam]?.status?.historico[chave]?.executor || '';   
-    //let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
+    let criador = dados_orcamentos[id_orcam]?.status?.historico[chave]?.executor || '';
+    
     let funcao = `verificarPermissaoExclusao({chave:'${chave}', criador:'${criador}'})`;
 
     openPopup_v2(`
@@ -2894,41 +2893,20 @@ async function deseja_apagar(chave) {
 }
 
 async function apagar_status_historico(chave) {
-    //Verificar novamente a permissão (segurança adicional)
-    const podeApagar = await verificarPermissaoApagar(chave);
-    if (!podeApagar) {
-        console.error("Tentativa de apagar registro sem permissão");
-        return;
-    }
 
     remover_popup()
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    let dados_orcamentos = await recuperarDados("dados_orcamentos") || {}
-    
     if (!chave) {
-        delete dados_orcamentos[id.orcam].status.historico
-        await deletar (`dados_orcamentos/${id_orcam}/status/historico`);
+        delete dados_orcamentos[id_orcam].status.historico
+        await deletar(`dados_orcamentos/${id_orcam}/status/historico`)
     } else {
         delete dados_orcamentos[id_orcam].status.historico[chave]
         await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`)
     }
 
-    await inserirDados(dados_orcamentos, "dados_orcamentos")
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await abrir_esquema(id_orcam)
-
-    // remover_popup()
-    // let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
-    // if (!chave) {
-    //     delete dados_orcamentos[id_orcam].status.historico
-    //     await deletar(`dados_orcamentos/${id_orcam}/status/historico`)
-    // } else {
-    //     delete dados_orcamentos[id_orcam].status.historico[chave]
-    //     await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`)
-    // }
-
-    // await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    // await abrir_esquema(id_orcam)
 }
 
 async function deseja_apagar_cotacao(chave) {
