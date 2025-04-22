@@ -1205,7 +1205,7 @@ async function salvar_preco(codigo, lpu, cotacao) {
     // Mostrar loader
     const loader = document.createElement('div');
     loader.innerHTML = '<div style="font-size:1.5em">Salvando preço...</div>';
-    loader.style.cssText = `
+    loader.openPopup_v2 = `
         position: fixed;
         top: 0;
         left: 0;
