@@ -2812,6 +2812,15 @@ function verificarPermissaoEdicao(criador) {
     return acesso.permissao === 'adm' || acesso.usuario === criador;
 }
 
+function verificarPermissaoExclusao({chave, criador}) {
+    const acessoUsuario = JSON.parse(localStorage.getItem('acesso')) || {};
+    const permitirAdmOuCriadorDoItem = acessoUsuario.permissao === 'adm' || acessoUsuario.usuario === criador;
+
+    return permitirAdmOuCriadorDoItem 
+        ? apagar_status_historico(chave) 
+        : openPopup_v2(`Você não tem permissão para excluir este item.`);
+}
+
 function close_chave() {
     exibir_todos_os_status(id_orcam)
     document.getElementById('alerta').remove()
@@ -2867,8 +2876,11 @@ async function carregar_anexos(chave) {
 }
 
 async function deseja_apagar(chave) {
-       
-    let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
+    // Recupera quem criou o item
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let criador = dados_orcamentos[id_orcam]?.status?.historico[chave]?.executor || '';
+    
+    let funcao = `verificarPermissaoExclusao({chave:'${chave}', criador:'${criador}'})`;
 
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
@@ -2877,7 +2889,7 @@ async function deseja_apagar(chave) {
                 <button style="background-color: green" onclick="${funcao}">Confirmar</button>
             </div>
         </div>
-        `, 'Aviso', true)
+    `, 'Aviso', true);
 }
 
 async function apagar_status_historico(chave) {
