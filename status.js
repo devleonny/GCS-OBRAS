@@ -2876,27 +2876,12 @@ async function carregar_anexos(chave) {
 }
 
 async function deseja_apagar(chave) {
-<<<<<<< Updated upstream
 
     // Recupera quem criou o item
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let criador = dados_orcamentos[id_orcam]?.status?.historico[chave]?.executor || '';   
     //let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
     let funcao = `verificarPermissaoExclusao({chave:'${chave}', criador:'${criador}'})`;
-=======
-       const pode_apagar = await verificarPermissaoApagar(chave);
-       if (!pode_apagar) {
-        openPopup_v2(`
-            <div style="displa: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
-                <label>Você não tem permissão para apagar este registro.</label>
-                <label>Apenas o usuário que criou o registro pode apagá-lo. </label>
-            </div>
-            `,'Aviso', true);
-            return
-       } 
-
-       let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
->>>>>>> Stashed changes
 
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
@@ -2905,40 +2890,7 @@ async function deseja_apagar(chave) {
                 <button style="background-color: green" onclick="${funcao}">Confirmar</button>
             </div>
         </div>
-<<<<<<< Updated upstream
     `, 'Aviso', true);
-=======
-        `, 'Aviso', true)
-    // let funcao = chave ? `apagar_status_historico('${chave}')` : `apagar_status_historico()`
-
-    // openPopup_v2(`
-    //     <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
-    //         <label>Deseja apagar essa informação?</label>
-    //         <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
-    //             <button style="background-color: green" onclick="${funcao}">Confirmar</button>
-    //         </div>
-    //     </div>
-    //     `, 'Aviso', true)
-}
-
-async function verificarPermissaoApagar (chave) {
-    //Obter o usuário atual
-    const usuarioAtual = obterUsuarioAtual()
-    
-    //Recuperar os dados do historico
-    const dados_orcamentos = await recuperarDados("dados_orcamentos") || {};
-
-    if(!chave) {
-        //Para apagar todo o histórico, verificar se o usuário atual é o criador de todos os registros
-
-        const historico = dados_orcamentos[id_orcam]?.status?.historico || {}
-        return Object.values(historico).every(registro => registro.criadorPor === usuarioAtual)
-    } else {
-        //Para apagar um registro específico, verifica se o usuário atual é o criador
-        const registro = dados_orcamentos[id.orcam]?.status?.historico?.[chave];
-        return registro?.criadorPor === usuarioAtual
-    }
->>>>>>> Stashed changes
 }
 
 async function apagar_status_historico(chave) {
