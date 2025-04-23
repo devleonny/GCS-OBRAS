@@ -213,7 +213,7 @@ async function carregar_tabelas() {
 
             let item = orcamento_v2.dados_composicoes[codigo]
 
-            await incluir_item(codigo, item?.qtde, undefined, item?.tipo)
+            await incluir_item(codigo, item.qtde, undefined, item.tipo)
 
         }
 
@@ -897,8 +897,8 @@ async function total() {
                     <div style="display: flex; justify-content: space-evenly; align-items: center; border: solid 1px ${cor}; margin: 2px; border-radius: 3px; background-color: white;">
                         <label>${it}</label>
                         <div onmouseover="exibir_descricao(this)" onmouseout="ocultar_descricao(this)" style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                            <div style="cursor: pointer; display: none; position: absolute; top: 0; background-color: white; padding: 5px; white-space: nowrap; border-radius: 3px; border: solid 1px #222;">${item?.descricao}</div>
-                            <label>${String(item?.descricao).slice(0, 10)}...</label>
+                            <div style="cursor: pointer; display: none; position: absolute; top: 0; background-color: white; padding: 5px; white-space: nowrap; border-radius: 3px; border: solid 1px #222;">${item.descricao}</div>
+                            <label>${String(item.descricao).slice(0, 10)}...</label>
                         </div>
                         <div style="display: flex; justify-content: center;">
                             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -1311,13 +1311,13 @@ async function incluir_item(codigo, nova_quantidade, especial, tipo_tabela) {
     let linha;
 
     if (tipo_tabela == "LOCAÇÃO") {
-        item?.tipo = "LOCAÇÃO"
+        item.tipo = "LOCAÇÃO"
 
         linha = `
         <tr>
             <td id="codigo_locacao">${codigo_original}</td>
             <td style="position: relative;">
-                <label>${item?.descricao || 'Descrição não disponível'}</label>
+                <label>${item.descricao || 'Descrição não disponível'}</label>
                 <div class="agrupados"></div>         
             </td>
             ${colunas_carrefour}
@@ -1384,7 +1384,7 @@ async function incluir_item(codigo, nova_quantidade, especial, tipo_tabela) {
         `
     }
 
-    if (item_existente(item?.tipo, codigo_original, nova_quantidade, tipo_tabela)) {
+    if (item_existente(item.tipo, codigo_original, nova_quantidade, tipo_tabela)) {
 
         if (tipo_tabela == "LOCAÇÃO") {
 
@@ -1392,7 +1392,7 @@ async function incluir_item(codigo, nova_quantidade, especial, tipo_tabela) {
 
         } else {
 
-            document.getElementById(`linhas_${String(item?.tipo).toLowerCase()}`).insertAdjacentHTML('beforeend', linha)
+            document.getElementById(`linhas_${String(item.tipo).toLowerCase()}`).insertAdjacentHTML('beforeend', linha)
 
         }
 
@@ -1952,12 +1952,12 @@ async function conversor_composicoes_orcamento(orcamento) {
 
         var new_dados_composicoes = {}
         dados_composicoes.forEach(item => {
-            new_dados_composicoes[item?.codigo] = {
-                codigo: item?.codigo,
-                custo: conversor(item?.custo),
-                qtde: item?.qtde,
-                total: conversor(item?.total),
-                tipo: item?.tipo
+            new_dados_composicoes[item.codigo] = {
+                codigo: item.codigo,
+                custo: conversor(item.custo),
+                qtde: item.qtde,
+                total: conversor(item.total),
+                tipo: item.tipo
             }
         })
 
