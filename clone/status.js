@@ -1736,7 +1736,7 @@ async function abrir_esquema(id) {
         let selects = `
         <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 2px;">
             <label>Status atual</label>
-            <select onchange="alterar_status(this)" style="font-size: 1vw; background-color: #d2d2d2; border-radius: 3px; padding: 3px;">
+            <select id="select-status-${id_orcam}" data-id-orcamento="${id_orcam}" onchange="alterar_status(this, ${id_orcam})" style="font-size: 1vw; background-color: #d2d2d2; border-radius: 3px; padding: 3px;">
                 ${opcoes}
             </select>
         </div>
@@ -2040,28 +2040,28 @@ function mostrar_botao_pedido(elemento) {
     img.style.display = 'block'
 }
 
-async function alterar_status(select, id) {
+async function alterar_status(select, id_orcam) {
+    tela_orcamentos = id_orcam ? true : false
 
-    let tela_orcamentos = false
-    if (id !== undefined) {
-        id_orcam = id
-        tela_orcamentos = true
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    console.log("Dados antes da alteração:", dados_orcamentos);
+
+    const orcamentoExistente = dados_orcamentos[id_orcam];
+    if (!orcamentoExistente) {
+        dados_orcamentos[id_orcam] = { status: {} };
     }
 
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    dados_orcamentos[id_orcam].status.atual = select.value || {};
 
-    dados_orcamentos[id_orcam].status.atual = select.value
-
-    enviar(`dados_orcamentos/${id_orcam}/status/atual`, select.value)
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id_orcam}/status/atual`, select.value);
+    await inserirDados(dados_orcamentos, 'dados_orcamentos');
 
     if (tela_orcamentos) {
-        filtrar_orcamentos(undefined, undefined, undefined, true)
-        select.parentElement.parentElement.style.display = 'none'
+        filtrar_orcamentos(undefined, undefined, undefined, true);
+        select.parentElement.parentElement.style.display = 'none';
     } else {
-        await preencher_orcamentos_v2()
+        await preencher_orcamentos_v2();
     }
-
 }
 
 function exibirItens(div) {
