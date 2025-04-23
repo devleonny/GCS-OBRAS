@@ -8,8 +8,8 @@ let data_status = dataAtual.toLocaleString('pt-BR', {
 });
 
 const fluxograma = {
-    'LOGÍSTICA': { cor: '#4CAF50' },
-    'NFE - VENDAS': { cor: '#4CAF50' },
+    'LOGÍSTICA': { cor: '#4CAF10' },
+    'NFE - VENDAS': { cor: '#B05315' },
     'REQUISIÇÃO': { cor: '#B12425' },
     'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
     'CONCLUÍDO': { cor: '#ff4500' },
@@ -1240,7 +1240,7 @@ async function salvar_requisicao(chave) {
 
 function botao_novo_pedido(id) {
     return `
-    <div class="contorno_botoes" style="background-color: ${fluxograma['PEDIDO'].cor}" onclick="painel_adicionar_pedido()">
+    <div class="contorno_botoes" style="background-color: #4CAF50;" onclick="painel_adicionar_pedido()">
         <label>Novo <strong>Pedido </strong></label>
     </div>
 `
@@ -1754,32 +1754,32 @@ async function abrir_esquema(id) {
                             <div style="display: flex; gap: 10px; font-size: 0.9vw;">
                                 ${botao_novo_pagamento(id)}
                                 ${botao_novo_pedido(id)}
-                                <div class="contorno_botoes" style="background-color: ${fluxograma['REQUISIÇÃO'].cor}"
+                                <div class="contorno_botoes" style="background-color: #B12425"
                                     onclick="abrirModalTipoRequisicao()">
                                     <label>Nova <strong>Requisição</strong></label>
                                 </div>
                                 
                                 ${(permissao == 'adm' || setor == 'LOGÍSTICA') ? `                                
                                     
-                                <div class="contorno_botoes" style="background-color: ${fluxograma['MATERIAL ENVIADO'].cor}"
+                                <div class="contorno_botoes" style="background-color: #b17724"
                                     onclick="envio_de_material(undefined)">
                                     <label>Enviar <strong>Material</strong></label>
                                 </div>
                                 
                                 ` : ''}
 
-                                <div class="contorno_botoes" style="background-color: ${fluxograma['FATURADO'].cor};"
+                                <div class="contorno_botoes" style="background-color: #ff4500;"
                                     onclick="painel_adicionar_notas()">
                                     <label>Nova <strong>Nota Fiscal</strong></label>
                                 </div>
-                                <div class="contorno_botoes" style="background-color: ${fluxograma['COTAÇÃO PENDENTE'].cor};"
+                                <div class="contorno_botoes" style="background-color: #0a989f;"
                                     onclick="iniciar_cotacao('${id}')">
                                     <label>Nova <strong>Cotação</strong></label>
                                 </div>
 
                                 ${(permissao == 'adm' || setor == 'LOGÍSTICA') ? `  
 
-                                <div class="contorno_botoes" style="background-color: ${fluxograma['RETORNO DE MATERIAIS'].cor};"
+                                <div class="contorno_botoes" style="background-color: #aacc14;"
                                     onclick="retorno_de_materiais('${id}')">
                                     <label>Retorno de <strong>Materiais</strong></label>
                                 </div>
