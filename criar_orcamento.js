@@ -1271,9 +1271,9 @@ async function incluir_item(codigo, nova_quantidade, especial, tipo_tabela) {
     }
 
     // Verificar se o item existe nos dados_composicoes
-    if (!dados_composicoes[codigo]) {
+    const existe_item_composicoes = dados_composicoes[codigo]
+    if (!existe_item_composicoes) {
         console.error(`Item com código ${codigo} não encontrado nos dados_composicoes`)
-        return
     }
 
     var item = dados_composicoes[codigo]
