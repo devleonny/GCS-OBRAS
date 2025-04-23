@@ -17,8 +17,8 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 
     let linhas_orcamento = document.getElementById('linhas_orcamento')
     let contadores = {
-        TODOS: 0,
-        listas: ['TODOS']
+        ORÇAMENTOS: 0,
+        listas: ['ORÇAMENTOS']
     }
 
     let trs = linhas_orcamento.querySelectorAll('tr')
@@ -45,7 +45,7 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
         }
 
         if (filtro !== undefined) {
-            mostrarLinha = mostrarLinha && (status == filtro || filtro == 'TODOS');
+            mostrarLinha = mostrarLinha && (status == filtro || filtro == 'ORÇAMENTOS');
         }
 
         contadores.listas.push(status)
@@ -57,8 +57,8 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
             contadores[status]++
         }
 
-        if (filtro !== 'TODOS' || (filtro == 'TODOS' && mostrarLinha)) {
-            contadores['TODOS']++
+        if (filtro !== 'ORÇAMENTOS' || (filtro == 'ORÇAMENTOS' && mostrarLinha)) {
+            contadores['ORÇAMENTOS']++
         }
 
         mostrarLinha == !apenas_toolbar
@@ -72,7 +72,7 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
     contadores.listas = [...new Set(contadores.listas)]
 
     let temp_fluxograma = {
-        'TODOS': {},
+        'ORÇAMENTOS': {},
         ...fluxograma
     }
 
@@ -81,7 +81,7 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 
             let bg = '#797979'
             let bg2 = '#3d3c3c'
-            if ((filtro == st || (filtro == undefined && st == 'TODOS'))) {
+            if ((filtro == st || (filtro == undefined && st == 'ORÇAMENTOS'))) {
                 bg = '#d2d2d2'
                 bg2 = '#222'
             }
@@ -260,7 +260,7 @@ async function preencher_orcamentos_v2() {
             div_orcamentos.insertAdjacentHTML('beforeend', tabela)
         }
 
-        filtrar_orcamentos('TODOS')
+        filtrar_orcamentos('ORÇAMENTOS')
 
     }
 
