@@ -1352,11 +1352,11 @@ async function incluir_item(codigo, nova_quantidade, especial, tipo_tabela) {
         <tr>
             <td>${codigo_original}</td>
             <td style="position: relative;">
-                <label>${item.descricao}</label>
+                <label>${item?.descricao}</label>
                 <div class="agrupados"></div>         
             </td>
             ${colunas_carrefour}
-            <td style="text-align: center;">${item.unidade}</td>
+            <td style="text-align: center;">${item?.unidade}</td>
             <td style="text-align: center;">
                 <input oninput="total()" type="number" class="numero-bonito" value="${nova_quantidade}">
             </td>
