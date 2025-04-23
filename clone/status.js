@@ -1527,7 +1527,7 @@ async function abrir_esquema(id) {
                     </div>
                     `
                 editar = `
-                    <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}', true)">
+                    <div style="background-color: #B12425" class="contorno_botoes" onclick="detalhar_requisicao('${chave}', true)">
                         <img src="imagens/editar4.png">
                         <label>Editar</label>
                     </div>
@@ -1566,7 +1566,7 @@ async function abrir_esquema(id) {
 
             if (String(sst.status).includes('RETORNO')) {
                 editar = `
-                    <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="retorno_de_materiais('${chave}')">
+                    <div style="background-color: #aacc14" class="contorno_botoes" onclick="retorno_de_materiais('${chave}')">
                         <img src="imagens/editar4.png">
                         <label>Editar</label>
                     </div>
@@ -1575,7 +1575,7 @@ async function abrir_esquema(id) {
 
             if (String(sst.status).includes('FATURADO')) {
                 editar = `
-                    <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="painel_adicionar_notas('${chave}')">
+                    <div style="background-color: #ff4500" class="contorno_botoes" onclick="painel_adicionar_notas('${chave}')">
                         <img src="imagens/editar4.png">
                         <label>Editar</label>
                     </div>
@@ -1627,7 +1627,7 @@ async function abrir_esquema(id) {
                 `
 
                 editar = `
-                <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="envio_de_material('${chave}')">
+                <div style="background-color: #b17724" class="contorno_botoes" onclick="envio_de_material('${chave}')">
                     <img src="imagens/editar4.png">
                     <label>Editar</label>
                 </div>
@@ -1640,10 +1640,24 @@ async function abrir_esquema(id) {
 
             }
 
-            blocos_por_status[campo] += `
-                    <div class="bloko" style="gap: 0px; border: 1px solid ${fluxograma[sst.status].cor}; background-color: white; justify-content: center;">
+            const antigoFluxogramaCores = {
+                'INCLUIR PEDIDO': { cor: '#4CAF50' },
+                'PEDIDO': { cor: '#4CAF50' },
+                'REQUISIÇÃO': { cor: '#B12425' },
+                'MATERIAL SEPARADO': { cor: '#b17724' },
+                'FATURADO': { cor: '#ff4500' },
+                'MATERIAL ENVIADO': { cor: '#b17724' },
+                'MATERIAL ENTREGUE': { cor: '#b17724' },
+                'COTAÇÃO PENDENTE': { cor: '#0a989f' },
+                'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
+                'RETORNO DE MATERIAIS': { cor: '#aacc14' },
+                'FINALIZADO': { cor: 'blue' }
+            }
 
-                        <div style="cursor: pointer; display: flex; align-items: start; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
+            blocos_por_status[campo] += `
+                    <div class="bloko" style="gap: 0px; border: 1px solid ${antigoFluxogramaCores[sst.status].cor}; background-color: white; justify-content: center;">
+
+                        <div style="cursor: pointer; display: flex; align-items: start; flex-direction: column; background-color: ${antigoFluxogramaCores[sst.status].cor}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
                             <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="${desejaApagar}('${chave}')">&times;</span>
                             <label><strong>Executor: </strong>${sst.executor}</label>
                             <label><strong>Data: </strong>${sst.data}</label>
@@ -1656,7 +1670,7 @@ async function abrir_esquema(id) {
                             ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${chave}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
                             
                             <div class="escondido" style="display: none;">
-                                <div class="contorno_botoes" style="background-color: ${fluxograma[sst.status].cor}">
+                                <div class="contorno_botoes" style="background-color: ${antigoFluxogramaCores[sst.status].cor}">
                                     <img src="imagens/anexo2.png">
                                     <label>Anexo
                                         <input type="file" style="display: none;" onchange="salvar_anexo('${chave}', this)" multiple>  
@@ -1667,7 +1681,7 @@ async function abrir_esquema(id) {
                                     ${await carregar_anexos(chave)}
                                 </div>
 
-                                <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave}')" style="background-color: ${fluxograma[sst.status].cor}">
+                                <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave}')" style="background-color: ${antigoFluxogramaCores[sst.status].cor}">
                                     <img src="imagens/comentario.png">
                                     <label>Comentário</label>
                                 </div>
@@ -1686,7 +1700,7 @@ async function abrir_esquema(id) {
                             <br>
                         </div>
 
-                        <div style="cursor: pointer; background-color: ${fluxograma[sst.status].cor}; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
+                        <div style="cursor: pointer; background-color: ${antigoFluxogramaCores[sst.status].cor}; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
                             <label style="color: white; font-size: 0.9vw;">ver mais</label>
                         </div>
 
