@@ -212,7 +212,7 @@ async function carregar_tabelas() {
         for (codigo in orcamento_v2.dados_composicoes) {
 
             let item = orcamento_v2.dados_composicoes[codigo]
-            
+
             await incluir_item(codigo, item.qtde, undefined, item.tipo)
 
         }
@@ -1270,6 +1270,12 @@ async function incluir_item(codigo, nova_quantidade, especial, tipo_tabela) {
 
     }
 
+    // Verificar se o item existe nos dados_composicoes
+    if (!dados_composicoes[codigo]) {
+        console.error(`Item com código ${codigo} não encontrado nos dados_composicoes`)
+        return
+    }
+
     var item = dados_composicoes[codigo]
     var imagem = dados_composicoes[codigo]?.imagem || 'https://i.imgur.com/Nb8sPs0.png';
     if (!orcamento_v2.dados_composicoes) {
@@ -1305,14 +1311,13 @@ async function incluir_item(codigo, nova_quantidade, especial, tipo_tabela) {
     let linha;
 
     if (tipo_tabela == "LOCAÇÃO") {
-
         item.tipo = "LOCAÇÃO"
 
         linha = `
         <tr>
             <td id="codigo_locacao">${codigo_original}</td>
             <td style="position: relative;">
-                <label>${dados_composicoes[item.codigo].descricao}</label>
+                <label>${item?.descricao || 'Descrição não disponível'}</label>
                 <div class="agrupados"></div>         
             </td>
             ${colunas_carrefour}
@@ -1337,25 +1342,21 @@ async function incluir_item(codigo, nova_quantidade, especial, tipo_tabela) {
             <td></td>
             <td></td>
             <td style="text-align: center;">
-                <img onclick="ampliar_especial(this, '${item.codigo}')" src="${imagem}" style="width: 3vw; cursor: pointer;">
+                <img onclick="ampliar_especial(this, '${codigo}')" src="${imagem}" style="width: 3vw; cursor: pointer;">
             </td>
             <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo_original}')" style="cursor: pointer;"></td>
         </tr>
         `
-
     } else {
-
-        console.log(item)
-
         linha = `
         <tr>
             <td>${codigo_original}</td>
             <td style="position: relative;">
-                <label>${dados_composicoes[item.codigo].descricao}</label>
+                <label>${item.descricao}</label>
                 <div class="agrupados"></div>         
             </td>
             ${colunas_carrefour}
-            <td style="text-align: center;">${dados_composicoes[item.codigo].unidade}</td>
+            <td style="text-align: center;">${item.unidade}</td>
             <td style="text-align: center;">
                 <input oninput="total()" type="number" class="numero-bonito" value="${nova_quantidade}">
             </td>
@@ -1376,12 +1377,11 @@ async function incluir_item(codigo, nova_quantidade, especial, tipo_tabela) {
             <td></td>
             <td></td>
             <td style="text-align: center;">
-                <img onclick="ampliar_especial(this, '${item.codigo}')" src="${imagem}" style="width: 3vw; cursor: pointer;">
+                <img onclick="ampliar_especial(this, '${codigo}')" src="${imagem}" style="width: 3vw; cursor: pointer;">
             </td>
             <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo_original}')" style="cursor: pointer;"></td>
         </tr>
         `
-
     }
 
     if (item_existente(item.tipo, codigo_original, nova_quantidade, tipo_tabela)) {
