@@ -8,17 +8,13 @@ let data_status = dataAtual.toLocaleString('pt-BR', {
 });
 
 const fluxograma = {
-    'INCLUIR PEDIDO': { cor: '#4CAF50' },
-    'PEDIDO': { cor: '#4CAF50' },
+    'LOGÍSTICA': { cor: '#4CAF50' },
+    'NFE - VENDAS': { cor: '#4CAF50' },
     'REQUISIÇÃO': { cor: '#B12425' },
-    'MATERIAL SEPARADO': { cor: '#b17724' },
-    'FATURADO': { cor: '#ff4500' },
-    'MATERIAL ENVIADO': { cor: '#b17724' },
-    'MATERIAL ENTREGUE': { cor: '#b17724' },
-    'COTAÇÃO PENDENTE': { cor: '#0a989f' },
-    'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
-    'RETORNO DE MATERIAIS': { cor: '#aacc14' },
-    'FINALIZADO': { cor: 'blue' }
+    'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
+    'CONCLUÍDO': { cor: '#ff4500' },
+    'FATURADO': { cor: '#b17724' },
+    'PAGAMENTO RECEBIDO': { cor: '#b17724' }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
