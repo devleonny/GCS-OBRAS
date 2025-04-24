@@ -1068,9 +1068,15 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                     <td></td>
                 </tr>
                 <tr>
-                    <td>O Imposto sobre Circulação de Mercadorias e Serviços (ICMS) (12%) do faturamento</td>
-                    <td><input value="12%" readOnly></td>
-                    <td></td>
+                    <td>O Imposto sobre Circulação de Mercadorias e Serviços (ICMS)</td>
+                    <td>
+                        <select id="icms_saida" onchange="calcular()" style="width:100%; background-color:#91b7d9; border: none; padding: 5px; border-radius: 3px; cursor: pointer">
+                            <option value="4">4%</option>
+                            <option value="12">12%</option>
+                            <option value="20,5">20,5%</option>
+                        </select>
+                    </td>
+                    <td class="valor-icms" style="background-color: #f0f0f0"></td>
                 </tr>
                 <tr>
                     <td></td>
@@ -1441,7 +1447,8 @@ function calcular(tipo, campo) {
         let presuncao_csll_a_ser_pago = presuncao_csll * 0.09
         let pis = preco_venda * 0.0065
         let cofins = preco_venda * 0.03
-        let icms = preco_venda * 0.12
+        let icms_saida = parseFloat(document.getElementById('icms_saida').value)/100
+        let icms = preco_venda * icms_saida
 
         let total_impostos = irpj + adicional_irpj + presuncao_csll_a_ser_pago + pis + cofins + icms
 
