@@ -8,6 +8,7 @@ let data_status = dataAtual.toLocaleString('pt-BR', {
 });
 
 const fluxograma = {
+    'ORÇAMENTOS': { cor: '#1CAF29' },
     'LOGÍSTICA': { cor: '#4CAF10' },
     'NFE - VENDAS': { cor: '#B05315' },
     'REQUISIÇÃO': { cor: '#B12425' },
@@ -2061,9 +2062,20 @@ async function alterar_status(select, id_orcam) {
         dados_orcamentos[id_orcam] = { status: {} };
     }
 
+    // Garantir que o orçamento existe
+    if (!dados_orcamentos[id_orcam]) {
+        dados_orcamentos[id_orcam] = {};
+    }
+
+    // Garantir que a estrutura status existe
+    if (!dados_orcamentos[id_orcam].status) {
+        dados_orcamentos[id_orcam].status = {};
+    }
+
+
     dados_orcamentos[id_orcam].status.atual = select.value || {};
 
-    enviar(`dados_orcamentos/${id_orcam}/status/atual`, select.value);
+    await enviar(`dados_orcamentos/${id_orcam}/status/atual`, select.value);
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
 
     if (tela_orcamentos) {

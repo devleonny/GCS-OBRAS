@@ -7,7 +7,10 @@ preencher_orcamentos_v2()
 
 function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 
-    if (ultimo_status !== undefined) {
+    // Resetar filtro para ORÇAMENTOS se não houver filtro definido
+    if (ultimo_status === undefined && filtro === undefined) {
+        filtro = 'ORÇAMENTOS'
+    } else if (ultimo_status !== undefined) {
         filtro = ultimo_status
     }
 
@@ -53,17 +56,20 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
             contadores[status] = 0
         }
 
-        if (mostrarLinha || status !== filtro) {
+        // Incrementar o contador específico do status
+        if (mostrarLinha) {
             contadores[status]++
+
+            // Incrementar o contador de ORÇAMENTOS apenas se não estamos filtrando por ORÇAMENTOS
+            // ou se o status atual é diferente de ORÇAMENTOS (para evitar contagem duplicada)
+            if (filtro !== 'ORÇAMENTOS' || status !== 'ORÇAMENTOS') {
+                contadores['ORÇAMENTOS']++
+            }
         }
 
-        if (filtro !== 'ORÇAMENTOS' || (filtro == 'ORÇAMENTOS' && mostrarLinha)) {
-            contadores['ORÇAMENTOS']++
-        }
-
-        mostrarLinha == !apenas_toolbar
-
-        mostrarLinha ? tr.style.display = 'table-row' : tr.style.display = 'none'
+        // Corrigido: apenas_toolbar deve negar mostrarLinha
+        mostrarLinha = !apenas_toolbar ? mostrarLinha : false;
+        tr.style.display = mostrarLinha ? 'table-row' : 'none'
 
     })
 
@@ -81,7 +87,8 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 
             let bg = '#797979'
             let bg2 = '#3d3c3c'
-            if ((filtro == st || (filtro == undefined && st == 'ORÇAMENTOS'))) {
+            // Altere esta condição para verificar se o filtro é undefined ou 'ORÇAMENTOS'
+            if (filtro === st || (filtro === 'ORÇAMENTOS' && st === 'ORÇAMENTOS')) {
                 bg = '#d2d2d2'
                 bg2 = '#222'
             }
@@ -260,7 +267,7 @@ async function preencher_orcamentos_v2() {
             div_orcamentos.insertAdjacentHTML('beforeend', tabela)
         }
 
-        filtrar_orcamentos('ORÇAMENTOS')
+        filtrar_orcamentos('ORÇAMENTOS', undefined, undefined, false)
 
     }
 
