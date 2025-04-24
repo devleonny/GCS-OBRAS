@@ -3333,8 +3333,15 @@ async function mostrar_painel() {
 
     for (id in orcamento.dados_composicoes) {
         let produto = dados_composicoes[id]
+
+        // Verificar se produto existe antes de continuar
+        if (!produto) {
+            console.warn(`Produto com ID ${id} não encontrado em dados_composicoes`);
+            continue; // Pula para a próxima iteração do loop
+        }
+
         let lpu = orcamento.lpu_ativa.toLowerCase()
-        let tabela = produto[lpu]
+        let tabela = produto && produto[lpu]
         let qtde = orcamento.dados_composicoes[id].qtde
         let cotacao = tabela?.historico[tabela?.ativo]
 
@@ -3346,8 +3353,8 @@ async function mostrar_painel() {
         let lucro_unit = total - custo_total
 
         let descricao_produto = dados_composicoes[produto.codigo]?.descricao || 'Item sem descrição'
-        const itensRequisitados = dados_composicoes[produto.codigo]?.requisicao || 0
 
+        // Agora podemos acessar produto.tipo com segurança
         linhas[produto.tipo].total_custo += custo_total
         linhas[produto.tipo].total_orcado += total
         linhas[produto.tipo].total_lucro += lucro_unit
@@ -3365,7 +3372,7 @@ async function mostrar_painel() {
             <td style="font-size: 0.9em;">${dinheiro(lucro_unit)}</td>
             ` : ''}
         </tr>
-        `
+    `
     }
 
     let porcentagem_icms = orcamento.dados_orcam.estado == 'BA' ? 0.205 : 0.12
