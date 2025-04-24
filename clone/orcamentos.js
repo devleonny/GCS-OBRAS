@@ -5,121 +5,243 @@ var filtro;
 
 preencher_orcamentos_v2()
 
-function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
+// function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 
-    // Resetar filtro para ORÇAMENTOS se não houver filtro definido
-    if (ultimo_status === undefined && filtro === undefined) {
+//     // Resetar filtro para ORÇAMENTOS se não houver filtro definido
+//     if (ultimo_status === undefined && filtro === undefined) {
+//         filtro = 'ORÇAMENTOS'
+//     }
+
+//     if (ultimo_status !== undefined) {
+//         filtro = ultimo_status
+//     }
+
+//     if (col !== undefined) {
+//         filtrosAtivos[col] = String(texto).toLowerCase()
+//     }
+
+//     let linhas_orcamento = document.getElementById('linhas_orcamento')
+//     let contadores = {
+//         ORÇAMENTOS: 0,
+//         listas: ['ORÇAMENTOS']
+//     }
+
+//     let trs = linhas_orcamento.querySelectorAll('tr')
+
+//     trs.forEach(tr => {
+//         let tds = tr.querySelectorAll('td')
+//         let status = tds[1].querySelector('select').value
+
+//         var mostrarLinha = true;
+
+//         for (var col in filtrosAtivos) {
+//             var filtroTexto = filtrosAtivos[col];
+//             if (filtroTexto && col < tds.length) {
+//                 let element = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].textContent
+//                 let conteudoCelula = element.value ? element.value : element
+//                 let texto_campo = String(conteudoCelula).toLowerCase()
+//                 if (!texto_campo.includes(filtroTexto)) {
+//                     mostrarLinha = false;
+//                     break;
+//                 }
+//             }
+//         }
+
+//         if (!contadores.listas.includes(status)) {
+//             contadores.listas.push(status)
+//         }
+
+//         if (!contadores[status]) {
+//             contadores[status] = 0
+//         }
+
+//         contadores[status]++
+
+//         const statusDiferenteDeOrcamentos = status !== 'ORÇAMENTOS'
+//         if (statusDiferenteDeOrcamentos) {
+//             contadores['ORÇAMENTOS']++
+//         }
+
+//         const filtroEDirefenteDeOrcamentos = filtro !== undefined && filtro !== 'ORÇAMENTOS'
+//         if (filtroEDirefenteDeOrcamentos) {
+//             mostrarLinha = mostrarLinha && (status == filtro);
+//         }
+
+//         const linhaEstaVisivel = apenas_toolbar !== true
+//         if (linhaEstaVisivel) {
+//             tr.style.display = mostrarLinha ? 'table-row' : 'none'
+//         }
+
+//     })
+
+//     let toolbar = document.getElementById('toolbar')
+//     toolbar.innerHTML = ''
+//     contadores.listas = [...new Set(contadores.listas)]
+
+//     let temp_fluxograma = {
+//         'ORÇAMENTOS': {},
+//         ...fluxograma
+//     }
+
+//     for (st in temp_fluxograma) {
+//         if (contadores.listas.includes(st)) {
+
+//             let bg = '#797979'
+//             let bg2 = '#3d3c3c'
+//             // Altere esta condição para verificar se o filtro é undefined ou 'ORÇAMENTOS'
+//             if (filtro === st || (filtro === 'ORÇAMENTOS' && st === 'ORÇAMENTOS')) {
+//                 bg = '#d2d2d2'
+//                 bg2 = '#222'
+//             }
+
+//             let label = `
+//                 <div onclick="filtrar_orcamentos('${st}')" 
+//                     style="background-color:${bg}; 
+//                     color: #222; 
+//                     display: flex; 
+//                     flex-direction: column;
+//                     justify-content: center; 
+//                     align-items: center; 
+//                     gap: 3px;
+//                     cursor: pointer;
+//                     padding: 10px;
+//                     font-size: 0.8vw;
+//                     color: #222;
+//                     border-top-left-radius: 5px;
+//                     border-top-right-radius: 5px;
+//                     "
+//                 >
+
+//                     <label>${inicial_maiuscula(st)}</label>
+//                     <label style="text-align: center; background-color: ${bg2}; color: #d2d2d2; border-radius: 3px; padding-left: 10px; padding-right: 10px; width: 50%;">${contadores[st]}</label>
+
+//                 </div>
+//                 `
+//             toolbar.insertAdjacentHTML('beforeend', label)
+//         }
+//     }
+
+// }
+
+function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
+    filtro = ultimo_status
+
+    const statusNaoExiste = ultimo_status === undefined && filtro === undefined
+    if (statusNaoExiste) {
         filtro = 'ORÇAMENTOS'
-    } else if (ultimo_status !== undefined) {
-        filtro = ultimo_status
     }
 
-    if (col !== undefined) {
+    const colExiste = col !== undefined
+    if (colExiste) {
         filtrosAtivos[col] = String(texto).toLowerCase()
     }
 
     let linhas_orcamento = document.getElementById('linhas_orcamento')
-    let contadores = {
-        ORÇAMENTOS: 0,
-        listas: ['ORÇAMENTOS']
-    }
-
     let trs = linhas_orcamento.querySelectorAll('tr')
 
+    let contadores = {}
+
+    contadores['ORÇAMENTOS'] = 0
+    for (let st in fluxograma) {
+        contadores[st] = 0
+    }
+
+    const QUANTIDADE_CELULA_STATUS = 2
     trs.forEach(tr => {
         let tds = tr.querySelectorAll('td')
-        let status = tds[1].querySelector('select').value
+        if (tds.length < QUANTIDADE_CELULA_STATUS) return
 
-        var mostrarLinha = true;
+        let selectElement = tds[1].querySelector('select')
+        if (!selectElement) return
 
-        for (var col in filtrosAtivos) {
-            var filtroTexto = filtrosAtivos[col];
-            if (filtroTexto && col < tds.length) {
-                let element = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].textContent
-                let conteudoCelula = element.value ? element.value : element
-                let texto_campo = String(conteudoCelula).toLowerCase()
-                if (!texto_campo.includes(filtroTexto)) {
-                    mostrarLinha = false;
-                    break;
-                }
-            }
+        let status = selectElement.value
+
+        if (contadores[status] === undefined) {
+            contadores[status] = 1
+        } else {
+            contadores[status]++
         }
 
-        if (!contadores.listas.includes(status)) {
-            contadores.listas.push(status)
-        }
-
-        if (!contadores[status]) {
-            contadores[status] = 0
-        }
-
-        contadores[status]++
-
-        const statusDiferenteDeOrcamentos = status !== 'ORÇAMENTOS'
-        if (statusDiferenteDeOrcamentos) {
+        if (status !== 'ORÇAMENTOS') {
             contadores['ORÇAMENTOS']++
         }
-
-        const filtroEDirefenteDeOrcamentos = filtro !== undefined && filtro !== 'ORÇAMENTOS'
-        if (filtroEDirefenteDeOrcamentos) {
-            mostrarLinha = mostrarLinha && (status == filtro);
-        }
-
-        const linhaEstaVisivel = apenas_toolbar !== true
-        if (linhaEstaVisivel) {
-            tr.style.display = mostrarLinha ? 'table-row' : 'none'
-        }
-
     })
+
+    if (apenas_toolbar !== true) {
+        trs.forEach(tr => {
+            let tds = tr.querySelectorAll('td')
+            if (tds.length < QUANTIDADE_CELULA_STATUS) return
+
+            let selectElement = tds[1].querySelector('select')
+            if (!selectElement) return
+
+            let status = selectElement.value
+            let mostrarLinha = true
+
+            for (let col in filtrosAtivos) {
+                let filtroTexto = filtrosAtivos[col]
+                if (filtroTexto && col < tds.length) {
+                    let element = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].textContent
+                    let conteudoCelula = element.value ? element.value : element
+                    let texto_campo = String(conteudoCelula).toLowerCase()
+
+                    if (!texto_campo.includes(filtroTexto)) {
+                        mostrarLinha = false
+                        break
+                    }
+                }
+            }
+
+            const filtroDiferenteDeOrcamentos = filtro !== 'ORÇAMENTOS'
+            if (filtroDiferenteDeOrcamentos) {
+                mostrarLinha = mostrarLinha && (status === filtro)
+            }
+
+            tr.style.display = mostrarLinha ? 'table-row' : 'none'
+        })
+    }
 
     let toolbar = document.getElementById('toolbar')
     toolbar.innerHTML = ''
-    contadores.listas = [...new Set(contadores.listas)]
 
-    let temp_fluxograma = {
-        'ORÇAMENTOS': {},
-        ...fluxograma
-    }
+    adicionarBotaoFiltro('ORÇAMENTOS', contadores['ORÇAMENTOS'])
 
-    for (st in temp_fluxograma) {
-        if (contadores.listas.includes(st)) {
-
-            let bg = '#797979'
-            let bg2 = '#3d3c3c'
-            // Altere esta condição para verificar se o filtro é undefined ou 'ORÇAMENTOS'
-            if (filtro === st || (filtro === 'ORÇAMENTOS' && st === 'ORÇAMENTOS')) {
-                bg = '#d2d2d2'
-                bg2 = '#222'
-            }
-
-            let label = `
-                <div onclick="filtrar_orcamentos('${st}')" 
-                    style="background-color:${bg}; 
-                    color: #222; 
-                    display: flex; 
-                    flex-direction: column;
-                    justify-content: center; 
-                    align-items: center; 
-                    gap: 3px;
-                    cursor: pointer;
-                    padding: 10px;
-                    font-size: 0.8vw;
-                    color: #222;
-                    border-top-left-radius: 5px;
-                    border-top-right-radius: 5px;
-                    "
-                >
-
-                    <label>${inicial_maiuscula(st)}</label>
-                    <label style="text-align: center; background-color: ${bg2}; color: #d2d2d2; border-radius: 3px; padding-left: 10px; padding-right: 10px; width: 50%;">${contadores[st]}</label>
-
-                </div>
-                `
-            toolbar.insertAdjacentHTML('beforeend', label)
+    const statusDoFluxogramaDiferenteDeOrcamentos = (st) => st !== 'ORÇAMENTOS'
+    for (let st in fluxograma) {
+        if (statusDoFluxogramaDiferenteDeOrcamentos(st)) {
+            adicionarBotaoFiltro(st, contadores[st])
         }
     }
 
+    function adicionarBotaoFiltro(st, contador) {
+        let bg = (filtro === st) ? '#d2d2d2' : '#797979'
+        let bg2 = (filtro === st) ? '#222' : '#3d3c3c'
+
+        let label = `
+            <div onclick="filtrar_orcamentos('${st}')" 
+                style="background-color:${bg}; 
+                color: #222; 
+                display: flex; 
+                flex-direction: column;
+                justify-content: center; 
+                align-items: center; 
+                gap: 3px;
+                cursor: pointer;
+                padding: 10px;
+                font-size: 0.8vw;
+                color: #222;
+                border-top-left-radius: 5px;
+                border-top-right-radius: 5px;
+                "
+            >
+                <label>${inicial_maiuscula(st)}</label>
+                <label style="text-align: center; background-color: ${bg2}; color: #d2d2d2; border-radius: 3px; padding-left: 10px; padding-right: 10px; width: 50%;">${contador}</label>
+            </div>
+        `
+        toolbar.insertAdjacentHTML('beforeend', label)
+    }
 }
+
 
 async function preencher_orcamentos_v2() {
 
