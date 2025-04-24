@@ -34,12 +34,10 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 
         for (var col in filtrosAtivos) {
             var filtroTexto = filtrosAtivos[col];
-
             if (filtroTexto && col < tds.length) {
                 let element = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].textContent
                 let conteudoCelula = element.value ? element.value : element
                 let texto_campo = String(conteudoCelula).toLowerCase()
-
                 if (!texto_campo.includes(filtroTexto)) {
                     mostrarLinha = false;
                     break;
@@ -51,25 +49,32 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
             mostrarLinha = mostrarLinha && (status == filtro || filtro == 'ORÇAMENTOS');
         }
 
-        contadores.listas.push(status)
+        if (!contadores.listas.includes(status)) {
+            contadores.listas.push(status)
+        }
+
         if (!contadores[status]) {
             contadores[status] = 0
         }
 
-        // Incrementar o contador específico do status
-        if (mostrarLinha) {
-            contadores[status]++
+        contadores[status]++
 
-            // Incrementar o contador de ORÇAMENTOS apenas se não estamos filtrando por ORÇAMENTOS
-            // ou se o status atual é diferente de ORÇAMENTOS (para evitar contagem duplicada)
-            if (filtro !== 'ORÇAMENTOS' || status !== 'ORÇAMENTOS') {
+        if (mostrarLinha) {
+            const filtroOuStatusDiferenteDeOrcamentos = filtro !== 'ORÇAMENTOS' || status !== 'ORÇAMENTOS'
+            if (filtroOuStatusDiferenteDeOrcamentos) {
                 contadores['ORÇAMENTOS']++
             }
         }
 
-        // Corrigido: apenas_toolbar deve negar mostrarLinha
-        mostrarLinha = !apenas_toolbar ? mostrarLinha : false;
-        tr.style.display = mostrarLinha ? 'table-row' : 'none'
+        const filtroEDirefenteDeOrcamentos = filtro !== undefined && filtro !== 'ORÇAMENTOS'
+        if (filtroEDirefenteDeOrcamentos) {
+            mostrarLinha = mostrarLinha && (status == filtro);
+        }
+
+        const linhaEstaVisivel = apenas_toolbar !== true
+        if (linhaEstaVisivel) {
+            tr.style.display = mostrarLinha ? 'table-row' : 'none'
+        }
 
     })
 
