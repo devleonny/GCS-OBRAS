@@ -45,10 +45,6 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
             }
         }
 
-        if (filtro !== undefined) {
-            mostrarLinha = mostrarLinha && (status == filtro || filtro == 'ORÇAMENTOS');
-        }
-
         if (!contadores.listas.includes(status)) {
             contadores.listas.push(status)
         }
@@ -59,11 +55,9 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 
         contadores[status]++
 
-        if (mostrarLinha) {
-            const filtroOuStatusDiferenteDeOrcamentos = filtro !== 'ORÇAMENTOS' || status !== 'ORÇAMENTOS'
-            if (filtroOuStatusDiferenteDeOrcamentos) {
-                contadores['ORÇAMENTOS']++
-            }
+        const statusDiferenteDeOrcamentos = status !== 'ORÇAMENTOS'
+        if (statusDiferenteDeOrcamentos) {
+            contadores['ORÇAMENTOS']++
         }
 
         const filtroEDirefenteDeOrcamentos = filtro !== undefined && filtro !== 'ORÇAMENTOS'
