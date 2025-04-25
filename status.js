@@ -491,6 +491,88 @@ function pesquisar_na_requisicao() {
     }
 }
 
+async function carregar_itens_requisicao(apenas_visualizar, editando, chave) {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    let orcamento = dados_orcamentos[id_orcam];
+    let linhas = '';
+    
+    // Se for visualização, carrega os itens da requisição existente
+    if (apenas_visualizar && orcamento.status?.historico[chave]?.requisicoes) {
+        let requisicoes = orcamento.status.historico[chave].requisicoes;
+        
+        requisicoes.forEach(item => {
+            let descricao = dados_composicoes[item.codigo]?.descricao || orcamento.dados_composicoes[item.codigo]?.descricao || '-';
+            let custo = orcamento.dados_composicoes[item.codigo]?.custo || 0;
+            
+            linhas += `
+            <tr>
+                <td style="text-align: center;">${item.codigo}</td>
+                <td style="text-align: center;">${item.partnumber || '-'}</td>
+                <td>${descricao}</td>
+                <td style="text-align: center;">${item.tipo || '-'}</td>
+                <td style="text-align: center;">${item.qtde_enviar || '0'}</td>
+                <td style="text-align: center;">${dinheiro(custo)}</td>
+                <td style="text-align: center;">${dinheiro(item.qtde_enviar * custo)}</td>
+                <td style="text-align: center;">${item.requisicao || '-'}</td>
+            </tr>`;
+        });
+    } 
+    // Se for edição ou nova requisição
+    else {
+        let itensFiltrados = [];
+        
+        // Se estiver editando, pega os itens da requisição existente
+        if (editando && orcamento.status?.historico[chave]?.requisicoes) {
+            itensFiltrados = orcamento.status.historico[chave].requisicoes;
+        } 
+        // Se for nova requisição, pega todos os itens do orçamento
+        else {
+            itensFiltrados = Object.values(orcamento.dados_composicoes);
+        }
+
+        for (let item of itensFiltrados) {
+            let codigo = item.codigo;
+            let descricao = dados_composicoes[codigo]?.descricao || orcamento.dados_composicoes[codigo]?.descricao || '-';
+            let tipo = item.tipo || orcamento.dados_composicoes[codigo]?.tipo || 'VENDA';
+            let qtde = item.qtde_enviar || orcamento.dados_composicoes[codigo]?.qtde || 0;
+            let partnumber = item.partnumber || '';
+            let requisicao = item.requisicao || 'Nada a fazer';
+            let custo = orcamento.dados_composicoes[codigo]?.custo || 0;
+
+            linhas += `
+            <tr class="lin_req" style="background-color: white;">
+                <td style="text-align: center;">${codigo}</td>
+                <td style="text-align: center;">
+                    <input class="pedido" value="${partnumber}" style="width: 100%; text-align: center;">
+                </td>
+                <td>${descricao}</td>
+                <td style="text-align: center;">
+                    <select onchange="calcular_requisicao()">
+                        <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
+                        <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
+                    </select>
+                </td>
+                <td style="text-align: center;">
+                    <input class="pedido" type="number" value="${qtde}" oninput="calcular_requisicao()" style="width: 100%; text-align: center;">
+                </td>
+                <td style="text-align: center;">${dinheiro(custo)}</td>
+                <td style="text-align: center;">${dinheiro(qtde * custo)}</td>
+                <td style="text-align: center;">
+                    <select>
+                        <option ${requisicao === 'Nada a fazer' ? 'selected' : ''}>Nada a fazer</option>
+                        <option ${requisicao === 'Estoque AC' ? 'selected' : ''}>Estoque AC</option>
+                        <option ${requisicao === 'Comprar' ? 'selected' : ''}>Comprar</option>
+                        <option ${requisicao === 'Enviar do CD' ? 'selected' : ''}>Enviar do CD</option>
+                    </select>
+                </td>
+            </tr>`;
+        }
+    }
+    
+    return linhas;
+}
+
 async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
@@ -3065,43 +3147,33 @@ async function chamar_excluir(id) {
 //     mostrar_itens_adicionais()
 // }
 
-async function detalhar_requisicao(chave, tipoRequisicao = false, apenas_visualizar = false) {
-    // Determina se está editando ou apenas visualizando
-    const editando = tipoRequisicao === true;
-    const visualizando = apenas_visualizar || !editando;
-
+async function detalhar_requisicao(chave, editando = false, apenas_visualizar = false) {
     // Carrega dados necessários
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {};
     
-    // Se não tiver chave, cria nova
+    // Se for nova requisição, gera ID
     if (!chave) {
         chave = gerar_id_5_digitos();
     }
 
-    // Dados da requisição existente (se houver)
+    // Busca dados da requisição existente
     let dadosRequisicao = orcamento.status?.historico[chave] || {};
     
-    // Configura data
-    let dataAtual = new Date().toLocaleString('pt-BR', {
-        dateStyle: 'short',
-        timeStyle: 'short'
-    });
-
-    // Menu flutuante para PDF (apenas se tiver pedido e não estiver editando)
+    // Menu flutuante para PDF (só na visualização)
     let menu_flutuante = '';
-    if (visualizando && dadosRequisicao.pedido ) {
+    if (apenas_visualizar) {
         menu_flutuante = `
         <div class="menu_flutuante" id="menu_flutuante">
-            <div class="icone" onclick="gerarpdf('${orcamento.dados_orcam.cliente_selecionado}', '${dadosRequisicao.pedido}')">
+            <div class="icone" onclick="gerarpdf('${orcamento.dados_orcam.cliente_selecionado}', '${dadosRequisicao.pedido || 'REQUISICAO'}')">
                 <img src="imagens/pdf.png">
-                <label>PDF</label>
+                <label>Gerar PDF</label>
             </div>
         </div>`;
     }
 
-    // Toolbar de pesquisa (apenas em modo de edição)
+    // Toolbar de pesquisa (só na edição)
     let toolbar = '';
     if (editando) {
         toolbar = `
@@ -3111,9 +3183,9 @@ async function detalhar_requisicao(chave, tipoRequisicao = false, apenas_visuali
         </div>`;
     }
 
-    // Campos do formulário (aparece apenas em modo de edição)
+    // Seção de edição (aparece quando editando ou nova requisição)
     let secao_edicao = '';
-    if (editando) {
+    if (editando || !apenas_visualizar) {
         secao_edicao = `
         <div class="contorno" style="width: 500px;">
             <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; font-size: 1.0em;">Dados da Requisição</div>
@@ -3134,14 +3206,14 @@ async function detalhar_requisicao(chave, tipoRequisicao = false, apenas_visuali
                     <textarea rows="3" id="comentario_status" style="width: 80%;">${dadosRequisicao.comentario || ''}</textarea>
                 </div>
 
-                <button class="contorno_botoes" style="background-color: #4CAF50;" onclick="salvar_requisicao('${chave}', true)">
-                    ATUALIZAR REQUISIÇÃO
+                <button class="contorno_botoes" style="background-color: #4CAF50;" onclick="salvar_requisicao('${chave}', ${editando})">
+                    ${dadosRequisicao.status ? 'ATUALIZAR' : 'SALVAR'} REQUISIÇÃO
                 </button>
             </div>
         </div>`;
     }
 
-    // Monta o HTML completo
+    // Montagem do HTML
     let acumulado = `
     ${menu_flutuante}
 
@@ -3154,8 +3226,8 @@ async function detalhar_requisicao(chave, tipoRequisicao = false, apenas_visuali
     </div>
 
     <div style="display: flex; justify-content: left; align-items: center; margin: 10px; gap: 10px;">
-        ${campos}
-            
+        ${secao_edicao}
+        
         <div class="contorno">
             <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; font-size: 1.0em;">Dados do Cliente</div>
             <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; justify-content: start; align-items: start; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
@@ -3173,11 +3245,11 @@ async function detalhar_requisicao(chave, tipoRequisicao = false, apenas_visuali
             <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">Total</div>
             <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
                 <div style="display: flex; gap: 10px;">
-                    <label id="total_s_icms" style="color: red">${dadosRequisicao.total_sem_icms || ''}</label>
+                    <label id="total_s_icms" style="color: red">${dadosRequisicao.total_sem_icms || 'R$ 0,00'}</label>
                     <label style="font-size: 0.8em; color: red;"><strong>Líquido (s/Icms)</strong></label> 
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <label id="total_c_icms">${dadosRequisicao.total_com_icms || ''}</label> 
+                    <label id="total_c_icms">${dadosRequisicao.total_com_icms || 'R$ 0,00'}</label> 
                     <label style="font-size: 0.8em;"><strong>(c/Icms)</strong></label>
                 </div>
             </div>
@@ -3199,18 +3271,268 @@ async function detalhar_requisicao(chave, tipoRequisicao = false, apenas_visuali
                     <th style="text-align: center;">Requisição</th>
                 </thead>
                 <tbody>
-                    ${await carregar_itens(visualizando, tipoRequisicao, chave)}
+                    ${await carregar_itens_requisicao(apenas_visualizar, editando, chave)}
                 </tbody>
             </table>
         </div>
     </div>`;
 
     // Abre o popup com título apropriado
-    openPopup_v2(acumulado, editando ? 'Editar Requisição' : 'Visualizar Requisição', true);
+    let titulo = '';
+    if (editando) {
+        titulo = 'Editar Requisição';
+    } else if (apenas_visualizar) {
+        titulo = 'Visualizar Requisição';
+    } else {
+        titulo = 'Nova Requisição';
+    }
     
-    // Calcula valores e mostra itens adicionais
-    await calcular_requisicao();
-    mostrar_itens_adicionais();
+    openPopup_v2(acumulado, titulo, true);
+    
+    // Atualiza cálculos e itens adicionais
+    if (editando || !apenas_visualizar) {
+        await calcular_requisicao();
+        mostrar_itens_adicionais();
+    }
+}
+
+// Função para carregar itens (versão simplificada)
+async function carregar_itens(apenas_visualizar, editando, chave) {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    let orcamento = dados_orcamentos[id_orcam];
+    let itens_orcamento = orcamento.dados_composicoes;
+    let linhas = '';
+
+    // Modo visualização - mostra dados fixos
+    if (apenas_visualizar && orcamento.status?.historico[chave]?.requisicoes) {
+        let requisicoes = orcamento.status.historico[chave].requisicoes;
+        
+        requisicoes.forEach(item => {
+            let descricao = dados_composicoes[item.codigo]?.descricao || itens_orcamento[item.codigo]?.descricao || '-';
+            let custo = itens_orcamento[item.codigo]?.custo || 0;
+            
+            linhas += `
+            <tr>
+                <td style="text-align: center;">${item.codigo}</td>
+                <td style="text-align: center;">${item.partnumber || '-'}</td>
+                <td>${descricao}</td>
+                <td style="text-align: center;">${item.tipo || '-'}</td>
+                <td style="text-align: center;">${item.qtde_enviar || '0'}</td>
+                <td style="text-align: center;">${dinheiro(custo)}</td>
+                <td style="text-align: center;">${dinheiro(item.qtde_enviar * custo)}</td>
+                <td style="text-align: center;">${item.requisicao || '-'}</td>
+            </tr>`;
+        });
+    } 
+    // Modo edição - mostra campos editáveis
+    else {
+        // Lógica original para modo edição
+        let itensFiltrados = [];
+        
+        if (editando && orcamento.status?.historico[chave]?.requisicoes) {
+            itensFiltrados = orcamento.status.historico[chave].requisicoes;
+        } else {
+            // Filtra itens conforme tipo de requisição
+           itensFiltrados = Object.values(orcamento.dados_composicoes)
+        }
+
+        for (let item of itensFiltrados) {
+            let codigo = item.codigo;
+            let descricao = dados_composicoes[codigo]?.descricao || orcamento.dados_composicoes[codigo?.descricao] || '-';
+            let tipo = item.tipo || orcamento.dados_composicoes[codigo]?.tipo || 'VENDA';
+            let qtde = item.qtde_enviar || orcamento.dados_composicoes[codigo]?.qtde || 0;
+            let partnumber = item.partnumber || '';
+            let requisicao = item.requisicao || 'Nada a fazer';
+            let custo = orcamento.dados_composicoes[codigo]?.custo || 0
+
+            linhas += `
+            <tr class="lin_req" style="background-color: white;">
+                <td style="text-align: center;">${codigo}</td>
+                <td style="text-align: center;">
+                    <input class="pedido" value="${partnumber}" style="width: 100%; text-align: center;">
+                </td>
+                <td>${descricao}</td>
+                <td style="text-align: center;">
+                    <select onchange="calcular_requisicao()">
+                        <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
+                        <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
+                    </select>
+                </td>
+                <td style="text-align: center;">
+                    <input type="number" value="${qtde}" oninput="calcular_requisicao()" style="width: 50px;">
+                </td>
+                <td style="text-align: center;">${dinheiro(itens_orcamento[codigo]?.custo || 0)}</td>
+                <td style="text-align: center;">${dinheiro(qtde * (itens_orcamento[codigo]?.custo || 0))}</td>
+                <td style="text-align: center;">
+                    <select>
+                        <option ${requisicao === 'Nada a fazer' ? 'selected' : ''}>Nada a fazer</option>
+                        <option ${requisicao === 'Estoque AC' ? 'selected' : ''}>Estoque AC</option>
+                        <option ${requisicao === 'Comprar' ? 'selected' : ''}>Comprar</option>
+                        <option ${requisicao === 'Enviar do CD' ? 'selected' : ''}>Enviar do CD</option>
+                    </select>
+                </td>
+            </tr>`;
+        }
+    }
+    
+    return linhas;
+}
+
+// Função auxiliar para carregar itens (ajustada)
+async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let orcamento = dados_orcamentos[id_orcam];
+    let itens = orcamento.dados_composicoes;
+    let linhas = '';
+    
+    // Se for visualização, carrega da requisição existente
+    if (apenas_visualizar && orcamento.status?.historico[chave]?.requisicoes) {
+        let requisicoes = orcamento.status.historico[chave].requisicoes;
+        
+        requisicoes.forEach(item => {
+            linhas += `
+            <tr>
+                <td style="text-align: center;">${item.codigo}</td>
+                <td style="text-align: center;">${item.partnumber || '-'}</td>
+                <td>${itens[item.codigo]?.descricao || '-'}</td>
+                <td style="text-align: center;">${item.tipo || '-'}</td>
+                <td style="text-align: center;">${item.qtde_enviar || '0'}</td>
+                <td style="text-align: center;">${dinheiro(itens[item.codigo]?.custo || '0')}</td>
+                <td style="text-align: center;">${dinheiro(item.qtde_enviar * (itens[item.codigo]?.custo || 0))}</td>
+                <td style="text-align: center;">${item.requisicao || '-'}</td>
+            </tr>`;
+        });
+    } else {
+        // Lógica para edição (como estava antes)
+        // ...
+    }
+    
+    return linhas;
+}
+
+// Função para salvar requisição (ajustada)
+async function salvar_requisicao(chave, editando = false) {
+    try {
+        let janela = document.querySelectorAll('.janela');
+        janela = janela[janela.length - 1];
+        janela.insertAdjacentHTML('beforeend', overlay_aguarde());
+        
+        // Carregar dados existentes
+        let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+        let orcamento = dados_orcamentos[id_orcam];
+        let acesso = JSON.parse(localStorage.getItem('acesso')) || {};
+        
+        // Inicializar estruturas se não existirem
+        if (!orcamento.status) {
+            orcamento.status = { historico: {} };
+        }
+
+        if (!orcamento.status.historico) {
+            orcamento.status.historico = {};
+        }
+        
+        // Criar/Atualizar lançamento
+        var novo_lancamento = {
+            status: 'REQUISIÇÃO',
+            data: data_status,
+            executor: acesso.usuario,
+            comentario: document.getElementById("comentario_status").value,
+            requisicoes: [],
+            adicionais: itens_adicionais,
+            total_sem_icms: document.getElementById("total_s_icms").textContent,
+            total_com_icms: document.getElementById("total_c_icms").textContent
+        };
+
+        // Processar itens da tabela
+        var linhas = document.querySelectorAll('.lin_req');
+        var lista_partnumbers = {};
+        var temItensValidos = false;
+
+        for (let linha of linhas) {
+            if (linha.style.display === 'none') continue;
+            
+            let valores = linha.querySelectorAll('input, select');
+            if (valores.length === 0) continue;
+
+            let tds = linha.querySelectorAll('td');
+            let codigo = tds[0].textContent;
+            let partnumber = valores[0].value;
+            let tipo = valores[1].value;
+            let qtde = Number(valores[2].value);
+            let requisicao = valores[3].value;
+
+            if (partnumber == '' && qtde > 0) {
+                document.getElementById("aguarde")?.remove();
+                return openPopup_v2(`
+                    <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                        <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                        <label> Preencha os PARTNUMBERs pendentes</label>
+                    </div>
+                `, 'Aviso', true);
+            }
+
+            if (qtde > 0 || itens_adicionais[codigo]) {
+                novo_lancamento.requisicoes.push({
+                    codigo: codigo,
+                    partnumber: partnumber,
+                    tipo: tipo,
+                    qtde_enviar: qtde,
+                    requisicao: requisicao,
+                });
+
+                lista_partnumbers[codigo] = partnumber;
+                temItensValidos = true;
+            }
+        }
+
+        if (!temItensValidos) {
+            document.getElementById("aguarde")?.remove();
+            return openPopup_v2(`
+                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                    <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                    <label>Nenhum item válido foi informado</label>
+                </div>
+            `, 'Aviso', true);
+        }
+
+        // Atualizar dados localmente
+        orcamento.status.historico[chave] = novo_lancamento;
+        dados_orcamentos[id_orcam] = orcamento;
+
+        // Salvar no localstorage
+        await inserirDados(dados_orcamentos, "dados_orcamentos");
+
+        // Envio para nuvem
+        await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento);
+
+        // Atualizar partnumbers se necessário
+        if (orcamento.modalidade !== 'MODALIDADE LIVRE') {
+            atualizar_partnumber(lista_partnumbers);
+        }
+
+        // Limpar e fechar
+        itens_adicionais = {};
+        document.getElementById("aguarde")?.remove();
+        remover_popup();
+        
+        // Se estava editando, volta para modo visualização
+        if (editando) {
+            await detalhar_requisicao(chave, false, true);
+        } else {
+            await abrir_esquema(id_orcam);
+        }
+
+    } catch (error) {
+        console.error("Erro ao salvar requisição:", error);
+        document.getElementById("aguarde")?.remove();
+        openPopup_v2(`
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Erro ao salvar requisição: ${error.message}</label>
+            </div>
+        `, 'Erro', true);
+    }
 }
 
 function verificarPermissaoEdicao(criador) {
