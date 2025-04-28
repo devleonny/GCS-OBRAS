@@ -2664,7 +2664,6 @@ async function chamar_excluir(id) {
 }
 
 async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
-
     let visualizar = !chave ? false : true
 
     if (!chave) {
@@ -2683,7 +2682,11 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
     var menu_flutuante = ''
     var nome_cliente = orcamento.dados_orcam.cliente_selecionado
 
+    // Carrega os itens adicionais se existirem
     itens_adicionais = {}
+    let comentarioExistente = ''
+    let requisicoesExistente = []
+    
     if (chave && orcamento.status && orcamento.status.historico && orcamento.status.historico[chave]) {
         let cartao = orcamento.status.historico[chave]
         menu_flutuante = `
@@ -2697,6 +2700,14 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
 
         if (cartao.adicionais) {
             itens_adicionais = cartao.adicionais
+        }
+        
+        if (cartao.comentario) {
+            comentarioExistente = cartao.comentario
+        }
+        
+        if (cartao.requisicoes) {
+            requisicoesExistente = cartao.requisicoes
         }
     }
 
@@ -2726,7 +2737,7 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
 
                 <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
                     <label><strong>Comentário</strong></label>
-                    <textarea rows="3" id="comentario_status" style="width: 80%;"></textarea>
+                    <textarea rows="3" id="comentario_status" style="width: 80%;">${comentarioExistente}</textarea>
                 </div>
 
                 <label class="contorno_botoes" style="background-color: #4CAF50; " onclick="salvar_requisicao('${chave}')">Salvar Requisição</label>
@@ -2804,8 +2815,51 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
     `
     openPopup_v2(acumulado, 'Requisição', true)
 
+    // Preenche os campos com os dados existentes se estiver editando
+    if (requisicoesExistente.length > 0) {
+        await preencherDadosRequisicaoExistente(requisicoesExistente);
+    }
+
     await calcular_requisicao()
     mostrar_itens_adicionais()
+}
+
+async function preencherDadosRequisicaoExistente(requisicoes) {
+    const tabela = document.getElementById('tabela_requisicoes');
+    if (!tabela) return;
+
+    const linhas = tabela.querySelectorAll('tbody tr');
+    
+    requisicoes.forEach(req => {
+        linhas.forEach(linha => {
+            const codigoCell = linha.querySelector('td:first-child');
+            if (codigoCell && codigoCell.textContent.trim() === req.codigo) {
+                // Preenche PART NUMBER
+                const partNumberInput = linha.querySelector('td:nth-child(2) input');
+                if (partNumberInput) {
+                    partNumberInput.value = req.partnumber || '';
+                }
+                
+                // Preenche Tipo
+                const tipoSelect = linha.querySelector('td:nth-child(4) select');
+                if (tipoSelect) {
+                    tipoSelect.value = req.tipo || 'SERVIÇO';
+                }
+                
+                // Preenche Quantidade
+                const qtdeInput = linha.querySelector('td:nth-child(5) input');
+                if (qtdeInput) {
+                    qtdeInput.value = req.qtde_enviar || '';
+                }
+                
+                // Preenche Requisição
+                const requisicaoSelect = linha.querySelector('td:nth-child(8) select');
+                if (requisicaoSelect) {
+                    requisicaoSelect.value = req.requisicao || 'Nada a fazer';
+                }
+            }
+        });
+    });
 }
 
 function verificarPermissaoEdicao(criador) {
