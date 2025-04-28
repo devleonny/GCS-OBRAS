@@ -1447,7 +1447,9 @@ async function abrir_esquema(id) {
             links_requisicoes = ''
             let editar = ''
 
-            if (sst.status.includes('REQUISIÇÃO')) {
+            console.log('SST: ', sst)
+
+            if (sst.status && typeof sst.status === 'string' && sst.status.includes('REQUISIÇÃO')) {
                 links_requisicoes += `
                     <div onclick="detalhar_requisicao('${chave}', undefined, true)" class="label_requisicao">
                         <img src="gifs/lampada.gif" style="width: 25px">
@@ -1458,7 +1460,7 @@ async function abrir_esquema(id) {
                     </div>
                     `
                 editar = `
-                    <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}', true)">
+                    <div style="background-color: ${fluxograma[sst.status]?.cor || '#808080'}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}', true)">
                         <img src="imagens/editar4.png">
                         <label>Editar</label>
                     </div>
@@ -1497,7 +1499,7 @@ async function abrir_esquema(id) {
 
             if (String(sst.status).includes('RETORNO')) {
                 editar = `
-                    <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="retorno_de_materiais('${chave}')">
+                    <div style="background-color: ${fluxograma[sst.status]?.cor || '#aacc14'}" class="contorno_botoes" onclick="retorno_de_materiais('${chave}')">
                         <img src="imagens/editar4.png">
                         <label>Editar</label>
                     </div>
@@ -1506,7 +1508,7 @@ async function abrir_esquema(id) {
 
             if (String(sst.status).includes('FATURADO')) {
                 editar = `
-                    <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="painel_adicionar_notas('${chave}')">
+                    <div style="background-color: ${fluxograma[sst.status]?.cor || '#ff4500'}" class="contorno_botoes" onclick="painel_adicionar_notas('${chave}')">
                         <img src="imagens/editar4.png">
                         <label>Editar</label>
                     </div>
@@ -1558,7 +1560,7 @@ async function abrir_esquema(id) {
                 `
 
                 editar = `
-                <div style="background-color: ${fluxograma[sst.status].cor}" class="contorno_botoes" onclick="envio_de_material('${chave}')">
+                <div style="background-color: ${fluxograma[sst.status]?.cor || '#808080'}" class="contorno_botoes" onclick="envio_de_material('${chave}')">
                     <img src="imagens/editar4.png">
                     <label>Editar</label>
                 </div>
@@ -1572,9 +1574,9 @@ async function abrir_esquema(id) {
             }
 
             blocos_por_status[campo] += `
-                    <div class="bloko" style="gap: 0px; border: 1px solid ${fluxograma[sst.status].cor}; background-color: white; justify-content: center;">
+                    <div class="bloko" style="gap: 0px; border: 1px solid ${fluxograma[sst.status]?.cor || '#808080'}; background-color: white; justify-content: center;">
 
-                        <div style="cursor: pointer; display: flex; align-items: start; flex-direction: column; background-color: ${fluxograma[sst.status].cor}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
+                        <div style="cursor: pointer; display: flex; align-items: start; flex-direction: column; background-color: ${fluxograma[sst.status]?.cor || '#808080'}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
                             <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="${desejaApagar}('${chave}')">&times;</span>
                             <label><strong>Chamado:</strong> ${orcamento.dados_orcam.contrato}</label>
                             <label><strong>Executor: </strong>${sst.executor}</label>
@@ -1588,7 +1590,7 @@ async function abrir_esquema(id) {
                             ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${chave}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
                             
                             <div class="escondido" style="display: none;">
-                                <div class="contorno_botoes" style="background-color: ${fluxograma[sst.status].cor}">
+                                <div class="contorno_botoes" style="background-color: ${fluxograma[sst.status]?.cor || '#808080'}">
                                     <img src="imagens/anexo2.png">
                                     <label>Anexo
                                         <input type="file" style="display: none;" onchange="salvar_anexo('${chave}', this)" multiple>  
@@ -1599,7 +1601,7 @@ async function abrir_esquema(id) {
                                     ${await carregar_anexos(chave)}
                                 </div>
 
-                                <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave}')" style="background-color: ${fluxograma[sst.status].cor}">
+                                <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave}')" style="background-color: ${fluxograma[sst.status]?.cor || '#808080'}">
                                     <img src="imagens/comentario.png">
                                     <label>Comentário</label>
                                 </div>
@@ -1618,7 +1620,7 @@ async function abrir_esquema(id) {
                             <br>
                         </div>
 
-                        <div style="cursor: pointer; background-color: ${fluxograma[sst.status].cor}; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
+                        <div style="cursor: pointer; background-color: ${fluxograma[sst.status]?.cor || '#808080'}; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
                             <label style="color: white; font-size: 0.9vw;">ver mais</label>
                         </div>
 
@@ -2812,12 +2814,12 @@ function verificarPermissaoEdicao(criador) {
     return acesso.permissao === 'adm' || acesso.usuario === criador;
 }
 
-function verificarPermissaoExclusao({chave, criador}) {
+function verificarPermissaoExclusao({ chave, criador }) {
     const acessoUsuario = JSON.parse(localStorage.getItem('acesso')) || {};
     const permitirAdmOuCriadorDoItem = acessoUsuario.permissao === 'adm' || acessoUsuario.usuario === criador;
 
-    return permitirAdmOuCriadorDoItem 
-        ? apagar_status_historico(chave) 
+    return permitirAdmOuCriadorDoItem
+        ? apagar_status_historico(chave)
         : openPopup_v2(`Você não tem permissão para excluir este item.`);
 }
 
@@ -2879,7 +2881,7 @@ async function deseja_apagar(chave) {
     // Recupera quem criou o item
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let criador = dados_orcamentos[id_orcam]?.status?.historico[chave]?.executor || '';
-    
+
     let funcao = `verificarPermissaoExclusao({chave:'${chave}', criador:'${criador}'})`;
 
     openPopup_v2(`
@@ -2924,7 +2926,7 @@ async function deseja_apagar_cotacao(chave) {
 
 async function apagar_status_historico_cotacao(chave) {
 
-        remover_popup()
+    remover_popup()
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
     if (!chave) {
