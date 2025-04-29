@@ -1072,15 +1072,14 @@ async function salvar_notas(chave) {
     itens_adicionais = {}
 }
 
-async function salvar_requisicao(chave) {
-
+async function salvar_requisicao(chave, ehAtualizacao = false) {
     let janela = document.querySelectorAll('.janela')
-    janela = janela[janela.length - 1] // A última que existir
+    janela = janela[janela.length - 1]
     janela.insertAdjacentHTML('beforeend', overlay_aguarde())
-    //Carregar dados existentes
+    
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
-    //Inicializar estruturas se não existirem
+
     if (!orcamento.status) {
         orcamento.status = { historico: {} };
     }
@@ -1088,17 +1087,24 @@ async function salvar_requisicao(chave) {
     if (!orcamento.status.historico) {
         orcamento.status.historico = {}
     }
-    //Criar novo lançamento
-    var novo_lancamento = {
-        status: 'REQUISIÇÃO',
-        data: data_status,
-        executor: acesso.usuario,
-        comentario: document.getElementById("comentario_status").value,
-        requisicoes: [],
-        adicionais: itens_adicionais,
-        total_sem_icms: document.getElementById("total_s_icms").textContent,
-        total_com_icms: document.getElementById("total_c_icms").textContent
-    };
+
+    // Cria ou atualiza o lançamento
+    let lancamento = ehAtualizacao ? 
+        orcamento.status.historico[chave] : 
+        {
+            status: 'REQUISIÇÃO',
+            data: data_status,
+            executor: acesso.usuario,
+            requisicoes: [],
+            adicionais: itens_adicionais
+        };
+
+    // Atualiza os campos
+    lancamento.comentario = document.getElementById("comentario_status").value;
+    lancamento.requisicoes = [];
+    lancamento.adicionais = itens_adicionais;
+    lancamento.total_sem_icms = document.getElementById("total_s_icms").textContent;
+    lancamento.total_com_icms = document.getElementById("total_c_icms").textContent;
 
     //Processar itens da tabela
     var linhas = document.querySelectorAll('.lin_req');
@@ -1156,24 +1162,36 @@ async function salvar_requisicao(chave) {
     orcamento.status.historico[chave] = novo_lancamento
     dados_orcamentos[id_orcam] = orcamento;
 
+
+      // Salva localmente e na nuvem
+      await inserirDados(dados_orcamentos, "dados_orcamentos");
+      await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, lancamento);
+  
+      // Remove overlay
+      document.getElementById("aguarde")?.remove();
+      
+      if (!ehAtualizacao) {
+          remover_popup();
+          await abrir_esquema(id_orcam);
+      }
     //Salvar no localstorage
-    await inserirDados(dados_orcamentos, "dados_orcamentos");
+    // await inserirDados(dados_orcamentos, "dados_orcamentos");
 
-    //Envio para nuvem
-    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
+    // //Envio para nuvem
+    // await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
 
-    //Atualizar partnumbers se necessário
-    if (orcamento.modalidade !== 'MODALIDADE LIVRE') {
-        atualizar_partnumber(lista_partnumbers)
-    }
+    // //Atualizar partnumbers se necessário
+    // if (orcamento.modalidade !== 'MODALIDADE LIVRE') {
+    //     atualizar_partnumber(lista_partnumbers)
+    // }
 
-    itens_adicionais = {}
-    let aguarde = document.getElementById('aguarde')
-    if (aguarde) {
-        aguarde.remove()
-    }
-    remover_popup()
-    await abrir_esquema(id_orcam)
+    // itens_adicionais = {}
+    // let aguarde = document.getElementById('aguarde')
+    // if (aguarde) {
+    //     aguarde.remove()
+    // }
+    // remover_popup()
+    // await abrir_esquema(id_orcam)
 }
 
 function botao_novo_pedido(id) {
@@ -1460,7 +1478,7 @@ async function abrir_esquema(id) {
                     </div>
                     `
                 editar = `
-                    <div style="background-color: ${fluxograma[sst.status]?.cor || '#808080'}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}', true)">
+                    <div style="background-color: ${fluxograma[sst.status]?.cor || '#808080'}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}', undefined, true)">
                         <img src="imagens/editar4.png">
                         <label>Editar</label>
                     </div>
@@ -2663,8 +2681,9 @@ async function chamar_excluir(id) {
         `)
 }
 
-async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
+async function detalhar_requisicao(chave, editarRequisicao, apenas_visualizar) {
     let visualizar = !chave ? false : true
+    let modoEdicao = editarRequisicao === true; // Identifica se está no modo edição
 
     if (!chave) {
         chave = gerar_id_5_digitos()
@@ -2713,6 +2732,22 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
 
     var campos = ''
     var toolbar = ''
+    var botaoAcao = ''
+
+    // Define o botão apropriado
+    if (modoEdicao) {
+        botaoAcao = `
+            <label class="contorno_botoes" style="background-color: #4CAF50;" onclick="atualizar_requisicao('${chave}')">
+                Atualizar Requisição
+            </label>
+        `;
+    } else {
+        botaoAcao = `
+            <label class="contorno_botoes" style="background-color: #4CAF50;" onclick="salvar_requisicao('${chave}')">
+                Salvar Requisição
+            </label>
+        `;
+    }
 
     if (!visualizar) {
         toolbar += `
@@ -2740,11 +2775,12 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
                     <textarea rows="3" id="comentario_status" style="width: 80%;">${comentarioExistente}</textarea>
                 </div>
 
-                <label class="contorno_botoes" style="background-color: #4CAF50; " onclick="salvar_requisicao('${chave}')">Salvar Requisição</label>
+                ${botaoAcao}
             </div>
         </div>
         `
     }
+
 
     var acumulado = `
     ${menu_flutuante}
@@ -2808,12 +2844,12 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
                 <th style="text-align: center;">Requisição</th>
             </thead>
             <tbody>
-                ${await carregar_itens(apenas_visualizar, tipoRequisicao, chave)}
+                ${await carregar_itens(apenas_visualizar, editarRequisicao, chave)}
             </tbody>
         </table>
     <div>
     `
-    openPopup_v2(acumulado, 'Requisição', true)
+    openPopup_v2(acumulado, modoEdicao ? 'Editar Requisição' : 'Nova Requisição', true)
 
     // Preenche os campos com os dados existentes se estiver editando
     if (requisicoesExistente.length > 0) {
@@ -2823,6 +2859,41 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
     await calcular_requisicao()
     mostrar_itens_adicionais()
 }
+
+async function atualizar_requisicao(chave) {
+     // Mostra overlay de aguarde
+     document.getElementById('status').insertAdjacentHTML('beforebegin', overlay_aguarde());
+    
+     try {
+         // Reutiliza a função salvar_requisicao com o parâmetro de atualização
+         await salvar_requisicao(chave, true);
+         
+         // Mensagem de sucesso
+         openPopup_v2(`
+             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                 <img src="imagens/concluido.png" style="width: 3vw; height: 3vw;">
+                 <label>Requisição atualizada com sucesso!</label>
+             </div>
+         `, 'Sucesso', false);
+         
+         setTimeout(() => {
+             remover_popup();
+             abrir_esquema(id_orcam);
+         }, 2000);
+     } catch (error) {
+         console.error('Erro ao atualizar requisição:', error);
+         openPopup_v2(`
+             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                 <label>Erro ao atualizar requisição</label>
+             </div>
+         `, 'Erro', true);
+     } finally {
+         // Remove overlay de aguarde
+         const aguarde = document.getElementById('aguarde');
+         if (aguarde) aguarde.remove();
+     }
+ }
 
 async function preencherDadosRequisicaoExistente(requisicoes) {
     const tabela = document.getElementById('tabela_requisicoes');
