@@ -307,7 +307,7 @@ async function ir_excel(orcam_) {
         }
 
         if (manter_total == 2) {
-            ws_total.addRow(["TOTAL GERAL", { formula: `SUM(B4:B5)` }])
+            ws_total.addRow(["TOTAL", { formula: `SUM(B4:B5)` }])
             fct = 6
         } else {
             ws_total.addRows([[], []])
