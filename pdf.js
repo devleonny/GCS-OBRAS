@@ -88,7 +88,15 @@ async function preencher_v2() {
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
-    let icms = orcamento_v2.dados_orcam.estado == 'BA' ? 0.205 : 0.12
+
+    // Adicione no início do arquivo (se já não existir)
+    const itensImportados = [
+        'gcs-725', 'gcs-726', 'gcs-738', 'gcs-739', 'gcs-734', 'gcs-740',
+        'gcs-741', 'gcs-730', 'gcs-742', 'gcs-743', 'gcs-744', 'gcs-747',
+        'gcs-729', 'gcs-728', 'gcs-727'
+    ];
+
+
 
     // LÓGICA DOS DADOS
     let informacoes = orcamento_v2.dados_orcam
@@ -159,6 +167,7 @@ async function preencher_v2() {
     }
 
     let cols_parceiro = [1, 4, 6, 7, 11, 12, 13, 14, 15]
+    let icms
 
     let totais = {
         SERVIÇO: { valor: 0, cor: 'green' },
@@ -189,6 +198,15 @@ async function preencher_v2() {
         for (it in itens) {
             let item = await itens[it]
             let valor_historico_pdf = ""
+
+            // Verifica se o código está na lista de itens importados
+            const isItemImportado = itensImportados.includes(item.codigo.toLowerCase());
+
+            if (isItemImportado) {
+                icms = 0.04 //4% para itens importados
+            } else {
+                icms = orcamento_v2.dados_orcam.estado == 'BA' ? 0.205 : 0.12
+            }
 
             if (dados_composicoes[item.codigo]) {
                 let dados = dados_composicoes[item.codigo]

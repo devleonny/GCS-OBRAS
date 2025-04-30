@@ -1033,21 +1033,37 @@ async function total() {
             if (lpu.includes('equipamentos') && precos.custo > 0) {
                 valor_unitario = calcular_equipamentos(precos, 20).calculo
             }
-
+            const itensImportados = [
+                'gcs-725', 'gcs-726', 'gcs-738', 'gcs-739', 'gcs-734', 'gcs-740', 
+                'gcs-741', 'gcs-730', 'gcs-742', 'gcs-743', 'gcs-744', 'gcs-747', 
+                'gcs-729', 'gcs-728', 'gcs-727'
+            ];
             if (tipo == 'VENDA' && orcamento_v2.dados_orcam) {
+                // Verifica se o código está na lista de itens importados
+                const isItemImportado = itensImportados.includes(codigo.toLowerCase());
 
-                let icms = orcamento_v2.dados_orcam.estado == 'BA' ? 0.205 : 0.12;
+                let icms;
+                if (isItemImportado) {
+                    icms = 0.04 //4% para itens importados
+                } else {
+                    icms = orcamento_v2.dados_orcam.estado == 'BA' ? 0.205 : 0.12
+                }
+
+                // let icms = orcamento_v2.dados_orcam.estado == 'BA' ? 0.205 : 0.12;
 
                 if (icms) {
 
                     let unit_sem_icms = valor_unitario - (valor_unitario * icms)
                     let total_sem_icms = (1 - icms) * total_linha
+
+                     // Adiciona label indicando se é item importado
+                     const labelImportado = isItemImportado ? '(IMPORTADO)' : ''
                     label_icms_unitario += `
-                        <label class="label_imposto_porcentagem">SEM ICMS ${dinheiro(unit_sem_icms)}</label>
-                    `
+                         <label class="label_imposto_porcentagem">SEM ICMS${labelImportado} ${dinheiro(unit_sem_icms)}</label>
+                    `;
                     label_icms_total = `
-                        <label class="label_imposto_porcentagem">SEM ICMS ${dinheiro(total_sem_icms)}</label>
-                    `
+                        <label class="label_imposto_porcentagem">SEM ICMS${labelImportado} ${dinheiro(total_sem_icms)}</label>
+                    `;
                 }
 
             }
