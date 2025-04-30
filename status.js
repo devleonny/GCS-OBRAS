@@ -397,7 +397,7 @@ async function calcular_requisicao(sincronizar) {
 
                     let tipo = 'Error 404'
 
-                    if (sincronizar) { // Incicialmente para carregar os tipos;
+                    if (sincronizar) { // Inicialmente para carregar os tipos;
                         tipo = item.tipo
                         tds[3].querySelector('select').value = tipo
 
@@ -2686,7 +2686,7 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
     itens_adicionais = {}
     let comentarioExistente = ''
     let requisicoesExistente = []
-    
+
     if (chave && orcamento.status && orcamento.status.historico && orcamento.status.historico[chave]) {
         let cartao = orcamento.status.historico[chave]
         menu_flutuante = `
@@ -2701,11 +2701,11 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
         if (cartao.adicionais) {
             itens_adicionais = cartao.adicionais
         }
-        
+
         if (cartao.comentario) {
             comentarioExistente = cartao.comentario
         }
-        
+
         if (cartao.requisicoes) {
             requisicoesExistente = cartao.requisicoes
         }
@@ -2829,7 +2829,7 @@ async function preencherDadosRequisicaoExistente(requisicoes) {
     if (!tabela) return;
 
     const linhas = tabela.querySelectorAll('tbody tr');
-    
+
     requisicoes.forEach(req => {
         linhas.forEach(linha => {
             const codigoCell = linha.querySelector('td:first-child');
@@ -2839,19 +2839,19 @@ async function preencherDadosRequisicaoExistente(requisicoes) {
                 if (partNumberInput) {
                     partNumberInput.value = req.partnumber || '';
                 }
-                
+
                 // Preenche Tipo
                 const tipoSelect = linha.querySelector('td:nth-child(4) select');
                 if (tipoSelect) {
                     tipoSelect.value = req.tipo || 'SERVIÇO';
                 }
-                
+
                 // Preenche Quantidade
                 const qtdeInput = linha.querySelector('td:nth-child(5) input');
                 if (qtdeInput) {
                     qtdeInput.value = req.qtde_enviar || '';
                 }
-                
+
                 // Preenche Requisição
                 const requisicaoSelect = linha.querySelector('td:nth-child(8) select');
                 if (requisicaoSelect) {
