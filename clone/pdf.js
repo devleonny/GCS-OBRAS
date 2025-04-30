@@ -62,6 +62,13 @@ async function atualizar_dados_pdf() {
 async function preencher_v2(parceiro) {
     let orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+
+    var totais = {
+        SERVIÇO: { valor: 0, cor: 'green' },
+        VENDA: { valor: 0, cor: '#B12425' },
+        ICMS: { valor: 0, cor: '#555555' },
+        GERAL: { valor: 0, cor: '#151749' }
+    };
     // Adicione no início da função preencher_v2(), antes da parte dos totais:
     let desconto_geral_linhas = 0;
     if (orcamento_v2.dados_composicoes) {
@@ -200,12 +207,7 @@ async function preencher_v2(parceiro) {
 
     var cols_parceiro = [1, 4, 6, 7, 11, 12, 13, 14, 15]
 
-    var totais = {
-        SERVIÇO: { valor: 0, cor: 'green' },
-        VENDA: { valor: 0, cor: '#B12425' },
-        ICMS: { valor: 0, cor: '#555555' },
-        GERAL: { valor: 0, cor: '#151749' }
-    };
+    
 
     // 🔥 Novo objeto para armazenar os valores de LPU, Informado e Desvio
     var lpuParceiros = {
