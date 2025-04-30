@@ -439,6 +439,8 @@ async function preencher_v2(parceiro) {
         }
     }
 
+    const totalGeralComDesconto = totais.GERAL.valor - desconto_geral_linhas;
+
     // 🔥 Atualizando o HTML para manter a estrutura correta
     html_orcamento.innerHTML = `
     <label>Salvador, Bahia, ${carimbo_data()}</label>
@@ -459,8 +461,11 @@ async function preencher_v2(parceiro) {
 
         <div style="display: flex; gap: 20px; align-items: flex-start; justify-content: space-between;">
             <div style="display: flex; flex-direction: column;">
-                ${divs_totais} <!-- Totais normais -->
-                ${div_desconto_total} <!-- Desconto total -->
+            ${divs_totais} <!-- Totais normais -->
+            ${div_desconto_total} <!-- Desconto total -->
+            <div class="totais" style="background-color:rgb(0, 33, 53)">
+                TOTAL GERAL (com desconto) ${dinheiro(totalGeralComDesconto)}
+            </div>
             </div>
 
             <div style="display: flex; flex-direction: column;">
