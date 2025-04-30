@@ -60,6 +60,33 @@ async function atualizar_dados_pdf() {
 }
 
 async function preencher_v2(parceiro) {
+    let orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    // Adicione no início da função preencher_v2(), antes da parte dos totais:
+    let desconto_geral_linhas = 0;
+    if (orcamento_v2.dados_composicoes) {
+        for (let codigo in orcamento_v2.dados_composicoes) {
+            let item = orcamento_v2.dados_composicoes[codigo];
+            if (item.desconto) {
+                if (item.tipo_desconto === 'Porcentagem') {
+                    desconto_geral_linhas += (item.custo * item.qtde) * (item.desconto / 100);
+                } else {
+                    desconto_geral_linhas += item.desconto;
+                }
+            }
+        }
+    }
+
+    const existeDescontoGeralETipoDesconto = orcamento_v2.desconto_geral && orcamento_v2.tipo_de_desconto;
+    if (existeDescontoGeralETipoDesconto) {
+        let total_bruto = totais.GERAL.valor + desconto_geral_linhas;
+        const tipoDesconto = orcamento_v2.tipo_de_desconto === 'Porcentagem';
+        if (tipoDesconto) {
+            desconto_geral_linhas += total_bruto * (orcamento_v2.desconto_geral / 100);
+        } else {
+            desconto_geral_linhas += Number(orcamento_v2.desconto_geral);
+        }
+    }
 
     var elem_parceiro = ''
     var ocultar = document.getElementById('ocultar')
@@ -101,9 +128,6 @@ async function preencher_v2(parceiro) {
     </div>
     `
     document.getElementById('container').insertAdjacentHTML('beforeend', botoes)
-
-    var orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
     // LÓGICA DOS DADOS
     var informacoes = orcamento_v2.dados_orcam
@@ -375,8 +399,9 @@ async function preencher_v2(parceiro) {
     }
 
     // 🔥 Gerando os DIVs corretamente alinhados
-    var divs_totais = '';
-    var divs_lpuParceiros = '';
+    let divs_totais = '';
+    let divs_lpuParceiros = '';
+    let div_desconto_total = '';
 
     // 🔥 Criando a exibição separada para LPU, Informado e Desvio
     if (parceiro) {
@@ -395,8 +420,15 @@ async function preencher_v2(parceiro) {
                         </div>
                         `;
     }
+    const linhasDeDesconto = desconto_geral_linhas > 0;
+    if (linhasDeDesconto) {
+        div_desconto_total = `
+        <div class="totais" style="background-color:rgb(255, 102, 0);">
+            DESCONTO TOTAL ${dinheiro(desconto_geral_linhas)}
+        </div>
+    `;
+    }
 
-    // 🔥 Criando os totais normais
     for (total in totais) {
         if (totais[total].valor !== 0) {
             divs_totais += `
@@ -428,6 +460,7 @@ async function preencher_v2(parceiro) {
         <div style="display: flex; gap: 20px; align-items: flex-start; justify-content: space-between;">
             <div style="display: flex; flex-direction: column;">
                 ${divs_totais} <!-- Totais normais -->
+                ${div_desconto_total} <!-- Desconto total -->
             </div>
 
             <div style="display: flex; flex-direction: column;">
