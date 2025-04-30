@@ -287,7 +287,6 @@ function carregar_tabela() {
 
 }
 
-
 function total_v2(recarregar) {
 
     let tabelas = ['serviço', 'venda']
@@ -366,27 +365,36 @@ function total_v2(recarregar) {
 }
 
 function adicionarLinha_v2(tipo) {
-
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
 
-    let tamanho = 0
-
-    if (orcamento_v2 && orcamento_v2.dados_composicoes) {
-
-        tamanho = Object.keys(orcamento_v2.dados_composicoes).length + 1
-
-    } else {
-
-        orcamento_v2.dados_composicoes = {}
-
+    const dadosComposicoesExiste = orcamento_v2.dados_composicoes;
+    if (!dadosComposicoesExiste) {
+        orcamento_v2.dados_composicoes = {};
     }
 
-    orcamento_v2.dados_composicoes[`${tamanho}L`] = { descricao: '', qtde: 1, unidade: 'UND', valor: 0, tipo }
+    let maxNumero = 0;
+    Object.keys(orcamento_v2.dados_composicoes).forEach(chave => {
+        let numero = parseInt(chave);
+        if (!isNaN(numero) && numero > maxNumero) {
+            maxNumero = numero;
+        }
+    });
+
+    let novoCodigo = `${maxNumero + 1}L`;
+
+    orcamento_v2.dados_composicoes[novoCodigo] = {
+        codigo: novoCodigo,
+        descricao: '',
+        qtde: 1,
+        unidade: 'UND',
+        custo: 0,
+        tipo: tipo,
+        total: 0,
+        imagem: 'https://i.imgur.com/gUcc7iG.png'
+    };
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
-
     carregar_tabela();
-
 }
 
 function removerLinha_v2(codigo) {
@@ -397,11 +405,11 @@ function removerLinha_v2(codigo) {
     if (orcamento_v2.dados_composicoes[codigo]) {
 
         delete orcamento_v2.dados_composicoes[codigo]
-        
+
     }
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
-    
+
     carregar_tabela();
 
 }
