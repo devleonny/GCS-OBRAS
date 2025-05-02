@@ -847,8 +847,8 @@ async function total() {
                     <div style="display: flex; justify-content: space-evenly; align-items: center; border: solid 1px ${cor}; margin: 2px; border-radius: 3px; background-color: white;">
                         <label>${it}</label>
                         <div onmouseover="exibir_descricao(this)" onmouseout="ocultar_descricao(this)" style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                            <div style="cursor: pointer; display: none; position: absolute; top: 0; background-color: white; padding: 5px; white-space: nowrap; border-radius: 3px; border: solid 1px #222;">${item.descricao}</div>
-                            <label>${String(item.descricao).slice(0, 10)}...</label>
+                            <div style="cursor: pointer; display: none; position: absolute; top: 0; background-color: white; padding: 5px; white-space: nowrap; border-radius: 3px; border: solid 1px #222;">${item?.descricao}</div>
+                            <label>${String(item?.descricao).slice(0, 10)}...</label>
                         </div>
                         <div style="display: flex; justify-content: center;">
                             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -1227,12 +1227,12 @@ async function incluir_item(codigo, nova_quantidade, especial) {
             <td style="position: relative;">
                 <div style="display: flex; justify-content: start; align-items: center; gap: 10px;">
                     <img src="imagens/construcao.png" style="width: 1.2vw; width: 2vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">
-                    <label>${dados_composicoes[item.codigo].descricao}</label>
+                    <label>${dados_composicoes[item?.codigo]?.descricao}</label>
                 </div>
                 <div class="agrupados"></div>
             </td>
             ${colunas_carrefour}
-            <td style="text-align: center;">${dados_composicoes[item.codigo].unidade}</td>
+            <td style="text-align: center;">${dados_composicoes[item?.codigo]?.unidade}</td>
             <td style="text-align: center;">
                 <input oninput="total()" type="number" class="numero-bonito" value="${nova_quantidade}">
             </td>
@@ -1253,15 +1253,15 @@ async function incluir_item(codigo, nova_quantidade, especial) {
             <td></td>
             <td></td>
             <td style="text-align: center;">
-                <img onclick="ampliar_especial(this, '${item.codigo}')" src="${imagem}" style="width: 3vw; cursor: pointer;">
+                <img onclick="ampliar_especial(this, '${item?.codigo}')" src="${imagem}" style="width: 3vw; cursor: pointer;">
             </td>
             <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo_original}')" style="cursor: pointer;"></td>
         </tr>
         `
 
-    if (item_existente(item.tipo, codigo_original, nova_quantidade)) {
+    if (item_existente(item?.tipo, codigo_original, nova_quantidade)) {
 
-        document.getElementById(`linhas_${String(item.tipo).toLowerCase()}`).insertAdjacentHTML('beforeend', linha)
+        document.getElementById(`linhas_${String(item?.tipo).toLowerCase()}`).insertAdjacentHTML('beforeend', linha)
 
     }
 

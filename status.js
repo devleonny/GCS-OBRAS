@@ -1907,7 +1907,7 @@ async function mostrar_itens_restantes(id_orcam) {
         
             <tr style="border: 1px solid black;">
                 <td>${item.codigo}</td>
-                <td>${dados_composicoes[item.codigo].descricao}</td>
+                <td>${dados_composicoes[item?.codigo]?.descricao}</td>
                 <td>${item.qtde}</td>
                 <td>${item.qtde - deduzirTotal}</td>
             </tr>
@@ -2284,7 +2284,7 @@ async function retorno_de_materiais(chave) {
     Object.values(orcamento.dados_composicoes).forEach(item => {
         linhas += `
         <tr>
-            <td data-codigo="${item.codigo}">${dados_composicoes[item.codigo].descricao}</td>
+            <td data-codigo="${item.codigo}">${dados_composicoes[item?.codigo]?.descricao}</td>
             <td style="text-align: center;">${item.qtde}</td>
             <td><input style="background-color: #4CAF50; padding: 3px; border-radius: 3px;" type="number"></td>
         </tr>
