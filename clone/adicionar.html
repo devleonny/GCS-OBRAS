@@ -848,7 +848,8 @@
             let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2'));
             
             // Se não existir orçamento no localStorage ou estiver corrompido, cria um novo
-            if (!orcamento_v2 || typeof orcamento_v2 !== 'object') {
+            const existeOrcamentoOuCorrompidoNoLocacalStorage = orcamento_v2 || typeof orcamento_v2 === 'object'
+            if (!existeOrcamentoOuCorrompidoNoLocacalStorage) {
                 orcamento_v2 = inicializarNovoOrcamento();
                 localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
                 console.log('Novo orçamento inicializado');
