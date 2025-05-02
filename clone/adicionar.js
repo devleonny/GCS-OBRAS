@@ -128,7 +128,7 @@ async function atualizar_lista_de_lpus() {
 
         var opcoes = ''
         LPUS.forEach(lpu => {
-            if (lpu !== 'LPU EQUIPAMENTOS') { // Desativado provisoriamente;
+            if (lpu === 'LPU HOPE') {
                 opcoes += `<option>${lpu}</option>`
             }
         })
