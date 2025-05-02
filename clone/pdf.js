@@ -155,13 +155,21 @@ async function preencher_v2(parceiro) {
             'Cidade': informacoes.cidade,
             'Estado': informacoes.estado
         },
+        // 'Dados da Empresa': {
+        //     'Razão Social': 'AC SOLUCOES INTEGRADAS DE INFORMATICA LTDA',
+        //     'CNPJ': '13.421.071/0001-00',
+        //     'E-mail': 'financeiro@acsolucoesintegradas.com.br',
+        //     'Telefones': '(71) 3901-3655 (71) 98240-3038',
+        //     'Localização': 'CEP 40261-010, Rua Luís Negreiro, nº 701, Luis Anselmo - Salvador(BA)'
+        // },
         'Dados da Empresa': {
-            'Razão Social': 'AC SOLUCOES INTEGRADAS DE INFORMATICA LTDA',
-            'CNPJ': '13.421.071/0001-00',
+            'Razão Social': 'HNW COMERCIO DE EQUIPAMENTOS, SERVICOS E TELEATENDIMENTO LTDA - EPP',
+            'CNPJ': '41.761.486/0001-68',
             'E-mail': 'financeiro@acsolucoesintegradas.com.br',
             'Telefones': '(71) 3901-3655 (71) 98240-3038',
             'Localização': 'CEP 40261-010, Rua Luís Negreiro, nº 701, Luis Anselmo - Salvador(BA)'
         },
+
         'Contato Analista': {
             'Analista': informacoes.analista,
             'E-mail': informacoes.email_analista,
