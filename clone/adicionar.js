@@ -238,10 +238,19 @@ function removerItem(codigo) {
 
 }
 
+
+
 async function enviar_dados() {
     salvar_preenchido();
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
+
+
+     // Verifica se é um orçamento válido
+     if (!orcamento_v2 || !orcamento_v2.dados_orcam) {
+        alert('Erro: Dados do orçamento inválidos. Crie um novo orçamento.');
+        return;
+    }
 
     if (!orcamento_v2.dados_orcam) {
         return openPopup_v2(`
