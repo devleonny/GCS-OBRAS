@@ -366,9 +366,9 @@ select {
     width: 80%
 }
 
-th { 
+th {
     background-color: #d2d2d2;
-    color:hsla(0, 0%, 13%, 0.85)
+    color: hsla(0, 0%, 13%, 0.85)
 }
 
 td {
@@ -1064,6 +1064,29 @@ input[type=range]::-moz-range-thumb {
     cursor: pointer;
     width: 15vw;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.botao-carrefour {
+    flex-direction: column;
+    text-decoration: none;
+    background-color: #B12425;
+}
+
+
+.botao-novos-clientes {
+    flex-direction: column;
+    text-decoration: none;
+    background-color: #034d14;
+}
+
+.botao-carrefour:hover,
+.botao-novos-clientes:hover {
+    background-color: #ffffffc6;
+}
+
+.botao-carrefour label,
+.botao-novos-clientes label {
+    cursor: pointer;
 }
 
 .div_adicionais {
