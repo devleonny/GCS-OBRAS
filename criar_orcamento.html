@@ -519,6 +519,57 @@
     </style>
 </head>
 
+<script>
+    // Função para inicializar um novo orçamento vazio
+    function inicializarNovoOrcamento() {
+        const acesso = JSON.parse(localStorage.getItem('acesso')) || {};
+        return {
+            dados_orcam: {
+                data: new Date().toISOString(),
+                contrato: '',
+                cliente_selecionado: '',
+                cidade: '',
+                analista: acesso.nome_completo || '',
+                email_analista: acesso.email || '',
+                telefone_analista: acesso.telefone || '',
+                observacoes: ''
+            },
+            levantamentos: {},
+            status: {
+                atual: 'INCLUIR PEDIDO'
+            },
+            produtos: {
+                venda: {},
+                servico: {},
+                locacao: {}
+            },
+            total_geral: 0,
+            lpu_ativa: 0,
+            desconto_geral: {
+                tipo: 'Porcentagem',
+                valor: 0
+            }
+        };
+    }
+
+    // Verificação ao carregar a página
+    document.addEventListener('DOMContentLoaded', function() {
+        // Verifica se veio de um novo orçamento ou edição
+        let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2'));
+        
+        // Se não existir orçamento no localStorage ou estiver corrompido, cria um novo
+        if (!orcamento_v2 || typeof orcamento_v2 !== 'object') {
+            orcamento_v2 = inicializarNovoOrcamento();
+            localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
+            console.log('Novo orçamento inicializado');
+        } else {
+            console.log('Orçamento existente carregado');
+        }
+        
+        // Aqui você pode chamar suas funções de preenchimento da página
+        // preencherDadosOrcamento(orcamento_v2);
+    });
+    </script>
 <body>
 
     <div id="content" class="cont">
@@ -560,7 +611,7 @@
                         <label style="cursor: pointer;">Modalidade livre</label>
                     </div>
 
-                    <div id="voltar-orcamento" class="btn_menu" onclick="orcamento_que_deve_voltar(), window.location.href='orcamentos.html'">
+                    <div id="voltar-orcamento" class="btn_menu" onclick="orcamento_que_deve_voltar(), limparESair(),  window.location.href='orcamentos.html'">
                         <img src="imagens/voltar_2.png">
                         <label>Voltar</label>
                     </div>
@@ -668,6 +719,48 @@
     </div>
 
     <div id="orcamento_livre"></div>
+
+    <script>
+        // Função para limpar e sair
+        function limparESair() {
+            // Opção 1: Remove completamente (recomendado para fluxo de novo orçamento)
+            localStorage.removeItem('orcamento_v2');
+            
+            // Opção 2: Mantém os dados mas sinaliza que foi cancelado
+            // const orcamento = JSON.parse(localStorage.getItem('orcamento_v2'));
+            // orcamento.cancelado = true;
+            // localStorage.setItem('orcamento_v2', JSON.stringify(orcamento));
+            
+            window.location.href = 'orcamentos.html';
+        }
+    
+        // Função para salvar (mantenha sua função existente, mas adicione verificação)
+        async function enviar_dados() {
+            const orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2'));
+            
+            // Verifica se é um orçamento válido
+            if (!orcamento_v2 || !orcamento_v2.dados_orcam) {
+                alert('Erro: Dados do orçamento inválidos. Crie um novo orçamento.');
+                return;
+            }
+            
+            // Sua lógica existente de salvamento aqui...
+            
+            // Após salvar com sucesso, você pode:
+            // 1. Manter os dados para continuar editando
+            // 2. Limpar para criar um novo
+            // localStorage.removeItem('orcamento_v2');
+        }
+    
+        // Função para apagar (adicione limpeza do localStorage)
+        function apagar_orçamento() {
+            if (confirm('Tem certeza que deseja apagar este orçamento?')) {
+                localStorage.removeItem('orcamento_v2');
+                // Sua lógica existente para apagar do banco de dados...
+                window.location.href = 'orcamentos.html';
+            }
+        }
+    </script>
 
 </body>
 

@@ -282,14 +282,61 @@ async function recuperar_orcamentos() {
     document.getElementById("aguarde").remove()
 }
 
+async function novoOrcamento() {
+    // 1. Limpa qualquer orçamento existente no localStorage
+    localStorage.removeItem('orcamento_v2');
+    
+    // 2. Cria um objeto vazio com a estrutura básica
+    let acesso = JSON.parse(localStorage.getItem('acesso'));
+    let novoOrcamento = {
+        dados_orcam: {
+            data: new Date().toISOString(),
+            contrato: '',
+            cliente_selecionado: '',
+            cidade: '',
+            analista: acesso.nome_completo,
+            email_analista: acesso.email,
+            telefone_analista: acesso.telefone,
+            // outros campos básicos conforme sua aplicação
+        },
+        levantamentos: {},
+        status: {
+            atual: 'INCLUIR PEDIDO'
+        },
+        produtos: {},
+        total_geral: 0,
+        lpu_ativa: 0
+    };
+    
+    // 3. Salva o objeto vazio no localStorage
+    localStorage.setItem('orcamento_v2', JSON.stringify(novoOrcamento));
+    
+    // 4. Redireciona para a página de criação
+    window.location.href = 'criar_orcamento.html';
+}
+
 async function editar(orcam_) {
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    var orcamento_v2 = dados_orcamentos[orcam_]
+     // 1. Limpa o orçamento atual (por segurança)
+     localStorage.removeItem('orcamento_v2');
 
-    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+        // 2. Busca o orçamento específico
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let orcamento_v2 = dados_orcamentos[orcam_];
 
-    window.location.href = 'criar_orcamento.html'
+    // 3. Salva NOVA cópia no localStorage
+    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
+
+      // 4. Redireciona para edição
+      window.location.href = 'criar_orcamento.html';
+      
+    // let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+
+    // var orcamento_v2 = dados_orcamentos[orcam_]
+
+    // localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+
+    // window.location.href = 'criar_orcamento.html'
 
 }
 
