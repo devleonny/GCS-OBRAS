@@ -132,17 +132,12 @@
     </div>
 
     <div style="display: flex; align-items: center; justify-content: center; gap: 15vw;">
-        <div id="content"
-            style="margin-top: 0px; width: 100%; justify-content: start; align-items: start;">
+        <div id="content" style="margin-top: 0px; width: 100%; justify-content: start; align-items: start;">
             <div style="display: flex; justify-content: center; align-items: center;">
                 <img src="imagens/BG.png" style="width: 20vw;">
             </div>
 
             <div class="containerX" id="painel_geral">
-                <div class="block" style="flex-direction: column;" onclick="window.location.href='orcamentos.html'">
-                    <img src="imagens/projeto.png">
-                    <label>Orçamentos</label>
-                </div>
                 <div class="block" style="flex-direction: column;" onclick="window.location.href='chamados.html'">
                     <img src="imagens/chamados.png">
                     <label>Chamados</label>
@@ -182,23 +177,23 @@
             </div>
 
         </div>
-        <div class="containerX" id="painel_geral" style="flex-direction: column;">
-            <div class="block" style="flex-direction: column;" onclick="window.location.href='clone/inicial.html'">
-                <img src="imagens/LG.png" style="width: 5vw; background-color: #034d14;">
-                <label>Novos Clientes</label>
-            </div>
+        <div class="containerX" id="painel_geral" style="display: flex; flex-direction: column;">
+            <a class="block botao-novos-clientes" href="clone/inicial.html">
+                <img src="imagens/LG.png" style="width: 5vw;">
+                <label style="font-size: 1em;">Novos Clientes</label>
+            </a>
 
-            <div class="block" style="flex-direction: column;">
-                <img src="imagens/projeto.png" style="width: 5vw;"
-            </div>
+            <a class="block botao-carrefour" href=" orcamentos.html">
+                <img src="imagens/projeto.png" style="width: 5vw;" </div>
+                <label style="font-size: 1em;">Clientes Carrefour</label>
+            </a>
+
         </div>
 
-    </div>
-
-    <div id="popup">
-        <button class="close-btn" onclick="closePopup()">×</button>
-        <p id="popup-message"></label>
-    </div>
+        <div id="popup">
+            <button class="close-btn" onclick="closePopup()">×</button>
+            <p id="popup-message"></label>
+        </div>
 
 </body>
 
