@@ -8,6 +8,8 @@
     <link rel="stylesheet" type="text/css" href="gcsobras.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
+
+
     <style>
         body {
             font-size: 0.9vw;
@@ -678,7 +680,7 @@
                         <label style="cursor: pointer;">Modalidade livre</label>
                     </div>
 
-                    <div id="voltar-orcamento" class="btn_menu" onclick="orcamento_que_deve_voltar(), window.location.href='orcamentos.html'">
+                    <div id="voltar-orcamento" class="btn_menu" onclick="orcamento_que_deve_voltar(), limparESair(), window.location.href='orcamentos.html'">
                         <img src="imagens/voltar_2.png">
                         <label>Voltar</label>
                     </div>
@@ -791,6 +793,88 @@
     <div id="orcamento_livre"></div>
 
     <div id="overlay"></div>
+
+    <script>
+        // Função para limpar e sair
+        function limparESair() {
+            // Opção 1: Remove completamente (recomendado para fluxo de novo orçamento)
+            localStorage.removeItem('orcamento_v2');
+            
+            // Opção 2: Mantém os dados mas sinaliza que foi cancelado
+            // const orcamento = JSON.parse(localStorage.getItem('orcamento_v2'));
+            // orcamento.cancelado = true;
+            // localStorage.setItem('orcamento_v2', JSON.stringify(orcamento));
+            
+            window.location.href = 'orcamentos.html';
+        }
+        </script>
+
+    <script>
+        // Função para inicializar um novo orçamento vazio
+        function inicializarNovoOrcamento() {
+            const acesso = JSON.parse(localStorage.getItem('acesso')) || {};
+            return {
+                dados_orcam: {
+                    data: new Date().toISOString(),
+                    contrato: '',
+                    cliente_selecionado: '',
+                    cidade: '',
+                    analista: acesso.nome_completo || '',
+                    email_analista: acesso.email || '',
+                    telefone_analista: acesso.telefone || '',
+                    observacoes: ''
+                },
+                levantamentos: {},
+                status: {
+                    atual: 'INCLUIR PEDIDO'
+                },
+                produtos: {
+                    venda: {},
+                    servico: {},
+                    locacao: {}
+                },
+                total_geral: 0,
+                lpu_ativa: 0,
+                desconto_geral: {
+                    tipo: 'Porcentagem',
+                    valor: 0
+                }
+            };
+        }
+    
+        // Verificação ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verifica se veio de um novo orçamento ou edição
+            let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2'));
+            
+            // Se não existir orçamento no localStorage ou estiver corrompido, cria um novo
+            if (!orcamento_v2 || typeof orcamento_v2 !== 'object') {
+                orcamento_v2 = inicializarNovoOrcamento();
+                localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
+                console.log('Novo orçamento inicializado');
+            } else {
+                console.log('Orçamento existente carregado');
+            }
+            
+            // Aqui você pode chamar suas funções de preenchimento da página
+            // preencherDadosOrcamento(orcamento_v2);
+        });
+        </script>
+
+         <script>
+            // Função para limpar e sair
+            function limparESair() {
+                // Opção 1: Remove completamente (recomendado para fluxo de novo orçamento)
+                localStorage.removeItem('orcamento_v2');
+                
+                // Opção 2: Mantém os dados mas sinaliza que foi cancelado
+                // const orcamento = JSON.parse(localStorage.getItem('orcamento_v2'));
+                // orcamento.cancelado = true;
+                // localStorage.setItem('orcamento_v2', JSON.stringify(orcamento));
+                
+                window.location.href = 'orcamentos.html';
+        }
+        </script>
 
 </body>
 
