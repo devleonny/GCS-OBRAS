@@ -1399,7 +1399,7 @@ async function abrir_esquema(id) {
         }
 
         var acumulado = `
-        <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
+        <div style="display: flex; gap: 10px; justify-content: left; align-items: center;" class="painel-custos-container">
         
             <div onclick="sincronizar_e_reabrir()" style="display: flex; flex-direction: column; justify-content: left; align-items: center; cursor: pointer;">
                 <img src="imagens/atualizar2.png" style="width: 3vw;">
@@ -1422,7 +1422,7 @@ async function abrir_esquema(id) {
                 ${levantamentos}
             </div>
             • 
-            <div onclick="mostrar_painel()" class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <div onclick="mostrar_painel()" class="contorno_botoes permissao_visualizar2" id="permissao_visualizar2" style="display: flex; align-items: center; justify-content: center; gap: 5px;">
                 <img src="imagens/pesquisar.png" style="width: 2vw;">
                 <label style="font-size: 1vw;">Exibir Painel de Custos</label>
             </div>
@@ -1904,6 +1904,52 @@ async function abrir_esquema(id) {
         valorTotalSpan.textContent = dinheiro(totalFinal)
     }
 }
+
+document.addEventListener("DOMContentLoaded", async () => {
+    // Verificar permissões quando o DOM estiver carregado
+    verificarPermissoesPainelCustos();
+});
+
+async function verificarPermissoesPainelCustos() {
+    try {
+        // Carregar dados_setores se não estiverem no localStorage
+        let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {};
+        if (Object.keys(dados_setores).length === 0) {
+            dados_setores = await lista_setores();
+            localStorage.setItem('dados_setores', JSON.stringify(dados_setores));
+        }
+
+        // Verificar se o usuário tem permissão
+        const usuarioPermitido = ['adm', 'gerente', 'diretoria'].includes(dados_setores[acesso.usuario]?.permissao);
+        const setorPermitido = ['INFRA', 'LOGÍSTICA'].includes(dados_setores[acesso.usuario]?.setor);
+
+        // Ocultar elementos se não tiver permissão
+        if (!usuarioPermitido && !setorPermitido) {
+            const permissaoVisualizar = document.getElementById("permissao_visualizar2");
+            if (permissaoVisualizar) permissaoVisualizar.style.display = "none";
+            
+            const painelCustosContainer = document.querySelector(".painel-custos-container");
+            if (painelCustosContainer) painelCustosContainer.style.display = "none";
+        }
+    } catch (error) {
+        console.error("Erro ao verificar permissões:", error);
+    }
+}
+
+// document.addEventListener("DOMContentLoaded", async () => {
+//     const usuariosPermitidos = ['adm', 'gerente', 'diretoria'];
+//     const setoresPermitidos = ['INFRA', 'LOGÍSTICA'];
+//     const setorPermitido = setoresPermitidos.includes(dados_setores[acesso.usuario]?.setor);
+//     const usuarioPermitido = usuariosPermitidos.includes(dados_setores[acesso.usuario]?.permissao);
+
+//     if (!(usuarioPermitido || setorPermitido)) {
+//         const permissaoVisualizar = document.getElementById("permissao_visualizar2");
+//         if (permissaoVisualizar) permissaoVisualizar.style.display = "none";
+        
+//         const painelCustosContainer = document.querySelector(".painel-custos-container");
+//         if (painelCustosContainer) painelCustosContainer.style.display = "none";
+//     }
+// });
 
 function mostrar_painel() {
     let painel_custos = document.getElementById('painel_custos')
@@ -3290,6 +3336,8 @@ async function envio_de_material(chave) {
     `
     openPopup_v2(acumulado, 'Envio de Material', true)
 }
+
+
 
 async function mostrar_painel() {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}

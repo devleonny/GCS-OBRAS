@@ -8,9 +8,10 @@ document.addEventListener('keydown', function (event) {
     }
 });
 
-console.log('Permissão: ', dados_setores[acesso.usuario]?.permissao)
+
 document.addEventListener("DOMContentLoaded", async () => {
     const permissaoVisualizar = document.getElementById("permissao_visualizar");
+    const permissaoVisualizarExibirCustos = document.querySelectorAll(".permissao_visualizar2");
     const usuariosPermitidos = [
         'adm', 'gerente', 'diretoria'
     ]
@@ -23,6 +24,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!(usuarioPermitido || setorPermitido)) {
         permissaoVisualizar.style.display = "none";
     }
+
+    permissaoVisualizarExibirCustos.forEach(element => {
+        if (!(usuarioPermitido || setorPermitido)) {
+            element.style.display = "none";
+        }
+    });
+
 })
 
 function f5() {
