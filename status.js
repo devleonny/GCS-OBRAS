@@ -2664,6 +2664,7 @@ async function chamar_excluir(id) {
 }
 
 async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
+
     let visualizar = !chave ? false : true
 
     if (!chave) {
@@ -2721,7 +2722,10 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
             <input id="pesquisa1" style="padding: 10px; border-radius: 5px; margin: 10px; width: 50%;" placeholder="Pesquisar" oninput="pesquisar_na_requisicao()">
         </div>
         `
+    }
 
+    // MODIFICADO: Agora verificamos se NÃO é apenas visualização (ou seja, é criação ou edição)
+    if (!apenas_visualizar) {
         campos = `
         <div class="contorno" style="width: 500px;">
             <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; font-size: 1.0em;">Dados da Requisição</div>
@@ -2741,6 +2745,28 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
                 </div>
 
                 <label class="contorno_botoes" style="background-color: #4CAF50; " onclick="salvar_requisicao('${chave}')">Salvar Requisição</label>
+            </div>
+        </div>
+        `
+    } else {
+        // Modo apenas visualização - mostra os dados sem campos editáveis
+        campos = `
+        <div class="contorno" style="width: 500px;">
+            <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; font-size: 1.0em;">Dados da Requisição</div>
+            <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
+                
+                <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+                    <label><strong>Data</strong> </label> <label>${data}</label>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+                    <label><strong>Executor</strong> </label> <label>${usuario}</label>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+                    <label><strong>Comentário</strong></label>
+                    <div style="width: 80%; padding: 5px; background-color: white; border-radius: 3px;">${comentarioExistente}</div>
+                </div>
             </div>
         </div>
         `
@@ -2822,7 +2848,169 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
 
     await calcular_requisicao()
     mostrar_itens_adicionais()
+
+    // let visualizar = !chave ? false : true
+
+    // if (!chave) {
+    //     chave = gerar_id_5_digitos()
+    // }
+
+    // var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    // var usuario = acesso.usuario
+    // var data = new Date().toLocaleString('pt-BR', {
+    //     dateStyle: 'short',
+    //     timeStyle: 'short'
+    // });
+
+    // dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    // orcamento = dados_orcamentos[id_orcam];
+    // var menu_flutuante = ''
+    // var nome_cliente = orcamento.dados_orcam.cliente_selecionado
+
+    // // Carrega os itens adicionais se existirem
+    // itens_adicionais = {}
+    // let comentarioExistente = ''
+    // let requisicoesExistente = []
+
+    // if (chave && orcamento.status && orcamento.status.historico && orcamento.status.historico[chave]) {
+    //     let cartao = orcamento.status.historico[chave]
+    //     menu_flutuante = `
+    //     <div class="menu_flutuante" id="menu_flutuante">
+    //         <div class="icone" onclick="gerarpdf('${orcamento.dados_orcam.cliente_selecionado}', '${cartao.pedido}')">
+    //             <img src="imagens/pdf.png">
+    //             <label>PDF</label>
+    //         </div>
+    //     </div> 
+    //     `
+
+    //     if (cartao.adicionais) {
+    //         itens_adicionais = cartao.adicionais
+    //     }
+
+    //     if (cartao.comentario) {
+    //         comentarioExistente = cartao.comentario
+    //     }
+
+    //     if (cartao.requisicoes) {
+    //         requisicoesExistente = cartao.requisicoes
+    //     }
+    // }
+
+    // var campos = ''
+    // var toolbar = ''
+
+    // if (!visualizar) {
+    //     toolbar += `
+    //     <div style="display: flex; gap: 10px; justify-content: center; align-items: center; background-color: #151749; border-top-left-radius: 5px; border-top-right-radius: 5px">
+    //         <img src="imagens/pesquisar.png" style="width: 25px; height: 25px; padding: 5px;">
+    //         <input id="pesquisa1" style="padding: 10px; border-radius: 5px; margin: 10px; width: 50%;" placeholder="Pesquisar" oninput="pesquisar_na_requisicao()">
+    //     </div>
+    //     `
+
+    //     campos = `
+    //     <div class="contorno" style="width: 500px;">
+    //         <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; font-size: 1.0em;">Dados da Requisição</div>
+    //         <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
+                
+    //             <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+    //                 <label><strong>Data</strong> </label> <label id="data_status">${data}</label>
+    //             </div>
+
+    //             <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+    //                 <label><strong>Executor</strong> </label> <label id="usuario_status">${usuario}</label>
+    //             </div>
+
+    //             <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
+    //                 <label><strong>Comentário</strong></label>
+    //                 <textarea rows="3" id="comentario_status" style="width: 80%;">${comentarioExistente}</textarea>
+    //             </div>
+
+    //             <label class="contorno_botoes" style="background-color: #4CAF50; " onclick="salvar_requisicao('${chave}')">Salvar Requisição</label>
+    //         </div>
+    //     </div>
+    //     `
+    // }
+
+    // var acumulado = `
+    // ${menu_flutuante}
+
+    // <div style="display: flex; align-items: center; justify-content: center; width: 100%; background-color: #151749; border-radius: 3px;">
+    //     <img src="https://i.imgur.com/AYa4cNv.png" 
+    // style="height: 100px;">
+    // </div>
+
+    // <div style="display: flex; align-items: center; justify-content: center; width: 100%;">
+    //     <h1>REQUISIÇÃO DE COMPRA DE MATERIAL</h1>
+    // </div>
+
+    // <div style="display: flex; justify-content: left; align-items: center; margin: 10px;">
+
+    //     ${campos}
+            
+    //     <div class="contorno">
+    //         <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; font-size: 1.0em;">Dados do Cliente</div>
+    //         <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; justify-content: start; align-items: start; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
+    //             <label style="color: #222" id="nome_cliente"><strong>Cliente</strong> ${nome_cliente}</label>
+    //             <label style="display: none" id="id_orcam"></label>
+    //             <label style="color: #222"><strong>CNPJ</strong> ${orcamento.dados_orcam.cnpj}</label>
+    //             <label style="color: #222"><strong>Endereço</strong> ${orcamento.dados_orcam.bairro}</label>
+    //             <label style="color: #222"><strong>Cidade</strong> ${orcamento.dados_orcam.cidade}</label>
+    //             <label style="color: #222"><strong>Estado</strong> ${orcamento.dados_orcam.estado}</label>
+    //             <label style="color: #222"><strong>Chamado</strong> ${orcamento.dados_orcam.contrato}</label>
+    //             <label style="color: #222"><strong>Condições</strong> ${orcamento.dados_orcam.condicoes}</label>
+    //         </div>
+    //     </div>
+
+    //     <div class="contorno">
+    //         <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">Total</div>
+    //         <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
+    //             <div style="display: flex; gap: 10px;">
+    //                 <label id="total_s_icms" style="color: red"></label>
+    //                 <label style="font-size: 0.8em; color: red;"> <strong>Líquido (s/Icms)</strong> </label> 
+    //             </div>
+    //             <div style="display: flex; gap: 10px;">
+    //                 <label id="total_c_icms"></label> 
+    //                 <label style="font-size: 0.8em;"><strong>(c/Icms)</strong></label>
+    //             </div>
+    //         </div>
+    //     </div>
+
+    // </div>
+
+    // <div id="tabela_itens" style="width: 100%; display: flex; flex-direction: column; align-items: left;">
+
+    // <div class="contorno">
+    //     ${toolbar}
+    //     <table class="tabela" id="tabela_requisicoes" style="width: 100%; font-size: 0.8em; table-layout: auto; border-radius: 0px;">
+    //         <thead>
+    //             <th style="text-align: center;">Código</th>
+    //             <th style="text-align: center;">PART NUMBER</th>
+    //             <th style="text-align: center;">Informações do Item</th>                        
+    //             <th style="text-align: center;">Tipo</th>         
+    //             <th style="text-align: center;">Quantidade</th>
+    //             <th style="text-align: center;">Valor Unitário</th>     
+    //             <th style="text-align: center;">Valor Total</th>         
+    //             <th style="text-align: center;">Requisição</th>
+    //         </thead>
+    //         <tbody>
+    //             ${await carregar_itens(apenas_visualizar, tipoRequisicao, chave)}
+    //         </tbody>
+    //     </table>
+    // <div>
+    // `
+    // openPopup_v2(acumulado, 'Requisição', true)
+
+    // // Preenche os campos com os dados existentes se estiver editando
+    // if (requisicoesExistente.length > 0) {
+    //     await preencherDadosRequisicaoExistente(requisicoesExistente);
+    // }
+
+    // await calcular_requisicao()
+    // mostrar_itens_adicionais()
 }
+
+
+
 
 async function preencherDadosRequisicaoExistente(requisicoes) {
     const tabela = document.getElementById('tabela_requisicoes');
