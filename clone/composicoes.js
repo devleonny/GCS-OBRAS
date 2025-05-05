@@ -210,6 +210,7 @@ async function carregar_tabela_v2() {
                     <option ${produto?.sistema == 'EAS' ? 'selected' : ''}>EAS</option>
                     <option ${produto?.sistema == 'ALARME' ? 'selected' : ''}>ALARME</option>
                     <option ${produto?.sistema == 'CONTROLE DE ACESSO' ? 'selected' : ''}>CONTROLE DE ACESSO</option>
+                    <option ${produto?.sistema == 'INFRAESTRUTURA E CABEAMENTO' ? 'selected' : ''}>INFRAESTRUTURA E CABEAMENTO</option>
                 </select>
                 `
 
