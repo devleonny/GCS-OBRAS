@@ -272,8 +272,8 @@ async function abrir_manutencao(id) {
         adicionar_linha_manut()
     }
 
-    let linhas_manutencao = document.getElementById('linhas_manutencao')
-    let linhas = linhas_manutencao.querySelectorAll('.linha')
+    let linhas_manutencao = document.getElementById('linhasManutencao')
+    let linhas = linhas_manutencao.querySelectorAll('tr')
 
     let i = 0
     for (id_peca in pecas) {
@@ -610,9 +610,8 @@ async function criar_manutencao(id) {
                         <label style="font-size: 1.2vw;">Cliente | Loja</label>
                         <label id="codigo_cliente" style="display: none"></label>
                         <div style="position: relative;">
-                            <textarea type="text" id="cliente" oninput="sugestoes(this, 'sug_cliente', 'clientes')"
+                            <textarea type="text" id="cliente" oninput="sugestoes(this, 'clientes')"
                                 placeholder="..."></textarea>
-                            <div class="autocomplete-list" id="sug_cliente"></div>
                         </div>
 
                         <div id="endereco_cliente"
@@ -625,9 +624,8 @@ async function criar_manutencao(id) {
                         <label style="font-size: 1.2vw;">TÉCNICO</label>
                         <label id="codigo_tecnico" style="display: none"></label>
                         <div style="position: relative;">
-                            <textarea type="text" id="tecnico" oninput="sugestoes(this, 'sug_tecnico', 'clientes')"
+                            <textarea type="text" id="tecnico" oninput="sugestoes(this, 'clientes')"
                                 placeholder="..."></textarea>
-                            <div class="autocomplete-list" id="sug_tecnico"></div>
                         </div>
 
                         <div id="endereco_tecnico"
@@ -703,39 +701,27 @@ async function criar_manutencao(id) {
 
                 <br>
 
-                <div class="tabela_manutencao">
-                    <div class="linha"
-                        style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
-                        <div style="width: 8vw;">
-                            <label>Part Number</label>
-                        </div>
-                        <div style="width: 25vw;">
-                            <label>Descrição</label>
-                        </div>
-                        <div style="width: 10vw;">
-                            <label>Quantidade</label>
-                        </div>
-                        <div style="width: 20vw;">
-                            <label>Comentário</label>
-                        </div>
-                        <div style="width: 10vw;">
-                            <label>Estoque</label>
-                        </div>
-                        <div style="width: 10vw;">
-                            <label>Estoque Usado</label>
-                        </div>
-                        <div style="width: 5vw;">
-                            <label>Remover</label>
-                        </div>
-                    </div>
+                <table class="tabela">
 
-                    <div id="linhas_manutencao">
-                        <div id="excluir_inicial" class="linha" style="width: 70vw;">
-                            <label>Lista Vazia</label>
-                        </div>
-                    </div>
+                    <thead>
+                        <tr>
+                            <th>Part Number</th>
+                            <th>Descrição</th>
+                            <th>Quantidade</th>
+                            <th>Comentário</th>
+                            <th>Estoque</th>
+                            <th>Estoque Usado</th>
+                            <th>Remover</th>
+                        </tr>
+                    </thead>
 
-                </div>
+                    <tbody id="linhasManutencao">
+                        <tr id="excluir_inicial">
+                            <td colspan="7" style="text-align: center;">Lista Vazia</td>
+                        </tr>
+                    </tbody>
+
+                </table>
 
                 <br>
 
@@ -876,7 +862,6 @@ async function enviar_manutencao(id) {
         manutencao.previsao = "";
     }
 
-
     let NF = document.getElementById("NF");
     manutencao.nf = NF && NF.value ? NF.value : "";
 
@@ -892,8 +877,8 @@ async function enviar_manutencao(id) {
     let chaveAtualizacao = gerar_id_5_digitos();
     manutencao.historico[chaveAtualizacao] = novaAtualizacao;
 
-    let tabela = document.getElementById('linhas_manutencao')
-    let linhas = tabela.querySelectorAll('.linha')
+    let tabela = document.getElementById('linhasManutencao')
+    let linhas = tabela.querySelectorAll('tr')
 
     let pecas = {}
     linhas.forEach(linha => {
@@ -940,7 +925,7 @@ async function enviar_manutencao(id) {
 }
 
 function adicionar_linha_manut() {
-    let tbody = document.getElementById('linhas_manutencao')
+    let tbody = document.getElementById('linhasManutencao')
     let aleatorio = gerar_id_5_digitos()
 
     let excluir_inicial = document.getElementById('excluir_inicial')
@@ -950,59 +935,62 @@ function adicionar_linha_manut() {
 
     if (tbody) {
         let linha = `
-        <div class="linha_completa">
-            <div class="linha">
-                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="text">
-                </div>
-                <div style="position: relative; width: 25vw; height: 30px; background-color: #b5b5b5;">
-                    <textarea style="background-color: transparent;" type="text" id="${aleatorio}" oninput="sugestoes(this, 'sug_${aleatorio}', 'estoque')"></textarea>
+            <tr>
+
+                <td>
+                    <textarea class="espacos" type="text"></textarea>
+                </td>
+
+                <td>
+                    <textarea class="espacos" type="text" id="${aleatorio}" oninput="sugestoes(this, 'estoque')"></textarea>
                     <div class="autocomplete-list" id="sug_${aleatorio}"></div>
                     <input id="input_${aleatorio}" style="display: none;">
-                </div>
+                </td>
 
-                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="number">
-                </div>
+                <td>
+                    <textarea class="espacos" type="number"></textarea>
+                </td>
 
-                <div style="width: 20vw; height: 30px; background-color: #b5b5b5;">
-                    <textarea style="background-color: transparent;"></textarea>
-                </div>
+                <td>
+                    <textarea class="espacos"></textarea>
+                </td>
 
-                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" readonly>
-                </div>
+                <td>
+                    <textarea class="espacos" readonly></textarea>
+                </td>
 
-                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" readonly>
-                </div>
+                <td>
+                    <textarea class="espacos" readonly></textarea>
+                </td>
 
-                <div style="width: 5vw;">
+                <td style="text-align: center;">
                     <img src="imagens/remover.png" onclick="remover_esta_linha(this)" style="width: 30px; cursor: pointer;">
-                </div>
-            </div>
-            <hr style="width: 100%; margin: 0px;">
-        </div>
-        `
+                </td>
+
+            </tr>
+            `
         tbody.insertAdjacentHTML('beforeend', linha)
     }
 }
 
-function remover_esta_linha(div_menor) {
-    let linha_completa = div_menor.closest('.linha_completa')
+function remover_esta_linha(td) {
+    let linha_completa = td.parentElement.parentElement
     if (linha_completa) {
         linha_completa.remove()
     }
 }
 
-async function sugestoes(textarea, div, base) {
+async function sugestoes(textarea, base) {
 
-    let div_sugestoes = document.getElementById(div)
     let query = String(textarea.value).toUpperCase()
-    div_sugestoes.innerHTML = '';
+
+    let div_sugestoes = document.getElementById('div_sugestoes')
+    if (div_sugestoes) {
+        div_sugestoes.remove()
+    }
 
     if (query === '') {
-        let campo = div.split('_')[1]
+        let campo = textarea.id
         let endereco = document.getElementById(`endereco_${campo}`)
 
         if (endereco) {
@@ -1042,18 +1030,25 @@ async function sugestoes(textarea, div, base) {
 
         if (info.includes(query)) {
             opcoes += `
-                    <div onclick="definir_campo(this, '${div}', '${dados_endereco}', '${cod_omie}', '${id}')" class="autocomplete-item" style="font-size: 0.8vw;">${info}</div>
-                `
+                <div onclick="definir_campo(this, '${textarea.id}', '${dados_endereco}', '${cod_omie}', '${id}')" class="autocomplete-item" style="font-size: 0.8vw;">${info}</div>
+            `
         }
     }
 
-    div_sugestoes.innerHTML = opcoes
+    let posicao = textarea.getBoundingClientRect()
+    let left = posicao.left + window.scrollX
+    let top = posicao.bottom + window.scrollY
+
+    let div = `
+    <div id="div_sugestoes" class="autocomplete-list" style="position: absolute; top: ${top}px; left: ${left}px; border: 1px solid #ccc; width: 15vw;">
+        ${opcoes}
+    </div>`
+
+    document.body.insertAdjacentHTML('beforeend', div)
 
 }
 
-async function definir_campo(elemento, div, string_html, omie, id) {
-
-    let campo = String(div).split('_')[1]
+async function definir_campo(elemento, campo, string_html, omie, id) {
 
     if (campo == 'tecnico' || campo == 'cliente') {
 
@@ -1104,8 +1099,13 @@ async function definir_campo(elemento, div, string_html, omie, id) {
     if (codigo) {
         codigo.textContent = omie
     }
+
+    let div_sugestoes = document.getElementById('div_sugestoes')
+    if (div_sugestoes) {
+        div_sugestoes.remove()
+    }
+
     document.getElementById(campo).value = elemento.textContent
-    document.getElementById(div).innerHTML = '' // Sugestões
 }
 
 async function atualizar_base_clientes() {

@@ -1440,6 +1440,13 @@ input[type=range]::-moz-range-thumb {
     width: 100%;
 }
 
+.espacos {
+    background-color: #d2d2d2;
+    border-radius: 3px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
 .numero {
     border-radius: 50%;
     background-color: #097fe6;

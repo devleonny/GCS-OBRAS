@@ -129,7 +129,7 @@ async function carregar_tabela(sinc) {
                     <label style="display: none;">${agenda?.[i]?.usuario || ''}</label>
                     <label style="display: none;">${agenda?.[i]?.data || ''}</label>
                 </td>
-                `
+            `
         }
 
         // Coluna 1: Nome do técnico;
