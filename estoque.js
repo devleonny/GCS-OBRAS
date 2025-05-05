@@ -681,12 +681,11 @@ async function abrir_estoque(codigo, stq) {
     let dados_estoque = await recuperarDados('dados_estoque') || {}
     let item = dados_estoque[codigo]
     let estoque = item[stq] || {}
-    let atual = estoque.quantidade ? estoque.quantidade : 0
+    let atual = conversor(estoque.quantidade ? estoque.quantidade : 0)
     let inicial = atual
     let linhas = ''
 
     if (estoque.historico) {
-        atual = estoque.quantidade
 
         let historicoArray = Object.entries(estoque.historico);
         historicoArray.sort((a, b) => {
