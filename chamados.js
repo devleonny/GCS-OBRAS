@@ -1020,7 +1020,7 @@ async function sugestoes(textarea, base) {
             <label><strong>CEP:</strong> ${item.cep}</label>
             <label><strong>Cidade:</strong> ${item.cidade}</label>
             <label><strong>Estado:</strong> ${item.estado}</label>
-        `.replace(/'/g, "&apos;")
+            `.replace(/'/g, "&apos;")
                 .replace(/"/g, "&quot;")
                 .replace(/\r?\n|\r/g, "");
 

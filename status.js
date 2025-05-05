@@ -662,38 +662,25 @@ async function abrir_adicionais(codigo) {
 
     var acumulado = `
         <div id="tela" style="display: flex; flex-direction: column; align-items: start; justify-content: center; background-color: white; border-radius: 3px; padding: 5px;">
-            <div class="tabela_manutencao">
-                <div class="linha"
-                    style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
-                    <div style="width: 8vw;">
-                        <label>Part Number</label>
-                    </div>
-                    <div style="width: 25vw;">
-                        <label>Descrição</label>
-                    </div>
-                    <div style="width: 10vw;">
-                        <label>Quantidade</label>
-                    </div>
-                    <div style="width: 20vw;">
-                        <label>Unidade</label>
-                    </div>
-                    <div style="width: 10vw;">
-                        <label>Estoque</label>
-                    </div>
-                    <div style="width: 10vw;">
-                        <label>Estoque Usado</label>
-                    </div>
-                    <div style="width: 5vw;">
-                        <label>Remover</label>
-                    </div>
-                </div>
+            <table class="tabela">
+                <thead>
+                    <tr>
+                        <th>Part Number</th>
+                        <th>Descrição</th>
+                        <th>Quantidade</th>
+                        <th>Comentário</th>
+                        <th>Estoque</th>
+                        <th>Estoque Usado</th>
+                        <th>Remover</th>
+                    </tr>
+                </thead>
 
-                <div id="linhas_manutencao">
-                    <div id="excluir_inicial" class="linha" style="width: 70vw;">
-                        <label>Lista Vazia</label>
-                    </div>
-                </div>
-            </div>
+                <tbody id="linhasManutencao">
+                    <tr id="excluir_inicial">
+                        <td colspan="7">Lista Vazia</td>
+                    </tr>
+                </tbody>
+            </table>
 
             <br>
 
@@ -737,7 +724,7 @@ async function abrir_adicionais(codigo) {
 }
 
 function adicionar_linha_manut(ad, dados) {
-    let tbody = document.getElementById('linhas_manutencao')
+    let tbody = document.getElementById('linhasManutencao')
     let aleatorio = ad ? ad : gerar_id_5_digitos()
 
     let excluir_inicial = document.getElementById('excluir_inicial')
@@ -747,44 +734,36 @@ function adicionar_linha_manut(ad, dados) {
 
     if (tbody) {
         let linha = `
-        <div class="linha_completa">
-            <div class="linha">
-                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="text" value="${dados?.partnumber || ''}">
-                </div>
-                <div style="position: relative; width: 25vw; height: 30px; background-color: #b5b5b5;">
-                    <textarea style="background-color: transparent; height: 100%; resize: none; border: none; outline: none;" type="text" id="${aleatorio}" oninput="sugestoes(this, 'sug_${aleatorio}', 'estoque')">${dados?.descricao || ''}</textarea>
-                    <div class="autocomplete-list" id="sug_${aleatorio}"></div> 
-                    <input id="input_${aleatorio}" style="display: none;">
-                </div>
+        <tr>
+            <td>
+                <textarea>${dados?.partnumber || ''}</textarea>
+            </td>
+            <td>
+                <textarea style="background-color: transparent; height: 100%; resize: none; border: none; outline: none;" type="text" id="${aleatorio}" oninput="sugestoes(this, 'estoque')">${dados?.descricao || ''}</textarea>
+                <div class="autocomplete-list" id="sug_${aleatorio}"></div> 
+                <input id="input_${aleatorio}" style="display: none;">
+            </td>
 
-                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="number" value="${dados?.qtde || ''}">
-                </div>
+            <td>
+                <textarea>${dados?.qtde || ''}</textarea>
+            </td>
 
-                <div style="width: 20vw; height: 30px; background-color: #b5b5b5;">
-                    <select style="width: 100%; background-color: transparent;">
-                        <option ${dados?.unidade == 'UND' ? 'checked' : ''}>UND</option>
-                        <option ${dados?.unidade == 'METRO' ? 'checked' : ''}>METRO</option>
-                        <option ${dados?.unidade == 'CX' ? 'checked' : ''}>CX</option>
-                        <option ${dados?.unidade == 'PCT' ? 'checked' : ''}>PCT</option>
-                    </select>
-                </div>
+            <td>
+                <textarea class="espacos"></textarea>
+            </td>
 
-                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" readOnly>
-                </div>
+            <td>
+                <textarea class="espacos" readonly></textarea>
+            </td>
 
-                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" readOnly>
-                </div>
+            <td>
+                <textarea class="espacos" readonly></textarea>
+            </td>
 
-                <div style="width: 5vw; display: flex; align-items: center; justify-content: center;">
-                    <img src="imagens/remover.png" onclick="remover_esta_linha(this)" style="width: 30px; cursor: pointer;">
-                </div>
-            </div>
-            <hr style="width: 100%; margin: 0px;">
-        </div>
+            <td style="text-align: center;">
+                <img src="imagens/remover.png" onclick="remover_esta_linha(this)" style="width: 30px; cursor: pointer;">
+            </td>
+        </tr>
         `
         tbody.insertAdjacentHTML('beforeend', linha)
     }
@@ -797,14 +776,17 @@ function remover_esta_linha(div_menor) {
     }
 }
 
-async function sugestoes(textarea, div, base) {
+async function sugestoes(textarea, base) {
 
-    let div_sugestoes = document.getElementById(div)
     let query = String(textarea.value).toUpperCase()
-    div_sugestoes.innerHTML = '';
+
+    let div_sugestoes = document.getElementById('div_sugestoes')
+    if (div_sugestoes) {
+        div_sugestoes.remove()
+    }
 
     if (query === '') {
-        let campo = div.split('_')[1]
+        let campo = textarea.id
         let endereco = document.getElementById(`endereco_${campo}`)
 
         if (endereco) {
@@ -827,18 +809,24 @@ async function sugestoes(textarea, div, base) {
 
         if (info.includes(query)) {
             opcoes += `
-                    <div onclick="definir_campo(this, '${div}', '${id}')" class="autocomplete-item" style="font-size: 0.8vw;">${info}</div>
+                    <div onclick="definir_campo(this, '${textarea.id}', '${id}')" class="autocomplete-item" style="font-size: 0.8vw;">${info}</div>
                 `
         }
     }
 
-    div_sugestoes.innerHTML = opcoes
+    let posicao = textarea.getBoundingClientRect()
+    let left = posicao.left + window.scrollX
+    let top = posicao.bottom + window.scrollY
 
+    let div = `
+    <div id="div_sugestoes" class="autocomplete-list" style="position: absolute; top: ${top}px; left: ${left}px; border: 1px solid #ccc; width: 15vw;">
+        ${opcoes}
+    </div>`
+
+    document.body.insertAdjacentHTML('beforeend', div)
 }
 
-async function definir_campo(elemento, div, id) {
-
-    let campo = String(div).split('_')[1]
+async function definir_campo(elemento, campo, id) {
 
     let input_aleatorio = document.getElementById(`input_${campo}`)
     input_aleatorio.value = id
@@ -877,13 +865,18 @@ async function definir_campo(elemento, div, id) {
 
     })
 
+    let div_sugestoes = document.getElementById('div_sugestoes')
+    if (div_sugestoes) {
+        div_sugestoes.remove()
+    }
+
     document.getElementById(campo).value = elemento.textContent
-    document.getElementById(div).innerHTML = '' // Sugestões
+
 }
 
 function salvar_itens_adicionais(codigo) {
-    let tabela = document.getElementById('linhas_manutencao')
-    let linhas = tabela.querySelectorAll('.linha')
+    let tabela = document.getElementById('linhasManutencao')
+    let linhas = tabela.querySelectorAll('tr')
 
     itens_adicionais[codigo] = {}
 
