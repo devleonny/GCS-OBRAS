@@ -8,6 +8,23 @@ document.addEventListener('keydown', function (event) {
     }
 });
 
+console.log('Permissão: ', dados_setores[acesso.usuario]?.permissao)
+document.addEventListener("DOMContentLoaded", async () => {
+    const permissaoVisualizar = document.getElementById("permissao_visualizar");
+    const usuariosPermitidos = [
+        'adm', 'gerente', 'diretoria'
+    ]
+    const setoresPermitidos = [
+        'INFRA', 'LOGÍSTICA'
+    ]
+    const setorPermitido = setoresPermitidos.includes(dados_setores[acesso.usuario]?.setor)
+    const usuarioPermitido = usuariosPermitidos.includes(dados_setores[acesso.usuario]?.permissao)
+
+    if (!(usuarioPermitido || setorPermitido)) {
+        permissaoVisualizar.style.display = "none";
+    }
+})
+
 function f5() {
     location.reload();
 }
