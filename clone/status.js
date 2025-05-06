@@ -1398,11 +1398,15 @@ async function abrir_esquema(id) {
             }
         }
 
-        // const permissaoVisualizar = document.getElementById("permissao_visualizar");
         const usuariosPermitidos = ['adm', 'gerente', 'diretoria']
         const setoresPermitidos = ['LOGÍSTICA']
-        const setorPermitido = setoresPermitidos.includes(dados_setores[acesso.usuario]?.setor)
-        const usuarioPermitido = usuariosPermitidos.includes(dados_setores[acesso.usuario]?.permissao)
+
+        let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+        acesso = await lista_setores(acesso.usuario)
+        let permissao = acesso.permissao
+
+        const setorPermitido = setoresPermitidos.includes(acesso?.setor)
+        const usuarioPermitido = usuariosPermitidos.includes(permissao)
 
         var acumulado = `
         <div style="display: flex; gap: 10px; justify-content: left; align-items: center;" class="painel-custos-container">
@@ -1428,7 +1432,7 @@ async function abrir_esquema(id) {
                 ${levantamentos}
             </div>
             • 
-            <div onclick="mostrar_painel()" class="contorno_botoes" id="permissao_visualizar" style="display: flex; align-items: center; justify-content: center; gap: 5px;
+            <div onclick="mostrar_painel()" class="contorno_botoes" id="permissao_visualizar" style=" align-items: center; justify-content: center; gap: 5px;
             ${!(usuarioPermitido || setorPermitido) ? 'display: none;' : ''}">
                 <img src="imagens/pesquisar.png" style="width: 2vw;">
                 <label style="font-size: 1vw;">Exibir Painel de Custos</label>
