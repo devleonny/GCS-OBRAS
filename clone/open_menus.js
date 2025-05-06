@@ -35,27 +35,32 @@ localStorage.removeItem('dados_agenda_tecnicos')
 
 identificacao_user()
 async function identificacao_user() {
+    try {
+        if (acesso && document.title !== 'PDF') {
+            if (Object.keys(dados_setores).length == 0) {
+                dados_setores = await lista_setores() || {}
+                if (Object.keys(dados_setores).length > 0) {
+                    localStorage.setItem('dados_setores', JSON.stringify(dados_setores))
+                } else {
+                    console.error('Erro: lista_setores() retornou um objeto vazio')
+                }
+            }
 
-    if (acesso && document.title !== 'PDF') {
+            const permissao = dados_setores[acesso?.usuario]?.permissao
+            console.log('Seu nome: ', dados_setores[acesso?.usuario])
+            console.log('Sua permissão: ', dados_setores[acesso?.usuario]?.permissao)
 
-        if (Object.keys(dados_setores).length == 0) {
-            dados_setores = await lista_setores()
-            localStorage.setItem('dados_setores', JSON.stringify(dados_setores))
+            const texto = `
+                <div style="position: relative; display: fixed;">
+                    <label onclick="deseja_sair()"
+                    style="cursor: pointer; position: absolute; top: 10px; right: 10px; color: white; font-family: 'Poppins', sans-serif;">${acesso.usuario} • ${permissao || 'sem permissão'} • Desconectar • ${versao}</label>
+                </div>
+            `
+            document.body.insertAdjacentHTML('beforebegin', texto)
         }
-
-        const permissao = await dados_setores[acesso?.usuario]?.permissao
-        console.log('Seu nome: ', dados_setores[acesso?.usuario])
-        console.log('Sua permissão: ', dados_setores[acesso?.usuario]?.permissao)
-
-        const texto = `
-            <div style="position: relative; display: fixed;">
-                <label onclick="deseja_sair()"
-                style="cursor: pointer; position: absolute; top: 10px; right: 10px; color: white; font-family: 'Poppins', sans-serif;">${acesso.usuario} • ${permissao} • Desconectar • ${versao}</label>
-            </div>
-        `
-        document.body.insertAdjacentHTML('beforebegin', texto)
+    } catch (error) {
+        console.error('Erro na função identificacao_user:', error)
     }
-
 }
 
 function verificar_timestamp_nome(nome) {
