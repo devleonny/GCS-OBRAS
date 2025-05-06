@@ -116,6 +116,44 @@ async function ultimo_timestamp(tabela) {
     })
 }
 
+async function configuracoes(usuario, campo, valor) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/configuracoes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ usuario, campo, valor })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
+}
+
+async function alterar_usuario(campo, usuario, select) {
+    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+
+    if (dados_setores[usuario]) {
+
+        let alteracao = await configuracoes(usuario, campo, select.value) // Se alterar no servidor, altera localmente;
+        if (alteracao.status) {
+            dados_setores[usuario][campo] = select.value
+            localStorage.setItem('dados_setores', JSON.stringify(dados_setores))
+        } else {
+            select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
+        }
+    }
+}
+
 async function configs() {
 
     let status = await servicos('livre')
