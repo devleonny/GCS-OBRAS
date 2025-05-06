@@ -44,6 +44,9 @@ async function identificacao_user() {
         }
 
         const permissao = await dados_setores[acesso?.usuario]?.permissao
+        console.log('Seu nome: ', dados_setores[acesso?.usuario])
+        console.log('Sua permissão: ', dados_setores[acesso?.usuario]?.permissao)
+
         const texto = `
             <div style="position: relative; display: fixed;">
                 <label onclick="deseja_sair()"
