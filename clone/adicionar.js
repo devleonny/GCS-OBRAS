@@ -1102,6 +1102,8 @@ async function total() {
     desconto_geral_linhas = desconto_acumulado + desconto_calculo
     document.getElementById(`total_geral`).textContent = dinheiro(totais.geral.valor - desconto_calculo)
 
+    orcamento_v2.totalComDesconto = dinheiro(totais.geral.valor - desconto_calculo)
+
     let painel_desconto = document.getElementById('desconto_total')
     if (lpu !== 'lpu carrefour') {
         desconto_geral.parentElement.parentElement.style.display = 'flex'
