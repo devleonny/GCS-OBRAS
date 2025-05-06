@@ -1398,8 +1398,18 @@ async function abrir_esquema(id) {
             }
         }
 
+        const usuariosPermitidos = ['adm', 'gerente', 'diretoria']
+        const setoresPermitidos = ['LOGÍSTICA']
+
+        let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+        acesso = await lista_setores(acesso.usuario)
+        let permissao = acesso.permissao
+
+        const setorPermitido = setoresPermitidos.includes(acesso?.setor)
+        const usuarioPermitido = usuariosPermitidos.includes(permissao)
+
         var acumulado = `
-        <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
+        <div style="display: flex; gap: 10px; justify-content: left; align-items: center;" class="painel-custos-container">
         
             <div onclick="sincronizar_e_reabrir()" style="display: flex; flex-direction: column; justify-content: left; align-items: center; cursor: pointer;">
                 <img src="imagens/atualizar2.png" style="width: 3vw;">
@@ -1422,7 +1432,8 @@ async function abrir_esquema(id) {
                 ${levantamentos}
             </div>
             • 
-            <div onclick="mostrar_painel()" class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <div onclick="mostrar_painel()" class="contorno_botoes" id="permissao_visualizar" style=" align-items: center; justify-content: center; gap: 5px;
+            ${!(usuarioPermitido || setorPermitido) ? 'display: none;' : ''}">
                 <img src="imagens/pesquisar.png" style="width: 2vw;">
                 <label style="font-size: 1vw;">Exibir Painel de Custos</label>
             </div>
@@ -3290,6 +3301,8 @@ async function envio_de_material(chave) {
     `
     openPopup_v2(acumulado, 'Envio de Material', true)
 }
+
+
 
 async function mostrar_painel() {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}

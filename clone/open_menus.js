@@ -8,6 +8,24 @@ document.addEventListener('keydown', function (event) {
     }
 });
 
+
+document.addEventListener("DOMContentLoaded", async () => {
+    const permissaoVisualizar = document.getElementById("permissao_visualizar");
+    const usuariosPermitidos = ['adm', 'gerente', 'diretoria']
+    const setoresPermitidos = ['LOGÍSTICA']
+
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    acesso = await lista_setores(acesso.usuario)
+    let permissao = acesso.permissao
+
+    const setorPermitido = setoresPermitidos.includes(acesso?.setor)
+    const usuarioPermitido = usuariosPermitidos.includes(permissao)
+
+    if (!(usuarioPermitido || setorPermitido)) {
+        permissaoVisualizar.style.display = "none";
+    }
+})
+
 function f5() {
     location.reload();
 }
@@ -22,19 +40,29 @@ localStorage.removeItem('dados_agenda_tecnicos')
 
 identificacao_user()
 async function identificacao_user() {
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    acesso = await lista_setores(acesso.usuario)
+    let permissao = acesso.permissao
 
-    if (acesso && document.title !== 'PDF') {
 
-        if (Object.keys(dados_setores).length == 0) {
-            dados_setores = await lista_setores()
-            localStorage.setItem('dados_setores', JSON.stringify(dados_setores))
+    if (document.title !== 'PDF' && acesso.usuario) {
+
+        let config = ''
+
+        const usuarioPermissaoAdm = permissao == 'adm';
+        if (usuarioPermissaoAdm) {
+            config = `
+            <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;" onclick="configs()">
+        `
         }
 
-        let permissao = dados_setores[acesso.usuario]?.permissao
         var texto = `
             <div style="position: relative; display: fixed;">
-                <label onclick="deseja_sair()"
-                style="cursor: pointer; position: absolute; top: 10px; right: 10px; color: white; font-family: 'Poppins', sans-serif;">${acesso.usuario} • ${permissao} • Desconectar • ${versao}</label>
+                <div style="position: absolute; top: 10px; right: 10px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                    ${config}
+                    <label onclick="deseja_sair()"
+                    style="cursor: pointer; color: white; font-family: 'Poppins', sans-serif;">${acesso.usuario} • ${permissao} • Desconectar • ${versao}</label>
+                </div>
             </div>
         `
         document.body.insertAdjacentHTML('beforebegin', texto)
