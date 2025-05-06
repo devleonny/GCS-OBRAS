@@ -11,12 +11,8 @@ document.addEventListener('keydown', function (event) {
 
 document.addEventListener("DOMContentLoaded", async () => {
     const permissaoVisualizar = document.getElementById("permissao_visualizar");
-    const usuariosPermitidos = [
-        'adm', 'gerente', 'diretoria'
-    ]
-    const setoresPermitidos = [
-        'INFRA', 'LOGÍSTICA'
-    ]
+    const usuariosPermitidos = ['adm', 'gerente', 'diretoria']
+    const setoresPermitidos = ['LOGÍSTICA']
     const setorPermitido = setoresPermitidos.includes(dados_setores[acesso.usuario]?.setor)
     const usuarioPermitido = usuariosPermitidos.includes(dados_setores[acesso.usuario]?.permissao)
 
