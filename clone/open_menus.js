@@ -70,6 +70,136 @@ async function identificacao_user() {
 
 }
 
+async function servicos(servico, alteracao) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/servicos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ servico, alteracao })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
+}
+
+async function ultimo_timestamp(tabela) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/timestamps", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tabela })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
+}
+
+async function configs() {
+
+    let status = await servicos('livre')
+
+    // timestamp para dados_setores: Sempre atualizado;
+    let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
+    let timestamp_atual_setores = await ultimo_timestamp('dados_setores')
+
+    if (timestamp_atual_setores.timestamp > (timestamps?.dados_setores || 0)) {
+        dados_setores = await lista_setores()
+        timestamps.dados_setores = timestamp_atual_setores.timestamp
+        localStorage.setItem('timestamps', JSON.stringify(timestamps))
+    } else {
+        dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    }
+
+    let linhas = ''
+    let listas = {
+        permissoes: ['', 'adm', 'user', 'gerente', 'diretoria', 'editor', 'log', 'qualidade'],
+        setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE']
+    }
+
+    for (usuario in dados_setores) {
+
+        let dados = dados_setores[usuario]
+        let opcoes_permissao = ''
+        let opcoes_setores = ''
+
+        listas.permissoes.forEach(permissao => {
+            opcoes_permissao += `
+            <option ${dados?.permissao == permissao ? 'selected' : ''}>${permissao}</option>
+            `
+        })
+
+        listas.setores.forEach(setor => {
+            opcoes_setores += `
+            <option ${dados?.setor == setor ? 'selected' : ''}>${setor}</option>
+            `
+        })
+
+        linhas += `
+        <tr>
+            <td>${usuario}</td>
+            <td>
+                <select style="font-size: 0.8vw;" onchange="alterar_usuario('permissao', '${usuario}', this)" style="cursor: pointer;">${opcoes_permissao}</select>
+            </td>
+            <td>
+                <select style="font-size: 0.8vw;" onchange="alterar_usuario('setor', '${usuario}', this)" style="cursor: pointer;">${opcoes_setores}</select>
+            </td>
+        </tr>
+        `
+    }
+
+    let tabela = `
+    <table class="tabela" style="width: max-content;">
+        <thead>
+            <tr>
+                <th>Usuários</th>
+                <th>Permissões</th>
+                <th>Setores</th>
+            </tr>
+        </thead>
+        <tbody>${linhas}</tbody>
+    </table>
+    `
+
+    let acumulado = `
+    <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 1vw;">
+        <label>Ative ou Desative a função:</label>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <input type="checkbox" style="width: 25px; height: 25px;" onchange="servicos('livre', this.checked)" ${status ? 'checked' : ''}>
+            <label>Modalidade Livre</label>
+        </div>
+
+        <hr style="width: 100%;">
+        <label>Gestão de Usuários</label>
+        ${tabela}
+    </div>
+    `
+
+    openPopup_v2(acumulado, 'Configurações')
+
+}
+
 function verificar_timestamp_nome(nome) {
     let regex = /^(\d{13})\.\w+$/;
     let match = nome.match(regex);
