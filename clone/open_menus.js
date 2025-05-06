@@ -43,8 +43,8 @@ async function identificacao_user() {
             localStorage.setItem('dados_setores', JSON.stringify(dados_setores))
         }
 
-        let permissao = await dados_setores[acesso.usuario]?.permissao
-        var texto = `
+        const permissao = await dados_setores[acesso?.usuario]?.permissao
+        const texto = `
             <div style="position: relative; display: fixed;">
                 <label onclick="deseja_sair()"
                 style="cursor: pointer; position: absolute; top: 10px; right: 10px; color: white; font-family: 'Poppins', sans-serif;">${acesso.usuario} • ${permissao} • Desconectar • ${versao}</label>
