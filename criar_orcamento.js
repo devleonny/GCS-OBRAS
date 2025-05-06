@@ -1751,6 +1751,7 @@ function salvar_preenchido() {
         telefone_vendedor: document.getElementById('telefone_vendedor').textContent,
         tipo_de_frete: document.getElementById('tipo_de_frete').value,
         vendedor: document.getElementById('vendedor').value,
+        emissor: document.getElementById('emissor').value
     };
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
@@ -1907,8 +1908,6 @@ function painel_clientes() {
                 </select>
             </div>
 
-            <br>
-
             <div class="linha">
                 <label>Garantia</label>
                 <input id="garantia" placeholder="1 Ano" oninput="salvar_preenchido()" value="${dados_orcam?.garantia || ''}">
@@ -1943,6 +1942,16 @@ function painel_clientes() {
             <div class="linha">
                 <label>Telefone</label>
                 <label id="telefone_vendedor"></label>
+            </div>
+
+            <label style="font-size: 1.5vw;">Quem emite essa nota?</label>
+            <div class="linha">
+                <label>Empresa</label>
+                <select style="text-align: center; width: 100%;" id="emissor" oninput="salvar_preenchido()">
+                    <option ${dados_orcam?.emissor == 'AC SOLUÇÕES' ? 'selected' : ''}>AC SOLUÇÕES</option>
+                    <option ${dados_orcam?.emissor == 'HNW' ? 'selected' : ''}>HNW</option>
+                    <option ${dados_orcam?.emissor == 'HNK' ? 'selected' : ''}>HNK</option>
+                </select>
             </div>
 
         </div>
