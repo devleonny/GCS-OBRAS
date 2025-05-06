@@ -708,7 +708,7 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
 
     try {
         // 2. Adicionar timeout para evitar loading infinito
-        const timeoutPromise = new Promise((_, reject) => 
+        const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Timeout ao salvar preço')), 10000)
         );
 
@@ -716,15 +716,15 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
         const saveOperation = (async () => {
             const dados_composicoes = await recuperarDados('dados_composicoes') || {};
             const produto = dados_composicoes[codigo];
-            
+
             if (!produto) throw new Error('Produto não encontrado');
-            
+
             // Inicializar estrutura se não existir
             produto[lpu] = produto[lpu] || { historico: {}, ativo: "" };
-            
+
             // Alternar estado ativo
             produto[lpu].ativo = produto[lpu].ativo === id_preco ? "" : id_preco;
-            
+
             // Atualizar valor principal se estiver ativando
             if (produto[lpu].ativo && produto[lpu].historico[produto[lpu].ativo]) {
                 produto[lpu].valor = produto[lpu].historico[produto[lpu].ativo].valor;
@@ -753,11 +753,11 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
         if (loader && document.body.contains(loader)) {
             document.body.removeChild(loader);
         }
-        
+
         // Fechar popup se existir
         const popup = document.getElementById('popup');
         if (popup) popup.remove();
-        
+
         // Recarregar dados
         await carregar_tabela_v2();
     }
@@ -914,6 +914,34 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
     }
 }
 
+function selecionarOrigemPorICMS(valorICMS) {
+    const icms = parseFloat(valorICMS);
+    const ICMS_IMPORTADO = 4;
+    const ICMS_NACIONAL = 20;
+    const ICMS_BAHIA = 12;
+
+    const icmsEImportado = icms === ICMS_IMPORTADO;
+    if (icmsEImportado) {
+        document.getElementById('importado').checked = true;
+    }
+
+    const icmsEDaBahia = icms === ICMS_BAHIA;
+    if (icmsEDaBahia) {
+        document.getElementById('bahia').checked = true;
+    }
+
+    const icmsENacional = icms >= ICMS_NACIONAL;
+    if (icmsENacional) {
+        document.getElementById('nacional').checked = true;
+    }
+
+    const icmsNacionalOuDaBahia = icms <= ICMS_BAHIA ? '12' : '20,5';
+    const selectICMS = document.getElementById('icms_saida');
+    if (selectICMS) {
+        selectICMS.value = icms <= ICMS_IMPORTADO ? '4' : icmsNacionalOuDaBahia;
+    }
+}
+
 async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
 
     let historico_preco = document.getElementById('historico_preco')
@@ -946,73 +974,93 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
 
     if (produto.tipo == 'VENDA') {
         acumulado = `
-        <div style="display: flex; align-items: start; justify-content: start; gap: 10px;">
-            <table class="tabela">
-                <thead>
-                    <th>Dados Iniciais</th>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Preço Unitário</td>
-                        <td style="background-color: #91b7d9;"><input type="number" id="custo" oninput="calcular()" value="${dados?.custo || 0}"></td>
-                    </tr>
-                    <tr>
-                        <td>Frete de Compra (2%)</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td>ICMS Creditado em nota (%)</td>
-                        <td style="background-color: #91b7d9;"><input id="icms_creditado" oninput="calcular()" value="${dados?.icms_creditado || ""}"></td>
-                    </tr>
-                    <tr>
-                        <td>Aliquota ICMS (Bahia)</td>
-                        <td><input value="20,5%" readOnly></td>
-                    </tr>
-                    <tr>
-                        <td>ICMS a ser pago (DIFAL)</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td>Valor do ICMS de Entrada</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td>Valor de Custo</td>
-                        <td id="valor_custo"></td>
-                    </tr>                                      
-                    <tr>
-                        <td>Margem de Acréscimo (%)</td>
-                        <td style="background-color: #91b7d9;"><input id="margem" type="number" oninput="calcular()" value="${dados?.margem || ''}"></td>
-                    </tr>
-                    <tr>
-                        <td>Preço de Venda</td>
-                        <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular(undefined, 'final')" value="${dados?.valor || 0}"></td>
-                    </tr>
-                    <tr>
-                        <td>Frete de Venda (5%)</td>
-                        <td></td>
-                    </tr>
-                </tbody>
-            </table>
-            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 1vw;">
+        <div style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 10px;">
+            <fieldset style="border: none; padding: 0; margin: 0; display: flex; gap: 10px;" onchange="calcular()">
+                <legend style="font-weight: bold; color: #333;">Selecione a origem do item:</legend>
+
+                <div style="padding: 8px; background: #91b7d9; border-radius: 4px; border: 1px solid #eee;">
+                    <input type="radio" id="importado" name="origem" value="4" style="margin-right: 8px;">
+                    <label for="importado" style="font-size: 0.8vw; cursor: pointer;">IMPORTADO</label>
+                </div>
+
+                <div style="padding: 8px; background: #91b7d9; border-radius: 4px; border: 1px solid #eee;">
+                    <input type="radio" id="nacional" name="origem" value="12" style="margin-right: 8px;">
+                    <label for="nacional" style="font-size: 0.8vw; cursor: pointer;">NACIONAL</label>
+                </div>
+
+                <div style="padding: 8px; background: #91b7d9; border-radius: 4px; border: 1px solid #eee;">
+                    <input type="radio" id="bahia" name="origem" value="12" style="margin-right: 8px;">
+                    <label for="bahia" style="font-size: 0.8vw; cursor: pointer;">BAHIA</label>
+                </div>
+            </fieldset>
+            <div style="display: flex; align-items: start; justify-content: start; gap: 10px;">
                 <table class="tabela">
                     <thead>
-                        <th>Resultados</th>
+                        <th>Dados Iniciais</th>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>LUCRO LIQUIDO</td>
-                            <td>R$ 0,00</td>
+                            <td>Preço Unitário</td>
+                            <td style="background-color: #91b7d9;"><input type="number" id="custo" oninput="calcular()" value="${dados?.custo || 0}"></td>
                         </tr>
                         <tr>
-                            <td>PERCENTUAL DE LUCRO</td>
-                            <td>0%</td>
+                            <td>Frete de Compra (2%)</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>ICMS Creditado em nota (%)</td>
+                            <td style="background-color: #91b7d9;"><input id="icms_creditado" oninput="selecionarOrigemPorICMS(this.value); calcular()" value="${dados?.icms_creditado || ""}"></td>
+                        </tr>
+                        <tr>
+                            <td>Aliquota ICMS (Bahia)</td>
+                            <td><input value="20,5%" readOnly></td>
+                        </tr>
+                        <tr>
+                            <td>ICMS a ser pago (DIFAL)</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Valor do ICMS de Entrada</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Valor de Custo</td>
+                            <td id="valor_custo"></td>
+                        </tr>                                      
+                        <tr>
+                            <td>Margem de Acréscimo (%)</td>
+                            <td style="background-color: #91b7d9;"><input id="margem" type="number" oninput="calcular()" value="${dados?.margem || ''}"></td>
+                        </tr>
+                        <tr>
+                            <td>Preço de Venda</td>
+                            <td style="background-color: #91b7d9;"><input id="final" type="number" oninput="calcular(undefined, 'final')" value="${dados?.valor || 0}"></td>
+                        </tr>
+                        <tr>
+                            <td>Frete de Venda (5%)</td>
+                            <td></td>
                         </tr>
                     </tbody>
                 </table>
+                <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 1vw;">
+                    <table class="tabela">
+                        <thead>
+                            <th>Resultados</th>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>LUCRO LIQUIDO</td>
+                                <td>R$ 0,00</td>
+                            </tr>
+                            <tr>
+                                <td>PERCENTUAL DE LUCRO</td>
+                                <td>0%</td>
+                            </tr>
+                        </tbody>
+                    </table>
 
-                ${painel}
+                    ${painel}
 
+                </div>
             </div>
         </div>
         <br>
@@ -1200,6 +1248,11 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
 
     </div>`
 
+    // Adicione esta chamada após inserir o HTML
+    if (dados?.icms_creditado) {
+        selecionarOrigemPorICMS(dados.icms_creditado);
+    }
+
     calcular(produto.tipo == 'SERVIÇO' ? 'servico' : undefined)
 
     setTimeout(() => {
@@ -1231,7 +1284,7 @@ async function salvar_preco(codigo, lpu, cotacao) {
         // 1. Verificar se o produto existe
         let dados_composicoes = await recuperarDados('dados_composicoes') || {};
         let produto = dados_composicoes[codigo];
-        
+
         if (!produto) {
             alert('Produto não encontrado!');
             return;
@@ -1448,7 +1501,7 @@ function calcular(tipo, campo) {
         let presuncao_csll_a_ser_pago = presuncao_csll * 0.09
         let pis = preco_venda * 0.0065
         let cofins = preco_venda * 0.03
-        let icms_saida = parseFloat(document.getElementById('icms_saida').value)/100
+        let icms_saida = parseFloat(document.getElementById('icms_saida').value) / 100
         let icms = preco_venda * icms_saida
 
         let total_impostos = irpj + adicional_irpj + presuncao_csll_a_ser_pago + pis + cofins + icms
