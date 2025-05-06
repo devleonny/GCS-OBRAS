@@ -13,8 +13,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     const permissaoVisualizar = document.getElementById("permissao_visualizar");
     const usuariosPermitidos = ['adm', 'gerente', 'diretoria']
     const setoresPermitidos = ['LOGÍSTICA']
-    const setorPermitido = setoresPermitidos.includes(dados_setores[acesso.usuario]?.setor)
-    const usuarioPermitido = usuariosPermitidos.includes(dados_setores[acesso.usuario]?.permissao)
+
+    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    acesso = await lista_setores(acesso.usuario)
+    let permissao = acesso.permissao
+
+    const setorPermitido = setoresPermitidos.includes(acesso?.setor)
+    const usuarioPermitido = usuariosPermitidos.includes(permissao)
 
     if (!(usuarioPermitido || setorPermitido)) {
         permissaoVisualizar.style.display = "none";
@@ -35,19 +40,21 @@ localStorage.removeItem('dados_agenda_tecnicos')
 
 identificacao_user()
 async function identificacao_user() {
-
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     acesso = await lista_setores(acesso.usuario)
     let permissao = acesso.permissao
+
 
     if (document.title !== 'PDF' && acesso.usuario) {
 
         let config = ''
 
-        if (permissao == 'adm' || permissao == 'adm') {
+        const usuarioPermissaoAdm = permissao == 'adm';
+        if (usuarioPermissaoAdm) {
             config = `
             <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;" onclick="configs()">
-        `}
+        `
+        }
 
         var texto = `
             <div style="position: relative; display: fixed;">
