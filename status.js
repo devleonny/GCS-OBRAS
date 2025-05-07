@@ -489,7 +489,7 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
     for (id in orcamento.dados_composicoes) {
         let item = orcamento.dados_composicoes[id]
         if (tipoRequisicao === 'infraestrutura') {
-            const descricao = dados_composicoes[item.codigo].descricao.toLowerCase();
+            const descricao = dados_composicoes[item.codigo]?.descricao.toLowerCase();
             if ((
                 descricao.includes('eletrocalha') ||
                 descricao.includes('eletroduto') ||
@@ -3169,8 +3169,12 @@ function calcularComparacao(inputElement) {
     const INDICE_TOTAL_COMPRA = 8;      // Coluna "Total de Compra" (nova)
     const INDICE_RESULTADO = 9;         // Coluna "Resultado" (nova)
     
+    
     // Obter valores
-    const quantidade = parseFloat(celulas[INDICE_QUANTIDADE].textContent) || 0;
+    const quantidadeText = celulas[INDICE_QUANTIDADE].querySelector('input') ?
+                        celulas[INDICE_QUANTIDADE].querySelector('input').value :
+                        celulas[INDICE_QUANTIDADE].textContent
+    const quantidade = parseFloat(quantidadeText) || 0;
     const valorTotalText = celulas[INDICE_VALOR_TOTAL].textContent;
     const valorTotal = parseFloat(valorTotalText.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()) || 0;
     const valorCompra = parseFloat(inputElement.value) || 0;
