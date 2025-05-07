@@ -49,10 +49,6 @@ function carregarIcones() {
             <img src="imagens/cotacao2.png">
             <label>Cotações</label>
         </div>
-        <div class="block" style="flex-direction: column;" onclick="window.location.href='calculadora.html'">
-            <img src="imagens/calculadora.png">
-            <label>Calculadora</label>
-        </div>
         <div class="block" style="flex-direction: column;" onclick="window.location.href='estoque.html'">
             <img src="imagens/estoque.png">
             <label>Estoque</label>
@@ -68,7 +64,7 @@ function carregarIcones() {
         <div class="block" style="flex-direction: column;" onclick="window.location.href='agenda.html'">
             <img src="imagens/agenda.png">
             <label>Agenda</label>
-        </div>        
+        </div>
     `
 
     if (ativar) {
