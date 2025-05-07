@@ -2720,6 +2720,15 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
         <div style="display: flex; gap: 10px; justify-content: center; align-items: center; background-color: #151749; border-top-left-radius: 5px; border-top-right-radius: 5px">
             <img src="imagens/pesquisar.png" style="width: 25px; height: 25px; padding: 5px;">
             <input id="pesquisa1" style="padding: 10px; border-radius: 5px; margin: 10px; width: 50%;" placeholder="Pesquisar" oninput="pesquisar_na_requisicao()">
+
+            <button class="botao-coluna" onclick="toggleColuna('valor_unitario')" style="padding: 8px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 0.8em; margin: 0 5px; transition: background-color 0.3s; ">Ocultar Valor Unit.</button>
+
+            <button class="botao-coluna" onclick="toggleColuna('valor_total')" style="padding: 8px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 0.8em; margin: 0 5px; transition: background-color 0.3s;">Ocultar Val. Total</button>
+
+            <button class="botao-coluna" onclick="adicionarColunasCompra()" style="padding: 8px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 0.8em; margin: 0 5px; transition: background-color 0.3s;">Adicionar Análise</button>
         </div>
         `
     }
@@ -2829,8 +2838,11 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
                 <th style="text-align: center;">Informações do Item</th>                        
                 <th style="text-align: center;">Tipo</th>         
                 <th style="text-align: center;">Quantidade</th>
-                <th style="text-align: center;">Valor Unitário</th>     
-                <th style="text-align: center;">Valor Total</th>         
+                <th style="text-align: center;">Valor Unitário</th>
+                <th style="text-align: center;">Valor de Compra</th> 
+                <th style="text-align: center;">Valor Total Orçado</th>    
+                <th style="text-align: center;">Valor Total de Compra</th>
+                <th style="text-align: center;">Resultado</th>
                 <th style="text-align: center;">Requisição</th>
             </thead>
             <tbody>
@@ -3009,8 +3021,114 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
     // mostrar_itens_adicionais()
 }
 
+function toggleColuna(tipo) {
+    const tabela = document.getElementById('tabela_requisicoes');
+    const cabecalhos = tabela.getElementsByTagName('th');
+    const linhas = tabela.getElementsByTagName('tr')
 
+    //Encontrar o indice da coluna
+    let indice = -1;
+    for (let i = 0; i < cabecalhos.length; i++) {
+        if ((tipo === 'valor_unitario' && cabecalhos[i].textContent.includes('Valor Unitário')))
+        {
+            indice = i;
+            break
+        } else if (tipo === 'valor_total' && cabecalhos[i].textContent.includes('Valor Total'))
+        {
+            indice = i;
+            break
+        }
+    }
 
+    if (indice === -1) return
+
+    //Alternar visibildiade
+    const botao = event.target;
+    const escondido = botao.textContent.startsWith('Ocultar')
+
+    //Atualizar texto do botão
+    botao.textContent = escondido ?
+        (tipo === 'valor_unitario' ? 'Mostrar Val. Unit.' : 'Mostrar Val. Total') :
+        (tipo === 'valor_unitario' ? 'Ocultar Val. Unit.' : 'Ocultar Val. Total');
+
+    for (let i=0; i < linhas.length; i++) {
+        const celulas = linhas[i].cells;
+        if (celulas.length > indice) {
+            celulas[indice].style.display = escondido ? 'none' : '';
+        }
+    }
+
+}
+              
+function adicionarColunasCompra() {
+    const tabela = document.getElementById('tabela_requisicoes');
+    const linhas = tabela.getElementsByTagName('tr')
+
+    //Indices das colunas relevantes
+    const COL_QTD = 4; //Índice da coluna de quantidade
+    const COL_VALOR_COMPRA = 6; //Índice da coluna Valor de Compra
+    const COL_TOTAL_COMPRA = 7; //Índice da coluna Total de Compra
+    const COL_VALOR_TOTAL = 8 //Índice da coluna Valor Total
+    const COL_RESULTADO = 9 //Índice da coluna resultado
+
+    //Adiciona as colunas nas linhas existentes
+    for (let i=0; i < linhas.length; i++) {
+        const celulas = linhas[i].cells
+
+        //Cria célula de Valor de Compra (input)
+        if (i === 0) { //Cabeçalho
+            const th = document.createElement('th');
+            th.textContent = i === 0 ? 'Valor de Compra' : '';
+            th.style.textAlign = 'center';
+            celulas[COL_VALOR_TOTAL-3].insertAdjacentElement("afterend", th.cloneNode(true));
+
+            th.textContent = i === 0 ? 'Total de Compra' : '';
+            celulas[COL_VALOR_TOTAL-2].insertAdjacentElement('afterend', th.cloneNode(true));
+
+            th.textContent = i === 0 ? 'Resultado' : '';
+            celulas[COL_VALOR_TOTAL-1].insertAdjacentElement('afterend', th.cloneNode(true))
+        } else {// Linhas de dados
+             //Célula valor de compra (input)
+             const tdInput = document.createElement('td');
+             tdInput.style.textAlign = 'center'
+             const input = document.createElement('input')
+             input.type = 'number';
+             input.style.width = '80px'
+             input.classList.add('valor-compra');
+             input.oninput = function() {calcularComparacao(this); };
+             tdInput.appendChild(input);
+             celulas[COL_VALOR_TOTAL-3].insertAdjacentElement('afterend', tdInput)
+
+             //Célula Total de Compra
+             const tdTotalCompra = document.createElement('td')
+             tdTotalCompra.style.textAlign = 'center'
+             tdTotalCompra.classList.add('total-compra');
+             celulas[COL_VALOR_TOTAL-2].insertAdjacentElement('afterend', tdTotalCompra);
+
+             //Célula Resultado
+             const tdResultado = document.createElement('td')
+             tdResultado.style.textAlign = 'center';
+             tdResultado.classList.add('resultado-compra');
+             celulas[COL_VALOR_TOTAL-1].insertAdjacentElement('afterend', tdResultado)
+        }
+    }
+}
+
+function calcularComparacao (inputElement) {
+    const linha = inputElement.closest('tr');
+    const qtd = parseFloat(linha.cells[4].textContent) || 0; //Coluna Quantidade
+    const valorCompra = parseFloat(inputElement.value) || 0;
+    const valorTotal = parseFloat(linha.cells[9].textContent.replace('R$', '').trim()) || 0; //Coluna valor total
+
+    //Calcula total de compra
+    const totalCompra = qtd * valorCompra
+    linha.cells[7].textContent = totalCompra.toLocaleDateString('pt-BR', {style: 'currency', currency:'BRL'});
+
+    //Calcula Resultado
+    const resultado = totalCompra - valorTotal;
+    const resultadoCell = linha.cells[8];
+    resultadoCell.textContent = resultado.toLocaleString
+}
 
 async function preencherDadosRequisicaoExistente(requisicoes) {
     const tabela = document.getElementById('tabela_requisicoes');
