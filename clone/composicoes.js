@@ -915,31 +915,27 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
 }
 
 function selecionarOrigemPorICMS(valorICMS) {
-    const icms = parseFloat(valorICMS);
+    const radioImportado = document.getElementById('importado');
+    const radioNacional = document.getElementById('nacional');
+    const radioBahia = document.getElementById('bahia');
+
+    let icms = parseFloat(valorICMS);
     const ICMS_IMPORTADO = 4;
     const ICMS_NACIONAL = 20;
     const ICMS_BAHIA = 12;
 
     const icmsEImportado = icms === ICMS_IMPORTADO;
-    if (icmsEImportado) {
-        document.getElementById('importado').checked = true;
-    }
+    if (icmsEImportado) radioImportado.checked = true;
 
     const icmsEDaBahia = icms === ICMS_BAHIA;
-    if (icmsEDaBahia) {
-        document.getElementById('bahia').checked = true;
-    }
+    if (icmsEDaBahia) radioBahia.checked = true;
 
     const icmsENacional = icms >= ICMS_NACIONAL;
-    if (icmsENacional) {
-        document.getElementById('nacional').checked = true;
-    }
+    if (icmsENacional) radioNacional.checked = true;
 
     const icmsNacionalOuDaBahia = icms <= ICMS_BAHIA ? '12' : '20,5';
     const selectICMS = document.getElementById('icms_saida');
-    if (selectICMS) {
-        selectICMS.value = icms <= ICMS_IMPORTADO ? '4' : icmsNacionalOuDaBahia;
-    }
+    if (selectICMS) selectICMS.value = icms <= ICMS_IMPORTADO ? '4' : icmsNacionalOuDaBahia;
 }
 
 async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
@@ -1248,7 +1244,6 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
 
     </div>`
 
-    // Adicione esta chamada após inserir o HTML
     if (dados?.icms_creditado) {
         selecionarOrigemPorICMS(dados.icms_creditado);
     }
