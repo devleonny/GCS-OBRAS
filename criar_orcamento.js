@@ -464,7 +464,7 @@ function mudar_tabela_pesquisa(tabela) {
 
 }
 
-async function recuperar_composicoes(tipo_tabela) {
+async function recuperarComposicoes(tipo_tabela) {
     let nuvem = await receber('dados_composicoes')
     await inserirDados(nuvem, 'dados_composicoes')
     await tabela_produtos_v2(tipo_tabela)
@@ -489,7 +489,7 @@ async function tabela_produtos_v2(tipo_tabela) {
         let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
         if (Object.keys(dados_composicoes) == 0) {
-            await recuperar_composicoes(tipo_tabela)
+            await recuperarComposicoes(tipo_tabela)
         }
 
         let linhas = ''
