@@ -166,7 +166,7 @@ async function carregar_tabela(sinc) {
 
     let tabela = `
         <div class="fundo_tabela" id="dados_agenda">
-            <table class="tabela" style="table-layout: fixed;">
+            <table id="tabelaAgenda" class="tabela" style="table-layout: fixed;">
                 <thead>
                     ${ths}
                 </thead>
@@ -224,6 +224,8 @@ async function carregar_tabela(sinc) {
     colorir_tabela()
 
     remover_popup()
+
+    filtrar_tabela('0', 'tabelaAgenda') // Script genérico que organiza a tabela com base na coluna e no ID da tabela.
 }
 
 async function apagar_dia(dia, omie_tecnico, div) {
