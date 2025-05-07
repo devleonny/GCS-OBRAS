@@ -625,7 +625,11 @@ async function abrir_historico_de_precos(codigo, tabela) {
             <td>${historico[cotacao].data}</td>
             <td>${historico[cotacao].usuario}</td>
             <td>${historico[cotacao].fornecedor}</td>
-            <td><input type="checkbox" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_preco_ativo('${codigo}', '${cotacao}', '${tabela}')" ${marcado}></td>
+
+            <td>
+                <input type="radio" name="preco" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_preco_ativo('${codigo}', '${cotacao}', '${tabela}')" ${marcado}>
+            </td>
+            
             <td><textarea style="border: none;" readOnly>${historico[cotacao]?.comentario || ''}</textarea></td>
             <td style="text-align: center;">
                 <img src="imagens/cancel.png" style="width: 2vw; cursor: pointer;" onclick="excluir_cotacao('${codigo}', '${tabela}', '${cotacao}')">
@@ -762,100 +766,6 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
         await carregar_tabela_v2();
     }
 }
-// async function salvar_preco_ativo(codigo, id_preco, lpu) {
-
-//     var dados_composicoes = await recuperarDados('dados_composicoes') || {};
-//     var produto = dados_composicoes[codigo];
-//     var historico_preco = document.getElementById('historico_preco');
-
-//     if (historico_preco) {
-//         var tabela = historico_preco.querySelector('table');
-//         var tbody = tabela.querySelector('tbody');
-//         var trs = tbody.querySelectorAll('tr');
-
-//         // 🔥 Adicionar o aviso de "Aguarde..." dentro do container da tabela
-//         const aviso = document.createElement('div');
-//         aviso.id = "aviso-aguarde";
-//         aviso.style = `
-//             display: flex; 
-//             align-items: center; 
-//             justify-content: center; 
-//             background-color: rgba(0, 0, 0, 0.7); 
-//             color: white; 
-//             position: absolute; 
-//             top: 0; 
-//             left: 0; 
-//             width: 100%; 
-//             height: 100%; 
-//             z-index: 10; 
-//             font-size: 1.5em; 
-//             border-radius: 5px;
-//         `;
-//         aviso.innerHTML = `<div>Aguarde...</div>`;
-//         historico_preco.style.position = "relative"; // Garante que o aviso seja posicionado corretamente
-//         historico_preco.appendChild(aviso);
-
-//         // 🔥 Ocultar a tabela enquanto o aviso é exibido
-//         tabela.style.opacity = "0.3"; // Reduz a opacidade da tabela
-
-//         // 🔥 Desmarca todos os checkboxes antes de ativar o novo
-//         trs.forEach(tr => {
-//             let tds = tr.querySelectorAll('td');
-//             let checkbox = tds[6].querySelector('input');
-//             checkbox.checked = false; // Remove todas as marcações
-//         });
-
-//         let algumMarcado = false;
-
-//         // 🔥 Agora percorre e marca apenas o checkbox correto
-//         for (let tr of trs) {
-//             let tds = tr.querySelectorAll('td');
-//             let checkbox = tds[6].querySelector('input');
-
-//             if (id_preco === produto[lpu]?.ativo) {
-//                 // Desmarcando o preço ativo
-//                 produto[lpu].ativo = "";
-//                 await inserirDados(dados_composicoes, 'dados_composicoes');
-//                 await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
-
-//                 // 🔥 Remover o aviso e restaurar a tabela
-//                 aviso.remove();
-//                 tabela.style.opacity = "1"; // Restaura a opacidade
-//                 carregar_tabela_v2();
-//                 return abrir_historico_de_precos(codigo, lpu);
-//             }
-
-//             if (checkbox.checked || id_preco) {
-//                 checkbox.checked = true; // Garante a marcação
-//                 produto[lpu].ativo = id_preco;
-//                 algumMarcado = true;
-
-//                 await inserirDados(dados_composicoes, 'dados_composicoes');
-//                 await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco);
-
-//                 historico_preco.remove();
-
-//                 // 🔥 Remover o aviso e restaurar a tabela
-//                 aviso.remove();
-//                 tabela.style.opacity = "1"; // Restaura a opacidade
-//                 remover_popup();
-//                 return abrir_historico_de_precos(codigo, lpu);
-//             }
-//         }
-
-//         // 🔥 Se nenhum checkbox foi marcado, remove o ativo
-//         if (!algumMarcado) {
-//             produto[lpu].ativo = "";
-//             await inserirDados(dados_composicoes, 'dados_composicoes');
-//             await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
-//         }
-
-//         // 🔥 Remover o aviso e restaurar a tabela
-//         aviso.remove();
-//         tabela.style.opacity = "1"; // Restaura a opacidade
-//         carregar_tabela_v2();
-//     }
-// }
 
 async function excluir_cotacao(codigo, lpu, cotacao) {
     var historico_preco = document.getElementById('historico_preco');
@@ -1281,8 +1191,7 @@ async function salvar_preco(codigo, lpu, cotacao) {
         let produto = dados_composicoes[codigo];
 
         if (!produto) {
-            alert('Produto não encontrado!');
-            return;
+            return openPopup_v2('Produto não encontrado!', 'Aviso', true);
         }
 
         // 2. Coletar valores dos campos - DE FORMA NÃO-DESTRUTIVA
@@ -1302,15 +1211,13 @@ async function salvar_preco(codigo, lpu, cotacao) {
 
         // 3. Validações obrigatórias
         if (final <= 0) {
-            alert('Preço final inválido!');
-            return;
+            return openPopup_v2('Preço final inválido!', 'Aviso', true);
         }
 
         // VALIDAÇÃO DO ICMS CREDITADO (APENAS PARA PRODUTOS DE VENDA)
         if (produto.tipo === 'VENDA') {
             if (icms_creditado === null || icms_creditado === "" || isNaN(parseFloat(icms_creditado))) {
-                alert('O campo ICMS Creditado é obrigatório! Informe um valor numérico (pode ser 0).');
-                return;
+                return openPopup_v2('O campo ICMS Creditado é obrigatório! Informe um valor numérico (pode ser 0).', 'Aviso', true);
             }
         }
 
@@ -1351,7 +1258,6 @@ async function salvar_preco(codigo, lpu, cotacao) {
 
     } catch (error) {
         console.error('Erro ao salvar preço:', error);
-        alert('Erro ao salvar: ' + error.message);
     } finally {
         if (loader && document.body.contains(loader)) {
             document.body.removeChild(loader);
@@ -1777,8 +1683,7 @@ function salvarNovaLPU() {
     let texto_aviso = document.getElementById("texto-aviso")
 
     if (nomeLPU === "") {
-        alert("Digite um nome válido para a LPU!");
-        return;
+        return openPopup_v2('Digite um nome válido para a LPU!', 'Aviso', true);
     }
 
     nomeLPU = nomeLPU.toLowerCase(); // Converte para maiúsculas
