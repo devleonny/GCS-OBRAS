@@ -1,4 +1,5 @@
 var versao = 'v3.0.5'
+let acesso = JSON.parse(localStorage.getItem('acesso'))
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F5') {
@@ -11,10 +12,91 @@ function f5() {
 }
 
 identificacao_user()
+carregarIcones()
+
+function ativarCloneGCS(ativar) {
+
+    localStorage.setItem('modoClone', ativar)
+
+    carregarIcones()
+
+    corFundo()
+
+}
+
+function carregarIcones() {
+
+    if (document.title != 'Página Inicial') return
+
+    let ativar = JSON.parse(localStorage.getItem('modoClone')) || false
+
+    let painel_geral = document.getElementById('painel_geral')
+
+    let icones = `
+        <div class="block" style="flex-direction: column;" onclick="window.location.href='orcamentos.html'">
+            <img src="imagens/projeto.png">
+            <label>Orçamentos</label>
+        </div>
+        <div class="block" style="flex-direction: column;" onclick="window.location.href='composicoes.html'">
+            <img src="imagens/composicoes.png">
+            <label>Composições</label>
+        </div>
+        <div class="block" style="flex-direction: column;" onclick="window.location.href='chamados.html'">
+            <img src="imagens/chamados.png">
+            <label>Chamados</label>
+        </div>
+        <div class="block" style="flex-direction: column;" onclick="window.location.href='cotacoes.html'">
+            <img src="imagens/cotacao2.png">
+            <label>Cotações</label>
+        </div>
+        <div class="block" style="flex-direction: column;" onclick="window.location.href='calculadora.html'">
+            <img src="imagens/calculadora.png">
+            <label>Calculadora</label>
+        </div>
+        <div class="block" style="flex-direction: column;" onclick="window.location.href='estoque.html'">
+            <img src="imagens/estoque.png">
+            <label>Estoque</label>
+        </div>
+        <div class="block" style="flex-direction: column;" onclick="window.location.href='pagamentos.html'">
+            <img src="imagens/reembolso.png">
+            <label>Reembolsos & Pagamentos</label>
+        </div>
+        <div class="block" style="flex-direction: column;" onclick="window.location.href='projetos.html'">
+            <img src="imagens/kanban.png">
+            <label>Painel Kanban</label>
+        </div>
+        <div class="block" style="flex-direction: column;" onclick="window.location.href='agenda.html'">
+            <img src="imagens/agenda.png">
+            <label>Agenda</label>
+        </div>        
+    `
+
+    if (ativar) {
+
+        icones = `
+            <div class="block" style="flex-direction: column;" onclick="window.location.href='orcamentos.html'">
+                <img src="imagens/projeto.png">
+                <label>Orçamentos</label>
+            </div>
+            <div class="block" style="flex-direction: column;" onclick="window.location.href='composicoes.html'">
+                <img src="imagens/composicoes.png">
+                <label>Composições</label>
+            </div>
+        `
+    }
+
+    painel_geral.innerHTML = icones
+}
+
+function corFundo() {
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    document.body.style.background = modoClone ? 'linear-gradient(45deg,rgb(36, 159, 65), #151749)' : 'linear-gradient(45deg,  #B12425, #151749)'
+}
 
 async function identificacao_user() {
 
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    corFundo()
+
     acesso = await lista_setores(acesso.usuario)
     let permissao = acesso.permissao
 
@@ -24,8 +106,8 @@ async function identificacao_user() {
 
         if (permissao == 'adm' || permissao == 'adm') {
             config = `
-            <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;" onclick="configs()">
-        `}
+            <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;" onclick="configs()">`
+        }
 
         var texto = `
             <div style="position: relative; display: fixed;">
@@ -235,10 +317,13 @@ async function reprocessar_offline() {
     }
 }
 
-
 function inserirDados(dados, nome_da_base) {
     const request = indexedDB.open('Bases');
     let novaVersao;
+
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+
+    if (modoClone) nome_da_base = `${nome_da_base}_clone`
 
     request.onsuccess = function (event) {
         const db = event.target.result;
@@ -314,6 +399,10 @@ function executarTransacao(db, nome_da_base, dados) {
 
 async function recuperarDados(nome_da_base) {
     return new Promise((resolve, reject) => {
+
+        let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+
+        if (modoClone) nome_da_base = `${nome_da_base}_clone`
 
         const request = indexedDB.open('Bases');
 
@@ -562,7 +651,7 @@ async function para_excel(tabela_id, nome_personalizado) {
 
         // 3. Clone e preparação da tabela
         const tabelaClone = tabela.cloneNode(true);
-        
+
         // Processar elementos interativos
         tabelaClone.querySelectorAll('input, textarea, select').forEach(elemento => {
             const celula = elemento.closest('td, th');
@@ -587,8 +676,8 @@ async function para_excel(tabela_id, nome_personalizado) {
 
         // 5. Nome do arquivo
         const data = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        const nomeArquivo = nome_personalizado 
-            ? `${nome_personalizado}_${data}.xlsx` 
+        const nomeArquivo = nome_personalizado
+            ? `${nome_personalizado}_${data}.xlsx`
             : `exportacao_${data}.xlsx`;
 
         // 6. Exportação
@@ -598,13 +687,13 @@ async function para_excel(tabela_id, nome_personalizado) {
 
     } catch (erro) {
         console.error("Erro detalhado:", erro);
-        
+
         // Mensagem amigável para o usuário
         let mensagem = erro.message;
         if (erro.message.includes('XLSX is not defined')) {
             mensagem = "Biblioteca de exportação não carregada. Recarregue a página e tente novamente.";
         }
-        
+
         openPopup_v2(`
             <div style="color: #b71c1c; padding: 20px; text-align: center;">
                 <h3>⚠️ Erro na Exportação</h3>
@@ -1321,7 +1410,12 @@ function capturarValorCelula(celula) {
 
 //--- NOVO SERVIÇO DE ARMAZENAMENTO ---\\
 async function receber(chave) {
-    const url = `https://leonny.dev.br/dados?chave=${chave}`;
+    let url = `https://leonny.dev.br/dados?chave=${chave}`;
+
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    if (modoClone) {
+        url += `&app=clone`
+    }
 
     let obs = {
         method: "GET",
@@ -1346,20 +1440,28 @@ async function receber(chave) {
 
 async function deletar(chave) {
     const url = `https://leonny.dev.br/deletar`;
+
+    let objeto = { chave }
+
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    if (modoClone) {
+        objeto.app = 'clone'
+    }
+
     return new Promise((resolve) => {
         fetch(url, {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ chave })
+            body: JSON.stringify(objeto)
         })
             .then(response => response.json())
             .then(data => {
                 resolve(data);
             })
             .catch(() => {
-                salvar_offline({ chave: chave }, 'deletar')
+                salvar_offline(objeto, 'deletar')
                 resolve();
             });
     });
@@ -1371,6 +1473,11 @@ function enviar(caminho, info) {
             caminho: caminho,
             valor: info
         };
+
+        let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+        if (modoClone) {
+            objeto.app = 'clone'
+        }
 
         fetch("https://leonny.dev.br/salvar", {
             method: "POST",
@@ -1806,10 +1913,13 @@ function resposta_desconto(botao, id, status) {
 
 async function verificar_chamado_existente(chamado, id_atual, sequencial) {
     return new Promise((resolve, reject) => {
+
+        let clone = JSON.parse(localStorage.getItem('modoClone')) || false
+
         fetch("https://leonny.dev.br/chamado", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chamado, id_atual, sequencial })
+            body: JSON.stringify({ chamado, id_atual, sequencial, clone })
         })
             .then(response => {
                 if (!response.ok) {

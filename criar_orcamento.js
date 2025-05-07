@@ -170,7 +170,7 @@ async function carregar_tabelas() {
         await recuperar_dados_composicoes()
     }
 
-    let tabelas = ['serviço', 'venda', 'locacao'];
+    let tabelas = ['serviço', 'venda'];
 
     tabelas.forEach(tabela => {
 
@@ -190,8 +190,7 @@ async function carregar_tabelas() {
             <th>Tipo</th>
             <th>Imagem *Ilustrativa</th>
             <th>Remover</th>
-
-        `
+            `
     })
 
     let desconto_geral = document.getElementById('desconto_geral')
@@ -205,15 +204,10 @@ async function carregar_tabelas() {
 
     if (orcamento_v2.dados_composicoes) {
 
-        if (orcamento_v2.dados_composicoes_orcamento) {
-            orcamento_v2 = await conversor_composicoes_orcamento(orcamento_v2)
-        }
+        let itens = orcamento_v2.dados_composicoes
+        for (codigo in itens) {
 
-        for (codigo in orcamento_v2.dados_composicoes) {
-
-            let item = orcamento_v2.dados_composicoes[codigo]
-
-            await incluir_item(codigo, item.qtde, undefined, item.tipo)
+            await incluir_item(codigo, itens[codigo].qtde)
 
         }
 
@@ -478,70 +472,28 @@ async function recuperar_composicoes(tipo_tabela) {
 
 async function tabela_produtos_v2(tipo_tabela) {
 
-    var tabela_itens = document.getElementById('tabela_itens')
+    let tabela_itens = document.getElementById('tabela_itens')
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
 
     if (tabela_itens) {
         tabela_itens.innerHTML = '';
 
-        var dados_composicoes = await recuperarDados('dados_composicoes') || {}
+        let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
         if (Object.keys(dados_composicoes) == 0) {
             await recuperar_composicoes(tipo_tabela)
         }
 
-        var linhas = ''
+        let linhas = ''
 
-        for (pod in dados_composicoes) {
-            var produto = dados_composicoes[pod]
+        for (codigo in dados_composicoes) {
+            let produto = dados_composicoes[codigo]
 
-            if (tipo_tabela == "LOCAÇÃO" && produto.locacao?.ativo) {
+            if (tipo_tabela == produto.tipo || tipo_tabela == undefined) {
 
-                let ativo = produto.locacao.ativo
-
-                let historico = produto.locacao.historico
-
-                let locacao = historico[ativo].valor
-
-                let td_quantidade = `
-                    <input type="number" class="numero-bonito" oninput="incluir_item('${pod}', this.value, undefined, '${tipo_tabela}')">
-                    `
-                if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[pod] && orcamento_v2.dados_composicoes[pod].agrupamentos) {
-                    td_quantidade = `
-                        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-                            <img src="gifs/lampada.gif" style="width: 25px; heigth: 25px;">
-                            <label>Lançar avulso</label>
-                        </div>
-                        <input type="number" class="numero-bonito" style="background-color: orange;" oninput="incluir_item('[AVULSO] ${pod}', this.value)">
-                        `
-                }
-
-                var imagem = 'https://i.imgur.com/Nb8sPs0.png'
-                if (produto.imagem) {
-                    imagem = produto.imagem
-                }
-
-                linhas += `
-                        <tr>
-                            <td style="white-space: nowrap;">${pod}</td>
-                            <td>${produto.descricao}</td>
-                            <td>${produto.fabricante}</td>
-                            <td>${produto.modelo}</td>
-                            <td>${produto.tipo}</td>
-                            <td style="text-align: center;">${td_quantidade}</td>
-                            <td>Diário</td>
-                            <td style="white-space: nowrap;">${dinheiro(locacao)}</td>
-                            <td style="text-align: center;">
-                                <img src="${imagem}" style="width: 70px; cursor: pointer;" onclick="ampliar_especial(this, '${pod}')">
-                            </td>
-                        </tr>
-                    `
-
-            } else if (tipo_tabela == produto.tipo || tipo_tabela == undefined) {
-
-                var preco = 0
-                var ativo = 0
-                var historico = 0
+                let preco = 0
+                let ativo = 0
+                let historico = 0
                 let lpu;
 
                 if (document.getElementById('lpu')) {
@@ -553,21 +505,21 @@ async function tabela_produtos_v2(tipo_tabela) {
                 if (produto[lpu] && produto[lpu].ativo && produto[lpu].historico) {
                     ativo = produto[lpu].ativo
                     historico = produto[lpu].historico
-                    preco = historico[ativo].valor
+                    preco = historico[ativo]?.valor || 0
                 }
 
-                if (preco !== 0 && produto.status != "INATIVO") {
+                if (produto.status != "INATIVO") {
 
                     let td_quantidade = `
-                    <input type="number" class="numero-bonito" oninput="incluir_item('${pod}', this.value)">
+                    <input type="number" class="numero-bonito" oninput="incluir_item('${codigo}', this.value)">
                     `
-                    if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[pod] && orcamento_v2.dados_composicoes[pod].agrupamentos) {
+                    if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigo] && orcamento_v2.dados_composicoes[codigo].agrupamentos) {
                         td_quantidade = `
                         <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
                             <img src="gifs/lampada.gif" style="width: 25px; heigth: 25px;">
                             <label>Lançar avulso</label>
                         </div>
-                        <input type="number" class="numero-bonito" style="background-color: orange;" oninput="incluir_item('[AVULSO] ${pod}', this.value)">
+                        <input type="number" class="numero-bonito" style="background-color: orange;" oninput="incluir_item('[AVULSO] ${codigo}', this.value)">
                         `
                     }
 
@@ -578,16 +530,24 @@ async function tabela_produtos_v2(tipo_tabela) {
 
                     linhas += `
                         <tr>
-                            <td style="white-space: nowrap;">${pod}</td>
-                            <td>${produto.descricao}</td>
+                            <td style="white-space: nowrap;">${codigo}</td>
+                            <td style="position: relative;">
+                                <div style="display: flex; justify-content: start; align-items: center; gap: 10px;">
+                                    <img src="imagens/editar.png" style="width: 1.5vw; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')">
+                                    <label>${produto.descricao}</label>
+                                </div>
+                                ${(produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) ? `<img src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 1vw; width: 1.5vw; cursor: pointer;">` : ''}
+                            </td>
                             <td>${produto.fabricante}</td>
                             <td>${produto.modelo}</td>
                             <td>${produto.tipo}</td>
                             <td style="text-align: center;">${td_quantidade}</td>
                             <td>${produto.unidade}</td>
-                            <td style="white-space: nowrap;">${dinheiro(preco)}</td>
+                            <td style="white-space: nowrap;">
+                                <label onclick="abrir_historico_de_precos('${codigo}', '${lpu}')" class="${preco != 0 ? 'valor_preenchido' : 'valor_zero'}">${dinheiro(preco)}</label>
+                            </td>
                             <td style="text-align: center;">
-                                <img src="${imagem}" style="width: 70px; cursor: pointer;" onclick="ampliar_especial(this, '${pod}')">
+                                <img src="${imagem}" style="width: 70px; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">
                             </td>
                         </tr>
                     `
@@ -595,49 +555,28 @@ async function tabela_produtos_v2(tipo_tabela) {
             }
         }
 
-        var cores = {
+        let cores = {
             VENDA: '#B12425',
             SERVIÇO: 'green',
-            LOCAÇÃO: 'blue',
             undefined: 'rgb(179, 116, 0)'
         }
 
-        var colunas = ['Código', 'Descrição', 'Fabricante', 'Modelo', 'Tipo', 'Quantidade', 'Unidade', 'Valor', 'Imagem *Ilustrativa']
-        var ths = ''
-        var tsh = ''
+        let colunas = ['Código', 'Descrição', 'Fabricante', 'Modelo', 'Tipo', 'Quantidade', 'Unidade', 'Valor', 'Imagem *Ilustrativa']
+        let ths = ''
+        let tsh = ''
         colunas.forEach((col, i) => {
-            ths += `<th>${col}</th>`
+            ths += `<th style="color: white;">${col}</th>`
             tsh += `
             <th style="background-color: white; border-radius: 0px;">
                 <div style="position: relative;">
-                    <input placeholder="${col}" style="margin-left: 25px; text-align: left;" oninput="pesquisar_v2(this, ${i})">
+                    <input style="margin-left: 25px; text-align: left;" oninput="pesquisar_v2(this, ${i})">
                     <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
                 </div>
             </th>
             `
         })
 
-        let acesso = JSON.parse(localStorage.getItem('acesso'))
-
-        let displayLocacao = 'none'
-
-        if (acesso.permissao == 'adm') {
-
-            displayLocacao = 'flex'
-
-        }
-
         var acumulado = `
-        <div style="display: flex; justify-content: center; width: 100%; margin-top: 30px; gap: 10px;">
-            <label class="menu_top_geral" onclick="tabela_produtos_v2()">Todos</label>
-            <label class="menu_top_serviço" onclick="tabela_produtos_v2('SERVIÇO')">Serviço</label>
-            <label class="menu_top_venda" onclick="tabela_produtos_v2('VENDA')">Venda</label>
-            <label style="display: ${displayLocacao}" class="menu_top_locacao" onclick="tabela_produtos_v2('LOCAÇÃO')">Locação</label>
-            <div style="display: flex; gap: 10px; justify-content: center; align-items: center;" onclick="recuperar_composicoes()">
-                <img src="imagens/atualizar_2.png" style="width: 30px; cursor: pointer;">
-                <label style="color: white; cursor: pointer;">Atualizar</label>
-            </div>
-        </div>
         <table class="tabela" style="background-color: ${cores[tipo_tabela]}">
             <thead>
                 ${ths}

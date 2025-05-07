@@ -205,7 +205,7 @@
             border-collapse: collapse;
         }
 
-        #cabecalho_locacao{
+        #cabecalho_locacao {
             background-color: blue;
             border-radius: 5px;
             border-collapse: collapse;
@@ -224,8 +224,7 @@
         #cabecalho_serviço th,
         #cabecalho_serviço td,
         #cabecalho_locacao th,
-        #cabecalho_locacao td
-        #tabela_composicoes th,
+        #cabecalho_locacao td #tabela_composicoes th,
         #tabela_composicoes td,
         #tabela_itens th,
         #tabela_itens td {
@@ -240,16 +239,12 @@
             background-color: transparent;
         }
 
-        #penumbra {
-            border-radius: 5px;
-            height: 700px;
-            overflow-y: auto;
-        }
-
         #tabela_itens {
             width: 100%;
             border-radius: 5px;
             border-collapse: collapse;
+            height: 700px;
+            overflow-y: auto;
         }
 
         #tabela_itens th {
@@ -519,57 +514,6 @@
     </style>
 </head>
 
-<script>
-    // Função para inicializar um novo orçamento vazio
-    function inicializarNovoOrcamento() {
-        const acesso = JSON.parse(localStorage.getItem('acesso')) || {};
-        return {
-            dados_orcam: {
-                data: new Date().toISOString(),
-                contrato: '',
-                cliente_selecionado: '',
-                cidade: '',
-                analista: acesso.nome_completo || '',
-                email_analista: acesso.email || '',
-                telefone_analista: acesso.telefone || '',
-                observacoes: ''
-            },
-            levantamentos: {},
-            status: {
-                atual: 'INCLUIR PEDIDO'
-            },
-            produtos: {
-                venda: {},
-                servico: {},
-                locacao: {}
-            },
-            total_geral: 0,
-            lpu_ativa: 0,
-            desconto_geral: {
-                tipo: 'Porcentagem',
-                valor: 0
-            }
-        };
-    }
-
-    // Verificação ao carregar a página
-    document.addEventListener('DOMContentLoaded', function() {
-        // Verifica se veio de um novo orçamento ou edição
-        let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2'));
-        
-        // Se não existir orçamento no localStorage ou estiver corrompido, cria um novo
-        if (!orcamento_v2 || typeof orcamento_v2 !== 'object') {
-            orcamento_v2 = inicializarNovoOrcamento();
-            localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
-            console.log('Novo orçamento inicializado');
-        } else {
-            console.log('Orçamento existente carregado');
-        }
-        
-        // Aqui você pode chamar suas funções de preenchimento da página
-        // preencherDadosOrcamento(orcamento_v2);
-    });
-    </script>
 <body>
 
     <div id="content" class="cont">
@@ -606,12 +550,14 @@
                         <label>Apagar Orçamento</label>
                     </div>
 
-                    <div id="mod_livre" style="display: none;" class="btn_menu" onclick="modalidade_livre_de_orcamento()">
+                    <div id="mod_livre" style="display: none;" class="btn_menu"
+                        onclick="modalidade_livre_de_orcamento()">
                         <img src="gifs/alerta.gif">
                         <label style="cursor: pointer;">Modalidade livre</label>
                     </div>
 
-                    <div id="voltar-orcamento" class="btn_menu" onclick="orcamento_que_deve_voltar(), limparESair(),  window.location.href='orcamentos.html'">
+                    <div id="voltar-orcamento" class="btn_menu"
+                        onclick="orcamento_que_deve_voltar(),  window.location.href='orcamentos.html'">
                         <img src="imagens/voltar_2.png">
                         <label>Voltar</label>
                     </div>
@@ -643,7 +589,7 @@
                         <label style="white-space: nowrap; margin-right: 2vw; font-size: 1.0vw;">Desconto
                             Geral</label>
                         <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                            <select style="background-color: white; color: #222;" onchange="total()">
+                            <select style="background-color: white; color: #222; padding: 5px; border-radius: 3px;" onchange="total()">
                                 <option>Porcentagem</option>
                                 <option>Dinheiro</option>
                             </select>
@@ -709,6 +655,26 @@
                 </table>
             </div>
 
+            <div
+                style="position: relative; display: flex; justify-content: center; width: 100%; margin-top: 30px; gap: 10px;">
+                <label class="menu_top_geral" onclick="tabela_produtos_v2()">Todos</label>
+                <label class="menu_top_serviço" onclick="tabela_produtos_v2('SERVIÇO')">Serviço</label>
+                <label class="menu_top_venda" onclick="tabela_produtos_v2('VENDA')">Venda</label>
+
+                <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
+                    onclick="cadastrar_editar_item()">
+                    <img src="imagens/add.png" style="width: 30px; cursor: pointer;">
+                    <label style="color: white; cursor: pointer;">Criar Item</label>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
+                    onclick="recuperar_composicoes()">
+                    <img src="imagens/atualizar_2.png" style="width: 30px; cursor: pointer;">
+                    <label style="color: white; cursor: pointer;">Atualizar</label>
+                </div>
+
+            </div>
+
             <div id="penumbra">
 
                 <div id="tabela_itens"></div>
@@ -720,53 +686,12 @@
 
     <div id="orcamento_livre"></div>
 
-    <script>
-        // Função para limpar e sair
-        function limparESair() {
-            // Opção 1: Remove completamente (recomendado para fluxo de novo orçamento)
-            localStorage.removeItem('orcamento_v2');
-            
-            // Opção 2: Mantém os dados mas sinaliza que foi cancelado
-            // const orcamento = JSON.parse(localStorage.getItem('orcamento_v2'));
-            // orcamento.cancelado = true;
-            // localStorage.setItem('orcamento_v2', JSON.stringify(orcamento));
-            
-            window.location.href = 'orcamentos.html';
-        }
-    
-        // Função para salvar (mantenha sua função existente, mas adicione verificação)
-        async function enviar_dados() {
-            const orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2'));
-            
-            // Verifica se é um orçamento válido
-            if (!orcamento_v2 || !orcamento_v2.dados_orcam) {
-                alert('Erro: Dados do orçamento inválidos. Crie um novo orçamento.');
-                return;
-            }
-            
-            // Sua lógica existente de salvamento aqui...
-            
-            // Após salvar com sucesso, você pode:
-            // 1. Manter os dados para continuar editando
-            // 2. Limpar para criar um novo
-            // localStorage.removeItem('orcamento_v2');
-        }
-    
-        // Função para apagar (adicione limpeza do localStorage)
-        function apagar_orçamento() {
-            if (confirm('Tem certeza que deseja apagar este orçamento?')) {
-                localStorage.removeItem('orcamento_v2');
-                // Sua lógica existente para apagar do banco de dados...
-                window.location.href = 'orcamentos.html';
-            }
-        }
-    </script>
-
 </body>
 
 <script src="modalidade_livre.js"></script>
 <script src="open_menus.js"></script>
 <script src="upload_imagens.js"></script>
 <script src="criar_orcamento.js"></script>
+<script src="composicoes.js"></script>
 
 </html>

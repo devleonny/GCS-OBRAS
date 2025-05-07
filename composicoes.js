@@ -2,9 +2,8 @@ var dados = {}
 var filtrosAtivos = {};
 var composicoes_ = document.getElementById('composicoes_')
 var overlay = document.getElementById('overlay')
-var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
-document.getElementById("btn-criar-lpu").addEventListener("click", function () {
+function criar_lpu() {
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
             <label style="font-size: 1.2em;">Digite o nome da nova LPU:</label>
@@ -12,9 +11,8 @@ document.getElementById("btn-criar-lpu").addEventListener("click", function () {
             <label id="texto-aviso" style="display: none; color: red;"></label>
             <button onclick="salvarNovaLPU()" style="background-color: #026CED; color: white; padding: 10px; border: none; cursor: pointer; width: 80%;">Salvar</button>
         </div>
-    `);
-});
-
+    `, 'Nova LPU');
+}
 
 function pesquisar_em_composicoes(elemento) {
     var tabela = composicoes_.querySelector('table');
@@ -42,6 +40,7 @@ function pesquisar_em_composicoes(elemento) {
         tr.style.display = exibir ? '' : 'none';
     });
 }
+
 carregar_tabela_v2()
 
 async function recuperar_composicoes() {
@@ -80,6 +79,17 @@ async function carregar_tabela_v2() {
 
     var colunas = JSON.parse(localStorage.getItem('colunas_composicoes')) || [];
 
+    const idxCat = colunas.indexOf('categoria de equipamento');
+    const idxSis = colunas.indexOf('sistema');
+
+    if (idxCat !== -1 && idxSis !== -1 && Math.abs(idxCat - idxSis) !== 1) {
+        // Remove os dois
+        colunas = colunas.filter(c => c !== 'categoria de equipamento' && c !== 'sistema');
+        // Define a posição onde quer inserir (por exemplo, no início)
+        const posicao = 0;
+        colunas.splice(posicao, 0, 'categoria de equipamento', 'sistema');
+    }
+
     if (acesso.permissao == 'adm') {
         var adicionar_item = document.getElementById('adicionar_item');
         var btn_criar_lpu = document.getElementById('btn-criar-lpu')
@@ -89,6 +99,10 @@ async function carregar_tabela_v2() {
         if (btn_criar_lpu) {
             btn_criar_lpu.style.display = 'flex';
         }
+    }
+
+    if (!composicoes_) {
+        return
     }
     composicoes_.innerHTML = '';
 
@@ -100,8 +114,8 @@ async function carregar_tabela_v2() {
         tsc[cab] = `
             <th style="background-color: white; position: relative; border-radius: 0px;">
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%;" placeholder="..." oninput="pesquisar_em_composicoes(this)">
-            </th>`;
+                <input style="width: 100%; padding: 0px;" placeholder="..." oninput="pesquisar_em_composicoes(this)">
+            </th>`
     });
 
     colunas.forEach(col => {
@@ -109,12 +123,8 @@ async function carregar_tabela_v2() {
         tsearch += tsc[col];
     });
 
-    let checkboxItensinativos = document.querySelector("#checkboxItensInativos")
-
     for (let [codigo, produto] of Object.entries(dados_composicoes).reverse()) {
         var tds = {};
-
-        if (!checkboxItensinativos.checked && produto.status == "INATIVO") continue
 
         colunas.forEach(chave => {
             var conteudo = produto[chave] || '';
@@ -135,7 +145,7 @@ async function carregar_tabela_v2() {
                 }
 
                 var estilo = preco_final !== '' ? 'valor_preenchido' : 'valor_zero';
-                conteudo = `<label class="${estilo}" onclick="abrir_historico_de_precos('${codigo}', '${chave}', this)"> ${dinheiro(conversor(preco_final))}</label>`;
+                conteudo = `<label class="${estilo}" onclick="abrir_historico_de_precos('${codigo}', '${chave}')"> ${dinheiro(conversor(preco_final))}</label>`;
 
             } else if (chave == 'agrupamentos') {
 
@@ -179,6 +189,31 @@ async function carregar_tabela_v2() {
                     `
                 alinhamento = 'center';
 
+            } else if (chave == 'categoria de equipamento') {
+
+                conteudo = `
+                <select style="cursor: pointer;" onchange="alterar_categoria('${codigo}', this)">
+                    <option ${produto?.['categoria de equipamento'] == '' ? 'selected' : ''}></option>
+                    <option ${produto?.['categoria de equipamento'] == 'IP' ? 'selected' : ''}>IP</option>
+                    <option ${produto?.['categoria de equipamento'] == 'ANALÓGICO' ? 'selected' : ''}>ANALÓGICO</option>
+                    <option ${produto?.['categoria de equipamento'] == 'ALARME' ? 'selected' : ''}>ALARME</option>
+                    <option ${produto?.['categoria de equipamento'] == 'CONTROLE DE ACESSO' ? 'selected' : ''}>CONTROLE DE ACESSO</option>
+                </select>
+                `
+
+            } else if (chave == 'sistema') {
+
+                conteudo = `
+                <select style="cursor: pointer;" onchange="alterar_sistema('${codigo}', this)">
+                    <option ${produto?.sistema == '' ? 'selected' : ''}></option>
+                    <option ${produto?.sistema == 'CFTV' ? 'selected' : ''}>CFTV</option>
+                    <option ${produto?.sistema == 'EAS' ? 'selected' : ''}>EAS</option>
+                    <option ${produto?.sistema == 'ALARME' ? 'selected' : ''}>ALARME</option>
+                    <option ${produto?.sistema == 'CONTROLE DE ACESSO' ? 'selected' : ''}>CONTROLE DE ACESSO</option>
+                    <option ${produto?.sistema == 'INFRAESTRUTURA E CABEAMENTO' ? 'selected' : ''}>INFRAESTRUTURA E CABEAMENTO</option>
+                </select>
+                `
+
             } else if (chave == 'material infra') {
 
                 var stats = ''
@@ -194,7 +229,6 @@ async function carregar_tabela_v2() {
         });
 
         tds.editar = `<td style="width: 70px;"><img src="imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')"></td>`;
-        tds.locacao = `<td style="width: 70px;"><img src="imagens/editar2.png" style="width: 30px; cursor: pointer;" onclick="abrir_historico_de_locacoes('${codigo}')"></td>`;
 
         var celulas = '';
         colunas.forEach(col => {
@@ -236,6 +270,30 @@ async function carregar_tabela_v2() {
         }
     }
 
+}
+
+async function alterar_categoria(codigo, select) {
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
+    let produto = dados_composicoes[codigo]
+
+    produto['categoria de equipamento'] = select.value
+
+    enviar(`dados_composicoes/${codigo}/categoria de equipamento`, select.value)
+
+    await inserirDados(dados_composicoes, 'dados_composicoes')
+}
+
+async function alterar_sistema(codigo, select) {
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
+    let produto = dados_composicoes[codigo]
+
+    produto.sistema = select.value
+
+    enviar(`dados_composicoes/${codigo}/sistema`, select.value)
+
+    await inserirDados(dados_composicoes, 'dados_composicoes')
 }
 
 async function atualizar_status_material(codigo, elemento) {
@@ -301,7 +359,6 @@ async function abrir_agrupamentos(codigo) {
 
             <hr style="width: 100%; margin: 10px;">
 
-            <div style="width: 80vw; overflow: auto; height: 500px; border-radius: 3px; background-color: #222; padding: 10px;">
                 <table class="tabela" style="border-collapse: collapse;">
                     <thead>
                         <tr>
@@ -348,11 +405,11 @@ async function abrir_agrupamentos(codigo) {
                         ${linhas}
                     </tbody>
                 </table>
-            </div>
+
 
         </div>    
     `
-    openPopup_v2(acumulado)
+    openPopup_v2(acumulado, 'Agrupamentos')
 
     if (produto.agrupamentos) {
         var div_agrupamentos = document.getElementById('div_agrupamentos')
@@ -389,6 +446,10 @@ async function salvar_agrupamentos(codigo) {
         remover_popup()
 
         carregar_tabela_v2()
+    }
+
+    if (document.title == 'Criar Orçamento') {
+        f5()
     }
 
 }
@@ -527,9 +588,7 @@ async function incluir_agrupamento(elemento, cod, qtde) {
             `
             div_agrupamentos.insertAdjacentHTML('beforeend', item)
         }
-
     }
-
 }
 
 function remover_item(elemento) {
@@ -558,67 +617,245 @@ async function abrir_historico_de_precos(codigo, tabela) {
         dados_composicoes[codigo][tabela].ativo == cotacao ? marcado = 'checked' : marcado = ''
 
         linhas += `
-        <tr style="font-size: 0.7em; color: #222;">
-            <td>${dinheiro(historico[cotacao].custo)}</td>
-            <td>${historico[cotacao].margem}</td>
+        <tr>
+            <td>${dinheiro(historico[cotacao]?.custo || 0)}</td>
+            <td>${dinheiro(historico[cotacao]?.valor_custo || historico[cotacao]?.custo)}</td>
+            <td style="text-align: center;">${historico[cotacao].margem}</td>
             <td>${dinheiro(historico[cotacao].valor)}</td>
             <td>${historico[cotacao].data}</td>
             <td>${historico[cotacao].usuario}</td>
             <td>${historico[cotacao].fornecedor}</td>
             <td><input type="checkbox" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_preco_ativo('${codigo}', '${cotacao}', '${tabela}')" ${marcado}></td>
-            <td>
-                <div style="display: flex; align-items: center; justify-content; width: 100%;">
-                    <img src="imagens/cancel.png" style="width: 25px; cursor: pointer;" onclick="excluir_cotacao('${codigo}', '${tabela}', '${cotacao}')">
-                </div>
+            <td><textarea style="border: none;" readOnly>${historico[cotacao]?.comentario || ''}</textarea></td>
+            <td style="text-align: center;">
+                <img src="imagens/cancel.png" style="width: 2vw; cursor: pointer;" onclick="excluir_cotacao('${codigo}', '${tabela}', '${cotacao}')">
+            </td>
+            <td style="text-align: center;">
+                <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="adicionar_nova_cotacao('${codigo}', '${tabela}', '${cotacao}')">
             </td>
         </tr>
         `
     }
 
-    let visibilidade = 'flex'
-    if (linhas == '') {
-        visibilidade = 'none'
-    }
-
     acumulado = `
 
-    <div id="historico_preco" style="background-color: white; padding: 5px; border-radius: 5px;">
+    <div style="min-width: 40vw; display: flex; justify-content: left; align-items: start; flex-direction: column; background-color: white; padding: 5px; border-radius: 5px; color: #222;">
+        <div id="historico_preco" style="display: flex; flex-direction: column; align-items: start; justify-content: center; position: relative; width: 100%;">
+            
+            <div style="display: flex; justify-content: left; align-items: center; gap: 5px;">
+                <img style="width: 7vw;" src="${dados_composicoes[codigo]?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}">
+                <div style="color: #222; display: flex; flex-direction: column; justify-content: start; align-items: start;">
+                    <label style="font-size: 0.8vw;">Descrição</label>
+                    <label>${dados_composicoes[codigo].descricao}</label>
+                </div>
+            </div>
 
-        <div style="color: #222; display: flex; flex-direction: column; justify-content: start; align-items: start;">
-            <label>Descrição</label>
-            <textarea style="font-size: 1.2em; width: 80%;" readOnly>${dados_composicoes[codigo].descricao}</textarea>
-        </div>
+            <div onclick="adicionar_nova_cotacao('${codigo}', '${tabela}')" class="bot_adicionar">
+                <img src="imagens/preco.png">
+                <label>Adicionar Preço</label>
+            </div>
 
-        <div id="tabela_historico" style="display: ${visibilidade}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
-            <table class="tabela">
-                <thead>
-                    <th>Custo de Compra</th>
-                    <th>% Margem</th>
-                    <th>Valor Final</th>
-                    <th>Data da Cotação</th>
-                    <th>Feito por</th>
-                    <th>Fornecedor</th>
-                    <th>Ativo</th>
-                    <th>Excluir</th>
-                </thead>
-                <tbody>${linhas}</tbody>
-            </table>
+            <label>Histórico de Preços</label>
+
+            <hr style="width: 100%;">
+
+            <div id="tabela_historico" style="display: ${linhas == '' ? 'none' : 'flex'}; border-radius: 3px; padding: 3px; justify-content: center; align-items: center;">
+                <table class="tabela">
+                    <thead>
+                        <th>Preço Unitário</th>
+                        <th>Valor de Custo</th>
+                        <th>Margem %</th>
+                        <th>Pr. Venda</th>
+                        <th>Data</th>
+                        <th>Usuário</th>
+                        <th>Fornecedor</th>
+                        <th>Ativo</th>
+                        <th>Comentário</th>
+                        <th>Excluir</th>
+                        <th>Detalhes</th>
+                    </thead>
+                    <tbody>${linhas}</tbody>
+                </table>
+            </div>
         </div>
-        <div onclick="adicionar_nova_cotacao('${codigo}', '${tabela}')" class="bot_adicionar">
-            <img src="imagens/preco.png" style="cursor: pointer; width: 40px;">
-            <label>Adicionar Preço</label>
-        </div>
+        <div></div>
     </div>
     `
-
-    var historico_preco = document.getElementById('historico_preco')
-    if (historico_preco) {
-        historico_preco.remove()
-    }
 
     openPopup_v2(acumulado, 'Valores de Venda')
 
 }
+
+async function salvar_preco_ativo(codigo, id_preco, lpu) {
+    // 1. Criar loader visível
+    const loader = document.createElement('div');
+    loader.id = 'preco-loader';
+    loader.innerHTML = '<div style="font-size:1.5em">Atualizando preço...</div>';
+    loader.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    `;
+    document.body.appendChild(loader);
+
+    try {
+        // 2. Adicionar timeout para evitar loading infinito
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout ao salvar preço')), 10000)
+        );
+
+        // 3. Executar a lógica principal
+        const saveOperation = (async () => {
+            const dados_composicoes = await recuperarDados('dados_composicoes') || {};
+            const produto = dados_composicoes[codigo];
+
+            if (!produto) throw new Error('Produto não encontrado');
+
+            // Inicializar estrutura se não existir
+            produto[lpu] = produto[lpu] || { historico: {}, ativo: "" };
+
+            // Alternar estado ativo
+            produto[lpu].ativo = produto[lpu].ativo === id_preco ? "" : id_preco;
+
+            // Atualizar valor principal se estiver ativando
+            if (produto[lpu].ativo && produto[lpu].historico[produto[lpu].ativo]) {
+                produto[lpu].valor = produto[lpu].historico[produto[lpu].ativo].valor;
+            }
+
+            // Salvar alterações
+            await Promise.all([
+                inserirDados(dados_composicoes, 'dados_composicoes'),
+                enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, produto[lpu].ativo),
+                produto[lpu].ativo && enviar(`dados_composicoes/${codigo}/${lpu}/valor`, produto[lpu].valor)
+            ]);
+
+            return true;
+        })();
+
+        // 4. Executar com timeout
+        await Promise.race([saveOperation, timeoutPromise]);
+
+    } catch (error) {
+        console.error('Erro:', error);
+        // Mostrar erro temporariamente no loader
+        if (loader) loader.innerHTML = `<div style="color:red;font-size:1.2em">Erro: ${error.message}</div>`;
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Mostrar erro por 2 segundos
+    } finally {
+        // 5. Sempre remover o loader e atualizar
+        if (loader && document.body.contains(loader)) {
+            document.body.removeChild(loader);
+        }
+
+        // Fechar popup se existir
+        const popup = document.getElementById('popup');
+        if (popup) popup.remove();
+
+        // Recarregar dados
+        await carregar_tabela_v2();
+    }
+}
+// async function salvar_preco_ativo(codigo, id_preco, lpu) {
+
+//     var dados_composicoes = await recuperarDados('dados_composicoes') || {};
+//     var produto = dados_composicoes[codigo];
+//     var historico_preco = document.getElementById('historico_preco');
+
+//     if (historico_preco) {
+//         var tabela = historico_preco.querySelector('table');
+//         var tbody = tabela.querySelector('tbody');
+//         var trs = tbody.querySelectorAll('tr');
+
+//         // 🔥 Adicionar o aviso de "Aguarde..." dentro do container da tabela
+//         const aviso = document.createElement('div');
+//         aviso.id = "aviso-aguarde";
+//         aviso.style = `
+//             display: flex; 
+//             align-items: center; 
+//             justify-content: center; 
+//             background-color: rgba(0, 0, 0, 0.7); 
+//             color: white; 
+//             position: absolute; 
+//             top: 0; 
+//             left: 0; 
+//             width: 100%; 
+//             height: 100%; 
+//             z-index: 10; 
+//             font-size: 1.5em; 
+//             border-radius: 5px;
+//         `;
+//         aviso.innerHTML = `<div>Aguarde...</div>`;
+//         historico_preco.style.position = "relative"; // Garante que o aviso seja posicionado corretamente
+//         historico_preco.appendChild(aviso);
+
+//         // 🔥 Ocultar a tabela enquanto o aviso é exibido
+//         tabela.style.opacity = "0.3"; // Reduz a opacidade da tabela
+
+//         // 🔥 Desmarca todos os checkboxes antes de ativar o novo
+//         trs.forEach(tr => {
+//             let tds = tr.querySelectorAll('td');
+//             let checkbox = tds[6].querySelector('input');
+//             checkbox.checked = false; // Remove todas as marcações
+//         });
+
+//         let algumMarcado = false;
+
+//         // 🔥 Agora percorre e marca apenas o checkbox correto
+//         for (let tr of trs) {
+//             let tds = tr.querySelectorAll('td');
+//             let checkbox = tds[6].querySelector('input');
+
+//             if (id_preco === produto[lpu]?.ativo) {
+//                 // Desmarcando o preço ativo
+//                 produto[lpu].ativo = "";
+//                 await inserirDados(dados_composicoes, 'dados_composicoes');
+//                 await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
+
+//                 // 🔥 Remover o aviso e restaurar a tabela
+//                 aviso.remove();
+//                 tabela.style.opacity = "1"; // Restaura a opacidade
+//                 carregar_tabela_v2();
+//                 return abrir_historico_de_precos(codigo, lpu);
+//             }
+
+//             if (checkbox.checked || id_preco) {
+//                 checkbox.checked = true; // Garante a marcação
+//                 produto[lpu].ativo = id_preco;
+//                 algumMarcado = true;
+
+//                 await inserirDados(dados_composicoes, 'dados_composicoes');
+//                 await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco);
+
+//                 historico_preco.remove();
+
+//                 // 🔥 Remover o aviso e restaurar a tabela
+//                 aviso.remove();
+//                 tabela.style.opacity = "1"; // Restaura a opacidade
+//                 remover_popup();
+//                 return abrir_historico_de_precos(codigo, lpu);
+//             }
+//         }
+
+//         // 🔥 Se nenhum checkbox foi marcado, remove o ativo
+//         if (!algumMarcado) {
+//             produto[lpu].ativo = "";
+//             await inserirDados(dados_composicoes, 'dados_composicoes');
+//             await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
+//         }
+
+//         // 🔥 Remover o aviso e restaurar a tabela
+//         aviso.remove();
+//         tabela.style.opacity = "1"; // Restaura a opacidade
+//         carregar_tabela_v2();
+//     }
+// }
 
 async function excluir_cotacao(codigo, lpu, cotacao) {
     var historico_preco = document.getElementById('historico_preco');
@@ -677,33 +914,609 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
     }
 }
 
-function adicionar_nova_cotacao(codigo, lpu) {
-    var historico_preco = document.getElementById('historico_preco')
-    let tabela_historico = document.getElementById('tabela_historico')
-    tabela_historico.style.display = 'flex'
+function selecionarOrigemPorICMS(valorICMS) {
+    const radioImportado = document.getElementById('importado');
+    const radioNacional = document.getElementById('nacional');
+    const radioBahia = document.getElementById('bahia');
 
-    if (historico_preco) {
-        var tabela = historico_preco.querySelector('table')
-        var tbody = tabela.querySelector('tbody')
+    let icms = parseFloat(valorICMS);
+    const ICMS_IMPORTADO = 4;
+    const ICMS_NACIONAL = 20;
+    const ICMS_BAHIA = 12;
 
-        var linha = `
-        <tr style="color: #222; font-size: 0.7em;">
-            <td><input class="numero-bonito" type="number" oninput="calcular()"></td>
-            <td><input class="numero-bonito" type="number" oninput="calcular()"></td>
-            <td>R$ 0,00 </td>
-            <td>${data_atual('completa')}</td>
-            <td>${acesso.usuario}</td>
-            <td><input class="numero-bonito"></td>
-            <td>
-                <img src="imagens/concluido.png" onclick="salvar_cotacao('${codigo}', '${lpu}')" style="width: 30px; cursor: pointer;">
-            </td>
-            <td>
-                <img src="imagens/cancel.png" style="width: 30px; cursor: pointer;" onclick="remover_esta_linha(this)">
-            </td>
-        </tr>
-        `
-        tbody.insertAdjacentHTML('beforeend', linha)
+    const icmsEImportado = icms === ICMS_IMPORTADO;
+    if (icmsEImportado) radioImportado.checked = true;
+
+    const icmsEDaBahia = icms === ICMS_BAHIA;
+    if (icmsEDaBahia) radioBahia.checked = true;
+
+    const icmsENacional = icms >= ICMS_NACIONAL;
+    if (icmsENacional) radioNacional.checked = true;
+
+    const icmsNacionalOuDaBahia = icms <= ICMS_BAHIA ? '12' : '20,5';
+    const selectICMS = document.getElementById('icms_saida');
+    if (selectICMS) selectICMS.value = icms <= ICMS_IMPORTADO ? '4' : icmsNacionalOuDaBahia;
+}
+
+async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
+
+    let historico_preco = document.getElementById('historico_preco')
+    let div = historico_preco.nextElementSibling
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let produto = dados_composicoes[codigo]
+    let acumulado = ''
+    let funcao = cotacao ? `salvar_preco('${codigo}', '${lpu}', '${cotacao}')` : `salvar_preco('${codigo}', '${lpu}')`
+
+    let dados = {}
+
+    if (lpu && cotacao) {
+        dados = produto[lpu].historico[cotacao]
     }
+
+    let painel = `
+        <div style="color: #222; font-size: 0.8vw; background-color: #d2d2d2; padding: 5px; border-radius: 3px; display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 2px;">
+            <label>NF de Compra</label>
+            <input style="background-color: #91b7d9;" id="nota" value="${dados?.nota || ''}">
+            ${produto.tipo == 'VENDA' ? `<label>Fornecedor</label>
+            <input style="background-color: #91b7d9;" id="fornecedor" value="${dados?.fornecedor || ''}">` : ''}
+            <label onclick="${funcao}" class="contorno_botoes" style="background-color: #4CAF50;">Salvar</label>
+        </div>
+
+        <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 5px;">
+            <label>Comentário</label>
+            <textarea id="comentario" rows="8" style="background-color: #91b7d9; border: none;">${dados?.comentario || ''}</textarea>
+        </div>
+    `
+
+    if (produto.tipo == 'VENDA') {
+        acumulado = `
+        <div style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 10px;">
+            <fieldset style="border: none; padding: 0; margin: 0; display: flex; gap: 10px;" onchange="calcular()">
+                <legend style="font-weight: bold; color: #333;">Selecione a origem do item:</legend>
+
+                <div style="padding: 8px; background: #91b7d9; border-radius: 4px; border: 1px solid #eee;">
+                    <input type="radio" id="importado" name="origem" value="4" style="margin-right: 8px;">
+                    <label for="importado" style="font-size: 0.8vw; cursor: pointer;">IMPORTADO</label>
+                </div>
+
+                <div style="padding: 8px; background: #91b7d9; border-radius: 4px; border: 1px solid #eee;">
+                    <input type="radio" id="nacional" name="origem" value="12" style="margin-right: 8px;">
+                    <label for="nacional" style="font-size: 0.8vw; cursor: pointer;">NACIONAL</label>
+                </div>
+
+                <div style="padding: 8px; background: #91b7d9; border-radius: 4px; border: 1px solid #eee;">
+                    <input type="radio" id="bahia" name="origem" value="12" style="margin-right: 8px;">
+                    <label for="bahia" style="font-size: 0.8vw; cursor: pointer;">BAHIA</label>
+                </div>
+            </fieldset>
+            <div style="display: flex; align-items: start; justify-content: start; gap: 10px;">
+                <table class="tabela">
+                    <thead>
+                        <th>Dados Iniciais</th>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Preço Unitário</td>
+                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" type="number" id="custo" oninput="calcular()" value="${dados?.custo || 0}"></td>
+                        </tr>
+                        <tr>
+                            <td>Frete de Compra (2%)</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>ICMS Creditado em nota (%)</td>
+                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="icms_creditado" oninput="selecionarOrigemPorICMS(this.value); calcular()" value="${dados?.icms_creditado || ""}"></td>
+                        </tr>
+                        <tr>
+                            <td>Aliquota ICMS (Bahia)</td>
+                            <td><input value="20,5%" readOnly></td>
+                        </tr>
+                        <tr>
+                            <td>ICMS a ser pago (DIFAL)</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Valor do ICMS de Entrada</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>Valor de Custo</td>
+                            <td id="valor_custo"></td>
+                        </tr>                                      
+                        <tr>
+                            <td>Margem de Acréscimo (%)</td>
+                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="margem" type="number" oninput="calcular()" value="${dados?.margem || ''}"></td>
+                        </tr>
+                        <tr>
+                            <td>Preço de Venda</td>
+                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="final" type="number" oninput="calcular(undefined, 'final')" value="${dados?.valor || 0}"></td>
+                        </tr>
+                        <tr>
+                            <td>Frete de Venda (5%)</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 1vw;">
+                    <table class="tabela">
+                        <thead>
+                            <th>Resultados</th>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>LUCRO LIQUIDO</td>
+                                <td>R$ 0,00</td>
+                            </tr>
+                            <tr>
+                                <td>PERCENTUAL DE LUCRO</td>
+                                <td>0%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    ${painel}
+
+                </div>
+            </div>
+        </div>
+        <br>
+        <table class="tabela">
+            <thead>
+                <th>Presunções dos Impostos de Saída</th>
+                <th>Percentuais</th>
+                <th>Valor</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
+                    <td><input value="8%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
+                    <td><input value="12%" readOnly></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        <br>
+        <table class="tabela">
+            <thead>
+                <th>Impostos a Serem Pagos</th>
+                <th>Percentuais</th>
+                <th>Valor</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td><input value="15%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td><input value="10%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>CSLL a ser Pago (9%) da Presunção</td>
+                    <td><input value="9%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
+                    <td><input value="0.65%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
+                    <td><input value="3%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>O Imposto sobre Circulação de Mercadorias e Serviços (ICMS)</td>
+                    <td>
+                        <select id="icms_saida" onchange="calcular()" style="width:100%; background-color:#91b7d9; border: none; padding: 5px; border-radius: 3px; cursor: pointer">
+                            <option value="4">4%</option>
+                            <option value="12">12%</option>
+                            <option value="20,5">20,5%</option>
+                        </select>
+                    </td>
+                    <td class="valor-icms" style="background-color: #f0f0f0"></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>Total</td>
+                    <td></td>
+                </tr>                                                                               
+            </tbody>
+        </table>
+        `
+    } else { // Serviço
+
+        acumulado = `
+
+        <div style="display: flex; align-items: center; justify-content: space-evenly; width: 100%;">
+
+            <table class="tabela">
+                <tbody>
+                    <thead>
+                        <th>Preço do Serviço</th>
+                    </thead>
+                    <tr>
+                        <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="final" type="number" oninput="calcular('servico')" value="${dados?.custo || ''}"></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table class="tabela">
+                <thead>
+                    <th>Resultados</th>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>LUCRO LIQUIDO</td>
+                        <td>R$ 0,00</td>
+                    </tr>
+                    <tr>
+                        <td>PERCENTUAL DE LUCRO</td>
+                        <td> 0%</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            ${painel}
+
+        </div>
+        <br>
+        <table class="tabela">
+            <thead>
+                <th>Presunções dos Impostos de Saída</th>
+                <th>Percentuais</th>
+                <th>Valor</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
+                    <td>32%</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
+                    <td>32%</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        <br>
+        <table class="tabela">
+            <thead>
+                <th>Impostos a Serem Pagos</th>
+                <th>Percentuais</th>
+                <th>Valor</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td><input value="15%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
+                    <td><input value="10%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>CSLL a ser Pago (9%) da Presunção</td>
+                    <td><input value="9%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
+                    <td><input value="0.65%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
+                    <td><input value="3%" readOnly></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>O Imposto Sobre Serviços ( ISS )(5%) (Incide sobre o faturamento)</td>
+                    <td><input value="5%" readOnly></td>
+                    <td></td>
+                </tr>                
+                <tr>
+                    <td></td>
+                    <td>Total</td>
+                    <td>R$ 0,00</td>
+                </tr>                                                                               
+            </tbody>
+        </table>
+        `
+    }
+
+    div.innerHTML = `
+    <div style="color: #222; background-color: white; border-radius: 3px; padding: 5px; display: flex; justify-content: center; align-items: start; flex-direction: column;">
+
+        <label>Gestão de Preço</label>
+        <hr style="width: 100%;">
+        ${acumulado}
+
+    </div>`
+
+    if (dados?.icms_creditado) {
+        selecionarOrigemPorICMS(dados.icms_creditado);
+    }
+
+    calcular(produto.tipo == 'SERVIÇO' ? 'servico' : undefined)
+
+    setTimeout(() => {
+        document.getElementById('final').focus();
+    }, 100);
+
+}
+
+async function salvar_preco(codigo, lpu, cotacao) {
+    // Mostrar loader
+    const loader = document.createElement('div');
+    loader.innerHTML = '<div style="font-size:1.5em">Salvando preço...</div>';
+    loader.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    `;
+    document.body.appendChild(loader);
+
+    try {
+        // 1. Verificar se o produto existe
+        let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+        let produto = dados_composicoes[codigo];
+
+        if (!produto) {
+            alert('Produto não encontrado!');
+            return;
+        }
+
+        // 2. Coletar valores dos campos - DE FORMA NÃO-DESTRUTIVA
+        const getValue = (id) => {
+            const el = document.getElementById(id);
+            return el ? el.value : null;
+        };
+
+        const final = parseFloat(getValue('final')) || 0;
+        const custo = parseFloat(getValue('custo')) || 0;
+        const icms_creditado = getValue('icms_creditado');
+        const nota = getValue('nota');
+        const comentario = getValue('comentario');
+        const margem = parseFloat(getValue('margem')) || 0;
+        const fornecedor = getValue('fornecedor');
+        const valor_custo = parseFloat(document.querySelector('#valor_custo')?.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+
+        // 3. Validações obrigatórias
+        if (final <= 0) {
+            alert('Preço final inválido!');
+            return;
+        }
+
+        // VALIDAÇÃO DO ICMS CREDITADO (APENAS PARA PRODUTOS DE VENDA)
+        if (produto.tipo === 'VENDA') {
+            if (icms_creditado === null || icms_creditado === "" || isNaN(parseFloat(icms_creditado))) {
+                alert('O campo ICMS Creditado é obrigatório! Informe um valor numérico (pode ser 0).');
+                return;
+            }
+        }
+
+        // 4. Preparar objeto de histórico
+        let historico = produto[lpu]?.historico || {};
+        let id = cotacao || gerar_id_5_digitos();
+
+        historico[id] = {
+            valor: final,
+            data: dt(),
+            usuario: acesso.usuario,
+            nota: nota || '',
+            comentario: comentario || '',
+            margem: margem,
+            fornecedor: fornecedor || '',
+            custo: custo,
+            valor_custo: valor_custo
+        };
+
+        // Adicionar ICMS creditado apenas para produtos de venda
+        if (produto.tipo === 'VENDA') {
+            historico[id].icms_creditado = parseFloat(icms_creditado);
+        }
+
+        // 5. Atualizar estrutura de dados
+        produto[lpu] = produto[lpu] || { historico: {} };
+        produto[lpu].historico = historico;
+
+        // 6. Salvar no banco de dados
+        await Promise.all([
+            inserirDados(dados_composicoes, 'dados_composicoes'),
+            enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, historico[id])
+        ]);
+
+        // 7. Fechar popup e recarregar
+        remover_popup();
+        await abrir_historico_de_precos(codigo, lpu);
+
+    } catch (error) {
+        console.error('Erro ao salvar preço:', error);
+        alert('Erro ao salvar: ' + error.message);
+    } finally {
+        if (loader && document.body.contains(loader)) {
+            document.body.removeChild(loader);
+        }
+    }
+}
+
+// async function salvar_preco(codigo, lpu, cotacao) {
+
+//     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+//     let produto = dados_composicoes[codigo]
+
+//     if (!produto[lpu]) {
+//         produto[lpu] = {
+//             historico: {}
+//         }
+//     }
+
+//     let historico = produto[lpu].historico
+//     let id = cotacao ? cotacao : gerar_id_5_digitos()
+
+//     historico[id] = {
+//         valor: Number(document.getElementById('final').value),
+//         data: dt(),
+//         usuario: acesso.usuario,
+//         nota: document.getElementById('nota').value,
+//         comentario: document.getElementById('comentario').value
+//     }
+
+//     if (produto.tipo == 'VENDA') {
+//         historico[id].valor_custo = conversor(document.getElementById('valor_custo').textContent)
+//         historico[id].icms_creditado = Number(document.getElementById('icms_creditado').value)
+//     }
+
+//     historico[id].margem = Number(document.getElementById('margem').value)
+//     historico[id].fornecedor = document.getElementById('fornecedor').value
+//     historico[id].custo = conversor(document.getElementById('custo').value)
+
+//     await inserirDados(dados_composicoes, 'dados_composicoes')
+
+//     enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, historico[id])
+//     remover_popup()
+
+//     await abrir_historico_de_precos(codigo, lpu)
+// }
+
+function calcular(tipo, campo) {
+
+    let historico_preco = document.getElementById('historico_preco')
+    let tabelas = historico_preco.nextElementSibling.querySelectorAll('table')
+
+    if (tipo == 'servico') {
+
+        let tds = tabelas[0].querySelectorAll('td') // 1ª Tabela;
+
+        let valor_servico = conversor(tds[0].querySelector('input').value)
+
+        tds = tabelas[2].querySelectorAll('td')
+
+        let aliq_lp = valor_servico * 0.32 // Alíquota do Lucro Presumido;
+        let presuncao_csll = valor_servico * 0.32 // Presunção CSLL;
+
+        tds[2].textContent = dinheiro(aliq_lp)
+        tds[5].textContent = dinheiro(presuncao_csll)
+
+        tds = tabelas[3].querySelectorAll('td')
+
+        let irpj = aliq_lp * 0.15
+        let adicional_irpj = aliq_lp * 0.10
+        let presuncao_csll_a_ser_pago = presuncao_csll * 0.09
+        let pis = valor_servico * 0.0065
+        let cofins = valor_servico * 0.03
+        let iss = valor_servico * 0.05
+        let total_impostos = irpj + adicional_irpj + presuncao_csll_a_ser_pago + pis + cofins + iss
+
+        tds[2].textContent = dinheiro(irpj)
+        tds[5].textContent = dinheiro(adicional_irpj)
+        tds[8].textContent = dinheiro(presuncao_csll_a_ser_pago)
+        tds[11].textContent = dinheiro(pis)
+        tds[14].textContent = dinheiro(cofins)
+        tds[17].textContent = dinheiro(iss)
+        tds[20].textContent = dinheiro(total_impostos)
+
+        tds = tabelas[1].querySelectorAll('td')
+        let lucro_liq = valor_servico - total_impostos
+
+        tds[1].textContent = dinheiro(lucro_liq)
+        tds[3].textContent = `${(lucro_liq / valor_servico * 100).toFixed(2)}%`
+
+    } else {
+
+        let tds = tabelas[0].querySelectorAll('td') // 1ª Tabela
+
+        let preco_compra = conversor(tds[1].querySelector('input').value)
+        let frete = preco_compra * 0.02
+        let icms_creditado = conversor(tds[5].querySelector('input').value)
+        let icms_aliquota = conversor(tds[7].querySelector('input').value)
+        let difal = icms_aliquota - icms_creditado
+        let icms_entrada = difal / 100 * preco_compra
+        let valor_custo = icms_entrada + preco_compra + frete
+
+        tds[3].textContent = dinheiro(frete)
+        tds[9].textContent = `${difal}%`
+        tds[11].textContent = dinheiro(icms_entrada)
+        tds[13].textContent = dinheiro(valor_custo)
+
+        let margem = Number(tds[15].querySelector('input').value)
+        let preco_venda = (1 + margem / 100) * valor_custo
+
+        if (campo == 'final') {
+            preco_venda = conversor(tds[17].querySelector('input').value)
+            margem = ((preco_venda / valor_custo - 1) * 100).toFixed(2)
+            tds[15].querySelector('input').value = margem
+
+        } else {
+            tds[17].querySelector('input').value = preco_venda.toFixed(2)
+        }
+
+        let frete_venda = preco_venda * 0.05
+        tds[19].textContent = dinheiro(frete_venda)
+
+        tds = tabelas[2].querySelectorAll('td') // 2ª Tabela
+        let porc_LP = conversor(tds[1].querySelector('input').value) / 100 // Lucro Presumido
+
+        tds[2].textContent = dinheiro(preco_venda * porc_LP)
+
+        let porc_CSLL = conversor(tds[4].querySelector('input').value) / 100 // CSLL
+
+        tds[5].textContent = dinheiro(preco_venda * porc_CSLL)
+
+        tds = tabelas[2].querySelectorAll('td') // 3ª Tabela
+        let lucro_presumido = preco_venda * 0.08
+        let presuncao_csll = preco_venda * 0.12
+
+        tds[2].textContent = dinheiro(lucro_presumido)
+        tds[5].textContent = dinheiro(presuncao_csll)
+
+        tds = tabelas[3].querySelectorAll('td') // 4ª Tabela
+
+        let irpj = lucro_presumido * 0.15
+        let adicional_irpj = lucro_presumido * 0.1
+        let presuncao_csll_a_ser_pago = presuncao_csll * 0.09
+        let pis = preco_venda * 0.0065
+        let cofins = preco_venda * 0.03
+        let icms_saida = parseFloat(document.getElementById('icms_saida').value) / 100
+        let icms = preco_venda * icms_saida
+
+        let total_impostos = irpj + adicional_irpj + presuncao_csll_a_ser_pago + pis + cofins + icms
+
+        tds[2].textContent = dinheiro(irpj)
+        tds[5].textContent = dinheiro(adicional_irpj)
+        tds[8].textContent = dinheiro(presuncao_csll_a_ser_pago)
+        tds[11].textContent = dinheiro(pis)
+        tds[14].textContent = dinheiro(cofins)
+        tds[17].textContent = dinheiro(icms)
+        tds[20].textContent = dinheiro(total_impostos)
+
+        tds = tabelas[1].querySelectorAll('td') // Tabela resumo
+        let total_custos = valor_custo + total_impostos + frete_venda
+        let lucro_liquido = preco_venda - total_custos
+        tds[1].textContent = dinheiro(lucro_liquido)
+        tds[3].textContent = `${(lucro_liquido / valor_custo * 100).toFixed(2)}%`
+
+    }
+
 }
 
 function remover_esta_linha(elemento) {
@@ -720,291 +1533,32 @@ async function atualizar() {
 
 }
 
-async function salvar_preco_ativo(codigo, id_preco, lpu) {
-
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {};
-    var produto = dados_composicoes[codigo];
-    var historico_preco = document.getElementById('historico_preco');
-
-    if (historico_preco) {
-        var tabela = historico_preco.querySelector('table');
-        var tbody = tabela.querySelector('tbody');
-        var trs = tbody.querySelectorAll('tr');
-
-        // 🔥 Adicionar o aviso de "Aguarde..." dentro do container da tabela
-        const aviso = document.createElement('div');
-        aviso.id = "aviso-aguarde";
-        aviso.style = `
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            background-color: rgba(0, 0, 0, 0.7); 
-            color: white; 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            z-index: 10; 
-            font-size: 1.5em; 
-            border-radius: 5px;
-        `;
-        aviso.innerHTML = `<div>Aguarde...</div>`;
-        historico_preco.style.position = "relative"; // Garante que o aviso seja posicionado corretamente
-        historico_preco.appendChild(aviso);
-
-        // 🔥 Ocultar a tabela enquanto o aviso é exibido
-        tabela.style.opacity = "0.3"; // Reduz a opacidade da tabela
-
-        // 🔥 Desmarca todos os checkboxes antes de ativar o novo
-        trs.forEach(tr => {
-            let tds = tr.querySelectorAll('td');
-            let checkbox = tds[6].querySelector('input');
-            checkbox.checked = false; // Remove todas as marcações
-        });
-
-        let algumMarcado = false;
-
-        // 🔥 Agora percorre e marca apenas o checkbox correto
-        for (let tr of trs) {
-            let tds = tr.querySelectorAll('td');
-            let checkbox = tds[6].querySelector('input');
-
-            if (id_preco === produto[lpu]?.ativo) {
-                // Desmarcando o preço ativo
-                produto[lpu].ativo = "";
-                await inserirDados(dados_composicoes, 'dados_composicoes');
-                await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
-
-                // 🔥 Remover o aviso e restaurar a tabela
-                aviso.remove();
-                tabela.style.opacity = "1"; // Restaura a opacidade
-                carregar_tabela_v2();
-                return abrir_historico_de_precos(codigo, lpu);
-            }
-
-            if (checkbox.checked || id_preco) {
-                checkbox.checked = true; // Garante a marcação
-                produto[lpu].ativo = id_preco;
-                algumMarcado = true;
-
-                await inserirDados(dados_composicoes, 'dados_composicoes');
-                await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco);
-
-                historico_preco.remove();
-
-                // 🔥 Remover o aviso e restaurar a tabela
-                aviso.remove();
-                tabela.style.opacity = "1"; // Restaura a opacidade
-                remover_popup();
-                return abrir_historico_de_precos(codigo, lpu);
-            }
-        }
-
-        // 🔥 Se nenhum checkbox foi marcado, remove o ativo
-        if (!algumMarcado) {
-            produto[lpu].ativo = "";
-            await inserirDados(dados_composicoes, 'dados_composicoes');
-            await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
-        }
-
-        // 🔥 Remover o aviso e restaurar a tabela
-        aviso.remove();
-        tabela.style.opacity = "1"; // Restaura a opacidade
-        carregar_tabela_v2();
-    }
-}
-
-async function salvar_cotacao(codigo, lpu) {
-    var historico_preco = document.getElementById('historico_preco');
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {};
-    var produto = dados_composicoes[codigo];
-
-    if (historico_preco) {
-        var tabela = historico_preco.querySelector('table');
-        var tbody = tabela.querySelector('tbody');
-        var trs = tbody.querySelectorAll('tr');
-
-        // 🔥 Adicionar o aviso de "Aguarde..." dentro do container
-        const aviso = document.createElement('div');
-        aviso.id = "aviso-aguarde";
-        aviso.style = `
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-            font-size: 1.5em;
-            border-radius: 5px;
-        `;
-        aviso.innerHTML = `<div>Aguarde...</div>`;
-        historico_preco.style.position = "relative"; // Garante que o aviso seja posicionado corretamente
-        historico_preco.appendChild(aviso);
-
-        // 🔥 Reduz a opacidade da tabela enquanto o aviso está ativo
-        tabela.style.opacity = "0.3";
-
-        for (let tr of trs) {
-            var inputs = tr.querySelectorAll('input');
-            var tds = tr.querySelectorAll('td');
-
-            if (inputs.length > 1) {
-                var dados = {
-                    custo: conversorParaCotacao(inputs[0].value),
-                    margem: inputs[1].value,
-                    valor: conversor(tds[2].textContent),
-                    data: tds[3].textContent,
-                    usuario: acesso.usuario,
-                    fornecedor: inputs[2].value,
-                };
-
-                if (!produto[lpu]) {
-                    produto[lpu] = {};
-                }
-                if (!produto[lpu].historico) {
-                    produto[lpu].historico = {};
-                }
-
-                var id = gerar_id_5_digitos();
-
-                produto[lpu].historico[id] = dados;
-
-                await inserirDados(dados_composicoes, 'dados_composicoes');
-                await enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, dados);
-
-            }
-        }
-
-        // 🔥 Restaurar a tabela e abrir o histórico
-        tabela.style.opacity = "1"; // Restaura a opacidade
-        await abrir_historico_de_precos(codigo, lpu); // 🛠️ Processa o histórico antes de remover o aviso
-        aviso.remove(); // Remover aviso somente após abrir_historico_de_precos
-    }
-}
-
-function conversorParaCotacao(valor) {
-    if (typeof valor === 'number') {
-        return valor; // Retorna diretamente se já for um número
-    }
-
-    if (!valor || typeof valor !== 'string' || valor.trim() === "") {
-        return 0; // Retorna 0 para valores nulos, vazios ou inválidos
-    }
-
-    // Remove espaços em branco
-    valor = valor.trim();
-
-    // Identificar formatos
-    const isBRFormat = valor.includes(',') && !valor.includes('.'); // Ex: "1.000,25"
-    const isUSFormat = valor.includes('.') && valor.includes(','); // Ex: "1,000.25"
-
-    if (isUSFormat) {
-        // Formato US: Remove vírgulas e mantém o ponto como decimal
-        valor = valor.replace(/,/g, '');
-    } else if (isBRFormat) {
-        // Formato BR: Remove pontos de milhar e substitui vírgula por ponto
-        valor = valor.replace(/\./g, '').replace(',', '.');
-    } else {
-        // Caso geral: Remove qualquer caracter que não seja número ou ponto
-        valor = valor.replace(/[^0-9.]/g, '');
-    }
-
-    // Tenta converter para float
-    const numero = parseFloat(valor);
-
-    // Retorna o número convertido ou 0 se não for válido
-    return isNaN(numero) ? 0 : numero;
-}
-
-
-function calcular() {
-
-    var historico_preco = document.getElementById('historico_preco')
-    if (historico_preco) {
-        var tabela = historico_preco.querySelector('table')
-        var tbody = tabela.querySelector('tbody')
-        var trs = tbody.querySelectorAll('tr')
-
-        trs.forEach(tr => {
-            var inputs = tr.querySelectorAll('input')
-
-            if (inputs.length > 1) {
-
-                var tds = tr.querySelectorAll('td')
-                var custo = Number(inputs[0].value)
-                var margem = Number(inputs[1].value)
-
-                tds[2].textContent = dinheiro(custo * (1 + (margem / 100)))
-            }
-        })
-    }
-
-}
-
 async function cadastrar_editar_item(codigo) {
 
-    let colunas = ['descricao', 'descricaocarrefour', 'substituto', 'sapid', 'refid', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie', 'status']
+    let colunas = ['descricao', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados = dados_composicoes[codigo] || {}
 
-    if (!dados.status) {
-
-        dados.status = "ATIVO"
-
-    }
-
-    let excluir = ''
-    if (codigo !== undefined) {
-        colunas = Object.keys(dados)
-        excluir = `
-            <div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
-                <label style="font-size: 0.7em;">${codigo}</label>
-                <img src="imagens/cancel.png" style="width: 15px; cursor: pointer;" onclick="confirmar_exclusao_item('${codigo}')">
-            </div>
-        `
-    } else {
-        codigo = `gcs-${await verificar_codigo_existente()}`
-    }
-
+    let funcao = codigo ? `cadastrar_alterar('${codigo}')` : `cadastrar_alterar()`
     let elementos = ''
 
     colunas.forEach(col => {
-        let campo = `<input style="background-color: #a2d7a4; padding: 5px; border-radius: 3px;" value="${dados?.[col] || ''}">`
+        let valor = codigo !== undefined ? dados[col] : ''
+        let campo = `<input style="background-color: #a2d7a4; padding: 5px; border-radius: 3px;" value="${valor}">`
 
         if (col.includes('desc')) {
             campo = `
-            <textarea style="background-color: #a2d7a4; width: 95%; border: none;">${dados?.[col] || ''}</textarea>
+            <textarea rows="5" style="color: #222; background-color: #a2d7a4; width: 100%; border: none;">${valor}</textarea>
             `
         } else if (col == 'tipo') {
             campo = `
-                <div>
-                    <select style="cursor: pointer;">
-                        <option ${dados[col] == 'VENDA' ? 'selected' : ''}>VENDA</option>
-                        <option ${dados[col] == 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
-                    </select>
-                </div>
+            <div>
+                <select style="width: 100%; cursor: pointer;">
+                    <option ${valor == 'VENDA' ? 'selected' : ''}>VENDA</option>
+                    <option ${valor == 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
+                </select>
+            </div>
             `
-        } else if (col == 'status') {
-
-            campo = `
-                <div>
-                    <select style="cursor: pointer;">
-                        <option ${dados[col] == 'ATIVO' ? 'selected' : ''}>ATIVO</option>
-                        <option ${dados[col] == 'INATIVO' ? 'selected' : ''}>INATIVO</option>
-                    </select>
-                </div>
-            `
-
-        } else if (col == 'locacao') {
-
-            return
-
         }
 
         if (
@@ -1015,8 +1569,8 @@ async function cadastrar_editar_item(codigo) {
             col !== 'material infra' &&
             col !== 'parceiro') {
             elementos += `
-            <div style="display: flex; gap: 1px; align-items: start; justify-content: center; flex-direction: column;">
-                <label>${col}</label>
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <label style="width: 30%; text-align: right;">${col}</label>
                 ${campo}
             </div>
             `
@@ -1025,259 +1579,24 @@ async function cadastrar_editar_item(codigo) {
 
     var acumulado = `
 
-    <div id="cadastrar_item" style="width: 20vw; background-color: white; color: #222; padding: 5px; border-radius: 5px;">
+    ${codigo ? `<div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
+        <label style="font-size: 0.7em;">${codigo}</label>
+        <img src="imagens/cancel.png" style="width: 15px; cursor: pointer;" onclick="confirmar_exclusao_item('${codigo}')">
+    </div>` : ''}
+
+    <div id="cadastrar_item" style="background-color: white; color: #222; padding: 5px; border-radius: 5px; margin: 1vw;">
 
         <div id="elementos" style="display: flex; flex-direction: column; gap: 5px;">
             ${elementos}
         </div>
-        <br>
-        <div style="display: flex; justify-content: left; align-items: center;">
-            <button style="background-color: #4CAF50; margin: 0px;" onclick="cadastrar_alterar('${codigo}')">Salvar</buttton>
-        </div>
-        <br>
-    </div>
 
-    ${excluir}
+        <br>
+
+        <button style="background-color: #4CAF50; width: 100%; margin: 0px;" onclick="${funcao}">Salvar</buttton>
+    </div>
     `
     openPopup_v2(acumulado, 'Dados do Item')
 }
-
-async function abrir_historico_de_locacoes(codigo) {
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
-    let produto = dados_composicoes[codigo];
-
-    if (!produto.locacao) {
-        produto.locacao = {};
-    }
-
-    if (!produto.locacao.historico) {
-        produto.locacao.historico = {};
-    }
-
-    let historico = produto.locacao.historico;
-    let linhas = '';
-    let marcado = '';
-
-    for (let id in historico) {
-        let registro = historico[id];
-        let isAtivo = produto.locacao.ativo === id;
-        marcado = isAtivo ? 'checked' : '';
-
-        linhas += `
-        <tr style="font-size: 0.7em; color: #222;">
-            <td>${dinheiro(registro.valor)}</td>
-            <td>${registro.data}</td>
-            <td>${registro.usuario}</td>
-            <td>
-                <div style="display: flex; align-items: center; justify-content: center; width: 100%;">
-                    <input type="checkbox" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvar_locacao_ativa('${codigo}', '${id}')" ${marcado}>
-                </div>
-            </td>
-            <td>
-                <div style="display: flex; align-items: center; justify-content: center; width: 100%;">
-                    <img src="imagens/cancel.png" style="width: 25px; cursor: pointer;" onclick="excluir_valor_locacao('${codigo}', '${id}')">
-                </div>
-            </td>
-        </tr>
-    `;
-    }
-
-
-    let visibilidade = linhas ? 'flex' : 'none';
-
-    let acumulado = `
-    <div id="historico_locacao" style="background-color: white; padding: 5px; border-radius: 5px;">
-        <div style="display: flex; flex-direction: column;">
-            <label>Descrição</label>
-            <textarea style="font-size: 1.2em;" readonly>${produto.descricao}</textarea>
-        </div>
-
-        <div style="display: ${visibilidade}; padding-top: 10px;">
-            <table class="tabela" style="width: 100%;">
-                <thead>
-                    <tr>
-                        <th>Valor Diário</th>
-                        <th>Data</th>
-                        <th>Feito por</th>
-                        <th>Ativo</th>
-                        <th>Excluir</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${linhas}
-                </tbody>
-            </table>
-        </div>
-
-        <div onclick="adicionar_valor_locacao('${codigo}')" class="bot_adicionar" style="margin-top: 10px;">
-            <img src="imagens/preco.png" style="cursor: pointer; width: 40px;">
-            <label>Adicionar Valor Locação</label>
-        </div>
-    </div>
-    `;
-
-    openPopup_v2(acumulado, 'Histórico de Valores de Locação');
-}
-
-async function salvar_locacao_ativa(codigo, id_locacao) {
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
-    let produto = dados_composicoes[codigo];
-    let historico_locacao = document.getElementById('historico_locacao');
-
-    if (historico_locacao) {
-        let tabela = historico_locacao.querySelector('table');
-        let tbody = tabela.querySelector('tbody');
-        let trs = tbody.querySelectorAll('tr');
-
-        // 🔥 Exibir "aguarde" overlay
-        const aviso = document.createElement('div');
-        aviso.id = "aviso-aguarde";
-        aviso.style = `
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: rgba(0,0,0,0.7);
-            color: white;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-            font-size: 1.5em;
-            border-radius: 5px;
-        `;
-        aviso.innerHTML = `<div>Aguarde...</div>`;
-        historico_locacao.style.position = "relative";
-        historico_locacao.appendChild(aviso);
-        tabela.style.opacity = "0.3";
-
-        // 🔥 Desmarca todos os checkboxes antes de ativar o novo
-        trs.forEach(tr => {
-            let checkbox = tr.querySelectorAll('td')[3]?.querySelector('input');
-            if (checkbox) checkbox.checked = false;
-        });
-
-        // 🔥 Se já for o ativo, desativa
-        if (produto.locacao?.ativo === id_locacao) {
-            produto.locacao.ativo = "";
-            await inserirDados(dados_composicoes, 'dados_composicoes');
-            await enviar(`dados_composicoes/${codigo}/locacao/ativo`, "");
-
-            aviso.remove();
-            tabela.style.opacity = "1";
-            remover_popup();
-            return abrir_historico_de_locacoes(codigo);
-        }
-
-        // 🔥 Ativa novo id
-        produto.locacao.ativo = id_locacao;
-        await inserirDados(dados_composicoes, 'dados_composicoes');
-        await enviar(`dados_composicoes/${codigo}/locacao/ativo`, id_locacao);
-
-        aviso.remove();
-        tabela.style.opacity = "1";
-        remover_popup();
-        abrir_historico_de_locacoes(codigo);
-    }
-}
-
-async function excluir_valor_locacao(codigo, id_locacao) {
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
-    let produto = dados_composicoes[codigo];
-    let historico_locacao = document.getElementById('historico_locacao');
-
-    if (historico_locacao) {
-        let tabela = historico_locacao.querySelector('table');
-
-        const aviso = document.createElement('div');
-        aviso.id = "aviso-aguarde";
-        aviso.style = `
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: rgba(0,0,0,0.7);
-            color: white;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-            font-size: 1.5em;
-            border-radius: 5px;
-        `;
-        aviso.innerHTML = `<div>Aguarde...</div>`;
-        historico_locacao.style.position = "relative";
-        historico_locacao.appendChild(aviso);
-        tabela.style.opacity = "0.3";
-
-        if (produto.locacao?.ativo === id_locacao) {
-            produto.locacao.ativo = "";
-            await enviar(`dados_composicoes/${codigo}/locacao/ativo`, "");
-        }
-
-        delete produto.locacao.historico[id_locacao];
-        await inserirDados(dados_composicoes, 'dados_composicoes');
-        await deletar(`dados_composicoes/${codigo}/locacao/historico/${id_locacao}`);
-
-        tabela.style.opacity = "1";
-        await abrir_historico_de_locacoes(codigo);
-        aviso.remove();
-    }
-}
-
-function adicionar_valor_locacao(codigo) {
-    let historico_locacao = document.getElementById('historico_locacao');
-
-    let tabela = historico_locacao.querySelector('table');
-    let tbody = tabela.querySelector('tbody');
-
-    // 🔥 Força exibição se estava escondida
-    tabela.parentElement.style.display = 'flex';
-
-    let linha = `
-        <tr style="font-size: 0.8em; color: #222;">
-            <td><input type="number" class="numero-bonito"></td>
-            <td>${data_atual('completa')}</td>
-            <td>${acesso.usuario}</td>
-            <td>
-                <img src="imagens/concluido.png" style="width: 25px; cursor: pointer;" onclick="salvar_valor_locacao('${codigo}', this)">
-            </td>
-            <td>
-                <img src="imagens/cancel.png" style="width: 25px; cursor: pointer;" onclick="remover_esta_linha(this)">
-            </td>
-        </tr>
-    `;
-    tbody.insertAdjacentHTML('beforeend', linha);
-}
-
-async function salvar_valor_locacao(codigo, elemento) {
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
-    let produto = dados_composicoes[codigo];
-    if (!produto.locacao) produto.locacao = {};
-    if (!produto.locacao.historico) produto.locacao.historico = {};
-
-    let tr = elemento.closest('tr');
-    let inputs = tr.querySelectorAll('input');
-    let valor = inputs[0].value;
-
-    const registro = {
-        valor: conversor(valor),
-        data: data_atual('completa'),
-        usuario: acesso.usuario
-    };
-
-    const id = gerar_id_5_digitos();
-    produto.locacao.historico[id] = registro;
-
-    await inserirDados(dados_composicoes, 'dados_composicoes');
-    await enviar(`dados_composicoes/${codigo}/locacao/historico/${id}`, registro);
-
-    remover_popup();
-    abrir_historico_de_locacoes(codigo);
-}
-
 
 async function confirmar_exclusao_item(codigo) {
 
@@ -1316,6 +1635,8 @@ async function cadastrar_alterar(codigo) {
     let elementos = document.getElementById('elementos');
     if (!elementos) return;
 
+    codigo = codigo ? codigo : await verificar_codigo_existente(true) // Verificar com o servidor o último código sequencial;
+
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     if (!dados_composicoes[codigo]) {
         dados_composicoes[codigo] = {};
@@ -1342,6 +1663,32 @@ async function cadastrar_alterar(codigo) {
 
     remover_popup();
     carregar_tabela_v2();
+}
+
+async function verificar_codigo_existente() {
+    return new Promise((resolve, reject) => {
+
+        let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+
+        fetch("https://leonny.dev.br/codigo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ clone: modoClone })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
 }
 
 async function abrirModalFiltros() {
@@ -1458,25 +1805,18 @@ function salvarNovaLPU() {
     remover_popup();
 }
 
-async function verificar_codigo_existente(clone) {
-    return new Promise((resolve, reject) => {
-        fetch("https://leonny.dev.br/codigo", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ clone })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                resolve(data);
-            })
-            .catch(err => {
-                console.error(err)
-                reject()
-            });
-    })
+function para_excel() {
+
+    let tabela = document.getElementById('tabela_composicoes')
+
+    if (!tabela) {
+        return;
+    }
+
+    let worksheet = XLSX.utils.table_to_sheet(tabela);
+    let workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Preços");
+    XLSX.writeFile(workbook, 'lpu.xlsx');
 }
+

@@ -2,7 +2,6 @@ let filtrosAtivosEstoques = {}
 let filtrosRelatorio = {}
 let filtrosComplexos = {}
 let colunas = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'estoque_usado', 'estoque_sp', 'valor_compra']
-let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
 carregar_estoque()
 
