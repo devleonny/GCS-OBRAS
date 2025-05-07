@@ -32,15 +32,26 @@ function carregarIcones() {
 
     let painel_geral = document.getElementById('painel_geral')
 
+    let moduloComposicoes = (
+        acesso.permissao == 'adm' ||
+        acesso.permissao == 'log' ||
+        acesso.permissao == 'editor' ||
+        acesso.permissao == 'gerente' ||
+        acesso.permissao == 'diretor'
+    )
+
     let icones = `
         <div class="block" style="flex-direction: column;" onclick="window.location.href='orcamentos.html'">
             <img src="imagens/projeto.png">
             <label>Orçamentos</label>
         </div>
+
+        ${moduloComposicoes ? `
         <div class="block" style="flex-direction: column;" onclick="window.location.href='composicoes.html'">
             <img src="imagens/composicoes.png">
             <label>Composições</label>
-        </div>
+        </div>` : ''}
+
         <div class="block" style="flex-direction: column;" onclick="window.location.href='chamados.html'">
             <img src="imagens/chamados.png">
             <label>Chamados</label>
@@ -74,10 +85,11 @@ function carregarIcones() {
                 <img src="imagens/projeto.png">
                 <label>Orçamentos</label>
             </div>
+            ${moduloComposicoes ? `
             <div class="block" style="flex-direction: column;" onclick="window.location.href='composicoes.html'">
                 <img src="imagens/composicoes.png">
                 <label>Composições</label>
-            </div>
+            </div>` : ''}
         `
     }
 
@@ -94,6 +106,8 @@ async function identificacao_user() {
     corFundo()
 
     acesso = await lista_setores(acesso.usuario)
+    localStorage.setItem('acesso', JSON.stringify(acesso))
+    
     let permissao = acesso.permissao
 
     if (document.title !== 'PDF' && acesso.usuario) {

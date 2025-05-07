@@ -472,6 +472,14 @@ async function recuperar_composicoes(tipo_tabela) {
 
 async function tabela_produtos_v2(tipo_tabela) {
 
+    let moduloComposicoes = (
+        acesso.permissao == 'adm' ||
+        acesso.permissao == 'log' ||
+        acesso.permissao == 'editor' ||
+        acesso.permissao == 'gerente' ||
+        acesso.permissao == 'diretor'
+    )
+
     let tabela_itens = document.getElementById('tabela_itens')
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
 
@@ -533,7 +541,7 @@ async function tabela_produtos_v2(tipo_tabela) {
                             <td style="white-space: nowrap;">${codigo}</td>
                             <td style="position: relative;">
                                 <div style="display: flex; justify-content: start; align-items: center; gap: 10px;">
-                                    <img src="imagens/editar.png" style="width: 1.5vw; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')">
+                                    ${moduloComposicoes ? `<img src="imagens/editar.png" style="width: 1.5vw; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')">` : ''}
                                     <label>${produto.descricao}</label>
                                 </div>
                                 ${(produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) ? `<img src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 1vw; width: 1.5vw; cursor: pointer;">` : ''}
@@ -544,7 +552,7 @@ async function tabela_produtos_v2(tipo_tabela) {
                             <td style="text-align: center;">${td_quantidade}</td>
                             <td>${produto.unidade}</td>
                             <td style="white-space: nowrap;">
-                                <label onclick="abrir_historico_de_precos('${codigo}', '${lpu}')" class="${preco != 0 ? 'valor_preenchido' : 'valor_zero'}">${dinheiro(preco)}</label>
+                                <label ${moduloComposicoes ? `onclick="abrir_historico_de_precos('${codigo}', '${lpu}')"` : ''} class="${preco != 0 ? 'valor_preenchido' : 'valor_zero'}">${dinheiro(preco)}</label>
                             </td>
                             <td style="text-align: center;">
                                 <img src="${imagem}" style="width: 70px; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">
