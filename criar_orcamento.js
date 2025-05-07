@@ -465,9 +465,14 @@ function mudar_tabela_pesquisa(tabela) {
 }
 
 async function recuperarComposicoes(tipo_tabela) {
+
+    document.body.insertAdjacentHTML('beforeend', overlay_aguarde())
+
     let nuvem = await receber('dados_composicoes')
     await inserirDados(nuvem, 'dados_composicoes')
     await tabela_produtos_v2(tipo_tabela)
+
+    let aguarde = document.getle
 }
 
 async function tabela_produtos_v2(tipo_tabela) {

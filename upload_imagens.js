@@ -1,19 +1,15 @@
 function ampliar_especial(local_img, codigo) {
-    var imagem_upload = document.getElementById('imagem_upload');
-    if (imagem_upload) {
-        imagem_upload.remove();
-    }
 
-    var funcao = `importar_imagem('${local_img}')`;
+    let funcao = `importar_imagem('${local_img}')`;
 
     if (codigo !== undefined) {
         funcao = `importar_imagem('${local_img}', '${codigo}')`;
     }
 
-    var acumulado = `
-        <div id="imagem_upload" class="status" style="display: flex; flex-direction: column; background-color: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-            <span class="close" onclick="fechar()" style="align-self: flex-end; cursor: pointer;">&times;</span>
-            <img id="img" src="${local_img.src}" style="height: 20vw; width: 20vw; margin: auto; border-radius: 8px; border: 1px solid #ddd;">
+    let acumulado = `
+        <div id="imagem_upload" style="display: flex; flex-direction: column; padding: 20px; border-radius: 8px;">
+            
+            <img id="img" src="${local_img.src}" style="width: 20vw; margin: auto; border-radius: 8px; border: 1px solid #ddd;">
             
             <div id="carregamento_imagem" style="display: none; align-items: center; justify-content: center; margin-top: 10px;">
                 <img src="gifs/loading.gif" style="width: 60px;">
@@ -34,11 +30,8 @@ function ampliar_especial(local_img, codigo) {
         </div>
     `;
 
-    var overlay = document.getElementById('overlay');
-    if (overlay) {
-        overlay.style.display = 'block';
-    }
-    document.body.insertAdjacentHTML('beforeend', acumulado);
+
+    openPopup_v2(acumulado, 'Imagem', true)
 }
 
 async function importar_imagem(local_img, codigo) {
@@ -144,20 +137,4 @@ function imagem_selecionada() {
         };
         reader.readAsDataURL(file);
     }
-}
-
-function fechar() {
-    var imagem_upload = document.getElementById('imagem_upload');
-    if (imagem_upload) {
-        imagem_upload.remove();
-    }
-
-    remover_popup()
-}
-
-function fechar() {
-
-    f5()
-
-    remover_popup()
 }
