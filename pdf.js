@@ -123,9 +123,6 @@ async function preencher_v2() {
 
     let empresaEmissora = dadosEmpresas[informacoes?.emissor || 'AC SOLUÇÕES']
     
-    console.log(empresaEmissora);
-    
-
     let dados_por_bloco = {
         'Dados da Proposta': {
             'Número do Chamado': informacoes.contrato,
@@ -327,11 +324,13 @@ async function preencher_v2() {
     }
 
     let divs_totais = ''
-    for (tot in totais) {
+    let etiqueta_desconto = ''
 
+    for (tot in totais) {
+ 
         // Tem desconto geral ? % ou R$
-        if (tot == 'GERAL' && orcamento_v2.desconto_geral) {
-            totais.GERAL.valor = orcamento_v2.tipo_desconto == 'Dinheiro' ? totais.GERAL.valor - orcamento_v2.desconto_geral : totais.GERAL.valor - (totais.GERAL.valor * orcamento_v2.desconto_geral / 100)
+        if (tot == 'GERAL' && conversor(orcamento_v2.desconto_geral) > 0) {
+            totais.GERAL.valor = orcamento_v2.tipo_de_desconto == 'Dinheiro' ? totais.GERAL.valor - conversor(orcamento_v2.desconto_geral) : totais.GERAL.valor - (totais.GERAL.valor * conversor(orcamento_v2.desconto_geral) / 100)
         }
 
         if (totais[tot].valor !== 0) {
@@ -341,20 +340,19 @@ async function preencher_v2() {
             </div>
             `;
         }
-    }
 
-    let etiqueta_desconto = ''
-    if (orcamento_v2.total_bruto) {
-
-        let desconto_geral = ((orcamento_v2.total_bruto - totais[tot].valor) / orcamento_v2.total_bruto) * 100
-
-        etiqueta_desconto = `
-        <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 3px;">
-            <label>Total sem Desconto <strong>${dinheiro(orcamento_v2.total_bruto)}</strong></label>
-            <hr style="width: 100%;">
-            <label>Desconto <strong>${desconto_geral.toFixed(0)}% </strong></label>
-        </div>
-        `
+        if (orcamento_v2.total_bruto > 0) {
+    
+            let desconto_geral = ((orcamento_v2.total_bruto - totais[tot].valor) / orcamento_v2.total_bruto) * 100
+    
+            etiqueta_desconto = `
+            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 3px;">
+                <label>Total sem Desconto <strong>${dinheiro(orcamento_v2.total_bruto)}</strong></label>
+                <hr style="width: 100%;">
+                <label>Desconto <strong>${desconto_geral.toFixed(0)}% </strong></label>
+            </div>
+            `
+        }
     }
 
     html_orcamento.innerHTML = `
