@@ -2,6 +2,30 @@ function voltar() {
     window.history.back();
 }
 
+let dadosEmpresas = {
+    'AC SOLUÇÕES': {
+        'Razão Social': 'AC SOLUCOES INTEGRADAS DE INFORMATICA LTDA',
+        'CNPJ': '13.421.071/0001-00',
+        'E-mail': 'financeiro@acsolucoesintegradas.com.br',
+        'Telefones': '(71) 3901-3655 (71) 98240-3038',
+        'Localização': 'CEP 40261-010, Rua Luís Negreiro, nº 701, Luis Anselmo - Salvador(BA)'
+    },
+    'HNK': {
+        'Razão Social': 'HNK COMERCIO E SERVICOS DE EQUIPAMENTOS DE COMUNICACAO LTDA',
+        'CNPJ': '33.910.883/0001-26',
+        'E-mail': 'financeiro@acsolucoesintegradas.com.br',
+        'Telefones': '(71) 3901-3655 (71) 98240-3038',
+        'Localização': 'CEP 40261-010, AV SANTOS DUMONT, nº 1883, CENTRO - Lauro de Freitas (BA)'
+    },
+    'HNW': {
+        'Razão Social': 'HNW COMERCIO DE EQUIPAMENTOS, SERVICOS E TELEATENDIMENTO LTD',
+        'CNPJ': '41.761.486/0001-68',
+        'E-mail': 'financeiro@acsolucoesintegradas.com.br',
+        'Telefones': '(71) 3901-3655 (71) 98240-3038',
+        'Localização': 'CEP 40261-010, Rua Luís Negreiro, nº 701, Luis Anselmo - Salvador(BA)'
+    }
+}
+
 var perc_parceiro = 0.35
 preencher_v2()
 
@@ -94,10 +118,13 @@ async function preencher_v2() {
         'gcs-725', 'gcs-726', 'gcs-738', 'gcs-739', 'gcs-734', 'gcs-740', 'gcs-741', 'gcs-730', 'gcs-742', 'gcs-743', 'gcs-744', 'gcs-747', 'gcs-729', 'gcs-728', 'gcs-727', 'gcs-1135', 'gcs-1136', 'gcs-1137'
     ]
 
-
-
     // LÓGICA DOS DADOS
     let informacoes = orcamento_v2.dados_orcam
+
+    let empresaEmissora = dadosEmpresas[informacoes?.emissor || 'AC SOLUÇÕES']
+    
+    console.log(empresaEmissora);
+    
 
     let dados_por_bloco = {
         'Dados da Proposta': {
@@ -116,11 +143,11 @@ async function preencher_v2() {
             'Estado': informacoes.estado
         },
         'Dados da Empresa': {
-            'Razão Social': 'AC SOLUCOES INTEGRADAS DE INFORMATICA LTDA',
-            'CNPJ': '13.421.071/0001-00',
-            'E-mail': 'financeiro@acsolucoesintegradas.com.br',
-            'Telefones': '(71) 3901-3655 (71) 98240-3038',
-            'Localização': 'CEP 40261-010, Rua Luís Negreiro, nº 701, Luis Anselmo - Salvador(BA)'
+            'Razão Social': empresaEmissora['Razão Social'],
+            'CNPJ': empresaEmissora['CNPJ'],
+            'E-mail': empresaEmissora['E-mail'],
+            'Telefones': empresaEmissora['Telefones'],
+            'Localização': empresaEmissora['Localização']
         },
         'Contato Analista': {
             'Analista': informacoes.analista,
@@ -195,7 +222,6 @@ async function preencher_v2() {
 
         for (it in itens) {
             let item = await itens[it]
-            let valor_historico_pdf = ""
 
             // Verifica se o código está na lista de itens importados
             const isItemImportado = itensImportados.includes(item.codigo.toLowerCase());
@@ -234,30 +260,6 @@ async function preencher_v2() {
 
             item.total = item.custo * item.qtde;
 
-            // let item = itens[it]
-            // let valor_historico_pdf = ""
-
-            // if (dados_composicoes[item.codigo]) {
-            //     item.descricao = dados_composicoes[item.codigo].descricao
-            //     if (dados_composicoes[item.codigo].substituto !== '' && carrefour) {
-            //         item.codigo = dados_composicoes[item.codigo].substituto
-            //         item.descricao = dados_composicoes[item.codigo].descricaocarrefour
-            //     }
-            //     let dados = dados_composicoes[item.codigo]
-            //     item.tipo = dados.tipo
-            //     item.sapid = dados.sapid
-            //     item.refid = dados.refid
-            //     item.descricao = carrefour ? dados.descricaocarrefour : item.descricao = dados.descricao
-            //     item.imagem = item.imagem ? item.imagem : dados.imagem
-            //     item.unidade = dados.unidade
-            //     item.custo = conversor(item.custo)
-            // }
-
-            // item?.unidade || 'UND'
-            // item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'
-            // item.total = item.custo * item.qtde
-
-            // Tem desconto unitário? % ou R$
             if (item.desconto) {
                 item.total = item.tipo_desconto == 'Dinheiro' ? item.total - item.desconto : item.total - (item.total * (item.desconto / 100))
             }
