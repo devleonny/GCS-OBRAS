@@ -1351,7 +1351,7 @@ function calcular(tipo, campo) {
 
         let tds = tabelas[0].querySelectorAll('td') // 1ª Tabela
 
-        let preco_compra = conversor(tds[1].querySelector('input').value)
+        let preco_compra = conversor(Number(tds[1].querySelector('input').value))
         let frete = preco_compra * 0.02
         let icms_creditado = conversor(tds[5].querySelector('input').value)
         let icms_aliquota = conversor(tds[7].querySelector('input').value)
