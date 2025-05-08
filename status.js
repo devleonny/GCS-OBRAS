@@ -633,9 +633,9 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
 
         if (editar) {
             Object.values(orcamento?.status || []).forEach(status => {
-                if (status.historico) {
+                if (status?.historico) {
                     Object.entries(status.historico).forEach(([chave, historico]) => {
-                        if (historico.status.includes("REQUISIÇÃO")) {
+                        if (historico?.status && String(historico.status).includes("REQUISIÇÃO") && historico.requisicoes) {
                             for (let requisicaoUnica of historico.requisicoes) {
                                 if (requisicaoUnica.codigo == codigo) {
                                     somasQtde += Number(requisicaoUnica.qtde_enviar);
