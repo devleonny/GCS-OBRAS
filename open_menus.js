@@ -98,7 +98,10 @@ function carregarIcones() {
 
 function corFundo() {
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
-    document.body.style.background = modoClone ? 'linear-gradient(45deg,rgb(36, 159, 65), #151749)' : 'linear-gradient(45deg,  #B12425, #151749)'
+
+    if (document.title !== 'PDF') {
+        document.body.style.background = modoClone ? 'linear-gradient(45deg,rgb(36, 159, 65), #151749)' : 'linear-gradient(45deg,  #B12425, #151749)'
+    }
 }
 
 async function identificacao_user() {
@@ -107,7 +110,7 @@ async function identificacao_user() {
 
     acesso = await lista_setores(acesso.usuario)
     localStorage.setItem('acesso', JSON.stringify(acesso))
-    
+
     let permissao = acesso.permissao
 
     if (document.title !== 'PDF' && acesso.usuario) {

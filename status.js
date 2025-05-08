@@ -35,6 +35,7 @@ function verificarFluxograma() {
             'FATURADO': { cor: '#ff4500' },
             'MATERIAL ENVIADO': { cor: '#b17724' },
             'MATERIAL ENTREGUE': { cor: '#b17724' },
+            'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
             'COTAÇÃO PENDENTE': { cor: '#0a989f' },
             'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
             'RETORNO DE MATERIAIS': { cor: '#aacc14' },
@@ -1827,19 +1828,6 @@ async function abrir_esquema(id) {
                                     onclick="painel_adicionar_notas()">
                                     <label>Nova <strong>Nota Fiscal</strong></label>
                                 </div>
-                                <div class="contorno_botoes" style="background-color: #0a989f;"
-                                    onclick="iniciar_cotacao('${id}')">
-                                    <label>Nova <strong>Cotação</strong></label>
-                                </div>
-
-                                ${(permissao == 'adm' || setor == 'LOGÍSTICA') ? `  
-
-                                <div class="contorno_botoes" style="background-color: #aacc14;"
-                                    onclick="retorno_de_materiais('${id}')">
-                                    <label>Retorno de <strong>Materiais</strong></label>
-                                </div>
-                                
-                                ` : ''}
 
                                 <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
                                     <img src="gifs/atencao.gif" style="width: 2vw;">
