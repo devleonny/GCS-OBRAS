@@ -1787,7 +1787,7 @@ async function abrir_esquema(id) {
         let selects = `
         <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 2px;">
             <label>Status atual</label>
-            <select id="select-status-${id_orcam}" data-id-orcamento="${id_orcam}" onchange="alterar_status(this, ${id_orcam})" style="font-size: 1vw; background-color: #d2d2d2; border-radius: 3px; padding: 3px;">
+            <select id="select-status-${id_orcam}" data-id-orcamento="${id_orcam}" onchange="alterar_status(this, '${id_orcam}')" style="font-size: 1vw; background-color: #d2d2d2; border-radius: 3px; padding: 3px;">
                 ${opcoes}
             </select>
         </div>
@@ -2092,38 +2092,45 @@ function mostrar_botao_pedido(elemento) {
 }
 
 async function alterar_status(select, id_orcam) {
-    tela_orcamentos = id_orcam ? true : false
 
+
+    //Recupera os dados existenetes
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    console.log("Dados antes da alteração:", dados_orcamentos);
 
-    const orcamentoExistente = dados_orcamentos[id_orcam];
-    if (!orcamentoExistente) {
-        dados_orcamentos[id_orcam] = { status: {} };
-    }
 
-    // Garantir que o orçamento existe
     if (!dados_orcamentos[id_orcam]) {
         dados_orcamentos[id_orcam] = {};
     }
 
-    // Garantir que a estrutura status existe
+    //Garante que a estrutura de status existe
     if (!dados_orcamentos[id_orcam].status) {
-        dados_orcamentos[id_orcam].status = {};
+        dados_orcamentos[id_orcam].status = {}
+    }
+
+    //Atualiza o status atual
+    dados_orcamentos[id_orcam].status.atual = select.value
+
+    //Salva os dados localmente
+    await inserirDados(dados_orcamentos, 'dados_orcamentos');
+
+    try {
+        await enviar(`dados_orcamentos/${id_orcam}/status/atual`, select.value);
+    } catch (erro) {
+        console.warn("Falha ao enviar para o backend", erro);
+
     }
 
 
-    dados_orcamentos[id_orcam].status.atual = select.value || {};
-
-    await enviar(`dados_orcamentos/${id_orcam}/status/atual`, select.value);
-    await inserirDados(dados_orcamentos, 'dados_orcamentos');
-
-    if (tela_orcamentos) {
+    let elementoPai = select.parentElement.parentElement
+    //Atualiza visualização conforme a origem
+    if (elementoPai.tagName === 'TR') {
         filtrar_orcamentos(undefined, undefined, undefined, true);
-        select.parentElement.parentElement.style.display = 'none';
+        select.parentElement.parentElement.style.display = 'none'
     } else {
         await preencher_orcamentos_v2();
     }
+
+
 }
 
 function exibirItens(div) {
