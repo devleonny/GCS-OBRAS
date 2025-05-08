@@ -915,7 +915,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                         </tr>
                         <tr>
                             <td>ICMS Creditado em nota (%)</td>
-                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="icms_creditado" oninput="selecionarOrigemPorICMS(this.value); calcular()" value="${dados?.icms_creditado || ""}"></td>
+                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="icms_creditado" type="number" oninput="selecionarOrigemPorICMS(this.value); calcular()" value="${dados?.icms_creditado || ""}"></td>
                         </tr>
                         <tr>
                             <td>Aliquota ICMS (Bahia)</td>
@@ -1202,7 +1202,7 @@ async function salvar_preco(codigo, lpu, cotacao) {
 
         const final = parseFloat(getValue('final')) || 0;
         const custo = parseFloat(getValue('custo')) || 0;
-        const icms_creditado = getValue('icms_creditado');
+        const icms_creditado = conversor(getValue('icms_creditado')); // Coloquei um conversor para obter o número mesmo que seja float;
         const nota = getValue('nota');
         const comentario = getValue('comentario');
         const margem = parseFloat(getValue('margem')) || 0;
@@ -1265,45 +1265,6 @@ async function salvar_preco(codigo, lpu, cotacao) {
     }
 }
 
-// async function salvar_preco(codigo, lpu, cotacao) {
-
-//     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-//     let produto = dados_composicoes[codigo]
-
-//     if (!produto[lpu]) {
-//         produto[lpu] = {
-//             historico: {}
-//         }
-//     }
-
-//     let historico = produto[lpu].historico
-//     let id = cotacao ? cotacao : gerar_id_5_digitos()
-
-//     historico[id] = {
-//         valor: Number(document.getElementById('final').value),
-//         data: dt(),
-//         usuario: acesso.usuario,
-//         nota: document.getElementById('nota').value,
-//         comentario: document.getElementById('comentario').value
-//     }
-
-//     if (produto.tipo == 'VENDA') {
-//         historico[id].valor_custo = conversor(document.getElementById('valor_custo').textContent)
-//         historico[id].icms_creditado = Number(document.getElementById('icms_creditado').value)
-//     }
-
-//     historico[id].margem = Number(document.getElementById('margem').value)
-//     historico[id].fornecedor = document.getElementById('fornecedor').value
-//     historico[id].custo = conversor(document.getElementById('custo').value)
-
-//     await inserirDados(dados_composicoes, 'dados_composicoes')
-
-//     enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, historico[id])
-//     remover_popup()
-
-//     await abrir_historico_de_precos(codigo, lpu)
-// }
-
 function calcular(tipo, campo) {
 
     let historico_preco = document.getElementById('historico_preco')
@@ -1353,7 +1314,7 @@ function calcular(tipo, campo) {
 
         let preco_compra = conversor(Number(tds[1].querySelector('input').value))
         let frete = preco_compra * 0.02
-        let icms_creditado = conversor(tds[5].querySelector('input').value)
+        let icms_creditado = conversor(Number(tds[5].querySelector('input').value))
         let icms_aliquota = conversor(tds[7].querySelector('input').value)
         let difal = icms_aliquota - icms_creditado
         let icms_entrada = difal / 100 * preco_compra
