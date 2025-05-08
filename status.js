@@ -1101,6 +1101,10 @@ async function salvar_pedido(chave) {
         orcamento.status = { historico: {} };
     }
 
+    if (!orcamento.status.historico) {
+        orcamento.status.historico = {}
+    }
+
     if (!orcamento.status.historico[chave]) {
         orcamento.status.historico[chave] = {}
     }
