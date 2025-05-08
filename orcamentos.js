@@ -472,12 +472,15 @@ async function alteracoes_status() {
             }
 
             orcamento.status = novas_chaves
-
+         
+            
         }
     }
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
+   
 }
+
 
 function atualizar_status(st) {
 
