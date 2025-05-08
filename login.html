@@ -116,8 +116,7 @@
 
     function verificar_login_automatico() {
         try {
-            var acesso = JSON.parse(localStorage.getItem('acesso'))
-            if (acesso.acesso == 'Autorizado') {
+            if (acesso) {
                 window.location.href = 'inicial.html'
             }
         } catch {
