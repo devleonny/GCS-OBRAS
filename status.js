@@ -1,38 +1,46 @@
-var itens_adicionais = {}
-var id_orcam = ''
-var dataAtual = new Date();
-var data_status = dataAtual.toLocaleString('pt-BR', {
+let itens_adicionais = {}
+let id_orcam = ''
+let dataAtual = new Date();
+let data_status = dataAtual.toLocaleString('pt-BR', {
     dateStyle: 'short',
     timeStyle: 'short'
 });
 
-document.addEventListener("DOMContentLoaded", async () => {
-    let orcamento_que_deve_voltar = localStorage.getItem("orcamento_que_deve_voltar");
+let fluxograma = {}
+verificarFluxograma()
 
-    if (orcamento_que_deve_voltar) {
+function verificarFluxograma() {
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
 
-        orcamento_que_deve_voltar = orcamento_que_deve_voltar.replace(/"/g, "");
+    if (modoClone) {
+        fluxograma = {
+            'ORÇAMENTOS': { cor: '#1CAF29' },
+            'LOGÍSTICA': { cor: '#4CAF10' },
+            'NFE - VENDAS': { cor: '#B05315' },
+            'REQUISIÇÃO': { cor: '#B12425' },
+            'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
+            'CONCLUÍDO': { cor: '#ff4500' },
+            'FATURADO': { cor: '#b17724' },
+            'PAGAMENTO RECEBIDO': { cor: '#b17724' }
+        }
 
-        exibir_todos_os_status(orcamento_que_deve_voltar)
+    } else {
 
-        // 🔥 Remove os dados do localStorage após exibição
-        localStorage.removeItem("orcamento_que_deve_voltar");
+        fluxograma = {
+            'INCLUIR PEDIDO': { cor: '#4CAF50' },
+            'PEDIDO': { cor: '#4CAF50' },
+            'REQUISIÇÃO': { cor: '#B12425' },
+            'MATERIAL SEPARADO': { cor: '#b17724' },
+            'FATURADO': { cor: '#ff4500' },
+            'MATERIAL ENVIADO': { cor: '#b17724' },
+            'MATERIAL ENTREGUE': { cor: '#b17724' },
+            'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
+            'COTAÇÃO PENDENTE': { cor: '#0a989f' },
+            'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
+            'RETORNO DE MATERIAIS': { cor: '#aacc14' },
+            'FINALIZADO': { cor: 'blue' }
+        }
     }
-
-});
-
-var fluxograma = {
-    'INCLUIR PEDIDO': { cor: '#4CAF50' },
-    'PEDIDO': { cor: '#4CAF50' },
-    'REQUISIÇÃO': { cor: '#B12425' },
-    'MATERIAL SEPARADO': { cor: '#b17724' },
-    'FATURADO': { cor: '#ff4500' },
-    'MATERIAL ENVIADO': { cor: '#b17724' },
-    'MATERIAL ENTREGUE': { cor: '#b17724' },
-    'COTAÇÃO PENDENTE': { cor: '#0a989f' },
-    'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
-    'RETORNO DE MATERIAIS': { cor: '#aacc14' },
-    'FINALIZADO': { cor: 'blue' }
 }
 
 let totalValoresPedidos; // Variável global
