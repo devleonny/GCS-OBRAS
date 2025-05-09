@@ -701,7 +701,7 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
 function abrirModalTipoRequisicao() {
     let modal = `
         <div style="text-align: center">
-            <button onclick="escolherTipoRequisicao('Requisição Completa')" style="
+            <button onclick="escolherTipoRequisicao('Requisição Completa'); adicionarColunasCompra()" style="
                 background-color: #4CAF50;
                 color: white;
                 padding: 10px 20px;
@@ -710,7 +710,7 @@ function abrirModalTipoRequisicao() {
                 cursor: pointer;
                 margin-right: 10px;
             ">Requisição Completa</button>
-            <button onclick="escolherTipoRequisicao('infraestrutura')" style="
+            <button onclick="escolherTipoRequisicao('infraestrutura'); adicionarColunasCompra()" style="
                 background-color: #2196F3;
                 color: white;
                 padding: 10px 20px;
@@ -2973,7 +2973,7 @@ async function detalhar_requisicao(chave, editar, tipoRequisicao) {
                 <th style="text-align: center;">Valor Unitário</th>     
                 <th style="text-align: center;">Valor Total</th>
                 <th style="text-align: center; display: none">Valor de Compra</th>
-                <th style="text-align: center; dislay: none">Total de Compra</th>
+                <th style="text-align: center; display: none">Total de Compra</th>
                 <th style="text-align: center; display: none">Resultado</th>         
                 <th style="text-align: center;">Requisição</th>
             </thead>
@@ -3033,7 +3033,25 @@ function toggleColuna(tipo) {
 
 
 function adicionarColunasCompra() {
+
+    
     const tabela = document.getElementById('tabela_requisicoes');
+
+    //Verifica se a tabela existe
+    if (!tabela) {
+        const popups = document.querySelectorAll('.janela')
+        for (let popup of popups) {
+            tabela = popup.querySelector('#tabela_requisicoes')
+            if (tabela) break
+        }
+    }
+
+    if (!tabela) {
+        console.error('Tabela não encontrada. Elementos disponíveis:', 
+                     document.querySelectorAll('table'));
+        alert('A tabela de requisições não foi carregada corretamente. Tente novamente.');
+        return;
+    }
     const cabecalhos = tabela.querySelectorAll('th');
     const linhas = tabela.querySelectorAll('tr');
     
@@ -3072,7 +3090,16 @@ function adicionarColunasCompra() {
         
         // 1. Adicionar cabeçalhos
         const thead = tabela.querySelector('thead');
+        if (!thead) {
+            console.error('Cabeçalho da tabela não encontrado');
+            return
+        }
         const headerRow = thead.querySelector('tr');
+        if (!headerRow) {
+            console.error('Linha do cabeçalho não encontrada');
+            return
+            
+        }
         
         // Criar novos cabeçalhos
         const headerValorCompra = document.createElement('th');
@@ -3153,7 +3180,7 @@ function ocultarColunasCompra () {
     // Atualizar texto do botão
     const botao = event.target;
     botao.textContent = 'Adicionar Análise';
-    botao.onclick = function() { adicionarColunasCompra(); };
+    botao.onclick ="setTimeout(() => { adicionarColunasCompra(),100)";
 
 }
 
