@@ -113,7 +113,6 @@ async function atualizar_lista_de_lpus() {
         var LPUS = [];
         var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
         var lpu = document.getElementById('lpu')
-
         var LPUS = [
             ...new Set(
                 Object.values(dados_composicoes)
@@ -472,7 +471,10 @@ async function recuperarComposicoes(tipo_tabela) {
     await inserirDados(nuvem, 'dados_composicoes')
     await tabela_produtos_v2(tipo_tabela)
 
-    let aguarde = document.getle
+    let aguarde = document.getElementById('aguarde')
+    if (aguarde) {
+        aguarde.remove()
+    }
 }
 
 async function tabela_produtos_v2(tipo_tabela) {
@@ -485,15 +487,31 @@ async function tabela_produtos_v2(tipo_tabela) {
         acesso.permissao == 'diretor'
     )
 
-    if (moduloComposicoes) {
-        let botao = `
+    let toolbar = document.getElementById('toolbar')
+    if (toolbar) {
+        
+        let botoes = `
+            <label class="menu_top_geral" onclick="tabela_produtos_v2()">Todos</label>
+            <label class="menu_top_serviço" onclick="tabela_produtos_v2('SERVIÇO')">Serviço</label>
+            <label class="menu_top_venda" onclick="tabela_produtos_v2('VENDA')">Venda</label>
+            <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
+                onclick="recuperarComposicoes()">
+                <img src="imagens/atualizar_2.png" style="width: 30px; cursor: pointer;">
+                <label style="color: white; cursor: pointer;">Atualizar</label>
+            </div>
+        `
+        if (moduloComposicoes) {
+            botoes += `
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
                 onclick="cadastrar_editar_item()">
                 <img src="imagens/add.png" style="width: 30px; cursor: pointer;">
                 <label style="color: white; cursor: pointer;">Criar Item</label>
             </div>`
-        document.getElementById('toolbar').insertAdjacentHTML('beforeend', botao)
+        }
+
+        toolbar.innerHTML = botoes
     }
+
 
     let tabela_itens = document.getElementById('tabela_itens')
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
