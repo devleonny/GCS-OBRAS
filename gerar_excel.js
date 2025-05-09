@@ -142,8 +142,9 @@ async function ir_excel(orcam_) {
 
         }
 
-        let headerRow = ws_orcamento.addRow(['', 'Orçamento: ' + nome_arquivo + ' - TOTAL: ' + orcamento.total_geral]);
-        ws_orcamento.mergeCells(`B${headerRow.number}:O${headerRow.number}`);
+        let headerRow = ws_orcamento.addRow(['', `Orçamento: ${nome_arquivo}`]);
+        ws_orcamento.mergeCells(`B${headerRow.number}:G${headerRow.number}`)
+        ws_orcamento.mergeCells(`H${headerRow.number}:J${headerRow.number}`)
 
         if (listagem.SERVIÇO.length !== 0) {
 
@@ -271,17 +272,25 @@ async function ir_excel(orcam_) {
         });
 
         ws_orcamento.getRow(1).height = 3 * 28.35;
+        
+        let estiloHeader = {
+            font: {
+                size: 20,
+                color: { argb: '1155CC' },
+                bold: true
+            },
+            alignment: {
+                horizontal: 'left',
+                vertical: 'middle'
+            }
+        };
 
-        const headerCell = ws_orcamento.getCell('B1');
-        headerCell.font = {
-            size: 28,
-            color: { argb: '1155CC' },
-            bold: true
-        };
-        headerCell.alignment = {
-            horizontal: 'left',
-            vertical: 'middle'
-        };
+        ws_orcamento.getCell('B1').font = estiloHeader.font;
+        ws_orcamento.getCell('B1').alignment = estiloHeader.alignment;
+
+        ws_orcamento.getCell('H1').font = estiloHeader.font;
+        ws_orcamento.getCell('H1').alignment = estiloHeader.alignment;
+        ws_orcamento.getCell('H1').numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-';
 
         var escopo = orcamento.dados_orcam.consideracoes;
 
@@ -296,14 +305,28 @@ async function ir_excel(orcam_) {
         let manter_total = 0
         let fct = 4 // limite da até onde a célula receberá formatação (A4 a A6)
 
+        let refsTotais = [];
+
         if (listagem.SERVIÇO.length !== 0) {
-            ws_total.addRows([["TOTAL DE SERVIÇO", { formula: `SUM(Orçamento!${col_serviço}3:${col_serviço + (3 + listagem.SERVIÇO.length - 1)})` }]])
-            manter_total++
+            const rowServiço = ws_total.lastRow.number + 1;
+            ws_total.addRows([
+                ["TOTAL DE SERVIÇO", { formula: `SUM(Orçamento!${col_serviço}3:${col_serviço}${3 + listagem.SERVIÇO.length - 1})` }]
+            ]);
+            refsTotais.push(`TOTAL!B${rowServiço}`);
+            manter_total++;
         }
 
         if (listagem.VENDA.length !== 0) {
-            ws_total.addRows([["TOTAL DE VENDA", { formula: `SUM(Orçamento!${col_venda + (ws_orcamento.lastRow.number - listagem.VENDA.length)}:${col_venda + (ws_orcamento.lastRow.number - 1)})` }]])
-            manter_total++
+            const rowVenda = ws_total.lastRow.number + 1;
+            ws_total.addRows([
+                ["TOTAL DE VENDA", { formula: `SUM(Orçamento!${col_venda}${ws_orcamento.lastRow.number - listagem.VENDA.length + 1}:${col_venda}${ws_orcamento.lastRow.number})` }]
+            ]);
+            refsTotais.push(`TOTAL!B${rowVenda}`);
+            manter_total++;
+        }
+
+        if (refsTotais.length) {
+            ws_orcamento.getCell(`H1`).value = { formula: `SUM(${refsTotais.join(",")})` };
         }
 
         if (manter_total == 2) {
@@ -364,9 +387,9 @@ async function ir_excel(orcam_) {
             };
         }
 
-        ws_total.mergeCells('A8:H18');
+        ws_total.mergeCells('A8:H100');
         ws_total.getCell('A8').alignment = {
-            vertical: 'middle',
+            vertical: 'top',
             wrapText: true
         };
 
