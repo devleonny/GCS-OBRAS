@@ -587,7 +587,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
                                   <label>Quantidade a enviar</label>
                                   <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" min="0" value="${qtde}">
                               </div>
-                              <label class="num">${itensOrcamento[codigo].qtde}</label>  
+                              <label class="num">${itensOrcamento[codigo]?.qtde || 0}</label>
                           </div>
                       `}
                   </td>
