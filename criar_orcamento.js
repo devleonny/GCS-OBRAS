@@ -485,6 +485,16 @@ async function tabela_produtos_v2(tipo_tabela) {
         acesso.permissao == 'diretor'
     )
 
+    if (moduloComposicoes) {
+        let botao = `
+            <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
+                onclick="cadastrar_editar_item()">
+                <img src="imagens/add.png" style="width: 30px; cursor: pointer;">
+                <label style="color: white; cursor: pointer;">Criar Item</label>
+            </div>`
+        document.getElementById('toolbar').insertAdjacentHTML('beforeend', botao)
+    }
+
     let tabela_itens = document.getElementById('tabela_itens')
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
 
