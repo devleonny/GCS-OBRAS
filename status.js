@@ -33,6 +33,26 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 });
 
+// Adicione isto logo no início do arquivo
+document.addEventListener('click', function (e) {
+    if (e.target.classList.contains('btn-analise')) {
+        // Verifica se a função existe
+        const action = e.target.getAttribute('data-action');
+        if (typeof window[action] === 'function') {
+            window[action]();
+        } else {
+            console.warn('Função não disponível ainda - tentando novamente...');
+            setTimeout(() => {
+                if (typeof window[action] === 'function') {
+                    window[action]();
+                } else {
+                    alert('Aguarde o recurso carregar...');
+                }
+            }, 500);
+        }
+    }
+});
+
 async function sincronizar_e_reabrir() {
     await recuperar_orcamentos()
     await abrir_esquema(id_orcam)
@@ -2885,10 +2905,10 @@ async function detalhar_requisicao(chave, editar, tipoRequisicao) {
         <input id="pesquisa1" style="padding: 10px; border-radius: 5px; margin: 10px; width: 50%;" placeholder="Pesquisar" oninput="pesquisar_na_requisicao()">
         <button class="botao-coluna" onclick="toggleColuna('valor_unitario')" style="padding: 8px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em; margin: 0 5px;">Ocultar Val. Unit.</button>
         <button class="botao-coluna" onclick="toggleColuna('valor_total')" style="padding: 8px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em; margin: 0 5px;">Ocultar Val. Total</button>
-        <button class="botao-coluna" onclick="adicionarColunasCompra()" style="padding: 8px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em; margin: 0 5px;">Adicionar Análise</button>
+        <button class="btn-analise" data-action="adicionarColunasCompra" style="padding: 8px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8em; margin: 0 5px;">Adicionar Análise</button>
     </div>
     `
-        
+
         campos = `
         <div class="contorno" style="width: 500px;">
             <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; font-size: 1.0em;">Dados da Requisição</div>
@@ -2996,14 +3016,12 @@ function toggleColuna(tipo) {
     const linhas = tabela.getElementsByTagName('tr')
 
     //Encontrar o índice da coluna
-    let indice =-1
-    for (let i=0; i < cabecalhos.length; i++) {
-        if ((tipo === 'valor_unitario' && cabecalhos[i].textContent.includes('Valor Unitário')))
-        {
+    let indice = -1
+    for (let i = 0; i < cabecalhos.length; i++) {
+        if ((tipo === 'valor_unitario' && cabecalhos[i].textContent.includes('Valor Unitário'))) {
             indice = i;
             break;
-        } else if (tipo ===  'valor_total' && cabecalhos[i].textContent.includes('Valor Total'))
-        {
+        } else if (tipo === 'valor_total' && cabecalhos[i].textContent.includes('Valor Total')) {
             indice = i;
             break;
         }
@@ -3017,8 +3035,8 @@ function toggleColuna(tipo) {
 
     //Atualizar texto do botão
     botao.textContent = escondido ?
-    (tipo === 'valor_unitario' ? 'Mostrar Val. Unit.' : 'Mostrar Val. Total') :
-    (tipo === 'valor_unitario' ? 'Ocultar Val. Unit' : 'Ocultar Val. Total');
+        (tipo === 'valor_unitario' ? 'Mostrar Val. Unit.' : 'Mostrar Val. Total') :
+        (tipo === 'valor_unitario' ? 'Ocultar Val. Unit' : 'Ocultar Val. Total');
 
     //Mostrar/Ocultar coluna
     for (let i = 0; i < linhas.length; i++) {
@@ -3034,138 +3052,164 @@ function toggleColuna(tipo) {
 
 function adicionarColunasCompra() {
 
-    
+    // Adicione esta verificação no início da função
     const tabela = document.getElementById('tabela_requisicoes');
-
-    //Verifica se a tabela existe
     if (!tabela) {
-        const popups = document.querySelectorAll('.janela')
-        for (let popup of popups) {
-            tabela = popup.querySelector('#tabela_requisicoes')
-            if (tabela) break
-        }
-    }
-
-    if (!tabela) {
-        console.error('Tabela não encontrada. Elementos disponíveis:', 
-                     document.querySelectorAll('table'));
-        alert('A tabela de requisições não foi carregada corretamente. Tente novamente.');
+        console.error('Tabela ainda não disponível');
         return;
     }
-    const cabecalhos = tabela.querySelectorAll('th');
-    const linhas = tabela.querySelectorAll('tr');
-    
-    // Índices das colunas originais
-    const INDICE_VALOR_UNITARIO = 5; // Coluna "Valor Unitário"
-    const INDICE_VALOR_TOTAL = 6;    // Coluna "Valor Total"
-    const INDICE_REQUISICAO = 7;     // Coluna "Requisição" (original)
-    
-    // Verificar se as colunas já estão visíveis
-    const colunasVisiveis = cabecalhos.length > 10; // Se já tiver mais de 10 colunas, significa que as de análise já foram adicionadas
-    
-    if (colunasVisiveis) {
+
+      // Verificar se as colunas de análise já existem
+      const colunasVisiveis = tabela.querySelectorAll('th').length > 10;
+
+   
+      if (colunasVisiveis) {
         // Se as colunas estão visíveis, ocultá-las
-        // Remove as colunas de análise (7, 8, 9)
+        const cabecalhos = tabela.querySelectorAll('th');
+        const linhas = tabela.querySelectorAll('tr');
+
         cabecalhos.forEach((th, index) => {
             if (index >= 7 && index <= 9) {
                 th.remove();
             }
         });
-        
+
         linhas.forEach((linha, index) => {
             if (index === 0) return; // Pular cabeçalho
-            
             const celulas = linha.cells;
             if (celulas.length > 9) {
-                // Remove as células de análise (7, 8, 9)
                 celulas[9].remove();
                 celulas[8].remove();
                 celulas[7].remove();
             }
         });
-        
         event.target.textContent = 'Adicionar Análise';
     } else {
-        // Se as colunas estão ocultas, adicioná-las ANTES da coluna de Requisição
-        
-        // 1. Adicionar cabeçalhos
-        const thead = tabela.querySelector('thead');
-        if (!thead) {
-            console.error('Cabeçalho da tabela não encontrado');
-            return
-        }
-        const headerRow = thead.querySelector('tr');
-        if (!headerRow) {
-            console.error('Linha do cabeçalho não encontrada');
-            return
-            
-        }
-        
-        // Criar novos cabeçalhos
-        const headerValorCompra = document.createElement('th');
-        headerValorCompra.textContent = 'Valor de Compra';
-        headerValorCompra.style.textAlign = 'center';
-        
-        const headerTotalCompra = document.createElement('th');
-        headerTotalCompra.textContent = 'Total de Compra';
-        headerTotalCompra.style.textAlign = 'center';
-        
-        const headerResultado = document.createElement('th');
-        headerResultado.textContent = 'Resultado';
-        headerResultado.style.textAlign = 'center';
-        
-        // Inserir antes da coluna de Requisição (índice 7)
+        //Adicionar colunas de análise
+        const thead = tabela.querySelector('thead')
+        const headerRow = thead.querySelector('tr')
+
+         // Criar novos cabeçalhos
+         const headerValorCompra = document.createElement('th');
+         headerValorCompra.textContent = 'Valor de Compra';
+         headerValorCompra.style.textAlign = 'center';
+
+         const headerTotalCompra = document.createElement('th');
+         headerTotalCompra.textContent = 'Total de Compra';
+         headerTotalCompra.style.textAlign = 'center';
+
+         const headerResultado = document.createElement('th');
+         headerResultado.textContent = 'Resultado';
+         headerResultado.style.textAlign = 'center';
+
+            // Inserir antes da coluna de Requisição (índice 7)
         headerRow.insertBefore(headerResultado, headerRow.children[7]);
         headerRow.insertBefore(headerTotalCompra, headerRow.children[7]);
         headerRow.insertBefore(headerValorCompra, headerRow.children[7]);
-        
-        // 2. Adicionar células nas linhas de dados
-        linhas.forEach((linha, index) => {
-            if (index === 0) return; // Pular cabeçalho
-            
+
+        // Adicionar células nas linhas de dados
+        const linhas = tabela.querySelectorAll('tbody tr');
+        linhas.forEach(linha => {
             const celulas = linha.cells;
-            
-            // Criar novas células
+
+            // Criar célula de Valor de Compra
             const cellValorCompra = document.createElement('td');
             cellValorCompra.style.textAlign = 'center';
-            
-            const inputValorCompra = document.createElement('input');
-            inputValorCompra.type = 'number';
-            inputValorCompra.style.width = '80px';
-            inputValorCompra.classList.add('pedido');
-            inputValorCompra.oninput = function() { calcularComparacao(this); };
-            cellValorCompra.appendChild(inputValorCompra);
-            
+
+            const divValorCompra = document.createElement('div');
+            divValorCompra.style.display = 'flex';
+            divValorCompra.style.alignItems = 'center';
+            divValorCompra.style.justifyContent = 'center';
+
+            const spanMoeda = document.createElement('span');
+            spanMoeda.textContent = 'R$ ';
+            spanMoeda.style.marginRight = '5px';
+
+            const inputValorCompra = document.createElement('input')
+            inputValorCompra.type = 'text';
+            inputValorCompra.style.width = '5vw'
+            inputValorCompra.classList.add('pedido')
+            inputValorCompra.style.textAlign = 'right'
+            inputValorCompra.addEventListener('input', function(){
+                formatarMoeda(this)
+                calcularComparacao(this)
+            }) 
+
+            divValorCompra.appendChild(spanMoeda);
+            divValorCompra.appendChild(inputValorCompra);
+            cellValorCompra.appendChild(divValorCompra);
+
+            //Criar célula de Total de Compra
             const cellTotalCompra = document.createElement('td');
             cellTotalCompra.style.textAlign = 'center';
-            
+            cellTotalCompra.textContent = 'R$0,00';
+
+            //Criar célula de Resultado
             const cellResultado = document.createElement('td');
-            cellResultado.style.textAlign = 'center';
-            
+            cellResultado.style.textAlign = 'center'
+
             // Inserir antes da coluna de Requisição (índice 7)
             linha.insertBefore(cellResultado, celulas[7]);
             linha.insertBefore(cellTotalCompra, celulas[7]);
             linha.insertBefore(cellValorCompra, celulas[7]);
-        });
+
+          // Adicionar listener para mudanças na quantidade
+          const inputQuantidade = linha.cells[4].querySelector('input');
+          if (inputQuantidade) {
+              inputQuantidade.addEventListener('input', function() {
+                  const inputValorCompra = linha.cells[7].querySelector('input');
+                  if (inputValorCompra && inputValorCompra.value) {
+                      calcularComparacao(inputValorCompra);
+                  }
+              });
+          }
+      });
+
+      event.target.textContent = 'Ocultar Análise';
+  }
+}
+
+  
+function formatarMoeda(input) {
+    // Remove tudo que não é número ou vírgula
+    let valor = input.value.replace(/[^\d,]/g, '');
+    
+    // Remove zeros à esquerda
+    valor = valor.replace(/^0+/, '');
+    
+    // Garante que há pelo menos um zero antes da vírgula
+    if (valor.startsWith(',')) {
+        valor = '0' + valor;
+    }
+    
+    // Formata como moeda
+    if (valor) {
+        // Separa parte inteira e decimal
+        let partes = valor.split(',');
+        let parteInteira = partes[0];
+        let parteDecimal = partes.length > 1 ? ',' + partes[1].substring(0, 2) : '';
         
-        event.target.textContent = 'Ocultar Análise';
+        // Adiciona pontos como separadores de milhar
+        parteInteira = parteInteira.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        
+        input.value = parteInteira + parteDecimal;
     }
 }
 
-function ocultarColunasCompra () {
+function ocultarColunasCompra() {
     const tabela = document.getElementById('tabela_requisicoes');
     const cabecalhos = tabela.getElementsByTagName('th');
-    
+
     // Índices das colunas relevantes
     const COL_VALOR_COMPRA = 7;
     const COL_TOTAL_COMPRA = 8;
     const COL_RESULTADO = 9;
-    
+
     // Ocultar colunas
     cabecalhos[COL_VALOR_COMPRA].style.display = 'none';
     cabecalhos[COL_TOTAL_COMPRA].style.display = 'none';
     cabecalhos[COL_RESULTADO].style.display = 'none';
-    
+
     // Ocultar células nas linhas
     const linhas = tabela.getElementsByTagName('tr');
     for (let i = 1; i < linhas.length; i++) {
@@ -3176,11 +3220,11 @@ function ocultarColunasCompra () {
             celulas[COL_RESULTADO].style.display = 'none';
         }
     }
-    
+
     // Atualizar texto do botão
     const botao = event.target;
     botao.textContent = 'Adicionar Análise';
-    botao.onclick ="setTimeout(() => { adicionarColunasCompra(),100)";
+    botao.onclick = "setTimeout(() => { adicionarColunasCompra(),100)";
 
 }
 
@@ -3188,33 +3232,36 @@ function ocultarColunasCompra () {
 function calcularComparacao(inputElement) {
     const linha = inputElement.closest('tr');
     const celulas = linha.cells;
-    
-    // Índices das colunas (agora fixos, pois as colunas são adicionadas/removidas dinamicamente)
+
+    // Índices das colunas
     const INDICE_QUANTIDADE = 4;        // Coluna "Quantidade"
     const INDICE_VALOR_TOTAL = 6;       // Coluna "Valor Total"
-    const INDICE_VALOR_COMPRA = 7;      // Coluna "Valor de Compra" (nova)
-    const INDICE_TOTAL_COMPRA = 8;      // Coluna "Total de Compra" (nova)
-    const INDICE_RESULTADO = 9;         // Coluna "Resultado" (nova)
-    
-    
+    const INDICE_VALOR_COMPRA = 7;      // Coluna "Valor de Compra"
+    const INDICE_TOTAL_COMPRA = 8;      // Coluna "Total de Compra"
+    const INDICE_RESULTADO = 9;         // Coluna "Resultado"
+
     // Obter valores
     const quantidadeText = celulas[INDICE_QUANTIDADE].querySelector('input') ?
-                        celulas[INDICE_QUANTIDADE].querySelector('input').value :
-                        celulas[INDICE_QUANTIDADE].textContent
-    const quantidade = parseFloat(quantidadeText) || 0;
+        celulas[INDICE_QUANTIDADE].querySelector('input').value :
+        celulas[INDICE_QUANTIDADE].textContent;
+    
+    const quantidade = parseFloat(quantidadeText.replace(/\./g, '').replace(',', '.')) || 0;
+    
     const valorTotalText = celulas[INDICE_VALOR_TOTAL].textContent;
     const valorTotal = parseFloat(valorTotalText.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()) || 0;
-    const valorCompra = parseFloat(inputElement.value) || 0;
     
+    const valorCompraText = inputElement.value;
+    const valorCompra = parseFloat(valorCompraText.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()) || 0;
+
     // Calcular total de compra
     const totalCompra = quantidade * valorCompra;
     celulas[INDICE_TOTAL_COMPRA].textContent = dinheiro(totalCompra);
-    
+
     // Calcular resultado (diferença entre valor total e total de compra)
     const resultado = valorTotal - totalCompra;
     const resultadoCell = celulas[INDICE_RESULTADO];
     resultadoCell.textContent = dinheiro(resultado);
-    
+
     // Aplicar formatação
     if (resultado > 0) {
         resultadoCell.style.color = 'green';
