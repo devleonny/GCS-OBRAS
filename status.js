@@ -7,40 +7,45 @@ let data_status = dataAtual.toLocaleString('pt-BR', {
 });
 
 let fluxograma = {}
+let fluxogramaClone = {
+    'ORÇAMENTOS': { cor: '#1CAF29' },
+    'LOGÍSTICA': { cor: '#4CAF10' },
+    'NFE - VENDAS': { cor: '#B05315' },
+    'REQUISIÇÃO': { cor: '#B12425' },
+    'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
+    'CONCLUÍDO': { cor: '#ff4500' },
+    'FATURADO': { cor: '#b17724' },
+    'PAGAMENTO RECEBIDO': { cor: '#b17724' }
+}
+
+let fluxogramaPadrao = fluxograma = {
+    'INCLUIR PEDIDO': { cor: '#4CAF50' },
+    'PEDIDO': { cor: '#4CAF50' },
+    'REQUISIÇÃO': { cor: '#B12425' },
+    'MATERIAL SEPARADO': { cor: '#b17724' },
+    'FATURADO': { cor: '#ff4500' },
+    'MATERIAL ENVIADO': { cor: '#b17724' },
+    'MATERIAL ENTREGUE': { cor: '#b17724' },
+    'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
+    'COTAÇÃO PENDENTE': { cor: '#0a989f' },
+    'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
+    'RETORNO DE MATERIAIS': { cor: '#aacc14' },
+    'FINALIZADO': { cor: 'blue' }
+}
+
+// O objeto foi mesclado com o intuito de obter as formatações de ambos os aplicativos sem precisar criar um objeto para isso;
+let fluxogramaMesclado = {
+    ...fluxogramaClone,
+    ...fluxogramaPadrao
+}
+
 verificarFluxograma()
 
 function verificarFluxograma() {
+
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    modoClone ? fluxograma = fluxogramaClone : fluxograma = fluxogramaPadrao
 
-    if (modoClone) {
-        fluxograma = {
-            'ORÇAMENTOS': { cor: '#1CAF29' },
-            'LOGÍSTICA': { cor: '#4CAF10' },
-            'NFE - VENDAS': { cor: '#B05315' },
-            'REQUISIÇÃO': { cor: '#B12425' },
-            'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
-            'CONCLUÍDO': { cor: '#ff4500' },
-            'FATURADO': { cor: '#b17724' },
-            'PAGAMENTO RECEBIDO': { cor: '#b17724' }
-        }
-
-    } else {
-
-        fluxograma = {
-            'INCLUIR PEDIDO': { cor: '#4CAF50' },
-            'PEDIDO': { cor: '#4CAF50' },
-            'REQUISIÇÃO': { cor: '#B12425' },
-            'MATERIAL SEPARADO': { cor: '#b17724' },
-            'FATURADO': { cor: '#ff4500' },
-            'MATERIAL ENVIADO': { cor: '#b17724' },
-            'MATERIAL ENTREGUE': { cor: '#b17724' },
-            'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
-            'COTAÇÃO PENDENTE': { cor: '#0a989f' },
-            'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
-            'RETORNO DE MATERIAIS': { cor: '#aacc14' },
-            'FINALIZADO': { cor: 'blue' }
-        }
-    }
 }
 
 let totalValoresPedidos; // Variável global
@@ -1183,7 +1188,7 @@ async function salvar_requisicao(chave) {
 
 function botao_novo_pedido(id) {
     return `
-    <div class="contorno_botoes" style="background-color: ${fluxograma['PEDIDO']?.cor}" onclick="painel_adicionar_pedido()">
+    <div class="contorno_botoes" style="background-color: ${fluxogramaMesclado['PEDIDO']?.cor}" onclick="painel_adicionar_pedido()">
         <label>Novo <strong>Pedido </strong></label>
     </div>
 `
@@ -1463,7 +1468,7 @@ async function abrir_esquema(id) {
                     </div>
                     `
                 editar = `
-                    <div style="background-color: ${fluxograma[sst.status]?.cor || '#808080'}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}', true)">
+                    <div style="background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}', true)">
                         <img src="imagens/editar4.png">
                         <label>Editar</label>
                     </div>
@@ -1502,7 +1507,7 @@ async function abrir_esquema(id) {
 
             if (String(sst.status).includes('RETORNO')) {
                 editar = `
-                    <div style="background-color: ${fluxograma[sst.status]?.cor || '#aacc14'}" class="contorno_botoes" onclick="retorno_de_materiais('${chave}')">
+                    <div style="background-color: ${fluxogramaMesclado[sst.status]?.cor || '#aacc14'}" class="contorno_botoes" onclick="retorno_de_materiais('${chave}')">
                         <img src="imagens/editar4.png">
                         <label>Editar</label>
                     </div>
@@ -1511,7 +1516,7 @@ async function abrir_esquema(id) {
 
             if (String(sst.status).includes('FATURADO')) {
                 editar = `
-                    <div style="background-color: ${fluxograma[sst.status]?.cor || '#ff4500'}" class="contorno_botoes" onclick="painel_adicionar_notas('${chave}')">
+                    <div style="background-color: ${fluxogramaMesclado[sst.status]?.cor || '#ff4500'}" class="contorno_botoes" onclick="painel_adicionar_notas('${chave}')">
                         <img src="imagens/editar4.png">
                         <label>Editar</label>
                     </div>
@@ -1547,7 +1552,7 @@ async function abrir_esquema(id) {
                 var coments = sst.comentario.replace(/\n/g, '<br>')
             }
 
-            let campo = fluxograma[sst.status]?.campo || sst.status
+            let campo = fluxogramaMesclado[sst.status]?.campo || sst.status
             if (!blocos_por_status[campo]) {
                 blocos_por_status[campo] = ''
             }
@@ -1563,7 +1568,7 @@ async function abrir_esquema(id) {
                 `
 
                 editar = `
-                <div style="background-color: ${fluxograma[sst.status]?.cor || '#808080'}" class="contorno_botoes" onclick="envio_de_material('${chave}')">
+                <div style="background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}" class="contorno_botoes" onclick="envio_de_material('${chave}')">
                     <img src="imagens/editar4.png">
                     <label>Editar</label>
                 </div>
@@ -1577,9 +1582,9 @@ async function abrir_esquema(id) {
             }
 
             blocos_por_status[campo] += `
-                    <div class="bloko" style="gap: 0px; border: 1px solid ${fluxograma[sst.status]?.cor || '#808080'}; background-color: white; justify-content: center;">
+                    <div class="bloko" style="gap: 0px; border: 1px solid ${fluxogramaMesclado[sst.status]?.cor || '#808080'}; background-color: white; justify-content: center;">
 
-                        <div style="cursor: pointer; display: flex; align-items: start; flex-direction: column; background-color: ${fluxograma[sst.status]?.cor || '#808080'}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
+                        <div style="cursor: pointer; display: flex; align-items: start; flex-direction: column; background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
                             <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="${desejaApagar}('${chave}')">&times;</span>
                             <label><strong>Chamado:</strong> ${orcamento.dados_orcam.contrato}</label>
                             <label><strong>Executor: </strong>${sst.executor}</label>
@@ -1593,7 +1598,7 @@ async function abrir_esquema(id) {
                             ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${chave}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
                             
                             <div class="escondido" style="display: none;">
-                                <div class="contorno_botoes" style="background-color: ${fluxograma[sst.status]?.cor || '#808080'}">
+                                <div class="contorno_botoes" style="background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}">
                                     <img src="imagens/anexo2.png">
                                     <label>Anexo
                                         <input type="file" style="display: none;" onchange="salvar_anexo('${chave}', this)" multiple>  
@@ -1604,7 +1609,7 @@ async function abrir_esquema(id) {
                                     ${await carregar_anexos(chave)}
                                 </div>
 
-                                <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave}')" style="background-color: ${fluxograma[sst.status]?.cor || '#808080'}">
+                                <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave}')" style="background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}">
                                     <img src="imagens/comentario.png">
                                     <label>Comentário</label>
                                 </div>
@@ -1623,7 +1628,7 @@ async function abrir_esquema(id) {
                             <br>
                         </div>
 
-                        <div style="cursor: pointer; background-color: ${fluxograma[sst.status]?.cor || '#808080'}; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
+                        <div style="cursor: pointer; background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
                             <label style="color: white; font-size: 0.9vw;">ver mais</label>
                         </div>
 
@@ -1691,21 +1696,21 @@ async function abrir_esquema(id) {
                             <div style="display: flex; gap: 10px; font-size: 0.9vw;">
                                 ${botao_novo_pagamento(id)}
                                 ${botao_novo_pedido(id)}
-                                <div class="contorno_botoes" style="background-color: ${fluxograma['REQUISIÇÃO'].cor}"
+                                <div class="contorno_botoes" style="background-color: ${fluxogramaMesclado['REQUISIÇÃO'].cor}"
                                     onclick="abrirModalTipoRequisicao()">
                                     <label>Nova <strong>Requisição</strong></label>
                                 </div>
                                 
                                 ${(permissao == 'adm' || setor == 'LOGÍSTICA') ? `                                
                                     
-                                <div class="contorno_botoes" style="background-color: ${fluxograma['MATERIAL ENVIADO']?.cor}"
+                                <div class="contorno_botoes" style="background-color: ${fluxogramaMesclado['MATERIAL ENVIADO']?.cor}"
                                     onclick="envio_de_material(undefined)">
                                     <label>Enviar <strong>Material</strong></label>
                                 </div>
                                 
                                 ` : ''}
 
-                                <div class="contorno_botoes" style="background-color: ${fluxograma['FATURADO'].cor};"
+                                <div class="contorno_botoes" style="background-color: ${fluxogramaMesclado['FATURADO'].cor};"
                                     onclick="painel_adicionar_notas()">
                                     <label>Nova <strong>Nota Fiscal</strong></label>
                                 </div>
