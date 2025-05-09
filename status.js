@@ -1183,7 +1183,7 @@ async function salvar_requisicao(chave) {
 
 function botao_novo_pedido(id) {
     return `
-    <div class="contorno_botoes" style="background-color: ${fluxograma['PEDIDO'].cor}" onclick="painel_adicionar_pedido()">
+    <div class="contorno_botoes" style="background-color: ${fluxograma['PEDIDO']?.cor}" onclick="painel_adicionar_pedido()">
         <label>Novo <strong>Pedido </strong></label>
     </div>
 `
@@ -1698,7 +1698,7 @@ async function abrir_esquema(id) {
                                 
                                 ${(permissao == 'adm' || setor == 'LOGÍSTICA') ? `                                
                                     
-                                <div class="contorno_botoes" style="background-color: ${fluxograma['MATERIAL ENVIADO'].cor}"
+                                <div class="contorno_botoes" style="background-color: ${fluxograma['MATERIAL ENVIADO']?.cor}"
                                     onclick="envio_de_material(undefined)">
                                     <label>Enviar <strong>Material</strong></label>
                                 </div>
