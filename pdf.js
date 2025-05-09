@@ -345,13 +345,13 @@ async function preencher_v2() {
     
             let desconto_geral = ((orcamento_v2.total_bruto - totais[tot].valor) / orcamento_v2.total_bruto) * 100
     
-            etiqueta_desconto = `
-            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 3px;">
-                <label>Total sem Desconto <strong>${dinheiro(orcamento_v2.total_bruto)}</strong></label>
-                <hr style="width: 100%;">
-                <label>Desconto <strong>${desconto_geral.toFixed(0)}% </strong></label>
-            </div>
-            `
+            // etiqueta_desconto = `
+            // <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 3px;">
+            //     <label>Total sem Desconto <strong>${dinheiro(orcamento_v2.total_bruto)}</strong></label>
+            //     <hr style="width: 100%;">
+            //     <label>Desconto <strong>${desconto_geral.toFixed(0)}% </strong></label>
+            // </div>
+            // `
         }
     }
 
