@@ -486,6 +486,13 @@ async function recuperarComposicoes(tipo_tabela) {
     }
 }
 
+async function ocultarZerados(ocultar) {
+
+    localStorage.setItem('ocultarZerados', JSON.stringify(ocultar))
+    await tabela_produtos_v2()
+
+}
+
 async function tabela_produtos_v2(tipo_tabela) {
 
     let moduloComposicoes = (
@@ -496,9 +503,13 @@ async function tabela_produtos_v2(tipo_tabela) {
         acesso.permissao == 'diretor'
     )
 
+    let ocultarZerados = JSON.parse(localStorage.getItem('ocultarZerados'))
+
+    if(ocultarZerados == null) ocultarZerados = true
+
     let toolbar = document.getElementById('toolbar')
     if (toolbar) {
-        
+
         let botoes = `
             <label class="menu_top_geral" onclick="tabela_produtos_v2()">Todos</label>
             <label class="menu_top_serviço" onclick="tabela_produtos_v2('SERVIÇO')">Serviço</label>
@@ -519,15 +530,14 @@ async function tabela_produtos_v2(tipo_tabela) {
         }
 
         botoes += `
-            <div style="display: flex; align-items: center: justify-content: center; gap: ">
-                <input type="checkbox">
-                <label>Ocultar produtos zerados</label>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 2px; background-color: #d2d2d2; margin: 3px; border-radius: 3px;">
+                <input onchange="ocultarZerados(this.checked)" type="checkbox" style="width: 3vw; cursor: pointer;" ${ocultarZerados ? 'checked' : ''}>
+                <label style="padding-right: 2vw;">Ocultar produtos zerados</label>
             </div>
         `
 
         toolbar.innerHTML = botoes
     }
-
 
     let tabela_itens = document.getElementById('tabela_itens')
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
@@ -564,6 +574,8 @@ async function tabela_produtos_v2(tipo_tabela) {
                     historico = produto[lpu].historico
                     preco = historico[ativo]?.valor || 0
                 }
+
+                if (preco == 0 && ocultarZerados) continue
 
                 if (produto.status != "INATIVO") {
 
