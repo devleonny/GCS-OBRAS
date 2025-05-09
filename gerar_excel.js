@@ -319,7 +319,7 @@ async function ir_excel(orcam_) {
         if (listagem.VENDA.length !== 0) {
             const rowVenda = ws_total.lastRow.number + 1;
             ws_total.addRows([
-                ["TOTAL DE VENDA", { formula: `SUM(Orçamento!${col_venda}${ws_orcamento.lastRow.number - listagem.VENDA.length + 1}:${col_venda}${ws_orcamento.lastRow.number})` }]
+                ["TOTAL DE VENDA", { formula: `SUM(Orçamento!${col_venda}${ws_orcamento.lastRow.number - listagem.VENDA.length}:${col_venda}${ws_orcamento.lastRow.number - 1})` }]
             ]);
             refsTotais.push(`TOTAL!B${rowVenda}`);
             manter_total++;

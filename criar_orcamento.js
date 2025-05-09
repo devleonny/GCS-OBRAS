@@ -518,6 +518,13 @@ async function tabela_produtos_v2(tipo_tabela) {
             </div>`
         }
 
+        botoes += `
+            <div style="display: flex; align-items: center: justify-content: center; gap: ">
+                <input type="checkbox">
+                <label>Ocultar produtos zerados</label>
+            </div>
+        `
+
         toolbar.innerHTML = botoes
     }
 
