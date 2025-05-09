@@ -1698,7 +1698,7 @@ async function abrir_esquema(id) {
                                 
                                 ${(permissao == 'adm' || setor == 'LOGÍSTICA') ? `                                
                                     
-                                <div class="contorno_botoes" style="background-color: ${fluxograma['MATERIAL ENVIADO'].cor}"
+                                <div class="contorno_botoes" style="background-color: ${fluxograma['MATERIAL ENVIADO']?.cor}"
                                     onclick="envio_de_material(undefined)">
                                     <label>Enviar <strong>Material</strong></label>
                                 </div>
