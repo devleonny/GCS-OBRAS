@@ -384,7 +384,7 @@ async function enviar_dados() {
 
 }
 
-async function autorizar_desconto() {
+async function autorizar_desconto(reaprovacao) {
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
 
     if (!orcamento_v2.aprovacao) {
@@ -405,13 +405,22 @@ async function autorizar_desconto() {
         <img src="gifs/loading.gif" style="width: 5vw;">
         <label>Algum Gerente deve autorizar este desconto... </label>
     `
-    if (orcamento_v2.aprovacao.status && orcamento_v2.aprovacao.status == 'reprovado') {
+    if (!reaprovacao && (orcamento_v2.aprovacao.status && orcamento_v2.aprovacao.status == 'reprovado')) {
         mensagem = `
-        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-            <img src="imagens/cancel.png" style="width: 3vw;">
-            <div style="display: flex; align-items: center; justify-content: start; gap: 5px; flex-direction: column;">
-                <label>Solicitação reprovada</label>
-                <label>${orcamento_v2.aprovacao.justificativa}</label>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <img src="imagens/cancel.png" style="width: 3vw;">
+                <div style="display: flex; align-items: center; justify-content: start; gap: 5px; flex-direction: column;">
+                    <label>Solicitação reprovada</label>
+                    <label>${orcamento_v2.aprovacao.justificativa}</label>
+                </div>
+            </div>
+
+            <hr style="width: 100%;">
+            
+            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <label>Tentar de novo?</label> 
+                <button style="background-color: #4CAF50;" onclick="autorizar_desconto(true)">Sim</button>
             </div>
         </div>
         `
