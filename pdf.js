@@ -326,46 +326,48 @@ async function preencher_v2() {
     let divs_totais = ''
     let etiqueta_desconto = ''
 
-    if (orcamento_v2.desconto_geral && conversor(orcamento_v2.desconto_geral) > 0) {
-        let tipoDesc = orcamento_v2.tipo_de_desconto || 'Porcentagem';
-        let valorDesc = orcamento_v2.desconto_geral;
+    let total_bruto = totais.GERAL.valor;
+    let valor_desconto = 0;
+    let total_liquido = total_bruto;
 
-        etiqueta_desconto = `
-            <div class="mostrar-apenas-usuario" style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 3px;">
-                <label>Desconto: <strong>${tipoDesc === 'Dinheiro' ? dinheiro(valorDesc) : valorDesc + '%'}</strong></label>
-                <label>Total Bruto: <strong>${dinheiro(totais.GERAL.valor)}</strong></label>
+    // Verificar se há desconto geral aplicado
+    if (orcamento_v2.desconto_geral && conversor(orcamento_v2.desconto_geral) > 0) {
+        if (orcamento_v2.tipo_de_desconto == 'Dinheiro') {
+            valor_desconto = conversor(orcamento_v2.desconto_geral);
+            total_liquido = total_bruto - valor_desconto;
+        } else {
+            // Desconto em porcentagem
+            valor_desconto = total_bruto * (conversor(orcamento_v2.desconto_geral) / 100);
+            total_liquido = total_bruto - valor_desconto;
+        }
+    }
+
+    const mostrarApenasUsuários = (tot) => tot === 'GERAL' ? 'mostrar-apenas-usuario' : '';
+    for (tot in totais) {
+        if (totais[tot].valor !== 0) {
+            divs_totais += `
+            <div class="totais ${mostrarApenasUsuários(tot)}" style="background-color: ${totais[tot]?.cor}">
+                TOTAL ${tot} ${dinheiro(totais[tot]?.valor)}
+            </div>
+            `;
+        }
+    }
+
+    const temDesconto = valor_desconto > 0;
+    if (temDesconto) {
+        divs_totais += `
+            <div class="totais mostrar-apenas-usuario" style="background-color:rgb(185, 99, 0); margin-top: 5px;">
+                <label>DESCONTO ${orcamento_v2.tipo_de_desconto === 'Dinheiro' ? dinheiro(valor_desconto) : orcamento_v2.desconto_geral + '%'}</label>
             </div>
         `;
     }
 
-
-    for (tot in totais) {
-
-        // Tem desconto geral ? % ou R$
-        if (tot == 'GERAL' && conversor(orcamento_v2.desconto_geral) > 0) {
-            totais.GERAL.valor = orcamento_v2.tipo_de_desconto == 'Dinheiro' ? totais.GERAL.valor - conversor(orcamento_v2.desconto_geral) : totais.GERAL.valor - (totais.GERAL.valor * conversor(orcamento_v2.desconto_geral) / 100)
-        }
-
-        if (totais[tot].valor !== 0) {
-            divs_totais += `
-            <div class="totais" style="background-color: ${totais[tot].cor}">
-                TOTAL ${tot} ${dinheiro(totais[tot].valor)}
+    if (temDesconto) {
+        divs_totais += `
+            <div class="totais" style="background-color: #151749; margin-top: 5px;">
+                TOTAL LÍQUIDO ${dinheiro(total_liquido)}
             </div>
-            `;
-        }
-
-        if (orcamento_v2.total_bruto > 0) {
-
-            let desconto_geral = ((orcamento_v2.total_bruto - totais[tot].valor) / orcamento_v2.total_bruto) * 100
-
-            etiqueta_desconto = `
-            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 3px;">
-                <label>Total sem Desconto <strong>${dinheiro(orcamento_v2.total_bruto)}</strong></label>
-                <hr style="width: 100%;">
-                <label>Desconto <strong>${desconto_geral.toFixed(0)}% </strong></label>
-            </div>
-            `
-        }
+        `;
     }
 
     html_orcamento.innerHTML = `
@@ -404,9 +406,9 @@ async function preencher_v2() {
 }
 
 function carimbo_data() {
-    var dataAtual = new Date();
-    var opcoes = { day: 'numeric', month: 'long', year: 'numeric' };
-    var dataFormatada = dataAtual.toLocaleDateString('pt-BR', opcoes);
+    let dataAtual = new Date();
+    let opcoes = { day: 'numeric', month: 'long', year: 'numeric' };
+    let dataFormatada = dataAtual.toLocaleDateString('pt-BR', opcoes);
 
     return dataFormatada
 }
@@ -420,7 +422,6 @@ async function gerarPDF() {
         elementosUsuario: elementosUsuario,
         visibilidade: 'none'
     });
-
 
     const orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
     const contrato = orcamento_v2.dados_orcam.contrato;
