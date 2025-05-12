@@ -474,7 +474,7 @@ function mudar_tabela_pesquisa(tabela) {
 
 async function recuperarComposicoes(tipo_tabela) {
 
-    document.body.insertAdjacentHTML('beforeend', overlay_aguarde())
+    overlayAguarde()
 
     let nuvem = await receber('dados_composicoes')
     await inserirDados(nuvem, 'dados_composicoes')

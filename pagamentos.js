@@ -377,14 +377,14 @@ async function abrir_detalhes(id_pagamento) {
         let displayLabel = 'none';
 
         if (acesso.permissao === 'adm') {
-            displayLabel = 'inline';
+            displayLabel = '';
         }
 
         valores += `
-            <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
                 <label><strong>${dinheiro(item.valor)}</strong> - ${dados_categorias[item.codigo_categoria]}</label>
-                <img style="width: 2vw; cursor: pointer; position: relative; left: 5px; top: 8px; display: ${displayLabel};" src="imagens/editar.png" onclick="modal_editar_pagamento('${id_pagamento}', '${indice}')">
-                <img style="width: 25px; cursor: pointer; position: relative; left: 10px; top: 8px; display: ${displayLabel};" src="imagens/excluir.png" onclick="deseja_excluir_categoria('${id_pagamento}', '${indice}')">
+                <img style="width: 2vw; cursor: pointer; display: ${displayLabel};" src="imagens/editar.png" onclick="modal_editar_pagamento('${id_pagamento}', '${indice}')">
+                <img style="width: 25px; cursor: pointer; display: ${displayLabel};" src="imagens/excluir.png" onclick="deseja_excluir_categoria('${id_pagamento}', '${indice}')">
             </div>
         `
         if (String(dados_categorias[item.codigo_categoria]).includes('Parceiros')) {
@@ -706,96 +706,71 @@ async function modal_editar_pagamento(id, indice) {
     if (!dados_categorias) {
         dados_categorias = await receber('dados_categorias')
         inserirDados(dados_categorias, 'dados_categorias')
-
     }
+
+    let opcoes = ''
+    
+    Object.entries(dados_categorias).forEach(([codigo, categoria]) => {
+        opcoes += `<option data-codigo="${codigo}">${categoria}</option>`
+    })
+
     let pagamento = lista_pagamentos[id]
 
     let categoria = pagamento.param[0].categorias[indice]
 
-    let div_select_categorias = `
-    
-        <label>Nova Categoria</label>
-        <select id="categoria_mudada">
-            <option selected>Selecione</option>
-
-    `
-
-    Object.entries(dados_categorias).forEach(([codigo, categoria]) => {
-
-        div_select_categorias += `
-        
-            <option data-codigo="${codigo}">${categoria}</option>
-        
-        `
-
-    })
-
-    div_select_categorias += "</select>"
-
-    return openPopup_v2(`
-        <div style="display: flex; flex-direction: column; gap: 15px; align-items: center; padding: 20px; font-family: 'Poppins', sans-serif; font-size: 14px;">
+    let acumulado = `
+        <div style="display: flex; justify-content: start; flex-direction: column; gap: 15px; align-items: start; padding: 20px;">
             
-            <div style="text-align: center; color: #333;">
-                <p><strong>Categoria:</strong> ${dados_categorias[categoria.codigo_categoria]}</p>
-                <p><strong>Valor Atual:</strong> ${dinheiro(categoria.valor)}</p>
-            </div>
+            <label><strong>Categoria:</strong> ${dados_categorias[categoria.codigo_categoria]}</label>
+            <label><strong>Valor Atual:</strong> ${dinheiro(categoria.valor)}</label>
     
             <div style="width: 100%; display: flex; flex-direction: column; align-items: flex-start;">
-                <label for="valor_mudado" style="margin-bottom: 5px;">Novo Valor</label>
+                <label for="valor_mudado" style="margin-bottom: 5px;"><strong>Novo Valor:</strong></label>
                 <input id="valor_mudado" type="number" style="width: 95%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 5px;">
             </div>
     
-            <div style="width: 100%; display: flex; flex-direction: column; align-items: flex-start;">
-                ${div_select_categorias}
+            <div style="width: 100%; display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                    <label style="margin-bottom: 5px;"><strong>Nova Categoria:</strong></label>
+                    <select id="categoria_mudada" style="background-color: #d2d2d2; padding: 5px; border-radius: 3px; cursor: pointer;">
+                        ${opcoes}
+                    </select>
             </div>
     
             <label onclick="editar_pagamento('${id}', ${indice})"
                 class="contorno_botoes"
-                style="
-                    background-color: #4CAF50;
-                    color: white;
-                    font-weight: bold;
-                    padding: 10px 20px;
-                    border-radius: 6px;
-                    cursor: pointer;
-                    margin-top: 10px;
-                    transition: background 0.3s ease;">
-                Confirmar
-            </label>
-        </div>
-    `, "Mudar valor do Pagamento", true)
+                style="background-color: #4CAF50;">Confirmar</label>
+        </div>    
+    `
+
+    return openPopup_v2(acumulado, 'Mudar valor do Pagamento', true)
 
 }
 
 async function editar_pagamento(id, indice) {
 
-    document.body.insertAdjacentHTML('beforeend', overlay_aguarde())
+    let valorMudado = Number(document.getElementById('valor_mudado').value)
+    let categoriaMudada = document.getElementById('categoria_mudada')
+
+    remover_popup()
+
+    overlayAguarde()
 
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     let pagamento = lista_pagamentos[id]
 
-    let categoria = pagamento.param[0].categorias
-
-    let valorMudado = Number(document.getElementById('valor_mudado').value)
-    let categoriaMudada = document.getElementById('categoria_mudada')
 
     if (valorMudado != 0) {
 
+        pagamento.param[0].categorias[indice].valor = valorMudado
+
         let novoValorDocumento = 0
 
-        Object.entries(categoria).forEach((item, indice2) => {
+        pagamento.param[0].categorias.forEach(item => {
 
-            if (indice2 != indice) {
+            novoValorDocumento += item.valor
 
-                novoValorDocumento += item[1].valor
+        }) 
 
-            }
-
-        })
-
-        novoValorDocumento += valorMudado
-
-        pagamento.param[0].categorias[indice].valor = valorMudado
         pagamento.param[0].valor_documento = novoValorDocumento
 
         enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/valor`, valorMudado)
@@ -803,7 +778,7 @@ async function editar_pagamento(id, indice) {
 
     }
 
-    if (categoriaMudada != "Selecione") {
+    if (categoriaMudada.value != "Selecione") {
 
         let codigoMudado = categoriaMudada.options[categoriaMudada.selectedIndex].dataset.codigo;
         enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/codigo_categoria`, codigoMudado)
@@ -813,8 +788,6 @@ async function editar_pagamento(id, indice) {
     await inserirDados(lista_pagamentos, 'lista_pagamentos')
 
     await atualizar_pagamentos_menu()
-
-    remover_popup()
 
     await abrir_detalhes(id)
 
@@ -969,7 +942,7 @@ function auxiliar(elemento) {
 
 async function atualizar_pagamentos_menu() {
 
-    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
+    overlayAguarde()
 
     await lista_setores()
 

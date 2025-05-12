@@ -280,7 +280,10 @@ function inicial_maiuscula(string) {
     return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
 }
 
-function overlay_aguarde() {
+function overlayAguarde() {
+
+    let aguarde = document.getElementById('aguarde')
+    if (aguarde) aguarde.remove()
 
     let elemento = `           
     <div id="aguarde" style="display: flex; 
@@ -300,7 +303,15 @@ function overlay_aguarde() {
         <img src="gifs/loading.gif" style="width: 5vw;">
     </div>
     `
-    return elemento
+    document.body.insertAdjacentHTML('beforeend', elemento)
+
+    let pageHeight = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+    );
+
+    document.getElementById('aguarde').style.height = `${pageHeight}px`;
+
 }
 
 setInterval(async function () {
@@ -720,94 +731,6 @@ async function para_excel(tabela_id, nome_personalizado) {
         `, 'Erro na Exportação');
     }
 }
-
-// Função auxiliar para carregar scripts dinamicamente
-function carregarScript(url) {
-    return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = url;
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-    });
-}
-
-// async function para_excel(tabela_id) {
-
-//     try {
-//         // Ensure XLSX is fully loaded with all utilities
-//         if (typeof XLSX === 'undefined' || typeof XLSX.utils === 'undefined') {
-//             await carregarXLSX();
-//             // Wait until utils are available
-//             await new Promise((resolve, reject) => {
-//                 let attempts = 0;
-//                 const checkUtils = () => {
-//                     attempts++;
-//                     if (typeof XLSX !== 'undefined' && typeof XLSX.utils !== 'undefined') {
-//                         resolve();
-//                     } else if (attempts > 10) {
-//                         reject(new Error("XLSX utils failed to load after 10 attempts"));
-//                     } else {
-//                         setTimeout(checkUtils, 100);
-//                     }
-//                 };
-//                 checkUtils();
-//             });
-//         }
-
-//         const tabelaOriginal = document.getElementById(tabela_id);
-//         if (!tabelaOriginal) {
-//             throw new Error(`Tabela com ID ${tabela_id} não encontrada`);
-//         }
-
-//         // Create deep clone of the table
-//         const tabelaClone = tabelaOriginal.cloneNode(true);
-
-//         // Process inputs in the cloned table
-//         const inputs = tabelaClone.querySelectorAll('input, textarea');
-//         inputs.forEach(input => {
-//             const cell = input.closest('td, th');
-//             if (cell) {
-//                 // Handle different input types
-//                 if (input.type === 'checkbox') {
-//                     cell.textContent = input.checked ? 'Sim' : 'Não';
-//                 } else if (input.tagName === 'SELECT') {
-//                     cell.textContent = input.options[input.selectedIndex]?.text || '';
-//                 } else {
-//                     cell.textContent = input.value;
-//                 }
-//             }
-//         });
-
-//         // Remove any unwanted elements
-//         const elementsToRemove = tabelaClone.querySelectorAll('.no-export, [data-no-export]');
-//         elementsToRemove.forEach(el => el.remove());
-
-//         // Convert table to worksheet
-//         const worksheet = XLSX.utils.table_to_sheet(tabelaClone);
-
-//         // Create workbook and add worksheet
-//         const workbook = XLSX.utils.book_new();
-//         XLSX.utils.book_append_sheet(workbook, worksheet, "Dados");
-
-//         // Generate filename with current date
-//         const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-//         const filename = `exportacao_${dateStr}.xlsx`;
-
-//         // Export the Excel file
-//         XLSX.writeFile(workbook, filename);
-
-//     } catch (error) {
-//         console.error("Erro ao exportar para Excel:", error);
-//         openPopup_v2(`
-//             <div style="color: white; padding: 20px;">
-//                 <h3>Erro ao exportar para Excel</h3>
-//                 <p>${error.message}</p>
-//                 <p>Por favor, tente novamente ou entre em contato com o suporte.</p>
-//             </div>
-//         `, 'Erro na Exportação');
-//     }
-// }
 
 async function remover_popup(nao_remover_anteriores) {
 
@@ -1363,7 +1286,7 @@ async function recuperar_estoque() {
 
     if (document.getElementById('tela')) {
 
-        document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde())
+        overlayAguarde()
 
         let estoque_nuvem = await receber('dados_estoque') || {}
         await inserirDados(estoque_nuvem, 'dados_estoque')

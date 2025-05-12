@@ -268,7 +268,7 @@ async function preencher_orcamentos_v2() {
 
 async function recuperar_orcamentos() {
 
-    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
+    overlayAguarde()
 
     let dados_orcamentos = await receber('dados_orcamentos') || {}
     await inserirDados(dados_orcamentos, 'dados_orcamentos')

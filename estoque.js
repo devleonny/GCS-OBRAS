@@ -13,7 +13,7 @@ async function recuperar_estoque() {
 
 async function carregar_estoque() {
 
-    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
+    overlayAguarde()
 
     let autorizado = false
     let div_estoque = document.getElementById('estoque')

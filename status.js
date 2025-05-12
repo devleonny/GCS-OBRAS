@@ -568,7 +568,9 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
                   <td style="text-align: center;">
                     ${apenas_visualizar ? `<label style="font-size: 1.2em;">
                     ${item?.partnumber || '<input>'}</label>` :
-                `<input class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;">`}
+                `<input class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;"
+                    value="${dados_composicoes[codigo]?.partnumber || ''}"
+                >`}
                   </td>
                   <td style="position: relative;">
                       <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
@@ -1084,9 +1086,7 @@ async function salvar_notas(chave) {
 
 async function salvar_requisicao(chave) {
 
-    let janela = document.querySelectorAll('.janela')
-    janela = janela[janela.length - 1] // A última que existir
-    janela.insertAdjacentHTML('beforeend', overlay_aguarde())
+    overlayAguarde()
     //Carregar dados existentes
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
@@ -2398,7 +2398,7 @@ function exibirItens(div) {
 
 async function iniciar_cotacao(id_orcam) {
 
-    document.getElementById("status").insertAdjacentHTML("beforebegin", overlay_aguarde())
+    overlayAguarde()
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
