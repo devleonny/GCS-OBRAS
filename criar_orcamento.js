@@ -335,7 +335,7 @@ async function enviar_dados() {
                     relancamento[agrup] = 0;
                 }
 
-                relancamento[agrup] += agrupamentos[agrup];
+                relancamento[agrup] += codigo == agrup ? agrupamentos[agrup] : agrupamentos[agrup] * produto.qtde
             }
         }
     }
