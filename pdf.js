@@ -342,11 +342,10 @@ async function preencher_v2() {
         }
     }
 
-    const mostrarApenasUsuários = (tot) => tot === 'GERAL' ? 'mostrar-apenas-usuario' : '';
     for (tot in totais) {
         if (totais[tot].valor !== 0) {
             divs_totais += `
-            <div class="totais ${mostrarApenasUsuários(tot)}" style="background-color: ${totais[tot]?.cor}">
+            <div class="totais GERAL" style="background-color: ${totais[tot]?.cor}">
                 TOTAL ${tot} ${dinheiro(totais[tot]?.valor)}
             </div>
             `;

@@ -769,7 +769,11 @@ async function editar_pagamento(id, indice) {
 
             novoValorDocumento += item.valor
 
+            console.log(item.valor);
+
         }) 
+
+        console.log(novoValorDocumento);
 
         pagamento.param[0].valor_documento = novoValorDocumento
 
@@ -778,11 +782,9 @@ async function editar_pagamento(id, indice) {
 
     }
 
-    if (categoriaMudada.value != "Selecione") {
-
-        let codigoMudado = categoriaMudada.options[categoriaMudada.selectedIndex].dataset.codigo;
+    let codigoMudado = categoriaMudada.options[categoriaMudada.selectedIndex].dataset.codigo;
+    if (pagamento.param[0].categorias[indice].codigo_categoria != codigoMudado) {
         enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/codigo_categoria`, codigoMudado)
-
     }
 
     await inserirDados(lista_pagamentos, 'lista_pagamentos')
