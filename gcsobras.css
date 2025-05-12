@@ -1665,3 +1665,13 @@ input[type="file"]#input-anexos {
 input[type="file"]#input-anexos:hover {
     background: #282a3a;
 }
+
+.mostrar-apenas-usuario {
+    display: flex !important;
+}
+
+@media print {
+    .mostrar-apenas-usuario {
+        display: none !important;
+    }
+}
