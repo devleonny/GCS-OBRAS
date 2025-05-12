@@ -1047,16 +1047,20 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
 
         <div style="display: flex; align-items: center; justify-content: space-evenly; width: 100%;">
 
-            <table class="tabela">
-                <tbody>
-                    <thead>
-                        <th>Preço do Serviço</th>
-                    </thead>
-                    <tr>
-                        <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="final" type="number" oninput="calcular('servico')" value="${dados?.custo || ''}"></td>
-                    </tr>
-                </tbody>
-            </table>
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: start;"> 
+                <table class="tabela">
+                    <tbody>
+                        <thead>
+                            <th>Preço do Serviço</th>
+                            <th>Custos Atrelados</th>
+                        </thead>
+                        <tr>
+                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="final" type="number" oninput="calcular('servico')" value="${dados?.final || ''}"></td>
+                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="custosAtrelados" type="number" oninput="calcular('servico')" value="${dados?.custosAtrelados || ''}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
             <table class="tabela">
                 <thead>
@@ -1239,7 +1243,10 @@ async function salvar_preco(codigo, lpu, cotacao) {
 
         // Adicionar ICMS creditado apenas para produtos de venda
         if (produto.tipo === 'VENDA') {
-            historico[id].icms_creditado = parseFloat(icms_creditado);
+            historico[id].icms_creditado = parseFloat(icms_creditado)
+        } else { // Aproveitando o else para salvar infos de SERVIÇO
+            historico[id].custosAtrelados = getValue('custosAtrelados')
+            historico[id].final = getValue('final')
         }
 
         // 5. Atualizar estrutura de dados
