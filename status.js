@@ -2152,6 +2152,7 @@ async function mostrar_painel() {
     let soma_custos = totalValoresManuais + linhas.SERVIÇO.total_impostos + linhas.VENDA.total_impostos + linhas.VENDA.total_custo
     let lucro_liquido = total_orcamento - soma_custos
     let lucro_porcentagem = (lucro_liquido / total_orcamento * 100).toFixed(2)
+    const descontoTotal = orcamento.desconto_geral;
 
     let acumulado = `
 
@@ -2192,6 +2193,13 @@ async function mostrar_painel() {
                         ${impostos}
 
                         ${total_custos}
+
+                        <br>
+                        
+                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                            <label style="font-size: 0.7vw;">Desconto</label>
+                            <label>${dinheiro(descontoTotal)}</label>
+                        </div>
 
                         <br>
                         <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
