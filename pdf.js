@@ -122,7 +122,7 @@ async function preencher_v2() {
     let informacoes = orcamento_v2.dados_orcam
 
     let empresaEmissora = dadosEmpresas[informacoes?.emissor || 'AC SOLUÇÕES']
-    
+
     let dados_por_bloco = {
         'Dados da Proposta': {
             'Número do Chamado': informacoes.contrato,
@@ -326,8 +326,21 @@ async function preencher_v2() {
     let divs_totais = ''
     let etiqueta_desconto = ''
 
+    if (orcamento_v2.desconto_geral && conversor(orcamento_v2.desconto_geral) > 0) {
+        let tipoDesc = orcamento_v2.tipo_de_desconto || 'Porcentagem';
+        let valorDesc = orcamento_v2.desconto_geral;
+
+        etiqueta_desconto = `
+            <div class="mostrar-apenas-usuario" style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 3px;">
+                <label>Desconto: <strong>${tipoDesc === 'Dinheiro' ? dinheiro(valorDesc) : valorDesc + '%'}</strong></label>
+                <label>Total Bruto: <strong>${dinheiro(totais.GERAL.valor)}</strong></label>
+            </div>
+        `;
+    }
+
+
     for (tot in totais) {
- 
+
         // Tem desconto geral ? % ou R$
         if (tot == 'GERAL' && conversor(orcamento_v2.desconto_geral) > 0) {
             totais.GERAL.valor = orcamento_v2.tipo_de_desconto == 'Dinheiro' ? totais.GERAL.valor - conversor(orcamento_v2.desconto_geral) : totais.GERAL.valor - (totais.GERAL.valor * conversor(orcamento_v2.desconto_geral) / 100)
@@ -342,16 +355,16 @@ async function preencher_v2() {
         }
 
         if (orcamento_v2.total_bruto > 0) {
-    
+
             let desconto_geral = ((orcamento_v2.total_bruto - totais[tot].valor) / orcamento_v2.total_bruto) * 100
-    
-            // etiqueta_desconto = `
-            // <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 3px;">
-            //     <label>Total sem Desconto <strong>${dinheiro(orcamento_v2.total_bruto)}</strong></label>
-            //     <hr style="width: 100%;">
-            //     <label>Desconto <strong>${desconto_geral.toFixed(0)}% </strong></label>
-            // </div>
-            // `
+
+            etiqueta_desconto = `
+            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 3px;">
+                <label>Total sem Desconto <strong>${dinheiro(orcamento_v2.total_bruto)}</strong></label>
+                <hr style="width: 100%;">
+                <label>Desconto <strong>${desconto_geral.toFixed(0)}% </strong></label>
+            </div>
+            `
         }
     }
 
@@ -402,12 +415,27 @@ async function gerarPDF() {
     preencher_v2();
     ocultar.style.display = 'none';
 
-    var orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
+    const elementosUsuario = document.querySelectorAll('.mostrar-apenas-usuario');
+    visibilidadeDoElemento({
+        elementosUsuario: elementosUsuario,
+        visibilidade: 'none'
+    });
 
-    var contrato = orcamento_v2.dados_orcam.contrato;
-    var cliente = orcamento_v2.dados_orcam.cliente_selecionado;
 
-    await gerar_pdf_online(document.documentElement.outerHTML, `Orcamento_${cliente}_${contrato}`)
+    const orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
+    const contrato = orcamento_v2.dados_orcam.contrato;
+    const cliente = orcamento_v2.dados_orcam.cliente_selecionado;
+
+    await gerar_pdf_online(document.documentElement.outerHTML, `Orcamento_${cliente}_${contrato}`);
+
+    visibilidadeDoElemento({
+        elementosUsuario: elementosUsuario,
+        visibilidade: 'flex'
+    });
 
     ocultar.style.display = 'flex';
+}
+
+function visibilidadeDoElemento({ elementosUsuario, visibilidade }) {
+    elementosUsuario.forEach((elemento) => elemento.style.display = visibilidade);
 }
