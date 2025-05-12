@@ -381,7 +381,11 @@ async function abrir_detalhes(id_pagamento) {
         }
 
         valores += `
-            <label><strong>${dinheiro(item.valor)}</strong> - ${dados_categorias[item.codigo_categoria]} <img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 5px; top: 8px; display: ${displayLabel};" src="imagens/editar.png" onclick="modal_editar_pagamento('${id_pagamento}', '${indice}')"><img style="width: 25px; heigth: 25px; cursor: pointer; position: relative; left: 10px; top: 8px; display: ${displayLabel};" src="imagens/excluir.png" onclick="deseja_excluir_categoria('${id_pagamento}', '${indice}')"></label>
+            <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
+                <label><strong>${dinheiro(item.valor)}</strong> - ${dados_categorias[item.codigo_categoria]}</label>
+                <img style="width: 2vw; cursor: pointer; position: relative; left: 5px; top: 8px; display: ${displayLabel};" src="imagens/editar.png" onclick="modal_editar_pagamento('${id_pagamento}', '${indice}')">
+                <img style="width: 25px; cursor: pointer; position: relative; left: 10px; top: 8px; display: ${displayLabel};" src="imagens/excluir.png" onclick="deseja_excluir_categoria('${id_pagamento}', '${indice}')">
+            </div>
         `
         if (String(dados_categorias[item.codigo_categoria]).includes('Parceiros')) {
             habilitar_painel_parceiro.ativar = true

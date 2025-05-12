@@ -1468,7 +1468,7 @@ async function abrir_esquema(id) {
                     </div>
                     `
                 editar = `
-                    <div style="background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}', true)">
+                    <div style="background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}')">
                         <img src="imagens/editar4.png">
                         <label>Editar</label>
                     </div>
@@ -2659,7 +2659,6 @@ async function chamar_excluir(id) {
 }
 
 async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
-    let visualizar = !chave ? false : true
 
     if (!chave) {
         chave = gerar_id_5_digitos()
@@ -2709,7 +2708,7 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
     var campos = ''
     var toolbar = ''
 
-    if (!visualizar) {
+    if (!apenas_visualizar) {
         toolbar += `
         <div style="display: flex; gap: 10px; justify-content: center; align-items: center; background-color: #151749; border-top-left-radius: 5px; border-top-right-radius: 5px">
             <img src="imagens/pesquisar.png" style="width: 25px; height: 25px; padding: 5px;">
