@@ -374,91 +374,105 @@ function ocultar_pedido(elemento) {
 }
 
 async function calcular_requisicao(sincronizar) {
+let tabela_requisicoes = document.getElementById('tabela_requisicoes');
 
-    var tabela_requisicoes = document.getElementById('tabela_requisicoes')
+    if (!tabela_requisicoes) return;
 
-    if (tabela_requisicoes) {
-        var tbody = tabela_requisicoes.querySelector('tbody')
+    let tbody = tabela_requisicoes.querySelector('tbody');
+    if (!tbody) return;
 
-        let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-        var orcamento = dados_orcamentos[id_orcam]
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let orcamento = dados_orcamentos[id_orcam];
+    if (!orcamento) return;
 
-        var itens = orcamento.dados_composicoes
-        var estado = orcamento.dados_orcam.estado
+    let itens = orcamento.dados_composicoes || {};
+    let estado = orcamento.dados_orcam.estado || 'BA'; // Default BA caso não exista
 
-        if (tbody) {
-            var trs = tbody.querySelectorAll('tr')
+    let total_sem_icms = 0;
+    let total_com_icms = 0;
 
-            var total_sem_icms = 0
-            var total_com_icms = 0
+    let trs = tbody.querySelectorAll('tr');
+    trs.forEach(tr => {
+        if (tr.style.display === 'none') return;
 
-            trs.forEach(tr => {
+        var tds = tr.querySelectorAll('td');
+        if (tds.length < 7) return; // Garante que temos todas as colunas necessárias
 
-                if (tr.style.display !== 'none') {
-                    var tds = tr.querySelectorAll('td')
-                    var codigo = tds[0].textContent
-
-                    let quantidadeDisponivel = 0
-                    if (tds[4].querySelector('label.num')) {
-                        quantidadeDisponivel = tds[4].querySelector('label.num').textContent
-                    } else {
-                        quantidadeDisponivel = tds[4].querySelector('label').textContent
-                    }
-
-                    if (tds[4].querySelector('input') && tds[4].querySelector('input').value > conversor(quantidadeDisponivel)) {
-                        tds[4].querySelector('input').value = conversor(quantidadeDisponivel)
-                    }
-
-                    var tipo = 'Error 404'
-
-                    if (sincronizar) { // Incicialmente para carregar os tipos;
-                        tipo = itens[codigo].tipo
-                        tds[3].querySelector('select').value = tipo
-
-                    } else {
-                        tipo = tds[3].querySelector('select') ? tds[3].querySelector('select').value : tds[3].querySelector('label').textContent
-                    }
-
-                    var infos = ['', '']
-                    if (tipo == 'VENDA') {
-                        infos = ['<strong>s • ICMS</strong> <br>', '<strong>c • ICMS</strong> <br>']
-                    }
-
-                    var icms = 0
-                    if (estado == 'BA' && tipo == 'VENDA') {
-                        icms = 0.205
-                    } else if (estado !== 'BA' && tipo == 'VENDA') {
-                        icms = 0.12
-                    }
-
-                    var qtde = tds[4].querySelector('input') ? tds[4].querySelector('input').value : tds[4].textContent
-                    var custo = conversor(itens[codigo]?.custo)
-                    var unt_sem_icms = custo - (custo * icms)
-
-                    var labels_unitarios = tds[5].querySelectorAll('label')
-                    labels_unitarios[0].innerHTML = `${infos[1]} ${dinheiro(custo)}`
-                    labels_unitarios[1].innerHTML = (qtde == '' || tipo == 'SERVIÇO') ? '' : `${infos[0]} ${dinheiro(unt_sem_icms)}`
-
-
-                    var labels_totais = tds[6].querySelectorAll('label')
-                    labels_totais[0].innerHTML = `${infos[1]} ${dinheiro(custo * qtde)}`
-                    labels_totais[1].innerHTML = (qtde == '' || tipo == 'SERVIÇO') ? '' : `${infos[0]} ${dinheiro(unt_sem_icms * qtde)} `
-
-                    total_sem_icms += unt_sem_icms * qtde
-                    total_com_icms += qtde * custo
-                }
-            })
-
-            var total_c_icms = document.getElementById('total_c_icms')
-            var total_s_icms = document.getElementById('total_s_icms')
-
-            if (total_c_icms && total_s_icms) {
-                total_c_icms.textContent = dinheiro(total_com_icms)
-                total_s_icms.textContent = dinheiro(total_sem_icms)
-            }
-
+        var codigo = tds[0].textContent.trim();
+        if (!codigo || !itens[codigo]) {
+            console.warn(`Item com código ${codigo} não encontrado no orçamento`);
+            return;
         }
-    }
+
+        // Obter quantidade
+        var qtde = 0;
+        var qtdeInput = tds[4].querySelector('input');
+        if (qtdeInput) {
+            qtde = parseFloat(qtdeInput.value) || 0;
+            
+            // Validar quantidade máxima
+            var qtdeDisponivel = 0;
+            var qtdeLabel = tds[4].querySelector('label.num') || tds[4].querySelector('label');
+            if (qtdeLabel) {
+                qtdeDisponivel = conversor(qtdeLabel.textContent) || 0;
+            }
+            
+            if (qtde > qtdeDisponivel) {
+                qtdeInput.value = qtdeDisponivel;
+                qtde = qtdeDisponivel;
+            }
+        }
+
+        // Obter tipo (VENDA ou SERVIÇO)
+        var tipo = 'VENDA'; // Default
+        if (tds[3].querySelector('select')) {
+            tipo = tds[3].querySelector('select').value || 'VENDA';
+        } else if (tds[3].querySelector('label')) {
+            tipo = tds[3].querySelector('label').textContent || 'VENDA';
+        }
+
+        // Calcular valores
+        var custo = conversor(itens[codigo]?.custo) || 0;
+        var icms = (estado === 'BA' && tipo === 'VENDA') ? 0.205 : 
+                  (estado !== 'BA' && tipo === 'VENDA') ? 0.12 : 0;
+        
+        var unt_sem_icms = custo - (custo * icms);
+        var total_com = custo * qtde;
+        var total_sem = unt_sem_icms * qtde;
+
+        // Atualizar células de valor unitário (coluna 5)
+        var colunaUnitario = tds[5];
+        if (colunaUnitario) {
+            colunaUnitario.innerHTML = `
+                <div style="display: flex; flex-direction: column;">
+                    <label>${dinheiro(custo)}</label>
+                    ${tipo === 'VENDA' ? `<label>${dinheiro(unt_sem_icms)}</label>` : ''}
+                </div>
+            `;
+        }
+
+        // Atualizar células de valor total (coluna 6)
+        var colunaTotal = tds[6];
+        if (colunaTotal) {
+            colunaTotal.innerHTML = `
+                <div style="display: flex; flex-direction: column;">
+                    <label>${dinheiro(total_com)}</label>
+                    ${tipo === 'VENDA' ? `<label>${dinheiro(total_sem)}</label>` : ''}
+                </div>
+            `;
+        }
+
+        // Somar totais gerais
+        total_sem_icms += total_sem;
+        total_com_icms += total_com;
+    });
+
+    // Atualizar totais no rodapé
+    var total_c_icms = document.getElementById('total_c_icms');
+    var total_s_icms = document.getElementById('total_s_icms');
+
+    if (total_c_icms) total_c_icms.textContent = dinheiro(total_com_icms);
+    if (total_s_icms) total_s_icms.textContent = dinheiro(total_sem_icms);
 
 }
 
@@ -492,12 +506,12 @@ function pesquisar_na_requisicao() {
     }
 }
 
-async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisicao, seEditar, valoresTotais) {
+async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let orcamento = dados_orcamentos[id_orcam];
-
-    var linhas = '';
+    let itensOrcamento = orcamento.dados_composicoes
+    let linhas = '';
 
     if (!orcamento.dados_composicoes || Object.keys(orcamento.dados_composicoes).length == 0) {
         return '';
@@ -505,214 +519,136 @@ async function carregar_itens(apenas_visualizar, requisicao, editar, tipoRequisi
 
     // Filtra os itens com base no tipo de requisição
     let itensFiltrados = [];
+    let todos_os_itens = {
+        infra: [],
+        equipamentos: []
+    }
 
-    for (id in orcamento.dados_composicoes) {
-        let item = orcamento.dados_composicoes[id]
-        if (tipoRequisicao === 'infraestrutura') {
-            const descricao = dados_composicoes[item.codigo]?.descricao.toLowerCase();
+    let requisicao = {} // Comparativo com a requisição já feita, se existir "chave"
+    if (chave && orcamento.status && orcamento.status.historico[chave]) {
+        requisicao = orcamento.status.historico[chave].requisicoes
+    }
+
+    if (apenas_visualizar) {
+
+        for (id in requisicao) {
+            let item = requisicao[id]
+            let itemComposicao = dados_composicoes[item.codigo] || {};
+            let descricao = itemComposicao.descricao || item.descricao || '';
+
+            descricao = String(descricao).toLowerCase()
+
             if ((
                 descricao.includes('eletrocalha') ||
                 descricao.includes('eletroduto') ||
-                descricao.includes('perfilado')
+                descricao.includes('perfilado') ||
+                descricao.includes('sealtubo')
             )) {
-
-                itensFiltrados.push(item)
+                todos_os_itens.infra.push(item)
+            } else {
+                todos_os_itens.equipamentos.push(item)
             }
-        } else { itensFiltrados.push(item) }
-
-    }
-
-    // Função para criar uma linha da tabela
-    function criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, partnumber, elements, aux, apenas_visualizar, seEditar, valoresTotais) {
-
-        if (!seEditar) {
-
-            qtde_editar -= qtde_na_requisicao
-            qtde_na_requisicao = ""
-
-        } else {
-
-            Object.values(valoresTotais).forEach(item => {
-
-                if (item.codigoRequisicao == codigo) {
-
-                    qtde_editar += qtde_na_requisicao - item.qtdeTotal
-
-                }
-
-            })
 
         }
 
-        return `
-            <tr class="lin_req" style="background-color: white;">
-                <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
-                <td style="text-align: center;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.partnumber || dados_composicoes[codigo]?.omie || ''}</label>` : partnumber}
-                </td>
-                <td style="position: relative;">
-                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
-                        ${elements || 'Informação não disponível'}
-                    </div>
-                    ${aux}
-                </td>
-                <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${requisicao[codigo]?.tipo || tipo || ''}</label>` : `
-                        <select onchange="calcular_requisicao()" style="border: none;">
-                            <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
-                            <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
-                        </select>
-                    `}
-                </td>
-                <td style="text-align: center;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.qtde_enviar || ''}</label>` : `
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
-                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
-                                <label>Quantidade a enviar</label>
-                                <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" value="${qtde_na_requisicao}">
-                            </div>
-                            <label class="num">${qtde_editar}</label>  
-                        </div>
-                    `}
-                </td>
-                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                    <label></label>
-                    <br>
-                    <br>
-                    <label style="color: red; font-size: 1.0em;"></label>
-                </td>
-                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                    <label></label>
-                    <br>
-                    <br>
-                    <label style="color: red; font-size: 1.0em;"></label>
-                </td>
-                <td>
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${requisicao[codigo]?.requisicao || ''}</label>` : `
-                        <select style="border: none; cursor: pointer;">
-                            <option style="text-align: center;">Nada a fazer</option>
-                            <option>Estoque AC</option>
-                            <option>Comprar</option>
-                            <option>Enviar do CD</option>
-                            <option>Fornecido pelo Cliente</option>
-                        </select>
-                    `}
-                </td>
-            </tr>
-        `;
+    } else {
+
+        for (id in orcamento.dados_composicoes) {
+            let item = orcamento.dados_composicoes[id]
+            let itemComposicao = dados_composicoes[item.codigo] || {};
+            let descricao = itemComposicao.descricao || item.descricao || '';
+
+            descricao = String(descricao).toLowerCase()
+
+            if (requisicao[id]) {
+                item = requisicao[id]
+            }
+
+            if ((
+                descricao.includes('eletrocalha') ||
+                descricao.includes('eletroduto') ||
+                descricao.includes('perfilado') ||
+                descricao.includes('sealtubo')
+            )) {
+                todos_os_itens.infra.push(item)
+            } else {
+                todos_os_itens.equipamentos.push(item)
+            }
+
+        }
+
     }
 
+    itensFiltrados = [...todos_os_itens.infra, ...todos_os_itens.equipamentos]
+
+    if (tipoRequisicao == 'equipamentos') {
+        itensFiltrados = todos_os_itens.equipamentos
+    }
+
+    if (tipoRequisicao == 'infraestrutura') {
+        itensFiltrados = todos_os_itens.infra
+    }
 
     for (item of itensFiltrados) {
-        var codigo = item.codigo;
-        var qtde = item.qtde;
-        var qtde_na_requisicao = 0;
-        var tipo = dados_composicoes[codigo]?.tipo || item.tipo;
-        var elements = '';
-        let mod_livre = true;
-        let qtde_editar = qtde;
-        var historico = dados_orcamentos.id_orcam?.status.historico || {};
+        let codigo = item.codigo
+        let qtde = item?.qtde_editar || 0
+        let tipo = dados_composicoes[codigo]?.tipo || item.tipo
 
-        Object.keys(historico).forEach(chave => {
-            var sst = historico[chave];
-
-            if (sst.requisicoes) {
-                for (let requisicao of sst.requisicoes) {
-                    if (requisicao.codigo == item.codigo) {
-                        qtde_editar -= requisicao.qtde_enviar;
-                    }
-                }
-            }
-        });
-
-        if (dados_composicoes[codigo]) {
-            elements += `
-                <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong> <br>${dados_composicoes[codigo].descricao}</label>
-                <label style="font-size: 0.8vw;"><strong>FABRICANTE</strong> ${dados_composicoes[codigo].fabricante} • <strong>MODELO</strong> ${dados_composicoes[codigo].modelo}</label>
-                `;
-            mod_livre = false;
-        }
-
-        if (mod_livre) {
-            elements = `
-            <label>${item.descricao}</label>
-            `;
-        }
-
-        var part_number = `
-            <input value="${dados_composicoes[codigo]?.omie || ''}" class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;">
-        `;
-
-        if (requisicao) {
-            qtde_na_requisicao = requisicao[codigo]?.qtde_enviar || '';
-        }
-
-        let somasQtde = 0;
-
-        let q = 0;
-
-        if (editar) {
-            Object.values(orcamento?.status || []).forEach(status => {
-                if (status?.historico) {
-                    Object.entries(status.historico).forEach(([chave, historico]) => {
-                        if (historico?.status && String(historico.status).includes("REQUISIÇÃO") && historico.requisicoes) {
-                            for (let requisicaoUnica of historico.requisicoes) {
-                                if (requisicaoUnica.codigo == codigo) {
-                                    somasQtde += Number(requisicaoUnica.qtde_enviar);
-                                    q++;
-                                }
-                            }
-                        }
-                    });
-                }
-            });
-        }
-
-        let aux = `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`;
-
-        if (apenas_visualizar) {
-            aux = '';
-        }
-
-        if (apenas_visualizar && qtde_na_requisicao == 0) {
-            continue
-        }
-
-        linhas += criarLinha(codigo, item, tipo, qtde_na_requisicao, qtde_editar, part_number, elements, aux, apenas_visualizar, seEditar, valoresTotais)
-
+        linhas += `
+            <tr class="lin_req" style="background-color: white;">
+                  <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
+                  <td style="text-align: center;">
+                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">
+                    ${item?.omie || '<input>'}</label>` :
+                `<input class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;"
+                    value="${dados_composicoes[codigo]?.omie || ''}">`}
+                  </td>
+                  <td style="position: relative;">
+                      <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
+                          <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong></label>
+                          <label>${dados_composicoes[codigo] ? dados_composicoes[codigo].descricao : item.descricao}</label>
+                      </div>
+                      ${apenas_visualizar ? '' : `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`}
+                  </td>
+                  <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
+                      ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${item?.tipo || ''}</label>` : `
+                          <select onchange="calcular_requisicao()" style="border: none;">
+                              <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
+                              <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
+                          </select>
+                      `}
+                  </td>
+                  <td style="text-align: center;">
+                      ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.qtde_enviar || ''}</label>` : `
+                          <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
+                              <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
+                                  <label>Quantidade a enviar</label>
+                                  <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" min="0" value="${qtde}">
+                              </div>
+                              <label class="num">${itensOrcamento[codigo]?.qtde || ''}</label>
+                          </div>
+                      `}
+                  </td>
+                  <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                      <label></label>
+                  </td>
+                  <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                      <label></label>
+                  </td>
+                  <td>
+                      ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.requisicao || ''}</label>` : `
+                          <select style="border: none; cursor: pointer;">
+                              <option style="text-align: center;">Nada a fazer</option>
+                              <option>Estoque AC</option>
+                              <option>Comprar</option>
+                              <option>Enviar do CD</option>
+                              <option>Fornecido pelo Cliente</option>
+                          </select>
+                      `}
+                  </td>
+            </tr>
+        `
     };
-
-    // Adiciona os itens adicionais
-    if (itens_adicionais && Object.keys(itens_adicionais).length > 0) {
-        for (const codigo in itens_adicionais) {
-            if (itens_adicionais.hasOwnProperty(codigo) && itens_adicionais[codigo]) {
-                let item = itens_adicionais[codigo];
-                let tipo = "SERVIÇO"
-
-                //Verificar se o item já foi adicionado pra evitar duplicação
-                let jaExiste = false;
-                for (const itemExistente of itensFiltrados) {
-                    if (itemExistente.codigo === codigo) {
-                        jaExiste = true
-                        break
-                    }
-                }
-                if (!jaExiste) {
-                    let elements = `
-                <label>${item.descricao}</label>
-            `;
-
-                    let partnumber = `
-                <input value="${item.partnumber || ''}" class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;">
-            `;
-
-                    let aux = `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`;
-
-                    linhas += criarLinha(codigo, item, tipo, item.qtde || 0, item.qtde || 0, partnumber, elements, aux, apenas_visualizar);
-                }
-            }
-        }
-    }
 
     return linhas;
 
@@ -3051,248 +2987,121 @@ function toggleColuna(tipo) {
 
 
 function adicionarColunasCompra() {
-
-    const tabela = document.getElementById('tabela_requisicoes');
-    if (!tabela) {
-        console.error('Tabela ainda não disponível')
-        return
-    }
-
-    //Verifica se as colunas de análise já existem
-    const cabecalhos = tabela.querySelectorAll('th')
-    const colunasAnaliseExistem = Array.from(cabecalhos).some(th => th.textContent === 'Valor de Compra' ||
-        th.textContent === 'Valor de Compra' ||
-        th.textContent === 'Total de Compra' ||
-        th.textContent === 'Resultado'
-    )
-
-    if (colunasAnaliseExistem) {
-        cabecalhos.forEach((th, index) => {
-            if (th.textContent === 'Valor de Compra' ||
-                th.textContent === 'Total de Compra' ||
-                th.textContent === 'Resultado') {
-                th.remove()
+       
+           const tabela = document.getElementById('tabela_requisicoes');
+            if (!tabela) {
+                console.error('Tabela ainda não disponível');
+                return;
             }
-        })
 
-       const linhas = tabela.querySelectorAll('tr')
-       linhas.forEach((linha, index) => {
-        if (index === 0) return; //Pular cabeçalho
-        const celulas = linha.cells;
-
-        //Remover células da direita para a esquerda para evitar problemas com índices
-        for (let i = celulas.length - 1; i >=0; i--) {
-            const cell = celulas[i];
-            const headerText = cabecalhos[i]?.textContent;
-            if (headerText === 'Valor de Compra' ||
-                headerText === 'Total de Compra' ||
-                headerText === 'Resultado'
-            ) {
-                cell.remove()
-            }
-        }
-       });
-
-       event.target.textContent = 'Adicionar Análise'
-    } else {
-        //Adicionar colunas de análise
-        const thead = tabela.querySelector('thead');
-        const headerLinha = thead.querySelector('tr')
-
-        //Criar novos cabeçalhos
-        const headerValorCompra = document.createElement('th');
-        headerValorCompra.textContent = 'Valor de Compra';
-        headerValorCompra.style.textAlign = 'center'
-
-        const headerTotalCompra = document.createElement('th');
-        headerTotalCompra.textContent = 'Total de Compra';
-        headerTotalCompra.style.textAlign = 'center';
-
-        const headerResultado = document.createElement('th');
-        headerResultado.textContent = 'Resultado';
-        headerResultado.style.textAlign = 'center'
-
-        //Inserir antes da coluna de Requisição (índice 7)
-        headerLinha.insertBefore(headerResultado, headerLinha.children[7]);
-        headerLinha.insertBefore(headerTotalCompra, headerLinha.children[7]);
-        headerLinha.insertBefore(headerValorCompra, headerLinha.children[7]);
-
-        //Adicionar células nas linhas de dados
-        const linhas = tabela.querySelectorAll('tbody tr');
-        linhas.forEach(linha => {
-            const celulas = linha.cells
-
-            //Criar célula de Valor de Compra
-            const cellValorCompra = document.createElement('td');
-            cellValorCompra.style.textAlign = 'center';
-
-            const divValorCompra = document.createElement('div')
-            divValorCompra.style.display = 'flex';
-            divValorCompra.style.alignItems = 'center';
-            divValorCompra.style.justifyContent = 'center'
-
-            const spanMoeda = document.createElement('span');
-            spanMoeda.textContent = 'R$ ';
-            spanMoeda.style.marginRight = '5px'
-
-            const inputValorCompra = document.createElement('input');
-            inputValorCompra.type = 'text';
-            inputValorCompra.style.width = '5vw';
-            inputValorCompra.classList.add('pedido');
-            inputValorCompra.style.textAlign = 'right';
-            inputValorCompra.addEventListener('input', () => {
-                formatarMoeda(this);
-                calcularComparacao(this);
-            })
-
-            divValorCompra.appendChild(spanMoeda)
-            divValorCompra.appendChild(inputValorCompra)
-            cellValorCompra.appendChild(divValorCompra);
-
-            //Criar célula de Total de Compra
-            const cellTotalCompra = document.createElement('td');
-            cellTotalCompra.style.textAlign = 'center';
-            cellTotalCompra.textContent = 'R$0,00';
-
-            //Criar célula de Resultado
-            const cellResultado = document.createElement('td');
-            cellResultado.style.textAlign = 'center'
-            
-            //Inserir antes da coluna de Requisição (índice 7)
-            linha.insertBefore(cellResultado, celulas[7]);
-            linha.insertBefore(cellTotalCompra, celulas[7]);
-            linha.insertBefore(cellValorCompra, celulas[7]);
-
-            //Adicionar listener para mudanças na quantidade
-            const inputQuantidade = linha.cells[4].querySelector('input')
-            if (inputQuantidade) {
-                inputQuantidade.addEventListener('input', () => {
-                    const inputValorCompra = linha.cells[7].querySelector('input');
-                    if (inputValorCompra && inputValorCompra.value) {
-                        calcularComparacao(inputValorCompra);
-                    }
-                })
-            }
-        })
-
-        event.target.textContent = 'Ocultar Análise'
-
-    }
-
-    //        const tabela = document.getElementById('tabela_requisicoes');
-    //         if (!tabela) {
-    //             console.error('Tabela ainda não disponível');
-    //             return;
-    //         }
-
-    //       // Verifica se as colunas de análise já existem
-    //       const colunasVisiveis = tabela.querySelectorAll('th').length > 12;
+          // Verifica se as colunas de análise já existem
+          const colunasVisiveis = tabela.querySelectorAll('th').length > 12;
 
 
-    //       if (colunasVisiveis) {
-    //         // Se as colunas estão visíveis, ocultá-las
-    //         const cabecalhos = tabela.querySelectorAll('th');
-    //         const linhas = tabela.querySelectorAll('tr');
+          if (colunasVisiveis) {
+            // Se as colunas estão visíveis, ocultá-las
+            const cabecalhos = tabela.querySelectorAll('th');
+            const linhas = tabela.querySelectorAll('tr');
 
-    //         cabecalhos.forEach((th, index) => {
-    //             if (index >= 7 && index <= 9) {
-    //                 th.remove();
-    //             }
-    //         });
+            cabecalhos.forEach((th, index) => {
+                if (index >= 7 && index <= 9) {
+                    th.remove();
+                }
+            });
 
-    //         linhas.forEach((linha, index) => {
-    //             if (index === 0) return; // Pular cabeçalho
-    //             const celulas = linha.cells;
-    //             if (celulas.length > 9) {
-    //                 celulas[9].remove();
-    //                 celulas[8].remove();
-    //                 celulas[7].remove();
-    //             }
-    //         });
-    //         event.target.textContent = 'Adicionar Análise';
-    //     } else {
-    //         //Adicionar colunas de análise
-    //         const thead = tabela.querySelector('thead')
-    //         const headerRow = thead.querySelector('tr')
+            linhas.forEach((linha, index) => {
+                if (index === 0) return; // Pular cabeçalho
+                const celulas = linha.cells;
+                if (celulas.length > 9) {
+                    celulas[9].remove();
+                    celulas[8].remove();
+                    celulas[7].remove();
+                }
+            });
+            event.target.textContent = 'Adicionar Análise';
+        } else {
+            //Adicionar colunas de análise
+            const thead = tabela.querySelector('thead')
+            const headerRow = thead.querySelector('tr')
 
-    //          // Criar novos cabeçalhos
-    //          const headerValorCompra = document.createElement('th');
-    //          headerValorCompra.textContent = 'Valor de Compra';
-    //          headerValorCompra.style.textAlign = 'center';
+             // Criar novos cabeçalhos
+             const headerValorCompra = document.createElement('th');
+             headerValorCompra.textContent = 'Valor de Compra';
+             headerValorCompra.style.textAlign = 'center';
 
-    //          const headerTotalCompra = document.createElement('th');
-    //          headerTotalCompra.textContent = 'Total de Compra';
-    //          headerTotalCompra.style.textAlign = 'center';
+             const headerTotalCompra = document.createElement('th');
+             headerTotalCompra.textContent = 'Total de Compra';
+             headerTotalCompra.style.textAlign = 'center';
 
-    //          const headerResultado = document.createElement('th');
-    //          headerResultado.textContent = 'Resultado';
-    //          headerResultado.style.textAlign = 'center';
+             const headerResultado = document.createElement('th');
+             headerResultado.textContent = 'Resultado';
+             headerResultado.style.textAlign = 'center';
 
-    //             // Inserir antes da coluna de Requisição (índice 7)
-    //         headerRow.insertBefore(headerResultado, headerRow.children[7]);
-    //         headerRow.insertBefore(headerTotalCompra, headerRow.children[7]);
-    //         headerRow.insertBefore(headerValorCompra, headerRow.children[7]);
+                // Inserir antes da coluna de Requisição (índice 7)
+            headerRow.insertBefore(headerResultado, headerRow.children[7]);
+            headerRow.insertBefore(headerTotalCompra, headerRow.children[7]);
+            headerRow.insertBefore(headerValorCompra, headerRow.children[7]);
 
-    //         // Adicionar células nas linhas de dados
-    //         const linhas = tabela.querySelectorAll('tbody tr');
-    //         linhas.forEach(linha => {
-    //             const celulas = linha.cells;
+            // Adicionar células nas linhas de dados
+            const linhas = tabela.querySelectorAll('tbody tr');
+            linhas.forEach(linha => {
+                const celulas = linha.cells;
 
-    //             // Criar célula de Valor de Compra
-    //             const cellValorCompra = document.createElement('td');
-    //             cellValorCompra.style.textAlign = 'center';
+                // Criar célula de Valor de Compra
+                const cellValorCompra = document.createElement('td');
+                cellValorCompra.style.textAlign = 'center';
 
-    //             const divValorCompra = document.createElement('div');
-    //             divValorCompra.style.display = 'flex';
-    //             divValorCompra.style.alignItems = 'center';
-    //             divValorCompra.style.justifyContent = 'center';
+                const divValorCompra = document.createElement('div');
+                divValorCompra.style.display = 'flex';
+                divValorCompra.style.alignItems = 'center';
+                divValorCompra.style.justifyContent = 'center';
 
-    //             const spanMoeda = document.createElement('span');
-    //             spanMoeda.textContent = 'R$ ';
-    //             spanMoeda.style.marginRight = '5px';
+                const spanMoeda = document.createElement('span');
+                spanMoeda.textContent = 'R$ ';
+                spanMoeda.style.marginRight = '5px';
 
-    //             const inputValorCompra = document.createElement('input')
-    //             inputValorCompra.type = 'text';
-    //             inputValorCompra.style.width = '5vw'
-    //             inputValorCompra.classList.add('pedido')
-    //             inputValorCompra.style.textAlign = 'right'
-    //             inputValorCompra.addEventListener('input', function(){
-    //                 formatarMoeda(this)
-    //                 calcularComparacao(this)
-    //             }) 
+                const inputValorCompra = document.createElement('input')
+                inputValorCompra.type = 'text';
+                inputValorCompra.style.width = '5vw'
+                inputValorCompra.classList.add('pedido')
+                inputValorCompra.style.textAlign = 'right'
+                inputValorCompra.addEventListener('input', function(){
+                    formatarMoeda(this)
+                    calcularComparacao(this)
+                }) 
 
-    //             divValorCompra.appendChild(spanMoeda);
-    //             divValorCompra.appendChild(inputValorCompra);
-    //             cellValorCompra.appendChild(divValorCompra);
+                divValorCompra.appendChild(spanMoeda);
+                divValorCompra.appendChild(inputValorCompra);
+                cellValorCompra.appendChild(divValorCompra);
 
-    //             //Criar célula de Total de Compra
-    //             const cellTotalCompra = document.createElement('td');
-    //             cellTotalCompra.style.textAlign = 'center';
-    //             cellTotalCompra.textContent = 'R$0,00';
+                //Criar célula de Total de Compra
+                const cellTotalCompra = document.createElement('td');
+                cellTotalCompra.style.textAlign = 'center';
+                cellTotalCompra.textContent = 'R$0,00';
 
-    //             //Criar célula de Resultado
-    //             const cellResultado = document.createElement('td');
-    //             cellResultado.style.textAlign = 'center'
+                //Criar célula de Resultado
+                const cellResultado = document.createElement('td');
+                cellResultado.style.textAlign = 'center'
 
-    //             // Inserir antes da coluna de Requisição (índice 7)
-    //             linha.insertBefore(cellResultado, celulas[7]);
-    //             linha.insertBefore(cellTotalCompra, celulas[7]);
-    //             linha.insertBefore(cellValorCompra, celulas[7]);
+                // Inserir antes da coluna de Requisição (índice 7)
+                linha.insertBefore(cellResultado, celulas[7]);
+                linha.insertBefore(cellTotalCompra, celulas[7]);
+                linha.insertBefore(cellValorCompra, celulas[7]);
 
-    //           // Adicionar listener para mudanças na quantidade
-    //           const inputQuantidade = linha.cells[4].querySelector('input');
-    //           if (inputQuantidade) {
-    //               inputQuantidade.addEventListener('input', function() {
-    //                   const inputValorCompra = linha.cells[7].querySelector('input');
-    //                   if (inputValorCompra && inputValorCompra.value) {
-    //                       calcularComparacao(inputValorCompra);
-    //                   }
-    //               });
-    //           }
-    //       });
+              // Adicionar listener para mudanças na quantidade
+              const inputQuantidade = linha.cells[4].querySelector('input');
+              if (inputQuantidade) {
+                  inputQuantidade.addEventListener('input', function() {
+                      const inputValorCompra = linha.cells[7].querySelector('input');
+                      if (inputValorCompra && inputValorCompra.value) {
+                          calcularComparacao(inputValorCompra);
+                      }
+                  });
+              }
+          });
 
-    //       event.target.textContent = 'Ocultar Análise';
-    //   }
+          event.target.textContent = 'Ocultar Análise';
+      }
 }
 
 
@@ -3370,7 +3179,7 @@ function calcularComparacao(inputElement) {
     const quantidadeText = celulas[INDICE_QUANTIDADE].querySelector('input') ?
         celulas[INDICE_QUANTIDADE].querySelector('input').value :
         celulas[INDICE_QUANTIDADE].textContent;
-
+        
     const quantidade = parseFloat(quantidadeText.replace(/\./g, '').replace(',', '.')) || 0;
 
     const valorTotalText = celulas[INDICE_VALOR_TOTAL].textContent;
