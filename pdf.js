@@ -346,7 +346,7 @@ async function preencher_v2() {
     for (tot in totais) {
         if (totais[tot].valor !== 0) {
             divs_totais += `
-            <div class="totais ${mostrarApenasUsuários(tot)}" style="background-color: ${totais[tot]?.cor}">
+            <div class="totais" style="background-color: ${totais[tot]?.cor}">
                 TOTAL ${tot} ${dinheiro(totais[tot]?.valor)}
             </div>
             `;
