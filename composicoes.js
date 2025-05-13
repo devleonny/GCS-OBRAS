@@ -1514,12 +1514,34 @@ async function cadastrar_alterar(codigo) {
     let elementos = document.getElementById('cadastrar_item');
     if (!elementos) return;
 
-    codigo = codigo ? codigo : await verificar_codigo_existente(true) // Verificar com o servidor o último código sequencial;
-
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
-    if (!dados_composicoes[codigo]) {
-        dados_composicoes[codigo] = {};
+
+    if (!codigo) {
+        const ultimoCodigo = encontrarMaiorCodigo(dados_composicoes);
+
+        codigo = gerarNovoCodigo(ultimoCodigo);
+
+        const LIMITE_NUMERICO = 10000;
+        const codigoNoLimiteNumerico = parseInt(codigo) >= LIMITE_NUMERICO;
+        if (codigoNoLimiteNumerico) {
+            // Se ultrapassou o limite, procurar por "buracos" na sequência
+            const codigosOrdenados = codigos.sort((a, b) => a - b);
+
+            // Encontrar o primeiro "buraco" na sequência
+            let novoCodigo = 1; // Começar do 1
+            for (const cod of codigosOrdenados) {
+                if (cod > novoCodigo) break; // Encontramos um buraco
+
+                novoCodigo = cod + 1;
+            }
+
+            codigo = novoCodigo.toString();
+        }
+
+        console.log("Novo código gerado:", codigo);
     }
+
+    if (!dados_composicoes[codigo]) dados_composicoes[codigo] = {};
 
     let dadosAtualizados = {};
     let divs = elementos.querySelectorAll('div');
@@ -1528,9 +1550,7 @@ async function cadastrar_alterar(codigo) {
         let item = div.querySelector('label');
         let valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select');
 
-        if (item && valor) {
-            dadosAtualizados[item.textContent] = valor.value;
-        }
+        if (item && valor) dadosAtualizados[item.textContent] = valor.value;
     });
 
     dadosAtualizados.codigo = codigo;
@@ -1543,6 +1563,58 @@ async function cadastrar_alterar(codigo) {
     remover_popup();
     carregar_tabela_v2();
 }
+
+function gerarNovoCodigo(ultimoCodigo) {
+    return (ultimoCodigo + 1).toString();
+}
+
+function encontrarMaiorCodigo(dados_composicoes) {
+    const codigos = filtrarCodigos(dados_composicoes);
+
+    return codigos.length > 0 ? Math.max(...codigos) : 0;
+}
+
+function filtrarCodigos(dados_composicoes) {
+    const codigos = Object.keys(dados_composicoes)
+        .map(codigo => parseInt(codigo))
+        .filter(codigo => !isNaN(codigo) && codigo < 10000);
+
+    return codigos;
+}
+
+// async function cadastrar_alterar(codigo) {
+//     let elementos = document.getElementById('cadastrar_item');
+//     if (!elementos) return;
+
+//     codigo = codigo ? codigo : await verificar_codigo_existente(true) // Verificar com o servidor o último código sequencial;
+
+//     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+//     if (!dados_composicoes[codigo]) {
+//         dados_composicoes[codigo] = {};
+//     }
+
+//     let dadosAtualizados = {};
+//     let divs = elementos.querySelectorAll('div');
+
+//     divs.forEach(div => {
+//         let item = div.querySelector('label');
+//         let valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select');
+
+//         if (item && valor) {
+//             dadosAtualizados[item.textContent] = valor.value;
+//         }
+//     });
+
+//     dadosAtualizados.codigo = codigo;
+
+//     dados_composicoes[codigo] = { ...dados_composicoes[codigo], ...dadosAtualizados };
+
+//     await inserirDados(dados_composicoes, 'dados_composicoes');
+//     await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
+
+//     remover_popup();
+//     carregar_tabela_v2();
+// }
 
 async function verificar_codigo_existente() {
     return new Promise((resolve, reject) => {
