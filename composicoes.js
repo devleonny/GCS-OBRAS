@@ -1336,12 +1336,13 @@ function calcular(tipo, campo) {
         let preco_venda = (1 + margem / 100) * valor_custo
 
         if (campo == 'final') {
-            preco_venda = conversor(tds[17].querySelector('input').value)
+            preco_venda = conversor(Number(tds[17].querySelector('input').value))
             margem = ((preco_venda / valor_custo - 1) * 100).toFixed(2)
             tds[15].querySelector('input').value = margem
 
         } else {
             tds[17].querySelector('input').value = preco_venda.toFixed(2)
+
         }
 
         let frete_venda = preco_venda * 0.05
@@ -1409,7 +1410,11 @@ async function atualizar() {
 
 async function cadastrar_editar_item(codigo) {
 
-    let colunas = ['descricao', 'descricaocarrefour', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
+    let colunas = ['descricao', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
+
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    if(!modoClone) colunas.push('descricaocarrefour')
+
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados = dados_composicoes[codigo] || {}
 
@@ -1417,17 +1422,17 @@ async function cadastrar_editar_item(codigo) {
     let elementos = ''
 
     colunas.forEach(col => {
-        let valor = codigo !== undefined ? dados[col] : ''
+        let valor = codigo !== undefined ? dados?.[col] : ''
         let campo = `<input style="background-color: #a2d7a4; padding: 5px; border-radius: 3px;" value="${valor}">`
 
         if (col.includes('desc')) {
             campo = `
-            <textarea rows="5" style="color: #222; background-color: #a2d7a4; width: 100%; border: none;">${valor}</textarea>
+            <textarea rows="3" style="color: #222; background-color: #a2d7a4; width: 95%; border: none;">${valor}</textarea>
             `
         } else if (col == 'tipo') {
             campo = `
             <div>
-                <select style="width: 100%; cursor: pointer;">
+                <select style="width: 100%; cursor: pointer; background-color: #a2d7a4; border-radius: 3px; padding: 3px;">
                     <option ${valor == 'VENDA' ? 'selected' : ''}>VENDA</option>
                     <option ${valor == 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
                 </select>
@@ -1436,15 +1441,16 @@ async function cadastrar_editar_item(codigo) {
         }
 
         if (
-            !col.includes('lpu') &&
+            !col.includes('lpu') 
+            &&
             col !== 'codigo' &&
             col !== 'imagem' &&
             col !== 'agrupamentos' &&
             col !== 'material infra' &&
             col !== 'parceiro') {
             elementos += `
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <label style="width: 30%; text-align: right;">${col}</label>
+            <div style="display: flex; flex-direction: column; gap: 3px; align-items: start; justify-content: start;">
+                <label>${col}</label>
                 ${campo}
             </div>
             `
@@ -1453,20 +1459,19 @@ async function cadastrar_editar_item(codigo) {
 
     var acumulado = `
 
-    ${codigo ? `<div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
+    ${codigo ? `
+    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
         <label style="font-size: 0.7em;">${codigo}</label>
         <img src="imagens/cancel.png" style="width: 15px; cursor: pointer;" onclick="confirmar_exclusao_item('${codigo}')">
     </div>` : ''}
 
-    <div id="cadastrar_item" style="background-color: white; color: #222; padding: 5px; border-radius: 5px; margin: 1vw;">
+    <div id="cadastrar_item" style="width: 30vw; background-color: white; color: #222; padding: 5px; border-radius: 5px; margin: 1vw;">
 
-        <div id="elementos" style="display: flex; flex-direction: column; gap: 5px;">
-            ${elementos}
-        </div>
+        ${elementos}
 
         <br>
 
-        <button style="background-color: #4CAF50; width: 100%; margin: 0px;" onclick="${funcao}">Salvar</buttton>
+        <button style="background-color: #4CAF50; margin: 0px;" onclick="${funcao}">Salvar</buttton>
     </div>
     `
     openPopup_v2(acumulado, 'Dados do Item')

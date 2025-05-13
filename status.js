@@ -558,19 +558,18 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
     }
 
     for (item of itensFiltrados) {
-        let codigo = item.codigo;
+        let codigo = item.codigo
         let qtde = item?.qtde_editar || 0
-        let tipo = dados_composicoes[codigo]?.tipo || item.tipo;
+        let tipo = dados_composicoes[codigo]?.tipo || item.tipo
 
         linhas += `
             <tr class="lin_req" style="background-color: white;">
                   <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
                   <td style="text-align: center;">
                     ${apenas_visualizar ? `<label style="font-size: 1.2em;">
-                    ${item?.partnumber || '<input>'}</label>` :
+                    ${item?.omie || '<input>'}</label>` :
                 `<input class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;"
-                    value="${dados_composicoes[codigo]?.partnumber || ''}"
-                >`}
+                    value="${dados_composicoes[codigo]?.omie || ''}">`}
                   </td>
                   <td style="position: relative;">
                       <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
@@ -3390,10 +3389,19 @@ function remover_cotacao(chave) {
 }
 
 async function atualizar_partnumber(dicionario) {
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
     for (codigo in dicionario) {
         let partnumber = dicionario[codigo]
-        await enviar(`dados_composicoes/${codigo}/partnumber`, partnumber)
+
+        if (dados_composicoes[codigo]) {
+            dados_composicoes[codigo].omie = partnumber
+        }
+
+        await enviar(`dados_composicoes/${codigo}/omie`, partnumber)
     }
+
+    await inserirDados(dados_composicoes, 'dados_composicoes')
 }
 
 function getComputedStylesAsText(element) {
