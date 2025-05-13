@@ -347,7 +347,7 @@ async function abrir_detalhes(id_pagamento) {
         <div class="btn_detalhes" onclick="exibir_todos_os_status('${pagamento.id_orcamento}')">
             <img src="imagens/pasta.png">
             <label style="cursor: pointer;">Consultar Orçamento</label>
-        </div>   
+        </div>
         `
     }
 
@@ -381,7 +381,7 @@ async function abrir_detalhes(id_pagamento) {
         }
 
         valores += `
-            <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
                 <label><strong>${dinheiro(item.valor)}</strong> - ${dados_categorias[item.codigo_categoria]}</label>
                 <img style="width: 2vw; cursor: pointer; display: ${displayLabel};" src="imagens/editar.png" onclick="modal_editar_pagamento('${id_pagamento}', '${indice}')">
                 <img style="width: 25px; cursor: pointer; display: ${displayLabel};" src="imagens/excluir.png" onclick="deseja_excluir_categoria('${id_pagamento}', '${indice}')">
@@ -395,13 +395,20 @@ async function abrir_detalhes(id_pagamento) {
     })
 
     var div_valores = `
-        <div style="display: flex; flex-direction: column;">
+        <div style="display: flex; flex-direction: column; width: 100%;">
             ${valores}
-        <hr style="width: 100%;">
-        <label>${dinheiro(pagamento.param[0].valor_documento)}</label>
+            <hr style="width: 100%;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <label>${dinheiro(pagamento.param[0].valor_documento)}</label>
+                ${acesso.permissao == 'adm' ? 
+                `<div class="btn_detalhes" style="width: max-content;" onclick="modal_editar_pagamento('${id_pagamento}')">
+                    <img src="imagens/baixar.png">
+                    <label style="cursor: pointer;">Acrescentar Valor</label>
+                </div>`: '' }
+            </div>
         </div>
         `
-    let permissao = dados_setores[acesso.usuario]?.permissao
+    let permissao = acesso.permissao
 
     var acumulado = ''
     if (
@@ -689,12 +696,26 @@ async function confirmar_exclusao_categoria(id, indice) {
 
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
 
-    deletar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]`)
+    let pagamento = lista_pagamentos[id]
+    let categorias = pagamento.param[0].categorias
+    categorias.splice(indice, 1)
 
-    await inserirDados(lista_pagamentos, 'lista_pagamentos')
+    pagamento.param[0].valor_documento = calcularTotalCategorias(pagamento.param[0].categorias)
 
+    let resposta = await alterarParam(id, pagamento.param[0])
+
+    if (resposta.status && resposta.status == 'Atualizado') {
+        await inserirDados(lista_pagamentos, 'lista_pagamentos')
+
+    } else {
+        return openPopup_v2(`
+            <div style="display: none; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Falha ao atualizar os dados neste pagamento. Tente novamente.</label>
+            </div>
+            `, 'Aviso', true)
+    }
     await atualizar_pagamentos_menu()
-
     await abrir_detalhes(id)
 
 }
@@ -705,24 +726,31 @@ async function modal_editar_pagamento(id, indice) {
     let dados_categorias = await recuperarDados('dados_categorias')
     if (!dados_categorias) {
         dados_categorias = await receber('dados_categorias')
-        inserirDados(dados_categorias, 'dados_categorias')
+        await inserirDados(dados_categorias, 'dados_categorias')
     }
 
     let opcoes = ''
-    
+
     Object.entries(dados_categorias).forEach(([codigo, categoria]) => {
         opcoes += `<option data-codigo="${codigo}">${categoria}</option>`
     })
 
-    let pagamento = lista_pagamentos[id]
+    let edicao = ''
+    let funcao = indice ? `editar_pagamento('${id}', ${indice})` : `editar_pagamento('${id}')`
+    if (indice) { // Caso seja uma edicao;
+        let pagamento = lista_pagamentos[id]
+        let categoria = pagamento.param[0].categorias[indice]
 
-    let categoria = pagamento.param[0].categorias[indice]
+        edicao = `
+            <label><strong>Categoria:</strong> ${dados_categorias[categoria.codigo_categoria]}</label>
+            <label><strong>Valor Atual:</strong> ${dinheiro(categoria.valor)}</label>
+        `
+    }
 
     let acumulado = `
         <div style="display: flex; justify-content: start; flex-direction: column; gap: 15px; align-items: start; padding: 20px;">
             
-            <label><strong>Categoria:</strong> ${dados_categorias[categoria.codigo_categoria]}</label>
-            <label><strong>Valor Atual:</strong> ${dinheiro(categoria.valor)}</label>
+            ${edicao}
     
             <div style="width: 100%; display: flex; flex-direction: column; align-items: flex-start;">
                 <label for="valor_mudado" style="margin-bottom: 5px;"><strong>Novo Valor:</strong></label>
@@ -736,13 +764,24 @@ async function modal_editar_pagamento(id, indice) {
                     </select>
             </div>
     
-            <label onclick="editar_pagamento('${id}', ${indice})"
+            <label onclick="${funcao}"
                 class="contorno_botoes"
                 style="background-color: #4CAF50;">Confirmar</label>
         </div>    
     `
 
-    return openPopup_v2(acumulado, 'Mudar valor do Pagamento', true)
+    return openPopup_v2(acumulado, 'Categorias', true)
+
+}
+
+function calcularTotalCategorias(categorias) {
+
+    let novoValorDocumento = 0
+    categorias.forEach(item => {
+        novoValorDocumento += item.valor
+    })
+
+    return novoValorDocumento
 
 }
 
@@ -752,47 +791,67 @@ async function editar_pagamento(id, indice) {
     let categoriaMudada = document.getElementById('categoria_mudada')
 
     remover_popup()
-
     overlayAguarde()
 
-    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     let pagamento = lista_pagamentos[id]
 
-
-    if (valorMudado != 0) {
-
-        pagamento.param[0].categorias[indice].valor = valorMudado
-
-        let novoValorDocumento = 0
-
-        pagamento.param[0].categorias.forEach(item => {
-
-            novoValorDocumento += item.valor
-
-            console.log(item.valor);
-
-        }) 
-
-        console.log(novoValorDocumento);
-
-        pagamento.param[0].valor_documento = novoValorDocumento
-
-        enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/valor`, valorMudado)
-        enviar(`lista_pagamentos/${id}/param[0]/valor_documento`, novoValorDocumento)
-
-    }
-
     let codigoMudado = categoriaMudada.options[categoriaMudada.selectedIndex].dataset.codigo;
-    if (pagamento.param[0].categorias[indice].codigo_categoria != codigoMudado) {
-        enviar(`lista_pagamentos/${id}/param[0]/categorias[${indice}]/codigo_categoria`, codigoMudado)
+    if (indice) {
+
+        if (valorMudado != 0) {
+            pagamento.param[0].categorias[indice].valor = valorMudado
+            pagamento.param[0].categorias[indice].codigo_categoria = codigoMudado // Atualização do código da categoria
+        }
+
+    } else {
+        pagamento.param[0].categorias.push({
+            "codigo_categoria": codigoMudado,
+            "valor": valorMudado
+        })
     }
 
-    await inserirDados(lista_pagamentos, 'lista_pagamentos')
+    pagamento.param[0].valor_documento = calcularTotalCategorias(pagamento.param[0].categorias) // Atualizar o valor geral do pagamento;
 
-    await atualizar_pagamentos_menu()
+    let resposta = await alterarParam(id, pagamento.param[0])
 
-    await abrir_detalhes(id)
+    if (resposta.status && resposta.status == 'Atualizado') {
 
+        await inserirDados(lista_pagamentos, 'lista_pagamentos')
+        await consultar_pagamentos()
+        await abrir_detalhes(id)
+
+    } else {
+        return openPopup_v2(`
+            <div style="display: none; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Falha ao atualizar os dados neste pagamento. Tente novamente.</label>
+            </div>
+            `, 'Aviso', true)
+    }
+}
+
+async function alterarParam(id, param) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/param", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id, param })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
 }
 
 async function relancar_pagamento(id) {
@@ -996,7 +1055,7 @@ async function atualizar_feedback(resposta, id_pagamento) {
     let status = `Aprovado por ${usuario}`;
     let justificativa = document.getElementById('justificativa').value;
     let categoria_atual = pagamento.param[0].categorias[0].codigo_categoria
-    let permissao = dados_setores[acesso.usuario].permissao
+    let permissao = acesso.permissao
 
     if (resposta == 'Aprovar' && (permissao == 'gerente' || permissao == 'adm') && categoria_atual == "2.01.99" && setor == "INFRA") {
         status = 'Aguardando aprovação da Qualidade';
@@ -1034,7 +1093,7 @@ async function atualizar_feedback(resposta, id_pagamento) {
     pagamento.historico[id_justificativa] = historico
 
     await inserirDados(lista_pagamentos, 'lista_pagamentos');
-    await fechar_e_abrir(id_pagamento, true)//29
+    await fechar_e_abrir(id_pagamento, true)
 
     await enviar(`lista_pagamentos/${id_pagamento}/historico/${id_justificativa}`, historico)
     await enviar(`lista_pagamentos/${id_pagamento}/status`, status)
@@ -1280,7 +1339,7 @@ async function criar_pagamento_v2() {
             dados_setores = await lista_setores()
         }
 
-        let permissao = dados_setores[acesso.usuario].permissao
+        let permissao = acesso.permissao
 
         if (conversor(total) < 500) {
             pagamento.status = 'Pagamento salvo localmente'
