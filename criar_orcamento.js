@@ -505,7 +505,7 @@ async function tabela_produtos_v2(tipo_tabela) {
 
     let ocultarZerados = JSON.parse(localStorage.getItem('ocultarZerados'))
 
-    if(ocultarZerados == null) ocultarZerados = true
+    if (ocultarZerados == null) ocultarZerados = true
 
     let toolbar = document.getElementById('toolbar')
     if (toolbar) {
@@ -1223,6 +1223,7 @@ async function total() {
 
     orcamento_v2.total_geral = dinheiro(totais.geral.valor - desconto_calculo)
     orcamento_v2.total_bruto = totais.geral.bruto
+    console.log('Total bruto (criar orçamento): ', orcamento_v2.total_bruto)
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
