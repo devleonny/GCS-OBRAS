@@ -1044,7 +1044,7 @@ async function sugestoes(textarea, base) {
         ${opcoes}
     </div>`
 
-    overlayAguarde()
+    document.body.insertAdjacentHTML('beforeend', div)
 
 }
 

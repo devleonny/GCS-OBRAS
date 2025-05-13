@@ -1409,7 +1409,7 @@ async function atualizar() {
 
 async function cadastrar_editar_item(codigo) {
 
-    let colunas = ['descricao', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
+    let colunas = ['descricao', 'descricaocarrefour', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados = dados_composicoes[codigo] || {}
 
