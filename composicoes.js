@@ -1413,7 +1413,7 @@ async function cadastrar_editar_item(codigo) {
     let colunas = ['descricao', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
 
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
-    if(!modoClone) colunas.push('descricaocarrefour')
+    if (!modoClone) colunas.push('descricaocarrefour')
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados = dados_composicoes[codigo] || {}
@@ -1441,7 +1441,7 @@ async function cadastrar_editar_item(codigo) {
         }
 
         if (
-            !col.includes('lpu') 
+            !col.includes('lpu')
             &&
             col !== 'codigo' &&
             col !== 'imagem' &&
@@ -1511,9 +1511,6 @@ async function exclusao_item(codigo) {
 }
 
 async function cadastrar_alterar(codigo) {
-
-    let elementos = document.getElementById('cadastrar_item');
-    if (!elementos) return;
 
     codigo = codigo ? codigo : await verificar_codigo_existente(true) // Verificar com o servidor o último código sequencial;
 
