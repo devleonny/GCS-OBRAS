@@ -943,7 +943,7 @@ async function total() {
 
             if (lpu == 'lpu carrefour') {
 
-                if (dados_composicoes[codigo] && dados_composicoes[codigo].substituto !== '') {
+                if (dados_composicoes[codigo] && dados_composicoes[codigo].substituto && dados_composicoes[codigo].substituto !== '') {
                     substituto = dados_composicoes[codigo].substituto
                     tds[1 + acrescimo].querySelector('label').textContent = dados_composicoes[substituto].descricaocarrefour
                 }
@@ -1316,7 +1316,7 @@ async function incluir_item(codigo, nova_quantidade, especial, tipo_tabela) {
     if (lpu == 'lpu carrefour') {
 
         var td_descricao = ''
-        if (dados_composicoes[codigo] && dados_composicoes[codigo].substituto !== '') {
+        if (dados_composicoes[codigo] && dados_composicoes[codigo].substituto && dados_composicoes[codigo].substituto !== '') {
             var substituto = dados_composicoes[codigo].substituto;
             td_descricao = dados_composicoes[substituto].descricao
 
