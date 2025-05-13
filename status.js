@@ -472,7 +472,7 @@ function pesquisar_na_requisicao() {
     }
 }
 
-async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
+async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let orcamento = dados_orcamentos[id_orcam];
@@ -489,32 +489,60 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
         infra: [],
         equipamentos: []
     }
-    let requisicao = {}
+
+    let requisicao = {} // Comparativo com a requisição já feita, se existir "chave"
     if (chave && orcamento.status && orcamento.status.historico[chave]) {
         requisicao = orcamento.status.historico[chave].requisicoes
     }
 
-    for (id in orcamento.dados_composicoes) {
-        let item = orcamento.dados_composicoes[id]
-        let itemComposicao = dados_composicoes[item.codigo] || {};
-        let descricao = itemComposicao.descricao || item.descricao || '';
+    if (apenas_visualizar) {
 
-        descricao = String(descricao).toLowerCase()
+        for (id in requisicao) {
+            let item = requisicao[id]
+            let itemComposicao = dados_composicoes[item.codigo] || {};
+            let descricao = itemComposicao.descricao || item.descricao || '';
 
-        if (requisicao[id]) {
-            item = requisicao[id]
+            descricao = String(descricao).toLowerCase()
+
+            if ((
+                descricao.includes('eletrocalha') ||
+                descricao.includes('eletroduto') ||
+                descricao.includes('perfilado') ||
+                descricao.includes('sealtubo')
+            )) {
+                todos_os_itens.infra.push(item)
+            } else {
+                todos_os_itens.equipamentos.push(item)
+            }
+
         }
 
-        if ((
-            descricao.includes('eletrocalha') ||
-            descricao.includes('eletroduto') ||
-            descricao.includes('perfilado') ||
-            descricao.includes('sealtubo')
-        )) {
-            todos_os_itens.infra.push(item)
-        } else {
-            todos_os_itens.equipamentos.push(item)
+    } else {
+
+        for (id in orcamento.dados_composicoes) {
+            let item = orcamento.dados_composicoes[id]
+            let itemComposicao = dados_composicoes[item.codigo] || {};
+            let descricao = itemComposicao.descricao || item.descricao || '';
+
+            descricao = String(descricao).toLowerCase()
+
+            if (requisicao[id]) {
+                item = requisicao[id]
+            }
+
+            if ((
+                descricao.includes('eletrocalha') ||
+                descricao.includes('eletroduto') ||
+                descricao.includes('perfilado') ||
+                descricao.includes('sealtubo')
+            )) {
+                todos_os_itens.infra.push(item)
+            } else {
+                todos_os_itens.equipamentos.push(item)
+            }
+
         }
+
     }
 
     itensFiltrados = [...todos_os_itens.infra, ...todos_os_itens.equipamentos]
