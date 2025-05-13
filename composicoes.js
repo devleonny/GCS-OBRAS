@@ -1511,7 +1511,8 @@ async function exclusao_item(codigo) {
 }
 
 async function cadastrar_alterar(codigo) {
-    let elementos = document.getElementById('elementos');
+
+    let elementos = document.getElementById('cadastrar_item');
     if (!elementos) return;
 
     codigo = codigo ? codigo : await verificar_codigo_existente(true) // Verificar com o servidor o último código sequencial;
