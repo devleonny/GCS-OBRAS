@@ -1467,7 +1467,9 @@ async function cadastrar_editar_item(codigo) {
 
     <div id="cadastrar_item" style="width: 30vw; background-color: white; color: #222; padding: 5px; border-radius: 5px; margin: 1vw;">
 
-        ${elementos}
+        <div id="elementos">
+            ${elementos}
+        </div>
 
         <br>
 
@@ -1536,11 +1538,11 @@ async function cadastrar_alterar(codigo) {
             codigo = novoCodigo.toString();
         }
 
-        console.log("Novo código gerado:", codigo);
     }
 
     if (!dados_composicoes[codigo]) dados_composicoes[codigo] = {};
 
+    let elementos = document.getElementById('elementos')
     let dadosAtualizados = {};
     let divs = elementos.querySelectorAll('div');
 
@@ -1579,40 +1581,6 @@ function filtrarCodigos(dados_composicoes) {
 
     return codigos;
 }
-
-// async function cadastrar_alterar(codigo) {
-//     let elementos = document.getElementById('cadastrar_item');
-//     if (!elementos) return;
-
-//     codigo = codigo ? codigo : await verificar_codigo_existente(true) // Verificar com o servidor o último código sequencial;
-
-//     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
-//     if (!dados_composicoes[codigo]) {
-//         dados_composicoes[codigo] = {};
-//     }
-
-//     let dadosAtualizados = {};
-//     let divs = elementos.querySelectorAll('div');
-
-//     divs.forEach(div => {
-//         let item = div.querySelector('label');
-//         let valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select');
-
-//         if (item && valor) {
-//             dadosAtualizados[item.textContent] = valor.value;
-//         }
-//     });
-
-//     dadosAtualizados.codigo = codigo;
-
-//     dados_composicoes[codigo] = { ...dados_composicoes[codigo], ...dadosAtualizados };
-
-//     await inserirDados(dados_composicoes, 'dados_composicoes');
-//     await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
-
-//     remover_popup();
-//     carregar_tabela_v2();
-// }
 
 async function verificar_codigo_existente() {
     return new Promise((resolve, reject) => {
