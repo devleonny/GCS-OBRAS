@@ -474,7 +474,7 @@ function mudar_tabela_pesquisa(tabela) {
 
 async function recuperarComposicoes(tipo_tabela) {
 
-    document.body.insertAdjacentHTML('beforeend', overlay_aguarde())
+    overlayAguarde()
 
     let nuvem = await receber('dados_composicoes')
     await inserirDados(nuvem, 'dados_composicoes')
@@ -603,6 +603,7 @@ async function tabela_produtos_v2(tipo_tabela) {
                             <td style="position: relative;">
                                 <div style="display: flex; justify-content: start; align-items: center; gap: 10px;">
                                     ${moduloComposicoes ? `<img src="imagens/editar.png" style="width: 1.5vw; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')">` : ''}
+                                    ${moduloComposicoes ? `<img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">` : ''}
                                     <label>${produto.descricao}</label>
                                 </div>
                                 ${(produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) ? `<img src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 1vw; width: 1.5vw; cursor: pointer;">` : ''}

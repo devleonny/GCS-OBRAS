@@ -1520,7 +1520,7 @@ function removerLinha(elemento) {
 
 async function recuperarCotacoes() {
 
-    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
+    overlayAguarde()
 
     const cotacoes = await receber("dados_cotacao");
 

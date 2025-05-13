@@ -342,7 +342,6 @@ async function preencher_v2() {
         }
     }
 
-    const mostrarApenasUsuários = (tot) => tot === 'GERAL' ? 'mostrar-apenas-usuario' : '';
     for (tot in totais) {
         if (totais[tot].valor !== 0) {
             divs_totais += `

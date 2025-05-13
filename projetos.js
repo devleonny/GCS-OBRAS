@@ -1562,7 +1562,7 @@ function definirCorTexto(corHex) {
 async function carregarDadosDaNuvem() {
 
     // 🔥 Exibe o overlay carregando
-    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
+    overlayAguarde()
 
     let dadosRecebidos = await receber("dados_kanban");
 

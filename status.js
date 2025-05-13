@@ -372,22 +372,18 @@ function ocultar_pedido(elemento) {
 
 async function calcular_requisicao(sincronizar) {
 
-    var tabela_requisicoes = document.getElementById('tabela_requisicoes')
+    let tabela_requisicoes = document.getElementById('tabela_requisicoes')
 
     if (tabela_requisicoes) {
-        var tbody = tabela_requisicoes.querySelector('tbody')
-
+        let tbody = tabela_requisicoes.querySelector('tbody')
         let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-        var orcamento = dados_orcamentos[id_orcam]
-
-        var itens = orcamento.dados_composicoes
-        var estado = orcamento.dados_orcam.estado
+        let orcamento = dados_orcamentos[id_orcam]
+        let itens = orcamento.dados_composicoes
 
         if (tbody) {
-            var trs = tbody.querySelectorAll('tr')
+            let trs = tbody.querySelectorAll('tr')
 
-            var total_sem_icms = 0
-            var total_com_icms = 0
+            let total = 0
 
             trs.forEach(tr => {
 
@@ -417,54 +413,29 @@ async function calcular_requisicao(sincronizar) {
                         tipo = tds[3].querySelector('select') ? tds[3].querySelector('select').value : tds[3].querySelector('label').textContent
                     }
 
-                    let infos = ['', '']
-                    if (tipo == 'VENDA') {
-                        infos = ['<strong>s • ICMS</strong> <br>', '<strong>c • ICMS</strong> <br>']
-                    }
-
-                    let icms = 0
-                    if (estado == 'BA' && tipo == 'VENDA') {
-                        icms = 0.205
-                    } else if (estado !== 'BA' && tipo == 'VENDA') {
-                        icms = 0.12
-                    }
-
-                    let qtde = tds[4].querySelector('input') ? tds[4].querySelector('input').value : tds[4].textContent
+                    let qtde = tds[4].querySelector('input') ? Number(tds[4].querySelector('input').value) : conversor(tds[4].textContent)
                     let custo = conversor(item.custo)
-                    let unt_sem_icms = custo - (custo * icms)
-
-                    let labels_unitarios = tds[5].querySelectorAll('label')
-                    labels_unitarios[0].innerHTML = `${infos[1]} ${dinheiro(custo)}`
-                    labels_unitarios[1].innerHTML = (qtde == '' || tipo == 'SERVIÇO') ? '' : `${infos[0]} ${dinheiro(unt_sem_icms)}`
+                    let labels_unitarios = tds[5].querySelector('label')
+                    labels_unitarios.innerHTML = `${dinheiro(custo)}`
 
                     // Lógica dos descontos por linha, aplicado no total da linha;
                     let total_do_item = custo * qtde
                     if (item.tipo_desconto) {
                         total_do_item = item.tipo_desconto == 'Dinheiro' ? total_do_item - item.desconto : total_do_item - (item.custo * item.desconto / 100)
+                        if (total_do_item < 0) total_do_item = 0 // Caso exista desconto e seja maior que o total do item; Evitar negativo;
                     }
-                    let total_do_item_sem_icms = total_do_item - (total_do_item * icms)
+                    let labels_totais = tds[6].querySelector('label')
+                    labels_totais.innerHTML = `${dinheiro(total_do_item)}`
 
-                    let labels_totais = tds[6].querySelectorAll('label')
-                    labels_totais[0].innerHTML = `${infos[1]} ${dinheiro(total_do_item)}`
-                    labels_totais[1].innerHTML = (qtde == '' || tipo == 'SERVIÇO') ? '' : `${infos[0]} ${dinheiro(total_do_item_sem_icms)} `
-
-                    total_sem_icms += tipo == 'VENDA' ? total_do_item_sem_icms : 0
-                    total_com_icms += total_do_item
+                    total += total_do_item
                 }
             })
 
-            var total_c_icms = document.getElementById('total_c_icms')
-            var total_s_icms = document.getElementById('total_s_icms')
-
             if (orcamento.desconto_geral) {
-                total_com_icms = orcamento.tipo_de_desconto == 'Dinheiro' ? total_com_icms - orcamento.desconto_geral : total_com_icms - (total_com_icms * orcamento.desconto_geral / 100)
-                total_sem_icms = orcamento.tipo_de_desconto == 'Dinheiro' ? total_sem_icms - orcamento.desconto_geral : total_sem_icms - (total_sem_icms * orcamento.desconto_geral / 100)
+                total = orcamento.tipo_de_desconto == 'Dinheiro' ? total - orcamento.desconto_geral : total - (total * orcamento.desconto_geral / 100)
             }
 
-            if (total_c_icms && total_s_icms) {
-                total_c_icms.textContent = dinheiro(total_com_icms)
-                total_s_icms.textContent = dinheiro(total_sem_icms)
-            }
+            document.getElementById('total_requisicao').textContent = dinheiro(total)
 
         }
     }
@@ -501,7 +472,7 @@ function pesquisar_na_requisicao() {
     }
 }
 
-async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
+async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let orcamento = dados_orcamentos[id_orcam];
@@ -519,9 +490,32 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
         equipamentos: []
     }
 
-    if (chave && orcamento.status?.historico[chave]) {
+    let requisicao = {} // Comparativo com a requisição já feita, se existir "chave"
+    if (chave && orcamento.status && orcamento.status.historico[chave]) {
+        requisicao = orcamento.status.historico[chave].requisicoes
+    }
 
-        itensFiltrados = orcamento.status.historico[chave].requisicoes
+    if (apenas_visualizar) {
+
+        for (id in requisicao) {
+            let item = requisicao[id]
+            let itemComposicao = dados_composicoes[item.codigo] || {};
+            let descricao = itemComposicao.descricao || item.descricao || '';
+
+            descricao = String(descricao).toLowerCase()
+
+            if ((
+                descricao.includes('eletrocalha') ||
+                descricao.includes('eletroduto') ||
+                descricao.includes('perfilado') ||
+                descricao.includes('sealtubo')
+            )) {
+                todos_os_itens.infra.push(item)
+            } else {
+                todos_os_itens.equipamentos.push(item)
+            }
+
+        }
 
     } else {
 
@@ -532,7 +526,9 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
 
             descricao = String(descricao).toLowerCase()
 
-            todos_os_itens.equipamentos.push(item)
+            if (requisicao[id]) {
+                item = requisicao[id]
+            }
 
             if ((
                 descricao.includes('eletrocalha') ||
@@ -540,35 +536,38 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
                 descricao.includes('perfilado') ||
                 descricao.includes('sealtubo')
             )) {
-                itensFiltrados.push(item)
                 todos_os_itens.infra.push(item)
+            } else {
+                todos_os_itens.equipamentos.push(item)
             }
-        }
 
-        itensFiltrados = [...todos_os_itens.infra, ...todos_os_itens.equipamentos]
-
-        if (tipoRequisicao == 'equipamentos') {
-            itensFiltrados = todos_os_itens.equipamentos
-        }
-
-        if (tipoRequisicao == 'infraestrutura') {
-            itensFiltrados = todos_os_itens.infra
         }
 
     }
 
+    itensFiltrados = [...todos_os_itens.infra, ...todos_os_itens.equipamentos]
+
+    if (tipoRequisicao == 'equipamentos') {
+        itensFiltrados = todos_os_itens.equipamentos
+    }
+
+    if (tipoRequisicao == 'infraestrutura') {
+        itensFiltrados = todos_os_itens.infra
+    }
+
     for (item of itensFiltrados) {
-        let codigo = item.codigo;
+        let codigo = item.codigo
         let qtde = item?.qtde_editar || 0
-        let tipo = dados_composicoes[codigo]?.tipo || item.tipo;
+        let tipo = dados_composicoes[codigo]?.tipo || item.tipo
 
         linhas += `
             <tr class="lin_req" style="background-color: white;">
                   <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
                   <td style="text-align: center;">
                     ${apenas_visualizar ? `<label style="font-size: 1.2em;">
-                    ${item?.partnumber || '<input>'}</label>` :
-                `<input class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;">`}
+                    ${item?.omie || '<input>'}</label>` :
+                `<input class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;"
+                    value="${dados_composicoes[codigo]?.omie || ''}">`}
                   </td>
                   <td style="position: relative;">
                       <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
@@ -592,21 +591,15 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) { //29
                                   <label>Quantidade a enviar</label>
                                   <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" min="0" value="${qtde}">
                               </div>
-                              <label class="num">${itensOrcamento[codigo]?.qtde || 0}</label>
+                              <label class="num">${itensOrcamento[codigo]?.qtde || ''}</label>
                           </div>
                       `}
                   </td>
                   <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
                       <label></label>
-                      <br>
-                      <br>
-                      <label style="color: red; font-size: 1.0em;"></label>
                   </td>
                   <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
                       <label></label>
-                      <br>
-                      <br>
-                      <label style="color: red; font-size: 1.0em;"></label>
                   </td>
                   <td>
                       ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.requisicao || ''}</label>` : `
@@ -1084,9 +1077,7 @@ async function salvar_notas(chave) {
 
 async function salvar_requisicao(chave) {
 
-    let janela = document.querySelectorAll('.janela')
-    janela = janela[janela.length - 1] // A última que existir
-    janela.insertAdjacentHTML('beforeend', overlay_aguarde())
+    overlayAguarde()
     //Carregar dados existentes
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
@@ -1106,8 +1097,7 @@ async function salvar_requisicao(chave) {
         comentario: document.getElementById("comentario_status").value,
         requisicoes: [],
         adicionais: itens_adicionais,
-        total_sem_icms: document.getElementById("total_s_icms").textContent,
-        total_com_icms: document.getElementById("total_c_icms").textContent
+        total_requisicao: document.getElementById("total_requisicao").textContent
     };
 
     //Processar itens da tabela
@@ -1131,7 +1121,7 @@ async function salvar_requisicao(chave) {
             return openPopup_v2(`
                     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                        <label> Preencha os PARTNUMBERs pendentes</label>
+                        <label> Preencha os Códigos do Omie pendentes</label>
                     </div>
                 `, 'Aviso', true);
         }
@@ -1468,7 +1458,7 @@ async function abrir_esquema(id) {
                     </div>
                     `
                 editar = `
-                    <div style="background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}', true)">
+                    <div style="background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}')">
                         <img src="imagens/editar4.png">
                         <label>Editar</label>
                     </div>
@@ -1538,8 +1528,7 @@ async function abrir_esquema(id) {
                 var infos = calcular_quantidades(sst.requisicoes, dados_orcamentos[id].dados_composicoes)
                 totais += `
                     <div style="display: flex; flex-direction: column;">
-                        <label><strong>Total sem ICMS: </strong><br>${sst.total_sem_icms}</label>
-                        <label><strong>Total com ICMS: </strong><br>${sst.total_com_icms}</label>
+                        <label><strong>Valor: </strong>${sst?.total_requisicao || '???'}</label>
                     </div>
                     <div class="contorno_botoes" style="border-radius: 3px; padding: 5px; background-color: ${infos.cor};">
                         <label style="font-size: 0.7vw;">${infos.label_porcentagem}</label>
@@ -2398,7 +2387,7 @@ function exibirItens(div) {
 
 async function iniciar_cotacao(id_orcam) {
 
-    document.getElementById("status").insertAdjacentHTML("beforebegin", overlay_aguarde())
+    overlayAguarde()
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
@@ -3050,7 +3039,6 @@ async function chamar_excluir(id) {
 }
 
 async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
-    let visualizar = !chave ? false : true
 
     if (!chave) {
         chave = gerar_id_5_digitos()
@@ -3100,7 +3088,7 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
     var campos = ''
     var toolbar = ''
 
-    if (!visualizar) {
+    if (!apenas_visualizar) {
         toolbar += `
         <div style="display: flex; gap: 10px; justify-content: center; align-items: center; background-color: #151749; border-top-left-radius: 5px; border-top-right-radius: 5px">
             <img src="imagens/pesquisar.png" style="width: 25px; height: 25px; padding: 5px;">
@@ -3166,12 +3154,7 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
             <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">Total</div>
             <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
                 <div style="display: flex; gap: 10px;">
-                    <label id="total_s_icms" style="color: red"></label>
-                    <label style="font-size: 0.8em; color: red;"> <strong>Líquido (s/Icms)</strong> </label> 
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <label id="total_c_icms"></label> 
-                    <label style="font-size: 0.8em;"><strong>(c/Icms)</strong></label>
+                    <label id="total_requisicao"></label> 
                 </div>
             </div>
         </div>
@@ -3185,7 +3168,7 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
         <table class="tabela" id="tabela_requisicoes" style="width: 100%; font-size: 0.8em; table-layout: auto; border-radius: 0px;">
             <thead>
                 <th style="text-align: center;">Código</th>
-                <th style="text-align: center;">PART NUMBER</th>
+                <th style="text-align: center;">OMIE / Partnumber</th>
                 <th style="text-align: center;">Informações do Item</th>                        
                 <th style="text-align: center;">Tipo</th>         
                 <th style="text-align: center;">Quantidade</th>
@@ -3391,10 +3374,19 @@ function remover_cotacao(chave) {
 }
 
 async function atualizar_partnumber(dicionario) {
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
     for (codigo in dicionario) {
         let partnumber = dicionario[codigo]
-        await enviar(`dados_composicoes/${codigo}/partnumber`, partnumber)
+
+        if (dados_composicoes[codigo]) {
+            dados_composicoes[codigo].omie = partnumber
+        }
+
+        await enviar(`dados_composicoes/${codigo}/omie`, partnumber)
     }
+
+    await inserirDados(dados_composicoes, 'dados_composicoes')
 }
 
 function getComputedStylesAsText(element) {

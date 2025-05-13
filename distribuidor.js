@@ -6,7 +6,7 @@ let filtro_distribuidor = {}
 let filtro;
 
 async function carregar_distribuidores(sincronizar = false) {
-    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde());
+    overlayAguarde()
 
     let dados_distribuidor = await recuperarDados('dados_distribuidor') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
@@ -539,7 +539,7 @@ function remover_esta_linha(div_menor) {
 
 async function enviar_distribuidor(id) {
 
-    document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde())
+    overlayAguarde()
 
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let campos = ['codigo_tecnico', 'codigo_cliente', 'comentario', 'status_distribuidor', 'data', 'chamado']
@@ -645,7 +645,7 @@ async function atualizar_base_clientes() {
 
     if (document.getElementById('tela')) {
 
-        document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde())
+        overlayAguarde()
 
         await recuperar_clientes()
 
@@ -662,7 +662,7 @@ async function recuperar_estoque() {
 
     if (document.getElementById('tela')) {
 
-        document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde())
+        overlayAguarde()
 
         let estoque_nuvem = await receber('dados_estoque') || {}
         await inserirDados(estoque_nuvem, 'dados_estoque')
@@ -894,7 +894,7 @@ async function abrir_distribuidor(id) {
 
 async function capturar_html_pdf(id) {
 
-    document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde())
+    overlayAguarde()
 
     let dados_distribuidor = await recuperarDados('dados_distribuidor') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}

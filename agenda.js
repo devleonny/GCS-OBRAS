@@ -36,10 +36,7 @@ async function iniciar_agendas() {
 
 async function sincronizar_departamentos() {
 
-    let aguarde = document.getElementById('aguarde')
-    if (!aguarde) {
-        document.body.insertAdjacentHTML('beforeend', overlay_aguarde())
-    }
+    overlayAguarde()
     
     await sincronizar('departamentos')
     let dados_departamentos = await receber('dados_departamentos')
@@ -51,7 +48,7 @@ async function sincronizar_departamentos() {
 
 async function carregar_tabela(sinc) {
 
-    document.body.insertAdjacentHTML('beforeend', overlay_aguarde())
+    overlayAguarde()
 
     let dados_agenda_tecnicos = await recuperarDados('dados_agenda_tecnicos')
     let dados_clientes = await recuperarDados('dados_clientes')

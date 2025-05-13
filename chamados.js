@@ -119,7 +119,7 @@ function filtrar_manutencoes(ultimo_status, col, texto) {
 
 async function carregar_manutencoes(sincronizar) {
 
-    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
+    overlayAguarde()
 
     let dados_manutencao = await recuperarDados('dados_manutencao') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
@@ -410,7 +410,7 @@ function salvarPrimeiroUsuario(historico) {
 
 async function capturar_html_pdf(id) {
 
-    document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde())
+    overlayAguarde()
 
     let dados_manutencao = await recuperarDados('dados_manutencao') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
@@ -833,7 +833,7 @@ function alterar_kit(checkbox) {
 
 async function enviar_manutencao(id) {
 
-    document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde())
+    overlayAguarde()
 
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let campos = ['codigo_tecnico', 'codigo_cliente', 'comentario', 'status_manutencao', 'data', 'chamado']
@@ -1112,7 +1112,7 @@ async function atualizar_base_clientes() {
 
     if (document.getElementById('tela')) {
 
-        document.getElementById('tela').insertAdjacentHTML('beforeend', overlay_aguarde())
+        overlayAguarde()
 
         await recuperar_clientes()
 

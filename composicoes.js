@@ -44,7 +44,7 @@ function pesquisar_em_composicoes(elemento) {
 carregar_tabela_v2()
 
 async function recuperar_composicoes() {
-    document.body.insertAdjacentHTML("beforebegin", overlay_aguarde())
+    overlayAguarde()
     let nuvem = await receber('dados_composicoes')
     await inserirDados(nuvem, 'dados_composicoes')
     await carregar_tabela_v2()
@@ -1047,16 +1047,20 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
 
         <div style="display: flex; align-items: center; justify-content: space-evenly; width: 100%;">
 
-            <table class="tabela">
-                <tbody>
-                    <thead>
-                        <th>Preço do Serviço</th>
-                    </thead>
-                    <tr>
-                        <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="final" type="number" oninput="calcular('servico')" value="${dados?.custo || ''}"></td>
-                    </tr>
-                </tbody>
-            </table>
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: start;"> 
+                <table class="tabela">
+                    <tbody>
+                        <thead>
+                            <th>Preço do Serviço</th>
+                            <th>Custos Atrelados</th>
+                        </thead>
+                        <tr>
+                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="final" type="number" oninput="calcular('servico')" value="${dados?.final || ''}"></td>
+                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="custosAtrelados" type="number" oninput="calcular('servico')" value="${dados?.custosAtrelados || ''}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
             <table class="tabela">
                 <thead>
@@ -1239,7 +1243,10 @@ async function salvar_preco(codigo, lpu, cotacao) {
 
         // Adicionar ICMS creditado apenas para produtos de venda
         if (produto.tipo === 'VENDA') {
-            historico[id].icms_creditado = parseFloat(icms_creditado);
+            historico[id].icms_creditado = parseFloat(icms_creditado)
+        } else { // Aproveitando o else para salvar infos de SERVIÇO
+            historico[id].custosAtrelados = getValue('custosAtrelados')
+            historico[id].final = getValue('final')
         }
 
         // 5. Atualizar estrutura de dados
@@ -1329,12 +1336,13 @@ function calcular(tipo, campo) {
         let preco_venda = (1 + margem / 100) * valor_custo
 
         if (campo == 'final') {
-            preco_venda = conversor(tds[17].querySelector('input').value)
+            preco_venda = conversor(Number(tds[17].querySelector('input').value))
             margem = ((preco_venda / valor_custo - 1) * 100).toFixed(2)
             tds[15].querySelector('input').value = margem
 
         } else {
             tds[17].querySelector('input').value = preco_venda.toFixed(2)
+
         }
 
         let frete_venda = preco_venda * 0.05
@@ -1403,6 +1411,10 @@ async function atualizar() {
 async function cadastrar_editar_item(codigo) {
 
     let colunas = ['descricao', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
+
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    if (!modoClone) colunas.push('descricaocarrefour')
+
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados = dados_composicoes[codigo] || {}
 
@@ -1410,17 +1422,17 @@ async function cadastrar_editar_item(codigo) {
     let elementos = ''
 
     colunas.forEach(col => {
-        let valor = codigo !== undefined ? dados[col] : ''
+        let valor = codigo !== undefined ? dados?.[col] : ''
         let campo = `<input style="background-color: #a2d7a4; padding: 5px; border-radius: 3px;" value="${valor}">`
 
         if (col.includes('desc')) {
             campo = `
-            <textarea rows="5" style="color: #222; background-color: #a2d7a4; width: 100%; border: none;">${valor}</textarea>
+            <textarea rows="3" style="color: #222; background-color: #a2d7a4; width: 95%; border: none;">${valor}</textarea>
             `
         } else if (col == 'tipo') {
             campo = `
             <div>
-                <select style="width: 100%; cursor: pointer;">
+                <select style="width: 100%; cursor: pointer; background-color: #a2d7a4; border-radius: 3px; padding: 3px;">
                     <option ${valor == 'VENDA' ? 'selected' : ''}>VENDA</option>
                     <option ${valor == 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
                 </select>
@@ -1429,15 +1441,16 @@ async function cadastrar_editar_item(codigo) {
         }
 
         if (
-            !col.includes('lpu') &&
+            !col.includes('lpu')
+            &&
             col !== 'codigo' &&
             col !== 'imagem' &&
             col !== 'agrupamentos' &&
             col !== 'material infra' &&
             col !== 'parceiro') {
             elementos += `
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <label style="width: 30%; text-align: right;">${col}</label>
+            <div style="display: flex; flex-direction: column; gap: 3px; align-items: start; justify-content: start;">
+                <label>${col}</label>
                 ${campo}
             </div>
             `
@@ -1446,20 +1459,19 @@ async function cadastrar_editar_item(codigo) {
 
     var acumulado = `
 
-    ${codigo ? `<div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
+    ${codigo ? `
+    <div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
         <label style="font-size: 0.7em;">${codigo}</label>
         <img src="imagens/cancel.png" style="width: 15px; cursor: pointer;" onclick="confirmar_exclusao_item('${codigo}')">
     </div>` : ''}
 
-    <div id="cadastrar_item" style="background-color: white; color: #222; padding: 5px; border-radius: 5px; margin: 1vw;">
+    <div id="cadastrar_item" style="width: 30vw; background-color: white; color: #222; padding: 5px; border-radius: 5px; margin: 1vw;">
 
-        <div id="elementos" style="display: flex; flex-direction: column; gap: 5px;">
-            ${elementos}
-        </div>
+        ${elementos}
 
         <br>
 
-        <button style="background-color: #4CAF50; width: 100%; margin: 0px;" onclick="${funcao}">Salvar</buttton>
+        <button style="background-color: #4CAF50; margin: 0px;" onclick="${funcao}">Salvar</buttton>
     </div>
     `
     openPopup_v2(acumulado, 'Dados do Item')
@@ -1499,15 +1511,35 @@ async function exclusao_item(codigo) {
 }
 
 async function cadastrar_alterar(codigo) {
-    let elementos = document.getElementById('elementos');
-    if (!elementos) return;
-
-    codigo = codigo ? codigo : await verificar_codigo_existente(true) // Verificar com o servidor o último código sequencial;
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
-    if (!dados_composicoes[codigo]) {
-        dados_composicoes[codigo] = {};
+
+    if (!codigo) {
+        const ultimoCodigo = encontrarMaiorCodigo(dados_composicoes);
+
+        codigo = gerarNovoCodigo(ultimoCodigo);
+
+        const LIMITE_NUMERICO = 10000;
+        const codigoNoLimiteNumerico = parseInt(codigo) >= LIMITE_NUMERICO;
+        if (codigoNoLimiteNumerico) {
+            // Se ultrapassou o limite, procurar por "buracos" na sequência
+            const codigosOrdenados = codigos.sort((a, b) => a - b);
+
+            // Encontrar o primeiro "buraco" na sequência
+            let novoCodigo = 1; // Começar do 1
+            for (const cod of codigosOrdenados) {
+                if (cod > novoCodigo) break; // Encontramos um buraco
+
+                novoCodigo = cod + 1;
+            }
+
+            codigo = novoCodigo.toString();
+        }
+
+        console.log("Novo código gerado:", codigo);
     }
+
+    if (!dados_composicoes[codigo]) dados_composicoes[codigo] = {};
 
     let dadosAtualizados = {};
     let divs = elementos.querySelectorAll('div');
@@ -1516,9 +1548,7 @@ async function cadastrar_alterar(codigo) {
         let item = div.querySelector('label');
         let valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select');
 
-        if (item && valor) {
-            dadosAtualizados[item.textContent] = valor.value;
-        }
+        if (item && valor) dadosAtualizados[item.textContent] = valor.value;
     });
 
     dadosAtualizados.codigo = codigo;
@@ -1531,6 +1561,58 @@ async function cadastrar_alterar(codigo) {
     remover_popup();
     carregar_tabela_v2();
 }
+
+function gerarNovoCodigo(ultimoCodigo) {
+    return (ultimoCodigo + 1).toString();
+}
+
+function encontrarMaiorCodigo(dados_composicoes) {
+    const codigos = filtrarCodigos(dados_composicoes);
+
+    return codigos.length > 0 ? Math.max(...codigos) : 0;
+}
+
+function filtrarCodigos(dados_composicoes) {
+    const codigos = Object.keys(dados_composicoes)
+        .map(codigo => parseInt(codigo))
+        .filter(codigo => !isNaN(codigo) && codigo < 10000);
+
+    return codigos;
+}
+
+// async function cadastrar_alterar(codigo) {
+//     let elementos = document.getElementById('cadastrar_item');
+//     if (!elementos) return;
+
+//     codigo = codigo ? codigo : await verificar_codigo_existente(true) // Verificar com o servidor o último código sequencial;
+
+//     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+//     if (!dados_composicoes[codigo]) {
+//         dados_composicoes[codigo] = {};
+//     }
+
+//     let dadosAtualizados = {};
+//     let divs = elementos.querySelectorAll('div');
+
+//     divs.forEach(div => {
+//         let item = div.querySelector('label');
+//         let valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select');
+
+//         if (item && valor) {
+//             dadosAtualizados[item.textContent] = valor.value;
+//         }
+//     });
+
+//     dadosAtualizados.codigo = codigo;
+
+//     dados_composicoes[codigo] = { ...dados_composicoes[codigo], ...dadosAtualizados };
+
+//     await inserirDados(dados_composicoes, 'dados_composicoes');
+//     await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
+
+//     remover_popup();
+//     carregar_tabela_v2();
+// }
 
 async function verificar_codigo_existente() {
     return new Promise((resolve, reject) => {
