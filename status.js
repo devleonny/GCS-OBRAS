@@ -280,74 +280,103 @@ async function painel_adicionar_pedido() {
 }
 
 async function painel_adicionar_notas(chave) {
+    try {
+        // 1. Recupera os dados ou inicializa um objeto vazio
+        let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
 
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    var cliente = dados_orcamentos[id_orcam].dados_orcam.cliente_selecionado
-    var data = new Date().toLocaleString('pt-BR', {
-        dateStyle: 'short',
-        timeStyle: 'short'
-    });
+        // 2. Verifica se `id_orcam` existe e se o orçamento correspondente existe
+        if (!id_orcam || !dados_orcamentos[id_orcam]) {
+            throw new Error("ID do orçamento não encontrado.");
+        }
 
-    chave == undefined ? chave = gerar_id_5_digitos() : chave
+        // 3. Verifica se a estrutura `dados_orcam` e `cliente_selecionado` existem
+        const orcamento = dados_orcamentos[id_orcam];
+        if (!orcamento.dados_orcam || !orcamento.dados_orcam.cliente_selecionado) {
+            throw new Error("Dados do cliente não encontrados no orçamento.");
+        }
 
-    let st = dados_orcamentos[id_orcam].status?.historico[chave] || {}
-    let notas = st.notas ? st.notas[0] : {}
+        const cliente = orcamento.dados_orcam.cliente_selecionado;
+        const data = new Date().toLocaleString('pt-BR', {
+            dateStyle: 'short',
+            timeStyle: 'short'
+        });
 
-    var acumulado = `
+        // 4. Gera uma chave se não for fornecida
+        chave = chave === undefined ? gerar_id_5_digitos() : chave;
 
-        <label style="position: absolute; bottom: 5px; right: 5px; font-size: 0.6em;" id="data">${data}</label>
+        // 5. Busca o histórico de status de forma segura
+        let st = {};
+        if (orcamento.status?.historico?.[chave]) {
+            st = orcamento.status.historico[chave];
+        }
 
-        <div style="display: flex; justify-content: space-evenly; align-items: center; padding: 10px;">
-            <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
-        </div>
+        // 6. Obtém as notas, se existirem
+        let notas = st.notas?.[0] || {};
 
-        <br>
-        
-        <div id="container_status"></div>
+        // 7. Monta o HTML do painel
+        const acumulado = `
+            <label style="position: absolute; bottom: 5px; right: 5px; font-size: 0.6em;" id="data">${data}</label>
 
-        <hr style="width: 80%">
-
-        <div style="display: flex; flex-direction: column; align-items: start: justify-content: center; gap: 5px;">
-            <label class="novo_titulo" style="color: #222;">Inclua o número da Nota</label>
-            <label>Remessa, Venda ou Serviço</label>
-        </div>
-
-        <div style="display: flex; flex-direction: column; justify-content: center; align-items: start; padding: 10px;"
-            <label><strong>Número da Nota</strong></label>
-            <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
-                <input type="number" class="pedido" id="nota" value="${notas?.nota || ''}">
-                <select id="tipo">
-                    <option>Selecione</option>
-                    <option ${notas?.modalidade == 'Remessa' ? 'selected' : ''}>Remessa</option>
-                    <option ${notas?.modalidade == 'Venda' ? 'selected' : ''}>Venda</option>
-                    <option ${notas?.modalidade == 'Serviço' ? 'selected' : ''}>Serviço</option>
-                    <option ${notas?.modalidade == 'Venda + Serviço' ? 'selected' : ''}>Venda + Serviço</option>
-                </select>
+            <div style="display: flex; justify-content: space-evenly; align-items: center; padding: 10px;">
+                <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
             </div>
-            <label><strong>Valor da Nota</strong></label>
-            <input type="number" class="pedido" id="valorNota" value="${notas?.valorNota || ''}">
-            <label><strong>Valor do Frete</strong></label>
-            <input type="number" class="pedido" id="valorFrete" value="${notas?.valorFrete || ''}">
-        </div>
 
-        <div style="display: flex; flex-direction: column; gap: 3px; align-items: start; padding: 10px;">
-            <label><strong>Comentário</strong></label>
-            <textarea rows="5" style="width: 80%;" id="comentario_status">${st?.comentario || ''}</textarea>
-        </div>
+            <br>
+            
+            <div id="container_status"></div>
 
-        <hr style="width: 80%">
+            <hr style="width: 80%">
 
-        <button style="background-color: #4CAF50" onclick="salvar_notas('${chave}')">Salvar</button>
+            <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px;">
+                <label class="novo_titulo" style="color: #222;">Inclua o número da Nota</label>
+                <label>Remessa, Venda ou Serviço</label>
+            </div>
 
-        <div id="aviso_campo_branco" style="display: none; gap: 10px; align-items: center; justify-content: center;">
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-            <label>Não deixe campos em Branco</label>
-        </div>
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: start; padding: 10px;">
+                <label><strong>Número da Nota</strong></label>
+                <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
+                    <input type="number" class="pedido" id="nota" value="${notas?.nota || ''}">
+                    <select id="tipo">
+                        <option>Selecione</option>
+                        <option ${notas?.modalidade == 'Remessa' ? 'selected' : ''}>Remessa</option>
+                        <option ${notas?.modalidade == 'Venda' ? 'selected' : ''}>Venda</option>
+                        <option ${notas?.modalidade == 'Serviço' ? 'selected' : ''}>Serviço</option>
+                        <option ${notas?.modalidade == 'Venda + Serviço' ? 'selected' : ''}>Venda + Serviço</option>
+                    </select>
+                </div>
+                <label><strong>Valor da Nota</strong></label>
+                <input type="number" class="pedido" id="valorNota" value="${notas?.valorNota || ''}">
+                <label><strong>Valor do Frete</strong></label>
+                <input type="number" class="pedido" id="valorFrete" value="${notas?.valorFrete || ''}">
+            </div>
 
-    `
+            <div style="display: flex; flex-direction: column; gap: 3px; align-items: start; padding: 10px;">
+                <label><strong>Comentário</strong></label>
+                <textarea rows="5" style="width: 80%;" id="comentario_status">${st?.comentario || ''}</textarea>
+            </div>
 
-    openPopup_v2(acumulado, "Nova Nota Fiscal", true)
+            <hr style="width: 80%">
 
+            <button style="background-color: #4CAF50" onclick="salvar_notas('${chave}')">Salvar</button>
+
+            <div id="aviso_campo_branco" style="display: none; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Não deixe campos em Branco</label>
+            </div>
+        `;
+
+        openPopup_v2(acumulado, "Nova Nota Fiscal", true);
+
+    } catch (error) {
+        console.error("Erro ao abrir painel de notas:", error);
+        openPopup_v2(`
+            <div style="color: red; padding: 20px; text-align: center;">
+                <h3>⚠️ Erro ao carregar notas</h3>
+                <p>${error.message}</p>
+                <p>Verifique se o orçamento está correto.</p>
+            </div>
+        `, "Erro", false);
+    }
 }
 
 function ocultar_pedido(elemento) {
