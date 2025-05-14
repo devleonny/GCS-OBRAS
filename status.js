@@ -517,26 +517,30 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
         return '';
     }
 
-    // Filtra os itens com base no tipo de requisição
+     // Filtra os itens com base no tipo de requisição
     let itensFiltrados = [];
     let todos_os_itens = {
         infra: [],
         equipamentos: []
     }
 
+    //Obter os itens da requisição existente, se houver
     let requisicao = {} // Comparativo com a requisição já feita, se existir "chave"
     if (chave && orcamento.status && orcamento.status.historico[chave]) {
         requisicao = orcamento.status.historico[chave].requisicoes
     }
 
+          
     if (apenas_visualizar) {
 
-        for (id in requisicao) {
-            let item = requisicao[id]
-            let itemComposicao = dados_composicoes[item.codigo] || {};
-            let descricao = itemComposicao.descricao || item.descricao || '';
+        for (let item of Object.values(requisicao)) {
+            // Modo visualização - filtra itens com quantidade > 0
+        for (let item of Object.values(requisicao)) {
+            if (Number(item.qtde_enviar) > 0) { // Só inclui se quantidade > 0
+                let itemComposicao = dados_composicoes[item.codigo] || {};
+                let descricao = itemComposicao.descricao || item.descricao || '';
+                descricao = String(descricao).toLowerCase();
 
-            descricao = String(descricao).toLowerCase()
 
             if ((
                 descricao.includes('eletrocalha') ||
@@ -2934,7 +2938,7 @@ async function detalhar_requisicao(chave, editar, tipoRequisicao) {
                 <th style="text-align: center;">Requisição</th>
             </thead>
             <tbody>
-                ${await carregar_itens(visualizar, requisicao, itens_adicionais, tipoRequisicao, seEditar, valoresTotais)}
+                ${await carregar_itens(visualizar, tipoRequisicao, chave)}
             </tbody>
         </table>
     <div>
