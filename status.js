@@ -2145,7 +2145,30 @@ async function mostrar_painel() {
     let soma_custos = totalValoresManuais + linhas.SERVIÇO.total_impostos + linhas.VENDA.total_impostos + linhas.VENDA.total_custo
     let lucro_liquido = total_orcamento - soma_custos
     let lucro_porcentagem = (lucro_liquido / total_orcamento * 100).toFixed(2)
-    const descontoTotal = orcamento.desconto_geral;
+
+    const validandoNumeroDesconto = (item) => typeof item.desconto === 'number';
+
+    let desconto = 0;
+    let DESCONTO_INICIAL = 0;
+    const itensNoOrcamento = orcamento.dados_composicoes;
+    if (itensNoOrcamento) {
+        desconto = Object.values(itensNoOrcamento).reduce((total, item) => {
+            return total + (validandoNumeroDesconto(item) ? item.desconto : 0);
+        }, DESCONTO_INICIAL);
+    }
+
+    let descontoBackup = 0;
+    const itensNoOrcamentoBackup = orcamento?.backup;
+    if (itensNoOrcamentoBackup) {
+        descontoBackup = Object.values(itensNoOrcamentoBackup).reduce((total, item) => {
+            if (item.desconto !== undefined && validandoNumeroDesconto(item)) return total + item.desconto;
+
+            return total;
+        }, DESCONTO_INICIAL);
+    }
+
+    const descontoGeralOuBackup = descontoBackup || orcamento.desconto_geral;
+    const descontoTotal = descontoGeralOuBackup + desconto;
 
     let acumulado = `
 
