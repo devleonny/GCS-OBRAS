@@ -346,7 +346,7 @@ async function preencher_v2() {
     const temDesconto = desconto > 0;
     if (temDesconto) {
         divs_totais += `
-            <div class="totais mostrar-apenas-usuario" style="background-color:rgb(185, 99, 0); margin-top: 5px;">
+            <div class="totais" style="background-color:rgb(185, 99, 0); margin-top: 5px;">
                 <label>DESCONTO ${dinheiro(descontoTotal)}</label>
             </div>
             <div class="totais" style="background-color: #151749; margin-top: 5px;">
@@ -402,26 +402,11 @@ async function gerarPDF() {
     preencher_v2();
     ocultar.style.display = 'none';
 
-    const elementosUsuario = document.querySelectorAll('.mostrar-apenas-usuario');
-    visibilidadeDoElemento({
-        elementosUsuario: elementosUsuario,
-        visibilidade: 'none'
-    });
-
     const orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
     const contrato = orcamento_v2.dados_orcam.contrato;
     const cliente = orcamento_v2.dados_orcam.cliente_selecionado;
 
     await gerar_pdf_online(document.documentElement.outerHTML, `Orcamento_${cliente}_${contrato}`);
 
-    visibilidadeDoElemento({
-        elementosUsuario: elementosUsuario,
-        visibilidade: 'flex'
-    });
-
     ocultar.style.display = 'flex';
-}
-
-function visibilidadeDoElemento({ elementosUsuario, visibilidade }) {
-    elementosUsuario.forEach((elemento) => elemento.style.display = visibilidade);
 }
