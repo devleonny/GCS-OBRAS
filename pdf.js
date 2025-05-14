@@ -257,14 +257,9 @@ async function preencher_v2() {
 
             item.total = item.custo * item.qtde;
 
-            if (item.desconto) {
-                item.total = item.tipo_desconto == 'Dinheiro' ? item.total - item.desconto : item.total - (item.total * (item.desconto / 100))
-            }
-
             if (item.tipo == tab) {
 
                 totais[tab].valor += item.total
-                totais.GERAL.valor += item.total
 
                 let unitario_sem_icms = item.custo - (item.custo * icms)
                 let total_sem_icms = unitario_sem_icms * item.qtde
@@ -326,45 +321,36 @@ async function preencher_v2() {
     let divs_totais = ''
     let etiqueta_desconto = ''
 
-    let total_bruto = totais.GERAL.valor;
-    let valor_desconto = 0;
-    let total_liquido = total_bruto;
+    let total_liquido = orcamento_v2.total_geral;
+    totais.GERAL.valor = orcamento_v2.total_bruto;
 
-    // Verificar se há desconto geral aplicado
-    if (orcamento_v2.desconto_geral && conversor(orcamento_v2.desconto_geral) > 0) {
-        if (orcamento_v2.tipo_de_desconto == 'Dinheiro') {
-            valor_desconto = conversor(orcamento_v2.desconto_geral);
-            total_liquido = total_bruto - valor_desconto;
-        } else {
-            // Desconto em porcentagem
-            valor_desconto = total_bruto * (conversor(orcamento_v2.desconto_geral) / 100);
-            total_liquido = total_bruto - valor_desconto;
-        }
-    }
-
-    for (tot in totais) {
+    Object.keys(totais).forEach(tot => {
         if (totais[tot].valor !== 0) {
             divs_totais += `
-            <div class="totais" style="background-color: ${totais[tot]?.cor}">
-                TOTAL ${tot} ${dinheiro(totais[tot]?.valor)}
-            </div>
+                <div class="totais" style="background-color: ${totais[tot]?.cor}">
+                    TOTAL ${tot} ${dinheiro(totais[tot]?.valor)}
+                </div>
             `;
         }
-    }
+    });
 
-    const temDesconto = valor_desconto > 0;
+    const itensNoOrcamento = orcamento_v2.dados_composicoes;
+    const DESCONTO_INICIAL = 0;
+
+    let desconto = Object.values(itensNoOrcamento).reduce((total, item) => {
+        return total + item.desconto;
+    }, DESCONTO_INICIAL);
+
+    const descontoTotal = orcamento_v2.desconto_geral + desconto;
+
+    const temDesconto = desconto > 0;
     if (temDesconto) {
         divs_totais += `
-            <div class="totais mostrar-apenas-usuario" style="background-color:rgb(185, 99, 0); margin-top: 5px;">
-                <label>DESCONTO ${orcamento_v2.tipo_de_desconto === 'Dinheiro' ? dinheiro(valor_desconto) : orcamento_v2.desconto_geral + '%'}</label>
+            <div class="totais" style="background-color:rgb(185, 99, 0); margin-top: 5px;">
+                <label>DESCONTO ${dinheiro(descontoTotal)}</label>
             </div>
-        `;
-    }
-
-    if (temDesconto) {
-        divs_totais += `
             <div class="totais" style="background-color: #151749; margin-top: 5px;">
-                TOTAL LÍQUIDO ${dinheiro(total_liquido)}
+                TOTAL ${total_liquido}
             </div>
         `;
     }
@@ -416,26 +402,11 @@ async function gerarPDF() {
     preencher_v2();
     ocultar.style.display = 'none';
 
-    const elementosUsuario = document.querySelectorAll('.mostrar-apenas-usuario');
-    visibilidadeDoElemento({
-        elementosUsuario: elementosUsuario,
-        visibilidade: 'none'
-    });
-
     const orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
     const contrato = orcamento_v2.dados_orcam.contrato;
     const cliente = orcamento_v2.dados_orcam.cliente_selecionado;
 
     await gerar_pdf_online(document.documentElement.outerHTML, `Orcamento_${cliente}_${contrato}`);
 
-    visibilidadeDoElemento({
-        elementosUsuario: elementosUsuario,
-        visibilidade: 'flex'
-    });
-
     ocultar.style.display = 'flex';
-}
-
-function visibilidadeDoElemento({ elementosUsuario, visibilidade }) {
-    elementosUsuario.forEach((elemento) => elemento.style.display = visibilidade);
 }
