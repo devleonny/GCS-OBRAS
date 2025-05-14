@@ -241,7 +241,7 @@ async function preencher_v2() {
 
                 if (dados_composicoes[item.codigo].substituto !== '' && carrefour) {
                     item.codigo = dados_composicoes[item.codigo].substituto
-                    item.descricao = dados_composicoes[item.codigo].descricaocarrefour || item.descricao
+                    item.descricao = dados_composicoes[item.codigo]?.descricaocarrefour || item?.descricao
                 }
 
                 item.tipo = dados.tipo;
@@ -260,6 +260,8 @@ async function preencher_v2() {
             if (item.tipo == tab) {
 
                 totais[tab].valor += item.total
+                totais.GERAL.valor = totais.SERVIÇO.valor + totais.VENDA.valor;
+
 
                 let unitario_sem_icms = item.custo - (item.custo * icms)
                 let total_sem_icms = unitario_sem_icms * item.qtde
@@ -322,7 +324,6 @@ async function preencher_v2() {
     let etiqueta_desconto = ''
 
     let total_liquido = orcamento_v2.total_geral;
-    totais.GERAL.valor = orcamento_v2.total_bruto;
 
     Object.keys(totais).forEach(tot => {
         if (totais[tot].valor !== 0) {
@@ -334,26 +335,38 @@ async function preencher_v2() {
         }
     });
 
+    const validandoNumeroDesconto = (item) => typeof item.desconto === 'number';
+
+    let desconto = 0;
+    let DESCONTO_INICIAL = 0;
     const itensNoOrcamento = orcamento_v2.dados_composicoes;
-    const DESCONTO_INICIAL = 0;
-
-    let desconto = Object.values(itensNoOrcamento).reduce((total, item) => {
-        return total + item.desconto;
-    }, DESCONTO_INICIAL);
-
-    const descontoTotal = orcamento_v2.desconto_geral + desconto;
-
-    const temDesconto = desconto > 0;
-    if (temDesconto) {
-        divs_totais += `
-            <div class="totais" style="background-color:rgb(185, 99, 0); margin-top: 5px;">
-                <label>DESCONTO ${dinheiro(descontoTotal)}</label>
-            </div>
-            <div class="totais" style="background-color: #151749; margin-top: 5px;">
-                TOTAL ${total_liquido}
-            </div>
-        `;
+    if (itensNoOrcamento) {
+        desconto = Object.values(itensNoOrcamento).reduce((total, item) => {
+            return total + (validandoNumeroDesconto(item) ? item.desconto : 0);
+        }, DESCONTO_INICIAL);
     }
+
+    let descontoBackup = 0;
+    const itensNoOrcamentoBackup = orcamento_v2?.backup;
+    if (itensNoOrcamentoBackup) {
+        descontoBackup = Object.values(itensNoOrcamentoBackup).reduce((total, item) => {
+            if (item.desconto !== undefined && validandoNumeroDesconto(item)) return total + item.desconto;
+
+            return total;
+        }, DESCONTO_INICIAL);
+    }
+
+    const descontoGeralOuBackup = descontoBackup || orcamento_v2.desconto_geral;
+    const descontoTotal = descontoGeralOuBackup + desconto;
+
+    divs_totais += `
+        <div class="totais" style="background-color:rgb(185, 99, 0); margin-top: 5px;">
+            <label>DESCONTO ${dinheiro(descontoTotal)}</label>
+        </div>
+        <div class="totais" style="background-color: #151749; margin-top: 5px;">
+            TOTAL ${total_liquido}
+        </div>
+    `;
 
     html_orcamento.innerHTML = `
     <label>Salvador, Bahia, ${carimbo_data()}</label>
