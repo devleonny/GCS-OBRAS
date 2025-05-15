@@ -507,80 +507,67 @@ function pesquisar_na_requisicao() {
 }
 
 async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let orcamento = dados_orcamentos[id_orcam];
-    let itensOrcamento = orcamento.dados_composicoes
+    let itensOrcamento = orcamento.dados_composicoes;
     let linhas = '';
 
     if (!orcamento.dados_composicoes || Object.keys(orcamento.dados_composicoes).length == 0) {
         return '';
     }
 
-     // Filtra os itens com base no tipo de requisição
+    // Filtra os itens com base no tipo de requisição
     let itensFiltrados = [];
     let todos_os_itens = {
         infra: [],
         equipamentos: []
-    }
+    };
 
-    //Obter os itens da requisição existente, se houver
-    let requisicao = {} // Comparativo com a requisição já feita, se existir "chave"
+    let requisicao = {}; // Comparativo com a requisição já feita, se existir "chave"
     if (chave && orcamento.status && orcamento.status.historico[chave]) {
-        requisicao = orcamento.status.historico[chave].requisicoes
+        requisicao = orcamento.status.historico[chave].requisicoes || {};
     }
 
-          
     if (apenas_visualizar) {
-
-        for (let item of Object.values(requisicao)) {
-            // Modo visualização - filtra itens com quantidade > 0
+        // Modo visualização - filtra itens com quantidade > 0
         for (let item of Object.values(requisicao)) {
             if (Number(item.qtde_enviar) > 0) { // Só inclui se quantidade > 0
                 let itemComposicao = dados_composicoes[item.codigo] || {};
                 let descricao = itemComposicao.descricao || item.descricao || '';
                 descricao = String(descricao).toLowerCase();
 
-
-            if ((
-                descricao.includes('eletrocalha') ||
-                descricao.includes('eletroduto') ||
-                descricao.includes('perfilado') ||
-                descricao.includes('sealtubo')
-            )) {
-                todos_os_itens.infra.push(item)
-            } else {
-                todos_os_itens.equipamentos.push(item)
+                if ((descricao.includes('eletrocalha') ||
+                    descricao.includes('eletroduto') ||
+                    descricao.includes('perfilado') ||
+                    descricao.includes('sealtubo'))) {
+                    todos_os_itens.infra.push(item);
+                } else {
+                    todos_os_itens.equipamentos.push(item);
+                }
             }
-
         }
-
     } else {
-
-        for (id in orcamento.dados_composicoes) {
-            let item = orcamento.dados_composicoes[id]
+        // Modo edição - mostra todos os itens
+        for (let id in orcamento.dados_composicoes) {
+            let item = orcamento.dados_composicoes[id];
             let itemComposicao = dados_composicoes[item.codigo] || {};
             let descricao = itemComposicao.descricao || item.descricao || '';
-
-            descricao = String(descricao).toLowerCase()
+            descricao = String(descricao).toLowerCase();
 
             if (requisicao[id]) {
-                item = requisicao[id]
+                item = requisicao[id];
             }
 
-            if ((
-                descricao.includes('eletrocalha') ||
+            if ((descricao.includes('eletrocalha') ||
                 descricao.includes('eletroduto') ||
                 descricao.includes('perfilado') ||
-                descricao.includes('sealtubo')
-            )) {
-                todos_os_itens.infra.push(item)
+                descricao.includes('sealtubo'))) {
+                todos_os_itens.infra.push(item);
             } else {
-                todos_os_itens.equipamentos.push(item)
+                todos_os_itens.equipamentos.push(item);
             }
-
         }
-
     }
 
     itensFiltrados = [...todos_os_itens.infra, ...todos_os_itens.equipamentos]
