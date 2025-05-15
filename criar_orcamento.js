@@ -322,25 +322,31 @@ async function enviar_dados() {
     for (let codigo in orcamento_v2.dados_composicoes) {
         let produto = orcamento_v2.dados_composicoes[codigo];
         if (!relancamento[produto.codigo]) {
-            relancamento[produto.codigo] = 0;
+            relancamento[produto.codigo] = { qtde: 0, desconto: 0 }
         }
 
-        relancamento[produto.codigo] += produto.qtde;
+        relancamento[produto.codigo].qtde += produto.qtde;
+
+        let desconto = produto?.tipo_desconto == 'Dinheiro' ? produto.desconto : (produto.qtde * produto.custo) * (produto.desconto / 100)
 
         if (produto.agrupamentos) {
             converter = true;
             let agrupamentos = produto.agrupamentos;
             for (let agrup in agrupamentos) {
                 if (!relancamento[agrup]) {
-                    relancamento[agrup] = 0;
+                    relancamento[agrup] = { qtde: 0, desconto: 0 }
                 }
 
-                relancamento[agrup] += codigo == agrup ? agrupamentos[agrup] : agrupamentos[agrup] * produto.qtde
+                relancamento[agrup].qtde += codigo == agrup ? agrupamentos[agrup] : agrupamentos[agrup] * produto.qtde
             }
+
         }
+
     }
 
-    if (converter) {
+    console.log(relancamento);
+
+    if (converter) { // 29
         if (!orcamento_v2.backup) {
             orcamento_v2.backup = {};
         }
@@ -351,10 +357,10 @@ async function enviar_dados() {
         await carregar_tabelas();
 
         for (let codigo in relancamento) {
-            await incluir_item(codigo, relancamento[codigo]);
+            await incluir_item(codigo, relancamento[codigo].qtde);
         }
     }
-
+    
     orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')); // Recuperado do localStorage novamente, cuidado com alterações antes disto.
     orcamento_v2.tabela = 'orcamentos';
 
@@ -381,6 +387,7 @@ async function enviar_dados() {
 
     localStorage.removeItem('orcamento_v2');
     location.href = 'orcamentos.html';
+    
 
 }
 
@@ -1144,8 +1151,8 @@ async function total() {
     let desconto_geral = document.getElementById('desconto_geral')
     let tipo_de_desconto = desconto_geral.previousElementSibling
 
-    if (desconto_geral !== '') {
-        orcamento_v2.desconto_geral = conversor(desconto_geral.value)
+    if (desconto_geral.value !== '') {
+        orcamento_v2.desconto_geral = conversor(Number(desconto_geral.value))
         orcamento_v2.tipo_de_desconto = tipo_de_desconto.value
     } else {
         delete orcamento_v2.desconto_geral
@@ -1166,7 +1173,7 @@ async function total() {
                 if (tipo_de_desconto.value == 'Porcentagem') {
 
                     if (desconto_geral.value < 0) {
-                        desconto_geral.value = 0
+                       desconto_geral.value = 0
                     } else if (desconto_geral.value > 100) {
                         desconto_geral.value = 100
                     }
@@ -1176,9 +1183,9 @@ async function total() {
                 } else {
 
                     if (desconto_geral.value < 0) {
-                        desconto_geral.value = 0
+                       //desconto_geral.value = 0
                     } else if (desconto_geral.value > totais[tot].valor) {
-                        desconto_geral.value = totais[tot].valor
+                       //desconto_geral.value = totais[tot].valor
                     }
 
                     desconto_calculo = Number(desconto_geral.value)
@@ -1223,7 +1230,6 @@ async function total() {
 
     orcamento_v2.total_geral = dinheiro(totais.geral.valor - desconto_calculo)
     orcamento_v2.total_bruto = totais.geral.bruto
-    console.log('Total bruto (criar orçamento): ', orcamento_v2.total_bruto)
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
@@ -1234,9 +1240,7 @@ async function total() {
     let aleatorio = Math.floor(Math.random() * metaforas.length)
 
     if (esta_quieto) {
-        quieto.innerHTML = `
-        <label class="novo_titulo">${metaforas[aleatorio]}</label>
-        `
+        quieto.innerHTML = `<label class="novo_titulo">${metaforas[aleatorio]}</label>`
     }
 }
 
