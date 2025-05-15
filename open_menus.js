@@ -821,37 +821,46 @@ function standardizeDecimalSeparator(value) {
 }
 
 function dinheiro(valor, moeda = 'BRL', localidade = 'pt-BR') {
-    const valoresVazios = [null, undefined, ''];
-    if (valoresVazios.includes(valor)) {
-        return new Intl.NumberFormat(localidade, {
-            style: 'currency',
-            currency: moeda,
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }).format(0);
+    const formatarMoeda = criarFormatadorMoeda(localidade, moeda);
+
+    if (éValorVazio(valor)) {
+        return formatarMoeda(0);
     }
 
-    const numero = typeof valor === 'string'
-        ? parseFloat(valor.replace(/[^\d,-]/g, '').replace(',', '.'))
+    const número = converterParaNúmero(valor);
+
+    return éNúmeroInválido(número)
+        ? formatarMoeda(0)
+        : formatarMoeda(número);
+}
+
+function éValorVazio(valor) {
+    return [null, undefined, ''].includes(valor);
+}
+
+function limparStringMonetária(texto) {
+    return texto.replace(/[^\d,-]/g, '').replace(',', '.');
+}
+
+function converterParaNúmero(valor) {
+    return typeof valor === 'string'
+        ? parseFloat(limparStringMonetária(valor))
         : Number(valor);
+}
 
-    if (isNaN(numero)) {
+function éNúmeroInválido(numero) {
+    return isNaN(numero);
+}
+
+function criarFormatadorMoeda(localidade = 'pt-BR', moeda = 'BRL') {
+    return function (valor) {
         return new Intl.NumberFormat(localidade, {
             style: 'currency',
             currency: moeda,
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
-        }).format(0);
-    }
-
-    const valorCorreto = new Intl.NumberFormat(localidade, {
-        style: 'currency',
-        currency: moeda,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }).format(numero);
-
-    return valorCorreto;
+        }).format(valor);
+    };
 }
 
 function ir_para(modulo) {
