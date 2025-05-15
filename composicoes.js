@@ -109,7 +109,7 @@ async function carregar_tabela_v2() {
     var ths = {};
     var tsc = {};
 
-    cabecalhos.forEach((cab, i) => {
+    cabecalhos.forEach(cab => {
         ths[cab] = `<th style="position: relative; cursor: pointer; text-align: left;">${inicial_maiuscula(cab)}</th>`
         tsc[cab] = `
             <th style="background-color: white; position: relative; border-radius: 0px;">
