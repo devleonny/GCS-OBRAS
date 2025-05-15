@@ -590,7 +590,6 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
         let qtde = item?.qtde_editar || 0
         let tipo = dados_composicoes[codigo]?.tipo || item.tipo
 
-        console.log('Código', item.omie || item?.partnumber)
         linhas += `
             <tr class="lin_req" style="background-color: white;">
                   <td style="text-align: center; font-size: 1.2em; white-space: nowrap;"><label>${codigo}</label></td>
