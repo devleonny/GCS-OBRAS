@@ -278,7 +278,7 @@ function inicial_maiuscula(string) {
     }
     string.includes('_') ? string = string.split('_').join(' ') : ''
 
-    if(string.includes('lpu')) return string.toUpperCase()
+    if (string.includes('lpu')) return string.toUpperCase()
     return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
 }
 
@@ -782,32 +782,85 @@ function ampliar(url) {
     div.classList.toggle('show');
 }
 
-function conversor(stringMonetario) {
-    if (typeof stringMonetario === 'number') {
-        return stringMonetario;
-    } else if (!stringMonetario || stringMonetario.trim() === "") {
-        return 0;
-    } else {
-        stringMonetario = stringMonetario.trim();
-        stringMonetario = stringMonetario.replace(/[^\d,]/g, '');
-        stringMonetario = stringMonetario.replace(',', '.');
-        var valorNumerico = parseFloat(stringMonetario);
+function conversor(valorMonetario) {
+    if (isNumber(valorMonetario)) return valorMonetario;
+    if (isEmptyValue(valorMonetario)) return 0;
 
-        if (isNaN(valorNumerico)) {
-            return 0;
-        }
-
-        return valorNumerico;
-    }
+    return convertCurrencyString(valorMonetario);
 }
 
-function dinheiro(valor) {
-    if (valor === '') {
-        return 'R$ 0,00';
-    } else {
-        valor = Number(valor);
-        return 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function isNumber(value) {
+    return typeof value === 'number';
+}
+
+function isEmptyValue(value) {
+    return !value || value.trim() === '';
+}
+
+function convertCurrencyString(value) {
+    const cleanedValue = cleanCurrencyString(value);
+    const number = parseFloat(cleanedValue);
+
+    return isNaN(number) ? 0 : number;
+}
+
+function cleanCurrencyString(value) {
+    return standardizeDecimalSeparator(
+        removeNonNumericSymbols(value.trim())
+    );
+}
+
+function removeNonNumericSymbols(value) {
+    return value.replace(/[^\d,.-]/g, '');
+}
+
+function standardizeDecimalSeparator(value) {
+    const withoutExtraDots = value.replace(/\.(?=.*\.)/g, '');
+
+    return withoutExtraDots.replace(',', '.');
+}
+
+function dinheiro(valor, moeda = 'BRL', localidade = 'pt-BR') {
+    const formatarMoeda = criarFormatadorMoeda(localidade, moeda);
+
+    if (éValorVazio(valor)) {
+        return formatarMoeda(0);
     }
+
+    const número = converterParaNúmero(valor);
+
+    return éNúmeroInválido(número)
+        ? formatarMoeda(0)
+        : formatarMoeda(número);
+}
+
+function éValorVazio(valor) {
+    return [null, undefined, ''].includes(valor);
+}
+
+function limparStringMonetária(texto) {
+    return texto.replace(/[^\d,-]/g, '').replace(',', '.');
+}
+
+function converterParaNúmero(valor) {
+    return typeof valor === 'string'
+        ? parseFloat(limparStringMonetária(valor))
+        : Number(valor);
+}
+
+function éNúmeroInválido(numero) {
+    return isNaN(numero);
+}
+
+function criarFormatadorMoeda(localidade = 'pt-BR', moeda = 'BRL') {
+    return function (valor) {
+        return new Intl.NumberFormat(localidade, {
+            style: 'currency',
+            currency: moeda,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(valor);
+    };
 }
 
 function ir_para(modulo) {
