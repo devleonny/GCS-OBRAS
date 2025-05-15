@@ -1147,7 +1147,7 @@ async function salvar_requisicao(chave) {
         let partnumber = valores[0].value
         let tipo = valores[1].value
         let qtde = Number(valores[2].value)
-        let requisicao = valores[3].value
+        let requisicao = valores[3]?.value || ''
 
         if (partnumber == '' && qtde > 0) {
             document.getElementById("aguarde")?.remove();
