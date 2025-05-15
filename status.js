@@ -1874,7 +1874,8 @@ async function mostrar_painel() {
             total_custo: 0,
             total_orcado: 0,
             total_impostos: 0,
-            total_lucro_liquido: 0
+            total_lucro_liquido: 0,
+            total_unit: 0
         },
         VENDA: {
             orcamento: '',
@@ -1882,7 +1883,9 @@ async function mostrar_painel() {
             total_custo: 0,
             total_orcado: 0,
             total_impostos: 0,
-            total_lucro: 0
+            total_lucro: 0,
+            total_unit: 0,
+            total_custo_unit: 0
         }
     }
 
@@ -1892,8 +1895,8 @@ async function mostrar_painel() {
         let item_orcamento = itens_no_orcamento[codigo]
         let produto = dados_composicoes[codigo] || {}
 
-        // Se não encontrar o produto nas composições, usar os dados básicos do orçamento
-        if (!produto || Object.keys(produto).length === 0) {
+        const encontrarProdutoNasComposicoes = produto || Object.keys(produto).length === 0;
+        if (!encontrarProdutoNasComposicoes) {
             produto = {
                 descricao: item_orcamento.descricao || 'Item sem descrição',
                 tipo: item_orcamento.tipo || 'VENDA',
@@ -1909,25 +1912,28 @@ async function mostrar_painel() {
         let custo_unit = cotacao?.valor_custo || 0
         let custo_total = custo_unit * qtde
 
-        let vl_unit = cotacao?.valor || 0
-        let total = vl_unit * qtde
+        let valor_unit = cotacao?.valor || 0
+        let total = valor_unit * qtde
         let lucro_unit = total - custo_total
 
         let descricao_produto = produto.descricao || 'Item sem descrição'
-        const itensRequisitados = dados_composicoes[produto.codigo]?.requisicao || 0
 
         linhas[produto.tipo].total_custo += custo_total
         linhas[produto.tipo].total_orcado += total
         linhas[produto.tipo].total_lucro += lucro_unit
+        linhas[produto.tipo].total_unit += valor_unit
+        linhas[produto.tipo].total_custo_unit += custo_unit
 
         linhas[produto.tipo].orcamento += `
         <tr>
             <td style="font-size: 0.9em;">${descricao_produto}</td>
             <td style="font-size: 0.9em;">${qtde}</td>
             ${produto.tipo == 'VENDA' ? `
-            <td style="font-size: 0.9em;">${cotacao?.margem || '--'}</td>
+            <td style="font-size: 0.9em;">${`${cotacao?.margem}%` || '--'}</td>
+            <td style="font-size: 0.9em;">${dinheiro(custo_unit)}</td>
+            <td style="font-size: 0.9em;">${dinheiro(custo_total)}</td>
             ` : ''}
-            <td style="font-size: 0.9em;">${dinheiro(vl_unit)}</td>
+            <td style="font-size: 0.9em;">${dinheiro(valor_unit)}</td>
             <td style="font-size: 0.9em;">${dinheiro(total)}</td>
             ${produto.tipo == 'VENDA' ? `
             <td style="font-size: 0.9em;">${dinheiro(lucro_unit)}</td>
@@ -2111,13 +2117,15 @@ async function mostrar_painel() {
                     <div>
                         <label>${tipo}</label>
                         <table class="tabela">
-                            <thead style="${tipo == 'SERVIÇO' ? 'background-color:rgb(0, 138, 0);' : 'background-color:rgb(185, 0, 0);'}">
+                            <thead style="background-color:${tipo == 'SERVIÇO' ? 'rgb(0, 138, 0)' : 'rgb(185, 0, 0)'};">
                                 <th style="color: #fff; font-size: 0.9em;">Descrição</th>
                                 <th style="color: #fff; font-size: 0.9em;">Quantidade</th>
                                 ${tipo == 'VENDA' ? `
                                     <th style="color: #fff; font-size: 0.9em;">Margem</th>
+                                    <th style="color: #fff; font-size: 0.9em;">Custo Unit</th>
+                                    <th style="color: #fff; font-size: 0.9em;">Total Unit</th>
                                 ` : ''}
-                                <th style="color: #fff; font-size: 0.9em;">Valor de ${tipo.toLocaleLowerCase()} Unit</th>
+                                <th style="color: #fff; font-size: 0.9em;">Venda de ${tipo.toLocaleLowerCase()} Unit</th>
                                 <th style="color: #fff; font-size: 0.9em;">Total de ${tipo.toLocaleLowerCase()}</th>
                                 ${tipo == 'VENDA' ? `
                                     <th style="color: #fff; font-size: 0.9em;">Lucro Total</th>
@@ -2125,18 +2133,20 @@ async function mostrar_painel() {
                             </thead>
                             <tbody>
                                 ${tab.orcamento}
-                                <tr style="background-color: #535151;">
+                                <tr style="background-color:${tipo == 'SERVIÇO' ? 'rgb(0, 138, 0)' : 'rgb(185, 0, 0)'};">
                                     ${tipo == 'VENDA' ? `
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>`
+                                    <td style="font-size: 1em; font-weight: 600;">Totais</td>
+                                    <td style="font-size: 0.9em; font-weight: 600;"></td>
+                                    <td style="font-size: 0.9em; font-weight: 600;"></td>
+                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo_unit)}</td>
+                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo)}</td>`
                     : ''}
 
                                     ${tipo == 'SERVIÇO' ? `
-                                    <td style="font-size: 1em; font-weight: 600;">Lucro de serviço</td>
-                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_orcado - linhas.SERVIÇO.total_impostos)}</td>`
+                                    <td style="font-size: 1em; font-weight: 600; background-color:rgb(0, 138, 0); color: #fff;">Lucro de serviço</td>
+                                    <td style="font-size: 0.9em; font-weight: 600; background-color:rgb(0, 138, 0); color: #fff;">${dinheiro(tab.total_orcado - linhas.SERVIÇO.total_impostos)}</td>`
                     : ''}
-                                    <td></td>
+                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_unit)}</td>
                                     <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_orcado)}</td>
 
                                     ${tipo == 'VENDA' ? `
@@ -2172,8 +2182,6 @@ async function mostrar_painel() {
     let total_orcamento = linhas.SERVIÇO.total_orcado + linhas.VENDA.total_orcado
     let totalValoresManuais = somarValoresManuais(orcamento)
     let soma_custos = totalValoresManuais + linhas.SERVIÇO.total_impostos + linhas.VENDA.total_impostos + linhas.VENDA.total_custo
-    let lucro_liquido = total_orcamento - soma_custos
-    let lucro_porcentagem = (lucro_liquido / total_orcamento * 100).toFixed(2)
 
     const validandoNumeroDesconto = (item) => typeof item.desconto === 'number';
 
@@ -2198,6 +2206,12 @@ async function mostrar_painel() {
 
     const descontoGeralOuBackup = descontoBackup || orcamento.desconto_geral;
     const descontoTotal = descontoGeralOuBackup + desconto;
+
+    let totalImpostos = linhas.SERVIÇO.total_impostos + linhas.VENDA.total_impostos;
+    let somaCustoCompra = linhas.VENDA.total_custo;
+
+    let lucro_liquido = total_orcamento - totalImpostos - somaCustoCompra - descontoTotal;
+    let lucro_porcentagem = (lucro_liquido / total_orcamento * 100).toFixed(2);
 
     let acumulado = `
 
