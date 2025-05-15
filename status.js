@@ -402,6 +402,7 @@ function ocultar_pedido(elemento) {
 async function calcular_requisicao(sincronizar) {
 
     let tabela_requisicoes = document.getElementById('tabela_requisicoes')
+    console.log('Tabela requisicao: ', tabela_requisicoes)
 
     if (tabela_requisicoes) {
         let tbody = tabela_requisicoes.querySelector('tbody')
@@ -589,14 +590,13 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
         let qtde = item?.qtde_editar || 0
         let tipo = dados_composicoes[codigo]?.tipo || item.tipo
 
+        console.log('Código', item.omie || item?.partnumber)
         linhas += `
             <tr class="lin_req" style="background-color: white;">
-                  <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
+                  <td style="text-align: center; font-size: 1.2em; white-space: nowrap;"><label>${codigo}</label></td>
                   <td style="text-align: center;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">
-                    ${item?.omie || '<input>'}</label>` :
-                `<input class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;"
-                    value="${dados_composicoes[codigo]?.omie || ''}">`}
+                        ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.omie || item?.partnumber}</label>` :
+                `<label style="font-size: 1.2em;">${dados_composicoes[codigo]?.omie || ''}</label>`}
                   </td>
                   <td style="position: relative;">
                       <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
