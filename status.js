@@ -1173,7 +1173,7 @@ async function salvar_requisicao(chave) {
             temItensValidos = true;
         }
     }
-    
+
     // Se não houver itens válidos, mostra mensagem de erro
     if (!temItensValidos) {
         document.getElementById("aguarde")?.remove();
@@ -2442,6 +2442,10 @@ async function alterar_status(select, id) {
     }
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+
+    if (!dados_orcamentos[id_orcam].status) {
+        dados_orcamentos[id_orcam].status = {}
+    }
 
     dados_orcamentos[id_orcam].status.atual = select.value
 
