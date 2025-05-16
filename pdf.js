@@ -356,10 +356,10 @@ async function preencher_v2() {
         }, DESCONTO_INICIAL);
     }
 
+    let descontoTotal = desconto;
+
     const descontoGeralOuBackup = descontoBackup || orcamento_v2.desconto_geral;
-    //const descontoTotal = descontoGeralOuBackup + desconto;
-    // Fellipe: Em um orçamento o cálculo ficou como NaN, e não tive tempo de investigar... lamento, fiz uma gambiarra;
-    const descontoTotal = conversor(orcamento_v2.total_bruto) - conversor(orcamento_v2.total_geral)
+    if (descontoGeralOuBackup >= 0) descontoTotal = descontoGeralOuBackup + desconto;
 
     divs_totais += `
         <div class="totais" style="background-color:rgb(185, 99, 0); margin-top: 5px;">

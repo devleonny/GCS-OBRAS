@@ -2125,7 +2125,7 @@ async function mostrar_painel() {
                                     <th style="color: #fff; font-size: 0.9em;">Custo Unit</th>
                                     <th style="color: #fff; font-size: 0.9em;">Total Unit</th>
                                 ` : ''}
-                                <th style="color: #fff; font-size: 0.9em;">Venda de ${tipo.toLocaleLowerCase()} Unit</th>
+                                <th style="color: #fff; font-size: 0.9em;">Valor de ${tipo.toLocaleLowerCase()} Unit</th>
                                 <th style="color: #fff; font-size: 0.9em;">Total de ${tipo.toLocaleLowerCase()}</th>
                                 ${tipo == 'VENDA' ? `
                                     <th style="color: #fff; font-size: 0.9em;">Lucro Total</th>
@@ -2204,8 +2204,10 @@ async function mostrar_painel() {
         }, DESCONTO_INICIAL);
     }
 
+    let descontoTotal = desconto;
+
     const descontoGeralOuBackup = descontoBackup || orcamento.desconto_geral;
-    const descontoTotal = descontoGeralOuBackup + desconto;
+    if (descontoGeralOuBackup >= 0) descontoTotal = descontoGeralOuBackup + desconto;
 
     let totalImpostos = linhas.SERVIÇO.total_impostos + linhas.VENDA.total_impostos;
     let somaCustoCompra = linhas.VENDA.total_custo;
