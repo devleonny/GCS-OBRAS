@@ -592,54 +592,54 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
 
         linhas += `
             <tr class="lin_req" style="background-color: white;">
-                  <td style="text-align: center; font-size: 1.2em; white-space: nowrap;"><label>${codigo}</label></td>
-                  <td style="text-align: center;">
-                        ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.omie || item?.partnumber}</label>` :
-                `<label style="font-size: 1.2em;">${dados_composicoes[codigo]?.omie || ''}</label>`}
-                  </td>
-                  <td style="position: relative;">
-                      <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
-                          <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong></label>
-                          <label>${dados_composicoes[codigo] ? dados_composicoes[codigo].descricao : item.descricao}</label>
-                      </div>
-                      ${apenas_visualizar ? '' : `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`}
-                  </td>
-                  <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
-                      ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${item?.tipo || ''}</label>` : `
-                          <select onchange="calcular_requisicao()" style="border: none;">
-                              <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
-                              <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
-                          </select>
-                      `}
-                  </td>
-                  <td style="text-align: center;">
-                      ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.qtde_enviar || ''}</label>` : `
-                          <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
-                              <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
-                                  <label>Quantidade a enviar</label>
-                                  <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" min="0" value="${qtde}">
-                              </div>
-                              <label class="num">${itensOrcamento[codigo]?.qtde || ''}</label>
-                          </div>
-                      `}
-                  </td>
-                  <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                      <label></label>
-                  </td>
-                  <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                      <label></label>
-                  </td>
-                  <td>
-                      ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.requisicao || ''}</label>` : `
-                          <select style="border: none; cursor: pointer;">
-                              <option style="text-align: center;">Nada a fazer</option>
-                              <option>Estoque AC</option>
-                              <option>Comprar</option>
-                              <option>Enviar do CD</option>
-                              <option>Fornecido pelo Cliente</option>
-                          </select>
-                      `}
-                  </td>
+                <td style="text-align: center; font-size: 1.2em; white-space: nowrap;"><label>${codigo}</label></td>
+                <td style="text-align: center;">
+                ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.omie || item?.partnumber}</label>` :
+                `<input class="pedido" style="width: 10vw;" value="${dados_composicoes[codigo]?.omie || ''}">`}
+                </td>
+                <td style="position: relative;">
+                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
+                        <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong></label>
+                        <label>${dados_composicoes[codigo] ? dados_composicoes[codigo].descricao : item.descricao}</label>
+                    </div>
+                    ${apenas_visualizar ? '' : `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`}
+                </td>
+                <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
+                    ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${item?.tipo || ''}</label>` : `
+                        <select onchange="calcular_requisicao()" style="border: none;">
+                            <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
+                            <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
+                        </select>
+                    `}
+                </td>
+                <td style="text-align: center;">
+                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.qtde_enviar || ''}</label>` : `
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
+                                <label>Quantidade a enviar</label>
+                                <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" min="0" value="${qtde}">
+                            </div>
+                            <label class="num">${itensOrcamento[codigo]?.qtde || ''}</label>
+                        </div>
+                    `}
+                </td>
+                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                    <label></label>
+                </td>
+                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                    <label></label>
+                </td>
+                <td>
+                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.requisicao || ''}</label>` : `
+                        <select style="border: none; cursor: pointer;">
+                            <option style="text-align: center;">Nada a fazer</option>
+                            <option>Estoque AC</option>
+                            <option>Comprar</option>
+                            <option>Enviar do CD</option>
+                            <option>Fornecido pelo Cliente</option>
+                        </select>
+                    `}
+                </td>
             </tr>
         `
     };
@@ -1121,6 +1121,7 @@ async function salvar_requisicao(chave) {
     if (!orcamento.status.historico) {
         orcamento.status.historico = {}
     }
+
     //Criar novo lançamento
     var novo_lancamento = {
         status: 'REQUISIÇÃO',
@@ -1172,7 +1173,7 @@ async function salvar_requisicao(chave) {
             temItensValidos = true;
         }
     }
-
+    
     // Se não houver itens válidos, mostra mensagem de erro
     if (!temItensValidos) {
         document.getElementById("aguarde")?.remove();
