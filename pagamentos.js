@@ -11,245 +11,257 @@ async function consultar_pagamentos() {
     }
     div_pagamentos.innerHTML = ''
 
-    let acumulado = ''
-    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    //Recuperar dados do usuário atual
+    const acesso = JSON.parse(localStorage.getItem('acesso'));
+    const usuarioAtual = acesso.usuario;
+    const permissaoUsuario = acesso.permissao
 
-    if (Object.keys(lista_pagamentos).length == 0) {
-        lista_pagamentos = await receber('lista_pagamentos')
-        await inserirDados(lista_pagamentos, 'lista_pagamentos')
-    }
+    try {
+        //Chamada para o endpoint que já retorna os pagamentos filtrados      
+        let acumulado = ''
+        let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
 
-    let dados_categorias = await recuperarDados('dados_categorias')
-    if (!dados_categorias) {
-        dados_categorias = await receber('dados_categorias')
-        inserirDados(dados_categorias, 'dados_categorias')
-    }
-
-    // timestamp para dados_setores: Sempre atualizado;
-    let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
-    let timestamp_atual_setores = await ultimo_timestamp('dados_setores')
-
-    if (timestamp_atual_setores.timestamp > (timestamps?.dados_setores || 0)) {
-        dados_setores = await lista_setores()
-        timestamps.dados_setores = timestamp_atual_setores.timestamp
-        localStorage.setItem('timestamps', JSON.stringify(timestamps))
-    } else {
-        dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
-    }
-
-    let orcamentos = await recuperarDados('dados_orcamentos') || {};
-    let dados_clientes = await recuperarDados('dados_clientes') || {};
-    let clientes = {}
-    let linhas = ''
-
-    Object.keys(dados_clientes).forEach(item => {
-        let cliente = dados_clientes[item]
-        clientes[cliente.omie] = cliente
-    })
-
-    let pagamentosFiltrados = Object.keys(lista_pagamentos)
-        .map(pagamento => {
-
-            let pg = lista_pagamentos[pagamento];
-
-            let valor_categorias = pg.param[0].categorias.map(cat =>
-                `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
-            ).join('');
-            let nome_orcamento = orcamentos[pg.id_orcamento]
-                ? orcamentos[pg.id_orcamento].dados_orcam?.cliente_selecionado
-                : pg.id_orcamento;
-            let data_registro = pg.data_registro || pg.param[0].data_previsao;
-
-            return {
-                id: pagamento,
-                param: pg.param,
-                data_registro,
-                data_previsao: pg.param[0].data_previsao,
-                nome_orcamento,
-                valor_categorias,
-                status: pg.status,
-                observacao: pg.param[0].observacao,
-                criado: pg.criado,
-                anexos: pg.anexos
-            };
-        })
-        .filter(Boolean);
-
-    const parseDate = (data) => {
-        const [dia, mes, ano] = data.split('/').map(Number);
-        return new Date(ano, mes - 1, dia);
-    };
-
-    pagamentosFiltrados.sort((a, b) => parseDate(b.data_previsao) - parseDate(a.data_previsao));
-
-    let contadores = {
-        gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: "imagens/gerente.png" },
-        qualidade: { qtde: 0, valor: 0, termo: 'qualidade', label: 'Aguardando aprovação da Qualidade', icone: "imagens/qualidade2.png" },
-        diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: "imagens/diretoria.png" },
-        reprovados: { qtde: 0, valor: 0, termo: 'reprovado', label: 'Reprovados', icone: "imagens/remover.png" },
-        excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: "gifs/alerta.gif" },
-        salvos: { qtde: 0, valor: 0, termo: 'localmente', label: 'Salvo localmente', icone: "imagens/salvo.png" },
-        pago: { qtde: 0, valor: 0, termo: 'pago', label: 'Pagamento realizado', icone: "imagens/concluido.png" },
-        avencer: { qtde: 0, valor: 0, termo: 'a vencer', label: 'Pagamento será feito outro dia', icone: "imagens/avencer.png" },
-        hoje: { qtde: 0, valor: 0, termo: 'hoje', label: 'Pagamento será feito hoje', icone: "imagens/vencehoje.png" },
-        todos: { qtde: 0, valor: 0, termo: '', label: 'Todos os pagamentos', icone: "imagens/voltar_2.png" }
-    }
-
-    for (pagamento in pagamentosFiltrados) {
-
-        var pg = pagamentosFiltrados[pagamento]
-
-        var icone = ''
-
-        if (pg.status == 'PAGO') {
-            icone = contadores.pago.icone
-            contadores.pago.qtde += 1
-            contadores.pago.valor += pg.param[0].valor_documento
-        } else if (pg.status == 'Aguardando aprovação da Diretoria') {
-            icone = contadores.diretoria.icone
-            contadores.diretoria.qtde += 1
-            contadores.diretoria.valor += pg.param[0].valor_documento
-        } else if (pg.status == 'A VENCER') {
-            icone = contadores.avencer.icone
-            contadores.avencer.qtde += 1
-            contadores.avencer.valor += pg.param[0].valor_documento
-        } else if (pg.status == 'Aguardando aprovação da Qualidade') {
-            icone = contadores.qualidade.icone
-            contadores.qualidade.qtde += 1
-            contadores.qualidade.valor += pg.param[0].valor_documento
-        } else if (pg.status == 'Aguardando aprovação da Gerência') {
-            icone = contadores.gerente.icone
-            contadores.gerente.qtde += 1
-            contadores.gerente.valor += pg.param[0].valor_documento
-        } else if (pg.status == 'VENCE HOJE') {
-            icone = contadores.hoje.icone
-            contadores.hoje.qtde += 1
-            contadores.hoje.valor += pg.param[0].valor_documento
-        } else if (pg.status.includes('Reprovado')) {
-            icone = contadores.reprovados.icone
-            contadores.reprovados.qtde += 1
-            contadores.reprovados.valor += pg.param[0].valor_documento
-        } else if (pg.status.includes('Pagamento salvo localmente')) {
-            icone = contadores.salvos.icone
-            contadores.salvos.valor += pg.param[0].valor_documento
-            contadores.salvos.qtde += 1
-        } else if (pg.status.includes('Excluído')) {
-            icone = contadores.excluidos.icone
-            contadores.excluidos.valor += pg.param[0].valor_documento
-            contadores.excluidos.qtde += 1
-        } else {
-            icone = "gifs/alerta.gif"
+        if (Object.keys(lista_pagamentos).length == 0) {
+            lista_pagamentos = await receber('lista_pagamentos')
+            await inserirDados(lista_pagamentos, 'lista_pagamentos')
         }
-        contadores.todos.qtde += 1
-        contadores.todos.valor += pg.param[0].valor_documento
 
-        var div = `
-        <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-            <img src="${icone}" style="width: 30px;">
-            <label>${pg.status}</label>
+        let dados_categorias = await recuperarDados('dados_categorias')
+        if (!dados_categorias) {
+            dados_categorias = await receber('dados_categorias')
+            inserirDados(dados_categorias, 'dados_categorias')
+        }
+
+        // timestamp para dados_setores: Sempre atualizado;
+        let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
+        let timestamp_atual_setores = await ultimo_timestamp('dados_setores')
+
+        if (timestamp_atual_setores.timestamp > (timestamps?.dados_setores || 0)) {
+            dados_setores = await lista_setores()
+            timestamps.dados_setores = timestamp_atual_setores.timestamp
+            localStorage.setItem('timestamps', JSON.stringify(timestamps))
+        } else {
+            dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+        }
+
+        let orcamentos = await recuperarDados('dados_orcamentos') || {};
+        let dados_clientes = await recuperarDados('dados_clientes') || {};
+        let clientes = {}
+        let linhas = ''
+
+        Object.keys(dados_clientes).forEach(item => {
+            let cliente = dados_clientes[item]
+            clientes[cliente.omie] = cliente
+        })
+
+        let pagamentosFiltrados = Object.keys(lista_pagamentos)
+            .map(pagamento => {
+
+                let pg = lista_pagamentos[pagamento];
+
+                let valor_categorias = pg.param[0].categorias.map(cat =>
+                    `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
+                ).join('');
+                let nome_orcamento = orcamentos[pg.id_orcamento]
+                    ? orcamentos[pg.id_orcamento].dados_orcam?.cliente_selecionado
+                    : pg.id_orcamento;
+                let data_registro = pg.data_registro || pg.param[0].data_previsao;
+
+                return {
+                    id: pagamento,
+                    param: pg.param,
+                    data_registro,
+                    data_previsao: pg.param[0].data_previsao,
+                    nome_orcamento,
+                    valor_categorias,
+                    status: pg.status,
+                    observacao: pg.param[0].observacao,
+                    criado: pg.criado,
+                    anexos: pg.anexos
+                };
+            })
+            .filter(Boolean);
+
+        const parseDate = (data) => {
+            const [dia, mes, ano] = data.split('/').map(Number);
+            return new Date(ano, mes - 1, dia);
+        };
+
+        pagamentosFiltrados.sort((a, b) => parseDate(b.data_previsao) - parseDate(a.data_previsao));
+
+        let contadores = {
+            gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: "imagens/gerente.png" },
+            qualidade: { qtde: 0, valor: 0, termo: 'qualidade', label: 'Aguardando aprovação da Qualidade', icone: "imagens/qualidade2.png" },
+            diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: "imagens/diretoria.png" },
+            reprovados: { qtde: 0, valor: 0, termo: 'reprovado', label: 'Reprovados', icone: "imagens/remover.png" },
+            excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: "gifs/alerta.gif" },
+            salvos: { qtde: 0, valor: 0, termo: 'localmente', label: 'Salvo localmente', icone: "imagens/salvo.png" },
+            pago: { qtde: 0, valor: 0, termo: 'pago', label: 'Pagamento realizado', icone: "imagens/concluido.png" },
+            avencer: { qtde: 0, valor: 0, termo: 'a vencer', label: 'Pagamento será feito outro dia', icone: "imagens/avencer.png" },
+            hoje: { qtde: 0, valor: 0, termo: 'hoje', label: 'Pagamento será feito hoje', icone: "imagens/vencehoje.png" },
+            todos: { qtde: 0, valor: 0, termo: '', label: 'Todos os pagamentos', icone: "imagens/voltar_2.png" }
+        }
+
+        for (pagamento in pagamentosFiltrados) {
+
+            var pg = pagamentosFiltrados[pagamento]
+
+            var icone = ''
+
+            if (pg.status == 'PAGO') {
+                icone = contadores.pago.icone
+                contadores.pago.qtde += 1
+                contadores.pago.valor += pg.param[0].valor_documento
+            } else if (pg.status == 'Aguardando aprovação da Diretoria') {
+                icone = contadores.diretoria.icone
+                contadores.diretoria.qtde += 1
+                contadores.diretoria.valor += pg.param[0].valor_documento
+            } else if (pg.status == 'A VENCER') {
+                icone = contadores.avencer.icone
+                contadores.avencer.qtde += 1
+                contadores.avencer.valor += pg.param[0].valor_documento
+            } else if (pg.status == 'Aguardando aprovação da Qualidade') {
+                icone = contadores.qualidade.icone
+                contadores.qualidade.qtde += 1
+                contadores.qualidade.valor += pg.param[0].valor_documento
+            } else if (pg.status == 'Aguardando aprovação da Gerência') {
+                icone = contadores.gerente.icone
+                contadores.gerente.qtde += 1
+                contadores.gerente.valor += pg.param[0].valor_documento
+            } else if (pg.status == 'VENCE HOJE') {
+                icone = contadores.hoje.icone
+                contadores.hoje.qtde += 1
+                contadores.hoje.valor += pg.param[0].valor_documento
+            } else if (pg.status.includes('Reprovado')) {
+                icone = contadores.reprovados.icone
+                contadores.reprovados.qtde += 1
+                contadores.reprovados.valor += pg.param[0].valor_documento
+            } else if (pg.status.includes('Pagamento salvo localmente')) {
+                icone = contadores.salvos.icone
+                contadores.salvos.valor += pg.param[0].valor_documento
+                contadores.salvos.qtde += 1
+            } else if (pg.status.includes('Excluído')) {
+                icone = contadores.excluidos.icone
+                contadores.excluidos.valor += pg.param[0].valor_documento
+                contadores.excluidos.qtde += 1
+            } else {
+                icone = "gifs/alerta.gif"
+            }
+            contadores.todos.qtde += 1
+            contadores.todos.valor += pg.param[0].valor_documento
+
+            var div = `
+            <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
+                <img src="${icone}" style="width: 30px;">
+                <label>${pg.status}</label>
+            </div>
+            `
+            var setor_criador = ''
+            if (dados_setores[pg.criado]) {
+                setor_criador = dados_setores[pg.criado].setor
+            }
+
+            var recebedor = pg.param[0].codigo_cliente_fornecedor
+
+            if (clientes[recebedor]) {
+                recebedor = clientes[recebedor].nome
+            }
+
+            linhas += `
+                <tr>
+                    <td>${pg.data_previsao}</td>
+                    <td>${pg.nome_orcamento}</td>
+                    <td style="text-align: left;">${pg.valor_categorias}</td>
+                    <td>${div}</td>
+                    <td>${pg.criado}</td>
+                    <td>${setor_criador}</td>
+                    <td>${recebedor}</td>
+                    <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 30px; cursor: pointer;" onclick="abrir_detalhes('${pg.id}')"></td>
+                </tr>
+            `
+        };
+
+        var colunas = ['Data de Previsão', 'Centro de Custo', 'Valor e Categoria', 'Status Pagamento', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
+
+        var cabecalho1 = ''
+        var cabecalho2 = ''
+        colunas.forEach((coluna, i) => {
+
+            cabecalho1 += `
+                <th>${coluna}</th>
+                `
+            cabecalho2 += `
+                <th style="background-color: white; position: relative; border-radius: 0px;">
+                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
+                <input style="width: 100%;" style="text-align: center;" placeholder="..." oninput="pesquisar_em_pagamentos(${i}, this.value)">
+                </th>
+                `
+        })
+
+        var titulos = ''
+
+        for (item in contadores) {
+            if (contadores[item].valor !== 0) {
+                titulos += `
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1.0vw;" onclick="pesquisar_em_pagamentos(3, '${contadores[item].termo}')">
+                    <label class="contagem" style="background-color: #B12425; color: white;">${contadores[item].qtde}</label>
+                    <img src="${contadores[item].icone}" style="width: 25px; height: 25px;">
+                    
+                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                        <Label style="display: flex; gap: 10px; font-size: 0.8vw;">${contadores[item].label}</label>
+                        <label>${dinheiro(contadores[item].valor)}</label>
+                    </div>
+                </div>
+                <hr style="width: 100%;">
+                `
+            }
+        }
+
+        var div_titulos = `
+        <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; width: 30%;">
+
+            <div class="contorno_botoes" style="background-color: #097fe6" onclick="tela_pagamento(true)">
+                <label>Novo <strong>Pagamento</strong></label>
+            </div>
+
+            <div class="contorno_botoes" style="background-color: #ffffffe3; color: #222; display: flex; flex-direction: column; gap: 3px; align-items: start; justify-content: left; margin: 10px;">
+                ${titulos}
+            </div>
         </div>
         `
-        var setor_criador = ''
-        if (dados_setores[pg.criado]) {
-            setor_criador = dados_setores[pg.criado].setor
-        }
-
-        var recebedor = pg.param[0].codigo_cliente_fornecedor
-
-        if (clientes[recebedor]) {
-            recebedor = clientes[recebedor].nome
-        }
-
-        linhas += `
-            <tr>
-                <td>${pg.data_previsao}</td>
-                <td>${pg.nome_orcamento}</td>
-                <td style="text-align: left;">${pg.valor_categorias}</td>
-                <td>${div}</td>
-                <td>${pg.criado}</td>
-                <td>${setor_criador}</td>
-                <td>${recebedor}</td>
-                <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 30px; cursor: pointer;" onclick="abrir_detalhes('${pg.id}')"></td>
-            </tr>
-        `
-    };
-
-    var colunas = ['Data de Previsão', 'Centro de Custo', 'Valor e Categoria', 'Status Pagamento', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
-
-    var cabecalho1 = ''
-    var cabecalho2 = ''
-    colunas.forEach((coluna, i) => {
-
-        cabecalho1 += `
-            <th>${coluna}</th>
-            `
-        cabecalho2 += `
-            <th style="background-color: white; position: relative; border-radius: 0px;">
-            <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-            <input style="width: 100%;" style="text-align: center;" placeholder="..." oninput="pesquisar_em_pagamentos(${i}, this.value)">
-            </th>
-            `
-    })
-
-    var titulos = ''
-
-    for (item in contadores) {
-        if (contadores[item].valor !== 0) {
-            titulos += `
-            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1.0vw;" onclick="pesquisar_em_pagamentos(3, '${contadores[item].termo}')">
-                <label class="contagem" style="background-color: #B12425; color: white;">${contadores[item].qtde}</label>
-                <img src="${contadores[item].icone}" style="width: 25px; height: 25px;">
-                
-                <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                    <Label style="display: flex; gap: 10px; font-size: 0.8vw;">${contadores[item].label}</label>
-                    <label>${dinheiro(contadores[item].valor)}</label>
+        acumulado += `
+        <div id="div_pagamentos">
+            <div style="display: flex; justify-content: center; align-items: start; gap: 10px;">
+                ${div_titulos}
+                <div style="border-radius: 5px; height: 800px; overflow-y: auto;">
+                    <table id="pagamentos" class="tabela">
+                        <thead>
+                            ${cabecalho1}
+                        </thead>
+                        <thead id="thead_pesquisa">
+                            ${cabecalho2}
+                        </thead>
+                        <tbody id="body">
+                            ${linhas}
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            <hr style="width: 100%;">
-            `
-        }
+        </div>
+        `
+        var elementus = `
+        <div id="pagamentos">
+            ${acumulado}
+        <div>
+        `
+        div_pagamentos.innerHTML = elementus
+    } catch (error) {
+        console.error('Erro ao carregar pagamentos:', error);
+        div_pagamentos.innerHTML = '<p>Erro ao carregar pagamentos</p>';
     }
 
-    var div_titulos = `
-    <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; width: 30%;">
-
-        <div class="contorno_botoes" style="background-color: #097fe6" onclick="tela_pagamento(true)">
-            <label>Novo <strong>Pagamento</strong></label>
-        </div>
-
-        <div class="contorno_botoes" style="background-color: #ffffffe3; color: #222; display: flex; flex-direction: column; gap: 3px; align-items: start; justify-content: left; margin: 10px;">
-            ${titulos}
-        </div>
-    </div>
-    `
-    acumulado += `
-    <div id="div_pagamentos">
-        <div style="display: flex; justify-content: center; align-items: start; gap: 10px;">
-            ${div_titulos}
-            <div style="border-radius: 5px; height: 800px; overflow-y: auto;">
-                <table id="pagamentos" class="tabela">
-                    <thead>
-                        ${cabecalho1}
-                    </thead>
-                    <thead id="thead_pesquisa">
-                        ${cabecalho2}
-                    </thead>
-                    <tbody id="body">
-                        ${linhas}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    `
-    var elementus = `
-    <div id="pagamentos">
-        ${acumulado}
-    <div>
-    `
-    div_pagamentos.innerHTML = elementus
-
 }
+
 
 async function abrir_detalhes(id_pagamento) {
 
@@ -400,11 +412,11 @@ async function abrir_detalhes(id_pagamento) {
             <hr style="width: 100%;">
             <div style="display: flex; align-items: center; justify-content: space-between;">
                 <label>${dinheiro(pagamento.param[0].valor_documento)}</label>
-                ${acesso.permissao == 'adm' ? 
-                `<div class="btn_detalhes" style="width: max-content;" onclick="modal_editar_pagamento('${id_pagamento}')">
+                ${acesso.permissao == 'adm' ?
+            `<div class="btn_detalhes" style="width: max-content;" onclick="modal_editar_pagamento('${id_pagamento}')">
                     <img src="imagens/baixar.png">
                     <label style="cursor: pointer;">Acrescentar Valor</label>
-                </div>`: '' }
+                </div>`: ''}
             </div>
         </div>
         `
@@ -1007,7 +1019,9 @@ async function atualizar_pagamentos_menu() {
 
     await lista_setores()
 
-    await inserirDados(await receber('lista_pagamentos'), 'lista_pagamentos')
+    let pagamentosFiltrados = await filtrarPagamentosUsuario(acesso.usuario)
+
+    await inserirDados(pagamentosFiltrados, 'lista_pagamentos')
 
     let dados_categorias = await recuperarDados('dados_categorias')
     if (!dados_categorias) {
@@ -1027,19 +1041,88 @@ async function atualizar_pagamentos_menu() {
 
 }
 
+// async function atualizar_feedback(resposta, id_pagamento) {
+//     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+
+//     let pagamento = lista_pagamentos[id_pagamento];
+
+//     let criado = pagamento.criado
+//     let setor = ""
+//     Object.keys(dados_setores).forEach(usuario => {
+
+//         if (criado == usuario) {
+//             setor = dados_setores[usuario].setor
+//         }
+
+//     })
+
+//     let dataFormatada = new Date().toLocaleString('pt-BR', {
+//         day: '2-digit',
+//         month: '2-digit',
+//         year: 'numeric',
+//         hour: '2-digit',
+//         minute: '2-digit',
+//         second: '2-digit'
+//     });
+
+//     let usuario = acesso.usuario;
+//     let status = `Aprovado por ${usuario}`;
+//     let justificativa = document.getElementById('justificativa').value;
+//     let categoria_atual = pagamento.param[0].categorias[0].codigo_categoria
+//     let permissao = acesso.permissao
+
+//     if (resposta == 'Aprovar' && (permissao == 'gerente' || permissao == 'adm') && categoria_atual == "2.01.99" && setor == "INFRA") {
+//         status = 'Aguardando aprovação da Qualidade';
+
+//     } else if (resposta == 'Aprovar' && (permissao == 'gerente' || permissao == 'adm' || permissao == 'qualidade')) {
+//         status = 'Aguardando aprovação da Diretoria';
+
+//     } else if (resposta == 'Aprovar' && permissao == 'diretoria') {
+//         status = 'Aprovado pela Diretoria';
+//         lancar_pagamento(pagamento)
+
+//     } else if (resposta == 'Aprovar' && (permissao == 'fin' || (setor == 'RH' && permissao == 'gerente'))) {
+//         status = 'Aprovado pelo Financeiro';
+//         lancar_pagamento(pagamento)
+
+//     } else if (resposta == 'Reprovar') {
+//         status = `Reprovado por ${permissao}`;
+
+//     } else {
+//         status = 'Aguardando aprovação da Gerência';
+//     }
+
+//     let historico = {
+//         status,
+//         usuario,
+//         justificativa,
+//         data: dataFormatada
+//     };
+
+//     let id_justificativa = gerar_id_5_digitos()
+//     pagamento.status = status
+//     if (!pagamento.historico) {
+//         pagamento.historico = {};
+//     }
+//     pagamento.historico[id_justificativa] = historico
+
+//     await inserirDados(lista_pagamentos, 'lista_pagamentos');
+//     await fechar_e_abrir(id_pagamento, true)
+
+//     await enviar(`lista_pagamentos/${id_pagamento}/historico/${id_justificativa}`, historico)
+//     await enviar(`lista_pagamentos/${id_pagamento}/status`, status)
+// }
+
 async function atualizar_feedback(resposta, id_pagamento) {
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-
     let pagamento = lista_pagamentos[id_pagamento];
 
     let criado = pagamento.criado
     let setor = ""
     Object.keys(dados_setores).forEach(usuario => {
-
         if (criado == usuario) {
             setor = dados_setores[usuario].setor
         }
-
     })
 
     let dataFormatada = new Date().toLocaleString('pt-BR', {
@@ -1052,30 +1135,32 @@ async function atualizar_feedback(resposta, id_pagamento) {
     });
 
     let usuario = acesso.usuario;
-    let status = `Aprovado por ${usuario}`;
     let justificativa = document.getElementById('justificativa').value;
     let categoria_atual = pagamento.param[0].categorias[0].codigo_categoria
     let permissao = acesso.permissao
 
-    if (resposta == 'Aprovar' && (permissao == 'gerente' || permissao == 'adm') && categoria_atual == "2.01.99" && setor == "INFRA") {
-        status = 'Aguardando aprovação da Qualidade';
-
-    } else if (resposta == 'Aprovar' && (permissao == 'gerente' || permissao == 'adm' || permissao == 'qualidade')) {
-        status = 'Aguardando aprovação da Diretoria';
-
-    } else if (resposta == 'Aprovar' && permissao == 'diretoria') {
-        status = 'Aprovado pela Diretoria';
-        lancar_pagamento(pagamento)
-
-    } else if (resposta == 'Aprovar' && (permissao == 'fin' || (setor == 'RH' && permissao == 'gerente'))) {
-        status = 'Aprovado pelo Financeiro';
-        lancar_pagamento(pagamento)
-
+    // Definir status com base na resposta e na permissão
+    let status;
+    if (resposta == 'Aprovar') {
+        if ((permissao == 'gerente' || permissao == 'adm') && categoria_atual == "2.01.99" && setor == "INFRA") {
+            status = 'Aguardando aprovação da Qualidade';
+        } else if (permissao == 'gerente' || permissao == 'adm' || permissao == 'qualidade') {
+            status = 'Aguardando aprovação da Diretoria';
+        } else if (permissao == 'diretoria') {
+            status = 'Aprovado pela Diretoria';
+            lancar_pagamento(pagamento)
+        } else if (permissao == 'fin' || (setor == 'RH' && permissao == 'gerente')) {
+            status = 'Aprovado pelo Financeiro';
+            lancar_pagamento(pagamento)
+        } else {
+            status = 'Aguardando aprovação da Gerência';
+        }
     } else if (resposta == 'Reprovar') {
-        status = `Reprovado por ${permissao}`;
+        // Quando reprovado, retorna para o usuário que criou
+        status = `Reprovado por ${usuario} - Retornado para ${criado}`;
 
-    } else {
-        status = 'Aguardando aprovação da Gerência';
+        // Adiciona observação de reprovação
+        pagamento.param[0].observacao += `\n\nREPROVAÇÃO (${dataFormatada} por ${usuario}):\n${justificativa}`;
     }
 
     let historico = {
@@ -1087,6 +1172,7 @@ async function atualizar_feedback(resposta, id_pagamento) {
 
     let id_justificativa = gerar_id_5_digitos()
     pagamento.status = status
+
     if (!pagamento.historico) {
         pagamento.historico = {};
     }
@@ -1097,6 +1183,11 @@ async function atualizar_feedback(resposta, id_pagamento) {
 
     await enviar(`lista_pagamentos/${id_pagamento}/historico/${id_justificativa}`, historico)
     await enviar(`lista_pagamentos/${id_pagamento}/status`, status)
+
+    // Atualiza a observação no servidor se foi reprovado
+    if (resposta == 'Reprovar') {
+        await enviar(`lista_pagamentos/${id_pagamento}/param[0]/observacao`, pagamento.param[0].observacao)
+    }
 }
 
 
@@ -2549,4 +2640,27 @@ async function duplicar_pagamento(id_pagamento) {
 
     tela_pagamento(true)
 
+}
+
+async function filtrarPagamentosUsuario(usuario) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/pagamentosFiltrados", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ usuario })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
 }
