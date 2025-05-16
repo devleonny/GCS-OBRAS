@@ -892,43 +892,62 @@ function ampliar(url) {
     div.classList.toggle('show');
 }
 
-function conversor(valorMonetario) {
-    if (ehNumero(valorMonetario)) return valorMonetario;
-    if (valorVazio(valorMonetario)) return 0;
+function conversor(stringMonetario) {
+    if (typeof stringMonetario === 'number') {
+        return stringMonetario;
+    } else if (!stringMonetario || stringMonetario.trim() === "") {
+        return 0;
+    } else {
+        stringMonetario = stringMonetario.trim();
+        stringMonetario = stringMonetario.replace(/[^\d,]/g, '');
+        stringMonetario = stringMonetario.replace(',', '.');
+        var valorNumerico = parseFloat(stringMonetario);
 
-    return converterValorParaNumero(valorMonetario);
+        if (isNaN(valorNumerico)) {
+            return 0;
+        }
+
+        return valorNumerico;
+    }
 }
 
-function ehNumero(valor) {
-    return typeof valor === 'number';
-}
+// function conversor(valorMonetario) {
+//     if (ehNumero(valorMonetario)) return valorMonetario;
+//     if (valorVazio(valorMonetario)) return 0;
 
-function valorVazio(valor) {
-    return !valor || valor.trim() === '';
-}
+//     return converterValorParaNumero(valorMonetario);
+// }
 
-function converterValorParaNumero(valor) {
-    const valorLimpo = limparStringMoeda(valor);
-    const numero = parseFloat(valorLimpo);
+// function ehNumero(valor) {
+//     return typeof valor === 'number';
+// }
 
-    return isNaN(numero) ? 0 : numero;
-}
+// function valorVazio(valor) {
+//     return !valor || valor.trim() === '';
+// }
 
-function limparStringMoeda(valor) {
-    return padronizarSeparadorDecimal(
-        removerSimbolosNaoNumericos(valor.trim())
-    );
-}
+// function converterValorParaNumero(valor) {
+//     const valorLimpo = limparStringMoeda(valor);
+//     const numero = parseFloat(valorLimpo);
 
-function removerSimbolosNaoNumericos(valor) {
-    return valor.replace(/[^\d,.-]/g, '');
-}
+//     return isNaN(numero) ? 0 : numero;
+// }
 
-function padronizarSeparadorDecimal(valor) {
-    const semPontosExtras = valor.replace(/\.(?=.*\.)/g, '');
+// function limparStringMoeda(valor) {
+//     return padronizarSeparadorDecimal(
+//         removerSimbolosNaoNumericos(valor.trim())
+//     );
+// }
 
-    return semPontosExtras.replace(',', '.');
-}
+// function removerSimbolosNaoNumericos(valor) {
+//     return valor.replace(/[^\d,.-]/g, '');
+// }
+
+// function padronizarSeparadorDecimal(valor) {
+//     const semPontosExtras = valor.replace(/\.(?=.*\.)/g, '');
+
+//     return semPontosExtras.replace(',', '.');
+// }
 
 function dinheiro(valor, moeda = 'BRL', localidade = 'pt-BR') {
     const formatarMoeda = criarFormatadorMoeda(localidade, moeda);
