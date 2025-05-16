@@ -424,7 +424,7 @@ async function abrir_detalhes(id_pagamento) {
 
     var acumulado = ''
     if (
-        pagamento.param[0].valor_documento > 500 &&
+        pagamento.param[0].valor_documento >= 500 &&
         (pagamento.status.includes('Aguardando') || pagamento.status.includes('Reprovado')) &&
         (permissao == 'gerente' ||
             permissao == 'adm' ||
