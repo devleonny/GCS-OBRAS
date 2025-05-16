@@ -783,58 +783,58 @@ function ampliar(url) {
 }
 
 function conversor(valorMonetario) {
-    if (isNumber(valorMonetario)) return valorMonetario;
-    if (isEmptyValue(valorMonetario)) return 0;
+    if (ehNumero(valorMonetario)) return valorMonetario;
+    if (valorVazio(valorMonetario)) return 0;
 
-    return convertCurrencyString(valorMonetario);
+    return converterValorParaNumero(valorMonetario);
 }
 
-function isNumber(value) {
-    return typeof value === 'number';
+function ehNumero(valor) {
+    return typeof valor === 'number';
 }
 
-function isEmptyValue(value) {
-    return !value || value.trim() === '';
+function valorVazio(valor) {
+    return !valor || valor.trim() === '';
 }
 
-function convertCurrencyString(value) {
-    const cleanedValue = cleanCurrencyString(value);
-    const number = parseFloat(cleanedValue);
+function converterValorParaNumero(valor) {
+    const valorLimpo = limparStringMoeda(valor);
+    const numero = parseFloat(valorLimpo);
 
-    return isNaN(number) ? 0 : number;
+    return isNaN(numero) ? 0 : numero;
 }
 
-function cleanCurrencyString(value) {
-    return standardizeDecimalSeparator(
-        removeNonNumericSymbols(value.trim())
+function limparStringMoeda(valor) {
+    return padronizarSeparadorDecimal(
+        removerSimbolosNaoNumericos(valor.trim())
     );
 }
 
-function removeNonNumericSymbols(value) {
-    return value.replace(/[^\d,.-]/g, '');
+function removerSimbolosNaoNumericos(valor) {
+    return valor.replace(/[^\d,.-]/g, '');
 }
 
-function standardizeDecimalSeparator(value) {
-    const withoutExtraDots = value.replace(/\.(?=.*\.)/g, '');
+function padronizarSeparadorDecimal(valor) {
+    const semPontosExtras = valor.replace(/\.(?=.*\.)/g, '');
 
-    return withoutExtraDots.replace(',', '.');
+    return semPontosExtras.replace(',', '.');
 }
 
 function dinheiro(valor, moeda = 'BRL', localidade = 'pt-BR') {
     const formatarMoeda = criarFormatadorMoeda(localidade, moeda);
 
-    if (éValorVazio(valor)) {
+    if (ehValorVazio(valor)) {
         return formatarMoeda(0);
     }
 
-    const número = converterParaNúmero(valor);
+    const número = converterParaNumero(valor);
 
-    return éNúmeroInválido(número)
+    return ehNumeroInvalido(número)
         ? formatarMoeda(0)
         : formatarMoeda(número);
 }
 
-function éValorVazio(valor) {
+function ehValorVazio(valor) {
     return [null, undefined, ''].includes(valor);
 }
 
@@ -842,13 +842,13 @@ function limparStringMonetária(texto) {
     return texto.replace(/[^\d,-]/g, '').replace(',', '.');
 }
 
-function converterParaNúmero(valor) {
+function converterParaNumero(valor) {
     return typeof valor === 'string'
         ? parseFloat(limparStringMonetária(valor))
         : Number(valor);
 }
 
-function éNúmeroInválido(numero) {
+function ehNumeroInvalido(numero) {
     return isNaN(numero);
 }
 
