@@ -2124,7 +2124,7 @@ async function mostrar_painel() {
                                     <th style="color: #fff; font-size: 0.9em;">Custo Unit</th>
                                     <th style="color: #fff; font-size: 0.9em;">Total Unit</th>
                                 ` : ''}
-                                <th style="color: #fff; font-size: 0.9em;">Venda de ${tipo.toLocaleLowerCase()} Unit</th>
+                                <th style="color: #fff; font-size: 0.9em;">Valor de ${tipo.toLocaleLowerCase()} Unit</th>
                                 <th style="color: #fff; font-size: 0.9em;">Total de ${tipo.toLocaleLowerCase()}</th>
                                 ${tipo == 'VENDA' ? `
                                     <th style="color: #fff; font-size: 0.9em;">Lucro Total</th>
