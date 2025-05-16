@@ -1930,7 +1930,6 @@ async function mostrar_painel() {
             <td style="font-size: 0.9em;">${qtde}</td>
             ${produto.tipo == 'VENDA' ? `
             <td style="font-size: 0.9em;">${`${cotacao?.margem}%` || '--'}</td>
-            ` : ''}
             ${mostrarElementoSeTiverPermissao({
             listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
             elementoHTML: `
@@ -1938,6 +1937,7 @@ async function mostrar_painel() {
                     <td style="font-size: 0.9em;">${dinheiro(custo_total)}</td>
                 `
         })}
+            ` : ''}
             <td style="font-size: 0.9em;">${dinheiro(valor_unit)}</td>
             <td style="font-size: 0.9em;">${dinheiro(total)}</td>
             ${produto.tipo == 'VENDA' ? `
@@ -2127,14 +2127,14 @@ async function mostrar_painel() {
                                 <th style="color: #fff; font-size: 0.9em;">Quantidade</th>
                                 ${tipo == 'VENDA' ? `
                                     <th style="color: #fff; font-size: 0.9em;">Margem</th>
-                                ` : ''}
-                                ${mostrarElementoSeTiverPermissao({
+                                    ${mostrarElementoSeTiverPermissao({
                 listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
                 elementoHTML: `
-                                        <th style="color: #fff; font-size: 0.9em;">Custo Unit</th>
-                                        <th style="color: #fff; font-size: 0.9em;">Total Unit</th>
-                                    `
+                                            <th style="color: #fff; font-size: 0.9em;">Custo Unit</th>
+                                            <th style="color: #fff; font-size: 0.9em;">Total Unit</th>
+                                        `
             })}
+                                ` : ''}
                                 <th style="color: #fff; font-size: 0.9em;">Valor de ${tipo.toLocaleLowerCase()} Unit</th>
                                 <th style="color: #fff; font-size: 0.9em;">Total de ${tipo.toLocaleLowerCase()}</th>
                                 ${tipo == 'VENDA' ? `
@@ -2148,16 +2148,15 @@ async function mostrar_painel() {
                                     <td style="font-size: 1em; font-weight: 600;">Totais</td>
                                     <td style="font-size: 0.9em; font-weight: 600;"></td>
                                     <td style="font-size: 0.9em; font-weight: 600;"></td>
+                                    ${mostrarElementoSeTiverPermissao({
+                listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+                elementoHTML: `
+                                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo_unit)}</td>
+                                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo)}</td>
+                                        `
+            })}
                                     `
                     : ''}
-                    ${mostrarElementoSeTiverPermissao({
-                        listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
-                        elementoHTML: `
-                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo_unit)}</td>
-                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo)}</td>
-                        `
-                    })}
-
                                     ${tipo == 'SERVIÇO' ? `
                                     <td style="font-size: 1em; font-weight: 600; background-color:rgb(0, 138, 0); color: #fff;">Lucro de serviço</td>
                                     <td style="font-size: 0.9em; font-weight: 600; background-color:rgb(0, 138, 0); color: #fff;">${dinheiro(tab.total_orcado - linhas.SERVIÇO.total_impostos)}</td>`
