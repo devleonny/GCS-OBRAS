@@ -783,74 +783,28 @@ function ampliar(url) {
 }
 
 function conversor(stringMonetario) {
-    if (typeof stringMonetario === 'number') {
-        return stringMonetario;
-    } else if (!stringMonetario || stringMonetario.trim() === "") {
-        return 0;
-    } else {
-        stringMonetario = stringMonetario.trim();
-        stringMonetario = stringMonetario.replace(/[^\d,]/g, '');
-        stringMonetario = stringMonetario.replace(',', '.');
-        var valorNumerico = parseFloat(stringMonetario);
+    if (typeof stringMonetario === 'number') return stringMonetario;
 
-        if (isNaN(valorNumerico)) {
-            return 0;
-        }
+    if (!stringMonetario || stringMonetario.trim() === "") return 0;
 
-        return valorNumerico;
-    }
+    stringMonetario = stringMonetario.trim();
+    stringMonetario = stringMonetario.replace(/[^\d,]/g, '');
+    stringMonetario = stringMonetario.replace(',', '.');
+    let valorNumerico = parseFloat(stringMonetario);
+
+    if (isNaN(valorNumerico)) return 0;
+
+    return valorNumerico;
 }
-
-// function conversor(valorMonetario) {
-//     if (ehNumero(valorMonetario)) return valorMonetario;
-//     if (valorVazio(valorMonetario)) return 0;
-
-//     return converterValorParaNumero(valorMonetario);
-// }
-
-// function ehNumero(valor) {
-//     return typeof valor === 'number';
-// }
-
-// function valorVazio(valor) {
-//     return !valor || valor.trim() === '';
-// }
-
-// function converterValorParaNumero(valor) {
-//     const valorLimpo = limparStringMoeda(valor);
-//     const numero = parseFloat(valorLimpo);
-
-//     return isNaN(numero) ? 0 : numero;
-// }
-
-// function limparStringMoeda(valor) {
-//     return padronizarSeparadorDecimal(
-//         removerSimbolosNaoNumericos(valor.trim())
-//     );
-// }
-
-// function removerSimbolosNaoNumericos(valor) {
-//     return valor.replace(/[^\d,.-]/g, '');
-// }
-
-// function padronizarSeparadorDecimal(valor) {
-//     const semPontosExtras = valor.replace(/\.(?=.*\.)/g, '');
-
-//     return semPontosExtras.replace(',', '.');
-// }
 
 function dinheiro(valor, moeda = 'BRL', localidade = 'pt-BR') {
     const formatarMoeda = criarFormatadorMoeda(localidade, moeda);
 
-    if (ehValorVazio(valor)) {
-        return formatarMoeda(0);
-    }
+    if (ehValorVazio(valor)) return formatarMoeda(0);
 
     const número = converterParaNumero(valor);
 
-    return ehNumeroInvalido(número)
-        ? formatarMoeda(0)
-        : formatarMoeda(número);
+    return ehNumeroInvalido(número) ? formatarMoeda(0) : formatarMoeda(número);
 }
 
 function ehValorVazio(valor) {
@@ -862,9 +816,7 @@ function limparStringMonetária(texto) {
 }
 
 function converterParaNumero(valor) {
-    return typeof valor === 'string'
-        ? parseFloat(limparStringMonetária(valor))
-        : Number(valor);
+    return typeof valor === 'string' ? parseFloat(limparStringMonetária(valor)) : Number(valor);
 }
 
 function ehNumeroInvalido(numero) {
