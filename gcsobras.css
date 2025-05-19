@@ -1435,6 +1435,15 @@ input[type=range]::-moz-range-thumb {
     justify-content: center;
 }
 
+.botaoAlterarStatusOrcam {
+    background-color: #b4afaf;
+   cursor: pointer;
+    justify-content: space-between;
+    width: 10vw;
+    color: black;
+    
+}
+
 .contorno_botoes {
     background-color: #222;
     display: flex;
