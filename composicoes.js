@@ -1070,6 +1070,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                     <tr>
                         <td>LUCRO LIQUIDO</td>
                         <td>R$ 0,00</td>
+
                     </tr>
                     <tr>
                         <td>PERCENTUAL DE LUCRO</td>
@@ -1281,7 +1282,7 @@ function calcular(tipo, campo) {
 
         let tds = tabelas[0].querySelectorAll('td') // 1ª Tabela;
 
-        let valor_servico = conversor(tds[0].querySelector('input').value)
+        let valor_servico = conversor(Number(tds[0].querySelector('input').value))
 
         tds = tabelas[2].querySelectorAll('td')
 
