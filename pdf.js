@@ -221,7 +221,7 @@ async function preencher_v2() {
             let item = await itens[it]
 
             // Verifica se o código está na lista de itens importados
-            const isItemImportado = itensImportados.includes(item.codigo.toLowerCase());
+            const isItemImportado = itensImportados.includes(String(item.codigo).toLowerCase());
 
             if (isItemImportado) {
                 icms = 0.04 //4% para itens importados
