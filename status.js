@@ -1875,7 +1875,8 @@ async function mostrar_painel() {
             total_orcado: 0,
             total_impostos: 0,
             total_lucro_liquido: 0,
-            total_unit: 0
+            total_unit: 0,
+            total_desconto_unit: 0
         },
         VENDA: {
             orcamento: '',
@@ -1885,7 +1886,8 @@ async function mostrar_painel() {
             total_impostos: 0,
             total_lucro: 0,
             total_unit: 0,
-            total_custo_unit: 0
+            total_custo_unit: 0,
+            total_desconto_unit: 0
         }
     }
 
@@ -1916,6 +1918,8 @@ async function mostrar_painel() {
         let total = valor_unit * qtde
         let lucro_unit = total - custo_total
 
+        let desconto_unit = orcamento.dados_composicoes[codigo].desconto || 0;
+
         let descricao_produto = produto.descricao || 'Item sem descrição'
 
         linhas[produto.tipo].total_custo += custo_total
@@ -1923,11 +1927,18 @@ async function mostrar_painel() {
         linhas[produto.tipo].total_lucro += lucro_unit
         linhas[produto.tipo].total_unit += valor_unit
         linhas[produto.tipo].total_custo_unit += custo_unit
+        linhas[produto.tipo].total_desconto_unit += desconto_unit
 
         linhas[produto.tipo].orcamento += `
         <tr>
             <td style="font-size: 0.9em;">${descricao_produto}</td>
             <td style="font-size: 0.9em;">${qtde}</td>
+            ${mostrarElementoSeTiverPermissao({
+                listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+                elementoHTML: `
+                    <td style="font-size: 0.9em;">${dinheiro(desconto_unit)}</td>
+                `
+            })}
             ${produto.tipo == 'VENDA' ? `
             <td style="font-size: 0.9em;">${`${cotacao?.margem}%` || '--'}</td>
             ${mostrarElementoSeTiverPermissao({
@@ -2130,6 +2141,7 @@ async function mostrar_painel() {
                                     ${mostrarElementoSeTiverPermissao({
                 listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
                 elementoHTML: `
+                                            <th style="color: #fff; font-size: 0.9em;">Desconto Unit</th>
                                             <th style="color: #fff; font-size: 0.9em;">Custo Unit</th>
                                             <th style="color: #fff; font-size: 0.9em;">Total Unit</th>
                                         `
@@ -2151,6 +2163,7 @@ async function mostrar_painel() {
                                     ${mostrarElementoSeTiverPermissao({
                 listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
                 elementoHTML: `
+                                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo_unit)}</td>
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo_unit)}</td>
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo)}</td>
                                         `
@@ -2228,7 +2241,7 @@ async function mostrar_painel() {
     let somaCustoCompra = linhas.VENDA.total_custo;
 
     let lucro_liquido = total_orcamento - totalImpostos - somaCustoCompra - descontoTotal;
-    let lucro_porcentagem = (lucro_liquido / total_orcamento * 100).toFixed(2);
+    let lucro_porcentagem = (lucro_liquido / conversor(orcamento.total_geral) * 100).toFixed(2);
 
     let acumulado = `
 
