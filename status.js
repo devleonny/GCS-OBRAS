@@ -1910,22 +1910,37 @@ async function mostrar_painel() {
         let tabela = produto[lpu] || {}
         let qtde = item_orcamento.qtde || 0
         let cotacao = tabela?.historico?.[tabela?.ativo] || {}
-
-        let custo_unit = cotacao?.valor_custo || 0
-        let custo_total = custo_unit * qtde
-
-        let valor_unit = cotacao?.valor || 0
-        let total = valor_unit * qtde
-        let lucro_unit = total - custo_total
-
+        
         let desconto_unit = orcamento.dados_composicoes[codigo].desconto || 0;
 
+        let aliquotaIcmsBahia = 0.205
+        let icmsCreditado = cotacao.icms_creditado / 100;
+        const DIFAL = Number((aliquotaIcmsBahia - icmsCreditado).toFixed(2));
+        console.log('Difal: ', DIFAL || 'Serviço');
+        
+        let custo = cotacao?.custo;
+        let freteCompra = custo * 0.2;
+
+        let custo_unit = custo + freteCompra 
+        let custo_total = (custo_unit * qtde) - desconto_unit;
+        
+        let total_unit = orcamento.dados_composicoes[codigo].custo || 0
+        let total = total_unit * qtde
+        // console.log('orçamento: ', cotacao)
+        
+        
+        let totalComDesconto = (total_unit * qtde) - desconto_unit
+        let precoVenda = (1 + cotacao?.margem / 100) * custo_total
+        let lucro_unit = precoVenda - totalComDesconto;
+        let subTotal = custo_total - desconto_unit;
+        // console.log('Orcamento: ', orcamento.dados_composicoes[codigo])
+        
         let descricao_produto = produto.descricao || 'Item sem descrição'
 
         linhas[produto.tipo].total_custo += custo_total
-        linhas[produto.tipo].total_orcado += total
+        linhas[produto.tipo].total_orcado += totalComDesconto
         linhas[produto.tipo].total_lucro += lucro_unit
-        linhas[produto.tipo].total_unit += valor_unit
+        linhas[produto.tipo].total_unit += total_unit
         linhas[produto.tipo].total_custo_unit += custo_unit
         linhas[produto.tipo].total_desconto_unit += desconto_unit
 
@@ -1933,23 +1948,26 @@ async function mostrar_painel() {
         <tr>
             <td style="font-size: 0.9em;">${descricao_produto}</td>
             <td style="font-size: 0.9em;">${qtde}</td>
-            ${mostrarElementoSeTiverPermissao({
-                listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
-                elementoHTML: `
-                    <td style="font-size: 0.9em;">${dinheiro(desconto_unit)}</td>
-                `
-            })}
+            ${produto.tipo == 'SERVIÇO' ? `
+                ${mostrarElementoSeTiverPermissao({
+                    listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+                    elementoHTML: `
+                        <td style="font-size: 0.9em;">${dinheiro(desconto_unit)}</td>
+                    `
+                })}
+            ` : ''}
             ${produto.tipo == 'VENDA' ? `
             <td style="font-size: 0.9em;">${`${cotacao?.margem}%` || '--'}</td>
             ${mostrarElementoSeTiverPermissao({
             listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
             elementoHTML: `
+                    <td style="font-size: 0.9em;">${dinheiro(desconto_unit)}</td>
                     <td style="font-size: 0.9em;">${dinheiro(custo_unit)}</td>
                     <td style="font-size: 0.9em;">${dinheiro(custo_total)}</td>
                 `
         })}
             ` : ''}
-            <td style="font-size: 0.9em;">${dinheiro(valor_unit)}</td>
+            <td style="font-size: 0.9em;">${dinheiro(total_unit)}</td>
             <td style="font-size: 0.9em;">${dinheiro(total)}</td>
             ${produto.tipo == 'VENDA' ? `
             <td style="font-size: 0.9em;">${dinheiro(lucro_unit)}</td>
@@ -2136,6 +2154,9 @@ async function mostrar_painel() {
                             <thead style="background-color:${tipo == 'SERVIÇO' ? 'rgb(0, 138, 0)' : 'rgb(185, 0, 0)'};">
                                 <th style="color: #fff; font-size: 0.9em;">Descrição</th>
                                 <th style="color: #fff; font-size: 0.9em;">Quantidade</th>
+                                ${tipo == 'SERVIÇO' ? `
+                                    <th style="color: #fff; font-size: 0.9em;">Desconto Unit</th>
+                                ` : ''}
                                 ${tipo == 'VENDA' ? `
                                     <th style="color: #fff; font-size: 0.9em;">Margem</th>
                                     ${mostrarElementoSeTiverPermissao({
@@ -2156,6 +2177,10 @@ async function mostrar_painel() {
                             <tbody>
                                 ${tab.orcamento}
                                 <tr style="background-color:${tipo == 'SERVIÇO' ? 'rgb(0, 138, 0)' : 'rgb(185, 0, 0)'};">
+                                    ${tipo == 'SERVIÇO' ? `
+                                    <td style="font-size: 1em; font-weight: 600; background-color:rgb(0, 138, 0); color: #fff;">Lucro de serviço</td>
+                                    <td style="font-size: 0.9em; font-weight: 600; background-color:rgb(0, 138, 0); color: #fff;">${dinheiro(tab.total_orcado - linhas.SERVIÇO.total_impostos)}</td>`
+                    : ''}
                                     ${tipo == 'VENDA' ? `
                                     <td style="font-size: 1em; font-weight: 600;">Totais</td>
                                     <td style="font-size: 0.9em; font-weight: 600;"></td>
@@ -2163,7 +2188,7 @@ async function mostrar_painel() {
                                     ${mostrarElementoSeTiverPermissao({
                 listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
                 elementoHTML: `
-                                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo_unit)}</td>
+                                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_desconto_unit)}</td>
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo_unit)}</td>
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo)}</td>
                                         `
@@ -2171,8 +2196,10 @@ async function mostrar_painel() {
                                     `
                     : ''}
                                     ${tipo == 'SERVIÇO' ? `
-                                    <td style="font-size: 1em; font-weight: 600; background-color:rgb(0, 138, 0); color: #fff;">Lucro de serviço</td>
-                                    <td style="font-size: 0.9em; font-weight: 600; background-color:rgb(0, 138, 0); color: #fff;">${dinheiro(tab.total_orcado - linhas.SERVIÇO.total_impostos)}</td>`
+                                    ${mostrarElementoSeTiverPermissao({
+                                        listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+                                        elementoHTML: `<td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_desconto_unit)}</td>`
+                                    })}`
                     : ''}
                                     <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_unit)}</td>
                                     <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_orcado)}</td>
