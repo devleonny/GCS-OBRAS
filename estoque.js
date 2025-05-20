@@ -17,8 +17,9 @@ async function carregar_estoque() {
 
     let autorizado = false
     let div_estoque = document.getElementById('estoque')
+    let perfisPermitidos = ['adm', 'gerente', 'log', 'editor']
 
-    if (acesso.permissao == 'adm' || acesso.permissao == 'log') {
+    if (perfisPermitidos.includes(acesso.permissao)) {
         autorizado = true
         document.getElementById('adicionar_item').style.display = 'flex'
 

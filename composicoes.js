@@ -981,6 +981,7 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                     <tr>
                         <td>LUCRO LIQUIDO</td>
                         <td>R$ 0,00</td>
+
                     </tr>
                     <tr>
                         <td>PERCENTUAL DE LUCRO</td>
@@ -1191,7 +1192,7 @@ function calcular(tipo, campo) {
 
         let tds = tabelas[0].querySelectorAll('td') // 1ª Tabela;
 
-        let valor_servico = conversor(tds[0].querySelector('input').value)
+        let valor_servico = conversor(Number(tds[0].querySelector('input').value))
 
         tds = tabelas[2].querySelectorAll('td')
 
@@ -1234,6 +1235,7 @@ function calcular(tipo, campo) {
         let icms_creditado = conversor(Number(tds[5].querySelector('input').value))
         let icms_aliquota = conversor(tds[7].querySelector('input').value)
         let difal = icms_aliquota - icms_creditado
+        console.log('ICMS aliquota e creditado:', icms_aliquota, icms_creditado)
         let icms_entrada = difal / 100 * preco_compra
         let valor_custo = icms_entrada + preco_compra + frete
 

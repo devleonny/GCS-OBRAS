@@ -900,55 +900,31 @@ function ampliar(url) {
 }
 
 function conversor(stringMonetario) {
-    if (typeof stringMonetario === 'number') return stringMonetario;
+    if (typeof stringMonetario === 'number') {
+        return stringMonetario;
+    } else if (!stringMonetario || stringMonetario.trim() === "") {
+        return 0;
+    } else {
+        stringMonetario = stringMonetario.trim();
+        stringMonetario = stringMonetario.replace(/[^\d,]/g, '');
+        stringMonetario = stringMonetario.replace(',', '.');
+        var valorNumerico = parseFloat(stringMonetario);
 
-    if (!stringMonetario || stringMonetario.trim() === "") return 0;
+        if (isNaN(valorNumerico)) {
+            return 0;
+        }
 
-    stringMonetario = stringMonetario.trim();
-    stringMonetario = stringMonetario.replace(/[^\d,]/g, '');
-    stringMonetario = stringMonetario.replace(',', '.');
-    let valorNumerico = parseFloat(stringMonetario);
-
-    if (isNaN(valorNumerico)) return 0;
-
-    return valorNumerico;
+        return valorNumerico;
+    }
 }
 
-function dinheiro(valor, moeda = 'BRL', localidade = 'pt-BR') {
-    const formatarMoeda = criarFormatadorMoeda(localidade, moeda);
-
-    if (ehValorVazio(valor)) return formatarMoeda(0);
-
-    const número = converterParaNumero(valor);
-
-    return ehNumeroInvalido(número) ? formatarMoeda(0) : formatarMoeda(número);
-}
-
-function ehValorVazio(valor) {
-    return [null, undefined, ''].includes(valor);
-}
-
-function limparStringMonetária(texto) {
-    return texto.replace(/[^\d,-]/g, '').replace(',', '.');
-}
-
-function converterParaNumero(valor) {
-    return typeof valor === 'string' ? parseFloat(limparStringMonetária(valor)) : Number(valor);
-}
-
-function ehNumeroInvalido(numero) {
-    return isNaN(numero);
-}
-
-function criarFormatadorMoeda(localidade = 'pt-BR', moeda = 'BRL') {
-    return function (valor) {
-        return new Intl.NumberFormat(localidade, {
-            style: 'currency',
-            currency: moeda,
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }).format(valor);
-    };
+function dinheiro(valor) {
+    if (valor === '') {
+        return 'R$ 0,00';
+    } else {
+        valor = Number(valor);
+        return 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
 }
 
 function ir_para(modulo) {
