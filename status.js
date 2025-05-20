@@ -3098,7 +3098,7 @@ function pesquisar_pagamentos(input) {
     }
 }
 
-async function excluir_anexo(chave, id_anexo, img) {
+async function excluirAnexo(chave, id_anexo, img) {
 
     remover_popup()
 
@@ -3107,6 +3107,8 @@ async function excluir_anexo(chave, id_anexo, img) {
     delete dados_orcamentos[id_orcam].status.historico[chave].anexos[id_anexo]
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
+
+    await abrir_esquema(id_orcam)
 
     deletar(`dados_orcamentos/${id_orcam}/status/historico/anexos/${id_anexo}`)
 
@@ -3386,7 +3388,7 @@ async function carregar_anexos(chave) {
 
         for (id in anexos) {
             var anexo = anexos[id]
-            anexos_divs += criarAnexoVisual(anexo.nome, anexo.link, `excluir_anexo('${chave}', '${id}', this)`)
+            anexos_divs += criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${chave}', '${id}', this)`)
         }
     }
 
