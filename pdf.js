@@ -323,8 +323,6 @@ async function preencher_v2() {
     let divs_totais = ''
     let etiqueta_desconto = ''
 
-    let total_liquido = orcamento_v2.total_geral;
-
     Object.keys(totais).forEach(tot => {
         if (totais[tot].valor !== 0) {
             divs_totais += `
@@ -335,29 +333,12 @@ async function preencher_v2() {
         }
     });
 
-    const validandoNumeroDesconto = (item) => typeof item.desconto === 'number';
+    let total_bruto = orcamento_v2.total_bruto;
+    let total_liquido = orcamento_v2.total_geral;
 
-    let desconto = 0;
-    let DESCONTO_INICIAL = 0;
-    const itensNoOrcamento = orcamento_v2.dados_composicoes;
-    if (itensNoOrcamento) {
-        desconto = Object.values(itensNoOrcamento).reduce((total, item) => {
-            return total + (validandoNumeroDesconto(item) ? item.desconto : 0);
-        }, DESCONTO_INICIAL);
-    }
+    const descontoNaoAdicionado = total_bruto === 0;
 
-    let descontoBackup = 0;
-    const itensNoOrcamentoBackup = orcamento_v2?.backup;
-    if (itensNoOrcamentoBackup) {
-        descontoBackup = Object.values(itensNoOrcamentoBackup).reduce((total, item) => {
-            if (item.desconto !== undefined && validandoNumeroDesconto(item)) return total + item.desconto;
-
-            return total;
-        }, DESCONTO_INICIAL);
-    }
-
-    const descontoGeralOuBackup = descontoBackup || orcamento_v2.desconto_geral;
-    const descontoTotal = descontoGeralOuBackup + desconto;
+    const descontoTotal = descontoNaoAdicionado ? 0 : total_bruto - conversor(total_liquido);
 
     divs_totais += `
         <div class="totais" style="background-color:rgb(185, 99, 0); margin-top: 5px;">
