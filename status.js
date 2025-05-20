@@ -1885,7 +1885,8 @@ async function mostrar_painel() {
             total_orcado: 0,
             total_impostos: 0,
             total_lucro_liquido: 0,
-            total_unit: 0
+            total_unit: 0,
+            total_desconto_unit: 0
         },
         VENDA: {
             orcamento: '',
@@ -1895,13 +1896,15 @@ async function mostrar_painel() {
             total_impostos: 0,
             total_lucro: 0,
             total_unit: 0,
-            total_custo_unit: 0
+            total_custo_unit: 0,
+            total_desconto_unit: 0
         }
     }
 
     let itens_no_orcamento = orcamento.dados_composicoes || {}
 
     for (codigo in itens_no_orcamento) {
+        let lpu = orcamento.lpu_ativa?.toLowerCase() || 'padrao'
         let item_orcamento = itens_no_orcamento[codigo]
         let produto = dados_composicoes[codigo] || {}
 
@@ -1914,31 +1917,45 @@ async function mostrar_painel() {
             }
         }
 
-        let lpu = orcamento.lpu_ativa?.toLowerCase() || 'padrao'
         let tabela = produto[lpu] || {}
         let qtde = item_orcamento.qtde || 0
         let cotacao = tabela?.historico?.[tabela?.ativo] || {}
 
-        let custo_unit = cotacao?.valor_custo || 0
-        let custo_total = custo_unit * qtde
+        let desconto_unit = orcamento.dados_composicoes[codigo].desconto || 0;
 
-        let valor_unit = cotacao?.valor || 0
-        let total = valor_unit * qtde
-        let lucro_unit = total - custo_total
+        let custo = cotacao?.valor_custo || 0;
+
+        let custo_unit = custo
+        let custo_total = custo_unit * qtde;
+
+        let total_unit = orcamento.dados_composicoes[codigo].custo || 0
+        let total = (total_unit * qtde) - desconto_unit;
+
+        let lucro_unit = total - custo_total;
 
         let descricao_produto = produto.descricao || 'Item sem descrição'
 
         linhas[produto.tipo].total_custo += custo_total
         linhas[produto.tipo].total_orcado += total
         linhas[produto.tipo].total_lucro += lucro_unit
-        linhas[produto.tipo].total_unit += valor_unit
+        linhas[produto.tipo].total_unit += total_unit
         linhas[produto.tipo].total_custo_unit += custo_unit
+        linhas[produto.tipo].total_desconto_unit += desconto_unit
 
         linhas[produto.tipo].orcamento += `
         <tr>
             <td style="font-size: 0.9em;">${descricao_produto}</td>
             <td style="font-size: 0.9em;">${qtde}</td>
+            ${produto.tipo == 'SERVIÇO' ? `
+                ${mostrarElementoSeTiverPermissao({
+            listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+            elementoHTML: `
+                        <td style="font-size: 0.9em;">${dinheiro(desconto_unit)}</td>
+                    `
+        })}
+            ` : ''}
             ${produto.tipo == 'VENDA' ? `
+            <td style="font-size: 0.9em;">${dinheiro(desconto_unit)}</td>
             <td style="font-size: 0.9em;">${`${cotacao?.margem}%` || '--'}</td>
             ${mostrarElementoSeTiverPermissao({
             listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
@@ -1948,7 +1965,7 @@ async function mostrar_painel() {
                 `
         })}
             ` : ''}
-            <td style="font-size: 0.9em;">${dinheiro(valor_unit)}</td>
+            <td style="font-size: 0.9em;">${dinheiro(total_unit)}</td>
             <td style="font-size: 0.9em;">${dinheiro(total)}</td>
             ${produto.tipo == 'VENDA' ? `
             <td style="font-size: 0.9em;">${dinheiro(lucro_unit)}</td>
@@ -2135,6 +2152,7 @@ async function mostrar_painel() {
                             <thead style="background-color:${tipo == 'SERVIÇO' ? 'rgb(0, 138, 0)' : 'rgb(185, 0, 0)'};">
                                 <th style="color: #fff; font-size: 0.9em;">Descrição</th>
                                 <th style="color: #fff; font-size: 0.9em;">Quantidade</th>
+                                <th style="color: #fff; font-size: 0.9em;">Desconto</th>
                                 ${tipo == 'VENDA' ? `
                                     <th style="color: #fff; font-size: 0.9em;">Margem</th>
                                     ${mostrarElementoSeTiverPermissao({
@@ -2154,22 +2172,29 @@ async function mostrar_painel() {
                             <tbody>
                                 ${tab.orcamento}
                                 <tr style="background-color:${tipo == 'SERVIÇO' ? 'rgb(0, 138, 0)' : 'rgb(185, 0, 0)'};">
-                                    ${tipo == 'VENDA' ? `
-                                    <td style="font-size: 1em; font-weight: 600;">Totais</td>
-                                    <td style="font-size: 0.9em; font-weight: 600;"></td>
-                                    <td style="font-size: 0.9em; font-weight: 600;"></td>
-                                    ${mostrarElementoSeTiverPermissao({
-                listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
-                elementoHTML: `
-                                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo_unit)}</td>
-                                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo)}</td>
-                                        `
-            })}
-                                    `
-                    : ''}
                                     ${tipo == 'SERVIÇO' ? `
                                     <td style="font-size: 1em; font-weight: 600; background-color:rgb(0, 138, 0); color: #fff;">Lucro de serviço</td>
                                     <td style="font-size: 0.9em; font-weight: 600; background-color:rgb(0, 138, 0); color: #fff;">${dinheiro(tab.total_orcado - linhas.SERVIÇO.total_impostos)}</td>`
+                    : ''}
+                                    ${tipo == 'VENDA' ? `
+                                    <td style="font-size: 1em; font-weight: 600;">Totais</td>
+                                    <td style="font-size: 0.9em; font-weight: 600;"></td>
+                                    ${mostrarElementoSeTiverPermissao({
+                        listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+                        elementoHTML: `
+                                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_desconto_unit)}</td>
+                                            <td style="font-size: 0.9em; font-weight: 600;"></td>
+                                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo_unit)}</td>
+                                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo)}</td>
+                                        `
+                    })}
+                                    `
+                    : ''}
+                                    ${tipo == 'SERVIÇO' ? `
+                                    ${mostrarElementoSeTiverPermissao({
+                        listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+                        elementoHTML: `<td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_desconto_unit)}</td>`
+                    })}`
                     : ''}
                                     <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_unit)}</td>
                                     <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_orcado)}</td>
@@ -2204,41 +2229,19 @@ async function mostrar_painel() {
         }
     }
 
-    let total_orcamento = linhas.SERVIÇO.total_orcado + linhas.VENDA.total_orcado
-    let totalValoresManuais = somarValoresManuais(orcamento)
-    let soma_custos = totalValoresManuais + linhas.SERVIÇO.total_impostos + linhas.VENDA.total_impostos + linhas.VENDA.total_custo
+    let total_bruto = orcamento.total_bruto;
+    let total_liquido = orcamento.total_geral;
 
-    const validandoNumeroDesconto = (item) => typeof item.desconto === 'number';
+    const descontoNaoAdicionado = total_bruto === 0;
 
-    let desconto = 0;
-    let DESCONTO_INICIAL = 0;
-    const itensNoOrcamento = orcamento.dados_composicoes;
-    if (itensNoOrcamento) {
-        desconto = Object.values(itensNoOrcamento).reduce((total, item) => {
-            return total + (validandoNumeroDesconto(item) ? item.desconto : 0);
-        }, DESCONTO_INICIAL);
-    }
-
-    let descontoBackup = 0;
-    const itensNoOrcamentoBackup = orcamento?.backup;
-    if (itensNoOrcamentoBackup) {
-        descontoBackup = Object.values(itensNoOrcamentoBackup).reduce((total, item) => {
-            if (item.desconto !== undefined && validandoNumeroDesconto(item)) return total + item.desconto;
-
-            return total;
-        }, DESCONTO_INICIAL);
-    }
-
-    let descontoTotal = desconto;
-
-    const descontoGeralOuBackup = descontoBackup || orcamento.desconto_geral;
-    if (descontoGeralOuBackup >= 0) descontoTotal = descontoGeralOuBackup + desconto;
+    const descontoTotal = descontoNaoAdicionado ? 0 : total_bruto - conversor(total_liquido);
+    console.log('Orcamento: ', orcamento)
 
     let totalImpostos = linhas.SERVIÇO.total_impostos + linhas.VENDA.total_impostos;
     let somaCustoCompra = linhas.VENDA.total_custo;
 
-    let lucro_liquido = total_orcamento - totalImpostos - somaCustoCompra - descontoTotal;
-    let lucro_porcentagem = (lucro_liquido / total_orcamento * 100).toFixed(2);
+    let lucro_liquido = conversor(total_liquido) - totalImpostos - somaCustoCompra - descontoTotal;
+    let lucro_porcentagem = (lucro_liquido / conversor(total_liquido) * 100).toFixed(2);
 
     let acumulado = `
 
@@ -2252,7 +2255,7 @@ async function mostrar_painel() {
                         <hr style="width: 100%;">
                         <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
                             <label style="font-size: 0.7vw;">Valor do Orçamento</label>
-                            <label>${dinheiro(total_orcamento)}</label>
+                            <label>${dinheiro(total_bruto)}</label>
                         </div>
                         <hr style="width: 100%;">
 
@@ -2454,6 +2457,7 @@ async function alterar_status(select, id) {
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {};
     let orcamento = dados_orcamentos[id_orcam];
 
+  registroAlteracaoStatus
     // Só prosseguir se o status realmente mudou
     if (orcamento.status?.atual !== select.value) {
         // Inicializar estrutura se não existir
@@ -2464,6 +2468,13 @@ async function alterar_status(select, id) {
                 historico: {}         // Objeto para os demais registros
             };
         }
+
+    if (!dados_orcamentos[id_orcam].status) {
+        dados_orcamentos[id_orcam].status = {}
+    }
+
+    dados_orcamentos[id_orcam].status.atual = select.value
+
 
 
         // Adicionar registro de mudança de status
@@ -3317,7 +3328,7 @@ function pesquisar_pagamentos(input) {
     }
 }
 
-async function excluir_anexo(chave, id_anexo, img) {
+async function excluirAnexo(chave, id_anexo, img) {
 
     remover_popup()
 
@@ -3326,6 +3337,8 @@ async function excluir_anexo(chave, id_anexo, img) {
     delete dados_orcamentos[id_orcam].status.historico[chave].anexos[id_anexo]
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
+
+    await abrir_esquema(id_orcam)
 
     deletar(`dados_orcamentos/${id_orcam}/status/historico/anexos/${id_anexo}`)
 
@@ -3605,7 +3618,7 @@ async function carregar_anexos(chave) {
 
         for (id in anexos) {
             var anexo = anexos[id]
-            anexos_divs += criarAnexoVisual(anexo.nome, anexo.link, `excluir_anexo('${chave}', '${id}', this)`)
+            anexos_divs += criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexo('${chave}', '${id}', this)`)
         }
     }
 

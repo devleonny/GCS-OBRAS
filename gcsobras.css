@@ -10,6 +10,31 @@ body {
     min-height: 100vh;
 }
 
+.ths th {
+    color: white;
+}
+
+.toolbar {
+    min-width: 10vw;
+    position: relative;
+    cursor: pointer;
+    color: white;
+    width: max-content;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    padding-left: 2vw;
+    padding-right: 2vw;
+    border-top-right-radius: 3px;
+    border-top-left-radius: 3px;
+    margin-right: 10px;
+}
+
+.toolbar label {
+    cursor: pointer;
+}
+
 .tabela_manutencao {
     display: flex;
     flex-direction: column;
@@ -800,22 +825,6 @@ textarea {
     width: max-content;
 }
 
-.menu_top {
-    color: #151749;
-    background-color: white;
-    padding: 5px;
-    border-radius: 5px;
-    margin: 10px;
-    transition: ease-in;
-    cursor: pointer;
-}
-
-.menu_top:hover {
-    color: white;
-    background-color: #151749;
-}
-
-
 #d_etiquetas {
     display: flex;
     flex-wrap: wrap;
@@ -1276,6 +1285,15 @@ input[type=range]::-moz-range-thumb {
     border-radius: 5px;
 }
 
+.opcoesSelect {
+    width: 100%;
+    font-size: 0.8vw;
+    cursor: pointer;
+    background-color: #d2d2d2;
+    padding: 3px;
+    border-radius: 3px;
+}
+
 .icone {
     cursor: pointer;
     font-size: 0.8em;
@@ -1552,8 +1570,8 @@ input[type=range]::-moz-range-thumb {
     border-radius: 50%;
     background-color: #097fe6;
     color: white;
-    width: 2vw;
-    height: 2vw;
+    width: 3vw;
+    height: 3vw;
     display: flex;
     justify-content: center;
     align-items: center;

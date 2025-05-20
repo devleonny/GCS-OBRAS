@@ -1,5 +1,12 @@
 var versao = 'v3.0.5'
 let acesso = JSON.parse(localStorage.getItem('acesso'))
+let logo = 'https://i.imgur.com/Nb8sPs0.png'
+let esquemas = {
+    'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS'],
+    'categoria de equipamento': ['', 'IP', 'ANALÓGICO', 'ALARME', 'CONTROLE DE ACESSO'],
+    'tipo': ['USO E CONSUMO', 'VENDA', 'SERVIÇO']
+}
+
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F5') {
