@@ -211,10 +211,7 @@ async function preencher_v2() {
         let colunas = config[tab][modalidade]
 
         colunas.forEach(col => {
-
-            ths += `
-                <th>${cabecalho[col]}</th>
-                `
+            ths += `<th>${cabecalho[col]}</th>`
         })
 
         for (it in itens) {

@@ -181,7 +181,7 @@ async function carregarTabelas() {
     let toolbarSuperior = ''
     let stringsTabelas = ''
     let dadosComposicoes = orcamento_v2.dados_composicoes
-    let padraoFiltro = localStorage.getItem('padraoFiltro')
+    let padraoFiltro = localStorage.getItem('padraoFiltro') || 'tipo'
 
     document.getElementById(`filtro${padraoFiltro}`).checked = true
 
