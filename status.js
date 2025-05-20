@@ -1173,7 +1173,7 @@ async function salvar_requisicao(chave) {
             temItensValidos = true;
         }
     }
-    
+
     // Se não houver itens válidos, mostra mensagem de erro
     if (!temItensValidos) {
         document.getElementById("aguarde")?.remove();
@@ -1894,6 +1894,7 @@ async function mostrar_painel() {
     let itens_no_orcamento = orcamento.dados_composicoes || {}
 
     for (codigo in itens_no_orcamento) {
+        let lpu = orcamento.lpu_ativa?.toLowerCase() || 'padrao'
         let item_orcamento = itens_no_orcamento[codigo]
         let produto = dados_composicoes[codigo] || {}
 
@@ -1906,39 +1907,33 @@ async function mostrar_painel() {
             }
         }
 
-        let lpu = orcamento.lpu_ativa?.toLowerCase() || 'padrao'
         let tabela = produto[lpu] || {}
         let qtde = item_orcamento.qtde || 0
         let cotacao = tabela?.historico?.[tabela?.ativo] || {}
-        
+
         let desconto_unit = orcamento.dados_composicoes[codigo].desconto || 0;
+        console.log('Item: ', orcamento.dados_composicoes[codigo])
 
-        let aliquotaIcmsBahia = 0.205
-        let icmsCreditado = cotacao.icms_creditado / 100;
+        let aliquotaIcmsBahia = 20.5
+        let icmsCreditado = cotacao.icms_creditado;
         const DIFAL = Number((aliquotaIcmsBahia - icmsCreditado).toFixed(2));
-        console.log('Difal: ', DIFAL || 'Serviço');
-        
-        let custo = cotacao?.custo;
-        let freteCompra = custo * 0.2;
 
-        let custo_unit = custo + freteCompra 
-        let custo_total = (custo_unit * qtde) - desconto_unit;
-        
+        let custo = cotacao?.custo || 0;
+        let icmsEntrada = DIFAL / 100 * custo
+        let freteCompra = custo * 0.02;
+
+        let custo_unit = custo + icmsEntrada + freteCompra;
+        let custo_total = custo_unit * qtde;
+
         let total_unit = orcamento.dados_composicoes[codigo].custo || 0
-        let total = total_unit * qtde
-        // console.log('orçamento: ', cotacao)
-        
-        
-        let totalComDesconto = (total_unit * qtde) - desconto_unit
-        let precoVenda = (1 + cotacao?.margem / 100) * custo_total
-        let lucro_unit = precoVenda - totalComDesconto;
-        let subTotal = custo_total - desconto_unit;
-        // console.log('Orcamento: ', orcamento.dados_composicoes[codigo])
-        
+        let total = (total_unit * qtde) - desconto_unit;
+
+        let lucro_unit = total;
+
         let descricao_produto = produto.descricao || 'Item sem descrição'
 
         linhas[produto.tipo].total_custo += custo_total
-        linhas[produto.tipo].total_orcado += totalComDesconto
+        linhas[produto.tipo].total_orcado += total
         linhas[produto.tipo].total_lucro += lucro_unit
         linhas[produto.tipo].total_unit += total_unit
         linhas[produto.tipo].total_custo_unit += custo_unit
@@ -1950,11 +1945,11 @@ async function mostrar_painel() {
             <td style="font-size: 0.9em;">${qtde}</td>
             ${produto.tipo == 'SERVIÇO' ? `
                 ${mostrarElementoSeTiverPermissao({
-                    listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
-                    elementoHTML: `
+            listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+            elementoHTML: `
                         <td style="font-size: 0.9em;">${dinheiro(desconto_unit)}</td>
                     `
-                })}
+        })}
             ` : ''}
             ${produto.tipo == 'VENDA' ? `
             <td style="font-size: 0.9em;">${`${cotacao?.margem}%` || '--'}</td>
@@ -2186,20 +2181,20 @@ async function mostrar_painel() {
                                     <td style="font-size: 0.9em; font-weight: 600;"></td>
                                     <td style="font-size: 0.9em; font-weight: 600;"></td>
                                     ${mostrarElementoSeTiverPermissao({
-                listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
-                elementoHTML: `
+                        listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+                        elementoHTML: `
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_desconto_unit)}</td>
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo_unit)}</td>
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo)}</td>
                                         `
-            })}
+                    })}
                                     `
                     : ''}
                                     ${tipo == 'SERVIÇO' ? `
                                     ${mostrarElementoSeTiverPermissao({
-                                        listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
-                                        elementoHTML: `<td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_desconto_unit)}</td>`
-                                    })}`
+                        listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+                        elementoHTML: `<td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_desconto_unit)}</td>`
+                    })}`
                     : ''}
                                     <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_unit)}</td>
                                     <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_orcado)}</td>

@@ -1324,6 +1324,7 @@ function calcular(tipo, campo) {
         let icms_creditado = conversor(Number(tds[5].querySelector('input').value))
         let icms_aliquota = conversor(tds[7].querySelector('input').value)
         let difal = icms_aliquota - icms_creditado
+        console.log('ICMS aliquota e creditado:', icms_aliquota, icms_creditado)
         let icms_entrada = difal / 100 * preco_compra
         let valor_custo = icms_entrada + preco_compra + frete
 
