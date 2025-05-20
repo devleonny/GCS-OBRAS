@@ -31,7 +31,7 @@ let fluxogramaPadrao = fluxograma = {
     'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
     'RETORNO DE MATERIAIS': { cor: '#aacc14' },
     'FINALIZADO': { cor: 'blue' },
-    
+
 }
 
 // O objeto foi mesclado com o intuito de obter as formatações de ambos os aplicativos sem precisar criar um objeto para isso;
@@ -1700,16 +1700,16 @@ async function abrir_esquema(id) {
         }
 
         let selects = `
-        <div style="display: flex; flex-direction: row;">
-    <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 2px;">
-        <label>Status atual</label>
-        <select onchange="alterar_status(this)" style="font-size: 1vw; background-color: #d2d2d2; border-radius: 3px; padding: 3px;">
-            ${opcoes}
-        </select>
-    </div>
+        <div style="display: flex; align-items: end; justify-content: center">
+            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 2px;">
+                <label>Status atual</label>
+                <select onchange="alterar_status(this)" style="font-size: 1vw; background-color: #d2d2d2; border-radius: 3px; padding: 3px;">
+                    ${opcoes}
+                </select>
+             </div>
  
-    <button class="botaoAlterarStatusOrcam" onclick="mostrarHistoricoStatus('${id}')" style="margin-top:21px; background-color: #d2d2d2; color: #000">HISTÓRICO STATUS</button>
-</div>
+                <label class="botaoAlterarStatusOrcam" onclick="mostrarHistoricoStatus()" style="width: max-content; heigth: max-content; margin-left: 5px; background-color: #d2d2d2; color: #000">HISTÓRICO STATUS</label>
+        </div>
         `
         acumulado += `
                 <div style="display: flex; flex-direction: column; gap: 15px;">
@@ -2444,7 +2444,7 @@ function mostrar_botao_pedido(elemento) {
 }
 
 async function alterar_status(select, id) {
-  let tela_orcamentos = false;
+    let tela_orcamentos = false;
     if (id !== undefined) {
         id_orcam = id;
         tela_orcamentos = true;
@@ -2453,37 +2453,27 @@ async function alterar_status(select, id) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {};
     let orcamento = dados_orcamentos[id_orcam];
-    
+
     // Só prosseguir se o status realmente mudou
     if (orcamento.status?.atual !== select.value) {
         // Inicializar estrutura se não existir
         if (!orcamento.status) {
-            orcamento.status = { 
-                atual: '', 
+            orcamento.status = {
+                atual: '',
                 historicoStatus: [],  // Array apenas para mudanças de status
                 historico: {}         // Objeto para os demais registros
             };
         }
-        
-        // Garantir que historicoStatus seja um array
-        if (!Array.isArray(orcamento.status.historicoStatus)) {
-            orcamento.status.historicoStatus = [];
-        }
-        
+
+
         // Adicionar registro de mudança de status
         const registroStatus = {
-            data: new Date().toLocaleString('pt-BR', { 
-                day: '2-digit', 
-                month: '2-digit', 
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            }),
+            data: data_atual('completa'),
             de: orcamento.status.atual || 'Nenhum',
             para: select.value,
-            usuario: acesso.nome || acesso.usuario || 'Desconhecido'
+            usuario: acesso.usuario
         };
-        
+
         orcamento.status.historicoStatus.unshift(registroStatus);
         orcamento.status.atual = select.value;
 
@@ -2564,7 +2554,7 @@ async function alterar_status(select, id) {
 
 async function migrarDadosStatus() {
     const dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    
+
     for (const id in dados_orcamentos) {
         const orcamento = dados_orcamentos[id];
         if (orcamento.status && orcamento.status.historico) {
@@ -2577,7 +2567,7 @@ async function migrarDadosStatus() {
                 }
                 return true;
             });
-            
+
             await inserirDados(dados_orcamentos, 'dados_orcamentos');
         }
     }
@@ -2586,10 +2576,10 @@ async function migrarDadosStatus() {
 // Executar uma vez ao carregar o aplicativo
 migrarDadosStatus();
 
-async function mostrarHistoricoStatus(id_orcamento) {
-        const dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    const orcamento = dados_orcamentos[id_orcamento];
-    
+async function mostrarHistoricoStatus() {
+    const dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    const orcamento = dados_orcamentos[id_orcam];
+
     if (!orcamento?.status?.historicoStatus || orcamento.status.historicoStatus.length === 0) {
         openPopup_v2('<div style="padding:20px;text-align:center;">Nenhuma alteração de status registrada.</div>', 'Histórico de Status');
         return;
@@ -2597,12 +2587,8 @@ async function mostrarHistoricoStatus(id_orcamento) {
 
     const html = `
     <div style="width: 600px; max-width: 90vw; max-height: 70vh; overflow: auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="margin: 0;">Histórico de Alterações de Status</h3>
-            <span style="font-size: 1.2em; cursor: pointer;" onclick="fecharPopup(); abrir_esquema('${id_orcamento}')">Voltar</span>
-        </div>
         
-        <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+        <table class="tabela">
             <thead>
                 <tr style="background-color: #f5f5f5;">
                     <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Data</th>
@@ -2624,66 +2610,66 @@ async function mostrarHistoricoStatus(id_orcamento) {
         </table>
     </div>
     `;
-    
-    openPopup_v2(html, 'Histórico de Alterações de Status');
 
-//      const dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-//     const orcamento = dados_orcamentos[id_orcamento]
-    
-//     if (!orcamento?.status?.historico) {
-//         openPopup_v2('<div style="padding:20px;text-align:center;">Nenhum histórico de alterações registrado.</div>', 'Histórico de Status')
-//         return
-//     }
+    openPopup_v2(html, 'Histórico de Alterações de Status', true);
 
-//     console.log("Orçamento:", orcamento);
-    
-    
-//     // Filter only status change records (not the full history)
-//     const historicoStatus = Object.values(orcamento.status.historico)
-//         // .filter(registro => registro.de && registro.para) // Ensure it's a status change record
-//         // .sort((a, b) => new Date(b.data) - new Date(a.data)); // Sort by date (newest first)
+    //      const dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    //     const orcamento = dados_orcamentos[id_orcamento]
 
-//     console.log('Historico', historicoStatus);
-    
+    //     if (!orcamento?.status?.historico) {
+    //         openPopup_v2('<div style="padding:20px;text-align:center;">Nenhum histórico de alterações registrado.</div>', 'Histórico de Status')
+    //         return
+    //     }
 
-//     const html = `
-//     <div style="width: 600px; max-width: 90vw; max-height: 70vh; overflow: auto;">
-//         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-//             <h3 style="margin: 0;">Histórico de Alterações de Status</h3>
-//             <span style="font-size: 1.2em; cursor: pointer;" onclick="fecharPopup()">×</span>
-//         </div>
-        
-//         <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
-//             <thead>
-//                 <tr style="background-color: #f5f5f5;">
-//                     <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Data</th>
-//                     <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">De</th>
-//                     <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Para</th>
-//                     <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Usuário</th>
-//                 </tr>
-//             </thead>
-//             <tbody>
-//                 ${historicoStatus.map((registro, index) => `
-//                     <tr style="border-bottom: 1px solid #eee; ${index % 2 === 0 ? 'background-color: #fafafa;' : ''}">
-//                         <td style="padding: 10px;">${registro.data}</td>
-//                         <td style="padding: 10px;">${registro.de}</td>
-//                         <td style="padding: 10px;">${registro.para}</td>
-//                         <td style="padding: 10px;">${registro.executor}</td>
-//                     </tr>
-//                 `).join('')}
-//             </tbody>
-//         </table>
-//     </div>
-//     `
+    //     console.log("Orçamento:", orcamento);
 
-    
-//     // Store current view state before opening popup
-//     localStorage.setItem('lastStatusView', JSON.stringify({
-//         id_orcam: id_orcamento,
-//         view: 'status'
-//     }));
-    
-//     openPopup_v2(html, 'Histórico de Alterações de Status')
+
+    //     // Filter only status change records (not the full history)
+    //     const historicoStatus = Object.values(orcamento.status.historico)
+    //         // .filter(registro => registro.de && registro.para) // Ensure it's a status change record
+    //         // .sort((a, b) => new Date(b.data) - new Date(a.data)); // Sort by date (newest first)
+
+    //     console.log('Historico', historicoStatus);
+
+
+    //     const html = `
+    //     <div style="width: 600px; max-width: 90vw; max-height: 70vh; overflow: auto;">
+    //         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+    //             <h3 style="margin: 0;">Histórico de Alterações de Status</h3>
+    //             <span style="font-size: 1.2em; cursor: pointer;" onclick="fecharPopup()">×</span>
+    //         </div>
+
+    //         <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+    //             <thead>
+    //                 <tr style="background-color: #f5f5f5;">
+    //                     <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Data</th>
+    //                     <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">De</th>
+    //                     <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Para</th>
+    //                     <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Usuário</th>
+    //                 </tr>
+    //             </thead>
+    //             <tbody>
+    //                 ${historicoStatus.map((registro, index) => `
+    //                     <tr style="border-bottom: 1px solid #eee; ${index % 2 === 0 ? 'background-color: #fafafa;' : ''}">
+    //                         <td style="padding: 10px;">${registro.data}</td>
+    //                         <td style="padding: 10px;">${registro.de}</td>
+    //                         <td style="padding: 10px;">${registro.para}</td>
+    //                         <td style="padding: 10px;">${registro.executor}</td>
+    //                     </tr>
+    //                 `).join('')}
+    //             </tbody>
+    //         </table>
+    //     </div>
+    //     `
+
+
+    //     // Store current view state before opening popup
+    //     localStorage.setItem('lastStatusView', JSON.stringify({
+    //         id_orcam: id_orcamento,
+    //         view: 'status'
+    //     }));
+
+    //     openPopup_v2(html, 'Histórico de Alterações de Status')
 }
 
 // Add this function to handle closing the popup and returning to main view
