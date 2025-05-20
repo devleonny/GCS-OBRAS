@@ -30,7 +30,8 @@ let fluxogramaPadrao = fluxograma = {
     'COTAÇÃO PENDENTE': { cor: '#0a989f' },
     'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
     'RETORNO DE MATERIAIS': { cor: '#aacc14' },
-    'FINALIZADO': { cor: 'blue' }
+    'FINALIZADO': { cor: 'blue' },
+    
 }
 
 // O objeto foi mesclado com o intuito de obter as formatações de ambos os aplicativos sem precisar criar um objeto para isso;
@@ -1173,7 +1174,7 @@ async function salvar_requisicao(chave) {
             temItensValidos = true;
         }
     }
-    
+
     // Se não houver itens válidos, mostra mensagem de erro
     if (!temItensValidos) {
         document.getElementById("aguarde")?.remove();
@@ -1650,7 +1651,7 @@ async function abrir_esquema(id) {
                             <br>
                         </div>
 
-                        <div style="cursor: pointer; background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
+                        <div style="cursor: pointer; background-color: ${fluxogramaMesclado[sst.status].cor || '#808080'}; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
                             <label style="color: white; font-size: 0.9vw;">ver mais</label>
                         </div>
 
@@ -1694,19 +1695,16 @@ async function abrir_esquema(id) {
         }
 
         let selects = `
-        <div style="display: flex; flex-direction: row">
-            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 2px;">
-                <label>Status atual</label>
-                <select onchange="alterar_status(this)" style="font-size: 1vw; background-color: #d2d2d2; border-radius: 3px; padding: 3px;">
-                    ${opcoes}
-                </select>
-            </div>   
-            <div class="botaoAlterarStatusOrcam" onclick="mostrarHistoricoStatus('${id}')"style=
-            "display: flex; align-items: start; justify-content: center; flex-direction: padding: 3px">
-                <button>Histórico Alterações de Status</button>
-                
-            </div>
-        </div>
+        <div style="display: flex; flex-direction: row;">
+    <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 2px;">
+        <label>Status atual</label>
+        <select onchange="alterar_status(this)" style="font-size: 1vw; background-color: #d2d2d2; border-radius: 3px; padding: 3px;">
+            ${opcoes}
+        </select>
+    </div>
+ 
+    <button class="botaoAlterarStatusOrcam" onclick="mostrarHistoricoStatus('${id}')" style="margin-top:21px; background-color: #d2d2d2; color: #000">HISTÓRICO STATUS</button>
+</div>
         `
         acumulado += `
                 <div style="display: flex; flex-direction: column; gap: 15px;">
@@ -2441,7 +2439,7 @@ function mostrar_botao_pedido(elemento) {
 }
 
 async function alterar_status(select, id) {
-    let tela_orcamentos = false
+     let tela_orcamentos = false
     if (id !== undefined) {
         id_orcam = id
         tela_orcamentos = true
@@ -2449,39 +2447,87 @@ async function alterar_status(select, id) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let orcamento = dados_orcamentos[id_orcam]
     
-    // Mantém a lógica existente de histórico
-    if (!dados_orcamentos[id_orcam].status) {
-        dados_orcamentos[id_orcam].status = { atual: '', historico: {} }
-    }
-    
-    // Adiciona o novo registro de alteração
-    const timestamp = Date.now().toString()
-    dados_orcamentos[id_orcam].status.historico[timestamp] = {
-        data: new Date().toLocaleString('pt-BR', { 
-            day: '2-digit', 
-            month: '2-digit', 
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        }),
-        de: dados_orcamentos[id_orcam].status.atual || 'Nenhum',
-        para: select.value,
-        usuario: acesso.nome || acesso.usuario || 'Desconhecido'
-    }
-    
-    // Mantém o resto da lógica original
-    dados_orcamentos[id_orcam].status.atual = select.value
+    // Only proceed if status actually changed
+    if (orcamento.status?.atual !== select.value) {
+        // Initialize status structure if it doesn't exist
+        if (!orcamento.status) {
+            orcamento.status = { 
+                atual: '', 
+                historico: []  // Using array to maintain order
+            }
+        }
+        
+        // Add status change record
+        const registro = {
+            data: new Date().toLocaleString('pt-BR', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }),
+            de: orcamento.status.atual || 'Nenhum',
+            para: select.value,
+            usuario: acesso.nome || acesso.usuario || 'Desconhecido'
+        }
+        
+        Object.values(orcamento.status.historico).unshift(registro)
+        orcamento.status.atual = select.value
 
-    enviar(`dados_orcamentos/${id_orcam}/status/atual`, select.value)
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+        // Update data
+        enviar(`dados_orcamentos/${id_orcam}/status/atual`, select.value)
+        await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    }
 
     if (tela_orcamentos) {
         filtrar_orcamentos(undefined, undefined, undefined, true)
         select.parentElement.parentElement.style.display = 'none'
     } else {
         await preencher_orcamentos_v2()
-    } 
+    }
+    // let tela_orcamentos = false
+    // if (id !== undefined) {
+    //     id_orcam = id
+    //     tela_orcamentos = true
+    // }
+
+    // let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    // let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+
+    // // Cria a estrutura de histórico se não existir
+    // if (!dados_orcamentos[id_orcam].status) {
+    //     dados_orcamentos[id_orcam].status = { atual: '', historico: {} }
+    // }
+
+    // // Adiciona o novo registro de alteração
+    // const timestamp = Date.now().toString()
+    // dados_orcamentos[id_orcam].status.historico[timestamp] = {
+    //     data: new Date().toLocaleString('pt-BR', { 
+    //         day: '2-digit', 
+    //         month: '2-digit', 
+    //         year: 'numeric',
+    //         hour: '2-digit',
+    //         minute: '2-digit'
+    //     }),
+    //     de: dados_orcamentos[id_orcam].status.atual || 'Nenhum',
+    //     para: select.value,
+    //     usuario: acesso.nome || acesso.usuario || 'Desconhecido'
+    // }
+
+    // // Mantém o resto da lógica original
+    // dados_orcamentos[id_orcam].status.atual = select.value
+
+    // enviar(`dados_orcamentos/${id_orcam}/status/atual`, select.value)
+    // await inserirDados(dados_orcamentos, 'dados_orcamentos')
+
+    // if (tela_orcamentos) {
+    //     filtrar_orcamentos(undefined, undefined, undefined, true)
+    //     select.parentElement.parentElement.style.display = 'none'
+    // } else {
+    //     await preencher_orcamentos_v2()
+    // } 
     // let tela_orcamentos = false
     // if (id !== undefined) {
     //     id_orcam = id
@@ -2504,46 +2550,74 @@ async function alterar_status(select, id) {
 }
 
 async function mostrarHistoricoStatus(id_orcamento) {
-    const dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+     const dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     const orcamento = dados_orcamentos[id_orcamento]
     
     if (!orcamento?.status?.historico) {
-        openPopup_v2('Nenhum histórico de alterações encontrado.', 'Histórico de Status')
+        openPopup_v2('<div style="padding:20px;text-align:center;">Nenhum histórico de alterações registrado.</div>', 'Histórico de Status')
         return
     }
+
+    console.log("Orçamento:", orcamento);
     
-    // Ordena os registros por data (do mais recente para o mais antigo)
-    const historicoOrdenado = Object.entries(orcamento.status.historico)
-        .sort(([a], [b]) => b - a)
-        .map(([timestamp, registro]) => registro)
     
+    // Filter only status change records (not the full history)
+    const historicoStatus = Object.values(orcamento.status.historico)
+        // .filter(registro => registro.de && registro.para) // Ensure it's a status change record
+        // .sort((a, b) => new Date(b.data) - new Date(a.data)); // Sort by date (newest first)
+
+    console.log('Historico', historicoStatus);
+    
+
     const html = `
-    <div style="max-width: 80vw; max-height: 70vh; overflow: auto;">
-        <h3 style="text-align: center; margin-bottom: 15px;">Histórico de Alterações de Status</h3>
-        <table style="width: 100%; border-collapse: collapse;">
+    <div style="width: 600px; max-width: 90vw; max-height: 70vh; overflow: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0;">Histórico de Alterações de Status</h3>
+            <span style="font-size: 1.2em; cursor: pointer;" onclick="fecharPopup()">×</span>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
             <thead>
-                <tr style="background-color: #f0f0f0;">
+                <tr style="background-color: #f5f5f5;">
                     <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Data</th>
-                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Status Anterior</th>
-                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Novo Status</th>
-                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Alterado por</th>
+                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">De</th>
+                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Para</th>
+                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Usuário</th>
                 </tr>
             </thead>
             <tbody>
-                ${historicoOrdenado.map(registro => `
-                    <tr style="border-bottom: 1px solid #eee;">
+                ${historicoStatus.map((registro, index) => `
+                    <tr style="border-bottom: 1px solid #eee; ${index % 2 === 0 ? 'background-color: #fafafa;' : ''}">
                         <td style="padding: 10px;">${registro.data}</td>
                         <td style="padding: 10px;">${registro.de}</td>
                         <td style="padding: 10px;">${registro.para}</td>
-                        <td style="padding: 10px;">${registro.usuario}</td>
+                        <td style="padding: 10px;">${registro.executor}</td>
                     </tr>
                 `).join('')}
             </tbody>
         </table>
     </div>
     `
+
     
-    openPopup_v2(html, 'Histórico de Alterações')
+    // Store current view state before opening popup
+    localStorage.setItem('lastStatusView', JSON.stringify({
+        id_orcam: id_orcamento,
+        view: 'status'
+    }));
+    
+    openPopup_v2(html, 'Histórico de Alterações de Status')
+}
+
+// Add this function to handle closing the popup and returning to main view
+function fecharPopup() {
+    remover_popup();
+
+    // Verifique se deve voltar pra o
+    const lastView = JSON.parse(localStorage.getItem('lastStatusView'));
+    if (lastView && lastView.view === 'status') {
+        abrir_esquema(lastView.id_orcam);
+    }
 }
 
 function exibirItens(div) {

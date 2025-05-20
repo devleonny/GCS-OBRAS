@@ -1441,6 +1441,11 @@ input[type=range]::-moz-range-thumb {
     justify-content: space-between;
     width: 10vw;
     color: black;
+    font-size: 0.9vw;
+    align-items: center;
+    display: flex;
+    height: 31px;
+    width: 100px;
     
 }
 
