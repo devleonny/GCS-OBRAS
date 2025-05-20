@@ -1,5 +1,20 @@
-let tabela_atual;
-let filtros_produtos = {}
+let filtrosPagina = {}
+let pagina;
+
+function coresTabelas(tabela) {
+    let coresTabelas = {
+        'VENDA': '#B12425',
+        'SERVIÇO': 'green',
+        'USO E CONSUMO': '#24729d'
+    }
+
+    if (coresTabelas[tabela]) {
+        return coresTabelas[tabela]
+    } else {
+        return '#938e28'
+    }
+
+}
 
 function apagar_orçamento() {
 
@@ -45,24 +60,7 @@ async function atualizar_precos() {
 
     if (modalidade !== 'MODALIDADE LIVRE') {
 
-        let atualizando = document.getElementById('atualizando')
-        let penumbra = document.getElementById('penumbra')
-        penumbra.style.display = 'none'
-        atualizando.style.display = 'flex'
-        let menu_superior = document.getElementById('menu_superior')
-
-        menu_superior.style.display = 'none'
-        document.getElementById('quieto').innerHTML = `
-            <img src="gifs/loading.gif" style="width: 5vw;">
-            <label class="novo_titulo">Aguarde...</label>        
-        `
-        menu_superior.style.display = 'flex'
-
-        await carregar_tabelas()
-        await atualizar_lista_de_lpus()
-
-        atualizando.style.display = 'none'
-        penumbra.style.display = 'block'
+        await atualizarOpcoesLPU() // Já carrega as tabelas do Orcamento_V2
 
     } else {
 
@@ -104,93 +102,177 @@ function confirmar_exclusao() {
 
 }
 
-async function atualizar_lista_de_lpus() {
+async function atualizarOpcoesLPU() {
 
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
     return new Promise((resolve, reject) => {
 
-        var LPUS = [];
-        var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-        var lpu = document.getElementById('lpu')
-        var LPUS = [
-            ...new Set(
-                Object.values(dados_composicoes)
-                    .flatMap(obj => Object.keys(obj))
-                    .filter(key => key.toLowerCase().includes('lpu'))
-                    .map(key => key.toUpperCase())
-            )
-        ];
+        try {
+            let LPUS = [];
+            let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+            let lpu = document.getElementById('lpu')
+            LPUS = [
+                ...new Set(
+                    Object.values(dados_composicoes)
+                        .flatMap(obj => Object.keys(obj))
+                        .filter(key => key.toLowerCase().includes('lpu'))
+                        .map(key => key.toUpperCase())
+                )
+            ];
 
-        var opcoes = ''
-        LPUS.forEach(lpu => {
-            if (lpu !== 'LPU EQUIPAMENTOS') { // Desativado provisoriamente;
+            let opcoes = ''
+            LPUS.forEach(lpu => {
                 opcoes += `<option>${lpu}</option>`
+            })
+
+            lpu.innerHTML = opcoes
+
+            let selectLpu = document.getElementById('lpu')
+
+            if (orcamento_v2.lpu_ativa) {
+                selectLpu.value = orcamento_v2.lpu_ativa
             }
+
+            if (selectLpu.value !== '') {
+                orcamento_v2.lpu_ativa = selectLpu.value
+                localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+            }
+
+            tabelaProdutos()
+            carregarTabelas()
+            resolve()
+        } catch {
+            reject()
+            openPopup_v2(`
+                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                    <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                    <label>Houve um erro ao carregar</label>
+                </div>
+                `, 'Aviso')
+        }
+    })
+}
+
+function alterarTabelaLPU(tabelaLPU) {
+
+    document.getElementById('lpu').value = tabelaLPU
+    var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    orcamento_v2.lpu_ativa = tabelaLPU
+    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+    tabelaProdutos()
+    carregarTabelas()
+
+}
+
+async function filtroTabela(filtro) {
+
+    localStorage.setItem('padraoFiltro', filtro)
+    await carregarTabelas()
+
+}
+
+async function carregarTabelas() {
+    let baseComposicoes = await recuperarDados('dados_composicoes') || {}
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
+    let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
+    let divTabelas = document.getElementById('tabelas')
+    let tabelas = {}
+    let toolbarSuperior = ''
+    let stringsTabelas = ''
+    let dadosComposicoes = orcamento_v2.dados_composicoes
+    let padraoFiltro = localStorage.getItem('padraoFiltro')
+
+    document.getElementById(`filtro${padraoFiltro}`).checked = true
+
+    for (codigo in dadosComposicoes) {
+        let produto = dadosComposicoes[codigo]
+
+        let opcoes = ''
+        esquemas.sistema.forEach(op => {
+            opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
         })
 
-        lpu.innerHTML = opcoes
+        let linha = `
+        <tr>
+            <td>${codigo}</td>
+            <td style="position: relative;">${produto?.descricao || 'N/A'}</td>
+            ${carrefour ? '<td></td>' : ''}
+            <td style="text-align: center;">${produto?.unidade || 'UN'}</td>
+            <td style="text-align: center;">
+                <input oninput="total()" type="number" class="campoValor" value="${produto.qtde}">
+            </td>
+            <td style="position: relative;"></td>
 
-        var select_lpu = document.getElementById('lpu')
-
-        if (orcamento_v2.lpu_ativa) {
-            select_lpu.value = orcamento_v2.lpu_ativa
+            ${carrefour ? '' :
+                `<td>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
+                    <select onchange="total()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
+                        <option ${produto?.tipo_desconto == 'Porcentagem' ? 'selected' : ''}>Porcentagem</option>
+                        <option ${produto?.tipo_desconto == 'Dinheiro' ? 'selected' : ''}>Dinheiro</option>
+                    </select>
+                    <input type="number" oninput="total()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;" value="${produto?.desconto || ''}">
+                </div>
+            </td>
+            `}
+            <td></td>
+            <td>
+                <select class="opcoesSelect" onchange="alterarChave('${codigo}', 'sistema', this)">
+                    ${opcoes}
+                </select>
+            </td>
+            <td style="text-align: center;">
+                <img onclick="ampliar_especial(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
+            </td>
+            <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo}', this)" style="cursor: pointer; width: 2vw;"></td>
+        </tr>
+        `
+        let chave = baseComposicoes[codigo]?.[padraoFiltro] || 'SEM CLASSIFICAÇÃO'
+        if (!tabelas[chave]) {
+            tabelas[chave] = { linhas: '' }
         }
 
-        if (select_lpu.value !== '') {
-            orcamento_v2.lpu_ativa = select_lpu.value
-            localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
-        }
-
-        alterar_tabela_lpu()
-
-        resolve()
-    })
-}
-
-function alterar_tabela_lpu(tabela_lpu) {
-
-    if (tabela_lpu) {
-        document.getElementById('lpu').value = tabela_lpu
-        var orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-        orcamento_v2.lpu_ativa = tabela_lpu
-        localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+        tabelas[chave].linhas += linha
     }
 
-    tabela_produtos_v2()
-    carregar_tabelas()
-}
+    for (let tabela in tabelas) {
 
-async function carregar_tabelas() {
+        toolbarSuperior += `
+            <div id="toolbar_${tabela}" onclick="mostrarTabela('${tabela}')" class="toolbar" style="background-color: ${coresTabelas(tabela)};">
+                <label style="position: absolute; top: 0; margin-right: 5px; font-size: 0.8vw;">${tabela}</label>
+                <label id="total_${tabela}" style="font-size: 1.5vw; padding-top: 2vh;">R$ -- </label>
+            </div>
+        `
 
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
-    if (Object.keys(dados_composicoes).length == 0) {
-        await recuperar_dados_composicoes()
+        stringsTabelas += `
+        <div id="${tabela}" style="display: none; width: 100%;">
+            <table id="cabecalho_${tabela}" class="tabela" style="table-layout: auto; width: 100%; background-color: ${coresTabelas(tabela)};">
+                <thead id="thead_${tabela}">
+                    <th style="color: white;">Código</th>
+                    ${carrefour ? '<th style="color: white;">Item Original</th>' : ''}
+                    <th style="color: white;">Como aparecerá na ${orcamento_v2.lpu_ativa}</th>
+                    <th style="color: white;">Medida</th>
+                    <th style="color: white;">Quantidade</th>
+                    <th style="color: white;">Custo Unitário</th>
+                    ${!carrefour ? '<th style="color: white;">Desconto</th>' : ''}
+                    <th style="color: white;">Valor Total</th>
+                    <th style="color: white;">Sistema</th>
+                    <th style="color: white;">Imagem *Ilustrativa</th>
+                    <th style="color: white;">Remover</th>
+                </thead>
+                <tbody id="linhas_${tabela}">
+                    ${tabelas[tabela].linhas}
+                </tbody>
+            </table>
+        </div>
+        `
     }
 
-    let tabelas = ['serviço', 'venda'];
-
-    tabelas.forEach(tabela => {
-
-        document.getElementById(`linhas_${tabela}`).innerHTML = ''
-
-        let coluna_carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR' ? `<th>Item Original</th>` : '';
-
-        document.getElementById(`thead_${tabela}`).innerHTML = `
-
-            <th>Código</th>${coluna_carrefour}
-            <th>Como aparecerá na ${orcamento_v2.lpu_ativa}</th>
-            <th>Medida</th>
-            <th>Quantidade</th>
-            <th>Custo Unitário</th>
-            ${orcamento_v2.lpu_ativa !== 'LPU CARREFOUR' ? '<th>Desconto</th>' : ''}
-            <th>Valor Total</th>
-            <th>Tipo</th>
-            <th>Imagem *Ilustrativa</th>
-            <th>Remover</th>
-            `
-    })
+    divTabelas.innerHTML = `
+        <div id="toolbarSuperior" style="display: none; justify-content: right; width: 100%;">
+            ${toolbarSuperior}
+        </div>
+        ${stringsTabelas}`
 
     let desconto_geral = document.getElementById('desconto_geral')
     if (orcamento_v2.desconto_geral) {
@@ -201,34 +283,49 @@ async function carregar_tabelas() {
         desconto_geral.previousElementSibling.value = orcamento_v2.tipo_de_desconto
     }
 
-    if (orcamento_v2.dados_composicoes) {
+    await total()
 
-        let itens = orcamento_v2.dados_composicoes
-        for (codigo in itens) {
-
-            await incluir_item(codigo, itens[codigo].qtde)
-
-        }
-
-    }
-
-    total()
+    mostrarTabela(Object.keys(tabelas)[0])
 }
 
-function removerItem(codigo) {
+function mostrarTabela(tabela) {
+
+    if (!tabela) return
+
+    let divTabelas = document.getElementById('tabelas')
+    let tabelas = divTabelas.querySelectorAll('table')
+
+    tabelas.forEach(tab => {
+        tab.parentElement.style.display = 'none'
+    })
+
+    let displayTabela = document.getElementById(tabela)
+
+    displayTabela.style.display == 'none' ? displayTabela.style.display = 'flex' : ''
+
+    let toolbarSuperior = document.getElementById('toolbarSuperior')
+    let divs = toolbarSuperior.querySelectorAll('div')
+
+    divs.forEach(div => {
+        div.style.opacity = '0.7'
+    })
+
+    document.getElementById(`toolbar_${tabela}`).style.opacity = '1'
+}
+
+async function removerItem(codigo, img) {
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
 
     if (orcamento_v2.dados_composicoes[codigo]) {
 
-        if (orcamento_v2.dados_composicoes[codigo].agrupamentos) {
-            alterar_input_tabela(codigo)
-        }
-
         delete orcamento_v2.dados_composicoes[codigo]
-        localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
-        carregar_tabelas()
 
+        localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+
+        img.parentElement.parentElement.remove() // Equivalente a tr
+
+        await total()
     }
 
 }
@@ -316,51 +413,6 @@ async function enviar_dados() {
         delete orcamento_v2.dados_composicoes_orcamento;
     }
 
-    let relancamento = {};
-    let converter = false;
-
-    for (let codigo in orcamento_v2.dados_composicoes) {
-        let produto = orcamento_v2.dados_composicoes[codigo];
-        if (!relancamento[produto.codigo]) {
-            relancamento[produto.codigo] = { qtde: 0, desconto: 0 }
-        }
-
-        relancamento[produto.codigo].qtde += produto.qtde;
-
-        let desconto = produto?.tipo_desconto == 'Dinheiro' ? produto.desconto : (produto.qtde * produto.custo) * (produto.desconto / 100)
-
-        if (produto.agrupamentos) {
-            converter = true;
-            let agrupamentos = produto.agrupamentos;
-            for (let agrup in agrupamentos) {
-                if (!relancamento[agrup]) {
-                    relancamento[agrup] = { qtde: 0, desconto: 0 }
-                }
-
-                relancamento[agrup].qtde += codigo == agrup ? agrupamentos[agrup] : agrupamentos[agrup] * produto.qtde
-            }
-
-        }
-
-    }
-
-    console.log(relancamento);
-
-    if (converter) { // 29
-        if (!orcamento_v2.backup) {
-            orcamento_v2.backup = {};
-        }
-        orcamento_v2.backup = orcamento_v2.dados_composicoes;
-
-        delete orcamento_v2.dados_composicoes;
-        localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
-        await carregar_tabelas();
-
-        for (let codigo in relancamento) {
-            await incluir_item(codigo, relancamento[codigo].qtde);
-        }
-    }
-    
     orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')); // Recuperado do localStorage novamente, cuidado com alterações antes disto.
     orcamento_v2.tabela = 'orcamentos';
 
@@ -387,7 +439,7 @@ async function enviar_dados() {
 
     localStorage.removeItem('orcamento_v2');
     location.href = 'orcamentos.html';
-    
+
 
 }
 
@@ -445,47 +497,22 @@ async function autorizar_desconto(reaprovacao) {
 
 }
 
-function pesquisar_v2(elemento, col) {
-    var termo = String(elemento.value).toLowerCase();
-    filtros_produtos[col] = termo;
+function pesquisarProdutos(col, elemento) {
 
-    var tabela_itens = document.getElementById('tabela_itens');
-    var tbody = tabela_itens.querySelector('tbody');
-    var trs = tbody.querySelectorAll('tr');
+    if (!filtrosPagina[pagina]) {
+        filtrosPagina[pagina] = {}
+    }
 
-    trs.forEach(tr => {
-        var tds = tr.querySelectorAll('td');
-        var mostrar_linha = true;
-
-        for (let filtro_col in filtros_produtos) {
-            var termo_salvo = filtros_produtos[filtro_col];
-            var texto_coluna = String(tds[filtro_col]?.textContent || "").toLowerCase();
-
-            if (!texto_coluna.includes(termo_salvo)) {
-                mostrar_linha = false;
-                break;
-            }
-        }
-
-        tr.style.display = mostrar_linha ? 'table-row' : 'none';
-    });
+    pesquisar_generico(col, elemento.value, filtrosPagina[pagina], `compos_${pagina}`)
 }
 
-function mudar_tabela_pesquisa(tabela) {
-
-    tabela_atual = tabela
-    tabela_produtos_v2()
-    total()
-
-}
-
-async function recuperarComposicoes(tipo_tabela) {
+async function recuperarComposicoes() {
 
     overlayAguarde()
 
     let nuvem = await receber('dados_composicoes')
     await inserirDados(nuvem, 'dados_composicoes')
-    await tabela_produtos_v2(tipo_tabela)
+    await tabelaProdutos()
 
     let aguarde = document.getElementById('aguarde')
     if (aguarde) {
@@ -496,11 +523,11 @@ async function recuperarComposicoes(tipo_tabela) {
 async function ocultarZerados(ocultar) {
 
     localStorage.setItem('ocultarZerados', JSON.stringify(ocultar))
-    await tabela_produtos_v2()
+    await tabelaProdutos()
 
 }
 
-async function tabela_produtos_v2(tipo_tabela) {
+async function tabelaProdutos() {
 
     let moduloComposicoes = (
         acesso.permissao == 'adm' ||
@@ -510,23 +537,134 @@ async function tabela_produtos_v2(tipo_tabela) {
         acesso.permissao == 'diretor'
     )
 
+    let tabelas = {}
+
     let ocultarZerados = JSON.parse(localStorage.getItem('ocultarZerados'))
 
     if (ocultarZerados == null) ocultarZerados = true
 
-    let toolbar = document.getElementById('toolbar')
-    if (toolbar) {
+    let tabela_itens = document.getElementById('tabela_itens')
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+
+    if (tabela_itens) {
+
+        let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+        if (Object.keys(dados_composicoes) == 0) {
+            await recuperarComposicoes()
+        }
+
+        for (codigo in dados_composicoes) {
+            let produto = dados_composicoes[codigo]
+
+            if (!tabelas[produto.tipo]) {
+                tabelas[produto.tipo] = { linhas: '' }
+            }
+
+            let preco = 0
+            let ativo = 0
+            let historico = 0
+            let lpu;
+
+            if (document.getElementById('lpu')) {
+                lpu = String(document.getElementById('lpu').value).toLowerCase()
+            } else {
+                lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
+            }
+
+            if (produto[lpu] && produto[lpu].ativo && produto[lpu].historico) {
+                ativo = produto[lpu].ativo
+                historico = produto[lpu].historico
+                preco = historico[ativo]?.valor || 0
+            }
+
+            if (preco == 0 && ocultarZerados) continue
+
+            if (produto.status != "INATIVO") {
+
+                let td_quantidade = `
+                    <input type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
+                    `
+                let opcoes = ''
+                esquemas.sistema.forEach(op => {
+                    opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
+                })
+
+                tabelas[produto.tipo].linhas += `
+                        <tr>
+                            <td style="white-space: nowrap;">${codigo}</td>
+                            <td style="position: relative;">
+                                <div style="display: flex; justify-content: start; align-items: center; gap: 10px;">
+                                    ${moduloComposicoes ? `<img src="imagens/editar.png" style="width: 1.5vw; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')">` : ''}
+                                    ${moduloComposicoes ? `<img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">` : ''}
+                                    <label>${produto.descricao}</label>
+                                </div>
+                                ${(produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) ? `<img src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 1vw; width: 1.5vw; cursor: pointer;">` : ''}
+                            </td>
+                            <td>${produto.fabricante}</td>
+                            <td>${produto.modelo}</td>
+                            <td>
+                                <select class="opcoesSelect" onchange="alterarChave('${codigo}', 'sistema', this)">
+                                    ${opcoes}
+                                </select>
+                            </td>
+                            <td style="text-align: center;">${td_quantidade}</td>
+                            <td>${produto.unidade}</td>
+                            <td style="white-space: nowrap;">
+                                <label ${moduloComposicoes ? `onclick="abrir_historico_de_precos('${codigo}', '${lpu}')"` : ''} class="${preco != 0 ? 'valor_preenchido' : 'valor_zero'}">${dinheiro(preco)}</label>
+                            </td>
+                            <td style="text-align: center;">
+                                <img src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">
+                            </td>
+                        </tr>
+                    `
+            }
+        }
+
+        let colunas = ['Código', 'Descrição', 'Fabricante', 'Modelo', 'Sistema', 'Quantidade', 'Unidade', 'Valor', 'Imagem *Ilustrativa']
+        let ths = ''
+        let tsh = ''
+        colunas.forEach((col, i) => {
+            ths += `<th style="color: white;">${col}</th>`
+            tsh += `
+            <th style="background-color: white; border-radius: 0px;">
+                <div style="position: relative;">
+                    <input style="text-align: left;" oninput="pesquisarProdutos(${i}, this)">
+                    <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
+                </div>
+            </th>
+            `
+        })
+
+        let tabelasHTML = ''
+        let toolbar = ''
+
+        for (let tabela in tabelas) {
+
+            toolbar += `
+                <label class="menu_top" style="background-color: ${coresTabelas(tabela)};" onclick="alterarTabela('${tabela}')">${tabela}</label>`
+
+            tabelasHTML += `
+            <table id="compos_${tabela}" style="display: none; background-color: ${coresTabelas(tabela)};" class="tabela">
+                <thead>
+                    ${ths}
+                </thead>
+                <thead>
+                    ${tsh}
+                </thead>
+                <tbody>
+                    ${tabelas[tabela].linhas}
+                </tbody>
+            </table>
+            `
+        }
 
         let botoes = `
-            <label class="menu_top_geral" onclick="tabela_produtos_v2()">Todos</label>
-            <label class="menu_top_serviço" onclick="tabela_produtos_v2('SERVIÇO')">Serviço</label>
-            <label class="menu_top_venda" onclick="tabela_produtos_v2('VENDA')">Venda</label>
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
                 onclick="recuperarComposicoes()">
                 <img src="imagens/atualizar_2.png" style="width: 30px; cursor: pointer;">
                 <label style="color: white; cursor: pointer;">Atualizar</label>
-            </div>
-        `
+            </div>`
+
         if (moduloComposicoes) {
             botoes += `
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
@@ -541,612 +679,307 @@ async function tabela_produtos_v2(tipo_tabela) {
                 <input onchange="ocultarZerados(this.checked)" type="checkbox" style="width: 3vw; cursor: pointer;" ${ocultarZerados ? 'checked' : ''}>
                 <label style="padding-right: 2vw;">Ocultar produtos zerados</label>
             </div>
-        `
+            `
 
-        toolbar.innerHTML = botoes
+        let acumulado = `
+        <div style="position: relative; display: flex; justify-content: center; width: 100%; margin-top: 30px; gap: 10px;">
+            ${toolbar}
+            ${botoes}
+        </div>
+
+        <div style="height: 700px; overflow: auto;">
+            ${tabelasHTML}
+        </div>
+        `
+        tabela_itens.innerHTML = acumulado
     }
+
+    alterarTabela(Object.keys(tabelas)[1])
+
+}
+
+function alterarTabela(tabela) {
 
     let tabela_itens = document.getElementById('tabela_itens')
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let tables = tabela_itens.querySelectorAll('table')
 
-    if (tabela_itens) {
-        tabela_itens.innerHTML = '';
+    pagina = tabela
 
-        let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-
-        if (Object.keys(dados_composicoes) == 0) {
-            await recuperarComposicoes(tipo_tabela)
-        }
-
-        let linhas = ''
-
-        for (codigo in dados_composicoes) {
-            let produto = dados_composicoes[codigo]
-
-            if (tipo_tabela == produto.tipo || tipo_tabela == undefined) {
-
-                let preco = 0
-                let ativo = 0
-                let historico = 0
-                let lpu;
-
-                if (document.getElementById('lpu')) {
-                    lpu = String(document.getElementById('lpu').value).toLowerCase()
-                } else {
-                    lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
-                }
-
-                if (produto[lpu] && produto[lpu].ativo && produto[lpu].historico) {
-                    ativo = produto[lpu].ativo
-                    historico = produto[lpu].historico
-                    preco = historico[ativo]?.valor || 0
-                }
-
-                if (preco == 0 && ocultarZerados) continue
-
-                if (produto.status != "INATIVO") {
-
-                    let td_quantidade = `
-                    <input type="number" class="numero-bonito" oninput="incluir_item('${codigo}', this.value)">
-                    `
-                    if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigo] && orcamento_v2.dados_composicoes[codigo].agrupamentos) {
-                        td_quantidade = `
-                        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-                            <img src="gifs/lampada.gif" style="width: 25px; heigth: 25px;">
-                            <label>Lançar avulso</label>
-                        </div>
-                        <input type="number" class="numero-bonito" style="background-color: orange;" oninput="incluir_item('[AVULSO] ${codigo}', this.value)">
-                        `
-                    }
-
-                    var imagem = 'https://i.imgur.com/Nb8sPs0.png'
-                    if (produto.imagem) {
-                        imagem = produto.imagem
-                    }
-
-                    linhas += `
-                        <tr>
-                            <td style="white-space: nowrap;">${codigo}</td>
-                            <td style="position: relative;">
-                                <div style="display: flex; justify-content: start; align-items: center; gap: 10px;">
-                                    ${moduloComposicoes ? `<img src="imagens/editar.png" style="width: 1.5vw; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')">` : ''}
-                                    ${moduloComposicoes ? `<img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">` : ''}
-                                    <label>${produto.descricao}</label>
-                                </div>
-                                ${(produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) ? `<img src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 1vw; width: 1.5vw; cursor: pointer;">` : ''}
-                            </td>
-                            <td>${produto.fabricante}</td>
-                            <td>${produto.modelo}</td>
-                            <td>${produto.tipo}</td>
-                            <td style="text-align: center;">${td_quantidade}</td>
-                            <td>${produto.unidade}</td>
-                            <td style="white-space: nowrap;">
-                                <label ${moduloComposicoes ? `onclick="abrir_historico_de_precos('${codigo}', '${lpu}')"` : ''} class="${preco != 0 ? 'valor_preenchido' : 'valor_zero'}">${dinheiro(preco)}</label>
-                            </td>
-                            <td style="text-align: center;">
-                                <img src="${imagem}" style="width: 70px; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">
-                            </td>
-                        </tr>
-                    `
-                }
-            }
-        }
-
-        let cores = {
-            VENDA: '#B12425',
-            SERVIÇO: 'green',
-            undefined: 'rgb(179, 116, 0)'
-        }
-
-        let colunas = ['Código', 'Descrição', 'Fabricante', 'Modelo', 'Tipo', 'Quantidade', 'Unidade', 'Valor', 'Imagem *Ilustrativa']
-        let ths = ''
-        let tsh = ''
-        colunas.forEach((col, i) => {
-            ths += `<th style="color: white;">${col}</th>`
-            tsh += `
-            <th style="background-color: white; border-radius: 0px;">
-                <div style="position: relative;">
-                    <input style="margin-left: 25px; text-align: left;" oninput="pesquisar_v2(this, ${i})">
-                    <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
-                </div>
-            </th>
-            `
-        })
-
-        var acumulado = `
-        <table class="tabela" style="background-color: ${cores[tipo_tabela]}">
-            <thead>
-                ${ths}
-            </thead>
-            <thead>
-                ${tsh}
-            </thead>
-            <tbody>
-                ${linhas}
-            </tbody>
-        </table>
-        `
-
-        tabela_itens.innerHTML = acumulado
-
-    }
-
-}
-
-function alternar_icones(elemento, funcao, codigo) {
-
-    let icones = elemento.querySelectorAll('img.img_ag')
-    icones.forEach(img => {
-        img.remove()
+    tables.forEach(tab => {
+        tab.style.display = 'none'
     })
 
-    if (funcao !== undefined) {
-        let imagem = funcao == 'incluir' ? 'gifs/lampada.gif' : 'gifs/retornar.gif'
-        let icone = `<img src="${imagem}" class="img_ag" onclick="funcoes_adicionais('${codigo}', '${funcao}')">`
-        elemento.insertAdjacentHTML('beforeend', icone)
-    }
-
+    document.getElementById(`compos_${tabela}`).style.display = 'table-row'
 }
 
-function calcular_equipamentos(precos, retorno_esperado) {
-
-    if (precos == undefined) {
-        return
-    }
+async function gerenciarAgrupamentos(codigo) {
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-    let img_difal = 'imagens/cancel.png'
-    let difal = 0
+    let composicoesOrcamento = orcamento_v2?.dados_composicoes || {}
+    let dadosComposicoes = await recuperarDados('dados_composicoes') || {}
+    let produto = dadosComposicoes[codigo]
+    let linhas = ''
+    let lpu = String(document.getElementById('lpu').value).toLocaleLowerCase()
 
-    if (orcamento_v2.dados_orcam && orcamento_v2.dados_orcam.estado) {
-        img_difal = 'imagens/concluido.png'
-        let estado = orcamento_v2.dados_orcam.estado
-        difal = estado == 'BA' ? difal = 20.5 - 4 : difal = 12 - 4
-    }
+    let kitCompletoOrdenado = [
+        [codigo, composicoesOrcamento[codigo].qtde],
+        ...Object.entries(produto.agrupamentos)
+    ];
 
-    let dados = {};
+    for (let [agrup, qtdeOriginal] of kitCompletoOrdenado) {
+        let preco = 0;
+        if (dadosComposicoes[agrup] && dadosComposicoes[agrup][lpu]?.historico && dadosComposicoes[agrup][lpu]?.ativo) {
+            let ativo = dadosComposicoes[agrup][lpu].ativo;
+            let historico = dadosComposicoes[agrup][lpu].historico;
+            preco = historico[ativo].valor;
+        }
 
-    const calcularDados = () => {
-        dados.valor_difal = precos.custo * (difal / 100);
-        dados.valor_mais_margem = (precos.custo + dados.valor_difal) * (precos.margem / 100 + 1);
-        dados.valor_imp_fed = dados.valor_mais_margem * 0.08;
-        dados.valor_frete = dados.valor_mais_margem * 0.05 < 30 ? 30 : dados.valor_mais_margem * 0.05;
-        dados.calculo = dados.valor_mais_margem + dados.valor_imp_fed + dados.valor_frete;
-        dados.total_custos = dados.valor_difal + dados.valor_imp_fed + dados.valor_frete + precos.custo;
-        dados.margem = dados.calculo - dados.total_custos;
-        dados.retorno = (dados.margem / dados.calculo) * 100;
-        dados.img_difal = img_difal;
-        dados.difal = difal;
-    };
+        let estilo = preco == 0 ? 'label_zerada' : 'input_valor';
+        let qtde = composicoesOrcamento?.[agrup]?.qtde || 0;
 
-    calcularDados();
-
-    while (dados.retorno < retorno_esperado) {
-        precos.margem += 1;
-        calcularDados();
-    }
-
-    return dados
-
-}
-
-async function ajustar_valores(codigo) {
-
-    let retorno_esperado = 20
-    let input = document.getElementById('retorno')
-    if (input && Number(input.value) > 20) {
-        retorno_esperado = Number(input.value)
-    }
-
-    remover_popup()
-
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-    let lpu = orcamento_v2.lpu_ativa.toLowerCase()
-
-    let precos = {
-        custo: 0,
-        lucro: 0
-    }
-
-    if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigo] && orcamento_v2.dados_composicoes[codigo].precos) {
-        precos = orcamento_v2.dados_composicoes[codigo].precos
-
-    } else if (dados_composicoes[codigo] && dados_composicoes[codigo][lpu] && dados_composicoes[codigo][lpu].ativo && dados_composicoes[codigo][lpu].historico) {
-        let historico = dados_composicoes[codigo][lpu].historico
-        let ativo = dados_composicoes[codigo][lpu].ativo
-        precos = historico[ativo]
-        precos.margem = conversor(precos.margem) // Atualmente está armazenado como string;
-    }
-
-    let dados = calcular_equipamentos(precos, retorno_esperado)
-
-    let acumulado = `
-    <img src="imagens/BG.png" style="height: 100px; position: absolute; left: 3px; top: 3px;">
-    <label style="font-size: 2vw;">Ajuste de valores</label>
-
-    <div style="display: flex; flex-direction: column; gap: 10px; background-color: white; color: #151749; border-radius: 5px; padding: 5px;">
-
-        <div style="display: flex; justify-content: center; align-items: center;">
-            <label>Defina um percentual de retorno para este item:</label>
-            <input id="retorno" type="numero" class="numero-bonito" value="${dados.retorno.toFixed(0)}">
-            <img src="imagens/concluido.png" style="cursor: pointer;" onclick="ajustar_valores('${codigo}')">
-        </div>
-
-        <div style="display: flex; justify-content: center; align-items: center;">
-            
-            <table class="tabela">
-                <thead>
-                    <tr>
-                        <th>Custo</th>
-                        <th>DIFAL</th>
-                        <th>Margem</th>
-                        <th>Imp. Fed. 8%</th>
-                        <th>Frete 5%</th>
-                        <th>Custo Total</th>
-                        <th>Retorno</th>
-                        <th>Valor de Venda</th>
-                    </tr>
-                <thead>
-                <tbody>
-                    <tr>
-                        <td>${dinheiro(precos.custo)}</td>
-                        <td>
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                            <label>${conversor(dados.difal)}%</label>
-                            <label>${dinheiro(dados.valor_difal)}</label>
-                            <img src="${dados.img_difal}" style="width: 25px; heigth: 25px;">
-                        </div>
-                        </td>
-                        <td><label>${dados.margem.toFixed(0)}%</label></td>
-                        <td>${dinheiro(dados.valor_imp_fed)}</td>
-                        <td>${dinheiro(dados.valor_frete)}</td>
-                        <td>${dinheiro(dados.total_custos)}</td>
-                        <td>
-                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-                            <label>${dinheiro(dados.margem)}</label>
-                            <label class="numero" style="width: max-content: heigth: max-content: font-size: 2vw; padding: 5px; background-color: #4CAF50;">${dados.retorno.toFixed(0)}%</label>
-                            </div>
-                        </td>
-                        <td>${dinheiro(dados.calculo)}</td>
-                    </tr>
-                </tbody>
-            </table>
-
-        </div>
-    </div>
-    `
-    openPopup_v2(acumulado)
-
-}
-
-function equipamentos(elemento, incluir, codigo) {
-
-    let imgs = elemento.querySelectorAll('img')
-    imgs.forEach(im => {
-        im.remove()
-    })
-
-    if (incluir) {
-        let im = `
-        <img src="imagens/construcao.png" class="img_ag" onclick="ajustar_valores('${codigo}')">
-        `
-        elemento.insertAdjacentHTML('beforeend', im)
+        linhas += `
+            <tr>
+                <td>${agrup}</td>
+                <td>${dadosComposicoes[agrup].descricao}</td>
+                <td>
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 1vw;">
+                        <input class="campoValor" type="number" oninput="totalAgrupamentos('${agrup}', this.value)" value="${qtde}">
+                        ${agrup == codigo ? `<img src="imagens/construcao.png" style="width: 3vw;">` : `<label class="numero">${qtdeOriginal}</label>`}
+                    </div>
+                </td>
+                <td>
+                    <label class="${estilo}">${dinheiro(preco)}</label>
+                </td>
+                <td><label></label></td>
+                <td>
+                    <img src="${dadosComposicoes[agrup]?.imagem || logo}" style="width: 3vw;">
+                </td>
+            </tr>
+            `;
     }
 
 }
 
 async function total() {
 
-    let tabelas = ['serviço', 'venda', 'locacao']
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
     let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
+    let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let desconto_acumulado = 0
-    let totais = {
-        serviço: { valor: 0, exibir: 'none' },
-        venda: { valor: 0, exibir: 'none' },
-        locacao: { valor: 0, exibir: 'none' },
-        geral: { valor: 0, exibir: 'none', bruto: 0 }
+    let totais = { GERAL: { valor: 0, exibir: 'none', bruto: 0 } }
+    let divTabelas = document.getElementById('tabelas')
+    let tables = divTabelas.querySelectorAll('table')
+    let padraoFiltro = localStorage.getItem('padraoFiltro')
+    if (!orcamento_v2.dados_composicoes) {
+        orcamento_v2.dados_composicoes = {}
     }
 
-    tabelas.forEach(tabela => {
-        let trs = document.getElementById(`linhas_${tabela}`).querySelectorAll('tr')
-
-        if (trs.length > 0) {
-            totais[tabela].exibir = 'block'
-        } else {
-            totais[tabela].exibir = 'none'
-        }
-
-        trs.forEach(tr => {
-            let tds = tr.querySelectorAll('td')
-            let codigo_original = tds[0].textContent
-            let codigo = codigo_original
-
-            if (codigo_original.includes('[AVULSO]')) {
-                codigo = codigo.replace('[AVULSO]', '').trim()
-            }
-
-            let valor_unitario = 0
-            let substituto = ''
-            let acrescimo = 0
-
-            if (lpu == 'lpu carrefour') { // Quantidade correspondente a mais 1 coluna: CARREFOUR;
-                acrescimo = 1
-            }
-
-            if (dados_composicoes[codigo_original] && dados_composicoes[codigo_original].agrupamentos) {
-                alternar_icones(tds[1], 'incluir', codigo_original)
-            }
-
-            let div = tds[1].querySelector('div.agrupados')
-            let total = 0
-            if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigo_original] && orcamento_v2.dados_composicoes[codigo_original].agrupamentos) {
-                let agrups = orcamento_v2.dados_composicoes[codigo_original].agrupamentos
-                div.style.display = 'flex'
-                let elementos = `
-                    <div style="display: flex; justify-content: space-evenly;">
-                        <label>Código</label>
-                        <label>Descrição</label>
-                        <label>Quantidade</label>
-                        <label>Valor</label>
-                        <label>Remover</label>
-                    </div>
-                    <hr style="width: 100%">
-                `
-
-                for (it in agrups) {
-
-                    let item = dados_composicoes[it]
-                    let valor = 0
-
-                    if (item[lpu] && item[lpu].ativo && item[lpu].historico) {
-                        valor = item[lpu].historico[item[lpu].ativo].valor
-                    }
-
-                    let cor = dados_composicoes[it].tipo == 'SERVIÇO' ? 'green' : '#B12425'
-
-                    total += valor * agrups[it]
-                    let estilo = valor * agrups[it] == 0 ? 'label_zerada' : ''
-                    elementos += `
-                    <div style="display: flex; justify-content: space-evenly; align-items: center; border: solid 1px ${cor}; margin: 2px; border-radius: 3px; background-color: white;">
-                        <label>${it}</label>
-                        <div onmouseover="exibir_descricao(this)" onmouseout="ocultar_descricao(this)" style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                            <div style="cursor: pointer; display: none; position: absolute; top: 0; background-color: white; padding: 5px; white-space: nowrap; border-radius: 3px; border: solid 1px #222;">${item.descricao}</div>
-                            <label>${String(item.descricao).slice(0, 10)}...</label>
-                        </div>
-                        <div style="display: flex; justify-content: center;">
-                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                                <img src="imagens/up.png" style="width: 15px; cursor: pointer;" onclick="ajustar_quantidade('${codigo}', '${it}', true)">
-                                <img src="imagens/down.png" style="width: 15px; cursor: pointer;" onclick="ajustar_quantidade('${codigo}', '${it}', false)">
-                            </div>
-                            <label class="numero" style="width: 20px; height: 20px;">${agrups[it]}</label>
-                        </div>
-                        <label class="${estilo}">${dinheiro(valor * agrups[it])}</label>
-                        <img src="imagens/remover.png" style="width: 30px; height: 30px; cursor: pointer;" onclick="remover_adicional('${codigo}', '${it}')">
-                    </div>
-                    `
-                }
-
-                let div_interna = `
-                <div style="display: flex; flex-direction: column; padding: 5px; background-color: #99999940; border-radius: 3px; font-size: 0.8vw;">
-                    ${elementos}
-                    <hr style="width: 100%;">
-                    <div style="display: flex; width: 100%; justify-content: right;">
-                        <label>Total</label>
-                        <label class="total">${dinheiro(total)}</label>
-                    </div>
-                </div>
-                `
-                div.innerHTML = div_interna
-
-                alternar_icones(tds[1], 'remover', codigo)
-
-            } else {
-                div.style.display = 'none'
-                div.innerHTML = ''
-            }
-
-            if (lpu == 'lpu carrefour') {
-
-                if (dados_composicoes[codigo] && dados_composicoes[codigo].substituto && dados_composicoes[codigo].substituto !== '') {
-                    substituto = dados_composicoes[codigo].substituto
-                    tds[1 + acrescimo].querySelector('label').textContent = dados_composicoes[substituto].descricaocarrefour
-                }
-            }
-
-            let sub_ou_cod = substituto == '' ? codigo : substituto
-            let precos = {
-                custo: 0,
-                lucro: 0
-            }
-
-            if (dados_composicoes[sub_ou_cod] && dados_composicoes[sub_ou_cod][lpu] && dados_composicoes[sub_ou_cod][lpu].ativo !== undefined) {
-
-                let ativo = dados_composicoes[sub_ou_cod][lpu].ativo
-                let historico = dados_composicoes[sub_ou_cod][lpu].historico
-                precos = historico[ativo]
-                precos.margem = conversor(precos.margem)
-                valor_unitario = precos.valor
-
-            }
-
-            let cod = tds[0].textContent
-            let tipo = dados_composicoes[cod].tipo
-            let quantidade = Number(tds[3 + acrescimo].querySelector('input').value)
-
-            if (tds[0].id == "codigo_locacao") {
-
-                let ativo = dados_composicoes[sub_ou_cod].locacao.ativo;
-                let historico = dados_composicoes[sub_ou_cod].locacao.historico;
-
-                precos = historico[ativo];
-                valor_unitario = precos.valor;
-
-                if (quantidade >= 30) {
-                    tds[3].textContent = quantidade === 30 ? "Mensal" : "Mensal + Diárias Proporcionais";
-                    valor_unitario = valor_unitario * 0.7; // 30% de desconto
-                } else if (quantidade >= 15) {
-                    tds[3].textContent = quantidade === 15 ? "Quinzenal" : "Quinzenal + Diárias Proporcionais";
-                    valor_unitario = valor_unitario * 0.8; // 20% de desconto
-                } else if (quantidade >= 7) {
-                    tds[3].textContent = quantidade === 7 ? "Semanal" : "Semanal + Diárias Proporcionais";
-                    valor_unitario = valor_unitario * 0.9; // 10% de desconto
-                }
-
-                tipo = "LOCACAO";
-
-            }
-
-            valor_unitario += total // Somando ao total do agrupamento, caso exista;
-            let total_linha = valor_unitario * quantidade
-            let label_icms_unitario = ''
-            let label_icms_total = ''
-            let estilo = 'input_valor'
-
-            // Desconto;
-            let desconto = 0
-            if (lpu !== 'lpu carrefour') {
-
-                var tipo_desconto = tds[5 + acrescimo].querySelector('select')
-                var valor_desconto = tds[5 + acrescimo].querySelector('input')
-
-                if (tipo_desconto.value == 'Porcentagem') {
-                    if (valor_desconto.value < 0) {
-                        valor_desconto.value = 0
-                    } else if (valor_desconto.value > 100) {
-                        valor_desconto.value = 100
-                    }
-
-                    desconto = valor_desconto.value / 100 * total_linha
-
-                } else {
-                    if (valor_desconto.value < 0) {
-                        valor_desconto.value = 0
-                    } else if (valor_desconto.value > total_linha) {
-                        valor_desconto.value = total_linha
-                    }
-
-                    desconto = Number(valor_desconto.value)
-
-                }
-
-                if (desconto == 0) {
-                    tipo_desconto.classList = 'desconto_off'
-                    valor_desconto.classList = 'desconto_off'
-                } else {
-                    tipo_desconto.classList = 'desconto_on'
-                    valor_desconto.classList = 'desconto_on'
-                }
-
-                totais.geral.bruto += total_linha // Valor bruto sem desconto;
-                total_linha = total_linha - desconto
-                desconto_acumulado += desconto
-            }
-            // Final da lógica do Desconto;
-
-            if (lpu.includes('equipamentos') && precos.custo > 0) {
-                valor_unitario = calcular_equipamentos(precos, 20).calculo
-            }
-
-            const itensImportados = [
-                'gcs-725', 'gcs-726', 'gcs-738', 'gcs-739', 'gcs-734', 'gcs-740', 'gcs-741', 'gcs-730', 'gcs-742', 'gcs-743', 'gcs-744', 'gcs-747', 'gcs-729', 'gcs-728', 'gcs-727',
-                'gcs-725', 'gcs-726', 'gcs-738', 'gcs-739', 'gcs-734', 'gcs-740', 'gcs-741', 'gcs-730', 'gcs-742', 'gcs-743', 'gcs-744', 'gcs-747', 'gcs-729', 'gcs-728', 'gcs-727', 'gcs-1135', 'gcs-1136', 'gcs-1137'
-            ]
-
-            if (tipo == 'VENDA' && orcamento_v2.dados_orcam) {
-                // Verifica se o código está na lista de itens importados
-                const isItemImportado = itensImportados.includes(codigo.toLowerCase());
-
-                let icms;
-                if (isItemImportado) {
-                    icms = 0.04 //4% para itens importados
-                } else {
-                    icms = orcamento_v2.dados_orcam.estado == 'BA' ? 0.205 : 0.12
-                }
-
-                // let icms = orcamento_v2.dados_orcam.estado == 'BA' ? 0.205 : 0.12;
-
-                if (icms) {
-
-                    let unit_sem_icms = valor_unitario - (valor_unitario * icms)
-                    let total_sem_icms = (1 - icms) * total_linha
-
-                    // Adiciona label indicando se é item importado
-                    const labelImportado = isItemImportado ? '(IMPORTADO)' : ''
-                    label_icms_unitario += `
-                         <label class="label_imposto_porcentagem">SEM ICMS${labelImportado} ${dinheiro(unit_sem_icms)}</label>
-                    `;
-                    label_icms_total = `
-                        <label class="label_imposto_porcentagem">SEM ICMS${labelImportado} ${dinheiro(total_sem_icms)}</label>
-                    `;
-                }
-
-            }
-
-            totais[String(tipo).toLowerCase()].valor += total_linha
-            totais.geral.valor += total_linha
-            estilo = valor_unitario == 0 ? 'label_zerada' : estilo;
-
-            let total_unitario = `
-            <div>
-                <label class="${estilo}"> ${dinheiro(valor_unitario)}</label>
-                ${label_icms_unitario}
-            </div>
-            `
-            let total_geral = `
-            <div>
-                <label class="${estilo}"> ${dinheiro(total_linha)}</label>
-                ${label_icms_total}
-            </div>
-            `
-
-            tds[4 + acrescimo].innerHTML = total_unitario
-            if (lpu == 'lpu carrefour') {
-                acrescimo = 0
-            }
-            tds[6 + acrescimo].innerHTML = total_geral
-            tds[7 + acrescimo].innerHTML = `
-            <label style="margin: 3px;">${tipo}</label>
-            `
-            //Equipamentos;
-            equipamentos(tds[4 + acrescimo])
-            if (lpu.includes('equipamentos') && valor_unitario !== 0) {
-                equipamentos(tds[4 + acrescimo], true, sub_ou_cod)
-            }
-            //Fim dos equipamentos;
-
-            if (!orcamento_v2.dados_composicoes) {
-
-                orcamento_v2.dados_composicoes = {}
-
-            }
-
-            if (!orcamento_v2.dados_composicoes[codigo_original]) {
-                orcamento_v2.dados_composicoes[codigo_original] = {}
-            }
-
-            let item_salvo = orcamento_v2.dados_composicoes[codigo_original]
-
-            item_salvo.codigo = codigo
-            item_salvo.qtde = quantidade
-            item_salvo.custo = valor_unitario
-            item_salvo.tipo = tipo
-
-            if (lpu !== 'lpu carrefour' && Number(valor_desconto.value) !== 0) {
-                item_salvo.tipo_desconto = tipo_desconto.value
-                item_salvo.desconto = Number(valor_desconto.value)
-            } else {
-                delete item_salvo.tipo_desconto
-                delete item_salvo.desconto
-            }
-
-        })
-
+    tables.forEach(tab => {
+        let nomeTabela = String(tab.id).split('_')[1]
+        totais[nomeTabela] = { valor: 0, exibir: 'none' }
     })
 
-    let esta_quieto = true;
+    if (orcamento_v2.dados_composicoes) {
+        for (let tabela in totais) {
+
+            if (tabela == 'GERAL') continue
+
+            let tbody = document.getElementById(`linhas_${tabela}`)
+            if (!tbody) continue
+
+            let trs = tbody.querySelectorAll('tr')
+
+            if (trs.length > 0) {
+                totais[tabela].exibir = 'flex'
+            } else {
+                totais[tabela].exibir = 'none'
+            }
+
+            trs.forEach(tr => {
+                let tds = tr.querySelectorAll('td')
+                let codigo = tds[0].textContent
+                let acrescimo = carrefour ? 1 : 0 // Quantidade correspondente a mais 1 coluna: CARREFOUR;
+                let valor_unitario = 0
+                let total = 0
+                let precos = { custo: 0, lucro: 0 }
+                let descricao = dados_composicoes[codigo].descricao
+
+                if (!orcamento_v2.dados_composicoes[codigo]) {
+                    orcamento_v2.dados_composicoes[codigo] = {}
+                }
+
+                let itemSalvo = orcamento_v2.dados_composicoes[codigo]
+                itemSalvo.codigo = codigo
+                tds[1].textContent = dados_composicoes[codigo].descricao
+
+                if (dados_composicoes[codigo].agrupamentos) {
+                    let img = `<img src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 3px; width: 1.5vw; cursor: pointer;">`
+                    tds[1].insertAdjacentHTML('beforeend', img) // Não precisa de acréscimo;
+                }
+
+                // Substitui a referência do código para o item que substitui ele; Então a partir daqui, tudo será do substituto;
+                if (carrefour && dados_composicoes[codigo] && dados_composicoes[codigo].substituto && dados_composicoes[codigo].substituto !== '') {
+                    codigo = dados_composicoes[codigo].substituto == '' ? codigo : dados_composicoes[codigo].substituto
+                }
+
+                let descricaocarrefour = dados_composicoes[codigo].descricaocarrefour
+
+                if (dados_composicoes[codigo] && dados_composicoes[codigo][lpu] && dados_composicoes[codigo][lpu].ativo !== undefined) {
+
+                    let ativo = dados_composicoes[codigo][lpu].ativo
+                    let historico = dados_composicoes[codigo][lpu].historico
+                    precos = historico[ativo]
+                    precos.margem = conversor(precos.margem)
+                    valor_unitario = precos.valor
+
+                }
+
+                let tipo = dados_composicoes[codigo].tipo
+                let quantidade = Number(tds[3 + acrescimo].querySelector('input').value)
+
+                valor_unitario += total // Somando ao total do agrupamento, caso exista;
+                let total_linha = valor_unitario * quantidade
+                let label_icms_unitario = ''
+                let label_icms_total = ''
+                let estilo = 'input_valor'
+
+                // Desconto;
+                let desconto = 0
+                let valor_desconto
+                let tipo_desconto
+
+                if (!carrefour) {
+
+                    tipo_desconto = tds[5 + acrescimo].querySelector('select')
+                    valor_desconto = tds[5 + acrescimo].querySelector('input')
+
+                    if (tipo_desconto.value == 'Porcentagem') {
+                        if (valor_desconto.value < 0) {
+                            valor_desconto.value = 0
+                        } else if (valor_desconto.value > 100) {
+                            valor_desconto.value = 100
+                        }
+
+                        desconto = valor_desconto.value / 100 * total_linha
+
+                    } else {
+                        if (valor_desconto.value < 0) {
+                            valor_desconto.value = 0
+                        } else if (valor_desconto.value > total_linha) {
+                            valor_desconto.value = total_linha
+                        }
+
+                        desconto = Number(valor_desconto.value)
+
+                    }
+
+                    if (desconto == 0) {
+                        tipo_desconto.classList = 'desconto_off'
+                        valor_desconto.classList = 'desconto_off'
+                    } else {
+                        tipo_desconto.classList = 'desconto_on'
+                        valor_desconto.classList = 'desconto_on'
+                    }
+
+                    totais.GERAL.bruto += total_linha // Valor bruto sem desconto;
+                    total_linha = total_linha - desconto
+                    desconto_acumulado += desconto
+                }
+
+                // Final da lógica do Desconto;
+                const itensImportados = [
+                    'gcs-725', 'gcs-726', 'gcs-738', 'gcs-739', 'gcs-734', 'gcs-740', 'gcs-741', 'gcs-730', 'gcs-742', 'gcs-743', 'gcs-744', 'gcs-747', 'gcs-729', 'gcs-728', 'gcs-727',
+                    'gcs-725', 'gcs-726', 'gcs-738', 'gcs-739', 'gcs-734', 'gcs-740', 'gcs-741', 'gcs-730', 'gcs-742', 'gcs-743', 'gcs-744', 'gcs-747', 'gcs-729', 'gcs-728', 'gcs-727', 'gcs-1135', 'gcs-1136', 'gcs-1137'
+                ]
+
+                if (tipo == 'VENDA' && orcamento_v2.dados_orcam) {
+                    // Verifica se o código está na lista de itens importados
+                    const isItemImportado = itensImportados.includes(codigo.toLowerCase());
+
+                    let icms;
+                    if (isItemImportado) {
+                        icms = 0.04 //4% para itens importados
+                    } else {
+                        icms = orcamento_v2.dados_orcam.estado == 'BA' ? 0.205 : 0.12
+                    }
+
+                    // let icms = orcamento_v2.dados_orcam.estado == 'BA' ? 0.205 : 0.12;
+
+                    if (icms) {
+
+                        let unit_sem_icms = valor_unitario - (valor_unitario * icms)
+                        let total_sem_icms = (1 - icms) * total_linha
+
+                        // Adiciona label indicando se é item importado
+                        const labelImportado = isItemImportado ? '(IMPORTADO)' : ''
+                        label_icms_unitario += `
+                         <label class="label_imposto_porcentagem">SEM ICMS${labelImportado} ${dinheiro(unit_sem_icms)}</label>`;
+                        label_icms_total = `
+                        <label class="label_imposto_porcentagem">SEM ICMS${labelImportado} ${dinheiro(total_sem_icms)}</label>`;
+                    }
+
+                }
+
+                let filtro = dados_composicoes[codigo]?.[padraoFiltro] || 'SEM CLASSIFICAÇÃO'
+
+                totais[filtro].valor += total_linha
+                totais.GERAL.valor += total_linha
+                estilo = valor_unitario == 0 ? 'label_zerada' : estilo;
+
+                let total_unitario = `
+                    <div>
+                        <label class="${estilo}"> ${dinheiro(valor_unitario)}</label>
+                        ${label_icms_unitario}
+                    </div>
+                    `
+                let total_geral = `
+                    <div>
+                        <label class="${estilo}"> ${dinheiro(total_linha)}</label>
+                        ${label_icms_total}
+                    </div>
+                    `
+
+                // ATUALIZAÇÃO DE INFORMAÇÕES DA COLUNA 4 EM DIANTE
+
+                if (carrefour) {
+                    tds[2].innerHTML = `
+                    <td>
+                        <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
+                            <img src="imagens/carrefour.png" style="width: 3vw;">
+                            <label>${descricaocarrefour}</label>
+                        </div>
+                    </td>`
+                }
+
+                tds[4 + acrescimo].innerHTML = total_unitario
+
+                if (carrefour) { acrescimo = 0 }
+
+                tds[6 + acrescimo].innerHTML = total_geral
+
+                let sistema = dados_composicoes[codigo]?.sistema || ''
+                tds[7 + acrescimo].querySelector('select').value = sistema
+
+                itemSalvo.descricao = descricao
+                itemSalvo.descricaocarrefour = descricaocarrefour
+                itemSalvo.qtde = quantidade
+                itemSalvo.custo = valor_unitario
+                itemSalvo.tipo = tipo
+                itemSalvo.sistema = sistema
+
+                if (!carrefour && Number(valor_desconto.value) !== 0) {
+                    itemSalvo.tipo_desconto = tipo_desconto.value
+                    itemSalvo.desconto = Number(valor_desconto.value)
+                } else {
+                    delete itemSalvo.tipo_desconto
+                    delete itemSalvo.desconto
+                }
+
+            })
+        }
+    }
+
     let desconto_calculo = 0;
     let desconto_geral = document.getElementById('desconto_geral')
     let tipo_de_desconto = desconto_geral.previousElementSibling
@@ -1161,19 +994,25 @@ async function total() {
 
     for (tot in totais) {
 
-        if (tot !== 'geral') {
+        if (tot !== 'GERAL') {
 
-            document.getElementById(tot).style.display = totais[tot].exibir
-            totais[tot].exibir == 'block' ? esta_quieto = false : ''
-            document.getElementById(`total_${tot}`).textContent = dinheiro(totais[tot].valor)
+            let divTotal = document.getElementById(`total_${tot}`)
+            if (divTotal) {
+                divTotal.textContent = dinheiro(totais[tot].valor)
+            }
 
-        } else if (lpu !== 'lpu carrefour') {
+            let elementos = [`toolbar_${tot}`, tot]
+            elementos.forEach(e => {
+                document.getElementById(e).style.display = totais[tot].exibir
+            })
 
-            if (desconto_geral.value !== '') {
+        } else if (!carrefour) {
+
+            if (desconto_geral.value !== '') { // 29
                 if (tipo_de_desconto.value == 'Porcentagem') {
 
                     if (desconto_geral.value < 0) {
-                       desconto_geral.value = 0
+                        desconto_geral.value = 0
                     } else if (desconto_geral.value > 100) {
                         desconto_geral.value = 100
                     }
@@ -1183,37 +1022,38 @@ async function total() {
                 } else {
 
                     if (desconto_geral.value < 0) {
-                       //desconto_geral.value = 0
+                        //desconto_geral.value = 0
                     } else if (desconto_geral.value > totais[tot].valor) {
-                       //desconto_geral.value = totais[tot].valor
+                        //desconto_geral.value = totais[tot].valor
                     }
 
                     desconto_calculo = Number(desconto_geral.value)
 
                 }
             }
+
         }
     }
 
-    desconto_geral_linhas = desconto_acumulado + desconto_calculo
-    document.getElementById(`total_geral`).textContent = dinheiro(totais.geral.valor - desconto_calculo)
+    let desconto_geral_linhas = desconto_acumulado + desconto_calculo
+    document.getElementById(`total_geral`).textContent = dinheiro(totais.GERAL.valor - desconto_calculo)
 
     let painel_desconto = document.getElementById('desconto_total')
-    if (lpu !== 'lpu carrefour') {
+    if (!carrefour) {
         desconto_geral.parentElement.parentElement.style.display = 'flex'
 
-        if (desconto_geral_linhas > totais.geral.valor) {
-            desconto_geral_linhas = totais.geral.valor
+        if (desconto_geral_linhas > totais.GERAL.valor) {
+            desconto_geral_linhas = totais.GERAL.valor
         }
 
-        let desc_porc = desconto_geral_linhas == 0 ? 0 : (desconto_geral_linhas / totais.geral.bruto * 100).toFixed(2)
+        let desc_porc = desconto_geral_linhas == 0 ? 0 : (desconto_geral_linhas / totais.GERAL.bruto * 100).toFixed(2)
 
         painel_desconto.innerHTML = `
             <div class="resumo">
                 <label>RESUMO</label>
                 <hr style="width: 100%;">
                 <label>Total sem Desconto</label>
-                <label style="font-size: 1.5vw;" id="total_sem_desconto">${dinheiro(totais.geral.bruto)}</label>
+                <label style="font-size: 1.5vw;" id="total_sem_desconto">${dinheiro(totais.GERAL.bruto)}</label>
                 <br>
                 <label>Desconto R$</label>
                 <label style="font-size: 1.5vw;" id="desconto_dinheiro">${dinheiro(desconto_geral_linhas)}</label>
@@ -1228,266 +1068,129 @@ async function total() {
         painel_desconto.innerHTML = ''
     }
 
-    orcamento_v2.total_geral = dinheiro(totais.geral.valor - desconto_calculo)
-    orcamento_v2.total_bruto = totais.geral.bruto
+    orcamento_v2.total_geral = dinheiro(totais.GERAL.valor - desconto_calculo)
+    orcamento_v2.total_bruto = totais.GERAL.bruto
 
     localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
 
-    let quieto = document.getElementById('quieto')
-
-    esta_quieto ? quieto.style.display = 'flex' : quieto.style.display = 'none'
-
+    // Mensagem aleatório de boas vindas;
     let aleatorio = Math.floor(Math.random() * metaforas.length)
+    let quieto = `
+        <div id="quieto" style="display: flex; justify-content: center; align-items: center; width: 100%; padding: 5vw;">
+            <label class="novo_titulo">${metaforas[aleatorio]}</label>
+        </div>
+    `
+    let tabelas = document.getElementById('tabelas')
+    let divQuieto = document.getElementById('quieto')
+    if (divQuieto) divQuieto.remove()
 
-    if (esta_quieto) {
-        quieto.innerHTML = `<label class="novo_titulo">${metaforas[aleatorio]}</label>`
-    }
-}
-
-function exibir_descricao(elemento) {
-    let div = elemento.firstElementChild
-    div.style.display = 'flex'
-}
-
-function ocultar_descricao(elemento) {
-    let div = elemento.firstElementChild
-    div.style.display = 'none'
-}
-
-function ajustar_quantidade(codigo, sub_item, ajuste) {
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-    let qt_ajuste = ajuste ? 1 : -1
-
-    orcamento_v2.dados_composicoes[codigo].agrupamentos[sub_item] += qt_ajuste
-
-    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
-
-    total()
-}
-
-function remover_adicional(codigo, sub_item) {
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-
-    delete orcamento_v2.dados_composicoes[codigo].agrupamentos[sub_item]
-
-    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
-
-    total()
-}
-
-function mostrar_ocultar_itens(elemento_img) {
-    var div = elemento_img.parentElement.parentElement.querySelector('div.agrupados');
-
-    if (div.style.display == 'none' || div.style.display === '') {
-        div.style.display = 'flex';
-        elemento_img.style.transform = 'rotate(180deg)';
+    if (orcamento_v2.dados_composicoes && Object.keys(orcamento_v2.dados_composicoes).length > 0) {
+        document.getElementById('toolbarSuperior').style.display = 'flex'
     } else {
-        div.style.display = 'none';
-        elemento_img.style.transform = 'rotate(0deg)';
+        tabelas.insertAdjacentHTML('afterbegin', quieto)
     }
+
 }
 
-async function incluir_item(codigo, nova_quantidade, especial, tipo_tabela) {
+async function incluirItem(codigo, novaQuantidade) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-    let codigo_original = codigo
-    if (String(codigo).includes('[AVULSO]')) {
-        codigo = String(codigo).replace('[AVULSO]', '').trim()
-    }
+    let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
+    let produto = dados_composicoes[codigo]
 
-    if (tipo_tabela == "LOCACAO") {
+    let opcoes = ''
+    esquemas.sistema.forEach(op => {
+        opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
+    })
 
-        tipo_tabela = "LOCAÇÃO"
-
-    }
-
-    // Verificar se o item existe nos dados_composicoes
-    const existe_item_composicoes = dados_composicoes[codigo]
-    if (!existe_item_composicoes) {
-        console.error(`Item com código ${codigo} não encontrado nos dados_composicoes`)
-    }
-
-    var item = dados_composicoes[codigo]
-    var imagem = dados_composicoes[codigo]?.imagem || 'https://i.imgur.com/Nb8sPs0.png';
-    if (!orcamento_v2.dados_composicoes) {
-        orcamento_v2.dados_composicoes = {}
-    }
-    let produto = orcamento_v2?.dados_composicoes[codigo] || {}
-
-    var colunas_carrefour = '';
-    var lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
-
-    if (lpu == 'lpu carrefour') {
-
-        var td_descricao = ''
-        if (dados_composicoes[codigo] && dados_composicoes[codigo].substituto && dados_composicoes[codigo].substituto !== '') {
-            var substituto = dados_composicoes[codigo].substituto;
-            td_descricao = dados_composicoes[substituto].descricao
-
-        } else {
-            td_descricao = dados_composicoes[codigo]?.descricaocarrefour || '?'
-
-        }
-
-        colunas_carrefour = `
-        <td>
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
-                <img src="imagens/carrefour.png" style="width: 3vw;">
-                <label>${td_descricao}</label>
-            </div>
-        </td>
-        `
-    }
-
-    let linha;
-
-    if (tipo_tabela == "LOCAÇÃO") {
-        item.tipo = "LOCAÇÃO"
-
-        linha = `
+    let linha = `
         <tr>
-            <td id="codigo_locacao">${codigo_original}</td>
-            <td style="position: relative;">
-                <label>${item.descricao || 'Descrição não disponível'}</label>
-                <div class="agrupados"></div>         
-            </td>
-            ${colunas_carrefour}
-            <td style="text-align: center;">Diário</td>
+            <td>${codigo}</td>
+            <td style="position: relative;"></td>
+            ${carrefour ? `<td></td>` : ''}
+            <td style="text-align: center;">${produto?.unidade}</td>
             <td style="text-align: center;">
-                <input oninput="total()" type="number" class="numero-bonito" value="${nova_quantidade}">
+                <input oninput="total()" type="number" class="campoValor" value="${novaQuantidade}">
             </td>
             <td style="position: relative;"></td>
 
-            ${lpu !== 'lpu carrefour' ?
-                `<td>
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
-                        <select onchange="total()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
-                            <option ${produto?.tipo_desconto == 'Porcentagem' ? 'selected' : ''}>Porcentagem</option>
-                            <option ${produto?.tipo_desconto == 'Dinheiro' ? 'selected' : ''}>Dinheiro</option>
-                        </select>
-                        <input type="number" oninput="total()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;" value="${produto?.desconto || ''}">
-                    </div>
-                </td>
-                ` : ''}
+            ${!carrefour ?
+            `<td>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
+                    <select onchange="total()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
+                        <option>Porcentagem</option>
+                        <option>Dinheiro</option>
+                    </select>
+                    <input type="number" oninput="total()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;" value="${produto?.desconto || ''}">
+                </div>
+            </td>` : ''}
 
             <td></td>
-            <td></td>
-            <td style="text-align: center;">
-                <img onclick="ampliar_especial(this, '${codigo}')" src="${imagem}" style="width: 3vw; cursor: pointer;">
+            <td>
+                <select class="opcoesSelect" onchange="alterarChave('${codigo}', 'sistema', this)">
+                    ${opcoes}
+                </select>
             </td>
-            <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo_original}')" style="cursor: pointer;"></td>
+            <td style="text-align: center;">
+                <img onclick="ampliar_especial(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
+            </td>
+            <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo}', this)" style="cursor: pointer; width: 2vw;"></td>
         </tr>
-        `
-    } else {
-        linha = `
-        <tr>
-            <td>${codigo_original}</td>
-            <td style="position: relative;">
-                <label>${item?.descricao}</label>
-                <div class="agrupados"></div>         
-            </td>
-            ${colunas_carrefour}
-            <td style="text-align: center;">${item?.unidade}</td>
-            <td style="text-align: center;">
-                <input oninput="total()" type="number" class="numero-bonito" value="${nova_quantidade}">
-            </td>
-            <td style="position: relative;"></td>
+    `
 
-            ${lpu !== 'lpu carrefour' ?
-                `<td>
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
-                        <select onchange="total()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
-                            <option ${produto?.tipo_desconto == 'Porcentagem' ? 'selected' : ''}>Porcentagem</option>
-                            <option ${produto?.tipo_desconto == 'Dinheiro' ? 'selected' : ''}>Dinheiro</option>
-                        </select>
-                        <input type="number" oninput="total()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;" value="${produto?.desconto || ''}">
-                    </div>
-                </td>
-                ` : ''}
+    if (itemExistente(produto.tipo, codigo, novaQuantidade)) {
 
-            <td></td>
-            <td></td>
-            <td style="text-align: center;">
-                <img onclick="ampliar_especial(this, '${codigo}')" src="${imagem}" style="width: 3vw; cursor: pointer;">
-            </td>
-            <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo_original}')" style="cursor: pointer;"></td>
-        </tr>
-        `
-    }
+        let tbody = document.getElementById(`linhas_${produto.tipo}`)
 
-    if (item_existente(item.tipo, codigo_original, nova_quantidade, tipo_tabela)) {
+        if (!tbody) { // Lançamento do 1º Item de cada tipo;
 
-        if (tipo_tabela == "LOCAÇÃO") {
-
-            document.getElementById(`linhas_locacao`).insertAdjacentHTML('beforeend', linha)
-
-        } else {
-
-            document.getElementById(`linhas_${String(item.tipo).toLowerCase()}`).insertAdjacentHTML('beforeend', linha)
-
-        }
-
-
-    }
-
-    if (!especial || especial == undefined) {
-        await total()
-    }
-
-}
-
-async function funcoes_adicionais(codigo, funcao) {
-
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
-
-    if (dados_composicoes[codigo].agrupamentos) {
-
-        if (!orcamento_v2.dados_composicoes[codigo].agrupamentos) {
-            orcamento_v2.dados_composicoes[codigo].agrupamentos = {}
-        }
-
-        if (funcao == 'incluir') {
-            orcamento_v2.dados_composicoes[codigo].agrupamentos = dados_composicoes[codigo].agrupamentos
-
-        } else if (funcao == 'remover') {
-
-            delete orcamento_v2.dados_composicoes[codigo].agrupamentos
-            // Caso exista um avulso, nesse momento ele será preservado como item original e sua versão avulsa será excluída;
-            if (orcamento_v2.dados_composicoes[`[AVULSO] ${codigo}`]) {
-
-                let tipo = String(orcamento_v2.dados_composicoes[`[AVULSO] ${codigo}`].tipo).toLowerCase()
-                let tbody = document.getElementById(`linhas_${tipo}`)
-                let trs = tbody.querySelectorAll('tr')
-                let quantidade = orcamento_v2.dados_composicoes[`[AVULSO] ${codigo}`].qtde
-                let acrescimo = orcamento_v2.lpu_ativa == 'LPU CARREFOUR' ? 1 : 0
-
-                trs.forEach(tr => {
-                    let tds = tr.querySelectorAll('td')
-                    let cod = tds[0].textContent
-
-                    if (cod == `[AVULSO] ${codigo}`) {
-                        tr.remove()
-
-                    } else if (cod == codigo) {
-                        tds[3 + acrescimo].querySelector('input').value = quantidade
-
-                    }
-
-                })
-
-                delete orcamento_v2.dados_composicoes[`[AVULSO] ${codigo}`]
-
+            if (!orcamento_v2.dados_composicoes) {
+                orcamento_v2.dados_composicoes = {}
             }
 
+            orcamento_v2.dados_composicoes[codigo] = {
+                codigo: codigo,
+                qtde: novaQuantidade,
+                tipo: produto?.tipo,
+                unidade: produto?.unidade || 'UN',
+                custo: 0,
+                descricao: produto?.descricao
+            }
+
+            localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+            return carregarTabelas()
+
+        } else {
+            tbody.insertAdjacentHTML('beforeend', linha)
         }
-
-        localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
-
     }
 
-    total()
-    alterar_input_tabela(codigo)
+    await total()
+}
+
+function itemExistente(tipo, codigo, quantidade) {
+
+    let incluir = true
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2'))
+    let linhas = document.getElementById(`linhas_${tipo}`)
+    if (!linhas) return incluir
+    let trs = linhas.querySelectorAll('tr')
+
+    trs.forEach(tr => {
+
+        let tds = tr.querySelectorAll('td')
+        let acrescimo = orcamento_v2.lpu_ativa !== 'LPU CARREFOUR' ? 0 : 1
+
+        if (tds[0].textContent == codigo) {
+
+            incluir = false
+            tds[3 + acrescimo].querySelector('input').value = quantidade
+
+        }
+
+    })
+
+    return incluir
 
 }
 
@@ -1508,18 +1211,8 @@ function alterar_input_tabela(codigo) {
             if (cod == codigo && orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigo]) {
 
                 let td_quantidade = `
-                <input type="number" class="numero-bonito" oninput="incluir_item('${codigo}', this.value)">
+                <input type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
                 `
-                if (orcamento_v2.dados_composicoes[codigo].agrupamentos) {
-                    td_quantidade = `
-                <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-                    <img src="gifs/lampada.gif" style="width: 25px; heigth: 25px;">
-                    <label>Lançar avulso</label>
-                </div>
-                <input type="number" class="numero-bonito" style="background-color: orange;" oninput="incluir_item('[AVULSO] ${codigo}', this.value)">
-                `
-                }
-
                 tds[5].innerHTML = td_quantidade
 
             }
@@ -1527,43 +1220,6 @@ function alterar_input_tabela(codigo) {
         })
 
     }
-
-}
-
-function item_existente(tipo, codigo, quantidade, tipo_tabela) {
-
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2'))
-
-    let linhas;
-
-    if (tipo_tabela == "LOCAÇÃO") {
-
-        linhas = document.getElementById(`linhas_locacao`)
-
-    } else {
-
-        linhas = document.getElementById(`linhas_${tipo.toLocaleLowerCase()}`)
-
-    }
-
-    let trs = linhas.querySelectorAll('tr')
-    let incluir = true
-
-    trs.forEach(tr => {
-
-        let tds = tr.querySelectorAll('td')
-        let acrescimo = orcamento_v2.lpu_ativa !== 'LPU CARREFOUR' ? 0 : 1
-
-        if (tds[0].textContent == codigo) {
-
-            incluir = false
-            tds[3 + acrescimo].querySelector('input').value = quantidade
-
-        }
-
-    })
-
-    return incluir
 
 }
 
@@ -1708,7 +1364,7 @@ function atualizar_dados_vendedores() {
 
 }
 
-function salvar_preenchido() {
+async function salvar_preenchido() {
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
 
@@ -1773,7 +1429,7 @@ function salvar_preenchido() {
     if (orcamento_v2.lpu_ativa === 'MODALIDADE LIVRE') {
         total_v2();
     } else {
-        total();
+        await total();
     }
 
 }

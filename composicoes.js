@@ -1,7 +1,5 @@
-var dados = {}
-var filtrosAtivos = {};
-var composicoes_ = document.getElementById('composicoes_')
-var overlay = document.getElementById('overlay')
+let filtrosAtivos = {};
+let divComposicoes = document.getElementById('composicoes')
 
 function criar_lpu() {
     openPopup_v2(`
@@ -15,7 +13,7 @@ function criar_lpu() {
 }
 
 function pesquisar_em_composicoes(elemento) {
-    var tabela = composicoes_.querySelector('table');
+    var tabela = divComposicoes.querySelector('table');
     var tbody = tabela.querySelector('tbody');
     var trs = tbody.querySelectorAll('tr');
     var termo = elemento.value.toLowerCase();
@@ -101,10 +99,11 @@ async function carregar_tabela_v2() {
         }
     }
 
-    if (!composicoes_) {
+    if (!divComposicoes) {
         return
     }
-    composicoes_.innerHTML = '';
+
+    divComposicoes.innerHTML = '';
 
     var ths = {};
     var tsc = {};
@@ -189,40 +188,20 @@ async function carregar_tabela_v2() {
                     `
                 alinhamento = 'center';
 
-            } else if (chave == 'categoria de equipamento') {
+            } else if (chave == 'sistema' || chave == 'categoria de equipamento' || chave == 'tipo') {
+
+                let opcoes = ''
+
+                esquemas[chave].forEach(op => {
+                    opcoes += `<option ${produto?.[chave] == op ? 'selected' : ''}>${op}</option>`
+                })
 
                 conteudo = `
-                <select style="cursor: pointer;" onchange="alterar_categoria('${codigo}', this)">
-                    <option ${produto?.['categoria de equipamento'] == '' ? 'selected' : ''}></option>
-                    <option ${produto?.['categoria de equipamento'] == 'IP' ? 'selected' : ''}>IP</option>
-                    <option ${produto?.['categoria de equipamento'] == 'ANALÓGICO' ? 'selected' : ''}>ANALÓGICO</option>
-                    <option ${produto?.['categoria de equipamento'] == 'ALARME' ? 'selected' : ''}>ALARME</option>
-                    <option ${produto?.['categoria de equipamento'] == 'CONTROLE DE ACESSO' ? 'selected' : ''}>CONTROLE DE ACESSO</option>
+                <select class="opcoesSelect" onchange="alterarChave('${codigo}', '${chave}', this)">
+                    ${opcoes}
                 </select>
                 `
 
-            } else if (chave == 'sistema') {
-
-                conteudo = `
-                <select style="cursor: pointer;" onchange="alterar_sistema('${codigo}', this)">
-                    <option ${produto?.sistema == '' ? 'selected' : ''}></option>
-                    <option ${produto?.sistema == 'CFTV' ? 'selected' : ''}>CFTV</option>
-                    <option ${produto?.sistema == 'EAS' ? 'selected' : ''}>EAS</option>
-                    <option ${produto?.sistema == 'ALARME' ? 'selected' : ''}>ALARME</option>
-                    <option ${produto?.sistema == 'CONTROLE DE ACESSO' ? 'selected' : ''}>CONTROLE DE ACESSO</option>
-                    <option ${produto?.sistema == 'INFRAESTRUTURA E CABEAMENTO' ? 'selected' : ''}>INFRAESTRUTURA E CABEAMENTO</option>
-                </select>
-                `
-
-            } else if (chave == 'material infra') {
-
-                var stats = ''
-                if (produto[chave]) {
-                    stats = 'checked'
-                }
-
-                conteudo = `<input type="checkbox" style="width: 30px; height: 30px;" onchange="atualizar_status_material('${codigo}', this)" ${stats}>`;
-                alinhamento = 'center';
             }
 
             tds[chave] = `<td style="text-align: ${alinhamento}; max-width: 200px;">${conteudo}</td>`;
@@ -254,7 +233,7 @@ async function carregar_tabela_v2() {
             </div>
         </div>`;
 
-    composicoes_.innerHTML = acumulado;
+    divComposicoes.innerHTML = acumulado;
 
     // Inclusão do evento click nos cabeçalhos;
     let thead1 = document.getElementById('thead1')
@@ -272,28 +251,18 @@ async function carregar_tabela_v2() {
 
 }
 
-async function alterar_categoria(codigo, select) {
+async function alterarChave(codigo, chave, select) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
     let produto = dados_composicoes[codigo]
 
-    produto['categoria de equipamento'] = select.value
+    produto[chave] = select.value
 
-    enviar(`dados_composicoes/${codigo}/categoria de equipamento`, select.value)
-
-    await inserirDados(dados_composicoes, 'dados_composicoes')
-}
-
-async function alterar_sistema(codigo, select) {
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-
-    let produto = dados_composicoes[codigo]
-
-    produto.sistema = select.value
-
-    enviar(`dados_composicoes/${codigo}/sistema`, select.value)
+    enviar(`dados_composicoes/${codigo}/${chave}`, select.value)
 
     await inserirDados(dados_composicoes, 'dados_composicoes')
+
+    if (document.title == 'Criar Orçamento') await carregarTabelas()
 }
 
 async function atualizar_status_material(codigo, elemento) {
@@ -691,79 +660,24 @@ async function abrir_historico_de_precos(codigo, tabela) {
 }
 
 async function salvar_preco_ativo(codigo, id_preco, lpu) {
-    // 1. Criar loader visível
-    const loader = document.createElement('div');
-    loader.id = 'preco-loader';
-    loader.innerHTML = '<div style="font-size:1.5em">Atualizando preço...</div>';
-    loader.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.8);
-        color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-    `;
-    document.body.appendChild(loader);
 
-    try {
-        // 2. Adicionar timeout para evitar loading infinito
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Timeout ao salvar preço')), 10000)
-        );
+    overlayAguarde()
 
-        // 3. Executar a lógica principal
-        const saveOperation = (async () => {
-            const dados_composicoes = await recuperarDados('dados_composicoes') || {};
-            const produto = dados_composicoes[codigo];
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
-            if (!produto) throw new Error('Produto não encontrado');
+    let produto = dados_composicoes[codigo]
 
-            // Inicializar estrutura se não existir
-            produto[lpu] = produto[lpu] || { historico: {}, ativo: "" };
+    produto[lpu].ativo = id_preco
 
-            // Alternar estado ativo
-            produto[lpu].ativo = produto[lpu].ativo === id_preco ? "" : id_preco;
+    enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco)
 
-            // Atualizar valor principal se estiver ativando
-            if (produto[lpu].ativo && produto[lpu].historico[produto[lpu].ativo]) {
-                produto[lpu].valor = produto[lpu].historico[produto[lpu].ativo].valor;
-            }
+    await inserirDados(dados_composicoes, 'dados_composicoes')
 
-            // Salvar alterações
-            await Promise.all([
-                inserirDados(dados_composicoes, 'dados_composicoes'),
-                enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, produto[lpu].ativo),
-                produto[lpu].ativo && enviar(`dados_composicoes/${codigo}/${lpu}/valor`, produto[lpu].valor)
-            ]);
+    if (document.title == 'Criar Orçamento') total() // Caso esteja na tela de Orçamentos;
 
-            return true;
-        })();
-
-        // 4. Executar com timeout
-        await Promise.race([saveOperation, timeoutPromise]);
-
-    } catch (error) {
-        console.error('Erro:', error);
-        // Mostrar erro temporariamente no loader
-        if (loader) loader.innerHTML = `<div style="color:red;font-size:1.2em">Erro: ${error.message}</div>`;
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Mostrar erro por 2 segundos
-    } finally {
-        // 5. Sempre remover o loader e atualizar
-        if (loader && document.body.contains(loader)) {
-            document.body.removeChild(loader);
-        }
-
-        // Fechar popup se existir
-        const popup = document.getElementById('popup');
-        if (popup) popup.remove();
-
-        // Recarregar dados
-        await carregar_tabela_v2();
+    let aguarde = document.getElementById('aguarde')
+    if (aguarde) {
+        aguarde.remove()
     }
 }
 
@@ -1052,12 +966,9 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
                     <tbody>
                         <thead>
                             <th>Preço do Serviço</th>
-                            <th>Custos Atrelados</th>
                         </thead>
                         <tr>
                             <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="final" type="number" oninput="calcular('servico')" value="${dados?.final || ''}"></td>
-                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="custosAtrelados" type="number" oninput="calcular('servico')" value="${dados?.custosAtrelados || ''}"></td>
-                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -1245,7 +1156,6 @@ async function salvar_preco(codigo, lpu, cotacao) {
         if (produto.tipo === 'VENDA') {
             historico[id].icms_creditado = parseFloat(icms_creditado)
         } else { // Aproveitando o else para salvar infos de SERVIÇO
-            historico[id].custosAtrelados = getValue('custosAtrelados')
             historico[id].final = getValue('final')
         }
 
@@ -1401,10 +1311,10 @@ function remover_esta_linha(elemento) {
 
 async function atualizar() {
 
-    carregamento('composicoes_')
+    overlayAguarde()
     await recuperar_dados_composicoes()
-
     carregar_tabela_v2()
+    remover_popup()
 
 }
 
@@ -1435,6 +1345,7 @@ async function cadastrar_editar_item(codigo) {
                 <select style="width: 100%; cursor: pointer; background-color: #a2d7a4; border-radius: 3px; padding: 3px;">
                     <option ${valor == 'VENDA' ? 'selected' : ''}>VENDA</option>
                     <option ${valor == 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
+                    <option ${valor == 'USO E CONSUMO' ? 'selected' : ''}>USO E CONSUMO</option>
                 </select>
             </div>
             `
@@ -1516,6 +1427,8 @@ async function cadastrar_alterar(codigo) {
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
+    overlayAguarde()
+
     if (!codigo) {
         const ultimoCodigo = encontrarMaiorCodigo(dados_composicoes);
 
@@ -1553,6 +1466,8 @@ async function cadastrar_alterar(codigo) {
         if (item && valor) dadosAtualizados[item.textContent] = valor.value;
     });
 
+    remover_popup();
+
     dadosAtualizados.codigo = codigo;
 
     dados_composicoes[codigo] = { ...dados_composicoes[codigo], ...dadosAtualizados };
@@ -1560,7 +1475,6 @@ async function cadastrar_alterar(codigo) {
     await inserirDados(dados_composicoes, 'dados_composicoes');
     await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
 
-    remover_popup();
     carregar_tabela_v2();
 }
 
@@ -1610,9 +1524,7 @@ async function verificar_codigo_existente() {
 
 async function abrirModalFiltros() {
     let modal = document.getElementById("modal-filtros");
-    let overlay = document.getElementById("overlay");
     let listaFiltros = document.getElementById("lista-filtros");
-    overlay.style.display = "block"
 
     // Obtém os dados do localStorage ou do banco
     let dados_composicoes = await recuperarDados("dados_composicoes") || {};
@@ -1657,7 +1569,6 @@ async function abrirModalFiltros() {
 
 function fecharModalFiltros() {
     document.getElementById("modal-filtros").style.display = "none";
-    overlay = document.getElementById("overlay").style.display = "none";
 }
 
 function selecionarTodosFiltros() {
@@ -1669,13 +1580,11 @@ function selecionarTodosFiltros() {
 
 function aplicarFiltros() {
     let checkboxes = document.querySelectorAll("#lista-filtros input[type='checkbox']:checked");
-    let overlay = document.getElementById("overlay");
     let colunasSelecionadas = Array.from(checkboxes).map(cb => cb.value);
 
     localStorage.setItem("colunas_composicoes", JSON.stringify(colunasSelecionadas));
     fecharModalFiltros();
     carregar_tabela_v2(); // Atualiza a tabela com os filtros aplicados
-    overlay.style.display = "none"
 }
 
 function filtrarCampos() {

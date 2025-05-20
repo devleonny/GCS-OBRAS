@@ -195,7 +195,7 @@ async function preencher_orcamentos_v2() {
             <tr>
                 <td>${data}</td>
                 <td>
-                    <select style="font-size: 0.6vw;" onchange="alterar_status(this, '${orcamento}')">
+                    <select class="opcoesSelect" onchange="alterar_status(this, '${orcamento}')">
                         ${opcoes}
                     </select>
                 </td>
@@ -247,7 +247,7 @@ async function preencher_orcamentos_v2() {
 
             div_orcamentos.innerHTML = ''
             let tabela = `
-                    <table id="orcamentos_" class="tabela" style="position: relative; font-size: 0.8vw; background-color: #d2d2d2;">
+                    <table id="orcamentos_" class="tabela" style="font-size: 0.8vw;">
                         <thead>
                             <tr>${ths}</tr>
                             <tr id="tsh">${tsh}</tr>
@@ -279,7 +279,7 @@ async function recuperar_orcamentos() {
 
     }
 
-    document.getElementById("aguarde").remove()
+    document.getElementById('aguarde').remove()
 }
 
 async function novoOrcamento() {

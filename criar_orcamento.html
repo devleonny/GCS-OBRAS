@@ -41,7 +41,7 @@
             white-space: nowrap;
         }
 
-        .numero-bonito {
+        .campoValor {
             width: 10vw;
             font-size: 1.5vw;
             font-weight: bold;
@@ -54,7 +54,7 @@
             padding-bottom: 1vw;
         }
 
-        .numero-bonito span {
+        .campoValor span {
             display: block;
             font-size: 24px;
             font-weight: normal;
@@ -80,25 +80,6 @@
             font-weight: bold;
             box-shadow: 1px 1px #151749;
             padding: 5px;
-        }
-
-        #tabela_dados_cliente {
-            color: #222;
-            z-index: 333;
-            position: fixed;
-            right: -100%;
-            top: 5vh;
-            height: 80vh;
-            overflow-y: auto;
-            background-color: #d2d2d2;
-            opacity: 0.95;
-            border-radius: 5px;
-            transition: right 0.5s ease;
-            padding: 2vw;
-        }
-
-        #tabela_dados_cliente.show {
-            right: 0;
         }
 
         .top {
@@ -190,67 +171,6 @@
             font-size: 1.0vw;
         }
 
-        .aviso {
-            display: none;
-            font-size: 0.8em;
-            background-color: white;
-            color: #B12425;
-            border-radius: 5px;
-            padding: 5px;
-        }
-
-        #cabecalho_serviço {
-            background-color: green;
-            border-radius: 5px;
-            border-collapse: collapse;
-        }
-
-        #cabecalho_locacao {
-            background-color: blue;
-            border-radius: 5px;
-            border-collapse: collapse;
-        }
-
-        #cabecalho_venda,
-        #tabela_composicoes {
-            width: 100%;
-            background-color: #B12425;
-            border-radius: 5px;
-            border-collapse: collapse;
-        }
-
-        #cabecalho_venda th,
-        #cabecalho_venda td,
-        #cabecalho_serviço th,
-        #cabecalho_serviço td,
-        #cabecalho_locacao th,
-        #cabecalho_locacao td #tabela_composicoes th,
-        #tabela_composicoes td,
-        #tabela_itens th,
-        #tabela_itens td {
-            padding: 8px;
-            text-align: left;
-            border-bottom: 1px solid transparent;
-        }
-
-        #cabecalho_venda th,
-        #cabecalho_serviço th,
-        #cabecalho_locacao th {
-            background-color: transparent;
-        }
-
-        #tabela_itens {
-            width: 100%;
-            border-radius: 5px;
-            border-collapse: collapse;
-            height: 700px;
-            overflow-y: auto;
-        }
-
-        #tabela_itens th {
-            background-color: transparent;
-        }
-
         .tabela_DD {
             margin-bottom: 5%;
             width: 100%;
@@ -287,50 +207,10 @@
             word-break: break-all;
         }
 
-        .menu_top_venda {
+        .menu_top {
             display: flex;
             align-items: center;
             font-size: 2.0em;
-            background-color: #B12425;
-            color: white;
-            padding: 5px;
-            transition: ease-in;
-            cursor: pointer;
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
-        }
-
-        .menu_top_serviço {
-            display: flex;
-            align-items: center;
-            font-size: 2.0em;
-            background-color: green;
-            color: white;
-            padding: 5px;
-            transition: ease-in;
-            cursor: pointer;
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
-        }
-
-        .menu_top_locacao {
-            display: flex;
-            align-items: center;
-            font-size: 2.0em;
-            background-color: blue;
-            color: white;
-            padding: 5px;
-            transition: ease-in;
-            cursor: pointer;
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
-        }
-
-        .menu_top_geral {
-            display: flex;
-            align-items: center;
-            font-size: 2.0em;
-            background-color: rgb(179, 116, 0);
             color: white;
             padding: 5px;
             transition: ease-in;
@@ -565,6 +445,20 @@
 
                 </div>
 
+                <div style="width: max-content; margin: 1vw;">
+                    <div style="display: flex; align-items: center; justify-content: start; gap: 1vw;">
+                        <input id="filtrotipo" style="width: 25px; height: 25px; cursor: pointer;"
+                            onchange="filtroTabela('tipo')" name="filtroTabela" type="radio">
+                        <label>Filtrar por Tipo</label>
+                    </div>
+                    <br>
+                    <div style="display: flex; align-items: center; justify-content: start; gap: 1vw;">
+                        <input id="filtrosistema" style="width: 25px; height: 25px; cursor: pointer;"
+                            onchange="filtroTabela('sistema')" name="filtroTabela" type="radio">
+                        <label>Filtrar por Sistema</label>
+                    </div>
+                </div>
+
                 <div
                     style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
 
@@ -580,7 +474,7 @@
                         <div
                             style="cursor: pointer; display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 10px; border-radius: 3px; padding: 5px;">
                             <label style="font-size: 1em;">Tabela de preço</label>
-                            <select id="lpu" onchange="alterar_tabela_lpu(this.value)"
+                            <select id="lpu" onchange="alterarTabelaLPU(this.value)"
                                 style="width: 15vw; background-color: white; border-radius: 3px; padding: 5px; color: #222;">
                             </select>
                         </div>
@@ -595,7 +489,7 @@
                                 <option>Porcentagem</option>
                                 <option>Dinheiro</option>
                             </select>
-                            <input oninput="total()" type="number" id="desconto_geral" class="numero-bonito"
+                            <input oninput="total()" type="number" id="desconto_geral" class="campoValor"
                                 style="width: 10vw; padding: 5px; font-size: 1.0vw; color: #222; background-color: white;">
                         </div>
 
@@ -607,63 +501,11 @@
 
             </div>
 
-            <div id="quieto"
-                style="display: flex; justify-content: center; align-items: center; width: 100%; padding: 5vw;">
-            </div>
-
             <br>
 
-            <div id="venda" style="display: none; width: 100%;">
-                <div style="display: flex; justify-content: right; width: 100%;">
-                    <div
-                        style="width: max-content; display: flex; align-items: center; justify-content: center; background-color: #d2d2d2; padding: 5px; border-top-right-radius: 3px; border-top-left-radius: 3px; margin-right: 10px;">
-                        <label style="margin-right: 3vw; font-size: 1.5vw;">Total de Venda</label>
-                        <label id="total_venda" style="font-size: 1.5vw;">R$ -- </label>
-                    </div>
-                </div>
-                <table id="cabecalho_venda" style="width: 100%;">
-                    <thead id="thead_venda"></thead>
-                    <tbody id="linhas_venda"></tbody>
-                </table>
-            </div>
+            <div id="tabelas"></div>
 
-            <br>
-
-            <div id="serviço" style="display: none; width: 100%; margin-bottom: 100px;">
-                <div style="display: flex; justify-content: right; width: 100%;">
-                    <div
-                        style="width: max-content; display: flex; align-items: center; justify-content: center; background-color: #d2d2d2; padding: 5px; border-top-right-radius: 3px; border-top-left-radius: 3px; margin-right: 10px;">
-                        <label style="margin-right: 3vw; font-size: 1.5vw;">Total de Serviço</label>
-                        <label id="total_serviço" style="font-size: 1.5vw;">R$ -- </label>
-                    </div>
-                </div>
-                <table id="cabecalho_serviço" style="width: 100%;">
-                    <thead id="thead_serviço"></thead>
-                    <tbody id="linhas_serviço"></tbody>
-                </table>
-            </div>
-
-            <div id="locacao" style="display: none; width: 100%; margin-bottom: 100px;">
-                <div style="display: flex; justify-content: right; width: 100%;">
-                    <div
-                        style="width: max-content; display: flex; align-items: center; justify-content: center; background-color: #d2d2d2; padding: 5px; border-top-right-radius: 3px; border-top-left-radius: 3px; margin-right: 10px;">
-                        <label style="margin-right: 3vw; font-size: 1.5vw;">Total de Locação</label>
-                        <label id="total_locacao" style="font-size: 1.5vw;">R$ -- </label>
-                    </div>
-                </div>
-                <table id="cabecalho_locacao" style="width: 100%;">
-                    <thead id="thead_locacao"></thead>
-                    <tbody id="linhas_locacao"></tbody>
-                </table>
-            </div>
-
-            <div id="penumbra">
-
-                <div id="toolbar" style="position: relative; display: flex; justify-content: center; width: 100%; margin-top: 30px; gap: 10px;"></div>
-
-                <div id="tabela_itens"></div>
-
-            </div>
+            <div id="tabela_itens"></div>
 
         </div>
 
