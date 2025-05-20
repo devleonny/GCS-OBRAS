@@ -5,23 +5,133 @@ document.addEventListener('keydown', function (event) {
     if (event.key === 'F5') {
         f5()
     }
-});
+})
 
 function f5() {
     location.reload();
 }
 
-identificacao_user()
+identificacaoUser()
 carregarIcones()
+verificarAlertas()
 
 function ativarCloneGCS(ativar) {
 
     localStorage.setItem('modoClone', ativar)
-
     carregarIcones()
-
     corFundo()
 
+}
+
+async function verificarAlertas() {
+
+    let auxliarAlertas = JSON.parse(localStorage.getItem('auxliarAlertas')) || {}
+    if (auxliarAlertas) {
+        if (auxliarAlertas.modulo == 'chamados') {
+            try {
+                setTimeout(async function () {
+                    let dados_manutencao = await recuperarDados('dados_manutencao') || {}
+                    if (dados_manutencao[auxliarAlertas.info.idChamado]) {
+                        await abrir_manutencao(auxliarAlertas.info.idChamado)
+                    } else {
+                        await removerAlertaChamado(auxliarAlertas.info.idChamado, auxliarAlertas.info.his)
+                    }
+
+                }, 500)
+
+            } catch (err) {
+                console.log(err);
+            }
+
+            localStorage.removeItem('auxliarAlertas')
+        }
+    }
+
+    let ultimoTimestamp = await ultimo_timestamp('alertas') || 0
+    let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
+    let alertas = await recuperarDados('alertas') || {}
+
+    if (timestamps.alertas > ultimoTimestamp) {
+        alertas = await receber('alertas') || {}
+        await inserirDados(alertas, 'alertas')
+        timestamps.alertas = new Date().getTime()
+        localStorage.setItem('timestamps', JSON.stringify(timestamps))
+    }
+
+    let mostrar = false
+    let notificacoes = ''
+    if (alertas.chamados) { // Alertas para Chamados
+
+        for (let idAlerta in alertas.chamados) {
+            let chamados = alertas.chamados[idAlerta]
+
+            notificacoes += `
+            <label style="font-size: 0.9vw;"><strong>Chamados</strong></label>
+            <hr style="width: 100%;">
+            `
+            for (let idChamado in chamados) {
+                let historicos = chamados[idChamado]
+
+                for (let his in historicos) {
+                    let historico = historicos[his]
+
+                    if (historico.destinado == acesso.usuario) {
+                        notificacoes += `
+                        <div class="itemAlerta">
+                            <label><strong>${historico.enviadoDe}</strong> • Peço a sua atenção aqui</label>
+                            <label><strong>Data</strong> ${historico.data}</label>
+                            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                <textarea readOnly>${historico.comentario}</textarea>
+                                <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="irChamado('${historico.manutencao}', '${his}')">
+                            </div>
+                        </div>
+                        `
+                    }
+                    
+                    mostrar = true
+                }
+            }
+        }
+    }
+
+    let acumulado = `
+    <div class="alerta" id="painelAlertas" onclick="exibirNotificacoes()">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 2vw;">
+            <img src="gifs/atencao.gif" style="border-radius: 50%; cursor: pointer; padding: 1vw;">
+            <label style="padding-right: 2vw; cursor: pointer;">ATENÇÃO</label>
+        </div>
+        <div style="display: none; flex-direction: column; align-items: start; justify-content: center; padding: 5px; height: max-content; max-height: 80vh; overflow: auto; " id="notificacoes">
+            ${notificacoes}
+        </div>
+    </div>
+    `
+
+    if(!mostrar) return
+
+    let painelAlertas = document.getElementById('painelAlertas')
+    if (painelAlertas) {
+        painelAlertas.remove()
+    }
+
+    document.body.insertAdjacentHTML('beforeend', acumulado)
+
+}
+
+async function irChamado(idChamado, his) {
+
+    let auxliarAlertas = {
+        modulo: 'chamados',
+        info: { idChamado, his }
+    }
+
+    localStorage.setItem('auxliarAlertas', JSON.stringify(auxliarAlertas))
+    window.location.href = 'chamados.html'
+
+}
+
+function exibirNotificacoes() {
+    let notificacoes = document.getElementById('notificacoes')
+    notificacoes.style.display == 'none' ? notificacoes.style.display = 'flex' : notificacoes.style.display = 'none'
 }
 
 function carregarIcones() {
@@ -104,7 +214,7 @@ function corFundo() {
     }
 }
 
-async function identificacao_user() {
+async function identificacaoUser() {
 
     corFundo()
 
@@ -190,7 +300,7 @@ async function configs() {
     }
 
     let tabela = `
-    <table class="tabela" style="width: max-content;">
+    <table class="tabela" style="width: 30vw;">
         <thead>
             <tr>
                 <th>Usuários</th>
@@ -277,6 +387,8 @@ function inicial_maiuscula(string) {
         return ''
     }
     string.includes('_') ? string = string.split('_').join(' ') : ''
+
+    if (string.includes('lpu')) return string.toUpperCase()
     return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
 }
 

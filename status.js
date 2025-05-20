@@ -280,74 +280,103 @@ async function painel_adicionar_pedido() {
 }
 
 async function painel_adicionar_notas(chave) {
+    try {
+        // 1. Recupera os dados ou inicializa um objeto vazio
+        let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
 
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    var cliente = dados_orcamentos[id_orcam].dados_orcam.cliente_selecionado
-    var data = new Date().toLocaleString('pt-BR', {
-        dateStyle: 'short',
-        timeStyle: 'short'
-    });
+        // 2. Verifica se `id_orcam` existe e se o orçamento correspondente existe
+        if (!id_orcam || !dados_orcamentos[id_orcam]) {
+            throw new Error("ID do orçamento não encontrado.");
+        }
 
-    chave == undefined ? chave = gerar_id_5_digitos() : chave
+        // 3. Verifica se a estrutura `dados_orcam` e `cliente_selecionado` existem
+        const orcamento = dados_orcamentos[id_orcam];
+        if (!orcamento.dados_orcam || !orcamento.dados_orcam.cliente_selecionado) {
+            throw new Error("Dados do cliente não encontrados no orçamento.");
+        }
 
-    let st = dados_orcamentos[id_orcam].status?.historico[chave] || {}
-    let notas = st.notas ? st.notas[0] : {}
+        const cliente = orcamento.dados_orcam.cliente_selecionado;
+        const data = new Date().toLocaleString('pt-BR', {
+            dateStyle: 'short',
+            timeStyle: 'short'
+        });
 
-    var acumulado = `
+        // 4. Gera uma chave se não for fornecida
+        chave = chave === undefined ? gerar_id_5_digitos() : chave;
 
-        <label style="position: absolute; bottom: 5px; right: 5px; font-size: 0.6em;" id="data">${data}</label>
+        // 5. Busca o histórico de status de forma segura
+        let st = {};
+        if (orcamento.status?.historico?.[chave]) {
+            st = orcamento.status.historico[chave];
+        }
 
-        <div style="display: flex; justify-content: space-evenly; align-items: center; padding: 10px;">
-            <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
-        </div>
+        // 6. Obtém as notas, se existirem
+        let notas = st.notas?.[0] || {};
 
-        <br>
-        
-        <div id="container_status"></div>
+        // 7. Monta o HTML do painel
+        const acumulado = `
+            <label style="position: absolute; bottom: 5px; right: 5px; font-size: 0.6em;" id="data">${data}</label>
 
-        <hr style="width: 80%">
-
-        <div style="display: flex; flex-direction: column; align-items: start: justify-content: center; gap: 5px;">
-            <label class="novo_titulo" style="color: #222;">Inclua o número da Nota</label>
-            <label>Remessa, Venda ou Serviço</label>
-        </div>
-
-        <div style="display: flex; flex-direction: column; justify-content: center; align-items: start; padding: 10px;"
-            <label><strong>Número da Nota</strong></label>
-            <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
-                <input type="number" class="pedido" id="nota" value="${notas?.nota || ''}">
-                <select id="tipo">
-                    <option>Selecione</option>
-                    <option ${notas?.modalidade == 'Remessa' ? 'selected' : ''}>Remessa</option>
-                    <option ${notas?.modalidade == 'Venda' ? 'selected' : ''}>Venda</option>
-                    <option ${notas?.modalidade == 'Serviço' ? 'selected' : ''}>Serviço</option>
-                    <option ${notas?.modalidade == 'Venda + Serviço' ? 'selected' : ''}>Venda + Serviço</option>
-                </select>
+            <div style="display: flex; justify-content: space-evenly; align-items: center; padding: 10px;">
+                <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
             </div>
-            <label><strong>Valor da Nota</strong></label>
-            <input type="number" class="pedido" id="valorNota" value="${notas?.valorNota || ''}">
-            <label><strong>Valor do Frete</strong></label>
-            <input type="number" class="pedido" id="valorFrete" value="${notas?.valorFrete || ''}">
-        </div>
 
-        <div style="display: flex; flex-direction: column; gap: 3px; align-items: start; padding: 10px;">
-            <label><strong>Comentário</strong></label>
-            <textarea rows="5" style="width: 80%;" id="comentario_status">${st?.comentario || ''}</textarea>
-        </div>
+            <br>
+            
+            <div id="container_status"></div>
 
-        <hr style="width: 80%">
+            <hr style="width: 80%">
 
-        <button style="background-color: #4CAF50" onclick="salvar_notas('${chave}')">Salvar</button>
+            <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px;">
+                <label class="novo_titulo" style="color: #222;">Inclua o número da Nota</label>
+                <label>Remessa, Venda ou Serviço</label>
+            </div>
 
-        <div id="aviso_campo_branco" style="display: none; gap: 10px; align-items: center; justify-content: center;">
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-            <label>Não deixe campos em Branco</label>
-        </div>
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: start; padding: 10px;">
+                <label><strong>Número da Nota</strong></label>
+                <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
+                    <input type="number" class="pedido" id="nota" value="${notas?.nota || ''}">
+                    <select id="tipo">
+                        <option>Selecione</option>
+                        <option ${notas?.modalidade == 'Remessa' ? 'selected' : ''}>Remessa</option>
+                        <option ${notas?.modalidade == 'Venda' ? 'selected' : ''}>Venda</option>
+                        <option ${notas?.modalidade == 'Serviço' ? 'selected' : ''}>Serviço</option>
+                        <option ${notas?.modalidade == 'Venda + Serviço' ? 'selected' : ''}>Venda + Serviço</option>
+                    </select>
+                </div>
+                <label><strong>Valor da Nota</strong></label>
+                <input type="number" class="pedido" id="valorNota" value="${notas?.valorNota || ''}">
+                <label><strong>Valor do Frete</strong></label>
+                <input type="number" class="pedido" id="valorFrete" value="${notas?.valorFrete || ''}">
+            </div>
 
-    `
+            <div style="display: flex; flex-direction: column; gap: 3px; align-items: start; padding: 10px;">
+                <label><strong>Comentário</strong></label>
+                <textarea rows="5" style="width: 80%;" id="comentario_status">${st?.comentario || ''}</textarea>
+            </div>
 
-    openPopup_v2(acumulado, "Nova Nota Fiscal", true)
+            <hr style="width: 80%">
 
+            <button style="background-color: #4CAF50" onclick="salvar_notas('${chave}')">Salvar</button>
+
+            <div id="aviso_campo_branco" style="display: none; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Não deixe campos em Branco</label>
+            </div>
+        `;
+
+        openPopup_v2(acumulado, "Nova Nota Fiscal", true);
+
+    } catch (error) {
+        console.error("Erro ao abrir painel de notas:", error);
+        openPopup_v2(`
+            <div style="color: red; padding: 20px; text-align: center;">
+                <h3>⚠️ Erro ao carregar notas</h3>
+                <p>${error.message}</p>
+                <p>Verifique se o orçamento está correto.</p>
+            </div>
+        `, "Erro", false);
+    }
 }
 
 function ocultar_pedido(elemento) {
@@ -373,6 +402,7 @@ function ocultar_pedido(elemento) {
 async function calcular_requisicao(sincronizar) {
 
     let tabela_requisicoes = document.getElementById('tabela_requisicoes')
+    console.log('Tabela requisicao: ', tabela_requisicoes)
 
     if (tabela_requisicoes) {
         let tbody = tabela_requisicoes.querySelector('tbody')
@@ -562,56 +592,54 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
 
         linhas += `
             <tr class="lin_req" style="background-color: white;">
-                  <td style="text-align: center; font-size: 1.2em; white-space: nowrap;">${codigo}</td>
-                  <td style="text-align: center;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">
-                    ${item?.omie || '<input>'}</label>` :
-                `<input class="pedido" style="font-size: 1.0vw; width: 10vw; height: 40px; padding: 0px; margin: 0px;"
-                    value="${dados_composicoes[codigo]?.omie || ''}">`}
-                  </td>
-                  <td style="position: relative;">
-                      <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
-                          <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong></label>
-                          <label>${dados_composicoes[codigo] ? dados_composicoes[codigo].descricao : item.descricao}</label>
-                      </div>
-                      ${apenas_visualizar ? '' : `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`}
-                  </td>
-                  <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
-                      ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${item?.tipo || ''}</label>` : `
-                          <select onchange="calcular_requisicao()" style="border: none;">
-                              <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
-                              <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
-                          </select>
-                      `}
-                  </td>
-                  <td style="text-align: center;">
-                      ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.qtde_enviar || ''}</label>` : `
-                          <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
-                              <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
-                                  <label>Quantidade a enviar</label>
-                                  <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" min="0" value="${qtde}">
-                              </div>
-                              <label class="num">${itensOrcamento[codigo]?.qtde || ''}</label>
-                          </div>
-                      `}
-                  </td>
-                  <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                      <label></label>
-                  </td>
-                  <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
-                      <label></label>
-                  </td>
-                  <td>
-                      ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.requisicao || ''}</label>` : `
-                          <select style="border: none; cursor: pointer;">
-                              <option style="text-align: center;">Nada a fazer</option>
-                              <option>Estoque AC</option>
-                              <option>Comprar</option>
-                              <option>Enviar do CD</option>
-                              <option>Fornecido pelo Cliente</option>
-                          </select>
-                      `}
-                  </td>
+                <td style="text-align: center; font-size: 1.2em; white-space: nowrap;"><label>${codigo}</label></td>
+                <td style="text-align: center;">
+                ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.omie || item?.partnumber}</label>` :
+                `<input class="pedido" style="width: 10vw;" value="${dados_composicoes[codigo]?.omie || ''}">`}
+                </td>
+                <td style="position: relative;">
+                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
+                        <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong></label>
+                        <label>${dados_composicoes[codigo] ? dados_composicoes[codigo].descricao : item.descricao}</label>
+                    </div>
+                    ${apenas_visualizar ? '' : `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`}
+                </td>
+                <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
+                    ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${item?.tipo || ''}</label>` : `
+                        <select onchange="calcular_requisicao()" style="border: none;">
+                            <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
+                            <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
+                        </select>
+                    `}
+                </td>
+                <td style="text-align: center;">
+                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.qtde_enviar || ''}</label>` : `
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
+                                <label>Quantidade a enviar</label>
+                                <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" min="0" value="${qtde}">
+                            </div>
+                            <label class="num">${itensOrcamento[codigo]?.qtde || ''}</label>
+                        </div>
+                    `}
+                </td>
+                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                    <label></label>
+                </td>
+                <td style="text-align: left; white-space: nowrap; font-size: 1.2em;">
+                    <label></label>
+                </td>
+                <td>
+                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.requisicao || ''}</label>` : `
+                        <select style="border: none; cursor: pointer;">
+                            <option style="text-align: center;">Nada a fazer</option>
+                            <option>Estoque AC</option>
+                            <option>Comprar</option>
+                            <option>Enviar do CD</option>
+                            <option>Fornecido pelo Cliente</option>
+                        </select>
+                    `}
+                </td>
             </tr>
         `
     };
@@ -998,6 +1026,10 @@ async function salvar_pedido(chave) {
         orcamento.status = { historico: {} };
     }
 
+    if (!orcamento.status.historico) {
+        orcamento.status.historico = {}
+    }
+
     if (!orcamento.status.historico[chave]) {
         orcamento.status.historico[chave] = {}
     }
@@ -1089,6 +1121,7 @@ async function salvar_requisicao(chave) {
     if (!orcamento.status.historico) {
         orcamento.status.historico = {}
     }
+
     //Criar novo lançamento
     var novo_lancamento = {
         status: 'REQUISIÇÃO',
@@ -1114,7 +1147,7 @@ async function salvar_requisicao(chave) {
         let partnumber = valores[0].value
         let tipo = valores[1].value
         let qtde = Number(valores[2].value)
-        let requisicao = valores[3].value
+        let requisicao = valores[3]?.value || ''
 
         if (partnumber == '' && qtde > 0) {
             document.getElementById("aguarde")?.remove();
@@ -1140,7 +1173,7 @@ async function salvar_requisicao(chave) {
             temItensValidos = true;
         }
     }
-
+    
     // Se não houver itens válidos, mostra mensagem de erro
     if (!temItensValidos) {
         document.getElementById("aguarde")?.remove();
@@ -1841,7 +1874,8 @@ async function mostrar_painel() {
             total_custo: 0,
             total_orcado: 0,
             total_impostos: 0,
-            total_lucro_liquido: 0
+            total_lucro_liquido: 0,
+            total_unit: 0
         },
         VENDA: {
             orcamento: '',
@@ -1849,7 +1883,9 @@ async function mostrar_painel() {
             total_custo: 0,
             total_orcado: 0,
             total_impostos: 0,
-            total_lucro: 0
+            total_lucro: 0,
+            total_unit: 0,
+            total_custo_unit: 0
         }
     }
 
@@ -1859,8 +1895,8 @@ async function mostrar_painel() {
         let item_orcamento = itens_no_orcamento[codigo]
         let produto = dados_composicoes[codigo] || {}
 
-        // Se não encontrar o produto nas composições, usar os dados básicos do orçamento
-        if (!produto || Object.keys(produto).length === 0) {
+        const encontrarProdutoNasComposicoes = produto || Object.keys(produto).length === 0;
+        if (!encontrarProdutoNasComposicoes) {
             produto = {
                 descricao: item_orcamento.descricao || 'Item sem descrição',
                 tipo: item_orcamento.tipo || 'VENDA',
@@ -1876,25 +1912,33 @@ async function mostrar_painel() {
         let custo_unit = cotacao?.valor_custo || 0
         let custo_total = custo_unit * qtde
 
-        let vl_unit = cotacao?.valor || 0
-        let total = vl_unit * qtde
+        let valor_unit = cotacao?.valor || 0
+        let total = valor_unit * qtde
         let lucro_unit = total - custo_total
 
         let descricao_produto = produto.descricao || 'Item sem descrição'
-        const itensRequisitados = dados_composicoes[produto.codigo]?.requisicao || 0
 
         linhas[produto.tipo].total_custo += custo_total
         linhas[produto.tipo].total_orcado += total
         linhas[produto.tipo].total_lucro += lucro_unit
+        linhas[produto.tipo].total_unit += valor_unit
+        linhas[produto.tipo].total_custo_unit += custo_unit
 
         linhas[produto.tipo].orcamento += `
         <tr>
             <td style="font-size: 0.9em;">${descricao_produto}</td>
             <td style="font-size: 0.9em;">${qtde}</td>
             ${produto.tipo == 'VENDA' ? `
-            <td style="font-size: 0.9em;">${cotacao?.margem || '--'}</td>
+            <td style="font-size: 0.9em;">${`${cotacao?.margem}%` || '--'}</td>
+            ${mostrarElementoSeTiverPermissao({
+            listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+            elementoHTML: `
+                    <td style="font-size: 0.9em;">${dinheiro(custo_unit)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(custo_total)}</td>
+                `
+        })}
             ` : ''}
-            <td style="font-size: 0.9em;">${dinheiro(vl_unit)}</td>
+            <td style="font-size: 0.9em;">${dinheiro(valor_unit)}</td>
             <td style="font-size: 0.9em;">${dinheiro(total)}</td>
             ${produto.tipo == 'VENDA' ? `
             <td style="font-size: 0.9em;">${dinheiro(lucro_unit)}</td>
@@ -2078,11 +2122,18 @@ async function mostrar_painel() {
                     <div>
                         <label>${tipo}</label>
                         <table class="tabela">
-                            <thead style="${tipo == 'SERVIÇO' ? 'background-color:rgb(0, 138, 0);' : 'background-color:rgb(185, 0, 0);'}">
+                            <thead style="background-color:${tipo == 'SERVIÇO' ? 'rgb(0, 138, 0)' : 'rgb(185, 0, 0)'};">
                                 <th style="color: #fff; font-size: 0.9em;">Descrição</th>
                                 <th style="color: #fff; font-size: 0.9em;">Quantidade</th>
                                 ${tipo == 'VENDA' ? `
                                     <th style="color: #fff; font-size: 0.9em;">Margem</th>
+                                    ${mostrarElementoSeTiverPermissao({
+                listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+                elementoHTML: `
+                                            <th style="color: #fff; font-size: 0.9em;">Custo Unit</th>
+                                            <th style="color: #fff; font-size: 0.9em;">Total Unit</th>
+                                        `
+            })}
                                 ` : ''}
                                 <th style="color: #fff; font-size: 0.9em;">Valor de ${tipo.toLocaleLowerCase()} Unit</th>
                                 <th style="color: #fff; font-size: 0.9em;">Total de ${tipo.toLocaleLowerCase()}</th>
@@ -2092,18 +2143,25 @@ async function mostrar_painel() {
                             </thead>
                             <tbody>
                                 ${tab.orcamento}
-                                <tr style="background-color: #535151;">
+                                <tr style="background-color:${tipo == 'SERVIÇO' ? 'rgb(0, 138, 0)' : 'rgb(185, 0, 0)'};">
                                     ${tipo == 'VENDA' ? `
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>`
+                                    <td style="font-size: 1em; font-weight: 600;">Totais</td>
+                                    <td style="font-size: 0.9em; font-weight: 600;"></td>
+                                    <td style="font-size: 0.9em; font-weight: 600;"></td>
+                                    ${mostrarElementoSeTiverPermissao({
+                listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+                elementoHTML: `
+                                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo_unit)}</td>
+                                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo)}</td>
+                                        `
+            })}
+                                    `
                     : ''}
-
                                     ${tipo == 'SERVIÇO' ? `
-                                    <td style="font-size: 1em; font-weight: 600;">Lucro de serviço</td>
-                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_orcado - linhas.SERVIÇO.total_impostos)}</td>`
+                                    <td style="font-size: 1em; font-weight: 600; background-color:rgb(0, 138, 0); color: #fff;">Lucro de serviço</td>
+                                    <td style="font-size: 0.9em; font-weight: 600; background-color:rgb(0, 138, 0); color: #fff;">${dinheiro(tab.total_orcado - linhas.SERVIÇO.total_impostos)}</td>`
                     : ''}
-                                    <td></td>
+                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_unit)}</td>
                                     <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_orcado)}</td>
 
                                     ${tipo == 'VENDA' ? `
@@ -2139,9 +2197,38 @@ async function mostrar_painel() {
     let total_orcamento = linhas.SERVIÇO.total_orcado + linhas.VENDA.total_orcado
     let totalValoresManuais = somarValoresManuais(orcamento)
     let soma_custos = totalValoresManuais + linhas.SERVIÇO.total_impostos + linhas.VENDA.total_impostos + linhas.VENDA.total_custo
-    let lucro_liquido = total_orcamento - soma_custos
-    let lucro_porcentagem = (lucro_liquido / total_orcamento * 100).toFixed(2)
-    const descontoTotal = orcamento.desconto_geral;
+
+    const validandoNumeroDesconto = (item) => typeof item.desconto === 'number';
+
+    let desconto = 0;
+    let DESCONTO_INICIAL = 0;
+    const itensNoOrcamento = orcamento.dados_composicoes;
+    if (itensNoOrcamento) {
+        desconto = Object.values(itensNoOrcamento).reduce((total, item) => {
+            return total + (validandoNumeroDesconto(item) ? item.desconto : 0);
+        }, DESCONTO_INICIAL);
+    }
+
+    let descontoBackup = 0;
+    const itensNoOrcamentoBackup = orcamento?.backup;
+    if (itensNoOrcamentoBackup) {
+        descontoBackup = Object.values(itensNoOrcamentoBackup).reduce((total, item) => {
+            if (item.desconto !== undefined && validandoNumeroDesconto(item)) return total + item.desconto;
+
+            return total;
+        }, DESCONTO_INICIAL);
+    }
+
+    let descontoTotal = desconto;
+
+    const descontoGeralOuBackup = descontoBackup || orcamento.desconto_geral;
+    if (descontoGeralOuBackup >= 0) descontoTotal = descontoGeralOuBackup + desconto;
+
+    let totalImpostos = linhas.SERVIÇO.total_impostos + linhas.VENDA.total_impostos;
+    let somaCustoCompra = linhas.VENDA.total_custo;
+
+    let lucro_liquido = total_orcamento - totalImpostos - somaCustoCompra - descontoTotal;
+    let lucro_porcentagem = (lucro_liquido / total_orcamento * 100).toFixed(2);
 
     let acumulado = `
 
@@ -3565,4 +3652,11 @@ async function envio_de_material(chave) {
     </div>
     `
     openPopup_v2(acumulado, 'Envio de Material', true)
+}
+
+function mostrarElementoSeTiverPermissao({ listaDePermissao, elementoHTML }) {
+    const permissaoOuSetorDoUsuario = acesso.permissao || acesso.setor;
+    const usuarioTemPermissao = listaDePermissao.includes(permissaoOuSetorDoUsuario);
+
+    return usuarioTemPermissao ? elementoHTML : '';
 }

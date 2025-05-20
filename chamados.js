@@ -217,6 +217,7 @@ async function abrir_manutencao(id) {
     let dados_manutencao = await recuperarDados('dados_manutencao') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let dados_estoque = await recuperarDados('dados_estoque') || {}
+    let alertas = await recuperarDados('alertas') || {}
     let dados_clientes_omie = {}
 
     for (cnpj in dados_clientes) {
@@ -314,13 +315,14 @@ async function abrir_manutencao(id) {
     }
 
     let div_historico = document.getElementById('historico')
-
     let historicos = manutencao.historico || {};
-
     let infos = "";
 
     //exibe os registro subsequentes (alterações) com "Alterado Por"
+    let contagem = 0
     for (his in historicos) {
+        contagem++
+
         let historico = historicos[his]
         let imagem;
 
@@ -344,12 +346,24 @@ async function abrir_manutencao(id) {
                 imagem = 'cancel'
         }
 
+        let checkAtivado = ''
+        if (alertas.chamados && alertas.chamados[id] && alertas.chamados[id].historico[his]) {
+            checkAtivado = `<img id="${his}" src="imagens/concluido.png" style="width: 1.5vw; position: absolute; top: -10px; left: -10px;">`
+        }
+
+        let sino = `
+        <div style="position: relative;">
+            ${checkAtivado}
+            <img src="gifs/sino1.gif" class="sino" onclick="ativarNotificacao(this, '${id}', '${his}')">
+        </div>
+        `
+
         infos += `
         <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px;">
             <div style="display: flex; flex-direction: column; align-items: start; width: 35%;">
                 <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 5px;">
                     <img src="imagens/${imagem}.png" style="width: 30px;">
-                    <div style="display: flex; gap: 0px; flex-direction: column">
+                    <div style="display: flex; gap: 0px; flex-direction: column; align-items: start;">
                         <label><strong>Data: </strong>${historico.data}</label><br>
                         <label><strong>Status: </strong>${historico.status_manutencao}</label><br>
                         <label><strong>Usuário: </strong>${historico.usuario}</label>
@@ -360,40 +374,26 @@ async function abrir_manutencao(id) {
                 <label style="text-align: center"><strong>Comentário: </strong></label>
                 <textarea style="width: 100%vw; height: 50px; background-color: white; border: 1px solid #ccc; 
                         padding: 8px; resize: none; font-size: 0.9em;" readonly>${historico.comentario}</textarea>
+                ${contagem != 1 ? sino : ''}
+
             </div>
         </div>
         <hr style="width: 100%; margin: 10px 0;">
-           
         `;
     }
 
     let elemento = `
         <br>
-            
-            <div style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px; width: 70vw; padding: 5px;">Histórico</div>
+        <div style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px; width: 70vw; padding: 5px;">Histórico</div>
 
-            <div style="width: 70vw; background-color: #d2d2d2; color: #222; padding: 5px;">
-                ${infos}
-            </div>
+        <div style="width: 70vw; background-color: #d2d2d2; color: #222; padding: 5px;">
+            ${infos}
+        </div>
         `
 
     div_historico.insertAdjacentHTML('beforeend', elemento)
 
-
-
 }
-
-// <div style="display: flex; align-items: center; justify-content: space-evenly; margin-bottom: 10px;">
-//     <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; font-size: 0.8vw;">
-//         <label><strong>Data: </strong>${historico.data}</label>
-//         <label><strong>Status: </strong>${historico.status_manutencao}</label>
-//         <label><strong>Usuário: </strong>${historico.usuario}</label>
-//         <label><strong>Comentário: </strong></label>
-//         <textarea style="width: 100%; background-color: white; border: 1px solid #ccc; padding: 5px; resize: none;" readonly>${historico.comentario}</textarea>
-//     </div>
-//     <img src="imagens/${imagem}.png" style="width: 50px; margin-left: 10px;">
-// </div>
-// <hr style="width: 100%;">
 
 function salvarPrimeiroUsuario(historico) {
 
@@ -406,6 +406,16 @@ function salvarPrimeiroUsuario(historico) {
     }
     // Retorna null se o histórico estiver vazio ou não existir
     return historico;
+}
+
+function retornarPrimeiroHistorico(historico) {
+
+    if (historico && dicionario(historico)) {
+        const primeiraChave = Object.keys(historico)[0];
+        return historico[primeiraChave]
+    }
+
+    return;
 }
 
 async function capturar_html_pdf(id) {
@@ -679,6 +689,7 @@ async function criar_manutencao(id) {
 
                         <div
                             style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
+                            
                             <label style="font-size: 1.2vw;">Comentário</label>
                             <textarea type="text" placeholder="..." id="comentario" style="max-width: 280px;"></textarea>
                         </div>
@@ -755,10 +766,76 @@ async function criar_manutencao(id) {
         ${excluir}
 
         <div id="historico"></div>
-
-    `
+        `
 
     openPopup_v2(acumulado, `${termo} Requisição de Materiais`)
+}
+
+async function removerAlertaChamado(id, his) {
+
+    let alertas = await recuperarDados('alertas') || {}
+
+    if (alertas.chamados[id].historico[his]) {
+        delete alertas.chamados[id].historico[his]
+    }
+
+    deletar(`alertas/chamados/${id}/historico/${his}`)
+    await inserirDados(alertas, 'alertas')
+}
+
+async function ativarNotificacao(img, id, his) {
+
+    let div = img.parentElement
+    let imgs = div.querySelectorAll('img')
+
+    let dados_manutencao = await recuperarDados('dados_manutencao')
+    let historico = dados_manutencao[id].historico[his]
+
+    if (imgs.length > 1) {
+
+        let img = document.getElementById(his)
+
+        await removerAlertaChamado(id, his)
+
+        img.remove()
+
+    } else {
+
+        let dados = {
+            manutencao: id,
+            historico: his,
+            enviadoDe: acesso.usuario,
+            comentario: historico.comentario,
+            data: historico.data,
+            destinado: historico.usuario
+        }
+
+        let alertas = await recuperarDados('alertas') || {}
+
+        if (!alertas.chamados) {
+            alertas.chamados = {}
+        }
+
+        if (!alertas.chamados[id]) {
+            alertas.chamados[id] = {}
+        }
+
+        if (!alertas.chamados[id].historico) {
+            alertas.chamados[id].historico = {}
+        }
+
+        alertas.chamados[id].historico[his] = dados
+
+        enviar(`alertas/chamados/${id}/historico/${his}`, dados)
+        await inserirDados(alertas, 'alertas')
+
+        let confirmado = `<img id="${his}" src="imagens/concluido.png" style="width: 1.5vw; position: absolute; top: -10px; left: -10px;">`
+
+        div.insertAdjacentHTML('beforeend', confirmado)
+    }
+
+    await verificarAlertas()
+
 }
 
 function mostrar_anexos(label) {
@@ -864,10 +941,11 @@ async function enviar_manutencao(id) {
 
     let NF = document.getElementById("NF");
     manutencao.nf = NF && NF.value ? NF.value : "";
+    let data = data_atual('completa')
 
     // Adiciona uma nova entrada ao histórico
     let novaAtualizacao = {
-        data: data_atual("completa"),
+        data,
         status_manutencao: manutencao.status_manutencao,
         usuario: manutencao.usuario,
         comentario: document.getElementById('comentario').value

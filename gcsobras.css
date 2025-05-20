@@ -713,6 +713,54 @@ footer {
     color: white;
 }
 
+.sino {
+    width: 2vw;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.alerta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 2vw;
+    left: 2vw;
+    opacity: 0.8;
+    background-color: white;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+}
+
+.alerta:hover {
+    transition: 0.2s ease-in-out;
+    opacity: 1;
+}
+
+.itemAlerta {
+    display: flex;
+    align-items: start;
+    justify-content: center;
+    flex-direction: column;
+    background-color: #d2d2d2;
+    margin: 3px;
+    border-radius: 3px;
+    padding: 3px;
+    padding-left: 2vw;
+    padding-right: 2vw;
+}
+
+.itemAlerta textarea {
+    padding: 10px;
+}
+
+.sino:hover {
+    transition: 0.1s ease-in-out;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
 .titulum {
     padding: 10px;
     border-radius: 10px;
