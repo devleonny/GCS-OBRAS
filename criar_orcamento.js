@@ -537,7 +537,7 @@ async function tabelaProdutos() {
         acesso.permissao == 'diretor'
     )
 
-    let tabelas = {}
+    let tabelas = { TODOS: { linhas: '' } }
 
     let ocultarZerados = JSON.parse(localStorage.getItem('ocultarZerados'))
 
@@ -588,8 +588,7 @@ async function tabelaProdutos() {
                 esquemas.sistema.forEach(op => {
                     opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
                 })
-
-                tabelas[produto.tipo].linhas += `
+                let linha = `
                         <tr>
                             <td style="white-space: nowrap;">${codigo}</td>
                             <td style="position: relative;">
@@ -617,6 +616,9 @@ async function tabelaProdutos() {
                             </td>
                         </tr>
                     `
+                    
+                tabelas[produto.tipo].linhas += linha
+                tabelas.TODOS.linhas += linha
             }
         }
 
