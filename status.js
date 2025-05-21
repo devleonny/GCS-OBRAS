@@ -2219,7 +2219,7 @@ async function mostrar_painel() {
         }
     }
 
-    let total_bruto = orcamento.total_bruto;
+    let total_bruto = orcamento.total_bruto || linhas.SERVIÇO.total_orcado + linhas.VENDA.total_orcado;
     let total_liquido = orcamento.total_geral;
 
     const descontoNaoAdicionado = total_bruto === 0;
