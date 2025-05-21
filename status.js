@@ -444,15 +444,16 @@ async function calcular_requisicao(sincronizar) {
                     }
 
                     let qtde = tds[4].querySelector('input') ? Number(tds[4].querySelector('input').value) : conversor(tds[4].textContent)
-                    let valorComDesconto = item.tipo_desconto == 'Dinheiro' ? item.custo - item.desconto : item.custo - (item.custo * item.desconto / 100)
-                    let custo = conversor(valorComDesconto || item.custo)
+                    let valorUnitarioComDesconto = item.tipo_desconto == 'Dinheiro' ? item.custo - item.desconto : item.custo - (item.custo * item.desconto / 100)
+                    let valorUnitario = valorUnitarioComDesconto || item.custo;
+                    let custo = conversor(valorUnitario);
                     let labels_unitarios = tds[5].querySelector('label')
                     labels_unitarios.innerHTML = `${dinheiro(custo)}`
 
                     // Lógica dos descontos por linha, aplicado no total da linha;
                     let total_do_item = custo * qtde
                     if (item.tipo_desconto) {
-                        total_do_item = valorComDesconto * qtde
+                        total_do_item = valorUnitarioComDesconto * qtde
                         if (total_do_item < 0) total_do_item = 0 // Caso exista desconto e seja maior que o total do item; Evitar negativo;
                     }
                     let labels_totais = tds[6].querySelector('label')
@@ -462,9 +463,9 @@ async function calcular_requisicao(sincronizar) {
                 }
             })
 
-            if (orcamento.desconto_geral) {
-                total = orcamento.tipo_de_desconto == 'Dinheiro' ? total - orcamento.desconto_geral : total - (total * orcamento.desconto_geral / 100)
-            }
+            // if (orcamento.desconto_geral) {
+            //     total = orcamento.tipo_de_desconto == 'Dinheiro' ? total - orcamento.desconto_geral : total - (total * orcamento.desconto_geral / 100)
+            // }
 
             document.getElementById('total_requisicao').textContent = dinheiro(total)
 
@@ -1563,6 +1564,7 @@ async function abrir_esquema(id) {
             }
 
             var totais = ''
+            console.log('sst: ', sst)
             if (sst.requisicoes) {
                 var infos = calcular_quantidades(sst.requisicoes, dados_orcamentos[id].dados_composicoes)
                 totais += `
