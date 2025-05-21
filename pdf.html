@@ -73,23 +73,6 @@
         border-radius: 5px;
     }
 
-    table {
-        text-align: center;
-        width: 100%;
-        border-spacing: 0;
-        border: 1px solid #151749;
-        overflow: hidden;
-    }
-
-    td {
-        border: 1px solid #151749;
-        font-size: 0.5vw;
-        padding: 5px !important;
-        margin: 0 !important;
-        text-align: center;
-        white-space: normal;
-    }
-
     .total_rodape {
         font-size: 1.5em;
         background-color: #151749;
@@ -99,18 +82,31 @@
         white-space: normal;
     }
 
-    .div_tabela {
-        border-radius: 5px;
-        margin: 10px;
-        border: solid 1px #151749;
-    }
-
-    .div_tabela table {
+    .tabela {
+        width: 100%;
         border-collapse: collapse;
+        border-radius: 3px;
+        table-layout: fixed;
+        overflow: hidden;
+        font-size: 0.7vw;
     }
 
-    .div_tabela td {
-        font-size: 1.0em;
+    .tabela th {
+        color: white;
+    }
+
+    .tabela th,
+    .tabela td {
+        text-align: center;
+        color: #222;
+        font-size: 0.8vw;
+        overflow: hidden;
+        padding: 8px;
+    }
+
+    .tabela td {
+        font-size: 0.9vw;
+        border: 1px solid #989898;
     }
 
     .titulo {
@@ -158,14 +154,14 @@
     }
 
     .totais {
-        border-radius: 5px;
-        font-size: 1.0em;
-        margin: 5px;
-        width: 40vw;
-        margin-right: 50px;
+        border-radius: 3px;
+        font-size: 1.2vw;
+        margin: 2px;
+        width: 20vw;
+        margin-right: 1vw;
         text-align: right;
         color: white;
-        padding: 5px;
+        padding: 1vw;
         background-color: #151749;
     }
 

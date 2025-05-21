@@ -166,185 +166,147 @@ async function preencher_v2() {
     let itens = orcamento_v2.dados_composicoes
 
     let cabecalho = {
-        1: 'Item',
-        2: 'SAP ID',
-        3: 'REF ID',
-        4: 'Descrição',
-        5: 'Imagem *Ilustrativa',
-        6: 'Unidade',
-        7: 'Qtde',
-        8: 'Valor UNT S/ICMS',
-        9: 'Valor TOTAL S/ICMS',
-        10: '% ICMS',
-        11: 'Valor UNT',
-        12: 'Valor TOTAL',
-        13: 'LPU Parceiro UNT',
-        14: 'TOTAL Parceiro',
-        15: 'Desvio'
+        1: 'Código',
+        2: 'Descrição',
+        3: 'Imagem *Ilustrativa',
+        4: 'Unidade',
+        5: 'Qtde',
+        6: 'Valor UNT S/ICMS',
+        7: 'Valor TOTAL S/ICMS',
+        8: '% ICMS',
+        9: 'Valor UNT',
+        10: 'Valor TOTAL'
     }
 
     let config = {
-        SERVIÇO: { CARREFOUR: [1, 2, 3, 4, 5, 6, 7, 11, 12], COMUM: [1, 4, 5, 6, 7, 11, 12], cor: 'green' },
-        VENDA: { CARREFOUR: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], COMUM: [1, 4, 5, 6, 7, 8, 9, 10, 11, 12], cor: '#B12425' }
+        'USO E CONSUMO': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: '#24729d' },
+        'SERVIÇO': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: 'green' },
+        'VENDA': { colunas: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cor: '#B12425' }
     }
 
-    let cols_parceiro = [1, 4, 6, 7, 11, 12, 13, 14, 15]
     let icms
 
     let totais = {
-        SERVIÇO: { valor: 0, cor: 'green' },
-        VENDA: { valor: 0, cor: '#B12425' },
-        ICMS: { valor: 0, cor: '#555555' },
         GERAL: { valor: 0, cor: '#151749' }
     };
 
-    for (tab in config) {
-        let linhas = ''
-        let ths = ''
-        let carrefour = false
-        let modalidade = 'COMUM'
-        if (orcamento_v2.lpu_ativa == 'LPU CARREFOUR') {
-            carrefour = true
-            modalidade = 'CARREFOUR'
+    let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
+
+    for (it in itens) {
+        let item = itens[it]
+        let colunas = config[item.tipo].colunas
+
+        // Verifica se o código está na lista de itens importados
+        const isItemImportado = itensImportados.includes(String(item.codigo).toLowerCase());
+
+        if (isItemImportado) {
+            icms = 0.04 //4% para itens importados
+        } else {
+            icms = orcamento_v2.dados_orcam.estado == 'BA' ? 0.205 : 0.12
         }
 
-        let colunas = config[tab][modalidade]
+        if (!totais[item.tipo]) {
+            totais[item.tipo] = { linhas: '', valor: 0 }
+        }
 
+        item.total = item.custo * item.qtde;
+        totais[item.tipo].valor += item.total // Total isolado do item;
+        totais.GERAL.valor += item.total // Total GERAL;
+
+        let unitario_sem_icms = item.custo - (item.custo * icms)
+        let total_sem_icms = unitario_sem_icms * item.qtde
+        let tds = {}
+
+        tds[1] = `<td>${item.codigo}</td>`
+        tds[2] = `<td>${carrefour ? item?.descricaocarrefour || 'N/A' : item?.descricao || 'N/A'}</td>`
+        tds[3] = `<td style="text-align: center;"><img src="${item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 2vw;"></td>`
+        tds[4] = `<td>${item?.unidade || 'UN'}</td>`
+        tds[5] = `<td>${item.qtde}</td>`
+        tds[6] = `<td style="white-space: nowrap;">${dinheiro(unitario_sem_icms)}</td>`
+        tds[7] = `<td style="white-space: nowrap;">${dinheiro(total_sem_icms)}</td>`
+        tds[8] = `<td>${(icms * 100).toFixed(1)}%</td>`
+        tds[9] = `<td style="white-space: nowrap;">${dinheiro(item.custo)}</td>`
+        tds[10] = `<td style="white-space: nowrap;">${dinheiro(item.total)}</td>`
+
+        let celulas = ''
         colunas.forEach(col => {
-            ths += `<th>${cabecalho[col]}</th>`
+            celulas += tds[col]
         })
 
-        for (it in itens) {
-            let item = await itens[it]
+        totais[item.tipo].linhas += `
+            <tr>
+                ${celulas}
+            </tr>
+            `
 
-            // Verifica se o código está na lista de itens importados
-            const isItemImportado = itensImportados.includes(String(item.codigo).toLowerCase());
+        if (!totais[item.tipo].ths) {
+            totais[item.tipo].ths = ''
+            colunas.forEach(col => {
+                totais[item.tipo].ths += `<th style="color: white;">${cabecalho[col]}</th >`
+            })
 
-            if (isItemImportado) {
-                icms = 0.04 //4% para itens importados
-            } else {
-                icms = orcamento_v2.dados_orcam.estado == 'BA' ? 0.205 : 0.12
-            }
-
-            if (dados_composicoes[item.codigo]) {
-                let dados = dados_composicoes[item.codigo]
-
-                // Garantir que os campos existam ou tenham valores padrão
-                item.descricao = dados.descricao || item.descricao || "Descrição não disponível";
-                item.sapid = dados.sapid || "N/A";
-                item.refid = dados.refid || "N/A";
-                item.unidade = dados.unidade || "UND";
-                item.imagem = item.imagem || dados.imagem || 'https://i.imgur.com/Nb8sPs0.png';
-
-                if (dados_composicoes[item.codigo].substituto !== '' && carrefour) {
-                    item.codigo = dados_composicoes[item.codigo].substituto
-                    item.descricao = dados_composicoes[item.codigo]?.descricaocarrefour || item?.descricao
-                }
-
-                item.tipo = dados.tipo;
-                item.custo = conversor(item.custo);
-            } else {
-                // Se não existir nos dados_composicoes, definir valores padrão
-                item.descricao = item.descricao || "Descrição não disponível";
-                item.sapid = item.sapid || "N/A";
-                item.refid = item.refid || "N/A";
-                item.unidade = item.unidade || "UND";
-                item.imagem = item.imagem || 'https://i.imgur.com/Nb8sPs0.png';
-            }
-
-            item.total = item.custo * item.qtde;
-
-            if (item.tipo == tab) {
-
-                totais[tab].valor += item.total
-                totais.GERAL.valor = totais.SERVIÇO.valor + totais.VENDA.valor;
-
-
-                let unitario_sem_icms = item.custo - (item.custo * icms)
-                let total_sem_icms = unitario_sem_icms * item.qtde
-                let tds = {}
-
-                tds[1] = `<td>${item.codigo}</td>`
-                tds[2] = `<td>${item.sapid}</td>`
-                tds[3] = `<td style="white-space: nowrap;">${item.refid}</td>`
-                tds[4] = `<td style="text-align: left;">${item.descricao}</td>`
-                tds[5] = `<td><img src="${item.imagem}" style="width: 50px;"></td>`
-                tds[6] = `<td>${item.unidade}</td>`
-                tds[7] = `<td>${item.qtde}</td>`
-                tds[8] = `<td style="white-space: nowrap;">${dinheiro(unitario_sem_icms)}</td>`
-                tds[9] = `<td style="white-space: nowrap;">${dinheiro(total_sem_icms)}</td>`
-                tds[10] = `<td>${(icms * 100).toFixed(1)}%</td>`
-                tds[11] = `<td style="white-space: nowrap;">${dinheiro(item.custo)}</td>`
-                tds[12] = `<td style="white-space: nowrap;">${dinheiro(item.total)}</td>`
-
-                let celulas = ''
-
-                colunas.forEach(col => {
-                    celulas += tds[col]
-                })
-
-                linhas += `
-                <tr>
-                    ${celulas}
-                </tr>
-                `
-            }
         }
 
-        // ICMS total
-        if (totais.VENDA.valor > 0) {
-            totais.ICMS.valor = totais.VENDA.valor * icms
-        }
+    }
+
+    for (tab in totais) {
+
+        if (tab == 'ICMS' || tab == 'GERAL') continue
 
         let tabela = `
-        <div class="div_tabela">
-            <div style="display: flex; align-items: center; justify-content: center;">
-                <h3>${tab}</h3> 
+        <div>
+            <div style="display: flex; align-items: center; justify-content: start;">
+                <label style="font-size: 1.3vw;"><strong>${tab.includes('USO') ? `${tab} - SERVIÇO` : tab}</strong></label> 
             </div>
-            <table style="table-layout: fixed;">
-                <thead style="font-size: 0.7em; color: white; background-color: ${config[tab].cor}">${ths}</thead>
+            <table class="tabela">
+                <thead style="font-size: 0.7em; color: white; background-color: ${config[tab]?.cor || '#222'}">
+                    ${totais[tab].ths}
+                </thead>
                 <tbody style="font-size: 0.7em;">
-                ${linhas}
+                    ${totais[tab].linhas}
                 </tbody>
             </table>
-            <div style="border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; width: 100%; display: flex; align-items: center; justify-content: right; color: white; background-color: ${totais[tab].cor}">
+            <div style="border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; width: 100%; display: flex; align-items: center; color: white; justify-content: right; background-color: ${config[tab]?.cor}">
                 <label style="padding: 5px;">Total ${dinheiro(totais[tab].valor)}</label>
             </div>
         </div>
+        <br>
+        <hr style="width: 100%;">
         `
-        if (linhas != '') {
+
+        if (totais[tab].linhas != '') {
             tabelas += tabela
         }
     }
 
     let divs_totais = ''
     let etiqueta_desconto = ''
-
-    Object.keys(totais).forEach(tot => {
-        if (totais[tot].valor !== 0) {
-            divs_totais += `
-                <div class="totais" style="background-color: ${totais[tot]?.cor}">
-                    TOTAL ${tot} ${dinheiro(totais[tot]?.valor)}
-                </div>
-            `;
-        }
-    });
-
     let total_bruto = orcamento_v2.total_bruto;
     let total_liquido = orcamento_v2.total_geral;
 
-    const descontoNaoAdicionado = total_bruto === 0;
+    if (total_bruto != 0) { // Quer dizer que existe desconto neste orçamento;
+        totais['DESCONTO'] = { valor: total_bruto - conversor(total_liquido) }
+        totais['LÍQUIDO'] = { valor: conversor(total_liquido) }
 
-    const descontoTotal = descontoNaoAdicionado ? 0 : total_bruto - conversor(total_liquido);
+        config['DESCONTO'] = { cor: '#b96300' }
+        config['LÍQUIDO'] = { cor: '#151749' }
+    }
 
-    divs_totais += `
-        <div class="totais" style="background-color:rgb(185, 99, 0); margin-top: 5px;">
-            <label>DESCONTO ${dinheiro(descontoTotal)}</label>
-        </div>
-        <div class="totais" style="background-color: #151749; margin-top: 5px;">
-            TOTAL ${total_liquido}
-        </div>
-    `;
+    let ordemTotais = Object.entries(totais)
+
+    let totalGeralBackup = ordemTotais[0]
+    ordemTotais.splice(ordemTotais, 1)
+    ordemTotais.push(totalGeralBackup)
+
+    for ([tot, objeto] of ordemTotais) {
+        if (objeto.valor !== 0) {
+            divs_totais += `
+                <div class="totais" style="background-color: ${config[tot]?.cor}">
+                    TOTAL ${tot} ${dinheiro(objeto?.valor)}
+                </div>
+            `;
+        }
+    }
 
     html_orcamento.innerHTML = `
     <label>Salvador, Bahia, ${carimbo_data()}</label>
