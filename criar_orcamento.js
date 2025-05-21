@@ -1003,11 +1003,6 @@ async function total() {
                 divTotal.textContent = dinheiro(totais[tot].valor)
             }
 
-            let elementos = [`toolbar_${tot}`, tot]
-            elementos.forEach(e => {
-                document.getElementById(e).style.display = totais[tot].exibir
-            })
-
         } else if (!carrefour) {
 
             if (desconto_geral.value !== '') { // 29
