@@ -444,14 +444,15 @@ async function calcular_requisicao(sincronizar) {
                     }
 
                     let qtde = tds[4].querySelector('input') ? Number(tds[4].querySelector('input').value) : conversor(tds[4].textContent)
-                    let custo = conversor(item.custo)
+                    let valorComDesconto = item.tipo_desconto == 'Dinheiro' ? item.custo - item.desconto : item.custo - (item.custo * item.desconto / 100)
+                    let custo = conversor(valorComDesconto || item.custo)
                     let labels_unitarios = tds[5].querySelector('label')
                     labels_unitarios.innerHTML = `${dinheiro(custo)}`
 
                     // Lógica dos descontos por linha, aplicado no total da linha;
                     let total_do_item = custo * qtde
                     if (item.tipo_desconto) {
-                        total_do_item = item.tipo_desconto == 'Dinheiro' ? total_do_item - item.desconto : total_do_item - (item.custo * item.desconto / 100)
+                        total_do_item = valorComDesconto * qtde
                         if (total_do_item < 0) total_do_item = 0 // Caso exista desconto e seja maior que o total do item; Evitar negativo;
                     }
                     let labels_totais = tds[6].querySelector('label')
@@ -589,6 +590,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
         let codigo = item.codigo
         let qtde = item?.qtde_editar || 0
         let tipo = dados_composicoes[codigo]?.tipo || item.tipo
+        console.log('Requisição: ', itensOrcamento[codigo])
 
         linhas += `
             <tr class="lin_req" style="background-color: white;">
@@ -2180,14 +2182,14 @@ async function mostrar_painel() {
                                     <td style="font-size: 1em; font-weight: 600;">Totais</td>
                                     <td style="font-size: 0.9em; font-weight: 600;"></td>
                                     ${mostrarElementoSeTiverPermissao({
-                listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
-                elementoHTML: `
+                        listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+                        elementoHTML: `
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_desconto_unit)}</td>
                                             <td style="font-size: 0.9em; font-weight: 600;"></td>
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo_unit)}</td>
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo)}</td>
                                         `
-            })}
+                    })}
                                     `
                     : ''}
                                     ${tipo == 'SERVIÇO' ? `
@@ -2456,7 +2458,7 @@ async function alterar_status(select, id) {
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {};
     let orcamento = dados_orcamentos[id_orcam];
 
-//   registroAlteracaoStatus
+    //   registroAlteracaoStatus
     // Só prosseguir se o status realmente mudou
     if (orcamento.status?.atual !== select.value) {
         // Inicializar estrutura se não existir
@@ -2468,11 +2470,11 @@ async function alterar_status(select, id) {
             };
         }
 
-    if (!dados_orcamentos[id_orcam].status) {
-        dados_orcamentos[id_orcam].status = {}
-    }
+        if (!dados_orcamentos[id_orcam].status) {
+            dados_orcamentos[id_orcam].status = {}
+        }
 
-    dados_orcamentos[id_orcam].status.atual = select.value
+        dados_orcamentos[id_orcam].status.atual = select.value
 
 
 
