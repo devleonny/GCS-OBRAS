@@ -402,7 +402,6 @@ function ocultar_pedido(elemento) {
 async function calcular_requisicao(sincronizar) {
 
     let tabela_requisicoes = document.getElementById('tabela_requisicoes')
-    console.log('Tabela requisicao: ', tabela_requisicoes)
 
     if (tabela_requisicoes) {
         let tbody = tabela_requisicoes.querySelector('tbody')
@@ -2225,7 +2224,6 @@ async function mostrar_painel() {
     const descontoNaoAdicionado = total_bruto === 0;
 
     const descontoTotal = descontoNaoAdicionado ? 0 : total_bruto - conversor(total_liquido);
-    console.log('Orcamento: ', orcamento)
 
     let totalImpostos = linhas.SERVIÇO.total_impostos + linhas.VENDA.total_impostos;
     let somaCustoCompra = linhas.VENDA.total_custo;
