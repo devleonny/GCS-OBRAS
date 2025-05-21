@@ -6,7 +6,9 @@ let esquemas = {
     'categoria de equipamento': ['', 'IP', 'ANALÓGICO', 'ALARME', 'CONTROLE DE ACESSO'],
     'tipo': ['USO E CONSUMO', 'VENDA', 'SERVIÇO']
 }
-
+const itensImportados = [
+    'gcs-725', 'gcs-726', 'gcs-738', 'gcs-739', 'gcs-734', 'gcs-740', 'gcs-741', 'gcs-730', 'gcs-742', 'gcs-743', 'gcs-744', 'gcs-747', 'gcs-729', 'gcs-728', 'gcs-727', 'gcs-1135', 'gcs-1136', 'gcs-1137'
+]
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F5') {
@@ -94,7 +96,7 @@ async function verificarAlertas() {
                         </div>
                         `
                     }
-                    
+
                     mostrar = true
                 }
             }
@@ -113,7 +115,7 @@ async function verificarAlertas() {
     </div>
     `
 
-    if(!mostrar) return
+    if (!mostrar) return
 
     let painelAlertas = document.getElementById('painelAlertas')
     if (painelAlertas) {

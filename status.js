@@ -594,11 +594,12 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
             <tr class="lin_req" style="background-color: white;">
                 <td style="text-align: center; font-size: 1.2em; white-space: nowrap;"><label>${codigo}</label></td>
                 <td style="text-align: center;">
-                ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.omie || item?.partnumber}</label>` :
+                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.omie || item?.partnumber}</label>` :
                 `<input class="pedido" style="width: 10vw;" value="${dados_composicoes[codigo]?.omie || ''}">`}
                 </td>
                 <td style="position: relative;">
-                    <div style="display: flex; flex-direction: column; gap: 5px; align-items: start;">
+                    <div style="position: relative; display: flex; flex-direction: column; gap: 5px; align-items: start;">
+                        ${itensImportados.includes(codigo) ? `<label style="font-size: 0.7vw; color: white; position: absolute; top: 0; right: 0; background-color: red; border-radius: 3px; padding: 2px;">Imp</label>`: ''}
                         <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong></label>
                         <label>${dados_composicoes[codigo] ? dados_composicoes[codigo].descricao : item.descricao}</label>
                     </div>
