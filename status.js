@@ -2180,14 +2180,14 @@ async function mostrar_painel() {
                                     <td style="font-size: 1em; font-weight: 600;">Totais</td>
                                     <td style="font-size: 0.9em; font-weight: 600;"></td>
                                     ${mostrarElementoSeTiverPermissao({
-                        listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
-                        elementoHTML: `
+                listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+                elementoHTML: `
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_desconto_unit)}</td>
                                             <td style="font-size: 0.9em; font-weight: 600;"></td>
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo_unit)}</td>
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo)}</td>
                                         `
-                    })}
+            })}
                                     `
                     : ''}
                                     ${tipo == 'SERVIÇO' ? `
@@ -2457,7 +2457,7 @@ async function alterar_status(select, id) {
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {};
     let orcamento = dados_orcamentos[id_orcam];
 
-  registroAlteracaoStatus
+//   registroAlteracaoStatus
     // Só prosseguir se o status realmente mudou
     if (orcamento.status?.atual !== select.value) {
         // Inicializar estrutura se não existir
