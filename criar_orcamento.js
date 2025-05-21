@@ -181,7 +181,12 @@ async function carregarTabelas() {
     let toolbarSuperior = ''
     let stringsTabelas = ''
     let dadosComposicoes = orcamento_v2.dados_composicoes
-    let padraoFiltro = localStorage.getItem('padraoFiltro') || 'tipo'
+    let padraoFiltro = localStorage.getItem('padraoFiltro')
+    
+    if (padraoFiltro == null) {
+        padraoFiltro = 'tipo'
+        localStorage.setItem('padraoFiltro', 'tipo')
+    }
 
     document.getElementById(`filtro${padraoFiltro}`).checked = true
 
@@ -616,7 +621,7 @@ async function tabelaProdutos() {
                             </td>
                         </tr>
                     `
-                    
+
                 tabelas[produto.tipo].linhas += linha
                 tabelas.TODOS.linhas += linha
             }
@@ -924,7 +929,7 @@ async function total() {
                 }
 
                 let filtro = dados_composicoes[codigo]?.[padraoFiltro] || 'SEM CLASSIFICAÇÃO'
-                
+
                 if (!totais[filtro]) {
                     totais[filtro] = { valor: 0, exibir: 'none' }
                 }
@@ -1032,7 +1037,6 @@ async function total() {
 
                 }
             }
-
         }
     }
 
