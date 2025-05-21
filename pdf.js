@@ -274,7 +274,7 @@ async function preencher_v2() {
 
     let divs_totais = ''
     let etiqueta_desconto = ''
-    let total_bruto = orcamento_v2.total_bruto;
+    let total_bruto = orcamento_v2?.total_bruto || 0
     let total_liquido = orcamento_v2.total_geral;
 
     if (total_bruto != 0) { // Quer dizer que existe desconto neste orçamento;

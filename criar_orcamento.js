@@ -5,7 +5,8 @@ function coresTabelas(tabela) {
     let coresTabelas = {
         'VENDA': '#B12425',
         'SERVIÇO': 'green',
-        'USO E CONSUMO': '#24729d'
+        'USO E CONSUMO': '#24729d',
+        'ALUGUEL': '#e96300'
     }
 
     if (coresTabelas[tabela]) {

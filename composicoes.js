@@ -1342,12 +1342,16 @@ async function cadastrar_editar_item(codigo) {
             <textarea rows="3" style="color: #222; background-color: #a2d7a4; width: 95%; border: none;">${valor}</textarea>
             `
         } else if (col == 'tipo') {
+
+            let opcoes = ''
+            esquemas.tipo.forEach(op => {
+                opcoes += `<option ${op == 'VENDA' ? 'selected' : ''}>${op}</option>`
+            })
+            
             campo = `
             <div>
                 <select style="width: 100%; cursor: pointer; background-color: #a2d7a4; border-radius: 3px; padding: 3px;">
-                    <option ${valor == 'VENDA' ? 'selected' : ''}>VENDA</option>
-                    <option ${valor == 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
-                    <option ${valor == 'USO E CONSUMO' ? 'selected' : ''}>USO E CONSUMO</option>
+                    ${opcoes}
                 </select>
             </div>
             `

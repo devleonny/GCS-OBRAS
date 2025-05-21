@@ -4,7 +4,7 @@ let logo = 'https://i.imgur.com/Nb8sPs0.png'
 let esquemas = {
     'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS'],
     'categoria de equipamento': ['', 'IP', 'ANALÓGICO', 'ALARME', 'CONTROLE DE ACESSO'],
-    'tipo': ['USO E CONSUMO', 'VENDA', 'SERVIÇO']
+    'tipo': ['USO E CONSUMO', 'VENDA', 'SERVIÇO', 'ALUGUEL']
 }
 const itensImportados = [
     'gcs-725', 'gcs-726', 'gcs-738', 'gcs-739', 'gcs-734', 'gcs-740', 'gcs-741', 'gcs-730', 'gcs-742', 'gcs-743', 'gcs-744', 'gcs-747', 'gcs-729', 'gcs-728', 'gcs-727', 'gcs-1135', 'gcs-1136', 'gcs-1137'
