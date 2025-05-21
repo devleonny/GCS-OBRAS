@@ -924,6 +924,10 @@ async function total() {
                 }
 
                 let filtro = dados_composicoes[codigo]?.[padraoFiltro] || 'SEM CLASSIFICAÇÃO'
+                
+                if (!totais[filtro]) {
+                    totais[filtro] = { valor: 0, exibir: 'none' }
+                }
 
                 totais[filtro].valor += total_linha
                 totais.GERAL.valor += total_linha
