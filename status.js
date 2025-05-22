@@ -2197,9 +2197,9 @@ async function mostrar_painel() {
                             <tbody>
                                 ${tab.orcamento}
                                 <tr style="background-color:${estiloDaLista(tipo)};">
-                                    ${tipo == 'SERVIÇO' && tipo == 'USO E CONSUMO' ? `
-                                    <td style="font-size: 1em; font-weight: 600; background-color:rgb(0, 138, 0); color: #fff;">Lucro de serviço</td>
-                                    <td style="font-size: 0.9em; font-weight: 600; background-color:rgb(0, 138, 0); color: #fff;">${dinheiro(tab.total_orcado - linhas.SERVIÇO.total_impostos)}</td>`
+                                    ${tipo == 'SERVIÇO' || tipo == 'USO E CONSUMO' ? `
+                                    <td style="font-size: 1em; font-weight: 600; background-color:${estiloDaLista(tipo)}; color: #fff;">Lucro</td>
+                                    <td style="font-size: 0.9em; font-weight: 600; background-color:${estiloDaLista(tipo)}; color: #fff;">${dinheiro(tab.total_orcado - linhas.SERVIÇO.total_impostos)}</td>`
                     : ''}
                                     ${tipo == 'VENDA' ? `
                                     <td style="font-size: 1em; font-weight: 600;">Totais</td>
@@ -2215,7 +2215,7 @@ async function mostrar_painel() {
                     })}
                                     `
                     : ''}
-                                    ${tipo == 'SERVIÇO' && tipo == 'USO E CONSUMO' ? `
+                                    ${tipo == 'SERVIÇO' || tipo == 'USO E CONSUMO' ? `
                                     ${mostrarElementoSeTiverPermissao({
                         listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
                         elementoHTML: `<td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_desconto_unit)}</td>`
