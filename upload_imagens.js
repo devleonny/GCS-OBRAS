@@ -111,8 +111,10 @@ async function importar_imagem(local_img, codigo) {
                 <label>Imagem salva na memória</label>
             </div>
             `
-
         }
+
+        if (document.title == 'COMPOSIÇÕES') await retormarPaginacao()
+
     } catch (error) {
 
         carregamento_imagem.innerHTML = `
@@ -120,6 +122,7 @@ async function importar_imagem(local_img, codigo) {
             <img src="gifs/alerta.gif" style="width: 5vw">
             <label>Ocorreu um erro aqui, mas tudo bem... tenta de novo!</label>
         </div>
+        <br>
         <label>${error}</label>
         `
     }
