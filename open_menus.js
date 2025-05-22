@@ -1289,7 +1289,6 @@ function pesquisar_generico(coluna, texto, filtro, id) {
 
     trs.forEach(function (tr) {
         var tds = tr.querySelectorAll('td');
-
         var mostrarLinha = true;
 
         for (var col in filtro) {

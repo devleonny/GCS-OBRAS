@@ -23,7 +23,7 @@ async function recuperar_composicoes() {
     document.getElementById("aguarde").remove()
 }
 
-async function carregar_tabela_v2() {
+async function carregar_tabela_v2(auxiliarPaginacao) {
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
@@ -193,7 +193,7 @@ async function carregar_tabela_v2() {
             }
         });
 
-        tbody += `<tr>${celulas}</tr>`;
+        tbody += `<tr style="display: ${auxiliarPaginacao ? 'none' : 'table-row'}">${celulas}</tr>`;
     }
 
     var acumulado = `
@@ -217,10 +217,10 @@ async function carregar_tabela_v2() {
 
 }
 
-async function retormarPaginacao() {
+async function retomarPaginacao() {
 
-    await carregar_tabela_v2()
-
+    await carregar_tabela_v2(true)
+ 
     try {
         let tabela = document.getElementById('tabela_composicoes')
         let thead = tabela.querySelector('thead')
@@ -527,7 +527,7 @@ async function salvar_agrupamentos(codigo) {
 
         remover_popup()
 
-        await retormarPaginacao()
+        await retomarPaginacao()
     }
 
     if (document.title == 'Criar Orçamento') f5()
@@ -765,7 +765,7 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
         aguarde.remove()
     }
 
-    await retormarPaginacao()
+    await retomarPaginacao()
 
 }
 
@@ -1589,15 +1589,11 @@ async function cadastrar_alterar(codigo) {
 
     descricaoProduto = dadosAtualizados.descricao
 
-
-
     if (novoCadastro) {
         comentario = `Produto cadastrado com código ${codigo} e descrição: ${descricaoProduto}`
     } else {
         comentario = `Produto alterado com código ${codigo} e descrição: ${descricaoProduto}`
     }
-
-
 
 
     remover_popup();
@@ -1609,19 +1605,9 @@ async function cadastrar_alterar(codigo) {
     await inserirDados(dados_composicoes, 'dados_composicoes');
     await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
 
-
-
-    carregar_tabela_v2();
     registrarAlteracao('dados_composicoes', codigo, comentario)
 
-
-    
-
-    await retormarPaginacao()
-
-
-
-    await retormarPaginacao()
+    await retomarPaginacao()
 
 }
 
