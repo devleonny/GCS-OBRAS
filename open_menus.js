@@ -1281,10 +1281,10 @@ function gerar_id_5_digitos() {
 
 function pesquisar_generico(coluna, texto, filtro, id) {
 
-    filtro[coluna] = texto.toLowerCase();
+    filtro[coluna] = String(texto).toLowerCase();
 
-    var tabela_itens = document.getElementById(id);
-    var trs = tabela_itens.querySelectorAll('tr');
+    let tbody = document.getElementById(id);
+    let trs = tbody.querySelectorAll('tr');
     let contador = 0
 
     trs.forEach(function (tr) {
@@ -1296,7 +1296,7 @@ function pesquisar_generico(coluna, texto, filtro, id) {
             var filtroTexto = filtro[col];
 
             if (filtroTexto && col < tds.length) {
-                let element = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].textContent
+                let element = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].querySelector('select') || tds[col].textContent
                 let conteudoCelula = element.value ? element.value : element
                 let texto_campo = String(conteudoCelula).toLowerCase()
 

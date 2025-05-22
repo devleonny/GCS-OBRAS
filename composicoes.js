@@ -1,4 +1,5 @@
-let filtrosAtivos = {};
+let filtrosAtivos = {}
+let filtroAgrupamentos = {}
 let divComposicoes = document.getElementById('composicoes')
 
 function criar_lpu() {
@@ -10,33 +11,6 @@ function criar_lpu() {
             <button onclick="salvarNovaLPU()" style="background-color: #026CED; color: white; padding: 10px; border: none; cursor: pointer; width: 80%;">Salvar</button>
         </div>
     `, 'Nova LPU');
-}
-
-function pesquisar_em_composicoes(elemento) {
-    var tabela = divComposicoes.querySelector('table');
-    var tbody = tabela.querySelector('tbody');
-    var trs = tbody.querySelectorAll('tr');
-    var termo = elemento.value.toLowerCase();
-    var inputs = tabela.querySelectorAll('input');
-    var coluna = Array.from(inputs).indexOf(elemento);
-    filtrosAtivos[coluna] = termo;
-
-    trs.forEach(tr => {
-        var tds = tr.querySelectorAll('td');
-        var exibir = true;
-
-        for (var col in filtrosAtivos) {
-            var filtroTexto = filtrosAtivos[col].toLowerCase();
-            var conteudoCelula = tds[col]?.textContent.toLowerCase() || '';
-
-            if (filtroTexto && !conteudoCelula.includes(filtroTexto)) {
-                exibir = false;
-                break;
-            }
-        }
-
-        tr.style.display = exibir ? '' : 'none';
-    });
 }
 
 carregar_tabela_v2()
@@ -60,22 +34,25 @@ async function carregar_tabela_v2() {
     var thead = '';
     var tbody = '';
     var tsearch = '';
-    var painel_colunas = '';
 
-    // 🔹 Obtém os cabeçalhos padrão dos dados
     var cabecalhos = [
         ...new Set(
             Object.values(dados_composicoes).flatMap(obj => Object.keys(obj))
         )
     ];
 
-    // 🔹 Adiciona LPUs criadas no `localStorage`
     let lpusCriadas = JSON.parse(localStorage.getItem("lpus_criadas")) || [];
     cabecalhos.push(...lpusCriadas);
 
     cabecalhos.push('editar');
 
-    var colunas = JSON.parse(localStorage.getItem('colunas_composicoes')) || [];
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    let colunasComposicoes = JSON.parse(localStorage.getItem('colunasComposicoes')) || {}
+    let modo = modoClone ? 'clone' : 'antigos'
+    if (!colunasComposicoes[modo]) {
+        colunasComposicoes[modo] = []
+    }
+    let colunas = colunasComposicoes[modo]
 
     const idxCat = colunas.indexOf('categoria de equipamento');
     const idxSis = colunas.indexOf('sistema');
@@ -113,7 +90,7 @@ async function carregar_tabela_v2() {
         tsc[cab] = `
             <th style="background-color: white; position: relative; border-radius: 0px;">
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%; padding: 0px;" placeholder="..." oninput="pesquisar_em_composicoes(this)">
+                <input style="width: 100%; padding: 0px;" placeholder="...">
             </th>`
     });
 
@@ -221,33 +198,155 @@ async function carregar_tabela_v2() {
 
     var acumulado = `
         <div style="display: flex; gap: 10px;">
-            <div id="pc">
-                ${painel_colunas}
-            </div>
             <div style="resize: both; overflow: auto; height: max-content; max-height: 70vh; width: max-content; max-width: 92.5vw; background-color: #d2d2d2; border-radius: 3px;">
                 <table style="border-collapse: collapse;" id="tabela_composicoes">
-                    <thead id="thead1">${thead}</thead>
-                    <thead id="tsearch">${tsearch}</thead>
-                    <tbody>${tbody}</tbody>
+                    <thead>
+                        <tr>${thead}</tr>
+                        <tr>${tsearch}</tr>
+                    </thead>
+                    <tbody id="linhasComposicoes">
+                        ${tbody}
+                    </tbody>
                 </table>
             </div>
         </div>`;
 
     divComposicoes.innerHTML = acumulado;
 
-    // Inclusão do evento click nos cabeçalhos;
-    let thead1 = document.getElementById('thead1')
-    if (thead1) {
-        let tr = thead1.querySelector('tr')
-        if (tr) {
-            let ths = tr.querySelectorAll('th')
-            ths.forEach((th, i) => {
-                th.addEventListener('click', function () {
-                    filtrar_tabela(i, 'tabela_composicoes', this)
-                })
-            })
+    atribuirFuncoesCabecalho()
+
+}
+
+async function retormarPaginacao() {
+
+    await carregar_tabela_v2()
+
+    try {
+        let tabela = document.getElementById('tabela_composicoes')
+        let thead = tabela.querySelector('thead')
+        let tsearch = thead.querySelectorAll('tr')[1]
+        let ths = tsearch.querySelectorAll('th')
+
+        for (col in filtrosAtivos) {
+            ths[col].querySelector('input').value = filtrosAtivos[col]
+            pesquisar_generico(col, filtrosAtivos[col], filtrosAtivos, 'linhasComposicoes')
         }
+    } catch {
+        openPopup_v2(`Não foi possível retomar a paginação`)
     }
+}
+
+function atribuirFuncoesCabecalho() {
+
+    // Inclusão do evento click nos cabeçalhos;
+    let tabela = document.getElementById('tabela_composicoes')
+    let thead = tabela.querySelector('thead')
+    let trs = thead.querySelectorAll('tr')
+
+    for (let i = 0; i <= 1; i++) {
+
+        let tr = trs[i]
+        let ths = tr.querySelectorAll('th')
+
+        ths.forEach((th, j) => {
+
+            if (i == 0) { // Primeiro cabeçalho
+                th.addEventListener('click', function () {
+                    filtrar_tabela(j, 'tabela_composicoes', this)
+                })
+
+            } else { // Segundo, com Inputs;
+                th.querySelector('input').addEventListener('input', function () {
+                    pesquisar_generico(j, this.value, filtrosAtivos, 'linhasComposicoes')
+                })
+
+            }
+        })
+    }
+}
+
+async function abrirFiltros() {
+
+    let dados_composicoes = await recuperarDados("dados_composicoes") || {};
+    let cabecalhos = [...new Set(Object.values(dados_composicoes).flatMap(obj => Object.keys(obj)))];
+
+    let lpusCriadas = JSON.parse(localStorage.getItem("lpus_criadas")) || [];
+    cabecalhos.push('editar', ...lpusCriadas);
+
+    let acumulado = ''
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    let colunasComposicoes = JSON.parse(localStorage.getItem('colunasComposicoes')) || {}
+    let modo = modoClone ? 'clone' : 'antigos'
+    if (!colunasComposicoes[modo]) {
+        colunasComposicoes[modo] = []
+    }
+
+    let colunas = colunasComposicoes[modo]
+    let opcoes = ''
+
+    cabecalhos.sort() // Alfabética;
+    cabecalhos.forEach(cabecalho => {
+        opcoes += `
+        <label>
+            <input type="checkbox" value="${cabecalho}" ${colunas.includes(cabecalho) ? 'checked' : ''}> ${inicial_maiuscula(cabecalho)}
+        </label>
+        `
+    })
+
+    acumulado = `
+        <div class="lista-filtros">
+            <input placeholder="Pesquisar" oninput="filtrarColunas(this.value)">
+        </div>
+        <hr style="widht: 100%;">
+        <div id="filtrosColunas" class="lista-filtros">
+            ${opcoes}
+        </div>
+        <button style="background-color: #4CAF50;" onclick="aplicarFiltros()">Confirmar</button>
+    `
+
+    openPopup_v2(acumulado, 'Filtrar Itens')
+
+}
+
+function filtrarColunas(termo) {
+
+    termo = String(termo).toLowerCase()
+    let divFiltros = document.getElementById('filtrosColunas')
+    let labels = divFiltros.querySelectorAll('label')
+
+    labels.forEach(label => {
+        let texto = label.textContent.toLowerCase()
+        texto.includes(termo) ? label.style.display = 'flex' : label.style.display = 'none'
+    })
+
+}
+
+async function aplicarFiltros() {
+
+    let colunas = []
+    let divFiltros = document.getElementById('filtrosColunas')
+    let labels = divFiltros.querySelectorAll('label')
+
+    labels.forEach(label => {
+        let input = label.querySelector('input')
+        if (input.checked) {
+            colunas.push(input.value)
+        }
+    })
+
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    let colunasComposicoes = JSON.parse(localStorage.getItem('colunasComposicoes')) || {}
+    let modo = modoClone ? 'clone' : 'antigos'
+    if (!colunasComposicoes[modo]) {
+        colunasComposicoes[modo] = []
+    }
+
+    colunasComposicoes[modo] = colunas
+
+    localStorage.setItem('colunasComposicoes', JSON.stringify(colunasComposicoes))
+    remover_popup()
+
+    await carregar_tabela_v2()
 
 }
 
@@ -312,6 +411,19 @@ async function abrir_agrupamentos(codigo) {
         imagem = produto.imagem
     }
 
+    let ths = ''
+    let campos = ['Código', 'Descrição', 'Modelo', 'Unidade', 'Tipo']
+
+    campos.forEach((campo, i) => {
+        i++
+        ths += `
+            <th style="background-color: white; position: relative; border-radius: 0px;">
+                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
+                <input style="width: 100%;" placeholder="${campo}" oninput="pesquisar_generico(${i}, this.value, filtroAgrupamentos, 'linhas_agrupamentos')">
+            </th>
+        `
+    })
+
     acumulado += `
 
         <div class="agrupamentos">
@@ -348,26 +460,7 @@ async function abrir_agrupamentos(codigo) {
                                     <option>Não Marcados</todos>
                                 </select>
                             </th>
-                            <th style="background-color: white; position: relative; border-radius: 0px;">
-                                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                                <input style="width: 100%;" placeholder="Código" oninput="pesquisar_em_agrupamentos(this, 1)">
-                            </th>
-                            <th style="background-color: white; position: relative; border-radius: 0px;">
-                                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                                <input style="width: 100%;" placeholder="Descrição" oninput="pesquisar_em_agrupamentos(this, 2)">
-                            </th>
-                            <th style="background-color: white; position: relative; border-radius: 0px;">
-                                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                                <input style="width: 100%;" placeholder="Modelo" oninput="pesquisar_em_agrupamentos(this, 3)">
-                            </th>
-                            <th style="background-color: white; position: relative; border-radius: 0px;">
-                                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                                <input style="width: 100%;" placeholder="Unidade" oninput="pesquisar_em_agrupamentos(this, 4)">
-                            </th>
-                            <th style="background-color: white; position: relative; border-radius: 0px;">
-                                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                                <input style="width: 100%;" placeholder="Tipo" oninput="pesquisar_em_agrupamentos(this, 5)">
-                            </th>
+                            ${ths}
                         <tr>
                     </thead>
                     <tbody id="linhas_agrupamentos">
@@ -414,12 +507,10 @@ async function salvar_agrupamentos(codigo) {
 
         remover_popup()
 
-        carregar_tabela_v2()
+        await retormarPaginacao()
     }
 
-    if (document.title == 'Criar Orçamento') {
-        f5()
-    }
+    if (document.title == 'Criar Orçamento') f5()
 
 }
 
@@ -468,39 +559,6 @@ function checked_inputs(filtro) {
 
         })
     }
-}
-
-
-function pesquisar_em_agrupamentos(elemento, coluna) {
-
-    var linhas_agrupamentos = document.getElementById('linhas_agrupamentos')
-
-    if (linhas_agrupamentos) {
-
-        var trs = linhas_agrupamentos.querySelectorAll('tr')
-
-        trs.forEach(tr => {
-
-            var tds = tr.querySelectorAll('td')
-            var mostrar_linha = false
-
-            var texto = String(tds[coluna].textContent).toLocaleLowerCase()
-            var termo = String(elemento.value).toLocaleLowerCase()
-
-            if (texto.includes(termo)) {
-                mostrar_linha = true
-            }
-
-            if (mostrar_linha) {
-                tr.style.display = 'table-row'
-            } else {
-                tr.style.display = 'none'
-            }
-
-        })
-
-    }
-
 }
 
 async function incluir_agrupamento(elemento, cod, qtde) {
@@ -686,6 +744,9 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
     if (aguarde) {
         aguarde.remove()
     }
+
+    await retormarPaginacao()
+
 }
 
 async function excluir_cotacao(codigo, lpu, cotacao) {
@@ -1528,8 +1589,15 @@ async function cadastrar_alterar(codigo) {
     await inserirDados(dados_composicoes, 'dados_composicoes');
     await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
 
+
     carregar_tabela_v2();
     registrarAlteracao('dados_composicoes', codigo, comentario)
+
+
+    
+
+    await retormarPaginacao()
+
 
 }
 
@@ -1575,81 +1643,6 @@ async function verificar_codigo_existente() {
                 reject()
             });
     })
-}
-
-async function abrirModalFiltros() {
-    let modal = document.getElementById("modal-filtros");
-    let listaFiltros = document.getElementById("lista-filtros");
-
-    // Obtém os dados do localStorage ou do banco
-    let dados_composicoes = await recuperarDados("dados_composicoes") || {};
-    let cabecalhos = [...new Set(Object.values(dados_composicoes).flatMap(obj => Object.keys(obj)))];
-
-    let lpusCriadas = JSON.parse(localStorage.getItem("lpus_criadas")) || [];
-    cabecalhos.push(...lpusCriadas);
-
-    // Adiciona o campo "Editar" manualmente à lista de filtros
-    if (!cabecalhos.includes("editar")) {
-        cabecalhos.push("editar");
-    }
-
-    let colunasAtivas = JSON.parse(localStorage.getItem("colunas_composicoes")) || cabecalhos;
-
-    listaFiltros.innerHTML = ""
-
-    // Ordena os filtros em ordem alfabética
-    cabecalhos.sort((a, b) => a.localeCompare(b));
-
-    cabecalhos.forEach(cab => {
-        let cabecalhoFormatado = cab
-            .toLowerCase()
-            .split(" ") // Divide o nome em palavras
-            .map(word =>
-                word.toLowerCase() === "lpu" ? "LPU" : word.charAt(0).toUpperCase() + word.slice(1)
-            ) // Deixa "LPU" totalmente maiúsculo e capitaliza o restante
-            .join(" "); // Junta novamente com espaço
-
-        let checked = colunasAtivas.includes(cab) ? "checked" : "";
-
-        listaFiltros.innerHTML += `
-            <label>
-                <input type="checkbox" value="${cab}" ${checked}> ${cabecalhoFormatado}
-            </label>
-        `;
-
-    });
-
-    modal.style.display = "block";
-}
-
-function fecharModalFiltros() {
-    document.getElementById("modal-filtros").style.display = "none";
-}
-
-function selecionarTodosFiltros() {
-    let checkboxes = document.querySelectorAll("#lista-filtros input[type='checkbox']");
-    let selecionarTudo = document.getElementById("selecionar-tudo").checked;
-
-    checkboxes.forEach(cb => cb.checked = selecionarTudo);
-}
-
-function aplicarFiltros() {
-    let checkboxes = document.querySelectorAll("#lista-filtros input[type='checkbox']:checked");
-    let colunasSelecionadas = Array.from(checkboxes).map(cb => cb.value);
-
-    localStorage.setItem("colunas_composicoes", JSON.stringify(colunasSelecionadas));
-    fecharModalFiltros();
-    carregar_tabela_v2(); // Atualiza a tabela com os filtros aplicados
-}
-
-function filtrarCampos() {
-    let termo = document.getElementById("pesquisa-filtros").value.toLowerCase();
-    let filtros = document.querySelectorAll("#lista-filtros label");
-
-    filtros.forEach(label => {
-        let texto = label.textContent.toLowerCase();
-        label.style.display = texto.includes(termo) ? "flex" : "none";
-    });
 }
 
 function salvarNovaLPU() {

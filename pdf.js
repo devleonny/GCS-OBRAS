@@ -211,7 +211,7 @@ async function preencher_v2() {
         let tds = {}
 
         tds[1] = `<td>${item.codigo}</td>`
-        tds[2] = `<td>${carrefour ? item?.descricaocarrefour || 'N/A' : item?.descricao || 'N/A'}</td>`
+        tds[2] = `<td>${item?.descricao || 'N/A'}</td>`
         tds[3] = `<td style="text-align: center;"><img src="${item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 2vw;"></td>`
         tds[4] = `<td>${item?.unidade || 'UN'}</td>`
         tds[5] = `<td>${item.qtde}</td>`
