@@ -297,7 +297,15 @@ async function abrirFiltros() {
         <div class="lista-filtros">
             <input placeholder="Pesquisar" oninput="filtrarColunas(this.value)">
         </div>
+
         <hr style="widht: 100%;">
+
+        <div class="lista-filtros" style="margin-bottom: 5px;">
+            <label>
+                <input type="checkbox" onchange="marcarTodos(this)">Selecionar Todos
+            </label>
+        </div>
+
         <div id="filtrosColunas" class="lista-filtros">
             ${opcoes}
         </div>
@@ -317,6 +325,18 @@ function filtrarColunas(termo) {
     labels.forEach(label => {
         let texto = label.textContent.toLowerCase()
         texto.includes(termo) ? label.style.display = 'flex' : label.style.display = 'none'
+    })
+
+}
+
+function marcarTodos(inputTodos) {
+
+    let divFiltros = document.getElementById('filtrosColunas')
+    let labels = divFiltros.querySelectorAll('label')
+
+    labels.forEach(label => {
+        let input = label.querySelector('input')
+        input.checked = inputTodos.checked
     })
 
 }
@@ -1436,7 +1456,7 @@ async function cadastrar_editar_item(codigo) {
     })
     let comentario = ''
 
-    
+
     var acumulado = `
     
     ${codigo ? `
@@ -1475,9 +1495,9 @@ async function confirmar_exclusao_item(codigo) {
             <button onclick="exclusao_item('${codigo}')">Confirmar</button>
         </div>
         `)
-        let comentario = `O item ${codigo} foi excluído`
+    let comentario = `O item ${codigo} foi excluído`
 
-        registrarAlteracao('dados_composicao', codigo, comentario)
+    registrarAlteracao('dados_composicao', codigo, comentario)
 }
 
 async function exclusao_item(codigo) {
@@ -1525,8 +1545,8 @@ async function cadastrar_alterar(codigo) {
 
             codigo = novoCodigo.toString();
         }
-        
-    } 
+
+    }
 
     if (!dados_composicoes[codigo]) dados_composicoes[codigo] = {};
 
@@ -1539,21 +1559,21 @@ async function cadastrar_alterar(codigo) {
         let valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select');
 
         if (item && valor) dadosAtualizados[item.textContent] = valor.value;
-        
+
     });
 
     descricaoProduto = dadosAtualizados.descricao
-    
-    
 
-        if (novoCadastro) {
+
+
+    if (novoCadastro) {
         comentario = `Produto cadastrado com código ${codigo} e descrição: ${descricaoProduto}`
-        } else {
-            comentario = `Produto alterado com código ${codigo} e descrição: ${descricaoProduto}`
-        }
+    } else {
+        comentario = `Produto alterado com código ${codigo} e descrição: ${descricaoProduto}`
+    }
 
-       
-        
+
+
 
     remover_popup();
 
