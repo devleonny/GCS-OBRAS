@@ -727,12 +727,19 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
 
     produto[lpu].ativo = id_preco
 
+    let preco_atual = produto[lpu]?.historico?.[id_preco]?.valor;
+
+    let precoFormatado = parseFloat(preco_atual).toFixed(2)
+
+    let comentario = `O usuário ${acesso.usuario} atualizou o preço para ${precoFormatado}`
+
     enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco)
 
     await inserirDados(dados_composicoes, 'dados_composicoes')
 
     if (document.title == 'Criar Orçamento') total() // Caso esteja na tela de Orçamentos;
 
+    registrarAlteracao('dados_composicoes', codigo, comentario)
     let aguarde = document.getElementById('aguarde')
     if (aguarde) {
         aguarde.remove()
@@ -1201,6 +1208,22 @@ async function salvar_preco(codigo, lpu, cotacao) {
         // 4. Preparar objeto de histórico
         let historico = produto[lpu]?.historico || {};
         let id = cotacao || gerar_id_5_digitos();
+        let comentarioAlteracao = ''
+        const entradas = Object.entries(historico)
+
+        if (entradas.length === 0) {
+            comentarioAlteracao = `Preço definido para ${final.toFixed(2)}`;
+        } else {
+            const ordenado = entradas.sort((a, b) => new Date(b[1].data) - new Date(a[1].data));
+            const ultimaEntrada = ordenado[0];
+
+            if (ultimaEntrada[0] === id) {
+            const precoAnterior = parseFloat(ultimaEntrada[1].valor);
+            comentarioAlteracao = `O usuário ${acesso.usuario} alterou o preço de ${precoAnterior.toFixed(2)} para ${final.toFixed(2)}`;
+            } else {
+                comentarioAlteracao = `O usuário ${acesso.usuario} adicionou novo preço: ${final.toFixed(2)} `
+            }
+        }
 
         historico[id] = {
             valor: final,
@@ -1234,6 +1257,7 @@ async function salvar_preco(codigo, lpu, cotacao) {
         // 7. Fechar popup e recarregar
         remover_popup();
         await abrir_historico_de_precos(codigo, lpu);
+        registrarAlteracao('dados_composicoes', codigo, comentarioAlteracao)
 
     } catch (error) {
         console.error('Erro ao salvar preço:', error);
@@ -1242,6 +1266,7 @@ async function salvar_preco(codigo, lpu, cotacao) {
             document.body.removeChild(loader);
         }
     }
+
 }
 
 function calcular(tipo, campo) {
@@ -1436,7 +1461,7 @@ async function cadastrar_editar_item(codigo) {
     })
     let comentario = ''
 
-    
+
     var acumulado = `
     
     ${codigo ? `
@@ -1475,9 +1500,9 @@ async function confirmar_exclusao_item(codigo) {
             <button onclick="exclusao_item('${codigo}')">Confirmar</button>
         </div>
         `)
-        let comentario = `O item ${codigo} foi excluído`
+    let comentario = `O item ${codigo} foi excluído`
 
-        registrarAlteracao('dados_composicao', codigo, comentario)
+    registrarAlteracao('dados_composicao', codigo, comentario)
 }
 
 async function exclusao_item(codigo) {
@@ -1525,8 +1550,8 @@ async function cadastrar_alterar(codigo) {
 
             codigo = novoCodigo.toString();
         }
-        
-    } 
+
+    }
 
     if (!dados_composicoes[codigo]) dados_composicoes[codigo] = {};
 
@@ -1539,21 +1564,21 @@ async function cadastrar_alterar(codigo) {
         let valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select');
 
         if (item && valor) dadosAtualizados[item.textContent] = valor.value;
-        
+
     });
 
     descricaoProduto = dadosAtualizados.descricao
-    
-    
 
-        if (novoCadastro) {
+
+
+    if (novoCadastro) {
         comentario = `Produto cadastrado com código ${codigo} e descrição: ${descricaoProduto}`
-        } else {
-            comentario = `Produto alterado com código ${codigo} e descrição: ${descricaoProduto}`
-        }
+    } else {
+        comentario = `Produto alterado com código ${codigo} e descrição: ${descricaoProduto}`
+    }
 
-       
-        
+
+
 
     remover_popup();
 
@@ -1564,7 +1589,20 @@ async function cadastrar_alterar(codigo) {
     await inserirDados(dados_composicoes, 'dados_composicoes');
     await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
 
+
+
+    carregar_tabela_v2();
+    registrarAlteracao('dados_composicoes', codigo, comentario)
+
+
+    
+
     await retormarPaginacao()
+
+
+
+    await retormarPaginacao()
+
 }
 
 function gerarNovoCodigo(ultimoCodigo) {
