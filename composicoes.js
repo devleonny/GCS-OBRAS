@@ -220,7 +220,7 @@ async function carregar_tabela_v2(auxiliarPaginacao) {
 async function retomarPaginacao() {
 
     await carregar_tabela_v2(true)
- 
+
     try {
         let tabela = document.getElementById('tabela_composicoes')
         let thead = tabela.querySelector('thead')
@@ -1241,8 +1241,8 @@ async function salvar_preco(codigo, lpu, cotacao) {
             const ultimaEntrada = ordenado[0];
 
             if (ultimaEntrada[0] === id) {
-            const precoAnterior = parseFloat(ultimaEntrada[1].valor);
-            comentarioAlteracao = `O usuário ${acesso.usuario} alterou o preço de ${precoAnterior.toFixed(2)} para ${final.toFixed(2)}`;
+                const precoAnterior = parseFloat(ultimaEntrada[1].valor);
+                comentarioAlteracao = `O usuário ${acesso.usuario} alterou o preço de ${precoAnterior.toFixed(2)} para ${final.toFixed(2)}`;
             } else {
                 comentarioAlteracao = `O usuário ${acesso.usuario} adicionou novo preço: ${final.toFixed(2)} `
             }
@@ -1523,9 +1523,7 @@ async function confirmar_exclusao_item(codigo) {
             <button onclick="exclusao_item('${codigo}')">Confirmar</button>
         </div>
         `)
-    let comentario = `O item ${codigo} foi excluído`
 
-    registrarAlteracao('dados_composicao', codigo, comentario)
 }
 
 async function exclusao_item(codigo) {
@@ -1533,12 +1531,16 @@ async function exclusao_item(codigo) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
     if (dados_composicoes[codigo]) {
+
+        let comentario = `O item ${codigo}, descrição ${dados_composicoes[codigo].descricao} foi excluído`
+        registrarAlteracao('dados_composicao', codigo, comentario)
+
         delete dados_composicoes[codigo]
 
-        await deletar(`dados_composicoes/${codigo}`)
+        deletar(`dados_composicoes/${codigo}`)
         await inserirDados(dados_composicoes, 'dados_composicoes')
         remover_popup()
-        await carregar_tabela_v2()
+        await retomarPaginacao()
     }
 
 }
