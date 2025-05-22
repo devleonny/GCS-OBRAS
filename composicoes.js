@@ -1566,9 +1566,13 @@ async function cadastrar_alterar(codigo) {
 
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     carregar_tabela_v2();
     registrarAlteracao('dados_composicoes', codigo, comentario)
     
+=======
+    await retormarPaginacao()
+>>>>>>> Stashed changes
 =======
     await retormarPaginacao()
 >>>>>>> Stashed changes
