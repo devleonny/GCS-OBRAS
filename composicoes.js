@@ -770,8 +770,8 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
 }
 
 async function excluir_cotacao(codigo, lpu, cotacao) {
-    var historico_preco = document.getElementById('historico_preco');
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    let historico_preco = document.getElementById('historico_preco');
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
     if (historico_preco) {
         var tabela = historico_preco.querySelector('table');
@@ -811,12 +811,15 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
                 await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
             }
 
+            let precoExcluido = cotacoes.historico?.[cotacao]?.valor
+            let comentario = `O usuário ${acesso.usuario} excluiu o preço de ID: ${cotacao} e valor: ${parseFloat(precoExcluido).toFixed(2)}`
             // Remove a cotação do histórico
             delete cotacoes.historico[cotacao];
 
             // Atualiza o banco de dados
             await inserirDados(dados_composicoes, 'dados_composicoes');
             await deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`);
+            registrarAlteracao('dados_composicoes', codigo, comentario)
         }
 
         // 🔥 Restaurar a tabela e abrir o histórico
