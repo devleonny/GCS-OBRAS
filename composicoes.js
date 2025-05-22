@@ -1593,6 +1593,7 @@ async function cadastrar_alterar(codigo) {
     await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
 
 
+
     carregar_tabela_v2();
     registrarAlteracao('dados_composicoes', codigo, comentario)
 
@@ -1601,6 +1602,9 @@ async function cadastrar_alterar(codigo) {
 
     await retormarPaginacao()
 
+
+
+    await retormarPaginacao()
 
 }
 
