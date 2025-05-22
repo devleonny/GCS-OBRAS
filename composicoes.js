@@ -1373,9 +1373,11 @@ async function cadastrar_editar_item(codigo) {
             `
         }
     })
+    let comentario = ''
 
+    
     var acumulado = `
-
+    
     ${codigo ? `
     <div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
         <label style="font-size: 0.7em;">${codigo}</label>
@@ -1412,6 +1414,9 @@ async function confirmar_exclusao_item(codigo) {
             <button onclick="exclusao_item('${codigo}')">Confirmar</button>
         </div>
         `)
+        let comentario = `O item ${codigo} foi excluído`
+
+        registrarAlteracao('dados_composicao', codigo, comentario)
 }
 
 async function exclusao_item(codigo) {
@@ -1430,12 +1435,15 @@ async function exclusao_item(codigo) {
 }
 
 async function cadastrar_alterar(codigo) {
-
+    let novoCadastro = false
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
     overlayAguarde()
+    let comentario = ''
+    let descricaoProduto = ''
 
     if (!codigo) {
+        novoCadastro = true
         const ultimoCodigo = encontrarMaiorCodigo(dados_composicoes);
 
         codigo = gerarNovoCodigo(ultimoCodigo);
@@ -1456,8 +1464,8 @@ async function cadastrar_alterar(codigo) {
 
             codigo = novoCodigo.toString();
         }
-
-    }
+        
+    } 
 
     if (!dados_composicoes[codigo]) dados_composicoes[codigo] = {};
 
@@ -1470,7 +1478,21 @@ async function cadastrar_alterar(codigo) {
         let valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select');
 
         if (item && valor) dadosAtualizados[item.textContent] = valor.value;
+        
     });
+
+    descricaoProduto = dadosAtualizados.descricao
+    
+    
+
+        if (novoCadastro) {
+        comentario = `Produto cadastrado com código ${codigo} e descrição: ${descricaoProduto}`
+        } else {
+            comentario = `Produto alterado com código ${codigo} e descrição: ${descricaoProduto}`
+        }
+
+       
+        
 
     remover_popup();
 
@@ -1482,6 +1504,8 @@ async function cadastrar_alterar(codigo) {
     await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
 
     carregar_tabela_v2();
+    registrarAlteracao('dados_composicoes', codigo, comentario)
+    
 }
 
 function gerarNovoCodigo(ultimoCodigo) {
