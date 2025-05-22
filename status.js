@@ -1959,7 +1959,6 @@ async function mostrar_painel() {
         let lucro_unit = total - custo_total;
 
         let descricao_produto = produto.descricao || 'Item sem descrição'
-
         linhas[produto.tipo].total_custo += custo_total
         linhas[produto.tipo].total_orcado += total
         linhas[produto.tipo].total_lucro += lucro_unit
