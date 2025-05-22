@@ -2085,3 +2085,17 @@ async function lista_setores(usuario) {
             });
     })
 }
+
+function registrarAlteracao (base, id, comentario) {
+    let novoRegistro = {
+        usuario: acesso.usuario,
+        data: data_atual('completa'),
+        comentario: comentario,
+        base,
+        id
+    }
+
+    let idRegistro = gerar_id_5_digitos()
+
+    enviar(`registrosAlteracoes/${idRegistro}`, novoRegistro)
+}
