@@ -1322,6 +1322,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 .bot_adicionar {
+    margin: 3px;
     background-color: #d2d2d2;
     color: #222;
     display: flex;
@@ -1331,9 +1332,6 @@ input[type=range]::-moz-range-thumb {
     width: max-content;
     cursor: pointer;
     border-radius: 3px;
-    position: absolute;
-    top: 3px;
-    right: 3px;
     font-size: 0.8vw;
 }
 

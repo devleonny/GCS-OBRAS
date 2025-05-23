@@ -701,9 +701,13 @@ async function abrir_historico_de_precos(codigo, tabela) {
                 </div>
             </div>
 
-            <div onclick="adicionar_nova_cotacao('${codigo}', '${tabela}')" class="bot_adicionar">
-                <img src="imagens/preco.png">
-                <label>Adicionar Preço</label>
+            <div style="position: absolute; top: 3px; right: 3px; display: flex; align-items: start; justify-content: center; flex-direction: column;">
+
+                <div onclick="adicionar_nova_cotacao('${codigo}', '${tabela}')" class="bot_adicionar">
+                    <img src="imagens/preco.png">
+                    <label>Adicionar Preço</label>
+                </div>
+
             </div>
 
             <label>Histórico de Preços</label>

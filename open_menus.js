@@ -4,7 +4,7 @@ let logo = 'https://i.imgur.com/Nb8sPs0.png'
 let esquemas = {
     'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS'],
     'categoria de equipamento': ['', 'IP', 'ANALÓGICO', 'ALARME', 'CONTROLE DE ACESSO'],
-    'tipo': ['USO E CONSUMO', 'VENDA', 'SERVIÇO', 'ALUGUEL']
+    'tipo': ['VENDA', 'SERVIÇO', 'USO E CONSUMO']
 }
 const itensImportados = [
     'gcs-725', 'gcs-726', 'gcs-738', 'gcs-739', 'gcs-734', 'gcs-740', 'gcs-741', 'gcs-730', 'gcs-742', 'gcs-743', 'gcs-744', 'gcs-747', 'gcs-729', 'gcs-728', 'gcs-727', 'gcs-1135', 'gcs-1136', 'gcs-1137'
@@ -661,10 +661,8 @@ function criarAnexoVisual(nome, link_anexo, funcao_excluir) {
                 <label style="font-size: 0.7vw; cursor: pointer;" title="${nome}">${nomeFormatado}</label>
             </div>
             <img src="imagens/cancel.png" style="display: ${displayExcluir}; width: 2vw; cursor: pointer;" onclick="${funcao_excluir}">
-        </div>
-    `;
+        </div>`;
 }
-
 
 let janela_original = { width: '', height: '', maxWidth: '', maxHeight: '' };
 let janela_original_simples = { width: '', height: '', maxWidth: '', maxHeight: '' };
