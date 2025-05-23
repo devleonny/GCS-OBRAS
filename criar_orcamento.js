@@ -821,8 +821,6 @@ async function total() {
                 itemSalvo.codigo = codigo
                 tds[1].textContent = dados_composicoes[codigo].descricao
 
-                console.log('Dados: ', dados_composicoes[codigo])
-
                 if (dados_composicoes[codigo].agrupamentos) {
                     let img = `<img id="mostrarItensAgrupamento${dados_composicoes[codigo].codigo}" src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 3px; width: 1.5vw; cursor: pointer;">`
                     tds[1].insertAdjacentHTML('beforeend', img) // Não precisa de acréscimo;
@@ -830,7 +828,7 @@ async function total() {
 
                 let botaoMostrarAgrupamento = document.getElementById(`mostrarItensAgrupamento${dados_composicoes[codigo].codigo}`)
                 botaoMostrarAgrupamento.addEventListener('click', () => {
-                    abrirAgrupamento(lpu, dados_composicoes, dados_composicoes[codigo].agrupamentos)
+                    abrirAgrupamento(codigo, lpu, dados_composicoes, dados_composicoes[codigo].agrupamentos)
                 })
 
                 // Substitui a referência do código para o item que substitui ele; Então a partir daqui, tudo será do substituto;
@@ -1105,22 +1103,29 @@ async function total() {
 
 }
 
-async function abrirAgrupamento(lpu, dadosComposicoes, agrupamentos) {
+async function abrirAgrupamento(codigoOrcamento, lpu, dadosComposicoes, agrupamentos) {
+    const orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+
     const descricao = (codigo) => dadosComposicoes[codigo]?.descricao || 'Descrição não encontrada';
+
     const quantidadeDoItem = (codigo) => Object.keys(dadosComposicoes[codigo][lpu].historico).length || 0;
+    const quantidadeAtualizadaDoItemPrincipal = (codigo) => quantidadeDoItem(codigo) * orcamento_v2.dados_composicoes[codigoOrcamento]?.qtde
+
     const totalDoItem = ({ quantidadeAgrupamento, quantidadeAvulsa }) => quantidadeAgrupamento + quantidadeAvulsa;
 
     const quantidadesAvulsas = {};
 
+
     let listaAgrupamentos = '';
     Object.entries(agrupamentos).forEach(([codigo]) => {
-        quantidadesAvulsas[codigo] = 0; // Inicializa com 0
+
+        quantidadesAvulsas[codigo] = 0;
 
         listaAgrupamentos += `
             <tr>
                 <td class="tabela_descricao">${descricao(codigo)}</td>
                 <td>
-                    <div class="tabela_quantidade">${quantidadeDoItem(codigo)}</div>
+                    <div class="tabela_quantidade">${quantidadeAtualizadaDoItemPrincipal(codigo)}</div>
                 </td>
                 <td>
                     <input
@@ -1133,7 +1138,7 @@ async function abrirAgrupamento(lpu, dadosComposicoes, agrupamentos) {
                 </td>
                 <td>
                     <div class="tabela_quantidade total-item" data-codigo="${codigo}">
-                        ${totalDoItem({ quantidadeAgrupamento: quantidadeDoItem(codigo), quantidadeAvulsa: 0 })}
+                        ${totalDoItem({ quantidadeAgrupamento: quantidadeAtualizadaDoItemPrincipal(codigo), quantidadeAvulsa: 0 })}
                     </div>
                 </td>
             </tr>
