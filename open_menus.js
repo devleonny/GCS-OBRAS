@@ -2083,7 +2083,7 @@ async function lista_setores(usuario) {
     })
 }
 
-function registrarAlteracao (base, id, comentario) {
+function registrarAlteracao(base, id, comentario) {
     let novoRegistro = {
         usuario: acesso.usuario,
         data: data_atual('completa'),
@@ -2095,4 +2095,36 @@ function registrarAlteracao (base, id, comentario) {
     let idRegistro = gerar_id_5_digitos()
 
     enviar(`registrosAlteracoes/${idRegistro}`, novoRegistro)
+}
+
+function baseOrcamento(orcamento, remover) {
+
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    let app = modoClone ? 'clone' : 'antigos'
+    let orcamentos = JSON.parse(localStorage.getItem('orcamentos')) || {}
+
+    let modalidade = document.title == 'Orçamento de Aluguel' ? 'aluguel' : 'orcamento'
+    if (orcamento) {
+        modalidade = orcamento.lpu_ativa == 'ALUGUEL' ? 'aluguel' : 'orcamento'
+    }
+
+    if (!orcamentos[app]) {
+        orcamentos[app] = {}
+    }
+
+    if (!orcamentos[app][modalidade]) {
+        orcamentos[app][modalidade] = {}
+    }
+
+    if (orcamento) {
+        orcamentos[app][modalidade] = orcamento
+        localStorage.setItem('orcamentos', JSON.stringify(orcamentos))
+        
+    } else if (remover) {
+        delete orcamentos[app][modalidade]
+        localStorage.setItem('orcamentos', JSON.stringify(orcamentos))
+
+    } else {
+        return orcamentos[app][modalidade]
+    }
 }

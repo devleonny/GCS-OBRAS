@@ -1263,7 +1263,7 @@ async function exibir_todos_os_status(id) {
             <img src="imagens/excel.png">
             <label style="cursor: pointer;">Baixar Orçamento em Excel</label>
         </div>
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_duplicar('${id}')">
+        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="duplicar('${id}')">
             <img src="imagens/duplicar.png">
             <label style="cursor: pointer;">Duplicar Orçamento</label>
         </div>
@@ -1275,7 +1275,7 @@ async function exibir_todos_os_status(id) {
             <img src="imagens/apagar.png" style="width: 48px; height: 48px; margin: 3px;">
             <label style="cursor: pointer;">Excluir Orçamento</label>
         </div>    
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_editar('${id}')">
+        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="editar('${id}')">
             <img src="imagens/editar.png" style="width: 48px; height: 48px; margin: 3px;">
             <label style="cursor: pointer;">Editar Orçamento</label>
         </div>         
@@ -3220,14 +3220,6 @@ async function excluirAnexo(chave, id_anexo, img) {
 
     img.parentElement.remove()
 
-}
-
-async function chamar_duplicar(id) {
-    duplicar(id)
-}
-
-async function chamar_editar(id) {
-    editar(id)
 }
 
 async function chamar_excluir(id) {

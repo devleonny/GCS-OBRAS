@@ -172,6 +172,7 @@ async function preencher_v2() {
     }
 
     let config = {
+        'ALUGUEL': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: 'green' },
         'USO E CONSUMO': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: '#24729d' },
         'SERVIÇO': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: 'green' },
         'VENDA': { colunas: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cor: '#B12425' }
