@@ -183,7 +183,7 @@ async function carregarTabelas() {
     let stringsTabelas = ''
     let dadosComposicoes = orcamento_v2.dados_composicoes
     let padraoFiltro = localStorage.getItem('padraoFiltro')
-    
+
     if (padraoFiltro == null) {
         padraoFiltro = 'tipo'
         localStorage.setItem('padraoFiltro', 'tipo')
@@ -821,10 +821,17 @@ async function total() {
                 itemSalvo.codigo = codigo
                 tds[1].textContent = dados_composicoes[codigo].descricao
 
+                console.log('Dados: ', dados_composicoes[codigo])
+
                 if (dados_composicoes[codigo].agrupamentos) {
-                    let img = `<img src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 3px; width: 1.5vw; cursor: pointer;">`
+                    let img = `<img id="mostrarItensAgrupamento${dados_composicoes[codigo].codigo}" src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 3px; width: 1.5vw; cursor: pointer;">`
                     tds[1].insertAdjacentHTML('beforeend', img) // Não precisa de acréscimo;
                 }
+
+                let botaoMostrarAgrupamento = document.getElementById(`mostrarItensAgrupamento${dados_composicoes[codigo].codigo}`)
+                botaoMostrarAgrupamento.addEventListener('click', () => {
+                    abrirAgrupamento(dados_composicoes, dados_composicoes[codigo].agrupamentos)
+                })
 
                 // Substitui a referência do código para o item que substitui ele; Então a partir daqui, tudo será do substituto;
                 if (carrefour && dados_composicoes[codigo] && dados_composicoes[codigo].substituto && dados_composicoes[codigo].substituto !== '') {
@@ -1096,6 +1103,44 @@ async function total() {
         tabelas.insertAdjacentHTML('afterbegin', quieto)
     }
 
+}
+
+async function abrirAgrupamento(dadosComposicoes, agrupamentos) {
+    const descricao = (codigo) => dadosComposicoes[codigo]?.descricao || 'Descrição não encontrada';
+
+    let listaAgrupamentos = '';
+
+    Object.entries(agrupamentos).forEach(([codigo]) => {
+        listaAgrupamentos += `
+            <tr>
+                <td class="tabela_descricao">${descricao(codigo)}</td>
+                <td>
+                    <div class="tabela_quantidade">1</div>
+                </td>
+                <td>
+                    <input class="tabela_quantidade" type="number" value="0"/>
+                </td>
+                <td>
+                    <div class="tabela_quantidade">1</div>
+                </td>
+            </tr>
+        `
+    })
+
+    openPopup_v2(
+        `
+            <table class="tabela tabela_agrupamento">
+                <thead>
+                    <th>Descrição do item</th>
+                    <th>Quantidade em composições</th>
+                    <th>Quantidade avulsa</th>
+                    <th>Quantidade total</th>
+                </thead>
+                <tbody>
+                    ${listaAgrupamentos}
+                </tbody>
+            </table>    
+        `, 'Agrupamentos');
 }
 
 async function incluirItem(codigo, novaQuantidade) {
