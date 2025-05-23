@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Histórico de Alterações GCS</title>
+  <link rel="stylesheet" href="gcsobras.css">
+  <link rel="stylesheet" href="HistoricoGCS.css">
+</head>
+<body>
+
+  <header>
+    Histórico de Alterações GCS
+  </header>
+
+  <div class="toolbar" id="toolbar">
+    <div onclick="filtrarRegistros('todos')" class="ativo">Todos</div>
+    <div onclick="filtrarRegistros('dados_orcamentos')">Orçamentos</div>
+    <div onclick="filtrarRegistros('dados_composicoes')">Composições</div>
+  </div>
+
+  <div class="filtros">
+    <input id="filtroBusca" placeholder="Buscar por usuário, tipo ou código..." oninput="filtrarTabela()">
+  </div>
+
+  <div id="registros">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Usuário</th>
+          <th>Tipo</th>
+          <th>Código</th>
+          <th>Comentário</th>
+        </tr>
+      </thead>
+      <tbody id="linhas_registros">
+        <!-- Conteúdo dinâmico -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    var registrosOriginais = [];
+    var tipoFiltroAtual = 'todos';
+
+    async function carregarRegistros() {
+      registrosOriginais = await recuperarDados('historico_alteracoes') || [];
+      desenharTabela(registrosOriginais);
+    }
+
+    function filtrarRegistros(tipo) {
+      tipoFiltroAtual = tipo;
+      document.querySelectorAll('.toolbar div').forEach(div => div.classList.remove('ativo'));
+      document.querySelector(`.toolbar div[onclick*="${tipo}"]`).classList.add('ativo');
+      filtrarTabela();
+    }
+
+    function filtrarTabela() {
+      const termo = document.getElementById('filtroBusca').value.toLowerCase();
+      const lista = registrosOriginais.filter(reg => {
+        const matchTipo = tipoFiltroAtual === 'todos' || reg.tipo === tipoFiltroAtual;
+        const matchBusca = reg.usuario.toLowerCase().includes(termo) ||
+                           reg.tipo.toLowerCase().includes(termo) ||
+                           String(reg.codigo).toLowerCase().includes(termo);
+        return matchTipo && matchBusca;
+      });
+      desenharTabela(lista);
+    }
+
+    function desenharTabela(lista) {
+      const corpo = document.getElementById('linhas_registros');
+      corpo.innerHTML = '';
+      lista.forEach(reg => {
+        const linha = document.createElement('tr');
+        linha.innerHTML = `
+          <td>${reg.data}</td>
+          <td>${reg.usuario}</td>
+          <td>${reg.tipo}</td>
+          <td>${reg.codigo}</td>
+          <td>${reg.comentario}</td>
+        `;
+        corpo.appendChild(linha);
+      });
+    }
+
+    carregarRegistros();
+  </script>
+
+  <script src="open_menus.js"></script>
+  <script src="composicoes.js"></script>
+  <script src="orcamentos.js"></script>
+
+</body>
+</html>

@@ -3231,6 +3231,11 @@ async function chamar_editar(id) {
 }
 
 async function chamar_excluir(id) {
+   
+    let codigo = id
+   
+
+  
     openPopup_v2(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
             <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
@@ -3238,6 +3243,8 @@ async function chamar_excluir(id) {
         </div>
         <button style="background-color: green;" onclick="apagar('${id}')">Confirmar</button>
         `)
+        let comentario = `O usuário ${acesso.usuario} excluiu o orçamento ${codigo}`
+        registrarAlteracao('dados_orcamentos', codigo, comentario)
 }
 
 async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {

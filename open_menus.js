@@ -159,6 +159,10 @@ function carregarIcones() {
         acesso.permissao == 'diretor'
     )
 
+    let moduloHistorico = (
+        acesso.permissao == 'adm'
+    )
+
     let icones = `
         <div class="block" style="flex-direction: column;" onclick="window.location.href='orcamentos.html'">
             <img src="imagens/projeto.png">
@@ -195,6 +199,12 @@ function carregarIcones() {
             <img src="imagens/agenda.png">
             <label>Agenda</label>
         </div>
+
+        ${moduloHistorico ? `
+        <div class="block" style="flex-direction: column;" onclick="window.location.href='HistoricoGCS.html'">
+            <img src="imagens/historico.png">
+            <label>Historico de Alterações GCS</label>
+        </div>` : ''}
     `
 
     if (ativar) {
@@ -205,6 +215,11 @@ function carregarIcones() {
                 <label>Orçamentos</label>
             </div>
             ${moduloComposicoes ? `
+            <div class="block" style="flex-direction: column;" onclick="window.location.href='composicoes.html'">
+                <img src="imagens/composicoes.png">
+                <label>Composições</label>
+            </div>` : ''}
+             ${moduloHistorico ? `
             <div class="block" style="flex-direction: column;" onclick="window.location.href='composicoes.html'">
                 <img src="imagens/composicoes.png">
                 <label>Composições</label>
@@ -2086,16 +2101,19 @@ async function lista_setores(usuario) {
     })
 }
 
-function registrarAlteracao (base, id, comentario) {
-    let novoRegistro = {
+async function registrarAlteracao (base, id, comentario) {
+    const historicoAlteracoes = await recuperarDados('registrosAlteracoes') || []
+    // let novoRegistro
+    historicoAlteracoes.push ({
         usuario: acesso.usuario,
         data: data_atual('completa'),
         comentario: comentario,
         base,
         id
-    }
+    })
 
     let idRegistro = gerar_id_5_digitos()
+    await inserirDados(historicoAlteracoes, `registrarAlteracao/${idRegistro}`)
+    // enviar(`registrosAlteracoes/${idRegistro}`, novoRegistro)
 
-    enviar(`registrosAlteracoes/${idRegistro}`, novoRegistro)
 }

@@ -96,10 +96,12 @@ function orcamento_que_deve_voltar() {
 }
 
 function confirmar_exclusao() {
-
+    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+       
     localStorage.removeItem('orcamento_v2')
-    location.href = 'criar_orcamento.html'
+           
     remover_popup()
+    location.href = 'criar_orcamento.html'
 
 }
 
@@ -323,8 +325,12 @@ async function removerItem(codigo, img) {
 
     let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
 
+    let orcamento = orcamento_v2.dados_composicoes[codigo]
+    console.log(orcamento);
     if (orcamento_v2.dados_composicoes[codigo]) {
-
+       
+        
+        let comentario = `O usuário ${acesso.usuario} excluiu o item ${orcamento.descricao}`
         delete orcamento_v2.dados_composicoes[codigo]
 
         localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
@@ -332,6 +338,8 @@ async function removerItem(codigo, img) {
         img.parentElement.parentElement.remove() // Equivalente a tr
 
         await total()
+
+        registrarAlteracao ('dados_orcamentos', codigo, comentario)
     }
 
 }
