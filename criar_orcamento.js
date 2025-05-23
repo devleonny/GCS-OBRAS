@@ -830,7 +830,7 @@ async function total() {
 
                 let botaoMostrarAgrupamento = document.getElementById(`mostrarItensAgrupamento${dados_composicoes[codigo].codigo}`)
                 botaoMostrarAgrupamento.addEventListener('click', () => {
-                    abrirAgrupamento(dados_composicoes, dados_composicoes[codigo].agrupamentos)
+                    abrirAgrupamento(lpu, dados_composicoes, dados_composicoes[codigo].agrupamentos)
                 })
 
                 // Substitui a referência do código para o item que substitui ele; Então a partir daqui, tudo será do substituto;
@@ -1105,29 +1105,42 @@ async function total() {
 
 }
 
-async function abrirAgrupamento(dadosComposicoes, agrupamentos) {
+async function abrirAgrupamento(lpu, dadosComposicoes, agrupamentos) {
     const descricao = (codigo) => dadosComposicoes[codigo]?.descricao || 'Descrição não encontrada';
+    const quantidadeDoItem = (codigo) => Object.keys(dadosComposicoes[codigo][lpu].historico).length || 0;
+    const totalDoItem = ({ quantidadeAgrupamento, quantidadeAvulsa }) => quantidadeAgrupamento + quantidadeAvulsa;
+
+    const quantidadesAvulsas = {};
 
     let listaAgrupamentos = '';
-
     Object.entries(agrupamentos).forEach(([codigo]) => {
+        quantidadesAvulsas[codigo] = 0; // Inicializa com 0
+
         listaAgrupamentos += `
             <tr>
                 <td class="tabela_descricao">${descricao(codigo)}</td>
                 <td>
-                    <div class="tabela_quantidade">1</div>
+                    <div class="tabela_quantidade">${quantidadeDoItem(codigo)}</div>
                 </td>
                 <td>
-                    <input class="tabela_quantidade" type="number" value="0"/>
+                    <input
+                        class="tabela_quantidade quantidade-avulsa-input"
+                        data-codigo="${codigo}"
+                        type="number" 
+                        min="0" 
+                        value="0"
+                    />
                 </td>
                 <td>
-                    <div class="tabela_quantidade">1</div>
+                    <div class="tabela_quantidade total-item" data-codigo="${codigo}">
+                        ${totalDoItem({ quantidadeAgrupamento: quantidadeDoItem(codigo), quantidadeAvulsa: 0 })}
+                    </div>
                 </td>
             </tr>
-        `
-    })
+        `;
+    });
 
-    openPopup_v2(
+    const popup = openPopup_v2(
         `
             <table class="tabela tabela_agrupamento">
                 <thead>
@@ -1140,7 +1153,30 @@ async function abrirAgrupamento(dadosComposicoes, agrupamentos) {
                     ${listaAgrupamentos}
                 </tbody>
             </table>    
-        `, 'Agrupamentos');
+        `,
+        'Agrupamentos'
+    );
+
+    const DELAY_DOM_READY_MILLISECONDS = 100;
+
+    setTimeout(() => {
+        document.querySelectorAll('.quantidade-avulsa-input').forEach(input => {
+            const codigo = input.getAttribute('data-codigo');
+
+            input.addEventListener('input', (event) => {
+                const valor = Number(event.target.value) || 0;
+                quantidadesAvulsas[codigo] = valor;
+
+                const totalElement = document.querySelector(`.total-item[data-codigo="${codigo}"]`);
+                if (totalElement) {
+                    totalElement.textContent = totalDoItem({
+                        quantidadeAgrupamento: quantidadeDoItem(codigo),
+                        quantidadeAvulsa: valor
+                    });
+                }
+            });
+        });
+    }, DELAY_DOM_READY_MILLISECONDS);
 }
 
 async function incluirItem(codigo, novaQuantidade) {
