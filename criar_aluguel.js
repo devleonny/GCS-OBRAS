@@ -90,6 +90,7 @@ async function carregarTabelas() {
     let dadosComposicoes = orcamento_v2.dados_composicoes
 
     document.getElementById('lpu').value = orcamento_v2?.periodo || 'DIA'
+    document.getElementById('quantidadePeriodo').value = orcamento_v2?.quantidadePeriodo || ''
 
     for (codigo in dadosComposicoes) {
 
@@ -147,7 +148,7 @@ async function carregarTabelas() {
                     <th style="color: white;">${orcamento_v2.lpu_ativa}</th>
                     <th style="color: white;">Medida</th>
                     <th style="color: white;">Quantidade</th>
-                    <th style="color: white;">Custo Unitário</th>
+                    <th style="color: white;">Custo Unitário Locação</th>
                     <th style="color: white;">Desconto</th>
                     <th style="color: white;">Valor Total</th>
                     <th style="color: white;">Imagem *Ilustrativa</th>
@@ -575,8 +576,10 @@ async function total() {
     let totais = { GERAL: { valor: 0, exibir: 'none', bruto: 0 } }
     let divTabelas = document.getElementById('tabelas')
     let tables = divTabelas.querySelectorAll('table')
+    let quantidadePeriodo = document.getElementById('quantidadePeriodo').value
 
     orcamento_v2.lpu_ativa = modo // Salvando no mesmo local que as LPUs, para mostrar na tabela geral;
+    orcamento_v2.quantidadePeriodo = quantidadePeriodo
 
     if (!orcamento_v2.dados_composicoes) {
         orcamento_v2.dados_composicoes = {}
