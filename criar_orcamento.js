@@ -1113,12 +1113,18 @@ async function abrirAgrupamento(codigoOrcamento, lpu, dadosComposicoes, agrupame
 
     const totalDoItem = ({ quantidadeAgrupamento, quantidadeAvulsa }) => quantidadeAgrupamento + quantidadeAvulsa;
 
-    const quantidadesAvulsas = {};
+    const codigoAgrupamentoAtivo = (codigo) => dadosComposicoes[codigo][lpu].ativo;
+    const valorAgrupamentoAtivo = (codigo) => {
+        const ativo = codigoAgrupamentoAtivo(codigo);
+        const historico = dadosComposicoes[codigo][lpu].historico;
 
+        return historico[ativo]?.valor || 0;
+    }
+
+    const quantidadesAvulsas = {};
 
     let listaAgrupamentos = '';
     Object.entries(agrupamentos).forEach(([codigo]) => {
-
         quantidadesAvulsas[codigo] = 0;
 
         listaAgrupamentos += `
@@ -1182,6 +1188,8 @@ async function abrirAgrupamento(codigoOrcamento, lpu, dadosComposicoes, agrupame
             });
         });
     }, DELAY_DOM_READY_MILLISECONDS);
+
+    return
 }
 
 async function incluirItem(codigo, novaQuantidade) {
