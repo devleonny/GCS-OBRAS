@@ -1,5 +1,11 @@
 let filtrosAtivosPagamentos = {}
 let dados_setores = {}
+let opcoesStatus = [
+    'Aguardando aprovação da Diretoria',
+    'Aguardando aprovação da Gerência',
+    'Pagamento Excluído',
+    'Salvo localmente'
+]
 
 consultar_pagamentos()
 
@@ -9,165 +15,114 @@ async function consultar_pagamentos() {
     if (!div_pagamentos) {
         return
     }
+
     div_pagamentos.innerHTML = ''
 
-    //Recuperar dados do usuário atual
-    const acesso = JSON.parse(localStorage.getItem('acesso'));
-    const usuarioAtual = acesso.usuario;
-    const permissaoUsuario = acesso.permissao
+    //Chamada para o endpoint que já retorna os pagamentos filtrados      
+    let acumulado = ''
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
 
-    try {
-        //Chamada para o endpoint que já retorna os pagamentos filtrados      
-        let acumulado = ''
-        let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    if (Object.keys(lista_pagamentos).length == 0) {
+        lista_pagamentos = await receber('lista_pagamentos')
+        await inserirDados(lista_pagamentos, 'lista_pagamentos')
+    }
 
-        if (Object.keys(lista_pagamentos).length == 0) {
-            lista_pagamentos = await receber('lista_pagamentos')
-            await inserirDados(lista_pagamentos, 'lista_pagamentos')
-        }
+    let dados_categorias = await recuperarDados('dados_categorias')
+    if (!dados_categorias) {
+        dados_categorias = await receber('dados_categorias')
+        inserirDados(dados_categorias, 'dados_categorias')
+    }
 
-        let dados_categorias = await recuperarDados('dados_categorias')
-        if (!dados_categorias) {
-            dados_categorias = await receber('dados_categorias')
-            inserirDados(dados_categorias, 'dados_categorias')
-        }
+    // timestamp para dados_setores: Sempre atualizado;
+    let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
+    let timestamp_atual_setores = await ultimo_timestamp('dados_setores')
 
-        // timestamp para dados_setores: Sempre atualizado;
-        let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
-        let timestamp_atual_setores = await ultimo_timestamp('dados_setores')
+    if (timestamp_atual_setores.timestamp > (timestamps?.dados_setores || 0)) {
+        dados_setores = await lista_setores()
+        timestamps.dados_setores = timestamp_atual_setores.timestamp
+        localStorage.setItem('timestamps', JSON.stringify(timestamps))
+    } else {
+        dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    }
 
-        if (timestamp_atual_setores.timestamp > (timestamps?.dados_setores || 0)) {
-            dados_setores = await lista_setores()
-            timestamps.dados_setores = timestamp_atual_setores.timestamp
-            localStorage.setItem('timestamps', JSON.stringify(timestamps))
-        } else {
-            dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
-        }
+    let orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let dados_clientes = await recuperarDados('dados_clientes') || {};
+    let clientes = {}
+    let linhas = ''
 
-        let orcamentos = await recuperarDados('dados_orcamentos') || {};
-        let dados_clientes = await recuperarDados('dados_clientes') || {};
-        let clientes = {}
-        let linhas = ''
+    Object.keys(dados_clientes).forEach(item => {
+        let cliente = dados_clientes[item]
+        clientes[cliente.omie] = cliente
+    })
 
-        Object.keys(dados_clientes).forEach(item => {
-            let cliente = dados_clientes[item]
-            clientes[cliente.omie] = cliente
+    let pagamentosFiltrados = Object.keys(lista_pagamentos)
+        .map(pagamento => {
+
+            let pg = lista_pagamentos[pagamento];
+
+            let valor_categorias = pg.param[0].categorias.map(cat =>
+                `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
+            ).join('');
+            let nome_orcamento = orcamentos[pg.id_orcamento]
+                ? orcamentos[pg.id_orcamento].dados_orcam?.cliente_selecionado
+                : pg.id_orcamento;
+            let data_registro = pg.data_registro || pg.param[0].data_previsao;
+
+            return {
+                id: pagamento,
+                param: pg.param,
+                data_registro,
+                data_previsao: pg.param[0].data_previsao,
+                nome_orcamento,
+                valor_categorias,
+                status: pg.status,
+                observacao: pg.param[0].observacao,
+                criado: pg.criado,
+                anexos: pg.anexos
+            };
         })
+        .filter(Boolean);
 
-        let pagamentosFiltrados = Object.keys(lista_pagamentos)
-            .map(pagamento => {
+    const parseDate = (data) => {
+        const [dia, mes, ano] = data.split('/').map(Number);
+        return new Date(ano, mes - 1, dia);
+    };
 
-                let pg = lista_pagamentos[pagamento];
+    pagamentosFiltrados.sort((a, b) => parseDate(b.data_previsao) - parseDate(a.data_previsao));
 
-                let valor_categorias = pg.param[0].categorias.map(cat =>
-                    `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
-                ).join('');
-                let nome_orcamento = orcamentos[pg.id_orcamento]
-                    ? orcamentos[pg.id_orcamento].dados_orcam?.cliente_selecionado
-                    : pg.id_orcamento;
-                let data_registro = pg.data_registro || pg.param[0].data_previsao;
+    let contagens = { TODOS: { qtde: 0, valor: 0 } }
 
-                return {
-                    id: pagamento,
-                    param: pg.param,
-                    data_registro,
-                    data_previsao: pg.param[0].data_previsao,
-                    nome_orcamento,
-                    valor_categorias,
-                    status: pg.status,
-                    observacao: pg.param[0].observacao,
-                    criado: pg.criado,
-                    anexos: pg.anexos
-                };
-            })
-            .filter(Boolean);
+    for (pagamento in pagamentosFiltrados) {
 
-        const parseDate = (data) => {
-            const [dia, mes, ano] = data.split('/').map(Number);
-            return new Date(ano, mes - 1, dia);
-        };
+        let pg = pagamentosFiltrados[pagamento]
 
-        pagamentosFiltrados.sort((a, b) => parseDate(b.data_previsao) - parseDate(a.data_previsao));
-
-        let contadores = {
-            gerente: { qtde: 0, valor: 0, termo: 'gerência', label: 'Aguardando aprovação da Gerência', icone: "imagens/gerente.png" },
-            qualidade: { qtde: 0, valor: 0, termo: 'qualidade', label: 'Aguardando aprovação da Qualidade', icone: "imagens/qualidade2.png" },
-            diretoria: { qtde: 0, valor: 0, termo: 'da diretoria', label: 'Aguardando aprovação da Diretoria', icone: "imagens/diretoria.png" },
-            reprovados: { qtde: 0, valor: 0, termo: 'reprovado', label: 'Reprovados', icone: "imagens/remover.png" },
-            excluidos: { qtde: 0, valor: 0, termo: 'excluído', label: 'Pagamentos Excluídos', icone: "gifs/alerta.gif" },
-            salvos: { qtde: 0, valor: 0, termo: 'localmente', label: 'Salvo localmente', icone: "imagens/salvo.png" },
-            pago: { qtde: 0, valor: 0, termo: 'pago', label: 'Pagamento realizado', icone: "imagens/concluido.png" },
-            avencer: { qtde: 0, valor: 0, termo: 'a vencer', label: 'Pagamento será feito outro dia', icone: "imagens/avencer.png" },
-            hoje: { qtde: 0, valor: 0, termo: 'hoje', label: 'Pagamento será feito hoje', icone: "imagens/vencehoje.png" },
-            todos: { qtde: 0, valor: 0, termo: '', label: 'Todos os pagamentos', icone: "imagens/voltar_2.png" }
+        if (!contagens[pg.status]) {
+            contagens[pg.status] = { qtde: 0, valor: 0 }
         }
 
-        for (pagamento in pagamentosFiltrados) {
+        contagens[pg.status].qtde++
+        contagens[pg.status].valor += pg.param[0].valor_documento
 
-            var pg = pagamentosFiltrados[pagamento]
+        contagens.TODOS.qtde++
+        contagens.TODOS.valor += pg.param[0].valor_documento
 
-            var icone = ''
-
-            if (pg.status == 'PAGO') {
-                icone = contadores.pago.icone
-                contadores.pago.qtde += 1
-                contadores.pago.valor += pg.param[0].valor_documento
-            } else if (pg.status == 'Aguardando aprovação da Diretoria') {
-                icone = contadores.diretoria.icone
-                contadores.diretoria.qtde += 1
-                contadores.diretoria.valor += pg.param[0].valor_documento
-            } else if (pg.status == 'A VENCER') {
-                icone = contadores.avencer.icone
-                contadores.avencer.qtde += 1
-                contadores.avencer.valor += pg.param[0].valor_documento
-            } else if (pg.status == 'Aguardando aprovação da Qualidade') {
-                icone = contadores.qualidade.icone
-                contadores.qualidade.qtde += 1
-                contadores.qualidade.valor += pg.param[0].valor_documento
-            } else if (pg.status == 'Aguardando aprovação da Gerência') {
-                icone = contadores.gerente.icone
-                contadores.gerente.qtde += 1
-                contadores.gerente.valor += pg.param[0].valor_documento
-            } else if (pg.status == 'VENCE HOJE') {
-                icone = contadores.hoje.icone
-                contadores.hoje.qtde += 1
-                contadores.hoje.valor += pg.param[0].valor_documento
-            } else if (pg.status.includes('Reprovado')) {
-                icone = contadores.reprovados.icone
-                contadores.reprovados.qtde += 1
-                contadores.reprovados.valor += pg.param[0].valor_documento
-            } else if (pg.status.includes('Pagamento salvo localmente')) {
-                icone = contadores.salvos.icone
-                contadores.salvos.valor += pg.param[0].valor_documento
-                contadores.salvos.qtde += 1
-            } else if (pg.status.includes('Excluído')) {
-                icone = contadores.excluidos.icone
-                contadores.excluidos.valor += pg.param[0].valor_documento
-                contadores.excluidos.qtde += 1
-            } else {
-                icone = "gifs/alerta.gif"
-            }
-            contadores.todos.qtde += 1
-            contadores.todos.valor += pg.param[0].valor_documento
-
-            var div = `
+        let div = `
             <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-                <img src="${icone}" style="width: 30px;">
+                <img src="${iconePagamento(pg.status)}" style="width: 2vw;">
                 <label>${pg.status}</label>
             </div>
             `
-            var setor_criador = ''
-            if (dados_setores[pg.criado]) {
-                setor_criador = dados_setores[pg.criado].setor
-            }
+        let setor_criador = ''
+        if (dados_setores[pg.criado]) {
+            setor_criador = dados_setores[pg.criado].setor
+        }
 
-            var recebedor = pg.param[0].codigo_cliente_fornecedor
+        let recebedor = pg.param[0].codigo_cliente_fornecedor
+        if (clientes[recebedor]) {
+            recebedor = clientes[recebedor].nome
+        }
 
-            if (clientes[recebedor]) {
-                recebedor = clientes[recebedor].nome
-            }
-
-            linhas += `
+        linhas += `
                 <tr>
                     <td>${pg.data_previsao}</td>
                     <td>${pg.nome_orcamento}</td>
@@ -176,48 +131,50 @@ async function consultar_pagamentos() {
                     <td>${pg.criado}</td>
                     <td>${setor_criador}</td>
                     <td>${recebedor}</td>
-                    <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 30px; cursor: pointer;" onclick="abrir_detalhes('${pg.id}')"></td>
+                    <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrir_detalhes('${pg.id}')"></td>
                 </tr>
             `
-        };
+    };
 
-        var colunas = ['Data de Previsão', 'Centro de Custo', 'Valor e Categoria', 'Status Pagamento', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
+    let colunas = ['Data de Previsão', 'Centro de Custo', 'Valor e Categoria', 'Status Pagamento', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
 
-        var cabecalho1 = ''
-        var cabecalho2 = ''
-        colunas.forEach((coluna, i) => {
+    let cabecalho1 = ''
+    let cabecalho2 = ''
+    colunas.forEach((coluna, i) => {
 
-            cabecalho1 += `
+        cabecalho1 += `
                 <th>${coluna}</th>
                 `
-            cabecalho2 += `
-                <th style="background-color: white; position: relative; border-radius: 0px;">
-                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%;" style="text-align: center;" placeholder="..." oninput="pesquisar_em_pagamentos(${i}, this.value)">
+        cabecalho2 += `
+                <th style="padding: 0px; background-color: white; border-radius: 0px;">
+                    <div style="display: flex; align-items: center; justify-content: left;">
+                        <input style="width: 100%; font-size: 0.9vw;" placeholder="..." oninput="pesquisar_em_pagamentos(${i}, this.value)">
+                        <img src="imagens/pesquisar2.png" style="width: 1vw;">
+                    </div>
                 </th>
                 `
-        })
+    })
 
-        var titulos = ''
+    let titulos = ''
+    for ([nomeStatus, item] of Object.entries(contagens)) {
 
-        for (item in contadores) {
-            if (contadores[item].valor !== 0) {
-                titulos += `
-                <div style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1.0vw;" onclick="pesquisar_em_pagamentos(3, '${contadores[item].termo}')">
-                    <label class="contagem" style="background-color: #B12425; color: white;">${contadores[item].qtde}</label>
-                    <img src="${contadores[item].icone}" style="width: 25px; height: 25px;">
-                    
-                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                        <Label style="display: flex; gap: 10px; font-size: 0.8vw;">${contadores[item].label}</label>
-                        <label>${dinheiro(contadores[item].valor)}</label>
-                    </div>
+        if (item.valor == 0) continue
+
+        titulos += `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1.0vw;" onclick="pesquisar_em_pagamentos(3, '${nomeStatus == 'TODOS' ? '' : nomeStatus}')">
+                <label class="contagem" style="background-color: #B12425; color: white;">${item.qtde}</label>
+                <img src="${iconePagamento(nomeStatus)}" style="width: 2vw;">
+                
+                <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                    <Label style="display: flex; gap: 10px; font-size: 0.8vw;">${nomeStatus}</label>
+                    <label>${dinheiro(item.valor)}</label>
                 </div>
-                <hr style="width: 100%;">
-                `
-            }
-        }
+            </div>
+            <hr style="width: 100%;">
+            `
+    }
 
-        var div_titulos = `
+    let div_titulos = `
         <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; width: 30%;">
 
             <div class="contorno_botoes" style="background-color: #097fe6" onclick="tela_pagamento(true)">
@@ -229,17 +186,15 @@ async function consultar_pagamentos() {
             </div>
         </div>
         `
-        acumulado += `
+    acumulado += `
         <div id="div_pagamentos">
             <div style="display: flex; justify-content: center; align-items: start; gap: 10px;">
                 ${div_titulos}
                 <div style="border-radius: 5px; height: 800px; overflow-y: auto;">
                     <table id="pagamentos" class="tabela">
                         <thead>
-                            ${cabecalho1}
-                        </thead>
-                        <thead id="thead_pesquisa">
-                            ${cabecalho2}
+                            <tr>${cabecalho1}</tr>
+                            <tr id="thead_pesquisa">${cabecalho2}</tr>
                         </thead>
                         <tbody id="body">
                             ${linhas}
@@ -249,19 +204,52 @@ async function consultar_pagamentos() {
             </div>
         </div>
         `
-        var elementus = `
+    let elementus = `
         <div id="pagamentos">
             ${acumulado}
         <div>
         `
-        div_pagamentos.innerHTML = elementus
-    } catch (error) {
-        console.error('Erro ao carregar pagamentos:', error);
-        div_pagamentos.innerHTML = '<p>Erro ao carregar pagamentos</p>';
-    }
+    div_pagamentos.innerHTML = elementus
+
 
 }
 
+function iconePagamento(status) {
+
+    let icone = `interrogacao`
+    switch (true) {
+
+        case status == 'PAGO':
+            icone = 'concluido'
+            break
+        case status == 'A VENCER':
+            icone = 'avencer'
+            break
+        case status.includes('Aprovado'):
+            icone = 'aprovado'
+            break
+        case status.includes('Reprovado'):
+            icone = 'reprovado'
+            break
+        case status.includes('Excluído'):
+            icone = 'alerta'
+            break
+        case status.includes('ATRASADO'):
+            icone = 'atrasado'
+            break
+        case status == 'Aguardando aprovação da Diretoria':
+            icone = 'diretoria'
+            break
+        case status == 'Aguardando aprovação da Gerência':
+            icone = 'gerente'
+            break
+        case status == 'TODOS':
+            icone = 'todos'
+            break
+    }
+
+    return `imagens/${icone}.png`
+}
 
 async function abrir_detalhes(id_pagamento) {
 
@@ -345,7 +333,7 @@ async function abrir_detalhes(id_pagamento) {
                     <p><strong>Data </strong>${justificativa.data}</p>
                     <p><strong>Justificativa </strong>${justificativa.justificativa.replace(/\n/g, "<br>")}</p>
                 </div>
-                <img src="${imagem}">
+                <img src="${imagem}" style="width: 3vw;">
             </div>
             `
         }
@@ -444,9 +432,9 @@ async function abrir_detalhes(id_pagamento) {
                     <label style="font-size: 1.3vw;">Responda a solicitação aqui</label>
 
                     <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px; width: 70%;">
-                        <textarea id="justificativa" style="width: 100%;" placeholder="Descreva o motivo da aprovação/reprovação" oninput="auxiliar(this)"></textarea>
-                        <button id="aprovar" style="display: none; background-color: green; padding: 5px;" onclick="atualizar_feedback('Aprovar', '${id_pagamento}')">Aprovar</button>
-                        <button id="reprovar" onclick="atualizar_feedback('Reprovar', '${id_pagamento}')" style="display: none; padding: 5px;">Reprovar</button>
+                        <textarea id="justificativa" style="width: 100%; font-size: 0.8vw;" placeholder="Descreva o motivo da aprovação/reprovação" oninput="auxiliar(this)"></textarea>
+                        <button id="aprovar" style="display: none; background-color: green; padding: 5px;" onclick="atualizar_feedback(true, '${id_pagamento}')">Aprovar</button>
+                        <button id="reprovar" onclick="atualizar_feedback(false, '${id_pagamento}')" style="display: none; padding: 5px;">Reprovar</button>
                     </div>
                 </div>
             </div>
@@ -595,11 +583,30 @@ async function abrir_detalhes(id_pagamento) {
         `
     }
 
+    let divStatus = `<label>${pagamento.status}</label>`
+    if (acesso.permissao == 'adm') {
+        let opcoes = ''
+        opcoesStatus.forEach(op => {
+            opcoes += `
+        <option ${pagamento.status == op ? 'selected' : ''}>${op}</option>
+        `
+        })
+
+        divStatus = `
+            <select class="opcoesSelect" onchange="alterarStatusPagamento('${id_pagamento}', this)">
+                ${opcoes}
+            </select>
+        `
+    }
+
     acumulado += `
     <div style="max-width: 50vw; display: flex; gap: 10px; flex-direction: column; align-items: baseline; text-align: left; overflow: auto; padding: 2vw;">
         ${acoes_orcamento}
         ${btns}
-        <label><strong>Status atual • </strong> ${pagamento.status}</label>
+        <div style="display: flex; align-items: center; justify-content: left; gap: 5px;">
+            <label style="white-space: nowrap;"><strong>Status atual • </strong></label>
+            ${divStatus}
+        </div>
         <label><strong>Quem recebe? • </strong> ${cliente}</label>
         <div id="centro_de_custo_div" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
             <label><strong>Centro de Custo</strong> • ${cc}</label>
@@ -614,7 +621,7 @@ async function abrir_detalhes(id_pagamento) {
 
         <div id="comentario" class="contorno" style="width: 90%;">
             <div class="contorno_interno">
-                <label><strong>Observações </strong> •  ${ultima_alteracao} <br> ${pagamento.param[0].observacao.replace(/\||\n/g, "<br>")}</label>
+                <label style="width: 100%;"><strong>Observações </strong> •  ${ultima_alteracao} <br> ${pagamento.param[0].observacao.replace(/\||\n/g, "<br>")}</label>
                 ${botao_editar}
             </div>
         </div>
@@ -657,6 +664,18 @@ async function abrir_detalhes(id_pagamento) {
     }
 
     colorir_parceiros()
+
+}
+
+async function alterarStatusPagamento(idPagamento, select) {
+
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+    let pagamento = lista_pagamentos[idPagamento]
+
+    pagamento.status = select.value
+    enviar(`lista_pagamentos/${idPagamento}/status`, select.value)
+
+    inserirDados(lista_pagamentos, 'lista_pagamentos')
 
 }
 
@@ -1042,53 +1061,48 @@ async function atualizar_pagamentos_menu() {
 }
 
 async function atualizar_feedback(resposta, id_pagamento) {
+
+    overlayAguarde()
+
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     let pagamento = lista_pagamentos[id_pagamento];
-
-    let criado = pagamento.criado
-    let setor = ""
-    Object.keys(dados_setores).forEach(usuario => {
-        if (criado == usuario) {
-            setor = dados_setores[usuario].setor
-        }
-    })
-
-    let dataFormatada = new Date().toLocaleString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-
+    let dataFormatada = data_atual('completa')
     let usuario = acesso.usuario;
     let justificativa = document.getElementById('justificativa').value;
     let categoria_atual = pagamento.param[0].categorias[0].codigo_categoria
     let permissao = acesso.permissao
+    let setor = acesso.setor
 
     // Definir status com base na resposta e na permissão
     let status;
-    if (resposta == 'Aprovar') {
-        if ((permissao == 'gerente' || permissao == 'adm') && categoria_atual == "2.01.99" && setor == "INFRA") {
-            status = 'Aguardando aprovação da Qualidade';
-        } else if (permissao == 'gerente' || permissao == 'adm' || permissao == 'qualidade') {
-            status = 'Aguardando aprovação da Diretoria';
-        } else if (permissao == 'diretoria') {
-            status = 'Aprovado pela Diretoria';
-            lancar_pagamento(pagamento)
-        } else if (permissao == 'fin' || (permissao == 'gerente' && setor == 'RH')) {
-            status = 'Aprovado pelo Financeiro/RH';
-            lancar_pagamento(pagamento)
-        } else {
-            status = 'Aguardando aprovação da Gerência';
-        }
-    } else if (resposta == 'Reprovar') {
-        // Quando reprovado, retorna para o usuário que criou
-        status = `Reprovado por ${usuario}`;
+    if (resposta) {
 
-        // Adiciona observação de reprovação
-        pagamento.param[0].observacao += `\n\nREPROVAÇÃO (${dataFormatada} por ${usuario}):\n${justificativa}`;
+        switch (true) {
+            case (permissao == 'gerente' || permissao == 'adm') && categoria_atual == "2.01.99": // Pagamento de Parceiros
+                status = 'Aguardando aprovação da Qualidade';
+                break
+
+            case permissao == 'diretoria': // Aprovação Diretoria
+                status = 'Aprovado pela Diretoria';
+                lancar_pagamento(pagamento)
+                break
+
+            case permissao == 'fin' || (permissao == 'gerente' && setor == 'RH'): // Aprovação RH e FINANCEIRO
+                status = `Aprovado pelo ${setor}`;
+                lancar_pagamento(pagamento)
+                break
+
+            case permissao == 'gerente' || permissao == 'adm' || permissao == 'qualidade': // Demais Gestores
+                status = 'Aguardando aprovação da Diretoria';
+                break
+
+            default: // Outros usuários comuns;
+                status = 'Aguardando aprovação da Gerência';
+                break
+        }
+
+    } else {
+        status = `Reprovado por ${permissao}`;
     }
 
     let historico = {
@@ -1106,16 +1120,12 @@ async function atualizar_feedback(resposta, id_pagamento) {
     }
     pagamento.historico[id_justificativa] = historico
 
-    await inserirDados(lista_pagamentos, 'lista_pagamentos');
-    await fechar_e_abrir(id_pagamento, true)
+    await inserirDados(lista_pagamentos, 'lista_pagamentos')
+    await abrir_detalhes(id_pagamento)
 
     await enviar(`lista_pagamentos/${id_pagamento}/historico/${id_justificativa}`, historico)
     await enviar(`lista_pagamentos/${id_pagamento}/status`, status)
 
-    // Atualiza a observação no servidor se foi reprovado
-    if (resposta == 'Reprovar') {
-        await enviar(`lista_pagamentos/${id_pagamento}/param[0]/observacao`, pagamento.param[0].observacao)
-    }
 }
 
 
@@ -1133,23 +1143,9 @@ async function editar_comentario(id) {
         </textarea>
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px;">
             <button onclick="salvar_comentario_pagamento('${id}')" style="background-color: green">Alterar Comentário</button>
-            <button onclick="fechar_e_abrir('${id}')">Cancelar</button>
+            <button onclick="abrir_detalhes('${id}')">Cancelar</button>
         </div>
         `
-    }
-
-}
-
-async function fechar_e_abrir(id, fechar) {
-
-    await consultar_pagamentos()
-
-    for (coluna in filtrosAtivosPagamentos) {
-        pesquisar_em_pagamentos(coluna, filtrosAtivosPagamentos[coluna])
-    }
-
-    if (!fechar) {
-        abrir_detalhes(id)
     }
 
 }
@@ -1183,21 +1179,13 @@ async function salvar_centro_de_custo(id) {
     enviar(`lista_pagamentos/${id}/id_orcamento`, id_orcamento)
 
     await inserirDados(lista_pagamentos, 'lista_pagamentos');
-    await fechar_e_abrir(id)
+    await abrir_detalhes(id)
 
 }
 
 async function salvar_comentario_pagamento(id) {
 
-    var dataFormatada = new Date().toLocaleString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-
+    var dataFormatada = data_atual('completa')
     var comentario = document.getElementById('comentario').querySelector('textarea').value
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     var pagamento = lista_pagamentos[id]
@@ -1210,8 +1198,7 @@ async function salvar_comentario_pagamento(id) {
     enviar(`lista_pagamentos/${id}/ultima_alteracao`, dataFormatada)
 
     await inserirDados(lista_pagamentos, 'lista_pagamentos')
-
-    await fechar_e_abrir(id)
+    await abrir_detalhes(id)
 
 }
 
