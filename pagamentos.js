@@ -22,11 +22,6 @@ async function consultar_pagamentos() {
     let acumulado = ''
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
 
-    if (Object.keys(lista_pagamentos).length == 0) {
-        lista_pagamentos = await receber('lista_pagamentos')
-        await inserirDados(lista_pagamentos, 'lista_pagamentos')
-    }
-
     let dados_categorias = await recuperarDados('dados_categorias')
     if (!dados_categorias) {
         dados_categorias = await receber('dados_categorias')
@@ -145,14 +140,18 @@ async function consultar_pagamentos() {
         cabecalho1 += `
                 <th>${coluna}</th>
                 `
-        cabecalho2 += `
-                <th style="padding: 0px; background-color: white; border-radius: 0px;">
+
+        if (coluna == 'Detalhes') {
+            cabecalho2 += `<th style="background-color: white; border-radius: 0px;"></th>`
+        } else {
+            cabecalho2 += `
+                <th style="background-color: white; border-radius: 0px;">
                     <div style="display: flex; align-items: center; justify-content: left;">
                         <input style="width: 100%; font-size: 0.9vw;" placeholder="..." oninput="pesquisar_em_pagamentos(${i}, this.value)">
                         <img src="imagens/pesquisar2.png" style="width: 1vw;">
                     </div>
                 </th>
-                `
+                `}
     })
 
     let titulos = ''

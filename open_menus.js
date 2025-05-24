@@ -568,8 +568,8 @@ async function recuperarDados(nome_da_base) {
             getRequest.onsuccess = function (event) {
                 let dados = event.target.result
 
-                if (dados && dados['id']) {
-                    delete dados['id']
+                if (dados && dados.id) {
+                    delete dados.id
                 }
 
                 resolve(event.target.result || null);
