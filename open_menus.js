@@ -1481,8 +1481,6 @@ async function receber(chave) {
         timestamp: maiorTimestamp
     };
 
-    console.log(chave, maiorTimestamp)
-
     const obs = {
         method: "POST",
         headers: {

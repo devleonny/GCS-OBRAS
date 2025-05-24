@@ -448,7 +448,7 @@ async function recuperar_orcamentos() {
 
     let dadosOrcamentosLocal = await recuperarDados('dados_orcamentos') || {}
     let dadosOrcamentosNovos = await receber('dados_orcamentos') || {}
-
+    
     dadosOrcamentosLocal = {
         ...dadosOrcamentosLocal,
         ...dadosOrcamentosNovos
