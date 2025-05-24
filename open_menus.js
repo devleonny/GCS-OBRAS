@@ -1743,12 +1743,19 @@ async function lancar_pagamento(pagamento) {
                 return response.text();
             })
             .then(data => {
-                resolve(data);
+
+                data = JSON.parse(data)
+
+                if (data.faultstring) {
+                    let comentario = `Erro na API ao enviar o pagamento para o Omie! ${data.faultstring}`
+                    registrarAlteracao('lista_pagamentos', pagamento.id_pagamento, comentario)
+                }
+
+                resolve();
             })
-            .catch(err => {
-                console.error("Erro ao gerar PDF:", err)
+            .catch(
                 reject()
-            });
+            );
     })
 }
 
@@ -2119,7 +2126,7 @@ function baseOrcamento(orcamento, remover) {
     if (orcamento) {
         orcamentos[app][modalidade] = orcamento
         localStorage.setItem('orcamentos', JSON.stringify(orcamentos))
-        
+
     } else if (remover) {
         delete orcamentos[app][modalidade]
         localStorage.setItem('orcamentos', JSON.stringify(orcamentos))

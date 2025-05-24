@@ -51,29 +51,29 @@ async function consultar_pagamentos() {
     })
 
     let pagamentosFiltrados = Object.keys(lista_pagamentos)
-        .map(pagamento => {
+        .map(idPagamento => {
+            
+            let pagamento = lista_pagamentos[idPagamento];
 
-            let pg = lista_pagamentos[pagamento];
-
-            let valor_categorias = pg.param[0].categorias.map(cat =>
+            let valor_categorias = pagamento.param[0].categorias.map(cat =>
                 `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
             ).join('');
-            let nome_orcamento = orcamentos[pg.id_orcamento]
-                ? orcamentos[pg.id_orcamento].dados_orcam?.cliente_selecionado
-                : pg.id_orcamento;
-            let data_registro = pg.data_registro || pg.param[0].data_previsao;
+            let nome_orcamento = orcamentos[pagamento.id_orcamento]
+                ? orcamentos[pagamento.id_orcamento].dados_orcam?.cliente_selecionado
+                : pagamento.id_orcamento;
+            let data_registro = pagamento.data_registro || pagamento.param[0].data_previsao;
 
             return {
-                id: pagamento,
-                param: pg.param,
+                id: idPagamento,
+                param: pagamento.param,
                 data_registro,
-                data_previsao: pg.param[0].data_previsao,
+                data_previsao: pagamento.param[0].data_previsao,
                 nome_orcamento,
                 valor_categorias,
-                status: pg.status,
-                observacao: pg.param[0].observacao,
-                criado: pg.criado,
-                anexos: pg.anexos
+                status: pagamento.status,
+                observacao: pagamento.param[0].observacao,
+                criado: pagamento.criado,
+                anexos: pagamento.anexos
             };
         })
         .filter(Boolean);
@@ -147,7 +147,7 @@ async function consultar_pagamentos() {
             cabecalho2 += `
                 <th style="background-color: white; border-radius: 0px;">
                     <div style="display: flex; align-items: center; justify-content: left;">
-                        <input style="width: 100%; font-size: 0.9vw;" placeholder="..." oninput="pesquisar_em_pagamentos(${i}, this.value)">
+                        <input style="width: 100%; font-size: 0.9vw;" placeholder="..." oninput="pesquisar_generico(${i}, this.value, filtrosAtivosPagamentos, 'body')">
                         <img src="imagens/pesquisar2.png" style="width: 1vw;">
                     </div>
                 </th>
@@ -160,7 +160,7 @@ async function consultar_pagamentos() {
         if (item.valor == 0) continue
 
         titulos += `
-            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1.0vw;" onclick="pesquisar_em_pagamentos(3, '${nomeStatus == 'TODOS' ? '' : nomeStatus}')">
+            <div style="width: 100%; display: flex; align-items: center; justify-content: left; gap: 10px; font-size: 1.0vw;" onclick="pesquisar_generico(3, '${nomeStatus == 'TODOS' ? '' : nomeStatus}', filtrosAtivosPagamentos, 'body')">
                 <label class="contagem" style="background-color: #B12425; color: white;">${item.qtde}</label>
                 <img src="${iconePagamento(nomeStatus)}" style="width: 2vw;">
                 
@@ -412,7 +412,6 @@ async function abrir_detalhes(id_pagamento) {
     var acumulado = ''
     if (
         pagamento.param[0].valor_documento >= 500 &&
-        (pagamento.status.includes('Aguardando') || pagamento.status.includes('Reprovado')) &&
         (permissao == 'gerente' ||
             permissao == 'adm' ||
             permissao == 'diretoria' ||
@@ -674,7 +673,8 @@ async function alterarStatusPagamento(idPagamento, select) {
     pagamento.status = select.value
     enviar(`lista_pagamentos/${idPagamento}/status`, select.value)
 
-    inserirDados(lista_pagamentos, 'lista_pagamentos')
+    await inserirDados(lista_pagamentos, 'lista_pagamentos')
+    await retomarPaginacao()
 
 }
 
@@ -848,7 +848,7 @@ async function editar_pagamento(id, indice) {
     if (resposta.status && resposta.status == 'Atualizado') {
 
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
-        await consultar_pagamentos()
+        await retomarPaginacao()
         await abrir_detalhes(id)
 
     } else {
@@ -884,16 +884,30 @@ async function alterarParam(id, param) {
     })
 }
 
+async function retomarPaginacao() {
+
+    await consultar_pagamentos()
+
+    let tabela = document.getElementById('pagamentos')
+    let thead = tabela.querySelector('thead')
+    let tsearch = thead.querySelectorAll('tr')[1]
+    let ths = tsearch.querySelectorAll('th')
+
+    for (col in filtrosAtivosPagamentos) {
+        ths[col].querySelector('input').value = filtrosAtivosPagamentos[col]
+        pesquisar_generico(col, filtrosAtivosPagamentos[col], filtrosAtivosPagamentos, 'body')
+    }
+}
+
 async function relancar_pagamento(id) {
 
     remover_popup()
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     let pagamento = lista_pagamentos[id]
-
-    pagamento.status = 'Pagamento salvo localmente'
+    pagamento.status = 'Nova tentativa...'
     await lancar_pagamento(pagamento)
     await inserirDados(lista_pagamentos, 'lista_pagamentos')
-    await consultar_pagamentos()
+    await retomarPaginacao()
 
 }
 
@@ -906,7 +920,7 @@ async function confirmar_exclusao_pagamento(id) {
 
     deletar(`lista_pagamentos/${id}`)
     await inserirDados(lista_pagamentos, 'lista_pagamentos')
-    await consultar_pagamentos()
+    await retomarPaginacao()
 
 }
 
@@ -1046,16 +1060,10 @@ async function atualizar_pagamentos_menu() {
         dados_categorias = await receber('dados_categorias')
         inserirDados(dados_categorias, 'dados_categorias')
     }
+    
+    await retomarPaginacao()
 
-    await inserirDados(await receber('dados_categorias'), 'dados_categorias')
-
-    await consultar_pagamentos()
-
-    for (coluna in filtrosAtivosPagamentos) {
-        pesquisar_em_pagamentos(coluna, filtrosAtivosPagamentos[coluna])
-    }
-
-    document.getElementById("aguarde").remove()
+    remover_popup()
 
 }
 
@@ -1121,6 +1129,7 @@ async function atualizar_feedback(resposta, id_pagamento) {
 
     await inserirDados(lista_pagamentos, 'lista_pagamentos')
     await abrir_detalhes(id_pagamento)
+    await retomarPaginacao()
 
     await enviar(`lista_pagamentos/${id_pagamento}/historico/${id_justificativa}`, historico)
     await enviar(`lista_pagamentos/${id_pagamento}/status`, status)
@@ -1379,7 +1388,7 @@ async function criar_pagamento_v2() {
         }
 
         if (document.title == 'PAGAMENTOS') {
-            consultar_pagamentos()
+            await retomarPaginacao()
         }
 
         localStorage.removeItem('ultimo_pagamento')
@@ -2456,39 +2465,6 @@ function selecionar_cc(id_orcamento, cliente) {
     let sugestoes = textarea.nextElementSibling
     sugestoes.innerHTML = ''
     calculadora_pagamento()
-}
-
-function pesquisar_em_pagamentos(coluna, texto) {
-
-    filtrosAtivosPagamentos[coluna] = texto.toLowerCase();
-
-    var tbody = document.getElementById('body');
-    var trs = tbody.querySelectorAll('tr');
-
-    var thead_pesquisa = document.getElementById('thead_pesquisa');
-    var inputs = thead_pesquisa.querySelectorAll('input');
-    inputs[coluna].value = texto
-
-    trs.forEach(function (tr) {
-        var tds = tr.querySelectorAll('td');
-        var mostrarLinha = true;
-
-        for (var col in filtrosAtivosPagamentos) {
-            var filtroTexto = filtrosAtivosPagamentos[col];
-
-            if (filtroTexto && col < tds.length) {
-                var conteudoCelula = tds[col].textContent.toLowerCase();
-
-                if (!conteudoCelula.includes(filtroTexto)) {
-                    mostrarLinha = false;
-                    break;
-                }
-            }
-        }
-
-        tr.style.display = mostrarLinha ? '' : 'none';
-    });
-
 }
 
 async function duplicar_pagamento(id_pagamento) {
