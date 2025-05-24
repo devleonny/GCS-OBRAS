@@ -1085,7 +1085,7 @@ async function atualizar_feedback(resposta, id_pagamento) {
         }
     } else if (resposta == 'Reprovar') {
         // Quando reprovado, retorna para o usuário que criou
-        status = `Reprovado por ${usuario} - Retornado para ${criado}`;
+        status = `Reprovado por ${usuario}`;
 
         // Adiciona observação de reprovação
         pagamento.param[0].observacao += `\n\nREPROVAÇÃO (${dataFormatada} por ${usuario}):\n${justificativa}`;
