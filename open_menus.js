@@ -1464,32 +1464,49 @@ function capturarValorCelula(celula) {
 
 //--- NOVO SERVIÇO DE ARMAZENAMENTO ---\\
 async function receber(chave) {
-    let url = `https://leonny.dev.br/dados?chave=${chave}`;
 
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
-    if (modoClone) {
-        url += `&app=clone`
+    let chavePartes = chave.split('/')
+    let timestamps = []
+    let dados = await recuperarDados(chavePartes[0]) || {}
+    
+    for ([id, objeto] of Object.entries(dados)) {
+        if (objeto.timestamp) timestamps.push(objeto.timestamp)
     }
 
-    let obs = {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-        }
+    const maiorTimestamp = timestamps.length ? Math.max(...timestamps) : 0
+    const modoClone = JSON.parse(localStorage.getItem('modoClone')) || false;
+    const body = {
+        chave: chave,
+        app: modoClone ? 'clone' : undefined,
+        timestamp: maiorTimestamp
     };
 
-    try {
-        const response = await fetch(url, obs);
+    console.log(chave, maiorTimestamp)
 
-        if (!response.ok) {
-            throw new Error(`Erro: ${response.status} ${response.statusText}`);
-        }
+    const obs = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body)
+    };
 
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        return {};
-    }
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/dados", obs)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject({})
+            });
+    })
 }
 
 async function deletar(chave) {

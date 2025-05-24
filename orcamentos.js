@@ -116,23 +116,17 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 
 async function preencher_orcamentos_v2() {
 
-    var div_orcamentos = document.getElementById('orcamentos')
+    let div_orcamentos = document.getElementById('orcamentos')
     if (!div_orcamentos) {
         return
     }
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
-    if (Object.keys(dados_orcamentos).length == 0) {
-        await recuperar_orcamentos()
-        dados_orcamentos = await recuperarDados('dados_orcamentos')
-    }
-
-    var desordenado = Object.entries(dados_orcamentos)
+    let desordenado = Object.entries(dados_orcamentos)
     desordenado.sort((a, b) => new Date(b[1].dados_orcam.data) - new Date(a[1].dados_orcam.data))
     dados_orcamentos = Object.fromEntries(desordenado)
 
-    var linhas = ''
+    let linhas = ''
 
     for (orcamento in dados_orcamentos) {
 
@@ -264,22 +258,6 @@ async function preencher_orcamentos_v2() {
 
     }
 
-}
-
-async function recuperar_orcamentos() {
-
-    overlayAguarde()
-
-    let dados_orcamentos = await receber('dados_orcamentos') || {}
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
-
-    if (document.title == 'ORÇAMENTOS') {
-
-        await preencher_orcamentos_v2()
-
-    }
-
-    document.getElementById('aguarde').remove()
 }
 
 async function editar(orcam_) {
@@ -462,4 +440,25 @@ function atualizar_status(st) {
     }
 
     return st
+}
+
+async function recuperar_orcamentos() {
+
+    overlayAguarde()
+
+    let dadosOrcamentosLocal = await recuperarDados('dados_orcamentos') || {}
+    let dadosOrcamentosNovos = await receber('dados_orcamentos') || {}
+
+    dadosOrcamentosLocal = {
+        ...dadosOrcamentosLocal,
+        ...dadosOrcamentosNovos
+    }
+
+    await inserirDados(dadosOrcamentosLocal, 'dados_orcamentos')
+
+    if (document.title == 'ORÇAMENTOS') {
+        await preencher_orcamentos_v2()
+    }
+
+    remover_popup()
 }
