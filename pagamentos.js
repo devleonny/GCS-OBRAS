@@ -1077,8 +1077,8 @@ async function atualizar_feedback(resposta, id_pagamento) {
         } else if (permissao == 'diretoria') {
             status = 'Aprovado pela Diretoria';
             lancar_pagamento(pagamento)
-        } else if (permissao == 'fin' || (setor == 'RH' && permissao == 'gerente')) {
-            status = 'Aprovado pelo Financeiro';
+        } else if (permissao == 'fin' || (permissao == 'gerente' && setor == 'RH')) {
+            status = 'Aprovado pelo Financeiro/RH';
             lancar_pagamento(pagamento)
         } else {
             status = 'Aguardando aprovação da Gerência';
