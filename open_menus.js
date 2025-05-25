@@ -1462,13 +1462,13 @@ function capturarValorCelula(celula) {
     return valor;
 }
 
-//--- NOVO SERVIÇO DE ARMAZENAMENTO ---\\
+//--- SERVIÇO DE ARMAZENAMENTO ---\\
 async function receber(chave) {
 
     let chavePartes = chave.split('/')
     let timestamps = []
     let dados = await recuperarDados(chavePartes[0]) || {}
-    
+
     for ([id, objeto] of Object.entries(dados)) {
         if (objeto.timestamp) timestamps.push(objeto.timestamp)
     }
@@ -2149,4 +2149,15 @@ function baseOrcamento(orcamento, remover) {
     } else {
         return orcamentos[app][modalidade]
     }
+}
+
+function removerExcluidos(base) {
+
+    if (dicionario(base)) {
+        for ([id, objeto] of Object.entries(base)) {
+            if (objeto.excluido) delete base[id]
+        }
+    }
+
+    return base
 }
