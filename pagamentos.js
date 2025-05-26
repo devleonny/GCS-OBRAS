@@ -258,9 +258,9 @@ function iconePagamento(status) {
 async function abrir_detalhes(id_pagamento) {
 
     ordem = 0
-    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-    var dados_clientes = await recuperarDados('dados_clientes') || {};
-    var dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    let dados_clientes = await recuperarDados('dados_clientes') || {};
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let dados_categorias = await recuperarDados('dados_categorias')
     if (!dados_categorias) {
         dados_categorias = await receber('dados_categorias')
@@ -765,32 +765,26 @@ async function modal_editar_pagamento(id, indice) {
         await inserirDados(dados_categorias, 'dados_categorias')
     }
 
-    let opcoes = ''
-
-    Object.entries(dados_categorias).forEach(([codigo, categoria]) => {
-        opcoes += `<option data-codigo="${codigo}">${categoria}</option>`
-    })
-
-    let edicao = ''
     let funcao = indice ? `editar_pagamento('${id}', ${indice})` : `editar_pagamento('${id}')`
+    let categoriaAtual;
+    let valor;
     if (indice) { // Caso seja uma edicao;
         let pagamento = lista_pagamentos[id]
-        let categoria = pagamento.param[0].categorias[indice]
-
-        edicao = `
-            <label><strong>Categoria:</strong> ${dados_categorias[categoria.codigo_categoria]}</label>
-            <label><strong>Valor Atual:</strong> ${dinheiro(categoria.valor)}</label>
-        `
+        categoriaAtual = pagamento.param[0].categorias[indice].codigo_categoria
+        valor = pagamento.param[0].categorias[indice].valor
     }
+
+    let opcoes = ''
+    Object.entries(dados_categorias).forEach(([codigo, categoria]) => {
+        opcoes += `<option data-codigo="${codigo}" ${categoriaAtual == codigo ? 'selected': ''}>${categoria}</option>`
+    })
 
     let acumulado = `
         <div style="display: flex; justify-content: start; flex-direction: column; gap: 15px; align-items: start; padding: 20px;">
             
-            ${edicao}
-    
             <div style="width: 100%; display: flex; flex-direction: column; align-items: flex-start;">
                 <label for="valor_mudado" style="margin-bottom: 5px;"><strong>Novo Valor:</strong></label>
-                <input id="valor_mudado" type="number" style="width: 95%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 5px;">
+                <input id="valor_mudado" type="number" style="width: 95%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 5px;" value="${valor ? valor : ''}">
             </div>
     
             <div style="width: 100%; display: flex; flex-direction: column; align-items: start; justify-content: start;">
@@ -833,12 +827,9 @@ async function editar_pagamento(id, indice) {
     let pagamento = lista_pagamentos[id]
 
     let codigoMudado = categoriaMudada.options[categoriaMudada.selectedIndex].dataset.codigo;
-    if (indice) {
-
-        if (valorMudado != 0) {
-            pagamento.param[0].categorias[indice].valor = valorMudado
-            pagamento.param[0].categorias[indice].codigo_categoria = codigoMudado // Atualização do código da categoria
-        }
+    if (indice !== undefined) {
+        pagamento.param[0].categorias[indice].valor = valorMudado
+        pagamento.param[0].categorias[indice].codigo_categoria = codigoMudado // Atualização do código da categoria
 
     } else {
         pagamento.param[0].categorias.push({
