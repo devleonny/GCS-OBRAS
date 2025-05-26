@@ -1894,7 +1894,7 @@ async function aprovacoes_pendentes() {
         painel_aprovacoes.remove()
     }
 
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let orcamento_v2 = baseOrcamento()
 
     let aprovacoes = await receber('aprovacoes') || {}
     let acumulado = ''
@@ -1907,7 +1907,7 @@ async function aprovacoes_pendentes() {
             if (orcamento_v2.aprovacao && orcamento_v2.aprovacao.id == id) {
                 orcamento_v2.aprovacao.status = item.aprovacao.status
                 orcamento_v2.aprovacao.justificativa = item.aprovacao.justificativa
-                localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+                baseOrcamento(orcamento_v2)
 
                 let aguardando_aprovacao = document.getElementById('aguardando_aprovacao')
                 if (aguardando_aprovacao) {
