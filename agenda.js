@@ -758,7 +758,7 @@ document.addEventListener("mouseup", function () {
     }
 });
 
-
+painelDistruibuicao()
 async function painelDistruibuicao() {
 
     let dados_agenda_tecnicos = await recuperarDados('dados_agenda_tecnicos')
@@ -786,18 +786,21 @@ async function painelDistruibuicao() {
         }
 
         for (let [id, agenda] of Object.entries(agendas)) {
+            
+            let omieDepartamento = agenda
+            let departamentos = relatorios.tecnico[omieTecnico].departamentos
 
-            let omieDepartamento = agenda.omie
-
-            if (!relatorios.tecnico[omieTecnico].departamentos[omieDepartamento]) {
-                relatorios.tecnico[omieTecnico].departamentos[omieDepartamento] = {}
+            if (!departamentos[omieDepartamento]) {
+               departamentos[omieDepartamento] = 0
             }
 
+            departamentos[omieDepartamento]++
+
         }
-
-        console.log(tecnico);
-
     }
+
+    console.log(relatorios);
+    
 
     let acumulado = ''
 

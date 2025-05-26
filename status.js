@@ -532,8 +532,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
 
         for (id in requisicao) {
             let item = requisicao[id]
-            let itemComposicao = dados_composicoes[item.codigo] || {};
-            let descricao = itemComposicao.descricao || item.descricao || '';
+            let descricao = item?.descricao || 'N/A';
 
             descricao = String(descricao).toLowerCase()
 
@@ -554,14 +553,11 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
 
         for (id in orcamento.dados_composicoes) {
             let item = orcamento.dados_composicoes[id]
-            let itemComposicao = dados_composicoes[item.codigo] || {};
-            let descricao = itemComposicao.descricao || item.descricao || '';
+            let descricao = item?.descricao || 'N/A';
 
             descricao = String(descricao).toLowerCase()
 
-            if (requisicao[id]) {
-                item = requisicao[id]
-            }
+            if (requisicao[id]) { item = requisicao[id] }
 
             if ((
                 descricao.includes('eletrocalha') ||
@@ -591,7 +587,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
     for (item of itensFiltrados) {
         let codigo = item.codigo
         let qtde = item?.qtde_editar || 0
-        let tipo = dados_composicoes[codigo]?.tipo || item.tipo
+        let tipo = item.tipo
 
         linhas += `
             <tr class="lin_req" style="background-color: white;">
@@ -604,7 +600,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
                     <div style="position: relative; display: flex; flex-direction: column; gap: 5px; align-items: start;">
                         ${itensImportados.includes(codigo) ? `<label style="font-size: 0.7vw; color: white; position: absolute; top: 0; right: 0; background-color: red; border-radius: 3px; padding: 2px;">Imp</label>` : ''}
                         <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong></label>
-                        <label>${dados_composicoes[codigo] ? dados_composicoes[codigo].descricao : item.descricao}</label>
+                        <label>${itensOrcamento[codigo].descricao}</label>
                     </div>
                     ${apenas_visualizar ? '' : `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`}
                 </td>
@@ -613,6 +609,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
                         <select onchange="calcular_requisicao()" style="border: none;">
                             <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
                             <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
+                            <option value="USO E CONSUMO" ${tipo === 'USO E CONSUMO' ? 'selected' : ''}>USO E CONSUMO</option>
                         </select>
                     `}
                 </td>
@@ -1620,7 +1617,10 @@ async function abrir_esquema(id) {
                             <label><strong>Chamado:</strong> ${orcamento.dados_orcam.contrato}</label>
                             <label><strong>Executor: </strong>${sst.executor}</label>
                             <label><strong>Data: </strong>${sst.data}</label>
-                            <label><strong>Comentário: </strong> <br> ${coments}</label>
+                            <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                                <label><strong>Comentário: </strong></label>
+                                <label style="text-align: left;">${coments}</label>
+                            </div>
                             ${dados_envio}
                             ${dados_pedidos}
                             ${notas}
@@ -1960,7 +1960,7 @@ async function mostrar_painel() {
         let lucro_unit = total - custo_total;
 
         let descricao_produto = produto.descricao || 'Item sem descrição'
-        
+
         linhas[produto.tipo].total_custo += custo_total
         linhas[produto.tipo].total_orcado += total
         linhas[produto.tipo].total_lucro += lucro_unit
