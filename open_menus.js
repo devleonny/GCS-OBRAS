@@ -159,6 +159,10 @@ function carregarIcones() {
         acesso.permissao == 'diretor'
     )
 
+    let registroHistorico = (
+        acesso.permissao == 'adm'
+    )
+
     let icones = `
         <div class="block" style="flex-direction: column;" onclick="window.location.href='orcamentos.html'">
             <img src="imagens/projeto.png">
@@ -195,6 +199,11 @@ function carregarIcones() {
             <img src="imagens/agenda.png">
             <label>Agenda</label>
         </div>
+         ${registroHistorico ? `
+        <div class="block" style="flex-direction: column;" onclick="window.location.href='historicoRegistros.html'">
+            <img src="imagens/historico.png" style="color: white">
+            <label>Histórico de Alterações GCS</label>
+        </div>` : ''}
     `
 
     if (ativar) {
@@ -209,7 +218,12 @@ function carregarIcones() {
                 <img src="imagens/composicoes.png">
                 <label>Composições</label>
             </div>` : ''}
-        `
+             ${registroHistorico ? `
+                <div class="block" style="flex-direction: column;" onclick="window.location.href='historicoRegistros.html'">
+                    <img src="imagens/historico.png">
+                    <label>Histórico de Alterações GCS</label>
+                </div>` : ''}
+             `
     }
 
     painel_geral.innerHTML = icones
