@@ -263,9 +263,9 @@ function carregar_tabela() {
             <tr>
                 <td>${codigo}</td>
                 <td><textarea oninput="total_v2()" rows="3" style="width: 200px;">${item.descricao}</textarea></td>
-                <td><input oninput="total_v2()" type="number" class="numero-bonito" value="${item.qtde}"></td>
-                <td><input oninput="total_v2()" type="text" class="numero-bonito" value="${item.unidade}"></td>
-                <td><input oninput="total_v2()" type="number" class="numero-bonito" value="${item.custo}"></td>
+                <td><input oninput="total_v2()" type="number" class="campoValor" value="${item.qtde}"></td>
+                <td><input oninput="total_v2()" type="text" class="campoValor" value="${item.unidade}"></td>
+                <td><input oninput="total_v2()" type="number" class="campoValor" value="${item.custo}"></td>
                 <td></td>
                 <td>
                     <select onchange="total_v2(true)" style="width: 100%;">
