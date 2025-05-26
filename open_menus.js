@@ -1475,9 +1475,6 @@ async function receber(chave) {
         timestamp: maiorTimestamp
     };
 
-    console.log(maiorTimestamp);
-    
-
     const obs = {
         method: "POST",
         headers: {
@@ -2150,6 +2147,8 @@ function baseOrcamento(orcamento, remover) {
 
 function removerExcluidos(base) {
 
+    console.log(dicionario(base))
+    
     if (dicionario(base)) {
         for ([id, objeto] of Object.entries(base)) {
             if (objeto.excluido) delete base[id]

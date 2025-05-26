@@ -6,9 +6,24 @@ let colunas = ['partnumber', 'categoria', 'marca', 'descricao', 'estoque', 'esto
 carregar_estoque()
 
 async function recuperar_estoque() {
-    let estoque_nuvem = await receber('dados_estoque') || {}
-    await inserirDados(estoque_nuvem, 'dados_estoque')
+
+    overlayAguarde()
+
+    let nuvem = await receber('dados_estoque') || {}
+    let dados_estoque = await recuperarDados('dados_estoque') || {}
+
+    let dadosMescladosEstoque = {
+        ...dados_estoque,
+        ...nuvem
+    }
+
+    removerExcluidos(dadosMescladosEstoque)
+
+    await inserirDados(dadosMescladosEstoque, 'dados_estoque')
     await carregar_estoque()
+
+    remover_popup()
+
 }
 
 async function carregar_estoque() {
@@ -684,7 +699,7 @@ async function abrir_estoque(codigo, stq) {
     let atual = conversor(estoque.quantidade ? estoque.quantidade : 0)
     let inicial = atual
     let linhas = ''
-
+    
     if (estoque.historico) {
 
         let historicoArray = Object.entries(estoque.historico);
