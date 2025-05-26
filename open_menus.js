@@ -970,12 +970,15 @@ function removerLinha(select) {
 }
 
 async function apagar(codigo_orcamento) {
+    overlayAguarde()
+
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     if (dados_orcamentos[codigo_orcamento]) {
         delete dados_orcamentos[codigo_orcamento]
         await inserirDados(dados_orcamentos, 'dados_orcamentos')
         deletar(`dados_orcamentos/${codigo_orcamento}`)
     }
+
     await preencher_orcamentos_v2()
     remover_popup()
 }
