@@ -25,7 +25,7 @@ async function recuperar_composicoes() {
         ...dados_composicoes,
         ...nuvem
     }
-    
+
     removerExcluidos(dadosMescladosComposicoes)
 
     await inserirDados(dadosMescladosComposicoes, 'dados_composicoes')
@@ -1558,7 +1558,20 @@ async function salvarServidor(codigo) {
 
     if (!codigo) {
         novoCadastro = true
-        codigo = await verificarCodigoExistente();
+
+        let resposta = await verificarCodigoExistente();
+
+        if (resposta.status == 'Falha') {
+            let mensagem = `
+            <div id="aviso_campo_branco" style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Não foi possível cadastrar o item... tente novamente</label>
+            </div>
+            `
+            return openPopup_v2(mensagem, 'Aviso')
+        }
+
+        codigo = resposta.status // Aqui é retornado o último número sequencial +1 para cadasto;
     }
 
     if (!dados_composicoes[codigo]) dados_composicoes[codigo] = {};
@@ -1583,7 +1596,6 @@ async function salvarServidor(codigo) {
         comentario = `Produto alterado com código ${codigo} e descrição: ${descricaoProduto}`
     }
 
-
     remover_popup();
 
     dadosAtualizados.codigo = codigo;
@@ -1591,11 +1603,10 @@ async function salvarServidor(codigo) {
     dados_composicoes[codigo] = { ...dados_composicoes[codigo], ...dadosAtualizados };
 
     await inserirDados(dados_composicoes, 'dados_composicoes');
-    await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
-
-    registrarAlteracao('dados_composicoes', codigo, comentario)
-
     await retomarPaginacao()
+
+    await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
+    registrarAlteracao('dados_composicoes', codigo, comentario)
 
 }
 
