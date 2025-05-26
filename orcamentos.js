@@ -129,6 +129,15 @@ async function preencher_orcamentos_v2() {
     }
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+
+    for([id, orcamento] of Object.entries(dados_orcamentos)){
+        try{
+        orcamento.dados_orcam.data
+        }catch{
+            console.log(id)
+        }
+    }
+    
     let desordenado = Object.entries(dados_orcamentos)
     desordenado.sort((a, b) => new Date(b[1].dados_orcam.data) - new Date(a[1].dados_orcam.data))
     dados_orcamentos = Object.fromEntries(desordenado)
