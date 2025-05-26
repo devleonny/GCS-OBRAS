@@ -1444,9 +1444,7 @@ async function cadastrar_editar_item(codigo) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados = dados_composicoes[codigo] || {}
 
-    console.log(dados);
-
-    let funcao = codigo ? `cadastrar_alterar('${codigo}')` : `cadastrar_alterar()`
+    let funcao = codigo ? `salvarServidor('${codigo}')` : `salvarServidor()`
     let elementos = ''
 
     colunas.forEach(col => {
@@ -1489,8 +1487,6 @@ async function cadastrar_editar_item(codigo) {
             `
         }
     })
-    let comentario = ''
-
 
     var acumulado = `
     
@@ -1552,7 +1548,7 @@ async function exclusao_item(codigo) {
 
 }
 
-async function cadastrar_alterar(codigo) {
+async function salvarServidor(codigo) {
     let novoCadastro = false
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
 

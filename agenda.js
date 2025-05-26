@@ -37,7 +37,7 @@ async function iniciar_agendas() {
 async function sincronizar_departamentos() {
 
     overlayAguarde()
-    
+
     await sincronizar('departamentos')
     let dados_departamentos = await receber('dados_departamentos')
     await inserirDados(dados_departamentos, 'dados_departamentos')
@@ -46,7 +46,12 @@ async function sincronizar_departamentos() {
     return dados_departamentos
 }
 
-async function carregar_tabela(sinc) {
+async function recuperar_agenda() {
+    await sincronizarDados('dados_agenda_tecnicos')
+    await carregar_tabela()
+}
+
+async function carregar_tabela() {
 
     overlayAguarde()
 
@@ -64,9 +69,8 @@ async function carregar_tabela(sinc) {
         clientes_invertidos[cliente.omie] = cliente
     }
 
-    if (sinc || !dados_agenda_tecnicos || Object.keys(dados_agenda_tecnicos).length == 0) {
-        dados_agenda_tecnicos = await receber('dados_agenda_tecnicos')
-        await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
+    if (!dados_agenda_tecnicos || Object.keys(dados_agenda_tecnicos).length == 0) {
+        recuperar_agenda()
     }
 
     let select_ano = document.getElementById('ano')?.value || 2025
