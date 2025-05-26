@@ -1558,27 +1558,7 @@ async function salvarServidor(codigo) {
 
     if (!codigo) {
         novoCadastro = true
-        const ultimoCodigo = encontrarMaiorCodigo(dados_composicoes);
-
-        codigo = gerarNovoCodigo(ultimoCodigo);
-
-        const LIMITE_NUMERICO = 10000;
-        const codigoNoLimiteNumerico = parseInt(codigo) >= LIMITE_NUMERICO;
-        if (codigoNoLimiteNumerico) {
-            // Se ultrapassou o limite, procurar por "buracos" na sequência
-            const codigosOrdenados = codigos.sort((a, b) => a - b);
-
-            // Encontrar o primeiro "buraco" na sequência
-            let novoCodigo = 1; // Começar do 1
-            for (const cod of codigosOrdenados) {
-                if (cod > novoCodigo) break; // Encontramos um buraco
-
-                novoCodigo = cod + 1;
-            }
-
-            codigo = novoCodigo.toString();
-        }
-
+        codigo = await verificarCodigoExistente();
     }
 
     if (!dados_composicoes[codigo]) dados_composicoes[codigo] = {};
@@ -1619,25 +1599,7 @@ async function salvarServidor(codigo) {
 
 }
 
-function gerarNovoCodigo(ultimoCodigo) {
-    return (ultimoCodigo + 1).toString();
-}
-
-function encontrarMaiorCodigo(dados_composicoes) {
-    const codigos = filtrarCodigos(dados_composicoes);
-
-    return codigos.length > 0 ? Math.max(...codigos) : 0;
-}
-
-function filtrarCodigos(dados_composicoes) {
-    const codigos = Object.keys(dados_composicoes)
-        .map(codigo => parseInt(codigo))
-        .filter(codigo => !isNaN(codigo) && codigo < 10000);
-
-    return codigos;
-}
-
-async function verificar_codigo_existente() {
+async function verificarCodigoExistente() {
     return new Promise((resolve, reject) => {
 
         let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false

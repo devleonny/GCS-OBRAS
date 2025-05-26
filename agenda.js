@@ -757,3 +757,50 @@ document.addEventListener("mouseup", function () {
         })();
     }
 });
+
+
+async function painelDistruibuicao() {
+
+    let dados_agenda_tecnicos = await recuperarDados('dados_agenda_tecnicos')
+
+    let selectMes = document.getElementById('mes').value
+    let ano = document.getElementById('ano').value
+    let mes = meses[selectMes]
+
+    let relatorios = {
+        tecnico: {},
+        lojas: {}
+    }
+
+    for (let [id, tecnico] of Object.entries(dados_agenda_tecnicos)) {
+
+        let agendas = tecnico.agendas || {}
+        let omieTecnico = tecnico.omie
+
+        if (!relatorios.tecnico[omieTecnico]) {
+            relatorios.tecnico[omieTecnico] = {}
+        }
+
+        if (!relatorios.tecnico[omieTecnico].departamentos) {
+            relatorios.tecnico[omieTecnico].departamentos = {}
+        }
+
+        for (let [id, agenda] of Object.entries(agendas)) {
+
+            let omieDepartamento = agenda.omie
+
+            if (!relatorios.tecnico[omieTecnico].departamentos[omieDepartamento]) {
+                relatorios.tecnico[omieTecnico].departamentos[omieDepartamento] = {}
+            }
+
+        }
+
+        console.log(tecnico);
+
+    }
+
+    let acumulado = ''
+
+    openPopup_v2(acumulado, 'Painel de Distribuição')
+
+}
