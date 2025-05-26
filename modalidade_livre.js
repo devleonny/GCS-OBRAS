@@ -22,11 +22,11 @@ function retornar_ao_orcamento_tradicional() {
 
 function carregar_layout_modalidade_tradicional() {
 
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let orcamento_v2 = baseOrcamento()
     delete orcamento_v2.dados_composicoes
     delete orcamento_v2.lpu_ativa
 
-    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+    baseOrcamento(orcamento_v2)
 
     location.href = 'criar_orcamento.html'
 
@@ -57,10 +57,10 @@ function carregar_layout_modalidade_livre() {
     orcamento_livre.innerHTML = '';
     content.style = 'border: none'
 
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let orcamento_v2 = baseOrcamento()
 
     orcamento_v2.lpu_ativa = 'MODALIDADE LIVRE'
-    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+    baseOrcamento(orcamento_v2)
 
     orcamento_livre.innerHTML = `
         <div id="menu_superior"
@@ -101,7 +101,7 @@ function carregar_layout_modalidade_livre() {
 
                     <div style="display: flex; gap: 3px; justify-content: center; align-items: center; color: white; margin: 3px;">
 
-                        <select id="tipo_importar" style="background-color: white; color: #222; height: 6vh;">
+                        <select id="tipo_importar" style="background-color: white; color: #222; padding: 10px; border-radius: 3px;">
                             <option>SERVIÇO</option>
                             <option>VENDA</option>
                         </select>
@@ -186,7 +186,7 @@ function importar() {
 
     let entradaItens = document.getElementById('entrada_itens').value.trim().split('\n');
 
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
+    let orcamento_v2 = baseOrcamento()
 
     orcamento_v2.dados_composicoes = orcamento_v2.dados_composicoes || {};
 
@@ -225,7 +225,7 @@ function importar() {
 
     });
 
-    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
+    baseOrcamento(orcamento_v2)
     carregar_tabela();
 
 }
@@ -233,7 +233,7 @@ function importar() {
 
 function carregar_tabela() {
 
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let orcamento_v2 = baseOrcamento()
 
     if (!orcamento_v2.dados_composicoes) {
 
@@ -290,7 +290,7 @@ function carregar_tabela() {
 function total_v2(recarregar) {
 
     let tabelas = ['serviço', 'venda']
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let orcamento_v2 = baseOrcamento()
 
     if (!orcamento_v2.dados_composicoes) {
 
@@ -354,7 +354,7 @@ function total_v2(recarregar) {
 
     orcamento_v2.lpu_ativa = 'MODALIDADE LIVRE'
     orcamento_v2.total_geral = dinheiro(totais.GERAL)
-    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2))
+    baseOrcamento(orcamento_v2)
 
     if (recarregar) {
 
@@ -365,7 +365,7 @@ function total_v2(recarregar) {
 }
 
 function adicionarLinha_v2(tipo) {
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {};
+    let orcamento_v2 = baseOrcamento()
 
     const dadosComposicoesExiste = orcamento_v2.dados_composicoes;
     if (!dadosComposicoesExiste) {
@@ -393,13 +393,13 @@ function adicionarLinha_v2(tipo) {
         imagem: 'https://i.imgur.com/gUcc7iG.png'
     };
 
-    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
+    baseOrcamento(orcamento_v2)
     carregar_tabela();
 }
 
 function removerLinha_v2(codigo) {
 
-    let orcamento_v2 = JSON.parse(localStorage.getItem('orcamento_v2')) || {}
+    let orcamento_v2 = baseOrcamento()
     orcamento_v2.dados_composicoes
 
     if (orcamento_v2.dados_composicoes[codigo]) {
@@ -408,7 +408,7 @@ function removerLinha_v2(codigo) {
 
     }
 
-    localStorage.setItem('orcamento_v2', JSON.stringify(orcamento_v2));
+    baseOrcamento(orcamento_v2)
 
     carregar_tabela();
 

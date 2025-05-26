@@ -1889,6 +1889,10 @@ function data_atual(estilo, nivel) {
 aprovacoes_pendentes()
 async function aprovacoes_pendentes() {
 
+    let permissao = acesso.permissao
+    let pessoasPermitidas = ['gerente', 'adm', 'editor']
+    if (!pessoasPermitidas.includes(permissao)) return
+
     let painel_aprovacoes = document.getElementById('painel_aprovacoes')
     if (painel_aprovacoes) {
         painel_aprovacoes.remove()
@@ -1971,6 +1975,7 @@ function resposta_desconto(botao, id, status) {
     let justificativa = botao.parentElement.parentElement.querySelector('textarea').value
 
     let aprovacao = {
+        usuario: acesso.usuario,
         status,
         justificativa
     }
@@ -2167,9 +2172,9 @@ async function sincronizarDados(base) {
         ...dados_local,
         ...nuvem
     }
-    
+
     removerExcluidos(dadosMesclados)
-    
+
     await inserirDados(dadosMesclados, base)
 
     remover_popup()
