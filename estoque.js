@@ -7,23 +7,9 @@ carregar_estoque()
 
 async function recuperar_estoque() {
 
-    overlayAguarde()
-
-    let nuvem = await receber('dados_estoque') || {}
-    let dados_estoque = await recuperarDados('dados_estoque') || {}
-
-    let dadosMescladosEstoque = {
-        ...dados_estoque,
-        ...nuvem
-    }
-
-    removerExcluidos(dadosMescladosEstoque)
-
-    await inserirDados(dadosMescladosEstoque, 'dados_estoque')
+    await sincronizarDados('dados_estoque')
     await carregar_estoque()
-
-    remover_popup()
-
+    
 }
 
 async function carregar_estoque() {
@@ -48,7 +34,8 @@ async function carregar_estoque() {
     let dados_estoque = await recuperarDados('dados_estoque') || {}
 
     if (Object.keys(dados_estoque).length == 0) {
-        return await recuperar_estoque()
+        await sincronizarDados('dados_estoque')
+        return await carregar_estoque()
     }
 
     let thc = ''

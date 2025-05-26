@@ -3,6 +3,11 @@ let filtro;
 
 carregar_manutencoes()
 
+async function recuperar_manutencoes() {
+    await sincronizarDados('dados_manutencao')
+    await carregar_manutencoes()
+}
+
 function filtrar_manutencoes(ultimo_status, col, texto) {
 
     if (ultimo_status !== undefined) {
@@ -117,7 +122,7 @@ function filtrar_manutencoes(ultimo_status, col, texto) {
 
 }
 
-async function carregar_manutencoes(sincronizar) {
+async function carregar_manutencoes() {
 
     overlayAguarde()
 
@@ -125,9 +130,9 @@ async function carregar_manutencoes(sincronizar) {
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let dados_clientes_omie = {}
 
-    if (Object.keys(dados_manutencao).length == 0 || sincronizar) {
-        await inserirDados(await receber('dados_manutencao'), 'dados_manutencao')
-        dados_manutencao = await recuperarDados('dados_manutencao') || {}
+    if (Object.keys(dados_manutencao).length == 0) {
+        await sincronizarDados('dados_manutencao')
+        return await carregar_manutencoes()
     }
 
     for (cnpj in dados_clientes) {
@@ -1258,12 +1263,11 @@ async function salvar_anexos_manutencao(input, id) {
 
     let anexos = await anexo_v2(input); // Simulação da função de upload
     await inserirDados(await receber('dados_manutencao'), 'dados_manutencao');
-    let dados_manutencoes = await recuperarDados('dados_manutencao') || {};
-
-    let dados_manutencao = dados_manutencoes[id];
+    let dados_manutencao = await recuperarDados('dados_manutencao') || {};
+    let manutencao = dados_manutencao[id];
 
     // 🛑 Se o manutencao ainda não existe, salva os anexos temporariamente
-    if (!dados_manutencao) {
+    if (!manutencao) {
         if (!manutencoes_pendentes[id]) {
             manutencoes_pendentes[id] = { anexos: {} };
         }
@@ -1275,17 +1279,17 @@ async function salvar_anexos_manutencao(input, id) {
     }
 
     // 🔥 Garante que a estrutura de anexos exista
-    if (!dados_manutencao.anexos) {
-        dados_manutencao.anexos = {};
+    if (!manutencao.anexos) {
+        manutencao.anexos = {};
     }
 
     anexos.forEach(anexo => {
-        dados_manutencao.anexos[anexo.link] = anexo;
+        manutencao.anexos[anexo.link] = anexo;
         enviar(`dados_manutencao/${id}/anexos/${anexo.link}`, anexo);
     });
 
     // Atualiza localmente
-    await inserirDados(dados_manutencoes, 'dados_manutencao');
+    await inserirDados(dados_manutencao, 'dados_manutencao');
 
     // Recarrega os anexos no modal
     await renderizarAnexos(id);
@@ -1296,8 +1300,8 @@ async function renderizarAnexos(id) {
     let listaAnexos = document.getElementById("lista-anexos");
     if (!listaAnexos) return;
 
-    let dados_manutencoes = await recuperarDados('dados_manutencao') || {};
-    let manutencao = dados_manutencoes[id] || {}; // Se não existir, inicia vazio
+    let dados_manutencao = await recuperarDados('dados_manutencao') || {};
+    let manutencao = dados_manutencao[id] || {}; // Se não existir, inicia vazio
     let anexosBanco = manutencao.anexos || {}; // Anexos já salvos no banco
     let anexosPendentes = manutencoes_pendentes[id]?.anexos || {}; // Anexos pendentes
 
@@ -1325,11 +1329,10 @@ async function renderizarAnexos(id) {
 async function removerAnexoChamados(id, linkAnexo) {
 
     await inserirDados(await receber('dados_manutencao'), 'dados_manutencao')
-    let dados_manutencoes = await recuperarDados('dados_manutencao') || {}
+    let dados_manutencao = await recuperarDados('dados_manutencao') || {}
+    let manutencao = dados_manutencao[id]
 
-    let dados_manutencao = dados_manutencoes[id]
-
-    if (!dados_manutencao || !dados_manutencao.anexos || !dados_manutencao.anexos[linkAnexo]) return;
+    if (!manutencao || !manutencao.anexos || !manutencao.anexos[linkAnexo]) return;
 
     // Remove da nuvem
     deletar(`dados_manutencao/${id}/anexos/${linkAnexo}`);

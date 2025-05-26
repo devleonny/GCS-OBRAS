@@ -5,6 +5,13 @@ var filtro;
 
 preencher_orcamentos_v2()
 
+async function recuperar_orcamentos() {
+
+    await sincronizarDados('dados_orcamentos')
+    await preencher_orcamentos_v2()
+    
+}
+
 function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 
     if (ultimo_status !== undefined) {
@@ -440,27 +447,4 @@ function atualizar_status(st) {
     }
 
     return st
-}
-
-async function recuperar_orcamentos() {
-
-    overlayAguarde()
-
-    let dadosOrcamentosLocal = await recuperarDados('dados_orcamentos') || {}
-    let dadosOrcamentosNovos = await receber('dados_orcamentos') || {}
-
-    dadosOrcamentosLocal = {
-        ...dadosOrcamentosLocal,
-        ...dadosOrcamentosNovos
-    }
-
-    removerExcluidos(dadosOrcamentosLocal)
-
-    await inserirDados(dadosOrcamentosLocal, 'dados_orcamentos')
-
-    if (document.title == 'ORÇAMENTOS') {
-        await preencher_orcamentos_v2()
-    }
-
-    remover_popup()
 }

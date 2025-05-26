@@ -9,6 +9,8 @@ let opcoesStatus = [
 
 consultar_pagamentos()
 
+
+
 async function consultar_pagamentos() {
 
     let div_pagamentos = document.getElementById('div_pagamentos')
@@ -18,7 +20,7 @@ async function consultar_pagamentos() {
 
     div_pagamentos.innerHTML = ''
 
-    //Chamada para o endpoint que já retorna os pagamentos filtrados      
+    //Chamada para o endpoint que já retorna os pagamentos filtrados;
     let acumulado = ''
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
 
@@ -52,7 +54,7 @@ async function consultar_pagamentos() {
 
     let pagamentosFiltrados = Object.keys(lista_pagamentos)
         .map(idPagamento => {
-            
+
             let pagamento = lista_pagamentos[idPagamento];
 
             let valor_categorias = pagamento.param[0].categorias.map(cat =>
@@ -223,6 +225,9 @@ function iconePagamento(status) {
             break
         case status == 'A VENCER':
             icone = 'avencer'
+            break
+        case status == 'VENCE HOJE':
+            icone = 'vencehoje'
             break
         case status.includes('Aprovado'):
             icone = 'aprovado'
@@ -745,7 +750,8 @@ async function confirmar_exclusao_categoria(id, indice) {
             </div>
             `, 'Aviso', true)
     }
-    await atualizar_pagamentos_menu()
+
+    await recuperarPagamentos()
     await abrir_detalhes(id)
 
 }
@@ -1045,22 +1051,12 @@ function auxiliar(elemento) {
     }
 }
 
-async function atualizar_pagamentos_menu() {
+async function recuperarPagamentos() {
 
     overlayAguarde()
 
     await lista_setores()
-
-    let pagamentosFiltrados = await filtrarPagamentosUsuario(acesso.usuario)
-
-    await inserirDados(pagamentosFiltrados, 'lista_pagamentos')
-
-    let dados_categorias = await recuperarDados('dados_categorias')
-    if (!dados_categorias) {
-        dados_categorias = await receber('dados_categorias')
-        inserirDados(dados_categorias, 'dados_categorias')
-    }
-    
+    await sincronizarDados('lista_pagamentos')
     await retomarPaginacao()
 
     remover_popup()

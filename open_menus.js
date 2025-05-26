@@ -2147,8 +2147,6 @@ function baseOrcamento(orcamento, remover) {
 
 function removerExcluidos(base) {
 
-    console.log(dicionario(base))
-    
     if (dicionario(base)) {
         for ([id, objeto] of Object.entries(base)) {
             if (objeto.excluido) delete base[id]
@@ -2156,4 +2154,23 @@ function removerExcluidos(base) {
     }
 
     return base
+}
+
+async function sincronizarDados(base) {
+
+    overlayAguarde()
+
+    let nuvem = await receber(base) || {}
+    let dados_local = await recuperarDados(base) || {}
+
+    let dadosMesclados = {
+        ...dados_local,
+        ...nuvem
+    }
+    
+    removerExcluidos(dadosMesclados)
+    
+    await inserirDados(dadosMesclados, base)
+
+    remover_popup()
 }
