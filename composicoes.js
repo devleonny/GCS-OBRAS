@@ -16,11 +16,21 @@ function criar_lpu() {
 carregar_tabela_v2()
 
 async function recuperar_composicoes() {
+
     overlayAguarde()
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let nuvem = await receber('dados_composicoes')
-    await inserirDados(nuvem, 'dados_composicoes')
+
+    let dadosMescladosComposicoes = {
+        ...dados_composicoes,
+        ...nuvem
+    }
+    
+    removerExcluidos(dadosMescladosComposicoes)
+
+    await inserirDados(dadosMescladosComposicoes, 'dados_composicoes')
     await carregar_tabela_v2()
-    document.getElementById("aguarde").remove()
+    remover_popup()
 }
 
 async function carregar_tabela_v2(auxiliarPaginacao) {
@@ -1424,15 +1434,6 @@ function remover_esta_linha(elemento) {
     tr.remove()
 }
 
-async function atualizar() {
-
-    overlayAguarde()
-    await recuperar_dados_composicoes()
-    carregar_tabela_v2()
-    remover_popup()
-
-}
-
 async function cadastrar_editar_item(codigo) {
 
     let colunas = ['descricao', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
@@ -1442,6 +1443,8 @@ async function cadastrar_editar_item(codigo) {
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let dados = dados_composicoes[codigo] || {}
+
+    console.log(dados);
 
     let funcao = codigo ? `cadastrar_alterar('${codigo}')` : `cadastrar_alterar()`
     let elementos = ''

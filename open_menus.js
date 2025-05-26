@@ -1394,12 +1394,6 @@ async function excluir_levantamento(id_orcamento, id_anexo) {
 
 }
 
-async function recuperar_dados_composicoes() {
-
-    inserirDados(await receber('dados_composicoes'), 'dados_composicoes');
-
-}
-
 async function recuperar_estoque() {
 
     if (document.getElementById('tela')) {
@@ -1480,6 +1474,9 @@ async function receber(chave) {
         app: modoClone ? 'clone' : undefined,
         timestamp: maiorTimestamp
     };
+
+    console.log(maiorTimestamp);
+    
 
     const obs = {
         method: "POST",
