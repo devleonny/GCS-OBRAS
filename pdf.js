@@ -190,7 +190,7 @@ async function preencher_v2() {
 
         let itemComposicao = dados_composicoes[it]
         let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
-        let tabelaPreco = itemComposicao[lpu]
+        let tabelaPreco = itemComposicao?.[lpu]
 
         let icms = 0
         if (tabelaPreco) {
