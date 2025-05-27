@@ -449,7 +449,7 @@ async function calcular_requisicao(sincronizar) {
                     let descontoDivido = item.tipo_desconto == 'Dinheiro' ? item.desconto : (item.custo * item.desconto / 100)
 
                     descontoDivido = descontoDivido / qtde
-                    
+
                     let valorUnitarioComDesconto = item.custo - descontoDivido
 
                     let valorUnitario = valorUnitarioComDesconto || item.custo;
@@ -532,7 +532,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
     }
 
     let requisicao = {} // Comparativo com a requisição já feita, se existir "chave"
-    if (chave && orcamento.status && orcamento.status.historico[chave]) {
+    if (chave && orcamento.status && orcamento.status.historico && orcamento.status.historico[chave]) {
         requisicao = orcamento.status.historico[chave].requisicoes
     }
 

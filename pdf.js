@@ -192,14 +192,17 @@ async function preencher_v2() {
         let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
         let tabelaPreco = itemComposicao[lpu]
 
-        let icms = '--'
+        let icms = 0
         if (tabelaPreco) {
             let ativo = tabelaPreco.ativo
             let historico = tabelaPreco.historico
-
             let precoAtivo = historico[ativo]
+            icms = precoAtivo?.icms_creditado || 0
+        }
 
-            icms = precoAtivo?.icms_creditado || '--'
+        if (icms == 0) {
+            let estado = informacoes.estado
+            icms = estado == 'BA' ? 20.5 : 12
         }
 
         if (!totais[item.tipo]) {
@@ -210,8 +213,8 @@ async function preencher_v2() {
         totais[item.tipo].valor += item.total // Total isolado do item;
         totais.GERAL.valor += item.total // Total GERAL;
 
-        let unitario_sem_icms = item.custo - (item.custo * (icms / 100))
-        let total_sem_icms = unitario_sem_icms * item.qtde
+        let unitarioSemIcms = item.custo - (item.custo * (icms / 100))
+        let totalSemIcms = unitarioSemIcms * item.qtde
         let tds = {}
 
         tds[1] = `<td>${item.codigo}</td>`
@@ -219,8 +222,8 @@ async function preencher_v2() {
         tds[3] = `<td style="text-align: center;"><img src="${item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 2vw;"></td>`
         tds[4] = `<td>${item?.unidade || 'UN'}</td>`
         tds[5] = `<td>${item.qtde}</td>`
-        tds[6] = `<td style="white-space: nowrap;">${dinheiro(unitario_sem_icms)}</td>`
-        tds[7] = `<td style="white-space: nowrap;">${dinheiro(total_sem_icms)}</td>`
+        tds[6] = `<td style="white-space: nowrap;">${dinheiro(unitarioSemIcms)}</td>`
+        tds[7] = `<td style="white-space: nowrap;">${dinheiro(totalSemIcms)}</td>`
         tds[8] = `<td>${icms}%</td>`
         tds[9] = `<td style="white-space: nowrap;">${dinheiro(item.custo)}</td>`
         tds[10] = `<td style="white-space: nowrap;">${dinheiro(item.total)}</td>`
