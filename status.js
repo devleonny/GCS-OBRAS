@@ -422,7 +422,7 @@ async function calcular_requisicao(sincronizar) {
                     let tds = tr.querySelectorAll('td')
                     let codigo = tds[0].textContent
                     let item = itens[codigo]
-
+                    
                     let quantidadeDisponivel = 0
                     if (tds[4].querySelector('label.num')) {
                         quantidadeDisponivel = tds[4].querySelector('label.num').textContent
@@ -445,10 +445,17 @@ async function calcular_requisicao(sincronizar) {
                     }
 
                     let qtde = tds[4].querySelector('input') ? Number(tds[4].querySelector('input').value) : conversor(tds[4].textContent)
-                    let valorUnitarioComDesconto = item.tipo_desconto == 'Dinheiro' ? item.custo - item.desconto : item.custo - (item.custo * item.desconto / 100)
+                    
+                    let descontoDivido = item.tipo_desconto == 'Dinheiro' ? item.desconto : (item.custo * item.desconto / 100)
+
+                    descontoDivido = descontoDivido / qtde
+                    
+                    let valorUnitarioComDesconto = item.custo - descontoDivido
+
                     let valorUnitario = valorUnitarioComDesconto || item.custo;
                     let custo = conversor(valorUnitario);
                     let labels_unitarios = tds[5].querySelector('label')
+
                     labels_unitarios.innerHTML = `${dinheiro(custo)}`
 
                     // Lógica dos descontos por linha, aplicado no total da linha;
@@ -458,6 +465,7 @@ async function calcular_requisicao(sincronizar) {
                         if (total_do_item < 0) total_do_item = 0 // Caso exista desconto e seja maior que o total do item; Evitar negativo;
                     }
                     let labels_totais = tds[6].querySelector('label')
+
                     labels_totais.innerHTML = `${dinheiro(total_do_item)}`
 
                     total += total_do_item
