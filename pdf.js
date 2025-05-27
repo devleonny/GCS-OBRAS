@@ -85,6 +85,7 @@ async function atualizar_dados_pdf() {
 
 async function preencher_v2() {
 
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let elem_parceiro = ''
     let ocultar = document.getElementById('ocultar')
     if (ocultar) {
@@ -178,25 +179,27 @@ async function preencher_v2() {
         'VENDA': { colunas: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cor: '#B12425' }
     }
 
-    let icms
 
     let totais = {
         GERAL: { valor: 0, cor: '#151749' }
     };
 
-    let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
-
     for (it in itens) {
         let item = itens[it]
         let colunas = config[item.tipo].colunas
 
-        // Verifica se o código está na lista de itens importados
-        const isItemImportado = itensImportados.includes(String(item.codigo).toLowerCase());
+        let itemComposicao = dados_composicoes[it]
+        let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
+        let tabelaPreco = itemComposicao[lpu]
 
-        if (isItemImportado) {
-            icms = 0.04 //4% para itens importados
-        } else {
-            icms = orcamento_v2.dados_orcam.estado == 'BA' ? 0.205 : 0.12
+        let icms = '--'
+        if (tabelaPreco) {
+            let ativo = tabelaPreco.ativo
+            let historico = tabelaPreco.historico
+
+            let precoAtivo = historico[ativo]
+
+            icms = precoAtivo?.icms_creditado || '--'
         }
 
         if (!totais[item.tipo]) {
@@ -207,7 +210,7 @@ async function preencher_v2() {
         totais[item.tipo].valor += item.total // Total isolado do item;
         totais.GERAL.valor += item.total // Total GERAL;
 
-        let unitario_sem_icms = item.custo - (item.custo * icms)
+        let unitario_sem_icms = item.custo - (item.custo * (icms / 100))
         let total_sem_icms = unitario_sem_icms * item.qtde
         let tds = {}
 
@@ -218,7 +221,7 @@ async function preencher_v2() {
         tds[5] = `<td>${item.qtde}</td>`
         tds[6] = `<td style="white-space: nowrap;">${dinheiro(unitario_sem_icms)}</td>`
         tds[7] = `<td style="white-space: nowrap;">${dinheiro(total_sem_icms)}</td>`
-        tds[8] = `<td>${(icms * 100).toFixed(1)}%</td>`
+        tds[8] = `<td>${icms}%</td>`
         tds[9] = `<td style="white-space: nowrap;">${dinheiro(item.custo)}</td>`
         tds[10] = `<td style="white-space: nowrap;">${dinheiro(item.total)}</td>`
 
