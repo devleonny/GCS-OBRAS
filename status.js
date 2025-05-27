@@ -1197,7 +1197,7 @@ async function salvar_requisicao(chave) {
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
 
     //Atualizar partnumbers se necessário
-    if (orcamento.modalidade !== 'MODALIDADE LIVRE') {
+    if (orcamento.lpu_ativa !== 'MODALIDADE LIVRE') {
         atualizar_partnumber(lista_partnumbers)
     }
 
@@ -1350,6 +1350,7 @@ async function abrir_esquema(id) {
     let desejaApagar = "deseja_apagar"
 
     if (orcamento) {
+        
         var levantamentos = ''
 
         if (orcamento.levantamentos) {
