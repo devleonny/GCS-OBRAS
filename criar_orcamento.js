@@ -973,6 +973,7 @@ async function total() {
                 tds[7 + acrescimo].querySelector('select').value = sistema
 
                 itemSalvo.descricao = descricao
+                itemSalvo.unidade = dados_composicoes[codigo]?.unidade || 'UN'
                 itemSalvo.descricaocarrefour = descricaocarrefour
                 itemSalvo.qtde = quantidade
                 itemSalvo.custo = valor_unitario
