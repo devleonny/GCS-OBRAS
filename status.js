@@ -413,7 +413,6 @@ async function calcular_requisicao(sincronizar) {
 
         if (tbody) {
             let trs = tbody.querySelectorAll('tr')
-
             let total = 0
 
             trs.forEach(tr => {
@@ -445,36 +444,20 @@ async function calcular_requisicao(sincronizar) {
                     }
 
                     let qtde = tds[4].querySelector('input') ? Number(tds[4].querySelector('input').value) : conversor(tds[4].textContent)
-                    
-                    let descontoDivido = item.tipo_desconto == 'Dinheiro' ? item.desconto : (item.custo * item.desconto / 100)
 
-                    descontoDivido = descontoDivido / qtde
-
-                    let valorUnitarioComDesconto = item.custo - descontoDivido
-
-                    let valorUnitario = valorUnitarioComDesconto || item.custo;
-                    let custo = conversor(valorUnitario);
-                    let labels_unitarios = tds[5].querySelector('label')
-
-                    labels_unitarios.innerHTML = `${dinheiro(custo)}`
-
-                    // Lógica dos descontos por linha, aplicado no total da linha;
-                    let total_do_item = custo * qtde
                     if (item.tipo_desconto) {
-                        total_do_item = valorUnitarioComDesconto * qtde
-                        if (total_do_item < 0) total_do_item = 0 // Caso exista desconto e seja maior que o total do item; Evitar negativo;
+                        let desconto = item.tipo_desconto == 'Dinheiro' ? item.desconto : (item.custo * (item.desconto / 100))
+                        desconto = desconto / item.qtde
+                        item.custo = item.custo - desconto
                     }
-                    let labels_totais = tds[6].querySelector('label')
 
-                    labels_totais.innerHTML = `${dinheiro(total_do_item)}`
+                    let totalLinhas = item.custo * qtde
+                    tds[5].querySelector('label').innerHTML = `${dinheiro(item.custo)}` // Unitário
+                    tds[6].querySelector('label').innerHTML = `${dinheiro(totalLinhas)}` // Total
 
-                    total += total_do_item
+                    total += totalLinhas
                 }
             })
-
-            // if (orcamento.desconto_geral) {
-            //     total = orcamento.tipo_de_desconto == 'Dinheiro' ? total - orcamento.desconto_geral : total - (total * orcamento.desconto_geral / 100)
-            // }
 
             document.getElementById('total_requisicao').textContent = dinheiro(total)
 
@@ -531,7 +514,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
         equipamentos: []
     }
 
-    let requisicao = {} // Comparativo com a requisição já feita, se existir "chave"
+    let requisicao = [] // Comparativo com a requisição já feita, se existir "chave"
     if (chave && orcamento.status && orcamento.status.historico && orcamento.status.historico[chave]) {
         requisicao = orcamento.status.historico[chave].requisicoes
     }
@@ -540,6 +523,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
 
         for (id in requisicao) {
             let item = requisicao[id]
+
             let descricao = item?.descricao || 'N/A';
 
             descricao = String(descricao).toLowerCase()
@@ -554,18 +538,27 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
             } else {
                 todos_os_itens.equipamentos.push(item)
             }
-
         }
 
     } else {
 
-        for (id in orcamento.dados_composicoes) {
-            let item = orcamento.dados_composicoes[id]
+        for (id in itensOrcamento) {
+            let item = itensOrcamento[id]
             let descricao = item?.descricao || 'N/A';
 
-            descricao = String(descricao).toLowerCase()
+            if (requisicao.length > 0) {
+                for (let itemRequisicao of requisicao) {
+                    if (itemRequisicao.codigo == item.codigo) {
+                        item = {
+                            ...item,
+                            ...itemRequisicao
+                        }
+                        break
+                    }
+                }
+            }
 
-            if (requisicao[id]) { item = requisicao[id] }
+            descricao = String(descricao).toLowerCase()
 
             if ((
                 descricao.includes('eletrocalha') ||
@@ -594,21 +587,20 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
 
     for (item of itensFiltrados) {
         let codigo = item.codigo
-        let qtde = item?.qtde_editar || 0
         let tipo = item.tipo
-
+        let omie = dados_composicoes[codigo]?.omie || dados_composicoes[codigo]?.partnumber || ''
         linhas += `
             <tr class="lin_req" style="background-color: white;">
                 <td style="text-align: center; font-size: 1.2em; white-space: nowrap;"><label>${codigo}</label></td>
                 <td style="text-align: center;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.omie || item?.partnumber}</label>` :
-                `<input class="pedido" style="width: 10vw;" value="${dados_composicoes[codigo]?.omie || ''}">`}
+                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${omie}</label>` :
+                `<input class="pedido" style="width: 10vw;" value="${omie}">`}
                 </td>
                 <td style="position: relative;">
                     <div style="position: relative; display: flex; flex-direction: column; gap: 5px; align-items: start;">
                         ${itensImportados.includes(codigo) ? `<label style="font-size: 0.7vw; color: white; position: absolute; top: 0; right: 0; background-color: red; border-radius: 3px; padding: 2px;">Imp</label>` : ''}
                         <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong></label>
-                        <label>${itensOrcamento[codigo].descricao}</label>
+                        <label>${item?.descricao || 'N/A'}</label>
                     </div>
                     ${apenas_visualizar ? '' : `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`}
                 </td>
@@ -622,11 +614,13 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
                     `}
                 </td>
                 <td style="text-align: center;">
-                    ${apenas_visualizar ? `<label style="font-size: 1.2em;">${item?.qtde_enviar || ''}</label>` : `
+                    ${apenas_visualizar
+                ? `<label style="font-size: 1.2em;">${item?.qtde_enviar || ''}</label>`
+                : `
                         <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
                             <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
                                 <label>Quantidade a enviar</label>
-                                <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" min="0" value="${qtde}">
+                                <input class="pedido" type="number" style="width: 10vw; padding: 0px; margin: 0px; height: 40px;" oninput="calcular_requisicao()" min="0" value="${item?.qtde_enviar || ''}">
                             </div>
                             <label class="num">${itensOrcamento[codigo]?.qtde || ''}</label>
                         </div>
@@ -1246,15 +1240,15 @@ async function exibir_todos_os_status(id) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    var orcamento = dados_orcamentos[id]
+    let orcamento = dados_orcamentos[id]
 
-    var acumulado = `
+    let acumulado = `
         <div style="display: flex;">
             <label style="color: #222; font-size: 1.5vw;" id="cliente_status">${orcamento.dados_orcam.cliente_selecionado}</label>
         </div>
     `
-    var analista = orcamento.dados_orcam.analista
-    var acumulado_botoes = ''
+    let analista = orcamento.dados_orcam.analista
+    let acumulado_botoes = ''
 
     acumulado_botoes += `
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="abrir_esquema('${id}')">
@@ -1358,7 +1352,7 @@ async function abrir_esquema(id) {
     let desejaApagar = "deseja_apagar"
 
     if (orcamento) {
-        
+
         var levantamentos = ''
 
         if (orcamento.levantamentos) {
@@ -3249,24 +3243,19 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
     }
 
     var acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    var usuario = acesso.usuario
-    var data = new Date().toLocaleString('pt-BR', {
-        dateStyle: 'short',
-        timeStyle: 'short'
-    });
-
-    dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    orcamento = dados_orcamentos[id_orcam];
-    var menu_flutuante = ''
-    var nome_cliente = orcamento.dados_orcam.cliente_selecionado
+    let usuario = acesso.usuario
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[id_orcam];
+    let menu_flutuante = ''
+    let nome_cliente = orcamento.dados_orcam.cliente_selecionado
 
     // Carrega os itens adicionais se existirem
     itens_adicionais = {}
     let comentarioExistente = ''
-    let requisicoesExistente = []
 
     if (chave && orcamento.status && orcamento.status.historico && orcamento.status.historico[chave]) {
         let cartao = orcamento.status.historico[chave]
+
         menu_flutuante = `
         <div class="menu_flutuante" id="menu_flutuante">
             <div class="icone" onclick="gerarpdf('${orcamento.dados_orcam.cliente_selecionado}', '${cartao.pedido}')">
@@ -3306,7 +3295,7 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
             <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
                 
                 <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-                    <label><strong>Data</strong> </label> <label id="data_status">${data}</label>
+                    <label><strong>Data</strong> </label> <label id="data_status">${data_atual('completa')}</label>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
@@ -3388,57 +3377,9 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
     `
     openPopup_v2(acumulado, 'Requisição', true)
 
-    // Preenche os campos com os dados existentes se estiver editando
-    if (requisicoesExistente.length > 0) {
-        await preencherDadosRequisicaoExistente(requisicoesExistente);
-    }
-
+    // Preenche os campos com os dados existentes se estiver editando    
     await calcular_requisicao()
-    mostrar_itens_adicionais()
-}
-
-async function preencherDadosRequisicaoExistente(requisicoes) {
-    const tabela = document.getElementById('tabela_requisicoes');
-    if (!tabela) return;
-
-    const linhas = tabela.querySelectorAll('tbody tr');
-
-    requisicoes.forEach(req => {
-        linhas.forEach(linha => {
-            const codigoCell = linha.querySelector('td:first-child');
-            if (codigoCell && codigoCell.textContent.trim() === req.codigo) {
-                // Preenche PART NUMBER
-                const partNumberInput = linha.querySelector('td:nth-child(2) input');
-                if (partNumberInput) {
-                    partNumberInput.value = req.partnumber || '';
-                }
-
-                // Preenche Tipo
-                const tipoSelect = linha.querySelector('td:nth-child(4) select');
-                if (tipoSelect) {
-                    tipoSelect.value = req.tipo || 'SERVIÇO';
-                }
-
-                // Preenche Quantidade
-                const qtdeInput = linha.querySelector('td:nth-child(5) input');
-                if (qtdeInput) {
-                    qtdeInput.value = req.qtde_enviar || '';
-                }
-
-                // Preenche Requisição
-                const requisicaoSelect = linha.querySelector('td:nth-child(8) select');
-                if (requisicaoSelect) {
-                    requisicaoSelect.value = req.requisicao || 'Nada a fazer';
-                }
-            }
-        });
-    });
-}
-
-function verificarPermissaoEdicao(criador) {
-    const acesso = JSON.parse(localStorage.getItem('acesso')) || {};
-    // Permite edição se for ADM ou se for o criador do item
-    return acesso.permissao === 'adm' || acesso.usuario === criador;
+    //mostrar_itens_adicionais()
 }
 
 function verificarPermissaoExclusao({ chave, criador }) {
