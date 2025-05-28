@@ -176,7 +176,7 @@ async function preencher_v2() {
         'ALUGUEL': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: 'green' },
         'USO E CONSUMO': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: '#24729d' },
         'SERVIÇO': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: 'green' },
-        'VENDA': { colunas: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], cor: '#B12425' }
+        'VENDA': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: '#B12425' }
     }
 
 
@@ -207,6 +207,12 @@ async function preencher_v2() {
 
         if (!totais[item.tipo]) {
             totais[item.tipo] = { linhas: '', valor: 0 }
+        }
+
+        if (item.tipo_desconto) {
+            let desconto = item.tipo_desconto == 'Dinheiro' ? item.desconto : item.custo * (item.desconto / 100)
+            desconto = desconto / item.qtde
+            item.custo = item.custo - desconto
         }
 
         item.total = item.custo * item.qtde;
@@ -285,11 +291,8 @@ async function preencher_v2() {
     let total_liquido = orcamento_v2.total_geral;
 
     if (total_bruto != 0) { // Quer dizer que existe desconto neste orçamento;
-        totais['DESCONTO'] = { valor: total_bruto - conversor(total_liquido) }
-        totais['LÍQUIDO'] = { valor: conversor(total_liquido) }
-
-        config['DESCONTO'] = { cor: '#b96300' }
-        config['LÍQUIDO'] = { cor: '#151749' }
+        totais.DESCONTO = { valor: total_bruto - conversor(total_liquido) }
+        config.DESCONTO = { cor: '#b96300' }
     }
 
     let ordemTotais = Object.entries(totais)

@@ -280,14 +280,6 @@ async function carregarTabelas() {
         </div>
         ${stringsTabelas}`
 
-    let desconto_geral = document.getElementById('desconto_geral')
-    if (orcamento_v2.desconto_geral) {
-        desconto_geral.value = orcamento_v2.desconto_geral
-    }
-
-    if (orcamento_v2.tipo_de_desconto) {
-        desconto_geral.previousElementSibling.value = orcamento_v2.tipo_de_desconto
-    }
 
     await total()
 
@@ -993,16 +985,6 @@ async function total() {
     }
 
     let desconto_calculo = 0;
-    let desconto_geral = document.getElementById('desconto_geral')
-    let tipo_de_desconto = desconto_geral.previousElementSibling
-
-    if (desconto_geral.value !== '') {
-        orcamento_v2.desconto_geral = conversor(Number(desconto_geral.value))
-        orcamento_v2.tipo_de_desconto = tipo_de_desconto.value
-    } else {
-        delete orcamento_v2.desconto_geral
-        delete orcamento_v2.tipo_de_desconto
-    }
 
     for (tot in totais) {
 
@@ -1013,32 +995,8 @@ async function total() {
                 divTotal.textContent = dinheiro(totais[tot].valor)
             }
 
-        } else if (!carrefour) {
-
-            if (desconto_geral.value !== '') { // 29
-                if (tipo_de_desconto.value == 'Porcentagem') {
-
-                    if (desconto_geral.value < 0) {
-                        desconto_geral.value = 0
-                    } else if (desconto_geral.value > 100) {
-                        desconto_geral.value = 100
-                    }
-
-                    desconto_calculo = (desconto_geral.value / 100) * totais[tot].valor
-
-                } else {
-
-                    if (desconto_geral.value < 0) {
-                        //desconto_geral.value = 0
-                    } else if (desconto_geral.value > totais[tot].valor) {
-                        //desconto_geral.value = totais[tot].valor
-                    }
-
-                    desconto_calculo = Number(desconto_geral.value)
-
-                }
-            }
         }
+
     }
 
     let desconto_geral_linhas = desconto_acumulado + desconto_calculo
@@ -1046,7 +1004,6 @@ async function total() {
 
     let painel_desconto = document.getElementById('desconto_total')
     if (!carrefour) {
-        desconto_geral.parentElement.parentElement.style.display = 'flex'
 
         if (desconto_geral_linhas > totais.GERAL.valor) {
             desconto_geral_linhas = totais.GERAL.valor
@@ -1070,7 +1027,6 @@ async function total() {
             </div>
         `
     } else {
-        desconto_geral.parentElement.parentElement.style.display = 'none'
         painel_desconto.innerHTML = ''
     }
 
