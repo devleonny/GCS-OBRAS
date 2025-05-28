@@ -524,7 +524,9 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
         for (id in requisicao) {
             let item = requisicao[id]
 
-            let descricao = item?.descricao || 'N/A';
+            item.descricao = itensOrcamento[item.codigo].descricao
+
+            let descricao = item.descricao
 
             descricao = String(descricao).toLowerCase()
 
@@ -544,7 +546,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
 
         for (id in itensOrcamento) {
             let item = itensOrcamento[id]
-            let descricao = item?.descricao || 'N/A';
+            let descricao = itensOrcamento[item.codigo]?.descricao || 'N/A';
 
             if (requisicao.length > 0) {
                 for (let itemRequisicao of requisicao) {
