@@ -421,7 +421,7 @@ async function calcular_requisicao(sincronizar) {
                     let tds = tr.querySelectorAll('td')
                     let codigo = tds[0].textContent
                     let item = itens[codigo]
-                    
+
                     let quantidadeDisponivel = 0
                     if (tds[4].querySelector('label.num')) {
                         quantidadeDisponivel = tds[4].querySelector('label.num').textContent
@@ -604,9 +604,9 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
                     </div>
                     ${apenas_visualizar ? '' : `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`}
                 </td>
-                <td style="text-align: center; padding: 0px; margin: 0px; font-size: 0.8em;">
+                <td style="text-align: center; font-size: 0.8em;">
                     ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${item?.tipo || ''}</label>` : `
-                        <select onchange="calcular_requisicao()" style="border: none;">
+                        <select onchange="calcular_requisicao()" class="opcoesSelect">
                             <option value="SERVIÇO" ${tipo === 'SERVIÇO' ? 'selected' : ''}>SERVIÇO</option>
                             <option value="VENDA" ${tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
                             <option value="USO E CONSUMO" ${tipo === 'USO E CONSUMO' ? 'selected' : ''}>USO E CONSUMO</option>
