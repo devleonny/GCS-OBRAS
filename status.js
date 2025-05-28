@@ -3381,7 +3381,7 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
 
     // Preenche os campos com os dados existentes se estiver editando    
     await calcular_requisicao()
-    //mostrar_itens_adicionais()
+    mostrar_itens_adicionais()
 }
 
 function verificarPermissaoExclusao({ chave, criador }) {
