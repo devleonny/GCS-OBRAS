@@ -232,9 +232,11 @@ async function painel_adicionar_pedido() {
         <hr style="width: 80%">
 
         <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px; padding: 10px">
+
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <p class="novo_titulo" style="cursor: pointer; color: #222">Escolha o tipo do <strong>Pedido</strong> </p> 
-                <select id="tipo">
+                <label style="white-space: nowrap;">Tipo do Pedido</label>
+
+                <select id="tipo" class="opcoesSelect">
                     <option>Selecione</option>
                     <option>Serviço</option>
                     <option>Venda</option>
@@ -266,7 +268,7 @@ async function painel_adicionar_pedido() {
 
             <hr style="width: 80%">
 
-            <button style="background-color: #4CAF50; width: 95%;" onclick="salvar_pedido()">Salvar</button>
+            <button style="background-color: #4CAF50;" onclick="salvar_pedido()">Salvar</button>
 
             <div id="aviso_campo_branco" style="display: none; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
@@ -317,39 +319,30 @@ async function painel_adicionar_notas(chave) {
 
         // 7. Monta o HTML do painel
         const acumulado = `
+        <div style="display: flex; justify-content: start; flex-direction: column; align-items: center;">
             <label style="position: absolute; bottom: 5px; right: 5px; font-size: 0.6em;" id="data">${data}</label>
 
             <div style="display: flex; justify-content: space-evenly; align-items: center; padding: 10px;">
                 <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
             </div>
 
-            <br>
-            
             <div id="container_status"></div>
 
             <hr style="width: 80%">
 
-            <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px;">
-                <label class="novo_titulo" style="color: #222;">Inclua o número da Nota</label>
-                <label>Remessa, Venda ou Serviço</label>
-            </div>
-
             <div style="display: flex; flex-direction: column; justify-content: center; align-items: start; padding: 10px;">
+                <label><strong>Remessa, Venda ou Serviço</strong></label>
+                <select id="tipo" class="opcoesSelect">
+                    <option>Selecione</option>
+                    <option ${notas?.modalidade == 'Remessa' ? 'selected' : ''}>Remessa</option>
+                    <option ${notas?.modalidade == 'Venda' ? 'selected' : ''}>Venda</option>
+                    <option ${notas?.modalidade == 'Serviço' ? 'selected' : ''}>Serviço</option>
+                    <option ${notas?.modalidade == 'Venda + Serviço' ? 'selected' : ''}>Venda + Serviço</option>
+                </select>
                 <label><strong>Número da Nota</strong></label>
-                <div style="display: flex; align-items: center; justify-content: left; gap: 10px;">
-                    <input type="number" class="pedido" id="nota" value="${notas?.nota || ''}">
-                    <select id="tipo">
-                        <option>Selecione</option>
-                        <option ${notas?.modalidade == 'Remessa' ? 'selected' : ''}>Remessa</option>
-                        <option ${notas?.modalidade == 'Venda' ? 'selected' : ''}>Venda</option>
-                        <option ${notas?.modalidade == 'Serviço' ? 'selected' : ''}>Serviço</option>
-                        <option ${notas?.modalidade == 'Venda + Serviço' ? 'selected' : ''}>Venda + Serviço</option>
-                    </select>
-                </div>
+                <input type="number" class="pedido" id="nota" value="${notas?.nota || ''}">
                 <label><strong>Valor da Nota</strong></label>
                 <input type="number" class="pedido" id="valorNota" value="${notas?.valorNota || ''}">
-                <label><strong>Valor do Frete</strong></label>
-                <input type="number" class="pedido" id="valorFrete" value="${notas?.valorFrete || ''}">
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 3px; align-items: start; padding: 10px;">
@@ -365,6 +358,8 @@ async function painel_adicionar_notas(chave) {
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Não deixe campos em Branco</label>
             </div>
+
+        </div>
         `;
 
         openPopup_v2(acumulado, "Nova Nota Fiscal", true);
@@ -1562,7 +1557,6 @@ async function abrir_esquema(id) {
                 notas += `
                 <label><strong>NF: </strong>${sst.notas[0].nota}</label>
                 <label><strong>Valor NF: </strong>${dinheiro(sst.notas[0].valorNota)}</label>
-                <label><strong>Valor FRETE: </strong>${dinheiro(sst.notas[0].valorFrete)}</label>
                 <label><strong>Tipo: </strong>${sst.notas[0].modalidade}</label>
                 `
             }

@@ -406,7 +406,7 @@ function overlayAguarde() {
     let aguarde = document.getElementById('aguarde')
     if (aguarde) aguarde.remove()
 
-    let elemento = `           
+    let elemento = `
     <div id="aguarde" style="display: flex; 
                 align-items: center; 
                 justify-content: center; 
