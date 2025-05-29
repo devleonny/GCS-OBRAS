@@ -104,7 +104,7 @@ async function carregarTabelas() {
                 <input oninput="total()" type="number" class="campoValor" value="${produto?.qtde || ''}">
             </td>
             <td>
-                <input oninput="total()" type="number" class="campoValor" value="${produto?.custo || ''}">
+                <input oninput="total(this)" type="number" class="campoValor" value="${produto?.custo || ''}">
             </td>
             <td>
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
@@ -568,8 +568,8 @@ function alterarTabela(tabela) {
     document.getElementById(`compos_${tabela}`).style.display = 'table-row'
 }
 
-async function total() {
-
+async function total(inputDigitado) {
+    
     let orcamento_v2 = baseOrcamento()
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let desconto_acumulado = 0
@@ -614,6 +614,8 @@ async function total() {
                 let tdCusto = tds[4].querySelector('input')
                 let tdDesconto = tds[5]
                 let tdTotal = tds[6].querySelector('label')
+            
+                
 
                 let valorUnitario = Number(tdCusto.value)
                 let quantidade = Number(tdQuantidade.value)
@@ -671,7 +673,7 @@ async function total() {
 
                 // Inclusão dos dados atualizados nas tds
                 tdDescricao.textContent = dados_composicoes[codigo].descricao
-                tdCusto.value = valorUnitario
+               
 
                 totalLinha > 0 ? tdTotal.classList = 'input_valor' : tdTotal.classList = 'label_zerada'
                 tdTotal.textContent = dinheiro(totalLinha)

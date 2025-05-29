@@ -1062,8 +1062,8 @@ async function salvar_notas(chave) {
     let orcamento = dados_orcamentos[id_orcam];
     let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
-    if (tipo.value == "Selecione" || nota.value == "" || valorNota.value == "" || valorFrete.value == "") {
-
+    if (tipo.value == "Selecione" || nota.value == "" || valorNota.value == "") {
+ //|| valorFrete.value == "")
         let aviso_campo_branco = document.getElementById("aviso_campo_branco")
 
         aviso_campo_branco.style.display = "flex"
@@ -1094,7 +1094,7 @@ async function salvar_notas(chave) {
         nota: nota.value,
         modalidade: tipo.value,
         valorNota: valorNota.value,
-        valorFrete: valorFrete.value
+        //valorFrete: valorFrete.value
     }]
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')

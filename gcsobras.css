@@ -445,9 +445,24 @@ select {
     width: 80%
 }
 
+.divToolbar {
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    background-color: #797979;
+    height: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.divToolbar label {
+    padding: 10px;
+    
+}
+
 th {
     border: 1px solid transparent;
-    border-radius: 5px;
     color: white;
 }
 

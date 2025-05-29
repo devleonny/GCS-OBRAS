@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HISTORICO DE REGISTROS GCS</title>
+    <link rel="stylesheet" type="text/css" href="gcsobras.css">
+    <link rel="stylesheet" type="text/css" href="historicoRegistros.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.2.1/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+
+    <style>
+        body {
+            font-size: 0.8em;
+            background: linear-gradient(45deg, #151749, #B12425);
+            animation: none;
+        }
+
+        body::before {
+            animation: none;
+            background: none;
+        }
+
+      
+
+        textarea {
+            font-size: 0.8vw;
+            color: #222;
+            width: 80%;
+        }
+
+        .top {
+            position: relative;
+            display: flex;
+            width: 100%;
+            margin: 5px;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #222222bf;
+            padding: 10px;
+            border-radius: 5px;
+            gap: 20px;
+        }
+
+        .formato_status {
+            cursor: pointer;
+            display: inline-block;
+            color: white;
+            border-radius: 5px;
+            padding: 5px;
+            font-size: bold;
+            margin-bottom: 20px;
+            background-color: #222;
+        }
+
+        input {
+            text-align: center;
+        }
+
+        .quantidade_requisicao {
+            cursor: pointer;
+            height: 20px;
+            background-color: #c8fcc4;
+            border-radius: 5px;
+            color: #151749;
+            font-weight: bold;
+            box-shadow: 1px 1px #151749;
+            text-align: center;
+        }
+
+        #orcamentos {
+            max-height: 70vh;
+            height: max-content;
+            width: 90vw;
+            overflow: auto;
+        }
+
+        th {
+            color: white
+        }
+
+        .label_etiquetas {
+            text-align: center;
+            color: white;
+            border-radius: 5px;
+            padding: 2px;
+            margin: 2px;
+            display: inline-block;
+            word-wrap: break-word;
+        }
+
+        .numero-bonito {
+            cursor: pointer;
+            text-align: center;
+            height: 30px;
+            width: 300px;
+            background-color: #4CAF507c;
+            border-radius: 3px;
+            margin: 5px;
+        }
+
+        #toolbar {
+            margin-left: 2vw;
+            display: flex;
+            width: 100%;
+            align-items: center;
+            justify-content: start;
+            gap: 10px;
+        }
+
+        #toolbar label {
+            cursor: pointer;
+        }
+
+        .num {
+            font-size: 1.0vw;
+            background-color: #d2d2d2;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        .filter-comentario {
+    width: 95%;
+    padding: 3px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+}
+    </style>
+</head>
+
+<body>
+
+    <div id="overlay"></div>
+
+    <div id="content" style="gap: 20px;">
+
+        <div class="top">
+
+            <img src="imagens/BG.png" style="width: 150px;">
+            <div
+                style="display: flex; align-items: center; justify-content: center; flex-direction: column; color: white;">
+                <label class="novo_titulo">Histórico de Registros GCS</label>
+                <label id="nome_filtro"></label>
+            </div>
+
+            <div class="blocosCabecalho">
+
+                <div onclick="window.location.href='inicial.html'">
+                    <label>Menu Inicial</label>
+                    <img src="imagens/voltar.png">
+                </div>
+
+                <div onclick="recuperarRegistros()">
+                    <label>Atualizar</label>
+                    <img src="imagens/atualizar_2.png">
+                </div>
+               
+            </div>
+        </div>
+
+    
+    </div>
+
+    <div id="tabelaRegistro"></div>
+    
+
+</body>
+
+
+<script src="open_menus.js"></script>
+<script src="historicoRegistros.js"></script>
+
+
+
+</html>
