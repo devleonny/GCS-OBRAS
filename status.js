@@ -1226,7 +1226,7 @@ function botao_novo_pagamento(id) {
 
 async function exibir_todos_os_status(id) {
 
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
+    let permitidos = ['adm', 'fin', 'diretoria']
 
     let detalhes = document.getElementById('detalhes')
     if (detalhes) {
@@ -1266,7 +1266,7 @@ async function exibir_todos_os_status(id) {
         </div>
     `
 
-    if ((document.title !== 'Projetos' && analista == acesso.nome_completo) || (acesso.permissao == 'adm' || acesso.permissao == 'fin')) {
+    if ((document.title !== 'Projetos' && analista == acesso.nome_completo) || (permitidos.includes(acesso.permissao))) {
         acumulado_botoes += `
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_excluir('${id}')">
             <img src="imagens/apagar.png" style="width: 48px; height: 48px; margin: 3px;">
@@ -1432,7 +1432,7 @@ async function abrir_esquema(id) {
                 })
 
                 string_pagamentos += `
-                <div style="display: flex; flex-direction: column; border-radius: 5px; border: solid 1px white; padding: 10px; background-color: white; color: #222;">
+                <div style="display: flex; flex-direction: column; align-items: start; justify-content: start; border-radius: 5px; border: solid 1px white; padding: 10px; background-color: white; color: #222;">
                         
                     <label style="display: flex; gap: 10px;"><strong>${pagamento.status}</strong></label>
                     <label><strong>Data:</strong> ${pagamento.param[0].data_previsao}</label>
