@@ -1094,7 +1094,7 @@ async function salvar_notas(chave) {
         nota: nota.value,
         modalidade: tipo.value,
         valorNota: valorNota.value,
-        valorFrete: valorFrete.value
+        //valorFrete: valorFrete.value
     }]
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
