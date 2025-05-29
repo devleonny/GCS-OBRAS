@@ -2,9 +2,9 @@ let filtroAlteracoes = {}
 async function recuperarRegistros() {
     overlayAguarde()
     let registrosAlteracoes = await receber('registrosAlteracoes');
-    console.log(registrosAlteracoes);
-
+    
     await inserirDados(registrosAlteracoes, 'registrosAlteracoes');
+    await carregarRegistros()
     remover_popup()
 }
 
@@ -15,7 +15,7 @@ async function recuperarRegistros() {
 carregarRegistros()
 async function carregarRegistros() {
     const registrosAlteracoes = await recuperarDados('registrosAlteracoes') || {}
-    console.log(registrosAlteracoes);
+    
 
     let acumulado = '';
     let cabecalhos = ['Usuário', 'Data', 'Comentário', 'ID', 'Base']
