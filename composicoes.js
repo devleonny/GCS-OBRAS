@@ -1574,6 +1574,8 @@ async function salvarServidor(codigo) {
         codigo = resposta.status // Aqui é retornado o último número sequencial +1 para cadasto;
     }
 
+    const scrollPosition = window.scrollY;
+
     if (!dados_composicoes[codigo]) dados_composicoes[codigo] = {};
 
     let elementos = document.getElementById('elementos')
@@ -1603,11 +1605,52 @@ async function salvarServidor(codigo) {
     dados_composicoes[codigo] = { ...dados_composicoes[codigo], ...dadosAtualizados };
 
     await inserirDados(dados_composicoes, 'dados_composicoes');
-    await retomarPaginacao()
+    //await retomarPaginacao()
+    if (novoCadastro) {
+        await adicionarItemNaTabela(codigo, dados_composicoes[codigo], scrollPosition)
+    } else {
+        await atualizarItemNaTabela(codigo)
+    }
 
-    await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
+    enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
     registrarAlteracao('dados_composicoes', codigo, comentario)
 
+}
+
+async function adicionarItemNaTabela(codigo, produto, scrollPosition) {
+    const tabela = document.getElementById('tabela_composicoes');
+    if (!tabela) return;
+
+    const tbody = tabela.querySelector('tbody');
+    const colunas = JSON.parse(localStorage.getItem('colunasComposicoes')) || {};
+    const modo = JSON.parse(localStorage.getItem('modoClone')) ? 'clone' : 'antigos';
+    const cols = colunas[modo] || [];
+
+    // Criar nova linha
+    const novaLinha = document.createElement('tr');
+    novaLinha.dataset.codigo = codigo;
+    
+    // Preencher células (similar ao que já faz no carregar_tabela_v2)
+    cols.forEach(col => {
+        const celula = document.createElement('td');
+        celula.innerHTML = formatarCelula(col, produto[col], codigo);
+        novaLinha.appendChild(celula);
+    });
+
+    // Adicionar célula de edição
+    const celulaEditar = document.createElement('td');
+    celulaEditar.innerHTML = `<img src="imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')">`;
+    novaLinha.appendChild(celulaEditar);
+
+    // Adicionar no topo da tabela
+    tbody.insertBefore(novaLinha, tbody.firstChild);
+
+    // Restaurar posição do scroll e destacar novo item
+    window.scrollTo(0, scrollPosition);
+    novaLinha.style.animation = 'destaqueNovoItem 2s';
+    
+    // Aplicar filtros ativos se houver
+    //aplicarFiltros();
 }
 
 async function verificarCodigoExistente() {
@@ -1684,3 +1727,110 @@ function para_excel() {
     XLSX.writeFile(workbook, 'lpu.xlsx');
 }
 
+// Em vez de recarregar toda a tabela:
+async function atualizarItemNaTabela(codigo) {
+    const dados = await recuperarDados('dados_composicoes');
+    const produto = dados[codigo];
+    
+    // Encontrar a linha existente ou criar nova
+    const tabela = document.getElementById('tabela_composicoes');
+    let linha = tabela.querySelector(`tr[data-codigo="${codigo}"]`);
+    
+    if (!linha) {
+        linha = criarNovaLinha(produto, codigo);
+        tabela.querySelector('tbody').appendChild(linha);
+    } else {
+        atualizarLinhaExistente(linha, produto);
+    }
+}
+
+function formatarCelula(coluna, valor, codigo) {
+    // Converter para string para evitar erros
+    coluna = String(coluna).toLowerCase();
+    valor = valor || '';
+    
+    // Determinar alinhamento baseado no tipo de coluna
+    let alinhamento = 'left'; // Padrão para texto
+    let conteudo = valor;
+
+    // Casos especiais de formatação
+    if (coluna === 'imagem') {
+        const imagem = valor || 'https://i.imgur.com/Nb8sPs0.png';
+        alinhamento = 'center';
+        conteudo = `<img src="${imagem}" style="width: 50px; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">`;
+    } 
+    else if (coluna.includes('lpu')) {
+        alinhamento = 'left'; // Alinhamento específico para preços
+        let preco_final = valor;
+        if (typeof valor === 'object' && valor.historico && valor.ativo) {
+            preco_final = valor.historico[valor.ativo]?.valor || '';
+        }
+        const estilo = preco_final !== '' ? 'valor_preenchido' : 'valor_zero';
+        conteudo = `<label class="${estilo}" onclick="abrir_historico_de_precos('${codigo}', '${coluna}')">${dinheiro(conversor(preco_final))}</label>`;
+    } 
+    else if (coluna === 'agrupamentos') {
+        alinhamento = 'left'; // Ajustado para left conforme sua observação
+        conteudo = `
+            <div style="display: flex; gap: 10px; justify-content: flex-start; align-items: center;">
+                <img src="imagens/construcao.png" style="width: 30px; height: 30px; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">
+                ${formatarAgrupamentos(valor, codigo)}
+            </div>
+        `;
+    } 
+    else if (['sistema', 'categoria de equipamento', 'tipo'].includes(coluna)) {
+        alinhamento = 'left'; // Selects alinhados à esquerda
+        conteudo = formatarSelect(coluna, valor, codigo);
+    }
+    else if (coluna === 'editar') {
+        alinhamento = 'center';
+        conteudo = `<img src="imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')">`;
+    }
+
+    return `<td style="text-align: ${alinhamento}; max-width: 200px; white-space: nowrap;">${conteudo}</td>`;
+}
+
+// Funções auxiliares
+function formatarAgrupamentos(agrupamentos, codigo) {
+    if (!agrupamentos) return '<div></div>';
+    
+    let info = '';
+    for (const item in agrupamentos) {
+        const tipo = obterTipoItem(item);
+        const cor = tipo === 'VENDA' ? '#B12425' : 'green';
+        
+        info += `
+        <div style="display: flex; gap: 3px; align-items: center; justify-content: left;">
+            <label class="numero" style="width: 20px; height: 20px; padding: 3px; background-color: ${cor}">${agrupamentos[item]}</label>
+            <label style="font-size: 0.6em; text-align: left;">${String(obterDescricaoItem(item)).slice(0, 10)}...</label>
+        </div>`;
+    }
+    
+    return info;
+}
+
+function formatarSelect(coluna, valorSelecionado, codigo) {
+    const opcoes = esquemas[coluna] || [];
+    let htmlOpcoes = '';
+    
+    opcoes.forEach(opcao => {
+        htmlOpcoes += `<option ${valorSelecionado === opcao ? 'selected' : ''}>${opcao}</option>`;
+    });
+    
+    return `
+    <select class="opcoesSelect" onchange="alterarChave('${codigo}', '${coluna}', this)">
+        ${htmlOpcoes}
+    </select>`;
+}
+
+// Funções que você precisará implementar ou adaptar:
+async function obterTipoItem(codigoItem) {
+    // Implemente conforme sua estrutura de dados
+    const dados = await recuperarDados('dados_composicoes');
+    return dados[codigoItem]?.tipo || '';
+}
+
+async function obterDescricaoItem(codigoItem) {
+    // Implemente conforme sua estrutura de dados
+    const dados = await recuperarDados('dados_composicoes');
+    return dados[codigoItem]?.descricao || '';
+}
