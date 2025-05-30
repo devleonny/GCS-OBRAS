@@ -122,7 +122,7 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 }
 
 async function preencher_orcamentos_v2() {
-
+    
     let div_orcamentos = document.getElementById('orcamentos')
     if (!div_orcamentos) {
         return
@@ -167,22 +167,29 @@ async function preencher_orcamentos_v2() {
 
                     let num_pedido = chave_historico.pedido
                     let tipo = chave_historico.tipo
+                    let valor_pedido = chave_historico.valor
 
                     label_pedidos += `
                         <div class="etiqueta_pedidos"> 
                             <label style="font-size: 0.6vw;">${tipo}</label>
                             <label style="font-size: 0.7vw; margin: 2px;"><strong>${num_pedido}</strong></label>
+                            <label style="font-size: 0.8vw; margin: 2px"><strong>${dinheiro(valor_pedido)}</strong></label>
                         </div>
                         `
                 }
 
                 if (chave_historico.notas) {
+                    console.log(chave_historico.notas);
+                    
                     var nota = chave_historico.notas[0]
+                    let valor_nota = chave_historico.notas[0].valorNota || '---'
+                    
 
                     label_notas += `
                         <div class="etiqueta_pedidos">
-                            <label style="font-size: 0.8em; margin: 2px;">${nota.modalidade}</label>
-                            <label style="font-size: 1.1em; margin: 2px;"><strong>${nota.nota}</strong></label>
+                            <label style="font-size: 0.6vw;">${nota.modalidade}</label>
+                            <label style="font-size: 0.7vw; margin: 2px;"><strong>${nota.nota}</strong></label>
+                            <label style="font-size: 0.8vw; margin: 2px"><strong>R$${dinheiro(valor_nota)}</strong></label>
                         </div>
                     `
                 }
