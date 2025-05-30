@@ -258,7 +258,7 @@ async function identificacaoUser() {
             <img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="configs()">`
         }
 
-        var texto = `
+        let texto = `
             <div style="position: relative; display: fixed;">
                 <div style="position: absolute; top: 10px; right: 10px; display: flex; justify-content: center; align-items: center; gap: 10px;">
                     ${config}
@@ -301,17 +301,7 @@ async function configs() {
 
     let status = await servicos('livre')
 
-    // timestamp para dados_setores: Sempre atualizado;
-    let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
-    let timestamp_atual_setores = await ultimo_timestamp('dados_setores')
-
-    if (timestamp_atual_setores.timestamp > (timestamps?.dados_setores || 0)) {
-        dados_setores = await lista_setores()
-        timestamps.dados_setores = timestamp_atual_setores.timestamp
-        localStorage.setItem('timestamps', JSON.stringify(timestamps))
-    } else {
-        dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
-    }
+    await sincronizarSetores()
 
     let linhas = ''
     let listas = {
@@ -388,7 +378,6 @@ async function alterar_usuario(campo, usuario, select) {
         let alteracao = await configuracoes(usuario, campo, select.value) // Se alterar no servidor, altera localmente;
         if (alteracao.status) {
             dados_setores[usuario][campo] = select.value
-            localStorage.setItem('dados_setores', JSON.stringify(dados_setores))
         } else {
             select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
         }
