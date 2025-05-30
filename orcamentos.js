@@ -167,7 +167,7 @@ async function preencher_orcamentos_v2() {
 
                     let num_pedido = chave_historico.pedido
                     let tipo = chave_historico.tipo
-                    let valor_pedido = chave_historico.valor
+                    let valor_pedido = conversor(chave_historico.valor)
 
                     label_pedidos += `
                         <div class="etiqueta_pedidos"> 
@@ -179,10 +179,6 @@ async function preencher_orcamentos_v2() {
                 }
 
                 if (chave_historico.notas) {
-
-
-
-                    
 
                     var nota = chave_historico.notas[0]
                     let valor_nota = chave_historico.notas[0].valorNota || '---'
