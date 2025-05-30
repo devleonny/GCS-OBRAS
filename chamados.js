@@ -573,10 +573,6 @@ async function capturar_html_pdf(id) {
 
 
 async function criar_manutencao(id) {
-    let acesso = JSON.parse(localStorage.getItem("acesso")) || {}
-
-    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
-
     let permissao = "user"
     let setor = ""
 
@@ -917,7 +913,6 @@ async function enviar_manutencao(id) {
 
     overlayAguarde()
 
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let campos = ['codigo_tecnico', 'codigo_cliente', 'comentario', 'status_manutencao', 'data', 'chamado']
     let manutencao = {}
     manutencao.usuario = acesso.usuario

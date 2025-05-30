@@ -479,8 +479,6 @@ async function definir_campo(input_id, omie_departamento, descricao) {
         return
     }
 
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-
     let dados = {
         departamento: omie_departamento,
         usuario: acesso.usuario,
@@ -558,7 +556,6 @@ async function abrir_detalhes(codigo_tecnico) {
     let dados_agenda_tecnicos = await recuperarDados('dados_agenda_tecnicos') || {}
     let tecnico = dados_agenda_tecnicos[codigo_tecnico]
     let atual = tecnico.regiao_atual
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let opcoes = `
         <option></option>
     `
