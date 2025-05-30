@@ -1,178 +1,197 @@
-    // ACESSO ;
+let divAcesso = document.getElementById('acesso')
+let mensagem = (texto) => `
+    <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 3vw;">
+        <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+        <label>${texto}</label>
+    </div>
+`
 
-    var div_acesso = document.getElementById('acesso')
-
-    document.getElementById('senha').addEventListener('keydown', function (event) {
+divAcesso.querySelectorAll('input').forEach(input => {
+    input.addEventListener('keydown', function (event) {
         if (event.key === 'Enter') {
             acesso_login()
             event.preventDefault();
         }
     })
+})
 
-    verificar_login_automatico()
+verificar_login_automatico()
 
-    function verificar_login_automatico() {
-        try {
-            if (acesso) {
-                window.location.href = 'inicial.html'
-            }
-        } catch {
-            console.log('Usuário deslogado')
+function verificar_login_automatico() {
+    try {
+        if (acesso) {
+            window.location.href = 'inicial.html'
         }
+    } catch {
+        console.log('Usuário deslogado')
+    }
+}
+
+function exibirSenha(img) {
+    let inputSenha = img.previousElementSibling
+
+    if (inputSenha.type == 'password') {
+        inputSenha.type = 'text'
+        img.src = 'imagens/olhoAberto.png'
+    } else {
+        inputSenha.type = 'password'
+        img.src = 'imagens/olhoFechado.png'
     }
 
-    function cadastrar() {
+}
 
-        let conteudo = `
+function cadastrar() {
+
+    let conteudo = `
             <div style="display: flex; column; gap: 10px; padding: 2vw;">
 
-                <div style="display: flex; flex-direction: column; justify-content: left; flex; text-align: left;">
+                <div id="camposCadastro" style="display: flex; flex-direction: column; justify-content: left; flex; text-align: left;">
                     <label>Nome Completo</label>
-                    <input placeholder="Nome Completo" id="nome_completo">
+                    <input placeholder="Nome Completo">
+
                     <label>Usuário</label>
-                    <input type="text" placeholder="Crie um usuário" id="usuario">
-                </div>
+                    <input type="text" placeholder="Crie um usuário">
 
-                <div style="display: flex; flex-direction: column; justify-content: left; flex; text-align: left;">
                     <label>Senha</label>
-                    <input type="password" placeholder="Crie uma senha" id="senha">
-                    <label>E-mail</label>
-                    <input type="email" placeholder="E-mail" id="email">
-                </div>
+                    <input type="password" placeholder="Crie uma senha">
 
-                <div style="display: flex; flex-direction: column; justify-content: center; flex; text-align: left;">
+                    <label>E-mail</label>
+                    <input type="email" placeholder="E-mail">
+
                     <label>Celular</label>
-                    <input type="text" placeholder="Telefone" id="telefone">
-                    <button onclick="acesso_cadastro()">Criar acesso</button>
+                    <input type="text" placeholder="Telefone">
+
+                    <button onclick="salvarCadastro()">Criar acesso</button>
                 </div>
 
             </div>`
 
-        openPopup_v2(conteudo, 'Cadastro')
+    openPopup_v2(conteudo, 'Cadastro')
 
-    }
+}
 
-    function acesso_login() {
-        document.getElementById('acesso').style.display = 'none'
-        document.getElementById('loading').style.display = 'flex'
+function acesso_login() {
 
-        var usuario = document.getElementById('usuario').value;
-        var senha = document.getElementById('senha').value;
+    overlayAguarde()
+    divAcesso.style.display = 'none'
 
-        let url = 'https://leonny.dev.br/login'
+    let inputs = divAcesso.querySelectorAll('input')
 
-        if (usuario == "" || senha == "") {
-            openPopup_v2("Senha e/ou usuário não informado(s)")
-            document.getElementById('acesso').style.display = 'flex'
-            document.getElementById('loading').style.display = 'none'
+    let url = 'https://leonny.dev.br/acesso'
 
-        } else {
+    if (inputs[0].value == '' || inputs[1].value == '') {
+        openPopup_v2(mensagem('Senha e/ou usuário não informado(s)'), 'ALERTA', true)
+        divAcesso.style.display = 'flex'
 
-            let payload = {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ usuario, senha })
+    } else {
+
+        let requisicao = {
+            tipoAcesso: 'login',
+            dados: {
+                usuario: inputs[0].value,
+                senha: inputs[1].value
             }
-
-            fetch(url, payload)
-
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(err => { throw err; });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Resposta do servidor:', data); // Debug
-
-                    switch (true) {
-                        case data.erro === "Usuário incorreto":
-                        case data.erro === "Senha incorreta":
-                            openPopup_v2(data.erro);
-                            break;
-                        case data.acesso === "Autorizado":
-                            localStorage.setItem('acesso', JSON.stringify(data));
-                            window.location.href = 'inicial.html';
-                            break;
-                        default:
-                            openPopup_v2('Servidor Offline... fale com o Setor de Programação.');
-                    }
-
-                    document.getElementById('acesso').style.display = 'flex';
-                    document.getElementById('loading').style.display = 'none';
-
-                })
-                .catch(error => {
-                    console.error('Erro na requisição:', error);
-                    openPopup_v2(error.erro || 'Erro desconhecido');
-
-                    document.getElementById('acesso').style.display = 'flex';
-                    document.getElementById('loading').style.display = 'none';
-                });
-
-        }
-    }
-
-    // NOVO USUÁRIO ; 
-
-    function acesso_cadastro() {
-        document.getElementById('acesso').style.display = 'none'
-        document.getElementById('loading').style.display = 'flex'
-
-        var usuario = document.getElementById('usuario').value;
-        var senha = document.getElementById('senha').value;
-        var email = document.getElementById('email').value;
-        var nome_completo = document.getElementById('nome_completo').value;
-        var telefone = document.getElementById('telefone').value;
-
-        let url = 'https://leonny.dev.br/novo_usuario'
-
-        if (usuario == "" || senha == "" || email == "") {
-            openPopup_v2("Senha, usuário ou e-mail não informado(s)")
-            document.getElementById('acesso').style.display = 'flex'
-            document.getElementById('loading').style.display = 'none'
-        } else {
-
-            let payload = {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ usuario, senha, email, nome_completo, telefone })
-            }
-
-            fetch(url, payload)
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(err => { throw err; });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Resposta do servidor:', data); // Debug
-
-                    switch (true) {
-                        case data.erro === "Usuário já cadastrado":
-                            openPopup_v2(data.erro);
-                            break;
-                        case data.acesso === "Autorizado":
-                            localStorage.setItem('acesso', JSON.stringify(data));
-                            window.location.href = 'inicial.html';
-                            break;
-                        default:
-                            openPopup_v2('Servidor Offline... fale com o Setor de Programação.');
-                    }
-
-                    document.getElementById('acesso').style.display = 'flex';
-                    document.getElementById('loading').style.display = 'none';
-
-                })
-                .catch(error => {
-                    console.error('Erro na requisição:', error);
-                    openPopup_v2(error.erro || 'Erro desconhecido');
-
-                    document.getElementById('acesso').style.display = 'flex';
-                    document.getElementById('loading').style.display = 'none';
-                });
-
         }
 
+        let payload = {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requisicao)
+        }
+
+        fetch(url, payload)
+
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw err; });
+                }
+                return response.json();
+            })
+            .then(data => {
+
+                if (data.permissao == 'novo') {
+                    openPopup_v2(mensagem('Alguém do setor de SUPORTE precisa autorizar sua entrada!'), 'ALERTA', true)
+                } else if (data.permissao !== 'novo') {
+                    localStorage.setItem('acesso', JSON.stringify(data));
+                    window.location.href = 'inicial.html';
+                }
+
+                divAcesso.style.display = 'flex'
+
+            })
+            .catch(data => {
+                openPopup_v2(mensagem(data.erro), 'ALERTA', true);
+                divAcesso.style.display = 'flex'
+            });
+
     }
+}
+
+// NOVO USUÁRIO ; 
+
+function salvarCadastro() {
+
+    overlayAguarde()
+
+    let camposCadastro = document.getElementById('camposCadastro')
+    let campos = camposCadastro.querySelectorAll('input')
+
+    let nome_completo = campos[0].value
+    let usuario = campos[1].value
+    let senha = campos[2].value
+    let email = campos[3].value
+    let telefone = campos[4].value
+
+    if (usuario == "" || senha == "" || email == "") {
+
+        openPopup_v2(mensagem('Senha, usuário ou e-mail não informado(s)'), 'AVISO', true)
+
+    } else {
+
+        let requisicao = {
+            tipoAcesso: 'cadastro',
+            dados: {
+                usuario,
+                senha,
+                email,
+                nome_completo,
+                telefone
+            }
+        }
+
+        let payload = {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requisicao)
+        }
+
+        fetch('https://leonny.dev.br/acesso', payload)
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw err; });
+                }
+                return response.json();
+            })
+            .then(data => {
+
+                console.log(data)
+
+                switch (true) {
+                    case data.erro:
+                        openPopup_v2(mensagem(data.erro), 'AVISO', true);
+                        break;
+                    case data.permissao == 'novo':
+                        openPopup_v2(mensagem('Seu cadastro foi realizado! Alguém do setor de SUPORTE precisa autorizar sua entrada!'), 'ALERTA')
+                        break;
+                    default:
+                        openPopup_v2(mensagem('Servidor Offline... fale com o Setor de Programação'), 'AVISO', true);
+                }
+
+            })
+            .catch(error => {
+                openPopup_v2(mensagem(error.erro), 'AVISO', true);
+            });
+
+    }
+
+}
