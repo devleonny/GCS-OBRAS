@@ -313,13 +313,12 @@ async function abrir_opcoes() {
 
     let acumulado = `
         <div style="margin: 10px; gap: 10px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
-            <label>Escolha um Técnico:</label>
+            <label>Escolha o Funcionário:</label>
             <textarea id="textarea_tecnico" oninput="sugestoes(this, true)"></textarea>
             <div></div>
         </div>
     `
-
-    openPopup_v2(acumulado, 'Novo Técnico')
+    openPopup_v2(acumulado, 'Novo Funcionário')
 }
 
 async function sugestoes(input, tecnicos) {
@@ -572,7 +571,7 @@ async function abrir_detalhes(codigo_tecnico) {
 
     let acumulado = `
     <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; margin: 2vw; gap: 2vh;">
-        <label>Região atual do Técnico</label>
+        <label>Região atual do ${clientesOmie?.[codigo_tecnico]?.nome || codigo_tecnico}</label>
         <select onchange="alterar_regiao(this, ${codigo_tecnico})" class="select_regiao">
             ${opcoes}
         </select>
@@ -589,7 +588,12 @@ async function abrir_detalhes(codigo_tecnico) {
         <label>Apagar o técnico?</label>
         <img src="imagens/excluir.png" style="cursor: pointer; width: 2vw;" onclick="confirmar_apagar_tecnico('${codigo_tecnico}')">
     </div>
-    ` : ''}`
+    ` : ''}
+
+    
+    
+    
+    `
 
     openPopup_v2(acumulado, 'Configurações')
 

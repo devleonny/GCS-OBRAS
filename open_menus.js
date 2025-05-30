@@ -1,5 +1,6 @@
 var versao = 'v3.0.5'
 let acesso = JSON.parse(localStorage.getItem('acesso'))
+let dados_setores = {}
 let logo = 'https://i.imgur.com/Nb8sPs0.png'
 let esquemas = {
     'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS'],
@@ -241,7 +242,9 @@ async function identificacaoUser() {
 
     corFundo()
 
-    acesso = await lista_setores(acesso.usuario)
+    await sincronizarSetores()
+
+    acesso = dados_setores[acesso.usuario]
     localStorage.setItem('acesso', JSON.stringify(acesso))
 
     let permissao = acesso.permissao
@@ -266,6 +269,31 @@ async function identificacaoUser() {
         `
         document.body.insertAdjacentHTML('beforebegin', texto)
     }
+
+}
+
+async function sincronizarSetores() {
+
+    dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    let timestamps = []
+    for ([usuario, objeto] of Object.entries(dados_setores)) {
+        if (objeto.timestamp) {
+            timestamps.push(objeto.timestamp)
+        }
+    }
+
+    const maiorTimestamp = timestamps.length ? Math.max(...timestamps) : 0
+    let nuvem = await lista_setores(maiorTimestamp)
+
+    let dadosMesclados = {
+        ...dados_setores,
+        ...nuvem
+    }
+
+    dados_setores = dadosMesclados
+    localStorage.setItem('dados_setores', JSON.stringify(dadosMesclados))
+
+    return dadosMesclados
 
 }
 
@@ -313,10 +341,10 @@ async function configs() {
         <tr>
             <td>${usuario}</td>
             <td>
-                <select style="font-size: 0.8vw;" onchange="alterar_usuario('permissao', '${usuario}', this)" style="cursor: pointer;">${opcoes_permissao}</select>
+                <select class="opcoesSelect" onchange="alterar_usuario('permissao', '${usuario}', this)" style="cursor: pointer;">${opcoes_permissao}</select>
             </td>
             <td>
-                <select style="font-size: 0.8vw;" onchange="alterar_usuario('setor', '${usuario}', this)" style="cursor: pointer;">${opcoes_setores}</select>
+                <select class="opcoesSelect" onchange="alterar_usuario('setor', '${usuario}', this)" style="cursor: pointer;">${opcoes_setores}</select>
             </td>
         </tr>
         `
@@ -354,7 +382,6 @@ async function configs() {
 }
 
 async function alterar_usuario(campo, usuario, select) {
-    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
 
     if (dados_setores[usuario]) {
 
@@ -1762,23 +1789,23 @@ async function lancar_pagamento(pagamento, call) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ pagamento, call })
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-            }
-            return response.text();
-        })
-        .then(data => {
-            data = JSON.parse(data)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.text();
+            })
+            .then(data => {
+                data = JSON.parse(data)
 
-            if (data.faultstring) {
-                let comentario = `Erro na API ao enviar o pagamento para o Omie! ${data.faultstring}`
-                registrarAlteracao('lista_pagamentos', pagamento.id_pagamento, comentario)
-            }
+                if (data.faultstring) {
+                    let comentario = `Erro na API ao enviar o pagamento para o Omie! ${data.faultstring}`
+                    registrarAlteracao('lista_pagamentos', pagamento.id_pagamento, comentario)
+                }
 
-            resolve(data);
-        })
-        .catch(err => reject(err))
+                resolve(data);
+            })
+            .catch(err => reject(err))
     })
 }
 
@@ -2095,12 +2122,12 @@ async function servicos(servico, alteracao) {
     })
 }
 
-async function lista_setores(usuario) {
+async function lista_setores(timestamp) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/setores", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ usuario })
+            body: JSON.stringify({ timestamp })
         })
             .then(response => {
                 if (!response.ok) {
