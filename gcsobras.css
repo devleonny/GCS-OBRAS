@@ -1408,7 +1408,15 @@ input[type=range]::-moz-range-thumb {
     font-size: 0.7vw;
 }
 
-.tabela th,
+.tabela th {
+    color: #222;
+    font-size: 0.8vw;
+    padding: 8px;
+    border-bottom: 1px solid transparent;
+    position: sticky;
+    top: 0;
+    z-index: 1; /* ajuda quando há outros elementos empilhados */
+}
 .tabela td {
     color: #222;
     font-size: 0.8vw;
@@ -1421,6 +1429,8 @@ input[type=range]::-moz-range-thumb {
     font-size: 0.9vw;
     text-align: left;
     color: black;
+    position: sticky;
+    overflow-y: auto;
 }
 
 .contorno {
