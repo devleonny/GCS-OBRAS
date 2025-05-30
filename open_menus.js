@@ -433,6 +433,11 @@ function inicial_maiuscula(string) {
     return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
 }
 
+function removerOverlay() {
+    let aguarde = document.getElementById('aguarde')
+    if (aguarde) aguarde.remove()
+}
+
 function overlayAguarde() {
 
     let aguarde = document.getElementById('aguarde')
@@ -666,7 +671,7 @@ function openPopup_v2(elementoHTML, titulo, nao_remover_anteriores) {
     `;
 
     remover_popup(nao_remover_anteriores)
-
+    removerOverlay()
     document.body.insertAdjacentHTML('beforeend', popup_v2);
 
 }

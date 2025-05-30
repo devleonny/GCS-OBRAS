@@ -410,12 +410,14 @@ async function calcular_requisicao(sincronizar) {
             let trs = tbody.querySelectorAll('tr')
             let total = 0
 
-            trs.forEach(tr => {
+            for (tr of trs) {
 
                 if (tr.style.display !== 'none') {
                     let tds = tr.querySelectorAll('td')
                     let codigo = tds[0].textContent
                     let item = itens[codigo]
+
+                    if (!item) continue
 
                     let quantidadeDisponivel = 0
                     if (tds[4].querySelector('label.num')) {
@@ -452,7 +454,7 @@ async function calcular_requisicao(sincronizar) {
 
                     total += totalLinhas
                 }
-            })
+            }
 
             document.getElementById('total_requisicao').textContent = dinheiro(total)
 
@@ -519,7 +521,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
         for (id in requisicao) {
             let item = requisicao[id]
 
-            item.descricao = itensOrcamento[item.codigo].descricao
+            item.descricao = itensOrcamento[item.codigo]?.descricao || '<label style="color: red;">Item Removido do Orçamento</label>'
 
             let descricao = item.descricao
 
@@ -1061,7 +1063,7 @@ async function salvar_notas(chave) {
     let orcamento = dados_orcamentos[id_orcam];
 
     if (tipo.value == "Selecione" || nota.value == "" || valorNota.value == "") {
- //|| valorFrete.value == "")
+        //|| valorFrete.value == "")
         let aviso_campo_branco = document.getElementById("aviso_campo_branco")
 
         aviso_campo_branco.style.display = "flex"

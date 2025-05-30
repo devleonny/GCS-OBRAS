@@ -188,7 +188,7 @@ async function preencher_orcamentos_v2() {
                         <div class="etiqueta_pedidos">
                             <label style="font-size: 0.6vw;">${nota.modalidade}</label>
                             <label style="font-size: 0.7vw; margin: 2px;"><strong>${nota.nota}</strong></label>
-                            <label style="font-size: 0.8vw; margin: 2px"><strong>R$${dinheiro(valor_nota)}</strong></label>
+                            <label style="font-size: 0.8vw; margin: 2px"><strong>${dinheiro(valor_nota)}</strong></label>
                         </div>
                     `
                 }
