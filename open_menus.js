@@ -252,7 +252,7 @@ async function identificacaoUser() {
 
         if (permissao == 'adm' || permissao == 'adm') {
             config = `
-            <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;" onclick="configs()">`
+            <img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="configs()">`
         }
 
         var texto = `
@@ -1755,33 +1755,30 @@ async function refazer_pagamento(id_pagamento) {
 
 }
 
-async function lancar_pagamento(pagamento) {
+async function lancar_pagamento(pagamento, call) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/lancar_pagamento", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(pagamento)
+            body: JSON.stringify({ pagamento, call })
         })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.text();
-            })
-            .then(data => {
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+            }
+            return response.text();
+        })
+        .then(data => {
+            data = JSON.parse(data)
 
-                data = JSON.parse(data)
+            if (data.faultstring) {
+                let comentario = `Erro na API ao enviar o pagamento para o Omie! ${data.faultstring}`
+                registrarAlteracao('lista_pagamentos', pagamento.id_pagamento, comentario)
+            }
 
-                if (data.faultstring) {
-                    let comentario = `Erro na API ao enviar o pagamento para o Omie! ${data.faultstring}`
-                    registrarAlteracao('lista_pagamentos', pagamento.id_pagamento, comentario)
-                }
-
-                resolve();
-            })
-            .catch(
-                reject()
-            );
+            resolve(data);
+        })
+        .catch(err => reject(err))
     })
 }
 

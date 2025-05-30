@@ -1,4 +1,6 @@
 let filtro_tecnicos = {}
+let clientesOmie = {}
+const arredonda2 = n => Math.round(n * 100) / 100
 
 let semana = {
     "0": "Dom",
@@ -29,8 +31,8 @@ let regioes = ['Nordeste', 'Norte', 'Sudeste', 'Sul', 'Centro-Oeste', 'Sem Regi�
 
 iniciar_agendas()
 
-async function iniciar_agendas() {
-    await carregar_tabela()
+async function iniciar_agendas(alterar) {
+    await carregar_tabela(alterar)
     filtrar_por_regiao()
 }
 
@@ -51,7 +53,7 @@ async function recuperar_agenda() {
     await carregar_tabela()
 }
 
-async function carregar_tabela() {
+async function carregar_tabela(alterar) {
 
     overlayAguarde()
 
@@ -73,31 +75,41 @@ async function carregar_tabela() {
         recuperar_agenda()
     }
 
-    let select_ano = document.getElementById('ano')?.value || 2025
-    let selec_mes = document.getElementById('mes')?.value || 'Janeiro'
+    // Salvar quando alterado os dois Selects;
+    if (alterar) {
+        let mes = document.getElementById('mes')
+        let ano = document.getElementById('ano')
+        let periodoAtual = {
+            mes: mes.value,
+            ano: ano.value
+        }
+        localStorage.setItem('periodoAtual', JSON.stringify(periodoAtual))
+    }
+    // Salvar quando alterado os dois Selects;
 
-    let string_meses = ''
-    let mes_atual = new Date().getMonth()
+    let dataAtual = new Date()
+    let mesesIndiceMes = Object.entries(meses)
+    periodoAtual = JSON.parse(localStorage.getItem('periodoAtual')) || { mes: mesesIndiceMes[dataAtual.getMonth()][0], ano: dataAtual.getFullYear() }
+
+    let selectAno = periodoAtual.ano
+    let selecMes = periodoAtual.mes
+    let stringMeses = ''
 
     for (mes in meses) {
-
-        string_meses += `
-            <option ${(!document.getElementById('ano') && meses[mes] === mes_atual) ? 'selected' : ''}>${mes}</option>
+        stringMeses += `
+            <option ${mes === selecMes ? 'selected' : ''}>${mes}</option>
         `
-        if (!document.getElementById('ano') && meses[mes] === mes_atual) {
-            selec_mes = mes
-        }
     }
 
     let linhas = ''
-    let dias = new Date(select_ano, meses[selec_mes] + 1, 0).getDate() // Último dia do mês, simples...
+    let dias = new Date(selectAno, meses[selecMes] + 1, 0).getDate() // Último dia do mês, simples...
     let ths = `
         <th>Técnicos</th>
         <th>Região</th>
         <th>Config</th>
     `
     for (let i = 1; i <= dias; i++) { // Cabeçalho dias/Semanas do mês
-        let data = new Date(select_ano, meses[selec_mes], i)
+        let data = new Date(selectAno, meses[selecMes], i)
 
         ths += `
         <th>
@@ -113,7 +125,7 @@ async function carregar_tabela() {
         let tecnico = dados_agenda_tecnicos[omie_tecnico]
         let celulas_dias = ''
         let agenda = {}
-        let periodo = `${select_ano}_${meses[selec_mes]}`
+        let periodo = `${selectAno}_${meses[selecMes]}`
 
         if (tecnico.agendas && tecnico.agendas[periodo]) {
             agenda = tecnico.agendas[periodo]
@@ -124,9 +136,9 @@ async function carregar_tabela() {
             let info = dados_departamentos?.[cod_departamento]?.descricao || cod_departamento
 
             celulas_dias += `
-                <td id="${cod_departamento}" style="position: relative;">
-                    <div style="display: ${info != '' ? 'block' : 'none'}" class="com-triangulo" onclick="apagar_dia('${i}', '${omie_tecnico}', this)"></div>
-                    <input id="${i}_${omie_tecnico}" style="cursor: grab; width: 3vw; background-color: transparent;" onmouseout="nome_em_destaque(this, false)" onmouseover="nome_em_destaque(this, true)" oninput="sugestoes(this)" value="${info}">
+                <td id="${cod_departamento}" style="cursor: move; position: relative;">
+                    <div style="display: ${info != '' ? 'block' : 'none'}" class="com-triangulo" onclick="apagar_dia('${i}_${omie_tecnico}', this)"></div>
+                    <input id="${i}_${omie_tecnico}" style="cursor: default; width: 3vw; background-color: transparent;" onmouseout="nome_em_destaque(this, false)" onmouseover="nome_em_destaque(this, true)" oninput="sugestoes(this)" value="${info}">
                     <label style="display: none;">${agenda?.[i]?.usuario || ''}</label>
                     <label style="display: none;">${agenda?.[i]?.data || ''}</label>
                 </td>
@@ -184,16 +196,16 @@ async function carregar_tabela() {
         <div style="color: white; display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 1vw; width: 17vw;">
 
             <label>Mês</label>
-            <select id="mes" onchange="iniciar_agendas()">
-                ${string_meses}
+            <select id="mes" onchange="iniciar_agendas(true)">
+                ${stringMeses}
             </select>
 
             <hr style="width: 100%;">
 
             <label>Ano</label>
-            <select id="ano" onchange="iniciar_agendas()">
-                <option>2025</option>
-                <option>2026</option>
+            <select id="ano" onchange="iniciar_agendas(true)">
+                <option ${selectAno == 2025 ? 'selected' : ''}>2025</option>
+                <option ${selectAno == 2026 ? 'selected' : ''}>2026</option>
             </select>
 
             <hr style="width: 100%;">
@@ -222,6 +234,8 @@ async function carregar_tabela() {
         document.body.insertAdjacentHTML('beforeend', acumulado)
     }
 
+    arrastarCelulas()
+
     colorir_tabela()
 
     remover_popup()
@@ -229,7 +243,10 @@ async function carregar_tabela() {
     filtrar_tabela('0', 'tabelaAgenda') // Script genérico que organiza a tabela com base na coluna e no ID da tabela.
 }
 
-async function apagar_dia(dia, omie_tecnico, div) {
+async function apagar_dia(diaOmieTecnico) {
+
+    let [dia, omie_tecnico] = diaOmieTecnico.split('_')
+    let div = document.getElementById(diaOmieTecnico).previousElementSibling
 
     let dados_agenda_tecnicos = await recuperarDados('dados_agenda_tecnicos') || {}
     let mes = document.getElementById('mes').value
@@ -242,11 +259,13 @@ async function apagar_dia(dia, omie_tecnico, div) {
 
     deletar(`dados_agenda_tecnicos/${omie_tecnico}/agendas/${ano_mes}/${dia}`)
 
-    await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
-
+    let td = div.parentElement
+    td.style.backgroundColor = 'white'
+    td.querySelector('input').style.color = 'black' // Input dentro da td
     div.style.display = 'none'
     div.nextElementSibling.value = ''
-    colorir_tabela()
+
+    await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
 
 }
 
@@ -311,23 +330,12 @@ async function sugestoes(input, tecnicos) {
     if (!tecnicos) {
         let dados_departamentos = await recuperarDados('dados_departamentos') || {}
 
-        dados_departamentos = { // Opções extras além dos departamentos que chegam da API, inclua aqui... 
-            ...dados_departamentos,
-            'FERIAS': { codigo: 'FERIAS', descricao: 'FERIAS', omie: 'FERIAS' },
-            'FOLGA': { codigo: 'FOLGA', descricao: 'FOLGA', omie: 'FOLGA' },
-            'EM CASA': { codigo: 'EM CASA', descricao: 'EM CASA', omie: 'EM CASA' },
-            'EM VIAGEM': { codigo: 'EM VIAGEM', descricao: 'EM VIAGEM', omie: 'EM VIAGEM' },
-            'ATESTADO': { codigo: 'ATESTADO', descricao: 'ATESTADO', omie: 'ATESTADO' },
-            'FERIADO': { codigo: 'FERIADO', descricao: 'FERIADO', omie: 'FERIADO' }
-        }
-
         for (omie in dados_departamentos) {
             let item = dados_departamentos[omie]
             let descricao = item.descricao.toLowerCase()
             if (descricao.includes(pesquisa)) {
                 opcoes += `
-                <div onclick="definir_campo('${input.id}', '${omie}', '${item.descricao}')" class="autocomplete-item" style="font-size: 0.8vw;">${item.descricao}</div>
-            `
+                <div onclick="definir_campo('${input.id}', '${omie}', '${item.descricao}')" class="autocomplete-item" style="font-size: 0.8vw;">${item.descricao}</div>`
             }
         }
 
@@ -387,6 +395,16 @@ async function escolher_tecnico(omie_tecnico, nome_tecnico) {
     }
     let dados_agenda_tecnicos = await recuperarDados('dados_agenda_tecnicos') || {}
 
+    // Caso seja apenas a tela de Lançamento;
+    let telaLancamento = document.getElementById('telaLancamento')
+    let textarea = document.getElementById('textarea_tecnico')
+    textarea.value = nome_tecnico
+
+    if (telaLancamento) {
+        textarea.previousElementSibling.value = omie_tecnico
+        return
+    }
+
     if (dados_agenda_tecnicos[omie_tecnico]) {
         openPopup_v2(`
             <div style="margin: 10px;">
@@ -397,13 +415,10 @@ async function escolher_tecnico(omie_tecnico, nome_tecnico) {
         return
 
     } else {
-        let textarea = document.getElementById('textarea_tecnico')
 
         textarea.nextElementSibling.innerHTML = `
             <button style="background-color: #4CAF50;" onclick="salvar_tecnico('${omie_tecnico}')">Confirmar</button>
         `
-        textarea.value = nome_tecnico
-
     }
 
 }
@@ -485,7 +500,7 @@ async function definir_campo(input_id, omie_departamento, descricao) {
     tecnico.agendas[chave_da_agenda][dia] = dados
     await enviar(`dados_agenda_tecnicos/${omie_tecnico}/agendas/${chave_da_agenda}/${dia}`, dados)
 
-    inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
+    await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
 
 }
 
@@ -714,96 +729,589 @@ function nome_em_destaque(elemento, mostrar) {
 
 }
 
-// Função para arrastar;
-let segurando = false;
-let celula_inicial = null;
-let celulas_selecionadas = [];
+let relatorios = {
+    tecnico: {},
+    departamentos: { total: 0 }
+}
 
-document.addEventListener("mousedown", function (event) {
-    if (event.target.tagName === "INPUT") {
-        segurando = true;
-        celula_inicial = event.target;
-        celulas_selecionadas = [celula_inicial];
-
-        celula_inicial.parentElement.classList.add('selecionado'); // Aplica-se ao TD...
-    }
-});
-
-document.addEventListener("mousemove", function (event) {
-    if (segurando && event.target.tagName === "INPUT") {
-        let cell = event.target;
-        if (!celulas_selecionadas.includes(cell)) {
-            celulas_selecionadas.push(cell);
-            cell.parentElement.classList.add('selecionado'); // TD
-        }
-    }
-});
-
-document.addEventListener("mouseup", function () {
-    if (segurando) {
-        let cod_departamento = celula_inicial?.parentElement.id;
-        let nome_do_departamento = celula_inicial?.value;
-
-        let celulas_para_atualizar = [...celulas_selecionadas];
-
-        segurando = false;
-        celulas_selecionadas = [];
-
-        (async () => {
-            for (let cell of celulas_para_atualizar) {
-                await definir_campo(cell.id, cod_departamento, nome_do_departamento);
-                cell.parentElement.classList.remove('selecionado'); // TD
-            }
-        })();
-    }
-});
-
-painelDistruibuicao()
 async function painelDistruibuicao() {
 
-    let dados_agenda_tecnicos = await recuperarDados('dados_agenda_tecnicos')
+    let permitidos = ['adm', 'fin']
+    let setores = ['RH', 'FINANCEIRO']
+
+    if(!permitidos.includes(acesso.permissao) || !setores.includes(acesso.setor)) {
+       return openPopup_v2(`<label style="padding: 5vw;"> Apenas setores RH, ADM e FINANCEIRO estão liberados para este painel</label>`, 'Aviso')
+    }
+
+    let dados_agenda_tecnicos = await recuperarDados('dados_agenda_tecnicos') || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
+    clientesOmie = {}
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+    let dados_categorias = await recuperarDados('dados_categorias') || {}
+
+    for ([cnpj, cliente] of Object.entries(dados_clientes)) {
+        clientesOmie[cliente.omie] = cliente
+    }
 
     let selectMes = document.getElementById('mes').value
     let ano = document.getElementById('ano').value
     let mes = meses[selectMes]
 
-    let relatorios = {
+    // Recuperar pagamentos deste mês;
+    let divsPagamentos = ''
+    for ([idPagamento, pagamento] of Object.entries(lista_pagamentos)) {
+
+        if (pagamento.departamento == 'AGENDA' && pagamento.mes == mes && pagamento.ano == ano) {
+
+            let param = pagamento.param[0]
+            let categoria = dados_categorias[pagamento.param[0].categorias[0].codigo_categoria]
+            let valor = param.valor_documento
+            let observacao = param.observacao
+            let dataVencimento = param.data_vencimento
+            let clienteFornecedor = clientesOmie?.[param.codigo_cliente_fornecedor]?.nome || 'Desatualizado...'
+            let status = pagamento.status
+
+            divsPagamentos += `
+            <div style="display: flex; justify-content: left; align-items: center; width: 100%;">
+                <div class="blocoPagamentoPai" onclick="incluirLancamento('${idPagamento}')">
+                    <div class="blocoPagamento">
+                        <div>
+                            <label><strong>Categoria</strong></label>
+                            <label>${categoria}</label>
+                        </div>
+                        <div>
+                            <label><strong>Vencimento</strong></label>
+                            <label>${dataVencimento}</label>
+                        </div>
+                        <div>
+                            <label><strong>Valor</strong></label>
+                            <label>${dinheiro(valor)}</label>
+                        </div>
+                    </div>
+
+                    <div class="blocoPagamento">
+                        <div>
+                            <label><strong>Observação</strong></label>
+                            <label style="text-align: left; padding: 5px;">${observacao}</label>
+                        </div>
+                        <div>
+                            <label><strong>Cliente / Fornecedor</strong></label>
+                            <label style="text-align: left; padding: 5px;">${clienteFornecedor}</label>
+                        </div>
+                        <div>
+                            <label><strong>Status</strong></label>
+                            <label style="text-align: left; padding: 5px;">${status}</label>
+                        </div>                        
+                    </div>
+                </div>
+
+                <img src="imagens/cancel.png" style="width: 2vw; cursor: pointer; padding: 5px;" onclick="confirmarExclusao('${idPagamento}')">
+            </div>
+            `
+        }
+    }
+
+    relatorios = {
         tecnico: {},
-        lojas: {}
+        departamentos: { total: 0 }
     }
 
     for (let [id, tecnico] of Object.entries(dados_agenda_tecnicos)) {
 
         let agendas = tecnico.agendas || {}
         let omieTecnico = tecnico.omie
+        let agendaAtual = `${ano}_${mes}`
 
         if (!relatorios.tecnico[omieTecnico]) {
             relatorios.tecnico[omieTecnico] = {}
         }
 
-        if (!relatorios.tecnico[omieTecnico].departamentos) {
-            relatorios.tecnico[omieTecnico].departamentos = {}
-        }
+        let relatorio = relatorios.tecnico[omieTecnico]
 
-        for (let [id, agenda] of Object.entries(agendas)) {
-            
-            let omieDepartamento = agenda
-            let departamentos = relatorios.tecnico[omieTecnico].departamentos
+        if (agendas[agendaAtual]) {
 
-            if (!departamentos[omieDepartamento]) {
-               departamentos[omieDepartamento] = 0
+            if (!relatorio.departamentos) {
+                relatorio.departamentos = { total: 0 }
             }
+            let departamentos = relatorio.departamentos
 
-            departamentos[omieDepartamento]++
+            for (dia in agendas[agendaAtual]) {
 
+                let departamento = agendas[agendaAtual][dia].departamento
+
+                if (!departamentos[departamento]) {
+                    departamentos[departamento] = 0
+                }
+
+                if (!relatorios.departamentos[departamento]) {
+                    relatorios.departamentos[departamento] = 0
+                }
+
+
+                relatorios.departamentos[departamento]++ // Acrescenta 1 para o técnico em seu próprio relatório;
+                departamentos.total++ // Aqui é o total geral no relatório do técnico;
+
+                departamentos[departamento]++ // Acrescenta 1 para a loja para o relátorio geral;
+                relatorios.departamentos.total++ // Acrescenta 1 para a loja para o relatório de departamentos;
+            }
         }
     }
 
-    console.log(relatorios);
-    
+    if (divsPagamentos == '') {
+        divsPagamentos = `
+            <div class="blocoPagamentoPai">
+                <div class="blocoPagamento">
+                    <div>
+                        <label>Sem pagamentos lançados</label>
+                    </div>
+                </div>
+            </div>
+        `
+    }
 
-    let acumulado = ''
+    let acumulado = `
+
+        <div style="background-color: #d2d2d2; display: flex; justify-content: start; align-items: start; gap: 1vw; width: 70vw; padding: 5px;">
+            <div style="width: 50%; display: flex; align-items: center; justify-content: start; flex-direction: column;">
+                <label>Distribuição por Departamento</label>
+                <hr style="width: 100%;">
+                ${await gerarTabelas('departamentos', false)}
+            </div>
+
+            <div style="width: 50%;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 1vw;">
+                    <label>Lançamentos</label>
+                    <div class="contorno_botoes" style="background-color: #097fe6" onclick="incluirLancamento()">
+                        <label>Novo <strong>Lançamento</strong></label>
+                    </div>
+                </div>
+                <br>
+                <div class="painelPagamentos">
+                    ${divsPagamentos}
+                </div>
+
+            </div>
+        </div>
+        `
 
     openPopup_v2(acumulado, 'Painel de Distribuição')
+
+}
+
+async function confirmarExclusao(idPagamento) {
+
+    let mensagem = `
+        <div id="aviso_campo_branco" style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <label>Deseja realmente excluir?</label>
+        </div>
+        <button onclick="excluirPagamento('${idPagamento}')">Confirmar</button>
+    
+    `
+    openPopup_v2(mensagem, 'Aviso', true)
+}
+
+async function excluirPagamento(idPagamento) {
+
+    overlayAguarde()
+
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+
+    delete lista_pagamentos[idPagamento]
+
+    await inserirDados(lista_pagamentos, 'lista_pagamentos')
+
+    remover_popup()
+    await painelDistruibuicao()
+
+}
+
+async function gerarTabelas(tipo, editavel, distribuicao) {
+
+    let dados_departamentos = await recuperarDados('dados_departamentos') || {}
+    let relatorioDepartamento = distribuicao ? distribuicao : relatorios[tipo]
+
+    if (!relatorioDepartamento) return '<label>Erro</label>'
+
+    let linhas = ''
+    let totalPorcentagem = 0
+    let totalDepartamentos = relatorioDepartamento.total
+
+    for ([omie, departamento] of Object.entries(relatorioDepartamento)) {
+
+        if (omie == 'total') continue
+
+        let porcentagem = departamento / totalDepartamentos
+        let labelPorcentagem = `${((porcentagem * 100)).toFixed(2)}%`
+        totalPorcentagem += (porcentagem * 100)
+        let nome = dados_departamentos[omie]?.descricao || omie
+        linhas += ` 
+            <tr>
+                <td>${nome}</td>
+                <td style="text-align: center;">${departamento}</td>
+                <td style="text-align: center;">${labelPorcentagem}</td>
+                ${editavel ? `<td id="${omie}"><label>R$ 0,00</label> <input style="display: none;" type="number" value="${porcentagem}"></td>` : ''}
+            </tr>
+        `
+    }
+
+    linhas += `
+            <tr>
+                <td colspan="2" style="text-align: center;">${totalPorcentagem.toFixed(0)}%</td>
+                ${editavel ? `<td colspan="2" style="text-align: center;">R$ 0,00</td>` : '<td></td>'}
+            </tr>
+        `
+
+    let tabela =
+        `<table class="tabela" style="width: 100%;">
+            <thead>
+                <th>Departamento</th>
+                <th>Dias</th>
+                <th>% Distribuição</th>
+                ${editavel ? `<th>R$ Distribuição</th>` : ''}
+            </thead>
+            <tbody ${editavel ? `id="tbody"` : ''}>
+                ${linhas}
+            </tbody>
+        </table>`
+
+    return tabela
+}
+
+function calcularDistribuicao(localizacao) {
+    let tbody = document.getElementById(localizacao)
+
+    if (localizacao.tagName === 'INPUT') {
+        tbody = localizacao.parentElement.parentElement.parentElement // INPUT > TD > TR > TBODY
+    }
+
+    let valorTotal = Number(document.getElementById('valorTotal').value)
+
+    if (tbody) {
+        let trs = Array.from(tbody.querySelectorAll('tr'))
+        let total = {
+            porcentagem: 0,
+            dinheiro: 0
+        }
+
+        let linhasValidas = trs.filter(tr => tr.querySelectorAll('td').length > 2)
+        let ultimaLinha = linhasValidas[linhasValidas.length - 1]
+
+        linhasValidas.forEach(tr => {
+            let tds = tr.querySelectorAll('td')
+            let input = tds[3].querySelector('input')
+            let label = tds[3].querySelector('label')
+
+            let porcentagem = Number(input.value)
+
+            let valor
+            if (tr === ultimaLinha) {
+                valor = arredonda2(valorTotal - total.dinheiro)
+            } else {
+                valor = arredonda2(valorTotal * porcentagem)
+            }
+
+            label.textContent = dinheiro(valor)
+
+            total.porcentagem += porcentagem
+            total.dinheiro += valor
+        })
+
+        let trTotal = trs.find(tr => tr.querySelectorAll('td').length <= 2)
+        if (trTotal) {
+            let tds = trTotal.querySelectorAll('td')
+            tds[0].textContent = `${(total.porcentagem * 100).toFixed(0)}%`
+            tds[1].textContent = dinheiro(total.dinheiro)
+        }
+    }
+}
+
+function dataInput(data) {
+    let splitData = data.split('/')
+    data = new Date(splitData[2], Number(splitData[1]) - 1, splitData[0])
+    let ano = data.getFullYear()
+    let mes = String(data.getMonth() + 1).padStart(2, '0')
+    let dia = String(data.getDate()).padStart(2, '0')
+    return `${ano}-${mes}-${dia}`
+}
+
+async function incluirLancamento(idPagamento) {
+
+    let dados_categorias = await recuperarDados('dados_categorias') || {}
+    let pagamento = { param: [{}] }
+
+    if (idPagamento) {
+        let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+        pagamento = lista_pagamentos[idPagamento]
+    }
+
+    let param = pagamento.param[0]
+
+    let categoriasOrdenadas = Object.entries(dados_categorias).sort((a, b) => {
+        return a[1].localeCompare(b[1])
+    })
+
+    let opcoes = `<option></option>` // Primeira opção em branco
+
+    for (let [idCategoria, nomeCategoria] of categoriasOrdenadas) {
+        opcoes += `<option value="${idCategoria}" ${param?.categorias?.[0]?.codigo_categoria == idCategoria ? 'selected' : ''}>${nomeCategoria}</option>`
+    }
+
+    let dataVencimento = ''
+
+    if (param.data_vencimento) {
+        dataVencimento = dataInput(param.data_vencimento)
+    }
+
+    let acumulado = `
+    <div id="telaLancamento" style="max-height: 80%; overflow: auto; padding: 5px; width: 30vw; background-color: #d2d2d2; border-radius: 3px; display: flex; justify-content: center; align-items: start; flex-direction: column;">
+
+        <label>Cliente / Fornecedor</label>
+        <input style="display: none;" value="${param?.codigo_cliente_fornecedor || ''}">
+        <textarea style="width: 95%;" id="textarea_tecnico" oninput="sugestoes(this, true)">${clientesOmie[param?.codigo_cliente_fornecedor]?.nome || ''}</textarea>
+        <div></div>
+
+        <hr style="width: 100%;">
+        <div style="display: flex; justify-content: start; align-items: center; gap: 1vw;"> 
+            <label>Data de Pagamento</label>
+            <input id="dataVencimento" type="date" value="${dataVencimento}" style="padding: 5px; border-radius: 3px;">
+        </div>
+
+        <hr style="width: 100%;">
+        <div style="display: flex; justify-content: start; align-items: center; gap: 1vw;"> 
+            <label>Categoria</label>
+            <select id="categoria">
+                ${opcoes}
+            </select>
+        </div>
+
+        <hr style="width: 100%;">
+        <label>Observação</label>
+        <textarea id="observacao" rows="5" style="width: 95%;">${param?.observacao || ''}</textarea>
+
+        <hr style="width: 100%;">
+        <div style="display: flex; justify-content: start; align-items: center; gap: 1vw;"> 
+            <label>Valor</label>
+            <input value="${param?.valor_documento || ''}" oninput="calcularDistribuicao('tbody')" id="valorTotal" type="number" style="width: 10vw; padding: 5px; border-radius: 3px;">
+        </div>
+
+        <hr style="width: 100%;">
+
+        <label>Distribuição</label>
+        ${await gerarTabelas('departamentos', true)}
+
+        <hr style="width: 100%;">
+        <button style="background-color: #097fe6;" onclick="salvarLancamento('${idPagamento}')">Salvar Lançamento</button>
+
+    </div>
+    `
+
+    openPopup_v2(acumulado, 'Lançamento', true)
+
+    calcularDistribuicao('tbody')
+}
+
+
+async function salvarLancamento(idPagamento) {
+
+    overlayAguarde()
+
+    let call = idPagamento ? 'AlterarContaPagar' : false
+    idPagamento ? idPagamento : unicoID()
+
+    let selectMes = document.getElementById('mes').value
+    let ano = document.getElementById('ano').value
+    let mes = meses[selectMes]
+
+    let codigoCliente = document.getElementById('textarea_tecnico').previousElementSibling.value
+    let valorDocumento = document.getElementById('valorTotal').value
+    let observacao = document.getElementById('observacao').value
+    let dataVencimento = document.getElementById('dataVencimento').value
+    let codigoCategoria = document.getElementById('categoria').value
+    let mensagemHTML = (termo) => `
+    <div id="aviso_campo_branco" style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+        <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+        <label>Verifique o campo <strong>${termo}</strong></label>
+    </div>
+    `
+    let campos = [
+        { nome: 'Cliente / Fornecedor', valor: codigoCliente },
+        { nome: 'Data de Vencimento', valor: dataVencimento },
+        { nome: 'Categoria', valor: codigoCategoria },
+        { nome: 'Observação', valor: observacao },
+        { nome: 'Valor do Documento', valor: valorDocumento }
+    ]
+
+    for (let campo of campos) {
+        if (!campo.valor) {
+            return openPopup_v2(mensagemHTML(campo.nome), 'Aviso', true)
+        }
+    }
+
+    codigoCliente = Number(codigoCliente)
+    valorDocumento = Number(valorDocumento)
+
+    let [anoInput, mesInput, diaInput] = dataVencimento.split('-')
+    dataVencimento = `${diaInput}/${mesInput}/${anoInput}`
+
+    let distribuicao = []
+
+    let tbody = document.getElementById('tbody')
+    let trs = tbody.querySelectorAll('tr')
+
+    for (i in trs) {
+
+        if (i == (trs.length - 1)) break // Pular a última linha que é do total
+
+        let tr = trs[i]
+        let tds = tr.querySelectorAll('td')
+        let cCodDep = Number(tds[3].id)
+        let nValDep = conversor(tds[3].querySelector('label').textContent)
+
+        if (isNaN(cCodDep) || isNaN(nValDep)) {
+            return openPopup_v2(`Verifique o departamento: ${tds[0].textContent} > ${cCodDep} | ${nValDep}`)
+        }
+
+        if (tds.length > 2) {
+            distribuicao.push({
+                cCodDep,
+                nValDep
+            })
+        }
+    }
+
+    let param = [
+        {
+            "codigo_cliente_fornecedor": codigoCliente,
+            "valor_documento": valorDocumento,
+            "observacao": observacao,
+            "codigo_lancamento_integracao": idPagamento,
+            "data_vencimento": dataVencimento,
+            "categorias": [{
+                codigo_categoria: codigoCategoria,
+                valor: valorDocumento
+            }],
+            "data_previsao": dataVencimento,
+            "id_conta_corrente": 6054234828, // Itaú AC
+            "distribuicao": distribuicao
+        }
+    ]
+
+    let pagamento = {
+        distribuicao: relatorios.departamentos,
+        mes,
+        ano,
+        status: 'AGENDA',
+        id_pagamento: idPagamento,
+        id_orcamento: 'AGENDA',
+        departamento: 'AGENDA',
+        data_registro: data_atual('completa'),
+        anexos: {},
+        anexos_parceiros: {},
+        criado: acesso.usuario,
+        param
+    }
+
+    let resposta = await lancar_pagamento(pagamento, call)
+
+    console.log(resposta);
+
+    enviar(`lista_pagamentos/${idPagamento}`, pagamento)
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+
+    lista_pagamentos[idPagamento] = pagamento
+    await inserirDados(lista_pagamentos, `lista_pagamentos`)
+
+    remover_popup()
+    await painelDistruibuicao()
+
+}
+
+// Arrastar elementos
+let tabela;
+let isDragging = false
+let startCell = null
+let startRow, startCol, endRow, endCol
+
+function getCellCoords(cell) {
+    const row = cell.parentElement.rowIndex
+    const col = cell.cellIndex
+    return { row, col }
+}
+
+function clearSelection() {
+    const sel = tabela.querySelectorAll('.selected')
+    sel.forEach(td => td.classList.remove('selected'))
+}
+
+function arrastarCelulas() {
+
+    tabela = document.getElementById('tabelaAgenda')
+
+    tabela.addEventListener('mousedown', e => {
+        if (e.target.tagName !== 'TD') return
+
+        isDragging = true
+        startCell = e.target
+        const coords = getCellCoords(startCell)
+        startRow = coords.row
+        startCol = coords.col
+
+        clearSelection()
+        e.target.classList.add('selected')
+    })
+
+    tabela.addEventListener('mouseover', e => {
+        if (!isDragging || e.target.tagName !== 'TD') return
+
+        clearSelection()
+        const coords = getCellCoords(e.target)
+        endRow = coords.row
+        endCol = coords.col
+
+        let minRow = Math.min(startRow, endRow)
+        let maxRow = Math.max(startRow, endRow)
+        let minCol = Math.min(startCol, endCol)
+        let maxCol = Math.max(startCol, endCol)
+
+        for (let i = minRow; i <= maxRow; i++) {
+            for (let j = minCol; j <= maxCol; j++) {
+                tabela.rows[i].cells[j].classList.add('selected')
+            }
+        }
+    })
+
+    tabela.addEventListener('mouseup', async () => {
+        if (!isDragging) return
+        isDragging = false
+
+        const inputStartCell = startCell.querySelector('input')
+        const selecionadas = tabela.querySelectorAll('.selected')
+        let celulasAtualizacao = {}
+
+        for (cell of selecionadas) {
+            let inputCell = cell.querySelector('input')
+            let divCell = cell.querySelector('div')
+
+            divCell.style.display = 'block' // Mini triângulo que aparece no canto de cima da td;
+            inputCell.value = inputStartCell.value // Texto visível no input, que é o nome do departamento;
+            cell.id = startCell.id // ID que representa o departamento, pode flutuar entre as linhas normalmente, mas o ID do input é do técnico, deve ser mantido o original;
+
+            celulasAtualizacao[inputCell.id] = { departamentoOmie: startCell.id, nomeDepartamento: inputStartCell.value }
+        }
+
+        for ([diaTecnico, objeto] of Object.entries(celulasAtualizacao)) {
+
+            if (objeto.departamentoOmie == '') {
+                await apagar_dia(diaTecnico)
+            } else {
+                await definir_campo(diaTecnico, objeto.departamentoOmie, objeto.nomeDepartamento)
+            }
+
+        }
+
+        colorir_tabela()
+        clearSelection()
+    })
 
 }
