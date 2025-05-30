@@ -739,8 +739,14 @@ async function painelDistruibuicao() {
     let permitidos = ['adm', 'fin']
     let setores = ['RH', 'FINANCEIRO']
 
-    if(!permitidos.includes(acesso.permissao) || !setores.includes(acesso.setor)) {
-       return openPopup_v2(`<label style="padding: 5vw;"> Apenas setores RH, ADM e FINANCEIRO estão liberados para este painel</label>`, 'Aviso')
+    if(!permitidos.includes(acesso.permissao) && !setores.includes(acesso.setor)) {
+        let mensagem = `
+            <div id="aviso_campo_branco" style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Apenas setores RH, ADM e FINANCEIRO estão liberados para este painel</label>
+            </div>
+        `
+       return openPopup_v2(mensagem, 'Aviso')
     }
 
     let dados_agenda_tecnicos = await recuperarDados('dados_agenda_tecnicos') || {}
