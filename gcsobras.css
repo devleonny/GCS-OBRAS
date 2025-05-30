@@ -1412,13 +1412,15 @@ input[type=range]::-moz-range-thumb {
     font-size: 0.7vw;
 }
 
+.tabela thead input {
+    width: 100%;
+}
+
 .tabela th {
     color: #000;
     font-size: 0.8vw;
     padding: 8px;
     border-bottom: 1px solid transparent;
-    
-
 }
 .tabela td {
     color: #222;
@@ -1426,7 +1428,6 @@ input[type=range]::-moz-range-thumb {
     overflow: hidden;
     padding: 8px;
     border-bottom: 1px solid transparent;
-
 }
 
 .tabela thead {
