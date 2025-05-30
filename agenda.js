@@ -27,7 +27,7 @@ let meses = {
     'Dezembro': 11
 }
 
-let regioes = ['Nordeste', 'Norte', 'Sudeste', 'Sul', 'Centro-Oeste', 'Sem Região', 'Clientes Novos']
+let regioes = ['Nordeste', 'Norte', 'Sudeste', 'Sul', 'Centro-Oeste', 'Sem Região', 'Clientes Novos', 'Administrativo']
 
 iniciar_agendas()
 
@@ -210,7 +210,7 @@ async function carregar_tabela(alterar) {
 
             <hr style="width: 100%;">
 
-            <label>Técnico</label>
+            <label>Nome</label>
             <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 2px;">
                 <input class="campos" oninput="filtrar_por_regiao()" id="campo_tecnico_pesquisa" placeholder="Pesquisar">
             </div>

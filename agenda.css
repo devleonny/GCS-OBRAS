@@ -59,6 +59,7 @@ select,
   cursor: pointer;
   border-radius: 2px;
   padding: 5px;
+  font-size: 0.8vw;
 }
 
 .campos {

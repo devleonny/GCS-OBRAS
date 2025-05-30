@@ -795,7 +795,8 @@ async function total() {
                 totais[tabela].exibir = 'none'
             }
 
-            trs.forEach(tr => {
+            for (tr of trs) {
+
                 let tds = tr.querySelectorAll('td')
                 let codigo = tds[0].textContent
                 let acrescimo = carrefour ? 1 : 0 // Quantidade correspondente a mais 1 coluna: CARREFOUR;
@@ -980,7 +981,7 @@ async function total() {
                     delete itemSalvo.desconto
                 }
 
-            })
+            }
         }
     }
 
