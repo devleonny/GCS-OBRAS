@@ -180,6 +180,10 @@ async function preencher_orcamentos_v2() {
 
                 if (chave_historico.notas) {
 
+
+
+                    
+
                     var nota = chave_historico.notas[0]
                     let valor_nota = chave_historico.notas[0].valorNota || '---'
 
@@ -297,8 +301,6 @@ async function editar(orcam_) {
 
 async function duplicar(orcam_) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let acesso = JSON.parse(localStorage.getItem('acesso'))
-
     var orcamento_v2 = dados_orcamentos[orcam_]
 
     delete orcamento_v2.id

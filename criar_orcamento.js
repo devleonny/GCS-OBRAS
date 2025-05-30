@@ -1,5 +1,6 @@
 let filtrosPagina = {}
 let pagina;
+let dados_composicoes = {}
 
 function coresTabelas(tabela) {
     let coresTabelas = {
@@ -105,7 +106,7 @@ function confirmar_exclusao() {
 
 async function atualizarOpcoesLPU() {
 
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
     return new Promise((resolve, reject) => {
 
@@ -545,7 +546,7 @@ async function tabelaProdutos() {
 
     if (tabela_itens) {
 
-        let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+        dados_composicoes = await recuperarDados('dados_composicoes') || {}
         if (Object.keys(dados_composicoes) == 0) {
             await recuperarComposicoes()
         }
@@ -764,7 +765,6 @@ async function total() {
     let orcamento_v2 = baseOrcamento()
     let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
     let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let desconto_acumulado = 0
     let totais = { GERAL: { valor: 0, exibir: 'none', bruto: 0 } }
     let divTabelas = document.getElementById('tabelas')
@@ -1056,7 +1056,6 @@ async function total() {
 }
 
 async function incluirItem(codigo, novaQuantidade) {
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento_v2 = baseOrcamento()
     let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
     let produto = dados_composicoes[codigo]

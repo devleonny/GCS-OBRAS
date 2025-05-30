@@ -1,5 +1,4 @@
 let filtrosAtivosPagamentos = {}
-let dados_setores = {}
 let opcoesStatus = [
     'Aguardando aprovação da Diretoria',
     'Aguardando aprovação da Gerência',
