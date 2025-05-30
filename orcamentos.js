@@ -179,7 +179,6 @@ async function preencher_orcamentos_v2() {
                 }
 
                 if (chave_historico.notas) {
-                    console.log(chave_historico.notas);
                     
                     var nota = chave_historico.notas[0]
                     let valor_nota = chave_historico.notas[0].valorNota || '---'
