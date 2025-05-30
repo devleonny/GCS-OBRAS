@@ -22,8 +22,6 @@ function f5() {
 }
 
 identificacaoUser()
-carregarIcones()
-verificarAlertas()
 
 function ativarCloneGCS(ativar) {
 
@@ -149,7 +147,6 @@ function carregarIcones() {
     if (document.title != 'Página Inicial') return
 
     let ativar = JSON.parse(localStorage.getItem('modoClone')) || false
-
     let painel_geral = document.getElementById('painel_geral')
 
     let moduloComposicoes = (
@@ -239,13 +236,18 @@ function corFundo() {
 }
 
 async function identificacaoUser() {
-
     corFundo()
 
-    await sincronizarSetores()
+    if (document.title == 'Login') return
+    if (!acesso) return window.location.href = 'login.html'
 
+    await sincronizarSetores()
     acesso = dados_setores[acesso.usuario]
     localStorage.setItem('acesso', JSON.stringify(acesso))
+
+    carregarIcones()
+    verificarAlertas()
+    aprovacoes_pendentes()
 
     let permissao = acesso.permissao
 
@@ -1916,7 +1918,6 @@ function data_atual(estilo, nivel) {
     }
 }
 
-aprovacoes_pendentes()
 async function aprovacoes_pendentes() {
 
     let permissao = acesso.permissao
