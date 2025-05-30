@@ -35,6 +35,11 @@ body {
     cursor: pointer;
 }
 
+.tabela-container {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
 .tabela_manutencao {
     display: flex;
     flex-direction: column;
@@ -1404,18 +1409,16 @@ input[type=range]::-moz-range-thumb {
     border-top-left-radius: 5px;
     border-bottom-left-radius: 5px;
     table-layout: fixed;
-    overflow: hidden;
     font-size: 0.7vw;
 }
 
 .tabela th {
-    color: #222;
+    color: #000;
     font-size: 0.8vw;
     padding: 8px;
     border-bottom: 1px solid transparent;
-    position: sticky;
-    top: 0;
-    z-index: 1; /* ajuda quando há outros elementos empilhados */
+    
+
 }
 .tabela td {
     color: #222;
@@ -1423,15 +1426,17 @@ input[type=range]::-moz-range-thumb {
     overflow: hidden;
     padding: 8px;
     border-bottom: 1px solid transparent;
+
 }
 
-.tabela td {
-    font-size: 0.9vw;
-    text-align: left;
-    color: black;
+.tabela thead {
     position: sticky;
-    overflow-y: auto;
+    top: 0;
+    background-color: #d2d2d2;
+    z-index: 2; /* ajuda quando há outros elementos empilhados */
 }
+
+
 
 .contorno {
     border-radius: 5px;

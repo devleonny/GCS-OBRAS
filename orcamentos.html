@@ -80,6 +80,10 @@
 
         th {
             color: #222;
+            position: sticky;
+            top: 0;
+            z-index: 1; /* ajuda quando há outros elementos empilhados */
+            
         }
 
         .label_etiquetas {
@@ -171,7 +175,7 @@
 
         <div id="tabelas" style="display: flex; flex-direction: column; align-items: center; justify-content: start;">
             <div id="toolbar"></div>
-            <div id="orcamentos"></div>
+            <div id="orcamentos" class="tabela-container"></div>
         </div>
 
     </div>

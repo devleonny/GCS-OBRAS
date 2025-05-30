@@ -9,7 +9,7 @@ async function recuperar_orcamentos() {
 
     await sincronizarDados('dados_orcamentos')
     await preencher_orcamentos_v2()
-    
+
 }
 
 function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
@@ -122,7 +122,7 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 }
 
 async function preencher_orcamentos_v2() {
-    
+
     let div_orcamentos = document.getElementById('orcamentos')
     if (!div_orcamentos) {
         return
@@ -130,14 +130,14 @@ async function preencher_orcamentos_v2() {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    for([id, orcamento] of Object.entries(dados_orcamentos)){
-        try{
-        orcamento.dados_orcam.data
-        }catch{
+    for ([id, orcamento] of Object.entries(dados_orcamentos)) {
+        try {
+            orcamento.dados_orcam.data
+        } catch {
             console.log(id)
         }
     }
-    
+
     let desordenado = Object.entries(dados_orcamentos)
     desordenado.sort((a, b) => new Date(b[1].dados_orcam.data) - new Date(a[1].dados_orcam.data))
     dados_orcamentos = Object.fromEntries(desordenado)
@@ -179,11 +179,10 @@ async function preencher_orcamentos_v2() {
                 }
 
                 if (chave_historico.notas) {
-                    console.log(chave_historico.notas);
-                    
+
                     var nota = chave_historico.notas[0]
                     let valor_nota = chave_historico.notas[0].valorNota || '---'
-                    
+
 
                     label_notas += `
                         <div class="etiqueta_pedidos">
@@ -241,7 +240,7 @@ async function preencher_orcamentos_v2() {
         `
         if (cab !== 'Ações' && cab !== 'Aprovação') {
             tsh += `
-                <th style="background-color: white; border-radius: 0px;">
+                <th class="tabela" style="background-color: white; border-radius: 0px;">
                     <div style="position: relative;">
                         <input placeholder="..." style="text-align: left;" oninput="filtrar_orcamentos(undefined, ${i}, this.value)">
                         <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
