@@ -301,19 +301,27 @@ async function sincronizarSetores() {
 
 async function configs() {
 
+    overlayAguarde()
+
     let status = await servicos('livre')
 
     await sincronizarSetores()
 
     let linhas = ''
     let listas = {
-        permissoes: ['', 'adm', 'user', 'gerente', 'diretoria', 'editor', 'log', 'qualidade'],
+        permissoes: ['', 'adm', 'user', 'gerente', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
         setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE']
     }
 
-    for (usuario in dados_setores) {
+    dados_setores = Object.keys(dados_setores)
+        .sort()
+        .reduce((obj, chave) => {
+            obj[chave] = dados_setores[chave];
+            return obj;
+        }, {});
 
-        let dados = dados_setores[usuario]
+    for ([usuario, dados] of Object.entries(dados_setores)) {
+
         let opcoes_permissao = ''
         let opcoes_setores = ''
 
@@ -331,7 +339,7 @@ async function configs() {
 
         linhas += `
         <tr>
-            <td>${usuario}</td>
+            <td style="text-align: left;">${usuario}</td>
             <td>
                 <select class="opcoesSelect" onchange="alterar_usuario('permissao', '${usuario}', this)" style="cursor: pointer;">${opcoes_permissao}</select>
             </td>
@@ -368,7 +376,7 @@ async function configs() {
         ${tabela}
     </div>
     `
-
+    remover_popup()
     openPopup_v2(acumulado, 'Configurações')
 
 }
