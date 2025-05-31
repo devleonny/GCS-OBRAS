@@ -24,7 +24,7 @@
             background: none;
         }
 
-      
+
 
         textarea {
             font-size: 0.8vw;
@@ -123,13 +123,13 @@
         }
 
         .filter-comentario {
-    width: 95%;
-    padding: 3px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    font-size: 0.9em;
-    transition: all 0.3s ease;
-}
+            width: 95%;
+            padding: 3px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 
@@ -142,32 +142,35 @@
         <div class="top">
 
             <img src="imagens/BG.png" style="width: 150px;">
+
             <div
                 style="display: flex; align-items: center; justify-content: center; flex-direction: column; color: white;">
                 <label class="novo_titulo">Histórico de Registros GCS</label>
                 <label id="nome_filtro"></label>
             </div>
 
-            <div class="blocosCabecalho">
+            <div style="display: flex; justify-content: end; align-items: start; width: 15vw;">
+                <div class="blocosCabecalho">
 
-                <div onclick="window.location.href='inicial.html'">
-                    <label>Menu Inicial</label>
-                    <img src="imagens/voltar.png">
-                </div>
+                    <div onclick="window.location.href='inicial.html'">
+                        <label>Menu Inicial</label>
+                        <img src="imagens/voltar.png">
+                    </div>
 
-                <div onclick="recuperarRegistros()">
-                    <label>Atualizar</label>
-                    <img src="imagens/atualizar_2.png">
+                    <div onclick="recuperarRegistros()">
+                        <label>Atualizar</label>
+                        <img src="imagens/atualizar_2.png">
+                    </div>
+
                 </div>
-               
             </div>
         </div>
 
-    
+
     </div>
 
     <div id="tabelaRegistro"></div>
-    
+
 
 </body>
 

@@ -209,7 +209,7 @@ async function carregar_tabela_v2(auxiliarPaginacao) {
     var acumulado = `
         <div style="display: flex; gap: 10px;">
             <div style="resize: both; overflow: auto; height: max-content; max-height: 70vh; width: max-content; max-width: 92.5vw; background-color: #d2d2d2; border-radius: 3px;">
-                <table style="border-collapse: collapse;" id="tabela_composicoes">
+                <table class="tabela" id="tabela_composicoes">
                     <thead>
                         <tr>${thead}</tr>
                         <tr>${tsearch}</tr>

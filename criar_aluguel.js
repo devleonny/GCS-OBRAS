@@ -142,8 +142,8 @@ async function carregarTabelas() {
 
         stringsTabelas += `
         <div id="${tabela}" style="display: none; width: 100%;">
-            <table id="cabecalho_${tabela}" class="tabela" style="table-layout: auto; width: 100%; background-color: ${coresTabelas(tabela)};">
-                <thead id="thead_${tabela}">
+            <table id="cabecalho_${tabela}" class="tabela" style="table-layout: auto; width: 100%;">
+                <thead id="thead_${tabela}" style="background-color: ${coresTabelas(tabela)};">
                     <th style="color: white;">Código</th>
                     <th style="color: white;">${orcamento_v2.lpu_ativa}</th>
                     <th style="color: white;">Medida</th>
@@ -507,8 +507,8 @@ async function tabelaProdutos() {
                 <label class="menu_top" style="background-color: ${coresTabelas(tabela)};" onclick="alterarTabela('${tabela}')">${tabela}</label>`
 
             tabelasHTML += `
-            <table id="compos_${tabela}" style="display: none; background-color: ${coresTabelas(tabela)};" class="tabela">
-                <thead>
+            <table id="compos_${tabela}" style="display: none; resizable" class="tabela">
+                <thead style="background-color: ${coresTabelas(tabela)};">
                     ${ths}
                 </thead>
                 <thead>

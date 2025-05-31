@@ -160,40 +160,41 @@
 
             <label class="novo_titulo" style="font-size: 2.0em;">Composições</label>
 
-            <div style="display: flex; justify-content: center; gap: 2vw;">
-                <div style="display: flex; flex-direction: column; gap: 10px; height: 100%;">
-                    <div class="icones_toolbar" onclick="window.location.href='inicial.html'">
-                        <label style="color: white;">Voltar</label>
-                        <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
+            <div style="display: flex; justify-content: center; width: 30vw;">
+
+                <div class="blocosCabecalho">
+                    <div onclick="window.location.href='inicial.html'">
+                        <label>Voltar</label>
+                        <img src="imagens/voltar.png">
                     </div>
 
-                    <div class="icones_toolbar" onclick="recuperar_composicoes()">
-                        <label style="color: white;">Atualizar</label>
-                        <img src="imagens/atualizar_2.png" style="width: 25px; cursor: pointer;">
+                    <div onclick="recuperar_composicoes()">
+                        <label>Atualizar</label>
+                        <img src="imagens/atualizar_2.png">
                     </div>
 
-                    <div class="icones_toolbar" onclick="para_excel('tabela_composicoes')">
-                        <label style="color: white;">Excel</label>
-                        <img src="imagens/excel.png" style="width: 25px; cursor: pointer;">
+                    <div onclick="para_excel('tabela_composicoes')">
+                        <label>Excel</label>
+                        <img src="imagens/excel.png">
                     </div>
                 </div>
 
-                <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
+                <div class="blocosCabecalho">
 
-                    <div id="adicionar_item" class="icones_toolbar" onclick="cadastrar_editar_item()">
-                        <label style="color: white;">Cadastrar Item</label>
-                        <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
+                    <div id="adicionar_item"  onclick="cadastrar_editar_item()">
+                        <label>Cadastrar Item</label>
+                        <img src="imagens/add.png">
                     </div>
-                    <div id="btn-criar-lpu" class="icones_toolbar">
-                        <label style="color: white;">Cadastrar LPU</label>
-                        <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
+                    <div id="btn-criar-lpu">
+                        <label>Cadastrar LPU</label>
+                        <img src="imagens/add.png">
                     </div>
-                    <div class="icones_toolbar" onclick="abrirFiltros()">
-                        <label style="color: white;">Filtrar Campos</label>
-                        <img src="imagens/pesquisar.png" style="width: 25px; cursor: pointer;">
+                    <div onclick="abrirFiltros()">
+                        <label>Filtrar Campos</label>
+                        <img src="imagens/pesquisar.png">
                     </div>
-                    <div class="icones_toolbar">
-                        <label style="color: white;">Mostrar Itens Inativos</label>
+                    <div>
+                        <label>Mostrar Itens Inativos</label>
                         <input onclick="carregar_tabela_v2()" type="checkbox" name="itensInativos" id="checkboxItensInativos">
                     </div>
 

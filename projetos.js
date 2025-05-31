@@ -12,14 +12,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 });
 
-document.addEventListener("DOMContentLoaded", () => {
-    const btnFiltrar = document.querySelector(".btn-filtrar");
-    
-    if (btnFiltrar) {
-        btnFiltrar.addEventListener("click", exibirCampoFiltro);
-    }
-});
-
 let idListaAtual = null;
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -1732,14 +1724,9 @@ function removerAnexoKanban(idTarefa, linkAnexo) {
 }
 
 function exibirCampoFiltro() {
-    let btnFiltrar = document.querySelector(".btn-filtrar"); // 🔥 Recupera o botão
-
-    if (!btnFiltrar) {
-        console.error("Erro: Botão de filtro não encontrado!");
-        return;
-    }
 
     let inputFiltro = document.getElementById("input-filtro");
+    let btnFiltrar = document.getElementById('btnFiltrar')
 
     if (!inputFiltro) {
         const containerFiltro = document.createElement("div");

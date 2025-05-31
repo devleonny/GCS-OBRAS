@@ -19,33 +19,28 @@
             <label id="nome_filtro"></label>
         </div>
 
-        <div style="display: flex; justify-content: center; gap: 10px;">
-            <div style="display: flex; flex-direction: column; gap: 10px; height: 100%;">
-                <!--PRIMEIRA COLUNA DE ÍCONES-->
-            </div>
+        <div style="display: flex; justify-content: center; width: 30vw;">
 
-            <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                    onclick="window.location.href='inicial.html'">
-                    <label style="color: white;">Menu Inicial</label>
-                    <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
+            <div class="blocosCabecalho">
+                <div onclick="window.location.href='inicial.html'">
+                    <label>Menu Inicial</label>
+                    <img src="imagens/voltar.png">
                 </div>
-                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                    onclick="carregarDadosDaNuvem()">
-                    <label style="color: white;">Atualizar</label>
-                    <img src="imagens/atualizar_2.png" style="width: 25px; cursor: pointer;">
+                <div onclick="carregarDadosDaNuvem()">
+                    <label>Atualizar</label>
+                    <img src="imagens/atualizar_2.png">
                 </div>
-                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                    onclick="abrirModais('modal-adicionar-lista')">
-                    <label style="color: white;">Adicionar Nova Lista</label>
-                    <img src="imagens/add.png" style="width: 25px; cursor: pointer;">
+                <div onclick="abrirModais('modal-adicionar-lista')">
+                    <label>Adicionar Nova Lista</label>
+                    <img src="imagens/add.png">
                 </div>
-                <div class="btn-filtrar" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    <label style="color: white;">Filtrar Campos</label>
-                    <img src="imagens/pesquisar.png" style="width: 25px; cursor: pointer;">
+                <div onclick="exibirCampoFiltro()" id="btnFiltrar">
+                    <label>Filtrar Campos</label>
+                    <img src="imagens/pesquisar.png">
                 </div>
             </div>
         </div>
+
     </div>
 
     <div class="quadro" id="quadro">
