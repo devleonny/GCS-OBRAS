@@ -171,6 +171,7 @@
         position: absolute;
         z-index: 1;
         color: #151749;
+        padding-bottom: 12vh;
     }
 
     .contorno {
@@ -181,15 +182,16 @@
         margin: 5px;
     }
 
-    #ocultar {
-        background-color: #151749;
+    .ocultar {
+        z-index: 100;
+        width: 100%;
+        background-color: #797979;
         position: fixed;
-        bottom: 10px;
-        left: 100px;
+        bottom: 0;
+        left: 0;
         display: flex;
         justify-content: center;
         align-items: center;
-        border-radius: 5px;
         padding: 2px;
         gap: 2px;
     }
@@ -259,6 +261,21 @@
 
         <div id="html_orcamento"></div>
 
+    </div>
+
+    <div class="ocultar">
+        <div class="icone" onclick="atualizar_dados_pdf()" id="campo_atualizar">
+            <img src="imagens/atualizar2.png">
+            <label>Atualizar</label>
+        </div>
+        <div class="icone" onclick="gerarPDF()">
+            <img src="imagens/pdf.png">
+            <label>PDF</label>
+        </div>
+        <div class="icone" onclick="excel()">
+            <img src="imagens/excel.png">
+            <label>Excel</label>
+        </div>
     </div>
 
 </body>

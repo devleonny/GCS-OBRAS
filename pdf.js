@@ -86,30 +86,6 @@ async function atualizar_dados_pdf() {
 async function preencher_v2() {
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    let elem_parceiro = ''
-    let ocultar = document.getElementById('ocultar')
-    if (ocultar) {
-        ocultar.remove()
-    }
-
-    let botoes = `
-    <div id="ocultar">
-        <div class="icone" onclick="atualizar_dados_pdf()" id="campo_atualizar">
-            <img src="imagens/atualizar2.png">
-            <label>Atualizar</label>
-        </div>
-        <div class="icone" onclick="gerarPDF()">
-            <img src="imagens/pdf.png">
-            <label>PDF</label>
-        </div>
-        <div class="icone" onclick="excel()">
-            <img src="imagens/excel.png">
-            <label>Excel</label>
-        </div>
-        ${elem_parceiro}
-    </div>
-    `
-    document.getElementById('container').insertAdjacentHTML('beforeend', botoes)
     let orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
 
     // LÓGICA DOS DADOS
@@ -222,10 +198,10 @@ async function preencher_v2() {
         let unitarioSemIcms = item.custo - (item.custo * (icms / 100))
         let totalSemIcms = unitarioSemIcms * item.qtde
         let tds = {}
-
+        
         tds[1] = `<td>${item.codigo}</td>`
         tds[2] = `<td>${item?.descricao || 'N/A'}</td>`
-        tds[3] = `<td style="text-align: center;"><img src="${item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 2vw;"></td>`
+        tds[3] = `<td style="text-align: center;"><img src="${itemComposicao?.imagem || item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 2vw;"></td>`
         tds[4] = `<td>${item?.unidade || 'UN'}</td>`
         tds[5] = `<td>${item.qtde}</td>`
         tds[6] = `<td style="white-space: nowrap;">${dinheiro(unitarioSemIcms)}</td>`
@@ -304,7 +280,7 @@ async function preencher_v2() {
     for ([tot, objeto] of ordemTotais) {
         if (objeto.valor !== 0) {
             divs_totais += `
-                <div class="totais" style="background-color: ${config[tot]?.cor}">
+                <div id="total_${tot}" class="totais" style="background-color: ${config[tot]?.cor}">
                     TOTAL ${tot} ${dinheiro(objeto?.valor)}
                 </div>
             `;
@@ -342,7 +318,7 @@ async function preencher_v2() {
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
         ${criar_bloco_html('Contato Analista', dados_por_bloco['Contato Analista'])}
         ${criar_bloco_html('Contato Vendedor', dados_por_bloco['Contato Vendedor'])}
-    </div>`;
+    </div>`
 
 }
 
@@ -354,15 +330,23 @@ function carimbo_data() {
     return dataFormatada
 }
 
+function ocultarElementos() {
+    let ocultar = document.querySelector('.ocultar')
+    let total_desconto = document.getElementById('total_DESCONTO')
+    let exibir = ocultar.style.display == 'none'
+
+    ocultar.style.display = exibir ? '' : 'none'
+    if (total_desconto) total_desconto.style.display = exibir ? '' : 'none'
+}
+
 async function gerarPDF() {
     preencher_v2();
-    ocultar.style.display = 'none';
+    ocultarElementos()
 
     const orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
     const contrato = orcamento_v2.dados_orcam.contrato;
     const cliente = orcamento_v2.dados_orcam.cliente_selecionado;
 
     await gerar_pdf_online(document.documentElement.outerHTML, `Orcamento_${cliente}_${contrato}`);
-
-    ocultar.style.display = 'flex';
+    ocultarElementos()
 }

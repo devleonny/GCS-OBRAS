@@ -117,7 +117,7 @@ body {
 }
 
 .blocosCabecalho {
-        width: 100%;
+    width: 100%;
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -142,10 +142,11 @@ body {
     text-align: right;
     color: white;
     cursor: pointer;
+    font-size: 0.8vw;
 }
 
 .blocosCabecalho img {
-    width: 25px;
+    width: 2vw;
     cursor: pointer;
 }
 
