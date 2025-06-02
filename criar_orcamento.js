@@ -229,7 +229,7 @@ async function carregarTabelas() {
                 </select>
             </td>
             <td style="text-align: center;">
-                <img onclick="ampliar_especial(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
+                <img onclick="ampliar_especial(this, '${codigo}')" src="${produto.imagem}" style="width: 3vw; cursor: pointer;">
             </td>
             <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo}', this)" style="cursor: pointer; width: 2vw;"></td>
         </tr>
@@ -959,6 +959,8 @@ async function total() {
                 let sistema = dados_composicoes[codigo]?.sistema || ''
                 tds[7 + acrescimo].querySelector('select').value = sistema
 
+                let imagem = dados_composicoes[codigo]?.imagem || logo
+
                 itemSalvo.descricao = descricao
                 itemSalvo.unidade = dados_composicoes[codigo]?.unidade || 'UN'
                 itemSalvo.descricaocarrefour = descricaocarrefour
@@ -966,6 +968,7 @@ async function total() {
                 itemSalvo.custo = valor_unitario
                 itemSalvo.tipo = tipo
                 itemSalvo.sistema = sistema
+                itemSalvo.imagem = imagem
 
                 if (!carrefour && Number(valor_desconto.value) !== 0) {
                     itemSalvo.tipo_desconto = tipo_desconto.value
