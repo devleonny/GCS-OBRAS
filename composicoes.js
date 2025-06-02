@@ -1,6 +1,52 @@
 let filtrosAtivos = {}
 let filtroAgrupamentos = {}
 let divComposicoes = document.getElementById('composicoes')
+const modelos = {
+    'VENDA': {
+        camposIniciais: [
+            { label: 'Preço Unitário', id: 'custo', tipo: 'number', evento: 'oninput="calcular()"', valor: 'custo' },
+            { label: 'Frete de Compra (2%)' },
+            { label: 'ICMS Creditado em nota (%)', id: 'icms_creditado', tipo: 'number', evento: 'oninput="selecionarOrigemPorICMS(this.value); calcular()"', valor: 'icms_creditado' },
+            { label: 'Aliquota ICMS (Bahia)', valorFixo: '20,5%' },
+            { label: 'ICMS a ser pago (DIFAL)' },
+            { label: 'Valor do ICMS de Entrada' },
+            { label: 'Valor de Custo', idResultado: 'valor_custo' },
+            { label: 'Margem de Acréscimo (%)', id: 'margem', tipo: 'number', evento: 'oninput="calcular()"', valor: 'margem' },
+            { label: 'Preço de Venda', id: 'final', tipo: 'number', evento: 'oninput="calcular(undefined, \"final\")"', valor: 'valor' },
+            { label: 'Frete de Venda (5%)' }
+        ],
+        presuncoes: [
+            { label: 'Aliquota do Lucro Presumido Comercio', valor: '8%' },
+            { label: 'Alíquota da Presunção CSLL', valor: '12%' }
+        ],
+        impostos: [
+            { label: 'IRPJ', valor: '15%' },
+            { label: 'Adicional IRPJ', valor: '10%' },
+            { label: 'CSLL', valor: '9%' },
+            { label: 'PIS', valor: '0.65%' },
+            { label: 'COFINS', valor: '3%' },
+            { label: 'ICMS', seletor: true, id: 'icms_saida', opcoes: ['4%', '12%', '20,5%'] }
+        ]
+    },
+    'SERVIÇO': {
+        camposIniciais: [
+            { label: 'Preço do Serviço', id: 'final', tipo: 'number', evento: 'oninput="calcular(\"servico\")"', valor: 'final' }
+        ],
+        presuncoes: [
+            { label: 'Aliquota do Lucro Presumido Serviço', valor: '32%' },
+            { label: 'Alíquota da Presunção CSLL', valor: '32%' }
+        ],
+        impostos: [
+            { label: 'IRPJ', valor: '15%' },
+            { label: 'Adicional IRPJ', valor: '10%' },
+            { label: 'CSLL', valor: '9%' },
+            { label: 'PIS', valor: '0.65%' },
+            { label: 'COFINS', valor: '3%' },
+            { label: 'ISS', valor: '5%' }
+        ]
+    },
+    'USO CONSUMO': null // Pode ser composto dinamicamente de VENDA + impostos de SERVICO
+};
 
 function criar_lpu() {
     openPopup_v2(`
@@ -206,7 +252,7 @@ async function carregar_tabela_v2(auxiliarPaginacao) {
         tbody += `<tr style="display: ${auxiliarPaginacao ? 'none' : 'table-row'}">${celulas}</tr>`;
     }
 
-    var acumulado = `
+    let acumulado = `
         <div style="display: flex; gap: 10px;">
             <div style="resize: both; overflow: auto; height: max-content; max-height: 70vh; width: max-content; max-width: 92.5vw; background-color: #d2d2d2; border-radius: 3px;">
                 <table class="tabela" id="tabela_composicoes">
@@ -230,6 +276,8 @@ async function carregar_tabela_v2(auxiliarPaginacao) {
 async function retomarPaginacao() {
 
     await carregar_tabela_v2(true)
+
+    if (Object.keys(filtrosAtivos).length == 0) return
 
     try {
         let tabela = document.getElementById('tabela_composicoes')
@@ -867,303 +915,34 @@ function selecionarOrigemPorICMS(valorICMS) {
     if (selectICMS) selectICMS.value = icms <= ICMS_IMPORTADO ? '4' : icmsNacionalOuDaBahia;
 }
 
+function gerarTabela(titulo, campos) {
+    return `
+        <table class="tabela">
+            <thead><th>${titulo}</th><th>Percentuais</th><th>Valor</th></thead>
+            <tbody>
+                ${campos.map(c => `
+                    <tr>
+                        <td>${c?.label}</td>
+                        <td>${c?.valor ? `<input value="${c?.valor}" readOnly>` : ''}</td>
+                        <td></td>
+                    </tr>`).join('')}
+                <tr><td></td><td>Total</td><td></td></tr>
+            </tbody>
+        </table>
+    `;
+}
+
 async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
 
     let historico_preco = document.getElementById('historico_preco')
     let div = historico_preco.nextElementSibling
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let produto = dados_composicoes[codigo]
-    let acumulado = ''
     let funcao = cotacao ? `salvar_preco('${codigo}', '${lpu}', '${cotacao}')` : `salvar_preco('${codigo}', '${lpu}')`
 
     let dados = {}
-
     if (lpu && cotacao) {
         dados = produto[lpu].historico[cotacao]
-    }
-
-    let painel = `
-        <div style="color: #222; font-size: 0.8vw; background-color: #d2d2d2; padding: 5px; border-radius: 3px; display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 2px;">
-            <label>NF de Compra</label>
-            <input style="background-color: #91b7d9;" id="nota" value="${dados?.nota || ''}">
-            ${produto.tipo == 'VENDA' ? `<label>Fornecedor</label>
-            <input style="background-color: #91b7d9;" id="fornecedor" value="${dados?.fornecedor || ''}">` : ''}
-            <label onclick="${funcao}" class="contorno_botoes" style="background-color: #4CAF50;">Salvar</label>
-        </div>
-
-        <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 5px;">
-            <label>Comentário</label>
-            <textarea id="comentario" rows="8" style="background-color: #91b7d9; border: none;">${dados?.comentario || ''}</textarea>
-        </div>
-    `
-
-    if (produto.tipo == 'VENDA') {
-        acumulado = `
-        <div style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 10px;">
-            <fieldset style="border: none; padding: 0; margin: 0; display: flex; gap: 10px;" onchange="calcular()">
-                <legend style="font-weight: bold; color: #333;">Selecione a origem do item:</legend>
-
-                <div style="padding: 8px; background: #91b7d9; border-radius: 4px; border: 1px solid #eee;">
-                    <input type="radio" id="importado" name="origem" value="4" style="margin-right: 8px;">
-                    <label for="importado" style="font-size: 0.8vw; cursor: pointer;">IMPORTADO</label>
-                </div>
-
-                <div style="padding: 8px; background: #91b7d9; border-radius: 4px; border: 1px solid #eee;">
-                    <input type="radio" id="nacional" name="origem" value="12" style="margin-right: 8px;">
-                    <label for="nacional" style="font-size: 0.8vw; cursor: pointer;">NACIONAL</label>
-                </div>
-
-                <div style="padding: 8px; background: #91b7d9; border-radius: 4px; border: 1px solid #eee;">
-                    <input type="radio" id="bahia" name="origem" value="12" style="margin-right: 8px;">
-                    <label for="bahia" style="font-size: 0.8vw; cursor: pointer;">BAHIA</label>
-                </div>
-            </fieldset>
-            <div style="display: flex; align-items: start; justify-content: start; gap: 10px;">
-                <table class="tabela">
-                    <thead>
-                        <th>Dados Iniciais</th>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Preço Unitário</td>
-                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" type="number" id="custo" oninput="calcular()" value="${dados?.custo || 0}"></td>
-                        </tr>
-                        <tr>
-                            <td>Frete de Compra (2%)</td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td>ICMS Creditado em nota (%)</td>
-                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="icms_creditado" type="number" oninput="selecionarOrigemPorICMS(this.value); calcular()" value="${dados?.icms_creditado || ""}"></td>
-                        </tr>
-                        <tr>
-                            <td>Aliquota ICMS (Bahia)</td>
-                            <td><input value="20,5%" readOnly></td>
-                        </tr>
-                        <tr>
-                            <td>ICMS a ser pago (DIFAL)</td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td>Valor do ICMS de Entrada</td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td>Valor de Custo</td>
-                            <td id="valor_custo"></td>
-                        </tr>                                      
-                        <tr>
-                            <td>Margem de Acréscimo (%)</td>
-                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="margem" type="number" oninput="calcular()" value="${dados?.margem || ''}"></td>
-                        </tr>
-                        <tr>
-                            <td>Preço de Venda</td>
-                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="final" type="number" oninput="calcular(undefined, 'final')" value="${dados?.valor || 0}"></td>
-                        </tr>
-                        <tr>
-                            <td>Frete de Venda (5%)</td>
-                            <td></td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 1vw;">
-                    <table class="tabela">
-                        <thead>
-                            <th>Resultados</th>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>LUCRO LIQUIDO</td>
-                                <td>R$ 0,00</td>
-                            </tr>
-                            <tr>
-                                <td>PERCENTUAL DE LUCRO</td>
-                                <td>0%</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    ${painel}
-
-                </div>
-            </div>
-        </div>
-        <br>
-        <table class="tabela">
-            <thead>
-                <th>Presunções dos Impostos de Saída</th>
-                <th>Percentuais</th>
-                <th>Valor</th>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
-                    <td><input value="8%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
-                    <td><input value="12%" readOnly></td>
-                    <td></td>
-                </tr>
-            </tbody>
-        </table>
-        <br>
-        <table class="tabela">
-            <thead>
-                <th>Impostos a Serem Pagos</th>
-                <th>Percentuais</th>
-                <th>Valor</th>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
-                    <td><input value="15%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
-                    <td><input value="10%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>CSLL a ser Pago (9%) da Presunção</td>
-                    <td><input value="9%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
-                    <td><input value="0.65%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
-                    <td><input value="3%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>O Imposto sobre Circulação de Mercadorias e Serviços (ICMS)</td>
-                    <td>
-                        <select id="icms_saida" onchange="calcular()" style="width:100%; background-color:#91b7d9; border: none; padding: 5px; border-radius: 3px; cursor: pointer">
-                            <option value="4">4%</option>
-                            <option value="12">12%</option>
-                            <option value="20,5">20,5%</option>
-                        </select>
-                    </td>
-                    <td class="valor-icms" style="background-color: #f0f0f0"></td>
-                </tr>
-                <tr>
-                    <td></td>
-                    <td>Total</td>
-                    <td></td>
-                </tr>                                                                               
-            </tbody>
-        </table>
-        `
-    } else { // Serviço
-
-        acumulado = `
-
-        <div style="display: flex; align-items: center; justify-content: space-evenly; width: 100%;">
-
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: start;"> 
-                <table class="tabela">
-                    <tbody>
-                        <thead>
-                            <th>Preço do Serviço</th>
-                        </thead>
-                        <tr>
-                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="final" type="number" oninput="calcular('servico')" value="${dados?.final || ''}"></td>
-                    </tbody>
-                </table>
-            </div>
-
-            <table class="tabela">
-                <thead>
-                    <th>Resultados</th>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>LUCRO LIQUIDO</td>
-                        <td>R$ 0,00</td>
-
-                    </tr>
-                    <tr>
-                        <td>PERCENTUAL DE LUCRO</td>
-                        <td> 0%</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            ${painel}
-
-        </div>
-        <br>
-        <table class="tabela">
-            <thead>
-                <th>Presunções dos Impostos de Saída</th>
-                <th>Percentuais</th>
-                <th>Valor</th>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
-                    <td>32%</td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
-                    <td>32%</td>
-                    <td></td>
-                </tr>
-            </tbody>
-        </table>
-        <br>
-        <table class="tabela">
-            <thead>
-                <th>Impostos a Serem Pagos</th>
-                <th>Percentuais</th>
-                <th>Valor</th>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
-                    <td><input value="15%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
-                    <td><input value="10%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>CSLL a ser Pago (9%) da Presunção</td>
-                    <td><input value="9%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
-                    <td><input value="0.65%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
-                    <td><input value="3%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>O Imposto Sobre Serviços ( ISS )(5%) (Incide sobre o faturamento)</td>
-                    <td><input value="5%" readOnly></td>
-                    <td></td>
-                </tr>                
-                <tr>
-                    <td></td>
-                    <td>Total</td>
-                    <td>R$ 0,00</td>
-                </tr>                                                                               
-            </tbody>
-        </table>
-        `
     }
 
     div.innerHTML = `
@@ -1171,7 +950,9 @@ async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
 
         <label>Gestão de Preço</label>
         <hr style="width: 100%;">
-        ${acumulado}
+        ${gerarTabela(modelos[produto.tipo].camposIniciais, dados)}
+        ${gerarTabela('Presunções', modelos[produto.tipo].presuncoes)}
+        ${gerarTabela('Impostos', modelos[produto.tipo].impostos)}
 
     </div>`
 
@@ -1669,18 +1450,62 @@ function salvarNovaLPU() {
     remover_popup();
 }
 
-function para_excel() {
+async function para_excel() {
+  const tabela = document.getElementById('tabela_composicoes');
+  if (!tabela) return;
 
-    let tabela = document.getElementById('tabela_composicoes')
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Preços');
 
-    if (!tabela) {
-        return;
+  const trs = tabela.querySelectorAll('tr');
+
+  for (let rowIndex = 0; rowIndex < trs.length; rowIndex++) {
+    const tr = trs[rowIndex];
+    const tds = tr.querySelectorAll('td, th');
+    let row = [];
+
+    for (let colIndex = 0; colIndex < tds.length; colIndex++) {
+      const td = tds[colIndex];
+      const img = td.querySelector('img');
+
+      if (img) {
+        try {
+          const response = await fetch(img.src);
+          const blob = await response.blob();
+          const arrayBuffer = await blob.arrayBuffer();
+
+          const extension = img.src.includes('.png') ? 'png' : 'jpeg';
+          const imageId = workbook.addImage({
+            buffer: arrayBuffer,
+            extension: extension
+          });
+
+          worksheet.addImage(imageId, {
+            tl: { col: colIndex, row: rowIndex },
+            ext: { width: img.width || 100, height: img.height || 100 }
+          });
+
+          row.push(null);
+        } catch (e) {
+          row.push(''); // imagem ignorada silenciosamente
+        }
+      } else {
+        row.push(td.textContent);
+      }
     }
 
-    let worksheet = XLSX.utils.table_to_sheet(tabela);
-    let workbook = XLSX.utils.book_new();
+    worksheet.addRow(row);
+  }
 
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Preços");
-    XLSX.writeFile(workbook, 'lpu.xlsx');
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  });
+
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'lpu-com-imagens.xlsx';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
-

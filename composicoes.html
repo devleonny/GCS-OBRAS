@@ -7,7 +7,7 @@
     <title>COMPOSIÇÕES</title>
     <link rel="stylesheet" type="text/css" href="gcsobras.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 
     <style>
         body {
@@ -148,7 +148,6 @@
             width: 18px;
             height: 18px;
         }
-
     </style>
 </head>
 
@@ -181,7 +180,7 @@
 
                 <div class="blocosCabecalho">
 
-                    <div id="adicionar_item"  onclick="cadastrar_editar_item()">
+                    <div id="adicionar_item" onclick="cadastrar_editar_item()">
                         <label>Cadastrar Item</label>
                         <img src="imagens/add.png">
                     </div>
@@ -195,11 +194,12 @@
                     </div>
                     <div>
                         <label>Mostrar Itens Inativos</label>
-                        <input onclick="carregar_tabela_v2()" type="checkbox" name="itensInativos" id="checkboxItensInativos">
+                        <input onclick="carregar_tabela_v2()" type="checkbox" name="itensInativos"
+                            id="checkboxItensInativos">
                     </div>
 
                 </div>
-                
+
             </div>
         </div>
 
