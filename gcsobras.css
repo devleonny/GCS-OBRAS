@@ -1375,7 +1375,6 @@ input[type=range]::-moz-range-thumb {
 
 .bot_adicionar {
     margin: 3px;
-    background-color: #d2d2d2;
     color: #222;
     display: flex;
     align-items: center;
@@ -1393,9 +1392,10 @@ input[type=range]::-moz-range-thumb {
 }
 
 .bot_adicionar:hover {
+    padding: 5px;
+    font-size: 1.2vw;
     transition: ease-in-out 0.1s;
-    background-color: #4CAF50;
-    color: white;
+    background-color: #d2d2d2;
 }
 
 .bot_adicionar label {
