@@ -1935,6 +1935,11 @@ async function mostrar_painel() {
 
     for (codigo in itens_no_orcamento) {
         let lpu = orcamento.lpu_ativa?.toLowerCase() || 'padrao'
+        const orcamentoAluguel = lpu === 'aluguel';
+        if (orcamentoAluguel) return openPopup_v2(`
+            <p style="padding: 1vw; font-size: 1vw;">Processo não suportado para aluguel</p>
+        `);
+
         let item_orcamento = itens_no_orcamento[codigo]
         let produto = dados_composicoes[codigo] || {}
 
@@ -1950,7 +1955,8 @@ async function mostrar_painel() {
         let tabela = produto[lpu] || {}
         let quantidade = item_orcamento.qtde || 0
         let cotacao = tabela?.historico?.[tabela?.ativo] || {}
-        let totalBruto = orcamento?.total_bruto;
+        console.log('Tabela: ', lpu);
+
 
         let custoUnitario = cotacao?.valor_custo || 0;
         let custoTotal = (custoUnitario * quantidade) || 0;
