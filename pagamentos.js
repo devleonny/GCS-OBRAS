@@ -225,10 +225,10 @@ function iconePagamento(status) {
             icone = 'alerta'
             break
         case status.includes('Aguardando aprovação da Qualidade'):
-            icone = 'atrasado'
+            icone = 'qualidade2'
             break
         case status.includes('ATRASADO'):
-            icone = 'qualidade2'
+            icone = 'atrasado'
             break
         case status == 'Aguardando aprovação da Diretoria':
             icone = 'diretoria'
