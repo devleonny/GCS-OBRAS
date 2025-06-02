@@ -1857,10 +1857,10 @@ async function mostrar_painel() {
     let pags = ''
     let total_pago = 0
 
-    // Verificação adicional para garantir que os dados existem
-    if (!orcamento || !orcamento.dados_composicoes) {
-        return openPopup_v2("Erro: Orçamento ou composições não encontradas");
-    }
+    const painelUsersPermitidos = ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'];
+
+    const dadosExiste = orcamento || orcamento.dados_composicoes;
+    if (!dadosExiste) return openPopup_v2("Erro: Orçamento ou composições não encontradas");
 
     const estiloDaLista = (tipo) => {
         switch (tipo) {
@@ -1896,9 +1896,12 @@ async function mostrar_painel() {
             total_custo: 0,
             total_orcado: 0,
             total_impostos: 0,
-            total_lucro_liquido: 0,
+            total_lucro: 0,
             total_unit: 0,
-            total_desconto_unit: 0
+            total_custo_unit: 0,
+            total_desconto_unit: 0,
+            total_venda_unit: 0,
+            total_venda: 0
         },
         'USO E CONSUMO': {
             orcamento: '',
@@ -1906,9 +1909,12 @@ async function mostrar_painel() {
             total_custo: 0,
             total_orcado: 0,
             total_impostos: 0,
-            total_lucro_liquido: 0,
+            total_lucro: 0,
             total_unit: 0,
-            total_desconto_unit: 0
+            total_custo_unit: 0,
+            total_desconto_unit: 0,
+            total_venda_unit: 0,
+            total_venda: 0
         },
         VENDA: {
             orcamento: '',
@@ -1919,7 +1925,9 @@ async function mostrar_painel() {
             total_lucro: 0,
             total_unit: 0,
             total_custo_unit: 0,
-            total_desconto_unit: 0
+            total_desconto_unit: 0,
+            total_venda_unit: 0,
+            total_venda: 0
         }
     }
 
@@ -1940,58 +1948,54 @@ async function mostrar_painel() {
         }
 
         let tabela = produto[lpu] || {}
-        let qtde = item_orcamento.qtde || 0
+        let quantidade = item_orcamento.qtde || 0
         let cotacao = tabela?.historico?.[tabela?.ativo] || {}
+        let totalBruto = orcamento?.total_bruto;
 
-        let desconto_unit = orcamento.dados_composicoes[codigo].desconto || 0;
+        let custoUnitario = cotacao?.valor_custo || 0;
+        let custoTotal = (custoUnitario * quantidade) || 0;
 
-        let custo = cotacao?.valor_custo || 0;
+        let tipoDesconto = item_orcamento.tipo_desconto === 'Dinheiro';
+        let DESCONTO_PORCENTAGEM = (item_orcamento.desconto / 100) * custoUnitario;
+        let descontoUnitario = tipoDesconto ? item_orcamento.desconto : DESCONTO_PORCENTAGEM;
 
-        let custo_unit = custo
-        let custo_total = custo_unit * qtde;
+        let valorVendaUnitario = cotacao?.valor || 0;
+        let valorVendaTotal = (valorVendaUnitario * quantidade) - descontoUnitario || 0;
 
-        let total_unit = orcamento.dados_composicoes[codigo].custo || 0
-        let total = (total_unit * qtde) - desconto_unit;
+        let margem = cotacao.margem;
 
-        let lucro_unit = total - custo_total;
+        let descricao_produto = item_orcamento.descricao || 'Item sem descrição';
 
-        let descricao_produto = produto.descricao || 'Item sem descrição'
+        let totalUnitario = custoTotal - descontoUnitario;
 
-        linhas[produto.tipo].total_custo += custo_total
-        linhas[produto.tipo].total_orcado += total
-        linhas[produto.tipo].total_lucro += lucro_unit
-        linhas[produto.tipo].total_unit += total_unit
-        linhas[produto.tipo].total_custo_unit += custo_unit
-        linhas[produto.tipo].total_desconto_unit += desconto_unit
+        let lucroUnitario = valorVendaTotal - custoTotal;
+
+        linhas[produto.tipo].total_custo += custoTotal
+        linhas[produto.tipo].total_orcado += valorVendaTotal
+        linhas[produto.tipo].total_lucro += lucroUnitario
+        linhas[produto.tipo].total_unit += totalUnitario
+        linhas[produto.tipo].total_custo_unit += custoUnitario
+        linhas[produto.tipo].total_desconto_unit += descontoUnitario
+        linhas[produto.tipo].total_venda_unit += valorVendaUnitario
+        linhas[produto.tipo].total_venda += valorVendaTotal
 
         linhas[produto.tipo].orcamento += `
         <tr>
             <td style="font-size: 0.9em;">${descricao_produto}</td>
-            <td style="font-size: 0.9em;">${qtde}</td>
-            ${produto.tipo == 'SERVIÇO' && produto.tipo == 'USO E CONSUMO' ? `
-                ${mostrarElementoSeTiverPermissao({
-            listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
-            elementoHTML: `
-                        <td style="font-size: 0.9em;">${dinheiro(desconto_unit)}</td>
-                    `
-        })}
-            ` : ''}
-            ${produto.tipo == 'VENDA' ? `
-            <td style="font-size: 0.9em;">${dinheiro(desconto_unit)}</td>
-            <td style="font-size: 0.9em;">${`${cotacao?.margem}%` || '--'}</td>
+            <td style="font-size: 0.9em;">${quantidade}</td>
             ${mostrarElementoSeTiverPermissao({
-            listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+            listaDePermissao: painelUsersPermitidos,
             elementoHTML: `
-                    <td style="font-size: 0.9em;">${dinheiro(custo_unit)}</td>
-                    <td style="font-size: 0.9em;">${dinheiro(custo_total)}</td>
-                `
-        })}
-            ` : ''}
-            <td style="font-size: 0.9em;">${dinheiro(total_unit)}</td>
-            <td style="font-size: 0.9em;">${dinheiro(total)}</td>
-            ${produto.tipo == 'VENDA' ? `
-            <td style="font-size: 0.9em;">${dinheiro(lucro_unit)}</td>
-            ` : ''}
+                    <td style="font-size: 0.9em;">${dinheiro(descontoUnitario)}</td>
+                    ${produto.tipo === 'VENDA' ? `
+                    <td style="font-size: 0.9em;">${margem}%</td>
+                    <td style="font-size: 0.9em;">${dinheiro(custoUnitario)}</td>
+                    <td style="font-size: 0.9em;">${dinheiro(custoTotal)}</td>
+                ` : ''}
+            `})}
+            <td style="font-size: 0.9em;">${dinheiro(valorVendaUnitario)}</td>
+            <td style="font-size: 0.9em;">${dinheiro(valorVendaTotal)}</td>
+            ${produto.tipo === 'VENDA' ? `<td style="font-size: 0.9em;">${dinheiro(lucroUnitario)}</td>` : ''}
         </tr>
         `
     }
@@ -2174,17 +2178,17 @@ async function mostrar_painel() {
                             <thead style="background-color:${estiloDaLista(tipo)};">
                                 <th style="color: #fff; font-size: 0.9em;">Descrição</th>
                                 <th style="color: #fff; font-size: 0.9em;">Quantidade</th>
-                                <th style="color: #fff; font-size: 0.9em;">Desconto</th>
-                                ${tipo == 'VENDA' ? `
-                                    <th style="color: #fff; font-size: 0.9em;">Margem</th>
-                                    ${mostrarElementoSeTiverPermissao({
-                listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
+                                ${mostrarElementoSeTiverPermissao({
+                listaDePermissao: painelUsersPermitidos,
                 elementoHTML: `
-                                            <th style="color: #fff; font-size: 0.9em;">Custo Unit</th>
-                                            <th style="color: #fff; font-size: 0.9em;">Total Unit</th>
-                                        `
-            })}
-                                ` : ''}
+                                        <th style="color: #fff; font-size: 0.9em;">Desconto</th>
+                                        ${tipo == 'VENDA' ? `
+                                        <th style="color: #fff; font-size: 0.9em;">Margem</th>
+                                        <th style="color: #fff; font-size: 0.9em;">Custo Unit</th>
+                                        <th style="color: #fff; font-size: 0.9em;">Total Unit</th>
+                                        ` : ''}
+                                `})}
+
                                 <th style="color: #fff; font-size: 0.9em;">Valor de ${tipo.toLocaleLowerCase()} Unit</th>
                                 <th style="color: #fff; font-size: 0.9em;">Total de ${tipo.toLocaleLowerCase()}</th>
                                 ${tipo == 'VENDA' ? `
@@ -2194,36 +2198,35 @@ async function mostrar_painel() {
                             <tbody>
                                 ${tab.orcamento}
                                 <tr style="background-color:${estiloDaLista(tipo)};">
-                                    ${tipo == 'SERVIÇO' || tipo == 'USO E CONSUMO' ? `
-                                    <td style="font-size: 1em; font-weight: 600; background-color:${estiloDaLista(tipo)}; color: #fff;">Lucro</td>
-                                    <td style="font-size: 0.9em; font-weight: 600; background-color:${estiloDaLista(tipo)}; color: #fff;">${dinheiro(tab.total_orcado - linhas.SERVIÇO.total_impostos)}</td>`
-                    : ''}
-                                    ${tipo == 'VENDA' ? `
-                                    <td style="font-size: 1em; font-weight: 600;">Totais</td>
-                                    <td style="font-size: 0.9em; font-weight: 600;"></td>
+                                    ${tipo === 'VENDA' ? `
+                                        <td style="font-size: 0.9em; font-weight: 600;">Totais</td>
+                                        <td style="font-size: 0.9em; font-weight: 600;"></td>` : ''}
+                                    ${tipo === 'SERVIÇO' || tipo === 'USO E CONSUMO' ? `
+                                        <td style="
+                                            font-size: 0.9em;
+                                            font-weight: 600;
+                                            color: #fff;
+                                            background-color:${estiloDaLista(tipo)} !important;
+                                        ">Lucro Total</td>
+                                        <td style="
+                                            font-size: 0.9em;
+                                            font-weight: 600;
+                                            color: #fff;
+                                            background-color:${estiloDaLista(tipo)} !important;
+                                        ">${dinheiro(tab.total_lucro)}</td>` : ''}
                                     ${mostrarElementoSeTiverPermissao({
-                        listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
-                        elementoHTML: `
+                    listaDePermissao: painelUsersPermitidos,
+                    elementoHTML: `
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_desconto_unit)}</td>
+                                            ${tipo === 'VENDA' ? `
                                             <td style="font-size: 0.9em; font-weight: 600;"></td>
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo_unit)}</td>
                                             <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo)}</td>
-                                        `
-                    })}
-                                    `
-                    : ''}
-                                    ${tipo == 'SERVIÇO' || tipo == 'USO E CONSUMO' ? `
-                                    ${mostrarElementoSeTiverPermissao({
-                        listaDePermissao: ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'],
-                        elementoHTML: `<td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_desconto_unit)}</td>`
-                    })}`
-                    : ''}
-                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_unit)}</td>
-                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_orcado)}</td>
-
-                                    ${tipo == 'VENDA' ? `
-                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_lucro)}</td>`
-                    : ''}
+                                        ` : ''}
+                                    `})}
+                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_venda_unit)}</td>
+                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_venda)}</td>
+                                    ${tipo === 'VENDA' ? `<td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_lucro)}</td>` : ''}
                                 </tr>
                             </tbody>
 
@@ -2252,17 +2255,17 @@ async function mostrar_painel() {
     }
 
     let total_bruto = orcamento.total_bruto || linhas.SERVIÇO.total_orcado + linhas.VENDA.total_orcado;
-    let total_liquido = orcamento.total_geral;
+    let total_liquido = conversor(orcamento.total_geral);
 
-    const descontoNaoAdicionado = total_bruto === 0;
+    const descontoAdicionado = total_bruto !== 0;
 
-    const descontoTotal = descontoNaoAdicionado ? 0 : total_bruto - conversor(total_liquido);
+    const descontoTotal = descontoAdicionado ? total_bruto - total_liquido : 0;
 
     let totalImpostos = linhas.SERVIÇO.total_impostos + linhas.VENDA.total_impostos;
     let somaCustoCompra = linhas.VENDA.total_custo;
 
-    let lucro_liquido = conversor(total_liquido) - totalImpostos - somaCustoCompra - descontoTotal;
-    let lucro_porcentagem = (lucro_liquido / conversor(total_liquido) * 100).toFixed(2);
+    let lucro_liquido = total_liquido - totalImpostos - somaCustoCompra - descontoTotal;
+    let lucro_porcentagem = (lucro_liquido / total_liquido * 100).toFixed(2);
 
     let acumulado = `
 
@@ -2315,6 +2318,12 @@ async function mostrar_painel() {
                         <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
                             <label style="font-size: 0.7vw;">Lucro Líquido</label>
                             <label>${dinheiro(lucro_liquido)} (${lucro_porcentagem}%)</label>
+                        </div>
+
+                        <br>
+                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                            <label style="font-size: 0.7vw;">Valor total</label>
+                            <label>${dinheiro(total_liquido)}</label>
                         </div>
                     </div>
                     <div style="width: 40%;">
