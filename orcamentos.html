@@ -56,10 +56,6 @@
             padding: 5px;
         }
 
-        input {
-            text-align: center;
-        }
-
         .quantidade_requisicao {
             cursor: pointer;
             height: 20px;
@@ -75,11 +71,15 @@
             max-height: 70vh;
             height: max-content;
             width: 90vw;
-            overflow: auto;
+            overflow-y: auto;
         }
 
         th {
             color: #222;
+            position: sticky;
+            top: 0;
+            z-index: 1; /* ajuda quando há outros elementos empilhados */
+            
         }
 
         .label_etiquetas {
@@ -139,31 +139,27 @@
                 <label id="nome_filtro"></label>
             </div>
 
-            <div style="display: flex; justify-content: center; gap: 10px;">
-                <div style="display: flex; flex-direction: column; gap: 10px; height: 100%;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="window.location.href = 'criar_aluguel.html'">
-                        <label style="color: white; cursor: pointer;">Orçamento de Aluguel</label>
-                        <img src="imagens/projeto.png" style="width: 25px; cursor: pointer;">
+            <div style="display: flex; justify-content: center; width: 30vw;">
+                <div class="blocosCabecalho">
+                    <div onclick="window.location.href = 'criar_aluguel.html'">
+                        <label>Orçamento de Aluguel</label>
+                        <img src="imagens/projeto.png">
                     </div>
                 </div>
 
-                <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="window.location.href='inicial.html'">
-                        <label style="color: white; cursor: pointer;">Menu Inicial</label>
-                        <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
+                <div class="blocosCabecalho">
+                    <div onclick="window.location.href='inicial.html'">
+                        <label>Menu Inicial</label>
+                        <img src="imagens/voltar.png">
                     </div>
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="recuperar_orcamentos()">
-                        <label style="color: white; cursor: pointer;">Atualizar</label>
-                        <img src="imagens/atualizar_2.png" style="width: 25px; cursor: pointer;">
+                    <div onclick="recuperar_orcamentos()">
+                        <label>Atualizar</label>
+                        <img src="imagens/atualizar_2.png">
                     </div>
 
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="window.location.href = 'criar_orcamento.html'">
-                        <label style="color: white; cursor: pointer;">Criar Orçamento</label>
-                        <img src="imagens/projeto.png" style="width: 25px; cursor: pointer;">
+                    <div onclick="window.location.href = 'criar_orcamento.html'">
+                        <label>Criar Orçamento</label>
+                        <img src="imagens/projeto.png">
                     </div>
                 </div>
             </div>
@@ -171,7 +167,7 @@
 
         <div id="tabelas" style="display: flex; flex-direction: column; align-items: center; justify-content: start;">
             <div id="toolbar"></div>
-            <div id="orcamentos"></div>
+            <div id="orcamentos" class="tabela-container"></div>
         </div>
 
     </div>

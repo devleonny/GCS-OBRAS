@@ -170,27 +170,21 @@
             </div>
 
             <div style="display: flex; justify-content: center; gap: 10px;">
-                <div style="display: flex; flex-direction: column; gap: 10px; height: 100%;">
-                    <!--PRIMEIRA COLUNA DE ÍCONES-->
-                </div>
 
-                <div style="display: flex; flex-direction: column; align-items: end; gap: 10px;">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="window.location.href='inicial.html'">
-                        <label style="color: white;">Menu Inicial</label>
-                        <img src="imagens/voltar.png" style="width: 25px; cursor: pointer;">
+                <div class="blocosCabecalho">
+
+                    <div onclick="window.location.href='inicial.html'">
+                        <label>Menu Inicial</label>
+                        <img src="imagens/voltar.png">
                     </div>
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="recuperar_manutencoes()">
-                        <label style="color: white;">Atualizar</label>
-                        <img src="imagens/atualizar_2.png" style="width: 25px; cursor: pointer;">
+                    <div onclick="recuperar_manutencoes()">
+                        <label>Atualizar</label>
+                        <img src="imagens/atualizar_2.png">
                     </div>
 
-
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;"
-                        onclick="criar_manutencao()">
-                        <label style="color: white;">Criar Manutenção</label>
-                        <img src="imagens/chamados.png" style="width: 25px; cursor: pointer;">
+                    <div onclick="criar_manutencao()">
+                        <label>Criar Manutenção</label>
+                        <img src="imagens/chamados.png">
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -198,7 +192,6 @@
                         <input id="dataDe" class="datas_estoque" type="date" oninput="filtrarTabelaPorData()">
                         <input id="dataAte" class="datas_estoque" type="date" oninput="filtrarTabelaPorData()">
                     </div>
-
 
                 </div>
             </div>

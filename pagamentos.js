@@ -1,5 +1,4 @@
 let filtrosAtivosPagamentos = {}
-let dados_setores = {}
 let opcoesStatus = [
     'Aguardando aprovação da Diretoria',
     'Aguardando aprovação da Gerência',
@@ -27,19 +26,7 @@ async function consultar_pagamentos() {
     let dados_categorias = await recuperarDados('dados_categorias')
     if (!dados_categorias) {
         dados_categorias = await receber('dados_categorias')
-        inserirDados(dados_categorias, 'dados_categorias')
-    }
-
-    // timestamp para dados_setores: Sempre atualizado;
-    let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
-    let timestamp_atual_setores = await ultimo_timestamp('dados_setores')
-
-    if (timestamp_atual_setores.timestamp > (timestamps?.dados_setores || 0)) {
-        dados_setores = await lista_setores()
-        timestamps.dados_setores = timestamp_atual_setores.timestamp
-        localStorage.setItem('timestamps', JSON.stringify(timestamps))
-    } else {
-        dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+        await inserirDados(dados_categorias, 'dados_categorias')
     }
 
     let orcamentos = await recuperarDados('dados_orcamentos') || {};
@@ -212,7 +199,6 @@ async function consultar_pagamentos() {
         `
     div_pagamentos.innerHTML = elementus
 
-
 }
 
 function iconePagamento(status) {
@@ -237,6 +223,9 @@ function iconePagamento(status) {
             break
         case status.includes('Excluído'):
             icone = 'alerta'
+            break
+        case status.includes('Aguardando aprovação da Qualidade'):
+            icone = 'qualidade2'
             break
         case status.includes('ATRASADO'):
             icone = 'atrasado'
@@ -776,7 +765,7 @@ async function modal_editar_pagamento(id, indice) {
 
     let opcoes = ''
     Object.entries(dados_categorias).forEach(([codigo, categoria]) => {
-        opcoes += `<option data-codigo="${codigo}" ${categoriaAtual == codigo ? 'selected': ''}>${categoria}</option>`
+        opcoes += `<option data-codigo="${codigo}" ${categoriaAtual == codigo ? 'selected' : ''}>${categoria}</option>`
     })
 
     let acumulado = `

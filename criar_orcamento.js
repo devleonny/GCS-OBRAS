@@ -253,11 +253,11 @@ async function carregarTabelas() {
 
         stringsTabelas += `
         <div id="${tabela}" style="display: none; width: 100%;">
-            <table id="cabecalho_${tabela}" class="tabela" style="table-layout: auto; width: 100%; background-color: ${coresTabelas(tabela)};">
-                <thead id="thead_${tabela}">
+            <table id="cabecalho_${tabela}" class="tabela" style="table-layout: auto; width: 100%;">
+                <thead id="thead_${tabela}" style="background-color: ${coresTabelas(tabela)};">
                     <th style="color: white;">Código</th>
                     ${carrefour ? '<th style="color: white;">Item Original</th>' : ''}
-                    <th style="color: white;">Como aparecerá na ${orcamento_v2.lpu_ativa}</th>
+                    <th style="color: white;">${orcamento_v2.lpu_ativa}</th>
                     <th style="color: white;">Medida</th>
                     <th style="color: white;">Quantidade</th>
                     <th style="color: white;">Custo Unitário</th>
@@ -527,13 +527,8 @@ async function ocultarZerados(ocultar) {
 
 async function tabelaProdutos() {
 
-    let moduloComposicoes = (
-        acesso.permissao == 'adm' ||
-        acesso.permissao == 'log' ||
-        acesso.permissao == 'editor' ||
-        acesso.permissao == 'gerente' ||
-        acesso.permissao == 'diretor'
-    )
+    let permissoes = ['adm', 'log', 'editor', 'gerente', 'diretor']
+    let moduloComposicoes = permissoes.includes(acesso.permissao)
 
     let tabelas = { TODOS: { linhas: '' } }
 
@@ -644,17 +639,17 @@ async function tabelaProdutos() {
                 <label class="menu_top" style="background-color: ${coresTabelas(tabela)};" onclick="alterarTabela('${tabela}')">${tabela}</label>`
 
             tabelasHTML += `
-            <table id="compos_${tabela}" style="display: none; background-color: ${coresTabelas(tabela)};" class="tabela">
-                <thead>
-                    ${ths}
-                </thead>
-                <thead>
-                    ${tsh}
-                </thead>
-                <tbody>
-                    ${tabelas[tabela].linhas}
-                </tbody>
-            </table>
+                <table id="compos_${tabela}" style="display: none;" class="tabela">
+                    <thead style="background-color: ${coresTabelas(tabela)};">
+                        ${ths}
+                    </thead>
+                    <thead>
+                        ${tsh}
+                    </thead>
+                    <tbody>
+                        ${tabelas[tabela].linhas}
+                    </tbody>
+                </table>
             `
         }
 
@@ -694,8 +689,7 @@ async function tabelaProdutos() {
         tabela_itens.innerHTML = acumulado
     }
 
-    alterarTabela(Object.keys(tabelas)[1])
-
+    alterarTabela('TODOS')
 }
 
 function alterarTabela(tabela) {

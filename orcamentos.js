@@ -9,7 +9,7 @@ async function recuperar_orcamentos() {
 
     await sincronizarDados('dados_orcamentos')
     await preencher_orcamentos_v2()
-    
+
 }
 
 function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
@@ -122,7 +122,7 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 }
 
 async function preencher_orcamentos_v2() {
-    
+
     let div_orcamentos = document.getElementById('orcamentos')
     if (!div_orcamentos) {
         return
@@ -130,14 +130,14 @@ async function preencher_orcamentos_v2() {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    for([id, orcamento] of Object.entries(dados_orcamentos)){
-        try{
-        orcamento.dados_orcam.data
-        }catch{
+    for ([id, orcamento] of Object.entries(dados_orcamentos)) {
+        try {
+            orcamento.dados_orcam.data
+        } catch {
             console.log(id)
         }
     }
-    
+
     let desordenado = Object.entries(dados_orcamentos)
     desordenado.sort((a, b) => new Date(b[1].dados_orcam.data) - new Date(a[1].dados_orcam.data))
     dados_orcamentos = Object.fromEntries(desordenado)
@@ -167,7 +167,7 @@ async function preencher_orcamentos_v2() {
 
                     let num_pedido = chave_historico.pedido
                     let tipo = chave_historico.tipo
-                    let valor_pedido = chave_historico.valor
+                    let valor_pedido = conversor(chave_historico.valor)
 
                     label_pedidos += `
                         <div class="etiqueta_pedidos"> 
@@ -179,17 +179,16 @@ async function preencher_orcamentos_v2() {
                 }
 
                 if (chave_historico.notas) {
-                    console.log(chave_historico.notas);
-                    
+
                     var nota = chave_historico.notas[0]
                     let valor_nota = chave_historico.notas[0].valorNota || '---'
-                    
+
 
                     label_notas += `
                         <div class="etiqueta_pedidos">
                             <label style="font-size: 0.6vw;">${nota.modalidade}</label>
                             <label style="font-size: 0.7vw; margin: 2px;"><strong>${nota.nota}</strong></label>
-                            <label style="font-size: 0.8vw; margin: 2px"><strong>R$${dinheiro(valor_nota)}</strong></label>
+                            <label style="font-size: 0.8vw; margin: 2px"><strong>${dinheiro(valor_nota)}</strong></label>
                         </div>
                     `
                 }
@@ -298,8 +297,6 @@ async function editar(orcam_) {
 
 async function duplicar(orcam_) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let acesso = JSON.parse(localStorage.getItem('acesso'))
-
     var orcamento_v2 = dados_orcamentos[orcam_]
 
     delete orcamento_v2.id

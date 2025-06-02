@@ -410,12 +410,14 @@ async function calcular_requisicao(sincronizar) {
             let trs = tbody.querySelectorAll('tr')
             let total = 0
 
-            trs.forEach(tr => {
+            for (tr of trs) {
 
                 if (tr.style.display !== 'none') {
                     let tds = tr.querySelectorAll('td')
                     let codigo = tds[0].textContent
                     let item = itens[codigo]
+
+                    if (!item) continue
 
                     let quantidadeDisponivel = 0
                     if (tds[4].querySelector('label.num')) {
@@ -452,7 +454,7 @@ async function calcular_requisicao(sincronizar) {
 
                     total += totalLinhas
                 }
-            })
+            }
 
             document.getElementById('total_requisicao').textContent = dinheiro(total)
 
@@ -519,7 +521,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
         for (id in requisicao) {
             let item = requisicao[id]
 
-            item.descricao = itensOrcamento[item.codigo].descricao
+            item.descricao = itensOrcamento[item.codigo]?.descricao || '<label style="color: red;">Item Removido do Orçamento</label>'
 
             let descricao = item.descricao
 
@@ -994,7 +996,6 @@ function mostrar_itens_adicionais() {
 }
 
 async function salvar_pedido(chave) {
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let data = document.getElementById('data')
     let comentario_status = document.getElementById('comentario_status')
     let valor = document.getElementById('valor')
@@ -1060,7 +1061,6 @@ async function salvar_notas(chave) {
     let comentario_status = document.getElementById('comentario_status')
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
     if (tipo.value == "Selecione" || nota.value == "" || valorNota.value == "") {
         //|| valorFrete.value == "")
@@ -1308,7 +1308,6 @@ async function remover_reprovacao(responsavel) {
 async function aprovar_orcamento(responsavel, aprovar, data) {
     let justificativa = document.getElementById(`justificativa_${responsavel}`)
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let orcamento = dados_orcamentos[id_orcam]
     let aprov = {
         usuario: acesso.usuario,
@@ -1338,8 +1337,6 @@ async function abrir_esquema(id) {
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
     let orcamento = dados_orcamentos[id]
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
-    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
     let setor = dados_setores[acesso.usuario]?.setor
     let permissao = dados_setores[acesso.usuario]?.permissao
     let categorias = Object.fromEntries(
@@ -2460,7 +2457,6 @@ async function alterar_status(select, id) {
     }
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {};
     let orcamento = dados_orcamentos[id_orcam];
 
     // Só prosseguir se o status realmente mudou
@@ -2575,7 +2571,6 @@ async function iniciar_cotacao(id_orcam) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento = dados_orcamentos[id_orcam]
     let itens_do_orcamento = dados_orcamentos[id_orcam].dados_composicoes
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let todos_os_status = orcamento.status.historico
     let itens = {} // Dicionário;
     let tem_requisicao = false
@@ -2870,7 +2865,6 @@ async function salvar_materiais_retorno(chave) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
 
     let tabelaRetornoMateriais = document.querySelector("#tabelaRetornoMateriais")
 
@@ -2950,7 +2944,6 @@ async function registrar_envio_material(chave) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let historico = dados_orcamentos[id_orcam].status.historico
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let st = 'MATERIAL ENVIADO'
 
     status.executor = acesso.usuario
@@ -3088,7 +3081,6 @@ async function excluir_comentario(id_comentario, chave) {
 
 async function carregar_comentarios(chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let comentss = ''
     if (dados_orcamentos[id_orcam].status.historico[chave]) {
         let comentarios = dados_orcamentos[id_orcam].status.historico[chave].comentarios || {}
@@ -3123,7 +3115,6 @@ async function salvar_comentario(chave) {
     let id_div = `comentario_${chave}`
     let textarea = document.getElementById(id_div).querySelector('textarea')
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let acesso = JSON.parse(localStorage.getItem('acesso')) || {}
     let orcamento = dados_orcamentos[id_orcam]
 
     var id = gerar_id_5_digitos()

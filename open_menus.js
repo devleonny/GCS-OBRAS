@@ -1,5 +1,6 @@
 var versao = 'v3.0.5'
 let acesso = JSON.parse(localStorage.getItem('acesso'))
+let dados_setores = {}
 let logo = 'https://i.imgur.com/Nb8sPs0.png'
 let esquemas = {
     'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS'],
@@ -21,8 +22,6 @@ function f5() {
 }
 
 identificacaoUser()
-carregarIcones()
-verificarAlertas()
 
 function ativarCloneGCS(ativar) {
 
@@ -148,7 +147,6 @@ function carregarIcones() {
     if (document.title != 'Página Inicial') return
 
     let ativar = JSON.parse(localStorage.getItem('modoClone')) || false
-
     let painel_geral = document.getElementById('painel_geral')
 
     let moduloComposicoes = (
@@ -238,11 +236,18 @@ function corFundo() {
 }
 
 async function identificacaoUser() {
-
     corFundo()
 
-    acesso = await lista_setores(acesso.usuario)
+    if (document.title == 'Login') return
+    if (!acesso) return window.location.href = 'login.html'
+
+    await sincronizarSetores()
+    acesso = dados_setores[acesso.usuario]
     localStorage.setItem('acesso', JSON.stringify(acesso))
+
+    carregarIcones()
+    verificarAlertas()
+    aprovacoes_pendentes()
 
     let permissao = acesso.permissao
 
@@ -255,7 +260,7 @@ async function identificacaoUser() {
             <img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="configs()">`
         }
 
-        var texto = `
+        let texto = `
             <div style="position: relative; display: fixed;">
                 <div style="position: absolute; top: 10px; right: 10px; display: flex; justify-content: center; align-items: center; gap: 10px;">
                     ${config}
@@ -269,31 +274,54 @@ async function identificacaoUser() {
 
 }
 
+async function sincronizarSetores() {
+
+    dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    let timestamps = []
+    for ([usuario, objeto] of Object.entries(dados_setores)) {
+        if (objeto.timestamp) {
+            timestamps.push(objeto.timestamp)
+        }
+    }
+
+    const maiorTimestamp = timestamps.length ? Math.max(...timestamps) : 0
+    let nuvem = await lista_setores(maiorTimestamp)
+
+    let dadosMesclados = {
+        ...dados_setores,
+        ...nuvem
+    }
+
+    dados_setores = dadosMesclados
+    localStorage.setItem('dados_setores', JSON.stringify(dadosMesclados))
+
+    return dadosMesclados
+
+}
+
 async function configs() {
+
+    overlayAguarde()
 
     let status = await servicos('livre')
 
-    // timestamp para dados_setores: Sempre atualizado;
-    let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
-    let timestamp_atual_setores = await ultimo_timestamp('dados_setores')
-
-    if (timestamp_atual_setores.timestamp > (timestamps?.dados_setores || 0)) {
-        dados_setores = await lista_setores()
-        timestamps.dados_setores = timestamp_atual_setores.timestamp
-        localStorage.setItem('timestamps', JSON.stringify(timestamps))
-    } else {
-        dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
-    }
+    await sincronizarSetores()
 
     let linhas = ''
     let listas = {
-        permissoes: ['', 'adm', 'user', 'gerente', 'diretoria', 'editor', 'log', 'qualidade'],
+        permissoes: ['', 'adm', 'user', 'gerente', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
         setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE']
     }
 
-    for (usuario in dados_setores) {
+    dados_setores = Object.keys(dados_setores)
+        .sort()
+        .reduce((obj, chave) => {
+            obj[chave] = dados_setores[chave];
+            return obj;
+        }, {});
 
-        let dados = dados_setores[usuario]
+    for ([usuario, dados] of Object.entries(dados_setores)) {
+
         let opcoes_permissao = ''
         let opcoes_setores = ''
 
@@ -311,12 +339,12 @@ async function configs() {
 
         linhas += `
         <tr>
-            <td>${usuario}</td>
+            <td style="text-align: left;">${usuario}</td>
             <td>
-                <select style="font-size: 0.8vw;" onchange="alterar_usuario('permissao', '${usuario}', this)" style="cursor: pointer;">${opcoes_permissao}</select>
+                <select class="opcoesSelect" onchange="alterar_usuario('permissao', '${usuario}', this)" style="cursor: pointer;">${opcoes_permissao}</select>
             </td>
             <td>
-                <select style="font-size: 0.8vw;" onchange="alterar_usuario('setor', '${usuario}', this)" style="cursor: pointer;">${opcoes_setores}</select>
+                <select class="opcoesSelect" onchange="alterar_usuario('setor', '${usuario}', this)" style="cursor: pointer;">${opcoes_setores}</select>
             </td>
         </tr>
         `
@@ -348,20 +376,18 @@ async function configs() {
         ${tabela}
     </div>
     `
-
+    remover_popup()
     openPopup_v2(acumulado, 'Configurações')
 
 }
 
 async function alterar_usuario(campo, usuario, select) {
-    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
 
     if (dados_setores[usuario]) {
 
         let alteracao = await configuracoes(usuario, campo, select.value) // Se alterar no servidor, altera localmente;
         if (alteracao.status) {
             dados_setores[usuario][campo] = select.value
-            localStorage.setItem('dados_setores', JSON.stringify(dados_setores))
         } else {
             select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
         }
@@ -413,6 +439,11 @@ function inicial_maiuscula(string) {
 
     if (string.includes('lpu')) return string.toUpperCase()
     return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
+}
+
+function removerOverlay() {
+    let aguarde = document.getElementById('aguarde')
+    if (aguarde) aguarde.remove()
 }
 
 function overlayAguarde() {
@@ -648,7 +679,7 @@ function openPopup_v2(elementoHTML, titulo, nao_remover_anteriores) {
     `;
 
     remover_popup(nao_remover_anteriores)
-
+    removerOverlay()
     document.body.insertAdjacentHTML('beforeend', popup_v2);
 
 }
@@ -1762,23 +1793,23 @@ async function lancar_pagamento(pagamento, call) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ pagamento, call })
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-            }
-            return response.text();
-        })
-        .then(data => {
-            data = JSON.parse(data)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.text();
+            })
+            .then(data => {
+                data = JSON.parse(data)
 
-            if (data.faultstring) {
-                let comentario = `Erro na API ao enviar o pagamento para o Omie! ${data.faultstring}`
-                registrarAlteracao('lista_pagamentos', pagamento.id_pagamento, comentario)
-            }
+                if (data.faultstring) {
+                    let comentario = `Erro na API ao enviar o pagamento para o Omie! ${data.faultstring}`
+                    registrarAlteracao('lista_pagamentos', pagamento.id_pagamento, comentario)
+                }
 
-            resolve(data);
-        })
-        .catch(err => reject(err))
+                resolve(data);
+            })
+            .catch(err => reject(err))
     })
 }
 
@@ -1900,7 +1931,6 @@ function data_atual(estilo, nivel) {
     }
 }
 
-aprovacoes_pendentes()
 async function aprovacoes_pendentes() {
 
     let permissao = acesso.permissao
@@ -2095,12 +2125,12 @@ async function servicos(servico, alteracao) {
     })
 }
 
-async function lista_setores(usuario) {
+async function lista_setores(timestamp) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/setores", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ usuario })
+            body: JSON.stringify({ timestamp })
         })
             .then(response => {
                 if (!response.ok) {
