@@ -1955,15 +1955,13 @@ async function mostrar_painel() {
         let tabela = produto[lpu] || {}
         let quantidade = item_orcamento.qtde || 0
         let cotacao = tabela?.historico?.[tabela?.ativo] || {}
-        console.log('Tabela: ', lpu);
-
 
         let custoUnitario = cotacao?.valor_custo || 0;
         let custoTotal = (custoUnitario * quantidade) || 0;
 
         let tipoDesconto = item_orcamento.tipo_desconto === 'Dinheiro';
         let DESCONTO_PORCENTAGEM = (item_orcamento.desconto / 100) * custoUnitario;
-        let descontoUnitario = tipoDesconto ? item_orcamento.desconto : DESCONTO_PORCENTAGEM;
+        let descontoUnitario = tipoDesconto ? item_orcamento.desconto : DESCONTO_PORCENTAGEM || 0;
 
         let valorVendaUnitario = cotacao?.valor || 0;
         let valorVendaTotal = (valorVendaUnitario * quantidade) - descontoUnitario || 0;
