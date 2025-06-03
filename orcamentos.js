@@ -461,3 +461,4 @@ function atualizar_status(st) {
 
     return st
 }
+
