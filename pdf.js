@@ -152,7 +152,7 @@ async function preencher_v2() {
         'ALUGUEL': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: 'green' },
         'USO E CONSUMO': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: '#24729d' },
         'SERVIÇO': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: 'green' },
-        'VENDA': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: '#B12425' }
+        'VENDA': { colunas: [1, 2, 3, 4, 5, 6, 7, 9, 10], cor: '#B12425' }
     }
 
 
@@ -194,17 +194,17 @@ async function preencher_v2() {
         item.total = item.custo * item.qtde;
         totais[item.tipo].valor += item.total // Total isolado do item;
         totais.GERAL.valor += item.total // Total GERAL;
-
+        
         let unitarioSemIcms = item.custo - (item.custo * (icms / 100))
         let totalSemIcms = unitarioSemIcms * item.qtde
         let tds = {}
-        
+
         tds[1] = `<td>${item.codigo}</td>`
         tds[2] = `<td>${item?.descricao || 'N/A'}</td>`
         tds[3] = `<td style="text-align: center;"><img src="${itemComposicao?.imagem || item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 2vw;"></td>`
         tds[4] = `<td>${item?.unidade || 'UN'}</td>`
         tds[5] = `<td>${item.qtde}</td>`
-        tds[6] = `<td style="white-space: nowrap;">${dinheiro(unitarioSemIcms)}</td>`
+        tds[6] = `<td style="white-space: nowrap;">${dinheiro(unitarioSemIcms)} (${icms}%)</td>`
         tds[7] = `<td style="white-space: nowrap;">${dinheiro(totalSemIcms)}</td>`
         tds[8] = `<td>${icms}%</td>`
         tds[9] = `<td style="white-space: nowrap;">${dinheiro(item.custo)}</td>`

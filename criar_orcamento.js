@@ -754,6 +754,7 @@ async function gerenciarAgrupamentos(codigo) {
 
 async function total() {
 
+    dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento_v2 = baseOrcamento()
     let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
     let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
