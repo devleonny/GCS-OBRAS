@@ -54,33 +54,22 @@ async function exibirTabelaAgrupamentos() {
                                     <th style="padding: 12px; border: 1px solid #ddd; text-align: left; font-weight: bold; color:rgb(32, 32, 32);">Código</th>
                                     <th style="padding: 12px; border: 1px solid #ddd; text-align: left; font-weight: bold; color:rgb(32, 32, 32);">Descrição</th>
                                     <th style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color:rgb(32, 32, 32);">Quantidade</th>
+                                    <th style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color:rgb(32, 32, 32);">Valor</th>
                                     <th style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color:rgb(32, 32, 32);">Imagem</th>
+                                    <th style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color:rgb(32, 32, 32);">Ação</th>
                                 </tr>
                             </thead>
                             <tbody>
             `
 
-            tabelaHTML += `
-                <tr style="background-color: #e8f5e8; border-left: 4px solid ${coresTabelas(tipo)};">
-                    <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">${codigoPrincipal}</td>
-                    <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">${itemPrincipal.descricao}</td>
-                    <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">
-                        <span style="background-color: ${coresTabelas(tipo)}; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.9em;">
-                            ${composicoesOrcamento[codigoPrincipal].qtde || 0}
-                        </span>
-                    </td>
-                    <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
-                        <img src="${itemPrincipal.imagem || logo}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; cursor: pointer;"
-                             onclick="ampliar_especial(this, '${codigoPrincipal}')">
-                    </td>
-                </tr>
-            `
-
             // Adiciona os itens do agrupamento
             for (let codigoAgrupamento in itemPrincipal.agrupamentos) {
-                let quantidadeAgrupamento = itemPrincipal.agrupamentos[codigoAgrupamento]
                 let itemAgrupamento = dadosComposicoes[codigoAgrupamento]
                 let tipoAgrupamento = itemAgrupamento.tipo.toUpperCase()
+                let codigoValorAtivo = itemAgrupamento[lpu]?.ativo
+                let valorAtivo = itemAgrupamento[lpu]?.historico[codigoValorAtivo]?.valor
+                console.log('Item agrupamento: ', itemAgrupamento[lpu].historico[codigoValorAtivo].valor);
+
 
                 if (itemAgrupamento) {
                     tabelaHTML += `
@@ -93,13 +82,29 @@ async function exibirTabelaAgrupamentos() {
                                 ${itemAgrupamento.descricao || 'N/A'}
                             </td>
                             <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
-                                <span style="background-color: ${coresTabelas(tipoAgrupamento)}; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.8em;">
-                                    ${quantidadeAgrupamento}
-                                </span>
+                                <input 
+                                    type="number"
+                                    class="quantidade-agrupamento"
+                                    data-codigo="${codigoAgrupamento}" 
+                                    data-principal="${codigoPrincipal}"
+                                    style="padding: 1vw; text-align: center; border-radius: 1vw; background-color: #4CAF50; color: #ddd; font-size: 1vw; font-weight: bold;"
+                                >
                             </td>
                             <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
-                                <img src="${itemAgrupamento.imagem || logo}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer;"
-                                     onclick="ampliar_especial(this, '${codigoAgrupamento}')">
+                                <label class="input_valor">${dinheiro(valorAtivo)}</label>
+                            </td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                                <img
+                                    src="${itemAgrupamento.imagem || logo}" 
+                                    style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer;"
+                                    onclick="ampliar_especial(this, '${codigoAgrupamento}')"
+                                >
+                            </td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                                <button 
+                                    style="font-weight: 500 !important; font-size: 1vw !important; background-color: ${coresTabelas(tipoAgrupamento)}; color: white; border: none; padding: 0.5vw; width: 100%; border-radius: 5px; cursor: pointer;"
+                                    onclick="lancarItemAgrupamento('${codigoAgrupamento}', '${codigoPrincipal}')"
+                                >Lançar item de ${tipoAgrupamento.toLowerCase()}</button>
                             </td>
                         </tr>
                     `
@@ -148,6 +153,22 @@ async function exibirTabelaAgrupamentos() {
     `
 
     openPopup_v2(conteudoPopup, 'Agrupamentos do Orçamento')
+}
+
+function lancarItemAgrupamento(codigoAgrupamento, codigoPrincipal) {
+    // Busca o input específico usando os data attributes
+    const input = document.querySelector(`input[data-codigo="${codigoAgrupamento}"][data-principal="${codigoPrincipal}"]`);
+
+    if (input && input.value) {
+        const quantidade = parseFloat(input.value);
+        if (quantidade > 0) {
+            incluirItem(codigoAgrupamento, quantidade);
+        } else {
+            alert('Por favor, insira uma quantidade válida maior que zero.');
+        }
+    } else {
+        alert('Por favor, insira uma quantidade antes de lançar o item.');
+    }
 }
 
 function toggleAgrupamento(codigoPrincipal) {
@@ -369,11 +390,15 @@ async function carregarTabelas() {
 
     for (codigo in dadosComposicoes) {
         let produto = dadosComposicoes[codigo]
+        console.log('Tabela: ', baseComposicoes[codigo]);
+
 
         let opcoes = ''
         esquemas.sistema.forEach(op => {
             opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
         })
+
+        // incluirItem(codigo, novaQuantidade)
 
         let linha = `
         <tr>
