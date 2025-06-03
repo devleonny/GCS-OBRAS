@@ -156,19 +156,19 @@ async function exibirTabelaAgrupamentos() {
 }
 
 function lancarItemAgrupamento(codigoAgrupamento, codigoPrincipal) {
-    // Busca o input específico usando os data attributes
     const input = document.querySelector(`input[data-codigo="${codigoAgrupamento}"][data-principal="${codigoPrincipal}"]`);
+    const quantidade = parseFloat(input.value);
+    if (quantidade <= 0 || !input.value) {
+        openPopup_v2(
+            '<p>Por favor, insira uma quantidade válida maior que zero.</p>',
+            'Erro de quantidade',
+            true
+        );
 
-    if (input && input.value) {
-        const quantidade = parseFloat(input.value);
-        if (quantidade > 0) {
-            incluirItem(codigoAgrupamento, quantidade);
-        } else {
-            alert('Por favor, insira uma quantidade válida maior que zero.');
-        }
-    } else {
-        alert('Por favor, insira uma quantidade antes de lançar o item.');
+        return null;
     }
+
+    incluirItem(codigoAgrupamento, quantidade);
 }
 
 function toggleAgrupamento(codigoPrincipal) {
