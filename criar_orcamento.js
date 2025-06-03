@@ -438,7 +438,6 @@ async function enviar_dados() {
     baseOrcamento(undefined, true)
     location.href = 'orcamentos.html';
 
-
 }
 
 async function autorizar_desconto(reaprovacao) {
@@ -482,7 +481,6 @@ async function autorizar_desconto(reaprovacao) {
         </div>
         `
     } else {
-
         await enviar(`aprovacoes/${id}`, dados)
         baseOrcamento(orcamento_v2)
     }

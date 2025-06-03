@@ -353,7 +353,7 @@ async function configs() {
     let cabecalhos = ['Usuário', 'Permissão', 'Setores']
     cabecalhos.forEach((cabecalho, i) => {
         ths += `<th>${cabecalho}</th>`
-        tbusca +=`
+        tbusca += `
         <th style="background-color: white;">
             <div style="display: flex; align-items: center; justify-content: center;">
                 <input oninput="pesquisar_generico(${i}, this.value, filtrosUsuarios, 'tbodyUsuarios')">
@@ -1660,6 +1660,7 @@ function connectWebSocket() {
     socket.onmessage = (event) => {
         let data = JSON.parse(event.data);
         espelhar_atualizacao(data);
+
         console.log('📢', data);
     };
 
@@ -1943,17 +1944,12 @@ function data_atual(estilo, nivel) {
 
 async function aprovacoes_pendentes() {
 
-    let permissao = acesso.permissao
-    let pessoasPermitidas = ['gerente', 'adm', 'editor']
-    if (!pessoasPermitidas.includes(permissao)) return
-
     let painel_aprovacoes = document.getElementById('painel_aprovacoes')
     if (painel_aprovacoes) {
         painel_aprovacoes.remove()
     }
 
     let orcamento_v2 = baseOrcamento()
-
     let aprovacoes = await receber('aprovacoes') || {}
     let acumulado = ''
 
@@ -2016,12 +2012,16 @@ async function aprovacoes_pendentes() {
         `
     }
 
-    let painel = `
-    <div id="painel_aprovacoes" style="z-index: 4444; position: fixed; bottom: 2vw; right: 2vw; display: flex; align-items: center; justify-content: start; flex-direction: column; gap: 5px; height: 70vh; overflow: auto;">
-        ${acumulado}
-    </div>
-    `
-    document.body.insertAdjacentHTML('beforeend', painel)
+    let permissao = acesso.permissao
+    let pessoasPermitidas = ['gerente', 'adm', 'editor']
+    if (pessoasPermitidas.includes(permissao)) {
+        let painel = `
+        <div id="painel_aprovacoes" style="z-index: 4444; position: fixed; bottom: 2vw; right: 2vw; display: flex; align-items: center; justify-content: start; flex-direction: column; gap: 5px; height: 70vh; overflow: auto;">
+            ${acumulado}
+        </div>
+        `
+        document.body.insertAdjacentHTML('beforeend', painel)
+    }
 }
 
 function resposta_desconto(botao, id, status) {
