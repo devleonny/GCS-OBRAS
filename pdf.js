@@ -141,11 +141,11 @@ async function preencher_v2() {
         3: 'Imagem *Ilustrativa',
         4: 'Unidade',
         5: 'Qtde',
-        6: 'Valor UNT S/ICMS',
-        7: 'Valor TOTAL S/ICMS',
+        6: 'UNT S/ICMS',
+        7: 'TOTAL S/ICMS',
         8: '% ICMS',
-        9: 'Valor UNT',
-        10: 'Valor TOTAL'
+        9: 'UNT',
+        10: 'TOTAL'
     }
 
     let config = {
@@ -224,7 +224,11 @@ async function preencher_v2() {
         if (!totais[item.tipo].ths) {
             totais[item.tipo].ths = ''
             colunas.forEach(col => {
-                totais[item.tipo].ths += `<th style="color: white;">${cabecalho[col]}</th >`
+
+                let complemento = ''
+                if(item.tipo == 'VENDA') complemento = 'COM ICMS'
+
+                totais[item.tipo].ths += `<th style="color: white;">${cabecalho[col]} ${complemento}</th>`
             })
 
         }
