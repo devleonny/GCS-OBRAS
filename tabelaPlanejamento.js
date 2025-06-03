@@ -2,6 +2,7 @@
 
   async function acompanharOrcamento() {
     dados_orcamentos = await recuperarDados('dados_orcamentos')
+    
     let acumulado = `
     <div>
         <label>Buscar Orçamento</label>
@@ -54,7 +55,8 @@ carregarInformacoes()
 async function carregarInformacoes() {
     const obterDados = await recuperarDados('dados_planejamento') || {};
     let acumulado = '';
-    let cabecalhos = ['Chamado', 'Loja', 'Analista', 'Status', 'Escopo', 'P. Serviço', 'P.Venda', 'Soma dos Pedidos', 'Valor do Orçamento', 'Soma das Notas de Envio', 'Pendências Carrefour', 'Pendências Hope', 'Início', 'Entrega', 'RF + OS'];
+    let cabecalhos = ['Chamado', 'Loja', 'Estado', 'Região', 'Analista CRF','Analista', 'Status', 'Escopo', 'P. Serviço', 'P.Venda', 'Soma dos Pedidos', 'Valor do Orçamento', 'Soma das Notas de Envio',
+         'Pendências Carrefour', 'Pendências Hope', 'Início', 'Entrega', 'RF + OS'];
     let thSearch = '';
     let tabelaPlanejamento = document.getElementById('tabelaPlanejamento');
     let linhas = ''
@@ -76,10 +78,55 @@ async function carregarInformacoes() {
     for ([id, dados] of Object.entries(obterDados)) {
         linhas += `
             <tr>
-                <td>${dados.contrato}</td>
-                <td>${dados.usuario}</td>
+                <td>${Dados.contrato}</td> 
+                <td>${dados.cliente_selecionado}</td>  
+                <td>${dados.estado}</td>
+                <td>${Região}</td>
+                <td>${AnalistaCRF}</td>
+                <td>${acesso.usuario}</td>
+                <td>${status.value}</td>
+                <td>${Escopo}</td>
+                <td>${PedidoServico}</td>
+                <td>${PedidoVenda}</td>
+                <td>${SomaPedidos}</td>
+                <td>${ValorDoOrcamento}</td>
+                <td>${SomaNotas}</td>
+                <td>${PendenciasCarrefour}</td>
+                <td>${PendenciasHope}</td>
+                <td>${Inicio.value}</td>
+                <td>${Entrega.value}</td>
+                <td>${RfOs.value}</td>
             </tr>
         `
+
+        let tabela = `
+        <table class="tabela" style="width: 90vw;">
+            <thead>
+                <tr>
+                    ${thHead}
+                </tr>
+                <tr>
+                    ${thSearch}
+                </tr>
+            </thead>
+
+            <tbody id="bodyTabela">
+                ${linhas}
+            </tbody>
+        </table>
+        `
+
+        acumulado = `
+        <br>
+        <div id="toolbar" style="display: flex; align-items: end; justify-content: lef; gap: 10px; height: 3vw; margin-left: 2vw;">
+            ${toolbar}
+        </div>
+        <div style="height: 80vh; overflow: auto;">
+            ${tabela}
+        </div>
+        `
+
+        tabelaPlanejamento.innerHTML = acumulado
     }
 }
 
