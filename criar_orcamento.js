@@ -18,6 +18,181 @@ function coresTabelas(tabela) {
 
 }
 
+async function exibirTabelaAgrupamentos() {
+    let orcamento_v2 = baseOrcamento()
+    let lpu = String(orcamento_v2.lpu_ativa || 'lpu hope').toLowerCase()
+    let dadosComposicoes = await recuperarDados('dados_composicoes') || {}
+    let composicoesOrcamento = orcamento_v2?.dados_composicoes || {}
+    let tabelaHTML = ''
+    let temAgrupamentos = false
+
+    // Percorre todos os itens do orçamento para encontrar agrupamentos
+    for (let codigoPrincipal in composicoesOrcamento) {
+        let itemPrincipal = dadosComposicoes[codigoPrincipal]
+        let tipo = dadosComposicoes[codigoPrincipal].tipo.toUpperCase()
+
+        if (itemPrincipal && itemPrincipal.agrupamentos && Object.keys(itemPrincipal.agrupamentos).length > 0) {
+            temAgrupamentos = true
+
+            // Cabeçalho do item principal com funcionalidade de toggle
+            tabelaHTML += `
+                <div style="margin: 20px 0; border: 2px solid ${coresTabelas(tipo)}; border-radius: 8px; overflow: hidden;">
+                    <div style="background-color: ${coresTabelas(tipo)}; color: white; padding: 10px; font-weight: bold; display: flex; align-items: center; gap: 10px; cursor: pointer;" 
+                         onclick="toggleAgrupamento('${codigoPrincipal}')">
+                        <img src="gifs/lampada.gif" style="width: 25px; height: 25px;">
+                        <span>ITEM PRINCIPAL: ${codigoPrincipal} - ${itemPrincipal.descricao}</span>
+                        <span style="margin-left: auto; background-color: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 15px;">
+                            Quantidade: ${composicoesOrcamento[codigoPrincipal].qtde || 0}
+                        </span>
+                        <span id="toggle-icon-${codigoPrincipal}" style="font-size: 1.2em; transition: transform 0.3s;">▼</span>
+                    </div>
+                    
+                    <div id="agrupamento-${codigoPrincipal}" style="display: block; transition: all 0.3s ease;">
+                        <table style="width: 100%; border-collapse: collapse; background-color: white;">
+                            <thead style="background-color: #f8f9fa;">
+                                <tr>
+                                    <th style="padding: 12px; border: 1px solid #ddd; text-align: left; font-weight: bold; color:rgb(32, 32, 32);">Código</th>
+                                    <th style="padding: 12px; border: 1px solid #ddd; text-align: left; font-weight: bold; color:rgb(32, 32, 32);">Descrição</th>
+                                    <th style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color:rgb(32, 32, 32);">Quantidade</th>
+                                    <th style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color:rgb(32, 32, 32);">Imagem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `
+
+            tabelaHTML += `
+                <tr style="background-color: #e8f5e8; border-left: 4px solid ${coresTabelas(tipo)};">
+                    <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">${codigoPrincipal}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">${itemPrincipal.descricao}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">
+                        <span style="background-color: ${coresTabelas(tipo)}; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.9em;">
+                            ${composicoesOrcamento[codigoPrincipal].qtde || 0}
+                        </span>
+                    </td>
+                    <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                        <img src="${itemPrincipal.imagem || logo}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; cursor: pointer;"
+                             onclick="ampliar_especial(this, '${codigoPrincipal}')">
+                    </td>
+                </tr>
+            `
+
+            // Adiciona os itens do agrupamento
+            for (let codigoAgrupamento in itemPrincipal.agrupamentos) {
+                let quantidadeAgrupamento = itemPrincipal.agrupamentos[codigoAgrupamento]
+                let itemAgrupamento = dadosComposicoes[codigoAgrupamento]
+                let tipoAgrupamento = itemAgrupamento.tipo.toUpperCase()
+
+                if (itemAgrupamento) {
+                    tabelaHTML += `
+                        <tr style="background-color: #f9f9f9;" class="item-agrupamento-${codigoPrincipal}">
+                            <td style="padding: 10px; border: 1px solid #ddd; padding-left: 30px; position: relative;">
+                                <span style="position: absolute; left: 10px; color: ${coresTabelas(tipoAgrupamento)}; font-weight: 500;">└─</span>
+                                ${codigoAgrupamento}
+                            </td>
+                            <td style="padding: 10px; border: 1px solid #ddd; color:rgb(19, 19, 19);">
+                                ${itemAgrupamento.descricao || 'N/A'}
+                            </td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                                <span style="background-color: ${coresTabelas(tipoAgrupamento)}; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.8em;">
+                                    ${quantidadeAgrupamento}
+                                </span>
+                            </td>
+                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                                <img src="${itemAgrupamento.imagem || logo}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer;"
+                                     onclick="ampliar_especial(this, '${codigoAgrupamento}')">
+                            </td>
+                        </tr>
+                    `
+                }
+            }
+
+            tabelaHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `
+        }
+    }
+
+    if (!temAgrupamentos) {
+        tabelaHTML = `
+            <div style="text-align: center; padding: 40px; color: #666;">
+                <img src="gifs/lampada.gif" style="width: 60px; height: 60px; opacity: 0.5;">
+                <p style="margin-top: 20px; font-size: 1.2em;">Nenhum agrupamento encontrado no orçamento atual</p>
+                <p style="color: #999;">Adicione itens com agrupamentos para visualizá-los aqui</p>
+            </div>
+        `
+    }
+
+    let conteudoPopup = `
+        <div style="max-width: 90vw; max-height: 80vh; overflow-y: auto;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #4CAF50;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <img src="gifs/lampada.gif" style="width: 30px; height: 30px;">
+                    <h2 style="margin: 0; color: #4CAF50;">Visualização de Agrupamentos</h2>
+                </div>
+                ${temAgrupamentos ? `
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="expandirTodosAgrupamentos()" style="background-color: #4CAF50; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
+                        Expandir Todos
+                    </button>
+                    <button onclick="recolherTodosAgrupamentos()" style="background-color: #666; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
+                        Recolher Todos
+                    </button>
+                </div>
+                ` : ''}
+            </div>
+            ${tabelaHTML}
+        </div>
+    `
+
+    openPopup_v2(conteudoPopup, 'Agrupamentos do Orçamento')
+}
+
+function toggleAgrupamento(codigoPrincipal) {
+    let agrupamento = document.getElementById(`agrupamento-${codigoPrincipal}`)
+    let icon = document.getElementById(`toggle-icon-${codigoPrincipal}`)
+
+    if (agrupamento.style.display === 'none') {
+        agrupamento.style.display = 'block'
+        icon.style.transform = 'rotate(0deg)'
+        icon.textContent = '▼'
+    } else {
+        agrupamento.style.display = 'none'
+        icon.style.transform = 'rotate(-90deg)'
+        icon.textContent = '▶'
+    }
+}
+
+function expandirTodosAgrupamentos() {
+    let agrupamentos = document.querySelectorAll('[id^="agrupamento-"]')
+    let icons = document.querySelectorAll('[id^="toggle-icon-"]')
+
+    agrupamentos.forEach(agrupamento => {
+        agrupamento.style.display = 'block'
+    })
+
+    icons.forEach(icon => {
+        icon.style.transform = 'rotate(0deg)'
+        icon.textContent = '▼'
+    })
+}
+
+function recolherTodosAgrupamentos() {
+    let agrupamentos = document.querySelectorAll('[id^="agrupamento-"]')
+    let icons = document.querySelectorAll('[id^="toggle-icon-"]')
+
+    agrupamentos.forEach(agrupamento => {
+        agrupamento.style.display = 'none'
+    })
+
+    icons.forEach(icon => {
+        icon.style.transform = 'rotate(-90deg)'
+        icon.textContent = '▶'
+    })
+}
+
 function apagar_orçamento() {
 
     openPopup_v2(`
@@ -283,7 +458,6 @@ async function carregarTabelas() {
 
 
     await total()
-
     mostrarTabela(Object.keys(tabelas)[0])
 }
 
