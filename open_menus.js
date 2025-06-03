@@ -1,6 +1,7 @@
 var versao = 'v3.0.5'
 let acesso = JSON.parse(localStorage.getItem('acesso'))
 let dados_setores = {}
+let filtrosUsuarios = {}
 let logo = 'https://i.imgur.com/Nb8sPs0.png'
 let esquemas = {
     'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS'],
@@ -252,7 +253,7 @@ async function identificacaoUser() {
 
         let config = ''
 
-        if (permissao == 'adm' || permissao == 'adm') {
+        if (permissao == 'adm') {
             config = `
             <img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="configs()">`
         }
@@ -311,7 +312,7 @@ async function configs() {
     }
 
     dados_setores = Object.keys(dados_setores)
-        .sort()
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
         .reduce((obj, chave) => {
             obj[chave] = dados_setores[chave];
             return obj;
@@ -347,16 +348,28 @@ async function configs() {
         `
     }
 
+    let ths = ''
+    let tbusca = ''
+    let cabecalhos = ['Usuário', 'Permissão', 'Setores']
+    cabecalhos.forEach((cabecalho, i) => {
+        ths += `<th>${cabecalho}</th>`
+        tbusca +=`
+        <th style="background-color: white;">
+            <div style="display: flex; align-items: center; justify-content: center;">
+                <input oninput="pesquisar_generico(${i}, this.value, filtrosUsuarios, 'tbodyUsuarios')">
+                <img src="imagens/pesquisar2.png" style="width: 1vw;">
+            </div>
+        </th>
+        `
+    })
+
     let tabela = `
     <table class="tabela" style="width: 30vw;">
         <thead>
-            <tr>
-                <th>Usuários</th>
-                <th>Permissões</th>
-                <th>Setores</th>
-            </tr>
+            <tr>${ths}</tr>
+            <tr>${tbusca}</tr>
         </thead>
-        <tbody>${linhas}</tbody>
+        <tbody id="tbodyUsuarios">${linhas}</tbody>
     </table>
     `
 
