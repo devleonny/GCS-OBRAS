@@ -50,7 +50,7 @@ async function sugestoes(input) {
     document.body.insertAdjacentHTML('beforeend', div)
 }
 
-
+carregarInformacoes()
 async function carregarInformacoes() {
     const obterDados = await recuperarDados('dados_planejamento') || {};
     let acumulado = '';
@@ -66,9 +66,21 @@ async function carregarInformacoes() {
 
         thSearch += `
         <th style="bakcground-color: white">
-            <div style="display: flex; justify-content: space-between; align-items: center"
+            <div style="display: flex; justify-content: space-between; align-items: center">
+                <input oninput="pesquisar_generico(${i}, this.value, filtroAlteracoes, 'bodyTabela')" style="text-align: left; width: 100%">
+                <img src="imagens/pesquisar2.png" style="width: 1vw;">
+            </div>
         </th>`
     ))
+
+    for ([id, dados] of Object.entries(obterDados)) {
+        linhas += `
+            <tr>
+                <td>${dados.contrato}</td>
+                <td>${dados.usuario}</td>
+            </tr>
+        `
+    }
 }
 
 
