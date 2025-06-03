@@ -2019,7 +2019,7 @@ async function aprovacoes_pendentes() {
         <div id="painel_aprovacoes" style="z-index: 4444; position: fixed; bottom: 2vw; right: 2vw; display: flex; align-items: center; justify-content: start; flex-direction: column; gap: 5px; height: 70vh; overflow: auto;">
             ${acumulado}
         </div>
-        `
+    `
         document.body.insertAdjacentHTML('beforeend', painel)
     }
 }
