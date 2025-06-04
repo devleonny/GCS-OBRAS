@@ -1957,7 +1957,7 @@ async function aprovacoes_pendentes() {
     }
 
     let permissao = acesso.permissao
-    let pessoasPermitidas = ['gerente', 'adm', 'editor']
+    let pessoasPermitidas = ['gerente', 'adm', 'editor', 'diretoria']
     if (pessoasPermitidas.includes(permissao)) {
         let painel = `
         <div id="painel_aprovacoes" style="z-index: 4444; position: fixed; bottom: 2vw; right: 2vw; display: flex; align-items: center; justify-content: start; flex-direction: column; gap: 5px; height: 70vh; overflow: auto;">
