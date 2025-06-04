@@ -16,7 +16,8 @@ let fluxogramaClone = {
     'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
     'CONCLUÍDO': { cor: '#ff4500' },
     'FATURADO': { cor: '#b17724' },
-    'PAGAMENTO RECEBIDO': { cor: '#b17724' }
+    'PAGAMENTO RECEBIDO': { cor: '#b17724' },
+
 }
 
 let fluxogramaPadrao = fluxograma = {
@@ -32,6 +33,7 @@ let fluxogramaPadrao = fluxograma = {
     'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
     'RETORNO DE MATERIAIS': { cor: '#aacc14' },
     'FINALIZADO': { cor: 'blue' },
+
 
 }
 
@@ -1744,6 +1746,10 @@ async function abrir_esquema(id) {
                                 <div class="contorno_botoes" style="background-color: ${fluxogramaMesclado['FATURADO'].cor};"
                                     onclick="painel_adicionar_notas()">
                                     <label>Nova <strong>Nota Fiscal</strong></label>
+                                </div>
+                                 <div class="contorno_botoes" style="background-color: #003153;"
+                                    onclick="carregarLPUParceiro()">
+                                    <label>Nova <strong>LPU Parceiro</strong></label>
                                 </div>
 
                                 <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
@@ -3717,4 +3723,65 @@ function mostrarElementoSeTiverPermissao({ listaDePermissao, elementoHTML }) {
     const usuarioTemPermissao = listaDePermissao.includes(permissaoOuSetorDoUsuario);
 
     return usuarioTemPermissao ? elementoHTML : '';
+}
+
+async function carregarLPUParceiro() {
+    const lpuparceiro = await recuperarDados('lpuparceiro') || {}
+
+    let aumulado = ''
+    let cabecalhos = ['Descrição', 'Medida', 'Quantidade', 'Valor GCS', 'Valor Parceiro', 'Preço Total']
+    let thSearch = ''
+    let thHead = ''
+    let tabelaLPU = document.getElementById('tabelaLPU')
+    let linhas = ''
+    let toolbar = ''
+
+    cabecalhos.forEach((cabecalho, i) => (
+        thHead += `
+            <th> ${cabecalho}</th>
+                 `,
+        thSearch += `
+        <th style="background-color: white">
+            <div style="display: flex; justify-content:space-between; align-items: center">
+                <input oninput="pesquisar_generico(${i}, this.value, filtroAlteracoes, 'bodyTabela')" style="text-align: left; width: 100%">
+                <img src="imagens/pesquisar2.png" style="width: 1vw;">
+            </div>
+        </th>`
+    ));
+
+    for([id, registro] of Object.entries(lpuparceiro)) {
+        linhas += `
+            <tr>
+                <td>${registro.descricao}</td>
+            </tr>
+        `
+    }
+
+       let tabela = `
+    <table class="tabela" style="width: 90vw;">
+        <thead>
+            <tr>
+                ${thHead}
+            </tr>
+            <tr>
+                ${thSearch}
+            </tr>
+        </thead>
+
+        <tbody id="bodyTabela">
+            ${linhas}
+        </tbody>
+    </table>
+    `
+    acumulado = `
+    <br>
+    <div id="toolbar" style="display: flex; align-items: end; justify-content: left; gap: 10px; height: 3vw; margin-left: 2vw;" >
+        ${toolbar}
+    </div>
+    <div style="height: 80vh; overflow: auto;">
+        ${tabela}
+    </div>    
+    `
+    tabelaLPU.innerHTML = acumulado
+
 }
