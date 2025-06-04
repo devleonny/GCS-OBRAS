@@ -29,9 +29,11 @@ async function exibirTabelaAgrupamentos() {
     let ocultarZerados = JSON.parse(localStorage.getItem('ocultarZerados'))
     if (ocultarZerados == null) ocultarZerados = true
 
+    // Buscar TODOS os produtos com agrupamentos (não apenas os do orçamento)
     for (let codigo in dadosComposicoes) {
         let produto = dadosComposicoes[codigo]
 
+        // Verificar se o produto tem agrupamentos
         if (!produto.agrupamentos || Object.keys(produto.agrupamentos).length === 0) continue
 
         if (!tabelas[produto.tipo]) tabelas[produto.tipo] = { linhas: '' }
@@ -49,24 +51,37 @@ async function exibirTabelaAgrupamentos() {
         if (preco == 0 && ocultarZerados) continue
 
         if (produto.status != "INATIVO") {
+            // Verificar se o item já está no orçamento para mostrar quantidade atual
+            let quantidadeAtual = orcamento_v2.dados_composicoes?.[codigo]?.qtde || ''
+
             let td_quantidade = `
-                <input type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
+                <input type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)" value="${quantidadeAtual}">
             `
             let opcoes = ''
             esquemas.sistema.forEach(op => {
                 opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
             })
 
+            // Indicador visual se o item já está no orçamento
+            let indicadorOrcamento = quantidadeAtual ?
+                `<div style="display: flex; align-items: center; gap: 5px;">
+                    <img src="imagens/check.png" style="width: 12px;" title="Item já está no orçamento">
+                    <span style="font-size: 0.8em; color: #4CAF50;">(Qtde: ${quantidadeAtual})</span>
+                </div>` : ''
+
             let linha = `
-                <tr>
+                <tr style="${quantidadeAtual ? 'background-color: #f0f8f0;' : ''}">
                     <td style="white-space: nowrap;">${codigo}</td>
                     <td style="position: relative;">
                         <div style="display: flex; justify-content: start; align-items: center; gap: 10px;">
                             ${moduloComposicoes ? `<img src="imagens/editar.png" style="width: 1.5vw; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')">` : ''}
                             ${moduloComposicoes ? `<img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">` : ''}
-                            <label>${produto.descricao}</label>
+                            <div style="display: flex; flex-direction: column;">
+                                <label>${produto.descricao}</label>
+                                ${indicadorOrcamento}
+                            </div>
                         </div>
-                        <img src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 1vw; width: 1.5vw; cursor: pointer;">
+                        <img src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 1vw; width: 1.5vw; cursor: pointer;" onclick="mostrarDetalhesAgrupamento('${codigo}')" title="Ver detalhes do agrupamento">
                     </td>
                     <td>${produto.fabricante}</td>
                     <td>${produto.modelo}</td>
@@ -91,20 +106,7 @@ async function exibirTabelaAgrupamentos() {
         }
     }
 
-    let temAgrupamentos = Object.values(tabelas).some(tabela => tabela.linhas !== '')
-
-    if (!temAgrupamentos) {
-        let conteudoPopup = `
-            <div style="text-align: center; padding: 40px; color: #666;">
-                <img src="gifs/lampada.gif" style="width: 60px; height: 60px; opacity: 0.5;">
-                <p style="margin-top: 20px; font-size: 1.2em;">Nenhum produto com agrupamentos encontrado</p>
-                <p style="color: #999;">Adicione agrupamentos aos produtos para visualizá-los aqui</p>
-            </div>
-        `
-        openPopup_v2(conteudoPopup, 'Produtos com Agrupamentos')
-        return
-    }
-
+    // Sempre exibir a tabela, mesmo se não houver itens
     let colunas = ['Código', 'Descrição', 'Fabricante', 'Modelo', 'Sistema', 'Quantidade', 'Unidade', 'Valor', 'Imagem *Ilustrativa']
     let ths = ''
     let tsh = ''
@@ -122,20 +124,44 @@ async function exibirTabelaAgrupamentos() {
 
     let tabelasHTML = ''
     let toolbar = ''
+    let temItens = false
+
+    // Verificar se há pelo menos uma tabela com conteúdo
+    for (let tabela in tabelas) {
+        if (tabelas[tabela].linhas !== '') {
+            temItens = true
+            break
+        }
+    }
+
+    // Se não tem itens, criar uma mensagem informativa
+    if (!temItens) {
+        tabelas.TODOS.linhas = `
+            <tr>
+                <td colspan="9" style="text-align: center; padding: 40px; color: #666;">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                        <img src="gifs/lampada.gif" style="width: 60px; height: 60px; opacity: 0.5;">
+                        <p style="font-size: 1.2em; margin: 0;">Nenhum produto com agrupamentos encontrado</p>
+                        <p style="color: #999; margin: 0;">
+                            ${ocultarZerados ? 'Produtos zerados estão ocultos. Desmarque "Ocultar produtos zerados" para ver todos os itens.' : 'Adicione agrupamentos aos produtos para visualizá-los aqui'}
+                        </p>
+                    </div>
+                </td>
+            </tr>
+        `
+    }
 
     for (let tabela in tabelas) {
-        if (tabelas[tabela].linhas === '') continue
-
         toolbar += `
             <label class="menu_top" style="background-color: ${coresTabelas(tabela)};" onclick="alterarTabelaAgrupamentos('${tabela}')">${tabela}</label>`
 
         tabelasHTML += `
             <table id="agrup_${tabela}" style="display: none;" class="tabela">
                 <thead style="background-color: ${coresTabelas(tabela)}; position: sticky; top: 0; z-index: 10;">
-                    ${ths}
+                    <tr>${ths}</tr>
                 </thead>
                 <thead style="position: sticky; z-index: 9; background-color: white;">
-                    ${tsh}
+                    <tr>${tsh}</tr>
                 </thead>
                 <tbody>
                     ${tabelas[tabela].linhas}
@@ -167,6 +193,38 @@ async function exibirTabelaAgrupamentos() {
         </div>
     `
 
+    // Adicionar estatísticas
+    let totalItensComAgrupamentos = Object.values(dadosComposicoes).filter(produto =>
+        produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0
+    ).length
+
+    let itensNoOrcamento = 0
+    if (orcamento_v2.dados_composicoes) {
+        for (let codigo in orcamento_v2.dados_composicoes) {
+            let produto = dadosComposicoes[codigo]
+            if (produto && produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) {
+                itensNoOrcamento++
+            }
+        }
+    }
+
+    let estatisticas = `
+        <div style="display: flex; gap: 20px; justify-content: center; align-items: center; background-color: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin: 10px 0;">
+            <div style="text-align: center; color: white;">
+                <div style="font-size: 1.5em; font-weight: bold;">${totalItensComAgrupamentos}</div>
+                <div style="font-size: 0.9em;">Total de itens com Agrupamentos</div>
+            </div>
+            <div style="text-align: center; color: white;">
+                <div style="font-size: 1.5em; font-weight: bold; color: #4CAF50;">${itensNoOrcamento}</div>
+                <div style="font-size: 0.9em;">No Orçamento Atual</div>
+            </div>
+            <div style="text-align: center; color: white;">
+                <div style="font-size: 1.5em; font-weight: bold; color: #FFA500;">${temItens ? Object.keys(tabelas).length - 1 : 0}</div>
+                <div style="font-size: 0.9em;">Tipos Disponíveis</div>
+            </div>
+        </div>
+    `
+
     let conteudoPopup = `
         <div style="max-width: 90vw; overflow-y: auto; background-color: rgb(21, 23, 73);">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #4CAF50;">
@@ -175,6 +233,8 @@ async function exibirTabelaAgrupamentos() {
                     <h2 style="margin: 0; color: #4CAF50;">Produtos com Agrupamentos</h2>
                 </div>
             </div>
+            
+            ${estatisticas}
             
             <div style="position: relative; display: flex; justify-content: center; width: 100%; margin-top: 30px; gap: 10px;">
                 ${toolbar}
@@ -189,8 +249,9 @@ async function exibirTabelaAgrupamentos() {
 
     openPopup_v2(conteudoPopup, 'Produtos com Agrupamentos')
 
-    let primeiraTabelaComDados = Object.keys(tabelas).find(tabela => tabelas[tabela].linhas !== '')
-    if (primeiraTabelaComDados) alterarTabelaAgrupamentos(primeiraTabelaComDados)
+    // Sempre mostrar a primeira tabela disponível
+    let primeiraTabelaComDados = Object.keys(tabelas)[0] || 'TODOS'
+    alterarTabelaAgrupamentos(primeiraTabelaComDados)
 }
 
 function alterarTabelaAgrupamentos(tabela) {
@@ -1310,10 +1371,17 @@ async function recuperarComposicoes() {
 }
 
 async function ocultarZerados(ocultar) {
-
     localStorage.setItem('ocultarZerados', JSON.stringify(ocultar))
-    await tabelaProdutos()
 
+    // Verificar se a tabela de agrupamentos está aberta
+    let tabelaAgrupamentos = document.querySelector('[id^="agrup_"]')
+    if (tabelaAgrupamentos) {
+        // Se a tabela de agrupamentos está aberta, recarregar ela
+        await exibirTabelaAgrupamentos()
+    } else {
+        // Senão, recarregar a tabela normal
+        await tabelaProdutos()
+    }
 }
 
 async function tabelaProdutos() {
