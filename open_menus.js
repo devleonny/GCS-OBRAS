@@ -1267,18 +1267,6 @@ function fecharTabela(nome_tabela) {
     document.getElementById('overlay').style.display = 'none'
 }
 
-if (document.title == 'Criar Orçamento') {
-    calculadora_reversa()
-
-    valor_liquido.addEventListener('input', function () {
-        calcular()
-    })
-
-    icms_toggle.addEventListener('input', function () {
-        calcular()
-    })
-}
-
 function calcular() {
     var valor = Number(valor_liquido.value)
 
@@ -1288,41 +1276,6 @@ function calcular() {
     var resultado = valor * 1 / (1 - porcentagem)
 
     valor_com_imposto.textContent = dinheiro(resultado)
-}
-
-function exibir_calculadora() {
-    calculadora.classList.toggle('show');
-}
-
-function calculadora_reversa() {
-
-    var calculadora = ''
-
-    calculadora += `
-    <div id="calculadora">
-        <div style="display: grid;">
-            <label>Valor Líquido</label>
-            <input type="number" id="valor_liquido">
-        </div>
-
-        <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-        <label>Dentro <strong>20,5%</strong></label>
-            <label class="switch">
-                <input type="checkbox" id="icms_toggle">
-                <span class="slider"></span>
-            </label>
-        <label>Fora <strong>12%</strong></label>
-        </div>
-
-        <img src="imagens/avanco.png">
-        <div style="display: grid;">
-            <label>Valor Bruto</label>
-            <label id="valor_com_imposto">R$ -- </label>
-        </div>
-    </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', calculadora);
 }
 
 function gerar_id_5_digitos() {
