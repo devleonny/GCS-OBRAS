@@ -279,7 +279,6 @@ async function mostrarAgrupamentos(codigo) {
     let dadosComposicoes = await recuperarDados('dados_composicoes') || {}
     let produto = dadosComposicoes[codigo]
     let orcamento_v2 = baseOrcamento()
-    let lpu = String(orcamento_v2.lpu_ativa || 'lpu hope').toLowerCase()
 
     if (!produto || !produto.agrupamentos || Object.keys(produto.agrupamentos).length === 0) {
         openPopup_v2(`
@@ -291,49 +290,18 @@ async function mostrarAgrupamentos(codigo) {
     }
 
     let linhas = ''
-    let totalGeral = 0
 
     for (let [codigoItem, qtdeAgrupamento] of Object.entries(produto.agrupamentos)) {
         let itemAgrupamento = dadosComposicoes[codigoItem]
         if (!itemAgrupamento) continue
-
-        let preco = 0
-        if (itemAgrupamento[lpu] && itemAgrupamento[lpu].ativo && itemAgrupamento[lpu].historico) {
-            let ativo = itemAgrupamento[lpu].ativo
-            let historico = itemAgrupamento[lpu].historico
-            preco = historico[ativo]?.valor || 0
-        }
-
-        let estiloPreco = preco == 0 ? 'valor_zero' : 'valor_preenchido'
-        let valorTotal = preco * qtdeAgrupamento
 
         linhas += `
             <tr>
                 <td style="white-space: nowrap;">${codigoItem}</td>
                 <td>${itemAgrupamento.descricao || 'N/A'}</td>
                 <td style="text-align: center;">${qtdeAgrupamento}</td>
-                <td style="text-align: center;">
-                    <input type="number" class="campoValor" value="0" min="0" 
-                           onchange="calcularTotalAgrupamento('${codigoItem}', this.value, ${qtdeAgrupamento}, ${preco})"
-                           style="width: 80px;">
-                </td>
-                <td style="text-align: center;" id="total_${codigoItem}">${qtdeAgrupamento}</td>
-                <td style="text-align: right;">
-                    <label class="${estiloPreco}">${dinheiro(preco)}</label>
-                </td>
-                <td style="text-align: right;" id="valorTotal_${codigoItem}">
-                    <label class="${estiloPreco}">${dinheiro(valorTotal)}</label>
-                </td>
-                <td style="text-align: center;">
-                    <button onclick="adicionarItemAgrupamento('${codigoItem}', '${codigo}')" 
-                            style="background-color: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
-                        Adicionar
-                    </button>
-                </td>
             </tr>
         `
-
-        totalGeral += valorTotal
     }
 
     let conteudoPopup = `
@@ -353,29 +321,12 @@ async function mostrarAgrupamentos(codigo) {
                         <th style="color: white;">Código</th>
                         <th style="color: white;">Descrição</th>
                         <th style="color: white;">Qtde Kit</th>
-                        <th style="color: white;">Qtde Avulsa</th>
-                        <th style="color: white;">Qtde Total</th>
-                        <th style="color: white;">Valor Unit.</th>
-                        <th style="color: white;">Valor Total</th>
-                        <th style="color: white;">Ação</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${linhas}
                 </tbody>
             </table>
-
-            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="adicionarTodoAgrupamento('${codigo}')" 
-                            style="background-color: #2196F3; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;">
-                        Adicionar Todo o Kit
-                    </button>
-                </div>
-                <div style="text-align: right;">
-                    <p style="margin: 0; font-size: 1.2em; color: #4CAF50;"><strong>Total Geral do Kit: </strong><span id="totalKitGeral">${dinheiro(totalGeral)}</span></p>
-                </div>
-            </div>
         </div>
     `
 
@@ -1449,7 +1400,7 @@ async function tabelaProdutos() {
                                     ${moduloComposicoes ? `<img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">` : ''}
                                     <label>${produto.descricao}</label>
                                 </div>
-                                ${(produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) ? `<img src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 1vw; width: 1.5vw; cursor: pointer;">` : ''}
+                                ${(produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) ? `<img src="gifs/lampada.gif" onclick="mostrarAgrupamentos('${codigo}')" style="position: absolute; top: 3px; right: 1vw; width: 1.5vw; cursor: pointer;">` : ''}
                             </td>
                             <td>${produto.fabricante}</td>
                             <td>${produto.modelo}</td>
