@@ -4,10 +4,14 @@
     dados_orcamentos = await recuperarDados('dados_orcamentos')
     
     let acumulado = `
-    <div>
+    <div style="display:flex">
+        <div>
         <label>Buscar Orçamento</label>
         <textarea oninput="sugestoes(this)"></textarea>
-    </div>`
+        </div>
+        <button>Salvar</button>
+    </div>
+    `
     openPopup_v2(acumulado, 'PLANEJAMENTO LOJAS')
 }
 
@@ -53,7 +57,7 @@ async function sugestoes(input) {
 
 carregarInformacoes()
 async function carregarInformacoes() {
-    const obterDados = await recuperarDados('dados_planejamento') || {};
+    let obterDados = await recuperarDados('dados_planejamento') || {};
     let acumulado = '';
     let cabecalhos = ['Chamado', 'Loja', 'Estado', 'Região', 'Analista CRF','Analista', 'Status', 'Escopo', 'P. Serviço', 'P.Venda', 'Soma dos Pedidos', 'Valor do Orçamento', 'Soma das Notas de Envio',
          'Pendências Carrefour', 'Pendências Hope', 'Início', 'Entrega', 'RF + OS'];
@@ -78,7 +82,7 @@ async function carregarInformacoes() {
     for ([id, dados] of Object.entries(obterDados)) {
         linhas += `
             <tr>
-                <td>${Dados.contrato}</td> 
+                <td>${dados.contrato}</td> 
                 <td>${dados.cliente_selecionado}</td>  
                 <td>${dados.estado}</td>
                 <td>${Região}</td>
