@@ -1028,15 +1028,15 @@ function mostrarHistoricoAgrupamentos(codigo) {
     openPopup_v2(conteudo, 'Histórico de Agrupamentos')
 }
 
-// Função auxiliar para encontrar a linha de um item na tabela
+// Função auxiliar para encontrar linha de um item
 function encontrarLinhaItem(codigo) {
-    let tabelas = document.querySelectorAll('table tbody')
+    let tabelas = document.querySelectorAll('[id^="linhas_"]')
 
-    for (let tbody of tabelas) {
-        let linhas = tbody.querySelectorAll('tr')
+    for (let tabela of tabelas) {
+        let linhas = tabela.querySelectorAll('tr')
         for (let linha of linhas) {
-            let primeiraTd = linha.querySelector('td:first-child')
-            if (primeiraTd && primeiraTd.textContent.trim() === codigo) {
+            let primeiraCelula = linha.querySelector('td')
+            if (primeiraCelula && primeiraCelula.textContent.trim() === codigo) {
                 return linha
             }
         }
@@ -1125,7 +1125,11 @@ async function incluirItemComPai(codigo, novaQuantidade, codigoPai) {
 function atualizarQuantidadeInterface(codigo, novaQuantidade) {
     let linha = encontrarLinhaItem(codigo)
     if (linha) {
-        let inputQuantidade = linha.querySelector('input[type="number"]')
+        let orcamento_v2 = baseOrcamento()
+        let acrescimo = orcamento_v2.lpu_ativa !== 'LPU CARREFOUR' ? 0 : 1
+        let celulas = linha.querySelectorAll('td')
+        let inputQuantidade = celulas[3 + acrescimo]?.querySelector('input')
+
         if (inputQuantidade) {
             inputQuantidade.value = novaQuantidade
         }
@@ -1565,7 +1569,6 @@ async function gerenciarAgrupamentos(codigo) {
 }
 
 async function total() {
-
     let orcamento_v2 = baseOrcamento()
     let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
     let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
@@ -1574,6 +1577,39 @@ async function total() {
     let divTabelas = document.getElementById('tabelas')
     let tables = divTabelas.querySelectorAll('table')
     let padraoFiltro = localStorage.getItem('padraoFiltro')
+
+    // Detectar mudanças de quantidade e atualizar filhos
+    if (orcamento_v2.dados_composicoes) {
+        for (let codigo in orcamento_v2.dados_composicoes) {
+            let inputAtual = encontrarInputQuantidade(codigo)
+            if (inputAtual) {
+                let quantidadeAtual = parseFloat(inputAtual.value) || 0
+                let quantidadeSalva = orcamento_v2.dados_composicoes[codigo].qtde || 0
+
+                // Se a quantidade mudou
+                if (quantidadeAtual !== quantidadeSalva) {
+                    console.log(`Quantidade mudou para ${codigo}: ${quantidadeSalva} → ${quantidadeAtual}`)
+                    orcamento_v2.dados_composicoes[codigo].qtde = quantidadeAtual
+
+                    // Verificar se este item tem agrupamentos (é um pai)
+                    let produto = dados_composicoes[codigo]
+                    if (produto && produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) {
+                        await atualizarQuantidadesFilhos(codigo, quantidadeAtual)
+                    } else {
+                        // Se é um item filho, atualizar a quantidade extra
+                        let item = orcamento_v2.dados_composicoes[codigo]
+                        if (item.quantidade_calculada !== undefined) {
+                            let novaQuantidadeExtra = quantidadeAtual - item.quantidade_calculada
+                            if (novaQuantidadeExtra < 0) novaQuantidadeExtra = 0
+                            item.quantidade_extra = novaQuantidadeExtra
+                            console.log(`Item ${codigo}: extra atualizado para ${novaQuantidadeExtra}`)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     if (!orcamento_v2.dados_composicoes) {
         orcamento_v2.dados_composicoes = {}
     }
@@ -1866,11 +1902,122 @@ async function total() {
 
 }
 
+// Modificar a função atualizarQuantidadesFilhos para somar valores extras
+async function atualizarQuantidadesFilhos(codigoPai, novaQuantidadePai) {
+    let orcamento_v2 = baseOrcamento()
+    let produtoPai = dados_composicoes[codigoPai]
+
+    // Verificar se tem agrupamentos
+    if (!produtoPai || !produtoPai.agrupamentos) return
+
+    console.log(`Atualizando filhos do pai ${codigoPai} para quantidade ${novaQuantidadePai}`)
+
+    // Para cada filho no agrupamento
+    for (let codigoFilho in produtoPai.agrupamentos) {
+        let quantidadeBase = produtoPai.agrupamentos[codigoFilho]
+        let quantidadeCalculadaDoPai = quantidadeBase * parseFloat(novaQuantidadePai)
+
+        console.log(`Filho ${codigoFilho}: base=${quantidadeBase} × pai=${novaQuantidadePai} = ${quantidadeCalculadaDoPai}`)
+
+        // Se o filho existe no orçamento
+        if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigoFilho]) {
+
+            if (quantidadeCalculadaDoPai <= 0) {
+                // Se a quantidade calculada for zero, manter apenas o extra do usuário
+                let inputFilho = encontrarInputQuantidade(codigoFilho)
+                if (inputFilho) {
+                    let quantidadeAtualInput = parseFloat(inputFilho.value) || 0
+                    let quantidadeExtra = orcamento_v2.dados_composicoes[codigoFilho].quantidade_extra || 0
+
+                    // Se só tem quantidade extra, manter
+                    if (quantidadeExtra > 0) {
+                        orcamento_v2.dados_composicoes[codigoFilho].qtde = quantidadeExtra
+                        inputFilho.value = quantidadeExtra
+                    } else {
+                        // Remover se não tem nem calculado nem extra
+                        delete orcamento_v2.dados_composicoes[codigoFilho]
+                        let linhaFilho = encontrarLinhaItem(codigoFilho)
+                        if (linhaFilho) {
+                            linhaFilho.remove()
+                        }
+                    }
+                }
+            } else {
+                let itemFilho = orcamento_v2.dados_composicoes[codigoFilho]
+                let inputFilho = encontrarInputQuantidade(codigoFilho)
+
+                if (inputFilho) {
+                    // Calcular quantidade extra do usuário
+                    let quantidadeAtualInput = parseFloat(inputFilho.value) || 0
+                    let quantidadeCalculadaAnterior = itemFilho.quantidade_calculada || 0
+                    let quantidadeExtraAnterior = itemFilho.quantidade_extra || 0
+
+                    // A quantidade extra é a diferença entre o que o usuário colocou e o que foi calculado
+                    let quantidadeExtra = quantidadeAtualInput - quantidadeCalculadaAnterior
+
+                    // Se a quantidade extra for negativa, considerar como 0
+                    if (quantidadeExtra < 0) quantidadeExtra = 0
+
+                    // Nova quantidade total = quantidade calculada do pai + quantidade extra do usuário
+                    let novaQuantidadeTotal = quantidadeCalculadaDoPai + quantidadeExtra
+
+                    // Salvar as informações
+                    itemFilho.quantidade_calculada = quantidadeCalculadaDoPai
+                    itemFilho.quantidade_extra = quantidadeExtra
+                    itemFilho.qtde = novaQuantidadeTotal
+
+                    // Atualizar o input
+                    inputFilho.value = novaQuantidadeTotal
+
+                    console.log(`Filho ${codigoFilho}: calculado=${quantidadeCalculadaDoPai} + extra=${quantidadeExtra} = total=${novaQuantidadeTotal}`)
+                }
+            }
+        } else if (quantidadeCalculadaDoPai > 0) {
+            // Criar novo item filho se não existir
+            console.log(`Criando novo item filho ${codigoFilho} com quantidade ${quantidadeCalculadaDoPai}`)
+            await incluirItemComPai(codigoFilho, quantidadeCalculadaDoPai, codigoPai)
+
+            // Marcar a quantidade calculada inicial
+            if (orcamento_v2.dados_composicoes[codigoFilho]) {
+                orcamento_v2.dados_composicoes[codigoFilho].quantidade_calculada = quantidadeCalculadaDoPai
+                orcamento_v2.dados_composicoes[codigoFilho].quantidade_extra = 0
+            }
+        }
+    }
+
+    // Salvar mudanças
+    baseOrcamento(orcamento_v2)
+}
+
+// Função para encontrar o input de quantidade de um item específico
+function encontrarInputQuantidade(codigo) {
+    let tabelas = document.querySelectorAll('[id^="linhas_"]')
+
+    for (let tabela of tabelas) {
+        let linhas = tabela.querySelectorAll('tr')
+        for (let linha of linhas) {
+            let primeiraCelula = linha.querySelector('td')
+            if (primeiraCelula && primeiraCelula.textContent.trim() === codigo) {
+                let orcamento_v2 = baseOrcamento()
+                let acrescimo = orcamento_v2.lpu_ativa !== 'LPU CARREFOUR' ? 0 : 1
+                let celulas = linha.querySelectorAll('td')
+                let inputQuantidade = celulas[3 + acrescimo]?.querySelector('input[type="number"]')
+                return inputQuantidade
+            }
+        }
+    }
+    return null
+}
+
 // Modificar a função incluirItem para lançar agrupamentos automaticamente
 async function incluirItem(codigo, novaQuantidade) {
     let orcamento_v2 = baseOrcamento()
     let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
     let produto = dados_composicoes[codigo]
+
+    if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigo]) {
+        await atualizarQuantidadesFilhos(codigo, novaQuantidade)
+    }
 
     // Verificar se o produto tem agrupamentos
     if (produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) {
