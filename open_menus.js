@@ -1636,15 +1636,6 @@ function salvar_offline(objeto, operacao) {
     localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
 }
 
-function dt() {
-    let dt = new Date().toLocaleString('pt-BR', {
-        dateStyle: 'short',
-        timeStyle: 'short'
-    })
-
-    return dt
-}
-
 const WS_URL = "wss://leonny.dev.br:8443";
 let socket;
 let reconnectInterval = 30000;
@@ -1654,7 +1645,7 @@ function connectWebSocket() {
     socket = new WebSocket(WS_URL);
 
     socket.onopen = () => {
-        console.log(`🟢🟢🟢 WS ${dt()} 🟢🟢🟢`);
+        console.log(`🟢🟢🟢 WS ${data_atual('completa')} 🟢🟢🟢`);
     };
 
     socket.onmessage = (event) => {
@@ -1665,7 +1656,7 @@ function connectWebSocket() {
     };
 
     socket.onclose = () => {
-        console.log(`🔴🔴🔴 WS ${dt()} 🔴🔴🔴`);
+        console.log(`🔴🔴🔴 WS ${data_atual('completa')} 🔴🔴🔴`);
         console.log(`Tentando reconectar em ${reconnectInterval / 1000} segundos...`);
         setTimeout(connectWebSocket, reconnectInterval);
     };

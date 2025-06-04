@@ -33,7 +33,7 @@ async function recuperar_composicoes() {
     remover_popup()
 }
 
-async function carregar_tabela_v2(auxiliarPaginacao) {
+async function carregar_tabela_v2() {
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
@@ -123,7 +123,7 @@ async function carregar_tabela_v2(auxiliarPaginacao) {
 
             } else if (chave.includes('lpu')) {
                 var preco_final = produto[chave];
-                if (dicionario(produto[chave]) && produto[chave].historico && produto[chave].ativo) {
+                if (dicionario(produto[chave]) && produto[chave].historico && Object.keys(produto[chave].historico).length > 0 && produto[chave].ativo) {
                     var ativo = produto[chave].ativo;
                     preco_final = produto[chave].historico[ativo].valor;
                 } else {
@@ -131,7 +131,7 @@ async function carregar_tabela_v2(auxiliarPaginacao) {
                 }
 
                 var estilo = preco_final !== '' ? 'valor_preenchido' : 'valor_zero';
-                conteudo = `<label class="${estilo}" onclick="abrir_historico_de_precos('${codigo}', '${chave}')"> ${dinheiro(conversor(preco_final))}</label>`;
+                conteudo = `<label class="${estilo}" onclick="abrirHistoricoPrecos('${codigo}', '${chave}')"> ${dinheiro(conversor(preco_final))}</label>`;
 
             } else if (chave == 'agrupamentos') {
 
@@ -203,10 +203,10 @@ async function carregar_tabela_v2(auxiliarPaginacao) {
             }
         });
 
-        tbody += `<tr style="display: ${auxiliarPaginacao ? 'none' : 'table-row'}">${celulas}</tr>`;
+        tbody += `<tr>${celulas}</tr>`;
     }
 
-    var acumulado = `
+    let acumulado = `
         <div style="display: flex; gap: 10px;">
             <div style="resize: both; overflow: auto; height: max-content; max-height: 70vh; width: max-content; max-width: 92.5vw; background-color: #d2d2d2; border-radius: 3px;">
                 <table class="tabela" id="tabela_composicoes">
@@ -229,7 +229,11 @@ async function carregar_tabela_v2(auxiliarPaginacao) {
 
 async function retomarPaginacao() {
 
-    await carregar_tabela_v2(true)
+    if (document.title == 'Criar Orçamento') return await tabelaProdutos()
+
+    await carregar_tabela_v2()
+
+    if (Object.keys(filtrosAtivos).length == 0) return
 
     try {
         let tabela = document.getElementById('tabela_composicoes')
@@ -652,12 +656,12 @@ function remover_item(elemento) {
     elemento.parentElement.remove()
 }
 
-async function abrir_historico_de_precos(codigo, tabela) {
+async function abrirHistoricoPrecos(codigo, tabela) {
 
-    var marcado = ''
-    var acumulado = ''
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    var produto = dados_composicoes[codigo]
+    let marcado = ''
+    let acumulado = ''
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let produto = dados_composicoes[codigo]
 
     if (!produto[tabela]) {
         produto[tabela] = {}
@@ -667,11 +671,11 @@ async function abrir_historico_de_precos(codigo, tabela) {
         produto[tabela].historico = {}
     }
 
-    var historico = produto[tabela].historico
-    var linhas = ''
+    let historico = produto[tabela].historico
+    let linhas = ''
 
     for (cotacao in historico) {
-        dados_composicoes[codigo][tabela].ativo == cotacao ? marcado = 'checked' : marcado = ''
+        produto[tabela].ativo == cotacao ? marcado = 'checked' : marcado = ''
 
         linhas += `
         <tr>
@@ -692,7 +696,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
                 <img src="imagens/cancel.png" style="width: 2vw; cursor: pointer;" onclick="excluir_cotacao('${codigo}', '${tabela}', '${cotacao}')">
             </td>
             <td style="text-align: center;">
-                <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="adicionar_nova_cotacao('${codigo}', '${tabela}', '${cotacao}')">
+                <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="adicionarCotacao('${codigo}', '${tabela}', '${cotacao}')">
             </td>
         </tr>
         `
@@ -713,7 +717,7 @@ async function abrir_historico_de_precos(codigo, tabela) {
 
             <div style="position: absolute; top: 3px; right: 3px; display: flex; align-items: start; justify-content: center; flex-direction: column;">
 
-                <div onclick="adicionar_nova_cotacao('${codigo}', '${tabela}')" class="bot_adicionar">
+                <div onclick="adicionarCotacao('${codigo}', '${tabela}')" class="bot_adicionar">
                     <img src="imagens/preco.png">
                     <label>Adicionar Preço</label>
                 </div>
@@ -743,7 +747,6 @@ async function abrir_historico_de_precos(codigo, tabela) {
                 </table>
             </div>
         </div>
-        <div></div>
     </div>
     `
 
@@ -784,42 +787,17 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
 }
 
 async function excluir_cotacao(codigo, lpu, cotacao) {
+
+    overlayAguarde()
+
     let historico_preco = document.getElementById('historico_preco');
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
     if (historico_preco) {
-        var tabela = historico_preco.querySelector('table');
 
-        // 🔥 Adicionar o aviso de "Aguarde..." dentro do container
-        const aviso = document.createElement('div');
-        aviso.id = "aviso-aguarde";
-        aviso.style = `
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-            font-size: 1.5em;
-            border-radius: 5px;
-        `;
-        aviso.innerHTML = `<div>Aguarde...</div>`;
-        historico_preco.style.position = "relative"; // Garante o posicionamento correto
-        historico_preco.appendChild(aviso);
-
-        // 🔥 Reduz a opacidade da tabela enquanto o aviso está ativo
-        tabela.style.opacity = "0.3";
-
-        // 🔥 Lógica de exclusão da cotação
         if (dados_composicoes[codigo] && dados_composicoes[codigo][lpu]) {
             let cotacoes = dados_composicoes[codigo][lpu];
 
-            // Remove o preço ativo, se ele for a cotação atual
             if (cotacoes.ativo == cotacao) {
                 cotacoes.ativo = "";
                 await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
@@ -827,606 +805,520 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
 
             let precoExcluido = cotacoes.historico?.[cotacao]?.valor
             let comentario = `O usuário ${acesso.usuario} excluiu o preço de ID: ${cotacao} e valor: ${parseFloat(precoExcluido).toFixed(2)}`
-            // Remove a cotação do histórico
             delete cotacoes.historico[cotacao];
 
-            // Atualiza o banco de dados
-            await inserirDados(dados_composicoes, 'dados_composicoes');
-            await deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`);
-            registrarAlteracao('dados_composicoes', codigo, comentario)
+            await inserirDados(dados_composicoes, 'dados_composicoes'),
+                deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`),
+                registrarAlteracao('dados_composicoes', codigo, comentario)
         }
 
-        // 🔥 Restaurar a tabela e abrir o histórico
-        tabela.style.opacity = "1"; // Restaura a opacidade
-        await abrir_historico_de_precos(codigo, lpu); // 🛠️ Processa o histórico antes de remover o aviso
-        aviso.remove(); // Remover aviso somente após abrir_historico_de_precos
+        remover_popup()
+        await abrirHistoricoPrecos(codigo, lpu);
+
     }
 }
 
-function selecionarOrigemPorICMS(valorICMS) {
-    const radioImportado = document.getElementById('importado');
-    const radioNacional = document.getElementById('nacional');
-    const radioBahia = document.getElementById('bahia');
+function gerarTabelas(objeto) {
 
-    let icms = parseFloat(valorICMS);
-    const ICMS_IMPORTADO = 4;
-    const ICMS_NACIONAL = 20;
-    const ICMS_BAHIA = 12;
-
-    const icmsEImportado = icms === ICMS_IMPORTADO;
-    if (icmsEImportado) radioImportado.checked = true;
-
-    const icmsEDaBahia = icms === ICMS_BAHIA;
-    if (icmsEDaBahia) radioBahia.checked = true;
-
-    const icmsENacional = icms >= ICMS_NACIONAL;
-    if (icmsENacional) radioNacional.checked = true;
-
-    const icmsNacionalOuDaBahia = icms <= ICMS_BAHIA ? '12' : '20,5';
-    const selectICMS = document.getElementById('icms_saida');
-    if (selectICMS) selectICMS.value = icms <= ICMS_IMPORTADO ? '4' : icmsNacionalOuDaBahia;
-}
-
-async function adicionar_nova_cotacao(codigo, lpu, cotacao) {
-
-    let historico_preco = document.getElementById('historico_preco')
-    let div = historico_preco.nextElementSibling
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    let produto = dados_composicoes[codigo]
-    let acumulado = ''
-    let funcao = cotacao ? `salvar_preco('${codigo}', '${lpu}', '${cotacao}')` : `salvar_preco('${codigo}', '${lpu}')`
-
-    let dados = {}
-
-    if (lpu && cotacao) {
-        dados = produto[lpu].historico[cotacao]
+    let acumulado = {
+        tabelas: '',
+        resultados: ''
     }
 
-    let painel = `
-        <div style="color: #222; font-size: 0.8vw; background-color: #d2d2d2; padding: 5px; border-radius: 3px; display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 2px;">
-            <label>NF de Compra</label>
-            <input style="background-color: #91b7d9;" id="nota" value="${dados?.nota || ''}">
-            ${produto.tipo == 'VENDA' ? `<label>Fornecedor</label>
-            <input style="background-color: #91b7d9;" id="fornecedor" value="${dados?.fornecedor || ''}">` : ''}
-            <label onclick="${funcao}" class="contorno_botoes" style="background-color: #4CAF50;">Salvar</label>
-        </div>
+    for ([chave, campos] of Object.entries(objeto)) {
 
-        <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 5px;">
-            <label>Comentário</label>
-            <textarea id="comentario" rows="8" style="background-color: #91b7d9; border: none;">${dados?.comentario || ''}</textarea>
-        </div>
-    `
+        let titulos = {
+            camposIniciais: 'Campos Iniciais',
+            presuncoes: 'Presunções',
+            impostos: 'Impostos',
+            resultados: 'Resultados',
+            complementares: 'Complemetares'
+        }
 
-    if (produto.tipo == 'VENDA') {
-        acumulado = `
-        <div style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 10px;">
-            <fieldset style="border: none; padding: 0; margin: 0; display: flex; gap: 10px;" onchange="calcular()">
-                <legend style="font-weight: bold; color: #333;">Selecione a origem do item:</legend>
+        let linhas = ''
 
-                <div style="padding: 8px; background: #91b7d9; border-radius: 4px; border: 1px solid #eee;">
-                    <input type="radio" id="importado" name="origem" value="4" style="margin-right: 8px;">
-                    <label for="importado" style="font-size: 0.8vw; cursor: pointer;">IMPORTADO</label>
-                </div>
+        campos.forEach(campo => {
 
-                <div style="padding: 8px; background: #91b7d9; border-radius: 4px; border: 1px solid #eee;">
-                    <input type="radio" id="nacional" name="origem" value="12" style="margin-right: 8px;">
-                    <label for="nacional" style="font-size: 0.8vw; cursor: pointer;">NACIONAL</label>
-                </div>
+            let tdInicial = `<td>${campo.label}</td>`
+            let tdFinal = `<td id="${campo?.id || ''}""></td>`
+            if (chave == 'camposIniciais' || chave == 'complementares') {
+                tdFinal = `
+                <td style="background-color: ${campo?.cor || ''};">
+                    <input 
+                    id="${campo?.id || ''}" 
+                    autocomplete="off" 
+                    type="number" 
+                    oninput="calcular('${campo?.id}')"
+                    style="text-align: center; width: max-content; background-color: transparent;" 
+                    value="${campo?.valor || ''}"
+                    ${campo.readOnly ? 'readOnly' : ''}
+                    >
+                </td>`
 
-                <div style="padding: 8px; background: #91b7d9; border-radius: 4px; border: 1px solid #eee;">
-                    <input type="radio" id="bahia" name="origem" value="12" style="margin-right: 8px;">
-                    <label for="bahia" style="font-size: 0.8vw; cursor: pointer;">BAHIA</label>
-                </div>
-            </fieldset>
-            <div style="display: flex; align-items: start; justify-content: start; gap: 10px;">
-                <table class="tabela">
-                    <thead>
-                        <th>Dados Iniciais</th>
+            }
+
+            if (chave == 'resultados') {
+                tdFinal = `<td><label id="${campo?.id || ''}"></label></td>`
+            }
+
+            if (campo.label == 'Comentário' || campo.label == 'Fornecedor') {
+                tdFinal = `
+                <td style="background-color: ${campo?.cor || ''};">
+                    <textarea style="background-color: transparent; border: none;" id="${campo.id}">${campo?.valor || ''}</textarea>
+                </td>`
+            }
+
+            if (campo.opcoes) {
+                let opcoes = ''
+                campo.opcoes.forEach(op => { opcoes += `<option ${campo?.valorSelect == op ? 'selected' : ''}>${op}</option>` })
+                tdInicial = `
+                    <td>
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 1vw;">
+                            ${campo.label}
+                            <select id="${campo.id}_select" onchange="calcular()" class="opcoesSelect" style="width: max-content;">
+                                ${opcoes}
+                            </select>
+                        </div>
+                    </td>`
+            }
+
+            linhas += `
+                <tr>
+                    ${tdInicial}
+                    ${tdFinal}
+                </tr>
+                `
+        })
+
+        if (chave == 'impostos') {
+            linhas += `
+            <tr>
+                <td style="text-align: right;">Total</td>
+                <td id="total_impostos"></td>
+            </tr>
+            `}
+
+        let tabelaHtml = `
+            <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
+                <br>
+                <table class="tabela" style="width: 40vw;">
+                    <thead style="background-color: #ffa0a0; position: relative;">
+                        <th>${titulos[chave]}</th>
+                        <th>Valores</th>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>Preço Unitário</td>
-                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" type="number" id="custo" oninput="calcular()" value="${dados?.custo || 0}"></td>
-                        </tr>
-                        <tr>
-                            <td>Frete de Compra (2%)</td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td>ICMS Creditado em nota (%)</td>
-                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="icms_creditado" type="number" oninput="selecionarOrigemPorICMS(this.value); calcular()" value="${dados?.icms_creditado || ""}"></td>
-                        </tr>
-                        <tr>
-                            <td>Aliquota ICMS (Bahia)</td>
-                            <td><input value="20,5%" readOnly></td>
-                        </tr>
-                        <tr>
-                            <td>ICMS a ser pago (DIFAL)</td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td>Valor do ICMS de Entrada</td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td>Valor de Custo</td>
-                            <td id="valor_custo"></td>
-                        </tr>                                      
-                        <tr>
-                            <td>Margem de Acréscimo (%)</td>
-                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="margem" type="number" oninput="calcular()" value="${dados?.margem || ''}"></td>
-                        </tr>
-                        <tr>
-                            <td>Preço de Venda</td>
-                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="final" type="number" oninput="calcular(undefined, 'final')" value="${dados?.valor || 0}"></td>
-                        </tr>
-                        <tr>
-                            <td>Frete de Venda (5%)</td>
-                            <td></td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 1vw;">
-                    <table class="tabela">
-                        <thead>
-                            <th>Resultados</th>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>LUCRO LIQUIDO</td>
-                                <td>R$ 0,00</td>
-                            </tr>
-                            <tr>
-                                <td>PERCENTUAL DE LUCRO</td>
-                                <td>0%</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    ${painel}
-
-                </div>
-            </div>
-        </div>
-        <br>
-        <table class="tabela">
-            <thead>
-                <th>Presunções dos Impostos de Saída</th>
-                <th>Percentuais</th>
-                <th>Valor</th>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
-                    <td><input value="8%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
-                    <td><input value="12%" readOnly></td>
-                    <td></td>
-                </tr>
-            </tbody>
-        </table>
-        <br>
-        <table class="tabela">
-            <thead>
-                <th>Impostos a Serem Pagos</th>
-                <th>Percentuais</th>
-                <th>Valor</th>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
-                    <td><input value="15%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
-                    <td><input value="10%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>CSLL a ser Pago (9%) da Presunção</td>
-                    <td><input value="9%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
-                    <td><input value="0.65%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
-                    <td><input value="3%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>O Imposto sobre Circulação de Mercadorias e Serviços (ICMS)</td>
-                    <td>
-                        <select id="icms_saida" onchange="calcular()" style="width:100%; background-color:#91b7d9; border: none; padding: 5px; border-radius: 3px; cursor: pointer">
-                            <option value="4">4%</option>
-                            <option value="12">12%</option>
-                            <option value="20,5">20,5%</option>
-                        </select>
-                    </td>
-                    <td class="valor-icms" style="background-color: #f0f0f0"></td>
-                </tr>
-                <tr>
-                    <td></td>
-                    <td>Total</td>
-                    <td></td>
-                </tr>                                                                               
-            </tbody>
-        </table>
-        `
-    } else { // Serviço
-
-        acumulado = `
-
-        <div style="display: flex; align-items: center; justify-content: space-evenly; width: 100%;">
-
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: start;"> 
-                <table class="tabela">
-                    <tbody>
-                        <thead>
-                            <th>Preço do Serviço</th>
-                        </thead>
-                        <tr>
-                            <td style="background-color: #91b7d9;"><input style="background-color: transparent;" id="final" type="number" oninput="calcular('servico')" value="${dados?.final || ''}"></td>
+                        ${linhas}
                     </tbody>
                 </table>
             </div>
-
-            <table class="tabela">
-                <thead>
-                    <th>Resultados</th>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>LUCRO LIQUIDO</td>
-                        <td>R$ 0,00</td>
-
-                    </tr>
-                    <tr>
-                        <td>PERCENTUAL DE LUCRO</td>
-                        <td> 0%</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            ${painel}
-
-        </div>
-        <br>
-        <table class="tabela">
-            <thead>
-                <th>Presunções dos Impostos de Saída</th>
-                <th>Percentuais</th>
-                <th>Valor</th>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Aliquota do Lucro Presumido Comercio "Incide sobre o valor de Venda do Produto"</td>
-                    <td>32%</td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>Alíquota da Presunção CSLL (Incide sobre o valor de venda do produto)</td>
-                    <td>32%</td>
-                    <td></td>
-                </tr>
-            </tbody>
-        </table>
-        <br>
-        <table class="tabela">
-            <thead>
-                <th>Impostos a Serem Pagos</th>
-                <th>Percentuais</th>
-                <th>Valor</th>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>O Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
-                    <td><input value="15%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>Adicional do Imposto de Renda da Pessoa Jurídica (IRPJ) (Incide sobre a presunção de 8%)</td>
-                    <td><input value="10%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>CSLL a ser Pago (9%) da Presunção</td>
-                    <td><input value="9%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>O Programa de Integração Social (PIS) (0,65%) do faturamento</td>
-                    <td><input value="0.65%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>A Contribuição para o Financiamento da Seguridade Social (COFINS) (3%) do faturamento</td>
-                    <td><input value="3%" readOnly></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>O Imposto Sobre Serviços ( ISS )(5%) (Incide sobre o faturamento)</td>
-                    <td><input value="5%" readOnly></td>
-                    <td></td>
-                </tr>                
-                <tr>
-                    <td></td>
-                    <td>Total</td>
-                    <td>R$ 0,00</td>
-                </tr>                                                                               
-            </tbody>
-        </table>
         `
+
+        if (chave == 'resultados') {
+            acumulado.resultados += tabelaHtml
+        } else {
+            acumulado.tabelas += tabelaHtml
+        }
+
     }
 
-    div.innerHTML = `
-    <div style="color: #222; background-color: white; border-radius: 3px; padding: 5px; display: flex; justify-content: center; align-items: start; flex-direction: column;">
+    return acumulado
+}
 
-        <label>Gestão de Preço</label>
+function modelos(produto) {
+
+    let blocos = {
+        'VENDA': {
+            camposIniciais: [
+                { label: 'Preço Unitário (R$)', cor: '#91b7d9', id: 'custo', valor: produto?.custo || '' },
+                { label: 'Frete de Compra (2%)', readOnly: true, id: 'frete' },
+                { label: 'ICMS Creditado em nota (%)', opcoes: ['IMPORTADO', 'NACIONAL', 'BAHIA', 'SIMPLES NACIONAL'], cor: '#91b7d9', id: 'icms_creditado', valor: produto?.icms_creditado || '' },
+                { label: 'Aliquota ICMS (Bahia) (20.5%)', readOnly: true, id: 'icms_aliquota', valor: 20.5 },
+                { label: 'ICMS a ser pago (DIFAL) (%)', readOnly: true, id: 'difal', valor: '' },
+                { label: 'Valor do ICMS de Entrada (R$)', readOnly: true, id: 'icms_entrada' },
+                { label: 'Valor de Custo (R$)', readOnly: true, id: 'valor_custo', valor: produto?.valor_custo || '' },
+                { label: 'Margem de Acréscimo (%)', cor: '#91b7d9', id: 'margem', valor: produto?.margem || '' },
+                { label: 'Preço de Venda (R$)', cor: '#91b7d9', id: 'preco_venda', valor: produto?.valor || '' },
+                { label: 'Frete de Venda (5%)', readOnly: true, id: 'frete_venda' }
+            ],
+            presuncoes: [
+                { label: 'Aliquota do Lucro Presumido Comercio (8%)', id: 'porc_LP' },
+                { label: 'Alíquota da Presunção CSLL (12%)', id: 'porc_CSLL' }
+            ],
+            impostos: [
+                { label: 'IRPJ (15%)', id: 'irpj' },
+                { label: 'Adicional IRPJ (10%)', id: 'adicional_irpj' },
+                { label: 'CSLL (9%)', id: 'csll' },
+                { label: 'PIS (0,65%)', id: 'pis' },
+                { label: 'COFINS (3%)', id: 'cofins' },
+                { label: 'ICMS (%)', id: 'icms_saida', opcoes: ['4%', '12%', '20,5%'] }
+            ]
+        },
+        'SERVIÇO': {
+            camposIniciais: [
+                { label: 'Preço do Serviço', cor: '#91b7d9', id: 'valor_servico', valor: produto?.valor || '' }
+            ],
+            presuncoes: [
+                { label: 'Aliquota do Lucro Presumido Serviço (32%)', id: 'aliq_presumido' },
+                { label: 'Alíquota da Presunção CSLL (32%)', id: 'presuncao_csll' }
+            ],
+            impostos: [
+                { label: 'IRPJ (15%)', id: 'irpj' },
+                { label: 'Adicional IRPJ (10%)', id: 'adicional_irpj' },
+                { label: 'CSLL (9%)', id: 'presuncao_csll_pagar' },
+                { label: 'PIS (0,65%)', id: 'pis' },
+                { label: 'COFINS (3%)', id: 'cofins' },
+                { label: 'ISS (5%)', id: 'iss' }
+            ]
+        },
+        'USO E CONSUMO': {
+            camposIniciais: [
+                { label: 'Preço Unitário (R$)', cor: '#91b7d9', id: 'custo', valor: produto?.custo || '' },
+                { label: 'Frete de Compra (2%)', readOnly: true, id: 'frete' },
+                { label: 'ICMS Creditado em nota (%)', opcoes: ['IMPORTADO', 'NACIONAL', 'BAHIA'], cor: '#91b7d9', id: 'icms_creditado', valorSelect: produto?.icms_creditado_select, valor: produto?.icms_creditado || '' },
+                { label: 'Aliquota ICMS (Bahia) (20.5%)', readOnly: true, id: 'icms_aliquota', valor: 20.5 },
+                { label: 'ICMS a ser pago (DIFAL) (%)', readOnly: true, id: 'difal', valor: '' },
+                { label: 'Valor do ICMS de Entrada (R$)', readOnly: true, id: 'icms_entrada' },
+                { label: 'Valor de Custo (R$)', readOnly: true, id: 'valor_custo', valor: produto?.valor_custo || '' },
+                { label: 'Margem de Acréscimo (%)', cor: '#91b7d9', id: 'margem', valor: produto?.margem || '' },
+                { label: 'Preço de Venda (R$)', cor: '#91b7d9', id: 'preco_venda', valor: produto?.valor || '' },
+                { label: 'Frete de Venda (5%)', readOnly: true, id: 'frete_venda' }
+            ],
+            presuncoes: [
+                { label: 'Aliquota do Lucro Presumido Serviço (32%)', id: 'aliq_presumido' },
+                { label: 'Alíquota da Presunção CSLL (32%)', id: 'presuncao_csll' }
+            ],
+            impostos: [
+                { label: 'IRPJ (15%)', id: 'irpj' },
+                { label: 'Adicional IRPJ (10%)', id: 'adicional_irpj' },
+                { label: 'CSLL (9%)', id: 'presuncao_csll_pagar' },
+                { label: 'PIS (0,65%)', id: 'pis' },
+                { label: 'COFINS (3%)', id: 'cofins' },
+                { label: 'ISS (5%)', id: 'iss' }
+            ]
+        }
+    }
+
+    let geral = {
+        complementares: [
+            { label: 'NF de Compra', id: 'nota', cor: '#91b7d9', valor: produto?.nota || '' },
+            { label: 'Fornecedor', id: 'fornecedor', cor: '#91b7d9', valor: produto?.fornecedor || '' },
+            { label: 'Comentário', id: 'comentario', cor: '#91b7d9', valor: produto?.comentario || '' }
+        ],
+        resultados: [
+            { label: 'LUCRO LÍQUIDO', id: 'lucro_liquido' },
+            { label: 'PERCENTUAL DE LUCRO', id: 'lucro_porcentagem' }
+        ]
+    }
+
+    blocos[produto.tipo] = {
+        ...blocos[produto.tipo],
+        ...geral
+    }
+
+    return blocos[produto.tipo]
+}
+
+async function adicionarCotacao(codigo, lpu, cotacao) {
+
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let produto = dados_composicoes[codigo]
+    let funcao = cotacao ? `salvarPreco('${codigo}', '${lpu}', '${cotacao}')` : `salvarPreco('${codigo}', '${lpu}')`
+
+    if (lpu && cotacao) {
+        produto = {
+            ...produto,
+            ...produto[lpu].historico[cotacao]
+        }
+    }
+
+    let tabelasString = gerarTabelas(modelos(produto))
+
+    let acumulado = `
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; font-size: 0.7vw; background-color: #d2d2d2; padding: 5px;">
+        
+        <label style="font-size: 1.5vw;" id="modalidadeCalculo"><strong>${produto.tipo}</strong></label>
+
+        <div id="historico_preco" class="gavetaTabelas">
+
+            ${tabelasString.tabelas}
+
+        </div>
         <hr style="width: 100%;">
-        ${acumulado}
+        ${tabelasString.resultados}
+        <button onclick="${funcao}" style="background-color: #4CAF50;">Salvar Preço</button>
 
-    </div>`
+    </div>
+    `
 
-    if (dados?.icms_creditado) {
-        selecionarOrigemPorICMS(dados.icms_creditado);
-    }
-
-    calcular(produto.tipo == 'SERVIÇO' ? 'servico' : undefined)
-
-    setTimeout(() => {
-        document.getElementById('final').focus();
-    }, 100);
+    openPopup_v2(acumulado, 'Gestão de Preço', true)
+    calcular()
 
 }
 
-async function salvar_preco(codigo, lpu, cotacao) {
-    // Mostrar loader
-    const loader = document.createElement('div');
-    loader.innerHTML = '<div style="font-size:1.5em">Salvando preço...</div>';
-    loader.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.8);
-        color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-    `;
-    document.body.appendChild(loader);
+function getElementById(id, valorRetorno) {
+    const el = document.getElementById(id);
 
-    try {
-        // 1. Verificar se o produto existe
-        let dados_composicoes = await recuperarDados('dados_composicoes') || {};
-        let produto = dados_composicoes[codigo];
+    if (!el) return '';
 
-        if (!produto) {
-            return openPopup_v2('Produto não encontrado!', 'Aviso', true);
-        }
-
-        // 2. Coletar valores dos campos - DE FORMA NÃO-DESTRUTIVA
-        const getValue = (id) => {
-            const el = document.getElementById(id);
-            return el ? el.value : null;
-        };
-
-        const final = parseFloat(getValue('final')) || 0;
-        const custo = parseFloat(getValue('custo')) || 0;
-        const icms_creditado = conversor(getValue('icms_creditado')); // Coloquei um conversor para obter o número mesmo que seja float;
-        const nota = getValue('nota');
-        const comentario = getValue('comentario');
-        const margem = parseFloat(getValue('margem')) || 0;
-        const fornecedor = getValue('fornecedor');
-        const valor_custo = parseFloat(document.querySelector('#valor_custo')?.textContent.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
-
-        // 3. Validações obrigatórias
-        if (final <= 0) {
-            return openPopup_v2('Preço final inválido!', 'Aviso', true);
-        }
-
-        // VALIDAÇÃO DO ICMS CREDITADO (APENAS PARA PRODUTOS DE VENDA)
-        if (produto.tipo === 'VENDA') {
-            if (icms_creditado === null || icms_creditado === "" || isNaN(parseFloat(icms_creditado))) {
-                return openPopup_v2('O campo ICMS Creditado é obrigatório! Informe um valor numérico (pode ser 0).', 'Aviso', true);
-            }
-        }
-
-        // 4. Preparar objeto de histórico
-        let historico = produto[lpu]?.historico || {};
-        let id = cotacao || gerar_id_5_digitos();
-        let comentarioAlteracao = ''
-        const entradas = Object.entries(historico)
-
-        if (entradas.length === 0) {
-            comentarioAlteracao = `Preço definido para ${final.toFixed(2)}`;
+    if (valorRetorno !== undefined) {
+        if ('value' in el) {
+            el.value = valorRetorno;
         } else {
-            const ordenado = entradas.sort((a, b) => new Date(b[1].data) - new Date(a[1].data));
-            const ultimaEntrada = ordenado[0];
-
-            if (ultimaEntrada[0] === id) {
-                const precoAnterior = parseFloat(ultimaEntrada[1].valor);
-                comentarioAlteracao = `O usuário ${acesso.usuario} alterou o preço de ${precoAnterior.toFixed(2)} para ${final.toFixed(2)}`;
-            } else {
-                comentarioAlteracao = `O usuário ${acesso.usuario} adicionou novo preço: ${final.toFixed(2)} `
-            }
+            el.textContent = valorRetorno;
         }
-
-        historico[id] = {
-            valor: final,
-            data: dt(),
-            usuario: acesso.usuario,
-            nota: nota || '',
-            comentario: comentario || '',
-            margem: margem,
-            fornecedor: fornecedor || '',
-            custo: custo,
-            valor_custo: valor_custo
-        };
-
-        // Adicionar ICMS creditado apenas para produtos de venda
-        if (produto.tipo === 'VENDA') {
-            historico[id].icms_creditado = parseFloat(icms_creditado)
-        } else { // Aproveitando o else para salvar infos de SERVIÇO
-            historico[id].final = getValue('final')
-        }
-
-        // 5. Atualizar estrutura de dados
-        produto[lpu] = produto[lpu] || { historico: {} };
-        produto[lpu].historico = historico;
-
-        // 6. Salvar no banco de dados
-        await Promise.all([
-            inserirDados(dados_composicoes, 'dados_composicoes'),
-            enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, historico[id])
-        ]);
-
-        // 7. Fechar popup e recarregar
-        remover_popup();
-        await abrir_historico_de_precos(codigo, lpu);
-        registrarAlteracao('dados_composicoes', codigo, comentarioAlteracao)
-
-    } catch (error) {
-        console.error('Erro ao salvar preço:', error);
-    } finally {
-        if (loader && document.body.contains(loader)) {
-            document.body.removeChild(loader);
-        }
+        return;
     }
 
+    let valor = 'value' in el ? el.value : el.textContent;
+
+    if (el.type === 'number') {
+        valor = conversor(Number(valor));
+    }
+
+    return valor;
 }
 
-function calcular(tipo, campo) {
+function calcular(campo) {
+    let modalidadeCalculo = document.getElementById('modalidadeCalculo').textContent
 
-    let historico_preco = document.getElementById('historico_preco')
-    let tabelas = historico_preco.nextElementSibling.querySelectorAll('table')
+    let tabelaIcmsSaida = {
+        'IMPORTADO': 4,
+        'NACIONAL': 12,
+        'BAHIA': 20.5
+    }
 
-    if (tipo == 'servico') {
+    let lucroLiquido = 0
 
-        let tds = tabelas[0].querySelectorAll('td') // 1ª Tabela;
+    const atualizarLucro = (valorReferencia, totalImpostos, custoFinal = 0) => {
+        lucroLiquido = valorReferencia - (totalImpostos + custoFinal)
+        let porcentagem = lucroLiquido / valorReferencia * 100
 
-        let valor_servico = conversor(Number(tds[0].querySelector('input').value))
+        if (isNaN(porcentagem)) porcentagem = 0
 
-        tds = tabelas[2].querySelectorAll('td')
+        getElementById('lucro_liquido', dinheiro(lucroLiquido))
+        getElementById('lucro_porcentagem', `${porcentagem.toFixed(0)}%`)
 
-        let aliq_lp = valor_servico * 0.32 // Alíquota do Lucro Presumido;
-        let presuncao_csll = valor_servico * 0.32 // Presunção CSLL;
+        let estilo = lucroLiquido > 0 ? 'lucroPositivo' : 'lucroNegativo'
+        document.getElementById('lucro_liquido').classList = estilo
+        document.getElementById('lucro_porcentagem').classList = estilo
+    }
 
-        tds[2].textContent = dinheiro(aliq_lp)
-        tds[5].textContent = dinheiro(presuncao_csll)
+    if (modalidadeCalculo == 'SERVIÇO') {
 
-        tds = tabelas[3].querySelectorAll('td')
+        let valorServico = getElementById('valor_servico')
+        let aliqLp = valorServico * 0.32
+        let presuncaoCsll = valorServico * 0.32
 
-        let irpj = aliq_lp * 0.15
-        let adicional_irpj = aliq_lp * 0.10
-        let presuncao_csll_a_ser_pago = presuncao_csll * 0.09
-        let pis = valor_servico * 0.0065
-        let cofins = valor_servico * 0.03
-        let iss = valor_servico * 0.05
-        let total_impostos = irpj + adicional_irpj + presuncao_csll_a_ser_pago + pis + cofins + iss
+        getElementById('aliq_presumido', dinheiro(aliqLp))
+        getElementById('presuncao_csll', dinheiro(presuncaoCsll))
 
-        tds[2].textContent = dinheiro(irpj)
-        tds[5].textContent = dinheiro(adicional_irpj)
-        tds[8].textContent = dinheiro(presuncao_csll_a_ser_pago)
-        tds[11].textContent = dinheiro(pis)
-        tds[14].textContent = dinheiro(cofins)
-        tds[17].textContent = dinheiro(iss)
-        tds[20].textContent = dinheiro(total_impostos)
+        let irpj = aliqLp * 0.15
+        let adicionalIrpj = aliqLp * 0.10
+        let presuncaoCsllAPagar = presuncaoCsll * 0.09
+        let pis = valorServico * 0.0065
+        let cofins = valorServico * 0.03
+        let iss = valorServico * 0.05
+        let totalImpostos = irpj + adicionalIrpj + presuncaoCsllAPagar + pis + cofins + iss
 
-        tds = tabelas[1].querySelectorAll('td')
-        let lucro_liq = valor_servico - total_impostos
+        getElementById('irpj', dinheiro(irpj))
+        getElementById('adicional_irpj', dinheiro(adicionalIrpj))
+        getElementById('presuncao_csll_pagar', dinheiro(presuncaoCsllAPagar))
+        getElementById('pis', dinheiro(pis))
+        getElementById('cofins', dinheiro(cofins))
+        getElementById('iss', dinheiro(iss))
+        getElementById('total_impostos', dinheiro(totalImpostos))
 
-        tds[1].textContent = dinheiro(lucro_liq)
-        tds[3].textContent = `${(lucro_liq / valor_servico * 100).toFixed(2)}%`
+        atualizarLucro(valorServico, totalImpostos)
 
+    } else if (modalidadeCalculo == 'VENDA') {
+
+        let icmsCreditado = getElementById('icms_creditado')
+        let icmsCreditadoSelect = getElementById('icms_creditado_select')
+        if (icmsCreditadoSelect != 'SIMPLES NACIONAL') {
+            icmsCreditado = tabelaIcmsSaida[icmsCreditadoSelect]
+            getElementById('icms_creditado', icmsCreditado)
+        }
+
+        let precoCompra = getElementById('custo')
+        let frete = precoCompra * 0.02
+        let icmsAliquota = getElementById('icms_aliquota')
+        let difal = icmsAliquota - icmsCreditado
+        let icmsEntrada = difal / 100 * precoCompra
+        let valorCusto = icmsEntrada + precoCompra + frete
+
+        getElementById('frete', frete.toFixed(2))
+        getElementById('difal', difal)
+        getElementById('icms_entrada', icmsEntrada.toFixed(2))
+        getElementById('valor_custo', valorCusto.toFixed(2))
+
+        let margem = getElementById('margem')
+        let precoVenda = (1 + margem / 100) * valorCusto
+
+        if (campo == 'preco_venda') {
+            precoVenda = getElementById('preco_venda')
+            margem = ((precoVenda / valorCusto - 1) * 100).toFixed(2)
+            getElementById('margem', margem)
+        } else {
+            getElementById('preco_venda', precoVenda.toFixed(2))
+        }
+
+        let freteVenda = precoVenda * 0.05
+        getElementById('frete_venda', freteVenda.toFixed(0))
+
+        let porcLP = 0.08
+        let porcCSLL = 0.12
+        let lucroPresumido = precoVenda * porcLP
+        let presuncaoCsll = precoVenda * porcCSLL
+
+        getElementById('porc_LP', dinheiro(lucroPresumido))
+        getElementById('porc_CSLL', dinheiro(presuncaoCsll))
+
+        let irpj = lucroPresumido * 0.15
+        let adicionalIrpj = lucroPresumido * 0.1
+        let csll = presuncaoCsll * 0.09
+        let pis = precoVenda * 0.0065
+        let cofins = precoVenda * 0.03
+        let icmsSaida = conversor(getElementById('icms_saida_select')) / 100
+        let icms = precoVenda * icmsSaida
+        getElementById('icms_saida', dinheiro(icms.toFixed(0)))
+
+        let totalImpostos = irpj + adicionalIrpj + csll + pis + cofins + icms
+
+        getElementById('irpj', dinheiro(irpj))
+        getElementById('adicional_irpj', dinheiro(adicionalIrpj))
+        getElementById('csll', dinheiro(csll))
+        getElementById('pis', dinheiro(pis))
+        getElementById('cofins', dinheiro(cofins))
+        getElementById('total_impostos', dinheiro(totalImpostos))
+
+        atualizarLucro(precoVenda, totalImpostos, valorCusto + freteVenda)
+
+    } else if (modalidadeCalculo == 'USO E CONSUMO') {
+
+        let icmsCreditado = getElementById('icms_creditado')
+        let icmsCreditadoSelect = getElementById('icms_creditado_select')
+        if (icmsCreditadoSelect != 'SIMPLES NACIONAL') {
+            icmsCreditado = tabelaIcmsSaida[icmsCreditadoSelect]
+            getElementById('icms_creditado', icmsCreditado)
+        }
+
+        let precoCompra = getElementById('custo')
+        let frete = precoCompra * 0.02
+        let icmsAliquota = getElementById('icms_aliquota')
+        let difal = icmsAliquota - icmsCreditado
+        let icmsEntrada = difal / 100 * precoCompra
+        let valorCusto = icmsEntrada + precoCompra + frete
+
+        getElementById('frete', frete.toFixed(2))
+        getElementById('difal', difal)
+        getElementById('icms_entrada', icmsEntrada.toFixed(2))
+        getElementById('valor_custo', valorCusto.toFixed(2))
+
+        let margem = getElementById('margem')
+        let precoVenda = (1 + margem / 100) * valorCusto
+
+        if (campo == 'preco_venda') {
+            precoVenda = getElementById('preco_venda')
+            margem = ((precoVenda / valorCusto - 1) * 100).toFixed(2)
+            getElementById('margem', margem)
+        } else {
+            getElementById('preco_venda', precoVenda.toFixed(2))
+        }
+
+        let freteVenda = precoVenda * 0.05
+        getElementById('frete_venda', freteVenda.toFixed(0))
+
+        let aliqLp = precoVenda * 0.32
+        let presuncaoCsll = precoVenda * 0.32
+
+        getElementById('aliq_presumido', dinheiro(aliqLp))
+        getElementById('presuncao_csll', dinheiro(presuncaoCsll))
+
+        let irpj = aliqLp * 0.15
+        let adicionalIrpj = aliqLp * 0.10
+        let presuncaoCsllAPagar = presuncaoCsll * 0.09
+        let pis = precoVenda * 0.0065
+        let cofins = precoVenda * 0.03
+        let iss = precoVenda * 0.05
+        let totalImpostos = irpj + adicionalIrpj + presuncaoCsllAPagar + pis + cofins + iss
+
+        getElementById('irpj', dinheiro(irpj))
+        getElementById('adicional_irpj', dinheiro(adicionalIrpj))
+        getElementById('presuncao_csll_pagar', dinheiro(presuncaoCsllAPagar))
+        getElementById('pis', dinheiro(pis))
+        getElementById('cofins', dinheiro(cofins))
+        getElementById('iss', dinheiro(iss))
+        getElementById('total_impostos', dinheiro(totalImpostos))
+
+        atualizarLucro(precoVenda, totalImpostos, valorCusto + freteVenda)
+    }
+}
+
+async function salvarPreco(codigo, lpu, cotacao) {
+
+    overlayAguarde()
+
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let produto = dados_composicoes[codigo]
+    let historico = produto[lpu]?.historico || {}
+
+    let preco_venda = getElementById('preco_venda')
+    let custo = getElementById('custo')
+    let icms_creditado = getElementById('icms_creditado')
+    let icms_creditado_select = getElementById('icms_creditado_select')
+    let nota = getElementById('nota')
+    let comentario = getElementById('comentario')
+    let margem = getElementById('margem')
+    let fornecedor = getElementById('fornecedor')
+    let valor_custo = getElementById('valor_custo')
+    let id = cotacao || gerar_id_5_digitos();
+    let modalidade_icms = getElementById('modalidade_icms_select')
+    let icms_saida = getElementById('icms_saida')
+
+    // Ouvinte de alterações na composição;
+    let comentarioAlteracao = ''
+    const entradas = Object.entries(historico)
+
+    if (entradas.length === 0) {
+        comentarioAlteracao = `Preço definido para ${preco_venda.toFixed(2)}`;
     } else {
+        const ordenado = entradas.sort((a, b) => new Date(b[1].data) - new Date(a[1].data));
+        const ultimaEntrada = ordenado[0];
 
-        let tds = tabelas[0].querySelectorAll('td') // 1ª Tabela
-
-        let preco_compra = conversor(Number(tds[1].querySelector('input').value))
-        let frete = preco_compra * 0.02
-        let icms_creditado = conversor(Number(tds[5].querySelector('input').value))
-        let icms_aliquota = conversor(tds[7].querySelector('input').value)
-        let difal = icms_aliquota - icms_creditado
-        console.log('ICMS aliquota e creditado:', icms_aliquota, icms_creditado)
-        let icms_entrada = difal / 100 * preco_compra
-        let valor_custo = icms_entrada + preco_compra + frete
-
-        tds[3].textContent = dinheiro(frete)
-        tds[9].textContent = `${difal}%`
-        tds[11].textContent = dinheiro(icms_entrada)
-        tds[13].textContent = dinheiro(valor_custo)
-
-        let margem = Number(tds[15].querySelector('input').value)
-        let preco_venda = (1 + margem / 100) * valor_custo
-
-        if (campo == 'final') {
-            preco_venda = conversor(Number(tds[17].querySelector('input').value))
-            margem = ((preco_venda / valor_custo - 1) * 100).toFixed(2)
-            tds[15].querySelector('input').value = margem
-
+        if (ultimaEntrada[0] === id) {
+            const precoAnterior = parseFloat(ultimaEntrada[1].valor);
+            comentarioAlteracao = `O usuário ${acesso.usuario} alterou o preço de ${precoAnterior.toFixed(2)} para ${preco_venda.toFixed(2)}`;
         } else {
-            tds[17].querySelector('input').value = preco_venda.toFixed(2)
-
+            comentarioAlteracao = `O usuário ${acesso.usuario} adicionou novo preço: ${preco_venda.toFixed(2)} `
         }
-
-        let frete_venda = preco_venda * 0.05
-        tds[19].textContent = dinheiro(frete_venda)
-
-        tds = tabelas[2].querySelectorAll('td') // 2ª Tabela
-        let porc_LP = conversor(tds[1].querySelector('input').value) / 100 // Lucro Presumido
-
-        tds[2].textContent = dinheiro(preco_venda * porc_LP)
-
-        let porc_CSLL = conversor(tds[4].querySelector('input').value) / 100 // CSLL
-
-        tds[5].textContent = dinheiro(preco_venda * porc_CSLL)
-
-        tds = tabelas[2].querySelectorAll('td') // 3ª Tabela
-        let lucro_presumido = preco_venda * 0.08
-        let presuncao_csll = preco_venda * 0.12
-
-        tds[2].textContent = dinheiro(lucro_presumido)
-        tds[5].textContent = dinheiro(presuncao_csll)
-
-        tds = tabelas[3].querySelectorAll('td') // 4ª Tabela
-
-        let irpj = lucro_presumido * 0.15
-        let adicional_irpj = lucro_presumido * 0.1
-        let presuncao_csll_a_ser_pago = presuncao_csll * 0.09
-        let pis = preco_venda * 0.0065
-        let cofins = preco_venda * 0.03
-        let icms_saida = parseFloat(document.getElementById('icms_saida').value) / 100
-        let icms = preco_venda * icms_saida
-
-        let total_impostos = irpj + adicional_irpj + presuncao_csll_a_ser_pago + pis + cofins + icms
-
-        tds[2].textContent = dinheiro(irpj)
-        tds[5].textContent = dinheiro(adicional_irpj)
-        tds[8].textContent = dinheiro(presuncao_csll_a_ser_pago)
-        tds[11].textContent = dinheiro(pis)
-        tds[14].textContent = dinheiro(cofins)
-        tds[17].textContent = dinheiro(icms)
-        tds[20].textContent = dinheiro(total_impostos)
-
-        tds = tabelas[1].querySelectorAll('td') // Tabela resumo
-        let total_custos = valor_custo + total_impostos + frete_venda
-        let lucro_liquido = preco_venda - total_custos
-        tds[1].textContent = dinheiro(lucro_liquido)
-        tds[3].textContent = `${(lucro_liquido / valor_custo * 100).toFixed(2)}%`
-
     }
+    // Fim do Ouvinte;
 
+    historico[id] = {
+        valor: preco_venda,
+        data: data_atual('completa'),
+        usuario: acesso.usuario,
+        nota: nota || '',
+        comentario: comentario || '',
+        margem: margem,
+        fornecedor: fornecedor || '',
+        custo: custo,
+        valor_custo: valor_custo,
+        icms_creditado: icms_creditado,
+        icms_creditado_select: icms_creditado_select,
+        modalidade_icms: modalidade_icms,
+        icms_saida: icms_saida
+    };
+
+    produto[lpu] = produto[lpu] || { historico: {} };
+    produto[lpu].historico = historico;
+
+    await inserirDados(dados_composicoes, 'dados_composicoes')
+    remover_popup()
+    await abrirHistoricoPrecos(codigo, lpu);
+
+    enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, historico[id])
+    registrarAlteracao('dados_composicoes', codigo, comentarioAlteracao)
 }
 
 function remover_esta_linha(elemento) {
@@ -1596,14 +1488,14 @@ async function salvarServidor(codigo) {
         comentario = `Produto alterado com código ${codigo} e descrição: ${descricaoProduto}`
     }
 
-    remover_popup();
-
     dadosAtualizados.codigo = codigo;
 
     dados_composicoes[codigo] = { ...dados_composicoes[codigo], ...dadosAtualizados };
 
-    await inserirDados(dados_composicoes, 'dados_composicoes');
+    await inserirDados(dados_composicoes, 'dados_composicoes')
+
     await retomarPaginacao()
+    remover_popup();
 
     await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
     registrarAlteracao('dados_composicoes', codigo, comentario)
@@ -1669,17 +1561,71 @@ function salvarNovaLPU() {
     remover_popup();
 }
 
-function para_excel() {
+async function para_excel() {
+    const tabela = document.getElementById('tabela_composicoes');
+    if (!tabela) return;
 
-    let tabela = document.getElementById('tabela_composicoes')
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Preços');
 
-    if (!tabela) {
-        return;
+    const trs = tabela.querySelectorAll('tr');
+
+    for (let rowIndex = 0; rowIndex < trs.length; rowIndex++) {
+        const tr = trs[rowIndex];
+        const tds = tr.querySelectorAll('td, th');
+        let row = [];
+
+        for (let colIndex = 0; colIndex < tds.length; colIndex++) {
+            const td = tds[colIndex];
+            const img = td.querySelector('img');
+
+            if (img) {
+                try {
+                    const response = await fetch(img.src);
+                    const blob = await response.blob();
+                    const arrayBuffer = await blob.arrayBuffer();
+
+                    const extension = img.src.includes('.png') ? 'png' : 'jpeg';
+                    const imageId = workbook.addImage({
+                        buffer: arrayBuffer,
+                        extension: extension
+                    });
+
+                    worksheet.addImage(imageId, {
+                        tl: { col: colIndex, row: rowIndex },
+                        ext: { width: img.width || 100, height: img.height || 100 }
+                    });
+
+                    row.push(null);
+                } catch (e) {
+                    row.push(''); // imagem ignorada silenciosamente
+                }
+            } else {
+                const select = td.querySelector('select');
+                const input = td.querySelector('input');
+
+                if (select) {
+                    row.push(select.value);
+                } else if (input) {
+                    row.push(input.value);
+                } else {
+                    row.push(td.textContent.trim());
+                }
+            }
+        }
+
+        worksheet.addRow(row);
     }
 
-    let worksheet = XLSX.utils.table_to_sheet(tabela);
-    let workbook = XLSX.utils.book_new();
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    });
 
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Preços");
-    XLSX.writeFile(workbook, 'lpu.xlsx');
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'lpu-com-imagens.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
