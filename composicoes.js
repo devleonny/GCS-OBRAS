@@ -931,7 +931,7 @@ function modelos(produto) {
             camposIniciais: [
                 { label: 'Preço Unitário (R$)', cor: '#91b7d9', id: 'custo', valor: produto?.custo || '' },
                 { label: 'Frete de Compra (2%)', readOnly: true, id: 'frete' },
-                { label: 'ICMS Creditado em nota (%)', opcoes: ['IMPORTADO', 'NACIONAL', 'BAHIA', 'SIMPLES NACIONAL'], cor: '#91b7d9', id: 'icms_creditado', valor: produto?.icms_creditado || '' },
+                { label: 'ICMS Creditado em nota (%)', opcoes: ['IMPORTADO', 'NACIONAL', 'BAHIA'], cor: '#91b7d9', id: 'icms_creditado', valor: produto?.icms_creditado || '' },
                 { label: 'Aliquota ICMS (Bahia) (20.5%)', readOnly: true, id: 'icms_aliquota', valor: 20.5 },
                 { label: 'ICMS a ser pago (DIFAL) (%)', readOnly: true, id: 'difal', valor: '' },
                 { label: 'Valor do ICMS de Entrada (R$)', readOnly: true, id: 'icms_entrada' },
@@ -955,7 +955,7 @@ function modelos(produto) {
         },
         'SERVIÇO': {
             camposIniciais: [
-                { label: 'Preço do Serviço', cor: '#91b7d9', id: 'valor_servico', valor: produto?.valor || '' }
+                { label: 'Preço do Serviço', cor: '#91b7d9', id: 'preco_venda', valor: produto?.valor || '' }
             ],
             presuncoes: [
                 { label: 'Aliquota do Lucro Presumido Serviço (32%)', id: 'aliq_presumido' },
@@ -1105,9 +1105,9 @@ function calcular(campo) {
 
     if (modalidadeCalculo == 'SERVIÇO') {
 
-        let valorServico = getElementById('valor_servico')
-        let aliqLp = valorServico * 0.32
-        let presuncaoCsll = valorServico * 0.32
+        let precoVenda = getElementById('preco_venda')
+        let aliqLp = precoVenda * 0.32
+        let presuncaoCsll = precoVenda * 0.32
 
         getElementById('aliq_presumido', dinheiro(aliqLp))
         getElementById('presuncao_csll', dinheiro(presuncaoCsll))
@@ -1115,9 +1115,9 @@ function calcular(campo) {
         let irpj = aliqLp * 0.15
         let adicionalIrpj = aliqLp * 0.10
         let presuncaoCsllAPagar = presuncaoCsll * 0.09
-        let pis = valorServico * 0.0065
-        let cofins = valorServico * 0.03
-        let iss = valorServico * 0.05
+        let pis = precoVenda * 0.0065
+        let cofins = precoVenda * 0.03
+        let iss = precoVenda * 0.05
         let totalImpostos = irpj + adicionalIrpj + presuncaoCsllAPagar + pis + cofins + iss
 
         getElementById('irpj', dinheiro(irpj))
@@ -1128,7 +1128,7 @@ function calcular(campo) {
         getElementById('iss', dinheiro(iss))
         getElementById('total_impostos', dinheiro(totalImpostos))
 
-        atualizarLucro(valorServico, totalImpostos)
+        atualizarLucro(precoVenda, totalImpostos)
 
     } else if (modalidadeCalculo == 'VENDA') {
 
@@ -1280,16 +1280,16 @@ async function salvarPreco(codigo, lpu, cotacao) {
     const entradas = Object.entries(historico)
 
     if (entradas.length === 0) {
-        comentarioAlteracao = `Preço definido para ${preco_venda.toFixed(2)}`;
+        comentarioAlteracao = `Preço definido para ${dinheiro(preco_venda)}`;
     } else {
         const ordenado = entradas.sort((a, b) => new Date(b[1].data) - new Date(a[1].data));
         const ultimaEntrada = ordenado[0];
 
         if (ultimaEntrada[0] === id) {
             const precoAnterior = parseFloat(ultimaEntrada[1].valor);
-            comentarioAlteracao = `O usuário ${acesso.usuario} alterou o preço de ${precoAnterior.toFixed(2)} para ${preco_venda.toFixed(2)}`;
+            comentarioAlteracao = `O usuário ${acesso.usuario} alterou o preço de ${precoAnterior.toFixed(2)} para ${dinheiro(preco_venda)}`;
         } else {
-            comentarioAlteracao = `O usuário ${acesso.usuario} adicionou novo preço: ${preco_venda.toFixed(2)} `
+            comentarioAlteracao = `O usuário ${acesso.usuario} adicionou novo preço: ${dinheiro(preco_venda)} `
         }
     }
     // Fim do Ouvinte;
