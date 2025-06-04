@@ -29,18 +29,12 @@ async function exibirTabelaAgrupamentos() {
     let ocultarZerados = JSON.parse(localStorage.getItem('ocultarZerados'))
     if (ocultarZerados == null) ocultarZerados = true
 
-    // Percorre todos os produtos para encontrar aqueles com agrupamentos
     for (let codigo in dadosComposicoes) {
         let produto = dadosComposicoes[codigo]
 
-        // Verifica se o produto tem agrupamentos
-        if (!produto.agrupamentos || Object.keys(produto.agrupamentos).length === 0) {
-            continue // Pula produtos sem agrupamentos
-        }
+        if (!produto.agrupamentos || Object.keys(produto.agrupamentos).length === 0) continue
 
-        if (!tabelas[produto.tipo]) {
-            tabelas[produto.tipo] = { linhas: '' }
-        }
+        if (!tabelas[produto.tipo]) tabelas[produto.tipo] = { linhas: '' }
 
         let preco = 0
         let ativo = 0
@@ -97,7 +91,6 @@ async function exibirTabelaAgrupamentos() {
         }
     }
 
-    // Verifica se há produtos com agrupamentos
     let temAgrupamentos = Object.values(tabelas).some(tabela => tabela.linhas !== '')
 
     if (!temAgrupamentos) {
@@ -131,7 +124,7 @@ async function exibirTabelaAgrupamentos() {
     let toolbar = ''
 
     for (let tabela in tabelas) {
-        if (tabelas[tabela].linhas === '') continue // Pula tabelas vazias
+        if (tabelas[tabela].linhas === '') continue
 
         toolbar += `
             <label class="menu_top" style="background-color: ${coresTabelas(tabela)};" onclick="alterarTabelaAgrupamentos('${tabela}')">${tabela}</label>`
@@ -175,7 +168,7 @@ async function exibirTabelaAgrupamentos() {
     `
 
     let conteudoPopup = `
-        <div style="max-width: 90vw; max-height: 80vh; overflow-y: auto;">
+        <div style="max-width: 90vw; overflow-y: auto; background-color: rgb(21, 23, 73);">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #4CAF50;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <img src="gifs/lampada.gif" style="width: 30px; height: 30px;">
@@ -196,45 +189,29 @@ async function exibirTabelaAgrupamentos() {
 
     openPopup_v2(conteudoPopup, 'Produtos com Agrupamentos')
 
-    // Mostra a primeira tabela disponível
     let primeiraTabelaComDados = Object.keys(tabelas).find(tabela => tabelas[tabela].linhas !== '')
-    if (primeiraTabelaComDados) {
-        alterarTabelaAgrupamentos(primeiraTabelaComDados)
-    }
+    if (primeiraTabelaComDados) alterarTabelaAgrupamentos(primeiraTabelaComDados)
 }
 
-// Função auxiliar para alternar entre tabelas de agrupamentos
 function alterarTabelaAgrupamentos(tabela) {
     let tables = document.querySelectorAll('[id^="agrup_"]')
 
-    tables.forEach(tab => {
-        tab.style.display = 'none'
-    })
+    tables.forEach(tab => tab.style.display = 'none')
 
     let tabelaElement = document.getElementById(`agrup_${tabela}`)
-    if (tabelaElement) {
-        tabelaElement.style.display = 'table'
-    }
+    if (tabelaElement) tabelaElement.style.display = 'table'
 }
 
-// Função auxiliar para pesquisar produtos com agrupamentos
 function pesquisarProdutosAgrupamentos(col, elemento) {
-    if (!filtrosPagina.agrupamentos) {
-        filtrosPagina.agrupamentos = {}
-    }
+    if (!filtrosPagina.agrupamentos) filtrosPagina.agrupamentos = {}
 
-    // Encontra a tabela ativa
     let tabelaAtiva = null
     let tables = document.querySelectorAll('[id^="agrup_"]')
     tables.forEach(tab => {
-        if (tab.style.display === 'table') {
-            tabelaAtiva = tab.id
-        }
+        if (tab.style.display === 'table') tabelaAtiva = tab.id
     })
 
-    if (tabelaAtiva) {
-        pesquisar_generico(col, elemento.value, filtrosPagina.agrupamentos, tabelaAtiva)
-    }
+    if (tabelaAtiva) pesquisar_generico(col, elemento.value, filtrosPagina.agrupamentos, tabelaAtiva)
 }
 
 function lancarItemAgrupamento(codigoAgrupamento, codigoPrincipal) {
