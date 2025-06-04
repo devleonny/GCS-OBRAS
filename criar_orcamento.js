@@ -22,137 +22,219 @@ async function exibirTabelaAgrupamentos() {
     let orcamento_v2 = baseOrcamento()
     let lpu = String(orcamento_v2.lpu_ativa || 'lpu hope').toLowerCase()
     let dadosComposicoes = await recuperarDados('dados_composicoes') || {}
-    let composicoesOrcamento = orcamento_v2?.dados_composicoes || {}
-    let tabelaHTML = ''
-    let temAgrupamentos = false
+    let permissoes = ['adm', 'log', 'editor', 'gerente', 'diretor']
+    let moduloComposicoes = permissoes.includes(acesso.permissao)
 
-    // Percorre todos os itens do orçamento para encontrar agrupamentos
-    for (let codigoPrincipal in composicoesOrcamento) {
-        let itemPrincipal = dadosComposicoes[codigoPrincipal]
-        let tipo = dadosComposicoes[codigoPrincipal].tipo.toUpperCase()
+    let tabelas = { TODOS: { linhas: '' } }
+    let ocultarZerados = JSON.parse(localStorage.getItem('ocultarZerados'))
+    if (ocultarZerados == null) ocultarZerados = true
 
-        if (itemPrincipal && itemPrincipal.agrupamentos && Object.keys(itemPrincipal.agrupamentos).length > 0) {
-            temAgrupamentos = true
+    // Percorre todos os produtos para encontrar aqueles com agrupamentos
+    for (let codigo in dadosComposicoes) {
+        let produto = dadosComposicoes[codigo]
 
-            // Cabeçalho do item principal com funcionalidade de toggle
-            tabelaHTML += `
-                <div style="margin: 20px 0; border: 2px solid ${coresTabelas(tipo)}; border-radius: 8px; overflow: hidden;">
-                    <div style="background-color: ${coresTabelas(tipo)}; color: white; padding: 10px; font-weight: bold; display: flex; align-items: center; gap: 10px; cursor: pointer;" 
-                         onclick="toggleAgrupamento('${codigoPrincipal}')">
-                        <img src="gifs/lampada.gif" style="width: 25px; height: 25px;">
-                        <span>ITEM PRINCIPAL: ${codigoPrincipal} - ${itemPrincipal.descricao}</span>
-                        <span style="margin-left: auto; background-color: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 15px;">
-                            Quantidade: ${composicoesOrcamento[codigoPrincipal].qtde || 0}
-                        </span>
-                        <span id="toggle-icon-${codigoPrincipal}" style="font-size: 1.2em; transition: transform 0.3s;">▼</span>
-                    </div>
-                    
-                    <div id="agrupamento-${codigoPrincipal}" style="display: block; transition: all 0.3s ease;">
-                        <table style="width: 100%; border-collapse: collapse; background-color: white;">
-                            <thead style="background-color: #f8f9fa;">
-                                <tr>
-                                    <th style="padding: 12px; border: 1px solid #ddd; text-align: left; font-weight: bold; color:rgb(32, 32, 32);">Código</th>
-                                    <th style="padding: 12px; border: 1px solid #ddd; text-align: left; font-weight: bold; color:rgb(32, 32, 32);">Descrição</th>
-                                    <th style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color:rgb(32, 32, 32);">Quantidade</th>
-                                    <th style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color:rgb(32, 32, 32);">Valor</th>
-                                    <th style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color:rgb(32, 32, 32);">Imagem</th>
-                                    <th style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color:rgb(32, 32, 32);">Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+        // Verifica se o produto tem agrupamentos
+        if (!produto.agrupamentos || Object.keys(produto.agrupamentos).length === 0) {
+            continue // Pula produtos sem agrupamentos
+        }
+
+        if (!tabelas[produto.tipo]) {
+            tabelas[produto.tipo] = { linhas: '' }
+        }
+
+        let preco = 0
+        let ativo = 0
+        let historico = 0
+
+        if (produto[lpu] && produto[lpu].ativo && produto[lpu].historico) {
+            ativo = produto[lpu].ativo
+            historico = produto[lpu].historico
+            preco = historico[ativo]?.valor || 0
+        }
+
+        if (preco == 0 && ocultarZerados) continue
+
+        if (produto.status != "INATIVO") {
+            let td_quantidade = `
+                <input type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
+            `
+            let opcoes = ''
+            esquemas.sistema.forEach(op => {
+                opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
+            })
+
+            let linha = `
+                <tr>
+                    <td style="white-space: nowrap;">${codigo}</td>
+                    <td style="position: relative;">
+                        <div style="display: flex; justify-content: start; align-items: center; gap: 10px;">
+                            ${moduloComposicoes ? `<img src="imagens/editar.png" style="width: 1.5vw; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')">` : ''}
+                            ${moduloComposicoes ? `<img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">` : ''}
+                            <label>${produto.descricao}</label>
+                        </div>
+                        <img src="gifs/lampada.gif" style="position: absolute; top: 3px; right: 1vw; width: 1.5vw; cursor: pointer;">
+                    </td>
+                    <td>${produto.fabricante}</td>
+                    <td>${produto.modelo}</td>
+                    <td>
+                        <select class="opcoesSelect" onchange="alterarChave('${codigo}', 'sistema', this)">
+                            ${opcoes}
+                        </select>
+                    </td>
+                    <td style="text-align: center;">${td_quantidade}</td>
+                    <td>${produto.unidade}</td>
+                    <td style="white-space: nowrap;">
+                        <label ${moduloComposicoes ? `onclick="abrir_historico_de_precos('${codigo}', '${lpu}')"` : ''} class="${preco != 0 ? 'valor_preenchido' : 'valor_zero'}">${dinheiro(preco)}</label>
+                    </td>
+                    <td style="text-align: center;">
+                        <img src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">
+                    </td>
+                </tr>
             `
 
-            // Adiciona os itens do agrupamento
-            for (let codigoAgrupamento in itemPrincipal.agrupamentos) {
-                let itemAgrupamento = dadosComposicoes[codigoAgrupamento]
-                let tipoAgrupamento = itemAgrupamento.tipo.toUpperCase()
-                let codigoValorAtivo = itemAgrupamento[lpu]?.ativo
-                let valorAtivo = itemAgrupamento[lpu]?.historico[codigoValorAtivo]?.valor
-                console.log('Item agrupamento: ', itemAgrupamento[lpu].historico[codigoValorAtivo].valor);
-
-
-                if (itemAgrupamento) {
-                    tabelaHTML += `
-                        <tr style="background-color: #f9f9f9;" class="item-agrupamento-${codigoPrincipal}">
-                            <td style="padding: 10px; border: 1px solid #ddd; padding-left: 30px; position: relative;">
-                                <span style="position: absolute; left: 10px; color: ${coresTabelas(tipoAgrupamento)}; font-weight: 500;">└─</span>
-                                ${codigoAgrupamento}
-                            </td>
-                            <td style="padding: 10px; border: 1px solid #ddd; color:rgb(19, 19, 19);">
-                                ${itemAgrupamento.descricao || 'N/A'}
-                            </td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
-                                <input 
-                                    type="number"
-                                    class="quantidade-agrupamento"
-                                    data-codigo="${codigoAgrupamento}" 
-                                    data-principal="${codigoPrincipal}"
-                                    style="padding: 1vw; text-align: center; border-radius: 1vw; background-color: #4CAF50; color: #ddd; font-size: 1vw; font-weight: bold;"
-                                >
-                            </td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
-                                <label class="input_valor">${dinheiro(valorAtivo)}</label>
-                            </td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
-                                <img
-                                    src="${itemAgrupamento.imagem || logo}" 
-                                    style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer;"
-                                    onclick="ampliar_especial(this, '${codigoAgrupamento}')"
-                                >
-                            </td>
-                            <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
-                                <button 
-                                    style="font-weight: 500 !important; font-size: 1vw !important; background-color: ${coresTabelas(tipoAgrupamento)}; color: white; border: none; padding: 0.5vw; width: 100%; border-radius: 5px; cursor: pointer;"
-                                    onclick="lancarItemAgrupamento('${codigoAgrupamento}', '${codigoPrincipal}')"
-                                >Lançar item de ${tipoAgrupamento.toLowerCase()}</button>
-                            </td>
-                        </tr>
-                    `
-                }
-            }
-
-            tabelaHTML += `
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `
+            tabelas[produto.tipo].linhas += linha
+            tabelas.TODOS.linhas += linha
         }
     }
 
+    // Verifica se há produtos com agrupamentos
+    let temAgrupamentos = Object.values(tabelas).some(tabela => tabela.linhas !== '')
+
     if (!temAgrupamentos) {
-        tabelaHTML = `
+        let conteudoPopup = `
             <div style="text-align: center; padding: 40px; color: #666;">
                 <img src="gifs/lampada.gif" style="width: 60px; height: 60px; opacity: 0.5;">
-                <p style="margin-top: 20px; font-size: 1.2em;">Nenhum agrupamento encontrado no orçamento atual</p>
-                <p style="color: #999;">Adicione itens com agrupamentos para visualizá-los aqui</p>
+                <p style="margin-top: 20px; font-size: 1.2em;">Nenhum produto com agrupamentos encontrado</p>
+                <p style="color: #999;">Adicione agrupamentos aos produtos para visualizá-los aqui</p>
             </div>
         `
+        openPopup_v2(conteudoPopup, 'Produtos com Agrupamentos')
+        return
     }
+
+    let colunas = ['Código', 'Descrição', 'Fabricante', 'Modelo', 'Sistema', 'Quantidade', 'Unidade', 'Valor', 'Imagem *Ilustrativa']
+    let ths = ''
+    let tsh = ''
+    colunas.forEach((col, i) => {
+        ths += `<th style="color: white;">${col}</th>`
+        tsh += `
+        <th style="background-color: white; border-radius: 0px;">
+            <div style="position: relative;">
+                <input style="text-align: left;" oninput="pesquisarProdutosAgrupamentos(${i}, this)">
+                <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
+            </div>
+        </th>
+        `
+    })
+
+    let tabelasHTML = ''
+    let toolbar = ''
+
+    for (let tabela in tabelas) {
+        if (tabelas[tabela].linhas === '') continue // Pula tabelas vazias
+
+        toolbar += `
+            <label class="menu_top" style="background-color: ${coresTabelas(tabela)};" onclick="alterarTabelaAgrupamentos('${tabela}')">${tabela}</label>`
+
+        tabelasHTML += `
+            <table id="agrup_${tabela}" style="display: none;" class="tabela">
+                <thead style="background-color: ${coresTabelas(tabela)};">
+                    ${ths}
+                </thead>
+                <thead>
+                    ${tsh}
+                </thead>
+                <tbody>
+                    ${tabelas[tabela].linhas}
+                </tbody>
+            </table>
+        `
+    }
+
+    let botoes = `
+        <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
+            onclick="recuperarComposicoes()">
+            <img src="imagens/atualizar_2.png" style="width: 30px; cursor: pointer;">
+            <label style="color: white; cursor: pointer;">Atualizar</label>
+        </div>`
+
+    if (moduloComposicoes) {
+        botoes += `
+        <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
+            onclick="cadastrar_editar_item()">
+            <img src="imagens/add.png" style="width: 30px; cursor: pointer;">
+            <label style="color: white; cursor: pointer;">Criar Item</label>
+        </div>`
+    }
+
+    botoes += `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 2px; background-color: #d2d2d2; margin: 3px; border-radius: 3px;">
+            <input onchange="ocultarZerados(this.checked)" type="checkbox" style="width: 3vw; cursor: pointer;" ${ocultarZerados ? 'checked' : ''}>
+            <label style="padding-right: 2vw;">Ocultar produtos zerados</label>
+        </div>
+    `
 
     let conteudoPopup = `
         <div style="max-width: 90vw; max-height: 80vh; overflow-y: auto;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #4CAF50;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <img src="gifs/lampada.gif" style="width: 30px; height: 30px;">
-                    <h2 style="margin: 0; color: #4CAF50;">Visualização de Agrupamentos</h2>
+                    <h2 style="margin: 0; color: #4CAF50;">Produtos com Agrupamentos</h2>
                 </div>
-                ${temAgrupamentos ? `
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="expandirTodosAgrupamentos()" style="background-color: #4CAF50; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
-                        Expandir Todos
-                    </button>
-                    <button onclick="recolherTodosAgrupamentos()" style="background-color: #666; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
-                        Recolher Todos
-                    </button>
-                </div>
-                ` : ''}
             </div>
-            ${tabelaHTML}
+            
+            <div style="position: relative; display: flex; justify-content: center; width: 100%; margin-top: 30px; gap: 10px;">
+                ${toolbar}
+                ${botoes}
+            </div>
+
+            <div style="height: 700px; overflow: auto;">
+                ${tabelasHTML}
+            </div>
         </div>
     `
 
-    openPopup_v2(conteudoPopup, 'Agrupamentos do Orçamento')
+    openPopup_v2(conteudoPopup, 'Produtos com Agrupamentos')
+
+    // Mostra a primeira tabela disponível
+    let primeiraTabelaComDados = Object.keys(tabelas).find(tabela => tabelas[tabela].linhas !== '')
+    if (primeiraTabelaComDados) {
+        alterarTabelaAgrupamentos(primeiraTabelaComDados)
+    }
+}
+
+// Função auxiliar para alternar entre tabelas de agrupamentos
+function alterarTabelaAgrupamentos(tabela) {
+    let tables = document.querySelectorAll('[id^="agrup_"]')
+
+    tables.forEach(tab => {
+        tab.style.display = 'none'
+    })
+
+    let tabelaElement = document.getElementById(`agrup_${tabela}`)
+    if (tabelaElement) {
+        tabelaElement.style.display = 'table'
+    }
+}
+
+// Função auxiliar para pesquisar produtos com agrupamentos
+function pesquisarProdutosAgrupamentos(col, elemento) {
+    if (!filtrosPagina.agrupamentos) {
+        filtrosPagina.agrupamentos = {}
+    }
+
+    // Encontra a tabela ativa
+    let tabelaAtiva = null
+    let tables = document.querySelectorAll('[id^="agrup_"]')
+    tables.forEach(tab => {
+        if (tab.style.display === 'table') {
+            tabelaAtiva = tab.id
+        }
+    })
+
+    if (tabelaAtiva) {
+        pesquisar_generico(col, elemento.value, filtrosPagina.agrupamentos, tabelaAtiva)
+    }
 }
 
 function lancarItemAgrupamento(codigoAgrupamento, codigoPrincipal) {
