@@ -612,8 +612,6 @@ async function carregarTabelas() {
             opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
         })
 
-        // incluirItem(codigo, novaQuantidade)
-
         let linha = `
         <tr>
             <td>${codigo}</td>
@@ -725,29 +723,58 @@ function mostrarTabela(tabela) {
     document.getElementById(`toolbar_${tabela}`).style.opacity = '1'
 }
 
-// Substituir completamente a função removerItem
+// Modificar a função removerItem para detectar se é um item com agrupamentos
 async function removerItem(codigo, img) {
     let orcamento_v2 = baseOrcamento()
 
     if (orcamento_v2.dados_composicoes[codigo]) {
-        // Verificar se este item é pai de outros itens (tem filhos de agrupamento)
-        let itensFilhos = []
-        for (let codigoItem in orcamento_v2.dados_composicoes) {
-            let item = orcamento_v2.dados_composicoes[codigoItem]
-            if (item.historico_agrupamentos) {
-                // Verificar se este código é pai de algum item no histórico
-                let temEsteComooPai = item.historico_agrupamentos.some(hist => hist.item_pai === codigo)
-                if (temEsteComooPai) {
-                    let quantidadeDoPai = item.historico_agrupamentos
-                        .filter(hist => hist.item_pai === codigo)
-                        .reduce((total, hist) => total + hist.quantidade, 0)
+        let produto = dados_composicoes[codigo]
+        let temAgrupamentos = produto && produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0
 
-                    itensFilhos.push({
-                        codigo: codigoItem,
-                        descricao: item.descricao,
-                        qtde: item.qtde,
-                        qtdeDoPai: quantidadeDoPai
-                    })
+        // Verificar se este item é pai de outros itens (através de agrupamentos OU histórico)
+        let itensFilhos = []
+
+        if (temAgrupamentos) {
+            // Se tem agrupamentos, verificar quais itens filhos existem no orçamento
+            for (let codigoFilho in produto.agrupamentos) {
+                if (orcamento_v2.dados_composicoes[codigoFilho]) {
+                    let itemFilho = orcamento_v2.dados_composicoes[codigoFilho]
+
+                    // Verificar se este item filho tem este código como pai no histórico
+                    if (itemFilho.historico_agrupamentos) {
+                        let quantidadeDoPai = itemFilho.historico_agrupamentos
+                            .filter(hist => hist.item_pai === codigo)
+                            .reduce((total, hist) => total + hist.quantidade, 0)
+
+                        if (quantidadeDoPai > 0) {
+                            itensFilhos.push({
+                                codigo: codigoFilho,
+                                descricao: itemFilho.descricao,
+                                qtde: itemFilho.qtde,
+                                qtdeDoPai: quantidadeDoPai
+                            })
+                        }
+                    }
+                }
+            }
+        } else {
+            // Verificação original para itens que não têm agrupamentos mas podem ser pais
+            for (let codigoItem in orcamento_v2.dados_composicoes) {
+                let item = orcamento_v2.dados_composicoes[codigoItem]
+                if (item.historico_agrupamentos) {
+                    let temEsteComooPai = item.historico_agrupamentos.some(hist => hist.item_pai === codigo)
+                    if (temEsteComooPai) {
+                        let quantidadeDoPai = item.historico_agrupamentos
+                            .filter(hist => hist.item_pai === codigo)
+                            .reduce((total, hist) => total + hist.quantidade, 0)
+
+                        itensFilhos.push({
+                            codigo: codigoItem,
+                            descricao: item.descricao,
+                            qtde: item.qtde,
+                            qtdeDoPai: quantidadeDoPai
+                        })
+                    }
                 }
             }
         }
@@ -758,6 +785,8 @@ async function removerItem(codigo, img) {
                 `<li>${item.codigo} - ${item.descricao} (Qtde atual: ${item.qtde}, do pai: ${item.qtdeDoPai})</li>`
             ).join('')
 
+            let tipoItem = temAgrupamentos ? 'kit com agrupamentos' : 'item pai'
+
             openPopup_v2(`
                 <div style="padding: 20px;">
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
@@ -765,7 +794,7 @@ async function removerItem(codigo, img) {
                         <h3 style="margin: 0; color: #B12425;">Atenção!</h3>
                     </div>
                     
-                    <p>O item <strong>${codigo}</strong> possui ${itensFilhos.length} item(ns) filho(s) do agrupamento:</p>
+                    <p>O ${tipoItem} <strong>${codigo}</strong> possui ${itensFilhos.length} item(ns) filho(s):</p>
                     
                     <ul style="background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin: 10px 0;">
                         ${listaFilhos}
@@ -1818,10 +1847,47 @@ async function total() {
 
 }
 
+// Modificar a função incluirItem para lançar agrupamentos automaticamente
 async function incluirItem(codigo, novaQuantidade) {
     let orcamento_v2 = baseOrcamento()
     let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
     let produto = dados_composicoes[codigo]
+
+    // Verificar se o produto tem agrupamentos
+    if (produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) {
+        console.log(`Item ${codigo} tem agrupamentos:`, produto.agrupamentos)
+
+        // Lançar automaticamente os itens do agrupamento
+        for (let codigoFilho in produto.agrupamentos) {
+            let quantidadeFilho = produto.agrupamentos[codigoFilho] * parseFloat(novaQuantidade)
+            console.log(`Lançando item filho: ${codigoFilho}, quantidade: ${quantidadeFilho}`)
+
+            await incluirItemComPai(codigoFilho, quantidadeFilho, codigo)
+        }
+
+        // Mostrar notificação dos itens lançados
+        let itensLancados = Object.keys(produto.agrupamentos).map(codigoFilho => {
+            let qtde = produto.agrupamentos[codigoFilho] * parseFloat(novaQuantidade)
+            let descricaoFilho = dados_composicoes[codigoFilho]?.descricao || codigoFilho
+            return `<li>${codigoFilho} - ${descricaoFilho} (Qtde: ${qtde})</li>`
+        }).join('')
+
+        openPopup_v2(`
+            <div style="padding: 20px;">
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <img src="gifs/lampada.gif" style="width: 50px;">
+                    <h3 style="color: #4CAF50;">Agrupamento Lançado!</h3>
+                </div>
+                <p>O item <strong>${codigo}</strong> (${produto.descricao}) foi adicionado com seus agrupamentos:</p>
+                <ul style="background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                    ${itensLancados}
+                </ul>
+                <p style="font-size: 0.9em; color: #666;">
+                    <strong>Dica:</strong> Ao remover o item pai, as quantidades dos itens filhos serão reduzidas automaticamente.
+                </p>
+            </div>
+        `, 'Agrupamento Adicionado', false, 4000) // Auto-fechar em 4 segundos
+    }
 
     let opcoes = ''
     esquemas.sistema.forEach(op => {
@@ -1831,7 +1897,19 @@ async function incluirItem(codigo, novaQuantidade) {
     let linha = `
         <tr>
             <td>${codigo}</td>
-            <td style="position: relative;"></td>
+            <td style="position: relative;">
+                ${produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0 ?
+            `<div style="display: flex; align-items: center; gap: 5px;">
+                        <img src="gifs/lampada.gif" style="width: 15px;" title="Item com agrupamentos">
+                        <span>${produto?.descricao || 'N/A'}</span>
+                    </div>
+                    <div style="font-size: 0.8em; color: #4CAF50; font-style: italic;">
+                        Kit com ${Object.keys(produto.agrupamentos).length} itens
+                    </div>`
+            :
+            `${produto?.descricao || 'N/A'}`
+        }
+            </td>
             ${carrefour ? `<td></td>` : ''}
             <td style="text-align: center;">${produto?.unidade}</td>
             <td style="text-align: center;">
@@ -1875,7 +1953,7 @@ async function incluirItem(codigo, novaQuantidade) {
 
             orcamento_v2.dados_composicoes[codigo] = {
                 codigo: codigo,
-                qtde: novaQuantidade,
+                qtde: parseFloat(novaQuantidade),
                 tipo: produto?.tipo,
                 unidade: produto?.unidade || 'UN',
                 custo: 0,
@@ -1893,8 +1971,8 @@ async function incluirItem(codigo, novaQuantidade) {
     await total()
 }
 
+// Modificar a função itemExistente para lidar com agrupamentos
 function itemExistente(tipo, codigo, quantidade) {
-
     let incluir = true
     let orcamento_v2 = baseOrcamento()
     let linhas = document.getElementById(`linhas_${tipo}`)
@@ -1902,21 +1980,75 @@ function itemExistente(tipo, codigo, quantidade) {
     let trs = linhas.querySelectorAll('tr')
 
     trs.forEach(tr => {
-
         let tds = tr.querySelectorAll('td')
         let acrescimo = orcamento_v2.lpu_ativa !== 'LPU CARREFOUR' ? 0 : 1
 
         if (tds[0].textContent == codigo) {
-
             incluir = false
-            tds[3 + acrescimo].querySelector('input').value = quantidade
 
+            // Se o item já existe, somar a quantidade
+            let inputQuantidade = tds[3 + acrescimo].querySelector('input')
+            let quantidadeAtual = parseFloat(inputQuantidade.value) || 0
+            let novaQuantidadeTotal = quantidadeAtual + parseFloat(quantidade)
+
+            inputQuantidade.value = novaQuantidadeTotal
+
+            // Atualizar no orçamento também
+            if (orcamento_v2.dados_composicoes[codigo]) {
+                orcamento_v2.dados_composicoes[codigo].qtde = novaQuantidadeTotal
+                baseOrcamento(orcamento_v2)
+            }
         }
-
     })
 
     return incluir
+}
 
+// Continuação da função mostrarDetalhesAgrupamento
+function mostrarDetalhesAgrupamento(codigo) {
+    let produto = dados_composicoes[codigo]
+
+    if (!produto || !produto.agrupamentos || Object.keys(produto.agrupamentos).length === 0) {
+        openPopup_v2(`
+            <div style="text-align: center; padding: 20px;">
+                <p>Este item não possui agrupamentos.</p>
+            </div>
+        `, 'Detalhes do Agrupamento')
+        return
+    }
+
+    let linhas = Object.entries(produto.agrupamentos).map(([codigoFilho, quantidade]) => {
+        let descricaoFilho = dados_composicoes[codigoFilho]?.descricao || 'N/A'
+        return `
+            <tr>
+                <td>${codigoFilho}</td>
+                <td>${descricaoFilho}</td>
+                <td style="text-align: center;">${quantidade}</td>
+            </tr>
+        `
+    }).join('')
+
+    let conteudo = `
+        <div style="padding: 20px;">
+            <h3>Agrupamentos do Item: ${codigo}</h3>
+            <p><strong>Descrição:</strong> ${produto.descricao}</p>
+            
+            <table class="tabela" style="width: 100%; margin-top: 15px;">
+                <thead style="background-color: #4CAF50;">
+                    <tr>
+                        <th style="color: white;">Código</th>
+                        <th style="color: white;">Descrição</th>
+                        <th style="color: white;">Quantidade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${linhas}
+                </tbody>
+            </table>
+        </div>
+    `
+
+    openPopup_v2(conteudo, 'Detalhes do Agrupamento')
 }
 
 function alterar_input_tabela(codigo) {
