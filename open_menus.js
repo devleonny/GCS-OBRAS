@@ -200,6 +200,10 @@ function carregarIcones() {
             <img src="imagens/historico.png" style="color: white">
             <label>Histórico de Alterações GCS</label>
         </div>` : ''}
+        <div class="block" style="flex-direction: column;" onclick="window.location.href='tickets.html'">
+            <img src="imagens/suporte.png">
+            <label>Suporte</label>
+        </div>
     `
 
     if (ativar) {

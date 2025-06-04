@@ -1,0 +1,23 @@
+body {
+  font-size: 0.8em;
+  background: linear-gradient(45deg, #151749, #B12425);
+  animation: none;
+}
+
+body::before {
+  animation: none;
+  background: none;
+}
+
+.top {
+  position: relative;
+  display: flex;
+  width: 100%;
+  margin: 40px 5px;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #222222bf;
+  padding: 10px;
+  border-radius: 5px;
+  gap: 20px;
+}
