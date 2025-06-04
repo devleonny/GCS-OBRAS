@@ -850,7 +850,7 @@ function selecionarOrigemPorICMS(valorICMS) {
 
     let icms = parseFloat(valorICMS);
     const ICMS_IMPORTADO = 4;
-    const ICMS_NACIONAL = 20;
+    const ICMS_NACIONAL = 20.5;
     const ICMS_BAHIA = 12;
 
     const icmsEImportado = icms === ICMS_IMPORTADO;
@@ -862,7 +862,7 @@ function selecionarOrigemPorICMS(valorICMS) {
     const icmsENacional = icms >= ICMS_NACIONAL;
     if (icmsENacional) radioNacional.checked = true;
 
-    const icmsNacionalOuDaBahia = icms <= ICMS_BAHIA ? '12' : '20,5';
+    const icmsNacionalOuDaBahia = icms <= ICMS_BAHIA ? '12' : '20.5';
     const selectICMS = document.getElementById('icms_saida');
     if (selectICMS) selectICMS.value = icms <= ICMS_IMPORTADO ? '4' : icmsNacionalOuDaBahia;
 }
