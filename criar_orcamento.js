@@ -138,10 +138,10 @@ async function exibirTabelaAgrupamentos() {
 
         tabelasHTML += `
             <table id="agrup_${tabela}" style="display: none;" class="tabela">
-                <thead style="background-color: ${coresTabelas(tabela)};">
+                <thead style="background-color: ${coresTabelas(tabela)}; position: sticky; top: 0; z-index: 10;">
                     ${ths}
                 </thead>
-                <thead>
+                <thead style="position: sticky; z-index: 9; background-color: white;">
                     ${tsh}
                 </thead>
                 <tbody>
