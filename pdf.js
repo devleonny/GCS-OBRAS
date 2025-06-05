@@ -141,18 +141,18 @@ async function preencher_v2() {
         3: 'Imagem *Ilustrativa',
         4: 'Unidade',
         5: 'Qtde',
-        6: 'Valor UNT S/ICMS',
-        7: 'Valor TOTAL S/ICMS',
+        6: 'UNT S/ICMS',
+        7: 'TOTAL S/ICMS',
         8: '% ICMS',
-        9: 'Valor UNT',
-        10: 'Valor TOTAL'
+        9: 'UNT',
+        10: 'TOTAL'
     }
 
     let config = {
         'ALUGUEL': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: 'green' },
         'USO E CONSUMO': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: '#24729d' },
         'SERVIÇO': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: 'green' },
-        'VENDA': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: '#B12425' }
+        'VENDA': { colunas: [1, 2, 3, 4, 5, 6, 7, 9, 10], cor: '#B12425' }
     }
 
 
@@ -194,17 +194,17 @@ async function preencher_v2() {
         item.total = item.custo * item.qtde;
         totais[item.tipo].valor += item.total // Total isolado do item;
         totais.GERAL.valor += item.total // Total GERAL;
-
+        
         let unitarioSemIcms = item.custo - (item.custo * (icms / 100))
         let totalSemIcms = unitarioSemIcms * item.qtde
         let tds = {}
-        
+
         tds[1] = `<td>${item.codigo}</td>`
         tds[2] = `<td>${item?.descricao || 'N/A'}</td>`
         tds[3] = `<td style="text-align: center;"><img src="${itemComposicao?.imagem || item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 2vw;"></td>`
         tds[4] = `<td>${item?.unidade || 'UN'}</td>`
         tds[5] = `<td>${item.qtde}</td>`
-        tds[6] = `<td style="white-space: nowrap;">${dinheiro(unitarioSemIcms)}</td>`
+        tds[6] = `<td style="white-space: nowrap;">${dinheiro(unitarioSemIcms)} (${icms}%)</td>`
         tds[7] = `<td style="white-space: nowrap;">${dinheiro(totalSemIcms)}</td>`
         tds[8] = `<td>${icms}%</td>`
         tds[9] = `<td style="white-space: nowrap;">${dinheiro(item.custo)}</td>`
@@ -224,7 +224,11 @@ async function preencher_v2() {
         if (!totais[item.tipo].ths) {
             totais[item.tipo].ths = ''
             colunas.forEach(col => {
-                totais[item.tipo].ths += `<th style="color: white;">${cabecalho[col]}</th >`
+
+                let complemento = ''
+                if(item.tipo == 'VENDA') complemento = 'COM ICMS'
+
+                totais[item.tipo].ths += `<th style="color: white;">${cabecalho[col]} ${complemento}</th>`
             })
 
         }

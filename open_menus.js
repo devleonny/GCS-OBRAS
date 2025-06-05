@@ -1,6 +1,7 @@
 var versao = 'v3.0.5'
 let acesso = JSON.parse(localStorage.getItem('acesso'))
 let dados_setores = {}
+let filtrosUsuarios = {}
 let logo = 'https://i.imgur.com/Nb8sPs0.png'
 let esquemas = {
     'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS'],
@@ -149,13 +150,10 @@ function carregarIcones() {
     let ativar = JSON.parse(localStorage.getItem('modoClone')) || false
     let painel_geral = document.getElementById('painel_geral')
 
-    let moduloComposicoes = (
-        acesso.permissao == 'adm' ||
-        acesso.permissao == 'log' ||
-        acesso.permissao == 'editor' ||
-        acesso.permissao == 'gerente' ||
-        acesso.permissao == 'diretor'
-    )
+    let permissoesLiberadas = ['adm', 'gerente', 'diretoria', 'editor', 'log']
+    let setoresLiberados = ['LOGÍSTICA']
+
+    let moduloComposicoes = (permissoesLiberadas.includes(acesso.permissao) || setoresLiberados.includes(acesso.setor))
 
     let registroHistorico = (
         acesso.permissao == 'adm'
@@ -255,7 +253,7 @@ async function identificacaoUser() {
 
         let config = ''
 
-        if (permissao == 'adm' || permissao == 'adm') {
+        if (permissao == 'adm') {
             config = `
             <img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="configs()">`
         }
@@ -314,7 +312,7 @@ async function configs() {
     }
 
     dados_setores = Object.keys(dados_setores)
-        .sort()
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
         .reduce((obj, chave) => {
             obj[chave] = dados_setores[chave];
             return obj;
@@ -350,16 +348,28 @@ async function configs() {
         `
     }
 
+    let ths = ''
+    let tbusca = ''
+    let cabecalhos = ['Usuário', 'Permissão', 'Setores']
+    cabecalhos.forEach((cabecalho, i) => {
+        ths += `<th>${cabecalho}</th>`
+        tbusca += `
+        <th style="background-color: white;">
+            <div style="display: flex; align-items: center; justify-content: center;">
+                <input oninput="pesquisar_generico(${i}, this.value, filtrosUsuarios, 'tbodyUsuarios')">
+                <img src="imagens/pesquisar2.png" style="width: 1vw;">
+            </div>
+        </th>
+        `
+    })
+
     let tabela = `
     <table class="tabela" style="width: 30vw;">
         <thead>
-            <tr>
-                <th>Usuários</th>
-                <th>Permissões</th>
-                <th>Setores</th>
-            </tr>
+            <tr>${ths}</tr>
+            <tr>${tbusca}</tr>
         </thead>
-        <tbody>${linhas}</tbody>
+        <tbody id="tbodyUsuarios">${linhas}</tbody>
     </table>
     `
 
@@ -1257,18 +1267,6 @@ function fecharTabela(nome_tabela) {
     document.getElementById('overlay').style.display = 'none'
 }
 
-if (document.title == 'Criar Orçamento') {
-    calculadora_reversa()
-
-    valor_liquido.addEventListener('input', function () {
-        calcular()
-    })
-
-    icms_toggle.addEventListener('input', function () {
-        calcular()
-    })
-}
-
 function calcular() {
     var valor = Number(valor_liquido.value)
 
@@ -1278,41 +1276,6 @@ function calcular() {
     var resultado = valor * 1 / (1 - porcentagem)
 
     valor_com_imposto.textContent = dinheiro(resultado)
-}
-
-function exibir_calculadora() {
-    calculadora.classList.toggle('show');
-}
-
-function calculadora_reversa() {
-
-    var calculadora = ''
-
-    calculadora += `
-    <div id="calculadora">
-        <div style="display: grid;">
-            <label>Valor Líquido</label>
-            <input type="number" id="valor_liquido">
-        </div>
-
-        <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-        <label>Dentro <strong>20,5%</strong></label>
-            <label class="switch">
-                <input type="checkbox" id="icms_toggle">
-                <span class="slider"></span>
-            </label>
-        <label>Fora <strong>12%</strong></label>
-        </div>
-
-        <img src="imagens/avanco.png">
-        <div style="display: grid;">
-            <label>Valor Bruto</label>
-            <label id="valor_com_imposto">R$ -- </label>
-        </div>
-    </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', calculadora);
 }
 
 function gerar_id_5_digitos() {
@@ -1606,7 +1569,7 @@ function enviar(caminho, info) {
             .then(text => text ? JSON.parse(text) : {})
             .then(data => resolve(data))
             .catch((erro) => {
-                console.error("Erro ao enviar:", erro);
+                console.error('Erro no Servidor, mas será salvo para tentativa em breve...', erro);
                 salvar_offline(objeto, 'enviar');
                 resolve();
             });
@@ -1626,15 +1589,6 @@ function salvar_offline(objeto, operacao) {
     localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
 }
 
-function dt() {
-    let dt = new Date().toLocaleString('pt-BR', {
-        dateStyle: 'short',
-        timeStyle: 'short'
-    })
-
-    return dt
-}
-
 const WS_URL = "wss://leonny.dev.br:8443";
 let socket;
 let reconnectInterval = 30000;
@@ -1644,17 +1598,18 @@ function connectWebSocket() {
     socket = new WebSocket(WS_URL);
 
     socket.onopen = () => {
-        console.log(`🟢🟢🟢 WS ${dt()} 🟢🟢🟢`);
+        console.log(`🟢🟢🟢 WS ${data_atual('completa')} 🟢🟢🟢`);
     };
 
     socket.onmessage = (event) => {
         let data = JSON.parse(event.data);
         espelhar_atualizacao(data);
+
         console.log('📢', data);
     };
 
     socket.onclose = () => {
-        console.log(`🔴🔴🔴 WS ${dt()} 🔴🔴🔴`);
+        console.log(`🔴🔴🔴 WS ${data_atual('completa')} 🔴🔴🔴`);
         console.log(`Tentando reconectar em ${reconnectInterval / 1000} segundos...`);
         setTimeout(connectWebSocket, reconnectInterval);
     };
@@ -1933,17 +1888,12 @@ function data_atual(estilo, nivel) {
 
 async function aprovacoes_pendentes() {
 
-    let permissao = acesso.permissao
-    let pessoasPermitidas = ['gerente', 'adm', 'editor']
-    if (!pessoasPermitidas.includes(permissao)) return
-
     let painel_aprovacoes = document.getElementById('painel_aprovacoes')
     if (painel_aprovacoes) {
         painel_aprovacoes.remove()
     }
 
     let orcamento_v2 = baseOrcamento()
-
     let aprovacoes = await receber('aprovacoes') || {}
     let acumulado = ''
 
@@ -2006,12 +1956,16 @@ async function aprovacoes_pendentes() {
         `
     }
 
-    let painel = `
-    <div id="painel_aprovacoes" style="z-index: 4444; position: fixed; bottom: 2vw; right: 2vw; display: flex; align-items: center; justify-content: start; flex-direction: column; gap: 5px; height: 70vh; overflow: auto;">
-        ${acumulado}
-    </div>
+    let permissao = acesso.permissao
+    let pessoasPermitidas = ['gerente', 'adm', 'editor', 'diretoria']
+    if (pessoasPermitidas.includes(permissao)) {
+        let painel = `
+        <div id="painel_aprovacoes" style="z-index: 4444; position: fixed; bottom: 2vw; right: 2vw; display: flex; align-items: center; justify-content: start; flex-direction: column; gap: 5px; height: 70vh; overflow: auto;">
+            ${acumulado}
+        </div>
     `
-    document.body.insertAdjacentHTML('beforeend', painel)
+        document.body.insertAdjacentHTML('beforeend', painel)
+    }
 }
 
 function resposta_desconto(botao, id, status) {

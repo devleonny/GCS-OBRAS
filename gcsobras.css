@@ -76,6 +76,34 @@ body {
     gap: 1px;
 }
 
+.gavetaTabelas {
+    background-color: #797979;
+    overflow: auto;
+    padding: 5px;
+    display: flex;
+    justify-content: start;
+    align-items: start;
+    flex-direction: column;
+}
+
+.gavetaTabelas input {
+    font-size: 1vw;
+}
+
+.lucroNegativo {
+    border-radius: 3px;
+    padding: 5px;
+    background-color: #ff0000;
+    color: white;
+}
+
+.lucroPositivo {
+    border-radius: 3px;
+    padding: 5px;
+    background-color: green;
+    color: white;
+}
+
 .botao-coluna {
     padding: 8px 12px;
     background-color: #4CAF50;
@@ -508,6 +536,7 @@ button {
     border: none;
     padding: 10px;
     border-radius: 5px;
+    font-size: 0.8vw;
 }
 
 .retangulo {
@@ -584,7 +613,7 @@ button {
 
 .janela {
     overflow: auto;
-    max-height: 70vh;
+    max-height: 90vh;
     padding: 5px;
 }
 
@@ -1418,14 +1447,13 @@ input[type=range]::-moz-range-thumb {
     color: #222;
     font-size: 0.8vw;
     padding: 8px;
-    border: 1px solid #404040;  
+    border: 1px solid #404040;
 }
 
 .tabela td {
-    color: #222;
     font-size: 0.8vw;
     overflow: hidden;
-    border: 1px solid #797979;   
+    border: 1px solid #797979;
 }
 
 .tabela thead {

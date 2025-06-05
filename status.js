@@ -13,6 +13,7 @@ let fluxogramaClone = {
     'NFE - VENDAS': { cor: '#B05315' },
     'REQUISIÇÃO': { cor: '#B12425' },
     'MATERIAL ENVIADO': { cor: '#b17724' },
+    'MATERIAL ENTREGUE': { cor: '#b17724' },
     'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
     'CONCLUÍDO': { cor: '#ff4500' },
     'FATURADO': { cor: '#b17724' },
