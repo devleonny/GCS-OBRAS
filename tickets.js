@@ -1,111 +1,92 @@
 function novoTicket() {
-    // Criar overlay do popup
-    const overlay = document.createElement('div');
-    overlay.className = 'ticket-overlay';
-
-    // Criar container do popup
-    const popup = document.createElement('div');
-    popup.className = 'ticket-popup';
-
-    // HTML do formulário
-    popup.innerHTML = `
-        <div class="ticket-header">
-            <h2 class="ticket-title">Novo Ticket</h2>
-            <p class="ticket-subtitle">Descreva seu problema ou solicitação</p>
-            <button id="close-ticket-popup" class="ticket-close-btn">&times;</button>
-        </div>
-        
-        <form id="ticket-form" class="ticket-form">
-            <div class="ticket-field">
-                <label for="ticket-titulo" class="ticket-label">Título</label>
-                <input type="text" id="ticket-titulo" name="titulo" required 
-                       class="ticket-input"
-                       placeholder="Descreva brevemente o problema">
-            </div>
-
-            <div class="ticket-field-row">
-                <div class="ticket-field-half">
-                    <label for="ticket-prioridade" class="ticket-label">Prioridade</label>
-                    <select id="ticket-prioridade" name="prioridade" required class="ticket-select">
-                        <option value="">Selecionar</option>
-                        <option value="baixa">🟢 Baixa</option>
-                        <option value="media">🟡 Média</option>
-                        <option value="alta">🟠 Alta</option>
-                        <option value="critica">🔴 Crítica</option>
-                    </select>
-                </div>
-
-                <div class="ticket-field-half">
-                    <label for="ticket-categoria" class="ticket-label">Categoria</label>
-                    <select id="ticket-categoria" name="categoria" required class="ticket-select">
-                        <option value="">Selecionar</option>
-                        <option value="bug">🐛 Bug/Erro</option>
-                        <option value="feature">✨ Nova Funcionalidade</option>
-                        <option value="suporte">🛠️ Suporte Técnico</option>
-                        <option value="duvida">❓ Dúvida</option>
-                        <option value="melhoria">📈 Melhoria</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="ticket-field">
-                <label for="ticket-local" class="ticket-label">Local do Problema</label>
-                <input type="text" id="ticket-local" name="local" 
-                       class="ticket-input"
-                       placeholder="Ex: Orçamento, Criar Orçamento, Relatórios, Login...">
-            </div>
-
-            <div class="ticket-field">
-                <label for="ticket-descricao" class="ticket-label">Descrição</label>
-                <textarea id="ticket-descricao" name="descricao" required rows="4"
-                          class="ticket-textarea"
-                          placeholder="Descreva detalhadamente o problema ou solicitação..."></textarea>
-            </div>
-
-            <div class="ticket-buttons">
-                <button type="button" id="cancelar-ticket" class="ticket-btn ticket-btn-cancel">
-                    Cancelar
-                </button>
-                <button type="submit" class="ticket-btn ticket-btn-submit">
-                    Criar Ticket
-                </button>
-            </div>
-        </form>
+    let opcoesPrioridade = `
+        <option value="">Selecionar</option>
+        <option value="baixa">🟢 Baixa</option>
+        <option value="media">🟡 Média</option>
+        <option value="alta">🟠 Alta</option>
+        <option value="critica">🔴 Crítica</option>
     `;
 
-    overlay.appendChild(popup);
-    document.body.appendChild(overlay);
+    let opcoesCategoria = `
+        <option value="">Selecionar</option>
+        <option value="bug">🐛 Bug/Erro</option>
+        <option value="feature">✨ Nova Funcionalidade</option>
+        <option value="suporte">🛠️ Suporte Técnico</option>
+        <option value="duvida">❓ Dúvida</option>
+        <option value="melhoria">📈 Melhoria</option>
+    `;
 
-    // Event listeners
-    const closeBtn = document.getElementById('close-ticket-popup');
-    const cancelBtn = document.getElementById('cancelar-ticket');
-    const form = document.getElementById('ticket-form');
+    let conteudo = `
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 20px; max-width: 500px;">
+            <h3 style="margin: 0; color: #151749;">Novo Ticket</h3>
+            <p style="margin: 0; color: #666;">Descreva seu problema ou solicitação</p>
+            
+            <form id="ticket-form" style="width: 100%; display: flex; flex-direction: column; gap: 15px;">
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <label style="font-weight: 600; color: #333;">Título</label>
+                    <input type="text" id="ticket-titulo" name="titulo" required 
+                           style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;"
+                           placeholder="Descreva brevemente o problema">
+                </div>
 
-    // Fechar popup
-    function fecharPopup() {
-        document.body.removeChild(overlay);
-    }
+                <div style="display: flex; gap: 15px;">
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
+                        <label style="font-weight: 600; color: #333;">Prioridade</label>
+                        <select id="ticket-prioridade" name="prioridade" required 
+                                style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                            ${opcoesPrioridade}
+                        </select>
+                    </div>
 
-    closeBtn.addEventListener('click', fecharPopup);
-    cancelBtn.addEventListener('click', fecharPopup);
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
+                        <label style="font-weight: 600; color: #333;">Categoria</label>
+                        <select id="ticket-categoria" name="categoria" required 
+                                style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                            ${opcoesCategoria}
+                        </select>
+                    </div>
+                </div>
 
-    // Fechar ao clicar no overlay
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-            fecharPopup();
-        }
-    });
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <label style="font-weight: 600; color: #333;">Local do Problema</label>
+                    <input type="text" id="ticket-local" name="local" 
+                           style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;"
+                           placeholder="Ex: Orçamento, Criar Orçamento, Relatórios, Login...">
+                </div>
 
-    // Submeter formulário
-    form.addEventListener('submit', async (e) => {
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <label style="font-weight: 600; color: #333;">Descrição</label>
+                    <textarea id="ticket-descricao" name="descricao" required rows="4"
+                              style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; resize: vertical; font-family: inherit;"
+                              placeholder="Descreva detalhadamente o problema ou solicitação..."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                    <button type="button" onclick="remover_popup()" 
+                            style="padding: 8px 20px; border: none; border-radius: 4px; background-color: #6c757d; color: white; font-weight: 600; cursor: pointer; min-width: 100px;">
+                        Cancelar
+                    </button>
+                    <button type="submit" id="btn-criar-ticket"
+                            style="padding: 8px 20px; border: none; border-radius: 4px; background-color: #151749; color: white; font-weight: 600; cursor: pointer; min-width: 100px;">
+                        Criar Ticket
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    openPopup_v2(conteudo, 'Novo Ticket');
+
+    // Event listener para o formulário
+    document.getElementById('ticket-form').addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const submitBtn = e.target.querySelector('.ticket-btn-submit');
+        const submitBtn = document.getElementById('btn-criar-ticket');
         submitBtn.innerHTML = 'Criando...';
         submitBtn.disabled = true;
 
         try {
-            const formData = new FormData(form);
+            const formData = new FormData(e.target);
             const ticketId = gerarUUID();
             const ticketData = {
                 id: ticketId,
@@ -127,40 +108,30 @@ function novoTicket() {
             await carregarTickets();
 
             submitBtn.innerHTML = '✓ Criado!';
-            submitBtn.classList.add('ticket-btn-success');
+            submitBtn.style.backgroundColor = '#28a745';
 
             setTimeout(() => {
-                fecharPopup();
+                remover_popup();
             }, 1000);
 
         } catch (error) {
             console.error('Erro ao criar ticket:', error);
 
             submitBtn.innerHTML = '❌ Erro ao criar';
-            submitBtn.classList.add('ticket-btn-error');
+            submitBtn.style.backgroundColor = '#dc3545';
             submitBtn.disabled = false;
 
             setTimeout(() => {
                 submitBtn.innerHTML = 'Criar Ticket';
-                submitBtn.classList.remove('ticket-btn-error');
+                submitBtn.style.backgroundColor = '#151749';
             }, 2000);
         }
     });
 
+    // Focar no primeiro campo
     setTimeout(() => {
         document.getElementById('ticket-titulo').focus();
     }, 100);
-}
-
-// Atualizar função editarTicket para usar busca assíncrona
-function editarTicket(ticketId) {
-    buscarTicketParaEdicao(ticketId).then(ticket => {
-        if (ticket) {
-            abrirPopupEdicao(ticketId, ticket);
-        } else {
-            alert('Ticket não encontrado!');
-        }
-    });
 }
 
 // Função para abrir popup de edição
@@ -170,90 +141,69 @@ function abrirPopupEdicao(ticketId, ticket) {
         return;
     }
 
-    const overlay = document.createElement('div');
-    overlay.className = 'ticket-overlay';
+    let conteudo = `
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 20px; max-width: 400px;">
+            <h3 style="margin: 0; color: #151749;">Editar Ticket</h3>
+            <p style="margin: 0; color: #666;">Alterar status, prioridade e desenvolvedor</p>
+            
+            <form id="edit-form" style="width: 100%; display: flex; flex-direction: column; gap: 15px;">
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <label style="font-weight: 600; color: #333;">Status</label>
+                    <select id="edit-status" name="status" 
+                            style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                        <option value="não iniciado" ${ticket.status === 'não iniciado' ? 'selected' : ''}>Não Iniciado</option>
+                        <option value="em andamento" ${ticket.status === 'em andamento' ? 'selected' : ''}>Em Andamento</option>
+                        <option value="aguardando" ${ticket.status === 'aguardando' ? 'selected' : ''}>Aguardando</option>
+                        <option value="finalizado" ${ticket.status === 'finalizado' ? 'selected' : ''}>Finalizado</option>
+                        <option value="cancelado" ${ticket.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+                    </select>
+                </div>
 
-    const popup = document.createElement('div');
-    popup.className = 'ticket-popup edit-popup';
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <label style="font-weight: 600; color: #333;">Prioridade</label>
+                    <select id="edit-prioridade" name="prioridade" 
+                            style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                        <option value="baixa" ${ticket.prioridade === 'baixa' ? 'selected' : ''}>🟢 Baixa</option>
+                        <option value="media" ${ticket.prioridade === 'media' ? 'selected' : ''}>🟡 Média</option>
+                        <option value="alta" ${ticket.prioridade === 'alta' ? 'selected' : ''}>🟠 Alta</option>
+                        <option value="critica" ${ticket.prioridade === 'critica' ? 'selected' : ''}>🔴 Crítica</option>
+                    </select>
+                </div>
 
-    popup.innerHTML = `
-        <div class="ticket-header">
-            <h2 class="ticket-title">Editar Ticket</h2>
-            <p class="ticket-subtitle">Alterar status, prioridade e desenvolvedor</p>
-            <button id="close-edit-popup" class="ticket-close-btn">&times;</button>
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <label style="font-weight: 600; color: #333;">Desenvolvedor</label>
+                    <input type="text" id="edit-desenvolvedor" name="desenvolvedor" 
+                           style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;"
+                           value="${ticket.desenvolvedor || ''}"
+                           placeholder="Nome do desenvolvedor responsável">
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                    <button type="button" onclick="remover_popup()" 
+                            style="padding: 8px 20px; border: none; border-radius: 4px; background-color: #6c757d; color: white; font-weight: 600; cursor: pointer; min-width: 100px;">
+                        Cancelar
+                    </button>
+                    <button type="submit" id="btn-salvar-ticket"
+                            style="padding: 8px 20px; border: none; border-radius: 4px; background-color: #28a745; color: white; font-weight: 600; cursor: pointer; min-width: 100px;">
+                        Salvar Alterações
+                    </button>
+                </div>
+            </form>
         </div>
-        
-        <form id="edit-form" class="edit-form">
-            <div class="edit-field">
-                <label for="edit-status" class="edit-label">Status</label>
-                <select id="edit-status" name="status" class="edit-select">
-                    <option value="não iniciado" ${ticket.status === 'não iniciado' ? 'selected' : ''}>Não Iniciado</option>
-                    <option value="em andamento" ${ticket.status === 'em andamento' ? 'selected' : ''}>Em Andamento</option>
-                    <option value="aguardando" ${ticket.status === 'aguardando' ? 'selected' : ''}>Aguardando</option>
-                    <option value="finalizado" ${ticket.status === 'finalizado' ? 'selected' : ''}>Finalizado</option>
-                    <option value="cancelado" ${ticket.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
-                </select>
-            </div>
-
-                        <div class="edit-field">
-                <label for="edit-prioridade" class="edit-label">Prioridade</label>
-                <select id="edit-prioridade" name="prioridade" class="edit-select">
-                    <option value="baixa" ${ticket.prioridade === 'baixa' ? 'selected' : ''}>🟢 Baixa</option>
-                    <option value="media" ${ticket.prioridade === 'media' ? 'selected' : ''}>🟡 Média</option>
-                    <option value="alta" ${ticket.prioridade === 'alta' ? 'selected' : ''}>🟠 Alta</option>
-                    <option value="critica" ${ticket.prioridade === 'critica' ? 'selected' : ''}>🔴 Crítica</option>
-                </select>
-            </div>
-
-            <div class="edit-field">
-                <label for="edit-desenvolvedor" class="edit-label">Desenvolvedor</label>
-                <input type="text" id="edit-desenvolvedor" name="desenvolvedor" 
-                       class="edit-input" value="${ticket.desenvolvedor || ''}"
-                       placeholder="Nome do desenvolvedor responsável">
-            </div>
-
-            <div class="edit-buttons">
-                <button type="button" id="cancelar-edit" class="edit-btn edit-btn-cancel">
-                    Cancelar
-                </button>
-                <button type="submit" class="edit-btn edit-btn-save">
-                    Salvar Alterações
-                </button>
-            </div>
-        </form>
     `;
 
-    overlay.appendChild(popup);
-    document.body.appendChild(overlay);
+    openPopup_v2(conteudo, 'Editar Ticket');
 
-    // Event listeners
-    const closeBtn = document.getElementById('close-edit-popup');
-    const cancelBtn = document.getElementById('cancelar-edit');
-    const form = document.getElementById('edit-form');
-
-    function fecharPopup() {
-        document.body.removeChild(overlay);
-    }
-
-    closeBtn.addEventListener('click', fecharPopup);
-    cancelBtn.addEventListener('click', fecharPopup);
-
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-            fecharPopup();
-        }
-    });
-
-    // Submeter formulário de edição
-    form.addEventListener('submit', async (e) => {
+    // Event listener para o formulário de edição
+    document.getElementById('edit-form').addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const submitBtn = e.target.querySelector('.edit-btn-save');
+        const submitBtn = document.getElementById('btn-salvar-ticket');
         submitBtn.innerHTML = 'Salvando...';
         submitBtn.disabled = true;
 
         try {
-            const formData = new FormData(form);
+            const formData = new FormData(e.target);
 
             // Atualizar dados do ticket
             ticket.status = formData.get('status');
@@ -271,25 +221,280 @@ function abrirPopupEdicao(ticketId, ticket) {
             await carregarTickets();
 
             submitBtn.innerHTML = '✓ Salvo!';
-            submitBtn.classList.add('ticket-btn-success');
+            submitBtn.style.backgroundColor = '#28a745';
 
             setTimeout(() => {
-                fecharPopup();
+                remover_popup();
             }, 1000);
 
         } catch (error) {
             console.error('Erro ao salvar ticket:', error);
 
             submitBtn.innerHTML = '❌ Erro ao salvar';
-            submitBtn.classList.add('ticket-btn-error');
+            submitBtn.style.backgroundColor = '#dc3545';
             submitBtn.disabled = false;
 
             setTimeout(() => {
                 submitBtn.innerHTML = 'Salvar Alterações';
-                submitBtn.classList.remove('ticket-btn-error');
+                submitBtn.style.backgroundColor = '#28a745';
             }, 2000);
         }
     });
+}
+
+// Função para abrir popup de detalhes
+function abrirPopupDetalhes(ticket) {
+    if (!ticket) {
+        alert('Ticket não encontrado!');
+        return;
+    }
+
+    // Ícones para categorias
+    let categoriaIcon = '';
+    switch (ticket.categoria) {
+        case 'bug': categoriaIcon = '🐛'; break;
+        case 'feature': categoriaIcon = '✨'; break;
+        case 'suporte': categoriaIcon = '🛠️'; break;
+        case 'duvida': categoriaIcon = '❓'; break;
+        case 'melhoria': categoriaIcon = '📈'; break;
+        default: categoriaIcon = '📋';
+    }
+
+    let conteudo = `
+        <div style="display: flex; flex-direction: column; gap: 15px; padding: 20px; max-width: 500px;">
+            <div style="text-align: center;">
+                <h3 style="margin: 0; color: #151749;">Detalhes do Ticket</h3>
+                <p style="margin: 5px 0 0 0; color: #666;">Informações completas</p>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="padding: 10px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #151749;">
+                    <div style="font-weight: 600; color: #151749; margin-bottom: 5px; font-size: 0.8rem; text-transform: uppercase;">Título</div>
+                    <div style="color: #333; font-size: 0.9rem;">${ticket.titulo}</div>
+                </div>
+
+                <div style="padding: 10px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #151749;">
+                    <div style="font-weight: 600; color: #151749; margin-bottom: 5px; font-size: 0.8rem; text-transform: uppercase;">Descrição</div>
+                    <div style="color: #333; font-size: 0.9rem; line-height: 1.4;">${ticket.descricao}</div>
+                                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1; padding: 10px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #151749;">
+                        <div style="font-weight: 600; color: #151749; margin-bottom: 5px; font-size: 0.8rem; text-transform: uppercase;">Status</div>
+                        <div style="color: #333; font-size: 0.9rem;">${ticket.status?.toUpperCase()}</div>
+                    </div>
+
+                    <div style="flex: 1; padding: 10px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #151749;">
+                        <div style="font-weight: 600; color: #151749; margin-bottom: 5px; font-size: 0.8rem; text-transform: uppercase;">Prioridade</div>
+                        <div style="color: #333; font-size: 0.9rem;">${ticket.prioridade?.toUpperCase()}</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1; padding: 10px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #151749;">
+                        <div style="font-weight: 600; color: #151749; margin-bottom: 5px; font-size: 0.8rem; text-transform: uppercase;">Categoria</div>
+                        <div style="color: #333; font-size: 0.9rem;">${categoriaIcon} ${ticket.categoria}</div>
+                    </div>
+
+                    <div style="flex: 1; padding: 10px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #151749;">
+                        <div style="font-weight: 600; color: #151749; margin-bottom: 5px; font-size: 0.8rem; text-transform: uppercase;">Local</div>
+                        <div style="color: #333; font-size: 0.9rem;">${ticket.local || 'Não informado'}</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1; padding: 10px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #151749;">
+                        <div style="font-weight: 600; color: #151749; margin-bottom: 5px; font-size: 0.8rem; text-transform: uppercase;">Usuário</div>
+                        <div style="color: #333; font-size: 0.9rem;">${ticket.usuario}</div>
+                    </div>
+
+                    <div style="flex: 1; padding: 10px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #151749;">
+                        <div style="font-weight: 600; color: #151749; margin-bottom: 5px; font-size: 0.8rem; text-transform: uppercase;">Desenvolvedor</div>
+                        <div style="color: #333; font-size: 0.9rem;">${ticket.desenvolvedor || 'Não atribuído'}</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1; padding: 10px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #151749;">
+                        <div style="font-weight: 600; color: #151749; margin-bottom: 5px; font-size: 0.8rem; text-transform: uppercase;">Data Abertura</div>
+                        <div style="color: #333; font-size: 0.9rem;">${ticket.dataAbertura}</div>
+                    </div>
+
+                    ${ticket.dataConclusao ? `
+                    <div style="flex: 1; padding: 10px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #151749;">
+                        <div style="font-weight: 600; color: #151749; margin-bottom: 5px; font-size: 0.8rem; text-transform: uppercase;">Data Conclusão</div>
+                        <div style="color: #333; font-size: 0.9rem;">${ticket.dataConclusao}</div>
+                    </div>
+                    ` : `
+                    <div style="flex: 1; padding: 10px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #ccc;">
+                        <div style="font-weight: 600; color: #999; margin-bottom: 5px; font-size: 0.8rem; text-transform: uppercase;">Data Conclusão</div>
+                        <div style="color: #999; font-size: 0.9rem;">Não finalizado</div>
+                    </div>
+                    `}
+                </div>
+
+                <div style="padding: 10px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid #151749;">
+                    <div style="font-weight: 600; color: #151749; margin-bottom: 5px; font-size: 0.8rem; text-transform: uppercase;">ID do Ticket</div>
+                    <div style="color: #666; font-size: 0.8rem; font-family: monospace; word-break: break-all;">${ticket.id}</div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="remover_popup()" 
+                        style="padding: 8px 20px; border: none; border-radius: 4px; background-color: #151749; color: white; font-weight: 600; cursor: pointer; min-width: 100px;">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    `;
+
+    openPopup_v2(conteudo, 'Detalhes do Ticket');
+}
+
+// Função para gerar UUID
+function gerarUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = Math.random() * 16 | 0;
+        const v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+// Função para obter nome do usuário
+function obterNomeUsuario() {
+    try {
+        // Primeiro tenta usar a variável global acesso
+        if (typeof acesso !== 'undefined' && acesso) {
+            return acesso.nome_completo || acesso.nome || 'Usuário Atual';
+        }
+
+        // Fallback para localStorage se acesso global não estiver disponível
+        const acessoLocal = JSON.parse(localStorage.getItem('acesso')) || {};
+        return acessoLocal.nome_completo || acessoLocal.nome || 'Usuário Atual';
+    } catch (error) {
+        console.error('Erro ao obter nome do usuário:', error);
+        return 'Usuário Atual';
+    }
+}
+
+// Função para verificar se usuário é admin
+function isAdmin() {
+    try {
+        // Primeiro tenta usar a variável global acesso
+        if (typeof acesso !== 'undefined' && acesso && acesso.permissao) {
+            return acesso.permissao === 'adm';
+        }
+
+        // Fallback para localStorage se acesso global não estiver disponível
+        const acessoLocal = JSON.parse(localStorage.getItem('acesso')) || {};
+        return acessoLocal.permissao === 'adm';
+    } catch (error) {
+        console.error('Erro ao verificar permissão:', error);
+        return false;
+    }
+}
+
+// Função para excluir ticket
+async function excluirTicket(ticketId) {
+    if (!isAdmin()) {
+        openPopup_v2(`
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
+                <img src="imagens/cancel.png" style="width: 3vw;">
+                <label>Apenas administradores podem excluir tickets.</label>
+            </div>
+        `, 'Acesso Negado');
+        return;
+    }
+
+    let conteudo = `
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 20px;">
+            <img src="gifs/alerta.gif" style="width: 3vw;">
+            <label>Tem certeza que deseja excluir este ticket?</label>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="remover_popup()" 
+                        style="padding: 8px 20px; border: none; border-radius: 4px; background-color: #6c757d; color: white; font-weight: 600; cursor: pointer;">
+                    Cancelar
+                </button>
+                <button onclick="confirmarExclusaoTicket('${ticketId}')" 
+                        style="padding: 8px 20px; border: none; border-radius: 4px; background-color: #dc3545; color: white; font-weight: 600; cursor: pointer;">
+                    Confirmar Exclusão
+                </button>
+            </div>
+        </div>
+    `;
+
+    openPopup_v2(conteudo, 'Confirmar Exclusão');
+}
+
+// Função para confirmar exclusão
+async function confirmarExclusaoTicket(ticketId) {
+    try {
+        let dados_tickets = {};
+
+        if (typeof recuperarDados === 'function') {
+            dados_tickets = await recuperarDados('dados_tickets') || {};
+        } else {
+            dados_tickets = JSON.parse(localStorage.getItem('dados_tickets') || '{}');
+        }
+
+        if (dados_tickets[ticketId]) {
+            delete dados_tickets[ticketId];
+
+            if (typeof inserirDados === 'function' && typeof enviar === 'function') {
+                await inserirDados(dados_tickets, 'dados_tickets');
+                if (typeof remover === 'function') {
+                    await remover(`dados_tickets/${ticketId}`);
+                }
+            } else {
+                localStorage.setItem('dados_tickets', JSON.stringify(dados_tickets));
+            }
+
+            openPopup_v2(`
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
+                    <img src="imagens/concluido.png" style="width: 3vw;">
+                    <label>Ticket excluído com sucesso!</label>
+                </div>
+            `, 'Sucesso');
+
+            setTimeout(() => {
+                remover_popup();
+                carregarTickets();
+            }, 1500);
+        }
+
+    } catch (error) {
+        console.error('Erro ao excluir ticket:', error);
+
+        openPopup_v2(`
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
+                <img src="imagens/cancel.png" style="width: 3vw;">
+                <label>Erro ao excluir ticket. Tente novamente.</label>
+            </div>
+        `, 'Erro');
+    }
+}
+
+// Função para salvar ticket
+async function salvarTicket(ticketData) {
+    try {
+        if (typeof recuperarDados === 'function' && typeof inserirDados === 'function' && typeof enviar === 'function') {
+            let dados_tickets = await recuperarDados('dados_tickets') || {};
+            dados_tickets[ticketData.id] = ticketData;
+            await inserirDados(dados_tickets, 'dados_tickets');
+            await enviar(`dados_tickets/${ticketData.id}`, ticketData);
+        } else {
+            let tickets = JSON.parse(localStorage.getItem('dados_tickets') || '{}');
+            tickets[ticketData.id] = ticketData;
+            localStorage.setItem('dados_tickets', JSON.stringify(tickets));
+        }
+
+    } catch (error) {
+        console.error('Erro ao salvar ticket:', error);
+        let tickets = JSON.parse(localStorage.getItem('dados_tickets') || '{}');
+        tickets[ticketData.id] = ticketData;
+        localStorage.setItem('dados_tickets', JSON.stringify(tickets));
+        throw error;
+    }
 }
 
 // Função para salvar ticket editado
@@ -331,277 +536,36 @@ async function buscarTicketParaEdicao(ticketId) {
     }
 }
 
+// Atualizar função editarTicket para usar busca assíncrona
+function editarTicket(ticketId) {
+    buscarTicketParaEdicao(ticketId).then(ticket => {
+        if (ticket) {
+            abrirPopupEdicao(ticketId, ticket);
+        } else {
+            openPopup_v2(`
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
+                    <img src="imagens/cancel.png" style="width: 3vw;">
+                    <label>Ticket não encontrado!</label>
+                </div>
+            `, 'Erro');
+        }
+    });
+}
+
 // Atualizar função mostrarDetalhesTicket para usar busca assíncrona  
 function mostrarDetalhesTicket(ticketId) {
     buscarTicketParaEdicao(ticketId).then(ticket => {
         if (ticket) {
             abrirPopupDetalhes(ticket);
         } else {
-            alert('Ticket não encontrado!');
+            openPopup_v2(`
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
+                    <img src="imagens/cancel.png" style="width: 3vw;">
+                    <label>Ticket não encontrado!</label>
+                                </div>
+            `, 'Erro');
         }
     });
-}
-
-// Função para abrir popup de detalhes
-function abrirPopupDetalhes(ticket) {
-    if (!ticket) {
-        alert('Ticket não encontrado!');
-        return;
-    }
-
-    const overlay = document.createElement('div');
-    overlay.className = 'ticket-overlay';
-
-    const popup = document.createElement('div');
-    popup.className = 'ticket-popup';
-
-    // Ícones para categorias
-    let categoriaIcon = '';
-    switch (ticket.categoria) {
-        case 'bug': categoriaIcon = '🐛'; break;
-        case 'feature': categoriaIcon = '✨'; break;
-        case 'suporte': categoriaIcon = '🛠️'; break;
-        case 'duvida': categoriaIcon = '❓'; break;
-        case 'melhoria': categoriaIcon = '📈'; break;
-        default: categoriaIcon = '📋';
-    }
-
-    popup.innerHTML = `
-        <div class="ticket-header">
-            <h2 class="ticket-title">Detalhes do Ticket</h2>
-            <p class="ticket-subtitle">Informações completas</p>
-            <button id="close-details-popup" class="ticket-close-btn">&times;</button>
-        </div>
-        
-        <div class="ticket-details">
-            <div class="ticket-detail-item">
-                <div class="ticket-detail-label">Título</div>
-                <div class="ticket-detail-value">${ticket.titulo}</div>
-            </div>
-
-            <div class="ticket-detail-item">
-                <div class="ticket-detail-label">Descrição</div>
-                <div class="ticket-detail-value">${ticket.descricao}</div>
-            </div>
-
-            <div class="ticket-detail-item">
-                <div class="ticket-detail-label">Status</div>
-                <div class="ticket-detail-value">${ticket.status?.toUpperCase()}</div>
-            </div>
-
-            <div class="ticket-detail-item">
-                <div class="ticket-detail-label">Prioridade</div>
-                <div class="ticket-detail-value">${ticket.prioridade?.toUpperCase()}</div>
-            </div>
-
-            <div class="ticket-detail-item">
-                <div class="ticket-detail-label">Categoria</div>
-                <div class="ticket-detail-value">${categoriaIcon} ${ticket.categoria}</div>
-            </div>
-
-            <div class="ticket-detail-item">
-                <div class="ticket-detail-label">Local do Problema</div>
-                <div class="ticket-detail-value">${ticket.local || 'Não informado'}</div>
-            </div>
-
-            <div class="ticket-detail-item">
-                <div class="ticket-detail-label">Usuário Solicitante</div>
-                <div class="ticket-detail-value">${ticket.usuario}</div>
-            </div>
-
-            <div class="ticket-detail-item">
-                <div class="ticket-detail-label">Desenvolvedor Responsável</div>
-                <div class="ticket-detail-value">${ticket.desenvolvedor || 'Não atribuído'}</div>
-            </div>
-
-            <div class="ticket-detail-item">
-                <div class="ticket-detail-label">Data de Abertura</div>
-                <div class="ticket-detail-value">${ticket.dataAbertura}</div>
-            </div>
-
-            ${ticket.dataConclusao ? `
-            <div class="ticket-detail-item">
-                <div class="ticket-detail-label">Data de Conclusão</div>
-                <div class="ticket-detail-value">${ticket.dataConclusao}</div>
-            </div>
-            ` : ''}
-
-            <div class="ticket-detail-item">
-                <div class="ticket-detail-label">ID do Ticket</div>
-                <div class="ticket-detail-value" style="font-family: monospace; font-size: 0.8rem;">${ticket.id}</div>
-            </div>
-        </div>
-    `;
-
-    overlay.appendChild(popup);
-    document.body.appendChild(overlay);
-
-    // Event listener para fechar
-    const closeBtn = document.getElementById('close-details-popup');
-
-    function fecharPopup() {
-        document.body.removeChild(overlay);
-    }
-
-    closeBtn.addEventListener('click', fecharPopup);
-
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-            fecharPopup();
-        }
-    });
-}
-
-// Função para gerar UUID
-function gerarUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        const r = Math.random() * 16 | 0;
-        const v = c == 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
-}
-
-// Função para obter nome do usuário
-function obterNomeUsuario() {
-    try {
-        const acesso = JSON.parse(localStorage.getItem('acesso')) || {};
-        return acesso.nome_completo || acesso.nome || 'Usuário Atual';
-    } catch (error) {
-        console.error('Erro ao obter nome do usuário:', error);
-        return 'Usuário Atual';
-    }
-}
-
-// Função para verificar se usuário é admin
-function isAdmin() {
-    try {
-        const acesso = JSON.parse(localStorage.getItem('acesso')) || {};
-        return acesso.permissao === 'adm';
-    } catch (error) {
-        console.error('Erro ao verificar permissão:', error);
-        return false;
-    }
-}
-
-// Função para excluir ticket
-async function excluirTicket(ticketId) {
-    if (!isAdmin()) {
-        alert('Apenas administradores podem excluir tickets.');
-        return;
-    }
-
-    if (!confirm('Tem certeza que deseja excluir este ticket?')) {
-        return;
-    }
-
-    try {
-        let dados_tickets = {};
-
-        if (typeof recuperarDados === 'function') {
-            dados_tickets = await recuperarDados('dados_tickets') || {};
-        } else {
-            dados_tickets = JSON.parse(localStorage.getItem('dados_tickets') || '{}');
-        }
-
-        if (dados_tickets[ticketId]) {
-            delete dados_tickets[ticketId];
-
-            if (typeof inserirDados === 'function' && typeof enviar === 'function') {
-                await inserirDados(dados_tickets, 'dados_tickets');
-                if (typeof remover === 'function') {
-                    await remover(`dados_tickets/${ticketId}`);
-                }
-            } else {
-                localStorage.setItem('dados_tickets', JSON.stringify(dados_tickets));
-            }
-
-            await carregarTickets();
-        }
-
-    } catch (error) {
-        console.error('Erro ao excluir ticket:', error);
-        openPopup_v2('Erro ao excluir ticket. Tente novamente.');
-    }
-}
-
-// Função para salvar ticket usando as funções do sistema
-async function salvarTicket(ticketData) {
-    try {
-        // Usar as mesmas funções do sistema existente
-        if (typeof recuperarDados === 'function' && typeof inserirDados === 'function' && typeof enviar === 'function') {
-            let dados_tickets = await recuperarDados('dados_tickets') || {};
-            dados_tickets[ticketData.id] = ticketData;
-            await inserirDados(dados_tickets, 'dados_tickets');
-            await enviar(`dados_tickets/${ticketData.id}`, ticketData);
-        } else {
-            // Fallback para localStorage
-            let tickets = JSON.parse(localStorage.getItem('dados_tickets') || '{}');
-            tickets[ticketData.id] = ticketData;
-            localStorage.setItem('dados_tickets', JSON.stringify(tickets));
-        }
-
-    } catch (error) {
-        console.error('Erro ao salvar ticket:', error);
-        // Fallback para localStorage em caso de erro
-        let tickets = JSON.parse(localStorage.getItem('dados_tickets') || '{}');
-        tickets[ticketData.id] = ticketData;
-        localStorage.setItem('dados_tickets', JSON.stringify(tickets));
-        throw error;
-    }
-}
-
-// Função auxiliar para salvar no localStorage
-function salvarTicketLocal(ticketData) {
-    try {
-        let tickets = JSON.parse(localStorage.getItem('dados_tickets') || '{}');
-        tickets[ticketData.id] = ticketData;
-        localStorage.setItem('dados_tickets', JSON.stringify(tickets));
-    } catch (error) {
-        console.error('Erro ao salvar ticket localmente:', error);
-    }
-}
-
-// Função para atualizar status do ticket
-async function atualizarStatusTicket(ticketId, novoStatus) {
-    try {
-        let dados_tickets = {};
-
-        if (typeof recuperarDados === 'function') {
-            dados_tickets = await recuperarDados('dados_tickets') || {};
-        } else {
-            dados_tickets = JSON.parse(localStorage.getItem('dados_tickets') || '{}');
-        }
-
-        if (dados_tickets[ticketId]) {
-            dados_tickets[ticketId].status = novoStatus;
-
-            // Definir desenvolvedor quando status muda para "em andamento"
-            if (novoStatus === 'em andamento') {
-                const acesso = JSON.parse(localStorage.getItem('acesso')) || {};
-                if (acesso.permissao === 'adm' && acesso.usuario) {
-                    dados_tickets[ticketId].desenvolvedor = acesso.usuario;
-                }
-            }
-
-            if (novoStatus === 'finalizado') {
-                dados_tickets[ticketId].dataConclusao = new Date().toLocaleString('pt-BR');
-            } else {
-                dados_tickets[ticketId].dataConclusao = '';
-            }
-
-            if (typeof inserirDados === 'function' && typeof enviar === 'function') {
-                await inserirDados(dados_tickets, 'dados_tickets');
-                await enviar(`dados_tickets/${ticketId}`, dados_tickets[ticketId]);
-            } else {
-                localStorage.setItem('dados_tickets', JSON.stringify(dados_tickets));
-            }
-
-            await carregarTickets();
-        }
-
-    } catch (error) {
-        console.error('Erro ao atualizar status do ticket:', error);
-    }
 }
 
 // Função para definir cores dos status
@@ -629,20 +593,25 @@ function coresPrioridade(prioridade) {
     return coresPrioridade[prioridade] || '#938e28';
 }
 
-// Função para carregar tickets seguindo padrão do sistema
+// Função para carregar tickets com debug
 async function carregarTickets() {
     try {
+
         let dados_tickets = {};
 
-        // Usar as mesmas funções do sistema existente
+        // Tentar diferentes métodos de carregamento
         if (typeof recuperarDados === 'function') {
-            dados_tickets = await recuperarDados('dados_tickets') || {};
+            dados_tickets = await recuperarDados('dados_tickets');
+        } else if (typeof sincronizarDados === 'function') {
+            await sincronizarDados('dados_tickets');
+            dados_tickets = JSON.parse(localStorage.getItem('dados_tickets') || '{}');
         } else {
             dados_tickets = JSON.parse(localStorage.getItem('dados_tickets') || '{}');
         }
 
         let div_tickets = document.getElementById('tabelaRegistro');
         if (!div_tickets) {
+            console.error('Elemento tabelaRegistro não encontrado!');
             return;
         }
 
@@ -655,145 +624,13 @@ async function carregarTickets() {
             return;
         }
 
-        // Ordenar por data (seguindo padrão do sistema)
-        let desordenado = Object.entries(dados_tickets);
-        desordenado.sort((a, b) => {
-            let dataA = new Date(a[1].dataAbertura || 0);
-            let dataB = new Date(b[1].dataAbertura || 0);
-            return dataB - dataA;
-        });
-        dados_tickets = Object.fromEntries(desordenado);
-
-        let linhas = '';
-        const mostrarExcluir = isAdmin();
-
-        for (let ticketId in dados_tickets) {
-            let ticket = dados_tickets[ticketId];
-
-            let prioridadeIcon = '';
-            switch (ticket.prioridade) {
-                case 'baixa': prioridadeIcon = '🟢'; break;
-                case 'media': prioridadeIcon = '🟡'; break;
-                case 'alta': prioridadeIcon = '🟠'; break;
-                case 'critica': prioridadeIcon = '🔴'; break;
-                default: prioridadeIcon = '⚪';
-            }
-
-            let categoriaIcon = '';
-            switch (ticket.categoria) {
-                case 'bug': categoriaIcon = '🐛'; break;
-                case 'feature': categoriaIcon = '✨'; break;
-                case 'suporte': categoriaIcon = '🛠️'; break;
-                case 'duvida': categoriaIcon = '❓'; break;
-                case 'melhoria': categoriaIcon = '📈'; break;
-                default: categoriaIcon = '📋';
-            }
-
-            let dataConclusao = '';
-            if (ticket.status === 'finalizado' && ticket.dataConclusao) {
-                dataConclusao = ticket.dataConclusao;
-            }
-
-            let colunaExcluir = '';
-            if (mostrarExcluir) {
-                colunaExcluir = `
-                    <td style="text-align: center;">
-                        <button class="action-btn" onclick="excluirTicket('${ticketId}')" title="Excluir ticket">
-                            <img src="imagens/excluir.png" style="width: 18px;">
-                        </button>
-                    </td>
-                `;
-            }
-
-            linhas += `
-                <tr>
-                    <td>${ticket.titulo}</td>
-                    <td style="text-align: center;">
-                        <span class="formato_status" style="background-color: ${coresPrioridade(ticket.prioridade)};">
-                            ${prioridadeIcon} ${ticket.prioridade?.toUpperCase()}
-                        </span>
-                    </td>
-                    <td style="text-align: center;">
-                        ${categoriaIcon} ${ticket.categoria}
-                    </td>
-                    <td>${ticket.local || '-'}</td>
-                    <td>${ticket.usuario}</td>
-                    <td style="text-align: center;">${ticket.desenvolvedor || '-'}</td>
-                    <td style="text-align: center;">${ticket.dataAbertura}</td>
-                    <td style="text-align: center;">${dataConclusao}</td>
-                    <td style="text-align: center;">${ticket.status?.toUpperCase()}</td>
-                    <td style="text-align: center;">
-                        <button class="action-btn" onclick="editarTicket('${ticketId}')" title="Editar ticket">
-                            <img src="imagens/editar.png" style="width: 18px;">
-                        </button>
-                    </td>
-                    <td style="text-align: center;">
-                        <button class="action-btn" onclick="mostrarDetalhesTicket('${ticketId}')" title="Ver detalhes">
-                            <img src="imagens/pesquisar2.png" style="width: 18px;">
-                        </button>
-                    </td>
-                    ${colunaExcluir}
-                </tr>
-            `;
-        }
-
-        // Seguir padrão do orcamentos.js
-        let colunas = ['Título', 'Prioridade', 'Categoria', 'Local', 'Usuário', 'Desenvolvedor', 'Data Abertura', 'Data Conclusão', 'Status', 'Editar', 'Detalhes'];
-
-        if (mostrarExcluir) {
-            colunas.push('Excluir');
-        }
-
-        let ths = '';
-        let tsh = '';
-        colunas.forEach((col, i) => {
-            ths += `<th style="text-align: center;">${col}</th>`;
-
-            if (col !== 'Excluir' && col !== 'Editar' && col !== 'Detalhes') {
-                tsh += `
-                    <th style="background-color: white; border-radius: 0px;">
-                        <div style="position: relative;">
-                            <input placeholder="..." style="text-align: left;" oninput="filtrarTickets(undefined, ${i}, this.value)">
-                            <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
-                        </div>
-                    </th>
-                `;
-            } else {
-                tsh += `<th style="background-color: white; border-radius: 0px;"></th>`;
-            }
-        });
-
-        if (linhas !== '') {
-            let linhas_tickets = document.getElementById('linhas_tickets');
-
-            if (linhas_tickets) {
-                linhas_tickets.innerHTML = linhas;
-            } else {
-                div_tickets.innerHTML = '';
-                let tabela = `
-                    <div id="tabelas" style="display: flex; flex-direction: column; align-items: center; justify-content: start;">
-                        <div id="toolbar"></div>
-                        <div id="tickets" style="max-height: 70vh; height: max-content; width: 90vw; overflow-y: auto;">
-                            <table id="tickets_" class="tabela" style="font-size: 0.8vw;">
-                                <thead>
-                                    <tr>${ths}</tr>
-                                    <tr id="tsh">${tsh}</tr>
-                                </thead>
-                                <tbody id="linhas_tickets">
-                                    ${linhas}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-                div_tickets.insertAdjacentHTML('beforeend', tabela);
-            }
-
-            filtrarTickets('TODOS');
-        }
+        // Continuar com a renderização...
+        renderizarTabelaTickets(dados_tickets, div_tickets);
 
     } catch (error) {
         console.error('Erro ao carregar tickets:', error);
+        console.error('Stack trace:', error.stack);
+
         document.getElementById('tabelaRegistro').innerHTML = `
             <div style="display: flex; justify-content: center; align-items: center; padding: 5vw;">
                 <label class="novo_titulo">Erro ao carregar tickets: ${error.message}</label>
@@ -802,50 +639,295 @@ async function carregarTickets() {
     }
 }
 
-// Função para carregar tickets com debug
-// async function carregarTickets() {
-//     try {
-//         let dados_tickets = {};
+// Função separada para renderizar a tabela
+function renderizarTabelaTickets(dados_tickets, div_tickets) {
+    // Ordenar por data
+    let desordenado = Object.entries(dados_tickets);
+    desordenado.sort((a, b) => {
+        let dataA = new Date(a[1].dataAbertura || 0);
+        let dataB = new Date(b[1].dataAbertura || 0);
+        return dataB - dataA;
+    });
+    dados_tickets = Object.fromEntries(desordenado);
 
-//         // Tentar diferentes métodos de carregamento
-//         dados_tickets = JSON.parse(localStorage.getItem('dados_tickets') || '{}');
-//         dados_tickets = await recuperarDados('dados_tickets');
-//         await sincronizarDados('dados_tickets');
+    let linhas = '';
+    const mostrarExcluir = isAdmin();
+    const mostrarEditar = isAdmin(); // Também verificar para editar
 
-//         // Se ainda estiver vazio, tentar buscar dados_orcamentos como referência
-//         if (Object.keys(dados_tickets).length === 0) {
-//             dados_tickets = criarDadosTesteSeNecessario();
-//         }
+    for (let ticketId in dados_tickets) {
+        let ticket = dados_tickets[ticketId];
 
-//         let div_tickets = document.getElementById('tabelaRegistro');
-//         if (!div_tickets) {
-//             console.error('Elemento tabelaRegistro não encontrado!');
-//             return;
-//         }
+        let prioridadeIcon = '';
+        switch (ticket.prioridade) {
+            case 'baixa': prioridadeIcon = '🟢'; break;
+            case 'media': prioridadeIcon = '🟡'; break;
+            case 'alta': prioridadeIcon = '🟠'; break;
+            case 'critica': prioridadeIcon = '🔴'; break;
+            default: prioridadeIcon = '⚪';
+        }
 
-//         if (Object.keys(dados_tickets).length === 0) {
-//             div_tickets.innerHTML = `
-//                 <div style="display: flex; justify-content: center; align-items: center; padding: 5vw;">
-//                     <label class="novo_titulo">Nenhum ticket encontrado. Crie seu primeiro ticket!</label>
-//                 </div>
-//             `;
-//             return;
-//         }
+        let categoriaIcon = '';
+        switch (ticket.categoria) {
+            case 'bug': categoriaIcon = '🐛'; break;
+            case 'feature': categoriaIcon = '✨'; break;
+            case 'suporte': categoriaIcon = '🛠️'; break;
+            case 'duvida': categoriaIcon = '❓'; break;
+            case 'melhoria': categoriaIcon = '📈'; break;
+            default: categoriaIcon = '📋';
+        }
 
-//         // Continuar com a renderização...
-//         renderizarTabelaTickets(dados_tickets, div_tickets);
+        let dataConclusao = '';
+        if (ticket.status === 'finalizado' && ticket.dataConclusao) {
+            dataConclusao = ticket.dataConclusao;
+        }
 
-//     } catch (error) {
-//         console.error('Erro ao carregar tickets:', error);
-//         console.error('Stack trace:', error.stack);
+        let colunaEditar = '';
+        if (mostrarEditar) {
+            colunaEditar = `
+                <td style="text-align: center;">
+                    <img src="imagens/editar.png" onclick="editarTicket('${ticketId}')" 
+                         style="cursor: pointer; width: 2vw;" title="Editar ticket">
+                </td>
+            `;
+        }
 
-//         document.getElementById('tabelaRegistro').innerHTML = `
-//             <div style="display: flex; justify-content: center; align-items: center; padding: 5vw;">
-//                 <label class="novo_titulo">Erro ao carregar tickets: ${error.message}</label>
-//             </div>
-//         `;
-//     }
-// }
+        let colunaExcluir = '';
+        if (mostrarExcluir) {
+            colunaExcluir = `
+                <td style="text-align: center;">
+                    <img src="imagens/excluir.png" onclick="excluirTicket('${ticketId}')" 
+                         style="cursor: pointer; width: 2vw;" title="Excluir ticket">
+                </td>
+            `;
+        }
+
+        linhas += `
+            <tr>
+                <td>${ticket.titulo}</td>
+                <td style="text-align: center;">
+                    <span class="formato_status" style="background-color: ${coresPrioridade(ticket.prioridade)};">
+                        ${prioridadeIcon} ${ticket.prioridade?.toUpperCase()}
+                    </span>
+                </td>
+                <td style="text-align: center;">
+                    ${categoriaIcon} ${ticket.categoria}
+                </td>
+                <td>${ticket.local || '-'}</td>
+                <td>${ticket.usuario}</td>
+                <td style="text-align: center;">
+    ${ticket.desenvolvedor ?
+                `<button onclick="mostrarContatoDesenvolvedor('${ticket.desenvolvedor}', '${ticket.id}', '${ticket.usuario}')" 
+                style="background: none; border: none; color: #151749; text-decoration: underline; cursor: pointer;">
+            ${ticket.desenvolvedor}
+        </button>`
+                : '-'}
+</td>
+                <td style="text-align: center;">${ticket.dataAbertura}</td>
+                <td style="text-align: center;">${dataConclusao}</td>
+                <td style="text-align: center;">${ticket.status?.toUpperCase()}</td>
+                <td style="text-align: center;">
+                    <img src="imagens/pesquisar2.png" onclick="mostrarDetalhesTicket('${ticketId}')" 
+                         style="cursor: pointer; width: 2vw;" title="Ver detalhes">
+                </td>
+                ${colunaEditar}
+                ${colunaExcluir}
+            </tr>
+        `;
+    }
+
+    // Montar colunas dinamicamente baseado nas permissões
+    let colunas = ['Título', 'Prioridade', 'Categoria', 'Local', 'Usuário', 'Desenvolvedor', 'Data Abertura', 'Data Conclusão', 'Status', 'Detalhes'];
+
+    if (mostrarEditar) {
+        colunas.push('Editar');
+    }
+
+    if (mostrarExcluir) {
+        colunas.push('Excluir');
+    }
+
+    let ths = '';
+    let tsh = '';
+    colunas.forEach((col, i) => {
+        ths += `<th style="text-align: center;">${col}</th>`;
+
+        if (col !== 'Excluir' && col !== 'Editar' && col !== 'Detalhes') {
+            tsh += `
+                <th style="background-color: white; border-radius: 0px;">
+                    <div style="position: relative;">
+                        <input placeholder="..." style="text-align: left;" oninput="filtrarTickets(undefined, ${i}, this.value)">
+                        <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
+                    </div>
+                </th>
+            `;
+        } else {
+            tsh += `<th style="background-color: white; border-radius: 0px;"></th>`;
+        }
+    });
+
+    div_tickets.innerHTML = '';
+    let tabela = `
+        <div id="tabelas" style="display: flex; flex-direction: column; align-items: center; justify-content: start;">
+            <div id="toolbar"></div>
+            <div id="tickets" style="max-height: 70vh; height: max-content; width: 90vw; overflow-y: auto;">
+                <table id="tickets_" class="tabela" style="font-size: 0.8vw;">
+                    <thead>
+                        <tr>${ths}</tr>
+                        <tr id="tsh">${tsh}</tr>
+                    </thead>
+                    <tbody id="linhas_tickets">
+                        ${linhas}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    div_tickets.insertAdjacentHTML('beforeend', tabela);
+
+    console.log('Tabela renderizada, aplicando filtros...');
+    filtrarTickets('TODOS');
+}
+
+// Função para mostrar popup de contato do desenvolvedor
+async function mostrarContatoDesenvolvedor(nomeDesenvolvedor, ticketId, usuario) {
+    try {
+        let desenvolvedorInfo = await buscarInformacoesDesenvolvedor(nomeDesenvolvedor);
+
+        let mensagemWhatsapp = `Olá ${nomeDesenvolvedor}, estou entrando em contato sobre o ticket ${ticketId} aberto por ${usuario}. Podemos conversar sobre isso?`;
+
+        let conteudo = `
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 20px; max-width: 400px;">
+            <h3 style="margin: 0; color: #151749;">Contato do Desenvolvedor</h3>
+            
+            <div style="width: 100%; display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-weight: 600; min-width: 80px;">Nome:</span>
+                    <span>${desenvolvedorInfo.nome_completo}</span>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-weight: 600; min-width: 80px;">Telefone:</span>
+                    <span>${formatarTelefone(desenvolvedorInfo.telefone)}</span>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-weight: 600; min-width: 80px;">Email:</span>
+                    <span>${desenvolvedorInfo.email}</span>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+                <button onclick="abrirWhatsApp('${desenvolvedorInfo.telefone}', '${encodeURIComponent(mensagemWhatsapp)}')"
+                        style="padding: 8px 15px; border: none; border-radius: 4px; background-color: #25D366; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" style="width: 20px; height: 20px;">
+                    WhatsApp
+                </button>
+                
+                <button onclick="copiarParaAreaTransferencia('${desenvolvedorInfo.telefone}')"
+                        style="padding: 8px 15px; border: none; border-radius: 4px; background-color: #151749; color: white; font-weight: 600; cursor: pointer;">
+                    Copiar Telefone
+                </button>
+            </div>
+            
+            <div style="margin-top: 15px; font-size: 0.8em; color: #666; text-align: center;">
+                Mensagem padrão: "${mensagemWhatsapp}"
+            </div>
+        </div>
+    `;
+    } catch (error) {
+        console.error('Erro ao buscar informações do desenvolvedor:', error);
+        openPopup_v2(`
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
+                <img src="imagens/cancel.png" style="width: 3vw;">
+                <label>Erro ao carregar informações do desenvolvedor!</label>
+            </div>
+        `, 'Erro');
+    }
+
+    openPopup_v2(conteudo, 'Contato do Desenvolvedor');
+}
+
+// Função para abrir WhatsApp com mensagem pré-definida
+function abrirWhatsApp(telefone, mensagem) {
+    // Remove todos os caracteres não numéricos
+    let numero = telefone.replace(/\D/g, '');
+
+    // Verifica se tem DDI (código do país)
+    if (!numero.startsWith('55')) {
+        numero = '55' + numero;
+    }
+
+    window.open(`https://wa.me/${numero}?text=${mensagem}`, '_blank');
+    remover_popup();
+}
+
+// Função para formatar telefone
+function formatarTelefone(telefone) {
+    // Remove todos os caracteres não numéricos
+    let numero = telefone.replace(/\D/g, '');
+
+    // Formatação para telefone brasileiro
+    if (numero.length === 11) {
+        return `(${numero.substring(0, 2)}) ${numero.substring(2, 7)}-${numero.substring(7)}`;
+    } else if (numero.length === 10) {
+        return `(${numero.substring(0, 2)}) ${numero.substring(2, 6)}-${numero.substring(6)}`;
+    }
+
+    return telefone;
+}
+
+// Função para copiar telefone
+function copiarParaAreaTransferencia(texto) {
+    navigator.clipboard.writeText(texto.replace(/\D/g, '')).then(() => {
+        openPopup_v2(`
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
+                <img src="imagens/concluido.png" style="width: 3vw;">
+                <label>Telefone copiado para a área de transferência!</label>
+            </div>
+        `, 'Sucesso');
+
+        setTimeout(remover_popup, 1500);
+    }).catch(err => {
+        console.error('Erro ao copiar texto: ', err);
+        openPopup_v2(`
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
+                <img src="imagens/cancel.png" style="width: 3vw;">
+                <label>Erro ao copiar telefone!</label>
+            </div>
+        `, 'Erro');
+    });
+}
+
+// Função para buscar informações do desenvolvedor (simulada - implemente conforme sua base de dados)
+async function buscarInformacoesDesenvolvedor(nome) {
+    // Na prática, você buscaria isso de um banco de dados ou lista de desenvolvedores
+    // Esta é uma implementação simulada
+
+    let desenvolvedores = {
+        "Gabriel Santos": {
+            "email": "gabriel.coutinho@grupocostasilva.com.br",
+            "nome_completo": "Gabriel Santos Coutinho",
+            "telefone": "71986434552"
+        },
+        "Mateus Sagrilo": {
+            "email": "mateus.sagrilo@hopent.com.br",
+            "nome_completo": "Mateus Sagrilo Brasileiro Lima",
+            "telefone": "71982450498"
+        },
+        "Fellipe Leonny": {
+            "email": "fellipe.leonny@acsolucoesintegradas.com.br",
+            "nome_completo": "Fellipe Leonny Ribeiro",
+            "telefone": "71987916731"
+        },
+        // Adicione outros desenvolvedores conforme necessário
+    };
+
+    return desenvolvedores[nome] || {
+        telefone: "Não informado",
+        email: "Não informado",
+        nome_completo: "Não informado"
+    };
+}
 
 // Função para filtrar tickets seguindo padrão do sistema
 function filtrarTickets(ultimo_status, col, texto, apenas_toolbar) {
@@ -953,7 +1035,7 @@ function filtrarTickets(ultimo_status, col, texto, apenas_toolbar) {
                         flex-direction: column;
                         justify-content: center; 
                         align-items: center; 
-                        gap: 3px;
+                                                gap: 3px;
                         cursor: pointer;
                         padding: 10px;
                         font-size: 0.8vw;
@@ -973,14 +1055,9 @@ function filtrarTickets(ultimo_status, col, texto, apenas_toolbar) {
     }
 }
 
-// Função auxiliar para capitalizar primeira letra (seguindo padrão do sistema)
-function inicial_maiuscula(str) {
-    if (!str) return '';
-    return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
 // Função para atualizar tickets (similar ao recuperar_orcamentos)
 async function recuperar_tickets() {
+
     if (typeof sincronizarDados === 'function') {
         await sincronizarDados('dados_tickets');
     }
@@ -988,141 +1065,17 @@ async function recuperar_tickets() {
     await carregarTickets();
 }
 
-// Função separada para renderizar a tabela
-function renderizarTabelaTickets(dados_tickets, div_tickets) {
-    // Ordenar por data
-    let desordenado = Object.entries(dados_tickets);
-    desordenado.sort((a, b) => {
-        let dataA = new Date(a[1].dataAbertura || 0);
-        let dataB = new Date(b[1].dataAbertura || 0);
-        return dataB - dataA;
-    });
-    dados_tickets = Object.fromEntries(desordenado);
-
-    let linhas = '';
-    const mostrarExcluir = isAdmin();
-
-    for (let ticketId in dados_tickets) {
-        let ticket = dados_tickets[ticketId];
-
-        let prioridadeIcon = '';
-        switch (ticket.prioridade) {
-            case 'baixa': prioridadeIcon = '🟢'; break;
-            case 'media': prioridadeIcon = '🟡'; break;
-            case 'alta': prioridadeIcon = '🟠'; break;
-            case 'critica': prioridadeIcon = '🔴'; break;
-            default: prioridadeIcon = '⚪';
-        }
-
-        let categoriaIcon = '';
-        switch (ticket.categoria) {
-            case 'bug': categoriaIcon = '🐛'; break;
-            case 'feature': categoriaIcon = '✨'; break;
-            case 'suporte': categoriaIcon = '🛠️'; break;
-            case 'duvida': categoriaIcon = '❓'; break;
-            case 'melhoria': categoriaIcon = '📈'; break;
-            default: categoriaIcon = '📋';
-        }
-
-        let dataConclusao = '';
-        if (ticket.status === 'finalizado' && ticket.dataConclusao) {
-            dataConclusao = ticket.dataConclusao;
-        }
-
-        let colunaExcluir = '';
-        if (mostrarExcluir) {
-            colunaExcluir = `
-                <td style="text-align: center;">
-                    <button class="action-btn" onclick="excluirTicket('${ticketId}')" title="Excluir ticket">
-                        <img src="imagens/excluir.png" style="width: 18px;">
-                    </button>
-                </td>
-            `;
-        }
-
-        linhas += `
-            <tr>
-                <td>${ticket.titulo}</td>
-                <td style="text-align: center;">
-                    <span class="formato_status" style="background-color: ${coresPrioridade(ticket.prioridade)};">
-                        ${prioridadeIcon} ${ticket.prioridade?.toUpperCase()}
-                    </span>
-                </td>
-                <td style="text-align: center;">
-                    ${categoriaIcon} ${ticket.categoria}
-                </td>
-                <td>${ticket.local || '-'}</td>
-                <td>${ticket.usuario}</td>
-                <td style="text-align: center;">${ticket.desenvolvedor || '-'}</td>
-                <td style="text-align: center;">${ticket.dataAbertura}</td>
-                <td style="text-align: center;">${dataConclusao}</td>
-                <td style="text-align: center;">${ticket.status?.toUpperCase()}</td>
-                <td style="text-align: center;">
-                    <button class="action-btn" onclick="editarTicket('${ticketId}')" title="Editar ticket">
-                        <img src="imagens/editar.png" style="width: 18px;">
-                    </button>
-                </td>
-                <td style="text-align: center;">
-                    <button class="action-btn" onclick="mostrarDetalhesTicket('${ticketId}')" title="Ver detalhes">
-                        <img src="imagens/pesquisar2.png" style="width: 18px;">
-                    </button>
-                </td>
-                ${colunaExcluir}
-            </tr>
-        `;
-    }
-
-    let colunas = ['Título', 'Prioridade', 'Categoria', 'Local', 'Usuário', 'Desenvolvedor', 'Data Abertura', 'Data Conclusão', 'Status', 'Editar', 'Detalhes'];
-
-    if (mostrarExcluir) {
-        colunas.push('Excluir');
-    }
-
-    let ths = '';
-    let tsh = '';
-    colunas.forEach((col, i) => {
-        ths += `<th style="text-align: center;">${col}</th>`;
-
-        if (col !== 'Excluir' && col !== 'Editar' && col !== 'Detalhes') {
-            tsh += `
-                <th style="background-color: white; border-radius: 0px;">
-                    <div style="position: relative;">
-                        <input placeholder="..." style="text-align: left;" oninput="filtrarTickets(undefined, ${i}, this.value)">
-                        <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
-                    </div>
-                </th>
-            `;
-        } else {
-            tsh += `<th style="background-color: white; border-radius: 0px;"></th>`;
-        }
-    });
-
-    div_tickets.innerHTML = '';
-    let tabela = `
-        <div id="tabelas" style="display: flex; flex-direction: column; align-items: center; justify-content: start;">
-            <div id="toolbar"></div>
-            <div id="tickets" style="max-height: 70vh; height: max-content; width: 90vw; overflow-y: auto;">
-                <table id="tickets_" class="tabela" style="font-size: 0.8vw;">
-                    <thead>
-                        <tr>${ths}</tr>
-                        <tr id="tsh">${tsh}</tr>
-                    </thead>
-                    <tbody id="linhas_tickets">
-                        ${linhas}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    `;
-    div_tickets.insertAdjacentHTML('beforeend', tabela);
-
-    filtrarTickets('TODOS');
+// Função auxiliar para capitalizar primeira letra (seguindo padrão do sistema)
+function inicial_maiuscula(str) {
+    if (typeof str !== 'string') return str;
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
 // Verificar se as funções do sistema estão disponíveis no carregamento
 document.addEventListener('DOMContentLoaded', function () {
     // Aguardar um pouco para garantir que todas as funções foram carregadas
     setTimeout(() => {
+        console.log('Iniciando carregamento de tickets...');
         carregarTickets();
     }, 500);
 });

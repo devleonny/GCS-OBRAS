@@ -22,117 +22,49 @@ body::before {
   gap: 20px;
 }
 
-/* Overlay do popup */
-.ticket-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-/* Container principal do popup */
-.ticket-popup {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 32px;
-  width: 100%;
-  max-width: 480px;
-  max-height: 85vh;
-  overflow-y: auto;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  margin: auto;
-}
-
-/* Header do popup */
-.ticket-header {
-  text-align: center;
-  margin-bottom: 28px;
-  position: relative;
-}
-
-.ticket-title {
-  margin: 0;
-  color: #e2e2e2;
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.ticket-subtitle {
-  margin: 8px 0 0 0;
-  color: #cacaca;
-  font-size: 14px;
-}
-
-.ticket-close-btn {
-  position: absolute;
-  top: 0;
-  right: 0;
-  background: none;
-  border: none;
-  font-size: 28px;
-  cursor: pointer;
-  color: #95a5a6;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.ticket-close-btn:hover {
-  background: #f8f9fa;
-  color: #e74c3c;
-}
-
-/* Formulário */
-.ticket-form {
-  width: 100%;
-}
-
-/* Campos do formulário */
+/* Estilos para campos de formulário centralizados */
 .ticket-field {
-  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 15px;
+  width: 100%;
 }
 
 .ticket-field-row {
   display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 15px;
+  margin-bottom: 15px;
+  width: 100%;
 }
 
 .ticket-field-half {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .ticket-label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #34495e;
-  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+  margin-bottom: 5px;
+  text-align: left;
 }
 
-/* Inputs e selects */
+/* Inputs e selects centralizados */
 .ticket-input,
-.ticket-select {
+.ticket-select,
+.ticket-textarea {
   width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
   box-sizing: border-box;
   transition: border-color 0.2s ease;
+  margin: 0;
 }
 
 .ticket-select {
@@ -141,145 +73,161 @@ body::before {
 }
 
 .ticket-input:focus,
-.ticket-select:focus {
-  outline: none;
-  border-color: #3498db;
-}
-
-/* Textarea */
-.ticket-textarea {
-  width: 100%;
-  max-width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 14px;
-  resize: vertical;
-  font-family: inherit;
-  box-sizing: border-box;
-  transition: border-color 0.2s ease;
-}
-
+.ticket-select:focus,
 .ticket-textarea:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #151749;
 }
 
-/* Botões */
+/* Textarea específico - garantindo centralização */
+.ticket-textarea {
+  resize: vertical;
+  font-family: inherit;
+  min-height: 80px;
+  max-width: 100%;
+  text-align: left;
+  vertical-align: top;
+}
+
+/* Botões centralizados */
 .ticket-buttons {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: center;
-  margin-top: 28px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+  width: 100%;
 }
 
 .ticket-btn {
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  min-width: 100px;
+  padding: 8px 20px;
   border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 100px;
+  transition: all 0.2s ease;
 }
 
 .ticket-btn-cancel {
-  border: 2px solid #e9ecef;
-  background: white;
-  color: #6c757d;
+  background-color: #6c757d;
+  color: white;
 }
 
 .ticket-btn-cancel:hover {
-  border-color: #dc3545;
-  color: #dc3545;
+  background-color: #5a6268;
 }
 
 .ticket-btn-submit {
-  background: #3498db;
+  background-color: #151749;
   color: white;
-  border: none;
 }
 
 .ticket-btn-submit:hover {
-  background: #2980b9;
+  background-color: #0f1235;
 }
 
 .ticket-btn-success {
-  background: #27ae60 !important;
+  background-color: #28a745 !important;
 }
 
-/* Responsividade */
-@media (max-width: 600px) {
-  .ticket-popup {
-    padding: 24px;
-    margin: 10px;
-  }
-
-  .ticket-field-row {
-    flex-direction: column;
-    gap: 0;
-  }
-
-  .ticket-field-half {
-    margin-bottom: 20px;
-  }
-
-  .ticket-buttons {
-    flex-direction: column;
-  }
-
-  .ticket-btn {
-    width: 100%;
-  }
+.ticket-btn-error {
+  background-color: #dc3545 !important;
 }
 
-/* Adicionar ao CSS existente */
-
-/* Botão novo ticket */
-.btn-novo-ticket {
-  background: #28a745;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background 0.2s ease;
+/* Container principal centralizado */
+.ticket-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.btn-novo-ticket:hover {
-  background: #218838;
+/* Header centralizado */
+.ticket-header-content {
+  text-align: center;
+  margin-bottom: 20px;
+  width: 100%;
 }
 
-/* Seletor de status */
-.ticket-status-select {
+.ticket-title {
+  margin: 0;
+  color: #151749;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.ticket-subtitle {
+  margin: 5px 0 0 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Formulário centralizado */
+.ticket-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: stretch;
+}
+
+/* Garantir que todos os elementos do formulário ocupem 100% da largura */
+.ticket-form>* {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Detalhes do ticket */
+.ticket-details {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 20px;
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ticket-detail-item {
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #151749;
+}
+
+.ticket-detail-label {
+  font-weight: 600;
+  color: #151749;
+  margin-bottom: 5px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.ticket-detail-value {
+  color: #333;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Badges de status e prioridade */
+.ticket-status-badge,
+.ticket-priority-badge {
+  display: inline-block;
   padding: 4px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-/* Botões de ação */
-.btn-excluir-ticket,
-.btn-visualizar-ticket {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  margin: 0 2px;
-  padding: 4px;
-  border-radius: 4px;
-  transition: background 0.2s ease;
-}
-
-.btn-excluir-ticket:hover {
-  background: #ffebee;
-}
-
-.btn-visualizar-ticket:hover {
-  background: #e3f2fd;
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
 }
 
 /* Classes de prioridade */
@@ -303,231 +251,6 @@ body::before {
   font-weight: 500;
 }
 
-/* Estilos simplificados para o sistema de tickets */
-
-/* Popup overlay */
-.ticket-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10000;
-}
-
-/* Container do popup */
-.ticket-popup {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  max-width: 600px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-/* Header do popup */
-.ticket-header {
-  background: #151749;
-  color: white;
-  padding: 15px 20px;
-  border-radius: 8px 8px 0 0;
-  position: relative;
-  text-align: center;
-}
-
-.ticket-title {
-  margin: 0 0 5px 0;
-  font-size: 1.3rem;
-  font-weight: 600;
-}
-
-.ticket-subtitle {
-  margin: 0;
-  opacity: 0.9;
-  font-size: 0.9rem;
-}
-
-.ticket-close-btn {
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.5rem;
-  cursor: pointer;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ticket-close-btn:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Formulário */
-.ticket-form,
-.edit-form {
-  padding: 20px;
-}
-
-.ticket-field,
-.edit-field {
-  margin-bottom: 15px;
-}
-
-.ticket-field-row {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 15px;
-}
-
-.ticket-field-half {
-  flex: 1;
-}
-
-.ticket-label,
-.edit-label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 600;
-  color: #333;
-  font-size: 0.9rem;
-}
-
-.ticket-input,
-.ticket-select,
-.ticket-textarea,
-.edit-select,
-.edit-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  box-sizing: border-box;
-}
-
-.ticket-input:focus,
-.ticket-select:focus,
-.ticket-textarea:focus,
-.edit-select:focus,
-.edit-input:focus {
-  outline: none;
-  border-color: #151749;
-}
-
-.ticket-textarea {
-  resize: vertical;
-  min-height: 80px;
-  font-family: inherit;
-}
-
-/* Botões */
-.ticket-buttons,
-.edit-buttons {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 20px;
-  padding-top: 15px;
-  border-top: 1px solid #eee;
-}
-
-.ticket-btn,
-.edit-btn {
-  padding: 8px 20px;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  min-width: 100px;
-}
-
-.ticket-btn-cancel,
-.edit-btn-cancel {
-  background-color: #6c757d;
-  color: white;
-}
-
-.ticket-btn-cancel:hover,
-.edit-btn-cancel:hover {
-  background-color: #5a6268;
-}
-
-.ticket-btn-submit {
-  background-color: #151749;
-  color: white;
-}
-
-.ticket-btn-submit:hover {
-  background-color: #0f1235;
-}
-
-.edit-btn-save {
-  background-color: #28a745;
-  color: white;
-}
-
-.edit-btn-save:hover {
-  background-color: #218838;
-}
-
-.ticket-btn-success {
-  background-color: #28a745 !important;
-}
-
-.ticket-btn-error {
-  background-color: #dc3545 !important;
-}
-
-/* Popup de detalhes */
-.ticket-details {
-  padding: 20px;
-}
-
-.ticket-detail-item {
-  margin-bottom: 15px;
-  padding: 10px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  border-left: 3px solid #151749;
-}
-
-.ticket-detail-label {
-  font-weight: 600;
-  color: #151749;
-  margin-bottom: 5px;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-}
-
-.ticket-detail-value {
-  color: #333;
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-
-.ticket-status-badge,
-.ticket-priority-badge {
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 12px;
-  color: white;
-  font-weight: 600;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-}
-
 /* Botões de ação na tabela */
 .action-btn {
   background: none;
@@ -535,6 +258,7 @@ body::before {
   cursor: pointer;
   padding: 5px;
   border-radius: 3px;
+  transition: background-color 0.2s ease;
 }
 
 .action-btn:hover {
@@ -548,28 +272,178 @@ body::before {
 
 /* Responsividade */
 @media (max-width: 768px) {
-  .ticket-popup {
-    width: 95%;
-    margin: 10px;
-  }
-
   .ticket-field-row {
     flex-direction: column;
     gap: 0;
   }
 
-  .ticket-buttons,
-  .edit-buttons {
+  .ticket-buttons {
     flex-direction: column;
   }
 
-  .ticket-btn,
-  .edit-btn {
+  .ticket-btn {
     width: 100%;
+  }
+
+  .ticket-container {
+    padding: 15px;
+    max-width: 100%;
+  }
+
+  .ticket-details {
+    padding: 15px;
+    max-width: 100%;
   }
 }
 
-/* Popup de edição */
-.edit-popup {
-  max-width: 400px;
+/* Alinhamento e centralização geral */
+.ticket-content-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+}
+
+.ticket-form-center {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* Estilos para campos em linha */
+.ticket-inline-fields {
+  display: flex;
+  gap: 15px;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.ticket-inline-fields>div {
+  flex: 1;
+}
+
+/* Estilos para botões de confirmação */
+.ticket-confirm-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 15px;
+  width: 100%;
+}
+
+/* Container para mensagens de status */
+.ticket-message-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  text-align: center;
+  width: 100%;
+}
+
+/* Estilos para ícones de status */
+.ticket-status-icon {
+  width: 3vw;
+  height: 3vw;
+  max-width: 48px;
+  max-height: 48px;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+/* Estilos para labels de informação */
+.ticket-info-label {
+  color: #333;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 5px 0;
+}
+
+/* Container para detalhes em grid */
+.ticket-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .ticket-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Estilos para campos de apenas leitura */
+.ticket-readonly-field {
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #ccc;
+  color: #666;
+}
+
+/* Estilos para campos ativos */
+.ticket-active-field {
+  border-left-color: #151749;
+  background-color: #f8f9fa;
+}
+
+/* Centralização de conteúdo de popup */
+.ticket-popup-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  max-width: 500px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Estilos para formulários dentro de popups */
+.ticket-popup-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: stretch;
+}
+
+/* Estilos para headers de popup */
+.ticket-popup-header {
+  text-align: center;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+/* Estilos para footers de popup */
+.ticket-popup-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+  width: 100%;
+}
+
+/* Força todos os elementos de input a ocuparem 100% da largura disponível */
+input[type="text"],
+select,
+textarea {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Específico para textarea dentro de formulários de ticket */
+#ticket-descricao {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
 }
