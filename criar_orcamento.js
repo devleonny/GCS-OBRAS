@@ -713,7 +713,7 @@ function mostrarTabela(tabela) {
 
     if (!document.getElementById(tabela)) { // Caso a tabela não exista, passa para a próxima;
 
-        if(!tabelas[0]) return // Quer dizer que não existe nenhuma tabela;
+        if (!tabelas[0]) return // Quer dizer que não existe nenhuma tabela;
         tabelaAtiva = String(tabelas[0].id).split('_')[1]
 
     }
@@ -769,7 +769,7 @@ async function removerItem(codigo, img) {
                     }
                 }
             }
-            await confirmarExclusaoCompleta(codigo)
+            await confirmarExclusaoCompleta(codigo, img)
             await removerInfluenciaDoPai(codigo)
         } else {
             // Verificação original para itens que não têm agrupamentos mas podem ser pais
@@ -799,9 +799,9 @@ async function removerItem(codigo, img) {
                 `<li>${item.codigo} - ${item.descricao} (Qtde atual: ${item.qtde}, do pai: ${item.qtdeDoPai})</li>`
             ).join('')
 
-        let item = orcamento_v2.dados_composicoes[codigo]
-        let tipo = item.tipo
-        delete orcamento_v2.dados_composicoes[codigo]
+            let item = orcamento_v2.dados_composicoes[codigo]
+            let tipo = item.tipo
+            delete orcamento_v2.dados_composicoes[codigo]
 
 
             let tipoItem = temAgrupamentos ? 'kit com agrupamentos' : 'item pai'
@@ -827,7 +827,22 @@ async function removerItem(codigo, img) {
         // Se não tem filhos, excluir normalmente
         delete orcamento_v2.dados_composicoes[codigo]
         baseOrcamento(orcamento_v2)
-        img.parentElement.parentElement.remove()
+
+        // Verificação de segurança para remover a linha
+        try {
+            if (img && img.parentElement && img.parentElement.parentElement) {
+                img.parentElement.parentElement.remove()
+            } else {
+                // Fallback: encontrar e remover a linha pelo código
+                let linhaItem = encontrarLinhaItem(codigo)
+                if (linhaItem) {
+                    linhaItem.remove()
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao remover linha da interface:', error)
+        }
+
         await total()
     }
 }
@@ -846,8 +861,8 @@ function itemExisteNaInterface(codigo) {
     return encontrarLinhaItem(codigo) !== null
 }
 
-// Função para excluir item pai e reduzir quantidades dos filhos
-async function confirmarExclusaoCompleta(codigoPai) {
+// Corrigir a função confirmarExclusaoCompleta para receber o parâmetro img
+async function confirmarExclusaoCompleta(codigoPai, img) {
     let orcamento_v2 = baseOrcamento()
     let itensAfetados = []
 
@@ -861,7 +876,7 @@ async function confirmarExclusaoCompleta(codigoPai) {
             // Filtrar apenas os agrupamentos deste pai específico
             let agrupamentosDoPai = item.historico_agrupamentos.filter(hist => hist.item_pai === codigoPai)
 
-        img.parentElement.parentElement.remove() // Equivalente a tr;
+            img.parentElement.parentElement.remove() // Equivalente a tr;
 
             if (agrupamentosDoPai.length > 0) {
                 // Calcular quantidade total a ser removida deste pai
@@ -906,9 +921,17 @@ async function confirmarExclusaoCompleta(codigoPai) {
     itensAfetados.push(`${codigoPai} (item pai removido)`)
 
     // Remover linha do pai da interface
-    let linhaPai = encontrarLinhaItem(codigoPai)
-    if (linhaPai) {
-        linhaPai.remove()
+    try {
+        if (img && img.parentElement && img.parentElement.parentElement) {
+            img.parentElement.parentElement.remove()
+        } else {
+            let linhaPai = encontrarLinhaItem(codigoPai)
+            if (linhaPai) {
+                linhaPai.remove()
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao remover linha do pai:', error)
     }
 
     baseOrcamento(orcamento_v2)
@@ -1516,7 +1539,6 @@ async function gerenciarAgrupamentos(codigo) {
 }
 
 async function total() {
-    dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento_v2 = baseOrcamento()
     let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
     let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
