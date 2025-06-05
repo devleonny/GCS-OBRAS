@@ -1569,7 +1569,7 @@ function enviar(caminho, info) {
             .then(text => text ? JSON.parse(text) : {})
             .then(data => resolve(data))
             .catch((erro) => {
-                console.error("Erro ao enviar:", erro);
+                console.error('Erro no Servidor, mas será salvo para tentativa em breve...', erro);
                 salvar_offline(objeto, 'enviar');
                 resolve();
             });

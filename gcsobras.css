@@ -78,9 +78,7 @@ body {
 
 .gavetaTabelas {
     background-color: #797979;
-    height: 40vh;
     overflow: auto;
-    border-radius: 3px;
     padding: 5px;
     display: flex;
     justify-content: start;
@@ -615,7 +613,7 @@ button {
 
 .janela {
     overflow: auto;
-    max-height: 95vh;
+    max-height: 90vh;
     padding: 5px;
 }
 

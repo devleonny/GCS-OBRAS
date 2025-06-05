@@ -759,29 +759,26 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
     overlayAguarde()
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-
     let produto = dados_composicoes[codigo]
 
+    if (!produto[lpu]) produto[lpu] = {}
     produto[lpu].ativo = id_preco
 
-    let preco_atual = produto[lpu]?.historico?.[id_preco]?.valor;
-
-    let precoFormatado = parseFloat(preco_atual).toFixed(2)
-
-    let comentario = `O usuário ${acesso.usuario} atualizou o preço para ${precoFormatado}`
+    try {
+        let preco_atual = produto[lpu]?.historico?.[id_preco]?.valor;
+        let precoFormatado = parseFloat(preco_atual).toFixed(2)
+        let comentario = `O usuário ${acesso.usuario} atualizou o preço para ${precoFormatado}`
+        registrarAlteracao('dados_composicoes', codigo, comentario)
+    } catch {
+        console.log('Ouvinte no registro de ativação de preço falhou.');
+    }
 
     enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco)
-
     await inserirDados(dados_composicoes, 'dados_composicoes')
 
     if (document.title == 'Criar Orçamento') total() // Caso esteja na tela de Orçamentos;
 
-    registrarAlteracao('dados_composicoes', codigo, comentario)
-    let aguarde = document.getElementById('aguarde')
-    if (aguarde) {
-        aguarde.remove()
-    }
-
+    removerOverlay()
     await retomarPaginacao()
 
 }
@@ -820,10 +817,7 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
 
 function gerarTabelas(objeto) {
 
-    let acumulado = {
-        tabelas: '',
-        resultados: ''
-    }
+    let acumulado = {}
 
     for ([chave, campos] of Object.entries(objeto)) {
 
@@ -858,13 +852,27 @@ function gerarTabelas(objeto) {
             }
 
             if (chave == 'resultados') {
-                tdFinal = `<td><label id="${campo?.id || ''}"></label></td>`
+                tdFinal = `<td><label style="font-size: 0.9vw;" id="${campo?.id || ''}"></label></td>`
             }
 
-            if (campo.label == 'Comentário' || campo.label == 'Fornecedor') {
+            if (campo.label == 'NF de Compra') {
                 tdFinal = `
-                <td style="background-color: ${campo?.cor || ''};">
-                    <textarea style="background-color: transparent; border: none;" id="${campo.id}">${campo?.valor || ''}</textarea>
+                <td style="text-align: left; background-color: ${campo?.cor || ''};">
+                    <input style="text-align: left; background-color: transparent;" id="${campo.id}" value="${campo?.valor || ''}">
+                </td>`
+            }
+            
+            if (campo.label == 'Fornecedor') {
+                tdFinal = `
+                <td style="text-align: left; background-color: ${campo?.cor || ''};">
+                    <input style="text-align: left; background-color: transparent;" id="${campo.id}" value="${campo?.valor || ''}">
+                </td>`
+            }
+
+            if (campo.label == 'Comentário') {
+                tdFinal = `
+                <td style="text-align: left; background-color: ${campo?.cor || ''};">
+                    <textarea style="background-color: transparent; border: none; padding: 0px;" id="${campo.id}">${campo?.valor || ''}</textarea>
                 </td>`
             }
 
@@ -902,9 +910,9 @@ function gerarTabelas(objeto) {
             <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
                 <br>
                 <table class="tabela" style="width: 40vw;">
-                    <thead style="background-color: #ffa0a0; position: relative;">
-                        <th>${titulos[chave]}</th>
-                        <th>Valores</th>
+                    <thead style="background-color: #d2d2d2; position: relative;">
+                        <th style="color: black;">${titulos[chave]}</th>
+                        <th style="color: black;">Valores</th>
                     </thead>
                     <tbody>
                         ${linhas}
@@ -912,12 +920,12 @@ function gerarTabelas(objeto) {
                 </table>
             </div>
         `
-
-        if (chave == 'resultados') {
-            acumulado.resultados += tabelaHtml
-        } else {
-            acumulado.tabelas += tabelaHtml
+        
+        if(!acumulado[chave]){
+            acumulado[chave] = ''
         }
+
+        acumulado[chave] += tabelaHtml
 
     }
 
@@ -1031,20 +1039,25 @@ async function adicionarCotacao(codigo, lpu, cotacao) {
         }
     }
 
-    let tabelasString = gerarTabelas(modelos(produto))
+    let tabelas = gerarTabelas(modelos(produto))
 
     let acumulado = `
     <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; font-size: 0.7vw; background-color: #d2d2d2; padding: 5px;">
         
         <label style="font-size: 1.5vw;" id="modalidadeCalculo"><strong>${produto.tipo}</strong></label>
 
-        <div id="historico_preco" class="gavetaTabelas">
+        <div style="display: flex;">
+            <div id="historico_preco" class="gavetaTabelas">
+                ${tabelas.camposIniciais}
+                ${tabelas.complementares}
+            </div>
 
-            ${tabelasString.tabelas}
-
+            <div id="historico_preco" class="gavetaTabelas">
+                ${tabelas.resultados}
+                ${tabelas.presuncoes}
+                ${tabelas.impostos}
+            </div>
         </div>
-        <hr style="width: 100%;">
-        ${tabelasString.resultados}
         <button onclick="${funcao}" style="background-color: #4CAF50;">Salvar Preço</button>
 
     </div>
