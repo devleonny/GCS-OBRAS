@@ -21,3 +21,284 @@ body::before {
   border-radius: 5px;
   gap: 20px;
 }
+
+/* Overlay do popup */
+.ticket-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Container principal do popup */
+.ticket-popup {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 32px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  margin: auto;
+}
+
+/* Header do popup */
+.ticket-header {
+  text-align: center;
+  margin-bottom: 28px;
+  position: relative;
+}
+
+.ticket-title {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.ticket-subtitle {
+  margin: 8px 0 0 0;
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+.ticket-close-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #95a5a6;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.ticket-close-btn:hover {
+  background: #f8f9fa;
+  color: #e74c3c;
+}
+
+/* Formulário */
+.ticket-form {
+  width: 100%;
+}
+
+/* Campos do formulário */
+.ticket-field {
+  margin-bottom: 20px;
+}
+
+.ticket-field-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.ticket-field-half {
+  flex: 1;
+}
+
+.ticket-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #34495e;
+  font-size: 14px;
+}
+
+/* Inputs e selects */
+.ticket-input,
+.ticket-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.ticket-select {
+  background: white;
+  cursor: pointer;
+}
+
+.ticket-input:focus,
+.ticket-select:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+/* Textarea */
+.ticket-textarea {
+  width: 100%;
+  max-width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 14px;
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.ticket-textarea:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+/* Botões */
+.ticket-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 28px;
+}
+
+.ticket-btn {
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  border: none;
+}
+
+.ticket-btn-cancel {
+  border: 2px solid #e9ecef;
+  background: white;
+  color: #6c757d;
+}
+
+.ticket-btn-cancel:hover {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.ticket-btn-submit {
+  background: #3498db;
+  color: white;
+  border: none;
+}
+
+.ticket-btn-submit:hover {
+  background: #2980b9;
+}
+
+.ticket-btn-success {
+  background: #27ae60 !important;
+}
+
+/* Responsividade */
+@media (max-width: 600px) {
+  .ticket-popup {
+    padding: 24px;
+    margin: 10px;
+  }
+
+  .ticket-field-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .ticket-field-half {
+    margin-bottom: 20px;
+  }
+
+  .ticket-buttons {
+    flex-direction: column;
+  }
+
+  .ticket-btn {
+    width: 100%;
+  }
+}
+
+/* Adicionar ao CSS existente */
+
+/* Botão novo ticket */
+.btn-novo-ticket {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.btn-novo-ticket:hover {
+  background: #218838;
+}
+
+/* Seletor de status */
+.ticket-status-select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Botões de ação */
+.btn-excluir-ticket,
+.btn-visualizar-ticket {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  margin: 0 2px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.btn-excluir-ticket:hover {
+  background: #ffebee;
+}
+
+.btn-visualizar-ticket:hover {
+  background: #e3f2fd;
+}
+
+/* Classes de prioridade */
+.prioridade-baixa {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.prioridade-media {
+  color: #ffc107;
+  font-weight: 500;
+}
+
+.prioridade-alta {
+  color: #fd7e14;
+  font-weight: 500;
+}
+
+.prioridade-critica {
+  color: #dc3545;
+  font-weight: 500;
+}
