@@ -769,7 +769,7 @@ async function removerItem(codigo, img) {
                     }
                 }
             }
-            await confirmarExclusaoCompleta(codigo)
+            await confirmarExclusaoCompleta(codigo, img)
             await removerInfluenciaDoPai(codigo)
         } else {
             // Verificação original para itens que não têm agrupamentos mas podem ser pais
@@ -822,7 +822,22 @@ async function removerItem(codigo, img) {
         // Se não tem filhos, excluir normalmente
         delete orcamento_v2.dados_composicoes[codigo]
         baseOrcamento(orcamento_v2)
-        img.parentElement.parentElement.remove()
+
+        // Verificação de segurança para remover a linha
+        try {
+            if (img && img.parentElement && img.parentElement.parentElement) {
+                img.parentElement.parentElement.remove()
+            } else {
+                // Fallback: encontrar e remover a linha pelo código
+                let linhaItem = encontrarLinhaItem(codigo)
+                if (linhaItem) {
+                    linhaItem.remove()
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao remover linha da interface:', error)
+        }
+
         await total()
     }
 }
@@ -841,8 +856,8 @@ function itemExisteNaInterface(codigo) {
     return encontrarLinhaItem(codigo) !== null
 }
 
-// Função para excluir item pai e reduzir quantidades dos filhos
-async function confirmarExclusaoCompleta(codigoPai) {
+// Corrigir a função confirmarExclusaoCompleta para receber o parâmetro img
+async function confirmarExclusaoCompleta(codigoPai, img) {
     let orcamento_v2 = baseOrcamento()
     let itensAfetados = []
 
@@ -899,9 +914,17 @@ async function confirmarExclusaoCompleta(codigoPai) {
     itensAfetados.push(`${codigoPai} (item pai removido)`)
 
     // Remover linha do pai da interface
-    let linhaPai = encontrarLinhaItem(codigoPai)
-    if (linhaPai) {
-        linhaPai.remove()
+    try {
+        if (img && img.parentElement && img.parentElement.parentElement) {
+            img.parentElement.parentElement.remove()
+        } else {
+            let linhaPai = encontrarLinhaItem(codigoPai)
+            if (linhaPai) {
+                linhaPai.remove()
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao remover linha do pai:', error)
     }
 
     baseOrcamento(orcamento_v2)
