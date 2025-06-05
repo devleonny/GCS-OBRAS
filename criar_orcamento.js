@@ -799,6 +799,11 @@ async function removerItem(codigo, img) {
                 `<li>${item.codigo} - ${item.descricao} (Qtde atual: ${item.qtde}, do pai: ${item.qtdeDoPai})</li>`
             ).join('')
 
+            let item = orcamento_v2.dados_composicoes[codigo]
+            let tipo = item.tipo
+            delete orcamento_v2.dados_composicoes[codigo]
+
+
             let tipoItem = temAgrupamentos ? 'kit com agrupamentos' : 'item pai'
 
             openPopup_v2(`
@@ -870,6 +875,8 @@ async function confirmarExclusaoCompleta(codigoPai, img) {
         if (item.historico_agrupamentos) {
             // Filtrar apenas os agrupamentos deste pai específico
             let agrupamentosDoPai = item.historico_agrupamentos.filter(hist => hist.item_pai === codigoPai)
+
+            img.parentElement.parentElement.remove() // Equivalente a tr;
 
             if (agrupamentosDoPai.length > 0) {
                 // Calcular quantidade total a ser removida deste pai
