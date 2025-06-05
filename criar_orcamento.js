@@ -827,6 +827,20 @@ async function removerItem(codigo, img) {
     }
 }
 
+// Função auxiliar melhorada para verificar existência
+function itemExisteNoOrcamento(codigo) {
+    let orcamento_v2 = baseOrcamento()
+    let existe = orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigo]
+    console.log(`Verificando se ${codigo} existe no orçamento: ${existe ? 'SIM' : 'NÃO'}`)
+    return existe
+}
+
+
+// Função para verificar se um item existe na interface
+function itemExisteNaInterface(codigo) {
+    return encontrarLinhaItem(codigo) !== null
+}
+
 // Função para excluir item pai e reduzir quantidades dos filhos
 async function confirmarExclusaoCompleta(codigoPai) {
     let orcamento_v2 = baseOrcamento()
@@ -1508,6 +1522,7 @@ async function total() {
     if (orcamento_v2.dados_composicoes) {
         for (let codigo in orcamento_v2.dados_composicoes) {
             let inputAtual = encontrarInputQuantidade(codigo)
+
             if (inputAtual) {
                 let quantidadeAtual = parseFloat(inputAtual.value) || 0
                 let quantidadeSalva = orcamento_v2.dados_composicoes[codigo].qtde || 0
@@ -1520,13 +1535,19 @@ async function total() {
                     // Verificar se este item tem agrupamentos (é um pai)
                     let produto = dados_composicoes[codigo]
                     if (produto && produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) {
-                        // É um item pai - atualizar filhos
-                        await atualizarQuantidadesFilhos(codigo, quantidadeAtual)
+                        console.log(`${codigo} é um item PAI - verificando filhos...`)
+
+                        try {
+                            await atualizarQuantidadesFilhos(codigo, quantidadeAtual)
+                            console.log(`✅ Filhos do pai ${codigo} atualizados com sucesso`)
+                        } catch (error) {
+                            console.error(`❌ Erro ao atualizar filhos do pai ${codigo}:`, error)
+                            // Não travar o programa - continuar processamento
+                        }
                     } else {
                         // É um item filho - calcular nova quantidade extra
                         let item = orcamento_v2.dados_composicoes[codigo]
                         if (item.quantidade_calculada !== undefined) {
-                            // Quantidade extra = Total atual - Quantidade calculada da base
                             let novaQuantidadeExtra = quantidadeAtual - item.quantidade_calculada
                             if (novaQuantidadeExtra < 0) novaQuantidadeExtra = 0
 
@@ -1831,7 +1852,7 @@ async function total() {
 
 }
 
-// Função simplificada que usa apenas o valor da base
+// Função modificada para só processar filhos que ainda existem no orçamento
 async function atualizarQuantidadesFilhos(codigoPai, novaQuantidadePai) {
     let orcamento_v2 = baseOrcamento()
     let produtoPai = dados_composicoes[codigoPai]
@@ -1846,10 +1867,11 @@ async function atualizarQuantidadesFilhos(codigoPai, novaQuantidadePai) {
         let quantidadeBase = produtoPai.agrupamentos[codigoFilho]
         let quantidadeCalculadaDoPai = quantidadeBase * parseFloat(novaQuantidadePai)
 
-        console.log(`Filho ${codigoFilho}: base=${quantidadeBase} × pai=${novaQuantidadePai} = ${quantidadeCalculadaDoPai}`)
+        console.log(`Verificando filho ${codigoFilho}: base=${quantidadeBase} × pai=${novaQuantidadePai} = ${quantidadeCalculadaDoPai}`)
 
-        // Se o filho existe no orçamento
-        if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigoFilho]) {
+        // VERIFICAÇÃO PRINCIPAL: Só processar se o filho AINDA EXISTE no orçamento
+        if (itemExisteNoOrcamento(codigoFilho)) {
+            console.log(`✅ Filho ${codigoFilho} existe no orçamento - processando`)
 
             if (quantidadeCalculadaDoPai <= 0) {
                 // Se a quantidade calculada for zero, manter apenas o extra do usuário
@@ -1862,6 +1884,7 @@ async function atualizarQuantidadesFilhos(codigoPai, novaQuantidadePai) {
                     let inputFilho = encontrarInputQuantidade(codigoFilho)
                     if (inputFilho) {
                         inputFilho.value = quantidadeExtra
+                        console.log(`Filho ${codigoFilho}: mantido apenas extra=${quantidadeExtra}`)
                     }
                 } else {
                     // Remover se não tem nem calculado nem extra
@@ -1870,11 +1893,12 @@ async function atualizarQuantidadesFilhos(codigoPai, novaQuantidadePai) {
                     if (linhaFilho) {
                         linhaFilho.remove()
                     }
+                    console.log(`Filho ${codigoFilho}: removido completamente`)
                 }
             } else {
                 let itemFilho = orcamento_v2.dados_composicoes[codigoFilho]
 
-                // Manter a quantidade extra que já existia (ou 0 se é primeira vez)
+                // Manter a quantidade extra que já existia
                 let quantidadeExtra = itemFilho.quantidade_extra || 0
 
                 // Nova quantidade total = quantidade calculada do pai + quantidade extra preservada
@@ -1885,28 +1909,18 @@ async function atualizarQuantidadesFilhos(codigoPai, novaQuantidadePai) {
                 itemFilho.quantidade_extra = quantidadeExtra
                 itemFilho.qtde = novaQuantidadeTotal
 
-                // Atualizar o input
+                // Atualizar o input na interface
                 let inputFilho = encontrarInputQuantidade(codigoFilho)
                 if (inputFilho) {
                     inputFilho.value = novaQuantidadeTotal
+                    console.log(`Filho ${codigoFilho}: calculado=${quantidadeCalculadaDoPai} + extra=${quantidadeExtra} = total=${novaQuantidadeTotal}`)
                 }
-
-                console.log(`Filho ${codigoFilho}: calculado=${quantidadeCalculadaDoPai} + extra_preservado=${quantidadeExtra} = total=${novaQuantidadeTotal}`)
             }
-        } else if (quantidadeCalculadaDoPai > 0) {
-            // Criar novo item filho se não existir
-            console.log(`Criando novo item filho ${codigoFilho} com quantidade ${quantidadeCalculadaDoPai}`)
-            await incluirItemComPai(codigoFilho, quantidadeCalculadaDoPai, codigoPai)
-
-            // Marcar a quantidade calculada inicial após criar o item
-            setTimeout(() => {
-                let orcamento_v2_updated = baseOrcamento()
-                if (orcamento_v2_updated.dados_composicoes[codigoFilho]) {
-                    orcamento_v2_updated.dados_composicoes[codigoFilho].quantidade_calculada = quantidadeCalculadaDoPai
-                    orcamento_v2_updated.dados_composicoes[codigoFilho].quantidade_extra = 0
-                    baseOrcamento(orcamento_v2_updated)
-                }
-            }, 100)
+        } else {
+            // ITEM FILHO NÃO EXISTE MAIS - PULAR COMPLETAMENTE
+            console.log(`❌ Filho ${codigoFilho} NÃO existe no orçamento - PULANDO (foi excluído pelo usuário)`)
+            // Não fazer nada - simplesmente ignorar este filho
+            continue
         }
     }
 
@@ -1914,7 +1928,7 @@ async function atualizarQuantidadesFilhos(codigoPai, novaQuantidadePai) {
     baseOrcamento(orcamento_v2)
 }
 
-// Função para remover a influência do pai quando ele for excluído
+// Função modificada com verificações de existência
 async function removerInfluenciaDoPai(codigoPai) {
     let orcamento_v2 = baseOrcamento()
     let produtoPai = dados_composicoes[codigoPai]
@@ -1927,8 +1941,8 @@ async function removerInfluenciaDoPai(codigoPai) {
     // Para cada filho no agrupamento
     for (let codigoFilho in produtoPai.agrupamentos) {
 
-        // Se o filho existe no orçamento
-        if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigoFilho]) {
+        // VERIFICAÇÃO: Se o filho ainda existe no orçamento
+        if (itemExisteNoOrcamento(codigoFilho)) {
             let itemFilho = orcamento_v2.dados_composicoes[codigoFilho]
             let quantidadeExtra = itemFilho.quantidade_extra || 0
 
@@ -1939,25 +1953,29 @@ async function removerInfluenciaDoPai(codigoPai) {
                 itemFilho.qtde = quantidadeExtra
                 itemFilho.quantidade_calculada = 0
 
-                // Atualizar o input na interface
+                // VERIFICAÇÃO: Se o input ainda existe na interface
                 let inputFilho = encontrarInputQuantidade(codigoFilho)
                 if (inputFilho) {
                     inputFilho.value = quantidadeExtra
+                    console.log(`Filho ${codigoFilho}: mantido apenas extra=${quantidadeExtra}`)
+                } else {
+                    console.log(`AVISO: Input do filho ${codigoFilho} não encontrado, mas dados atualizados`)
                 }
-
-                console.log(`Filho ${codigoFilho}: mantido apenas extra=${quantidadeExtra}`)
             } else {
                 // Se não tem quantidade extra, remover completamente
                 delete orcamento_v2.dados_composicoes[codigoFilho]
 
-                // Remover da interface
+                // VERIFICAÇÃO: Se a linha ainda existe na interface
                 let linhaFilho = encontrarLinhaItem(codigoFilho)
                 if (linhaFilho) {
                     linhaFilho.remove()
+                    console.log(`Filho ${codigoFilho}: removido completamente`)
+                } else {
+                    console.log(`Filho ${codigoFilho}: removido dos dados (linha já não existia na interface)`)
                 }
-
-                console.log(`Filho ${codigoFilho}: removido completamente`)
             }
+        } else {
+            console.log(`Filho ${codigoFilho}: já não existe no orçamento - pulando`)
         }
     }
 
