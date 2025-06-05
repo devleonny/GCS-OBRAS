@@ -769,6 +769,8 @@ async function removerItem(codigo, img) {
                     }
                 }
             }
+            await confirmarExclusaoCompleta(codigo)
+            await removerInfluenciaDoPai(codigo)
         } else {
             // Verificação original para itens que não têm agrupamentos mas podem ser pais
             for (let codigoItem in orcamento_v2.dados_composicoes) {
@@ -811,25 +813,8 @@ async function removerItem(codigo, img) {
                     <ul style="background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin: 10px 0;">
                         ${listaFilhos}
                     </ul>
-                    
-                    <p>O que deseja fazer?</p>
-                    
-                    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-                        <button onclick="confirmarExclusaoCompleta('${codigo}', this)" 
-                                style="background-color: #B12425; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;">
-                            Reduzir Quantidades dos Filhos
-                        </button>
-                        <button onclick="confirmarExclusaoSomenteItem('${codigo}', this)" 
-                                style="background-color: #FFA500; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;">
-                            Excluir Apenas o Item Pai
-                        </button>
-                        <button onclick="remover_popup()" 
-                                style="background-color: #666; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;">
-                            Cancelar
-                        </button>
-                    </div>
                 </div>
-            `, 'Confirmação de Exclusão')
+            `, 'Itens excluídos')
 
             return
         }
@@ -843,7 +828,7 @@ async function removerItem(codigo, img) {
 }
 
 // Função para excluir item pai e reduzir quantidades dos filhos
-async function confirmarExclusaoCompleta(codigoPai, botaoElement) {
+async function confirmarExclusaoCompleta(codigoPai) {
     let orcamento_v2 = baseOrcamento()
     let itensAfetados = []
 
@@ -922,65 +907,6 @@ async function confirmarExclusaoCompleta(codigoPai, botaoElement) {
             </ul>
         </div>
     `, 'Resultado da Exclusão')
-}
-
-// Função para excluir apenas o item pai
-async function confirmarExclusaoSomenteItem(codigoPai, botaoElement) {
-    let orcamento_v2 = baseOrcamento()
-    let itensAfetados = []
-
-    console.log('Excluindo apenas o item pai:', codigoPai)
-
-    // Limpar apenas as referências deste pai específico dos itens filhos
-    for (let codigoItem in orcamento_v2.dados_composicoes) {
-        let item = orcamento_v2.dados_composicoes[codigoItem]
-
-        if (item.historico_agrupamentos) {
-            let historicoOriginal = item.historico_agrupamentos.length
-
-            // Remover apenas os históricos deste pai
-            item.historico_agrupamentos = item.historico_agrupamentos.filter(hist => hist.item_pai !== codigoPai)
-
-            if (item.historico_agrupamentos.length < historicoOriginal) {
-                itensAfetados.push(`${codigoItem} (referência ao pai removida)`)
-            }
-
-            // Se não sobrou nenhum histórico de agrupamento, limpar a propriedade
-            if (item.historico_agrupamentos.length === 0) {
-                delete item.historico_agrupamentos
-            }
-        }
-    }
-
-    // Excluir apenas o item pai
-    delete orcamento_v2.dados_composicoes[codigoPai]
-
-    // Remover linha do pai da interface
-    let linhaPai = encontrarLinhaItem(codigoPai)
-    if (linhaPai) {
-        linhaPai.remove()
-    }
-
-    baseOrcamento(orcamento_v2)
-    await total()
-
-    let listaAfetados = itensAfetados.length > 0 ?
-        `<ul style="background-color: #f5f5f5; padding: 10px; border-radius: 5px;">
-            ${itensAfetados.map(item => `<li>${item}</li>`).join('')}
-        </ul>` :
-        '<p style="color: #666;">Nenhum item filho foi afetado.</p>'
-
-    openPopup_v2(`
-        <div style="padding: 20px;">
-            <div style="text-align: center; margin-bottom: 15px;">
-                <img src="imagens/concluido.png" style="width: 50px;">
-                <h3 style="color: #4CAF50;">Item Pai Removido</h3>
-            </div>
-            <p>Item pai <strong>${codigoPai}</strong> foi excluído.</p>
-            <p style="color: #666;">As quantidades dos itens filhos foram mantidas.</p>
-            ${listaAfetados}
-        </div>
-    `, 'Exclusão Concluída')
 }
 
 // Função para mostrar detalhes do histórico de agrupamentos (opcional - para debug/informação)
@@ -1578,7 +1504,7 @@ async function total() {
     let tables = divTabelas.querySelectorAll('table')
     let padraoFiltro = localStorage.getItem('padraoFiltro')
 
-    // Detectar mudanças de quantidade e atualizar filhos
+    // Detectar mudanças de quantidade
     if (orcamento_v2.dados_composicoes) {
         for (let codigo in orcamento_v2.dados_composicoes) {
             let inputAtual = encontrarInputQuantidade(codigo)
@@ -1594,15 +1520,18 @@ async function total() {
                     // Verificar se este item tem agrupamentos (é um pai)
                     let produto = dados_composicoes[codigo]
                     if (produto && produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) {
+                        // É um item pai - atualizar filhos
                         await atualizarQuantidadesFilhos(codigo, quantidadeAtual)
                     } else {
-                        // Se é um item filho, atualizar a quantidade extra
+                        // É um item filho - calcular nova quantidade extra
                         let item = orcamento_v2.dados_composicoes[codigo]
                         if (item.quantidade_calculada !== undefined) {
+                            // Quantidade extra = Total atual - Quantidade calculada da base
                             let novaQuantidadeExtra = quantidadeAtual - item.quantidade_calculada
                             if (novaQuantidadeExtra < 0) novaQuantidadeExtra = 0
+
                             item.quantidade_extra = novaQuantidadeExtra
-                            console.log(`Item ${codigo}: extra atualizado para ${novaQuantidadeExtra}`)
+                            console.log(`Item filho ${codigo}: calculado=${item.quantidade_calculada}, total=${quantidadeAtual}, extra=${novaQuantidadeExtra}`)
                         }
                     }
                 }
@@ -1902,7 +1831,7 @@ async function total() {
 
 }
 
-// Modificar a função atualizarQuantidadesFilhos para somar valores extras
+// Função simplificada que usa apenas o valor da base
 async function atualizarQuantidadesFilhos(codigoPai, novaQuantidadePai) {
     let orcamento_v2 = baseOrcamento()
     let produtoPai = dados_composicoes[codigoPai]
@@ -1924,69 +1853,119 @@ async function atualizarQuantidadesFilhos(codigoPai, novaQuantidadePai) {
 
             if (quantidadeCalculadaDoPai <= 0) {
                 // Se a quantidade calculada for zero, manter apenas o extra do usuário
-                let inputFilho = encontrarInputQuantidade(codigoFilho)
-                if (inputFilho) {
-                    let quantidadeAtualInput = parseFloat(inputFilho.value) || 0
-                    let quantidadeExtra = orcamento_v2.dados_composicoes[codigoFilho].quantidade_extra || 0
+                let quantidadeExtra = orcamento_v2.dados_composicoes[codigoFilho].quantidade_extra || 0
 
-                    // Se só tem quantidade extra, manter
-                    if (quantidadeExtra > 0) {
-                        orcamento_v2.dados_composicoes[codigoFilho].qtde = quantidadeExtra
+                if (quantidadeExtra > 0) {
+                    orcamento_v2.dados_composicoes[codigoFilho].quantidade_calculada = 0
+                    orcamento_v2.dados_composicoes[codigoFilho].qtde = quantidadeExtra
+
+                    let inputFilho = encontrarInputQuantidade(codigoFilho)
+                    if (inputFilho) {
                         inputFilho.value = quantidadeExtra
-                    } else {
-                        // Remover se não tem nem calculado nem extra
-                        delete orcamento_v2.dados_composicoes[codigoFilho]
-                        let linhaFilho = encontrarLinhaItem(codigoFilho)
-                        if (linhaFilho) {
-                            linhaFilho.remove()
-                        }
+                    }
+                } else {
+                    // Remover se não tem nem calculado nem extra
+                    delete orcamento_v2.dados_composicoes[codigoFilho]
+                    let linhaFilho = encontrarLinhaItem(codigoFilho)
+                    if (linhaFilho) {
+                        linhaFilho.remove()
                     }
                 }
             } else {
                 let itemFilho = orcamento_v2.dados_composicoes[codigoFilho]
+
+                // Manter a quantidade extra que já existia (ou 0 se é primeira vez)
+                let quantidadeExtra = itemFilho.quantidade_extra || 0
+
+                // Nova quantidade total = quantidade calculada do pai + quantidade extra preservada
+                let novaQuantidadeTotal = quantidadeCalculadaDoPai + quantidadeExtra
+
+                // Salvar as informações
+                itemFilho.quantidade_calculada = quantidadeCalculadaDoPai
+                itemFilho.quantidade_extra = quantidadeExtra
+                itemFilho.qtde = novaQuantidadeTotal
+
+                // Atualizar o input
                 let inputFilho = encontrarInputQuantidade(codigoFilho)
-
                 if (inputFilho) {
-                    // Calcular quantidade extra do usuário
-                    let quantidadeAtualInput = parseFloat(inputFilho.value) || 0
-                    let quantidadeCalculadaAnterior = itemFilho.quantidade_calculada || 0
-                    let quantidadeExtraAnterior = itemFilho.quantidade_extra || 0
-
-                    // A quantidade extra é a diferença entre o que o usuário colocou e o que foi calculado
-                    let quantidadeExtra = quantidadeAtualInput - quantidadeCalculadaAnterior
-
-                    // Se a quantidade extra for negativa, considerar como 0
-                    if (quantidadeExtra < 0) quantidadeExtra = 0
-
-                    // Nova quantidade total = quantidade calculada do pai + quantidade extra do usuário
-                    let novaQuantidadeTotal = quantidadeCalculadaDoPai + quantidadeExtra
-
-                    // Salvar as informações
-                    itemFilho.quantidade_calculada = quantidadeCalculadaDoPai
-                    itemFilho.quantidade_extra = quantidadeExtra
-                    itemFilho.qtde = novaQuantidadeTotal
-
-                    // Atualizar o input
                     inputFilho.value = novaQuantidadeTotal
-
-                    console.log(`Filho ${codigoFilho}: calculado=${quantidadeCalculadaDoPai} + extra=${quantidadeExtra} = total=${novaQuantidadeTotal}`)
                 }
+
+                console.log(`Filho ${codigoFilho}: calculado=${quantidadeCalculadaDoPai} + extra_preservado=${quantidadeExtra} = total=${novaQuantidadeTotal}`)
             }
         } else if (quantidadeCalculadaDoPai > 0) {
             // Criar novo item filho se não existir
             console.log(`Criando novo item filho ${codigoFilho} com quantidade ${quantidadeCalculadaDoPai}`)
             await incluirItemComPai(codigoFilho, quantidadeCalculadaDoPai, codigoPai)
 
-            // Marcar a quantidade calculada inicial
-            if (orcamento_v2.dados_composicoes[codigoFilho]) {
-                orcamento_v2.dados_composicoes[codigoFilho].quantidade_calculada = quantidadeCalculadaDoPai
-                orcamento_v2.dados_composicoes[codigoFilho].quantidade_extra = 0
+            // Marcar a quantidade calculada inicial após criar o item
+            setTimeout(() => {
+                let orcamento_v2_updated = baseOrcamento()
+                if (orcamento_v2_updated.dados_composicoes[codigoFilho]) {
+                    orcamento_v2_updated.dados_composicoes[codigoFilho].quantidade_calculada = quantidadeCalculadaDoPai
+                    orcamento_v2_updated.dados_composicoes[codigoFilho].quantidade_extra = 0
+                    baseOrcamento(orcamento_v2_updated)
+                }
+            }, 100)
+        }
+    }
+
+    // Salvar mudanças
+    baseOrcamento(orcamento_v2)
+}
+
+// Função para remover a influência do pai quando ele for excluído
+async function removerInfluenciaDoPai(codigoPai) {
+    let orcamento_v2 = baseOrcamento()
+    let produtoPai = dados_composicoes[codigoPai]
+
+    // Verificar se tem agrupamentos
+    if (!produtoPai || !produtoPai.agrupamentos) return
+
+    console.log(`Removendo influência do pai ${codigoPai}`)
+
+    // Para cada filho no agrupamento
+    for (let codigoFilho in produtoPai.agrupamentos) {
+
+        // Se o filho existe no orçamento
+        if (orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigoFilho]) {
+            let itemFilho = orcamento_v2.dados_composicoes[codigoFilho]
+            let quantidadeExtra = itemFilho.quantidade_extra || 0
+
+            console.log(`Filho ${codigoFilho}: tinha calculado=${itemFilho.quantidade_calculada || 0}, extra=${quantidadeExtra}`)
+
+            if (quantidadeExtra > 0) {
+                // Se tem quantidade extra, manter apenas ela
+                itemFilho.qtde = quantidadeExtra
+                itemFilho.quantidade_calculada = 0
+
+                // Atualizar o input na interface
+                let inputFilho = encontrarInputQuantidade(codigoFilho)
+                if (inputFilho) {
+                    inputFilho.value = quantidadeExtra
+                }
+
+                console.log(`Filho ${codigoFilho}: mantido apenas extra=${quantidadeExtra}`)
+            } else {
+                // Se não tem quantidade extra, remover completamente
+                delete orcamento_v2.dados_composicoes[codigoFilho]
+
+                // Remover da interface
+                let linhaFilho = encontrarLinhaItem(codigoFilho)
+                if (linhaFilho) {
+                    linhaFilho.remove()
+                }
+
+                console.log(`Filho ${codigoFilho}: removido completamente`)
             }
         }
     }
 
     // Salvar mudanças
     baseOrcamento(orcamento_v2)
+
+    // Recalcular totais
+    await total()
 }
 
 // Função para encontrar o input de quantidade de um item específico
