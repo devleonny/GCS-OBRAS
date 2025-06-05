@@ -9,8 +9,39 @@
   gap: 1vw;
 }
 
+button, textarea {
+  font-size: 0.9vw;
+}
+
+.opcoesPainel {
+  padding: 2vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: start;
+  gap: 2vw;
+}
+
+.opcoesPainel label {
+  cursor: pointer;
+  padding: 1vw;
+  border-radius: 3px;
+  color: white;
+  background-color: #B12425;
+}
+
+.opcoesPainel label:hover {
+  cursor: pointer;
+  background-color: #222;
+  transition: 0.2s ease-in-out;
+}
+
 body {
   user-select: none;
+}
+
+input {
+  font-size: 0.8vw;
 }
 
 .selected {
@@ -52,6 +83,13 @@ td:first-child {
 .com-triangulo:hover {
   transition: 0.1s ease-in-out;
   border-top: 1vw solid #B12425;
+}
+
+.marcador {
+  background-color: green;
+  color: white;
+  border-radius: 3px;
+  padding: 2px;
 }
 
 select,
