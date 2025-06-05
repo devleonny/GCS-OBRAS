@@ -61,14 +61,14 @@ body::before {
 
 .ticket-title {
   margin: 0;
-  color: #2c3e50;
+  color: #e2e2e2;
   font-size: 24px;
   font-weight: 600;
 }
 
 .ticket-subtitle {
   margin: 8px 0 0 0;
-  color: #7f8c8d;
+  color: #cacaca;
   font-size: 14px;
 }
 
@@ -301,4 +301,275 @@ body::before {
 .prioridade-critica {
   color: #dc3545;
   font-weight: 500;
+}
+
+/* Estilos simplificados para o sistema de tickets */
+
+/* Popup overlay */
+.ticket-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+/* Container do popup */
+.ticket-popup {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Header do popup */
+.ticket-header {
+  background: #151749;
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px 8px 0 0;
+  position: relative;
+  text-align: center;
+}
+
+.ticket-title {
+  margin: 0 0 5px 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.ticket-subtitle {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 0.9rem;
+}
+
+.ticket-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ticket-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Formulário */
+.ticket-form,
+.edit-form {
+  padding: 20px;
+}
+
+.ticket-field,
+.edit-field {
+  margin-bottom: 15px;
+}
+
+.ticket-field-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.ticket-field-half {
+  flex: 1;
+}
+
+.ticket-label,
+.edit-label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.ticket-input,
+.ticket-select,
+.ticket-textarea,
+.edit-select,
+.edit-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.ticket-input:focus,
+.ticket-select:focus,
+.ticket-textarea:focus,
+.edit-select:focus,
+.edit-input:focus {
+  outline: none;
+  border-color: #151749;
+}
+
+.ticket-textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+/* Botões */
+.ticket-buttons,
+.edit-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.ticket-btn,
+.edit-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 100px;
+}
+
+.ticket-btn-cancel,
+.edit-btn-cancel {
+  background-color: #6c757d;
+  color: white;
+}
+
+.ticket-btn-cancel:hover,
+.edit-btn-cancel:hover {
+  background-color: #5a6268;
+}
+
+.ticket-btn-submit {
+  background-color: #151749;
+  color: white;
+}
+
+.ticket-btn-submit:hover {
+  background-color: #0f1235;
+}
+
+.edit-btn-save {
+  background-color: #28a745;
+  color: white;
+}
+
+.edit-btn-save:hover {
+  background-color: #218838;
+}
+
+.ticket-btn-success {
+  background-color: #28a745 !important;
+}
+
+.ticket-btn-error {
+  background-color: #dc3545 !important;
+}
+
+/* Popup de detalhes */
+.ticket-details {
+  padding: 20px;
+}
+
+.ticket-detail-item {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #151749;
+}
+
+.ticket-detail-label {
+  font-weight: 600;
+  color: #151749;
+  margin-bottom: 5px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.ticket-detail-value {
+  color: #333;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.ticket-status-badge,
+.ticket-priority-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+/* Botões de ação na tabela */
+.action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 3px;
+}
+
+.action-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.action-btn img {
+  width: 18px;
+  height: 18px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .ticket-popup {
+    width: 95%;
+    margin: 10px;
+  }
+
+  .ticket-field-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .ticket-buttons,
+  .edit-buttons {
+    flex-direction: column;
+  }
+
+  .ticket-btn,
+  .edit-btn {
+    width: 100%;
+  }
+}
+
+/* Popup de edição */
+.edit-popup {
+  max-width: 400px;
 }
