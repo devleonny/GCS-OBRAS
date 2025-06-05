@@ -1092,8 +1092,8 @@ function getElementById(id, valorRetorno) {
 }
 
 function calcular(campo) {
-    let modalidadeCalculo = document.getElementById('modalidadeCalculo').textContent
 
+    let modalidadeCalculo = document.getElementById('modalidadeCalculo').textContent
     let tabelaIcmsSaida = {
         'IMPORTADO': 4,
         'NACIONAL': 12,
@@ -1267,6 +1267,79 @@ function calcular(campo) {
     }
 }
 
+function calcularLucro(params = {}) {
+    const {
+        modalidade,
+        precoVenda = 0,
+        precoCompra = 0,
+        icmsAliquota = 0,
+        icmsCreditadoSelect = 'NACIONAL',
+        margem = 0
+    } = params
+
+    const tabelaIcmsSaida = {
+        'IMPORTADO': 4,
+        'NACIONAL': 12,
+        'BAHIA': 20.5
+    }
+
+    let totalImpostos = 0
+    let custoFinal = 0
+
+    if (modalidade === 'SERVIÇO' || modalidade === 'USO E CONSUMO') {
+        const aliqLp = precoVenda * 0.32
+        const presuncaoCsll = precoVenda * 0.32
+
+        const irpj = aliqLp * 0.15
+        const adicionalIrpj = aliqLp * 0.10
+        const presuncaoCsllAPagar = presuncaoCsll * 0.09
+        const pis = precoVenda * 0.0065
+        const cofins = precoVenda * 0.03
+        const iss = precoVenda * 0.05
+
+        totalImpostos = irpj + adicionalIrpj + presuncaoCsllAPagar + pis + cofins + iss
+
+        if (modalidade === 'USO E CONSUMO') {
+            const icmsCreditado = tabelaIcmsSaida[icmsCreditadoSelect] || 0
+            const difal = icmsAliquota - icmsCreditado
+            const icmsEntrada = (difal / 100) * precoCompra
+            const frete = precoCompra * 0.02
+            const valorCusto = precoCompra + icmsEntrada + frete
+            const freteVenda = precoVenda * 0.05
+            custoFinal = valorCusto + freteVenda
+        }
+
+    } else if (modalidade === 'VENDA') {
+        const icmsCreditado = tabelaIcmsSaida[icmsCreditadoSelect] || 0
+        const difal = icmsAliquota - icmsCreditado
+        const icmsEntrada = (difal / 100) * precoCompra
+        const frete = precoCompra * 0.02
+        const valorCusto = precoCompra + icmsEntrada + frete
+        const freteVenda = precoVenda * 0.05
+
+        const lucroPresumido = precoVenda * 0.08
+        const presuncaoCsll = precoVenda * 0.12
+
+        const irpj = lucroPresumido * 0.15
+        const adicionalIrpj = lucroPresumido * 0.1
+        const csll = presuncaoCsll * 0.09
+        const pis = precoVenda * 0.0065
+        const cofins = precoVenda * 0.03
+        const icms = precoVenda * (icmsAliquota / 100)
+
+        totalImpostos = irpj + adicionalIrpj + csll + pis + cofins + icms
+        custoFinal = valorCusto + freteVenda
+    }
+
+    const lucroLiquido = precoVenda - (totalImpostos + custoFinal)
+    const percentual = (lucroLiquido / precoVenda) * 100
+
+    return {
+        lucroLiquido: parseFloat(lucroLiquido.toFixed(2)),
+        percentual: isNaN(percentual) ? 0 : parseFloat(percentual.toFixed(2))
+    }
+}
+
 async function salvarPreco(codigo, lpu, cotacao) {
 
     overlayAguarde()
@@ -1364,7 +1437,7 @@ async function cadastrar_editar_item(codigo) {
 
             let opcoes = ''
             esquemas.tipo.forEach(op => {
-                opcoes += `<option ${op == 'VENDA' ? 'selected' : ''}>${op}</option>`
+                opcoes += `<option ${op == valor ? 'selected' : ''}>${op}</option>`
             })
 
             campo = `

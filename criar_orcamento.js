@@ -642,10 +642,8 @@ async function tabelaProdutos() {
             tabelasHTML += `
                 <table id="compos_${tabela}" style="display: none;" class="tabela">
                     <thead style="background-color: ${coresTabelas(tabela)};">
-                        ${ths}
-                    </thead>
-                    <thead>
-                        ${tsh}
+                        <tr>${ths}</tr>
+                        <tr>${tsh}</tr>
                     </thead>
                     <tbody>
                         ${tabelas[tabela].linhas}
