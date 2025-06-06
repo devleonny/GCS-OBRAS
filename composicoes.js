@@ -44,14 +44,14 @@ async function carregar_tabela_v2() {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
     if (Object.keys(dados_composicoes).length == 0) {
-        return recuperar_composicoes();
+        return await recuperar_composicoes();
     }
 
-    var thead = '';
-    var tbody = '';
+    let thead = '';
+    let tbody = '';
     var tsearch = '';
 
-    var cabecalhos = [
+    let cabecalhos = [
         ...new Set(
             Object.values(dados_composicoes).flatMap(obj => Object.keys(obj))
         )
@@ -82,8 +82,8 @@ async function carregar_tabela_v2() {
     }
 
     if (acesso.permissao == 'adm') {
-        var adicionar_item = document.getElementById('adicionar_item');
-        var btn_criar_lpu = document.getElementById('btn-criar-lpu')
+        let adicionar_item = document.getElementById('adicionar_item');
+        let btn_criar_lpu = document.getElementById('btn-criar-lpu')
         if (adicionar_item) {
             adicionar_item.style.display = 'flex';
         }
@@ -98,8 +98,8 @@ async function carregar_tabela_v2() {
 
     divComposicoes.innerHTML = '';
 
-    var ths = {};
-    var tsc = {};
+    let ths = {};
+    let tsc = {};
 
     cabecalhos.forEach(cab => {
         ths[cab] = `<th style="position: relative; cursor: pointer; text-align: left;">${inicial_maiuscula(cab)}</th>`
@@ -115,36 +115,38 @@ async function carregar_tabela_v2() {
         tsearch += tsc[col];
     });
 
-    for (let [codigo, produto] of Object.entries(dados_composicoes).reverse()) {
-        var tds = {};
+    dados_composicoes = Object.entries(dados_composicoes).sort((a, b) => b[1].timestamp - a[1].timestamp)
+
+    for (let [codigo, produto] of dados_composicoes) {
+        let tds = {};
 
         colunas.forEach(chave => {
-            var conteudo = produto[chave] || '';
-            var alinhamento = 'left';
+            let conteudo = produto[chave] || '';
+            let alinhamento = 'left';
             chave = String(chave)
             if (chave == 'imagem') {
-                var imagem = conteudo || 'https://i.imgur.com/Nb8sPs0.png';
+                let imagem = conteudo || 'https://i.imgur.com/Nb8sPs0.png';
                 alinhamento = 'center';
                 conteudo = `<img src="${imagem}" style="width: 50px; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">`;
 
             } else if (chave.includes('lpu')) {
-                var preco_final = produto[chave];
+                let preco_final = produto[chave];
                 if (dicionario(produto[chave]) && produto[chave].historico && Object.keys(produto[chave].historico).length > 0 && produto[chave].ativo) {
-                    var ativo = produto[chave].ativo;
-                    preco_final = produto[chave].historico[ativo].valor;
+                    let ativo = produto[chave].ativo;
+                    preco_final = produto[chave].historico?.[ativo]?.valor || 0;
                 } else {
                     preco_final = '';
                 }
 
-                var estilo = preco_final !== '' ? 'valor_preenchido' : 'valor_zero';
+                let estilo = preco_final !== '' ? 'valor_preenchido' : 'valor_zero';
                 conteudo = `<label class="${estilo}" onclick="abrirHistoricoPrecos('${codigo}', '${chave}')"> ${dinheiro(conversor(preco_final))}</label>`;
 
             } else if (chave == 'agrupamentos') {
 
-                var info_agrupamentos = ''
+                let info_agrupamentos = ''
 
                 if (produto[chave]) {
-                    var agrupamentos = produto[chave]
+                    let agrupamentos = produto[chave]
 
                     for (item in agrupamentos) {
 
@@ -156,7 +158,7 @@ async function carregar_tabela_v2() {
 
                             let tipo = dados_composicoes[item].tipo
 
-                            var cor = 'green'
+                            let cor = 'green'
                             if (tipo == 'VENDA') {
                                 cor = '#B12425'
                             }
@@ -202,7 +204,7 @@ async function carregar_tabela_v2() {
 
         tds.editar = `<td style="width: 70px;"><img src="imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')"></td>`;
 
-        var celulas = '';
+        let celulas = '';
         colunas.forEach(col => {
             if (tds[col] !== undefined) {
                 celulas += tds[col];
@@ -779,7 +781,7 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
         console.log('Ouvinte no registro de ativação de preço falhou.');
     }
 
-    enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco)
+    await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco)
     await inserirDados(dados_composicoes, 'dados_composicoes')
 
     if (document.title == 'Criar Orçamento') total() // Caso esteja na tela de Orçamentos;

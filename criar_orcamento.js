@@ -1757,8 +1757,7 @@ async function total() {
 
         painel_desconto.innerHTML = `
             <div class="resumo">
-                <label>RESUMO</label>
-                <hr style="width: 100%;">
+                <label style="font-size: 1.2vw;"><strong>RESUMO</strong></label>
                 <label>Total sem Desconto</label>
                 <label style="font-size: 1.5vw;" id="total_sem_desconto">${dinheiro(totais.GERAL.bruto)}</label>
                 <br>

@@ -682,7 +682,7 @@ function deseja_excluir_pagamento(id) {
             </div>
             <label onclick="confirmar_exclusao_pagamento('${id}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
         </div>
-        `)
+        `, 'AVISO')
 
 }
 
@@ -901,7 +901,6 @@ async function confirmar_exclusao_pagamento(id) {
 
     remover_popup()
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
-
     delete lista_pagamentos[id]
 
     deletar(`lista_pagamentos/${id}`)
