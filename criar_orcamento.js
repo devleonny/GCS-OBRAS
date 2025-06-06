@@ -1707,24 +1707,25 @@ async function total() {
                     </td>`
                 }
 
-
                 let icmsSaidaDecimal = icmsSaida / 100
                 let valorLiqSemICMS = valor_unitario - (valor_unitario * icmsSaidaDecimal)
                 let valorTotSemICMS = valorLiqSemICMS * quantidade
 
-                tds[4 + acrescimo].innerHTML = `
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <label class="${valor_unitario == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(valor_unitario)}</label>
-                        <label>SEM ICMS ${dinheiro(valorLiqSemICMS)} [ ${icmsSaida}% ]</label>
+                let labelValores = (valor, semIcms, percentual) => {
+                    let labelICMS = ''
+                    if(tipo == 'VENDA' && estado) labelICMS = `<label style="white-space: nowrap;">SEM ICMS ${dinheiro(semIcms)} [ ${percentual}% ]</label>`
+                    return `
+                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                        <label class="${valor == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(valor)}</label>
+                        ${labelICMS}
                     </div>
                     `
+                }
+
+                tds[4 + acrescimo].innerHTML = labelValores(valor_unitario, valorLiqSemICMS, icmsSaida)
 
                 if (carrefour) { acrescimo = 0 }
-                tds[6 + acrescimo].innerHTML = `
-                    <div>
-                        <label class="${valor_unitario == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(total_linha)}</label>
-                    </div>
-                    `
+                tds[6 + acrescimo].innerHTML = labelValores(total_linha, valorTotSemICMS, icmsSaida)
 
                 let imagem = dados_composicoes[codigo]?.imagem || logo
 
@@ -2277,12 +2278,12 @@ async function selecionar_cliente(cnpj, nome, div_opcao) {
 
 function limpar_campos() {
     openPopup_v2(`
-        <div style="gap: 10px; display: flex; align-items: center; flex-direction: column;">
+        <div style="gap: 10px; display: flex; align-items: center; flex-direction: column; padding: 2vw;">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <label>Deseja limpar campos?</label>
             </div>
             <label onclick="executar_limpar_campos()" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
-        </div>`)
+        </div>`, 'AVISO', true)
 }
 
 async function executar_limpar_campos() {
@@ -2292,6 +2293,7 @@ async function executar_limpar_campos() {
     delete orcamento.dados_orcam
     baseOrcamento(orcamento)
     remover_popup();
+    await total()
     await painel_clientes()
 
 }
