@@ -187,10 +187,13 @@ function abrirPopupEdicao(ticketId, ticket) {
 
                 <div style="display: flex; flex-direction: column; gap: 5px;">
                     <label style="font-weight: 600; color: #333;">Desenvolvedor</label>
-                    <input type="text" id="edit-desenvolvedor" name="desenvolvedor" 
-                           style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;"
-                           value="${ticket.desenvolvedor || ''}"
-                           placeholder="Nome do desenvolvedor responsável">
+                    <select id="edit-desenvolvedor" name="desenvolvedor" 
+                            style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                        <option value="" ${!ticket.desenvolvedor ? 'selected' : ''}>Selecione o dev</option>
+                        <option value="Gabriel Santos" ${ticket.desenvolvedor === 'Gabriel Santos' ? 'selected' : ''}>Gabriel Santos</option>
+                        <option value="Fellipe Leonny" ${ticket.desenvolvedor === 'Fellipe Leonny' ? 'selected' : ''}>Fellipe Leonny</option>
+                        <option value="Mateus Sagrilo" ${ticket.desenvolvedor === 'Mateus Sagrilo' ? 'selected' : ''}>Mateus Sagrilo</option>
+                    </select>
                 </div>
 
                 <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
@@ -730,13 +733,17 @@ function renderizarTabelaTickets(dados_tickets, div_tickets) {
                 <td>${ticket.local || '-'}</td>
                 <td>${ticket.usuario}</td>
                 <td style="text-align: center;">
-    ${ticket.desenvolvedor ?
-                `<button onclick="mostrarContatoDesenvolvedor('${ticket.id}', '${ticket.usuario}')" 
-                style="background: none; border: none; color: #151749; text-decoration: underline; cursor: pointer;">
-            ${ticket.desenvolvedor}
-        </button>`
+                ${ticket.desenvolvedor ?
+                `
+                <p class="nome-desenvolvedor">${ticket.desenvolvedor}</p>
+                <button 
+                        class="ticket-contato-button"
+                        onclick="mostrarContatoDesenvolvedor('${ticket.id}', '${ticket.usuario}')"
+                    >
+                    contato
+                    </button>`
                 : '-'}
-</td>
+                </td>
                 <td style="text-align: center;">${ticket.dataAbertura}</td>
                 <td style="text-align: center;">${dataConclusao}</td>
                 <td style="text-align: center;">${ticket.status?.toUpperCase()}</td>
@@ -808,11 +815,11 @@ function mostrarContatoDesenvolvedor(ticketId, usuarioNome) {
     // Encontra a linha da tabela que contém o botão clicado
     const linha = event.target.closest('tr');
     if (!linha) return;
-    
+
     // Obtém o nome do desenvolvedor da coluna
-    const desenvolvedorNome = linha.cells[5].textContent.trim();
+    const desenvolvedorNome = linha.querySelector('.nome-desenvolvedor')?.textContent.trim();
     if (!desenvolvedorNome || desenvolvedorNome === '-') return;
-    
+
     // Busca os dados do desenvolvedor no objeto
     const devInfo = desenvolvedores[desenvolvedorNome];
     if (!devInfo) {
@@ -830,45 +837,43 @@ function mostrarContatoDesenvolvedor(ticketId, usuarioNome) {
 
     // Conteúdo do popup
     const conteudo = `
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 20px; max-width: 400px;">
-            <h3 style="margin: 0; color: #151749;">Contato do Desenvolvedor</h3>
-            
-            <div style="width: 100%; display: flex; flex-direction: column; gap: 10px; background: #f5f5f5; padding: 15px; border-radius: 5px;">
-                <div style="display: flex; gap: 10px;">
-                    <span style="font-weight: 600; min-width: 100px;">Nome:</span>
-                    <span>${devInfo.nome_completo || desenvolvedorNome}</span>
+        <div class="dev-contact-popup">
+            <h3 class="popup-title">Contato do Desenvolvedor</h3>
+
+            <div class="dev-info-container">
+                <div class="info-row">
+                    <span class="info-label">Nome:</span>
+                    <span class="info-value">${devInfo.nome_completo || desenvolvedorNome}</span>
                 </div>
                 
-                <div style="display: flex; gap: 10px;">
-                    <span style="font-weight: 600; min-width: 100px;">Cargo:</span>
-                    <span>${devInfo.cargo || 'Desenvolvedor'}</span>
+                <div class="info-row">
+                    <span class="info-label">Cargo:</span>
+                    <span class="info-value">${devInfo.cargo || 'Desenvolvedor'}</span>
                 </div>
                 
-                <div style="display: flex; gap: 10px;">
-                    <span style="font-weight: 600; min-width: 100px;">Telefone:</span>
-                    <span>${formatarTelefone(devInfo.telefone)}</span>
+                <div class="info-row">
+                    <span class="info-label">Telefone:</span>
+                    <span class="info-value">${formatarTelefone(devInfo.telefone)}</span>
                 </div>
                 
-                <div style="display: flex; gap: 10px;">
-                    <span style="font-weight: 600; min-width: 100px;">Email:</span>
-                    <span>${devInfo.email}</span>
+                <div class="info-row">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">${devInfo.email}</span>
                 </div>
             </div>
 
-            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-                <button onclick="abrirWhatsApp('${devInfo.telefone}', '${encodeURIComponent(mensagemPadrao)}')"
-                        style="padding: 8px 15px; border: none; border-radius: 4px; background-color: #25D366; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" style="width: 20px; height: 20px;">
+            <div class="action-buttons">
+                <button class="whatsapp-button" onclick="abrirWhatsApp('${devInfo.telefone}', '${encodeURIComponent(mensagemPadrao)}')">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" class="whatsapp-icon">
                     Enviar WhatsApp
                 </button>
                 
-                <button onclick="copiarParaAreaTransferencia('${devInfo.telefone}')"
-                        style="padding: 8px 15px; border: none; border-radius: 4px; background-color: #151749; color: white; font-weight: 600; cursor: pointer;">
+                <button class="copy-button" onclick="copiarParaAreaTransferencia('${devInfo.telefone}')">
                     Copiar Telefone
                 </button>
             </div>
             
-            <div style="margin-top: 15px; font-size: 0.8em; color: #666; text-align: center;">
+            <div class="default-message">
                 <strong>Mensagem padrão:</strong><br>
                 "${mensagemPadrao}"
             </div>
@@ -882,7 +887,7 @@ function mostrarContatoDesenvolvedor(ticketId, usuarioNome) {
 function abrirWhatsApp(telefone, mensagem) {
     const numero = telefone.replace(/\D/g, '');
     if (!numero) return;
-    
+
     const url = `https://wa.me/55${numero}?text=${mensagem}`;
     window.open(url, '_blank');
     remover_popup();
@@ -906,14 +911,14 @@ function copiarParaAreaTransferencia(texto) {
     input.select();
     document.execCommand('copy');
     document.body.removeChild(input);
-    
+
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
             <img src="imagens/concluido.png" style="width: 2vw;">
             <label>Telefone copiado!</label>
         </div>
     `, 'Sucesso');
-    
+
     setTimeout(remover_popup, 1500);
 }
 
