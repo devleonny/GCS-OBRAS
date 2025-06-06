@@ -3,13 +3,19 @@ const desenvolvedores = {
         "nome_completo": "Gabriel Santos Coutinho",
         "email": "gabriel.coutinho@grupocostasilva.com.br",
         "telefone": "71986434552",
-        "cargo": "Desenvolvedor"
+        "cargo": "Suporte"
     },
-    "Outro Desenvolvedor": {
-        "nome_completo": "Outro Desenvolvedor Silva",
-        "email": "outro@empresa.com.br",
-        "telefone": "71999999999",
-        "cargo": "Desenvolvedor"
+    "Mateus Sagrilo": {
+        "nome_completo": "Mateus Sagrilo Brasileiro Lima",
+        "email": "mateus.sagrilo@hopent.com.br",
+        "telefone": "71982450498",
+        "cargo": "Suporte"
+    },
+    "Fellipe Leonny": {
+        "nome_completo": "Fellipe Leonny Ribeiro",
+        "email": "fellipe.leonny@acsolucoesintegradas.com.br",
+        "telefone": "71987916731",
+        "cargo": "Suporte"
     }
 };
 
@@ -721,6 +727,7 @@ function renderizarTabelaTickets(dados_tickets, div_tickets) {
 
         linhas += `
             <tr>
+                <td style="text-align: center;">#${ticket.id.substring(0, 8)}</td>
                 <td>${ticket.titulo}</td>
                 <td style="text-align: center;">
                     <span class="formato_status" style="background-color: ${coresPrioridade(ticket.prioridade)};">
@@ -758,7 +765,7 @@ function renderizarTabelaTickets(dados_tickets, div_tickets) {
     }
 
     // Montar colunas dinamicamente baseado nas permissões
-    let colunas = ['Título', 'Prioridade', 'Categoria', 'Local', 'Usuário', 'Desenvolvedor', 'Data Abertura', 'Data Conclusão', 'Status', 'Detalhes'];
+    let colunas = ['ID', 'Título', 'Prioridade', 'Categoria', 'Local', 'Usuário', 'Desenvolvedor', 'Data Abertura', 'Data Conclusão', 'Status', 'Detalhes'];
 
     if (mostrarEditar) {
         colunas.push('Editar');
@@ -773,15 +780,16 @@ function renderizarTabelaTickets(dados_tickets, div_tickets) {
     colunas.forEach((col, i) => {
         ths += `<th style="text-align: center;">${col}</th>`;
 
+        // Adicione a condição para a coluna ID
         if (col !== 'Excluir' && col !== 'Editar' && col !== 'Detalhes') {
             tsh += `
-                <th style="background-color: white; border-radius: 0px;">
-                    <div style="position: relative;">
-                        <input placeholder="..." style="text-align: left;" oninput="filtrarTickets(undefined, ${i}, this.value)">
-                        <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
-                    </div>
-                </th>
-            `;
+            <th style="background-color: white; border-radius: 0px;">
+                <div style="position: relative;">
+                    <input placeholder="..." style="text-align: left;" oninput="filtrarTickets(undefined, ${i}, this.value)">
+                    <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
+                </div>
+            </th>
+        `;
         } else {
             tsh += `<th style="background-color: white; border-radius: 0px;"></th>`;
         }
@@ -872,11 +880,6 @@ function mostrarContatoDesenvolvedor(ticketId, usuarioNome) {
                     Copiar Telefone
                 </button>
             </div>
-            
-            <div class="default-message">
-                <strong>Mensagem padrão:</strong><br>
-                "${mensagemPadrao}"
-            </div>
         </div>
     `;
 
@@ -953,7 +956,7 @@ function filtrarTickets(ultimo_status, col, texto, apenas_toolbar) {
         if (tds.length === 0) return;
 
         // Status está na coluna 8 (apenas texto agora)
-        let status = tds[8].textContent.toLowerCase().trim();
+        let status = tds[9].textContent.toLowerCase().trim();
 
         let mostrarLinha = true;
 

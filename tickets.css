@@ -515,8 +515,8 @@ button[name="contato-dev"]:hover {
 
 .info-row {
   display: flex;
+  align-items: center;
   gap: 15px;
-  align-items: flex-start;
 }
 
 .info-label {
