@@ -1123,7 +1123,7 @@ function calcular(campo, dadosCalculo = null) {
         }
 
         getElementById('lucro_liquido', dinheiro(lucroLiquido))
-        getElementById('lucro_porcentagem', `${porcentagem.toFixed(0)}%`)
+        getElementById('lucro_porcentagem', `${porcentagem.toFixed(2)}%`)
 
         let estilo = lucroLiquido > 0 ? 'lucroPositivo' : 'lucroNegativo'
         document.getElementById('lucro_liquido').classList = estilo

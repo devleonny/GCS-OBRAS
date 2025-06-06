@@ -570,7 +570,7 @@ async function atualizarOpcoesLPU() {
             resolve()
         } catch {
             reject()
-            openPopup_v2(alertaHTML('Houve um erro ao carregar'), 'ALERTA')
+            openPopup_v2(avisoHTML('Houve um erro ao carregar'), 'ALERTA')
         }
     })
 }
@@ -1104,36 +1104,36 @@ async function enviar_dados() {
     let orcamento_v2 = baseOrcamento()
 
     if (!orcamento_v2.dados_orcam) {
-        return openPopup_v2(alertaHTML('Preencha os dados do Cliente'), 'ALERTA')
+        return openPopup_v2(avisoHTML('Preencha os dados do Cliente'), 'ALERTA')
     }
 
     let dados_orcam = orcamento_v2.dados_orcam;
     let chamado = dados_orcam.contrato
 
     if (dados_orcam.cliente_selecionado === '') {
-        return openPopup_v2(alertaHTML('Cliente em branco'), 'ALERTA')
+        return openPopup_v2(avisoHTML('Cliente em branco'), 'ALERTA')
     }
 
     if (chamado === '') {
-        return openPopup_v2(alertaHTML('Chamado em branco'), 'ALERTA')
+        return openPopup_v2(avisoHTML('Chamado em branco'), 'ALERTA')
     }
 
     let existente = await verificar_chamado_existente(chamado, orcamento_v2.id, false)
 
     if (chamado !== 'sequencial' && existente?.situacao) {
-        return openPopup_v2(alertaHTML('Chamado já Existente'), 'ALERTA')
+        return openPopup_v2(avisoHTML('Chamado já Existente'), 'ALERTA')
     }
 
     if (chamado.slice(0, 1) !== 'D' && chamado !== 'sequencial' && chamado.slice(0, 3) !== 'ORC') {
-        return openPopup_v2(alertaHTML('Chamado deve começar com D'), 'ALERTA')
+        return openPopup_v2(avisoHTML('Chamado deve começar com D'), 'ALERTA')
     }
 
     if (dados_orcam.estado === '') {
-        return openPopup_v2(alertaHTML('Estado em branco'), 'ALERTA')
+        return openPopup_v2(avisoHTML('Estado em branco'), 'ALERTA')
     }
 
     if (dados_orcam.cnpj === '') {
-        return openPopup_v2(alertaHTML('CNPJ em branco'), 'ALERTA')
+        return openPopup_v2(avisoHTML('CNPJ em branco'), 'ALERTA')
     }
 
     let desconto_porcentagem = document.getElementById('desconto_porcentagem')
