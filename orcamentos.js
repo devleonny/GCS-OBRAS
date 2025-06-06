@@ -300,7 +300,6 @@ async function editar(orcam_) {
 async function duplicar(orcam_) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento_v2 = dados_orcamentos[orcam_]
-
     let novoOrcamento = {}
 
     novoOrcamento.dados_orcam = orcamento_v2.dados_orcam

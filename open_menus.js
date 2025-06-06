@@ -307,7 +307,7 @@ async function configs() {
 
     let linhas = ''
     let listas = {
-        permissoes: ['', 'adm', 'user', 'gerente', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
+        permissoes: ['', 'adm', 'user', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
         setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE']
     }
 
@@ -2036,7 +2036,7 @@ async function aprovacoes_pendentes() {
     }
 
     let permissao = acesso.permissao
-    let pessoasPermitidas = ['gerente', 'adm', 'diretoria']
+    let pessoasPermitidas = ['coordenacao', 'adm', 'diretoria']
     if (pessoasPermitidas.includes(permissao) && pendentes) {
         openPopup_v2(acumulado, 'APROVAÇÕES DE ORÇAMENTO', true)
     }
