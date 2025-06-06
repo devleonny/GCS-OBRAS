@@ -889,7 +889,7 @@ function gerarTabelas(objeto) {
                     <td>
                         <div style="display: flex; align-items: center; justify-content: center; gap: 1vw;">
                             ${campo.label}
-                            <select id="${campo.id}_select" onchange="calcular()" class="opcoesSelect" style="width: max-content;">
+                            <select id="${campo.id}_select" onchange="calcular('${campo.id}_select')" class="opcoesSelect" style="width: max-content;">
                                 ${opcoes}
                             </select>
                         </div>
@@ -945,7 +945,7 @@ function modelos(produto) {
             camposIniciais: [
                 { label: 'Preço Unitário (R$)', cor: '#91b7d9', id: 'custo', valor: produto?.custo || '' },
                 { label: 'Frete de Compra (2%)', readOnly: true, id: 'frete' },
-                { label: 'ICMS Creditado em nota (%)', opcoes: ['IMPORTADO', 'NACIONAL', 'BAHIA'], cor: '#91b7d9', id: 'icms_creditado', valor: produto?.icms_creditado || '' },
+                { label: 'ICMS Creditado em nota (%)', valorSelect: produto?.icms_creditado_select, opcoes: ['IMPORTADO', 'NACIONAL', 'BAHIA'], cor: '#91b7d9', id: 'icms_creditado', valor: produto?.icms_creditado || '' },
                 { label: 'Aliquota ICMS (Bahia) (20.5%)', readOnly: true, id: 'icms_aliquota', valor: 20.5 },
                 { label: 'ICMS a ser pago (DIFAL) (%)', readOnly: true, id: 'difal', valor: '' },
                 { label: 'Valor do ICMS de Entrada (R$)', readOnly: true, id: 'icms_entrada' },
@@ -964,7 +964,7 @@ function modelos(produto) {
                 { label: 'CSLL (9%)', id: 'csll' },
                 { label: 'PIS (0,65%)', id: 'pis' },
                 { label: 'COFINS (3%)', id: 'cofins' },
-                { label: 'ICMS (%)', id: 'icms_saida', opcoes: ['20,5%', '4%', '12%'] }
+                { label: 'ICMS (%)', id: 'icms_saida', opcoes: ['20,5%', '12%', '4%'] }
             ]
         },
         'SERVIÇO': {
@@ -1188,9 +1188,12 @@ function calcular(campo, dadosCalculo = null) {
         let csll = presuncaoCsll * 0.09
         let pis = precoVenda * 0.0065
         let cofins = precoVenda * 0.03
-        let icmsSaida = dadosCalculo?.icmsSaida / 100 || conversor(getElementById('icms_saida_select')) / 100
-        let icms = precoVenda * icmsSaida
 
+        let icmsSaidaSelect = icmsCreditado == 4 ? 0.04 : 0.205
+        if (campo == 'icms_saida_select') icmsSaidaSelect = conversor(getElementById('icms_saida_select')) / 100
+
+        let icmsSaida = dadosCalculo?.icmsSaida / 100 || icmsSaidaSelect
+        let icms = precoVenda * icmsSaida
         let totalImpostos = irpj + adicionalIrpj + csll + pis + cofins + icms
 
         if (!dadosCalculo) {
@@ -1198,6 +1201,7 @@ function calcular(campo, dadosCalculo = null) {
             getElementById('frete_venda', freteVenda.toFixed(0))
             getElementById('porc_LP', dinheiro(lucroPresumido))
             getElementById('porc_CSLL', dinheiro(presuncaoCsll))
+            getElementById('icms_saida_select', icmsSaidaSelect == 0.04 ? '4%' : icmsSaidaSelect == 0.12 ? '12%' : '20,5%')
             getElementById('icms_saida', dinheiro(icms.toFixed(0)))
             getElementById('frete', frete.toFixed(2))
             getElementById('difal', difal)
@@ -1275,11 +1279,6 @@ async function salvarPreco(codigo, lpu, cotacao) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let produto = dados_composicoes[codigo]
     let historico = produto[lpu]?.historico || {}
-
-    let lucroPorcentagem = getElementById('lucroPorcentagem')
-
-    if (conversor(lucroPorcentagem) < 10) return openPopup_v2(alerta('A porcentagem de Lucro neste item não pode ser menor que 10%'), 'ALERTA', true)
-
     let preco_venda = getElementById('preco_venda')
     let custo = getElementById('custo')
     let icms_creditado = getElementById('icms_creditado')
@@ -1327,6 +1326,10 @@ async function salvarPreco(codigo, lpu, cotacao) {
         modalidade_icms: modalidade_icms,
         icms_saida: icms_saida
     };
+
+    // Verificar antes se a porcentagem é aceitável;
+    let resultado = calcular(undefined, historico[id])
+    if (resultado.lucroPorcentagem < 10) return openPopup_v2(alerta('Percentual de lucro não pode ser menor que 10%'), 'ALERTA', true)
 
     produto[lpu] = produto[lpu] || { historico: {} };
     produto[lpu].historico = historico;

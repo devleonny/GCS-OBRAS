@@ -845,7 +845,6 @@ async function removerItem(codigo, img) {
 function itemExisteNoOrcamento(codigo) {
     let orcamento_v2 = baseOrcamento()
     let existe = orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigo]
-    console.log(`Verificando se ${codigo} existe no orçamento: ${existe ? 'SIM' : 'NÃO'}`)
     return existe
 }
 
@@ -1578,6 +1577,7 @@ async function total() {
                 let precos = { custo: 0, lucro: 0 }
                 let descricao = dados_composicoes[codigo].descricao
                 let tipo = dados_composicoes[codigo].tipo
+                let icmsSaida = 0
 
                 if (!orcamento_v2.dados_composicoes[codigo]) {
                     orcamento_v2.dados_composicoes[codigo] = {}
@@ -1609,6 +1609,7 @@ async function total() {
                     let historico = dados_composicoes[codigo][lpu].historico
                     precos = historico[ativo]
                     valor_unitario = precos.valor
+                    icmsSaida = precos?.icms_creditado == 4 ? 4 : estado == 'BA' ? 20.5 : 12
                 }
 
                 let quantidade = Number(tds[3 + acrescimo].querySelector('input').value)
@@ -1652,7 +1653,7 @@ async function total() {
                             custo: precos.custo,
                             valor: precos.valor - desconto / quantidade,
                             icms_creditado: precos.icms_creditado,
-                            icmsSaida: precos.icms_creditado == 4 ? 4 : estado == 'BA' ? 20.5 : 12,
+                            icmsSaida,
                             modalidadeCalculo: tipo
                         }
 
@@ -1706,9 +1707,15 @@ async function total() {
                     </td>`
                 }
 
+
+                let icmsSaidaDecimal = icmsSaida / 100
+                let valorLiqSemICMS = valor_unitario - (valor_unitario * icmsSaidaDecimal)
+                let valorTotSemICMS = valorLiqSemICMS * quantidade
+
                 tds[4 + acrescimo].innerHTML = `
-                    <div>
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <label class="${valor_unitario == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(valor_unitario)}</label>
+                        <label>SEM ICMS ${dinheiro(valorLiqSemICMS)} [ ${icmsSaida}% ]</label>
                     </div>
                     `
 
