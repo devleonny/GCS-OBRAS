@@ -1298,7 +1298,7 @@ async function tabelaProdutos() {
         if (produto.status != "INATIVO") {
 
             let td_quantidade = `
-                    <input type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
+                    <input type="number" class="campoValor" oninput="incluirItemOld('${codigo}', this.value)">
                     `
             let opcoes = ''
             esquemas.sistema.forEach(op => {
@@ -1806,6 +1806,108 @@ async function total() {
     }
 
 }
+
+async function incluirItemOld(codigo, novaQuantidade) {
+    let orcamento_v2 = baseOrcamento()
+    let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
+    let produto = dados_composicoes[codigo]
+
+    let opcoes = ''
+    esquemas.sistema.forEach(op => {
+        opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
+    })
+
+    let linha = `
+        <tr>
+            <td>${codigo}</td>
+            <td style="position: relative;"></td>
+            ${carrefour ? `<td></td>` : ''}
+            <td style="text-align: center;">${produto?.unidade}</td>
+            <td style="text-align: center;">
+                <input oninput="total()" type="number" class="campoValor" value="${novaQuantidade}">
+            </td>
+            <td style="position: relative;"></td>
+
+            ${!carrefour ?
+            `<td>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
+                    <select onchange="total()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
+                        <option>Porcentagem</option>
+                        <option>Dinheiro</option>
+                    </select>
+                    <input type="number" oninput="total()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;" value="${produto?.desconto || ''}">
+                </div>
+            </td>` : ''}
+
+            <td></td>
+            <td>
+                <select class="opcoesSelect" onchange="alterarChave('${codigo}', 'sistema', this)">
+                    ${opcoes}
+                </select>
+            </td>
+            <td style="text-align: center;">
+                <img onclick="ampliar_especial(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
+            </td>
+            <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo}', this)" style="cursor: pointer; width: 2vw;"></td>
+        </tr>
+    `
+
+    if (itemExistenteOld(produto.tipo, codigo, novaQuantidade)) {
+
+        let tbody = document.getElementById(`linhas_${produto.tipo}`)
+
+        if (!tbody) { // Lançamento do 1º Item de cada tipo;
+
+            if (!orcamento_v2.dados_composicoes) {
+                orcamento_v2.dados_composicoes = {}
+            }
+
+            orcamento_v2.dados_composicoes[codigo] = {
+                codigo: codigo,
+                qtde: novaQuantidade,
+                tipo: produto?.tipo,
+                unidade: produto?.unidade || 'UN',
+                custo: 0,
+                descricao: produto?.descricao
+            }
+
+            baseOrcamento(orcamento_v2)
+            return carregarTabelas()
+
+        } else {
+            tbody.insertAdjacentHTML('beforeend', linha)
+        }
+    }
+
+    await total()
+}
+
+function itemExistenteOld(tipo, codigo, quantidade) {
+
+    let incluir = true
+    let orcamento_v2 = baseOrcamento()
+    let linhas = document.getElementById(`linhas_${tipo}`)
+    if (!linhas) return incluir
+    let trs = linhas.querySelectorAll('tr')
+
+    trs.forEach(tr => {
+
+        let tds = tr.querySelectorAll('td')
+        let acrescimo = orcamento_v2.lpu_ativa !== 'LPU CARREFOUR' ? 0 : 1
+
+        if (tds[0].textContent == codigo) {
+
+            incluir = false
+            tds[3 + acrescimo].querySelector('input').value = quantidade
+
+        }
+
+    })
+
+    return incluir
+
+}
+
 
 // Função modificada para só processar filhos que ainda existem no orçamento
 async function atualizarQuantidadesFilhos(codigoPai, novaQuantidadePai) {
