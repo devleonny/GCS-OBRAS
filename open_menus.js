@@ -1913,9 +1913,6 @@ async function aprovacoes_pendentes() {
         }
 
         pendentes = true
-
-        console.log(item.orcamento); // Percorrer aqui e gerar uma tabelinha resumida; Levar a justificativa para o usuário final quando reprovado;
-
         let tabelas = {}
         let divTabelas = ''
         let itens = item.orcamento.dados_composicoes
