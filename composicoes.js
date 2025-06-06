@@ -964,7 +964,7 @@ function modelos(produto) {
                 { label: 'CSLL (9%)', id: 'csll' },
                 { label: 'PIS (0,65%)', id: 'pis' },
                 { label: 'COFINS (3%)', id: 'cofins' },
-                { label: 'ICMS (%)', id: 'icms_saida', opcoes: ['4%', '12%', '20,5%'] }
+                { label: 'ICMS (%)', id: 'icms_saida', opcoes: ['20,5%', '4%', '12%'] }
             ]
         },
         'SERVIÇO': {
@@ -1278,7 +1278,7 @@ async function salvarPreco(codigo, lpu, cotacao) {
 
     let lucroPorcentagem = getElementById('lucroPorcentagem')
 
-    if(conversor(lucroPorcentagem) < 10) return openPopup_v2(alerta('A porcentagem de Lucro neste item não pode ser menor que 10%'), 'ALERTA', true) 
+    if (conversor(lucroPorcentagem) < 10) return openPopup_v2(alerta('A porcentagem de Lucro neste item não pode ser menor que 10%'), 'ALERTA', true)
 
     let preco_venda = getElementById('preco_venda')
     let custo = getElementById('custo')

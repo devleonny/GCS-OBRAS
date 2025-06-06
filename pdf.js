@@ -168,12 +168,14 @@ async function preencher_v2() {
         let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
         let tabelaPreco = itemComposicao?.[lpu]
 
+
+        // ICMS de Saída só pode ser 4, 12 ou 20.5 [Para venda dentro, fora do estado, ou quando o creditado for 4 == IMPORTADO]
         let icms = 0
         if (tabelaPreco) {
             let ativo = tabelaPreco.ativo
             let historico = tabelaPreco.historico
             let precoAtivo = historico[ativo]
-            icms = precoAtivo?.icms_creditado || 0
+            icms = precoAtivo?.icms_creditado == 4 ? 4 : 0 
         }
 
         if (icms == 0) {
@@ -271,7 +273,7 @@ async function preencher_v2() {
     let total_liquido = orcamento_v2.total_geral;
 
     if (total_bruto != 0) { // Quer dizer que existe desconto neste orçamento;
-        totais.DESCONTO = { valor: total_bruto - conversor(total_liquido) }
+        totais.DESCONTO = { valor: Number(total_bruto.toFixed(2)) - conversor(total_liquido) }
         config.DESCONTO = { cor: '#b96300' }
     }
 
