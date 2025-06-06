@@ -1,3 +1,18 @@
+const desenvolvedores = {
+    "Gabriel Santos": {
+        "nome_completo": "Gabriel Santos Coutinho",
+        "email": "gabriel.coutinho@grupocostasilva.com.br",
+        "telefone": "71986434552",
+        "cargo": "Desenvolvedor"
+    },
+    "Outro Desenvolvedor": {
+        "nome_completo": "Outro Desenvolvedor Silva",
+        "email": "outro@empresa.com.br",
+        "telefone": "71999999999",
+        "cargo": "Desenvolvedor"
+    }
+};
+
 function novoTicket() {
     let opcoesPrioridade = `
         <option value="">Selecionar</option>
@@ -716,7 +731,7 @@ function renderizarTabelaTickets(dados_tickets, div_tickets) {
                 <td>${ticket.usuario}</td>
                 <td style="text-align: center;">
     ${ticket.desenvolvedor ?
-                `<button onclick="mostrarContatoDesenvolvedor('${ticket.desenvolvedor}', '${ticket.id}', '${ticket.usuario}')" 
+                `<button onclick="mostrarContatoDesenvolvedor('${ticket.id}', '${ticket.usuario}')" 
                 style="background: none; border: none; color: #151749; text-decoration: underline; cursor: pointer;">
             ${ticket.desenvolvedor}
         </button>`
@@ -789,144 +804,117 @@ function renderizarTabelaTickets(dados_tickets, div_tickets) {
 }
 
 // Função para mostrar popup de contato do desenvolvedor
-async function mostrarContatoDesenvolvedor(nomeDesenvolvedor, ticketId, usuario) {
-    try {
-        let desenvolvedorInfo = await buscarInformacoesDesenvolvedor(nomeDesenvolvedor);
+function mostrarContatoDesenvolvedor(ticketId, usuarioNome) {
+    // Encontra a linha da tabela que contém o botão clicado
+    const linha = event.target.closest('tr');
+    if (!linha) return;
+    
+    // Obtém o nome do desenvolvedor da coluna
+    const desenvolvedorNome = linha.cells[5].textContent.trim();
+    if (!desenvolvedorNome || desenvolvedorNome === '-') return;
+    
+    // Busca os dados do desenvolvedor no objeto
+    const devInfo = desenvolvedores[desenvolvedorNome];
+    if (!devInfo) {
+        openPopup_v2(`
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
+                <img src="imagens/cancel.png" style="width: 3vw;">
+                <label>Informações do desenvolvedor não encontradas!</label>
+            </div>
+        `, 'Erro');
+        return;
+    }
 
-        let mensagemWhatsapp = `Olá ${nomeDesenvolvedor}, estou entrando em contato sobre o ticket ${ticketId} aberto por ${usuario}. Podemos conversar sobre isso?`;
+    // Mensagem padrão para WhatsApp
+    const mensagemPadrao = `Olá ${desenvolvedorNome}, tudo bem? Estou entrando em contato sobre o ticket #${ticketId} (aberto por ${usuarioNome}). Podemos conversar sobre isso?`;
 
-        let conteudo = `
+    // Conteúdo do popup
+    const conteudo = `
         <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 20px; max-width: 400px;">
             <h3 style="margin: 0; color: #151749;">Contato do Desenvolvedor</h3>
             
-            <div style="width: 100%; display: flex; flex-direction: column; gap: 10px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-weight: 600; min-width: 80px;">Nome:</span>
-                    <span>${desenvolvedorInfo.nome_completo}</span>
+            <div style="width: 100%; display: flex; flex-direction: column; gap: 10px; background: #f5f5f5; padding: 15px; border-radius: 5px;">
+                <div style="display: flex; gap: 10px;">
+                    <span style="font-weight: 600; min-width: 100px;">Nome:</span>
+                    <span>${devInfo.nome_completo || desenvolvedorNome}</span>
                 </div>
                 
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-weight: 600; min-width: 80px;">Telefone:</span>
-                    <span>${formatarTelefone(desenvolvedorInfo.telefone)}</span>
+                <div style="display: flex; gap: 10px;">
+                    <span style="font-weight: 600; min-width: 100px;">Cargo:</span>
+                    <span>${devInfo.cargo || 'Desenvolvedor'}</span>
                 </div>
                 
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-weight: 600; min-width: 80px;">Email:</span>
-                    <span>${desenvolvedorInfo.email}</span>
+                <div style="display: flex; gap: 10px;">
+                    <span style="font-weight: 600; min-width: 100px;">Telefone:</span>
+                    <span>${formatarTelefone(devInfo.telefone)}</span>
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <span style="font-weight: 600; min-width: 100px;">Email:</span>
+                    <span>${devInfo.email}</span>
                 </div>
             </div>
 
             <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-                <button onclick="abrirWhatsApp('${desenvolvedorInfo.telefone}', '${encodeURIComponent(mensagemWhatsapp)}')"
+                <button onclick="abrirWhatsApp('${devInfo.telefone}', '${encodeURIComponent(mensagemPadrao)}')"
                         style="padding: 8px 15px; border: none; border-radius: 4px; background-color: #25D366; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px;">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" style="width: 20px; height: 20px;">
-                    WhatsApp
+                    Enviar WhatsApp
                 </button>
                 
-                <button onclick="copiarParaAreaTransferencia('${desenvolvedorInfo.telefone}')"
+                <button onclick="copiarParaAreaTransferencia('${devInfo.telefone}')"
                         style="padding: 8px 15px; border: none; border-radius: 4px; background-color: #151749; color: white; font-weight: 600; cursor: pointer;">
                     Copiar Telefone
                 </button>
             </div>
             
             <div style="margin-top: 15px; font-size: 0.8em; color: #666; text-align: center;">
-                Mensagem padrão: "${mensagemWhatsapp}"
+                <strong>Mensagem padrão:</strong><br>
+                "${mensagemPadrao}"
             </div>
         </div>
     `;
-    } catch (error) {
-        console.error('Erro ao buscar informações do desenvolvedor:', error);
-        openPopup_v2(`
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
-                <img src="imagens/cancel.png" style="width: 3vw;">
-                <label>Erro ao carregar informações do desenvolvedor!</label>
-            </div>
-        `, 'Erro');
-    }
 
     openPopup_v2(conteudo, 'Contato do Desenvolvedor');
 }
 
 // Função para abrir WhatsApp com mensagem pré-definida
 function abrirWhatsApp(telefone, mensagem) {
-    // Remove todos os caracteres não numéricos
-    let numero = telefone.replace(/\D/g, '');
-
-    // Verifica se tem DDI (código do país)
-    if (!numero.startsWith('55')) {
-        numero = '55' + numero;
-    }
-
-    window.open(`https://wa.me/${numero}?text=${mensagem}`, '_blank');
+    const numero = telefone.replace(/\D/g, '');
+    if (!numero) return;
+    
+    const url = `https://wa.me/55${numero}?text=${mensagem}`;
+    window.open(url, '_blank');
     remover_popup();
 }
 
 // Função para formatar telefone
 function formatarTelefone(telefone) {
-    // Remove todos os caracteres não numéricos
-    let numero = telefone.replace(/\D/g, '');
-
-    // Formatação para telefone brasileiro
-    if (numero.length === 11) {
-        return `(${numero.substring(0, 2)}) ${numero.substring(2, 7)}-${numero.substring(7)}`;
-    } else if (numero.length === 10) {
-        return `(${numero.substring(0, 2)}) ${numero.substring(2, 6)}-${numero.substring(6)}`;
+    if (!telefone) return 'Não informado';
+    const nums = telefone.replace(/\D/g, '');
+    if (nums.length === 11) {
+        return `(${nums.substring(0, 2)}) ${nums.substring(2, 7)}-${nums.substring(7)}`;
     }
-
     return telefone;
 }
 
 // Função para copiar telefone
 function copiarParaAreaTransferencia(texto) {
-    navigator.clipboard.writeText(texto.replace(/\D/g, '')).then(() => {
-        openPopup_v2(`
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
-                <img src="imagens/concluido.png" style="width: 3vw;">
-                <label>Telefone copiado para a área de transferência!</label>
-            </div>
-        `, 'Sucesso');
-
-        setTimeout(remover_popup, 1500);
-    }).catch(err => {
-        console.error('Erro ao copiar texto: ', err);
-        openPopup_v2(`
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
-                <img src="imagens/cancel.png" style="width: 3vw;">
-                <label>Erro ao copiar telefone!</label>
-            </div>
-        `, 'Erro');
-    });
-}
-
-// Função para buscar informações do desenvolvedor (simulada - implemente conforme sua base de dados)
-async function buscarInformacoesDesenvolvedor(nome) {
-    // Na prática, você buscaria isso de um banco de dados ou lista de desenvolvedores
-    // Esta é uma implementação simulada
-
-    let desenvolvedores = {
-        "Gabriel Santos": {
-            "email": "gabriel.coutinho@grupocostasilva.com.br",
-            "nome_completo": "Gabriel Santos Coutinho",
-            "telefone": "71986434552"
-        },
-        "Mateus Sagrilo": {
-            "email": "mateus.sagrilo@hopent.com.br",
-            "nome_completo": "Mateus Sagrilo Brasileiro Lima",
-            "telefone": "71982450498"
-        },
-        "Fellipe Leonny": {
-            "email": "fellipe.leonny@acsolucoesintegradas.com.br",
-            "nome_completo": "Fellipe Leonny Ribeiro",
-            "telefone": "71987916731"
-        },
-        // Adicione outros desenvolvedores conforme necessário
-    };
-
-    return desenvolvedores[nome] || {
-        telefone: "Não informado",
-        email: "Não informado",
-        nome_completo: "Não informado"
-    };
+    const input = document.createElement('input');
+    input.value = texto.replace(/\D/g, '');
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    document.body.removeChild(input);
+    
+    openPopup_v2(`
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
+            <img src="imagens/concluido.png" style="width: 2vw;">
+            <label>Telefone copiado!</label>
+        </div>
+    `, 'Sucesso');
+    
+    setTimeout(remover_popup, 1500);
 }
 
 // Função para filtrar tickets seguindo padrão do sistema

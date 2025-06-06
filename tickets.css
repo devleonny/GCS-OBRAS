@@ -447,3 +447,18 @@ textarea {
   box-sizing: border-box !important;
   margin: 0 !important;
 }
+
+button[name="contato-dev"] {
+  background: none;
+  border: none;
+  color: #151749;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+button[name="contato-dev"]:hover {
+  color: #0d0f3a;
+  text-decoration: none;
+}
