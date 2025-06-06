@@ -377,7 +377,8 @@
             width: 15vw;
         }
 
-        .btn_menu img {
+        .btn_menu img,
+        .btn_menu svg {
             cursor: pointer;
             width: 2vw;
         }
@@ -398,17 +399,6 @@
 
     <div id="content" class="cont">
 
-        <div class="top" id="menu_inferior">
-            <div style="display: none; justify-content: center; align-items: center;" id="atualizando">
-                <img src="gifs/loading.gif" style="width: 5vw;">
-                <label class="novo_titulo" style="font-size: 1.5em;">Atualizando...</label>
-            </div>
-            <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-                <label style="color: white;">Calculadora ICMS</label>
-                <img src="imagens/calculadora.png" style="width: 50px; cursor: pointer;" onclick="exibir_calculadora()">
-            </div>
-        </div>
-
         <div id="orcamento_padrao">
 
             <div id="menu_superior">
@@ -419,6 +409,20 @@
                     <div class="btn_menu" onclick="painel_clientes()">
                         <img src="imagens/gerente.png">
                         <label>Dados Cliente</label>
+                    </div>
+
+                    <div class="btn_menu" onclick="exibirTabelaAgrupamentos()">
+                        <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 50 50">
+                            <polygon fill="#e68f3a" points="43,14.6 43,33.08 23,44.63 23,44.62 7,35.39 7,16.91 27,5.36">
+                            </polygon>
+                            <polygon fill="#ff9f40" points="23,26.149 23,44.624 7,35.389 7,16.904"></polygon>
+                            <polygon fill="#ccc" points="17,22.691 17,27.318 13,25.008 13,20.381"></polygon>
+                            <polygon fill="#a8a8a8" points="17,22.691 37,11.144 33,8.834 13,20.381"></polygon>
+                            <polygon fill="#b3702d" points="43,33.083 23,44.63 23,26.149 43,14.602"></polygon>
+                            <polygon fill="#d98836" points="12,24.423 12,26.732 18,30.196 18,27.887"></polygon>
+                            <polygon fill="#b3702d" points="12,24.423 12,26.732 14,25.577"></polygon>
+                        </svg>
+                        <label>Agrupamentos</label>
                     </div>
 
                     <div class="btn_menu" onclick="enviar_dados()">
@@ -500,8 +504,8 @@
 
 </body>
 
-<script src="modalidade_livre.js"></script>
 <script src="open_menus.js"></script>
+<script src="modalidade_livre.js"></script>
 <script src="upload_imagens.js"></script>
 <script src="criar_orcamento.js"></script>
 <script src="composicoes.js"></script>

@@ -76,6 +76,46 @@ body {
     gap: 1px;
 }
 
+.painelAprovacoes {
+    width: 50vw;
+    background-color: #d2d2d2;
+    color: #222;
+    border-radius: 3px;
+    padding: 5px;
+    display: flex;
+    justify-content: start;
+    align-items: start;
+    flex-direction: column;
+}
+
+.gavetaTabelas {
+    background-color: #797979;
+    overflow: auto;
+    padding: 5px;
+    display: flex;
+    justify-content: start;
+    align-items: start;
+    flex-direction: column;
+}
+
+.gavetaTabelas input {
+    font-size: 1vw;
+}
+
+.lucroNegativo {
+    border-radius: 3px;
+    padding: 5px;
+    background-color: #ff0000;
+    color: white;
+}
+
+.lucroPositivo {
+    border-radius: 3px;
+    padding: 5px;
+    background-color: green;
+    color: white;
+}
+
 .botao-coluna {
     padding: 8px 12px;
     background-color: #4CAF50;
@@ -508,6 +548,7 @@ button {
     border: none;
     padding: 10px;
     border-radius: 5px;
+    font-size: 0.8vw;
 }
 
 .retangulo {
@@ -584,12 +625,11 @@ button {
 
 .janela {
     overflow: auto;
-    max-height: 70vh;
+    max-height: 90vh;
     padding: 5px;
 }
 
 .janela_fora {
-    padding-bottom: 2vh;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -1422,10 +1462,9 @@ input[type=range]::-moz-range-thumb {
 }
 
 .tabela td {
-    color: #222;
     font-size: 0.8vw;
     overflow: hidden;
-    border: 1px solid #797979;   
+    border: 1px solid #797979;
 }
 
 .tabela thead {
