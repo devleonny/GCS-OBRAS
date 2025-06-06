@@ -1,6 +1,12 @@
 let filtrosAtivos = {}
 let filtroAgrupamentos = {}
 let divComposicoes = document.getElementById('composicoes')
+const alerta = (termo) => `
+    <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
+        <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+        <label>${termo}</label>
+    </div>
+    `
 
 function criar_lpu() {
     openPopup_v2(`
@@ -861,7 +867,7 @@ function gerarTabelas(objeto) {
                     <input style="text-align: left; background-color: transparent;" id="${campo.id}" value="${campo?.valor || ''}">
                 </td>`
             }
-            
+
             if (campo.label == 'Fornecedor') {
                 tdFinal = `
                 <td style="text-align: left; background-color: ${campo?.cor || ''};">
@@ -920,8 +926,8 @@ function gerarTabelas(objeto) {
                 </table>
             </div>
         `
-        
-        if(!acumulado[chave]){
+
+        if (!acumulado[chave]) {
             acumulado[chave] = ''
         }
 
@@ -1091,9 +1097,10 @@ function getElementById(id, valorRetorno) {
     return valor;
 }
 
-function calcular(campo) {
+function calcular(campo, dadosCalculo = null) {
 
-    let modalidadeCalculo = document.getElementById('modalidadeCalculo').textContent
+    let modalidadeCalculo = dadosCalculo?.modalidadeCalculo || document.getElementById('modalidadeCalculo').textContent
+
     let tabelaIcmsSaida = {
         'IMPORTADO': 4,
         'NACIONAL': 12,
@@ -1102,11 +1109,18 @@ function calcular(campo) {
 
     let lucroLiquido = 0
 
-    const atualizarLucro = (valorReferencia, totalImpostos, custoFinal = 0) => {
+    function atualizarLucro(valorReferencia, totalImpostos, custoFinal = 0) {
         lucroLiquido = valorReferencia - (totalImpostos + custoFinal)
         let porcentagem = lucroLiquido / valorReferencia * 100
 
         if (isNaN(porcentagem)) porcentagem = 0
+
+        if (dadosCalculo) {
+            return {
+                lucroLiquido: lucroLiquido,
+                lucroPorcentagem: porcentagem
+            }
+        }
 
         getElementById('lucro_liquido', dinheiro(lucroLiquido))
         getElementById('lucro_porcentagem', `${porcentagem.toFixed(0)}%`)
@@ -1118,13 +1132,9 @@ function calcular(campo) {
 
     if (modalidadeCalculo == 'SERVIÇO') {
 
-        let precoVenda = getElementById('preco_venda')
+        let precoVenda = dadosCalculo?.valor || getElementById('preco_venda')
         let aliqLp = precoVenda * 0.32
         let presuncaoCsll = precoVenda * 0.32
-
-        getElementById('aliq_presumido', dinheiro(aliqLp))
-        getElementById('presuncao_csll', dinheiro(presuncaoCsll))
-
         let irpj = aliqLp * 0.15
         let adicionalIrpj = aliqLp * 0.10
         let presuncaoCsllAPagar = presuncaoCsll * 0.09
@@ -1133,42 +1143,35 @@ function calcular(campo) {
         let iss = precoVenda * 0.05
         let totalImpostos = irpj + adicionalIrpj + presuncaoCsllAPagar + pis + cofins + iss
 
-        getElementById('irpj', dinheiro(irpj))
-        getElementById('adicional_irpj', dinheiro(adicionalIrpj))
-        getElementById('presuncao_csll_pagar', dinheiro(presuncaoCsllAPagar))
-        getElementById('pis', dinheiro(pis))
-        getElementById('cofins', dinheiro(cofins))
-        getElementById('iss', dinheiro(iss))
-        getElementById('total_impostos', dinheiro(totalImpostos))
+        if (!dadosCalculo) {
+            getElementById('aliq_presumido', dinheiro(aliqLp))
+            getElementById('presuncao_csll', dinheiro(presuncaoCsll))
+            getElementById('irpj', dinheiro(irpj))
+            getElementById('adicional_irpj', dinheiro(adicionalIrpj))
+            getElementById('presuncao_csll_pagar', dinheiro(presuncaoCsllAPagar))
+            getElementById('pis', dinheiro(pis))
+            getElementById('cofins', dinheiro(cofins))
+            getElementById('iss', dinheiro(iss))
+            getElementById('total_impostos', dinheiro(totalImpostos))
+        }
 
-        atualizarLucro(precoVenda, totalImpostos)
+        return atualizarLucro(precoVenda, totalImpostos)
 
     } else if (modalidadeCalculo == 'VENDA') {
 
-        let icmsCreditado = getElementById('icms_creditado')
         let icmsCreditadoSelect = getElementById('icms_creditado_select')
-        if (icmsCreditadoSelect != 'SIMPLES NACIONAL') {
-            icmsCreditado = tabelaIcmsSaida[icmsCreditadoSelect]
-            getElementById('icms_creditado', icmsCreditado)
-        }
-
-        let precoCompra = getElementById('custo')
+        let icmsCreditado = dadosCalculo?.icms_creditado || tabelaIcmsSaida[icmsCreditadoSelect]
+        let precoCompra = dadosCalculo?.custo || getElementById('custo')
         let frete = precoCompra * 0.02
-        let icmsAliquota = getElementById('icms_aliquota')
+        let icmsAliquota = 20.5
         let difal = icmsAliquota - icmsCreditado
         let icmsEntrada = difal / 100 * precoCompra
         let valorCusto = icmsEntrada + precoCompra + frete
-
-        getElementById('frete', frete.toFixed(2))
-        getElementById('difal', difal)
-        getElementById('icms_entrada', icmsEntrada.toFixed(2))
-        getElementById('valor_custo', valorCusto.toFixed(2))
-
         let margem = getElementById('margem')
         let precoVenda = (1 + margem / 100) * valorCusto
 
-        if (campo == 'preco_venda') {
-            precoVenda = getElementById('preco_venda')
+        if (campo == 'preco_venda' || dadosCalculo) {
+            precoVenda = dadosCalculo?.valor || getElementById('preco_venda')
             margem = ((precoVenda / valorCusto - 1) * 100).toFixed(2)
             getElementById('margem', margem)
         } else {
@@ -1176,62 +1179,55 @@ function calcular(campo) {
         }
 
         let freteVenda = precoVenda * 0.05
-        getElementById('frete_venda', freteVenda.toFixed(0))
-
         let porcLP = 0.08
         let porcCSLL = 0.12
         let lucroPresumido = precoVenda * porcLP
         let presuncaoCsll = precoVenda * porcCSLL
-
-        getElementById('porc_LP', dinheiro(lucroPresumido))
-        getElementById('porc_CSLL', dinheiro(presuncaoCsll))
-
         let irpj = lucroPresumido * 0.15
         let adicionalIrpj = lucroPresumido * 0.1
         let csll = presuncaoCsll * 0.09
         let pis = precoVenda * 0.0065
         let cofins = precoVenda * 0.03
-        let icmsSaida = conversor(getElementById('icms_saida_select')) / 100
+        let icmsSaida = dadosCalculo?.icmsSaida / 100 || conversor(getElementById('icms_saida_select')) / 100
         let icms = precoVenda * icmsSaida
-        getElementById('icms_saida', dinheiro(icms.toFixed(0)))
 
         let totalImpostos = irpj + adicionalIrpj + csll + pis + cofins + icms
 
-        getElementById('irpj', dinheiro(irpj))
-        getElementById('adicional_irpj', dinheiro(adicionalIrpj))
-        getElementById('csll', dinheiro(csll))
-        getElementById('pis', dinheiro(pis))
-        getElementById('cofins', dinheiro(cofins))
-        getElementById('total_impostos', dinheiro(totalImpostos))
+        if (!dadosCalculo) {
+            getElementById('icms_creditado', icmsCreditado)
+            getElementById('frete_venda', freteVenda.toFixed(0))
+            getElementById('porc_LP', dinheiro(lucroPresumido))
+            getElementById('porc_CSLL', dinheiro(presuncaoCsll))
+            getElementById('icms_saida', dinheiro(icms.toFixed(0)))
+            getElementById('frete', frete.toFixed(2))
+            getElementById('difal', difal)
+            getElementById('icms_entrada', icmsEntrada.toFixed(2))
+            getElementById('valor_custo', valorCusto.toFixed(2))
+            getElementById('irpj', dinheiro(irpj))
+            getElementById('adicional_irpj', dinheiro(adicionalIrpj))
+            getElementById('csll', dinheiro(csll))
+            getElementById('pis', dinheiro(pis))
+            getElementById('cofins', dinheiro(cofins))
+            getElementById('total_impostos', dinheiro(totalImpostos))
+        }
 
-        atualizarLucro(precoVenda, totalImpostos, valorCusto + freteVenda)
+        return atualizarLucro(precoVenda, totalImpostos, valorCusto + freteVenda)
 
     } else if (modalidadeCalculo == 'USO E CONSUMO') {
 
-        let icmsCreditado = getElementById('icms_creditado')
         let icmsCreditadoSelect = getElementById('icms_creditado_select')
-        if (icmsCreditadoSelect != 'SIMPLES NACIONAL') {
-            icmsCreditado = tabelaIcmsSaida[icmsCreditadoSelect]
-            getElementById('icms_creditado', icmsCreditado)
-        }
-
-        let precoCompra = getElementById('custo')
+        let icmsCreditado = dadosCalculo?.icms_creditado || tabelaIcmsSaida[icmsCreditadoSelect]
+        let precoCompra = dadosCalculo?.custo || getElementById('custo')
         let frete = precoCompra * 0.02
-        let icmsAliquota = getElementById('icms_aliquota')
+        let icmsAliquota = 20.5
         let difal = icmsAliquota - icmsCreditado
         let icmsEntrada = difal / 100 * precoCompra
         let valorCusto = icmsEntrada + precoCompra + frete
-
-        getElementById('frete', frete.toFixed(2))
-        getElementById('difal', difal)
-        getElementById('icms_entrada', icmsEntrada.toFixed(2))
-        getElementById('valor_custo', valorCusto.toFixed(2))
-
         let margem = getElementById('margem')
         let precoVenda = (1 + margem / 100) * valorCusto
 
-        if (campo == 'preco_venda') {
-            precoVenda = getElementById('preco_venda')
+        if (campo == 'preco_venda' || dadosCalculo) {
+            precoVenda = dadosCalculo?.valor || getElementById('preco_venda')
             margem = ((precoVenda / valorCusto - 1) * 100).toFixed(2)
             getElementById('margem', margem)
         } else {
@@ -1239,14 +1235,8 @@ function calcular(campo) {
         }
 
         let freteVenda = precoVenda * 0.05
-        getElementById('frete_venda', freteVenda.toFixed(0))
-
         let aliqLp = precoVenda * 0.32
         let presuncaoCsll = precoVenda * 0.32
-
-        getElementById('aliq_presumido', dinheiro(aliqLp))
-        getElementById('presuncao_csll', dinheiro(presuncaoCsll))
-
         let irpj = aliqLp * 0.15
         let adicionalIrpj = aliqLp * 0.10
         let presuncaoCsllAPagar = presuncaoCsll * 0.09
@@ -1255,90 +1245,28 @@ function calcular(campo) {
         let iss = precoVenda * 0.05
         let totalImpostos = irpj + adicionalIrpj + presuncaoCsllAPagar + pis + cofins + iss
 
-        getElementById('irpj', dinheiro(irpj))
-        getElementById('adicional_irpj', dinheiro(adicionalIrpj))
-        getElementById('presuncao_csll_pagar', dinheiro(presuncaoCsllAPagar))
-        getElementById('pis', dinheiro(pis))
-        getElementById('cofins', dinheiro(cofins))
-        getElementById('iss', dinheiro(iss))
-        getElementById('total_impostos', dinheiro(totalImpostos))
-
-        atualizarLucro(precoVenda, totalImpostos, valorCusto + freteVenda)
-    }
-}
-
-function calcularLucro(params = {}) {
-    const {
-        modalidade,
-        precoVenda = 0,
-        precoCompra = 0,
-        icmsAliquota = 0,
-        icmsCreditadoSelect = 'NACIONAL',
-        margem = 0
-    } = params
-
-    const tabelaIcmsSaida = {
-        'IMPORTADO': 4,
-        'NACIONAL': 12,
-        'BAHIA': 20.5
-    }
-
-    let totalImpostos = 0
-    let custoFinal = 0
-
-    if (modalidade === 'SERVIÇO' || modalidade === 'USO E CONSUMO') {
-        const aliqLp = precoVenda * 0.32
-        const presuncaoCsll = precoVenda * 0.32
-
-        const irpj = aliqLp * 0.15
-        const adicionalIrpj = aliqLp * 0.10
-        const presuncaoCsllAPagar = presuncaoCsll * 0.09
-        const pis = precoVenda * 0.0065
-        const cofins = precoVenda * 0.03
-        const iss = precoVenda * 0.05
-
-        totalImpostos = irpj + adicionalIrpj + presuncaoCsllAPagar + pis + cofins + iss
-
-        if (modalidade === 'USO E CONSUMO') {
-            const icmsCreditado = tabelaIcmsSaida[icmsCreditadoSelect] || 0
-            const difal = icmsAliquota - icmsCreditado
-            const icmsEntrada = (difal / 100) * precoCompra
-            const frete = precoCompra * 0.02
-            const valorCusto = precoCompra + icmsEntrada + frete
-            const freteVenda = precoVenda * 0.05
-            custoFinal = valorCusto + freteVenda
+        if (!dadosCalculo) {
+            getElementById('icms_creditado', icmsCreditado)
+            getElementById('frete_venda', freteVenda.toFixed(0))
+            getElementById('aliq_presumido', dinheiro(aliqLp))
+            getElementById('presuncao_csll', dinheiro(presuncaoCsll))
+            getElementById('frete', frete.toFixed(2))
+            getElementById('difal', difal)
+            getElementById('icms_entrada', icmsEntrada.toFixed(2))
+            getElementById('valor_custo', valorCusto.toFixed(2))
+            getElementById('irpj', dinheiro(irpj))
+            getElementById('adicional_irpj', dinheiro(adicionalIrpj))
+            getElementById('presuncao_csll_pagar', dinheiro(presuncaoCsllAPagar))
+            getElementById('pis', dinheiro(pis))
+            getElementById('cofins', dinheiro(cofins))
+            getElementById('iss', dinheiro(iss))
+            getElementById('total_impostos', dinheiro(totalImpostos))
         }
 
-    } else if (modalidade === 'VENDA') {
-        const icmsCreditado = tabelaIcmsSaida[icmsCreditadoSelect] || 0
-        const difal = icmsAliquota - icmsCreditado
-        const icmsEntrada = (difal / 100) * precoCompra
-        const frete = precoCompra * 0.02
-        const valorCusto = precoCompra + icmsEntrada + frete
-        const freteVenda = precoVenda * 0.05
-
-        const lucroPresumido = precoVenda * 0.08
-        const presuncaoCsll = precoVenda * 0.12
-
-        const irpj = lucroPresumido * 0.15
-        const adicionalIrpj = lucroPresumido * 0.1
-        const csll = presuncaoCsll * 0.09
-        const pis = precoVenda * 0.0065
-        const cofins = precoVenda * 0.03
-        const icms = precoVenda * (icmsAliquota / 100)
-
-        totalImpostos = irpj + adicionalIrpj + csll + pis + cofins + icms
-        custoFinal = valorCusto + freteVenda
-    }
-
-    const lucroLiquido = precoVenda - (totalImpostos + custoFinal)
-    const percentual = (lucroLiquido / precoVenda) * 100
-
-    return {
-        lucroLiquido: parseFloat(lucroLiquido.toFixed(2)),
-        percentual: isNaN(percentual) ? 0 : parseFloat(percentual.toFixed(2))
+        return atualizarLucro(precoVenda, totalImpostos, valorCusto + freteVenda)
     }
 }
+
 
 async function salvarPreco(codigo, lpu, cotacao) {
 
@@ -1347,6 +1275,10 @@ async function salvarPreco(codigo, lpu, cotacao) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let produto = dados_composicoes[codigo]
     let historico = produto[lpu]?.historico || {}
+
+    let lucroPorcentagem = getElementById('lucroPorcentagem')
+
+    if(conversor(lucroPorcentagem) < 10) return openPopup_v2(alerta('A porcentagem de Lucro neste item não pode ser menor que 10%'), 'ALERTA', true) 
 
     let preco_venda = getElementById('preco_venda')
     let custo = getElementById('custo')

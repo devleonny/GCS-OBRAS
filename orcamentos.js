@@ -287,6 +287,8 @@ async function editar(orcam_) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento_v2 = dados_orcamentos[orcam_];
 
+    if (orcamento_v2.aprovacao) delete orcamento_v2.aprovacao
+
     let tipoOrcamento = orcamento_v2.lpu_ativa == 'ALUGUEL' ? 'aluguel' : 'orcamento'
 
     baseOrcamento(orcamento_v2)
@@ -297,18 +299,21 @@ async function editar(orcam_) {
 
 async function duplicar(orcam_) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    var orcamento_v2 = dados_orcamentos[orcam_]
+    let orcamento_v2 = dados_orcamentos[orcam_]
 
-    delete orcamento_v2.id
+    let novoOrcamento = {}
 
-    orcamento_v2.dados_orcam.contrato = ''
-    orcamento_v2.dados_orcam.analista = acesso.nome_completo
-    orcamento_v2.dados_orcam.email_analista = acesso.email
-    orcamento_v2.dados_orcam.telefone_analista = acesso.telefone
+    novoOrcamento.dados_orcam = orcamento_v2.dados_orcam
+    novoOrcamento.dados_orcam = orcamento_v2.dados_orcam
+    novoOrcamento.lpu_ativa = orcamento_v2.lpu_ativa
+    novoOrcamento.dados_orcam.contrato = ''
+    novoOrcamento.dados_orcam.analista = acesso.nome_completo
+    novoOrcamento.dados_orcam.email_analista = acesso.email
+    novoOrcamento.dados_orcam.telefone_analista = acesso.telefone
 
-    baseOrcamento(orcamento_v2)
+    baseOrcamento(novoOrcamento)
 
-    let tipoOrcamento = orcamento_v2.lpu_ativa == 'ALUGUEL' ? 'aluguel' : 'orcamento'
+    let tipoOrcamento = novoOrcamento.lpu_ativa == 'ALUGUEL' ? 'aluguel' : 'orcamento'
 
     window.location.href = `criar_${tipoOrcamento}.html`
 }

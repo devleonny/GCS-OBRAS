@@ -1888,20 +1888,16 @@ function data_atual(estilo, nivel) {
 
 async function aprovacoes_pendentes() {
 
-    let painel_aprovacoes = document.getElementById('painel_aprovacoes')
-    if (painel_aprovacoes) {
-        painel_aprovacoes.remove()
-    }
+    await sincronizarDados('aprovacoes', true)
 
-    let orcamento_v2 = baseOrcamento()
-    let aprovacoes = await receber('aprovacoes') || {}
+    let aprovacoes = await recuperarDados('aprovacoes') || {}
     let acumulado = ''
+    let pendentes = false
 
-    for (id in aprovacoes) {
-        let item = aprovacoes[id]
+    for ([id, item] of Object.entries(aprovacoes)) {
 
         if (item.aprovacao && item.aprovacao.status) {
-
+            let orcamento_v2 = baseOrcamento()
             if (orcamento_v2.aprovacao && orcamento_v2.aprovacao.id == id) {
                 orcamento_v2.aprovacao.status = item.aprovacao.status
                 orcamento_v2.aprovacao.justificativa = item.aprovacao.justificativa
@@ -1916,34 +1912,117 @@ async function aprovacoes_pendentes() {
             continue
         }
 
+        pendentes = true
+
+        console.log(item.orcamento); // Percorrer aqui e gerar uma tabelinha resumida; Levar a justificativa para o usuário final quando reprovado;
+
+        let tabelas = {}
+        let divTabelas = ''
+        let itens = item.orcamento.dados_composicoes
+
+        for ([codigo, composicao] of Object.entries(itens)) {
+
+            let quantidade = composicao.qtde
+            let custo = composicao.custo
+            let total = quantidade * custo
+            let tipo = composicao.tipo
+            let desconto = 0
+            let labelDesconto = '--'
+            let labelLucro = ''
+            
+            if (composicao.lucroPorcentagem) {
+                labelLucro = `${dinheiro(composicao.lucroLiquido)} [ ${composicao.lucroPorcentagem.toFixed(0)}% ]`
+            }
+
+            if (composicao.tipo_desconto) {
+                desconto = composicao.tipo_desconto == 'Dinheiro' ? composicao.desconto : total * (desconto / 100)
+            }
+
+            if (!tabelas[tipo]) {
+                tabelas[tipo] = { linhas: '' }
+            }
+
+            if(desconto != 0) {
+                labelDesconto = `
+                    <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                        <label>${dinheiro(desconto)}</label>
+                        <hr style="width: 100%"> 
+                        <label>${labelLucro}</label>
+                    </div>
+                `
+            }
+
+            tabelas[tipo].linhas += `
+            <tr>
+                <td>${composicao.descricao}</td>
+                <td>${quantidade}</td>
+                <td>${dinheiro(custo)}</td>
+                <td>${dinheiro(total)}</td>
+                <td>${labelDesconto}</td>
+                <td>${dinheiro(total - desconto)}</td>
+            </tr>
+            `
+        }
+
+        for ([tabela, objeto] of Object.entries(tabelas)) {
+
+            divTabelas += `
+            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column;">
+                <label style="font-size: 1.2vw;"><strong>${tabela}</strong></label>
+                <table class="tabela" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Descrição</th>
+                            <th>Quantidade</th>
+                            <th>Unitário</th>
+                            <th>Total</th>
+                            <th>Desconto</th>
+                            <th>Total com Desconto</th>
+                        </tr>
+                    </thead>
+                    <tbody>${objeto.linhas}</tbody>
+                </table>
+            </div>
+            `
+        }
+
+        let mensagem = (valor, termo) => {
+            return `
+                <div style="display: flex; justify-content: start; align-items: center; gap: 5px; width: 100%;">
+                    <label style="font-size: 1.0vw;"><strong>${termo}</strong></label>
+                    <label style="font-size: 1.2vw;">${valor}</label>
+                </div>
+            `
+        }
+
         acumulado += `
-            <div style="width: 30vw; background-color: #d2d2d2; color: #222; border-radius: 3px; padding: 5px; display: flex; justify-content: start; align-items: start; flex-direction: column;">
+            <br>
+            <div class="painelAprovacoes">
                 <label>Autorização de Desconto</label>
                 <hr style="width: 100%">    
-                
-                <div style="display: flex; justify-content: space-between; width: 100%;">
-                    <label style="font-size: 1.5vw;">Total Sem Desconto</label>
-                    <label>${item.total_sem_desconto}</label>
+
+                ${mensagem(item.orcamento.dados_orcam.analista, 'Solicitante')}
+                ${mensagem(item.orcamento.dados_orcam.cliente_selecionado, 'Cliente')}
+                ${mensagem(item.total_sem_desconto, 'Total Geral')}
+                ${mensagem(item.total_geral, 'Total Com Desconto')}
+                ${mensagem(item.desconto_dinheiro, 'Desconto em Dinheiro')}
+                ${mensagem(`${item.desconto_porcentagem}%`, 'Desconto Percentual')}
+
+                <hr style="width: 100%;">
+
+                <div style="display: flex; align-items: center; justify-content: center; gap: 5px;" onclick="visibilidadeOrcamento(this)">
+                    <img src="imagens/olhoFechado.png" style="width: 2vw;">
+                    <label style="text-decoration: underline; cursor: pointer;">Ver itens do Orçamento</label>
+                    
                 </div>
 
-                <div style="display: flex; justify-content: space-between; width: 100%;">
-                    <label style="font-size: 1.5vw;">Total Final</label>
-                    <label>${item.total_geral}</label>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; width: 100%;">
-                    <label style="font-size: 1.5vw;">Desconto em Dinheiro</label>
-                    <label>${item.desconto_dinheiro}</label>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; width: 100%;">
-                    <label style="font-size: 1.5vw;">Desconto Percentual</label>
-                    <label>${Number(item.desconto_porcentagem)}%</label>
+                <div style="display: none; align-items: start; justify-content: center; flex-direction: column; gap: 5px;">
+                    ${divTabelas}
                 </div>
 
                 <hr style="width: 100%;">
                 <div style="width: 100%; position: relative; color: #222; border-radius: 3px; padding: 5px; display: flex; justify-content: center; align-items: start; flex-direction: column;">
-                    <label>Justificativa</label>
+                    <label>Comentar</label>
                     <textarea rows="5" style="background-color: white; border: none; width: 90%; color: #222;"></textarea>
 
                     <div style="display: flex; justify-content: left; gap: 5px;">
@@ -1957,14 +2036,26 @@ async function aprovacoes_pendentes() {
     }
 
     let permissao = acesso.permissao
-    let pessoasPermitidas = ['gerente', 'adm', 'editor', 'diretoria']
-    if (pessoasPermitidas.includes(permissao)) {
-        let painel = `
-        <div id="painel_aprovacoes" style="z-index: 4444; position: fixed; bottom: 2vw; right: 2vw; display: flex; align-items: center; justify-content: start; flex-direction: column; gap: 5px; height: 70vh; overflow: auto;">
-            ${acumulado}
-        </div>
-    `
-        document.body.insertAdjacentHTML('beforeend', painel)
+    let pessoasPermitidas = ['gerente', 'adm', 'diretoria']
+    if (pessoasPermitidas.includes(permissao) && pendentes) {
+        openPopup_v2(acumulado, 'APROVAÇÕES DE ORÇAMENTO', true)
+    }
+}
+
+function visibilidadeOrcamento(div) {
+    let img = div.querySelector('img')
+    let label = div.querySelector('label')
+    let divTabelas = div.nextElementSibling
+    let display = divTabelas.style.display
+
+    if (display == 'none') {
+        divTabelas.style.display = 'flex'
+        img.src = 'imagens/olhoAberto.png'
+        label.textContent = 'Ocultar itens'
+    } else {
+        divTabelas.style.display = 'none'
+        img.src = 'imagens/olhoFechado.png'
+        label.textContent = 'Ver itens do Orçamento'
     }
 }
 
@@ -1974,13 +2065,13 @@ function resposta_desconto(botao, id, status) {
 
     let aprovacao = {
         usuario: acesso.usuario,
+        data: data_atual('completa'),
         status,
         justificativa
     }
 
     enviar(`aprovacoes/${id}/aprovacao`, aprovacao)
-
-    botao.parentElement.parentElement.parentElement.remove()
+    remover_popup()
 
 }
 
@@ -2159,9 +2250,9 @@ function removerExcluidos(base) {
     return base
 }
 
-async function sincronizarDados(base) {
+async function sincronizarDados(base, overlayOff) {
 
-    overlayAguarde()
+    if (!overlayOff) overlayAguarde()
 
     let nuvem = await receber(base) || {}
     let dados_local = await recuperarDados(base) || {}
@@ -2175,5 +2266,5 @@ async function sincronizarDados(base) {
 
     await inserirDados(dadosMesclados, base)
 
-    remover_popup()
+    if (!overlayOff) remover_popup()
 }

@@ -76,6 +76,18 @@ body {
     gap: 1px;
 }
 
+.painelAprovacoes {
+    width: 50vw;
+    background-color: #d2d2d2;
+    color: #222;
+    border-radius: 3px;
+    padding: 5px;
+    display: flex;
+    justify-content: start;
+    align-items: start;
+    flex-direction: column;
+}
+
 .gavetaTabelas {
     background-color: #797979;
     overflow: auto;
@@ -618,7 +630,6 @@ button {
 }
 
 .janela_fora {
-    padding-bottom: 2vh;
     position: relative;
     display: flex;
     flex-direction: column;

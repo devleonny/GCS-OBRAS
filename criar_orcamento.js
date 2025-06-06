@@ -2,6 +2,12 @@ let filtrosPagina = {}
 let pagina;
 let dados_composicoes = {}
 let tabelaAtiva;
+const avisoHTML = (termo) => `
+    <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
+        <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+        <label>${termo}</label>
+    </div>
+    `
 
 function coresTabelas(tabela) {
     let coresTabelas = {
@@ -391,12 +397,7 @@ async function adicionarItemAgrupamento(codigoItem, codigoPai) {
     let qtdeTotal = parseFloat(tds[4].textContent) || 0
 
     if (qtdeTotal <= 0) {
-        openPopup_v2(`
-            <div style="text-align: center; padding: 20px;">
-                <img src="gifs/alerta.gif" style="width: 50px;">
-                <p>Quantidade deve ser maior que zero!</p>
-            </div>
-        `, 'Atenção')
+        openPopup_v2(avisoHTML('Quantidade deve ser maior que zero!', 'AVISO', true))
         return
     }
 
@@ -569,12 +570,7 @@ async function atualizarOpcoesLPU() {
             resolve()
         } catch {
             reject()
-            openPopup_v2(`
-                <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                    <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                    <label>Houve um erro ao carregar</label>
-                </div>
-                `, 'Aviso')
+            openPopup_v2(alertaHTML('Houve um erro ao carregar'), 'ALERTA')
         }
     })
 }
@@ -617,8 +613,6 @@ async function carregarTabelas() {
 
     for (codigo in dadosComposicoes) {
         let produto = dadosComposicoes[codigo]
-        console.log('Tabela: ', baseComposicoes[codigo]);
-
 
         let opcoes = ''
         esquemas.sistema.forEach(op => {
@@ -1111,71 +1105,36 @@ async function enviar_dados() {
     let orcamento_v2 = baseOrcamento()
 
     if (!orcamento_v2.dados_orcam) {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Preencha os dados do Cliente</label>
-            </div>
-        `);
+        return openPopup_v2(alertaHTML('Preencha os dados do Cliente'), 'ALERTA')
     }
 
     let dados_orcam = orcamento_v2.dados_orcam;
     let chamado = dados_orcam.contrato
 
     if (dados_orcam.cliente_selecionado === '') {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Cliente em branco</label>
-            </div>
-        `);
+        return openPopup_v2(alertaHTML('Cliente em branco'), 'ALERTA')
     }
 
     if (chamado === '') {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Chamado em branco</label>
-            </div>
-        `);
+        return openPopup_v2(alertaHTML('Chamado em branco'), 'ALERTA')
     }
 
     let existente = await verificar_chamado_existente(chamado, orcamento_v2.id, false)
 
     if (chamado !== 'sequencial' && existente?.situacao) {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Chamado já Existente</label>
-            </div>
-        `)
+        return openPopup_v2(alertaHTML('Chamado já Existente'), 'ALERTA')
     }
 
     if (chamado.slice(0, 1) !== 'D' && chamado !== 'sequencial' && chamado.slice(0, 3) !== 'ORC') {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Chamado deve começar com D</label>
-            </div>
-        `);
+        return openPopup_v2(alertaHTML('Chamado deve começar com D'), 'ALERTA')
     }
 
     if (dados_orcam.estado === '') {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Estado em branco</label>
-            </div>
-        `);
+        return openPopup_v2(alertaHTML('Estado em branco'), 'ALERTA')
     }
 
     if (dados_orcam.cnpj === '') {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>CNPJ em branco</label>
-            </div>
-        `);
+        return openPopup_v2(alertaHTML('CNPJ em branco'), 'ALERTA')
     }
 
     let desconto_porcentagem = document.getElementById('desconto_porcentagem')
@@ -1228,6 +1187,7 @@ async function autorizar_desconto(reaprovacao) {
     let id = orcamento_v2.aprovacao.id;
 
     let dados = {
+        orcamento: orcamento_v2,
         desconto_porcentagem: document.getElementById('desconto_porcentagem').value,
         total_sem_desconto: document.getElementById('total_sem_desconto').textContent,
         desconto_dinheiro: document.getElementById('desconto_dinheiro').textContent,
@@ -1240,10 +1200,10 @@ async function autorizar_desconto(reaprovacao) {
     `
     if (!reaprovacao && (orcamento_v2.aprovacao.status && orcamento_v2.aprovacao.status == 'reprovado')) {
         mensagem = `
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2vw;">
             <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
                 <img src="imagens/cancel.png" style="width: 3vw;">
-                <div style="display: flex; align-items: center; justify-content: start; gap: 5px; flex-direction: column;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 5px; flex-direction: column;">
                     <label>Solicitação reprovada</label>
                     <label>${orcamento_v2.aprovacao.justificativa}</label>
                 </div>
@@ -1545,6 +1505,8 @@ async function total() {
     let divTabelas = document.getElementById('tabelas')
     let tables = divTabelas.querySelectorAll('table')
     let padraoFiltro = localStorage.getItem('padraoFiltro')
+    let estado = orcamento_v2?.dados_orcam?.estado || false
+    let avisoDesconto = 0
 
     // Detectar mudanças de quantidade
     if (orcamento_v2.dados_composicoes) {
@@ -1557,7 +1519,6 @@ async function total() {
 
                 // Se a quantidade mudou
                 if (quantidadeAtual !== quantidadeSalva) {
-                    console.log(`Quantidade mudou para ${codigo}: ${quantidadeSalva} → ${quantidadeAtual}`)
                     orcamento_v2.dados_composicoes[codigo].qtde = quantidadeAtual
 
                     // Verificar se este item tem agrupamentos (é um pai)
@@ -1616,6 +1577,7 @@ async function total() {
                 let total = 0
                 let precos = { custo: 0, lucro: 0 }
                 let descricao = dados_composicoes[codigo].descricao
+                let tipo = dados_composicoes[codigo].tipo
 
                 if (!orcamento_v2.dados_composicoes[codigo]) {
                     orcamento_v2.dados_composicoes[codigo] = {}
@@ -1646,19 +1608,13 @@ async function total() {
                     let ativo = dados_composicoes[codigo][lpu].ativo
                     let historico = dados_composicoes[codigo][lpu].historico
                     precos = historico[ativo]
-                    precos.margem = conversor(precos.margem)
                     valor_unitario = precos.valor
-
                 }
 
-                let tipo = dados_composicoes[codigo].tipo
                 let quantidade = Number(tds[3 + acrescimo].querySelector('input').value)
 
                 valor_unitario += total // Somando ao total do agrupamento, caso exista;
                 let total_linha = valor_unitario * quantidade
-                let label_icms_unitario = ''
-                let label_icms_total = ''
-                let estilo = 'input_valor'
 
                 // Desconto;
                 let desconto = 0
@@ -1670,64 +1626,76 @@ async function total() {
                     tipo_desconto = tds[5 + acrescimo].querySelector('select')
                     valor_desconto = tds[5 + acrescimo].querySelector('input')
 
-                    if (tipo_desconto.value == 'Porcentagem') {
-                        if (valor_desconto.value < 0) {
-                            valor_desconto.value = 0
-                        } else if (valor_desconto.value > 100) {
-                            valor_desconto.value = 100
+                    if (valor_desconto.value != '') {
+
+                        if (tipo_desconto.value == 'Porcentagem') {
+                            if (valor_desconto.value < 0) {
+                                valor_desconto.value = 0
+                            } else if (valor_desconto.value > 100) {
+                                valor_desconto.value = 100
+                            }
+
+                            desconto = valor_desconto.value / 100 * total_linha
+
+                        } else {
+                            if (valor_desconto.value < 0) {
+                                valor_desconto.value = 0
+                            } else if (valor_desconto.value > total_linha) {
+                                valor_desconto.value = total_linha
+                            }
+
+                            desconto = Number(valor_desconto.value)
                         }
 
-                        desconto = valor_desconto.value / 100 * total_linha
-
-                    } else {
-                        if (valor_desconto.value < 0) {
-                            valor_desconto.value = 0
-                        } else if (valor_desconto.value > total_linha) {
-                            valor_desconto.value = total_linha
+                        // Verificar a viabilidade do desconto;
+                        let dadosCalculo = {
+                            custo: precos.custo,
+                            valor: precos.valor - desconto / quantidade,
+                            icms_creditado: precos.icms_creditado,
+                            icmsSaida: precos.icms_creditado == 4 ? 4 : estado == 'BA' ? 20.5 : 12,
+                            modalidadeCalculo: tipo
                         }
 
-                        desconto = Number(valor_desconto.value)
+                        let resultado = calcular(undefined, dadosCalculo)
 
+                        if (!estado) {
+                            valor_desconto.value = ''
+                            avisoDesconto = 1 // Preencher os dados da empresa;
+
+                        } else if (resultado.lucroPorcentagem < 10) {
+                            valor_desconto.value = ''
+                            desconto = 0
+                            avisoDesconto = 2 // Lucro mínimo atingido (10%);
+
+                        } else if (isNaN(resultado.lucroLiquido)) {
+                            valor_desconto.value = ''
+                            desconto = 0
+                            avisoDesconto = 3 // ICMS creditado não registrado;
+                        }
+
+                        itemSalvo.lucroLiquido = resultado.lucroLiquido
+                        itemSalvo.lucroPorcentagem = resultado.lucroPorcentagem
                     }
 
-                    if (desconto == 0) {
-                        tipo_desconto.classList = 'desconto_off'
-                        valor_desconto.classList = 'desconto_off'
-                    } else {
-                        tipo_desconto.classList = 'desconto_on'
-                        valor_desconto.classList = 'desconto_on'
-                    }
+                    tipo_desconto.classList = desconto == 0 ? 'desconto_off' : 'desconto_on'
+                    valor_desconto.classList = desconto == 0 ? 'desconto_off' : 'desconto_on'
 
                     totais.GERAL.bruto += total_linha // Valor bruto sem desconto;
                     total_linha = total_linha - desconto
                     desconto_acumulado += desconto
+
                 }
 
                 let filtro = dados_composicoes[codigo]?.[padraoFiltro] || 'SEM CLASSIFICAÇÃO'
 
                 if (!totais[filtro]) {
-                    totais[filtro] = { valor: 0, exibir: 'none' }
+                    totais[filtro] = { valor: 0 }
                 }
 
                 totais[filtro].valor += total_linha
                 totais.GERAL.valor += total_linha
-                estilo = valor_unitario == 0 ? 'label_zerada' : estilo;
-
-                let total_unitario = `
-                    <div>
-                        <label class="${estilo}"> ${dinheiro(valor_unitario)}</label>
-                        ${label_icms_unitario}
-                    </div>
-                    `
-                let total_geral = `
-                    <div>
-                        <label class="${estilo}"> ${dinheiro(total_linha)}</label>
-                        ${label_icms_total}
-                    </div>
-                    `
 
                 // ATUALIZAÇÃO DE INFORMAÇÕES DA COLUNA 4 EM DIANTE
-
                 if (carrefour) {
                     tds[2].innerHTML = `
                     <td>
@@ -1738,11 +1706,18 @@ async function total() {
                     </td>`
                 }
 
-                tds[4 + acrescimo].innerHTML = total_unitario
+                tds[4 + acrescimo].innerHTML = `
+                    <div>
+                        <label class="${valor_unitario == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(valor_unitario)}</label>
+                    </div>
+                    `
 
                 if (carrefour) { acrescimo = 0 }
-
-                tds[6 + acrescimo].innerHTML = total_geral
+                tds[6 + acrescimo].innerHTML = `
+                    <div>
+                        <label class="${valor_unitario == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(total_linha)}</label>
+                    </div>
+                    `
 
                 let imagem = dados_composicoes[codigo]?.imagem || logo
 
@@ -1834,6 +1809,16 @@ async function total() {
         document.getElementById('toolbarSuperior').style.display = 'flex'
     } else {
         tabelas.insertAdjacentHTML('afterbegin', quieto)
+    }
+
+    if (avisoDesconto != 0) {
+        let avisos = {
+            1: 'Preencha os dados do Cliente antes de aplicar descontos',
+            2: 'Desconto ultrapassa o permitido',
+            3: 'Atualize os valores no ITEM [ICMS Creditado, Custo de Compra...]'
+        }
+
+        openPopup_v2(avisoHTML(avisos[avisoDesconto]), 'AVISO')
     }
 
 }
