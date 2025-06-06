@@ -2285,22 +2285,15 @@ function limpar_campos() {
         </div>`)
 }
 
-function executar_limpar_campos() {
+async function executar_limpar_campos() {
 
-    document.getElementById('cnpj').value = ''
-    document.getElementById('cliente_selecionado').value = ''
-    document.getElementById('consideracoes').value = ''
-    document.getElementById('tipo_de_frete').value = ''
-    document.getElementById('transportadora').value = ''
-
-    // Limpar campos de texto (textContent)
-    document.getElementById('cep').textContent = ''
-    document.getElementById('estado').textContent = ''
-    document.getElementById('cidade').textContent = ''
-    document.getElementById('bairro').textContent = ''
-
-    salvar_preenchido();
+    overlayAguarde()
+    let orcamento = baseOrcamento()
+    delete orcamento.dados_orcam
+    baseOrcamento(orcamento)
     remover_popup();
+    await painel_clientes()
+
 }
 
 function pagina_adicionar() {
