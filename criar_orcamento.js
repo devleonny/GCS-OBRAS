@@ -1242,14 +1242,11 @@ async function recuperarComposicoes() {
 
     overlayAguarde()
 
-    let nuvem = await receber('dados_composicoes')
-    await inserirDados(nuvem, 'dados_composicoes')
-    await tabelaProdutos()
+    await sincronizarDados('dados_composicoes'),
+        await tabelaProdutos()
 
-    let aguarde = document.getElementById('aguarde')
-    if (aguarde) {
-        aguarde.remove()
-    }
+    remover_popup()
+
 }
 
 async function ocultarZerados(ocultar) {
@@ -1280,51 +1277,47 @@ async function tabelaProdutos() {
     let tabela_itens = document.getElementById('tabela_itens')
     let orcamento_v2 = baseOrcamento()
 
-    if (tabela_itens) {
+    dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    if (Object.keys(dados_composicoes).length == 0) return await recuperarComposicoes()
 
-        dados_composicoes = await recuperarDados('dados_composicoes') || {}
-        if (Object.keys(dados_composicoes) == 0) {
-            await recuperarComposicoes()
+    for (codigo in dados_composicoes) {
+        let produto = dados_composicoes[codigo]
+
+        if (!produto.tipo) continue
+
+        if (!tabelas[produto.tipo]) {
+            tabelas[produto.tipo] = { linhas: '' }
         }
 
-        for (codigo in dados_composicoes) {
-            let produto = dados_composicoes[codigo]
+        let preco = 0
+        let ativo = 0
+        let historico = 0
+        let lpu;
 
-            if (!produto.tipo) continue
+        if (document.getElementById('lpu')) {
+            lpu = String(document.getElementById('lpu').value).toLowerCase()
+        } else {
+            lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
+        }
 
-            if (!tabelas[produto.tipo]) {
-                tabelas[produto.tipo] = { linhas: '' }
-            }
+        if (produto[lpu] && produto[lpu].ativo && produto[lpu].historico) {
+            ativo = produto[lpu].ativo
+            historico = produto[lpu].historico
+            preco = historico[ativo]?.valor || 0
+        }
 
-            let preco = 0
-            let ativo = 0
-            let historico = 0
-            let lpu;
+        if (preco == 0 && ocultarZerados) continue
 
-            if (document.getElementById('lpu')) {
-                lpu = String(document.getElementById('lpu').value).toLowerCase()
-            } else {
-                lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
-            }
+        if (produto.status != "INATIVO") {
 
-            if (produto[lpu] && produto[lpu].ativo && produto[lpu].historico) {
-                ativo = produto[lpu].ativo
-                historico = produto[lpu].historico
-                preco = historico[ativo]?.valor || 0
-            }
-
-            if (preco == 0 && ocultarZerados) continue
-
-            if (produto.status != "INATIVO") {
-
-                let td_quantidade = `
+            let td_quantidade = `
                     <input type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
                     `
-                let opcoes = ''
-                esquemas.sistema.forEach(op => {
-                    opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
-                })
-                let linha = `
+            let opcoes = ''
+            esquemas.sistema.forEach(op => {
+                opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
+            })
+            let linha = `
                         <tr>
                             <td style="white-space: nowrap;">${codigo}</td>
                             <td style="position: relative;">
@@ -1353,17 +1346,17 @@ async function tabelaProdutos() {
                         </tr>
                     `
 
-                tabelas[produto.tipo].linhas += linha
-                tabelas.TODOS.linhas += linha
-            }
+            tabelas[produto.tipo].linhas += linha
+            tabelas.TODOS.linhas += linha
         }
+    }
 
-        let colunas = ['Código', 'Descrição', 'Fabricante', 'Modelo', 'Sistema', 'Quantidade', 'Unidade', 'Valor', 'Imagem *Ilustrativa']
-        let ths = ''
-        let tsh = ''
-        colunas.forEach((col, i) => {
-            ths += `<th style="color: white;">${col}</th>`
-            tsh += `
+    let colunas = ['Código', 'Descrição', 'Fabricante', 'Modelo', 'Sistema', 'Quantidade', 'Unidade', 'Valor', 'Imagem *Ilustrativa']
+    let ths = ''
+    let tsh = ''
+    colunas.forEach((col, i) => {
+        ths += `<th style="color: white;">${col}</th>`
+        tsh += `
             <th style="background-color: white; border-radius: 0px;">
                 <div style="position: relative;">
                     <input style="text-align: left;" oninput="pesquisarProdutos(${i}, this)">
@@ -1371,17 +1364,17 @@ async function tabelaProdutos() {
                 </div>
             </th>
             `
-        })
+    })
 
-        let tabelasHTML = ''
-        let toolbar = ''
+    let tabelasHTML = ''
+    let toolbar = ''
 
-        for (let tabela in tabelas) {
+    for (let tabela in tabelas) {
 
-            toolbar += `
+        toolbar += `
                 <label class="menu_top" style="background-color: ${coresTabelas(tabela)};" onclick="alterarTabela('${tabela}')">${tabela}</label>`
 
-            tabelasHTML += `
+        tabelasHTML += `
                 <table id="compos_${tabela}" style="display: none;" class="tabela">
                     <thead style="background-color: ${coresTabelas(tabela)};">
                         <tr>${ths}</tr>
@@ -1392,32 +1385,32 @@ async function tabelaProdutos() {
                     </tbody>
                 </table>
             `
-        }
+    }
 
-        let botoes = `
+    let botoes = `
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
                 onclick="recuperarComposicoes()">
                 <img src="imagens/atualizar_2.png" style="width: 30px; cursor: pointer;">
                 <label style="color: white; cursor: pointer;">Atualizar</label>
             </div>`
 
-        if (moduloComposicoes) {
-            botoes += `
+    if (moduloComposicoes) {
+        botoes += `
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
                 onclick="cadastrar_editar_item()">
                 <img src="imagens/add.png" style="width: 30px; cursor: pointer;">
                 <label style="color: white; cursor: pointer;">Criar Item</label>
             </div>`
-        }
+    }
 
-        botoes += `
+    botoes += `
             <div style="display: flex; align-items: center; justify-content: center; gap: 2px; background-color: #d2d2d2; margin: 3px; border-radius: 3px;">
                 <input onchange="ocultarZerados(this.checked)" type="checkbox" style="width: 3vw; cursor: pointer;" ${ocultarZerados ? 'checked' : ''}>
                 <label style="padding-right: 2vw;">Ocultar produtos zerados</label>
             </div>
             `
 
-        let acumulado = `
+    let acumulado = `
         <div style="position: relative; display: flex; justify-content: center; width: 100%; margin-top: 30px; gap: 10px;">
             ${toolbar}
             ${botoes}
@@ -1427,8 +1420,7 @@ async function tabelaProdutos() {
             ${tabelasHTML}
         </div>
         `
-        tabela_itens.innerHTML = acumulado
-    }
+    tabela_itens.innerHTML = acumulado
 
     alterarTabela('TODOS')
 }
@@ -1713,7 +1705,7 @@ async function total() {
 
                 let labelValores = (valor, semIcms, percentual) => {
                     let labelICMS = ''
-                    if(tipo == 'VENDA' && estado) labelICMS = `<label style="white-space: nowrap;">SEM ICMS ${dinheiro(semIcms)} [ ${percentual}% ]</label>`
+                    if (tipo == 'VENDA' && estado) labelICMS = `<label style="white-space: nowrap;">SEM ICMS ${dinheiro(semIcms)} [ ${percentual}% ]</label>`
                     return `
                     <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
                         <label class="${valor == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(valor)}</label>

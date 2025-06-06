@@ -1944,7 +1944,7 @@ async function aprovacoes_pendentes() {
                     <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
                         <label>${dinheiro(desconto)}</label>
                         <hr style="width: 100%"> 
-                        <label>${labelLucro}</label>
+                        <label style="white-space: nowrap;">${labelLucro}</label>
                     </div>
                 `
             }
