@@ -1938,6 +1938,100 @@ function encontrarInputQuantidade(codigo) {
     return null
 }
 
+async function exibirTabelaAgrupamentosLancar(codigoPai, qtdePai) {
+    let dadosComposicoes = await recuperarDados('dados_composicoes') || {}
+    let produtoPai = dadosComposicoes[codigoPai]
+    let lpu = String(baseOrcamento().lpu_ativa || 'lpu hope').toLowerCase()
+    let linhas = ''
+    let filhos = Object.entries(produtoPai.agrupamentos)
+
+    filhos.forEach(([codigoFilho, qtdeBase]) => {
+        let prodFilho = dadosComposicoes[codigoFilho]
+        let preco = 0
+        if (prodFilho[lpu] && prodFilho[lpu].ativo && prodFilho[lpu].historico) {
+            let ativo = prodFilho[lpu].ativo
+            let historico = prodFilho[lpu].historico
+            preco = historico[ativo]?.valor || 0
+        }
+        linhas += `
+            <tr data-codigofilho="${codigoFilho}">
+                <td>${codigoFilho}</td>
+                <td>${prodFilho.descricao}</td>
+                <td style="text-align:center;">${qtdeBase} <span style="color:#888;font-size:0.8em;">(base)</span></td>
+                <td style="text-align:center;">
+                    <input type="number" min="0" value="0" style="width:60px;" oninput="atualizarTotalAgrupamentoLinha(this)">
+                </td>
+                <td style="text-align:center;" class="qtde-total">${qtdeBase * qtdePai}</td>
+                <td style="text-align:right;">${dinheiro(preco)}</td>
+                <td style="text-align:right;" class="valor-total">${dinheiro(preco * qtdeBase * qtdePai)}</td>
+                <td style="text-align:center;">
+                    <span class="pai-ref" style="background:#e9f5ff; color:#24729d; border-radius:4px; padding:2px 6px; font-size:0.9em;">
+                        Pai: ${codigoPai}
+                    </span>
+                </td>
+            </tr>
+        `
+    })
+
+    let popup = `
+        <div style="max-width:90vw;">
+            <h2 style="color:#4CAF50;">Agrupamentos de ${codigoPai} - ${produtoPai.descricao}</h2>
+            <table class="tabela" style="width:100%;margin-bottom:10px;">
+                <thead style="background:#24729d;">
+                    <tr>
+                        <th style="color:white;">Código</th>
+                        <th style="color:white;">Descrição</th>
+                        <th style="color:white;">Qtde Base</th>
+                        <th style="color:white;">Qtde Avulsa</th>
+                        <th style="color:white;">Qtde Total</th>
+                        <th style="color:white;">Valor Unit.</th>
+                        <th style="color:white;">Valor Total</th>
+                        <th style="color:white;">Referência</th>
+                    </tr>
+                </thead>
+                <tbody id="agrupamentos-body">
+                    ${linhas}
+                </tbody>
+            </table>
+            <button onclick="lancarTodosAgrupamentos('${codigoPai}', ${qtdePai})" style="background:#4CAF50;color:white;padding:10px 20px;border:none;border-radius:4px;font-size:1em;">
+                Lançar todos os itens agrupados
+            </button>
+        </div>
+        <script>
+        function atualizarTotalAgrupamentoLinha(input) {
+            let tr = input.closest('tr');
+            let qtdeBase = parseFloat(tr.children[2].textContent) || 0;
+            let qtdeAvulsa = parseFloat(input.value) || 0;
+            let qtdeTotal = qtdeBase + qtdeAvulsa;
+            tr.querySelector('.qtde-total').textContent = qtdeTotal;
+            let valorUnit = parseFloat(tr.children[5].textContent.replace('R$','').replace('.','').replace(',','.')) || 0;
+            tr.querySelector('.valor-total').textContent = dinheiro(valorUnit * qtdeTotal);
+        }
+        </script>
+    `
+    openPopup_v2(popup, 'Agrupamentos')
+}
+
+// Função global para lançar todos os itens agrupados
+async function lancarTodosAgrupamentos(codigoPai, qtdePai) {
+    let dadosComposicoes = await recuperarDados('dados_composicoes') || {}
+    let produtoPai = dadosComposicoes[codigoPai]
+    let tbody = document.getElementById('agrupamentos-body')
+    let trs = tbody.querySelectorAll('tr')
+    for (let tr of trs) {
+        let codigoFilho = tr.getAttribute('data-codigofilho')
+        let qtdeBase = parseFloat(tr.children[2].textContent) || 0
+        let qtdeAvulsa = parseFloat(tr.children[3].querySelector('input').value) || 0
+        let qtdeTotal = qtdeBase + qtdeAvulsa
+        if (qtdeTotal > 0) {
+            await incluirItemComPai(codigoFilho, qtdeTotal, codigoPai)
+        }
+    }
+    remover_popup()
+    await carregarTabelas()
+    openPopup_v2('<div style="padding:20px;text-align:center;"><img src="imagens/concluido.png" style="width:50px;"><p>Itens agrupados lançados!</p></div>', 'Sucesso')
+}
+
 // Modificar a função incluirItem para lançar agrupamentos automaticamente
 async function incluirItem(codigo, novaQuantidade) {
     let orcamento_v2 = baseOrcamento()
@@ -1952,11 +2046,11 @@ async function incluirItem(codigo, novaQuantidade) {
     if (produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) {
 
         // Lançar automaticamente os itens do agrupamento
-        for (let codigoFilho in produto.agrupamentos) {
-            let quantidadeFilho = produto.agrupamentos[codigoFilho] * parseFloat(novaQuantidade)
+        // for (let codigoFilho in produto.agrupamentos) {
+        //     let quantidadeFilho = produto.agrupamentos[codigoFilho] * parseFloat(novaQuantidade)
 
-            await incluirItemComPai(codigoFilho, quantidadeFilho, codigo)
-        }
+        //     await incluirItemComPai(codigoFilho, quantidadeFilho, codigo)
+        // }
 
         // Mostrar notificação dos itens lançados
         let itensLancados = Object.keys(produto.agrupamentos).map(codigoFilho => {
@@ -2583,4 +2677,49 @@ function painel_clientes() {
 
     vendedores_analistas()
 
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const btn = document.getElementById('btnTabelaAgrupamentos');
+    if (btn) {
+        btn.addEventListener('click', exibirTabelaAgrupamentosLancarGlobal);
+    }
+});
+
+// Função global para abrir popup de agrupamentos dos itens pais do orçamento
+async function exibirTabelaAgrupamentosLancarGlobal() {
+    let orcamento_v2 = baseOrcamento();
+    let dadosComposicoes = await recuperarDados('dados_composicoes') || {};
+    let pais = Object.keys(orcamento_v2.dados_composicoes || {}).filter(codigo => {
+        let prod = dadosComposicoes[codigo];
+        return prod && prod.agrupamentos && Object.keys(prod.agrupamentos).length > 0;
+    });
+
+    if (pais.length === 0) {
+        openPopup_v2('<div style="padding:20px;text-align:center;">Nenhum item pai com agrupamentos no orçamento.</div>', 'Tabela Agrupamentos');
+        return;
+    }
+
+    if (pais.length === 1) {
+        let codigoPai = pais[0];
+        let qtdePai = orcamento_v2.dados_composicoes[codigoPai]?.qtde || 1;
+        return exibirTabelaAgrupamentosLancar(codigoPai, qtdePai);
+    }
+
+    // Se tem mais de um, mostra lista para escolher
+    let lista = pais.map(codigoPai => {
+        let prod = dadosComposicoes[codigoPai];
+        let qtdePai = orcamento_v2.dados_composicoes[codigoPai]?.qtde || 1;
+        return `<div style="margin:10px;">
+            <button style="background:#4CAF50;color:white;padding:10px 20px;border:none;border-radius:4px;font-size:1em;"
+                onclick="exibirTabelaAgrupamentosLancar('${codigoPai}', ${qtdePai})">
+                ${codigoPai} - ${prod.descricao} (Qtde: ${qtdePai})
+            </button>
+        </div>`;
+    }).join('');
+
+    openPopup_v2(`<div style="padding:20px;">
+        <h3>Escolha o item pai para ver os agrupamentos:</h3>
+        ${lista}
+    </div>`, 'Tabela Agrupamentos');
 }
