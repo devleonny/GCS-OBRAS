@@ -243,17 +243,15 @@ async function identificacaoUser() {
     acesso = dados_setores[acesso.usuario]
     localStorage.setItem('acesso', JSON.stringify(acesso))
 
-    carregarIcones()
-    verificarAlertas()
-    aprovacoes_pendentes()
-
-    let permissao = acesso.permissao
+    carregarIcones() // ícones da tela inicial;
+    verificarAlertas() // Alertas disponíveis;
+    aprovacoes_pendentes() // Aprovações de desconto;
 
     if (document.title !== 'PDF' && acesso.usuario) {
 
         let texto = `
-            <div onclick="painelUsuarios(this)" class="cabecalhoUsuario">
-                <div class="botaoUsuarios">
+            <div class="cabecalhoUsuario">
+                <div class="botaoUsuarios" onclick="painelUsuarios(this)">
                     <img src="imagens/online.png">
                     <label>Online</label>
                 </div>
@@ -640,9 +638,10 @@ async function recuperarDados(nome_da_base) {
 function openPopup_v2(elementoHTML, titulo, nao_remover_anteriores) {
 
     let popup_v2 = `
-    <div id="temp_pop" style="
+    <div id="temp_pop" 
+    style="
     position: fixed;
-    z-index: 2000;
+    z-index: 100001;
     left: 0;
     top: 0;
     width: 100%;
