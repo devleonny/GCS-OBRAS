@@ -1635,7 +1635,7 @@ function painelUsuarios(elementoOrigial) {
         stringUsuarios[status] += `
         <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
             <img src="imagens/${status}.png" style="width: 2vw;">
-            <label>${usuario}</label>
+            <label style="font-size: 0.8vw;">${usuario}</label>
             <label style="font-size: 0.6vw;">${objeto.setor}</label>
         </div>
         `
@@ -1645,9 +1645,9 @@ function painelUsuarios(elementoOrigial) {
 
     let acumulado = `
     <div id="divUsuarios" class="divOnline" style="position: absolute; left: ${pos.left + window.scrollX}px; top: ${pos.bottom + window.scrollY}px;">
-        <label><strong>ONLINE</strong></label>
+        <label style="font-size: 0.8vw;"><strong>ONLINE</strong></label>
         ${stringUsuarios.online}
-        <label><strong>OFFLINE</strong></label>
+        <label style="font-size: 0.8vw;"><strong>OFFLINE</strong></label>
         ${stringUsuarios.offline}
     </div>
     `
