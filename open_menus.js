@@ -1560,16 +1560,9 @@ function enviar(caminho, info) {
             },
             body: JSON.stringify(objeto)
         })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.text();
-            })
-            .then(text => text ? JSON.parse(text) : {})
             .then(data => resolve(data))
             .catch((erro) => {
-                console.error('Erro no Servidor, mas será salvo para tentativa em breve...', erro);
+                console.error(erro);
                 salvar_offline(objeto, 'enviar');
                 resolve();
             });
@@ -1598,14 +1591,21 @@ function connectWebSocket() {
     socket = new WebSocket(WS_URL);
 
     socket.onopen = () => {
+        if(acesso) socket.send(JSON.stringify({ tipo: 'autenticar', usuario: acesso.usuario }));
         console.log(`🟢🟢🟢 WS ${data_atual('completa')} 🟢🟢🟢`);
     };
 
     socket.onmessage = (event) => {
         let data = JSON.parse(event.data);
-        espelhar_atualizacao(data);
+        let caminho = data?.caminho || ''
+        let base = caminho.split('/')[0]
 
-        console.log('📢', data);
+        if (base !== 'registrosAlteracoes') console.log('📢', data);
+
+        if (base == 'aprovacoes') aprovacoes_pendentes()
+
+        if (data.tipo == 'livre' && document.title == 'Criar Orçamento') f5()
+
     };
 
     socket.onclose = () => {
@@ -1613,77 +1613,6 @@ function connectWebSocket() {
         console.log(`Tentando reconectar em ${reconnectInterval / 1000} segundos...`);
         setTimeout(connectWebSocket, reconnectInterval);
     };
-
-    socket.onerror = (error) => {
-        console.error("Erro no WebSocket:", error);
-    };
-}
-
-async function espelhar_atualizacao(objeto) {
-
-    if (objeto.tipo == 'servico') {
-
-        if (objeto.servico == 'livre' && document.title == 'Criar Orçamento') {
-            f5()
-        }
-
-    } else {
-
-        if (!objeto.caminho) {
-            return
-        }
-
-        let chaves = objeto.caminho ? objeto.caminho.split("/") : objeto.chave.split("/");
-        let arquivo = chaves.shift();
-        let dados = await recuperarDados(arquivo);
-
-        if (objeto.tipo == 'atualizacao') {
-            let atualizarValor = (dados, chaves, valor) => {
-                if (chaves.length === 0)
-                    return;
-                let chaveAtual = chaves[0];
-
-                if (dados[chaveAtual] === null || dados[chaveAtual] === undefined) {
-                    dados[chaveAtual] = {};
-                }
-
-                if (chaves.length === 1) {
-                    dados[chaveAtual] = valor;
-                } else {
-                    atualizarValor(dados[chaveAtual], chaves.slice(1), valor);
-                }
-            };
-
-        } else {
-            let deleteNestedValue = (obj, path) => {
-                const keys = path.split('/');
-                let current = obj;
-
-                for (let i = 0; i < keys.length - 1; i++) {
-                    if (!current || !current[keys[i]]) return false;
-                    current = current[keys[i]];
-                }
-
-                const lastKey = keys[keys.length - 1];
-                if (current.hasOwnProperty(lastKey)) {
-                    delete current[lastKey];
-                    return true;
-                }
-
-                return false;
-            };
-
-            let removido = deleteNestedValue(dados, chaves.join("/"));
-            if (!removido) return;
-        }
-
-        await inserirDados(dados, arquivo);
-
-        if (arquivo == 'aprovacoes') {
-            aprovacoes_pendentes()
-        }
-
-    }
 
 }
 
@@ -1926,7 +1855,7 @@ async function aprovacoes_pendentes() {
             let desconto = 0
             let labelDesconto = '--'
             let labelLucro = ''
-            
+
             if (composicao.lucroPorcentagem) {
                 labelLucro = `${dinheiro(composicao.lucroLiquido)} [ ${composicao.lucroPorcentagem.toFixed(0)}% ]`
             }
@@ -1939,7 +1868,7 @@ async function aprovacoes_pendentes() {
                 tabelas[tipo] = { linhas: '' }
             }
 
-            if(desconto != 0) {
+            if (desconto != 0) {
                 labelDesconto = `
                     <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
                         <label>${dinheiro(desconto)}</label>

@@ -49,8 +49,7 @@ async function carregar_tabela_v2() {
 
     let thead = '';
     let tbody = '';
-    var tsearch = '';
-
+    let tsearch = '';
     let cabecalhos = [
         ...new Set(
             Object.values(dados_composicoes).flatMap(obj => Object.keys(obj))
@@ -68,35 +67,17 @@ async function carregar_tabela_v2() {
     if (!colunasComposicoes[modo]) {
         colunasComposicoes[modo] = []
     }
+
     let colunas = colunasComposicoes[modo]
 
-    const idxCat = colunas.indexOf('categoria de equipamento');
-    const idxSis = colunas.indexOf('sistema');
-
-    if (idxCat !== -1 && idxSis !== -1 && Math.abs(idxCat - idxSis) !== 1) {
-        // Remove os dois
-        colunas = colunas.filter(c => c !== 'categoria de equipamento' && c !== 'sistema');
-        // Define a posição onde quer inserir (por exemplo, no início)
-        const posicao = 0;
-        colunas.splice(posicao, 0, 'categoria de equipamento', 'sistema');
-    }
-
-    if (acesso.permissao == 'adm') {
-        let adicionar_item = document.getElementById('adicionar_item');
-        let btn_criar_lpu = document.getElementById('btn-criar-lpu')
-        if (adicionar_item) {
-            adicionar_item.style.display = 'flex';
-        }
-        if (btn_criar_lpu) {
-            btn_criar_lpu.style.display = 'flex';
-        }
-    }
-
-    if (!divComposicoes) {
-        return
-    }
-
+    if (!divComposicoes) return
     divComposicoes.innerHTML = '';
+
+    let adicionar_item = document.getElementById('adicionar_item')
+    let btn_criar_lpu = document.getElementById('btn-criar-lpu')
+
+    adicionar_item.style.display = acesso.permissao == 'adm' ? 'flex' : 'none'
+    btn_criar_lpu.style.display = acesso.permissao == 'adm' ? 'flex' : 'none'
 
     let ths = {};
     let tsc = {};
@@ -104,9 +85,11 @@ async function carregar_tabela_v2() {
     cabecalhos.forEach(cab => {
         ths[cab] = `<th style="position: relative; cursor: pointer; text-align: left;">${inicial_maiuscula(cab)}</th>`
         tsc[cab] = `
-            <th style="background-color: white; position: relative; border-radius: 0px;">
-                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%; padding: 0px;" placeholder="...">
+            <th style="background-color: white;">
+                <div style="display: flex; align-items: center; justify-content: center;">
+                    <input>
+                    <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                </div>
             </th>`
     });
 
@@ -115,9 +98,9 @@ async function carregar_tabela_v2() {
         tsearch += tsc[col];
     });
 
-    dados_composicoes = Object.entries(dados_composicoes).sort((a, b) => b[1].timestamp - a[1].timestamp)
+    let composicoesOrdenadas = Object.entries(dados_composicoes).sort((a, b) => b[1].timestamp - a[1].timestamp)
 
-    for (let [codigo, produto] of dados_composicoes) {
+    for (let [codigo, produto] of composicoesOrdenadas) {
         let tds = {};
 
         colunas.forEach(chave => {
@@ -125,9 +108,8 @@ async function carregar_tabela_v2() {
             let alinhamento = 'left';
             chave = String(chave)
             if (chave == 'imagem') {
-                let imagem = conteudo || 'https://i.imgur.com/Nb8sPs0.png';
                 alinhamento = 'center';
-                conteudo = `<img src="${imagem}" style="width: 50px; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">`;
+                conteudo = `<img src="${conteudo || logo}" style="width: 4vw; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">`;
 
             } else if (chave.includes('lpu')) {
                 let preco_final = produto[chave];
@@ -149,33 +131,21 @@ async function carregar_tabela_v2() {
                     let agrupamentos = produto[chave]
 
                     for (item in agrupamentos) {
+                        
+                        let tipo = dados_composicoes[item]?.tipo || '??'
 
-                        if (!dados_composicoes[item]) {
-                            delete produto.agrupamentos[item]
-                            deletar(`dados_composicoes/${codigo}/agrupamentos/${item}`)
-                            inserirDados(dados_composicoes, 'dados_composicoes')
-                        } else {
-
-                            let tipo = dados_composicoes[item].tipo
-
-                            let cor = 'green'
-                            if (tipo == 'VENDA') {
-                                cor = '#B12425'
-                            }
-
-                            info_agrupamentos += `
+                        info_agrupamentos += `
                             <div style="display: flex; gap: 3px; align-items: center; justify-content: left;">
-                                <label class="numero" style="width: 20px; height: 20px; padding: 3px; background-color: ${cor}">${agrupamentos[item]}</label>
-                                <label style="font-size: 0.6em; text-align: left;">${String(dados_composicoes[item].descricao).slice(0, 10)}...</label>
+                                <label class="numero" style="width: 20px; height: 20px; padding: 3px; background-color: ${tipo == 'VENDA' ? 'green' : '#B12425'}">${agrupamentos[item]}</label>
+                                <label style="font-size: 0.6em; text-align: left;">${String(dados_composicoes[item]?.descricao || '??').slice(0, 10)}...</label>
                             </div>
                             `
-                        }
                     }
                 }
 
                 conteudo = `
                     <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-                        <img src="imagens/construcao.png" style="width: 30px; height: 30px; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">
+                        <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">
                         <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; gap: 2px;">
                             ${info_agrupamentos}
                         </div>
@@ -202,7 +172,7 @@ async function carregar_tabela_v2() {
             tds[chave] = `<td style="text-align: ${alinhamento}; max-width: 200px;">${conteudo}</td>`;
         });
 
-        tds.editar = `<td style="width: 70px;"><img src="imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')"></td>`;
+        tds.editar = `<td style="width: 70px;"><img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')"></td>`;
 
         let celulas = '';
         colunas.forEach(col => {
@@ -421,24 +391,20 @@ async function atualizar_status_material(codigo, elemento) {
 
 async function abrir_agrupamentos(codigo) {
 
-    var acumulado = ''
-
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {}
-
-    var produto = dados_composicoes[codigo]
-    var imagem = 'https://i.imgur.com/Nb8sPs0.png'
-    var linhas = ''
-
+    let acumulado = ''
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let produto = dados_composicoes[codigo]
+    let linhas = ''
 
     for (item in dados_composicoes) {
-        var checked = ''
+        let checked = ''
 
         if (produto.agrupamentos && produto.agrupamentos[item]) {
             checked = 'checked'
         }
-        var tr = `
+        let tr = `
         <tr>
-            <td style="white-space: normal; text-align: center;"><input type="checkbox" style="width: 30px; height: 30px;" onclick="incluir_agrupamento(this)" ${checked}></td>
+            <td style="white-space: normal; text-align: center;"><input type="checkbox" style="width: 4vw;" onclick="incluir_agrupamento(this)" ${checked}></td>
             <td style="white-space: normal;">${item}</td>
             <td style="white-space: normal;">${dados_composicoes[item].descricao}</td>
             <td style="white-space: normal;">${dados_composicoes[item].modelo}</td>
@@ -447,10 +413,6 @@ async function abrir_agrupamentos(codigo) {
         </tr>
         `
         linhas += tr
-    }
-
-    if (produto.imagem && produto.imagem !== '') {
-        imagem = produto.imagem
     }
 
     let ths = ''
@@ -470,7 +432,7 @@ async function abrir_agrupamentos(codigo) {
 
         <div class="agrupamentos">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
-                <img src="${imagem}" style="width: 100px">
+                <img src="${produto?.imagem || logo}" style="width: 100px">
                 <h2>${produto.descricao}</h2>
             </div>
 
@@ -645,7 +607,7 @@ async function incluir_agrupamento(elemento, cod, qtde) {
 
             var item = `
             <div class="agrupado" style="border: solid 1px ${cor};">
-                <img src="imagens/excluir.png" style="width: 30px; cursor: pointer;" onclick="remover_item(this)">
+                <img src="imagens/excluir.png" style="width: 4vw; cursor: pointer;" onclick="remover_item(this)">
                 <label>${codigo}</label>
                 <label>${descricao} - ${modelo} - ${unidade}</label>
 
@@ -716,7 +678,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
         <div id="historico_preco" style="display: flex; flex-direction: column; align-items: start; justify-content: center; position: relative; width: 100%;">
             
             <div style="display: flex; justify-content: left; align-items: center; gap: 5px;">
-                <img style="width: 7vw;" src="${dados_composicoes[codigo]?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}">
+                <img style="width: 7vw;" src="${dados_composicoes[codigo]?.imagem || logo}">
                 <div style="color: #222; display: flex; flex-direction: column; justify-content: start; align-items: start;">
                     <label style="font-size: 0.8vw;">Descrição</label>
                     <label>${dados_composicoes[codigo].descricao}</label>
