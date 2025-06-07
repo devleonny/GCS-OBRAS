@@ -249,7 +249,7 @@ async function identificacaoUser() {
 
     let permissao = acesso.permissao
 
-    if (document.title !== 'PDF' && acesso.usuario) {
+    if (document.title !== 'PDF' && acesso.usuario) { //292
 
         let config = ''
 
@@ -259,13 +259,16 @@ async function identificacaoUser() {
         }
 
         let texto = `
-            <div style="position: relative; display: fixed;">
-                <div style="position: absolute; top: 10px; right: 10px; display: flex; justify-content: center; align-items: center; gap: 10px;">
-                    ${config}
-                    <label onclick="deseja_sair()"
-                    style="cursor: pointer; color: white; font-family: 'Poppins', sans-serif;">${acesso.usuario} • ${permissao} • Desconectar • ${versao}</label>
+            <div onclick="painelUsuarios(this)" style="font-family: 'Poppins', sans-serif; position: fixed; top: 10px; right: 10px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <div class="botaoUsuarios">
+                    <img src="imagens/online.png">
+                    <label>Online</label>
                 </div>
+                ${config}
+                <label onclick="deseja_sair()"
+                style="cursor: pointer; color: white;">${acesso.usuario} • ${permissao} • Desconectar • ${versao}</label>
             </div>
+
         `
         document.body.insertAdjacentHTML('beforebegin', texto)
     }
@@ -1591,7 +1594,7 @@ function connectWebSocket() {
     socket = new WebSocket(WS_URL);
 
     socket.onopen = () => {
-        if(acesso) socket.send(JSON.stringify({ tipo: 'autenticar', usuario: acesso.usuario }));
+        if (acesso) socket.send(JSON.stringify({ tipo: 'autenticar', usuario: acesso.usuario }));
         console.log(`🟢🟢🟢 WS ${data_atual('completa')} 🟢🟢🟢`);
     };
 
@@ -1600,7 +1603,9 @@ function connectWebSocket() {
         let caminho = data?.caminho || ''
         let base = caminho.split('/')[0]
 
-        if (base !== 'registrosAlteracoes') console.log('📢', data);
+        if (base !== 'registrosAlteracoes' && data.tipo !== 'usuarios_online') console.log('📢', data)
+
+        if (data.tipo == 'usuarios_online') localStorage.setItem('usuariosOnline', JSON.stringify(data.usuarios))
 
         if (base == 'aprovacoes') aprovacoes_pendentes()
 
@@ -1613,6 +1618,49 @@ function connectWebSocket() {
         console.log(`Tentando reconectar em ${reconnectInterval / 1000} segundos...`);
         setTimeout(connectWebSocket, reconnectInterval);
     };
+
+}
+
+function painelUsuarios(elementoOrigial) {
+
+    let divUsuarios = document.getElementById('divUsuarios')
+    if(divUsuarios) return divUsuarios.remove()
+
+    let usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []
+    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+
+    let stringUsuarios = {
+        online: '',
+        offline: ''
+    }
+
+    dados_setores = Object.entries(dados_setores).sort((a, b) => a[0].localeCompare(b[0]))
+
+    for ([usuario, objeto] of dados_setores) {
+
+        let status = usuariosOnline.includes(usuario) ? 'online' : 'offline'
+
+        stringUsuarios[status] += `
+        <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
+            <img src="imagens/${status}.png" style="width: 2vw;">
+            <label>${usuario}</label>
+            <label style="font-size: 0.6vw;">${objeto.setor}</label>
+        </div>
+        `
+    }
+
+    let pos = elementoOrigial.getBoundingClientRect();
+
+    let acumulado = `
+    <div id="divUsuarios" class="divOnline" style="position: absolute; left: ${pos.left + window.scrollX}px; top: ${pos.bottom + window.scrollY}px;">
+        <label><strong>ONLINE</strong></label>
+        ${stringUsuarios.online}
+        <label><strong>OFFLINE</strong></label>
+        ${stringUsuarios.offline}
+    </div>
+    `
+
+    document.body.insertAdjacentHTML('beforeend', acumulado)
 
 }
 
