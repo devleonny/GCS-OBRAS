@@ -1,12 +1,25 @@
 body {
     font-size: 0.8em;
     margin-bottom: 10vh;
+    margin-top: 6vh;
     padding: 0;
     font-family: 'Poppins', sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
+}
+
+.top {
+    display: flex;
+    width: 100%;
+    margin: 20px;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #222222bf;
+    padding: 10px;
+    border-radius: 5px;
+    gap: 20px;
 }
 
 .divOnline {
@@ -21,6 +34,21 @@ body {
     justify-content: start;
     flex-direction: column;
     z-index: 9999;
+}
+
+.cabecalhoUsuario {
+    background-color: #22272bb4;
+    font-family: 'Poppins', sans-serif;
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    z-index: 9999;
+    padding: 5px;
+    border-radius: 15px;
 }
 
 .botaoUsuarios {
@@ -529,7 +557,6 @@ body {
 }
 
 #content {
-    margin-top: 40px;
     width: 95%;
     display: flex;
     flex-direction: column;

@@ -10,12 +10,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 
     <style>
-        body {
-            font-size: 0.8em;
-            background: linear-gradient(45deg, #151749, #B12425);
-            animation: none;
-        }
-
         .valor_zero {
             cursor: pointer;
             white-space: nowrap;
@@ -34,18 +28,6 @@
             padding: 5px;
         }
 
-        .top {
-            display: flex;
-            width: 100%;
-            margin: 20px;
-            align-items: center;
-            justify-content: space-between;
-            background-color: #222222bf;
-            padding: 10px;
-            border-radius: 5px;
-            gap: 20px;
-        }
-
         .tabela {
             border-collapse: collapse;
         }
@@ -56,19 +38,6 @@
 
         th {
             color: #222;
-        }
-
-        .numero-bonito {
-            cursor: pointer;
-            text-align: center;
-            height: 30px;
-            width: 100px;
-            font-weight: bold;
-            color: #ffffff;
-            background-color: #4CAF50;
-            border-radius: 5px;
-            margin: 5px;
-            text-align: center;
         }
 
         .modal-filtros {
@@ -152,61 +121,58 @@
 </head>
 
 <body>
-    <div id="content">
-        <div class="top">
+    <div class="top">
 
-            <img src="imagens/BG.png" style="width: 150px;">
+        <img src="imagens/BG.png" style="width: 150px;">
 
-            <label class="novo_titulo" style="font-size: 2.0em;">Composições</label>
+        <label class="novo_titulo" style="font-size: 2.0em;">Composições</label>
 
-            <div style="display: flex; justify-content: center; width: 30vw;">
+        <div style="display: flex; justify-content: center; width: 30vw;">
 
-                <div class="blocosCabecalho">
-                    <div onclick="window.location.href='inicial.html'">
-                        <label>Voltar</label>
-                        <img src="imagens/voltar.png">
-                    </div>
-
-                    <div onclick="recuperar_composicoes()">
-                        <label>Atualizar</label>
-                        <img src="imagens/atualizar_2.png">
-                    </div>
-
-                    <div onclick="para_excel('tabela_composicoes')">
-                        <label>Excel</label>
-                        <img src="imagens/excel.png">
-                    </div>
+            <div class="blocosCabecalho">
+                <div onclick="window.location.href='inicial.html'">
+                    <label>Voltar</label>
+                    <img src="imagens/voltar.png">
                 </div>
 
-                <div class="blocosCabecalho">
+                <div onclick="recuperar_composicoes()">
+                    <label>Atualizar</label>
+                    <img src="imagens/atualizar_2.png">
+                </div>
 
-                    <div id="adicionar_item" onclick="cadastrar_editar_item()">
-                        <label>Cadastrar Item</label>
-                        <img src="imagens/add.png">
-                    </div>
-                    <div id="btn-criar-lpu">
-                        <label>Cadastrar LPU</label>
-                        <img src="imagens/add.png">
-                    </div>
-                    <div onclick="abrirFiltros()">
-                        <label>Filtrar Campos</label>
-                        <img src="imagens/pesquisar.png">
-                    </div>
-                    <!--
+                <div onclick="para_excel('tabela_composicoes')">
+                    <label>Excel</label>
+                    <img src="imagens/excel.png">
+                </div>
+            </div>
+
+            <div class="blocosCabecalho">
+
+                <div id="adicionar_item" onclick="cadastrar_editar_item()">
+                    <label>Cadastrar Item</label>
+                    <img src="imagens/add.png">
+                </div>
+                <div id="btn-criar-lpu">
+                    <label>Cadastrar LPU</label>
+                    <img src="imagens/add.png">
+                </div>
+                <div onclick="abrirFiltros()">
+                    <label>Filtrar Campos</label>
+                    <img src="imagens/pesquisar.png">
+                </div>
+                <!--
                     <div>
                         <label>Mostrar Itens Inativos</label>
                         <input onclick="carregar_tabela_v2()" type="checkbox" name="itensInativos"
                             id="checkboxItensInativos">
                     </div>
                     -->
-                </div>
-
             </div>
+
         </div>
-
-        <div id="composicoes" style="display: flex; width: 100%; justify-content: space-between;"></div>
-
     </div>
+
+    <div id="composicoes" style="display: flex; width: 100%; justify-content: space-between;"></div>
 
 </body>
 

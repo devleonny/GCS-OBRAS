@@ -120,19 +120,6 @@ th {
   color: #222;
 }
 
-.top {
-  position: relative;
-  display: flex;
-  width: 95%;
-  margin: 40px 0 20px 0;
-  align-items: center;
-  justify-content: space-between;
-  background-color: #222222bf;
-  padding: 10px;
-  border-radius: 5px;
-  gap: 20px;
-}
-
 .painelPagamentos {
   border: solid 1px #797979;
   border-radius: 3px;

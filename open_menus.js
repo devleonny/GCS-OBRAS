@@ -249,24 +249,17 @@ async function identificacaoUser() {
 
     let permissao = acesso.permissao
 
-    if (document.title !== 'PDF' && acesso.usuario) { //292
-
-        let config = ''
-
-        if (permissao == 'adm') {
-            config = `
-            <img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="configs()">`
-        }
+    if (document.title !== 'PDF' && acesso.usuario) {
 
         let texto = `
-            <div onclick="painelUsuarios(this)" style="font-family: 'Poppins', sans-serif; position: fixed; top: 10px; right: 10px; display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <div onclick="painelUsuarios(this)" class="cabecalhoUsuario">
                 <div class="botaoUsuarios">
                     <img src="imagens/online.png">
                     <label>Online</label>
                 </div>
-                ${config}
+                ${acesso.permissao == 'adm' ? `<img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="configs()">` : ''}
                 <label onclick="deseja_sair()"
-                style="cursor: pointer; color: white;">${acesso.usuario} • ${permissao} • Desconectar • ${versao}</label>
+                style="cursor: pointer; color: white;">${acesso.usuario} • ${acesso.permissao} • ${acesso.setor} • Sair</label>
             </div>
 
         `

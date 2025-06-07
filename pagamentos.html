@@ -9,7 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
     <style>
-
         .vitrificado {
             padding: 20px;
             border-radius: 3px;
@@ -33,18 +32,6 @@
             border-radius: 5px;
             padding: 5px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .top {
-            display: flex;
-            width: 100%;
-            margin: 20px;
-            align-items: center;
-            justify-content: space-between;
-            background-color: #222222bf;
-            padding: 10px;
-            border-radius: 5px;
-            gap: 20px;
         }
 
         .btn_detalhes {
@@ -74,34 +61,30 @@
 
 <body>
 
-    <div id="content">
+    <div class="top">
+        <img src="imagens/BG.png" style="width: 150px;">
+        <label class="novo_titulo" style="font-size: 2.0em;">Reembolsos e Pagamentos</label>
 
-        <div class="top">
-            <img src="imagens/BG.png" style="width: 150px;">
-            <label class="novo_titulo" style="font-size: 2.0em;">Reembolsos e Pagamentos</label>
+        <div style="display: flex; flex-direction: column; align-items: end; width: 15vw;">
 
-            <div style="display: flex; flex-direction: column; align-items: end; width: 15vw;">
-
-                <div class="blocosCabecalho">
-                    <div onclick="window.location.href='inicial.html'">
-                        <label>Voltar</label>
-                        <img src="imagens/voltar.png">
-                    </div>
-
-                    <div onclick="recuperarPagamentos()">
-                        <label>Atualizar</label>
-                        <img src="imagens/atualizar_2.png">
-                    </div>
+            <div class="blocosCabecalho">
+                <div onclick="window.location.href='inicial.html'">
+                    <label>Voltar</label>
+                    <img src="imagens/voltar.png">
                 </div>
 
+                <div onclick="recuperarPagamentos()">
+                    <label>Atualizar</label>
+                    <img src="imagens/atualizar_2.png">
+                </div>
             </div>
+
         </div>
-
-        <div id="div_pagamentos"></div>
-
-        <div id="overlay" class="overlay"></div>
-
     </div>
+
+    <div id="div_pagamentos"></div>
+
+    <div id="overlay" class="overlay"></div>
 
 </body>
 
