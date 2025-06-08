@@ -30,7 +30,7 @@ function ativarCloneGCS(ativar) {
 
 }
 
-async function verificarAlertas() { //29
+async function verificarAlertas() {
 
     await sincronizarDados('alertasChamados', true)
     let alertasChamados = await recuperarDados('alertasChamados') || {}
@@ -53,7 +53,11 @@ async function verificarAlertas() { //29
 
     }
 
-    return contador
+    let contadorMensagens = document.getElementById('contadorMensagens')
+    if (contadorMensagens) {
+        contadorMensagens.style.display = contador == 0 ? 'none' : 'flex'
+        contadorMensagens.textContent = contador
+    }
 
 }
 
@@ -77,11 +81,15 @@ async function enviarMensagem(button, his) {
 
     alerta.respostas[idMensagem] = resposta
 
-    enviar(`alertasChamados/${his}/respostas/${idMensagem}`, resposta)
-
+    await enviar(`alertasChamados/${his}/respostas/${idMensagem}`, resposta)
     await inserirDados(alertasChamados, 'alertasChamados')
-    remover_popup()
     await verificarAlertas()
+    remover_popup()
+
+    let divAlertas = document.getElementById('divAlertas')
+    if (divAlertas) divAlertas.remove()
+    await painelMensagens()
+
 }
 
 function carregarIcones() {
@@ -159,14 +167,14 @@ async function identificacaoUser() {
 
     carregarIcones() // ícones da tela inicial;
     aprovacoes_pendentes() // Aprovações de desconto;
+    verificarAlertas() // Verificar a quantidade de mensagens;
 
     let painelMensagens = ''
     if (!modoClone) {
-        let msgNaoLidas = await verificarAlertas()
         painelMensagens = `
         <div style="position: relative; display: flex; align-items: center; justify-content: center;">
             <img src="imagens/mensagem.png" style="width: 2vw; cursor: pointer;" onclick="abrirMensagens(this)">
-            ${msgNaoLidas > 0 ? `<div class="labelQuantidade">${msgNaoLidas}</div>` : ''}
+            <div id="contadorMensagens" style="display: none;" class="labelQuantidade"></div>
         </div>`
     }
 
@@ -265,7 +273,7 @@ async function abrirMensagens(elementoOrigial) { //29
             alertas += `
                 <div class="contornoMensagem">
 
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="irChamado('${alerta.manutencao}')">
                         <label class="labelMensagem"><strong>Clique aqui</strong> [${alerta.chamado}]</label>
                     </div>
                     <br>
@@ -289,6 +297,20 @@ async function abrirMensagens(elementoOrigial) { //29
 
 }
 
+async function irChamado(idChamado) {
+
+    let irChamado = JSON.parse(localStorage.getItem('irChamado')) || false
+    if (irChamado) {
+        await sincronizarDados('dados_manutencao')
+        await abrir_manutencao(irChamado)
+        localStorage.removeItem('irChamado')
+    } else {
+        localStorage.setItem('irChamado', JSON.stringify(idChamado))
+        window.location.href = 'chamados.html'
+    }
+
+}
+
 async function marcarLido(input, his, idMensagem) {
 
     let alertasChamados = await recuperarDados('alertasChamados') || {}
@@ -297,11 +319,8 @@ async function marcarLido(input, his, idMensagem) {
     alerta.respostas[idMensagem].lido = input.checked
 
     await inserirDados(alertasChamados, 'alertasChamados')
-
-    console.log(input.checked);
-
-
-    enviar(`alertasChamados/${his}/respostas/${idMensagem}/lido`, input.checked)
+    await enviar(`alertasChamados/${his}/respostas/${idMensagem}/lido`, input.checked)
+    await verificarAlertas()
 
 }
 
@@ -480,7 +499,7 @@ function overlayAguarde() {
                 left: 0;
                 width: 100%;
                 height: 100%;
-                z-index: 9999;
+                z-index: 10005;
                 font-size: 1.5em;
                 border-radius: 3px;
             ">
@@ -525,84 +544,80 @@ async function reprocessar_offline() {
     }
 }
 
-function inserirDados(dados, nome_da_base) {
-    const request = indexedDB.open('Bases');
-    let novaVersao;
+async function inserirDados(dados, nome_da_base) {
+    const modoClone = JSON.parse(localStorage.getItem('modoClone')) || false;
+    if (modoClone) nome_da_base = `${nome_da_base}_clone`;
 
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    const db = await abrirBanco('Bases');
 
-    if (modoClone) nome_da_base = `${nome_da_base}_clone`
-
-    request.onsuccess = function (event) {
-        const db = event.target.result;
-
-        if (!db.objectStoreNames.contains(nome_da_base)) {
-            novaVersao = db.version + 1;
-            db.close();
-
-            const upgradeRequest = indexedDB.open('Bases', novaVersao);
-
-            upgradeRequest.onupgradeneeded = function (event) {
-                const upgradedDB = event.target.result;
-                upgradedDB.createObjectStore(nome_da_base, { keyPath: 'id' });
-                console.log(`Store "${nome_da_base}" criada com sucesso.`);
-            };
-
-            upgradeRequest.onsuccess = function (event) {
-                const upgradedDB = event.target.result;
-                executarTransacao(upgradedDB, nome_da_base, dados);
-            };
-
-            upgradeRequest.onerror = function (event) {
-                console.error('Erro ao atualizar versão do banco:', event.target.error);
-            };
-        } else {
-            executarTransacao(db, nome_da_base, dados);
-        }
-    };
-
-    request.onerror = function (event) {
-        console.error('Erro ao abrir o banco de dados:', event.target.error);
-    };
+    if (!db.objectStoreNames.contains(nome_da_base)) {
+        const novaVersao = db.version + 1;
+        db.close();
+        const upgradedDB = await atualizarVersaoBanco('Bases', novaVersao, nome_da_base);
+        await executarTransacao(upgradedDB, nome_da_base, dados);
+    } else {
+        await executarTransacao(db, nome_da_base, dados);
+    }
 }
 
+// Função para abrir banco
+function abrirBanco(nome) {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(nome);
+        request.onsuccess = event => resolve(event.target.result);
+        request.onerror = event => reject(event.target.error);
+    });
+}
+
+// Função para atualizar versão e criar objectStore
+function atualizarVersaoBanco(nome, versao, nome_da_base) {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(nome, versao);
+
+        request.onupgradeneeded = event => {
+            const db = event.target.result;
+            db.createObjectStore(nome_da_base, { keyPath: 'id' });
+            console.log(`Store "${nome_da_base}" criada com sucesso.`);
+        };
+
+        request.onsuccess = event => resolve(event.target.result);
+        request.onerror = event => reject(event.target.error);
+    });
+}
+
+
 function executarTransacao(db, nome_da_base, dados) {
+    return new Promise((resolve, reject) => {
+        if (!dados) return resolve();
 
-    if (!dados) {
-        return
-    }
+        const transaction = db.transaction([nome_da_base], 'readwrite');
+        const store = transaction.objectStore(nome_da_base);
 
-    const transaction = db.transaction([nome_da_base], 'readwrite');
-    const store = transaction.objectStore(nome_da_base);
+        const clearRequest = store.clear();
 
-    const clearRequest = store.clear();
+        clearRequest.onsuccess = () => {
+            try {
+                if (Array.isArray(dados)) {
+                    dados.forEach(item => {
+                        item.id = 1;
+                        const addRequest = store.put(item);
+                        addRequest.onerror = event => console.error('Erro ao adicionar item:', event.target.error);
+                    });
+                } else {
+                    dados.id = 1;
+                    const addRequest = store.put(dados);
+                    addRequest.onerror = event => console.error('Erro ao adicionar item:', event.target.error);
+                }
+            } catch (err) {
+                reject(err);
+            }
+        };
 
-    clearRequest.onsuccess = function () {
-        if (Array.isArray(dados)) {
-            dados.forEach(item => {
-                item.id = 1;
-                const addRequest = store.put(item);
-                addRequest.onerror = function (event) {
-                    console.error('Erro ao adicionar item:', event.target.error);
-                };
-            });
-        } else {
-            dados.id = 1;
-            const addRequest = store.put(dados);
-            addRequest.onerror = function (event) {
-                console.error('Erro ao adicionar item:', event.target.error);
-            };
-        }
-    };
+        clearRequest.onerror = event => reject(event.target.error);
+        transaction.onerror = event => reject(event.target.error);
 
-    clearRequest.onerror = function (event) {
-        console.error('Erro ao limpar os registros anteriores:', event.target.error);
-    };
-
-    transaction.onerror = function (event) {
-        console.error('Erro durante a transação:', event.target.errorCode);
-    };
-
+        transaction.oncomplete = () => resolve();
+    });
 }
 
 async function recuperarDados(nome_da_base) {
@@ -655,7 +670,7 @@ function openPopup_v2(elementoHTML, titulo, nao_remover_anteriores) {
     <div id="temp_pop" 
     style="
     position: fixed;
-    z-index: 100001;
+    z-index: 10001;
     left: 0;
     top: 0;
     width: 100%;
@@ -2223,5 +2238,5 @@ async function sincronizarDados(base, overlayOff) {
 
     await inserirDados(dadosMesclados, base)
 
-    if (!overlayOff) remover_popup()
+    if (!overlayOff) removerOverlay()
 }

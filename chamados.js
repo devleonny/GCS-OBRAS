@@ -2,6 +2,7 @@ let filtro_manutencao = {}
 let filtro;
 
 carregar_manutencoes()
+irChamado() // Necessário para reproduzir o chamado quando alguém clicar;
 
 async function recuperar_manutencoes() {
     await sincronizarDados('dados_manutencao')
@@ -139,9 +140,8 @@ async function carregar_manutencoes() {
         dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
     }
 
-    // 🔥 ORDENANDO DO MAIS RECENTE PARA O MENOS RECENTE
     let listaManutencoes = Object.entries(dados_manutencao).sort((a, b) => {
-        let [dataA, horaA] = a[1].data.split(", "); // Separando data e hora
+        let [dataA, horaA] = a[1].data.split(", ");
         let [dataB, horaB] = b[1].data.split(", ");
 
         let dataHoraA = new Date(dataA.split("/").reverse().join("-") + "T" + horaA);
@@ -212,10 +212,7 @@ async function carregar_manutencoes() {
         filtrar_manutencoes('TODOS')
     }
 
-    let aguarde = document.getElementById('aguarde')
-    if (aguarde) {
-        aguarde.remove()
-    }
+    removerOverlay()
 }
 
 async function abrir_manutencao(id) {
@@ -320,15 +317,11 @@ async function abrir_manutencao(id) {
     }
 
     let div_historico = document.getElementById('historico')
-    let historicos = manutencao.historico || {};
     let infos = "";
-
-    //exibe os registro subsequentes (alterações) com "Alterado Por"
     let contagem = 0
-    for (his in historicos) {
+    for ([his, historico] of Object.entries(manutencao?.historico || {})) {
         contagem++
 
-        let historico = historicos[his]
         let imagem;
 
         switch (historico.status_manutencao) {
@@ -354,11 +347,13 @@ async function abrir_manutencao(id) {
         let sino = `
         <div style="position: relative;">
             ${alertasChamados[his] ? `<img id="${his}" src="imagens/concluido.png" style="width: 1.5vw; position: absolute; top: -10px; left: -10px;">` : ''}
-            ${historico.usuario == acesso.usuario ? `<img src="gifs/sino1.gif" class="sino" onclick="ativarNotificacao(this, '${id}', '${his}')">`: ''}
+            ${salvarPrimeiroUsuario(manutencao?.historico || {}) != acesso.usuario && historico.usuario == acesso.usuario
+                ? `<img src="gifs/sino1.gif" class="sino" onclick="ativarNotificacao(this, '${id}', '${his}')">`
+                : ''}
         </div>
         `
         infos += `
-        <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px;">
+        <div style="display: flex; align-items: flex-start; gap: 10px;">
             <div style="display: flex; flex-direction: column; align-items: start; width: 35%;">
                 <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 5px;">
                     <img src="imagens/${imagem}.png" style="width: 30px;">
@@ -371,21 +366,20 @@ async function abrir_manutencao(id) {
             </div>
             <div style="width: 70%; display: flex; text-align: center; align-items: center; gap: 8px">
                 <label style="text-align: center"><strong>Comentário: </strong></label>
-                <textarea style="width: 100%vw; height: 50px; background-color: white; border: 1px solid #ccc; 
-                        padding: 8px; resize: none; font-size: 0.9em;" readonly>${historico.comentario}</textarea>
+                <textarea style="background-color: white; width: 50%;" readonly>${historico.comentario}</textarea>
                 ${contagem != 1 ? sino : ''}
 
             </div>
         </div>
-        <hr style="width: 100%; margin: 10px 0;">
+        <hr style="width: 100%;">
         `;
     }
 
     let elemento = `
         <br>
-        <div style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px; width: 70vw; padding: 5px;">Histórico</div>
+        <div style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px; padding: 5px;">Histórico</div>
 
-        <div style="width: 70vw; background-color: #d2d2d2; color: #222; padding: 5px;">
+        <div style="background-color: #d2d2d2; color: #222; padding: 5px;">
             ${infos}
         </div>
         `
@@ -396,25 +390,12 @@ async function abrir_manutencao(id) {
 
 function salvarPrimeiroUsuario(historico) {
 
-    // Verifica se o objeto de histórico existe e não está vazio
     if (historico && dicionario(historico)) {
-        // Obtém a primeira chave do objeto
         const primeiraChave = Object.keys(historico)[0];
-        // Retorna o nome do usuário do primeiro registro
         return historico[primeiraChave].usuario
     }
-    // Retorna null se o histórico estiver vazio ou não existir
+
     return historico;
-}
-
-function retornarPrimeiroHistorico(historico) {
-
-    if (historico && dicionario(historico)) {
-        const primeiraChave = Object.keys(historico)[0];
-        return historico[primeiraChave]
-    }
-
-    return;
 }
 
 async function capturar_html_pdf(id) {
@@ -433,6 +414,8 @@ async function capturar_html_pdf(id) {
     let campos = ['nome', 'cnpj', 'bairro', 'cep', 'cidade', 'estado']
     let pessoas = ['tecnico', 'cliente']
     let divs = ''
+
+    if(!manutencao) return removerOverlay()
 
     pessoas.forEach(pessoa => {
         let elementos = ''
@@ -567,203 +550,167 @@ async function capturar_html_pdf(id) {
 
 
 async function criar_manutencao(id) {
-    let permissao = "user"
-    let setor = ""
 
-    const usuarioValido = acesso && acesso.usuario && dados_setores[acesso.usuario];
+    let displayBotaoAnexos = (acesso.permissao == "adm" || acesso.setor == "LOGÍSTICA") ? "flex" : "none"
 
-    // Check if acesso and acesso.usuario exist and the user exists in dados_setores
-    if (usuarioValido) {
-        permissao = dados_setores[acesso.usuario].permissao || "user"
-        setor = dados_setores[acesso.usuario].setor || ""
-    }
+    if (!id) id = gerar_id_5_digitos()
 
-    let displayBotaoAnexos = (permissao == "adm" || setor == "LOGÍSTICA") ? "flex" : "none"
+    let tela = `
+            <div style="width: 100%; display: flex; align-items: center; justify-content: space-evenly; color: #222; padding: 5px;">
+                <div style="display: flex; flex-direction: column; align-items: start;">
 
-    let termo = 'Editar'
-    let botao = 'Atualizar'
-    let pdf = `
-        <div onclick="capturar_html_pdf('${id}')" class="contorno_botoes" style="background-color: #B12425; display: flex; align-items: center; justify-content: center; gap: 10px;">
-            <img src="imagens/pdf.png" style="cursor: pointer; width: 2vw;">
-            <label>PDF</label>
-        </div>
-    `
-
-    let excluir = `
-        <div style="position: absolute; bottom: 0; left: 2vw; display: flex; justify-content: center; align-items: center; gap: 5px;" onclick="confirmar_exclusao('${id}')">
-            <img src="imagens/cancel.png" style="cursor: pointer; width: 1vw;">
-            <label style="font-size: 0.8vw; cursor: pointer;">Excluir Manutenção</label>
-        </div>
-    `
-
-    if (id == undefined) {
-        termo = 'Criar'
-        botao = 'Enviar para Logística'
-        pdf = ''
-        excluir = ''
-        id = gerar_id_5_digitos()
-    }
-
-    let acumulado = `
-        <div style="position: relative;" id="tela">
-
-            <div style="background-color: white; border-radius: 3px; padding: 5px; font-size: 0.9vw; width: 70vw;">
-
-                <div style="position: relative; display: flex; align-items: center; justify-content: start; color: #222; background-color: #d2d2d2; padding: 5px; border-radius: 3px;">
-                    <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
-
-                        <label style="font-size: 1.2vw;">Cliente | Loja</label>
-                        <label id="codigo_cliente" style="display: none"></label>
-                        <div style="position: relative;">
-                            <textarea type="text" id="cliente" oninput="sugestoes(this, 'clientes')"
-                                placeholder="..."></textarea>
-                        </div>
-
-                        <div id="endereco_cliente"
-                            style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;">
-                        </div>
-
+                    <label style="font-size: 1.2vw;">Cliente | Loja</label>
+                    <label id="codigo_cliente" style="display: none"></label>
+                    <div style="position: relative;">
+                        <textarea type="text" id="cliente" oninput="sugestoes(this, 'clientes')"
+                            placeholder="..."></textarea>
                     </div>
 
-                    <div style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
-                        <label style="font-size: 1.2vw;">TÉCNICO</label>
-                        <label id="codigo_tecnico" style="display: none"></label>
-                        <div style="position: relative;">
-                            <textarea type="text" id="tecnico" oninput="sugestoes(this, 'clientes')"
-                                placeholder="..."></textarea>
-                        </div>
-
-                        <div id="endereco_tecnico"
-                            style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;">
-                        </div>
-                    </div>
-
-                    <div style="display: flex; flex-direction: column; align-items: start; gap: 5px;">
-                        <div
-                            style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: start; gap: 20px;">
-                            <label style="font-size: 1.2vw;">Status Manutenção</label>
-                            <select onchange="aparecer_campo_nf(this)" id="status_manutencao"
-                                style="padding: 5px; border-radius: 3px; cursor: pointer; width: 10vw; font-size: 0.8vw;">
-                                <option>MANUTENÇÃO</option>
-                                <option>EMITIR NOTA</option>
-                                <option>REQUISIÇÃO AVULSA</option>
-                                <option>MATERIAL SEPARADO</option>
-                                <option>MATERIAL ENVIADO</option>
-                                <option>FINALIZADO</option>
-                                <option>REPROVADO</option>
-                            </select>
-                        </div>
-
-                        <div
-                            style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
-                            <label style="font-size: 1.2vw;">Kit Técnico</label>
-                            <input id="kit" type="checkbox" style="width: 2vw; height: 2vw; cursor: pointer;"
-                                onclick="alterar_kit(this)">
-                        </div>
-
-                        <div id="div_chamado"
-                            style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
-                            <label style="font-size: 1.2vw;">Chamado</label>
-                            <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text"
-                                placeholder="..." id="chamado">
-                        </div>
-
-                        <div id="div_previsao"
-                            style="position: relative; width: 25vw; display: flex; align-items: center; justify-content: left; gap: 20px;">
-                            <label style="font-size: 1.2vw;">Previsão</label>
-                            <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="date"
-                                placeholder="..." id="previsao">
-                        </div>
-
-                        <div id="div_NF"
-                            style="display: none; position: relative; width: 25vw; align-items: center; justify-content: left; gap: 20px;">
-                            <label style="font-size: 1.2vw;">NF</label>
-                            <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text"
-                                placeholder="..." id="NF">
-                        </div>
-
-                        <div
-                            style="position: relative; width: 25vw; display: flex; flex-direction: column; align-items: start;">
-                            
-                            <label style="font-size: 1.2vw;">Comentário</label>
-                            <textarea type="text" placeholder="..." id="comentario" style="max-width: 280px;"></textarea>
-                        </div>
-
-                        <div style="display: flex; justify-content: start; align-items: center; gap: 5px; width: 100%;">
-                            <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
-                                <label style="font-size: 1.2vw;">Anexos</label>
-                                <label class="contorno_botoes" for="anexo_pedido" style="display: ${displayBotaoAnexos}; justify-content: center; border-radius: 50%;">
-                                    <img src="imagens/anexo.png" style="cursor: pointer; width: 1vw;">
-                                    <input type="file" id="anexo_pedido" style="display: none;" onchange="salvar_anexos_manutencao(this, '${id}')">
-                                </label>
-                            </div>
-                            <label onclick="mostrar_anexos(this)" style="text-decoration: underline; cursor: pointer;">Exibir</label>
-                        </div>
-                        
-                        <div id="lista-anexos" style="display: none; align-items: start; justify-content: start; flex-direction: column;"></div>
+                    <div id="endereco_cliente"
+                        style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;">
                     </div>
 
                 </div>
 
-                <br>
-
-                <table class="tabela">
-
-                    <thead>
-                        <tr>
-                            <th>Part Number</th>
-                            <th>Descrição</th>
-                            <th>Quantidade</th>
-                            <th>Comentário</th>
-                            <th>Estoque</th>
-                            <th>Estoque Usado</th>
-                            <th>Remover</th>
-                        </tr>
-                    </thead>
-
-                    <tbody id="linhasManutencao">
-                        <tr id="excluir_inicial">
-                            <td colspan="7" style="text-align: center;">Lista Vazia</td>
-                        </tr>
-                    </tbody>
-
-                </table>
-
-                <br>
-
-                <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
-                    <div onclick="adicionar_linha_manut()" class="contorno_botoes"
-                        style="background-color: #151749; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        <img src="imagens/chamados.png" style="cursor: pointer; width: 2vw;">
-                        <label>Adicionar Peça</label>
+                <div style="position: relative; display: flex; flex-direction: column; align-items: start;">
+                    <label style="font-size: 1.2vw;">TÉCNICO</label>
+                    <label id="codigo_tecnico" style="display: none"></label>
+                    <div style="position: relative;">
+                        <textarea type="text" id="tecnico" oninput="sugestoes(this, 'clientes')"
+                            placeholder="..."></textarea>
                     </div>
-                    <div onclick="enviar_manutencao('${id}')" class="contorno_botoes"
-                        style="background-color: green; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        <img src="imagens/estoque.png" style="cursor: pointer; width: 2vw">
-                        <label>${botao}</label>
+
+                    <div id="endereco_tecnico"
+                        style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;">
                     </div>
-                    ${pdf}
-                    <div onclick="atualizar_base_clientes()" class="bex" style="background-color: #151749; color: white;">
-                        <img src="imagens/atualizar.png" style="cursor: pointer; width: 2vw;">
-                        <label">Sincronizar Clientes/Técnicos</label>
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: start; gap: 5px;">
+
+                    <div style=" display: flex; align-items: center; justify-content: start; gap: 20px;">
+                        <label style="font-size: 1.2vw;">Status</label>
+                        <select onchange="aparecer_campo_nf(this)" id="status_manutencao"
+                            style="padding: 5px; border-radius: 3px; cursor: pointer; width: 10vw; font-size: 0.8vw;">
+                            <option>MANUTENÇÃO</option>
+                            <option>EMITIR NOTA</option>
+                            <option>REQUISIÇÃO AVULSA</option>
+                            <option>MATERIAL SEPARADO</option>
+                            <option>MATERIAL ENVIADO</option>
+                            <option>FINALIZADO</option>
+                            <option>REPROVADO</option>
+                        </select>
                     </div>
-                    <div onclick="recuperar_estoque()" class="bex" style="background-color: #151749; color: white;">
-                        <img src="imagens/sync.png" style="cursor: pointer; width: 2vw;">
-                        <label">Sincronizar Estoque</label>
+
+                    <div
+                        style="display: flex; align-items: center; justify-content: left; gap: 20px;">
+                        <label style="font-size: 1.2vw;">Kit Técnico</label>
+                        <input id="kit" type="checkbox" style="width: 2vw; height: 2vw; cursor: pointer;"
+                            onclick="alterar_kit(this)">
                     </div>
+
+                    <div id="div_chamado"
+                        style="display: flex; align-items: center; justify-content: left; gap: 20px;">
+                        <label style="font-size: 1.2vw;">Chamado</label>
+                        <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text"
+                            placeholder="..." id="chamado">
+                    </div>
+
+                    <div id="div_previsao"
+                        style="display: flex; align-items: center; justify-content: left; gap: 20px;">
+                        <label style="font-size: 1.2vw;">Previsão</label>
+                        <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="date"
+                            placeholder="..." id="previsao">
+                    </div>
+
+                    <div id="div_NF"
+                        style="display: none; align-items: center; justify-content: left; gap: 20px;">
+                        <label style="font-size: 1.2vw;">NF</label>
+                        <input style="font-size: 1.1vw; padding: 5px; border-radius: 3px; width: 10vw;" type="text"
+                            placeholder="..." id="NF">
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; align-items: start; width: 100%;">
+                        
+                        <label style="font-size: 1.2vw;">Comentário</label>
+                        <textarea type="text" placeholder="..." id="comentario" style="width: 90%;"></textarea>
+                    </div>
+
+                    <div style="display: flex; justify-content: start; align-items: center; gap: 5px; width: 100%;">
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
+                            <label style="font-size: 1.2vw;">Anexos</label>
+                            <label class="contorno_botoes" for="anexo_pedido" style="display: ${displayBotaoAnexos}; justify-content: center; border-radius: 50%;">
+                                <img src="imagens/anexo.png" style="cursor: pointer; width: 1vw;">
+                                <input type="file" id="anexo_pedido" style="display: none;" onchange="salvar_anexos_manutencao(this, '${id}')">
+                            </label>
+                        </div>
+                        <label onclick="mostrar_anexos(this)" style="text-decoration: underline; cursor: pointer;">Exibir</label>
+                    </div>
+                    
+                    <div id="lista-anexos" style="display: none; align-items: start; justify-content: start; flex-direction: column;"></div>
                 </div>
 
             </div>
+            `
+    let tabela = ` 
+            <hr style="width: 100%;">
+            <table class="tabela">
 
-        </div>
+                <thead>
+                    <tr>
+                        <th>Part Number</th>
+                        <th>Descrição</th>
+                        <th>Quantidade</th>
+                        <th>Comentário</th>
+                        <th>Estoque</th>
+                        <th>Estoque Usado</th>
+                        <th>Remover</th>
+                    </tr>
+                </thead>
 
-        <label id="data" style="position: absolute; bottom: 0; right: 1vw; font-size: 0.8vw;">${data_atual('completa')}</label>
-        ${excluir}
+                <tbody id="linhasManutencao">
+                    <tr id="excluir_inicial">
+                        <td colspan="7" style="text-align: center;">Lista Vazia</td>
+                    </tr>
+                </tbody>
 
-        <div id="historico"></div>
+            </table>
         `
 
-    openPopup_v2(acumulado, `${termo} Requisição de Materiais`)
+    let layoutBotao = (nome, funcao, img) => {
+        return `
+                <div onclick="${funcao}" class="botoesChamado">
+                    <img src="imagens/${img}.png" style="cursor: pointer; width: 2vw;">
+                    <label>${nome}</label>
+                </div>
+            `
+    }
+
+    let botoes = `
+            <div style="width: 60vw; display: flex; align-items: center; justify-content: start; gap: 5px;">
+
+                ${layoutBotao('Adicionar Peça', 'adicionar_linha_manut()', 'chamados')}
+                ${layoutBotao('Salvar', `enviar_manutencao('${id}')`, 'estoque')}
+                ${layoutBotao('PDF', `capturar_html_pdf('${id}')`, 'pdf')}
+                ${layoutBotao('Sincronizar Clientes/Técnicos', `atualizar_base_clientes()`, 'atualizar3')}
+                ${layoutBotao('Sincronizar Estoque', `sincronizarEstoque()`, 'cloudsync')}
+                ${layoutBotao('Excluir Manutenção', `confirmar_exclusao('${id}')`, 'cancel')}
+
+            </div>
+        `
+    let acumulado = `
+        <div class="telaChamado">
+            ${tela}
+            ${tabela}
+            <div id="historico" style="width: 100%;"></div>
+        </div>
+        ${botoes}
+        `
+
+    openPopup_v2(acumulado, `Requisição de Materiais`)
+}
+
+async function sincronizarEstoque() {
+    await sincronizarDados('dados_estoque')
 }
 
 async function ativarNotificacao(img, id, his) {
@@ -771,12 +718,12 @@ async function ativarNotificacao(img, id, his) {
     let div = img.parentElement
     let imgs = div.querySelectorAll('img')
 
-    if(imgs.length > 1) return // O alerta já foi emitido;
+    if (imgs.length > 1) return // O alerta já foi emitido;
 
     let dados_manutencao = await recuperarDados('dados_manutencao') || {}
     let manutencao = dados_manutencao[id]
     console.log(manutencao);
-    
+
     let historico = manutencao.historico[his]
     let alertasChamados = await recuperarDados('alertasChamados') || {}
     let idMensagem = gerar_id_5_digitos()
@@ -882,22 +829,19 @@ async function enviar_manutencao(id) {
 
     overlayAguarde()
 
-    let campos = ['codigo_tecnico', 'codigo_cliente', 'comentario', 'status_manutencao', 'data', 'chamado']
+    let campos = ['codigo_tecnico', 'codigo_cliente', 'comentario', 'status_manutencao', 'chamado']
     let manutencao = {}
     manutencao.usuario = acesso.usuario
     manutencao.analista = acesso.nome_completo
 
     let dados_manutencao = await recuperarDados('dados_manutencao') || {}
-
     manutencao.historico = dados_manutencao[id]?.historico || {}
 
-    // Atualiza o status atual da requisição
     manutencao.status_manutencao = document.getElementById('status_manutencao').value;
 
     let previsao = document.getElementById('previsao');
 
     if (previsao && previsao.value) {
-        // Converte "DD/MM/YYYY" para "YYYY-MM-DD" se necessário
         let partes = previsao.value.split("/");
         if (partes.length === 3) {
             manutencao.previsao = `${partes[2]}-${partes[1]}-${partes[0]}`;
@@ -942,6 +886,7 @@ async function enviar_manutencao(id) {
     })
 
     manutencao.pecas = pecas
+    manutencao.data = data
 
     campos.forEach(campo => {
         let elemento = document.getElementById(campo)
@@ -951,9 +896,7 @@ async function enviar_manutencao(id) {
     })
 
     let kit = document.getElementById('kit')
-    if (kit.checked) {
-        manutencao.chamado = 'KIT TÉCNICO'
-    }
+    if (kit.checked) manutencao.chamado = 'KIT TÉCNICO'
 
     // Anexos 
     manutencao.anexos = {
@@ -1157,18 +1100,9 @@ async function definir_campo(elemento, campo, string_html, omie, id) {
 
 async function atualizar_base_clientes() {
 
-    if (document.getElementById('tela')) {
-
-        overlayAguarde()
-
-        await recuperar_clientes()
-
-        let aguarde = document.getElementById('aguarde')
-        if (aguarde) {
-            aguarde.remove()
-        }
-
-    }
+    overlayAguarde()
+    await recuperar_clientes()
+    removerOverlay()
 
 }
 
