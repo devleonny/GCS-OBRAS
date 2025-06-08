@@ -273,7 +273,7 @@ async function abrirMensagens(elementoOrigial) { //29
             alertas += `
                 <div class="contornoMensagem">
 
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="irChamado('${alerta.manutencao}')">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="irChamado('${alerta.manutencao}', '${his}')">
                         <label class="labelMensagem"><strong>Clique aqui</strong> [${alerta.chamado}]</label>
                     </div>
                     <br>
@@ -297,15 +297,28 @@ async function abrirMensagens(elementoOrigial) { //29
 
 }
 
-async function irChamado(idChamado) {
-
-    let irChamado = JSON.parse(localStorage.getItem('irChamado')) || false
-    if (irChamado) {
+async function irChamado(idChamado, idAlerta) {
+    let mensagem = `
+        <div style="display: flex; padding: 2vw; gap: 2vw; align-items: center; justify-content: center;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <label>O chamado não existe mais...</label>
+        </div>
+    `
+    let chamadoArmazenado = localStorage.getItem('irChamado')
+    
+    if (chamadoArmazenado) {
+        chamadoArmazenado = JSON.parse(chamadoArmazenado)
         await sincronizarDados('dados_manutencao')
-        await abrir_manutencao(irChamado)
+        let dados_manutencao = await recuperarDados('dados_manutencao') || {}
+        if (dados_manutencao[chamadoArmazenado.idChamado]) {
+            await abrir_manutencao(chamadoArmazenado.idChamado)
+        } else {
+            openPopup_v2(mensagem, 'AVISO')
+        }
         localStorage.removeItem('irChamado')
-    } else {
-        localStorage.setItem('irChamado', JSON.stringify(idChamado))
+        deletar(`alertasChamados/${chamadoArmazenado.idAlerta}`)
+    } else if (idChamado) {
+        localStorage.setItem('irChamado', JSON.stringify({idChamado, idAlerta}))
         window.location.href = 'chamados.html'
     }
 

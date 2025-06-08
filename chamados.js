@@ -252,6 +252,14 @@ async function abrir_manutencao(id) {
     }
 
     let pessoas = ['tecnico', 'cliente']
+    let labelString = (termo, valor) =>{
+        return `
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: start;">
+            <label style="font-size: 0.7vw;"><strong>${termo}</strong></label>
+            <label style="text-align: left;">${valor}</label>
+        </div>
+        `
+    }
 
     pessoas.forEach(pessoa => {
         let chave = `codigo_${pessoa}`
@@ -260,12 +268,13 @@ async function abrir_manutencao(id) {
             let item = dados_clientes_omie[manutencao[chave]] || {};
             document.getElementById(chave).textContent = manutencao[chave]
             document.getElementById(pessoa).value = item.nome || '--';
+
             document.getElementById(`endereco_${pessoa}`).innerHTML = `
-            <label><strong>CNPJ/CPF:</strong> ${item.cnpj || '--'}</label>
-            <label style="text-align: left;"><strong>Rua/Bairro:</strong> ${item.bairro || '--'}</label>
-            <label><strong>CEP:</strong> ${item.cep || '--'}</label>
-            <label><strong>Cidade:</strong> ${item.cidade || '--'}</label>
-            <label><strong>Estado:</strong> ${item.estado || '--'}</label>        
+            ${labelString('CNPJ/CPF', item?.cnpj || '--')}
+            ${labelString('Rua/Bairro', item?.bairro || '--')}
+            ${labelString('CEP', item?.cep || '--')}
+            ${labelString('Cidade', item?.cidade || '--')}
+            ${labelString('Estado', item?.estado || '--')}      
         `
         }
     })
@@ -566,8 +575,7 @@ async function criar_manutencao(id) {
                             placeholder="..."></textarea>
                     </div>
 
-                    <div id="endereco_cliente"
-                        style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;">
+                    <div id="endereco_cliente" style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;">
                     </div>
 
                 </div>
@@ -580,8 +588,7 @@ async function criar_manutencao(id) {
                             placeholder="..."></textarea>
                     </div>
 
-                    <div id="endereco_tecnico"
-                        style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;">
+                    <div id="endereco_tecnico" style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 3px;">
                     </div>
                 </div>
 
