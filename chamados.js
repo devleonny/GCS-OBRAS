@@ -222,7 +222,7 @@ async function abrir_manutencao(id) {
     let dados_manutencao = await recuperarDados('dados_manutencao') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let dados_estoque = await recuperarDados('dados_estoque') || {}
-    let alertas = await recuperarDados('alertas') || {}
+    let alertasChamados = await recuperarDados('alertasChamados') || {}
     let dados_clientes_omie = {}
 
     for (cnpj in dados_clientes) {
@@ -351,18 +351,12 @@ async function abrir_manutencao(id) {
                 imagem = 'cancel'
         }
 
-        let checkAtivado = ''
-        if (alertas.chamados && alertas.chamados[id] && alertas.chamados[id].historico[his]) {
-            checkAtivado = `<img id="${his}" src="imagens/concluido.png" style="width: 1.5vw; position: absolute; top: -10px; left: -10px;">`
-        }
-
         let sino = `
         <div style="position: relative;">
-            ${checkAtivado}
-            <img src="gifs/sino1.gif" class="sino" onclick="ativarNotificacao(this, '${id}', '${his}')">
+            ${alertasChamados[his] ? `<img id="${his}" src="imagens/concluido.png" style="width: 1.5vw; position: absolute; top: -10px; left: -10px;">` : ''}
+            ${historico.usuario == acesso.usuario ? `<img src="gifs/sino1.gif" class="sino" onclick="ativarNotificacao(this, '${id}', '${his}')">`: ''}
         </div>
         `
-
         infos += `
         <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px;">
             <div style="display: flex; flex-direction: column; align-items: start; width: 35%;">
@@ -772,70 +766,45 @@ async function criar_manutencao(id) {
     openPopup_v2(acumulado, `${termo} Requisição de Materiais`)
 }
 
-async function removerAlertaChamado(id, his) {
-
-    let alertas = await recuperarDados('alertas') || {}
-
-    if (alertas.chamados[id].historico[his]) {
-        delete alertas.chamados[id].historico[his]
-    }
-
-    deletar(`alertas/chamados/${id}/historico/${his}`)
-    await inserirDados(alertas, 'alertas')
-}
-
 async function ativarNotificacao(img, id, his) {
 
     let div = img.parentElement
     let imgs = div.querySelectorAll('img')
 
-    let dados_manutencao = await recuperarDados('dados_manutencao')
-    let historico = dados_manutencao[id].historico[his]
+    if(imgs.length > 1) return // O alerta já foi emitido;
 
-    if (imgs.length > 1) {
-
-        let img = document.getElementById(his)
-
-        await removerAlertaChamado(id, his)
-
-        img.remove()
-
-    } else {
-
-        let dados = {
-            manutencao: id,
-            historico: his,
-            enviadoDe: acesso.usuario,
-            comentario: historico.comentario,
-            data: historico.data,
-            destinado: historico.usuario
+    let dados_manutencao = await recuperarDados('dados_manutencao') || {}
+    let manutencao = dados_manutencao[id]
+    console.log(manutencao);
+    
+    let historico = manutencao.historico[his]
+    let alertasChamados = await recuperarDados('alertasChamados') || {}
+    let idMensagem = gerar_id_5_digitos()
+    let dados = {
+        chamado: manutencao.chamado,
+        manutencao: id,
+        historico: his,
+        enviadoDe: acesso.usuario,
+        comentario: historico.comentario,
+        data: historico.data,
+        destinado: salvarPrimeiroUsuario(manutencao?.historico || manutencao.usuario),
+        respostas: {
+            [idMensagem]: {
+                usuario: acesso.usuario,
+                data: historico.data,
+                mensagem: historico.comentario,
+                lido: false
+            }
         }
-
-        let alertas = await recuperarDados('alertas') || {}
-
-        if (!alertas.chamados) {
-            alertas.chamados = {}
-        }
-
-        if (!alertas.chamados[id]) {
-            alertas.chamados[id] = {}
-        }
-
-        if (!alertas.chamados[id].historico) {
-            alertas.chamados[id].historico = {}
-        }
-
-        alertas.chamados[id].historico[his] = dados
-
-        enviar(`alertas/chamados/${id}/historico/${his}`, dados)
-        await inserirDados(alertas, 'alertas')
-
-        let confirmado = `<img id="${his}" src="imagens/concluido.png" style="width: 1.5vw; position: absolute; top: -10px; left: -10px;">`
-
-        div.insertAdjacentHTML('beforeend', confirmado)
     }
 
-    await verificarAlertas()
+    alertasChamados[his] = dados
+    await inserirDados(alertasChamados, 'alertasChamados')
+    enviar(`alertasChamados/${his}`, dados)
+
+    let confirmado = `<img id="${his}" src="imagens/concluido.png" style="width: 1.5vw; position: absolute; top: -10px; left: -10px;">`
+
+    div.insertAdjacentHTML('beforeend', confirmado)
 
 }
 

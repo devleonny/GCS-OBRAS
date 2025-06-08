@@ -1,4 +1,3 @@
-var versao = 'v3.0.5'
 let acesso = JSON.parse(localStorage.getItem('acesso'))
 let dados_setores = {}
 let filtrosUsuarios = {}
@@ -13,9 +12,8 @@ const itensImportados = [
 ]
 
 document.addEventListener('keydown', function (event) {
-    if (event.key === 'F5') {
-        f5()
-    }
+    if (event.key === 'F5') f5()
+    if (event.key === 'F2') openPopup_v2(new Date().getTime(), 'TIMESTAMP', true)
 })
 
 function f5() {
@@ -32,115 +30,58 @@ function ativarCloneGCS(ativar) {
 
 }
 
-async function verificarAlertas() {
+async function verificarAlertas() { //29
 
-    let auxliarAlertas = JSON.parse(localStorage.getItem('auxliarAlertas')) || {}
-    if (auxliarAlertas) {
-        if (auxliarAlertas.modulo == 'chamados') {
-            try {
-                setTimeout(async function () {
-                    let dados_manutencao = await recuperarDados('dados_manutencao') || {}
-                    if (dados_manutencao[auxliarAlertas.info.idChamado]) {
-                        await abrir_manutencao(auxliarAlertas.info.idChamado)
-                    } else {
-                        await removerAlertaChamado(auxliarAlertas.info.idChamado, auxliarAlertas.info.his)
-                    }
+    await sincronizarDados('alertasChamados', true)
+    let alertasChamados = await recuperarDados('alertasChamados') || {}
 
-                }, 500)
+    let contador = 0
 
-            } catch (err) {
-                console.log(err);
-            }
+    for (let [his, alerta] of Object.entries(alertasChamados)) {
 
-            localStorage.removeItem('auxliarAlertas')
-        }
-    }
+        let respostas = alerta?.respostas || {}
 
-    let ultimoTimestamp = await ultimo_timestamp('alertas') || 0
-    let timestamps = JSON.parse(localStorage.getItem('timestamps')) || {}
-    let alertas = await recuperarDados('alertas') || {}
-
-    if (timestamps.alertas > ultimoTimestamp) {
-        alertas = await receber('alertas') || {}
-        await inserirDados(alertas, 'alertas')
-        timestamps.alertas = new Date().getTime()
-        localStorage.setItem('timestamps', JSON.stringify(timestamps))
-    }
-
-    let mostrar = false
-    let notificacoes = ''
-    if (alertas.chamados) { // Alertas para Chamados
-
-        for (let idAlerta in alertas.chamados) {
-            let chamados = alertas.chamados[idAlerta]
-
-            notificacoes += `
-            <label style="font-size: 0.9vw;"><strong>Chamados</strong></label>
-            <hr style="width: 100%;">
-            `
-            for (let idChamado in chamados) {
-                let historicos = chamados[idChamado]
-
-                for (let his in historicos) {
-                    let historico = historicos[his]
-
-                    if (historico.destinado == acesso.usuario) {
-                        notificacoes += `
-                        <div class="itemAlerta">
-                            <label><strong>${historico.enviadoDe}</strong> • Peço a sua atenção aqui</label>
-                            <label><strong>Data</strong> ${historico.data}</label>
-                            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                                <textarea readOnly>${historico.comentario}</textarea>
-                                <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="irChamado('${historico.manutencao}', '${his}')">
-                            </div>
-                        </div>
-                        `
-                    }
-
-                    mostrar = true
-                }
+        for (let [idMensagem, resposta] of Object.entries(respostas)) {
+            if (
+                (alerta.enviadoDe == acesso.usuario || alerta.destinado == acesso.usuario) // Precisam ser as pessoas envolvidas;
+                && !resposta.lido // A mensagem precisa não ter sido lida;
+                && resposta.usuario != acesso.usuario // E o usuário que recebe tem quer ser diferente do usuário que enviou;
+            ) {
+                contador++
             }
         }
+
     }
 
-    let acumulado = `
-    <div class="alerta" id="painelAlertas" onclick="exibirNotificacoes()">
-        <div style="display: flex; justify-content: center; align-items: center; gap: 2vw;">
-            <img src="gifs/atencao.gif" style="border-radius: 50%; cursor: pointer; padding: 1vw;">
-            <label style="padding-right: 2vw; cursor: pointer;">ATENÇÃO</label>
-        </div>
-        <div style="display: none; flex-direction: column; align-items: start; justify-content: center; padding: 5px; height: max-content; max-height: 80vh; overflow: auto; " id="notificacoes">
-            ${notificacoes}
-        </div>
-    </div>
-    `
-
-    if (!mostrar) return
-
-    let painelAlertas = document.getElementById('painelAlertas')
-    if (painelAlertas) {
-        painelAlertas.remove()
-    }
-
-    document.body.insertAdjacentHTML('beforeend', acumulado)
+    return contador
 
 }
 
-async function irChamado(idChamado, his) {
+async function enviarMensagem(button, his) {
 
-    let auxliarAlertas = {
-        modulo: 'chamados',
-        info: { idChamado, his }
+    overlayAguarde()
+
+    let alertasChamados = await recuperarDados('alertasChamados') || {}
+    let alerta = alertasChamados[his]
+    let idMensagem = gerar_id_5_digitos()
+    if (!alerta.respostas) {
+        alerta.respostas = {}
     }
 
-    localStorage.setItem('auxliarAlertas', JSON.stringify(auxliarAlertas))
-    window.location.href = 'chamados.html'
+    let resposta = {
+        usuario: acesso.usuario,
+        data: data_atual('completa'),
+        mensagem: button.previousElementSibling.value,
+        lido: false
+    }
 
-}
+    alerta.respostas[idMensagem] = resposta
 
-function exibirNotificacoes() {
-    let notificacoes = document.getElementById('notificacoes')
-    notificacoes.style.display == 'none' ? notificacoes.style.display = 'flex' : notificacoes.style.display = 'none'
+    enviar(`alertasChamados/${his}/respostas/${idMensagem}`, resposta)
+
+    await inserirDados(alertasChamados, 'alertasChamados')
+    remover_popup()
+    await verificarAlertas()
 }
 
 function carregarIcones() {
@@ -149,76 +90,48 @@ function carregarIcones() {
 
     let ativar = JSON.parse(localStorage.getItem('modoClone')) || false
     let painel_geral = document.getElementById('painel_geral')
-
     let permissoesLiberadas = ['adm', 'gerente', 'diretoria', 'editor', 'log']
     let setoresLiberados = ['LOGÍSTICA']
-
     let moduloComposicoes = (permissoesLiberadas.includes(acesso.permissao) || setoresLiberados.includes(acesso.setor))
-
-    let registroHistorico = (
-        acesso.permissao == 'adm'
-    )
+    let registroHistorico = acesso.permissao == 'adm'
+    let atalho = (termo, img, funcao) => {
+        return `
+            <div class="block" style="flex-direction: column;" onclick="${funcao}">
+                <img src="imagens/${img}.png">
+                <label>${termo}</label>
+            </div>        
+        `
+    }
 
     let icones = `
-        <div class="block" style="flex-direction: column;" onclick="window.location.href='orcamentos.html'">
-            <img src="imagens/projeto.png">
-            <label>Orçamentos</label>
-        </div>
+        ${atalho('Orçamentos', 'projeto', `window.location.href='orcamentos.html'`)}
 
-        ${moduloComposicoes ? `
-        <div class="block" style="flex-direction: column;" onclick="window.location.href='composicoes.html'">
-            <img src="imagens/composicoes.png">
-            <label>Composições</label>
-        </div>` : ''}
+        ${moduloComposicoes
+            ? atalho('Composições', 'composicoes', `window.location.href='composicoes.html'`)
+            : ''}
 
-        <div class="block" style="flex-direction: column;" onclick="window.location.href='chamados.html'">
-            <img src="imagens/chamados.png">
-            <label>Chamados</label>
-        </div>
-        <div class="block" style="flex-direction: column;" onclick="window.location.href='cotacoes.html'">
-            <img src="imagens/cotacao2.png">
-            <label>Cotações</label>
-        </div>
-        <div class="block" style="flex-direction: column;" onclick="window.location.href='estoque.html'">
-            <img src="imagens/estoque.png">
-            <label>Estoque</label>
-        </div>
-        <div class="block" style="flex-direction: column;" onclick="window.location.href='pagamentos.html'">
-            <img src="imagens/reembolso.png">
-            <label>Reembolsos & Pagamentos</label>
-        </div>
-        <div class="block" style="flex-direction: column;" onclick="window.location.href='projetos.html'">
-            <img src="imagens/kanban.png">
-            <label>Painel Kanban</label>
-        </div>
-        <div class="block" style="flex-direction: column;" onclick="window.location.href='agenda.html'">
-            <img src="imagens/agenda.png">
-            <label>Agenda</label>
-        </div>
-         ${registroHistorico ? `
-        <div class="block" style="flex-direction: column;" onclick="window.location.href='historicoRegistros.html'">
-            <img src="imagens/historico.png" style="color: white">
-            <label>Histórico de Alterações GCS</label>
-        </div>` : ''}
+        ${atalho('Chamados', 'chamados', `window.location.href='chamados.html'`)}
+        ${atalho('Cotações', 'cotacao2', `window.location.href='cotacoes.html'`)}
+        ${atalho('Estoque', 'estoque', `window.location.href='estoque.html'`)}
+        ${atalho('Reembolsos & Pagamentos', 'reembolso', `window.location.href='pagamentos.html'`)}
+        ${atalho('Painel Kanban', 'kanban', `window.location.href='projetos.html'`)}
+        ${atalho('Agenda', 'agenda', `window.location.href='agenda.html'`)}
+
+         ${registroHistorico
+            ? atalho('Histórico de Alterações GCS', 'historico', `window.location.href='historicoRegistros.html'`)
+            : ''}
     `
 
     if (ativar) {
-
         icones = `
-            <div class="block" style="flex-direction: column;" onclick="window.location.href='orcamentos.html'">
-                <img src="imagens/projeto.png">
-                <label>Orçamentos</label>
-            </div>
-            ${moduloComposicoes ? `
-            <div class="block" style="flex-direction: column;" onclick="window.location.href='composicoes.html'">
-                <img src="imagens/composicoes.png">
-                <label>Composições</label>
-            </div>` : ''}
-             ${registroHistorico ? `
-                <div class="block" style="flex-direction: column;" onclick="window.location.href='historicoRegistros.html'">
-                    <img src="imagens/historico.png">
-                    <label>Histórico de Alterações GCS</label>
-                </div>` : ''}
+        ${atalho('Orçamentos', 'projeto', `window.location.href='orcamentos.html'`)}
+
+        ${moduloComposicoes
+                ? atalho('Composições', 'composicoes', `window.location.href='composicoes.html'`)
+                : ''}
+         ${registroHistorico
+                ? atalho('Histórico de Alterações GCS', 'historico', `window.location.href='historicoRegistros.html'`)
+                : ''}
              `
     }
 
@@ -242,10 +155,20 @@ async function identificacaoUser() {
     await sincronizarSetores()
     acesso = dados_setores[acesso.usuario]
     localStorage.setItem('acesso', JSON.stringify(acesso))
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
 
     carregarIcones() // ícones da tela inicial;
-    verificarAlertas() // Alertas disponíveis;
     aprovacoes_pendentes() // Aprovações de desconto;
+
+    let painelMensagens = ''
+    if (!modoClone) {
+        let msgNaoLidas = await verificarAlertas()
+        painelMensagens = `
+        <div style="position: relative; display: flex; align-items: center; justify-content: center;">
+            <img src="imagens/mensagem.png" style="width: 2vw; cursor: pointer;" onclick="abrirMensagens(this)">
+            ${msgNaoLidas > 0 ? `<div class="labelQuantidade">${msgNaoLidas}</div>` : ''}
+        </div>`
+    }
 
     if (document.title !== 'PDF' && acesso.usuario) {
 
@@ -255,6 +178,7 @@ async function identificacaoUser() {
                     <img src="imagens/online.png">
                     <label>Online</label>
                 </div>
+                ${painelMensagens}
                 ${acesso.permissao == 'adm' ? `<img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="configs()">` : ''}
                 <label onclick="deseja_sair()"
                 style="cursor: pointer; color: white;">${acesso.usuario} • ${acesso.permissao} • ${acesso.setor} • Sair</label>
@@ -288,6 +212,96 @@ async function sincronizarSetores() {
     localStorage.setItem('dados_setores', JSON.stringify(dadosMesclados))
 
     return dadosMesclados
+
+}
+
+async function abrirMensagens(elementoOrigial) { //29
+    let alertasChamados = await recuperarDados('alertasChamados') || {}
+    let divAlertas = document.getElementById('divAlertas')
+    if (divAlertas) return divAlertas.remove()
+
+    let alertas = ''
+    for (let [his, alerta] of Object.entries(alertasChamados)) {
+
+        if (alerta.destinado == acesso.usuario || alerta.enviadoDe == acesso.usuario) {
+
+            let mensagens = ''
+            for ([idMensagem, resposta] of Object.entries(alerta?.respostas || {})) {
+
+                let confirmacaoLeitura = ''
+                if (resposta.usuario != acesso.usuario) {
+                    confirmacaoLeitura = `
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
+                        <input type="checkbox" style="cursor: pointer;" onchange="marcarLido(this, '${his}', '${idMensagem}')" ${resposta.lido ? 'checked' : ''}>
+                        <label>Lido</label>
+                    </div>`
+                } else {
+                    confirmacaoLeitura = `<img src="imagens/${resposta.lido ? 'doublecheck' : 'naolido'}.png" style="width: 2vw;">`
+                }
+
+                mensagens += `
+                    <div style="display: flex; justify-content: center; align-items: start; width: 100%;">
+                        <span class="bordaWhatsapp"></span>
+                        <div class="balaoWhatsapp">
+                            <label><strong>${resposta.usuario}</strong> diz:</label>
+                            <label>${resposta.mensagem}</label>
+
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px; width: 100%;">
+                                <label><strong>${resposta.data}</strong></label>
+                                ${confirmacaoLeitura}
+                            </div>
+                        </div>
+                    </div>
+                `
+            }
+
+            mensagens += `
+                <div style="width: 100%; display: flex; align-items: center; justify-content: start;">
+                    <textarea placeholder="Digite uma mensagem"></textarea>
+                    <button style="background-color: green;" onclick="enviarMensagem(this, '${his}')">Enviar</button>
+                </div>
+            `
+
+            alertas += `
+                <div class="contornoMensagem">
+
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <label class="labelMensagem"><strong>Clique aqui</strong> [${alerta.chamado}]</label>
+                    </div>
+                    <br>
+                    ${mensagens}
+                </div>
+                `
+        }
+    }
+
+    let pos = elementoOrigial.getBoundingClientRect();
+
+    if (alertas == '') alertas = `<hr style="width: 100%;"><label>Você não possui mensagens no momento</label>`
+
+    let acumulado = `
+    <div id="divAlertas" class="divOnline" style="background-color: #d2d2d2; left: ${pos.left + window.scrollX}px; top: ${pos.bottom + window.scrollY}px;">
+        <label style="font-size: 1.2vw;">MENSAGENS</label>
+        ${alertas}
+    </div>
+    `
+    document.body.insertAdjacentHTML('beforeend', acumulado)
+
+}
+
+async function marcarLido(input, his, idMensagem) {
+
+    let alertasChamados = await recuperarDados('alertasChamados') || {}
+
+    let alerta = alertasChamados[his]
+    alerta.respostas[idMensagem].lido = input.checked
+
+    await inserirDados(alertasChamados, 'alertasChamados')
+
+    console.log(input.checked);
+
+
+    enviar(`alertasChamados/${his}/respostas/${idMensagem}/lido`, input.checked)
 
 }
 
@@ -1616,7 +1630,7 @@ function connectWebSocket() {
 function painelUsuarios(elementoOrigial) {
 
     let divUsuarios = document.getElementById('divUsuarios')
-    if(divUsuarios) return divUsuarios.remove()
+    if (divUsuarios) return divUsuarios.remove()
 
     let usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []
     let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
@@ -1641,10 +1655,10 @@ function painelUsuarios(elementoOrigial) {
         `
     }
 
-    let pos = elementoOrigial.getBoundingClientRect();
+    let pos = elementoOrigial.getBoundingClientRect(); //29
 
     let acumulado = `
-    <div id="divUsuarios" class="divOnline" style="position: absolute; left: ${pos.left + window.scrollX}px; top: ${pos.bottom + window.scrollY}px;">
+    <div id="divUsuarios" class="divOnline" style="left: ${pos.left + window.scrollX}px; top: ${pos.bottom + window.scrollY}px;">
         <label style="font-size: 0.8vw;"><strong>ONLINE</strong></label>
         ${stringUsuarios.online}
         <label style="font-size: 0.8vw;"><strong>OFFLINE</strong></label>
@@ -2050,29 +2064,6 @@ async function verificar_chamado_existente(chamado, id_atual, sequencial) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chamado, id_atual, sequencial, clone })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                resolve(data);
-            })
-            .catch(err => {
-                console.error(err)
-                reject()
-            });
-    })
-}
-
-async function ultimo_timestamp(tabela) {
-    return new Promise((resolve, reject) => {
-        fetch("https://leonny.dev.br/timestamps", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ tabela })
         })
             .then(response => {
                 if (!response.ok) {

@@ -23,12 +23,14 @@ body {
 }
 
 .divOnline {
+    position: absolute;
     border-radius: 3px;
-    height: 70vh;
+    height: max-content;
+    max-height: 70vh;
     overflow: auto;
     padding: 10px;
     background-color: white;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
     display: flex;
     align-items: start;
     justify-content: start;
@@ -39,7 +41,7 @@ body {
 .cabecalhoUsuario {
     background-color: #22272bb4;
     font-family: 'Poppins', sans-serif;
-    position: fixed;
+    position: absolute;
     top: 10px;
     right: 10px;
     display: flex;
@@ -49,6 +51,10 @@ body {
     z-index: 9999;
     padding: 5px;
     border-radius: 15px;
+}
+
+.cabecalhoUsuario label {
+    font-size: 1vw;
 }
 
 .botaoUsuarios {
@@ -304,6 +310,7 @@ body {
     background-color: #097fe6;
     padding: 5px;
     border-radius: 3px;
+    font-size: 0.8vw;
 }
 
 .select_da_lpu {
@@ -716,6 +723,70 @@ button {
     left: -100%;
     transition: right 0.5s ease;
     z-index: 150;
+}
+
+.labelQuantidade {
+    color: white;
+    position: absolute;
+    top: -5px;
+    right: -10px;
+    background-color: red;
+    border-radius: 50%;
+    width: 1.5vw;
+    height: 1.5vw;
+    font-size: 0.8vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bordaWhatsapp {
+    width: 0;
+    height: 0;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-right: 10px solid #ffea98;
+    /* mesma cor do balão */
+    margin-right: -1px;
+}
+
+.balaoWhatsapp {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.3);
+    background-color: #ffea98;
+    padding: 5px;
+    border-radius: 3px;
+    margin-bottom: 3px;
+}
+
+.contornoMensagem {
+    background-color: #ffffffe1;
+    margin-bottom: 5px;
+    width: 90%;
+    padding: 5px;
+    border-radius: 3px;
+    border: solid 1px grey;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+}
+
+.labelMensagem {
+    cursor: pointer;
+    font-size: 0.8vw;
+    padding: 3px;
+    border-radius: 3px;
+    background-color: #097fe6;
+    color: white;
+}
+
+.contornoMensagem label {
+    font-size: 0.7vw;
 }
 
 .flutuante.show {
