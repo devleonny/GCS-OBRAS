@@ -20,6 +20,8 @@ const desenvolvedores = {
 };
 
 function novoTicket() {
+    console.log('Usuários: ', dados_setores.nome_completo);
+    
     let opcoesPrioridade = `
         <option value="">Selecionar</option>
         <option value="baixa">🟢 Baixa</option>
@@ -192,6 +194,18 @@ function abrirPopupEdicao(ticketId, ticket) {
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <label style="font-weight: 600; color: #333;">Usuário</label>
+                    <input 
+                        type="text" 
+                        id="edit-usuario" 
+                        name="usuario" 
+                        value="${ticket.usuario || ''}"
+                        style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;" 
+                        required
+                    >
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 5px;">
                     <label style="font-weight: 600; color: #333;">Desenvolvedor</label>
                     <select id="edit-desenvolvedor" name="desenvolvedor" 
                             style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
@@ -232,6 +246,7 @@ function abrirPopupEdicao(ticketId, ticket) {
             // Atualizar dados do ticket
             ticket.status = formData.get('status');
             ticket.prioridade = formData.get('prioridade');
+            ticket.usuario = formData.get('usuario');
             ticket.desenvolvedor = formData.get('desenvolvedor');
 
             // Atualizar data de conclusão se finalizado
@@ -523,6 +538,7 @@ async function salvarTicket(ticketData) {
 
 // Função para salvar ticket editado
 async function salvarTicketEditado(ticketId, ticketData) {
+
     try {
         if (typeof recuperarDados === 'function' && typeof inserirDados === 'function' && typeof enviar === 'function') {
             let dados_tickets = await recuperarDados('dados_tickets') || {};
@@ -534,11 +550,11 @@ async function salvarTicketEditado(ticketId, ticketData) {
             dados_tickets[ticketId] = ticketData;
             localStorage.setItem('dados_tickets', JSON.stringify(dados_tickets));
         }
-
     } catch (error) {
         console.error('Erro ao salvar ticket editado:', error);
         throw error;
     }
+    
 }
 
 // Função para buscar dados do ticket para edição
@@ -814,7 +830,6 @@ function renderizarTabelaTickets(dados_tickets, div_tickets) {
     `;
     div_tickets.insertAdjacentHTML('beforeend', tabela);
 
-    console.log('Tabela renderizada, aplicando filtros...');
     filtrarTickets('TODOS');
 }
 
@@ -1059,6 +1074,7 @@ async function recuperar_tickets() {
     }
 
     await carregarTickets();
+
 }
 
 // Função auxiliar para capitalizar primeira letra (seguindo padrão do sistema)
@@ -1071,7 +1087,6 @@ function inicial_maiuscula(str) {
 document.addEventListener('DOMContentLoaded', function () {
     // Aguardar um pouco para garantir que todas as funções foram carregadas
     setTimeout(() => {
-        console.log('Iniciando carregamento de tickets...');
         carregarTickets();
     }, 500);
 });
