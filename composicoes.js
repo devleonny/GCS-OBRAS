@@ -41,6 +41,15 @@ async function recuperar_composicoes() {
 
 async function carregar_tabela_v2() {
 
+
+    let adicionar_item = document.getElementById('adicionar_item')
+    let btn_criar_lpu = document.getElementById('btn-criar-lpu')
+
+    let permitidos = ['adm', 'editor', 'diretoria', 'coordenacao']
+
+    adicionar_item.style.display = permitidos.includes(acesso.permissao) ? 'flex' : 'none'
+    btn_criar_lpu.style.display = permitidos.includes(acesso.permissao) ? 'flex' : 'none'
+
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
     if (Object.keys(dados_composicoes).length == 0) {
@@ -72,12 +81,6 @@ async function carregar_tabela_v2() {
 
     if (!divComposicoes) return
     divComposicoes.innerHTML = '';
-
-    let adicionar_item = document.getElementById('adicionar_item')
-    let btn_criar_lpu = document.getElementById('btn-criar-lpu')
-
-    adicionar_item.style.display = acesso.permissao == 'adm' ? 'flex' : 'none'
-    btn_criar_lpu.style.display = acesso.permissao == 'adm' ? 'flex' : 'none'
 
     let ths = {};
     let tsc = {};
@@ -131,7 +134,7 @@ async function carregar_tabela_v2() {
                     let agrupamentos = produto[chave]
 
                     for (item in agrupamentos) {
-                        
+
                         let tipo = dados_composicoes[item]?.tipo || '??'
 
                         info_agrupamentos += `
