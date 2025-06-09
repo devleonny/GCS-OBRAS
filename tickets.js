@@ -1,12 +1,8 @@
 // Preencher desenvolvedores apenas com usuários adm do dados_setores
 let desenvolvedores = {};
-if (typeof dados_setores === 'object') {
-    for (const key in dados_setores) {
-        if (dados_setores[key].permissao === 'adm' && dados_setores[key].setor === 'SUPORTE') {
-            desenvolvedores[key] = dados_setores[key];
-        }
-    }
-}
+Object.keys(dados_setores)
+    .filter(key => dados_setores[key].permissao === 'adm' && dados_setores[key].setor === 'SUPORTE')
+    .map(key => desenvolvedores[key] = dados_setores[key]);
 
 function novoTicket() {
     console.log('Usuários: ', dados_setores);
@@ -26,6 +22,7 @@ function novoTicket() {
         <option value="suporte">🛠️ Suporte Técnico</option>
         <option value="duvida">❓ Dúvida</option>
         <option value="melhoria">📈 Melhoria</option>
+        <option value="cadastrar item">➕ Cadastrar Item</option>
     `;
 
     let conteudo = `
@@ -68,9 +65,15 @@ function novoTicket() {
 
                 <div style="display: flex; flex-direction: column; gap: 5px;">
                     <label style="font-weight: 600; color: #333;">Descrição</label>
-                    <textarea id="ticket-descricao" name="descricao" required rows="4"
-                              style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; resize: vertical; font-family: inherit;"
-                              placeholder="Descreva detalhadamente o problema ou solicitação..."></textarea>
+                    <textarea 
+                        id="ticket-descricao" 
+                        name="descricao" 
+                        rows="4"
+                        maxlength="1500"
+                        style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; resize: vertical; font-family: inherit;"
+                        placeholder="Descreva detalhadamente o problema ou solicitação... (máx. 1500 caracteres)"
+                        required
+                    ></textarea>
                 </div>
 
                 <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
@@ -845,7 +848,9 @@ function mostrarContatoDesenvolvedor(ticketId, usuarioNome) {
     }
 
     // Mensagem padrão para WhatsApp
-    const mensagemPadrao = `Olá ${desenvolvedorNome}, tudo bem? Estou entrando em contato sobre o ticket #${ticketId} (aberto por ${usuarioNome}). Podemos conversar sobre isso?`;
+    const mensagemPadrao = `
+        Prezado ${desenvolvedorNome}, espero que esteja bem. Gostaria de tratar sobre o ticket #${ticketId}, aberto por ${usuarioNome}. Poderia, por gentileza, me auxiliar com este atendimento?
+    `;
 
     // Conteúdo do popup
     const conteudo = `
@@ -931,48 +936,54 @@ function copiarParaAreaTransferencia(texto) {
 
 // Função para filtrar tickets seguindo padrão do sistema
 function filtrarTickets(ultimo_status, col, texto, apenas_toolbar) {
-    if (!window.filtrosAtivosTickets) {
-        window.filtrosAtivosTickets = {};
-    }
+    if (!window.filtrosAtivosTickets) window.filtrosAtivosTickets = {};
 
     let filtro;
-
-    if (ultimo_status !== undefined) {
-        filtro = ultimo_status;
-    }
-
-    if (col !== undefined) {
-        window.filtrosAtivosTickets[col] = String(texto).toLowerCase();
-    }
+    if (ultimo_status !== undefined) filtro = ultimo_status;
+    if (col !== undefined) window.filtrosAtivosTickets[col] = String(texto).toLowerCase();
 
     let linhas_tickets = document.getElementById('linhas_tickets');
     if (!linhas_tickets) return;
 
-    let contadores = {
-        TODOS: 0,
-        listas: ['TODOS']
-    };
-
     let trs = linhas_tickets.querySelectorAll('tr');
+    let contadores = { TODOS: 0, listas: ['TODOS'] };
 
+    // Inicializa todos os status possíveis
     trs.forEach(tr => {
         let tds = tr.querySelectorAll('td');
         if (tds.length === 0) return;
-
-        // Status está na coluna 8 (apenas texto agora)
         let status = tds[9].textContent.toLowerCase().trim();
+        if (!contadores.listas.includes(status)) contadores.listas.push(status);
+        if (!contadores[status]) contadores[status] = 0;
+    });
 
+    // Conta todos os tickets para cada status (independente de filtro)
+    let totaisPorStatus = {};
+    contadores.listas.forEach(st => { if (st !== 'TODOS') totaisPorStatus[st] = 0; });
+    trs.forEach(tr => {
+        let tds = tr.querySelectorAll('td');
+        if (tds.length === 0) return;
+        let status = tds[9].textContent.toLowerCase().trim();
+        if (status in totaisPorStatus) totaisPorStatus[status]++;
+    });
+
+    // Total absoluto de tickets (sem filtro)
+    let totalAbsolutoTickets = trs.length;
+
+    // Agora, conte apenas os visíveis para cada status
+    trs.forEach(tr => {
+        let tds = tr.querySelectorAll('td');
+        if (tds.length === 0) return;
+        let status = tds[9].textContent.toLowerCase().trim();
         let mostrarLinha = true;
 
-        // Aplicar filtros de texto
+        // Filtros de texto
         for (let col in window.filtrosAtivosTickets) {
             let filtroTexto = window.filtrosAtivosTickets[col];
-
             if (filtroTexto && col < tds.length) {
                 let element = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].textContent;
                 let conteudoCelula = element.value ? element.value : element;
                 let texto_campo = String(conteudoCelula).toLowerCase();
-
                 if (!texto_campo.includes(filtroTexto)) {
                     mostrarLinha = false;
                     break;
@@ -980,34 +991,27 @@ function filtrarTickets(ultimo_status, col, texto, apenas_toolbar) {
             }
         }
 
-        // Aplicar filtro de status
-        if (filtro !== undefined) {
-            mostrarLinha = mostrarLinha && (status === filtro.toLowerCase() || filtro === 'TODOS');
+        // Filtro de status
+        if (filtro !== undefined && filtro !== 'TODOS') {
+            mostrarLinha = mostrarLinha && (status === filtro.toLowerCase());
         }
 
-        contadores.listas.push(status);
-        if (!contadores[status]) {
-            contadores[status] = 0;
-        }
-
-        if (mostrarLinha || status !== filtro) {
+        if (mostrarLinha) {
             contadores[status]++;
         }
 
-        if (filtro !== 'TODOS' || (filtro === 'TODOS' && mostrarLinha)) {
-            contadores['TODOS']++;
-        }
-
-        mostrarLinha = mostrarLinha && !apenas_toolbar;
         tr.style.display = mostrarLinha ? 'table-row' : 'none';
     });
 
-    // Atualizar toolbar seguindo padrão do sistema
+    // Soma dos visíveis para TODOS (não será mais usada para o contador da toolbar)
+    contadores['TODOS'] = contadores.listas
+        .filter(st => st !== 'TODOS')
+        .reduce((acc, st) => acc + (contadores[st] || 0), 0);
+
+    // Atualizar toolbar
     let toolbar = document.getElementById('toolbar');
     if (toolbar) {
         toolbar.innerHTML = '';
-        contadores.listas = [...new Set(contadores.listas)];
-
         let temp_fluxograma = {
             'TODOS': {},
             'não iniciado': {},
@@ -1016,37 +1020,31 @@ function filtrarTickets(ultimo_status, col, texto, apenas_toolbar) {
             'finalizado': {},
             'cancelado': {}
         };
-
         for (let st in temp_fluxograma) {
-            if (contadores.listas.includes(st.toLowerCase()) || st === 'TODOS') {
-                let bg = '#797979';
-                let bg2 = '#3d3c3c';
-
+            if (contadores.listas.includes(st) || st === 'TODOS') {
+                let bg = '#797979', bg2 = '#3d3c3c';
                 if ((filtro === st || (filtro === undefined && st === 'TODOS'))) {
-                    bg = '#d2d2d2';
-                    bg2 = '#222';
+                    bg = '#d2d2d2'; bg2 = '#222';
                 }
-
+                // 'TODOS' sempre mostra o total absoluto de tickets
+                let valor = (st === 'TODOS') ? totalAbsolutoTickets : totaisPorStatus[st] || 0;
                 let label = `
-                    <div onclick="filtrarTickets('${st}')" 
-                        style="background-color:${bg}; 
-                        color: #222; 
-                        display: flex; 
+                    <div onclick="filtrarTickets('${st}')"
+                        style="background-color:${bg};
+                        color: #222;
+                        display: flex;
                         flex-direction: column;
-                        justify-content: center; 
-                        align-items: center; 
-                                                gap: 3px;
+                        justify-content: center;
+                        align-items: center;
+                        gap: 3px;
                         cursor: pointer;
                         padding: 10px;
                         font-size: 0.8vw;
                         color: #222;
                         border-top-left-radius: 5px;
-                        border-top-right-radius: 5px;
-                        ">
-
+                        border-top-right-radius: 5px;">
                         <label>${inicial_maiuscula(st)}</label>
-                        <label style="text-align: center; background-color: ${bg2}; color: #d2d2d2; border-radius: 3px; padding-left: 10px; padding-right: 10px; width: 50%;">${contadores[st.toLowerCase()] || 0}</label>
-
+                        <label style="text-align: center; background-color: ${bg2}; color: #d2d2d2; border-radius: 3px; padding-left: 10px; padding-right: 10px; width: 50%;">${valor}</label>
                     </div>
                 `;
                 toolbar.insertAdjacentHTML('beforeend', label);

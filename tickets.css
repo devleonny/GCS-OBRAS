@@ -487,117 +487,150 @@ button[name="contato-dev"]:hover {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
-  padding: 28px 24px;
-  max-width: 380px;
-  width: 100%;
+  gap: 24px;
+  padding: 32px 28px;
+  max-width: 480px;
+  width: 96vw;
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(21, 23, 73, 0.10), 0 1.5px 4px rgba(0, 0, 0, 0.04);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(21, 23, 73, 0.16), 0 2px 8px rgba(0, 0, 0, 0.06);
   margin: 0 auto;
+  position: relative;
+  transition: box-shadow 0.2s;
 }
 
 .popup-title {
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
   color: #151749;
-  font-size: 1.35rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 800;
   text-align: center;
+  letter-spacing: 0.5px;
 }
 
 .dev-info-container {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  background: #f8f9fa;
-  padding: 16px 14px;
-  border-radius: 8px;
-  box-shadow: none;
+  gap: 14px;
+  background: linear-gradient(90deg, #f8f9fa 60%, #f1f3f7 100%);
+  padding: 20px 18px;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(21, 23, 73, 0.04);
 }
 
 .info-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  justify-content: space-between;
+  gap: 12px;
+  justify-content: flex-start;
+  border-bottom: 1px solid #ececec;
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+}
+
+.info-row:last-child {
+  border-bottom: none;
 }
 
 .info-label {
-  font-size: 0.98rem;
-  font-weight: 600;
-  color: #495057;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #23255c;
   text-align: left;
   min-width: 90px;
+  letter-spacing: 0.2px;
 }
 
 .info-value {
-  font-size: 0.98rem;
+  font-size: 1rem;
   color: #212529;
-  word-break: break-word;
   text-align: right;
   flex: 1;
+  /* max-width: 30px; */
+  width: 100%;
+  min-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  font-weight: 500;
 }
 
 .action-buttons {
   display: flex;
-  gap: 14px;
+  gap: 18px;
   justify-content: center;
   width: 100%;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .whatsapp-button {
-  padding: 8px 16px;
+  padding: 10px 22px;
   border: none;
-  border-radius: 6px;
-  background-color: #25D366;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #25D366 80%, #128C7E 100%);
   color: white;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 1rem;
-  transition: background-color 0.2s;
+  gap: 10px;
+  font-size: 1.08rem;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.08);
+  transition: background 0.2s, box-shadow 0.2s;
 }
 
 .whatsapp-button:hover {
-  background-color: #128C7E;
+  background: linear-gradient(90deg, #128C7E 60%, #25D366 100%);
+  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.13);
 }
 
 .whatsapp-icon {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
 .copy-button {
-  padding: 8px 16px;
+  padding: 10px 22px;
   border: none;
-  border-radius: 6px;
-  background-color: #151749;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #151749 80%, #23255c 100%);
   color: white;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.2s;
+  font-size: 1.08rem;
+  transition: background 0.2s;
+  box-shadow: 0 2px 8px rgba(21, 23, 73, 0.08);
 }
 
 .copy-button:hover {
-  background-color: #23255c;
+  background: linear-gradient(90deg, #23255c 60%, #151749 100%);
 }
 
-@media (max-width: 500px) {
+@media (max-width: 600px) {
   .dev-contact-popup {
-    padding: 16px 4vw;
-    max-width: 98vw;
+    padding: 14px 2vw;
+    max-width: 99vw;
+    border-radius: 10px;
   }
 
   .dev-info-container {
-    padding: 10px 4px;
+    padding: 10px 2vw;
+    border-radius: 8px;
   }
 
   .popup-title {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
+  }
+
+  .info-label,
+  .info-value {
+    font-size: 0.97rem;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: 10px;
   }
 }
