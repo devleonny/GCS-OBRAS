@@ -1879,7 +1879,7 @@ input[type=range]::-moz-range-thumb {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     max-height: 500px;
     overflow-y: auto;
-    z-index: 5000;
+    z-index: 10004;
 }
 
 .autocomplete-item {

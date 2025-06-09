@@ -980,7 +980,6 @@ function remover_esta_linha(td) {
 async function sugestoes(textarea, base) {
 
     let query = String(textarea.value).toUpperCase()
-
     let div_sugestoes = document.getElementById('div_sugestoes')
     if (div_sugestoes) {
         div_sugestoes.remove()
@@ -1001,7 +1000,7 @@ async function sugestoes(textarea, base) {
 
     let dados = await recuperarDados(`dados_${base}`) || {}
     let opcoes = ''
-
+    
     for (id in dados) {
         let item = dados[id]
         let info;
