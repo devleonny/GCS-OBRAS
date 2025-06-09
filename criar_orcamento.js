@@ -1641,14 +1641,14 @@ async function total() {
 
                         } else if (resultado.lucroPorcentagem < 10) {
                             valor_desconto.value = ''
-                            desconto = 0
                             avisoDesconto = 2 // Lucro mínimo atingido (10%);
 
                         } else if (isNaN(resultado.lucroLiquido)) {
                             valor_desconto.value = ''
-                            desconto = 0
                             avisoDesconto = 3 // ICMS creditado não registrado;
                         }
+
+                        desconto = avisoDesconto > 0 ? 0 : desconto // Retorna ao zero, caso tenha algum valor de erro;
 
                         itemSalvo.lucroLiquido = resultado.lucroLiquido
                         itemSalvo.lucroPorcentagem = resultado.lucroPorcentagem
