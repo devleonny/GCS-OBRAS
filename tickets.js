@@ -139,7 +139,7 @@ function novoTicket() {
             setTimeout(() => {
                 submitBtn.innerHTML = 'Criar Ticket';
                 submitBtn.style.backgroundColor = '#151749';
-            }, 2000);
+            }, 1000);
         }
     });
 
