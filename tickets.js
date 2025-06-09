@@ -6,7 +6,7 @@ Object.keys(dados_setores)
 
 function novoTicket() {
     console.log('Usuários: ', dados_setores);
-    
+
     let opcoesPrioridade = `
         <option value="">Selecionar</option>
         <option value="baixa">🟢 Baixa</option>
@@ -120,7 +120,7 @@ function novoTicket() {
             };
 
             await salvarTicket(ticketData);
-            await carregarTickets();
+            await recuperar_tickets();
 
             submitBtn.innerHTML = '✓ Criado!';
             submitBtn.style.backgroundColor = '#28a745';
@@ -188,11 +188,10 @@ function abrirPopupEdicao(ticketId, ticket) {
                 <div style="display: flex; flex-direction: column; gap: 5px;">
                     <label style="font-weight: 600; color: #333;">Usuário</label>
                     <select id="edit-usuario" name="usuario" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;" required>
-                        ${
-                            Object.values(dados_setores).map(user => 
-                                `<option value="${user.usuario}" ${ticket.usuario === user.usuario ? 'selected' : ''}>${user.usuario}</option>`
-                            ).join('')
-                        }
+                        ${Object.values(dados_setores).map(user =>
+        `<option value="${user.usuario}" ${ticket.usuario === user.usuario ? 'selected' : ''}>${user.usuario}</option>`
+    ).join('')
+        }
                     </select>
                 </div>
 
@@ -200,11 +199,10 @@ function abrirPopupEdicao(ticketId, ticket) {
                     <label style="font-weight: 600; color: #333;">Desenvolvedor</label>
                     <select id="edit-desenvolvedor" name="desenvolvedor" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
                         <option value="" ${!ticket.desenvolvedor ? 'selected' : ''}>Selecione o dev</option>
-                        ${
-                            Object.values(desenvolvedores).map(dev =>
-                                `<option value="${dev.usuario}" ${ticket.desenvolvedor === dev.usuario ? 'selected' : ''}>${dev.usuario}</option>`
-                            ).join('')
-                        }
+                        ${Object.values(desenvolvedores).map(dev =>
+            `<option value="${dev.usuario}" ${ticket.desenvolvedor === dev.usuario ? 'selected' : ''}>${dev.usuario}</option>`
+        ).join('')
+        }
                     </select>
                 </div>
 
@@ -249,7 +247,7 @@ function abrirPopupEdicao(ticketId, ticket) {
             }
 
             await salvarTicketEditado(ticketId, ticket);
-            await carregarTickets();
+            await recuperar_tickets();
 
             submitBtn.innerHTML = '✓ Salvo!';
             submitBtn.style.backgroundColor = '#28a745';
@@ -487,9 +485,9 @@ async function confirmarExclusaoTicket(ticketId) {
                 </div>
             `, 'Sucesso');
 
-            setTimeout(() => {
+            setTimeout(async () => {
                 remover_popup();
-                carregarTickets();
+                await recuperar_tickets();
             }, 1500);
         }
 
@@ -546,7 +544,7 @@ async function salvarTicketEditado(ticketId, ticketData) {
         console.error('Erro ao salvar ticket editado:', error);
         throw error;
     }
-    
+
 }
 
 // Função para buscar dados do ticket para edição
@@ -631,12 +629,13 @@ async function carregarTickets() {
 
         let dados_tickets = {};
 
-        // Tentar diferentes métodos de carregamento
+        // Sempre sincronize antes de ler!
+        if (typeof sincronizarDados === 'function') {
+            await sincronizarDados('dados_tickets');
+        }
+
         if (typeof recuperarDados === 'function') {
             dados_tickets = await recuperarDados('dados_tickets');
-        } else if (typeof sincronizarDados === 'function') {
-            await sincronizarDados('dados_tickets');
-            dados_tickets = JSON.parse(localStorage.getItem('dados_tickets') || '{}');
         } else {
             dados_tickets = JSON.parse(localStorage.getItem('dados_tickets') || '{}');
         }
@@ -826,7 +825,9 @@ function renderizarTabelaTickets(dados_tickets, div_tickets) {
 }
 
 // Função para mostrar popup de contato do desenvolvedor
-function mostrarContatoDesenvolvedor(ticketId, usuarioNome) {
+async function mostrarContatoDesenvolvedor(ticketId, usuarioNome) {
+    console.log('Dados recuperados: ', await recuperarDados('dados_tickets'));
+
     // Encontra a linha da tabela que contém o botão clicado
     const linha = event.target.closest('tr');
     if (!linha) return;
@@ -1071,9 +1072,9 @@ function inicial_maiuscula(str) {
 }
 
 // Verificar se as funções do sistema estão disponíveis no carregamento
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
     // Aguardar um pouco para garantir que todas as funções foram carregadas
-    setTimeout(() => {
-        carregarTickets();
+    setTimeout(async () => {
+        await recuperar_tickets();
     }, 500);
 });
