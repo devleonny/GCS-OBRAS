@@ -3725,13 +3725,15 @@ function mostrarElementoSeTiverPermissao({ listaDePermissao, elementoHTML }) {
 
     return usuarioTemPermissao ? elementoHTML : '';
 }
-
-
+async function teste() {
+    await modalLPUParceiro
+}
+teste()
 async function modalLPUParceiro() {
     const baseOrcamentos = await recuperarDados('dados_orcamentos') || {};
 
     let acumulado = '';
-    let cabecalhos = ['ID', 'Descrição', 'Medida', 'Quantidade', 'Valor Orçamento', 'Valor Líquido de Serviço', 'Valor Parceiro', 'Preço Total', 'Desvio'];
+    let cabecalhos = ['ID', 'Descrição', 'Medida', 'Quantidade', 'Valor Orçamento', 'Valor Total Orçado', 'Impostos (20%)', 'Margem (R$)', 'Valor Parceiro', 'Total Parceiro', 'Desvio'];
     let thSearch = '';
     let thHead = '';
     let linhas = '';
@@ -3747,45 +3749,135 @@ async function modalLPUParceiro() {
             </th>`;
     });
 
-   let orcamento = baseOrcamentos['ORCA_b48cd6b9-3fe8-486f-a1fd-ce9586876a01']
-        
-        let itensOrcamento = orcamento.dados_composicoes
-        console.log(itensOrcamento);
-        
-        for ([codigo, composicao ] of Object.entries(itensOrcamento)) {
-            console.log(composicao);
-            
-            if (composicao.tipo === 'SERVIÇO') {
-                let custo = composicao.custo
-                linhas += `
+    let orcamento = baseOrcamentos['ORCA_b48cd6b9-3fe8-486f-a1fd-ce9586876a01']
+
+    let itensOrcamento = orcamento.dados_composicoes
+    console.log(itensOrcamento);
+
+    for ([codigo, composicao] of Object.entries(itensOrcamento)) {
+        console.log(composicao);
+
+        if (composicao.tipo === 'SERVIÇO') {
+            let custo = composicao.custo
+            let qtde = composicao.qtde
+            let total = custo * qtde
+            let imposto = total * 0.2
+            linhas += `
             <tr>
-                <td>${id}</td>
+                <td>${codigo}</td>
                 <td>${composicao.descricao}</td>
                 <td>${composicao.unidade}</td>
-                <td>${composicao.qtde}</td>
-                <td>${custo}</td>
-                <td>${custo*0.52}</td>
-                <td><input type="number" class="campo"></td>
-                <
+                <td class="quantidade">${qtde}</td>
+                <td>${dinheiro(custo)}</td>
+                <td>${dinheiro(total)}</td>
+                <td>${dinheiro(imposto)}</td>
+                <td></td>
+                <td style="padding: 0; white-space: nowrap; height: 100%;">
+                    <div style="display: flex; align-items: stretch; gap: 4px; width: 100%; height: 100%; box-sizing: border-box; padding: 2px 5px;">
+                        <span style="display: flex; align-items: center;">R$</span>
+                        <input
+                            oninput="calcularLpuParceiro()" 
+                            type="number" 
+                            class="input-lpuparceiro" 
+                            step="0.01"
+                        >
+                    </div>
+                </td>
+                 <td></td>
+                <td><label></label></td>
+                
             </tr>
         `
-            }     
         }
+    }
 
     let tabela =
-        `<table class="tabela" style="width: 90vw;>
+        `<table class="tabela"">
             <thead>
                 <tr>${thHead}</tr>
                 <tr>${thSearch}</tr>
             </thead>
             <tbody id="bodyTabela">${linhas}</tbody>
         </table>`;
-
+    let stringHtml = (titulo, valor) => {
+        return `
+        <div style="display: flex; justifty-content: start; align-items: center; gap: 5px;">
+        <label><strong>${titulo}</strong>:</label>
+        <label>${valor}</label>
+        </div>
+        `
+    }
+    let dadosEmpresa = orcamento.dados_orcam
     acumulado =
-        `<br>
-        <div style="height: 80vh; overflow: auto;">
-            ${tabela}
-        </div>`;
+        `
+        <div style="background-color: #d2d2d2; padding: 5px; border-radius: 3px">
+        <div style="display: flex">
+            <div style=" display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px; margin-left: 10px">
+            ${stringHtml('Data', data_atual('completa'))}
+            ${stringHtml('Analista', acesso.nome_completo)}
+            ${stringHtml('Cliente',dadosEmpresa.cliente_selecionado)}
+            ${stringHtml('CNPJ',dadosEmpresa.cnpj)}
+            ${stringHtml('Endereço',dadosEmpresa.bairro)}
+            ${stringHtml('Cidade',dadosEmpresa.cidade)}
+            ${stringHtml('Estado',dadosEmpresa.estado)}
+            ${stringHtml('Margem para este serviço(%)', `<input id="margem_lpu" class="input-lpuparceiro" value="35" oninput="calcularLpuParceiro()">`)}
+            </div>
+       
+            <div>
+                ${stringHtml('Total do Valor Orçamento', '<lalbel id="totalOrcamento"></lalbel>')}
+                ${stringHtml('Total do Valor Parceiro', '<lalbe id="totalParceiro"l></lalbe>')}
+                ${stringHtml('Total Desvio', '<lalbel id="totalDesvio"></lalbel>')}
+                
+            </div>
+            <div></div>
+        </div>
+        <br>
+        ${tabela}
+        </div>
+        `
 
     openPopup_v2(acumulado, 'LPU Parceiro', true);
-  }
+    calcularLpuParceiro()
+
+}
+
+function calcularLpuParceiro() {
+    let margem = Number(document.getElementById('margem_lpu').value)
+    let margemCalculo = margem / 100
+
+    let totais = {
+        orcamento: 0,
+        parceiro: 0,
+        desvio: 0
+    }
+
+
+    const bodyTabela = document.getElementById('bodyTabela')
+    const trs = bodyTabela.querySelectorAll('tr')
+
+    for (tr of trs) {
+        let tds = tr.querySelectorAll('td')
+
+        let unitarioParceiro = Number(tds[8].querySelector('input').value)
+        let quantidade = conversor(tds[3].textContent)
+        let totalParceiro = quantidade * unitarioParceiro
+        tds[9].textContent = dinheiro(totalParceiro)
+        let totalOrcado = conversor(tds[5].textContent)
+        let totalMargem = totalOrcado * margemCalculo
+        let desvio = totalMargem - totalParceiro
+        tds[7].textContent = dinheiro(totalMargem)
+        let tdTotal = tds[10].querySelector('label')
+        tdTotal.textContent = dinheiro(desvio)
+        tdTotal.classList = desvio > 0 ? 'valor_preenchido' : 'valor_zero'
+
+        totais.orcamento += totalOrcado
+        totais.parceiro += totalParceiro
+        totais.desvio += desvio
+
+    }
+    document.getElementById('totalOrcamento').textContent = dinheiro(totais.orcamento)
+    document.getElementById('totalParceiro').textContent = dinheiro(totais.parceiro)
+    document.getElementById('totalDesvio').textContent = dinheiro(totais.desvio)
+}
+
+

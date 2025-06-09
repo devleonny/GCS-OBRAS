@@ -246,7 +246,7 @@ async function identificacaoUser() {
     carregarIcones()
     verificarAlertas()
     aprovacoes_pendentes()
-    await modalLPUParceiro()
+   
 
     let permissao = acesso.permissao
 

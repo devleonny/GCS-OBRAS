@@ -1425,7 +1425,7 @@ input[type=range]::-moz-range-thumb {
     color: #222;
     font-size: 0.8vw;
     overflow: hidden;
-    border: 1px solid #797979;   
+    border: 1px solid #797979;
 }
 
 .tabela thead {
@@ -1536,7 +1536,6 @@ input[type=range]::-moz-range-thumb {
     color: white;
     width: max-content;
     padding: 5px;
-    display: flex;
     gap: 5px;
     align-items: center;
     border-radius: 3px;
@@ -1796,4 +1795,16 @@ input[type="file"]#input-anexos {
 
 input[type="file"]#input-anexos:hover {
     background: #282a3a;
+}
+
+.input-lpuparceiro {
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+    background-color: #4CAF507c;
+    border-radius: 3px;
+    box-sizing: border-box;
+    border: none;
+    outline: none;
+    height: 100%;
 }
