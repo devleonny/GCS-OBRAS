@@ -1,26 +1,15 @@
-const desenvolvedores = {
-    "Gabriel Santos": {
-        "nome_completo": "Gabriel Santos Coutinho",
-        "email": "gabriel.coutinho@grupocostasilva.com.br",
-        "telefone": "71986434552",
-        "cargo": "Suporte"
-    },
-    "Mateus Sagrilo": {
-        "nome_completo": "Mateus Sagrilo Brasileiro Lima",
-        "email": "mateus.sagrilo@hopent.com.br",
-        "telefone": "71982450498",
-        "cargo": "Suporte"
-    },
-    "Fellipe Leonny": {
-        "nome_completo": "Fellipe Leonny Ribeiro",
-        "email": "fellipe.leonny@acsolucoesintegradas.com.br",
-        "telefone": "71987916731",
-        "cargo": "Suporte"
+// Preencher desenvolvedores apenas com usuários adm do dados_setores
+let desenvolvedores = {};
+if (typeof dados_setores === 'object') {
+    for (const key in dados_setores) {
+        if (dados_setores[key].permissao === 'adm' && dados_setores[key].setor === 'SUPORTE') {
+            desenvolvedores[key] = dados_setores[key];
+        }
     }
-};
+}
 
 function novoTicket() {
-    console.log('Usuários: ', dados_setores.nome_completo);
+    console.log('Usuários: ', dados_setores);
     
     let opcoesPrioridade = `
         <option value="">Selecionar</option>
@@ -195,24 +184,24 @@ function abrirPopupEdicao(ticketId, ticket) {
 
                 <div style="display: flex; flex-direction: column; gap: 5px;">
                     <label style="font-weight: 600; color: #333;">Usuário</label>
-                    <input 
-                        type="text" 
-                        id="edit-usuario" 
-                        name="usuario" 
-                        value="${ticket.usuario || ''}"
-                        style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;" 
-                        required
-                    >
+                    <select id="edit-usuario" name="usuario" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;" required>
+                        ${
+                            Object.values(dados_setores).map(user => 
+                                `<option value="${user.usuario}" ${ticket.usuario === user.usuario ? 'selected' : ''}>${user.usuario}</option>`
+                            ).join('')
+                        }
+                    </select>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 5px;">
                     <label style="font-weight: 600; color: #333;">Desenvolvedor</label>
-                    <select id="edit-desenvolvedor" name="desenvolvedor" 
-                            style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                    <select id="edit-desenvolvedor" name="desenvolvedor" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
                         <option value="" ${!ticket.desenvolvedor ? 'selected' : ''}>Selecione o dev</option>
-                        <option value="Gabriel Santos" ${ticket.desenvolvedor === 'Gabriel Santos' ? 'selected' : ''}>Gabriel Santos</option>
-                        <option value="Fellipe Leonny" ${ticket.desenvolvedor === 'Fellipe Leonny' ? 'selected' : ''}>Fellipe Leonny</option>
-                        <option value="Mateus Sagrilo" ${ticket.desenvolvedor === 'Mateus Sagrilo' ? 'selected' : ''}>Mateus Sagrilo</option>
+                        ${
+                            Object.values(desenvolvedores).map(dev =>
+                                `<option value="${dev.usuario}" ${ticket.desenvolvedor === dev.usuario ? 'selected' : ''}>${dev.usuario}</option>`
+                            ).join('')
+                        }
                     </select>
                 </div>
 
@@ -871,7 +860,7 @@ function mostrarContatoDesenvolvedor(ticketId, usuarioNome) {
                 
                 <div class="info-row">
                     <span class="info-label">Cargo:</span>
-                    <span class="info-value">${devInfo.cargo || 'Desenvolvedor'}</span>
+                    <span class="info-value">${devInfo.setor || 'Desenvolvedor'}</span>
                 </div>
                 
                 <div class="info-row">
