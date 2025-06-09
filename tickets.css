@@ -486,65 +486,69 @@ button[name="contato-dev"]:hover {
 .dev-contact-popup {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  /* Alterado para alinhar à esquerda */
+  align-items: center;
   gap: 20px;
-  padding: 25px;
-  max-width: 420px;
-  font-family: 'Segoe UI', Roboto, sans-serif;
+  padding: 28px 24px;
+  max-width: 380px;
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(21, 23, 73, 0.10), 0 1.5px 4px rgba(0, 0, 0, 0.04);
+  margin: 0 auto;
 }
 
 .popup-title {
-  margin: 0;
+  margin: 0 0 8px 0;
   color: #151749;
-  font-size: 1.5rem;
-  font-weight: 600;
-  align-self: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  text-align: center;
 }
 
 .dev-info-container {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   background: #f8f9fa;
-  padding: 20px;
+  padding: 16px 14px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
 }
 
 .info-row {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 10px;
+  justify-content: space-between;
 }
 
 .info-label {
-  font-size: 1rem;
+  font-size: 0.98rem;
   font-weight: 600;
-  width: 80px;
   color: #495057;
   text-align: left;
-  flex-shrink: 0;
+  min-width: 90px;
 }
 
 .info-value {
-  font-size: 1rem;
+  font-size: 0.98rem;
   color: #212529;
   word-break: break-word;
-  text-align: left;
-  flex-grow: 1;
+  text-align: right;
+  flex: 1;
 }
 
 .action-buttons {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   justify-content: center;
   width: 100%;
+  margin-top: 8px;
 }
 
 .whatsapp-button {
-  padding: 10px 18px;
+  padding: 8px 16px;
   border: none;
   border-radius: 6px;
   background-color: #25D366;
@@ -554,6 +558,7 @@ button[name="contato-dev"]:hover {
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 1rem;
   transition: background-color 0.2s;
 }
 
@@ -567,25 +572,32 @@ button[name="contato-dev"]:hover {
 }
 
 .copy-button {
-  padding: 10px 18px;
+  padding: 8px 16px;
   border: none;
   border-radius: 6px;
   background-color: #151749;
   color: white;
   font-weight: 600;
   cursor: pointer;
+  font-size: 1rem;
   transition: background-color 0.2s;
 }
 
-.default-message {
-  margin-top: 10px;
-  font-size: 0.85rem;
-  color: #6c757d;
-  text-align: left;
-  /* Alinhado à esquerda */
-  line-height: 1.4;
-  padding: 10px;
-  background-color: #f8f9fa;
-  border-radius: 6px;
-  width: 100%;
+.copy-button:hover {
+  background-color: #23255c;
+}
+
+@media (max-width: 500px) {
+  .dev-contact-popup {
+    padding: 16px 4vw;
+    max-width: 98vw;
+  }
+
+  .dev-info-container {
+    padding: 10px 4px;
+  }
+
+  .popup-title {
+    font-size: 1.1rem;
+  }
 }
