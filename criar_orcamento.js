@@ -2160,10 +2160,9 @@ function itemExistente(tipo, codigo, quantidade) {
         if (tds[0].textContent == codigo) {
             incluir = false
 
-            // Se o item já existe, somar a quantidade
+            // Se o item já existe, substituir a quantidade (em vez de somar)
             let inputQuantidade = tds[3 + acrescimo].querySelector('input')
-            let quantidadeAtual = parseFloat(inputQuantidade.value) || 0
-            let novaQuantidadeTotal = quantidadeAtual + parseFloat(quantidade)
+            let novaQuantidadeTotal = parseFloat(quantidade) // Substitui, não soma
 
             inputQuantidade.value = novaQuantidadeTotal
 
