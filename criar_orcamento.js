@@ -1475,6 +1475,7 @@ async function gerenciarAgrupamentos(codigo) {
 }
 
 async function total() {
+    dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento_v2 = baseOrcamento()
     let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
     let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
@@ -1579,7 +1580,7 @@ async function total() {
 
                 let descricaocarrefour = dados_composicoes[codigo].descricaocarrefour
 
-                if (dados_composicoes[codigo] && dados_composicoes[codigo][lpu] && dados_composicoes[codigo][lpu].ativo !== undefined) {
+                if (dados_composicoes[codigo] && dados_composicoes[codigo][lpu] && dados_composicoes[codigo][lpu].ativo !== '') {
 
                     let ativo = dados_composicoes[codigo][lpu].ativo
                     let historico = dados_composicoes[codigo][lpu].historico

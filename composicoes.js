@@ -745,10 +745,10 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
 
     await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco)
     await inserirDados(dados_composicoes, 'dados_composicoes')
-
-    if (document.title == 'Criar Orçamento') total() // Caso esteja na tela de Orçamentos;
-
     removerOverlay()
+
+    if (document.title == 'Criar Orçamento') return await total() // Caso esteja na tela de Orçamentos;
+
     await retomarPaginacao()
 
 }
@@ -774,9 +774,9 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
             let comentario = `O usuário ${acesso.usuario} excluiu o preço de ID: ${cotacao} e valor: ${parseFloat(precoExcluido).toFixed(2)}`
             delete cotacoes.historico[cotacao];
 
-            await inserirDados(dados_composicoes, 'dados_composicoes'),
-                deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`),
-                registrarAlteracao('dados_composicoes', codigo, comentario)
+            await inserirDados(dados_composicoes, 'dados_composicoes')
+            deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`)
+            registrarAlteracao('dados_composicoes', codigo, comentario)
         }
 
         remover_popup()
