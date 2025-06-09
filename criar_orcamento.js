@@ -72,7 +72,6 @@ async function exibirTabelaAgrupamentos() {
             // Indicador visual se o item já está no orçamento
             let indicadorOrcamento = quantidadeAtual ?
                 `<div style="display: flex; align-items: center; gap: 5px;">
-                    <img src="imagens/check.png" style="width: 12px;" title="Item já está no orçamento">
                     <span style="font-size: 0.8em; color: #4CAF50;">(Qtde: ${quantidadeAtual})</span>
                 </div>` : ''
 
@@ -1573,7 +1572,7 @@ async function total() {
                 if (dados_composicoes[codigo].agrupamentos) {
                     let img = `<img 
                                 src="gifs/lampada.gif" 
-                                onclick="mostrarAgrupamentos('${codigo}')"
+                                onclick="lancarTodosAgrupamentos('${codigo}')"
                                 style="position: absolute; top: 3px; right: 3px; width: 1.5vw; cursor: pointer;" 
                                 >`
                     tds[1].insertAdjacentHTML('beforeend', img) // Não precisa de acréscimo;
@@ -1995,7 +1994,7 @@ async function exibirTabelaAgrupamentosLancar(codigoPai, qtdePai) {
                 </tbody>
             </table>
             <div style="text-align:right; margin-top:24px;">
-                <button onclick="lancarTodosAgrupamentos('${codigoPai}', ${quantidadePai})"
+                <button onclick="lancarTodosAgrupamentos('${codigoPai}')"
                     style="background:#4CAF50; color:white; padding:12px 32px; border:none; border-radius:5px; font-size:1.1em; font-weight:600; box-shadow:0 2px 8px #0002; cursor:pointer; transition:background 0.2s;">
                     Lançar todos os itens agrupados
                 </button>
@@ -2006,21 +2005,26 @@ async function exibirTabelaAgrupamentosLancar(codigoPai, qtdePai) {
 }
 
 // Função global para lançar todos os itens agrupados
-async function lancarTodosAgrupamentos(codigoPai, qtdePai) {
+async function lancarTodosAgrupamentos(codigoPai) {
     let dadosComposicoes = await recuperarDados('dados_composicoes') || {};
     let produtoPai = dadosComposicoes[codigoPai];
-    let tbody = document.getElementById('agrupamentos-body');
-    let trs = tbody.querySelectorAll('tr');
-    for (let tr of trs) {
-        let codigoFilho = tr.getAttribute('data-codigofilho');
-        let qtdeTotal = parseFloat(tr.querySelector('.qtde-total').textContent) || 0;
+    if (!produtoPai || !produtoPai.agrupamentos) return;
+
+    // Pega a quantidade do item pai no orçamento
+    let orcamento_v2 = baseOrcamento();
+    let quantidadePai = orcamento_v2.dados_composicoes?.[codigoPai]?.qtde || 0;
+
+    let count = 0;
+    for (let codigoFilho in produtoPai.agrupamentos) {
+        let qtdeBase = produtoPai.agrupamentos[codigoFilho];
+        let qtdeTotal = qtdeBase * quantidadePai;
         if (qtdeTotal > 0) {
             await incluirItemComPai(codigoFilho, qtdeTotal, codigoPai);
+            count++;
         }
     }
-    remover_popup();
     await carregarTabelas();
-    openPopup_v2('<div style="padding:20px;text-align:center;"><img src="imagens/concluido.png" style="width:50px;"><p>Itens agrupados lançados!</p></div>', 'Sucesso');
+    openPopup_v2(`<div style="padding:20px;text-align:center;"><img src="imagens/concluido.png" style="width:50px;"><p>${count} itens agrupados lançados!</p></div>`, 'Sucesso');
 }
 
 // Modificar a função incluirItem para lançar agrupamentos automaticamente
@@ -2730,11 +2734,16 @@ async function exibirTabelaAgrupamentosLancarGlobal() {
         totalGeral += valorTotal;
         linhas += `
             <tr data-codigofilho="${item.codigoFilho}" data-codigopai="${item.codigoPai}">
-                <td style="font-weight:600; color:#fff; background:${corTipoFilho};">${item.codigoFilho}</td>
-                <td style="text-align:center;">
+                <td style="font-weight:600; color:#fff; background:${corTipoPai};">
+                    ${item.codigoPai}
+                </td>
+                <td>
+                    <span style="font-weight:500;">${item.descricaoFilho}</span>
+                </td>
+                <td style="text-align:center;" >
                     <span style="
                         color:#fff;
-                        background:${corTipoPai};
+                        background:${corTipoFilho};
                         border-radius:3px;
                         padding:2px 10px;
                         font-size:0.98em;
@@ -2742,12 +2751,12 @@ async function exibirTabelaAgrupamentosLancarGlobal() {
                         display:inline-block;
                         min-width:60px;
                     ">
-                        ${item.codigoPai}
+                        ${item.codigoFilho}
                     </span>
-                    </td>
-                    <td>
-                        <span style="font-weight:500;">${item.descricaoFilho}</span>
-                    </td>
+                </td>
+                <td>
+                    <span style="font-weight:500;">${item.descricaoFilho}</span>
+                </td>
                 <td style="text-align:center; color:#888;">${item.qtdeBase}</td>
                 <td style="text-align:center; font-weight:600;" class="qtde-total">${item.qtdeTotal}</td>
                 <td style="text-align:right;">${dinheiro(item.preco)}</td>
@@ -2758,72 +2767,52 @@ async function exibirTabelaAgrupamentosLancarGlobal() {
 
     let popup = `
         <div style="margin:auto; background:#fff; border-radius:14px; box-shadow:0 2px 16px #0002; padding:32px 24px;">
-        <h2 style="color:#222; font-size:1.4em; margin-bottom:24px; text-align:center; letter-spacing:1px;">
-            Agrupamentos
-        </h2>
-        <div style="overflow-x:auto;">
-        <table style="
-            width:100%;
-            border-collapse:separate;
-            border-spacing:0;
-            font-family:'Poppins',sans-serif;
-            font-size:1em;
-            background:#f9fafb;
-            border-radius:10px;
-            overflow:hidden;
-        ">
-            <thead>
-                <tr style="background:#f0f4f8;">
-                    <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Código</th>
-                    <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Código Item Pai</th>
-                    <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Descrição</th>
-                    <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Qtde Base</th>
-                    <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Qtde Total</th>
-                    <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Valor Unit.</th>
-                    <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Valor Total</th>
-                </tr>
-            </thead>
-            <tbody id="agrupamentos-body">
-                ${linhas}
-            </tbody>
-        </table>
-        </div>
-        <div style="margin-top:18px; text-align:right;">
-            <span style="
-                background:#f0f4f8;
-                color:#222;
-                font-size:1.18em;
-                font-weight:700;
-                border-radius:6px;
-                padding:10px 28px;
-                box-shadow:0 1px 6px #0001;
-                display:inline-block;
-                margin-bottom:10px;
+            <h2 style="color:#222; font-size:1.4em; margin-bottom:24px; text-align:center; letter-spacing:1px;">
+                Agrupamentos
+            </h2>
+            <div style="overflow-x:auto;">
+            <table style="
+                width:100%;
+                border-collapse:separate;
+                border-spacing:0;
+                font-family:'Poppins',sans-serif;
+                font-size:1em;
+                background:#f9fafb;
+                border-radius:10px;
+                overflow:hidden;
             ">
-                Total Geral: ${dinheiro(totalGeral)}
-            </span>
-        </div>
-        <div style="text-align:right; margin-top:18px;">
-            <button onclick="lancarTodosAgrupamentosGlobal()"
-                style="
-                    background:#24729d;
-                    color:white;
-                    padding:13px 36px;
-                    border:none;
+                <thead>
+                    <tr style="background:#f0f4f8;">
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Código Pai</th>
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Descrição Pai</th>
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Código Filho</th>
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Descrição Filho</th>
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Qtde Base</th>
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Qtde Total</th>
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Valor Unit.</th>
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Valor Total</th>
+                    </tr>
+                </thead>
+                <tbody id="agrupamentos-body">
+                    ${linhas}
+                </tbody>
+            </table>
+            </div>
+            <div style="margin-top:18px; text-align:right;">
+                <span style="
+                    background:#f0f4f8;
+                    color:#222;
+                    font-size:1.18em;
+                    font-weight:700;
                     border-radius:6px;
-                    font-size:1.08em;
-                    font-weight:600;
+                    padding:10px 28px;
                     box-shadow:0 1px 6px #0001;
-                    cursor:pointer;
-                    transition:background 0.2s,box-shadow 0.2s;
-                    letter-spacing:0.5px;
-                "
-                onmouseover="this.style.background='#155a8a';"
-                onmouseout="this.style.background='#24729d';"
-            >
-                Lançar todos os itens agrupados
-            </button>
-        </div>
+                    display:inline-block;
+                    margin-bottom:10px;
+                ">
+                    Total Geral: ${dinheiro(totalGeral)}
+                </span>
+            </div>
         </div>
     `;
     openPopup_v2(popup, 'Itens Agrupados');
