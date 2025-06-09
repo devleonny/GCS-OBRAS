@@ -41,6 +41,7 @@ async function recuperar_composicoes() {
 
 async function carregar_tabela_v2() {
 
+    if(document.title !== 'COMPOSIÇÕES') return 
 
     let adicionar_item = document.getElementById('adicionar_item')
     let btn_criar_lpu = document.getElementById('btn-criar-lpu')
@@ -1463,7 +1464,7 @@ async function salvarServidor(codigo) {
     divs.forEach(div => {
         let item = div.querySelector('label');
         let valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select');
-
+        if(item?.textContent == 'descricao') valor.value = String(valor.value).toUpperCase()
         if (item && valor) dadosAtualizados[item.textContent] = valor.value;
 
     });

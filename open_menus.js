@@ -1912,6 +1912,15 @@ async function aprovacoesPendentes() {
     let aprovacoes = await recuperarDados('aprovacoes') || {}
     let acumulado = ''
     let pendentes = false
+    let modelo = (valor1, valor2) => {
+        return `
+            <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                <label>${valor1}</label>
+                <hr style="width: 100%"> 
+                <label style="white-space: nowrap;">${valor2}</label>
+            </div>
+        `
+    }
 
     for ([id, item] of Object.entries(aprovacoes)) {
 
@@ -1934,49 +1943,49 @@ async function aprovacoesPendentes() {
         pendentes = true
         let tabelas = {}
         let divTabelas = ''
-        let itens = item.orcamento.dados_composicoes
+        let orcamento = item.orcamento
+        let itens = orcamento.dados_composicoes
+        let totalSemAcrescimo = 0
 
         for ([codigo, composicao] of Object.entries(itens)) {
 
             let quantidade = composicao.qtde
             let custo = composicao.custo
-            let custo_original = composicao?.custo_original || false
+            let custoOriginal = composicao?.custo_original || false
             let total = quantidade * custo
             let tipo = composicao.tipo
             let desconto = 0
             let labelDesconto = '--'
             let labelLucro = ''
+            let labelCusto = dinheiro(custo)
+            let labelTotal = dinheiro(total)
+            let labelTotalDesconto = dinheiro(total - desconto)
 
-            if (composicao.lucroPorcentagem) {
-                labelLucro = `${dinheiro(composicao.lucroLiquido)} [ ${composicao.lucroPorcentagem.toFixed(0)}% ]`
+            if (!tabelas[tipo]) tabelas[tipo] = { linhas: '' }
+
+            if (composicao.lucroPorcentagem) labelLucro = `${dinheiro(composicao.lucroLiquido)} [ ${composicao.lucroPorcentagem.toFixed(0)}% ]`
+
+            if (composicao.tipo_desconto) desconto = composicao.tipo_desconto == 'Dinheiro' ? composicao.desconto : total * (desconto / 100)
+
+            if (desconto != 0) labelDesconto = modelo(desconto, labelLucro)
+
+            if (custoOriginal) {
+                let totalAcrescimo = custoOriginal * quantidade
+                labelCusto = modelo(dinheiro(custo), dinheiro(custoOriginal))
+                labelTotal = modelo(dinheiro(total), dinheiro(totalAcrescimo))
+                labelTotalDesconto = modelo(dinheiro(total - desconto), dinheiro(totalAcrescimo))
             }
 
-            if (composicao.tipo_desconto) {
-                desconto = composicao.tipo_desconto == 'Dinheiro' ? composicao.desconto : total * (desconto / 100)
-            }
-
-            if (!tabelas[tipo]) {
-                tabelas[tipo] = { linhas: '' }
-            }
-
-            if (desconto != 0) {
-                labelDesconto = `
-                    <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                        <label>${dinheiro(desconto)}</label>
-                        <hr style="width: 100%"> 
-                        <label style="white-space: nowrap;">${labelLucro}</label>
-                    </div>
-                `
-            }
+            totalSemAcrescimo += custoOriginal ? custoOriginal : custo
 
             tabelas[tipo].linhas += `
             <tr>
                 <td>${composicao.descricao}</td>
                 <td>${quantidade}</td>
-                <td>${dinheiro(custo)}</td>
-                <td>${dinheiro(total)}</td>
+                <td>${labelCusto}</td>
+                <td>${labelTotal}</td>
                 <td>${labelDesconto}</td>
-                <td>${dinheiro(total - desconto)}</td>
+                <td>${labelTotalDesconto}</td>
             </tr>
             `
         }
