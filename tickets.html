@@ -126,42 +126,37 @@
 
 <body>
 
-    <div id="overlay"></div>
 
-    <div id="content" style="gap: 20px;">
+    <div class="top">
 
-        <div class="top">
+        <img src="imagens/BG.png" style="width: 150px;">
+        <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; color: white;">
+            <label class="novo_titulo">Tickets</label>
+            <label id="nome_filtro"></label>
+        </div>
 
-            <img src="imagens/BG.png" style="width: 150px;">
-            <div
-                style="display: flex; align-items: center; justify-content: center; flex-direction: column; color: white;">
-                <label class="novo_titulo">Tickets</label>
-                <label id="nome_filtro"></label>
-            </div>
+        <div style="display: flex; justify-content: center; width: 30vw;">
+            <div class="blocosCabecalho">
+                <div onclick="window.location.href='inicial.html'">
+                    <label>Menu Inicial</label>
+                    <img src="imagens/voltar.png">
+                </div>
 
-            <div style="display: flex; justify-content: center; width: 30vw;">
-                <div class="blocosCabecalho">
-                    <div onclick="window.location.href='inicial.html'">
-                        <label>Menu Inicial</label>
-                        <img src="imagens/voltar.png">
-                    </div>
+                <div onclick="recuperar_tickets()">
+                    <label>Atualizar</label>
+                    <img src="imagens/atualizar_2.png">
+                </div>
 
-                    <div onclick="recuperar_tickets()">
-                        <label>Atualizar</label>
-                        <img src="imagens/atualizar_2.png">
-                    </div>
-
-                    <div onclick="novoTicket()" style="cursor: pointer;">
-                        <label>Novo Ticket</label>
-                        <img src="imagens/suporte.png">
-                    </div>
+                <div onclick="novoTicket()" style="cursor: pointer;">
+                    <label>Novo Ticket</label>
+                    <img src="imagens/suporte.png">
                 </div>
             </div>
         </div>
-
-        <div id="tabelaRegistro"></div>
-
     </div>
+
+    <div id="tabelaRegistro"></div>
+
 
     <script src="open_menus.js"></script>
     <script src="status.js"></script>
