@@ -747,7 +747,7 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
     await inserirDados(dados_composicoes, 'dados_composicoes')
     removerOverlay()
 
-    if (document.title == 'Criar Orçamento') return await total() // Caso esteja na tela de Orçamentos;
+    if (document.title == 'Criar Orçamento') return await total(), await tabelaProdutos() // Caso esteja na tela de Orçamentos;
 
     await retomarPaginacao()
 

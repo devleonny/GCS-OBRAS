@@ -33,7 +33,7 @@ function ativarCloneGCS(ativar) {
 async function verificarAlertas() {
 
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
-    if(modoClone) return
+    if (modoClone) return
 
     await sincronizarDados('alertasChamados', true)
     let alertasChamados = await recuperarDados('alertasChamados') || {}
@@ -230,7 +230,7 @@ async function sincronizarSetores() {
 
 }
 
-async function abrirMensagens(elementoOrigial) { //29
+async function abrirMensagens(elementoOrigial) {
     let alertasChamados = await recuperarDados('alertasChamados') || {}
     let divAlertas = document.getElementById('divAlertas')
     if (divAlertas) return divAlertas.remove()
@@ -1671,8 +1671,8 @@ function painelUsuarios(elementoOrigial) {
     let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
 
     let stringUsuarios = {
-        online: '',
-        offline: ''
+        online: { linhas: '', quantidade: 0 },
+        offline: { linhas: '', quantidade: 0 },
     }
 
     dados_setores = Object.entries(dados_setores).sort((a, b) => a[0].localeCompare(b[0]))
@@ -1681,7 +1681,8 @@ function painelUsuarios(elementoOrigial) {
 
         let status = usuariosOnline.includes(usuario) ? 'online' : 'offline'
 
-        stringUsuarios[status] += `
+        stringUsuarios[status].quantidade++
+        stringUsuarios[status].linhas += `
         <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
             <img src="imagens/${status}.png" style="width: 2vw;">
             <label style="font-size: 0.8vw;">${usuario}</label>
@@ -1690,14 +1691,14 @@ function painelUsuarios(elementoOrigial) {
         `
     }
 
-    let pos = elementoOrigial.getBoundingClientRect(); //29
+    let pos = elementoOrigial.getBoundingClientRect();
 
     let acumulado = `
     <div id="divUsuarios" class="divOnline" style="left: ${pos.left + window.scrollX}px; top: ${pos.bottom + window.scrollY}px;">
-        <label style="font-size: 0.8vw;"><strong>ONLINE</strong></label>
-        ${stringUsuarios.online}
-        <label style="font-size: 0.8vw;"><strong>OFFLINE</strong></label>
-        ${stringUsuarios.offline}
+        <label style="font-size: 0.8vw;"><strong>ONLINE ${stringUsuarios.online.quantidade}</strong></label>
+        ${stringUsuarios.online.linhas}
+        <label style="font-size: 0.8vw;"><strong>OFFLINE ${stringUsuarios.offline.quantidade}</strong></label>
+        ${stringUsuarios.offline.linhas}
     </div>
     `
 
