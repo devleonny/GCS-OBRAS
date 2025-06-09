@@ -1689,7 +1689,7 @@ async function total() {
                 if (tipo == 'VENDA' && estado) labelICMS = `<label style="white-space: nowrap;">SEM ICMS ${dinheiro(semIcms)} [ ${percentual}% ]</label>`
                 return `
                     <div style="position: relative; display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                        ${unitario ? `<img onclick="alterarValorUnitario('${codigo}', '${valor}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5vw; position: absolute; top: 0; right: 0;">` : ''}
+                        ${false ? `<img onclick="alterarValorUnitario('${codigo}', '${valor}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5vw; position: absolute; top: 0; right: 0;">` : ''}
                         <label class="${valor == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(valor)}</label>
                         ${labelICMS}
                     </div>
