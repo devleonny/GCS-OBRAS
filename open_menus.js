@@ -32,6 +32,9 @@ function ativarCloneGCS(ativar) {
 
 async function verificarAlertas() {
 
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    if(modoClone) return
+
     await sincronizarDados('alertasChamados', true)
     let alertasChamados = await recuperarDados('alertasChamados') || {}
 

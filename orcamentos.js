@@ -440,7 +440,6 @@ async function alteracoes_status() {
 
 }
 
-
 function atualizar_status(st) {
 
     switch (true) {
@@ -464,4 +463,9 @@ function atualizar_status(st) {
     }
 
     return st
+}
+
+async function obterObjeto(base, id) {
+    let objeto = await recuperarDados(base) || {}
+    return objeto[id]
 }
