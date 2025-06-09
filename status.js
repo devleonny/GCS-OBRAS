@@ -1,4 +1,5 @@
 let itens_adicionais = {}
+let filtrosTabelaParceiros = {}
 let id_orcam = ''
 let dataAtual = new Date();
 let data_status = dataAtual.toLocaleString('pt-BR', {
@@ -1747,9 +1748,9 @@ async function abrir_esquema(id) {
                                     onclick="painel_adicionar_notas()">
                                     <label>Nova <strong>Nota Fiscal</strong></label>
                                 </div>
-                                 <div class="contorno_botoes" style="background-color: #003153;"
-                                    onclick="carregarLPUParceiro()">
-                                    <label>Nova <strong>LPU Parceiro</strong></label>
+                                 <div class="contorno_botoes" style="background-color: #003153; flex-direction: column;"
+                                    onclick="modalLPUParceiro()"
+                                    <label>Nova<strong>LPU Parceiro</strong></label>
                                 </div>
 
                                 <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
@@ -3725,63 +3726,66 @@ function mostrarElementoSeTiverPermissao({ listaDePermissao, elementoHTML }) {
     return usuarioTemPermissao ? elementoHTML : '';
 }
 
-async function carregarLPUParceiro() {
-    const lpuparceiro = await recuperarDados('lpuparceiro') || {}
 
-    let aumulado = ''
-    let cabecalhos = ['Descrição', 'Medida', 'Quantidade', 'Valor GCS', 'Valor Parceiro', 'Preço Total']
-    let thSearch = ''
-    let thHead = ''
-    let tabelaLPU = document.getElementById('tabelaLPU')
-    let linhas = ''
-    let toolbar = ''
+async function modalLPUParceiro() {
+    const baseOrcamentos = await recuperarDados('dados_orcamentos') || {};
 
-    cabecalhos.forEach((cabecalho, i) => (
-        thHead += `
-            <th> ${cabecalho}</th>
-                 `,
-        thSearch += `
-        <th style="background-color: white">
-            <div style="display: flex; justify-content:space-between; align-items: center">
-                <input oninput="pesquisar_generico(${i}, this.value, filtroAlteracoes, 'bodyTabela')" style="text-align: left; width: 100%">
-                <img src="imagens/pesquisar2.png" style="width: 1vw;">
-            </div>
-        </th>`
-    ));
+    let acumulado = '';
+    let cabecalhos = ['ID', 'Descrição', 'Medida', 'Quantidade', 'Valor Orçamento', 'Valor Líquido de Serviço', 'Valor Parceiro', 'Preço Total', 'Desvio'];
+    let thSearch = '';
+    let thHead = '';
+    let linhas = '';
 
-    for([id, registro] of Object.entries(lpuparceiro)) {
-        linhas += `
+    cabecalhos.forEach((cabecalho, i) => {
+        thHead += `<th>${cabecalho}</th>`;
+        thSearch +=
+            `<th style="background-color: white">
+                <div style="display: flex; justify-content:space-between; align-items: center">
+                    <input oninput="pesquisar_generico(${i}, this.value, filtrosTabelaParceiros, 'bodyTabela')" style="text-align: left; width: 100%">
+                    <img src="imagens/pesquisar2.png" style="width: 1vw;">
+                </div>
+            </th>`;
+    });
+
+   let orcamento = baseOrcamentos['ORCA_b48cd6b9-3fe8-486f-a1fd-ce9586876a01']
+        
+        let itensOrcamento = orcamento.dados_composicoes
+        console.log(itensOrcamento);
+        
+        for ([codigo, composicao ] of Object.entries(itensOrcamento)) {
+            console.log(composicao);
+            
+            if (composicao.tipo === 'SERVIÇO') {
+                let custo = composicao.custo
+                linhas += `
             <tr>
-                <td>${registro.descricao}</td>
+                <td>${id}</td>
+                <td>${composicao.descricao}</td>
+                <td>${composicao.unidade}</td>
+                <td>${composicao.qtde}</td>
+                <td>${custo}</td>
+                <td>${custo*0.52}</td>
+                <td><input type="number" class="campo"></td>
+                <
             </tr>
         `
-    }
+            }     
+        }
 
-       let tabela = `
-    <table class="tabela" style="width: 90vw;">
-        <thead>
-            <tr>
-                ${thHead}
-            </tr>
-            <tr>
-                ${thSearch}
-            </tr>
-        </thead>
+    let tabela =
+        `<table class="tabela" style="width: 90vw;>
+            <thead>
+                <tr>${thHead}</tr>
+                <tr>${thSearch}</tr>
+            </thead>
+            <tbody id="bodyTabela">${linhas}</tbody>
+        </table>`;
 
-        <tbody id="bodyTabela">
-            ${linhas}
-        </tbody>
-    </table>
-    `
-    acumulado = `
-    <br>
-    <div id="toolbar" style="display: flex; align-items: end; justify-content: left; gap: 10px; height: 3vw; margin-left: 2vw;" >
-        ${toolbar}
-    </div>
-    <div style="height: 80vh; overflow: auto;">
-        ${tabela}
-    </div>    
-    `
-    tabelaLPU.innerHTML = acumulado
+    acumulado =
+        `<br>
+        <div style="height: 80vh; overflow: auto;">
+            ${tabela}
+        </div>`;
 
-}
+    openPopup_v2(acumulado, 'LPU Parceiro', true);
+  }
