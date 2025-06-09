@@ -1,0 +1,636 @@
+body {
+  font-size: 0.8em;
+  background: linear-gradient(45deg, #151749, #B12425);
+  animation: none;
+}
+
+body::before {
+  animation: none;
+  background: none;
+}
+
+.top {
+  position: relative;
+  display: flex;
+  width: 100%;
+  margin: 40px 5px;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #222222bf;
+  padding: 10px;
+  border-radius: 5px;
+  gap: 20px;
+}
+
+/* Estilos para campos de formulário centralizados */
+.ticket-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 15px;
+  width: 100%;
+}
+
+.ticket-field-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+  width: 100%;
+}
+
+.ticket-field-half {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ticket-label {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+  margin-bottom: 5px;
+  text-align: left;
+}
+
+/* Inputs e selects centralizados */
+.ticket-input,
+.ticket-select,
+.ticket-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+  margin: 0;
+}
+
+.ticket-select {
+  background: white;
+  cursor: pointer;
+}
+
+.ticket-input:focus,
+.ticket-select:focus,
+.ticket-textarea:focus {
+  outline: none;
+  border-color: #151749;
+}
+
+/* Textarea específico - garantindo centralização */
+.ticket-textarea {
+  resize: vertical;
+  font-family: inherit;
+  min-height: 80px;
+  max-width: 100%;
+  text-align: left;
+  vertical-align: top;
+}
+
+/* Botões centralizados */
+.ticket-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+  width: 100%;
+}
+
+.ticket-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 100px;
+  transition: all 0.2s ease;
+}
+
+.ticket-btn-cancel {
+  background-color: #6c757d;
+  color: white;
+}
+
+.ticket-btn-cancel:hover {
+  background-color: #5a6268;
+}
+
+.ticket-btn-submit {
+  background-color: #151749;
+  color: white;
+}
+
+.ticket-btn-submit:hover {
+  background-color: #0f1235;
+}
+
+.ticket-btn-success {
+  background-color: #28a745 !important;
+}
+
+.ticket-btn-error {
+  background-color: #dc3545 !important;
+}
+
+/* Container principal centralizado */
+.ticket-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Header centralizado */
+.ticket-header-content {
+  text-align: center;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.ticket-title {
+  margin: 0;
+  color: #151749;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.ticket-subtitle {
+  margin: 5px 0 0 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Formulário centralizado */
+.ticket-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: stretch;
+}
+
+/* Garantir que todos os elementos do formulário ocupem 100% da largura */
+.ticket-form>* {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Detalhes do ticket */
+.ticket-details {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 20px;
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ticket-detail-item {
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #151749;
+}
+
+.ticket-detail-label {
+  font-weight: 600;
+  color: #151749;
+  margin-bottom: 5px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.ticket-detail-value {
+  color: #333;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Badges de status e prioridade */
+.ticket-status-badge,
+.ticket-priority-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+/* Classes de prioridade */
+.prioridade-baixa {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.prioridade-media {
+  color: #ffc107;
+  font-weight: 500;
+}
+
+.prioridade-alta {
+  color: #fd7e14;
+  font-weight: 500;
+}
+
+.prioridade-critica {
+  color: #dc3545;
+  font-weight: 500;
+}
+
+/* Botões de ação na tabela */
+.action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.action-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.action-btn img {
+  width: 18px;
+  height: 18px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .ticket-field-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .ticket-buttons {
+    flex-direction: column;
+  }
+
+  .ticket-btn {
+    width: 100%;
+  }
+
+  .ticket-container {
+    padding: 15px;
+    max-width: 100%;
+  }
+
+  .ticket-details {
+    padding: 15px;
+    max-width: 100%;
+  }
+}
+
+/* Alinhamento e centralização geral */
+.ticket-content-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+}
+
+.ticket-form-center {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* Estilos para campos em linha */
+.ticket-inline-fields {
+  display: flex;
+  gap: 15px;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.ticket-inline-fields>div {
+  flex: 1;
+}
+
+/* Estilos para botões de confirmação */
+.ticket-confirm-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 15px;
+  width: 100%;
+}
+
+/* Container para mensagens de status */
+.ticket-message-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  text-align: center;
+  width: 100%;
+}
+
+/* Estilos para ícones de status */
+.ticket-status-icon {
+  width: 3vw;
+  height: 3vw;
+  max-width: 48px;
+  max-height: 48px;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+/* Estilos para labels de informação */
+.ticket-info-label {
+  color: #333;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 5px 0;
+}
+
+/* Container para detalhes em grid */
+.ticket-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .ticket-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Estilos para campos de apenas leitura */
+.ticket-readonly-field {
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #ccc;
+  color: #666;
+}
+
+/* Estilos para campos ativos */
+.ticket-active-field {
+  border-left-color: #151749;
+  background-color: #f8f9fa;
+}
+
+/* Centralização de conteúdo de popup */
+.ticket-popup-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  max-width: 500px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Estilos para formulários dentro de popups */
+.ticket-popup-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: stretch;
+}
+
+/* Estilos para headers de popup */
+.ticket-popup-header {
+  text-align: center;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+/* Estilos para footers de popup */
+.ticket-popup-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+  width: 100%;
+}
+
+/* Força todos os elementos de input a ocuparem 100% da largura disponível */
+input[type="text"],
+select,
+textarea {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Específico para textarea dentro de formulários de ticket */
+#ticket-descricao {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
+button[name="contato-dev"] {
+  background: none;
+  border: none;
+  color: #151749;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+button[name="contato-dev"]:hover {
+  color: #0d0f3a;
+  text-decoration: none;
+}
+
+.ticket-contato-button {
+  padding: 4px 24px;
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.ticket-contato-button:hover {
+  background-color: #3367d6;
+}
+
+.ticket-contato-button:active {
+  background-color: #2a56b7;
+}
+
+.dev-contact-popup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 32px 28px;
+  max-width: 480px;
+  width: 96vw;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(21, 23, 73, 0.16), 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin: 0 auto;
+  position: relative;
+  transition: box-shadow 0.2s;
+}
+
+.popup-title {
+  margin: 0 0 12px 0;
+  color: #151749;
+  font-size: 1.5rem;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.dev-info-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: linear-gradient(90deg, #f8f9fa 60%, #f1f3f7 100%);
+  padding: 20px 18px;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(21, 23, 73, 0.04);
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-start;
+  border-bottom: 1px solid #ececec;
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #23255c;
+  text-align: left;
+  min-width: 90px;
+  letter-spacing: 0.2px;
+}
+
+.info-value {
+  font-size: 1rem;
+  color: #212529;
+  text-align: right;
+  flex: 1;
+  /* max-width: 30px; */
+  width: 100%;
+  min-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  font-weight: 500;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.whatsapp-button {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #25D366 80%, #128C7E 100%);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.08rem;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.08);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.whatsapp-button:hover {
+  background: linear-gradient(90deg, #128C7E 60%, #25D366 100%);
+  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.13);
+}
+
+.whatsapp-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.copy-button {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #151749 80%, #23255c 100%);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 1.08rem;
+  transition: background 0.2s;
+  box-shadow: 0 2px 8px rgba(21, 23, 73, 0.08);
+}
+
+.copy-button:hover {
+  background: linear-gradient(90deg, #23255c 60%, #151749 100%);
+}
+
+@media (max-width: 600px) {
+  .dev-contact-popup {
+    padding: 14px 2vw;
+    max-width: 99vw;
+    border-radius: 10px;
+  }
+
+  .dev-info-container {
+    padding: 10px 2vw;
+    border-radius: 8px;
+  }
+
+  .popup-title {
+    font-size: 1.15rem;
+  }
+
+  .info-label,
+  .info-value {
+    font-size: 0.97rem;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+}

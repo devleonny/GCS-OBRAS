@@ -127,8 +127,12 @@ function carregarIcones() {
         ${atalho('Reembolsos & Pagamentos', 'reembolso', `window.location.href='pagamentos.html'`)}
         ${atalho('Painel Kanban', 'kanban', `window.location.href='projetos.html'`)}
         ${atalho('Agenda', 'agenda', `window.location.href='agenda.html'`)}
-
-         ${registroHistorico
+        
+        ${registroHistorico
+            ? atalho('Suporte', 'suporte', `window.location.href='tickets.html'`)
+            : ''}
+        
+        ${registroHistorico
             ? atalho('Histórico de Alterações GCS', 'historico', `window.location.href='historicoRegistros.html'`)
             : ''}
     `
@@ -308,7 +312,7 @@ async function irChamado(idChamado, idAlerta) {
         </div>
     `
     let chamadoArmazenado = localStorage.getItem('irChamado')
-    
+
     if (chamadoArmazenado) {
         chamadoArmazenado = JSON.parse(chamadoArmazenado)
         await sincronizarDados('dados_manutencao')
@@ -321,7 +325,7 @@ async function irChamado(idChamado, idAlerta) {
         localStorage.removeItem('irChamado')
         deletar(`alertasChamados/${chamadoArmazenado.idAlerta}`)
     } else if (idChamado) {
-        localStorage.setItem('irChamado', JSON.stringify({idChamado, idAlerta}))
+        localStorage.setItem('irChamado', JSON.stringify({ idChamado, idAlerta }))
         window.location.href = 'chamados.html'
     }
 
