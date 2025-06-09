@@ -1123,18 +1123,13 @@ async function enviar_dados() {
         return openPopup_v2(avisoHTML('CNPJ em branco'), 'ALERTA')
     }
 
+    // Autorizações - Deconto;
     let desconto_porcentagem = document.getElementById('desconto_porcentagem')
-    if (desconto_porcentagem && Number(desconto_porcentagem.value) > 0) {
+    if ((desconto_porcentagem && Number(desconto_porcentagem.value) > 0) || orcamento_v2.alterado) {
         if (!(orcamento_v2.aprovacao && orcamento_v2.aprovacao.status === 'aprovado')) {
-            return autorizar_desconto();
+            return autorizarAlteracao();
         }
     }
-
-    if (orcamento_v2.dados_composicoes_orcamento || orcamento_v2.dados_composicoes_orcamento === null) {
-        delete orcamento_v2.dados_composicoes_orcamento;
-    }
-
-    orcamento_v2.tabela = 'orcamentos';
 
     if (orcamento_v2.dados_orcam.contrato == 'sequencial') {
         let sequencial = await verificar_chamado_existente(undefined, undefined, true)
@@ -1162,7 +1157,7 @@ async function enviar_dados() {
 
 }
 
-async function autorizar_desconto(reaprovacao) {
+async function autorizarAlteracao(reaprovacao) {
     let orcamento_v2 = baseOrcamento()
 
     if (!orcamento_v2.aprovacao) {
@@ -1199,7 +1194,7 @@ async function autorizar_desconto(reaprovacao) {
             
             <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
                 <label>Tentar de novo?</label> 
-                <button style="background-color: #4CAF50;" onclick="autorizar_desconto(true)">Sim</button>
+                <button style="background-color: #4CAF50;" onclick="autorizarAlteracao(true)">Sim</button>
             </div>
         </div>
         `
@@ -1486,9 +1481,7 @@ async function total() {
     let padraoFiltro = localStorage.getItem('padraoFiltro')
     let estado = orcamento_v2?.dados_orcam?.estado || false
     let avisoDesconto = 0
-    if (!orcamento_v2.dados_composicoes) {
-        orcamento_v2.dados_composicoes = {}
-    }
+    if (!orcamento_v2.dados_composicoes) orcamento_v2.dados_composicoes = {}
 
     // Detectar mudanças de quantidade
     for (let codigo in orcamento_v2.dados_composicoes) {
@@ -1574,7 +1567,7 @@ async function total() {
                 codigo = dados_composicoes[codigo].substituto == '' ? codigo : dados_composicoes[codigo].substituto
             }
 
-            // Definição do preço unitário
+            // Definição do preço unitário;
             let produto = dados_composicoes?.[codigo] || {}
             let ativo = produto?.[lpu]?.ativo || 0
             let historico = produto?.[lpu]?.historico || {}
@@ -1689,7 +1682,7 @@ async function total() {
                 if (tipo == 'VENDA' && estado) labelICMS = `<label style="white-space: nowrap;">SEM ICMS ${dinheiro(semIcms)} [ ${percentual}% ]</label>`
                 return `
                     <div style="position: relative; display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                        ${false ? `<img onclick="alterarValorUnitario('${codigo}', '${valor}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5vw; position: absolute; top: 0; right: 0;">` : ''}
+                        ${false ? `<img onclick="alterarValorUnitario('${codigo}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5vw; position: absolute; top: 0; right: 0;">` : ''}
                         <label class="${valor == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(valor)}</label>
                         ${labelICMS}
                     </div>
@@ -1718,7 +1711,6 @@ async function total() {
                 delete itemSalvo.tipo_desconto
                 delete itemSalvo.desconto
             }
-
         }
     }
 
@@ -1803,7 +1795,7 @@ async function total() {
 
 }
 
-async function alterarValorUnitario(codigo, valor) {
+async function alterarValorUnitario(codigo) {
 
     let produto = dados_composicoes[codigo]
     let lpu = String(document.getElementById('lpu').value).toLowerCase()
@@ -1845,11 +1837,12 @@ async function confirmarNovoPreco(codigo, precoOriginal, operacao) {
         let valor = Number(document.getElementById('novoValor').value)
 
         if (precoOriginal >= valor) return openPopup_v2(avisoHTML('O valor precisa ser maior que o Original'), 'AVISO', true)
-
+        orcamento.alterado = true
         item.custo_original = item.custo
         item.custo = valor
         item.alterado = true
     } else if (operacao == 'remover') {
+        delete orcamento.alterado
         delete item.custo_original
         delete item.alterado
     }
@@ -1892,11 +1885,6 @@ async function incluirItemOld(codigo, novaQuantidade) {
             </td>` : ''}
 
             <td></td>
-            <td>
-                <select class="opcoesSelect" onchange="alterarChave('${codigo}', 'sistema', this)">
-                    ${opcoes}
-                </select>
-            </td>
             <td style="text-align: center;">
                 <img onclick="ampliar_especial(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
             </td>

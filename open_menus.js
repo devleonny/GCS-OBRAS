@@ -173,7 +173,7 @@ async function identificacaoUser() {
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
 
     carregarIcones() // ícones da tela inicial;
-    aprovacoes_pendentes() // Aprovações de desconto;
+    aprovacoesPendentes() // Aprovações de desconto;
     verificarAlertas() // Verificar a quantidade de mensagens;
 
     let painelMensagens = ''
@@ -1648,7 +1648,7 @@ function connectWebSocket() {
 
         if (data.tipo == 'usuarios_online') localStorage.setItem('usuariosOnline', JSON.stringify(data.usuarios))
 
-        if (base == 'aprovacoes') aprovacoes_pendentes()
+        if (base == 'aprovacoes') aprovacoesPendentes()
 
         if (data.tipo == 'livre' && document.title == 'Criar Orçamento') f5()
 
@@ -1905,7 +1905,7 @@ function data_atual(estilo, nivel) {
     }
 }
 
-async function aprovacoes_pendentes() {
+async function aprovacoesPendentes() {
 
     await sincronizarDados('aprovacoes', true)
 
@@ -1940,6 +1940,7 @@ async function aprovacoes_pendentes() {
 
             let quantidade = composicao.qtde
             let custo = composicao.custo
+            let custo_original = composicao?.custo_original || false
             let total = quantidade * custo
             let tipo = composicao.tipo
             let desconto = 0
