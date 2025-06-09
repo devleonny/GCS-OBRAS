@@ -469,13 +469,12 @@ async function confirmarExclusaoTicket(ticketId) {
         if (dados_tickets[ticketId]) {
             delete dados_tickets[ticketId];
 
-            if (typeof inserirDados === 'function' && typeof enviar === 'function') {
+            // Segue o padrão da função "apagar" de open_menus.js
+            if (typeof inserirDados === 'function') {
                 await inserirDados(dados_tickets, 'dados_tickets');
-                if (typeof remover === 'function') {
-                    await remover(`dados_tickets/${ticketId}`);
-                }
-            } else {
-                localStorage.setItem('dados_tickets', JSON.stringify(dados_tickets));
+            }
+            if (typeof deletar === 'function') {
+                await deletar(`dados_tickets/${ticketId}`);
             }
 
             openPopup_v2(`
@@ -488,7 +487,7 @@ async function confirmarExclusaoTicket(ticketId) {
             setTimeout(async () => {
                 remover_popup();
                 await recuperar_tickets();
-            }, 1500);
+            }, 300);
         }
 
     } catch (error) {
