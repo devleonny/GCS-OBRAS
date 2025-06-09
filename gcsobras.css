@@ -1,12 +1,118 @@
 body {
     font-size: 0.8em;
     margin-bottom: 10vh;
+    margin-top: 6vh;
     padding: 0;
     font-family: 'Poppins', sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
+}
+
+.top {
+    display: flex;
+    width: 100%;
+    margin: 20px;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #222222bf;
+    padding: 10px;
+    border-radius: 5px;
+    gap: 20px;
+}
+
+.divOnline {
+    position: absolute;
+    border-radius: 3px;
+    height: max-content;
+    max-height: 70vh;
+    overflow: auto;
+    padding: 10px;
+    background-color: white;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    z-index: 9999;
+}
+
+.cabecalhoUsuario {
+    background-color: #22272bb4;
+    font-family: 'Poppins', sans-serif;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    z-index: 9999;
+    padding: 5px;
+    border-radius: 15px;
+}
+
+.cabecalhoUsuario label {
+    font-size: 1vw;
+}
+
+.botaoUsuarios {
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    cursor: pointer;
+    background-color: white;
+    border-radius: 15px;
+    padding-right: 1vw;
+    gap: 5px;
+}
+
+.botaoUsuarios img {
+    cursor: pointer;
+    width: 2vw;
+}
+
+.botaoUsuarios label {
+    cursor: pointer;
+    font-size: 0.8vw;
+}
+
+.online {
+    border-radius: 50%;
+    background-color: green;
+    width: 3vw;
+}
+
+.toolbarOrcamento {
+    background-color: #d2d2d2;
+    color: #222;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    padding: 10px;
+    font-size: 0.8vw;
+    color: #222;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+.toolbarOrcamento label {
+    cursor: pointer;
+}
+
+.labelToolbarQuantidade {
+    cursor: pointer;
+    text-align: center;
+    background-color: #222;
+    color: #d2d2d2;
+    border-radius: 3px;
+    padding-left: 10px;
+    padding-right: 10px;
+    width: 50%;
 }
 
 .ths th {
@@ -204,6 +310,7 @@ body {
     background-color: #097fe6;
     padding: 5px;
     border-radius: 3px;
+    font-size: 0.8vw;
 }
 
 .select_da_lpu {
@@ -457,7 +564,6 @@ body {
 }
 
 #content {
-    margin-top: 40px;
     width: 95%;
     display: flex;
     flex-direction: column;
@@ -617,6 +723,70 @@ button {
     left: -100%;
     transition: right 0.5s ease;
     z-index: 150;
+}
+
+.labelQuantidade {
+    color: white;
+    position: absolute;
+    top: -5px;
+    right: -10px;
+    background-color: red;
+    border-radius: 50%;
+    width: 1.5vw;
+    height: 1.5vw;
+    font-size: 0.8vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bordaWhatsapp {
+    width: 0;
+    height: 0;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-right: 10px solid #ffea98;
+    /* mesma cor do balão */
+    margin-right: -1px;
+}
+
+.balaoWhatsapp {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.3);
+    background-color: #ffea98;
+    padding: 5px;
+    border-radius: 3px;
+    margin-bottom: 3px;
+}
+
+.contornoMensagem {
+    background-color: #ffffffe1;
+    margin-bottom: 5px;
+    width: 90%;
+    padding: 5px;
+    border-radius: 3px;
+    border: solid 1px grey;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+}
+
+.labelMensagem {
+    cursor: pointer;
+    font-size: 0.8vw;
+    padding: 3px;
+    border-radius: 3px;
+    background-color: #097fe6;
+    color: white;
+}
+
+.contornoMensagem label {
+    font-size: 0.7vw;
 }
 
 .flutuante.show {
@@ -1709,7 +1879,7 @@ input[type=range]::-moz-range-thumb {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     max-height: 500px;
     overflow-y: auto;
-    z-index: 5000;
+    z-index: 10004;
 }
 
 .autocomplete-item {

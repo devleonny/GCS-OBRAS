@@ -10,30 +10,6 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <style>
-        body {
-            font-size: 0.8em;
-            background: linear-gradient(45deg, #151749, #B12425);
-            animation: none;
-        }
-
-        body::before {
-            animation: none;
-            background: none;
-        }
-
-        .top {
-            position: relative;
-            display: flex;
-            width: 100%;
-            margin: 5px;
-            align-items: center;
-            justify-content: space-between;
-            background-color: #222222bf;
-            padding: 10px;
-            border-radius: 5px;
-            gap: 20px;
-        }
-
         .labelEstoque {
             cursor: pointer;
             width: 60%;
@@ -142,56 +118,53 @@
 
 <body>
 
-    <div id="content">
-        <div class="top">
+    <div class="top">
 
-            <img src="imagens/BG.png" style="width: 150px;">
+        <img src="imagens/BG.png" style="width: 150px;">
 
-            <label class="novo_titulo" style="font-size: 2.0em;">Estoque</label>
+        <label class="novo_titulo" style="font-size: 2.0em;">Estoque</label>
 
-            <div style="display: flex; justify-content: center; width: 30vw;">
+        <div style="display: flex; justify-content: center; width: 30vw;">
 
-                <div class="blocosCabecalho">
-                    <div onclick="para_excel('tabela_estoque')">
-                        <label>Excel</label>
-                        <img src="imagens/excel.png">
-                    </div>
-
-                    <div onclick="relatorio_movimento()">
-                        <label>Relatório</label>
-                        <img src="imagens/relatorio2.png">
-                    </div>
-
-                    <div onclick="abrirFornecedores()">
-                        <label>Fornecedores</label>
-                        <img src="imagens/relatorio2.png">
-                    </div>
+            <div class="blocosCabecalho">
+                <div onclick="para_excel('tabela_estoque')">
+                    <label>Excel</label>
+                    <img src="imagens/excel.png">
                 </div>
 
-                <div class="blocosCabecalho">
+                <div onclick="relatorio_movimento()">
+                    <label>Relatório</label>
+                    <img src="imagens/relatorio2.png">
+                </div>
 
-                    <div onclick="recuperar_estoque()">
-                        <label>Atualizar</label>
-                        <img src="imagens/atualizar_2.png">
-                    </div>
-
-                    <div onclick="window.location.href='inicial.html'">
-                        <label>Voltar</label>
-                        <img src="imagens/voltar.png">
-                    </div>
-
-                    <div id="adicionar_item" onclick="incluir_linha()">
-                        <label>Cadastrar Item</label>
-                        <img src="imagens/add.png">
-                    </div>
-
+                <div onclick="abrirFornecedores()">
+                    <label>Fornecedores</label>
+                    <img src="imagens/relatorio2.png">
                 </div>
             </div>
+
+            <div class="blocosCabecalho">
+
+                <div onclick="recuperar_estoque()">
+                    <label>Atualizar</label>
+                    <img src="imagens/atualizar_2.png">
+                </div>
+
+                <div onclick="window.location.href='inicial.html'">
+                    <label>Voltar</label>
+                    <img src="imagens/voltar.png">
+                </div>
+
+                <div id="adicionar_item" onclick="incluir_linha()">
+                    <label>Cadastrar Item</label>
+                    <img src="imagens/add.png">
+                </div>
+
+            </div>
         </div>
-
-        <div id="estoque"></div>
-
     </div>
+
+    <div id="estoque"></div>
 
 </body>
 

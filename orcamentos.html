@@ -12,40 +12,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 
     <style>
-        body {
-            font-size: 0.8em;
-            background: linear-gradient(45deg, #151749, #B12425);
-            animation: none;
-        }
-
-        body::before {
-            animation: none;
-            background: none;
-        }
-
-        table {
-            width: 100%;
-            vertical-align: middle;
-            margin: 0 auto;
-        }
-
         textarea {
             font-size: 0.8vw;
             color: #222;
             width: 80%;
-        }
-
-        .top {
-            position: relative;
-            display: flex;
-            width: 100%;
-            margin: 5px;
-            align-items: center;
-            justify-content: space-between;
-            background-color: #222222bf;
-            padding: 10px;
-            border-radius: 5px;
-            gap: 20px;
         }
 
         .formato_status {
@@ -72,14 +42,6 @@
             height: max-content;
             width: 90vw;
             overflow-y: auto;
-        }
-
-        th {
-            color: #222;
-            position: sticky;
-            top: 0;
-            z-index: 1; /* ajuda quando há outros elementos empilhados */
-            
         }
 
         .label_etiquetas {
@@ -128,48 +90,43 @@
 
     <div id="overlay"></div>
 
-    <div id="content" style="gap: 20px;">
+    <div class="top">
 
-        <div class="top">
+        <img src="imagens/BG.png" style="width: 150px;">
+        <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; color: white;">
+            <label class="novo_titulo">Orçamentos</label>
+            <label id="nome_filtro"></label>
+        </div>
 
-            <img src="imagens/BG.png" style="width: 150px;">
-            <div
-                style="display: flex; align-items: center; justify-content: center; flex-direction: column; color: white;">
-                <label class="novo_titulo">Orçamentos</label>
-                <label id="nome_filtro"></label>
+        <div style="display: flex; justify-content: center; width: 30vw;">
+            <div class="blocosCabecalho">
+                <div onclick="window.location.href = 'criar_aluguel.html'">
+                    <label>Orçamento de Aluguel</label>
+                    <img src="imagens/projeto.png">
+                </div>
             </div>
 
-            <div style="display: flex; justify-content: center; width: 30vw;">
-                <div class="blocosCabecalho">
-                    <div onclick="window.location.href = 'criar_aluguel.html'">
-                        <label>Orçamento de Aluguel</label>
-                        <img src="imagens/projeto.png">
-                    </div>
+            <div class="blocosCabecalho">
+                <div onclick="window.location.href='inicial.html'">
+                    <label>Menu Inicial</label>
+                    <img src="imagens/voltar.png">
+                </div>
+                <div onclick="recuperar_orcamentos()">
+                    <label>Atualizar</label>
+                    <img src="imagens/atualizar_2.png">
                 </div>
 
-                <div class="blocosCabecalho">
-                    <div onclick="window.location.href='inicial.html'">
-                        <label>Menu Inicial</label>
-                        <img src="imagens/voltar.png">
-                    </div>
-                    <div onclick="recuperar_orcamentos()">
-                        <label>Atualizar</label>
-                        <img src="imagens/atualizar_2.png">
-                    </div>
-
-                    <div onclick="window.location.href = 'criar_orcamento.html'">
-                        <label>Criar Orçamento</label>
-                        <img src="imagens/projeto.png">
-                    </div>
+                <div onclick="window.location.href = 'criar_orcamento.html'">
+                    <label>Criar Orçamento</label>
+                    <img src="imagens/projeto.png">
                 </div>
             </div>
         </div>
+    </div>
 
-        <div id="tabelas" style="display: flex; flex-direction: column; align-items: center; justify-content: start;">
-            <div id="toolbar"></div>
-            <div id="orcamentos" class="tabela-container"></div>
-        </div>
-
+    <div id="tabelas" style="display: flex; flex-direction: column; align-items: center; justify-content: start;">
+        <div id="toolbar"></div>
+        <div id="orcamentos" class="tabela-container"></div>
     </div>
 
 </body>

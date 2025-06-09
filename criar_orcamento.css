@@ -1,0 +1,25 @@
+#agrupamentos-body tr {
+  background: #fff;
+  transition: background 0.2s;
+}
+
+#agrupamentos-body tr:nth-child(even) {
+  background: #f4f7fa;
+}
+
+#agrupamentos-body tr:hover {
+  background: #e3f1ff;
+}
+
+#agrupamentos-body td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #e3e8ee;
+  font-size: 1em;
+}
+
+.agrupamentos-thead th {
+  position: sticky;
+  top: 0;
+  background: #f0f4f8;
+  z-index: 2;
+}

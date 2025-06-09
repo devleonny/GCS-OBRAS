@@ -12,17 +12,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 
     <style>
-        body {
-            font-size: 0.8em;
-            background: linear-gradient(45deg, #151749, #B12425);
-            animation: none;
-        }
-
-        body::before {
-            animation: none;
-            background: none;
-        }
-
         table {
             width: 100%;
             vertical-align: middle;
@@ -35,17 +24,32 @@
             width: 80%;
         }
 
-        .top {
-            position: relative;
+        .botoesChamado {
+            color: white;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 3px;
+            background-color: #151749;
             display: flex;
-            width: 100%;
-            margin: 5px;
             align-items: center;
-            justify-content: space-between;
-            background-color: #222222bf;
-            padding: 10px;
-            border-radius: 5px;
-            gap: 20px;
+            justify-content: center;
+            gap: 10px;
+            height: 5vh;
+        }
+
+        .botoesChamado label {
+            font-size: 0.7vw;
+            cursor: pointer;
+        }
+
+        .botoesChamado:hover {
+            transition: ease-in-out 0.1s;
+            background-color: #d2d2d2;
+            color: #151749;
+        }
+
+        .botoesChamado img {
+            width: 2vw;
         }
 
         .formato_status {
@@ -54,6 +58,31 @@
             color: white;
             border-radius: 5px;
             padding: 5px;
+        }
+
+        .telaChamado {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: start;
+            width: 60vw;
+            height: 80vh;
+            overflow: auto;
+            background-color: #d2d2d2;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        .excluir:hover {
+            transition: 0.2s ease-in-out;
+            background-color: #222;
+            color: white;
+        }
+
+        .espacos {
+            border: none;
+            padding: 0px;
+            margin: 0px;
         }
 
         input {
@@ -156,55 +185,47 @@
 
 <body>
 
-    <div id="overlay"></div>
+    <div class="top">
 
-    <div id="content" style="gap: 20px;">
-
-        <div class="top">
-
-            <img src="imagens/BG.png" style="width: 150px;">
-            <div
-                style="display: flex; align-items: center; justify-content: center; flex-direction: column; color: white;">
-                <label class="novo_titulo">Chamados</label>
-                <label id="nome_filtro"></label>
-            </div>
-
-            <div style="display: flex; justify-content: center; gap: 10px;">
-
-                <div class="blocosCabecalho">
-
-                    <div onclick="window.location.href='inicial.html'">
-                        <label>Menu Inicial</label>
-                        <img src="imagens/voltar.png">
-                    </div>
-                    <div onclick="recuperar_manutencoes()">
-                        <label>Atualizar</label>
-                        <img src="imagens/atualizar_2.png">
-                    </div>
-
-                    <div onclick="criar_manutencao()">
-                        <label>Criar Manutenção</label>
-                        <img src="imagens/chamados.png">
-                    </div>
-
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <label style="color: white;">Filtrar Datas:</label>
-                        <input id="dataDe" class="datas_estoque" type="date" oninput="filtrarTabelaPorData()">
-                        <input id="dataAte" class="datas_estoque" type="date" oninput="filtrarTabelaPorData()">
-                    </div>
-
-                </div>
-            </div>
+        <img src="imagens/BG.png" style="width: 150px;">
+        <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; color: white;">
+            <label class="novo_titulo">Chamados</label>
+            <label id="nome_filtro"></label>
         </div>
 
-        <div style="display: flex; gap: 10px;">
+        <div style="display: flex; justify-content: center; gap: 10px;">
 
-            <div id="tabelas"
-                style="display: flex; flex-direction: column; align-items: center; justify-content: start;">
-                <div id="toolbar"></div>
-                <div id="chamados"></div>
+            <div class="blocosCabecalho">
+
+                <div onclick="window.location.href='inicial.html'">
+                    <label>Menu Inicial</label>
+                    <img src="imagens/voltar.png">
+                </div>
+                <div onclick="recuperar_manutencoes()">
+                    <label>Atualizar</label>
+                    <img src="imagens/atualizar_2.png">
+                </div>
+
+                <div onclick="criar_manutencao()">
+                    <label>Criar Manutenção</label>
+                    <img src="imagens/chamados.png">
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label style="color: white;">Filtrar Datas:</label>
+                    <input id="dataDe" class="datas_estoque" type="date" oninput="filtrarTabelaPorData()">
+                    <input id="dataAte" class="datas_estoque" type="date" oninput="filtrarTabelaPorData()">
+                </div>
+
             </div>
+        </div>
+    </div>
 
+    <div style="display: flex; gap: 10px;">
+
+        <div id="tabelas" style="display: flex; flex-direction: column; align-items: center; justify-content: start;">
+            <div id="toolbar"></div>
+            <div id="chamados"></div>
         </div>
 
     </div>
