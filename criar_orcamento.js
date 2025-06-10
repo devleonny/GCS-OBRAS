@@ -2889,7 +2889,7 @@ async function exibirTabelaAgrupamentosLancarGlobal() {
                     ${item.codigoPai}
                 </td>
                 <td>
-                    <span style="font-weight:500;">${item.descricaoFilho}</span>
+                    <span style="font-weight:500;">${item.descricaoPai}</span>
                 </td>
                 <td style="text-align:center;" >
                     <span style="
