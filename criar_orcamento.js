@@ -72,7 +72,6 @@ async function exibirTabelaAgrupamentos() {
             // Indicador visual se o item já está no orçamento
             let indicadorOrcamento = quantidadeAtual ?
                 `<div style="display: flex; align-items: center; gap: 5px;">
-                    <img src="imagens/check.png" style="width: 12px;" title="Item já está no orçamento">
                     <span style="font-size: 0.8em; color: #4CAF50;">(Qtde: ${quantidadeAtual})</span>
                 </div>` : ''
 
@@ -570,7 +569,7 @@ async function atualizarOpcoesLPU() {
             resolve()
         } catch {
             reject()
-            openPopup_v2(avisoHTML('Houve um erro ao carregar'), 'ALERTA')
+            openPopup_v2(alertaHTML('Houve um erro ao carregar'), 'ALERTA')
         }
     })
 }
@@ -1091,36 +1090,36 @@ async function enviar_dados() {
     let orcamento_v2 = baseOrcamento()
 
     if (!orcamento_v2.dados_orcam) {
-        return openPopup_v2(avisoHTML('Preencha os dados do Cliente'), 'ALERTA')
+        return openPopup_v2(alertaHTML('Preencha os dados do Cliente'), 'ALERTA')
     }
 
     let dados_orcam = orcamento_v2.dados_orcam;
     let chamado = dados_orcam.contrato
 
     if (dados_orcam.cliente_selecionado === '') {
-        return openPopup_v2(avisoHTML('Cliente em branco'), 'ALERTA')
+        return openPopup_v2(alertaHTML('Cliente em branco'), 'ALERTA')
     }
 
     if (chamado === '') {
-        return openPopup_v2(avisoHTML('Chamado em branco'), 'ALERTA')
+        return openPopup_v2(alertaHTML('Chamado em branco'), 'ALERTA')
     }
 
     let existente = await verificar_chamado_existente(chamado, orcamento_v2.id, false)
 
     if (chamado !== 'sequencial' && existente?.situacao) {
-        return openPopup_v2(avisoHTML('Chamado já Existente'), 'ALERTA')
+        return openPopup_v2(alertaHTML('Chamado já Existente'), 'ALERTA')
     }
 
     if (chamado.slice(0, 1) !== 'D' && chamado !== 'sequencial' && chamado.slice(0, 3) !== 'ORC') {
-        return openPopup_v2(avisoHTML('Chamado deve começar com D'), 'ALERTA')
+        return openPopup_v2(alertaHTML('Chamado deve começar com D'), 'ALERTA')
     }
 
     if (dados_orcam.estado === '') {
-        return openPopup_v2(avisoHTML('Estado em branco'), 'ALERTA')
+        return openPopup_v2(alertaHTML('Estado em branco'), 'ALERTA')
     }
 
     if (dados_orcam.cnpj === '') {
-        return openPopup_v2(avisoHTML('CNPJ em branco'), 'ALERTA')
+        return openPopup_v2(alertaHTML('CNPJ em branco'), 'ALERTA')
     }
 
     let desconto_porcentagem = document.getElementById('desconto_porcentagem')
@@ -1229,11 +1228,14 @@ async function recuperarComposicoes() {
 
     overlayAguarde()
 
-    await sincronizarDados('dados_composicoes'),
-        await tabelaProdutos()
+    let nuvem = await receber('dados_composicoes')
+    await inserirDados(nuvem, 'dados_composicoes')
+    await tabelaProdutos()
 
-    remover_popup()
-
+    let aguarde = document.getElementById('aguarde')
+    if (aguarde) {
+        aguarde.remove()
+    }
 }
 
 async function ocultarZerados(ocultar) {
@@ -1264,47 +1266,51 @@ async function tabelaProdutos() {
     let tabela_itens = document.getElementById('tabela_itens')
     let orcamento_v2 = baseOrcamento()
 
-    dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    if (Object.keys(dados_composicoes).length == 0) return await recuperarComposicoes()
+    if (tabela_itens) {
 
-    for (codigo in dados_composicoes) {
-        let produto = dados_composicoes[codigo]
-
-        if (!produto.tipo) continue
-
-        if (!tabelas[produto.tipo]) {
-            tabelas[produto.tipo] = { linhas: '' }
+        dados_composicoes = await recuperarDados('dados_composicoes') || {}
+        if (Object.keys(dados_composicoes) == 0) {
+            await recuperarComposicoes()
         }
 
-        let preco = 0
-        let ativo = 0
-        let historico = 0
-        let lpu;
+        for (codigo in dados_composicoes) {
+            let produto = dados_composicoes[codigo]
 
-        if (document.getElementById('lpu')) {
-            lpu = String(document.getElementById('lpu').value).toLowerCase()
-        } else {
-            lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
-        }
+            if (!produto.tipo) continue
 
-        if (produto[lpu] && produto[lpu].ativo && produto[lpu].historico) {
-            ativo = produto[lpu].ativo
-            historico = produto[lpu].historico
-            preco = historico[ativo]?.valor || 0
-        }
+            if (!tabelas[produto.tipo]) {
+                tabelas[produto.tipo] = { linhas: '' }
+            }
 
-        if (preco == 0 && ocultarZerados) continue
+            let preco = 0
+            let ativo = 0
+            let historico = 0
+            let lpu;
 
-        if (produto.status != "INATIVO") {
+            if (document.getElementById('lpu')) {
+                lpu = String(document.getElementById('lpu').value).toLowerCase()
+            } else {
+                lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
+            }
 
-            let td_quantidade = `
-                    <input type="number" class="campoValor" oninput="incluirItemOld('${codigo}', this.value)">
+            if (produto[lpu] && produto[lpu].ativo && produto[lpu].historico) {
+                ativo = produto[lpu].ativo
+                historico = produto[lpu].historico
+                preco = historico[ativo]?.valor || 0
+            }
+
+            if (preco == 0 && ocultarZerados) continue
+
+            if (produto.status != "INATIVO") {
+
+                let td_quantidade = `
+                    <input type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
                     `
-            let opcoes = ''
-            esquemas.sistema.forEach(op => {
-                opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
-            })
-            let linha = `
+                let opcoes = ''
+                esquemas.sistema.forEach(op => {
+                    opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
+                })
+                let linha = `
                         <tr>
                             <td style="white-space: nowrap;">${codigo}</td>
                             <td style="position: relative;">
@@ -1333,17 +1339,17 @@ async function tabelaProdutos() {
                         </tr>
                     `
 
-            tabelas[produto.tipo].linhas += linha
-            tabelas.TODOS.linhas += linha
+                tabelas[produto.tipo].linhas += linha
+                tabelas.TODOS.linhas += linha
+            }
         }
-    }
 
-    let colunas = ['Código', 'Descrição', 'Fabricante', 'Modelo', 'Sistema', 'Quantidade', 'Unidade', 'Valor', 'Imagem *Ilustrativa']
-    let ths = ''
-    let tsh = ''
-    colunas.forEach((col, i) => {
-        ths += `<th style="color: white;">${col}</th>`
-        tsh += `
+        let colunas = ['Código', 'Descrição', 'Fabricante', 'Modelo', 'Sistema', 'Quantidade', 'Unidade', 'Valor', 'Imagem *Ilustrativa']
+        let ths = ''
+        let tsh = ''
+        colunas.forEach((col, i) => {
+            ths += `<th style="color: white;">${col}</th>`
+            tsh += `
             <th style="background-color: white; border-radius: 0px;">
                 <div style="position: relative;">
                     <input style="text-align: left;" oninput="pesquisarProdutos(${i}, this)">
@@ -1351,17 +1357,17 @@ async function tabelaProdutos() {
                 </div>
             </th>
             `
-    })
+        })
 
-    let tabelasHTML = ''
-    let toolbar = ''
+        let tabelasHTML = ''
+        let toolbar = ''
 
-    for (let tabela in tabelas) {
+        for (let tabela in tabelas) {
 
-        toolbar += `
+            toolbar += `
                 <label class="menu_top" style="background-color: ${coresTabelas(tabela)};" onclick="alterarTabela('${tabela}')">${tabela}</label>`
 
-        tabelasHTML += `
+            tabelasHTML += `
                 <table id="compos_${tabela}" style="display: none;" class="tabela">
                     <thead style="background-color: ${coresTabelas(tabela)};">
                         <tr>${ths}</tr>
@@ -1372,32 +1378,32 @@ async function tabelaProdutos() {
                     </tbody>
                 </table>
             `
-    }
+        }
 
-    let botoes = `
+        let botoes = `
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
                 onclick="recuperarComposicoes()">
                 <img src="imagens/atualizar_2.png" style="width: 30px; cursor: pointer;">
                 <label style="color: white; cursor: pointer;">Atualizar</label>
             </div>`
 
-    if (moduloComposicoes) {
-        botoes += `
+        if (moduloComposicoes) {
+            botoes += `
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
                 onclick="cadastrar_editar_item()">
                 <img src="imagens/add.png" style="width: 30px; cursor: pointer;">
                 <label style="color: white; cursor: pointer;">Criar Item</label>
             </div>`
-    }
+        }
 
-    botoes += `
+        botoes += `
             <div style="display: flex; align-items: center; justify-content: center; gap: 2px; background-color: #d2d2d2; margin: 3px; border-radius: 3px;">
                 <input onchange="ocultarZerados(this.checked)" type="checkbox" style="width: 3vw; cursor: pointer;" ${ocultarZerados ? 'checked' : ''}>
                 <label style="padding-right: 2vw;">Ocultar produtos zerados</label>
             </div>
             `
 
-    let acumulado = `
+        let acumulado = `
         <div style="position: relative; display: flex; justify-content: center; width: 100%; margin-top: 30px; gap: 10px;">
             ${toolbar}
             ${botoes}
@@ -1407,7 +1413,8 @@ async function tabelaProdutos() {
             ${tabelasHTML}
         </div>
         `
-    tabela_itens.innerHTML = acumulado
+        tabela_itens.innerHTML = acumulado
+    }
 
     alterarTabela('TODOS')
 }
@@ -1553,7 +1560,6 @@ async function total() {
                 let precos = { custo: 0, lucro: 0 }
                 let descricao = dados_composicoes[codigo].descricao
                 let tipo = dados_composicoes[codigo].tipo
-                let icmsSaida = 0
 
                 if (!orcamento_v2.dados_composicoes[codigo]) {
                     orcamento_v2.dados_composicoes[codigo] = {}
@@ -1566,7 +1572,7 @@ async function total() {
                 if (dados_composicoes[codigo].agrupamentos) {
                     let img = `<img 
                                 src="gifs/lampada.gif" 
-                                onclick="mostrarAgrupamentos('${codigo}')"
+                                onclick="lancarTodosAgrupamentos('${codigo}')"
                                 style="position: absolute; top: 3px; right: 3px; width: 1.5vw; cursor: pointer;" 
                                 >`
                     tds[1].insertAdjacentHTML('beforeend', img) // Não precisa de acréscimo;
@@ -1585,7 +1591,6 @@ async function total() {
                     let historico = dados_composicoes[codigo][lpu].historico
                     precos = historico[ativo]
                     valor_unitario = precos.valor
-                    icmsSaida = precos?.icms_creditado == 4 ? 4 : estado == 'BA' ? 20.5 : 12
                 }
 
                 let quantidade = Number(tds[3 + acrescimo].querySelector('input').value)
@@ -1629,7 +1634,7 @@ async function total() {
                             custo: precos.custo,
                             valor: precos.valor - desconto / quantidade,
                             icms_creditado: precos.icms_creditado,
-                            icmsSaida,
+                            icmsSaida: precos.icms_creditado == 4 ? 4 : estado == 'BA' ? 20.5 : 12,
                             modalidadeCalculo: tipo
                         }
 
@@ -1683,25 +1688,18 @@ async function total() {
                     </td>`
                 }
 
-                let icmsSaidaDecimal = icmsSaida / 100
-                let valorLiqSemICMS = valor_unitario - (valor_unitario * icmsSaidaDecimal)
-                let valorTotSemICMS = valorLiqSemICMS * quantidade
-
-                let labelValores = (valor, semIcms, percentual) => {
-                    let labelICMS = ''
-                    if (tipo == 'VENDA' && estado) labelICMS = `<label style="white-space: nowrap;">SEM ICMS ${dinheiro(semIcms)} [ ${percentual}% ]</label>`
-                    return `
-                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                        <label class="${valor == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(valor)}</label>
-                        ${labelICMS}
+                tds[4 + acrescimo].innerHTML = `
+                    <div>
+                        <label class="${valor_unitario == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(valor_unitario)}</label>
                     </div>
                     `
-                }
-
-                tds[4 + acrescimo].innerHTML = labelValores(valor_unitario, valorLiqSemICMS, icmsSaida)
 
                 if (carrefour) { acrescimo = 0 }
-                tds[6 + acrescimo].innerHTML = labelValores(total_linha, valorTotSemICMS, icmsSaida)
+                tds[6 + acrescimo].innerHTML = `
+                    <div>
+                        <label class="${valor_unitario == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(total_linha)}</label>
+                    </div>
+                    `
 
                 let imagem = dados_composicoes[codigo]?.imagem || logo
 
@@ -1757,7 +1755,8 @@ async function total() {
 
         painel_desconto.innerHTML = `
             <div class="resumo">
-                <label style="font-size: 1.2vw;"><strong>RESUMO</strong></label>
+                <label>RESUMO</label>
+                <hr style="width: 100%;">
                 <label>Total sem Desconto</label>
                 <label style="font-size: 1.5vw;" id="total_sem_desconto">${dinheiro(totais.GERAL.bruto)}</label>
                 <br>
@@ -1805,108 +1804,6 @@ async function total() {
     }
 
 }
-
-async function incluirItemOld(codigo, novaQuantidade) {
-    let orcamento_v2 = baseOrcamento()
-    let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
-    let produto = dados_composicoes[codigo]
-
-    let opcoes = ''
-    esquemas.sistema.forEach(op => {
-        opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
-    })
-
-    let linha = `
-        <tr>
-            <td>${codigo}</td>
-            <td style="position: relative;"></td>
-            ${carrefour ? `<td></td>` : ''}
-            <td style="text-align: center;">${produto?.unidade}</td>
-            <td style="text-align: center;">
-                <input oninput="total()" type="number" class="campoValor" value="${novaQuantidade}">
-            </td>
-            <td style="position: relative;"></td>
-
-            ${!carrefour ?
-            `<td>
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
-                    <select onchange="total()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
-                        <option>Porcentagem</option>
-                        <option>Dinheiro</option>
-                    </select>
-                    <input type="number" oninput="total()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;" value="${produto?.desconto || ''}">
-                </div>
-            </td>` : ''}
-
-            <td></td>
-            <td>
-                <select class="opcoesSelect" onchange="alterarChave('${codigo}', 'sistema', this)">
-                    ${opcoes}
-                </select>
-            </td>
-            <td style="text-align: center;">
-                <img onclick="ampliar_especial(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
-            </td>
-            <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo}', this)" style="cursor: pointer; width: 2vw;"></td>
-        </tr>
-    `
-
-    if (itemExistenteOld(produto.tipo, codigo, novaQuantidade)) {
-
-        let tbody = document.getElementById(`linhas_${produto.tipo}`)
-
-        if (!tbody) { // Lançamento do 1º Item de cada tipo;
-
-            if (!orcamento_v2.dados_composicoes) {
-                orcamento_v2.dados_composicoes = {}
-            }
-
-            orcamento_v2.dados_composicoes[codigo] = {
-                codigo: codigo,
-                qtde: novaQuantidade,
-                tipo: produto?.tipo,
-                unidade: produto?.unidade || 'UN',
-                custo: 0,
-                descricao: produto?.descricao
-            }
-
-            baseOrcamento(orcamento_v2)
-            return carregarTabelas()
-
-        } else {
-            tbody.insertAdjacentHTML('beforeend', linha)
-        }
-    }
-
-    await total()
-}
-
-function itemExistenteOld(tipo, codigo, quantidade) {
-
-    let incluir = true
-    let orcamento_v2 = baseOrcamento()
-    let linhas = document.getElementById(`linhas_${tipo}`)
-    if (!linhas) return incluir
-    let trs = linhas.querySelectorAll('tr')
-
-    trs.forEach(tr => {
-
-        let tds = tr.querySelectorAll('td')
-        let acrescimo = orcamento_v2.lpu_ativa !== 'LPU CARREFOUR' ? 0 : 1
-
-        if (tds[0].textContent == codigo) {
-
-            incluir = false
-            tds[3 + acrescimo].querySelector('input').value = quantidade
-
-        }
-
-    })
-
-    return incluir
-
-}
-
 
 // Função modificada para só processar filhos que ainda existem no orçamento
 async function atualizarQuantidadesFilhos(codigoPai, novaQuantidadePai) {
@@ -2097,7 +1994,7 @@ async function exibirTabelaAgrupamentosLancar(codigoPai, qtdePai) {
                 </tbody>
             </table>
             <div style="text-align:right; margin-top:24px;">
-                <button onclick="lancarTodosAgrupamentos('${codigoPai}', ${quantidadePai})"
+                <button onclick="lancarTodosAgrupamentos('${codigoPai}')"
                     style="background:#4CAF50; color:white; padding:12px 32px; border:none; border-radius:5px; font-size:1.1em; font-weight:600; box-shadow:0 2px 8px #0002; cursor:pointer; transition:background 0.2s;">
                     Lançar todos os itens agrupados
                 </button>
@@ -2108,21 +2005,26 @@ async function exibirTabelaAgrupamentosLancar(codigoPai, qtdePai) {
 }
 
 // Função global para lançar todos os itens agrupados
-async function lancarTodosAgrupamentos(codigoPai, qtdePai) {
+async function lancarTodosAgrupamentos(codigoPai) {
     let dadosComposicoes = await recuperarDados('dados_composicoes') || {};
     let produtoPai = dadosComposicoes[codigoPai];
-    let tbody = document.getElementById('agrupamentos-body');
-    let trs = tbody.querySelectorAll('tr');
-    for (let tr of trs) {
-        let codigoFilho = tr.getAttribute('data-codigofilho');
-        let qtdeTotal = parseFloat(tr.querySelector('.qtde-total').textContent) || 0;
+    if (!produtoPai || !produtoPai.agrupamentos) return;
+
+    // Pega a quantidade do item pai no orçamento
+    let orcamento_v2 = baseOrcamento();
+    let quantidadePai = orcamento_v2.dados_composicoes?.[codigoPai]?.qtde || 0;
+
+    let count = 0;
+    for (let codigoFilho in produtoPai.agrupamentos) {
+        let qtdeBase = produtoPai.agrupamentos[codigoFilho];
+        let qtdeTotal = qtdeBase * quantidadePai;
         if (qtdeTotal > 0) {
             await incluirItemComPai(codigoFilho, qtdeTotal, codigoPai);
+            count++;
         }
     }
-    remover_popup();
     await carregarTabelas();
-    openPopup_v2('<div style="padding:20px;text-align:center;"><img src="imagens/concluido.png" style="width:50px;"><p>Itens agrupados lançados!</p></div>', 'Sucesso');
+    openPopup_v2(`<div style="padding:20px;text-align:center;"><img src="imagens/concluido.png" style="width:50px;"><p>${count} itens agrupados lançados!</p></div>`, 'Sucesso');
 }
 
 // Modificar a função incluirItem para lançar agrupamentos automaticamente
@@ -2166,7 +2068,7 @@ async function incluirItem(codigo, novaQuantidade) {
                     <strong>Dica:</strong> Ao remover o item pai, as quantidades dos itens filhos serão reduzidas automaticamente.
                 </p>
             </div>
-        `, 'Agrupamento Adicionado', false, 4000) // Auto-fechar em 4 segundos
+        `, 'Agrupamento Adicionado', false, 4000)
     }
 
     let opcoes = ''
@@ -2262,10 +2164,9 @@ function itemExistente(tipo, codigo, quantidade) {
         if (tds[0].textContent == codigo) {
             incluir = false
 
-            // Se o item já existe, somar a quantidade
+            // Se o item já existe, substituir a quantidade (em vez de somar)
             let inputQuantidade = tds[3 + acrescimo].querySelector('input')
-            let quantidadeAtual = parseFloat(inputQuantidade.value) || 0
-            let novaQuantidadeTotal = quantidadeAtual + parseFloat(quantidade)
+            let novaQuantidadeTotal = parseFloat(quantidade) // Substitui, não soma
 
             inputQuantidade.value = novaQuantidadeTotal
 
@@ -2416,24 +2317,30 @@ async function selecionar_cliente(cnpj, nome, div_opcao) {
 
 function limpar_campos() {
     openPopup_v2(`
-        <div style="gap: 10px; display: flex; align-items: center; flex-direction: column; padding: 2vw;">
+        <div style="gap: 10px; display: flex; align-items: center; flex-direction: column;">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <label>Deseja limpar campos?</label>
             </div>
             <label onclick="executar_limpar_campos()" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
-        </div>`, 'AVISO', true)
+        </div>`)
 }
 
-async function executar_limpar_campos() {
+function executar_limpar_campos() {
 
-    overlayAguarde()
-    let orcamento = baseOrcamento()
-    delete orcamento.dados_orcam
-    baseOrcamento(orcamento)
+    document.getElementById('cnpj').value = ''
+    document.getElementById('cliente_selecionado').value = ''
+    document.getElementById('consideracoes').value = ''
+    document.getElementById('tipo_de_frete').value = ''
+    document.getElementById('transportadora').value = ''
+
+    // Limpar campos de texto (textContent)
+    document.getElementById('cep').textContent = ''
+    document.getElementById('estado').textContent = ''
+    document.getElementById('cidade').textContent = ''
+    document.getElementById('bairro').textContent = ''
+
+    salvar_preenchido();
     remover_popup();
-    await total()
-    await painel_clientes()
-
 }
 
 function pagina_adicionar() {
@@ -2827,11 +2734,16 @@ async function exibirTabelaAgrupamentosLancarGlobal() {
         totalGeral += valorTotal;
         linhas += `
             <tr data-codigofilho="${item.codigoFilho}" data-codigopai="${item.codigoPai}">
-                <td style="font-weight:600; color:#fff; background:${corTipoFilho};">${item.codigoFilho}</td>
-                <td style="text-align:center;">
+                <td style="font-weight:600; color:#fff; background:${corTipoPai};">
+                    ${item.codigoPai}
+                </td>
+                <td>
+                    <span style="font-weight:500;">${item.descricaoFilho}</span>
+                </td>
+                <td style="text-align:center;" >
                     <span style="
                         color:#fff;
-                        background:${corTipoPai};
+                        background:${corTipoFilho};
                         border-radius:3px;
                         padding:2px 10px;
                         font-size:0.98em;
@@ -2839,12 +2751,12 @@ async function exibirTabelaAgrupamentosLancarGlobal() {
                         display:inline-block;
                         min-width:60px;
                     ">
-                        ${item.codigoPai}
+                        ${item.codigoFilho}
                     </span>
-                    </td>
-                    <td>
-                        <span style="font-weight:500;">${item.descricaoFilho}</span>
-                    </td>
+                </td>
+                <td>
+                    <span style="font-weight:500;">${item.descricaoFilho}</span>
+                </td>
                 <td style="text-align:center; color:#888;">${item.qtdeBase}</td>
                 <td style="text-align:center; font-weight:600;" class="qtde-total">${item.qtdeTotal}</td>
                 <td style="text-align:right;">${dinheiro(item.preco)}</td>
@@ -2855,72 +2767,52 @@ async function exibirTabelaAgrupamentosLancarGlobal() {
 
     let popup = `
         <div style="margin:auto; background:#fff; border-radius:14px; box-shadow:0 2px 16px #0002; padding:32px 24px;">
-        <h2 style="color:#222; font-size:1.4em; margin-bottom:24px; text-align:center; letter-spacing:1px;">
-            Agrupamentos
-        </h2>
-        <div style="overflow-x:auto;">
-        <table style="
-            width:100%;
-            border-collapse:separate;
-            border-spacing:0;
-            font-family:'Poppins',sans-serif;
-            font-size:1em;
-            background:#f9fafb;
-            border-radius:10px;
-            overflow:hidden;
-        ">
-            <thead>
-                <tr style="background:#f0f4f8;">
-                    <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Código</th>
-                    <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Código Item Pai</th>
-                    <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Descrição</th>
-                    <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Qtde Base</th>
-                    <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Qtde Total</th>
-                    <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Valor Unit.</th>
-                    <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Valor Total</th>
-                </tr>
-            </thead>
-            <tbody id="agrupamentos-body">
-                ${linhas}
-            </tbody>
-        </table>
-        </div>
-        <div style="margin-top:18px; text-align:right;">
-            <span style="
-                background:#f0f4f8;
-                color:#222;
-                font-size:1.18em;
-                font-weight:700;
-                border-radius:6px;
-                padding:10px 28px;
-                box-shadow:0 1px 6px #0001;
-                display:inline-block;
-                margin-bottom:10px;
+            <h2 style="color:#222; font-size:1.4em; margin-bottom:24px; text-align:center; letter-spacing:1px;">
+                Agrupamentos
+            </h2>
+            <div style="overflow-x:auto;">
+            <table style="
+                width:100%;
+                border-collapse:separate;
+                border-spacing:0;
+                font-family:'Poppins',sans-serif;
+                font-size:1em;
+                background:#f9fafb;
+                border-radius:10px;
+                overflow:hidden;
             ">
-                Total Geral: ${dinheiro(totalGeral)}
-            </span>
-        </div>
-        <div style="text-align:right; margin-top:18px;">
-            <button onclick="lancarTodosAgrupamentosGlobal()"
-                style="
-                    background:#24729d;
-                    color:white;
-                    padding:13px 36px;
-                    border:none;
+                <thead>
+                    <tr style="background:#f0f4f8;">
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Código Pai</th>
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Descrição Pai</th>
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Código Filho</th>
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Descrição Filho</th>
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Qtde Base</th>
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Qtde Total</th>
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Valor Unit.</th>
+                        <th style="padding:12px 8px; color:#222; font-weight:600; border-bottom:2px solid #e3e8ee;">Valor Total</th>
+                    </tr>
+                </thead>
+                <tbody id="agrupamentos-body">
+                    ${linhas}
+                </tbody>
+            </table>
+            </div>
+            <div style="margin-top:18px; text-align:right;">
+                <span style="
+                    background:#f0f4f8;
+                    color:#222;
+                    font-size:1.18em;
+                    font-weight:700;
                     border-radius:6px;
-                    font-size:1.08em;
-                    font-weight:600;
+                    padding:10px 28px;
                     box-shadow:0 1px 6px #0001;
-                    cursor:pointer;
-                    transition:background 0.2s,box-shadow 0.2s;
-                    letter-spacing:0.5px;
-                "
-                onmouseover="this.style.background='#155a8a';"
-                onmouseout="this.style.background='#24729d';"
-            >
-                Lançar todos os itens agrupados
-            </button>
-        </div>
+                    display:inline-block;
+                    margin-bottom:10px;
+                ">
+                    Total Geral: ${dinheiro(totalGeral)}
+                </span>
+            </div>
         </div>
     `;
     openPopup_v2(popup, 'Itens Agrupados');
