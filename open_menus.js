@@ -1,8 +1,15 @@
 let acesso = JSON.parse(localStorage.getItem('acesso'))
 let dados_setores = {}
 let filtrosUsuarios = {}
-let logo = 'https://i.imgur.com/Nb8sPs0.png'
-let esquemas = {
+const mensagem = (mensagem) => {
+    return `
+    <div style="display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center;">
+        <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+        <label>${mensagem}</label>
+    </div>`
+}
+const logo = 'https://i.imgur.com/Nb8sPs0.png'
+const esquemas = {
     'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS'],
     'categoria de equipamento': ['', 'IP', 'ANALÓGICO', 'ALARME', 'CONTROLE DE ACESSO'],
     'tipo': ['VENDA', 'SERVIÇO', 'USO E CONSUMO']
@@ -311,12 +318,7 @@ async function abrirMensagens(elementoOrigial) {
 }
 
 async function irChamado(idChamado, idAlerta) {
-    let mensagem = `
-        <div style="display: flex; padding: 2vw; gap: 2vw; align-items: center; justify-content: center;">
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-            <label>O chamado não existe mais...</label>
-        </div>
-    `
+
     let chamadoArmazenado = localStorage.getItem('irChamado')
 
     if (chamadoArmazenado) {
@@ -326,7 +328,7 @@ async function irChamado(idChamado, idAlerta) {
         if (dados_manutencao[chamadoArmazenado.idChamado]) {
             await abrir_manutencao(chamadoArmazenado.idChamado)
         } else {
-            openPopup_v2(mensagem, 'AVISO')
+            openPopup_v2(mensagem('O chamado não existe mais...'), 'AVISO')
         }
         localStorage.removeItem('irChamado')
         deletar(`alertasChamados/${chamadoArmazenado.idAlerta}`)
@@ -2003,19 +2005,21 @@ async function verificarPendencias() { //29
 
 async function verPedidoAprovacao(idOrcamento) {
 
+    let permissao = acesso.permissao
+    let pessoasPermitidas = ['coordenacao', 'adm', 'diretoria']
+    if (!pessoasPermitidas.includes(permissao)) return  openPopup_v2(mensagem('Você não tem acesso'), 'AVISO', true)
+
     let acumulado = ''
-    let pendentes = false
     let modelo = (valor1, valor2) => {
         return `
             <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                <label>${valor1}</label>
+                <label style="white-space: nowrap;">${valor1} - Orçamento</label>
                 <hr style="width: 100%"> 
-                <label style="white-space: nowrap;">${valor2}</label>
+                <label style="white-space: nowrap;">${valor2} - Original</label>
             </div>
         `
     }
 
-    pendentes = true
     let tabelas = {}
     let divTabelas = ''
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
@@ -2089,7 +2093,7 @@ async function verPedidoAprovacao(idOrcamento) {
             `
     }
 
-    let mensagem = (valor, termo) => {
+    let divOrganizada = (valor, termo) => {
         return `
                 <div style="display: flex; justify-content: center; flex-direction: column; align-items: start; width: 100%; margin-bottom: 5px;">
                     <label style="font-size: 0.9vw;"><strong>${termo}</strong></label>
@@ -2103,14 +2107,14 @@ async function verPedidoAprovacao(idOrcamento) {
                 
                 <div style="display: flex; align-items: center; justify-content: start; gap: 2vw;">
                     <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
-                        ${mensagem(orcamento.dados_orcam.analista, 'Solicitante')}
-                        ${mensagem(orcamento.dados_orcam.cliente_selecionado, 'Cliente')}
+                        ${divOrganizada(orcamento.dados_orcam.analista, 'Solicitante')}
+                        ${divOrganizada(orcamento.dados_orcam.cliente_selecionado, 'Cliente')}
                     </div>
                     <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
-                        ${mensagem(aprovacao.total_sem_desconto, 'Total Geral')}
-                        ${mensagem(aprovacao.total_geral, 'Total Com Desconto')}
-                        ${mensagem(aprovacao.desconto_dinheiro, 'Desconto em Dinheiro')}
-                        ${mensagem(`${aprovacao.desconto_porcentagem}%`, 'Desconto Percentual')}
+                        ${divOrganizada(aprovacao.total_sem_desconto, 'Total Geral')}
+                        ${divOrganizada(aprovacao.total_geral, 'Total Com Desconto')}
+                        ${divOrganizada(aprovacao.desconto_dinheiro, 'Desconto em Dinheiro')}
+                        ${divOrganizada(`${aprovacao.desconto_porcentagem}%`, 'Desconto Percentual')}
                     </div>
                 </div>
 
@@ -2139,19 +2143,8 @@ async function verPedidoAprovacao(idOrcamento) {
             </div>
         `
 
-    let permissao = acesso.permissao
-    let pessoasPermitidas = ['coordenacao', 'adm', 'diretoria']
-    if (pessoasPermitidas.includes(permissao) && pendentes) {
         openPopup_v2(acumulado, 'Detalhes', true)
 
-    } else {
-        openPopup_v2(`
-            <div style="display: flex; padding: 2vw; gap: 2vw; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Apenas Coordenação, Adms ou diretoria podem acessar</label>
-            </div>
-            `, 'AVISO', true)
-    }
 }
 
 function visibilidadeOrcamento(div) {

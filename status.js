@@ -1,13 +1,7 @@
 let itens_adicionais = {}
 let id_orcam = ''
 let fluxograma = {}
-let mensagem = (mensagem) => {
-    return `
-    <div style="display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center;">
-        <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-        <label>${mensagem}</label>
-    </div>`
-}
+
 let fluxogramaClone = {
     'ORÇAMENTOS': { cor: '#1CAF29' },
     'LOGÍSTICA': { cor: '#4CAF10' },
@@ -1227,57 +1221,42 @@ async function abrirAtalhos(id) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id]
+    let analista = orcamento.dados_orcam.analista
+    let emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
 
-    if(orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado') {
-        return openPopup_v2(mensagem('Este orçamento precisa ser aprovado'), 'AVISO')
+    let modeloBotoes = (imagem, nome, funcao) => {
+        return `
+        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="${funcao}">
+            <img src="imagens/${imagem}.png" style="width: 48px; height: 48px; margin: 3px;">
+            <label style="cursor: pointer;">${nome}</label>
+        </div>
+        `
     }
 
     let acumulado = `
         <div style="display: flex;">
             <label style="color: #222; font-size: 1.5vw;" id="cliente_status">${orcamento.dados_orcam.cliente_selecionado}</label>
         </div>
+        <hr>
     `
-    let analista = orcamento.dados_orcam.analista
-    let acumulado_botoes = ''
-
-    acumulado_botoes += `
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="abrir_esquema('${id}')">
-            <img src="imagens/esquema.png" style="width: 48px; height: 48px; margin: 3px;">
-            <label style="cursor: pointer;">Histórico</label>
-        </div>
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_pdf('${id}')">
-            <img src="imagens/pdf.png" style="width: 55px;">
-            <label style="cursor: pointer;">Abrir Orçamento em PDF</label>
-        </div>
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_excel('${id}')">
-            <img src="imagens/excel.png">
-            <label style="cursor: pointer;">Baixar Orçamento em Excel</label>
-        </div>
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="duplicar('${id}')">
-            <img src="imagens/duplicar.png">
-            <label style="cursor: pointer;">Duplicar Orçamento</label>
-        </div>
-    `
-
-    if ((document.title !== 'Projetos' && analista == acesso.nome_completo) || (permitidos.includes(acesso.permissao))) {
-        acumulado_botoes += `
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_excluir('${id}')">
-            <img src="imagens/apagar.png" style="width: 48px; height: 48px; margin: 3px;">
-            <label style="cursor: pointer;">Excluir Orçamento</label>
-        </div>    
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="editar('${id}')">
-            <img src="imagens/editar.png" style="width: 48px; height: 48px; margin: 3px;">
-            <label style="cursor: pointer;">Editar Orçamento</label>
-        </div>         
+    if (emAnalise) {
+        acumulado += mensagem('Este orçamento precisa ser aprovado!')
+        
+    }else{
+        acumulado += `
+        ${modeloBotoes('esquema', 'Histórico', `abrir_esquema('${id}')`)}
+        ${modeloBotoes('pdf', 'Abrir Orçamento em PDF', `ir_pdf('${id}')`)}
+        ${modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`)}
+        ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
         `
     }
 
-    acumulado += `
-        <hr>
-        <div style="display: flex; flex-direction: column; justify-content: center; width: 30vw;">
-            ${acumulado_botoes}
-        </div>
-    `
+    if ((document.title !== 'Projetos' && analista == acesso.nome_completo) || (permitidos.includes(acesso.permissao))) {
+        acumulado += `
+        ${modeloBotoes('apagar', 'Excluir Orçamento', `chamar_excluir('${id}')`)}
+        ${modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`)}
+        `
+    }
 
     openPopup_v2(acumulado, 'Opções do Orçamento')
 
