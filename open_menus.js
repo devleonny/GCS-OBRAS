@@ -2041,22 +2041,17 @@ async function verPedidoAprovacao(idOrcamento) {
         let labelTotal = dinheiro(total)
         let labelTotalDesconto = dinheiro(total - desconto)
 
-        if (custoOriginal) {
-            labelCusto = dinheiro(custo)
-            labelTotal = dinheiro(total)
-            labelTotalDesconto = dinheiro(total - desconto)
-        }
-
         totalReal += (custoOriginal ? custoOriginal : custo) * quantidade;
         totalGeral += custo * quantidade;
 
-        let diferenca, estilo = '';
+        let diferenca, cor = '';
         if (custoOriginal && custo !== custoOriginal) {
-            diferenca = dinheiro(custo - custoOriginal * quantidade)
-            estilo = 'valor_preenchido'
+            diferenca = dinheiro((custo - custoOriginal) * quantidade)
+            cor = 'green'
+            
         } else if (desconto > 0) {
-            diferenca = dinheiro(desconto);
-            estilo = 'label_zerada'
+            diferenca = dinheiro(desconto)
+            cor = '#B12425'
         }
 
         tabelas[tipo].linhas += `
@@ -2065,7 +2060,7 @@ async function verPedidoAprovacao(idOrcamento) {
             <td>${quantidade}</td>
             <td>${labelCusto}</td>
             <td>${labelTotal}</td>
-            <td><label class="${estilo}">${diferenca}</label></td>
+            <td><label class="labelAprovacao" style="background-color: ${cor}">${diferenca}</label></td>
             <td>${labelTotalDesconto}</td>
         </tr>
     `;
@@ -2112,6 +2107,7 @@ async function verPedidoAprovacao(idOrcamento) {
                     <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
                         ${divOrganizada(orcamento.dados_orcam.analista, 'Solicitante')}
                         ${divOrganizada(orcamento.dados_orcam.cliente_selecionado, 'Cliente')}
+                        ${divOrganizada(orcamento.dados_orcam.cidade, 'Localidade')}
                     </div>
                     <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
                         ${divOrganizada(dinheiro(totalGeral), 'Total Geral')}
@@ -2139,7 +2135,7 @@ async function verPedidoAprovacao(idOrcamento) {
                     <textarea rows="5" style="background-color: white; border: none; width: 90%; color: #222;"></textarea>
 
                     <div style="display: flex; justify-content: left; gap: 5px;">
-                        <button style="background-color: #4CAF50;" onclick="respostaAprovacao(this, '${idOrcamento}', 'aprovado')">Autorizar</button>
+                        <button style="background-color: green;" onclick="respostaAprovacao(this, '${idOrcamento}', 'aprovado')">Autorizar</button>
                         <button style="background-color: #B12425;" onclick="respostaAprovacao(this, '${idOrcamento}', 'reprovado')">Reprovar</button>
                     </div>
                 </div>
