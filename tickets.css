@@ -448,28 +448,13 @@ textarea {
   margin: 0 !important;
 }
 
-button[name="contato-dev"] {
-  background: none;
-  border: none;
-  color: #151749;
-  text-decoration: underline;
-  cursor: pointer;
-  padding: 0;
-  font: inherit;
-}
-
-button[name="contato-dev"]:hover {
-  color: #0d0f3a;
-  text-decoration: none;
-}
-
 .ticket-contato-button {
-  padding: 4px 24px;
+  padding: 4px;
   background-color: #4285f4;
   color: white;
   border: none;
   border-radius: 4px;
-  font-size: 16px;
+  font-size: 1vw;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.3s ease;

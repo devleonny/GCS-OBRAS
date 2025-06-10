@@ -825,8 +825,6 @@ function renderizarTabelaTickets(dados_tickets, div_tickets) {
 
 // Função para mostrar popup de contato do desenvolvedor
 async function mostrarContatoDesenvolvedor(ticketId, usuarioNome) {
-    console.log('Dados recuperados: ', await recuperarDados('dados_tickets'));
-
     // Encontra a linha da tabela que contém o botão clicado
     const linha = event.target.closest('tr');
     if (!linha) return;
