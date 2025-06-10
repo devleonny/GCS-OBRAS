@@ -1,5 +1,5 @@
 let divAcesso = document.getElementById('acesso')
-let mensagem = (texto) => `
+let mensag = (texto) => `
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 3vw;">
         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
         <label>${texto}</label>
@@ -70,8 +70,12 @@ function cadastrar() {
 
 }
 
+document.getElementById('acesso_usuario').addEventListener('click', () => {
+    acesso_login()
+})
 function acesso_login() {
-
+    console.log('login');
+    
     overlayAguarde()
     divAcesso.style.display = 'none'
 
