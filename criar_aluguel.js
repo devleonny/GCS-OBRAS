@@ -305,7 +305,7 @@ async function enviar_dados() {
     let desconto_porcentagem = document.getElementById('desconto_porcentagem')
     if (desconto_porcentagem && Number(desconto_porcentagem.value) > 0) {
         if (!(orcamento_v2.aprovacao && orcamento_v2.aprovacao.status === 'aprovado')) {
-            return autorizar_desconto();
+            return autorizarAlteracao();
         }
     }
 
@@ -341,7 +341,7 @@ async function enviar_dados() {
 
 }
 
-async function autorizar_desconto(reaprovacao) {
+async function autorizarAlteracao(reaprovacao) {
     let orcamento_v2 = baseOrcamento()
 
     if (!orcamento_v2.aprovacao) {
@@ -377,7 +377,7 @@ async function autorizar_desconto(reaprovacao) {
             
             <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
                 <label>Tentar de novo?</label> 
-                <button style="background-color: #4CAF50;" onclick="autorizar_desconto(true)">Sim</button>
+                <button style="background-color: #4CAF50;" onclick="autorizarAlteracao(true)">Sim</button>
             </div>
         </div>
         `

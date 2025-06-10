@@ -32,6 +32,9 @@ function ativarCloneGCS(ativar) {
 
 async function verificarAlertas() {
 
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    if (modoClone) return
+
     await sincronizarDados('alertasChamados', true)
     let alertasChamados = await recuperarDados('alertasChamados') || {}
 
@@ -170,7 +173,7 @@ async function identificacaoUser() {
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
 
     carregarIcones() // ícones da tela inicial;
-    aprovacoes_pendentes() // Aprovações de desconto;
+    aprovacoesPendentes() // Aprovações de desconto;
     verificarAlertas() // Verificar a quantidade de mensagens;
 
     let painelMensagens = ''
@@ -227,7 +230,7 @@ async function sincronizarSetores() {
 
 }
 
-async function abrirMensagens(elementoOrigial) { //29
+async function abrirMensagens(elementoOrigial) {
     let alertasChamados = await recuperarDados('alertasChamados') || {}
     let divAlertas = document.getElementById('divAlertas')
     if (divAlertas) return divAlertas.remove()
@@ -1645,7 +1648,7 @@ function connectWebSocket() {
 
         if (data.tipo == 'usuarios_online') localStorage.setItem('usuariosOnline', JSON.stringify(data.usuarios))
 
-        if (base == 'aprovacoes') aprovacoes_pendentes()
+        if (base == 'aprovacoes') aprovacoesPendentes()
 
         if (data.tipo == 'livre' && document.title == 'Criar Orçamento') f5()
 
@@ -1668,8 +1671,8 @@ function painelUsuarios(elementoOrigial) {
     let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
 
     let stringUsuarios = {
-        online: '',
-        offline: ''
+        online: { linhas: '', quantidade: 0 },
+        offline: { linhas: '', quantidade: 0 },
     }
 
     dados_setores = Object.entries(dados_setores).sort((a, b) => a[0].localeCompare(b[0]))
@@ -1678,7 +1681,8 @@ function painelUsuarios(elementoOrigial) {
 
         let status = usuariosOnline.includes(usuario) ? 'online' : 'offline'
 
-        stringUsuarios[status] += `
+        stringUsuarios[status].quantidade++
+        stringUsuarios[status].linhas += `
         <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
             <img src="imagens/${status}.png" style="width: 2vw;">
             <label style="font-size: 0.8vw;">${usuario}</label>
@@ -1687,14 +1691,14 @@ function painelUsuarios(elementoOrigial) {
         `
     }
 
-    let pos = elementoOrigial.getBoundingClientRect(); //29
+    let pos = elementoOrigial.getBoundingClientRect();
 
     let acumulado = `
     <div id="divUsuarios" class="divOnline" style="left: ${pos.left + window.scrollX}px; top: ${pos.bottom + window.scrollY}px;">
-        <label style="font-size: 0.8vw;"><strong>ONLINE</strong></label>
-        ${stringUsuarios.online}
-        <label style="font-size: 0.8vw;"><strong>OFFLINE</strong></label>
-        ${stringUsuarios.offline}
+        <label style="font-size: 0.8vw;"><strong>ONLINE ${stringUsuarios.online.quantidade}</strong></label>
+        ${stringUsuarios.online.linhas}
+        <label style="font-size: 0.8vw;"><strong>OFFLINE ${stringUsuarios.offline.quantidade}</strong></label>
+        ${stringUsuarios.offline.linhas}
     </div>
     `
 
@@ -1901,13 +1905,22 @@ function data_atual(estilo, nivel) {
     }
 }
 
-async function aprovacoes_pendentes() {
+async function aprovacoesPendentes() {
 
     await sincronizarDados('aprovacoes', true)
 
     let aprovacoes = await recuperarDados('aprovacoes') || {}
     let acumulado = ''
     let pendentes = false
+    let modelo = (valor1, valor2) => {
+        return `
+            <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                <label>${valor1}</label>
+                <hr style="width: 100%"> 
+                <label style="white-space: nowrap;">${valor2}</label>
+            </div>
+        `
+    }
 
     for ([id, item] of Object.entries(aprovacoes)) {
 
@@ -1930,48 +1943,49 @@ async function aprovacoes_pendentes() {
         pendentes = true
         let tabelas = {}
         let divTabelas = ''
-        let itens = item.orcamento.dados_composicoes
+        let orcamento = item.orcamento
+        let itens = orcamento.dados_composicoes
+        let totalSemAcrescimo = 0
 
         for ([codigo, composicao] of Object.entries(itens)) {
 
             let quantidade = composicao.qtde
             let custo = composicao.custo
+            let custoOriginal = composicao?.custo_original || false
             let total = quantidade * custo
             let tipo = composicao.tipo
             let desconto = 0
             let labelDesconto = '--'
             let labelLucro = ''
+            let labelCusto = dinheiro(custo)
+            let labelTotal = dinheiro(total)
+            let labelTotalDesconto = dinheiro(total - desconto)
 
-            if (composicao.lucroPorcentagem) {
-                labelLucro = `${dinheiro(composicao.lucroLiquido)} [ ${composicao.lucroPorcentagem.toFixed(0)}% ]`
+            if (!tabelas[tipo]) tabelas[tipo] = { linhas: '' }
+
+            if (composicao.lucroPorcentagem) labelLucro = `${dinheiro(composicao.lucroLiquido)} [ ${composicao.lucroPorcentagem.toFixed(0)}% ]`
+
+            if (composicao.tipo_desconto) desconto = composicao.tipo_desconto == 'Dinheiro' ? composicao.desconto : total * (desconto / 100)
+
+            if (desconto != 0) labelDesconto = modelo(desconto, labelLucro)
+
+            if (custoOriginal) {
+                let totalAcrescimo = custoOriginal * quantidade
+                labelCusto = modelo(dinheiro(custo), dinheiro(custoOriginal))
+                labelTotal = modelo(dinheiro(total), dinheiro(totalAcrescimo))
+                labelTotalDesconto = modelo(dinheiro(total - desconto), dinheiro(totalAcrescimo))
             }
 
-            if (composicao.tipo_desconto) {
-                desconto = composicao.tipo_desconto == 'Dinheiro' ? composicao.desconto : total * (desconto / 100)
-            }
-
-            if (!tabelas[tipo]) {
-                tabelas[tipo] = { linhas: '' }
-            }
-
-            if (desconto != 0) {
-                labelDesconto = `
-                    <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                        <label>${dinheiro(desconto)}</label>
-                        <hr style="width: 100%"> 
-                        <label style="white-space: nowrap;">${labelLucro}</label>
-                    </div>
-                `
-            }
+            totalSemAcrescimo += custoOriginal ? custoOriginal : custo
 
             tabelas[tipo].linhas += `
             <tr>
                 <td>${composicao.descricao}</td>
                 <td>${quantidade}</td>
-                <td>${dinheiro(custo)}</td>
-                <td>${dinheiro(total)}</td>
+                <td>${labelCusto}</td>
+                <td>${labelTotal}</td>
                 <td>${labelDesconto}</td>
-                <td>${dinheiro(total - desconto)}</td>
+                <td>${labelTotalDesconto}</td>
             </tr>
             `
         }

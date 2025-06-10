@@ -41,6 +41,16 @@ async function recuperar_composicoes() {
 
 async function carregar_tabela_v2() {
 
+    if(document.title !== 'COMPOSIÇÕES') return 
+
+    let adicionar_item = document.getElementById('adicionar_item')
+    let btn_criar_lpu = document.getElementById('btn-criar-lpu')
+
+    let permitidos = ['adm', 'editor', 'diretoria', 'coordenacao']
+
+    adicionar_item.style.display = permitidos.includes(acesso.permissao) ? 'flex' : 'none'
+    btn_criar_lpu.style.display = permitidos.includes(acesso.permissao) ? 'flex' : 'none'
+
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
     if (Object.keys(dados_composicoes).length == 0) {
@@ -72,12 +82,6 @@ async function carregar_tabela_v2() {
 
     if (!divComposicoes) return
     divComposicoes.innerHTML = '';
-
-    let adicionar_item = document.getElementById('adicionar_item')
-    let btn_criar_lpu = document.getElementById('btn-criar-lpu')
-
-    adicionar_item.style.display = acesso.permissao == 'adm' ? 'flex' : 'none'
-    btn_criar_lpu.style.display = acesso.permissao == 'adm' ? 'flex' : 'none'
 
     let ths = {};
     let tsc = {};
@@ -131,7 +135,7 @@ async function carregar_tabela_v2() {
                     let agrupamentos = produto[chave]
 
                     for (item in agrupamentos) {
-                        
+
                         let tipo = dados_composicoes[item]?.tipo || '??'
 
                         info_agrupamentos += `
@@ -745,10 +749,10 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
 
     await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco)
     await inserirDados(dados_composicoes, 'dados_composicoes')
-
-    if (document.title == 'Criar Orçamento') total() // Caso esteja na tela de Orçamentos;
-
     removerOverlay()
+
+    if (document.title == 'Criar Orçamento') return await total(), await tabelaProdutos() // Caso esteja na tela de Orçamentos;
+
     await retomarPaginacao()
 
 }
@@ -774,9 +778,9 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
             let comentario = `O usuário ${acesso.usuario} excluiu o preço de ID: ${cotacao} e valor: ${parseFloat(precoExcluido).toFixed(2)}`
             delete cotacoes.historico[cotacao];
 
-            await inserirDados(dados_composicoes, 'dados_composicoes'),
-                deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`),
-                registrarAlteracao('dados_composicoes', codigo, comentario)
+            await inserirDados(dados_composicoes, 'dados_composicoes')
+            deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`)
+            registrarAlteracao('dados_composicoes', codigo, comentario)
         }
 
         remover_popup()
@@ -1460,7 +1464,7 @@ async function salvarServidor(codigo) {
     divs.forEach(div => {
         let item = div.querySelector('label');
         let valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select');
-
+        if(item?.textContent == 'descricao') valor.value = String(valor.value).toUpperCase()
         if (item && valor) dadosAtualizados[item.textContent] = valor.value;
 
     });
