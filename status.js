@@ -1228,7 +1228,7 @@ async function abrirAtalhos(id) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id]
 
-    if(orcamento.aprovacao && orcamento.aprovacao.status == 'pendente') {//29
+    if(orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado') {
         return openPopup_v2(mensagem('Este orçamento precisa ser aprovado'), 'AVISO')
     }
 

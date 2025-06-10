@@ -2137,7 +2137,6 @@ async function verPedidoAprovacao(idOrcamento) {
                     </div>
                 </div>
             </div>
-
         `
 
     let permissao = acesso.permissao
@@ -2173,8 +2172,11 @@ function visibilidadeOrcamento(div) {
 }
 
 async function respostaAprovacao(botao, idOrcamento, status) {
-    
+
+    // Dois popups pra fechar;
+    remover_popup() 
     remover_popup()
+
     let justificativa = botao.parentElement.parentElement.querySelector('textarea').value
     let dados = {
         usuario: acesso.usuario,
