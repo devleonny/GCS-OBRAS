@@ -1076,15 +1076,11 @@ async function salvar_notas(chave) {
 
     }
 
-    if (!orcamento.status) {
-        orcamento.status = { historico: {} };
-    }
-
     chave == undefined ? chave = gerar_id_5_digitos() : chave
 
-    if (!orcamento.status.historico[chave]) {
-        orcamento.status.historico[chave] = {}
-    }
+    if (!orcamento.status) orcamento.status = {};
+    if (!orcamento.status.historico) orcamento.status.historico = {}
+    if (!orcamento.status.historico[chave]) orcamento.status.historico[chave] = {}
 
     orcamento.status.historico[chave].status = 'FATURADO'
     orcamento.status.historico[chave].data = data.textContent

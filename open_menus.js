@@ -2132,8 +2132,8 @@ async function verPedidoAprovacao(idOrcamento) {
                     <textarea rows="5" style="background-color: white; border: none; width: 90%; color: #222;"></textarea>
 
                     <div style="display: flex; justify-content: left; gap: 5px;">
-                        <button style="background-color: #4CAF50;" onclick="resposta_desconto(this, '${id}', 'aprovado')">Autorizar</button>
-                        <button style="background-color: #B12425;" onclick="resposta_desconto(this, '${id}', 'reprovado')">Reprovar</button>
+                        <button style="background-color: #4CAF50;" onclick="respostaAprovacao(this, '${idOrcamento}', 'aprovado')">Autorizar</button>
+                        <button style="background-color: #B12425;" onclick="respostaAprovacao(this, '${idOrcamento}', 'reprovado')">Reprovar</button>
                     </div>
                 </div>
             </div>
@@ -2172,19 +2172,29 @@ function visibilidadeOrcamento(div) {
     }
 }
 
-function resposta_desconto(botao, id, status) {
-
+async function respostaAprovacao(botao, idOrcamento, status) {
+    
+    remover_popup()
     let justificativa = botao.parentElement.parentElement.querySelector('textarea').value
-
-    let aprovacao = {
+    let dados = {
         usuario: acesso.usuario,
         data: data_atual('completa'),
         status,
         justificativa
     }
 
-    enviar(`aprovacoes/${id}/aprovacao`, aprovacao)
-    remover_popup()
+    await sincronizarDados('dados_orcamentos')
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    dados_orcamentos[idOrcamento].aprovacao = {
+        ...dados_orcamentos[idOrcamento].aprovacao,
+        ...dados
+    }
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${idOrcamento}/aprovacao`, dados_orcamentos[idOrcamento].aprovacao)
+
+    await verAprovacoes()
+    verificarPendencias()
 
 }
 
