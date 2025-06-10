@@ -1,12 +1,13 @@
 let itens_adicionais = {}
 let id_orcam = ''
-let dataAtual = new Date();
-let data_status = dataAtual.toLocaleString('pt-BR', {
-    dateStyle: 'short',
-    timeStyle: 'short'
-});
-
 let fluxograma = {}
+let mensagem = (mensagem) => {
+    return `
+    <div style="display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center;">
+        <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+        <label>${mensagem}</label>
+    </div>`
+}
 let fluxogramaClone = {
     'ORÇAMENTOS': { cor: '#1CAF29' },
     'LOGÍSTICA': { cor: '#4CAF10' },
@@ -50,8 +51,6 @@ function verificarFluxograma() {
     modoClone ? fluxograma = fluxogramaClone : fluxograma = fluxogramaPadrao
 
 }
-
-let totalValoresPedidos; // Variável global
 
 async function sincronizar_e_reabrir() {
     await recuperar_orcamentos()
@@ -1126,7 +1125,7 @@ async function salvar_requisicao(chave) {
     //Criar novo lançamento
     var novo_lancamento = {
         status: 'REQUISIÇÃO',
-        data: data_status,
+        data: data_atual('completa'),
         executor: acesso.usuario,
         comentario: document.getElementById("comentario_status").value,
         requisicoes: [],
@@ -1225,20 +1224,17 @@ function botao_novo_pagamento(id) {
     </div>   
 `}
 
-async function exibir_todos_os_status(id) {
+async function abrirAtalhos(id) {
 
     let permitidos = ['adm', 'fin', 'diretoria']
-
-    let detalhes = document.getElementById('detalhes')
-    if (detalhes) {
-        detalhes.remove()
-    }
-
     id_orcam = id
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
     let orcamento = dados_orcamentos[id]
+
+    if(orcamento.aprovacao && orcamento.aprovacao.status == 'pendente') {//29
+        return openPopup_v2(mensagem('Este orçamento precisa ser aprovado'), 'AVISO')
+    }
 
     let acumulado = `
         <div style="display: flex;">
@@ -1302,7 +1298,7 @@ async function remover_reprovacao(responsavel) {
 
     await deletar(`dados_orcamentos/${id_orcam}/aprovacao/${responsavel}`)
 
-    exibir_todos_os_status(id_orcam)
+    abrirAtalhos(id_orcam)
     await preencher_orcamentos_v2()
 }
 
@@ -1326,7 +1322,7 @@ async function aprovar_orcamento(responsavel, aprovar, data) {
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${id_orcam}/aprovacao/${responsavel}`, aprov)
 
-    exibir_todos_os_status(id_orcam)
+    abrirAtalhos(id_orcam)
     await preencher_orcamentos_v2()
 }
 
@@ -2624,14 +2620,7 @@ async function iniciar_cotacao(id_orcam) {
     }
 
     if (!tem_requisicao) {
-
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Precisa ter uma requisição para criar uma cotação</label>
-            </div>
-        `)
-
+        return openPopup_v2(mensagem('Precisa ter uma requisição para criar uma cotação'), 'ALERTA')
     }
 
     for (chave2 in todos_os_status) {
@@ -2979,7 +2968,7 @@ async function registrar_envio_material(chave) {
     let st = 'MATERIAL ENVIADO'
 
     status.executor = acesso.usuario
-    status.data = data_status
+    status.data = data_atual('completa')
     status.status = st
 
     historico[chave] = status
@@ -3393,7 +3382,7 @@ function verificarPermissaoExclusao({ chave, criador }) {
 }
 
 function close_chave() {
-    exibir_todos_os_status(id_orcam)
+    abrirAtalhos(id_orcam)
     document.getElementById('alerta').remove()
 }
 

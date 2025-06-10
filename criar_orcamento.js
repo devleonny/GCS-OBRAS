@@ -1123,11 +1123,16 @@ async function enviar_dados() {
         return openPopup_v2(avisoHTML('CNPJ em branco'), 'ALERTA')
     }
 
-    // Autorizações - Deconto;
+    // Autorizações - Deconto - Acréscimo;
     let desconto_porcentagem = document.getElementById('desconto_porcentagem')
     if ((desconto_porcentagem && Number(desconto_porcentagem.value) > 0) || orcamento_v2.alterado) {
-        if (!(orcamento_v2.aprovacao && orcamento_v2.aprovacao.status === 'aprovado')) {
-            return autorizarAlteracao();
+        orcamento_v2.aprovacao = {
+            status: 'pendente',
+            usuario: acesso.usuario,
+            desconto_porcentagem: document.getElementById('desconto_porcentagem').value,
+            total_sem_desconto: document.getElementById('total_sem_desconto').textContent,
+            desconto_dinheiro: document.getElementById('desconto_dinheiro').textContent,
+            total_geral: document.getElementById('total_geral').textContent
         }
     }
 
@@ -1154,60 +1159,6 @@ async function enviar_dados() {
 
     baseOrcamento(undefined, true)
     location.href = 'orcamentos.html';
-
-}
-
-async function autorizarAlteracao(reaprovacao) {
-    let orcamento_v2 = baseOrcamento()
-
-    if (!orcamento_v2.aprovacao) {
-        orcamento_v2.aprovacao = {}
-    }
-
-    orcamento_v2.aprovacao.id = orcamento_v2.aprovacao.id || gerar_id_5_digitos();
-    let id = orcamento_v2.aprovacao.id;
-
-    let dados = {
-        orcamento: orcamento_v2,
-        desconto_porcentagem: document.getElementById('desconto_porcentagem').value,
-        total_sem_desconto: document.getElementById('total_sem_desconto').textContent,
-        desconto_dinheiro: document.getElementById('desconto_dinheiro').textContent,
-        total_geral: document.getElementById('total_geral').textContent
-    }
-
-    let mensagem = `
-        <img src="gifs/loading.gif" style="width: 5vw;">
-        <label>Algum Gerente deve autorizar este desconto... </label>
-    `
-    if (!reaprovacao && (orcamento_v2.aprovacao.status && orcamento_v2.aprovacao.status == 'reprovado')) {
-        mensagem = `
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2vw;">
-            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-                <img src="imagens/cancel.png" style="width: 3vw;">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 5px; flex-direction: column;">
-                    <label>Solicitação reprovada</label>
-                    <label>${orcamento_v2.aprovacao.justificativa}</label>
-                </div>
-            </div>
-
-            <hr style="width: 100%;">
-            
-            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-                <label>Tentar de novo?</label> 
-                <button style="background-color: #4CAF50;" onclick="autorizarAlteracao(true)">Sim</button>
-            </div>
-        </div>
-        `
-    } else {
-        await enviar(`aprovacoes/${id}`, dados)
-        baseOrcamento(orcamento_v2)
-    }
-
-    openPopup_v2(`
-            <div id="aguardando_aprovacao" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                ${mensagem}
-            </div>
-        `)
 
 }
 
@@ -1681,9 +1632,11 @@ async function total() {
                 let labelICMS = ''
                 if (tipo == 'VENDA' && estado) labelICMS = `<label style="white-space: nowrap;">SEM ICMS ${dinheiro(semIcms)} [ ${percentual}% ]</label>`
                 return `
-                    <div style="position: relative; display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                        ${false ? `<img onclick="alterarValorUnitario('${codigo}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5vw; position: absolute; top: 0; right: 0;">` : ''}
-                        <label class="${valor == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(valor)}</label>
+                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 5px;">
+                            <label class="${valor == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(valor)}</label>
+                            ${unitario ? `<img onclick="alterarValorUnitario('${codigo}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5vw;">` : ''}
+                        </div>
                         ${labelICMS}
                     </div>
                     `
@@ -1816,10 +1769,10 @@ async function alterarValorUnitario(codigo) {
         </div>
 
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <label onclick="confirmarNovoPreco('${codigo}', '${precoOriginal}', 'remover')" style="text-align: left; text-decoration: underline; cursor: pointer;">Deseja retornar ao preço original?</label>
+            <label onclick="confirmarNovoPreco('${codigo}', ${precoOriginal}, 'remover')" style="text-align: left; text-decoration: underline; cursor: pointer;">Deseja retornar ao preço original?</label>
             <hr style="width: 100%;">
             <label style="text-align: left;">Serão aceitos valores maiores que o preço original</label>
-            <button style="background-color: green;" onclick="confirmarNovoPreco('${codigo}', '${precoOriginal}', 'incluir')">Confirmar</button>
+            <button style="background-color: green;" onclick="confirmarNovoPreco('${codigo}', ${precoOriginal}, 'incluir')">Confirmar</button>
         </div>
     </div>
     `
@@ -1838,7 +1791,7 @@ async function confirmarNovoPreco(codigo, precoOriginal, operacao) {
 
         if (precoOriginal >= valor) return openPopup_v2(avisoHTML('O valor precisa ser maior que o Original'), 'AVISO', true)
         orcamento.alterado = true
-        item.custo_original = item.custo
+        item.custo_original = precoOriginal
         item.custo = valor
         item.alterado = true
     } else if (operacao == 'remover') {

@@ -337,7 +337,7 @@ async function abrir_detalhes(id_pagamento) {
 
     if (dados_orcamentos[pagamento.id_orcamento]) {
         acoes_orcamento += `
-        <div class="btn_detalhes" onclick="exibir_todos_os_status('${pagamento.id_orcamento}')">
+        <div class="btn_detalhes" onclick="abrirAtalhos('${pagamento.id_orcamento}')">
             <img src="imagens/pasta.png">
             <label style="cursor: pointer;">Consultar Orçamento</label>
         </div>
