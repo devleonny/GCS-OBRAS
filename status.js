@@ -1505,9 +1505,9 @@ async function abrir_esquema(id) {
                     `
             }
 
-              if (sst.status && typeof sst.status === 'string' && sst.status.includes('LPU_PARCEIRO')) {
+              if (sst.status && typeof sst.status === 'string' && sst.status.includes('LPU PARCEIRO')) {
                 links_requisicoes += `
-                    <div onclick="detalhar_requisicao('${chave}', undefined, true)" class="label_requisicao">
+                    <div onclick="detalhar_lpu_parceiro('${chave}', undefined, true)" class="label_requisicao">
                         <img src="gifs/lampada.gif" style="width: 25px">
                         <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; cursor: pointer;">
                             <label style="cursor: pointer;"><strong>LPU PARCEIRO DISPONÍVEL</strong></label>
@@ -1767,7 +1767,7 @@ async function abrir_esquema(id) {
                                     onclick="painel_adicionar_notas()">
                                     <label>Nova <strong>Nota Fiscal</strong></label>
                                 </div>
-                                 <div class="contorno_botoes" style="background-color: #003153; flex-direction: column;"
+                                 <div class="contorno_botoes" style="background-color:${fluxogramaMesclado['LPU PARCEIRO'].cor}; flex-direction: column;"
                                     onclick="modalLPUParceiro()"
                                     <label>Nova<strong>LPU Parceiro</strong></label>
                                 </div>
@@ -3275,8 +3275,7 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
     let menu_flutuante = ''
     let nome_cliente = orcamento.dados_orcam.cliente_selecionado
 
-    // Carrega os itens adicionais se existirem
-    itens_adicionais = {}
+   
     let comentarioExistente = ''
 
     if (chave && orcamento.status && orcamento.status.historico && orcamento.status.historico[chave]) {
@@ -3291,9 +3290,7 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
         </div> 
         `
 
-        if (cartao.adicionais) {
-            itens_adicionais = cartao.adicionais
-        }
+        
 
         if (cartao.comentario) {
             comentarioExistente = cartao.comentario
@@ -3458,6 +3455,7 @@ async function carregar_anexos(chave) {
     let orcamento = dados_orcamentos[id_orcam]
     let anexos_divs = ''
     let anexos = orcamento.status.historico[chave]?.anexos || {}
+    
 
     if (anexos) {
 
@@ -3809,13 +3807,16 @@ async function modalLPUParceiro() {
     }
 
     let tabela =
-        `<table class="tabela"">
+        `<table class="tabela">
             <thead>
                 <tr>${thHead}</tr>
                 <tr>${thSearch}</tr>
             </thead>
             <tbody id="bodyTabela">${linhas}</tbody>
-        </table>`;
+        </table>
+        <div style="display: flex; justify-content: end; margin-top: 10px;">
+            <button onclick="adicionarItemAdicional()" style="padding: 6px 12px;">Adicionar novo serviço</button>
+        </div>`;
     let stringHtml = (titulo, valor) => {
         return `
         <div style="display: flex; justifty-content: start; align-items: center; gap: 5px;">
@@ -3902,7 +3903,7 @@ function calcularLpuParceiro() {
     const totalDesvioElement = document.getElementById('totalDesvio')
     totalDesvioElement.textContent = dinheiro(totais.desvio)
     document.getElementById('totalMargem').textContent = dinheiro(totais.margem)
-       // Define a cor do total desvio
+     
     if (totais.desvio > 0) {
         totalDesvioElement.style.color = 'green'
     } else {
@@ -3911,90 +3912,131 @@ function calcularLpuParceiro() {
 }
 
 
-async function salvar_lpu_parceiro(chave) {
-
+async function salvar_lpu_parceiro() {
     overlayAguarde()
-    //Carregar dados existentes
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
-    //Inicializar estruturas se não existirem
-    if (!orcamento.status) {
-        orcamento.status = { historico: {} };
+    if (!orcamento) {
+        console.error('Orçamento não encontrado para id_orcam:', id_orcam);
+        return;
+    }
+    let margem = Number(document.getElementById('margem_lpu').value)
+
+    let novo_lancamento = {
+        tipo: 'LPU PARCEIRO',
+        data: data_atual('completa'),
+        analista: acesso.nome_completo,
+        margem_percentual: margem,
+        itens: {},
+        totais: {
+            orcamento: 0,
+            parceiro: 0,
+            desvio: 0,
+            margem: 0
+        }
     }
 
-    if (!orcamento.status.historico) {
-        orcamento.status.historico = {}
-    }
+    let trs = document.querySelectorAll('#bodyTabela tr');
 
-    const margemPercentual = Number(document.getElementById('margem_lpu').value)
-    const trs = document.querySelectorAll('#bodytabela tr')
+    let chave = gerar_id_5_digitos()
 
+    for (let tr of trs) {
+        let tds = tr.querySelectorAll('td')
 
-    const composicoes = []
+        let codigo = tds[0].textContent.trim();
+        let descricao = tds[1].textContent.trim();
+        let unidade = tds[2].textContent.trim();
+        let qtde = conversor(tds[3].textContent.trim());
+        let valor_orcado = conversor(tds[4].textContent.trim());
+        let total_orcado = conversor(tds[5].textContent.trim());
+        let imposto = conversor(tds[6].textContent.trim());
+        let valor_parceiro_unitario = Number(tds[8].querySelector('input').value);
+        let total_parceiro = qtde * valor_parceiro_unitario;
+        let margem_reais = total_orcado * (margem / 100);
+        let desvio = margem_reais - total_parceiro;
 
-    let totais = {
-        orcamento: 0,
-        parceiro: 0,
-        margem: 0,
-        desvio: 0
-    }
-
-    for (const tr of trs) {
-        const tds = tr.querySelectorAll('td');
-        const codigo = tds[0].textContent;
-        const descricao = tds[1].textContent;
-        const unidade = tds[2].textContent;
-        const qtde = Number(conversor(tds[3].textContent));
-        const custo_unit = Number(conversor(tds[4].textContent));
-        const total_orcado = Number(conversor(tds[5].textContent));
-        const margem_reais = Number(conversor(tds[7].textContent));
-        const valor_parceiro = Number(tds[8].querySelector('input')?.value || 0);
-        const total_parceiro = Number(conversor(tds[9].textContent));
-        const desvio = Number(conversor(tds[10].querySelector('label')?.textContent || '0'));
-
-            composicoes.push({
-            codigo,
+        novo_lancamento.itens[codigo] = {
             descricao,
             unidade,
             qtde,
-            custo_unit,
+            valor_orcado,
             total_orcado,
-            margem_reais,
-            valor_parceiro,
+            imposto,
+            valor_parceiro_unitario,
             total_parceiro,
+            margem_reais,
             desvio
-        });
+        }
 
-        totais.orcamento += total_orcado;
-        totais.parceiro += total_parceiro;
-        totais.margem += margem_reais;
-        totais.desvio += desvio;
+        novo_lancamento.totais.orcamento += total_orcado;
+        novo_lancamento.totais.parceiro += total_parceiro;
+        novo_lancamento.totais.margem += margem_reais;
+        novo_lancamento.totais.desvio += desvio;
     }
-    //Criar novo lançamento
-    const novo_lancamento = {
-        status: 'LPU_PARCEIRO',
-        data: data_atual('completa'),
-        executor: acesso.usuario,
-        cliente: orcamento.dados_orcam?.cliente_selecionado || '',
-        margem_percentual: margemPercentual,
-        totais,
-        composicoes
-    };
 
-    
 
-    //Atualizar dados localmente primeiro
-    orcamento.status.historico[chave] = novo_lancamento
+    orcamento.status = orcamento.status || {};
+    orcamento.status.historico = orcamento.status.historico || {};
+    orcamento.status.historico[chave] = novo_lancamento;
     dados_orcamentos[id_orcam] = orcamento;
 
-    //Salvar no localstorage
-    await inserirDados(dados_orcamentos, "dados_orcamentos");
+    await inserirDados(dados_orcamentos, 'dados_orcamentos');
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento);
 
-    //Envio para nuvem
-    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
-
-    
-   
     remover_popup()
     await abrir_esquema(id_orcam)
+    
+}
+
+
+
+  async function detalhar_lpu_parceiro(chave, apenas_visualizar = false) {
+    if (!chave) chave = gerar_id_5_digitos();
+
+    let dados_lpu = await recuperarDados('dados_orcamentos') || {};
+
+}
+
+
+
+function adicionarItemAdicional() {
+    const bodyTabela = document.getElementById('bodyTabela');
+
+    if (!document.getElementById('labelItensAdicionais')) {
+        const labelRow = document.createElement('tr');
+        labelRow.id = 'labelItensAdicionais';
+        labelRow.innerHTML = `
+            <td colspan="11" style="text-align: center; font-weight: bold; padding-top: 15px;">
+                ITENS ADICIONAIS
+            </td>
+        `;
+        bodyTabela.appendChild(labelRow);
+    }
+
+   
+    const novaLinha = document.createElement('tr');
+    novaLinha.innerHTML = `
+        <td contenteditable="true"></td>
+        <td contenteditable="true"></td>
+        <td contenteditable="true"></td>
+        <td class="quantidade" contenteditable="true"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td style="padding: 0; white-space: nowrap; height: 100%;">
+            <div style="display: flex; align-items: stretch; gap: 4px; width: 100%; height: 100%; box-sizing: border-box; padding: 2px 5px;">
+                <span style="display: flex; align-items: center;">R$</span>
+                <input
+                    oninput="calcularLpuParceiro()" 
+                    type="number" 
+                    class="input-lpuparceiro" 
+                    step="0.01"
+                >
+            </div>
+        </td>
+        <td></td>
+        <td><label></label></td>
+    `;
+    bodyTabela.appendChild(novaLinha);
 }

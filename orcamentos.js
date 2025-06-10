@@ -199,12 +199,17 @@ async function preencher_orcamentos_v2() {
         if (orc.status && orc.status) {
             st = orc.status.atual || 'INCLUIR PEDIDO'
         }
+        
+        let opcoes = '';
 
-        let opcoes = ''
-        for (fluxo in fluxograma) {
-            opcoes += `
-                <option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>
-            `
+        if (typeof fluxograma !== 'undefined') {
+            for (fluxo in fluxograma) {
+                opcoes += `
+            <option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>
+        `;
+            }
+        } else {
+            console.warn('fluxograma não está definido.');
         }
 
         linhas += `
