@@ -1603,7 +1603,7 @@ async function abrir_esquema(id) {
 
                         <div style="cursor: pointer; display: flex; align-items: start; flex-direction: column; background-color: ${fluxogramaMesclado[sst.status].cor || '#808080'}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
                             <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="${desejaApagar}('${chave}')">&times;</span>
-                            <label><strong>Chamado:</strong> ${orcamento.dados_orcam.contrato}</label>
+                            <label style="text-align: left;"><strong>Chamado:</strong> ${orcamento.dados_orcam.contrato}</label>
                             <label><strong>Executor: </strong>${sst.executor}</label>
                             <label><strong>Data: </strong>${sst.data}</label>
                             <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
