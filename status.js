@@ -1301,8 +1301,6 @@ async function aprovar_orcamento(responsavel, aprovar, data) {
     await preencher_orcamentos_v2()
 }
 
-const { shell } = require('electron');
-
 async function abrir_esquema(id) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}

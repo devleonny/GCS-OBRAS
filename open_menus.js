@@ -472,6 +472,8 @@ function verificar_timestamp_nome(nome) {
     return false;
 }
 
+const { shell } = require('electron');
+
 function abrirArquivo(link) {
 
     if (verificar_timestamp_nome(link)) { // Se for um link composto por timestamp, então vem do servidor;
@@ -2007,71 +2009,69 @@ async function verPedidoAprovacao(idOrcamento) {
 
     let permissao = acesso.permissao
     let pessoasPermitidas = ['coordenacao', 'adm', 'diretoria']
-    if (!pessoasPermitidas.includes(permissao)) return  openPopup_v2(mensagem('Você não tem acesso'), 'AVISO', true)
+    if (!pessoasPermitidas.includes(permissao)) return openPopup_v2(mensagem('Você não tem acesso'), 'AVISO', true)
 
     let acumulado = ''
-    let modelo = (valor1, valor2) => {
-        return `
-            <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                <label style="white-space: nowrap;">${valor1} - Orçamento</label>
-                <hr style="width: 100%"> 
-                <label style="white-space: nowrap;">${valor2} - Original</label>
-            </div>
-        `
-    }
-
     let tabelas = {}
     let divTabelas = ''
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[idOrcamento]
-    let itens = orcamento.dados_composicoes
-    let totalSemAcrescimo = 0
-    let aprovacao = orcamento.aprovacao
+    let totalReal = 0
+    let totalGeral = 0
 
-    for ([codigo, composicao] of Object.entries(itens)) {
+    for ([codigo, composicao] of Object.entries(orcamento.dados_composicoes)) {
 
         let quantidade = composicao.qtde
         let custo = composicao.custo
-        let custoOriginal = composicao?.custo_original || false
-        let total = quantidade * custo
+        let custoOriginal = composicao?.custo_original || false;
         let tipo = composicao.tipo
+
+        if (!tabelas[tipo]) tabelas[tipo] = { linhas: '' }
+
+        let total = quantidade * custo;
         let desconto = 0
-        let labelDesconto = '--'
-        let labelLucro = ''
+
+        if (composicao.tipo_desconto) {
+            desconto = composicao.tipo_desconto === 'Dinheiro'
+                ? composicao.desconto
+                : total * (composicao.desconto / 100);
+        }
+
         let labelCusto = dinheiro(custo)
         let labelTotal = dinheiro(total)
         let labelTotalDesconto = dinheiro(total - desconto)
 
-        if (!tabelas[tipo]) tabelas[tipo] = { linhas: '' }
-
-        if (composicao.lucroPorcentagem) labelLucro = `${dinheiro(composicao.lucroLiquido)} [ ${composicao.lucroPorcentagem.toFixed(0)}% ]`
-
-        if (composicao.tipo_desconto) desconto = composicao.tipo_desconto == 'Dinheiro' ? composicao.desconto : total * (desconto / 100)
-
-        if (desconto != 0) labelDesconto = modelo(desconto, labelLucro)
-
         if (custoOriginal) {
-            let totalAcrescimo = custoOriginal * quantidade
-            labelCusto = modelo(dinheiro(custo), dinheiro(custoOriginal))
-            labelTotal = modelo(dinheiro(total), dinheiro(totalAcrescimo))
-            labelTotalDesconto = modelo(dinheiro(total - desconto), dinheiro(totalAcrescimo))
+            labelCusto = dinheiro(custo)
+            labelTotal = dinheiro(total)
+            labelTotalDesconto = dinheiro(total - desconto)
         }
 
-        totalSemAcrescimo += custoOriginal ? custoOriginal : custo
+        totalReal += (custoOriginal ? custoOriginal : custo) * quantidade;
+        totalGeral += custo * quantidade;
+
+        let diferenca, estilo = '';
+        if (custoOriginal && custo !== custoOriginal) {
+            diferenca = dinheiro(custo - custoOriginal * quantidade)
+            estilo = 'valor_preenchido'
+        } else if (desconto > 0) {
+            diferenca = dinheiro(desconto);
+            estilo = 'label_zerada'
+        }
 
         tabelas[tipo].linhas += `
-            <tr>
-                <td>${composicao.descricao}</td>
-                <td>${quantidade}</td>
-                <td>${labelCusto}</td>
-                <td>${labelTotal}</td>
-                <td>${labelDesconto}</td>
-                <td>${labelTotalDesconto}</td>
-            </tr>
-            `
+        <tr>
+            <td>${composicao.descricao}</td>
+            <td>${quantidade}</td>
+            <td>${labelCusto}</td>
+            <td>${labelTotal}</td>
+            <td><label class="${estilo}">${diferenca}</label></td>
+            <td>${labelTotalDesconto}</td>
+        </tr>
+    `;
     }
 
-    for ([tabela, objeto] of Object.entries(tabelas)) {
+    for (let [tabela, objeto] of Object.entries(tabelas)) {
 
         divTabelas += `
             <div style="display: flex; align-items: start; justify-content: center; flex-direction: column;">
@@ -2083,8 +2083,8 @@ async function verPedidoAprovacao(idOrcamento) {
                             <th>Quantidade</th>
                             <th>Unitário</th>
                             <th>Total</th>
-                            <th>Desconto</th>
-                            <th>Total com Desconto</th>
+                            <th>Diferença</th>
+                            <th>Total Geral</th>
                         </tr>
                     </thead>
                     <tbody>${objeto.linhas}</tbody>
@@ -2102,6 +2102,9 @@ async function verPedidoAprovacao(idOrcamento) {
             `
     }
 
+    let diferencaDinheiro = totalGeral - totalReal
+    let diferencaPorcentagem = `${(diferencaDinheiro / totalReal * 100).toFixed(2)}%`
+
     acumulado += `
             <div class="painelAprovacoes">
                 
@@ -2111,10 +2114,10 @@ async function verPedidoAprovacao(idOrcamento) {
                         ${divOrganizada(orcamento.dados_orcam.cliente_selecionado, 'Cliente')}
                     </div>
                     <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
-                        ${divOrganizada(aprovacao.total_sem_desconto, 'Total Geral')}
-                        ${divOrganizada(aprovacao.total_geral, 'Total Com Desconto')}
-                        ${divOrganizada(aprovacao.desconto_dinheiro, 'Desconto em Dinheiro')}
-                        ${divOrganizada(`${aprovacao.desconto_porcentagem}%`, 'Desconto Percentual')}
+                        ${divOrganizada(dinheiro(totalGeral), 'Total Geral')}
+                        ${divOrganizada(dinheiro(totalReal), 'Total Final (com Acréscimo e/ou Desconto)')}
+                        ${divOrganizada(dinheiro(diferencaDinheiro), 'Diferença em Dinheiro')}
+                        ${divOrganizada(diferencaPorcentagem, 'Percentual')}
                     </div>
                 </div>
 
@@ -2143,7 +2146,7 @@ async function verPedidoAprovacao(idOrcamento) {
             </div>
         `
 
-        openPopup_v2(acumulado, 'Detalhes', true)
+    openPopup_v2(acumulado, 'Detalhes', true)
 
 }
 
@@ -2167,7 +2170,7 @@ function visibilidadeOrcamento(div) {
 async function respostaAprovacao(botao, idOrcamento, status) {
 
     // Dois popups pra fechar;
-    remover_popup() 
+    remover_popup()
     remover_popup()
 
     let justificativa = botao.parentElement.parentElement.querySelector('textarea').value
