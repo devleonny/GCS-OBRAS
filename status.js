@@ -18,6 +18,7 @@ let fluxogramaClone = {
     'CONCLUÍDO': { cor: '#ff4500' },
     'FATURADO': { cor: '#b17724' },
     'PAGAMENTO RECEBIDO': { cor: '#b17724' },
+    'LPU PARCEIRO': {cor: '#003153'}
 
 }
 
@@ -34,7 +35,7 @@ let fluxogramaPadrao = fluxograma = {
     'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
     'RETORNO DE MATERIAIS': { cor: '#aacc14' },
     'FINALIZADO': { cor: 'blue' },
-
+    'LPU PARCEIRO': {cor: '#003153'}
 
 }
 
@@ -1504,6 +1505,24 @@ async function abrir_esquema(id) {
                     `
             }
 
+              if (sst.status && typeof sst.status === 'string' && sst.status.includes('LPU_PARCEIRO')) {
+                links_requisicoes += `
+                    <div onclick="detalhar_requisicao('${chave}', undefined, true)" class="label_requisicao">
+                        <img src="gifs/lampada.gif" style="width: 25px">
+                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; cursor: pointer;">
+                            <label style="cursor: pointer;"><strong>LPU PARCEIRO DISPONÍVEL</strong></label>
+                            <label style="font-size: 0.7em; cursor: pointer;">Clique Aqui</label>
+                        </div>
+                    </div>
+                    `
+                editar = `
+                    <div style="background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}')">
+                        <img src="imagens/editar4.png">
+                        <label>Editar</label>
+                    </div>
+                    `
+            }
+
             let dados_pedidos = ''
             let opcoes = ['Serviço', 'Venda', 'Venda + Serviço']
             let html_opcoes = ''
@@ -1609,9 +1628,9 @@ async function abrir_esquema(id) {
             }
 
             blocos_por_status[campo] += `
-                    <div class="bloko" style="gap: 0px; border: 1px solid ${fluxogramaMesclado[sst.status].cor || '#808080'}; background-color: white; justify-content: center;">
+                    <div class="bloko" style="gap: 0px; border: 1px solid ${fluxogramaMesclado[sst.status]?.cor || '#808080'}; background-color: white; justify-content: center;">
 
-                        <div style="cursor: pointer; display: flex; align-items: start; flex-direction: column; background-color: ${fluxogramaMesclado[sst.status].cor || '#808080'}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
+                        <div style="cursor: pointer; display: flex; align-items: start; flex-direction: column; background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
                             <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="${desejaApagar}('${chave}')">&times;</span>
                             <label><strong>Chamado:</strong> ${orcamento.dados_orcam.contrato}</label>
                             <label><strong>Executor: </strong>${sst.executor}</label>
@@ -1628,7 +1647,7 @@ async function abrir_esquema(id) {
                             ${String(sst.status).includes('COTAÇÃO') ? `<a href="cotacoes.html" style="color: black;" onclick="localStorage.setItem('cotacaoEditandoID','${chave}'); localStorage.setItem('operacao', 'editar'); localStorage.setItem('iniciouPorClique', 'true');">Clique aqui para abrir a cotação</a>` : ""}
                             
                             <div class="escondido" style="display: none;">
-                                <div class="contorno_botoes" style="background-color: ${fluxogramaMesclado[sst.status].cor || '#808080'}">
+                                <div class="contorno_botoes" style="background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}">
                                     <img src="imagens/anexo2.png">
                                     <label>Anexo
                                         <input type="file" style="display: none;" onchange="salvar_anexo('${chave}', this)" multiple>  
@@ -1639,7 +1658,7 @@ async function abrir_esquema(id) {
                                     ${await carregar_anexos(chave)}
                                 </div>
 
-                                <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave}')" style="background-color: ${fluxogramaMesclado[sst.status].cor || '#808080'}">
+                                <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave}')" style="background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}">
                                     <img src="imagens/comentario.png">
                                     <label>Comentário</label>
                                 </div>
@@ -1658,7 +1677,7 @@ async function abrir_esquema(id) {
                             <br>
                         </div>
 
-                        <div style="cursor: pointer; background-color: ${fluxogramaMesclado[sst.status].cor || '#808080'}; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
+                        <div style="cursor: pointer; background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
                             <label style="color: white; font-size: 0.9vw;">ver mais</label>
                         </div>
 
@@ -3725,10 +3744,8 @@ function mostrarElementoSeTiverPermissao({ listaDePermissao, elementoHTML }) {
 
     return usuarioTemPermissao ? elementoHTML : '';
 }
-async function teste() {
-    await modalLPUParceiro
-}
-teste()
+
+
 async function modalLPUParceiro() {
     const baseOrcamentos = await recuperarDados('dados_orcamentos') || {};
 
@@ -3749,7 +3766,7 @@ async function modalLPUParceiro() {
             </th>`;
     });
 
-    let orcamento = baseOrcamentos['ORCA_b48cd6b9-3fe8-486f-a1fd-ce9586876a01']
+    let orcamento = baseOrcamentos[id_orcam] //'ORCA_b48cd6b9-3fe8-486f-a1fd-ce9586876a01'
 
     let itensOrcamento = orcamento.dados_composicoes
     console.log(itensOrcamento);
@@ -3823,13 +3840,16 @@ async function modalLPUParceiro() {
             ${stringHtml('Margem para este serviço(%)', `<input id="margem_lpu" class="input-lpuparceiro" value="35" oninput="calcularLpuParceiro()">`)}
             </div>
        
-            <div>
-                ${stringHtml('Total do Valor Orçamento', '<lalbel id="totalOrcamento"></lalbel>')}
+            <div style="margin-top: 15px">
+                ${stringHtml('Total do Valor Orçamento', '<lalbel style="margin-bottom: 5px; padding: 10px 0 20px"id="totalOrcamento"></lalbel>')}
+                ${stringHtml('Total Margem Disponível', '<lalbel id="totalMargem"></lalbel>')}
                 ${stringHtml('Total do Valor Parceiro', '<lalbe id="totalParceiro"l></lalbe>')}
                 ${stringHtml('Total Desvio', '<lalbel id="totalDesvio"></lalbel>')}
-                
             </div>
-            <div></div>
+            <div>
+                <button onclick=salvar_lpu_parceiro()>Salvar</button>
+                <button>Gerar PDF</button>
+            </div>
         </div>
         <br>
         ${tabela}
@@ -3848,7 +3868,8 @@ function calcularLpuParceiro() {
     let totais = {
         orcamento: 0,
         parceiro: 0,
-        desvio: 0
+        desvio: 0,
+        margem: 0
     }
 
 
@@ -3873,11 +3894,107 @@ function calcularLpuParceiro() {
         totais.orcamento += totalOrcado
         totais.parceiro += totalParceiro
         totais.desvio += desvio
+        totais.margem += totalMargem
 
     }
     document.getElementById('totalOrcamento').textContent = dinheiro(totais.orcamento)
     document.getElementById('totalParceiro').textContent = dinheiro(totais.parceiro)
-    document.getElementById('totalDesvio').textContent = dinheiro(totais.desvio)
+    const totalDesvioElement = document.getElementById('totalDesvio')
+    totalDesvioElement.textContent = dinheiro(totais.desvio)
+    document.getElementById('totalMargem').textContent = dinheiro(totais.margem)
+       // Define a cor do total desvio
+    if (totais.desvio > 0) {
+        totalDesvioElement.style.color = 'green'
+    } else {
+        totalDesvioElement.style.color = 'red'
+    }
 }
 
 
+async function salvar_lpu_parceiro(chave) {
+
+    overlayAguarde()
+    //Carregar dados existentes
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[id_orcam];
+    //Inicializar estruturas se não existirem
+    if (!orcamento.status) {
+        orcamento.status = { historico: {} };
+    }
+
+    if (!orcamento.status.historico) {
+        orcamento.status.historico = {}
+    }
+
+    const margemPercentual = Number(document.getElementById('margem_lpu').value)
+    const trs = document.querySelectorAll('#bodytabela tr')
+
+
+    const composicoes = []
+
+    let totais = {
+        orcamento: 0,
+        parceiro: 0,
+        margem: 0,
+        desvio: 0
+    }
+
+    for (const tr of trs) {
+        const tds = tr.querySelectorAll('td');
+        const codigo = tds[0].textContent;
+        const descricao = tds[1].textContent;
+        const unidade = tds[2].textContent;
+        const qtde = Number(conversor(tds[3].textContent));
+        const custo_unit = Number(conversor(tds[4].textContent));
+        const total_orcado = Number(conversor(tds[5].textContent));
+        const margem_reais = Number(conversor(tds[7].textContent));
+        const valor_parceiro = Number(tds[8].querySelector('input')?.value || 0);
+        const total_parceiro = Number(conversor(tds[9].textContent));
+        const desvio = Number(conversor(tds[10].querySelector('label')?.textContent || '0'));
+
+            composicoes.push({
+            codigo,
+            descricao,
+            unidade,
+            qtde,
+            custo_unit,
+            total_orcado,
+            margem_reais,
+            valor_parceiro,
+            total_parceiro,
+            desvio
+        });
+
+        totais.orcamento += total_orcado;
+        totais.parceiro += total_parceiro;
+        totais.margem += margem_reais;
+        totais.desvio += desvio;
+    }
+    //Criar novo lançamento
+    const novo_lancamento = {
+        status: 'LPU_PARCEIRO',
+        data: data_atual('completa'),
+        executor: acesso.usuario,
+        cliente: orcamento.dados_orcam?.cliente_selecionado || '',
+        margem_percentual: margemPercentual,
+        totais,
+        composicoes
+    };
+
+    
+
+    //Atualizar dados localmente primeiro
+    orcamento.status.historico[chave] = novo_lancamento
+    dados_orcamentos[id_orcam] = orcamento;
+
+    //Salvar no localstorage
+    await inserirDados(dados_orcamentos, "dados_orcamentos");
+
+    //Envio para nuvem
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento)
+
+    
+   
+    remover_popup()
+    await abrir_esquema(id_orcam)
+}
