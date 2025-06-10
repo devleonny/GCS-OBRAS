@@ -228,7 +228,6 @@ function preencherTabelaMotoristas(nomeVeiculo, tbody, campoTotal) {
     let total = 0;
 
     Object.values(motoristas).forEach(motorista => {
-        // Custo mensal (converte para número)
         let custo = motorista.custo_mensal_veiculo || 'R$ 0,00';
         let valor = Number(
             String(custo)
@@ -238,29 +237,23 @@ function preencherTabelaMotoristas(nomeVeiculo, tbody, campoTotal) {
         ) || 0;
         total += valor;
 
-        // Combustível
         let combustivel = motorista.combustível || {};
         let combustivelStr = combustivel.litros
             ? `${combustivel.litros}L x ${combustivel.custo_litro || ''} = ${combustivel.custo_total || ''}`
             : '';
 
-        // Pedágio
         let pedagio = motorista.pedagio || {};
         let pedagioStr = pedagio.tag ? `${pedagio.tag}` : '';
 
-        // Estacionamento
         let estacionamento = motorista.estacionamento || {};
         let estacionamentoStr = estacionamento.tag ? `${estacionamento.tag}` : '';
 
-        // Multas
         let multas = motorista.multas || {};
         let multasStr = Object.keys(multas.anexos || {}).length > 0 ? 'Sim' : 'Não';
 
-        // Custos extras
         let extras = motorista.custos_extras || {};
         let extrasStr = extras.valor || '';
 
-        // Dados do veículo
         let dadosVeiculo = motorista.dados_veiculo || {};
         let dadosVeiculoStr = `
             Placa: ${dadosVeiculo.placa || ''}<br>
