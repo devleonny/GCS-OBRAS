@@ -1,10 +1,4 @@
 let divAcesso = document.getElementById('acesso')
-let mensag = (texto) => `
-    <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 3vw;">
-        <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-        <label>${texto}</label>
-    </div>
-`
 
 divAcesso.querySelectorAll('input').forEach(input => {
     input.addEventListener('keydown', function (event) {
