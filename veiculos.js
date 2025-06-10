@@ -83,7 +83,7 @@ const dados_veiculos = {
             },
             "motoristas": {
                 "12345": {
-                    "nome": "Jhon Dow",
+                    "nome": "Jane Doe",
                     "dados_veiculo": {
                         "placa": "AAA-1111",
                         "modelo": "Mobi Like",
@@ -157,11 +157,9 @@ function montarPainelVeiculos() {
 
     container.innerHTML = '';
 
-    // Toolbar vertical de veículos
     const toolbar = document.createElement('div');
     toolbar.className = 'veiculos-toolbar-container';
 
-    // Filtro (vertical)
     const filtro = document.createElement('div');
     filtro.className = 'veiculos-toolbar-filtro';
 
@@ -169,66 +167,120 @@ function montarPainelVeiculos() {
     labelFiltro.textContent = 'Veículos';
     filtro.appendChild(labelFiltro);
 
-    // Área da tabela e do total
     const areaTabela = document.createElement('div');
     areaTabela.className = 'veiculos-area-tabela';
 
-    // Campo do total
     const campoTotal = document.createElement('div');
     campoTotal.id = 'campoTotalMensal';
     campoTotal.className = 'total_geral';
     campoTotal.textContent = 'Total mensal: R$ 0,00';
     areaTabela.appendChild(campoTotal);
 
-    // Tabela
     const tabela = document.createElement('table');
     tabela.className = 'tabela';
 
-    // Cabeçalho
     const thead = document.createElement('thead');
     thead.className = 'ths';
     thead.innerHTML = `
-      <tr>
-          <th>Motoristas</th>
-          <th>Dados Veículo</th>
-          <th>Custo Mensal Veículo</th>
-          <th>Combustível</th>
-          <th>Pedágio</th>
-          <th>Estacionamento</th>
-          <th>Multas</th>
-          <th>Custos Extras</th>
-      </tr>
+        <tr>
+            <th>Motoristas</th>
+            <th>Dados Veículo</th>
+            <th>Custo Mensal Veículo</th>
+            <th>Combustível</th>
+            <th>Pedágio</th>
+            <th>Estacionamento</th>
+            <th>Multas</th>
+            <th>Custos Extras</th>
+        </tr>
     `;
     tabela.appendChild(thead);
 
-    // Corpo da tabela
     const tbody = document.createElement('tbody');
     tabela.appendChild(tbody);
 
     areaTabela.appendChild(tabela);
 
-    // Adiciona toolbar e tabela ao container
     toolbar.appendChild(filtro);
     toolbar.appendChild(areaTabela);
     container.appendChild(toolbar);
 
-    // Preenche filtro com nomes dos veículos
     const veiculos = dados_veiculos.veiculos;
     Object.keys(veiculos).forEach(nomeVeiculo => {
         const btn = document.createElement('button');
         btn.textContent = nomeVeiculo.toUpperCase();
+        btn.type = 'button';
         btn.onclick = () => {
             preencherTabelaMotoristas(nomeVeiculo, tbody, campoTotal);
-            // Destaca o botão selecionado
-            Array.from(filtro.querySelectorAll('button')).forEach(b => b.classList.remove('selected'));
+            filtro.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
         };
         filtro.appendChild(btn);
     });
 
-    // Seleciona o primeiro veículo por padrão
     const primeiroVeiculo = Object.keys(veiculos)[0];
-    if (primeiroVeiculo) {
-        filtro.querySelector('button').click();
-    }
+    if (primeiroVeiculo) filtro.querySelector('button').click();
+}
+
+function preencherTabelaMotoristas(nomeVeiculo, tbody, campoTotal) {
+    const veiculo = dados_veiculos.veiculos[nomeVeiculo];
+    const motoristas = veiculo.motoristas || {};
+    tbody.innerHTML = '';
+    let total = 0;
+
+    Object.values(motoristas).forEach(motorista => {
+        // Custo mensal (converte para número)
+        let custo = motorista.custo_mensal_veiculo || 'R$ 0,00';
+        let valor = Number(
+            String(custo)
+                .replace(/[^\d,]/g, '')
+                .replace('.', '')
+                .replace(',', '.')
+        ) || 0;
+        total += valor;
+
+        // Combustível
+        let combustivel = motorista.combustível || {};
+        let combustivelStr = combustivel.litros
+            ? `${combustivel.litros}L x ${combustivel.custo_litro || ''} = ${combustivel.custo_total || ''}`
+            : '';
+
+        // Pedágio
+        let pedagio = motorista.pedagio || {};
+        let pedagioStr = pedagio.tag ? `${pedagio.tag}` : '';
+
+        // Estacionamento
+        let estacionamento = motorista.estacionamento || {};
+        let estacionamentoStr = estacionamento.tag ? `${estacionamento.tag}` : '';
+
+        // Multas
+        let multas = motorista.multas || {};
+        let multasStr = Object.keys(multas.anexos || {}).length > 0 ? 'Sim' : 'Não';
+
+        // Custos extras
+        let extras = motorista.custos_extras || {};
+        let extrasStr = extras.valor || '';
+
+        // Dados do veículo
+        let dadosVeiculo = motorista.dados_veiculo || {};
+        let dadosVeiculoStr = `
+            Placa: ${dadosVeiculo.placa || ''}<br>
+            Modelo: ${dadosVeiculo.modelo || ''}<br>
+            Status: ${dadosVeiculo.status || ''}
+        `;
+
+        tbody.insertAdjacentHTML('beforeend', `
+            <tr>
+                <td>${motorista.nome || ''}</td>
+                <td>${dadosVeiculoStr}</td>
+                <td>${motorista.custo_mensal_veiculo || ''}</td>
+                <td>${combustivelStr}</td>
+                <td>${pedagioStr}</td>
+                <td>${estacionamentoStr}</td>
+                <td>${multasStr}</td>
+                <td>${extrasStr}</td>
+            </tr>
+        `);
+    });
+
+    campoTotal.textContent = `Total mensal: R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
