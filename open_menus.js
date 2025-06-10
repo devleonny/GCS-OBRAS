@@ -305,7 +305,7 @@ async function abrirMensagens(elementoOrigial) {
 
     let pos = elementoOrigial.getBoundingClientRect();
 
-    if (alertas == '') alertas = `<hr style="width: 100%;"><label>Você não possui mensagens no momento</label>`
+    if (alertas == '') alertas = `<hr style="width: 80%;"><label>Você não possui mensagens no momento</label>`
 
     let acumulado = `
     <div id="divAlertas" class="divOnline" style="background-color: #d2d2d2; left: ${pos.left + window.scrollX}px; top: ${pos.bottom + window.scrollY}px;">
