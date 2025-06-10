@@ -230,9 +230,9 @@ async function preencher_orcamentos_v2() {
             `
     }
 
-    var cabecs = ['Última alteração', 'Status', 'Pedido', 'Notas', 'Chamado', 'Cliente', 'Cidade', 'Analista', 'Valor', 'LPU', 'Ações']
-    var ths = ''
-    var tsh = ''
+    let cabecs = ['Última alteração', 'Status', 'Pedido', 'Notas', 'Chamado', 'Cliente', 'Cidade', 'Analista', 'Valor', 'LPU', 'Ações']
+    let ths = ''
+    let tsh = ''
     cabecs.forEach((cab, i) => {
 
         ths += `

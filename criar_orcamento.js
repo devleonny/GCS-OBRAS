@@ -1542,33 +1542,40 @@ async function total() {
 
             // Desconto;
             let desconto = 0
-            let valor_desconto
-            let tipo_desconto
+            let tipoDesconto
+            let valorDesconto
 
             if (!carrefour) {
+                let divDesconto = tds[5].querySelector('div')
+                tipoDesconto = divDesconto.querySelector('select')
+                valorDesconto = divDesconto.querySelector('input')
 
-                tipo_desconto = tds[5 + acrescimo].querySelector('select')
-                valor_desconto = tds[5 + acrescimo].querySelector('input')
+                if(itemSalvo.custo_original) {
+                    valorDesconto.value = ''
+                    desconto = 0
+                }
 
-                if (valor_desconto.value != '') {
+                divDesconto.style.display = itemSalvo.custo_original ? 'none' : 'flex'
 
-                    if (tipo_desconto.value == 'Porcentagem') {
-                        if (valor_desconto.value < 0) {
-                            valor_desconto.value = 0
-                        } else if (valor_desconto.value > 100) {
-                            valor_desconto.value = 100
+                if (valorDesconto.value != '') {
+
+                    if (valorDesconto.value == 'Porcentagem') {
+                        if (valorDesconto.value < 0) {
+                            valorDesconto.value = 0
+                        } else if (valorDesconto.value > 100) {
+                            valorDesconto.value = 100
                         }
 
-                        desconto = valor_desconto.value / 100 * total_linha
+                        desconto = valorDesconto.value / 100 * total_linha
 
                     } else {
-                        if (valor_desconto.value < 0) {
-                            valor_desconto.value = 0
-                        } else if (valor_desconto.value > total_linha) {
-                            valor_desconto.value = total_linha
+                        if (valorDesconto.value < 0) {
+                            valorDesconto.value = 0
+                        } else if (valorDesconto.value > total_linha) {
+                            valorDesconto.value = total_linha
                         }
 
-                        desconto = Number(valor_desconto.value)
+                        desconto = Number(valorDesconto.value)
                     }
 
                     // Verificar a viabilidade do desconto;
@@ -1583,15 +1590,15 @@ async function total() {
                     let resultado = calcular(undefined, dadosCalculo)
 
                     if (!estado) {
-                        valor_desconto.value = ''
+                        valorDesconto.value = ''
                         avisoDesconto = 1 // Preencher os dados da empresa;
 
                     } else if (resultado.lucroPorcentagem < 10) {
-                        valor_desconto.value = ''
+                        valorDesconto.value = ''
                         avisoDesconto = 2 // Lucro mínimo atingido (10%);
 
                     } else if (isNaN(resultado.lucroLiquido)) {
-                        valor_desconto.value = ''
+                        valorDesconto.value = ''
                         avisoDesconto = 3 // ICMS creditado não registrado;
                     }
 
@@ -1601,8 +1608,8 @@ async function total() {
                     itemSalvo.lucroPorcentagem = resultado.lucroPorcentagem
                 }
 
-                tipo_desconto.classList = desconto == 0 ? 'desconto_off' : 'desconto_on'
-                valor_desconto.classList = desconto == 0 ? 'desconto_off' : 'desconto_on'
+                tipoDesconto.classList = desconto == 0 ? 'desconto_off' : 'desconto_on'
+                valorDesconto.classList = desconto == 0 ? 'desconto_off' : 'desconto_on'
 
                 totais.GERAL.bruto += total_linha // Valor bruto sem desconto;
                 total_linha = total_linha - desconto
@@ -1620,6 +1627,7 @@ async function total() {
             totais.GERAL.valor += total_linha
 
             // ATUALIZAÇÃO DE INFORMAÇÕES DA COLUNA 4 EM DIANTE
+
             let descricaocarrefour = dados_composicoes[codigo].descricaocarrefour
             if (carrefour) {
                 tds[2].innerHTML = `
@@ -1664,9 +1672,9 @@ async function total() {
             itemSalvo.tipo = tipo
             itemSalvo.imagem = imagem
 
-            if (!carrefour && Number(valor_desconto.value) !== 0) {
-                itemSalvo.tipo_desconto = tipo_desconto.value
-                itemSalvo.desconto = Number(valor_desconto.value)
+            if (!carrefour && Number(valorDesconto.value) !== 0) {
+                itemSalvo.tipo_desconto = tipoDesconto.value
+                itemSalvo.desconto = Number(valorDesconto.value)
             } else {
                 delete itemSalvo.tipo_desconto
                 delete itemSalvo.desconto
@@ -1760,6 +1768,9 @@ async function alterarValorUnitario(codigo) {
 
     let produto = dados_composicoes[codigo]
     let lpu = String(document.getElementById('lpu').value).toLowerCase()
+
+    if(lpu == 'lpu carrefour') return openPopup_v2(mensagem('Carrefour não permite mudanças de valores'), 'AVISO')
+
     let ativo = produto?.[lpu]?.ativo || 0
     let historico = produto?.[lpu]?.historico || {}
     let precoOriginal = historico?.[ativo]?.valor || 0
@@ -1802,6 +1813,7 @@ async function confirmarNovoPreco(codigo, precoOriginal, operacao) {
         item.custo_original = precoOriginal
         item.custo = valor
         item.alterado = true
+
     } else if (operacao == 'remover') {
         delete orcamento.alterado
         delete item.custo_original

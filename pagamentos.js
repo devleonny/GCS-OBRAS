@@ -216,10 +216,10 @@ function iconePagamento(status) {
             icone = 'vencehoje'
             break
         case status.includes('Aprovado'):
-            icone = 'aprovado'
+            icone = 'joinha'
             break
         case status.includes('Reprovado'):
-            icone = 'reprovado'
+            icone = 'desjoinha'
             break
         case status.includes('Excluído'):
             icone = 'alerta'

@@ -1,6 +1,7 @@
 let acesso = JSON.parse(localStorage.getItem('acesso'))
 let dados_setores = {}
 let filtrosUsuarios = {}
+let filtrosPendencias = {}
 const mensagem = (mensagem) => {
     return `
     <div style="display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center;">
@@ -190,7 +191,6 @@ async function identificacaoUser() {
             <div id="${idElemento}" style="display: none;" class="labelQuantidade"></div>
         </div>
         `
-
     }
 
     let permitidosAprovacoes = ['adm', 'coordenacao', 'diretoria']
@@ -205,7 +205,7 @@ async function identificacaoUser() {
                 </div>
 
                 ${!modoClone ? modelo('mensagem', 'abrirMensagens(this)', 'contadorMensagens') : ''}
-                ${modelo('aprovado', 'verAprovacoes()', 'contadorPendencias')}
+                ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
                 ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
 
                 <label onclick="deseja_sair()"
@@ -1917,22 +1917,31 @@ async function verAprovacoes() {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
     let guia = {
-        aprovado: '#4caf50',
-        reprovado: '#ff6b6c',
         pendente: '#ff8c1b',
-        desconhecido: '#5cb3ff'
+        todos: '#a9a5a5'
     }
 
     let cabecalhos = ['Cliente', 'Valor Total', 'Valor Final', 'Localização', 'Usuário', 'Aprovação', 'Comentário', 'Detalhes']
     let tabelas = {
         pendente: { linhas: '' },
-        reprovado: { linhas: '' },
-        aprovado: { linhas: '' }
+        todos: { linhas: '' }
     }
-    let ths = ''
 
-    cabecalhos.forEach(cabecalho => {
+    let ths = ''
+    let tsh = ''
+    cabecalhos.forEach((cabecalho, i) => {
         ths += `<th>${cabecalho}</th>`
+
+        cabecalho == 'Detalhes'
+            ? tsh += '<th style="background-color: white;"></th>'
+            : tsh += `
+            <th style="background-color: white; border-radius: 0px;">
+                <div style="display: flex; align-items: center; justify-content: center;">
+                    <input oninput="pesquisar_generico(${i}, this.value, filtrosPendencias, 'tbodyPendencias')">
+                    <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                </div>
+            </th>
+        `
     })
 
     for (let [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
@@ -1943,16 +1952,19 @@ async function verAprovacoes() {
         let aprovacao = orcamento.aprovacao
         let status = aprovacao?.status || 'desconhecido'
 
-        if (!tabelas[status]) tabelas[status] = { linhas: '' }
-
-        tabelas[status].linhas += `
+        tabelas[status == 'pendente' ? 'pendente' : 'todos'].linhas += `
         <tr>
             <td>${dados_orcam?.cliente_selecionado || '--'}</td>
             <td>${aprovacao?.total_sem_desconto}</td>
             <td>${aprovacao?.total_geral}</td>
             <td>${dados_orcam.cidade || ''}</td>
             <td>${aprovacao?.usuario || '--'}</td>
-            <td>${status}</td>
+            <td>
+                <div style="display: flex; align-items: center; justify-content: start; gap: 1vw;">
+                    <img src="imagens/${status}.png" style="width: 2vw;">
+                    <label>${status}</label>
+                </div>
+            </td>
             <td>${aprovacao?.justificativa || '--'}</td>
             <td><img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="verPedidoAprovacao('${idOrcamento}')"></td>
         </tr>
@@ -1969,26 +1981,24 @@ async function verAprovacoes() {
         <table class="tabela" style="width: 100%;">
             <thead style="background-color: ${guia[tabela]};">
                 <tr>${ths}</tr>
+                ${tabela == 'todos' ? `<tr>${tsh}</tr>` : ''}
             </thead>
-            <tbody>${objeto.linhas}</tbody>
+            <tbody ${tabela == 'todos' ? 'id="tbodyPendencias"' : ''}>${objeto.linhas}</tbody>
         </table>`
     }
 
     acumulado = `
     <div style="background-color: #d2d2d2; border-radius: 3px; padding: 5px;">
 
-        <div style="display: flex; align-items: center; justify-content: start; gap: 5px; width: 100%;">
-            <label style="padding: 5px; border-radius: 3px; background-color: ${guia.pendente}">Pendentes</label>
-            <label style="padding: 5px; border-radius: 3px; background-color: ${guia.reprovado}">Reprovados</label>
-            <label style="padding: 5px; border-radius: 3px; background-color: ${guia.aprovado}">Aprovados</label>
-        </div>
+        <label style="font-size: 1.5vw;">Fila de Aprovação</label>
+
         ${tabelasString}
     </div>
     `
     openPopup_v2(acumulado, 'Aprovações de Orçamento', true)
 }
 
-async function verificarPendencias() { //29
+async function verificarPendencias() {
     await sincronizarDados('dados_orcamentos', true)
     let dados_orcamentos = await recuperarDados('dados_orcamentos')
     let contador = 0
@@ -2017,7 +2027,6 @@ async function verPedidoAprovacao(idOrcamento) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[idOrcamento]
     let totalReal = 0
-    let totalGeral = 0
 
     for ([codigo, composicao] of Object.entries(orcamento.dados_composicoes)) {
 
@@ -2036,19 +2045,18 @@ async function verPedidoAprovacao(idOrcamento) {
                 ? composicao.desconto
                 : total * (composicao.desconto / 100);
         }
-
-        let labelCusto = dinheiro(custo)
-        let labelTotal = dinheiro(total)
+        let totalOriginal = custoOriginal * quantidade
+        let labelCusto = dinheiro(custoOriginal ? custoOriginal : custo)
+        let labelTotal = dinheiro(custoOriginal ? totalOriginal : total)
         let labelTotalDesconto = dinheiro(total - desconto)
 
-        totalReal += (custoOriginal ? custoOriginal : custo) * quantidade;
-        totalGeral += custo * quantidade;
+        totalReal += (custoOriginal ? custoOriginal : custo) * quantidade
 
-        let diferenca, cor = '';
+        let diferenca = '--', cor = '';
         if (custoOriginal && custo !== custoOriginal) {
             diferenca = dinheiro((custo - custoOriginal) * quantidade)
             cor = 'green'
-            
+
         } else if (desconto > 0) {
             diferenca = dinheiro(desconto)
             cor = '#B12425'
@@ -2091,12 +2099,13 @@ async function verPedidoAprovacao(idOrcamento) {
     let divOrganizada = (valor, termo) => {
         return `
                 <div style="display: flex; justify-content: center; flex-direction: column; align-items: start; width: 100%; margin-bottom: 5px;">
-                    <label style="font-size: 0.9vw;"><strong>${termo}</strong></label>
-                    <label style="font-size: 1.2vw;">${valor}</label>
+                    <label style="font-size: 0.9vw;">${termo}</label>
+                    <label style="font-size: 1.2vw;"><strong>${valor}</strong></label>
                 </div>
             `
     }
 
+    let totalGeral = conversor(orcamento.total_geral)
     let diferencaDinheiro = totalGeral - totalReal
     let diferencaPorcentagem = `${(diferencaDinheiro / totalReal * 100).toFixed(2)}%`
 
@@ -2111,8 +2120,8 @@ async function verPedidoAprovacao(idOrcamento) {
                     </div>
                     <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
                         ${divOrganizada(dinheiro(totalGeral), 'Total Geral')}
-                        ${divOrganizada(dinheiro(totalReal), 'Total Final (com Acréscimo e/ou Desconto)')}
-                        ${divOrganizada(dinheiro(diferencaDinheiro), 'Diferença em Dinheiro')}
+                        ${divOrganizada(dinheiro(totalReal), 'Total Original (sem Acréscimo e/ou Desconto)')}
+                        ${divOrganizada(`<label class="labelAprovacao" style="background-color: ${diferencaDinheiro > 0 ? 'green' : '#B12425'}">${dinheiro(diferencaDinheiro)}</label>`, 'Diferença em Dinheiro')}
                         ${divOrganizada(diferencaPorcentagem, 'Percentual')}
                     </div>
                 </div>
