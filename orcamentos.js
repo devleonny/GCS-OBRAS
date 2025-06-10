@@ -303,7 +303,7 @@ async function duplicar(orcam_) {
     let novoOrcamento = {}
 
     novoOrcamento.dados_orcam = orcamento_v2.dados_orcam
-    novoOrcamento.dados_orcam = orcamento_v2.dados_orcam
+    novoOrcamento.dados_composicoes = orcamento_v2.dados_composicoes
     novoOrcamento.lpu_ativa = orcamento_v2.lpu_ativa
     novoOrcamento.dados_orcam.contrato = ''
     novoOrcamento.dados_orcam.analista = acesso.nome_completo
@@ -440,7 +440,6 @@ async function alteracoes_status() {
 
 }
 
-
 function atualizar_status(st) {
 
     switch (true) {
@@ -464,4 +463,9 @@ function atualizar_status(st) {
     }
 
     return st
+}
+
+async function obterObjeto(base, id) {
+    let objeto = await recuperarDados(base) || {}
+    return objeto[id]
 }

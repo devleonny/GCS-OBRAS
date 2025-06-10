@@ -41,17 +41,26 @@ async function recuperar_composicoes() {
 
 async function carregar_tabela_v2() {
 
+    if(document.title !== 'COMPOSIÇÕES') return 
+
+    let adicionar_item = document.getElementById('adicionar_item')
+    let btn_criar_lpu = document.getElementById('btn-criar-lpu')
+
+    let permitidos = ['adm', 'editor', 'diretoria', 'coordenacao']
+
+    adicionar_item.style.display = permitidos.includes(acesso.permissao) ? 'flex' : 'none'
+    btn_criar_lpu.style.display = permitidos.includes(acesso.permissao) ? 'flex' : 'none'
+
     let dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
     if (Object.keys(dados_composicoes).length == 0) {
-        return recuperar_composicoes();
+        return await recuperar_composicoes();
     }
 
-    var thead = '';
-    var tbody = '';
-    var tsearch = '';
-
-    var cabecalhos = [
+    let thead = '';
+    let tbody = '';
+    let tsearch = '';
+    let cabecalhos = [
         ...new Set(
             Object.values(dados_composicoes).flatMap(obj => Object.keys(obj))
         )
@@ -68,45 +77,23 @@ async function carregar_tabela_v2() {
     if (!colunasComposicoes[modo]) {
         colunasComposicoes[modo] = []
     }
+
     let colunas = colunasComposicoes[modo]
 
-    const idxCat = colunas.indexOf('categoria de equipamento');
-    const idxSis = colunas.indexOf('sistema');
-
-    if (idxCat !== -1 && idxSis !== -1 && Math.abs(idxCat - idxSis) !== 1) {
-        // Remove os dois
-        colunas = colunas.filter(c => c !== 'categoria de equipamento' && c !== 'sistema');
-        // Define a posição onde quer inserir (por exemplo, no início)
-        const posicao = 0;
-        colunas.splice(posicao, 0, 'categoria de equipamento', 'sistema');
-    }
-
-    if (acesso.permissao == 'adm') {
-        var adicionar_item = document.getElementById('adicionar_item');
-        var btn_criar_lpu = document.getElementById('btn-criar-lpu')
-        if (adicionar_item) {
-            adicionar_item.style.display = 'flex';
-        }
-        if (btn_criar_lpu) {
-            btn_criar_lpu.style.display = 'flex';
-        }
-    }
-
-    if (!divComposicoes) {
-        return
-    }
-
+    if (!divComposicoes) return
     divComposicoes.innerHTML = '';
 
-    var ths = {};
-    var tsc = {};
+    let ths = {};
+    let tsc = {};
 
     cabecalhos.forEach(cab => {
         ths[cab] = `<th style="position: relative; cursor: pointer; text-align: left;">${inicial_maiuscula(cab)}</th>`
         tsc[cab] = `
-            <th style="background-color: white; position: relative; border-radius: 0px;">
-                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%; padding: 0px;" placeholder="...">
+            <th style="background-color: white;">
+                <div style="display: flex; align-items: center; justify-content: center;">
+                    <input>
+                    <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                </div>
             </th>`
     });
 
@@ -115,65 +102,54 @@ async function carregar_tabela_v2() {
         tsearch += tsc[col];
     });
 
-    for (let [codigo, produto] of Object.entries(dados_composicoes).reverse()) {
-        var tds = {};
+    let composicoesOrdenadas = Object.entries(dados_composicoes).sort((a, b) => b[1].timestamp - a[1].timestamp)
+
+    for (let [codigo, produto] of composicoesOrdenadas) {
+        let tds = {};
 
         colunas.forEach(chave => {
-            var conteudo = produto[chave] || '';
-            var alinhamento = 'left';
+            let conteudo = produto[chave] || '';
+            let alinhamento = 'left';
             chave = String(chave)
             if (chave == 'imagem') {
-                var imagem = conteudo || 'https://i.imgur.com/Nb8sPs0.png';
                 alinhamento = 'center';
-                conteudo = `<img src="${imagem}" style="width: 50px; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">`;
+                conteudo = `<img src="${conteudo || logo}" style="width: 4vw; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">`;
 
             } else if (chave.includes('lpu')) {
-                var preco_final = produto[chave];
+                let preco_final = produto[chave];
                 if (dicionario(produto[chave]) && produto[chave].historico && Object.keys(produto[chave].historico).length > 0 && produto[chave].ativo) {
-                    var ativo = produto[chave].ativo;
-                    preco_final = produto[chave].historico[ativo].valor;
+                    let ativo = produto[chave].ativo;
+                    preco_final = produto[chave].historico?.[ativo]?.valor || 0;
                 } else {
                     preco_final = '';
                 }
 
-                var estilo = preco_final !== '' ? 'valor_preenchido' : 'valor_zero';
+                let estilo = preco_final !== '' ? 'valor_preenchido' : 'valor_zero';
                 conteudo = `<label class="${estilo}" onclick="abrirHistoricoPrecos('${codigo}', '${chave}')"> ${dinheiro(conversor(preco_final))}</label>`;
 
             } else if (chave == 'agrupamentos') {
 
-                var info_agrupamentos = ''
+                let info_agrupamentos = ''
 
                 if (produto[chave]) {
-                    var agrupamentos = produto[chave]
+                    let agrupamentos = produto[chave]
 
                     for (item in agrupamentos) {
 
-                        if (!dados_composicoes[item]) {
-                            delete produto.agrupamentos[item]
-                            deletar(`dados_composicoes/${codigo}/agrupamentos/${item}`)
-                            inserirDados(dados_composicoes, 'dados_composicoes')
-                        } else {
+                        let tipo = dados_composicoes[item]?.tipo || '??'
 
-                            let tipo = dados_composicoes[item].tipo
-
-                            var cor = 'green'
-                            if (tipo == 'VENDA') {
-                                cor = '#B12425'
-                            }
-
-                            info_agrupamentos += `
+                        info_agrupamentos += `
                             <div style="display: flex; gap: 3px; align-items: center; justify-content: left;">
-                                <label class="numero" style="width: 20px; height: 20px; padding: 3px; background-color: ${cor}">${agrupamentos[item]}</label>
-                                <label style="font-size: 0.6em; text-align: left;">${String(dados_composicoes[item].descricao).slice(0, 10)}...</label>
+                                <label class="numero" style="width: 20px; height: 20px; padding: 3px; background-color: ${tipo == 'VENDA' ? 'green' : '#B12425'}">${agrupamentos[item]}</label>
+                                <label style="font-size: 0.6em; text-align: left;">${String(dados_composicoes[item]?.descricao || '??').slice(0, 10)}...</label>
                             </div>
                             `
-                        }
                     }
                 }
 
                 conteudo = `
                     <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-                        <img src="imagens/construcao.png" style="width: 30px; height: 30px; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">
+                        <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">
                         <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; gap: 2px;">
                             ${info_agrupamentos}
                         </div>
@@ -200,9 +176,9 @@ async function carregar_tabela_v2() {
             tds[chave] = `<td style="text-align: ${alinhamento}; max-width: 200px;">${conteudo}</td>`;
         });
 
-        tds.editar = `<td style="width: 70px;"><img src="imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')"></td>`;
+        tds.editar = `<td style="width: 70px;"><img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')"></td>`;
 
-        var celulas = '';
+        let celulas = '';
         colunas.forEach(col => {
             if (tds[col] !== undefined) {
                 celulas += tds[col];
@@ -419,24 +395,20 @@ async function atualizar_status_material(codigo, elemento) {
 
 async function abrir_agrupamentos(codigo) {
 
-    var acumulado = ''
-
-    var dados_composicoes = await recuperarDados('dados_composicoes') || {}
-
-    var produto = dados_composicoes[codigo]
-    var imagem = 'https://i.imgur.com/Nb8sPs0.png'
-    var linhas = ''
-
+    let acumulado = ''
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let produto = dados_composicoes[codigo]
+    let linhas = ''
 
     for (item in dados_composicoes) {
-        var checked = ''
+        let checked = ''
 
         if (produto.agrupamentos && produto.agrupamentos[item]) {
             checked = 'checked'
         }
-        var tr = `
+        let tr = `
         <tr>
-            <td style="white-space: normal; text-align: center;"><input type="checkbox" style="width: 30px; height: 30px;" onclick="incluir_agrupamento(this)" ${checked}></td>
+            <td style="white-space: normal; text-align: center;"><input type="checkbox" style="width: 4vw;" onclick="incluir_agrupamento(this)" ${checked}></td>
             <td style="white-space: normal;">${item}</td>
             <td style="white-space: normal;">${dados_composicoes[item].descricao}</td>
             <td style="white-space: normal;">${dados_composicoes[item].modelo}</td>
@@ -445,10 +417,6 @@ async function abrir_agrupamentos(codigo) {
         </tr>
         `
         linhas += tr
-    }
-
-    if (produto.imagem && produto.imagem !== '') {
-        imagem = produto.imagem
     }
 
     let ths = ''
@@ -468,7 +436,7 @@ async function abrir_agrupamentos(codigo) {
 
         <div class="agrupamentos">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
-                <img src="${imagem}" style="width: 100px">
+                <img src="${produto?.imagem || logo}" style="width: 100px">
                 <h2>${produto.descricao}</h2>
             </div>
 
@@ -643,7 +611,7 @@ async function incluir_agrupamento(elemento, cod, qtde) {
 
             var item = `
             <div class="agrupado" style="border: solid 1px ${cor};">
-                <img src="imagens/excluir.png" style="width: 30px; cursor: pointer;" onclick="remover_item(this)">
+                <img src="imagens/excluir.png" style="width: 4vw; cursor: pointer;" onclick="remover_item(this)">
                 <label>${codigo}</label>
                 <label>${descricao} - ${modelo} - ${unidade}</label>
 
@@ -714,7 +682,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
         <div id="historico_preco" style="display: flex; flex-direction: column; align-items: start; justify-content: center; position: relative; width: 100%;">
             
             <div style="display: flex; justify-content: left; align-items: center; gap: 5px;">
-                <img style="width: 7vw;" src="${dados_composicoes[codigo]?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}">
+                <img style="width: 7vw;" src="${dados_composicoes[codigo]?.imagem || logo}">
                 <div style="color: #222; display: flex; flex-direction: column; justify-content: start; align-items: start;">
                     <label style="font-size: 0.8vw;">Descrição</label>
                     <label>${dados_composicoes[codigo].descricao}</label>
@@ -779,12 +747,12 @@ async function salvar_preco_ativo(codigo, id_preco, lpu) {
         console.log('Ouvinte no registro de ativação de preço falhou.');
     }
 
-    enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco)
+    await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, id_preco)
     await inserirDados(dados_composicoes, 'dados_composicoes')
-
-    if (document.title == 'Criar Orçamento') total() // Caso esteja na tela de Orçamentos;
-
     removerOverlay()
+
+    if (document.title == 'Criar Orçamento') return await total(), await tabelaProdutos() // Caso esteja na tela de Orçamentos;
+
     await retomarPaginacao()
 
 }
@@ -810,9 +778,9 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
             let comentario = `O usuário ${acesso.usuario} excluiu o preço de ID: ${cotacao} e valor: ${parseFloat(precoExcluido).toFixed(2)}`
             delete cotacoes.historico[cotacao];
 
-            await inserirDados(dados_composicoes, 'dados_composicoes'),
-                deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`),
-                registrarAlteracao('dados_composicoes', codigo, comentario)
+            await inserirDados(dados_composicoes, 'dados_composicoes')
+            deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`)
+            registrarAlteracao('dados_composicoes', codigo, comentario)
         }
 
         remover_popup()
@@ -889,7 +857,7 @@ function gerarTabelas(objeto) {
                     <td>
                         <div style="display: flex; align-items: center; justify-content: center; gap: 1vw;">
                             ${campo.label}
-                            <select id="${campo.id}_select" onchange="calcular()" class="opcoesSelect" style="width: max-content;">
+                            <select id="${campo.id}_select" onchange="calcular('${campo.id}_select')" class="opcoesSelect" style="width: max-content;">
                                 ${opcoes}
                             </select>
                         </div>
@@ -945,7 +913,7 @@ function modelos(produto) {
             camposIniciais: [
                 { label: 'Preço Unitário (R$)', cor: '#91b7d9', id: 'custo', valor: produto?.custo || '' },
                 { label: 'Frete de Compra (2%)', readOnly: true, id: 'frete' },
-                { label: 'ICMS Creditado em nota (%)', opcoes: ['IMPORTADO', 'NACIONAL', 'BAHIA'], cor: '#91b7d9', id: 'icms_creditado', valor: produto?.icms_creditado || '' },
+                { label: 'ICMS Creditado em nota (%)', valorSelect: produto?.icms_creditado_select, opcoes: ['IMPORTADO', 'NACIONAL', 'BAHIA'], cor: '#91b7d9', id: 'icms_creditado', valor: produto?.icms_creditado || '' },
                 { label: 'Aliquota ICMS (Bahia) (20.5%)', readOnly: true, id: 'icms_aliquota', valor: 20.5 },
                 { label: 'ICMS a ser pago (DIFAL) (%)', readOnly: true, id: 'difal', valor: '' },
                 { label: 'Valor do ICMS de Entrada (R$)', readOnly: true, id: 'icms_entrada' },
@@ -964,7 +932,7 @@ function modelos(produto) {
                 { label: 'CSLL (9%)', id: 'csll' },
                 { label: 'PIS (0,65%)', id: 'pis' },
                 { label: 'COFINS (3%)', id: 'cofins' },
-                { label: 'ICMS (%)', id: 'icms_saida', opcoes: ['20,5%', '4%', '12%'] }
+                { label: 'ICMS (%)', id: 'icms_saida', opcoes: ['20,5%', '12%', '4%'] }
             ]
         },
         'SERVIÇO': {
@@ -1123,7 +1091,7 @@ function calcular(campo, dadosCalculo = null) {
         }
 
         getElementById('lucro_liquido', dinheiro(lucroLiquido))
-        getElementById('lucro_porcentagem', `${porcentagem.toFixed(0)}%`)
+        getElementById('lucro_porcentagem', `${porcentagem.toFixed(2)}%`)
 
         let estilo = lucroLiquido > 0 ? 'lucroPositivo' : 'lucroNegativo'
         document.getElementById('lucro_liquido').classList = estilo
@@ -1188,9 +1156,12 @@ function calcular(campo, dadosCalculo = null) {
         let csll = presuncaoCsll * 0.09
         let pis = precoVenda * 0.0065
         let cofins = precoVenda * 0.03
-        let icmsSaida = dadosCalculo?.icmsSaida / 100 || conversor(getElementById('icms_saida_select')) / 100
-        let icms = precoVenda * icmsSaida
 
+        let icmsSaidaSelect = icmsCreditado == 4 ? 0.04 : 0.205
+        if (campo == 'icms_saida_select') icmsSaidaSelect = conversor(getElementById('icms_saida_select')) / 100
+
+        let icmsSaida = dadosCalculo?.icmsSaida / 100 || icmsSaidaSelect
+        let icms = precoVenda * icmsSaida
         let totalImpostos = irpj + adicionalIrpj + csll + pis + cofins + icms
 
         if (!dadosCalculo) {
@@ -1198,6 +1169,7 @@ function calcular(campo, dadosCalculo = null) {
             getElementById('frete_venda', freteVenda.toFixed(0))
             getElementById('porc_LP', dinheiro(lucroPresumido))
             getElementById('porc_CSLL', dinheiro(presuncaoCsll))
+            getElementById('icms_saida_select', icmsSaidaSelect == 0.04 ? '4%' : icmsSaidaSelect == 0.12 ? '12%' : '20,5%')
             getElementById('icms_saida', dinheiro(icms.toFixed(0)))
             getElementById('frete', frete.toFixed(2))
             getElementById('difal', difal)
@@ -1275,11 +1247,6 @@ async function salvarPreco(codigo, lpu, cotacao) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let produto = dados_composicoes[codigo]
     let historico = produto[lpu]?.historico || {}
-
-    let lucroPorcentagem = getElementById('lucroPorcentagem')
-
-    if (conversor(lucroPorcentagem) < 10) return openPopup_v2(alerta('A porcentagem de Lucro neste item não pode ser menor que 10%'), 'ALERTA', true)
-
     let preco_venda = getElementById('preco_venda')
     let custo = getElementById('custo')
     let icms_creditado = getElementById('icms_creditado')
@@ -1327,6 +1294,10 @@ async function salvarPreco(codigo, lpu, cotacao) {
         modalidade_icms: modalidade_icms,
         icms_saida: icms_saida
     };
+
+    // Verificar antes se a porcentagem é aceitável;
+    let resultado = calcular(undefined, historico[id])
+    if (resultado.lucroPorcentagem < 10) return openPopup_v2(alerta('Percentual de lucro não pode ser menor que 10%'), 'ALERTA', true)
 
     produto[lpu] = produto[lpu] || { historico: {} };
     produto[lpu].historico = historico;
@@ -1493,7 +1464,7 @@ async function salvarServidor(codigo) {
     divs.forEach(div => {
         let item = div.querySelector('label');
         let valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select');
-
+        if(item?.textContent == 'descricao') valor.value = String(valor.value).toUpperCase()
         if (item && valor) dadosAtualizados[item.textContent] = valor.value;
 
     });

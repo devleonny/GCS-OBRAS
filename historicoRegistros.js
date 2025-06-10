@@ -6,10 +6,6 @@ async function recuperarRegistros() {
     remover_popup()
 }
 
-
-
-
-
 carregarRegistros()
 async function carregarRegistros() {
     const registrosAlteracoes = await recuperarDados('registrosAlteracoes') || {}

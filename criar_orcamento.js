@@ -1122,18 +1122,13 @@ async function enviar_dados() {
         return openPopup_v2(alertaHTML('CNPJ em branco'), 'ALERTA')
     }
 
+    // Autorizações - Deconto;
     let desconto_porcentagem = document.getElementById('desconto_porcentagem')
-    if (desconto_porcentagem && Number(desconto_porcentagem.value) > 0) {
+    if ((desconto_porcentagem && Number(desconto_porcentagem.value) > 0) || orcamento_v2.alterado) {
         if (!(orcamento_v2.aprovacao && orcamento_v2.aprovacao.status === 'aprovado')) {
-            return autorizar_desconto();
+            return autorizarAlteracao();
         }
     }
-
-    if (orcamento_v2.dados_composicoes_orcamento || orcamento_v2.dados_composicoes_orcamento === null) {
-        delete orcamento_v2.dados_composicoes_orcamento;
-    }
-
-    orcamento_v2.tabela = 'orcamentos';
 
     if (orcamento_v2.dados_orcam.contrato == 'sequencial') {
         let sequencial = await verificar_chamado_existente(undefined, undefined, true)
@@ -1161,7 +1156,7 @@ async function enviar_dados() {
 
 }
 
-async function autorizar_desconto(reaprovacao) {
+async function autorizarAlteracao(reaprovacao) {
     let orcamento_v2 = baseOrcamento()
 
     if (!orcamento_v2.aprovacao) {
@@ -1198,7 +1193,7 @@ async function autorizar_desconto(reaprovacao) {
             
             <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
                 <label>Tentar de novo?</label> 
-                <button style="background-color: #4CAF50;" onclick="autorizar_desconto(true)">Sim</button>
+                <button style="background-color: #4CAF50;" onclick="autorizarAlteracao(true)">Sim</button>
             </div>
         </div>
         `
@@ -1482,6 +1477,7 @@ async function gerenciarAgrupamentos(codigo) {
 }
 
 async function total() {
+    dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento_v2 = baseOrcamento()
     let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
     let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
@@ -1492,47 +1488,42 @@ async function total() {
     let padraoFiltro = localStorage.getItem('padraoFiltro')
     let estado = orcamento_v2?.dados_orcam?.estado || false
     let avisoDesconto = 0
+    if (!orcamento_v2.dados_composicoes) orcamento_v2.dados_composicoes = {}
 
     // Detectar mudanças de quantidade
-    if (orcamento_v2.dados_composicoes) {
-        for (let codigo in orcamento_v2.dados_composicoes) {
-            let inputAtual = encontrarInputQuantidade(codigo)
+    for (let codigo in orcamento_v2.dados_composicoes) {
+        let inputAtual = encontrarInputQuantidade(codigo)
 
-            if (inputAtual) {
-                let quantidadeAtual = parseFloat(inputAtual.value) || 0
-                let quantidadeSalva = orcamento_v2.dados_composicoes[codigo].qtde || 0
+        if (inputAtual) {
+            let quantidadeAtual = parseFloat(inputAtual.value) || 0
+            let quantidadeSalva = orcamento_v2.dados_composicoes[codigo].qtde || 0
 
-                // Se a quantidade mudou
-                if (quantidadeAtual !== quantidadeSalva) {
-                    orcamento_v2.dados_composicoes[codigo].qtde = quantidadeAtual
+            // Se a quantidade mudou
+            if (quantidadeAtual !== quantidadeSalva) {
+                orcamento_v2.dados_composicoes[codigo].qtde = quantidadeAtual
 
-                    // Verificar se este item tem agrupamentos (é um pai)
-                    let produto = dados_composicoes[codigo]
-                    if (produto && produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) {
+                // Verificar se este item tem agrupamentos (é um pai)
+                let produto = dados_composicoes[codigo]
+                if (produto && produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) {
 
-                        try {
-                            await atualizarQuantidadesFilhos(codigo, quantidadeAtual)
-                        } catch (error) {
-                            console.error(`❌ Erro ao atualizar filhos do pai ${codigo}:`, error)
-                            // Não travar o programa - continuar processamento
-                        }
-                    } else {
-                        // É um item filho - calcular nova quantidade extra
-                        let item = orcamento_v2.dados_composicoes[codigo]
-                        if (item.quantidade_calculada !== undefined) {
-                            let novaQuantidadeExtra = quantidadeAtual - item.quantidade_calculada
-                            if (novaQuantidadeExtra < 0) novaQuantidadeExtra = 0
+                    try {
+                        await atualizarQuantidadesFilhos(codigo, quantidadeAtual)
+                    } catch (error) {
+                        console.error(`❌ Erro ao atualizar filhos do pai ${codigo}:`, error)
+                        // Não travar o programa - continuar processamento
+                    }
+                } else {
+                    // É um item filho - calcular nova quantidade extra
+                    let item = orcamento_v2.dados_composicoes[codigo]
+                    if (item.quantidade_calculada !== undefined) {
+                        let novaQuantidadeExtra = quantidadeAtual - item.quantidade_calculada
+                        if (novaQuantidadeExtra < 0) novaQuantidadeExtra = 0
 
-                            item.quantidade_extra = novaQuantidadeExtra
-                        }
+                        item.quantidade_extra = novaQuantidadeExtra
                     }
                 }
             }
         }
-    }
-
-    if (!orcamento_v2.dados_composicoes) {
-        orcamento_v2.dados_composicoes = {}
     }
 
     tables.forEach(tab => {
@@ -1540,185 +1531,192 @@ async function total() {
         totais[nomeTabela] = { valor: 0 }
     })
 
-    if (orcamento_v2.dados_composicoes) {
-        for (let tabela in totais) {
+    for (let tabela in totais) {
 
-            if (tabela == 'GERAL') continue
+        if (tabela == 'GERAL') continue
 
-            let tbody = document.getElementById(`linhas_${tabela}`)
-            if (!tbody) continue
+        let tbody = document.getElementById(`linhas_${tabela}`)
+        if (!tbody) continue
 
-            let trs = tbody.querySelectorAll('tr')
+        let trs = tbody.querySelectorAll('tr')
 
-            for (tr of trs) {
+        for (tr of trs) {
 
-                let tds = tr.querySelectorAll('td')
-                let codigo = tds[0].textContent
-                let acrescimo = carrefour ? 1 : 0 // Quantidade correspondente a mais 1 coluna: CARREFOUR;
-                let valor_unitario = 0
-                let total = 0
-                let precos = { custo: 0, lucro: 0 }
-                let descricao = dados_composicoes[codigo].descricao
-                let tipo = dados_composicoes[codigo].tipo
+            let tds = tr.querySelectorAll('td')
+            let codigo = tds[0].textContent
+            let acrescimo = carrefour ? 1 : 0 // Quantidade correspondente a mais 1 coluna: CARREFOUR;
+            let valor_unitario = 0
+            let total = 0
+            let precos = { custo: 0, lucro: 0 }
+            let descricao = dados_composicoes[codigo].descricao
+            let tipo = dados_composicoes[codigo].tipo
+            let icmsSaida = 0
 
-                if (!orcamento_v2.dados_composicoes[codigo]) {
-                    orcamento_v2.dados_composicoes[codigo] = {}
-                }
+            if (!orcamento_v2.dados_composicoes[codigo]) {
+                orcamento_v2.dados_composicoes[codigo] = {}
+            }
 
-                let itemSalvo = orcamento_v2.dados_composicoes[codigo]
-                itemSalvo.codigo = codigo
-                tds[1].textContent = dados_composicoes[codigo].descricao
+            let itemSalvo = orcamento_v2.dados_composicoes[codigo]
+            itemSalvo.codigo = codigo
+            tds[1].textContent = dados_composicoes[codigo].descricao
 
-                if (dados_composicoes[codigo].agrupamentos) {
-                    let img = `<img 
+            if (dados_composicoes[codigo].agrupamentos) {
+                let img = `<img 
                                 src="gifs/lampada.gif" 
                                 onclick="lancarTodosAgrupamentos('${codigo}')"
                                 style="position: absolute; top: 3px; right: 3px; width: 1.5vw; cursor: pointer;" 
                                 >`
-                    tds[1].insertAdjacentHTML('beforeend', img) // Não precisa de acréscimo;
-                }
+                tds[1].insertAdjacentHTML('beforeend', img) // Não precisa de acréscimo;
+            }
 
-                // Substitui a referência do código para o item que substitui ele; Então a partir daqui, tudo será do substituto;
-                if (carrefour && dados_composicoes[codigo] && dados_composicoes[codigo].substituto && dados_composicoes[codigo].substituto !== '') {
-                    codigo = dados_composicoes[codigo].substituto == '' ? codigo : dados_composicoes[codigo].substituto
-                }
+            // Substitui a referência do código para o item que substitui ele; Então a partir daqui, tudo será do substituto;
+            if (carrefour && dados_composicoes[codigo] && dados_composicoes[codigo].substituto && dados_composicoes[codigo].substituto !== '') {
+                codigo = dados_composicoes[codigo].substituto == '' ? codigo : dados_composicoes[codigo].substituto
+            }
 
-                let descricaocarrefour = dados_composicoes[codigo].descricaocarrefour
+            // Definição do preço unitário;
+            let produto = dados_composicoes?.[codigo] || {}
+            let ativo = produto?.[lpu]?.ativo || 0
+            let historico = produto?.[lpu]?.historico || {}
+            precos = historico[ativo]
+            valor_unitario = historico?.[ativo]?.valor || 0
+            icmsSaida = precos?.icms_creditado == 4 ? 4 : estado == 'BA' ? 20.5 : 12
 
-                if (dados_composicoes[codigo] && dados_composicoes[codigo][lpu] && dados_composicoes[codigo][lpu].ativo !== undefined) {
+            if (itemSalvo.alterado) valor_unitario = itemSalvo.custo // Caso o item receba um valor diretamente;
 
-                    let ativo = dados_composicoes[codigo][lpu].ativo
-                    let historico = dados_composicoes[codigo][lpu].historico
-                    precos = historico[ativo]
-                    valor_unitario = precos.valor
-                }
+            let quantidade = Number(tds[3 + acrescimo].querySelector('input').value)
 
-                let quantidade = Number(tds[3 + acrescimo].querySelector('input').value)
+            valor_unitario += total // Somando ao total do agrupamento, caso exista;
+            let total_linha = valor_unitario * quantidade
 
-                valor_unitario += total // Somando ao total do agrupamento, caso exista;
-                let total_linha = valor_unitario * quantidade
+            // Desconto;
+            let desconto = 0
+            let valor_desconto
+            let tipo_desconto
 
-                // Desconto;
-                let desconto = 0
-                let valor_desconto
-                let tipo_desconto
+            if (!carrefour) {
 
-                if (!carrefour) {
+                tipo_desconto = tds[5 + acrescimo].querySelector('select')
+                valor_desconto = tds[5 + acrescimo].querySelector('input')
 
-                    tipo_desconto = tds[5 + acrescimo].querySelector('select')
-                    valor_desconto = tds[5 + acrescimo].querySelector('input')
+                if (valor_desconto.value != '') {
 
-                    if (valor_desconto.value != '') {
-
-                        if (tipo_desconto.value == 'Porcentagem') {
-                            if (valor_desconto.value < 0) {
-                                valor_desconto.value = 0
-                            } else if (valor_desconto.value > 100) {
-                                valor_desconto.value = 100
-                            }
-
-                            desconto = valor_desconto.value / 100 * total_linha
-
-                        } else {
-                            if (valor_desconto.value < 0) {
-                                valor_desconto.value = 0
-                            } else if (valor_desconto.value > total_linha) {
-                                valor_desconto.value = total_linha
-                            }
-
-                            desconto = Number(valor_desconto.value)
+                    if (tipo_desconto.value == 'Porcentagem') {
+                        if (valor_desconto.value < 0) {
+                            valor_desconto.value = 0
+                        } else if (valor_desconto.value > 100) {
+                            valor_desconto.value = 100
                         }
 
-                        // Verificar a viabilidade do desconto;
-                        let dadosCalculo = {
-                            custo: precos.custo,
-                            valor: precos.valor - desconto / quantidade,
-                            icms_creditado: precos.icms_creditado,
-                            icmsSaida: precos.icms_creditado == 4 ? 4 : estado == 'BA' ? 20.5 : 12,
-                            modalidadeCalculo: tipo
+                        desconto = valor_desconto.value / 100 * total_linha
+
+                    } else {
+                        if (valor_desconto.value < 0) {
+                            valor_desconto.value = 0
+                        } else if (valor_desconto.value > total_linha) {
+                            valor_desconto.value = total_linha
                         }
 
-                        let resultado = calcular(undefined, dadosCalculo)
-
-                        if (!estado) {
-                            valor_desconto.value = ''
-                            avisoDesconto = 1 // Preencher os dados da empresa;
-
-                        } else if (resultado.lucroPorcentagem < 10) {
-                            valor_desconto.value = ''
-                            desconto = 0
-                            avisoDesconto = 2 // Lucro mínimo atingido (10%);
-
-                        } else if (isNaN(resultado.lucroLiquido)) {
-                            valor_desconto.value = ''
-                            desconto = 0
-                            avisoDesconto = 3 // ICMS creditado não registrado;
-                        }
-
-                        itemSalvo.lucroLiquido = resultado.lucroLiquido
-                        itemSalvo.lucroPorcentagem = resultado.lucroPorcentagem
+                        desconto = Number(valor_desconto.value)
                     }
 
-                    tipo_desconto.classList = desconto == 0 ? 'desconto_off' : 'desconto_on'
-                    valor_desconto.classList = desconto == 0 ? 'desconto_off' : 'desconto_on'
+                    // Verificar a viabilidade do desconto;
+                    let dadosCalculo = {
+                        custo: precos.custo,
+                        valor: precos.valor - desconto / quantidade,
+                        icms_creditado: precos.icms_creditado,
+                        icmsSaida,
+                        modalidadeCalculo: tipo
+                    }
 
-                    totais.GERAL.bruto += total_linha // Valor bruto sem desconto;
-                    total_linha = total_linha - desconto
-                    desconto_acumulado += desconto
+                    let resultado = calcular(undefined, dadosCalculo)
 
+                    if (!estado) {
+                        valor_desconto.value = ''
+                        avisoDesconto = 1 // Preencher os dados da empresa;
+
+                    } else if (resultado.lucroPorcentagem < 10) {
+                        valor_desconto.value = ''
+                        avisoDesconto = 2 // Lucro mínimo atingido (10%);
+
+                    } else if (isNaN(resultado.lucroLiquido)) {
+                        valor_desconto.value = ''
+                        avisoDesconto = 3 // ICMS creditado não registrado;
+                    }
+
+                    desconto = avisoDesconto > 0 ? 0 : desconto // Retorna ao zero, caso tenha algum valor de erro;
+
+                    itemSalvo.lucroLiquido = resultado.lucroLiquido
+                    itemSalvo.lucroPorcentagem = resultado.lucroPorcentagem
                 }
 
-                let filtro = dados_composicoes[codigo]?.[padraoFiltro] || 'SEM CLASSIFICAÇÃO'
+                tipo_desconto.classList = desconto == 0 ? 'desconto_off' : 'desconto_on'
+                valor_desconto.classList = desconto == 0 ? 'desconto_off' : 'desconto_on'
 
-                if (!totais[filtro]) {
-                    totais[filtro] = { valor: 0 }
-                }
+                totais.GERAL.bruto += total_linha // Valor bruto sem desconto;
+                total_linha = total_linha - desconto
+                desconto_acumulado += desconto
 
-                totais[filtro].valor += total_linha
-                totais.GERAL.valor += total_linha
+            }
 
-                // ATUALIZAÇÃO DE INFORMAÇÕES DA COLUNA 4 EM DIANTE
-                if (carrefour) {
-                    tds[2].innerHTML = `
+            let filtro = dados_composicoes[codigo]?.[padraoFiltro] || 'SEM CLASSIFICAÇÃO'
+
+            if (!totais[filtro]) {
+                totais[filtro] = { valor: 0 }
+            }
+
+            totais[filtro].valor += total_linha
+            totais.GERAL.valor += total_linha
+
+            // ATUALIZAÇÃO DE INFORMAÇÕES DA COLUNA 4 EM DIANTE
+            let descricaocarrefour = dados_composicoes[codigo].descricaocarrefour
+            if (carrefour) {
+                tds[2].innerHTML = `
                     <td>
                         <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
                             <img src="imagens/carrefour.png" style="width: 3vw;">
                             <label>${descricaocarrefour}</label>
                         </div>
                     </td>`
-                }
+            }
 
-                tds[4 + acrescimo].innerHTML = `
-                    <div>
-                        <label class="${valor_unitario == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(valor_unitario)}</label>
+            let icmsSaidaDecimal = icmsSaida / 100
+            let valorLiqSemICMS = valor_unitario - (valor_unitario * icmsSaidaDecimal)
+            let valorTotSemICMS = valorLiqSemICMS * quantidade
+
+            let labelValores = (valor, semIcms, percentual, unitario) => {
+                let labelICMS = ''
+                if (tipo == 'VENDA' && estado) labelICMS = `<label style="white-space: nowrap;">SEM ICMS ${dinheiro(semIcms)} [ ${percentual}% ]</label>`
+                return `
+                    <div style="position: relative; display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                        ${false ? `<img onclick="alterarValorUnitario('${codigo}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5vw; position: absolute; top: 0; right: 0;">` : ''}
+                        <label class="${valor == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(valor)}</label>
+                        ${labelICMS}
                     </div>
                     `
+            }
 
-                if (carrefour) { acrescimo = 0 }
-                tds[6 + acrescimo].innerHTML = `
-                    <div>
-                        <label class="${valor_unitario == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(total_linha)}</label>
-                    </div>
-                    `
+            tds[4 + acrescimo].innerHTML = labelValores(valor_unitario, valorLiqSemICMS, icmsSaida, true)
 
-                let imagem = dados_composicoes[codigo]?.imagem || logo
+            if (carrefour) { acrescimo = 0 }
+            tds[6 + acrescimo].innerHTML = labelValores(total_linha, valorTotSemICMS, icmsSaida)
 
-                itemSalvo.descricao = descricao
-                itemSalvo.unidade = dados_composicoes[codigo]?.unidade || 'UN'
-                itemSalvo.descricaocarrefour = descricaocarrefour
-                itemSalvo.qtde = quantidade
-                itemSalvo.custo = valor_unitario
-                itemSalvo.tipo = tipo
-                itemSalvo.imagem = imagem
+            let imagem = dados_composicoes[codigo]?.imagem || logo
 
-                if (!carrefour && Number(valor_desconto.value) !== 0) {
-                    itemSalvo.tipo_desconto = tipo_desconto.value
-                    itemSalvo.desconto = Number(valor_desconto.value)
-                } else {
-                    delete itemSalvo.tipo_desconto
-                    delete itemSalvo.desconto
-                }
+            itemSalvo.descricao = descricao
+            itemSalvo.unidade = dados_composicoes[codigo]?.unidade || 'UN'
+            itemSalvo.descricaocarrefour = descricaocarrefour
+            itemSalvo.qtde = quantidade
+            itemSalvo.custo = valor_unitario
+            itemSalvo.tipo = tipo
+            itemSalvo.imagem = imagem
 
+            if (!carrefour && Number(valor_desconto.value) !== 0) {
+                itemSalvo.tipo_desconto = tipo_desconto.value
+                itemSalvo.desconto = Number(valor_desconto.value)
+            } else {
+                delete itemSalvo.tipo_desconto
+                delete itemSalvo.desconto
             }
         }
     }
@@ -1802,6 +1800,159 @@ async function total() {
 
         openPopup_v2(avisoHTML(avisos[avisoDesconto]), 'AVISO')
     }
+
+}
+
+async function alterarValorUnitario(codigo) {
+
+    let produto = dados_composicoes[codigo]
+    let lpu = String(document.getElementById('lpu').value).toLowerCase()
+    let ativo = produto?.[lpu]?.ativo || 0
+    let historico = produto?.[lpu]?.historico || {}
+    let precoOriginal = historico?.[ativo]?.valor || 0
+
+    let acumulado = `
+    <div style="width: 35vw; background-color: #d2d2d2; display: flex; align-items: center; justify-content: center; padding: 2vw; gap: 10px;">
+        <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
+            <label style="font-size: 1.2vw;"><strong>Descrição</strong></label>
+            <label style="font-size: 0.9vw; text-align: left;">${produto.descricao}</label>
+            <label style="font-size: 1.2vw;"><strong>Preço Original</strong></label>
+            <label style="font-size: 0.9vw;">${dinheiro(precoOriginal)}</label>
+            <br>
+            <label style="font-size: 1.2vw;"><strong>Novo Valor</strong></label>
+            <input class="campoValor" id="novoValor" type="number">
+        </div>
+
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <label onclick="confirmarNovoPreco('${codigo}', '${precoOriginal}', 'remover')" style="text-align: left; text-decoration: underline; cursor: pointer;">Deseja retornar ao preço original?</label>
+            <hr style="width: 100%;">
+            <label style="text-align: left;">Serão aceitos valores maiores que o preço original</label>
+            <button style="background-color: green;" onclick="confirmarNovoPreco('${codigo}', '${precoOriginal}', 'incluir')">Confirmar</button>
+        </div>
+    </div>
+    `
+
+    openPopup_v2(acumulado, 'ALTERAR PREÇO')
+
+}
+
+async function confirmarNovoPreco(codigo, precoOriginal, operacao) {
+
+    let orcamento = baseOrcamento()
+    let item = orcamento.dados_composicoes[codigo]
+
+    if (operacao == 'incluir') {
+        let valor = Number(document.getElementById('novoValor').value)
+
+        if (precoOriginal >= valor) return openPopup_v2(avisoHTML('O valor precisa ser maior que o Original'), 'AVISO', true)
+        orcamento.alterado = true
+        item.custo_original = item.custo
+        item.custo = valor
+        item.alterado = true
+    } else if (operacao == 'remover') {
+        delete orcamento.alterado
+        delete item.custo_original
+        delete item.alterado
+    }
+
+    baseOrcamento(orcamento)
+    await total()
+    remover_popup()
+}
+
+async function incluirItemOld(codigo, novaQuantidade) {
+    let orcamento_v2 = baseOrcamento()
+    let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
+    let produto = dados_composicoes[codigo]
+
+    let opcoes = ''
+    esquemas.sistema.forEach(op => {
+        opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
+    })
+
+    let linha = `
+        <tr>
+            <td>${codigo}</td>
+            <td style="position: relative;"></td>
+            ${carrefour ? `<td></td>` : ''}
+            <td style="text-align: center;">${produto?.unidade}</td>
+            <td style="text-align: center;">
+                <input oninput="total()" type="number" class="campoValor" value="${novaQuantidade}">
+            </td>
+            <td style="position: relative;"></td>
+
+            ${!carrefour ?
+            `<td>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
+                    <select onchange="total()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
+                        <option>Porcentagem</option>
+                        <option>Dinheiro</option>
+                    </select>
+                    <input type="number" oninput="total()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;" value="${produto?.desconto || ''}">
+                </div>
+            </td>` : ''}
+
+            <td></td>
+            <td style="text-align: center;">
+                <img onclick="ampliar_especial(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
+            </td>
+            <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo}', this)" style="cursor: pointer; width: 2vw;"></td>
+        </tr>
+    `
+
+    if (itemExistenteOld(produto.tipo, codigo, novaQuantidade)) {
+
+        let tbody = document.getElementById(`linhas_${produto.tipo}`)
+
+        if (!tbody) { // Lançamento do 1º Item de cada tipo;
+
+            if (!orcamento_v2.dados_composicoes) {
+                orcamento_v2.dados_composicoes = {}
+            }
+
+            orcamento_v2.dados_composicoes[codigo] = {
+                codigo: codigo,
+                qtde: novaQuantidade,
+                tipo: produto?.tipo,
+                unidade: produto?.unidade || 'UN',
+                custo: 0,
+                descricao: produto?.descricao
+            }
+
+            baseOrcamento(orcamento_v2)
+            return carregarTabelas()
+
+        } else {
+            tbody.insertAdjacentHTML('beforeend', linha)
+        }
+    }
+
+    await total()
+}
+
+function itemExistenteOld(tipo, codigo, quantidade) {
+
+    let incluir = true
+    let orcamento_v2 = baseOrcamento()
+    let linhas = document.getElementById(`linhas_${tipo}`)
+    if (!linhas) return incluir
+    let trs = linhas.querySelectorAll('tr')
+
+    trs.forEach(tr => {
+
+        let tds = tr.querySelectorAll('td')
+        let acrescimo = orcamento_v2.lpu_ativa !== 'LPU CARREFOUR' ? 0 : 1
+
+        if (tds[0].textContent == codigo) {
+
+            incluir = false
+            tds[3 + acrescimo].querySelector('input').value = quantidade
+
+        }
+
+    })
+
+    return incluir
 
 }
 
@@ -2068,7 +2219,7 @@ async function incluirItem(codigo, novaQuantidade) {
                     <strong>Dica:</strong> Ao remover o item pai, as quantidades dos itens filhos serão reduzidas automaticamente.
                 </p>
             </div>
-        `, 'Agrupamento Adicionado', false, 4000) // Auto-fechar em 4 segundos
+        `, 'Agrupamento Adicionado', false, 4000)
     }
 
     let opcoes = ''

@@ -2,3 +2,4 @@
 node_modules/
 dist/
 chrome-win64/
+.vscode/
