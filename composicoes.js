@@ -1417,7 +1417,7 @@ async function exclusao_item(codigo) {
     if (dados_composicoes[codigo]) {
 
         let comentario = `O item ${codigo}, descrição ${dados_composicoes[codigo].descricao} foi excluído`
-        registrarAlteracao('dados_composicao', codigo, comentario)
+        registrarAlteracao('dados_composicoes', codigo, comentario)
 
         delete dados_composicoes[codigo]
 
