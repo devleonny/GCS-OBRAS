@@ -1,5 +1,6 @@
 let filtrosAtivosPagamentos = {}
 let opcoesStatus = [
+    '',
     'Aguardando aprovação da Diretoria',
     'Aguardando aprovação da Gerência',
     'Pagamento Excluído',
@@ -7,8 +8,6 @@ let opcoesStatus = [
 ]
 
 consultar_pagamentos()
-
-
 
 async function consultar_pagamentos() {
 
@@ -387,7 +386,7 @@ async function abrir_detalhes(id_pagamento) {
         categoria_atual = dados_categorias[item.codigo_categoria]
     })
 
-    var div_valores = `
+    let div_valores = `
         <div style="display: flex; flex-direction: column; width: 100%;">
             ${valores}
             <hr style="width: 100%;">
@@ -403,7 +402,7 @@ async function abrir_detalhes(id_pagamento) {
         `
     let permissao = acesso.permissao
 
-    var acumulado = ''
+    let acumulado = ''
     if (
         pagamento.param[0].valor_documento >= 500 &&
         (permissao == 'gerente' ||
@@ -579,9 +578,7 @@ async function abrir_detalhes(id_pagamento) {
     if (acesso.permissao == 'adm') {
         let opcoes = ''
         opcoesStatus.forEach(op => {
-            opcoes += `
-        <option ${pagamento.status == op ? 'selected' : ''}>${op}</option>
-        `
+            opcoes += `<option ${pagamento.status == op ? 'selected' : ''}>${op}</option>`
         })
 
         divStatus = `

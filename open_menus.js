@@ -472,7 +472,11 @@ function verificar_timestamp_nome(nome) {
     return false;
 }
 
-const { shell } = require('electron');
+let shell = null;
+if (typeof window !== 'undefined' && window.process && window.process.type) {
+  const { shell: electronShell } = require('electron');
+  shell = electronShell;
+}
 
 function abrirArquivo(link) {
 
@@ -2349,7 +2353,7 @@ function removerExcluidos(base) {
 
     if (dicionario(base)) {
         for ([id, objeto] of Object.entries(base)) {
-            if (objeto.excluido) delete base[id]
+            if (objeto.excluido || !objeto.timestamp) delete base[id]
         }
     }
 
