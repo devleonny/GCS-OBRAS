@@ -46,7 +46,7 @@ async function carregar_tabela_v2() {
     let adicionar_item = document.getElementById('adicionar_item')
     let btn_criar_lpu = document.getElementById('btn-criar-lpu')
 
-    let permitidos = ['adm', 'editor', 'diretoria', 'coordenacao']
+    let permitidos = ['adm', 'editor', 'gerente', 'diretoria', 'coordenacao']
 
     adicionar_item.style.display = permitidos.includes(acesso.permissao) ? 'flex' : 'none'
     btn_criar_lpu.style.display = permitidos.includes(acesso.permissao) ? 'flex' : 'none'

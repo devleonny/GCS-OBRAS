@@ -182,8 +182,18 @@ body {
     gap: 1px;
 }
 
+.labelAprovacao {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5vw;
+    border-radius: 2px;
+    font-size: 0.9vw;
+    color: white;
+}
+
 .painelAprovacoes {
-    width: 50vw;
+    width: 70vw;
     background-color: #d2d2d2;
     color: #222;
     border-radius: 3px;

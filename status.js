@@ -1,12 +1,7 @@
 let itens_adicionais = {}
 let id_orcam = ''
-let dataAtual = new Date();
-let data_status = dataAtual.toLocaleString('pt-BR', {
-    dateStyle: 'short',
-    timeStyle: 'short'
-});
-
 let fluxograma = {}
+
 let fluxogramaClone = {
     'ORÇAMENTOS': { cor: '#1CAF29' },
     'LOGÍSTICA': { cor: '#4CAF10' },
@@ -50,8 +45,6 @@ function verificarFluxograma() {
     modoClone ? fluxograma = fluxogramaClone : fluxograma = fluxogramaPadrao
 
 }
-
-let totalValoresPedidos; // Variável global
 
 async function sincronizar_e_reabrir() {
     await recuperar_orcamentos()
@@ -1077,15 +1070,11 @@ async function salvar_notas(chave) {
 
     }
 
-    if (!orcamento.status) {
-        orcamento.status = { historico: {} };
-    }
-
     chave == undefined ? chave = gerar_id_5_digitos() : chave
 
-    if (!orcamento.status.historico[chave]) {
-        orcamento.status.historico[chave] = {}
-    }
+    if (!orcamento.status) orcamento.status = {};
+    if (!orcamento.status.historico) orcamento.status.historico = {}
+    if (!orcamento.status.historico[chave]) orcamento.status.historico[chave] = {}
 
     orcamento.status.historico[chave].status = 'FATURADO'
     orcamento.status.historico[chave].data = data.textContent
@@ -1126,7 +1115,7 @@ async function salvar_requisicao(chave) {
     //Criar novo lançamento
     var novo_lancamento = {
         status: 'REQUISIÇÃO',
-        data: data_status,
+        data: data_atual('completa'),
         executor: acesso.usuario,
         comentario: document.getElementById("comentario_status").value,
         requisicoes: [],
@@ -1225,67 +1214,49 @@ function botao_novo_pagamento(id) {
     </div>   
 `}
 
-async function exibir_todos_os_status(id) {
+async function abrirAtalhos(id) {
 
     let permitidos = ['adm', 'fin', 'diretoria']
-
-    let detalhes = document.getElementById('detalhes')
-    if (detalhes) {
-        detalhes.remove()
-    }
-
     id_orcam = id
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
     let orcamento = dados_orcamentos[id]
+    let analista = orcamento.dados_orcam.analista
+    let emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
+
+    let modeloBotoes = (imagem, nome, funcao) => {
+        return `
+        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="${funcao}">
+            <img src="imagens/${imagem}.png" style="width: 48px; height: 48px; margin: 3px;">
+            <label style="cursor: pointer;">${nome}</label>
+        </div>
+        `
+    }
 
     let acumulado = `
         <div style="display: flex;">
             <label style="color: #222; font-size: 1.5vw;" id="cliente_status">${orcamento.dados_orcam.cliente_selecionado}</label>
         </div>
+        <hr>
     `
-    let analista = orcamento.dados_orcam.analista
-    let acumulado_botoes = ''
-
-    acumulado_botoes += `
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="abrir_esquema('${id}')">
-            <img src="imagens/esquema.png" style="width: 48px; height: 48px; margin: 3px;">
-            <label style="cursor: pointer;">Histórico</label>
-        </div>
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_pdf('${id}')">
-            <img src="imagens/pdf.png" style="width: 55px;">
-            <label style="cursor: pointer;">Abrir Orçamento em PDF</label>
-        </div>
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="ir_excel('${id}')">
-            <img src="imagens/excel.png">
-            <label style="cursor: pointer;">Baixar Orçamento em Excel</label>
-        </div>
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="duplicar('${id}')">
-            <img src="imagens/duplicar.png">
-            <label style="cursor: pointer;">Duplicar Orçamento</label>
-        </div>
-    `
-
-    if ((document.title !== 'Projetos' && analista == acesso.nome_completo) || (permitidos.includes(acesso.permissao))) {
-        acumulado_botoes += `
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="chamar_excluir('${id}')">
-            <img src="imagens/apagar.png" style="width: 48px; height: 48px; margin: 3px;">
-            <label style="cursor: pointer;">Excluir Orçamento</label>
-        </div>    
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="editar('${id}')">
-            <img src="imagens/editar.png" style="width: 48px; height: 48px; margin: 3px;">
-            <label style="cursor: pointer;">Editar Orçamento</label>
-        </div>         
+    if (emAnalise) {
+        acumulado += mensagem('Este orçamento precisa ser aprovado!')
+        
+    }else{
+        acumulado += `
+        ${modeloBotoes('esquema', 'Histórico', `abrir_esquema('${id}')`)}
+        ${modeloBotoes('pdf', 'Abrir Orçamento em PDF', `ir_pdf('${id}')`)}
+        ${modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`)}
+        ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
         `
     }
 
-    acumulado += `
-        <hr>
-        <div style="display: flex; flex-direction: column; justify-content: center; width: 30vw;">
-            ${acumulado_botoes}
-        </div>
-    `
+    if ((document.title !== 'Projetos' && analista == acesso.nome_completo) || (permitidos.includes(acesso.permissao))) {
+        acumulado += `
+        ${modeloBotoes('apagar', 'Excluir Orçamento', `chamar_excluir('${id}')`)}
+        ${modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`)}
+        `
+    }
 
     openPopup_v2(acumulado, 'Opções do Orçamento')
 
@@ -1302,7 +1273,7 @@ async function remover_reprovacao(responsavel) {
 
     await deletar(`dados_orcamentos/${id_orcam}/aprovacao/${responsavel}`)
 
-    exibir_todos_os_status(id_orcam)
+    abrirAtalhos(id_orcam)
     await preencher_orcamentos_v2()
 }
 
@@ -1326,11 +1297,9 @@ async function aprovar_orcamento(responsavel, aprovar, data) {
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${id_orcam}/aprovacao/${responsavel}`, aprov)
 
-    exibir_todos_os_status(id_orcam)
+    abrirAtalhos(id_orcam)
     await preencher_orcamentos_v2()
 }
-
-const { shell } = require('electron');
 
 async function abrir_esquema(id) {
 
@@ -1611,7 +1580,7 @@ async function abrir_esquema(id) {
 
                         <div style="cursor: pointer; display: flex; align-items: start; flex-direction: column; background-color: ${fluxogramaMesclado[sst.status].cor || '#808080'}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
                             <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="${desejaApagar}('${chave}')">&times;</span>
-                            <label><strong>Chamado:</strong> ${orcamento.dados_orcam.contrato}</label>
+                            <label style="text-align: left;"><strong>Chamado:</strong> ${orcamento.dados_orcam.contrato}</label>
                             <label><strong>Executor: </strong>${sst.executor}</label>
                             <label><strong>Data: </strong>${sst.data}</label>
                             <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
@@ -2624,14 +2593,7 @@ async function iniciar_cotacao(id_orcam) {
     }
 
     if (!tem_requisicao) {
-
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Precisa ter uma requisição para criar uma cotação</label>
-            </div>
-        `)
-
+        return openPopup_v2(mensagem('Precisa ter uma requisição para criar uma cotação'), 'ALERTA')
     }
 
     for (chave2 in todos_os_status) {
@@ -2979,7 +2941,7 @@ async function registrar_envio_material(chave) {
     let st = 'MATERIAL ENVIADO'
 
     status.executor = acesso.usuario
-    status.data = data_status
+    status.data = data_atual('completa')
     status.status = st
 
     historico[chave] = status
@@ -3393,7 +3355,7 @@ function verificarPermissaoExclusao({ chave, criador }) {
 }
 
 function close_chave() {
-    exibir_todos_os_status(id_orcam)
+    abrirAtalhos(id_orcam)
     document.getElementById('alerta').remove()
 }
 

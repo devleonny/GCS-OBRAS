@@ -223,16 +223,16 @@ async function preencher_orcamentos_v2() {
                 <td>${dados_orcam.analista}</td>
                 <td style="white-space: nowrap;">${orc.total_geral}</td>
                 <td style="white-space: nowrap;">${orc.lpu_ativa}</td>
-                <td style="text-align: center;" onclick="exibir_todos_os_status('${orcamento}')">
+                <td style="text-align: center;" onclick="abrirAtalhos('${orcamento}')">
                     <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;">
                 </td>
             </tr>
             `
     }
 
-    var cabecs = ['Última alteração', 'Status', 'Pedido', 'Notas', 'Chamado', 'Cliente', 'Cidade', 'Analista', 'Valor', 'LPU', 'Ações']
-    var ths = ''
-    var tsh = ''
+    let cabecs = ['Última alteração', 'Status', 'Pedido', 'Notas', 'Chamado', 'Cliente', 'Cidade', 'Analista', 'Valor', 'LPU', 'Ações']
+    let ths = ''
+    let tsh = ''
     cabecs.forEach((cab, i) => {
 
         ths += `

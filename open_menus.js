@@ -1,8 +1,16 @@
 let acesso = JSON.parse(localStorage.getItem('acesso'))
 let dados_setores = {}
 let filtrosUsuarios = {}
-let logo = 'https://i.imgur.com/Nb8sPs0.png'
-let esquemas = {
+let filtrosPendencias = {}
+const mensagem = (mensagem) => {
+    return `
+    <div style="display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center;">
+        <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+        <label>${mensagem}</label>
+    </div>`
+}
+const logo = 'https://i.imgur.com/Nb8sPs0.png'
+const esquemas = {
     'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS'],
     'categoria de equipamento': ['', 'IP', 'ANALÓGICO', 'ALARME', 'CONTROLE DE ACESSO'],
     'tipo': ['VENDA', 'SERVIÇO', 'USO E CONSUMO']
@@ -174,17 +182,19 @@ async function identificacaoUser() {
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
 
     carregarIcones() // ícones da tela inicial;
-    aprovacoesPendentes() // Aprovações de desconto;
     verificarAlertas() // Verificar a quantidade de mensagens;
+    verificarPendencias() // Pendencias de aprovação;
 
-    let painelMensagens = ''
-    if (!modoClone) {
-        painelMensagens = `
+    let modelo = (imagem, funcao, idElemento) => {
+        return `
         <div style="position: relative; display: flex; align-items: center; justify-content: center;">
-            <img src="imagens/mensagem.png" style="width: 2vw; cursor: pointer;" onclick="abrirMensagens(this)">
-            <div id="contadorMensagens" style="display: none;" class="labelQuantidade"></div>
-        </div>`
+            <img src="imagens/${imagem}.png" style="width: 2vw; cursor: pointer;" onclick="${funcao}">
+            <div id="${idElemento}" style="display: none;" class="labelQuantidade"></div>
+        </div>
+        `
     }
+
+    let permitidosAprovacoes = ['adm', 'coordenacao', 'diretoria']
 
     if (document.title !== 'PDF' && acesso.usuario) {
 
@@ -194,8 +204,11 @@ async function identificacaoUser() {
                     <img src="imagens/online.png">
                     <label>Online</label>
                 </div>
-                ${painelMensagens}
-                ${acesso.permissao == 'adm' ? `<img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="configs()">` : ''}
+
+                ${!modoClone ? modelo('mensagem', 'abrirMensagens(this)', 'contadorMensagens') : ''}
+                ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
+                ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
+
                 <label onclick="deseja_sair()"
                 style="cursor: pointer; color: white;">${acesso.usuario} • ${acesso.permissao} • ${acesso.setor} • Sair</label>
             </div>
@@ -293,7 +306,7 @@ async function abrirMensagens(elementoOrigial) {
 
     let pos = elementoOrigial.getBoundingClientRect();
 
-    if (alertas == '') alertas = `<hr style="width: 100%;"><label>Você não possui mensagens no momento</label>`
+    if (alertas == '') alertas = `<hr style="width: 80%;"><label>Você não possui mensagens no momento</label>`
 
     let acumulado = `
     <div id="divAlertas" class="divOnline" style="background-color: #d2d2d2; left: ${pos.left + window.scrollX}px; top: ${pos.bottom + window.scrollY}px;">
@@ -306,12 +319,7 @@ async function abrirMensagens(elementoOrigial) {
 }
 
 async function irChamado(idChamado, idAlerta) {
-    let mensagem = `
-        <div style="display: flex; padding: 2vw; gap: 2vw; align-items: center; justify-content: center;">
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-            <label>O chamado não existe mais...</label>
-        </div>
-    `
+
     let chamadoArmazenado = localStorage.getItem('irChamado')
 
     if (chamadoArmazenado) {
@@ -321,7 +329,7 @@ async function irChamado(idChamado, idAlerta) {
         if (dados_manutencao[chamadoArmazenado.idChamado]) {
             await abrir_manutencao(chamadoArmazenado.idChamado)
         } else {
-            openPopup_v2(mensagem, 'AVISO')
+            openPopup_v2(mensagem('O chamado não existe mais...'), 'AVISO')
         }
         localStorage.removeItem('irChamado')
         deletar(`alertasChamados/${chamadoArmazenado.idAlerta}`)
@@ -464,6 +472,8 @@ function verificar_timestamp_nome(nome) {
 
     return false;
 }
+
+const { shell } = require('electron');
 
 function abrirArquivo(link) {
 
@@ -1649,8 +1659,6 @@ function connectWebSocket() {
 
         if (data.tipo == 'usuarios_online') localStorage.setItem('usuariosOnline', JSON.stringify(data.usuarios))
 
-        if (base == 'aprovacoes') aprovacoesPendentes()
-
         if (data.tipo == 'livre' && document.title == 'Criar Orçamento') f5()
 
     };
@@ -1906,134 +1914,218 @@ function data_atual(estilo, nivel) {
     }
 }
 
-async function aprovacoesPendentes() {
+async function verAprovacoes() {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
-    await sincronizarDados('aprovacoes', true)
+    let guia = {
+        pendente: '#ff8c1b',
+        todos: '#a9a5a5'
+    }
 
-    let aprovacoes = await recuperarDados('aprovacoes') || {}
-    let acumulado = ''
-    let pendentes = false
-    let modelo = (valor1, valor2) => {
-        return `
-            <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                <label>${valor1}</label>
-                <hr style="width: 100%"> 
-                <label style="white-space: nowrap;">${valor2}</label>
-            </div>
+    let cabecalhos = ['Cliente', 'Valor Total', 'Valor Final', 'Localização', 'Usuário', 'Aprovação', 'Comentário', 'Detalhes']
+    let tabelas = {
+        pendente: { linhas: '' },
+        todos: { linhas: '' }
+    }
+
+    let ths = ''
+    let tsh = ''
+    cabecalhos.forEach((cabecalho, i) => {
+        ths += `<th>${cabecalho}</th>`
+
+        cabecalho == 'Detalhes'
+            ? tsh += '<th style="background-color: white;"></th>'
+            : tsh += `
+            <th style="background-color: white; border-radius: 0px;">
+                <div style="display: flex; align-items: center; justify-content: center;">
+                    <input oninput="pesquisar_generico(${i}, this.value, filtrosPendencias, 'tbodyPendencias')">
+                    <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                </div>
+            </th>
+        `
+    })
+
+    for (let [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
+
+        if (!orcamento.aprovacao) continue
+
+        let dados_orcam = orcamento.dados_orcam || {}
+        let aprovacao = orcamento.aprovacao
+        let status = aprovacao?.status || 'desconhecido'
+
+        tabelas[status == 'pendente' ? 'pendente' : 'todos'].linhas += `
+        <tr>
+            <td>${dados_orcam?.cliente_selecionado || '--'}</td>
+            <td>${aprovacao?.total_sem_desconto}</td>
+            <td>${aprovacao?.total_geral}</td>
+            <td>${dados_orcam.cidade || ''}</td>
+            <td>${aprovacao?.usuario || '--'}</td>
+            <td>
+                <div style="display: flex; align-items: center; justify-content: start; gap: 1vw;">
+                    <img src="imagens/${status}.png" style="width: 2vw;">
+                    <label>${status}</label>
+                </div>
+            </td>
+            <td>${aprovacao?.justificativa || '--'}</td>
+            <td><img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="verPedidoAprovacao('${idOrcamento}')"></td>
+        </tr>
         `
     }
 
-    for ([id, item] of Object.entries(aprovacoes)) {
+    let tabelasString = ''
+    for (let [tabela, objeto] of Object.entries(tabelas)) {
+        if (objeto.linhas == '') continue
+        tabelasString += `
+        <br>
+        <hr style="width: 100%;">
+        <br>
+        <table class="tabela" style="width: 100%;">
+            <thead style="background-color: ${guia[tabela]};">
+                <tr>${ths}</tr>
+                ${tabela == 'todos' ? `<tr>${tsh}</tr>` : ''}
+            </thead>
+            <tbody ${tabela == 'todos' ? 'id="tbodyPendencias"' : ''}>${objeto.linhas}</tbody>
+        </table>`
+    }
 
-        if (item.aprovacao && item.aprovacao.status) {
-            let orcamento_v2 = baseOrcamento()
-            if (orcamento_v2.aprovacao && orcamento_v2.aprovacao.id == id) {
-                orcamento_v2.aprovacao.status = item.aprovacao.status
-                orcamento_v2.aprovacao.justificativa = item.aprovacao.justificativa
-                baseOrcamento(orcamento_v2)
+    acumulado = `
+    <div style="background-color: #d2d2d2; border-radius: 3px; padding: 5px;">
 
-                let aguardando_aprovacao = document.getElementById('aguardando_aprovacao')
-                if (aguardando_aprovacao) {
-                    await enviar_dados()
-                }
-            }
+        <label style="font-size: 1.5vw;">Fila de Aprovação</label>
 
-            continue
+        ${tabelasString}
+    </div>
+    `
+    openPopup_v2(acumulado, 'Aprovações de Orçamento', true)
+}
+
+async function verificarPendencias() {
+    await sincronizarDados('dados_orcamentos', true)
+    let dados_orcamentos = await recuperarDados('dados_orcamentos')
+    let contador = 0
+
+    for ([idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
+        if (orcamento.aprovacao && orcamento.aprovacao.status == 'pendente') contador++
+    }
+
+    let contadorPendencias = document.getElementById('contadorPendencias')
+    if (contadorPendencias) {
+        contadorPendencias.style.display = contador == 0 ? 'none' : 'flex'
+        contadorPendencias.textContent = contador
+    }
+
+}
+
+async function verPedidoAprovacao(idOrcamento) {
+
+    let permissao = acesso.permissao
+    let pessoasPermitidas = ['coordenacao', 'adm', 'diretoria']
+    if (!pessoasPermitidas.includes(permissao)) return openPopup_v2(mensagem('Você não tem acesso'), 'AVISO', true)
+
+    let acumulado = ''
+    let tabelas = {}
+    let divTabelas = ''
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[idOrcamento]
+    let totalReal = 0
+
+    for ([codigo, composicao] of Object.entries(orcamento.dados_composicoes)) {
+
+        let quantidade = composicao.qtde
+        let custo = composicao.custo
+        let custoOriginal = composicao?.custo_original || false;
+        let tipo = composicao.tipo
+
+        if (!tabelas[tipo]) tabelas[tipo] = { linhas: '' }
+
+        let total = quantidade * custo;
+        let desconto = 0
+
+        if (composicao.tipo_desconto) {
+            desconto = composicao.tipo_desconto === 'Dinheiro'
+                ? composicao.desconto
+                : total * (composicao.desconto / 100);
+        }
+        let totalOriginal = custoOriginal * quantidade
+        let labelCusto = dinheiro(custoOriginal ? custoOriginal : custo)
+        let labelTotal = dinheiro(custoOriginal ? totalOriginal : total)
+        let labelTotalDesconto = dinheiro(total - desconto)
+
+        totalReal += (custoOriginal ? custoOriginal : custo) * quantidade
+
+        let diferenca = '--', cor = '';
+        if (custoOriginal && custo !== custoOriginal) {
+            diferenca = dinheiro((custo - custoOriginal) * quantidade)
+            cor = 'green'
+
+        } else if (desconto > 0) {
+            diferenca = dinheiro(desconto)
+            cor = '#B12425'
         }
 
-        pendentes = true
-        let tabelas = {}
-        let divTabelas = ''
-        let orcamento = item.orcamento
-        let itens = orcamento.dados_composicoes
-        let totalSemAcrescimo = 0
+        tabelas[tipo].linhas += `
+        <tr>
+            <td>${composicao.descricao}</td>
+            <td>${quantidade}</td>
+            <td>${labelCusto}</td>
+            <td>${labelTotal}</td>
+            <td><label class="labelAprovacao" style="background-color: ${cor}">${diferenca}</label></td>
+            <td>${labelTotalDesconto}</td>
+        </tr>
+    `;
+    }
 
-        for ([codigo, composicao] of Object.entries(itens)) {
+    for (let [tabela, objeto] of Object.entries(tabelas)) {
 
-            let quantidade = composicao.qtde
-            let custo = composicao.custo
-            let custoOriginal = composicao?.custo_original || false
-            let total = quantidade * custo
-            let tipo = composicao.tipo
-            let desconto = 0
-            let labelDesconto = '--'
-            let labelLucro = ''
-            let labelCusto = dinheiro(custo)
-            let labelTotal = dinheiro(total)
-            let labelTotalDesconto = dinheiro(total - desconto)
-
-            if (!tabelas[tipo]) tabelas[tipo] = { linhas: '' }
-
-            if (composicao.lucroPorcentagem) labelLucro = `${dinheiro(composicao.lucroLiquido)} [ ${composicao.lucroPorcentagem.toFixed(0)}% ]`
-
-            if (composicao.tipo_desconto) desconto = composicao.tipo_desconto == 'Dinheiro' ? composicao.desconto : total * (desconto / 100)
-
-            if (desconto != 0) labelDesconto = modelo(desconto, labelLucro)
-
-            if (custoOriginal) {
-                let totalAcrescimo = custoOriginal * quantidade
-                labelCusto = modelo(dinheiro(custo), dinheiro(custoOriginal))
-                labelTotal = modelo(dinheiro(total), dinheiro(totalAcrescimo))
-                labelTotalDesconto = modelo(dinheiro(total - desconto), dinheiro(totalAcrescimo))
-            }
-
-            totalSemAcrescimo += custoOriginal ? custoOriginal : custo
-
-            tabelas[tipo].linhas += `
-            <tr>
-                <td>${composicao.descricao}</td>
-                <td>${quantidade}</td>
-                <td>${labelCusto}</td>
-                <td>${labelTotal}</td>
-                <td>${labelDesconto}</td>
-                <td>${labelTotalDesconto}</td>
-            </tr>
-            `
-        }
-
-        for ([tabela, objeto] of Object.entries(tabelas)) {
-
-            divTabelas += `
+        divTabelas += `
             <div style="display: flex; align-items: start; justify-content: center; flex-direction: column;">
                 <label style="font-size: 1.2vw;"><strong>${tabela}</strong></label>
                 <table class="tabela" style="width: 100%;">
-                    <thead>
+                    <thead style="background-color: #a9a5a5;">
                         <tr>
                             <th>Descrição</th>
                             <th>Quantidade</th>
                             <th>Unitário</th>
                             <th>Total</th>
-                            <th>Desconto</th>
-                            <th>Total com Desconto</th>
+                            <th>Diferença</th>
+                            <th>Total Geral</th>
                         </tr>
                     </thead>
                     <tbody>${objeto.linhas}</tbody>
                 </table>
             </div>
             `
-        }
+    }
 
-        let mensagem = (valor, termo) => {
-            return `
-                <div style="display: flex; justify-content: start; align-items: center; gap: 5px; width: 100%;">
-                    <label style="font-size: 1.0vw;"><strong>${termo}</strong></label>
-                    <label style="font-size: 1.2vw;">${valor}</label>
+    let divOrganizada = (valor, termo) => {
+        return `
+                <div style="display: flex; justify-content: center; flex-direction: column; align-items: start; width: 100%; margin-bottom: 5px;">
+                    <label style="font-size: 0.9vw;">${termo}</label>
+                    <label style="font-size: 1.2vw;"><strong>${valor}</strong></label>
                 </div>
             `
-        }
+    }
 
-        acumulado += `
-            <br>
+    let totalGeral = conversor(orcamento.total_geral)
+    let diferencaDinheiro = totalGeral - totalReal
+    let diferencaPorcentagem = `${(diferencaDinheiro / totalReal * 100).toFixed(2)}%`
+
+    acumulado += `
             <div class="painelAprovacoes">
-                <label>Autorização de Desconto</label>
-                <hr style="width: 100%">    
-
-                ${mensagem(item.orcamento.dados_orcam.analista, 'Solicitante')}
-                ${mensagem(item.orcamento.dados_orcam.cliente_selecionado, 'Cliente')}
-                ${mensagem(item.total_sem_desconto, 'Total Geral')}
-                ${mensagem(item.total_geral, 'Total Com Desconto')}
-                ${mensagem(item.desconto_dinheiro, 'Desconto em Dinheiro')}
-                ${mensagem(`${item.desconto_porcentagem}%`, 'Desconto Percentual')}
+                
+                <div style="display: flex; align-items: center; justify-content: start; gap: 2vw;">
+                    <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
+                        ${divOrganizada(orcamento.dados_orcam.analista, 'Solicitante')}
+                        ${divOrganizada(orcamento.dados_orcam.cliente_selecionado, 'Cliente')}
+                        ${divOrganizada(orcamento.dados_orcam.cidade, 'Localidade')}
+                    </div>
+                    <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
+                        ${divOrganizada(dinheiro(totalGeral), 'Total Geral')}
+                        ${divOrganizada(dinheiro(totalReal), 'Total Original (sem Acréscimo e/ou Desconto)')}
+                        ${divOrganizada(`<label class="labelAprovacao" style="background-color: ${diferencaDinheiro > 0 ? 'green' : '#B12425'}">${dinheiro(diferencaDinheiro)}</label>`, 'Diferença em Dinheiro')}
+                        ${divOrganizada(diferencaPorcentagem, 'Percentual')}
+                    </div>
+                </div>
 
                 <hr style="width: 100%;">
 
@@ -2053,20 +2145,15 @@ async function aprovacoesPendentes() {
                     <textarea rows="5" style="background-color: white; border: none; width: 90%; color: #222;"></textarea>
 
                     <div style="display: flex; justify-content: left; gap: 5px;">
-                        <button style="background-color: #4CAF50;" onclick="resposta_desconto(this, '${id}', 'aprovado')">Autorizar</button>
-                        <button style="background-color: #B12425;" onclick="resposta_desconto(this, '${id}', 'reprovado')">Reprovar</button>
+                        <button style="background-color: green;" onclick="respostaAprovacao(this, '${idOrcamento}', 'aprovado')">Autorizar</button>
+                        <button style="background-color: #B12425;" onclick="respostaAprovacao(this, '${idOrcamento}', 'reprovado')">Reprovar</button>
                     </div>
                 </div>
             </div>
-
         `
-    }
 
-    let permissao = acesso.permissao
-    let pessoasPermitidas = ['coordenacao', 'adm', 'diretoria']
-    if (pessoasPermitidas.includes(permissao) && pendentes) {
-        openPopup_v2(acumulado, 'APROVAÇÕES DE ORÇAMENTO', true)
-    }
+    openPopup_v2(acumulado, 'Detalhes', true)
+
 }
 
 function visibilidadeOrcamento(div) {
@@ -2086,19 +2173,32 @@ function visibilidadeOrcamento(div) {
     }
 }
 
-function resposta_desconto(botao, id, status) {
+async function respostaAprovacao(botao, idOrcamento, status) {
+
+    // Dois popups pra fechar;
+    remover_popup()
+    remover_popup()
 
     let justificativa = botao.parentElement.parentElement.querySelector('textarea').value
-
-    let aprovacao = {
+    let dados = {
         usuario: acesso.usuario,
         data: data_atual('completa'),
         status,
         justificativa
     }
 
-    enviar(`aprovacoes/${id}/aprovacao`, aprovacao)
-    remover_popup()
+    await sincronizarDados('dados_orcamentos')
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    dados_orcamentos[idOrcamento].aprovacao = {
+        ...dados_orcamentos[idOrcamento].aprovacao,
+        ...dados
+    }
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${idOrcamento}/aprovacao`, dados_orcamentos[idOrcamento].aprovacao)
+
+    await verAprovacoes()
+    verificarPendencias()
 
 }
 

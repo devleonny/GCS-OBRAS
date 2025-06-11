@@ -770,7 +770,7 @@ async function abrirModal(idLista, idTarefa) {
             if (orcamentoLink && idOrcamento) {
                 orcamentoLink.addEventListener("click", (event) => {
                     event.preventDefault();
-                    exibir_todos_os_status(idOrcamento);
+                    abrirAtalhos(idOrcamento);
                     fecharModal();
                 });
             }
@@ -874,7 +874,7 @@ async function abrirModal(idLista, idTarefa) {
                         // 📌 Adiciona o evento de clique para abrir os detalhes do orçamento
                         document.getElementById("orcamento-link").addEventListener("click", (event) => {
                             event.preventDefault();
-                            exibir_todos_os_status(idOrcamento);
+                            abrirAtalhos(idOrcamento);
                             fecharModal();
                         });
 

@@ -113,7 +113,7 @@ async function importar_imagem(local_img, codigo) {
             `
         }
 
-        if (document.title == 'COMPOSIÇÕES') await retormarPaginacao()
+        if (document.title == 'COMPOSIÇÕES') await retomarPaginacao()
 
     } catch (error) {
 
