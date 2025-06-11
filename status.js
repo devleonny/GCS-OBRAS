@@ -1956,22 +1956,6 @@ async function mostrar_painel() {
         linhas[produto.tipo].total_venda_unit += valorVendaUnitario
         linhas[produto.tipo].total_venda += valorVendaTotal
 
-        let linhasVendaUso = `
-        ${mostrarElementoSeTiverPermissao({
-            listaDePermissao: painelUsersPermitidos,
-            elementoHTML: `
-            ${produto.tipo === 'VENDA' || produto.tipo === 'USO E CONSUMO' ? `
-                    <td>${dinheiro(descontoUnitario)}</td>
-                    <td>${margem}%</td>
-                    <td>${dinheiro(custoUnitario)}</td>
-                    <td>${dinheiro(custoTotal)}</td>
-                ` : ''}
-            `
-        })}
-        `
-
-        console.log('Serviço:', linhas['SERVIÇO']);
-
         linhas[produto.tipo].orcamento += `
         <tr>
             <td>${descricao_produto}</td>
