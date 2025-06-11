@@ -177,7 +177,14 @@ async function identificacaoUser() {
 
     await sincronizarSetores()
     acesso = dados_setores[acesso.usuario]
+
+    if(acesso.permissao == 'novo') {
+        localStorage.removeItem('acesso')
+        return window.location.href = 'login.html'
+    }
+
     localStorage.setItem('acesso', JSON.stringify(acesso))
+    
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
 
     carregarIcones() // ícones da tela inicial;
@@ -474,8 +481,8 @@ function verificar_timestamp_nome(nome) {
 
 let shell = null;
 if (typeof window !== 'undefined' && window.process && window.process.type) {
-  const { shell: electronShell } = require('electron');
-  shell = electronShell;
+    const { shell: electronShell } = require('electron');
+    shell = electronShell;
 }
 
 function abrirArquivo(link) {
