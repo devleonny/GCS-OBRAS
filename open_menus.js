@@ -2018,6 +2018,8 @@ async function verificarPendencias() {
 
 }
 
+localStorage.removeItem('dados_offline')
+
 async function verPedidoAprovacao(idOrcamento) { //29
 
     let permissao = acesso.permissao
