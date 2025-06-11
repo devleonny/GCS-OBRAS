@@ -2030,8 +2030,6 @@ async function verPedidoAprovacao(idOrcamento) { //29
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[idOrcamento]
 
-    console.log(orcamento);
-
     for ([codigo, composicao] of Object.entries(orcamento.dados_composicoes)) {
 
         let quantidade = composicao.qtde
