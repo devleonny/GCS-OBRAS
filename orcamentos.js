@@ -144,20 +144,19 @@ async function preencher_orcamentos_v2() {
 
     let linhas = ''
 
-    for (orcamento in dados_orcamentos) {
+    for ([idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
 
-        var orc = dados_orcamentos[orcamento]
-        var dados_orcam = orc.dados_orcam
-        var data = new Date(dados_orcam.data).toLocaleString('pt-BR', {
+        let dados_orcam = orcamento.dados_orcam
+        let data = new Date(dados_orcam.data).toLocaleString('pt-BR', {
             dateStyle: 'short',
             timeStyle: 'short'
         })
 
-        var label_pedidos = ''
-        var label_notas = ''
+        let label_pedidos = ''
+        let label_notas = ''
 
-        if (orc.status && orc.status.historico) {
-            let historico = orc.status.historico
+        if (orcamento.status && orcamento.status.historico) {
+            let historico = orcamento.status.historico
             for (chave1 in historico) {
 
                 let chave_historico = historico[chave1]
@@ -180,7 +179,7 @@ async function preencher_orcamentos_v2() {
 
                 if (chave_historico.notas) {
 
-                    var nota = chave_historico.notas[0]
+                    let nota = chave_historico.notas[0]
                     let valor_nota = chave_historico.notas[0].valorNota || '---'
 
 
@@ -196,8 +195,8 @@ async function preencher_orcamentos_v2() {
         }
 
         let st = 'INCLUIR PEDIDO'
-        if (orc.status && orc.status) {
-            st = orc.status.atual || 'INCLUIR PEDIDO'
+        if (orcamento.status && orcamento.status) {
+            st = orcamento.status.atual || 'INCLUIR PEDIDO'
         }
 
         let opcoes = ''
@@ -211,7 +210,7 @@ async function preencher_orcamentos_v2() {
             <tr>
                 <td>${data}</td>
                 <td>
-                    <select class="opcoesSelect" onchange="alterar_status(this, '${orcamento}')">
+                    <select class="opcoesSelect" onchange="alterar_status(this, '${idOrcamento}')">
                         ${opcoes}
                     </select>
                 </td>
@@ -221,9 +220,9 @@ async function preencher_orcamentos_v2() {
                 <td>${dados_orcam.cliente_selecionado}</td>
                 <td>${dados_orcam.cidade}</td>
                 <td>${dados_orcam.analista}</td>
-                <td style="white-space: nowrap;">${orc.total_geral}</td>
-                <td style="white-space: nowrap;">${orc.lpu_ativa}</td>
-                <td style="text-align: center;" onclick="abrirAtalhos('${orcamento}')">
+                <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>
+                <td style="white-space: nowrap;">${orcamento.lpu_ativa}</td>
+                <td style="text-align: center;" onclick="abrirAtalhos('${idOrcamento}')">
                     <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;">
                 </td>
             </tr>
