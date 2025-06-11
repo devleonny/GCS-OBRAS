@@ -155,108 +155,153 @@ function montarPainelVeiculos() {
     const container = document.getElementById('tabelaRegistro');
     if (!container) return;
 
-    container.innerHTML = '';
+    container.innerHTML = criarLayoutPrincipal();
 
-    const toolbar = document.createElement('div');
-    toolbar.className = 'veiculos-toolbar-container';
-
-    const filtro = document.createElement('div');
-    filtro.className = 'veiculos-toolbar-filtro';
-
-    const labelFiltro = document.createElement('label');
-    labelFiltro.textContent = 'Veículos';
-    filtro.appendChild(labelFiltro);
-
-    const areaTabela = document.createElement('div');
-    areaTabela.className = 'veiculos-area-tabela';
-
-    const campoTotal = document.createElement('div');
-    campoTotal.id = 'campoTotalMensal';
-    campoTotal.className = 'total_geral';
-    campoTotal.textContent = 'Total mensal: R$ 0,00';
-    areaTabela.appendChild(campoTotal);
-
-    // Cria a tabela e seus elementos
-    const tabela = document.createElement('table');
-    tabela.className = 'tabela';
-
-    const thead = document.createElement('thead');
-    thead.className = 'ths';
-    thead.innerHTML = `
-        <tr>
-            <th>Motoristas</th>
-            <th>Dados Veículo</th>
-            <th>Custo Mensal Veículo</th>
-            <th>Combustível</th>
-            <th>Pedágio</th>
-            <th>Estacionamento</th>
-            <th>Multas</th>
-            <th>Custos Extras</th>
-        </tr>
-    `;
-    tabela.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-    tbody.id = 'tabelaMotoristas'; // Adiciona ID para referência
-    tabela.appendChild(tbody);
-
-    // Cria o botão de cadastro
-    const btnCadastro = document.createElement('button');
-    btnCadastro.className = 'botao-cadastro-motorista';
-    btnCadastro.textContent = 'Cadastrar Novo Motorista';
-    btnCadastro.onclick = abrirFormularioCadastro;
-
-    // Adiciona os elementos na ordem correta
-    areaTabela.appendChild(btnCadastro);
-    areaTabela.appendChild(tabela);
-
-    toolbar.appendChild(filtro);
-    toolbar.appendChild(areaTabela);
-    container.appendChild(toolbar);
-
-    // Cria os botões de filtro
-    const veiculos = dados_veiculos.veiculos;
-    Object.keys(veiculos).forEach(nomeVeiculo => {
-        const btn = document.createElement('button');
-        btn.textContent = nomeVeiculo.toUpperCase();
-        btn.type = 'button';
-        btn.onclick = () => {
-            preencherTabelaMotoristas(nomeVeiculo);
-            filtro.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-        };
-        filtro.appendChild(btn);
-    });
-
-    // Seleciona o primeiro veículo por padrão
-    if (Object.keys(veiculos).length > 0) {
-        filtro.querySelector('button').click();
+    const btnCadastrarVeiculo = container.querySelector('#btnCadastrarVeiculo');
+    if (btnCadastrarVeiculo) {
+        btnCadastrarVeiculo.addEventListener('click', cadastrarVeiculo);
     }
+
+    const filtro = container.querySelector('.veiculos-toolbar-filtro');
+    const tbody = container.querySelector('#tabelaMotoristas');
+
+    botoesVeiculos(filtro, tbody);
 }
 
-function preencherTabelaMotoristas(nomeVeiculo) {
-    const tbody = document.getElementById('tabelaMotoristas');
-    const campoTotal = document.getElementById('campoTotalMensal');
-    const veiculo = dados_veiculos.veiculos[nomeVeiculo];
+function criarLayoutPrincipal() {
+    return `
+        <div class="veiculos-toolbar-container">
+            <div class="veiculos-toolbar-filtro">
+                <button class="botao-cadastro-veiculo" id="btnCadastrarVeiculo">
+                    Cadastrar Veículo
+                </button>
+                <label>Veículos</label>
+            </div>
+            
+            <div class="veiculos-area-tabela">
+                <div id="campoTotalMensal" class="total_geral">
+                    Total mensal: R$ 0,00
+                </div>
+                
+                <button class="botao-cadastro-motorista" onclick="abrirFormularioCadastro()">
+                    Cadastrar Novo Motorista
+                </button>
+                
+                <table class="tabela">
+                    <thead class="ths">
+                        <tr>
+                            <th>Motoristas</th>
+                            <th>Dados Veículo</th>
+                            <th>Custo Mensal Veículo</th>
+                            <th>Combustível</th>
+                            <th>Pedágio</th>
+                            <th>Estacionamento</th>
+                            <th>Multas</th>
+                            <th>Custos Extras</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaMotoristas"></tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
 
-    if (!tbody || !veiculo || !veiculo.motoristas) return;
+function cadastrarVeiculo() {
+    const form = `
+        <div class="form-cadastro-veiculo">
+            <div class="form-grupo">
+                <label>Nome do Veículo</label>
+                <input type="text" id="nome_veiculo" placeholder="Ex: Mobi">
+            </div>
 
-    tbody.innerHTML = '';
-    let total = 0;
+            <div class="form-grupo">
+                <label>Frota</label>
+                <input type="text" id="codigo_frota" placeholder="Código">
+                <input type="text" id="placa_frota" placeholder="Placa">
+                <input type="text" id="modelo_frota" placeholder="Modelo">
+                <select id="status_frota">
+                    <option value="">Selecione o status</option>
+                    <option value="locado">Locado</option>
+                    <option value="devolvido">Devolvido</option>
+                </select>
+            </div>
 
-    Object.entries(veiculo.motoristas).forEach(([id, motorista]) => {
-        const custoMensal = motorista.custo_mensal_veiculo || 'R$ 0,00';
-        const valor = Number(custoMensal.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
-        total += valor;
+            <div class="botoes-form">
+                <button class="botao-form primario" onclick="salvarVeiculo()">
+                    Cadastrar Veículo
+                </button>
+            </div>
+        </div>
+    `;
 
-        const combustivel = motorista.combustível || {};
-        const pedagio = motorista.pedagio || {};
-        const estacionamento = motorista.estacionamento || {};
-        const multas = motorista.multas || {};
-        const extras = motorista.custos_extras || {};
+    openPopup_v2(form, 'Cadastro de Veículo');
+}
 
-        const row = tbody.insertRow();
-        row.innerHTML = `
+function salvarVeiculo() {
+    const nomeVeiculo = document.getElementById('nome_veiculo').value.toLowerCase();
+    const codigo = document.getElementById('codigo_frota').value;
+    const placa = document.getElementById('placa_frota').value;
+    const modelo = document.getElementById('modelo_frota').value;
+    const status = document.getElementById('status_frota').value;
+
+    const camposObrigatorios = [nomeVeiculo, codigo, placa, modelo];
+    if (camposObrigatorios.some(campo => campo === '')) {
+        openPopup_v2('Por favor, preencha os campos obrigatórios', 'Campo obrigatório', true);
+        return;
+    }
+
+    dados_veiculos.veiculos[nomeVeiculo] = {
+        frotas: {
+            [placa]: {
+                codigo: codigo,
+                placa: placa,
+                modelo: modelo,
+                status: status
+            }
+        },
+        motoristas: {}
+    };
+
+    const container = document.getElementById('tabelaRegistro');
+    if (container) {
+        container.innerHTML = criarLayoutPrincipal();
+        const filtro = container.querySelector('.veiculos-toolbar-filtro');
+        const tbody = container.querySelector('#tabelaMotoristas');
+        botoesVeiculos(filtro, tbody);
+    }
+
+    removerOverlay();
+}
+
+function botoesVeiculos(filtro) {
+    Object.keys(dados_veiculos.veiculos).forEach(nomeVeiculo => {
+        const btnHtml = `
+            <button type="button" class="filtro-veiculo" onclick="selecionarVeiculo(this, '${nomeVeiculo}')">
+                ${nomeVeiculo.toUpperCase()}
+            </button>
+        `;
+        filtro.insertAdjacentHTML('beforeend', btnHtml);
+    });
+}
+
+function selecionarVeiculo(button, nomeVeiculo) {
+    const filtro = button.closest('.veiculos-toolbar-filtro');
+    filtro.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+    button.classList.add('selected');
+    preencherTabelaMotoristas(nomeVeiculo);
+}
+
+function criarLinhaMotorista(motorista) {
+    const custoMensal = motorista.custo_mensal_veiculo || 'R$ 0,00';
+    const combustivel = motorista.combustível || {};
+    const pedagio = motorista.pedagio || {};
+    const estacionamento = motorista.estacionamento || {};
+    const multas = motorista.multas || {};
+    const extras = motorista.custos_extras || {};
+
+    return `
+        <tr>
             <td>${motorista.nome || ''}</td>
             <td>
                 Placa: ${motorista.dados_veiculo?.placa || ''}<br>
@@ -269,10 +314,41 @@ function preencherTabelaMotoristas(nomeVeiculo) {
             <td>${estacionamento.tag || ''}</td>
             <td>${Object.keys(multas.anexos || {}).length ? 'Sim' : 'Não'}</td>
             <td>${extras.valor || ''}</td>
-        `;
+        </tr>
+    `;
+}
+
+function preencherTabelaMotoristas(nomeVeiculo) {
+    const tbody = document.getElementById('tabelaMotoristas');
+    const campoTotal = document.getElementById('campoTotalMensal');
+    const veiculo = dados_veiculos.veiculos[nomeVeiculo];
+
+    if (!tbody || !veiculo || !veiculo.motoristas) return;
+
+    let total = 0;
+    let linhasHtml = '';
+
+    Object.values(veiculo.motoristas).forEach(motorista => {
+        const custoMensal = motorista.custo_mensal_veiculo || 'R$ 0,00';
+        const valor = Number(custoMensal.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+        total += valor;
+
+        linhasHtml += criarLinhaMotorista(motorista);
     });
 
+    tbody.innerHTML = linhasHtml;
+
     if (campoTotal) {
+
+        function selecionarMotorista(id, nome, veiculo, divOpcao) {
+            let div = divOpcao.parentElement;
+            let textarea = div.previousElementSibling;
+
+            textarea.value = nome;
+            div.innerHTML = '';
+
+            // lógica adicional para preencher outros campos
+        }
         campoTotal.textContent = `Total mensal: R$ ${total.toLocaleString('pt-BR', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
@@ -289,7 +365,15 @@ function abrirFormularioCadastro() {
         
             <div class="form-grupo">
                 <label>Nome do Motorista</label>
-                <input type="text" id="nome_motorista">
+                <div class="autocomplete-container">
+                    <textarea 
+                        class="autocomplete-input"
+                        id="nome_motorista"
+                        placeholder="Digite o nome do motorista..."
+                        oninput="carregarMotoristas(this)"
+                    ></textarea>
+                    <div class="autocomplete-list"></div>
+                </div>
             </div>
             
             <div class="form-grupo">
@@ -343,8 +427,60 @@ function abrirFormularioCadastro() {
     openPopup_v2(form, 'Cadastro de Motorista');
 }
 
+async function carregarMotoristas(textarea) {
+    let div = textarea.nextElementSibling;
+    let dados_veiculos = await recuperarDados('dados_veiculos') || {};
+    let pesquisa = String(textarea.value).toLowerCase();
+    let opcoes = '';
+    div.innerHTML = '';
+
+    let motoristas = new Set();
+
+    for (let tipoVeiculo in dados_veiculos.veiculos) {
+        let motoristasVeiculo = dados_veiculos.veiculos[tipoVeiculo].motoristas || {};
+        for (let id in motoristasVeiculo) {
+            let motorista = motoristasVeiculo[id];
+            if (motorista.nome.toLowerCase().includes(pesquisa)) {
+                motoristas.add(JSON.stringify({
+                    id: id,
+                    nome: motorista.nome,
+                    veiculo: tipoVeiculo
+                }));
+            }
+        }
+    }
+
+    let motoristasArray = Array.from(motoristas)
+        .map(m => JSON.parse(m))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
+
+    motoristasArray.forEach(motorista => {
+        opcoes += `
+            <div onclick="selecionarMotorista('${motorista.id}', '${motorista.nome}', '${motorista.veiculo}', this)" 
+                 class="autocomplete-item" 
+                 style="text-align: left; padding: 5px; gap: 5px; display: flex; flex-direction: column; align-items: start; justify-content: start; border-bottom: solid 1px #d2d2d2;">
+                <label style="font-size: 0.8vw;">${motorista.nome}</label>
+                <label style="font-size: 0.7vw;"><strong>Veículo: ${motorista.veiculo}</strong></label>
+            </div>
+        `;
+    });
+
+    if (pesquisa === '') return;
+
+    div.innerHTML = opcoes;
+}
+
+function selecionarMotorista(id, nome, veiculo, divOpcao) {
+    let div = divOpcao.parentElement;
+    let textarea = div.previousElementSibling;
+
+    textarea.value = nome;
+    div.innerHTML = '';
+
+    // lógica adicional para preencher outros campos
+}
+
 function cadastrarMotorista() {
-    // Captura os valores do formulário
     const nome = document.getElementById('nome_motorista').value;
     const placa = document.getElementById('placa').value;
     const modelo = document.getElementById('modelo').value;
@@ -356,13 +492,12 @@ function cadastrarMotorista() {
     const tagEstacionamento = document.getElementById('tag_estacionamento').value;
     const custosExtras = document.getElementById('custos_extras').value;
 
-    // Valida campos obrigatórios
-    if (!nome || !placa || !modelo) {
-        alert('Por favor, preencha os campos obrigatórios');
+    const camposObrigatorios = [nome, placa, modelo];
+    if (camposObrigatorios.some(campo => campo === '')) {
+        openPopup_v2('Por favor, preencha os campos obrigatórios', 'Campos Obrigatórios', true);
         return;
     }
 
-    // Cria objeto com dados do motorista
     const novoMotorista = {
         nome: nome,
         dados_veiculo: {
@@ -387,21 +522,64 @@ function cadastrarMotorista() {
         }
     };
 
-    // Adiciona o motorista aos dados
     const idMotorista = Date.now().toString();
     dados_veiculos.veiculos.mobi.motoristas[idMotorista] = novoMotorista;
 
-    // Atualiza a tabela
     const tbody = document.querySelector('.tabela tbody');
     const campoTotal = document.getElementById('campoTotalMensal');
     preencherTabelaMotoristas('mobi', tbody, campoTotal);
 
-    // Fecha o popup
     removerOverlay();
 }
 
-function atualizarListaMotoristas() {
-    const tbody = document.querySelector('.tabela tbody');
-    const campoTotal = document.getElementById('campoTotalMensal');
-    preencherTabelaMotoristas('mobi', tbody, campoTotal);
+async function atualizarListaMotoristas() {
+    openPopup_v2(`
+        <div style="display: flex; align-items: center; justify-content: left;">
+            <img src="gifs/loading.gif" style="width: 50px">
+            <label>Aguarde alguns segundos... </label>
+        </div>
+    `, 'Atualizando lista de motoristas');
+
+    try {
+        let dados_veiculos_atuais = await recuperarDados('dados_veiculos') || {};
+
+        await sincronizarDados('dados_veiculos', true);
+        let dados_veiculos_novos = await recuperarDados('dados_veiculos');
+
+        const tbody = document.querySelector('#tabelaMotoristas');
+        const campoTotal = document.getElementById('campoTotalMensal');
+
+        const veiculoSelecionado = document.querySelector('.veiculos-toolbar-filtro button.selected');
+        const nomeVeiculo = veiculoSelecionado ? veiculoSelecionado.textContent.toLowerCase() : Object.keys(dados_veiculos_novos.veiculos)[0];
+
+        if (tbody && campoTotal && nomeVeiculo) {
+            preencherTabelaMotoristas(nomeVeiculo);
+        }
+
+        removerOverlay();
+        remover_popup();
+
+        openPopup_v2(`
+            <div style="display: flex; align-items: center; justify-content: center; padding: 20px;">
+                <img src="imagens/sucesso.png" style="width: 30px; margin-right: 10px;">
+                <label>Lista de motoristas atualizada com sucesso!</label>
+            </div>
+        `, 'Sucesso');
+
+        setTimeout(() => {
+            remover_popup();
+        }, 500);
+
+    } catch (error) {
+        console.error('Erro ao atualizar lista:', error);
+        removerOverlay();
+        remover_popup();
+
+        openPopup_v2(`
+            <div style="display: flex; align-items: center; justify-content: center; padding: 20px;">
+                <img src="imagens/error.png" style="width: 30px; margin-right: 10px;">
+                <label>Erro ao atualizar lista de motoristas. Tente novamente.</label>
+            </div>
+        `, 'Erro');
+    }
 }
