@@ -58,3 +58,71 @@
   padding: 8px 12px;
   width: max-content;
 }
+
+.botao-cadastro-motorista {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 1vw;
+  margin-bottom: 15px;
+  width: max-content;
+  transition: background 0.2s;
+}
+
+.botao-cadastro-motorista:hover {
+  background: #45a049;
+}
+
+.form-cadastro-motorista {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 20px;
+}
+
+.form-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-grupo label {
+  font-weight: bold;
+  color: #333;
+}
+
+.form-grupo input,
+.form-grupo select {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.botoes-form {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.botao-form {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.botao-form.primario {
+  background: #4CAF50;
+  color: white;
+}
+
+.botao-form.secundario {
+  background: #666;
+  color: white;
+}
