@@ -1123,15 +1123,11 @@ async function enviar_dados() {
     }
 
     // Autorizações - Deconto - Acréscimo;
-    let desconto_porcentagem = document.getElementById('desconto_porcentagem')
+    let desconto_porcentagem = document.getElementById('desconto_porcentagem') //29
     if ((desconto_porcentagem && Number(desconto_porcentagem.value) > 0) || orcamento_v2.alterado) {
         orcamento_v2.aprovacao = {
             status: 'pendente',
-            usuario: acesso.usuario,
-            desconto_porcentagem: document.getElementById('desconto_porcentagem').value,
-            total_sem_desconto: document.getElementById('total_sem_desconto').textContent,
-            desconto_dinheiro: document.getElementById('desconto_dinheiro').textContent,
-            total_geral: document.getElementById('total_geral').textContent
+            usuario: acesso.usuario
         }
     }
 
@@ -1432,13 +1428,15 @@ async function total() {
     let orcamento_v2 = baseOrcamento()
     let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
     let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
-    let desconto_acumulado = 0
     let totais = { GERAL: { valor: 0, bruto: 0 } }
     let divTabelas = document.getElementById('tabelas')
     let tables = divTabelas.querySelectorAll('table')
     let padraoFiltro = localStorage.getItem('padraoFiltro')
     let estado = orcamento_v2?.dados_orcam?.estado || false
     let avisoDesconto = 0
+    let totalAcrescido = 0
+    let descontoAcumulado = 0
+
     if (!orcamento_v2.dados_composicoes) orcamento_v2.dados_composicoes = {}
 
     // Detectar mudanças de quantidade
@@ -1496,7 +1494,7 @@ async function total() {
             let tds = tr.querySelectorAll('td')
             let codigo = tds[0].textContent
             let acrescimo = carrefour ? 1 : 0 // Quantidade correspondente a mais 1 coluna: CARREFOUR;
-            let valor_unitario = 0
+            let valorUnitario = 0
             let total = 0
             let precos = { custo: 0, lucro: 0 }
             let descricao = dados_composicoes[codigo].descricao
@@ -1530,15 +1528,17 @@ async function total() {
             let ativo = produto?.[lpu]?.ativo || 0
             let historico = produto?.[lpu]?.historico || {}
             precos = historico[ativo]
-            valor_unitario = historico?.[ativo]?.valor || 0
+            valorUnitario = historico?.[ativo]?.valor || 0
             icmsSaida = precos?.icms_creditado == 4 ? 4 : estado == 'BA' ? 20.5 : 12
 
-            if (itemSalvo.alterado) valor_unitario = itemSalvo.custo // Caso o item receba um valor diretamente;
+            // Caso o item receba um valor diretamente;
+            if (itemSalvo.alterado) valorUnitario = itemSalvo.custo
 
             let quantidade = Number(tds[3 + acrescimo].querySelector('input').value)
 
-            valor_unitario += total // Somando ao total do agrupamento, caso exista;
-            let total_linha = valor_unitario * quantidade
+            // Somando ao total do agrupamento, caso exista;
+            valorUnitario += total
+            let totalLinha = valorUnitario * quantidade
 
             // Desconto;
             let desconto = 0
@@ -1550,7 +1550,7 @@ async function total() {
                 tipoDesconto = divDesconto.querySelector('select')
                 valorDesconto = divDesconto.querySelector('input')
 
-                if(itemSalvo.custo_original) {
+                if (itemSalvo.custo_original) {
                     valorDesconto.value = ''
                     desconto = 0
                 }
@@ -1566,13 +1566,13 @@ async function total() {
                             valorDesconto.value = 100
                         }
 
-                        desconto = valorDesconto.value / 100 * total_linha
+                        desconto = valorDesconto.value / 100 * totalLinha
 
                     } else {
                         if (valorDesconto.value < 0) {
                             valorDesconto.value = 0
-                        } else if (valorDesconto.value > total_linha) {
-                            valorDesconto.value = total_linha
+                        } else if (valorDesconto.value > totalLinha) {
+                            valorDesconto.value = totalLinha
                         }
 
                         desconto = Number(valorDesconto.value)
@@ -1611,9 +1611,14 @@ async function total() {
                 tipoDesconto.classList = desconto == 0 ? 'desconto_off' : 'desconto_on'
                 valorDesconto.classList = desconto == 0 ? 'desconto_off' : 'desconto_on'
 
-                totais.GERAL.bruto += total_linha // Valor bruto sem desconto;
-                total_linha = total_linha - desconto
-                desconto_acumulado += desconto
+
+                // Incremento dos itens com valores acrescidos para informar no escopo do orçamento;
+                let diferencaAcrescida = totalLinha - (itemSalvo.custo_original * quantidade)
+                if (itemSalvo.custo_original) totalAcrescido += diferencaAcrescida
+
+                totais.GERAL.bruto += itemSalvo.custo_original ? totalLinha - diferencaAcrescida : totalLinha // Valor bruto sem desconto;
+                totalLinha = totalLinha - desconto
+                descontoAcumulado += desconto
 
             }
 
@@ -1623,11 +1628,10 @@ async function total() {
                 totais[filtro] = { valor: 0 }
             }
 
-            totais[filtro].valor += total_linha
-            totais.GERAL.valor += total_linha
+            totais[filtro].valor += totalLinha
+            totais.GERAL.valor += totalLinha
 
             // ATUALIZAÇÃO DE INFORMAÇÕES DA COLUNA 4 EM DIANTE
-
             let descricaocarrefour = dados_composicoes[codigo].descricaocarrefour
             if (carrefour) {
                 tds[2].innerHTML = `
@@ -1640,7 +1644,7 @@ async function total() {
             }
 
             let icmsSaidaDecimal = icmsSaida / 100
-            let valorLiqSemICMS = valor_unitario - (valor_unitario * icmsSaidaDecimal)
+            let valorLiqSemICMS = valorUnitario - (valorUnitario * icmsSaidaDecimal)
             let valorTotSemICMS = valorLiqSemICMS * quantidade
 
             let labelValores = (valor, semIcms, percentual, unitario) => {
@@ -1657,10 +1661,10 @@ async function total() {
                     `
             }
 
-            tds[4 + acrescimo].innerHTML = labelValores(valor_unitario, valorLiqSemICMS, icmsSaida, true)
+            tds[4 + acrescimo].innerHTML = labelValores(valorUnitario, valorLiqSemICMS, icmsSaida, true)
 
             if (carrefour) { acrescimo = 0 }
-            tds[6 + acrescimo].innerHTML = labelValores(total_linha, valorTotSemICMS, icmsSaida)
+            tds[6 + acrescimo].innerHTML = labelValores(totalLinha, valorTotSemICMS, icmsSaida)
 
             let imagem = dados_composicoes[codigo]?.imagem || logo
 
@@ -1668,7 +1672,7 @@ async function total() {
             itemSalvo.unidade = dados_composicoes[codigo]?.unidade || 'UN'
             itemSalvo.descricaocarrefour = descricaocarrefour
             itemSalvo.qtde = quantidade
-            itemSalvo.custo = valor_unitario
+            itemSalvo.custo = valorUnitario
             itemSalvo.tipo = tipo
             itemSalvo.imagem = imagem
 
@@ -1700,17 +1704,17 @@ async function total() {
         }
     }
 
-    let desconto_geral_linhas = desconto_acumulado + desconto_calculo
+    descontoAcumulado = descontoAcumulado + desconto_calculo
     document.getElementById(`total_geral`).textContent = dinheiro(totais.GERAL.valor - desconto_calculo)
 
     let painel_desconto = document.getElementById('desconto_total')
     if (!carrefour) {
 
-        if (desconto_geral_linhas > totais.GERAL.valor) {
-            desconto_geral_linhas = totais.GERAL.valor
+        if (descontoAcumulado > totais.GERAL.valor) {
+            descontoAcumulado = totais.GERAL.valor
         }
 
-        let desc_porc = desconto_geral_linhas == 0 ? 0 : (desconto_geral_linhas / totais.GERAL.bruto * 100).toFixed(2)
+        let desc_porc = descontoAcumulado == 0 ? 0 : (descontoAcumulado / totais.GERAL.bruto * 100).toFixed(2)
 
         painel_desconto.innerHTML = `
             <div class="resumo">
@@ -1720,7 +1724,7 @@ async function total() {
                 <label style="font-size: 1.5vw;" id="total_sem_desconto">${dinheiro(totais.GERAL.bruto)}</label>
                 <br>
                 <label>Desconto R$</label>
-                <label style="font-size: 1.5vw;" id="desconto_dinheiro">${dinheiro(desconto_geral_linhas)}</label>
+                <label style="font-size: 1.5vw;" id="desconto_dinheiro">${dinheiro(descontoAcumulado)}</label>
                 <br>
                 <label>Desconto %</label>
                 <label style="font-size: 1.5vw;">${desc_porc}%</label>
@@ -1731,6 +1735,9 @@ async function total() {
         painel_desconto.innerHTML = ''
     }
 
+    // Informações complementares do orçamento;
+    totalAcrescido > 0 ? orcamento_v2.total_acrescido = totalAcrescido : delete orcamento_v2.total_acrescido
+    descontoAcumulado > 0 ? orcamento_v2.total_desconto = descontoAcumulado : delete orcamento_v2.total_desconto
     orcamento_v2.total_geral = dinheiro(totais.GERAL.valor - desconto_calculo)
     orcamento_v2.total_bruto = totais.GERAL.bruto
 
@@ -1769,7 +1776,7 @@ async function alterarValorUnitario(codigo) {
     let produto = dados_composicoes[codigo]
     let lpu = String(document.getElementById('lpu').value).toLowerCase()
 
-    if(lpu == 'lpu carrefour') return openPopup_v2(mensagem('Carrefour não permite mudanças de valores'), 'AVISO')
+    if (lpu == 'lpu carrefour') return openPopup_v2(mensagem('Carrefour não permite mudanças de valores'), 'AVISO')
 
     let ativo = produto?.[lpu]?.ativo || 0
     let historico = produto?.[lpu]?.historico || {}

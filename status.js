@@ -1216,7 +1216,7 @@ function botao_novo_pagamento(id) {
 
 async function abrirAtalhos(id) {
 
-    let permitidos = ['adm', 'fin', 'diretoria']
+    let permitidos = ['adm', 'fin', 'diretoria', 'coordenacao']
     id_orcam = id
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}

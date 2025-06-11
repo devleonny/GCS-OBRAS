@@ -1913,7 +1913,7 @@ function data_atual(estilo, nivel) {
     }
 }
 
-async function verAprovacoes() {
+async function verAprovacoes() { //29
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
     let guia = {
@@ -1921,7 +1921,7 @@ async function verAprovacoes() {
         todos: '#a9a5a5'
     }
 
-    let cabecalhos = ['Cliente', 'Valor Total', 'Valor Final', 'Localização', 'Usuário', 'Aprovação', 'Comentário', 'Detalhes']
+    let cabecalhos = ['Chamado', 'Cliente', 'Total Original <br>[s/desc ou acres]', 'Total Geral', '%', 'Localização', 'Usuário', 'Aprovação', 'Comentário', 'Detalhes']
     let tabelas = {
         pendente: { linhas: '' },
         todos: { linhas: '' }
@@ -1951,13 +1951,16 @@ async function verAprovacoes() {
         let dados_orcam = orcamento.dados_orcam || {}
         let aprovacao = orcamento.aprovacao
         let status = aprovacao?.status || 'desconhecido'
+        let porcentagemDiferenca = (((orcamento.total_geral - orcamento.total_bruto) / orcamento.total_bruto) * 100).toFixed(2)
 
         tabelas[status == 'pendente' ? 'pendente' : 'todos'].linhas += `
         <tr>
+            <td>${dados_orcam?.contrato || '--'}</td>
             <td>${dados_orcam?.cliente_selecionado || '--'}</td>
-            <td>${aprovacao?.total_sem_desconto}</td>
-            <td>${aprovacao?.total_geral}</td>
-            <td>${dados_orcam.cidade || ''}</td>
+            <td>${dinheiro(orcamento.total_bruto)}</td>
+            <td>${dinheiro(orcamento.total_geral)}</td>
+            <td><label class="labelAprovacao" style="background-color: ${porcentagemDiferenca > 0 ? 'green' : '#B12425'}">${porcentagemDiferenca}%</label></td>
+            <td>${dados_orcam?.cidade || ''}</td>
             <td>${aprovacao?.usuario || '--'}</td>
             <td>
                 <div style="display: flex; align-items: center; justify-content: start; gap: 1vw;">
@@ -2015,7 +2018,7 @@ async function verificarPendencias() {
 
 }
 
-async function verPedidoAprovacao(idOrcamento) {
+async function verPedidoAprovacao(idOrcamento) { //29
 
     let permissao = acesso.permissao
     let pessoasPermitidas = ['coordenacao', 'adm', 'diretoria']
@@ -2026,7 +2029,6 @@ async function verPedidoAprovacao(idOrcamento) {
     let divTabelas = ''
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[idOrcamento]
-    let totalReal = 0
 
     for ([codigo, composicao] of Object.entries(orcamento.dados_composicoes)) {
 
@@ -2049,8 +2051,6 @@ async function verPedidoAprovacao(idOrcamento) {
         let labelCusto = dinheiro(custoOriginal ? custoOriginal : custo)
         let labelTotal = dinheiro(custoOriginal ? totalOriginal : total)
         let labelTotalDesconto = dinheiro(total - desconto)
-
-        totalReal += (custoOriginal ? custoOriginal : custo) * quantidade
 
         let diferenca = '--', cor = '';
         if (custoOriginal && custo !== custoOriginal) {
@@ -2105,9 +2105,10 @@ async function verPedidoAprovacao(idOrcamento) {
             `
     }
 
+    let totalBruto = orcamento?.total_bruto
     let totalGeral = conversor(orcamento.total_geral)
-    let diferencaDinheiro = totalGeral - totalReal
-    let diferencaPorcentagem = `${(diferencaDinheiro / totalReal * 100).toFixed(2)}%`
+    let diferencaDinheiro = totalGeral - totalBruto
+    let diferencaPorcentagem = `${(diferencaDinheiro / totalBruto * 100).toFixed(2)}%`
 
     acumulado += `
             <div class="painelAprovacoes">
@@ -2120,7 +2121,7 @@ async function verPedidoAprovacao(idOrcamento) {
                     </div>
                     <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
                         ${divOrganizada(dinheiro(totalGeral), 'Total Geral')}
-                        ${divOrganizada(dinheiro(totalReal), 'Total Original (sem Acréscimo e/ou Desconto)')}
+                        ${divOrganizada(dinheiro(totalBruto), 'Total Original (sem Acréscimo e/ou Desconto)')}
                         ${divOrganizada(`<label class="labelAprovacao" style="background-color: ${diferencaDinheiro > 0 ? 'green' : '#B12425'}">${dinheiro(diferencaDinheiro)}</label>`, 'Diferença em Dinheiro')}
                         ${divOrganizada(diferencaPorcentagem, 'Percentual')}
                     </div>
