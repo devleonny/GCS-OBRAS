@@ -2148,11 +2148,16 @@ async function mostrar_painel() {
             if (linhas[tipo] && linhas[tipo].orcamento !== '') {
                 tabelas += construirTabelaVendaUso(tipo, linhas[tipo]);
 
-                impostos += `
+                impostos = `
                     <br>
                     <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
                         <label style="font-size: 0.7vw;">Impostos de ${tipo.toLowerCase()}</label>
-                        <label>${dinheiro(linhas[tipo].total_impostos)}</label>
+                        <label>${dinheiro(linhas['VENDA'].total_impostos)}</label>
+                    </div>
+                    <br>
+                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                        <label style="font-size: 0.7vw;">Impostos de ${tipo.toLowerCase()}</label>
+                        <label>${dinheiro(linhas['USO E CONSUMO'].total_impostos + linhas['SERVIÇO'].total_impostos)}</label>
                     </div>
                 `;
 
@@ -2181,14 +2186,14 @@ async function mostrar_painel() {
         `
     }
 
-    let total_bruto = orcamento.total_bruto || linhas.SERVIÇO.total_orcado + linhas.VENDA.total_orcado;
+    let total_bruto = orcamento.total_bruto || linhas.SERVIÇO.total_orcado + linhas.VENDA.total_orcado + linhas['USO E CONSUMO'].total_orcado;
     let total_liquido = conversor(orcamento.total_geral);
 
     const descontoAdicionado = total_bruto !== 0;
 
     const descontoTotal = descontoAdicionado ? total_bruto - total_liquido : 0;
 
-    let totalImpostos = linhas.SERVIÇO.total_impostos + linhas.VENDA.total_impostos;
+    let totalImpostos = linhas.SERVIÇO.total_impostos + linhas.VENDA.total_impostos + linhas['USO E CONSUMO'].total_impostos;
     let somaCustoCompra = linhas.VENDA.total_custo;
 
     let lucro_liquido = total_liquido - totalImpostos - somaCustoCompra - descontoTotal;
