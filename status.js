@@ -1241,8 +1241,8 @@ async function abrirAtalhos(id) {
     `
     if (emAnalise) {
         acumulado += mensagem('Este orçamento precisa ser aprovado!')
-        
-    }else{
+
+    } else {
         acumulado += `
         ${modeloBotoes('esquema', 'Histórico', `abrir_esquema('${id}')`)}
         ${modeloBotoes('pdf', 'Abrir Orçamento em PDF', `ir_pdf('${id}')`)}
@@ -1820,6 +1820,21 @@ async function abrir_esquema(id) {
     }
 }
 
+function estiloDaLista(tipo) {
+    switch (tipo) {
+        case 'SERVIÇO':
+            return 'rgb(0, 138, 0)';
+        case 'USO E CONSUMO':
+            return '#24729d';
+        case 'VENDA':
+            return 'rgb(185, 0, 0)';
+        default:
+            return 'rgb(87, 87, 87)';
+    }
+}
+
+const painelUsersPermitidos = ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'];
+
 async function mostrar_painel() {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
@@ -1827,35 +1842,23 @@ async function mostrar_painel() {
     let pags = ''
     let total_pago = 0
 
-    const painelUsersPermitidos = ['gerente', 'diretoria', 'editor', 'INFRA', 'adm'];
+    let pagamentos_painel = {}
 
     const dadosExiste = orcamento || orcamento.dados_composicoes;
     if (!dadosExiste) return openPopup_v2("Erro: Orçamento ou composições não encontradas");
 
-    const estiloDaLista = (tipo) => {
-        switch (tipo) {
-            case 'SERVIÇO':
-                return 'rgb(0, 138, 0)';
-            case 'USO E CONSUMO':
-                return '#24729d';
-            case 'VENDA':
-                return 'rgb(185, 0, 0)';
-            default:
-                return 'rgb(87, 87, 87)';
-        }
-    }
-
-    let pagamentos_painel = {}
-
-    for (pg in pagamentos_painel) {
-        pags += `
-            <div style="display: flex; flex-direction: column; align-items: start;">
-                <label style="font-size: 0.7em;"><strong>${pg}</strong></label>
-                <label style="font-size: 1.2em;">${dinheiro(pagamentos_painel[pg])}</label>
-            </div>
+    // Verificar se há pagamentos antes de fazer o loop
+    if (Object.keys(pagamentos_painel).length > 0) {
+        for (let pg in pagamentos_painel) {
+            pags += `
+                <div style="display: flex; flex-direction: column; align-items: start;">
+                    <label style="font-size: 0.7em;"><strong>${pg}</strong></label>
+                    <label style="font-size: 1.2em;">${dinheiro(pagamentos_painel[pg])}</label>
+                </div>
             `
-        if (pg == 'PAGO') {
-            total_pago += pagamentos_painel[pg]
+            if (pg == 'PAGO') {
+                total_pago += pagamentos_painel[pg]
+            }
         }
     }
 
@@ -1953,23 +1956,40 @@ async function mostrar_painel() {
         linhas[produto.tipo].total_venda_unit += valorVendaUnitario
         linhas[produto.tipo].total_venda += valorVendaTotal
 
+        let linhasVendaUso = `
+        ${mostrarElementoSeTiverPermissao({
+            listaDePermissao: painelUsersPermitidos,
+            elementoHTML: `
+            ${produto.tipo === 'VENDA' || produto.tipo === 'USO E CONSUMO' ? `
+                    <td>${dinheiro(descontoUnitario)}</td>
+                    <td>${margem}%</td>
+                    <td>${dinheiro(custoUnitario)}</td>
+                    <td>${dinheiro(custoTotal)}</td>
+                ` : ''}
+            `
+        })}
+        `
+
+        console.log('Serviço:', linhas['SERVIÇO']);
+
         linhas[produto.tipo].orcamento += `
         <tr>
-            <td style="font-size: 0.9em;">${descricao_produto}</td>
-            <td style="font-size: 0.9em;">${quantidade}</td>
+            <td>${descricao_produto}</td>
+            <td>${quantidade}</td>
             ${mostrarElementoSeTiverPermissao({
             listaDePermissao: painelUsersPermitidos,
             elementoHTML: `
-                    <td style="font-size: 0.9em;">${dinheiro(descontoUnitario)}</td>
-                    ${produto.tipo === 'VENDA' ? `
-                    <td style="font-size: 0.9em;">${margem}%</td>
-                    <td style="font-size: 0.9em;">${dinheiro(custoUnitario)}</td>
-                    <td style="font-size: 0.9em;">${dinheiro(custoTotal)}</td>
+                <td>${dinheiro(descontoUnitario)}</td>
+                ${produto.tipo === 'VENDA' || produto.tipo === 'USO E CONSUMO' ? `
+                <td>${margem}%</td>
+                <td>${dinheiro(custoUnitario)}</td>
+                <td>${dinheiro(custoTotal)}</td>
                 ` : ''}
-            `})}
-            <td style="font-size: 0.9em;">${dinheiro(valorVendaUnitario)}</td>
-            <td style="font-size: 0.9em;">${dinheiro(valorVendaTotal)}</td>
-            ${produto.tipo === 'VENDA' ? `<td style="font-size: 0.9em;">${dinheiro(lucroUnitario)}</td>` : ''}
+            `
+        })}
+            <td>${dinheiro(valorVendaUnitario)}</td>
+            <td>${dinheiro(valorVendaTotal)}</td>
+            ${produto.tipo === 'VENDA' || produto.tipo === 'USO E CONSUMO' ? `<td>${dinheiro(lucroUnitario)}</td>` : ''}
         </tr>
         `
     }
@@ -2139,93 +2159,42 @@ async function mostrar_painel() {
     let impostos = ''
     let total_custos = ''
 
-    for (tipo in linhas) {
-        let tab = linhas[tipo]
+    if (linhas) {
+        ['VENDA', 'USO E CONSUMO'].forEach(tipo => {
+            if (linhas[tipo] && linhas[tipo].orcamento !== '') {
+                tabelas += construirTabelaVendaUso(tipo, linhas[tipo]);
 
-        if (tab.orcamento != '') {
-
-            tabelas += `
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <div>
-                        <label>${tipo}</label>
-                        <table class="tabela">
-                            <thead style="background-color:${estiloDaLista(tipo)};">
-                                <th style="color: #fff; font-size: 0.9em;">Descrição</th>
-                                <th style="color: #fff; font-size: 0.9em;">Quantidade</th>
-                                ${mostrarElementoSeTiverPermissao({
-                listaDePermissao: painelUsersPermitidos,
-                elementoHTML: `
-                                        <th style="color: #fff; font-size: 0.9em;">Desconto</th>
-                                        ${tipo == 'VENDA' ? `
-                                        <th style="color: #fff; font-size: 0.9em;">Margem</th>
-                                        <th style="color: #fff; font-size: 0.9em;">Custo Unit</th>
-                                        <th style="color: #fff; font-size: 0.9em;">Total Unit</th>
-                                        ` : ''}
-                                `})}
-
-                                <th style="color: #fff; font-size: 0.9em;">Valor de ${tipo.toLocaleLowerCase()} Unit</th>
-                                <th style="color: #fff; font-size: 0.9em;">Total de ${tipo.toLocaleLowerCase()}</th>
-                                ${tipo == 'VENDA' ? `
-                                    <th style="color: #fff; font-size: 0.9em;">Lucro Total</th>
-                                ` : ''}
-                            </thead>
-                            <tbody>
-                                ${tab.orcamento}
-                                <tr style="background-color:${estiloDaLista(tipo)};">
-                                    ${tipo === 'VENDA' ? `
-                                        <td style="font-size: 0.9em; font-weight: 600;">Totais</td>
-                                        <td style="font-size: 0.9em; font-weight: 600;"></td>` : ''}
-                                    ${tipo === 'SERVIÇO' || tipo === 'USO E CONSUMO' ? `
-                                        <td style="
-                                            font-size: 0.9em;
-                                            font-weight: 600;
-                                            color: #fff;
-                                            background-color:${estiloDaLista(tipo)} !important;
-                                        ">Lucro Total</td>
-                                        <td style="
-                                            font-size: 0.9em;
-                                            font-weight: 600;
-                                            color: #fff;
-                                            background-color:${estiloDaLista(tipo)} !important;
-                                        ">${dinheiro(tab.total_lucro)}</td>` : ''}
-                                    ${mostrarElementoSeTiverPermissao({
-                    listaDePermissao: painelUsersPermitidos,
-                    elementoHTML: `
-                                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_desconto_unit)}</td>
-                                            ${tipo === 'VENDA' ? `
-                                            <td style="font-size: 0.9em; font-weight: 600;"></td>
-                                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo_unit)}</td>
-                                            <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_custo)}</td>
-                                        ` : ''}
-                                    `})}
-                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_venda_unit)}</td>
-                                    <td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_venda)}</td>
-                                    ${tipo === 'VENDA' ? `<td style="font-size: 0.9em; font-weight: 600;">${dinheiro(tab.total_lucro)}</td>` : ''}
-                                </tr>
-                            </tbody>
-
-                        </table>
-                    </div>
-                </div>
-
-            `
-            impostos += `
-                <br>
-                <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
-                    <label style="font-size: 0.7vw;">Impostos de ${tipo.toLowerCase()}</label>
-                    <label>${dinheiro(tab.total_impostos)}</label>
-                </div>
-            `
-            if (tipo == 'VENDA') {
-                total_custos = `
+                impostos += `
                     <br>
                     <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
-                        <label style="font-size: 0.7vw;">Total de Custo (Compra de Material)</label>
-                        <label>${dinheiro(linhas.VENDA.total_custo)}</label>
+                        <label style="font-size: 0.7vw;">Impostos de ${tipo.toLowerCase()}</label>
+                        <label>${dinheiro(linhas[tipo].total_impostos)}</label>
                     </div>
-                `
+                `;
+
+                if (tipo === 'VENDA') {
+                    total_custos = `
+                        <br>
+                        <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                            <label style="font-size: 0.7vw;">Total de Custo (Compra de Material)</label>
+                            <label>${dinheiro(linhas.VENDA.total_custo)}</label>
+                        </div>
+                    `;
+                }
             }
-        }
+        });
+    }
+
+    if (linhas['SERVIÇO'] && linhas['SERVIÇO'].orcamento !== '') {
+        tabelas += construirTabelaServico(linhas['SERVIÇO']);
+
+        impostos += `
+            <br>
+            <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                <label style="font-size: 0.7vw;">Impostos de serviço</label>
+                <label>${dinheiro(linhas['SERVIÇO'].total_impostos)}</label>
+            </div>
+        `
     }
 
     let total_bruto = orcamento.total_bruto || linhas.SERVIÇO.total_orcado + linhas.VENDA.total_orcado;
@@ -2307,7 +2276,7 @@ async function mostrar_painel() {
                         ${linhas.SERVIÇO.impostos}
                     </div>
                 </div>
-                <div style="width: 100%; display: flex; flex-direction: column-reverse; gap: 2vw;">
+                <div style="width: 100%; display: flex; flex-direction: column; gap: 2vw;">
                     ${tabelas}
                 </div>
             </div>
@@ -2318,6 +2287,85 @@ async function mostrar_painel() {
 
     openPopup_v2(acumulado, `Painel de Custos`, true)
 
+}
+
+function construirTabelaVendaUso(tipo, tab) {
+    return `
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div>
+                <label>${tipo}</label>
+                <table class="tabela" style="width: 100%;">
+                    <thead style="background-color:${estiloDaLista(tipo)};">
+                        <th>Descrição</th>
+                        <th>Quantidade</th>
+                        ${mostrarElementoSeTiverPermissao({
+        listaDePermissao: painelUsersPermitidos,
+        elementoHTML: `
+                                <th>Desconto</th>
+                                <th>Margem</th>
+                                <th>Custo Unit</th>
+                                <th>Total Unit</th>
+                            `
+    })}
+                        <th>Valor de ${tipo.toLocaleLowerCase()} Unit</th>
+                        <th>Total de ${tipo.toLocaleLowerCase()}</th>
+                        <th>Lucro Total</th>
+                    </thead>
+                    <tbody>
+                        ${tab.orcamento}
+                        <tr style="background-color:${estiloDaLista(tipo)};">
+                            <td>Totais</td>
+                            <td></td>
+                            ${mostrarElementoSeTiverPermissao({
+        listaDePermissao: painelUsersPermitidos,
+        elementoHTML: `
+                                    <td>${dinheiro(tab.total_desconto_unit)}</td>
+                                    <td></td>
+                                    <td>${dinheiro(tab.total_custo_unit)}</td>
+                                    <td>${dinheiro(tab.total_custo)}</td>
+                                `
+    })}
+                            <td>${dinheiro(tab.total_venda_unit)}</td>
+                            <td>${dinheiro(tab.total_venda)}</td>
+                            <td>${dinheiro(tab.total_lucro)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function construirTabelaServico(tab) {
+    return `
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div>
+                <label>SERVIÇO</label>
+                <table class="tabela" style="width: 100%;">
+                    <thead style="background-color:${estiloDaLista('SERVIÇO')};">
+                        <th>Descrição</th>
+                        <th>Quantidade</th>
+                        <th>Desconto</th>
+                        <th>Valor de Serviço Unit</th>
+                        <th>Total de Serviço</th>
+                    </thead>
+                    <tbody>
+                        ${tab.orcamento}
+                        <tr style="background-color:${estiloDaLista('SERVIÇO')};">
+                            <td>Totais</td>
+                            <td></td>
+                            ${mostrarElementoSeTiverPermissao({
+        listaDePermissao: painelUsersPermitidos,
+        elementoHTML: `<td>${dinheiro(tab.total_desconto_unit)}</td>`
+    })}
+                            <td>${dinheiro(tab.total_venda_unit)}</td>
+                            <td>${dinheiro(tab.total_venda)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
 }
 
 async function mostrar_itens_restantes(id_orcam) {
