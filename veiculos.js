@@ -305,28 +305,31 @@ function abrirFormularioCadastro() {
 
             <div class="form-grupo">
                 <label>Custo Mensal</label>
-                <input type="text" id="custo_mensal" placeholder="R$ 0,00">
+                <input type="number" id="custo_mensal" placeholder="R$ 0,00">
             </div>
 
             <div class="form-grupo">
                 <label>Combustível</label>
                 <input type="number" id="litros" placeholder="Litros">
-                <input type="text" id="custo_litro" placeholder="Custo por litro">
+                <input type="number" id="custo_litro" placeholder="Custo por litro">
+                <input type="file" id="combustivel_anexo">
             </div>
 
             <div class="form-grupo">
                 <label>Pedágio</label>
                 <input type="text" id="tag_pedagio" placeholder="Tag do pedágio">
+                <input type="file" id="pedagio_anexo">
             </div>
 
             <div class="form-grupo">
                 <label>Estacionamento</label>
                 <input type="text" id="tag_estacionamento" placeholder="Tag do estacionamento">
+                <input type="file" id="estacionamento_anexo">
             </div>
 
             <div class="form-grupo">
                 <label>Custos Extras</label>
-                <input type="text" id="custos_extras" placeholder="R$ 0,00">
+                <input type="number" id="custos_extras" placeholder="R$ 0,00">
             </div>
 
             <div class="botoes-form">
