@@ -50,6 +50,7 @@ function criarLayoutPrincipal() {
                             <th>Estacionamento</th>
                             <th>Multas</th>
                             <th>Custos Extras</th>
+                            <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody id="tabelaMotoristas"></tbody>
@@ -305,7 +306,7 @@ function criarLinhaMotorista(motorista, idMotorista, nomeVeiculo) {
             <td>${motorista.nome || ''}</td>
             <td>
                 <button class="botao-dados-veiculo" onclick="mostrarDadosVeiculo('${dadosVeiculo}')">
-                    Ver Dados do Veículo
+                    Dados do Veículo
                 </button>
             </td>
             <td>
@@ -318,8 +319,64 @@ function criarLinhaMotorista(motorista, idMotorista, nomeVeiculo) {
             <td>${estacionamento.tag || ''}</td>
             <td>${Object.keys(multas.anexos || {}).length ? 'Sim' : 'Não'}</td>
             <td>${extras.valor || ''}</td>
+            <td style="text-align: center; width: max-content !important;">
+                <img src="imagens/excluir.png" style="width: 2vw; cursor: pointer;" onclick="confirmarExclusaoMotorista('${idMotorista}', '${nomeVeiculo}', '${motorista.nome}')" title="Excluir motorista">
+            </td>
         </tr>
     `;
+}
+
+async function confirmarExclusaoMotorista(idMotorista, nomeVeiculo, nomeMotorista) {
+    openPopup_v2(`
+        <div class="confirmar-exclusao-container">
+            <img src="gifs/alerta.gif" class="confirmar-exclusao-imagem">
+            <label>Tem certeza que deseja excluir o motorista ${nomeMotorista}?</label>
+            <div class="confirmar-exclusao-botoes">
+                <button onclick="remover_popup()" class="botao-cancelar">
+                    Cancelar
+                </button>
+                <button onclick="excluirMotorista('${idMotorista}', '${nomeVeiculo}')" class="botao-confirmar-exclusao">
+                    Confirmar Exclusão
+                </button>
+            </div>
+        </div>
+    `, 'Confirmar Exclusão');
+}
+
+async function excluirMotorista(idMotorista, nomeVeiculo) {
+    try {
+        let dados_veiculos = await recuperarDados('dados_veiculos') || {};
+        
+        delete dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
+        
+        await inserirDados(dados_veiculos, 'dados_veiculos');
+        
+        await deletar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`);
+
+        remover_popup();
+        
+        openPopup_v2(`
+            <div class="popup-message">
+                <img src="imagens/sucesso.png">
+                <label>Motorista excluído com sucesso!</label>
+            </div>
+        `, 'Sucesso');
+
+        await preencherTabelaMotoristas(nomeVeiculo);
+
+        setTimeout(() => {
+            remover_popup();
+        }, 500);
+
+    } catch (error) {
+        console.error('Erro ao excluir motorista:', error);
+        openPopup_v2(`
+            <div class="popup-message">
+                <img src="imagens/error.png">
+                <p>Erro ao excluir motorista. Tente novamente.</p>
+            </div>
+        `, 'Erro');
+    }
 }
 
 function mostrarDadosVeiculo(dadosVeiculoEncoded) {
@@ -400,10 +457,8 @@ async function abrirPopupCustos(idMotorista, nomeVeiculo, nomeMotorista) {
                                 <td>${custo.data}</td>
                                 <td>${dinheiro(custo.custo)}</td>
                                 <td>${custo.descricao}</td>
-                                <td>
-                                    <button onclick="excluirCusto('${idMotorista}', '${nomeVeiculo}', '${idCusto}')" class="botao-excluir">
-                                        Excluir
-                                    </button>
+                                <td style="text-align: center;">
+                                    <img src="imagens/excluir.png" style="width: 2vw; cursor: pointer;" onclick="excluirCusto('${idMotorista}', '${nomeVeiculo}', '${idCusto}')" title="Excluir motorista">
                                 </td>
                             </tr>
                         `).join('')}
@@ -605,7 +660,7 @@ async function filtrarMotoristas(input) {
             .sort((a, b) => a.nome.localeCompare(b.nome))
             .forEach(motorista => {
                 opcoesHtml += `
-                    <div class="autocomplete-item" onclick="selecionarMotorista('${motorista.nome}')">
+                    <div class="autocomplete-item" onclick="selecionarMotoristaExistente('${motorista.nome}')">
                         <div class="autocomplete-item-content">
                             <label class="autocomplete-item-title">${motorista.nome}</label>
                             <label class="autocomplete-item-subtitle">Veículo: ${motorista.veiculo.toUpperCase()}</label>
@@ -618,6 +673,14 @@ async function filtrarMotoristas(input) {
     } catch (error) {
         console.error('Erro ao filtrar motoristas:', error);
     }
+}
+
+function selecionarMotoristaExistente(nome) {
+    const input = document.getElementById('nome_motorista');
+    const div = input.nextElementSibling;
+    
+    input.value = nome;
+    div.innerHTML = '';
 }
 
 async function carregarFrotas(veiculo) {
@@ -818,5 +881,24 @@ async function atualizarListaMotoristas() {
                 <label>Erro ao atualizar lista de motoristas. Tente novamente.</label>
             </div>
         `, 'Erro');
+    }
+}
+
+async function atualizarDadosVeiculos() {
+    try {
+        await sincronizarDados('dados_veiculos', true);
+        
+        const container = document.getElementById('tabelaRegistro');
+        if (container) {
+            container.innerHTML = criarLayoutPrincipal();
+            const filtro = container.querySelector('.veiculos-toolbar-filtro');
+            const tbody = container.querySelector('#tabelaMotoristas');
+            await botoesVeiculos(filtro, tbody);
+        }
+
+        removerOverlay();
+    } catch (error) {
+        console.error('Erro ao atualizar dados:', error);
+        removerOverlay();
     }
 }

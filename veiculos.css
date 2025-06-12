@@ -458,3 +458,48 @@
 .botao-custos:hover {
   background-color: #1b5576;
 }
+
+.confirmar-exclusao-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+}
+
+.confirmar-exclusao-imagem {
+  width: 3vw;
+}
+
+.confirmar-exclusao-botoes {
+  display: flex;
+  gap: 10px;
+}
+
+.botao-cancelar {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 4px;
+  background-color: #6c757d;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.botao-confirmar-exclusao {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 4px;
+  background-color: #dc3545;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.botao-cancelar:hover {
+  background-color: #5a6268;
+}
+
+.botao-confirmar-exclusao:hover {
+  background-color: #c82333;
+}
