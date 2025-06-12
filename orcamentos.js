@@ -121,6 +121,12 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 
 }
 
+async function especialFalhasOrcamentos() {
+    await inserirDados({}, 'dados_orcamentos')
+    await sincronizarDados('dados_orcamentos')
+    await preencherOrcamentos()
+}
+
 async function preencherOrcamentos(alternar) {
 
     overlayAguarde()
@@ -132,7 +138,8 @@ async function preencherOrcamentos(alternar) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let desordenado = Object.entries(dados_orcamentos)
-    desordenado.sort((a, b) => new Date(b[1].dados_orcam.data) - new Date(a[1].dados_orcam.data))
+
+    desordenado.sort((a, b) => new Date(b[1]?.dados_orcam?.data || '') - new Date(a[1]?.dados_orcam?.data || ''))
     dados_orcamentos = Object.fromEntries(desordenado)
 
     let linhas = ''
@@ -145,6 +152,9 @@ async function preencherOrcamentos(alternar) {
         if ((arquivados && orcamento.arquivado) || (!arquivados && !orcamento.arquivado)) {
 
             let dados_orcam = orcamento.dados_orcam
+
+            if (!dados_orcam) return await especialFalhasOrcamentos()
+
             let data = new Date(dados_orcam.data).toLocaleString('pt-BR', {
                 dateStyle: 'short',
                 timeStyle: 'short'
