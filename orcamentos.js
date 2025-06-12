@@ -34,8 +34,7 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
     trs.forEach(tr => {
         let tds = tr.querySelectorAll('td')
         let status = tds[1].querySelector('select').value
-
-        var mostrarLinha = true;
+        let mostrarLinha = true
 
         for (var col in filtrosAtivos) {
             var filtroTexto = filtrosAtivos[col];
@@ -125,9 +124,11 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 async function preencher_orcamentos_v2(alternar) {
 
     overlayAguarde()
-    
+
     let div_orcamentos = document.getElementById('orcamentos')
     if (!div_orcamentos) return
+    document.getElementById('toolbar').innerHTML = ''
+    div_orcamentos.innerHTML = ''
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let desordenado = Object.entries(dados_orcamentos)
@@ -227,7 +228,6 @@ async function preencher_orcamentos_v2(alternar) {
         }
     }
 
-
     let cabecs = ['Última alteração', 'Status', 'Pedido', 'Notas', 'Chamado', 'Cliente', 'Cidade', 'Analista', 'Valor', 'LPU', 'Ações']
     let ths = ''
     let tsh = ''
@@ -252,15 +252,13 @@ async function preencher_orcamentos_v2(alternar) {
 
     let linhas_orcamento = document.getElementById('linhas_orcamento')
 
-    if (linhas !== '') {
+    if (linhas_orcamento) {
+        linhas_orcamento.innerHTML = linhas
 
-        if (linhas_orcamento) {
-            linhas_orcamento.innerHTML = linhas
+    } else {
 
-        } else {
-
-            div_orcamentos.innerHTML = ''
-            let tabela = `
+        div_orcamentos.innerHTML = ''
+        let tabela = `
                     <table id="orcamentos_" class="tabela" style="font-size: 0.8vw;">
                         <thead>
                             <tr>${ths}</tr>
@@ -271,12 +269,10 @@ async function preencher_orcamentos_v2(alternar) {
                         </tbody>
                     </table>
                     `
-            div_orcamentos.insertAdjacentHTML('beforeend', tabela)
-        }
-
-        filtrar_orcamentos('TODOS')
-
+        div_orcamentos.insertAdjacentHTML('beforeend', tabela)
     }
+
+    filtrar_orcamentos('TODOS')
 
     removerOverlay()
 

@@ -1221,8 +1221,6 @@ async function abrirAtalhos(id) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id]
-    console.log(orcamento);
-    
     let analista = orcamento.dados_orcam.analista
     let emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
 
@@ -1241,6 +1239,14 @@ async function abrirAtalhos(id) {
         </div>
         <hr>
     `
+    let termoArquivar = 'Arquivar Orçamento'
+    let iconeArquivar = 'pasta'
+
+    if (orcamento.arquivado) {
+        termoArquivar = 'Desarquivar Orçamento'
+        iconeArquivar = 'desarquivar'
+    }
+
     if (emAnalise) {
         acumulado += mensagem('Este orçamento precisa ser aprovado!')
 
@@ -1250,7 +1256,7 @@ async function abrirAtalhos(id) {
         ${modeloBotoes('pdf', 'Abrir Orçamento em PDF', `ir_pdf('${id}')`)}
         ${modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`)}
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
-        ${modeloBotoes('pasta', 'Arquivar Orçamento', `arquivarOrcamento('${id}')`)}
+        ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
         `
     }
 
@@ -1271,17 +1277,26 @@ async function arquivarOrcamento(idOrcamento) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[idOrcamento]
 
-    let dados = {
-        usuario: acesso.usuario,
-        data: data_atual('completa')
+    if (orcamento.arquivado) {
+        delete orcamento.arquivado
+        deletar(`dados_orcamentos/${idOrcamento}/arquivado`)
+        
+    } else {
+
+        let dados = {
+            usuario: acesso.usuario,
+            data: data_atual('completa')
+        }
+
+        orcamento.arquivado = dados
+        enviar(`dados_orcamentos/${idOrcamento}/arquivado`, dados)
     }
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    orcamento.arquivado = dados
-    enviar(`dados_orcamentos/${idOrcamento}/arquivado`, dados)
+    await preencher_orcamentos_v2()
     removerOverlay()
 
-    openPopup_v2(mensagem('Arquivado com sucesso!', 'ARQUIVAMENTO'))
+    openPopup_v2(mensagem(`${orcamento.arquivado ? 'Arquivado' : 'Desarquivado'} com sucesso!`, 'ARQUIVAMENTO'))
 
 }
 
