@@ -46,9 +46,9 @@ function verificarFluxograma() {
 
 }
 
-async function sincronizar_e_reabrir() {
+async function sincronizarReabrir() {
     await recuperar_orcamentos()
-    await abrir_esquema(id_orcam)
+    await abrirEsquema(id_orcam)
 }
 
 async function resumo_orcamentos() {
@@ -1040,7 +1040,7 @@ async function salvar_pedido(chave) {
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     remover_popup()
-    await abrir_esquema(id_orcam)
+    await abrirEsquema(id_orcam)
 
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
 
@@ -1090,7 +1090,7 @@ async function salvar_notas(chave) {
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     remover_popup()
-    await abrir_esquema(id_orcam)
+    await abrirEsquema(id_orcam)
 
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
 
@@ -1196,7 +1196,7 @@ async function salvar_requisicao(chave) {
         aguarde.remove()
     }
     remover_popup()
-    await abrir_esquema(id_orcam)
+    await abrirEsquema(id_orcam)
 }
 
 function botao_novo_pedido(id) {
@@ -1221,6 +1221,8 @@ async function abrirAtalhos(id) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id]
+    console.log(orcamento);
+    
     let analista = orcamento.dados_orcam.analista
     let emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
 
@@ -1244,10 +1246,11 @@ async function abrirAtalhos(id) {
 
     } else {
         acumulado += `
-        ${modeloBotoes('esquema', 'Histórico', `abrir_esquema('${id}')`)}
+        ${modeloBotoes('esquema', 'Histórico', `abrirEsquema('${id}')`)}
         ${modeloBotoes('pdf', 'Abrir Orçamento em PDF', `ir_pdf('${id}')`)}
         ${modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`)}
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
+        ${modeloBotoes('pasta', 'Arquivar Orçamento', `arquivarOrcamento('${id}')`)}
         `
     }
 
@@ -1262,46 +1265,27 @@ async function abrirAtalhos(id) {
 
 }
 
-async function remover_reprovacao(responsavel) {
+async function arquivarOrcamento(idOrcamento) {
 
+    overlayAguarde()
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let orcamento = dados_orcamentos[id_orcam]
+    let orcamento = dados_orcamentos[idOrcamento]
 
-    delete orcamento.aprovacao[responsavel]
-
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
-
-    await deletar(`dados_orcamentos/${id_orcam}/aprovacao/${responsavel}`)
-
-    abrirAtalhos(id_orcam)
-    await preencher_orcamentos_v2()
-}
-
-async function aprovar_orcamento(responsavel, aprovar, data) {
-    let justificativa = document.getElementById(`justificativa_${responsavel}`)
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let orcamento = dados_orcamentos[id_orcam]
-    let aprov = {
+    let dados = {
         usuario: acesso.usuario,
-        data: data,
-        justificativa: justificativa.value,
-        status: aprovar ? 'aprovado' : 'reprovado'
+        data: data_atual('completa')
     }
-
-    if (!orcamento.aprovacao) {
-        orcamento.aprovacao = {}
-    }
-
-    orcamento.aprovacao[responsavel] = aprov
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${id_orcam}/aprovacao/${responsavel}`, aprov)
+    orcamento.arquivado = dados
+    enviar(`dados_orcamentos/${idOrcamento}/arquivado`, dados)
+    removerOverlay()
 
-    abrirAtalhos(id_orcam)
-    await preencher_orcamentos_v2()
+    openPopup_v2(mensagem('Arquivado com sucesso!', 'ARQUIVAMENTO'))
+
 }
 
-async function abrir_esquema(id) {
+async function abrirEsquema(id) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
@@ -1331,7 +1315,7 @@ async function abrir_esquema(id) {
         var acumulado = `
         <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
         
-            <div onclick="sincronizar_e_reabrir()" style="display: flex; flex-direction: column; justify-content: left; align-items: center; cursor: pointer;">
+            <div onclick="sincronizarReabrir()" style="display: flex; flex-direction: column; justify-content: left; align-items: center; cursor: pointer;">
                 <img src="imagens/atualizar2.png" style="width: 3vw;">
                 <label style="font-size: 1vw;">Atualizar</label>
             </div>
@@ -2582,7 +2566,7 @@ function fecharPopup() {
     // Verifique se deve voltar pra o
     const lastView = JSON.parse(localStorage.getItem('lastStatusView'));
     if (lastView && lastView.view === 'status') {
-        abrir_esquema(lastView.id_orcam);
+        abrirEsquema(lastView.id_orcam);
     }
 }
 
@@ -2740,7 +2724,7 @@ async function iniciar_cotacao(id_orcam) {
 
     document.getElementById("aguarde").remove()
 
-    await abrir_esquema(id_orcam)
+    await abrirEsquema(id_orcam)
 
 }
 
@@ -2814,7 +2798,7 @@ async function salvarValorManual() {
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${id_orcam}/valoresManuais/${idValorManual}`, dados_orcamentos[id_orcam].valoresManuais[idValorManual]);
 
-    abrir_esquema(id_orcam)
+    abrirEsquema(id_orcam)
 
 }
 
@@ -2833,7 +2817,7 @@ async function removerValorManual(id_orcam, idValorManual) {
     await deletar(`dados_orcamentos/${id_orcam}/valoresManuais/${idValorManual}`);
 
     // 🔄 Atualiza a exibição do orçamento
-    abrir_esquema(id_orcam);
+    abrirEsquema(id_orcam);
 }
 
 function calcularResultado(orcamento) {
@@ -2928,7 +2912,7 @@ async function salvar_materiais_retorno(chave) {
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
     remover_popup()
-    await abrir_esquema(id_orcam)
+    await abrirEsquema(id_orcam)
 
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
 
@@ -2984,7 +2968,7 @@ async function registrar_envio_material(chave) {
     historico[chave] = status
 
     remover_popup()
-    await abrir_esquema(id_orcam)
+    await abrirEsquema(id_orcam)
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, status)
@@ -3218,7 +3202,7 @@ async function excluirAnexo(chave, id_anexo, img) {
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
-    await abrir_esquema(id_orcam)
+    await abrirEsquema(id_orcam)
 
     deletar(`dados_orcamentos/${id_orcam}/status/historico/anexos/${id_anexo}`)
 
@@ -3476,7 +3460,7 @@ async function apagar_status_historico(chave) {
     }
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await abrir_esquema(id_orcam)
+    await abrirEsquema(id_orcam)
 }
 
 async function deseja_apagar_cotacao(chave) {
@@ -3508,7 +3492,7 @@ async function apagar_status_historico_cotacao(chave) {
     await deletar(`dados_cotacao/${chave}`);
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await abrir_esquema(id_orcam)
+    await abrirEsquema(id_orcam)
 
 }
 

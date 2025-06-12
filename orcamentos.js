@@ -1,7 +1,8 @@
-var filtrosAtivos = {}
-var intervaloCompleto
-var intervaloCurto
-var filtro;
+let filtrosAtivos = {}
+let intervaloCompleto
+let intervaloCurto
+let filtro;
+let arquivados = false
 
 preencher_orcamentos_v2()
 
@@ -121,92 +122,88 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 
 }
 
-async function preencher_orcamentos_v2() {
+async function preencher_orcamentos_v2(alternar) {
 
+    overlayAguarde()
+    
     let div_orcamentos = document.getElementById('orcamentos')
-    if (!div_orcamentos) {
-        return
-    }
+    if (!div_orcamentos) return
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
-    for ([id, orcamento] of Object.entries(dados_orcamentos)) {
-        try {
-            orcamento.dados_orcam.data
-        } catch {
-            console.log(id)
-        }
-    }
-
     let desordenado = Object.entries(dados_orcamentos)
     desordenado.sort((a, b) => new Date(b[1].dados_orcam.data) - new Date(a[1].dados_orcam.data))
     dados_orcamentos = Object.fromEntries(desordenado)
 
     let linhas = ''
 
+    if (alternar) arquivados = !arquivados
+    document.getElementById('botaoArquivados').querySelector('label').textContent = arquivados ? 'Demais Orçamentos' : 'Orçamentos Arquivados'
+
     for ([idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
 
-        let dados_orcam = orcamento.dados_orcam
-        let data = new Date(dados_orcam.data).toLocaleString('pt-BR', {
-            dateStyle: 'short',
-            timeStyle: 'short'
-        })
+        if ((arquivados && orcamento.arquivado) || (!arquivados && !orcamento.arquivado)) {
 
-        let label_pedidos = ''
-        let label_notas = ''
+            let dados_orcam = orcamento.dados_orcam
+            let data = new Date(dados_orcam.data).toLocaleString('pt-BR', {
+                dateStyle: 'short',
+                timeStyle: 'short'
+            })
 
-        if (orcamento.status && orcamento.status.historico) {
-            let historico = orcamento.status.historico
-            for (chave1 in historico) {
+            let label_pedidos = ''
+            let label_notas = ''
 
-                let chave_historico = historico[chave1]
-                let status = chave_historico.status
+            if (orcamento.status && orcamento.status.historico) {
+                let historico = orcamento.status.historico
+                for (chave1 in historico) {
 
-                if (status == 'PEDIDO') {
+                    let chave_historico = historico[chave1]
+                    let status = chave_historico.status
 
-                    let num_pedido = chave_historico.pedido
-                    let tipo = chave_historico.tipo
-                    let valor_pedido = conversor(chave_historico.valor)
+                    if (status == 'PEDIDO') {
 
-                    label_pedidos += `
+                        let num_pedido = chave_historico.pedido
+                        let tipo = chave_historico.tipo
+                        let valor_pedido = conversor(chave_historico.valor)
+
+                        label_pedidos += `
                         <div class="etiqueta_pedidos"> 
                             <label style="font-size: 0.6vw;">${tipo}</label>
                             <label style="font-size: 0.7vw; margin: 2px;"><strong>${num_pedido}</strong></label>
                             <label style="font-size: 0.8vw; margin: 2px"><strong>${dinheiro(valor_pedido)}</strong></label>
                         </div>
                         `
-                }
+                    }
 
-                if (chave_historico.notas) {
+                    if (chave_historico.notas) {
 
-                    let nota = chave_historico.notas[0]
-                    let valor_nota = chave_historico.notas[0].valorNota || '---'
+                        let nota = chave_historico.notas[0]
+                        let valor_nota = chave_historico.notas[0].valorNota || '---'
 
 
-                    label_notas += `
+                        label_notas += `
                         <div class="etiqueta_pedidos">
                             <label style="font-size: 0.6vw;">${nota.modalidade}</label>
                             <label style="font-size: 0.7vw; margin: 2px;"><strong>${nota.nota}</strong></label>
                             <label style="font-size: 0.8vw; margin: 2px"><strong>${dinheiro(valor_nota)}</strong></label>
                         </div>
                     `
+                    }
                 }
             }
-        }
 
-        let st = 'INCLUIR PEDIDO'
-        if (orcamento.status && orcamento.status) {
-            st = orcamento.status.atual || 'INCLUIR PEDIDO'
-        }
+            let st = 'INCLUIR PEDIDO'
+            if (orcamento.status && orcamento.status) {
+                st = orcamento.status.atual || 'INCLUIR PEDIDO'
+            }
 
-        let opcoes = ''
-        for (fluxo in fluxograma) {
-            opcoes += `
+            let opcoes = ''
+            for (fluxo in fluxograma) {
+                opcoes += `
                 <option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>
             `
-        }
+            }
 
-        linhas += `
+            linhas += `
             <tr>
                 <td>${data}</td>
                 <td>
@@ -227,7 +224,9 @@ async function preencher_orcamentos_v2() {
                 </td>
             </tr>
             `
+        }
     }
+
 
     let cabecs = ['Última alteração', 'Status', 'Pedido', 'Notas', 'Chamado', 'Cliente', 'Cidade', 'Analista', 'Valor', 'LPU', 'Ações']
     let ths = ''
@@ -278,6 +277,8 @@ async function preencher_orcamentos_v2() {
         filtrar_orcamentos('TODOS')
 
     }
+
+    removerOverlay()
 
 }
 

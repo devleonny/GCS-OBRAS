@@ -1196,7 +1196,7 @@ async function ocultarZerados(ocultar) {
 
 async function tabelaProdutos() {
 
-    let permissoes = ['adm', 'log', 'editor', 'gerente', 'diretor']
+    let permissoes = ['adm', 'log', 'editor', 'gerente', 'diretor', 'coordenacao']
     let moduloComposicoes = permissoes.includes(acesso.permissao)
 
     let tabelas = { TODOS: { linhas: '' } }
