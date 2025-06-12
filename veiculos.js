@@ -404,16 +404,14 @@ async function abrirFormularioCadastro() {
     let dados_veiculos = await recuperarDados('dados_veiculos') || { veiculos: {} };
 
     let opcoesVeiculos = '<option value="">Selecione o veículo</option>';
-    Object.keys(dados_veiculos.veiculos).forEach(veiculo => {
-        opcoesVeiculos += `<option value="${veiculo}">${veiculo.toUpperCase()}</option>`;
-    });
+    Object.entries(dados_veiculos.veiculos)
+        .filter(([key]) => key !== 'timestamp')
+        .forEach(([veiculo]) => {
+            opcoesVeiculos += `<option value="${veiculo}">${veiculo.toUpperCase()}</option>`;
+        });
 
     const form = `
         <div class="form-cadastro-motorista">
-            <button class="botao-form secundario" onclick="atualizarListaMotoristas()">
-                Atualizar Lista de Motoristas
-            </button>
-        
             <div class="form-grupo">
                 <label>Nome do Motorista</label>
                 <div class="autocomplete-container">
@@ -422,7 +420,7 @@ async function abrirFormularioCadastro() {
                         id="nome_motorista"
                         type="text"
                         placeholder="Digite o nome do motorista..."
-                        oninput="carregarMotoristas(this)"
+                        oninput="filtrarMotoristas(this)"
                     >
                     <div class="autocomplete-list"></div>
                 </div>
@@ -430,26 +428,117 @@ async function abrirFormularioCadastro() {
             
             <div class="form-grupo">
                 <label>Selecione o Veículo</label>
-                <select id="veiculo_selecionado" required>
+                <select id="veiculo_selecionado" onchange="carregarFrotas(this.value)" required>
                     ${opcoesVeiculos}
                 </select>
             </div>
 
             <div class="form-grupo">
                 <label>Dados do Veículo</label>
-                <input type="text" id="placa" placeholder="Placa">
-                <input type="text" id="modelo" placeholder="Modelo">
-                <select id="status">
-                    <option value="">Selecione o status</option>
-                    <option value="locado">Locado</option>
-                    <option value="devolvido">Devolvido</option>
+                <label>Placa</label>
+                <select id="placa" onchange="preencherDadosFrota(this.value)">
+                    <option value="">Selecione a placa</option>
                 </select>
+                <label>Modelo</label>
+                <input type="text" id="modelo" placeholder="Modelo" readonly>
+                <label>Status</label>
+                <input type="text" id="status" placeholder="status" readonly>
             </div>
-            <!-- ... rest of the existing form ... -->
+
+            <div class="form-grupo">
+                <button class="botao-form primario" onclick="cadastrarMotorista()">
+                    Cadastrar Motorista
+                </button>
+            </div>
         </div>
     `;
 
     openPopup_v2(form, 'Cadastro de Motorista');
+}
+
+async function filtrarMotoristas(input) {
+    const div = input.nextElementSibling;
+    const pesquisa = input.value.toLowerCase().trim();
+
+    if (!pesquisa) {
+        div.innerHTML = '';
+        return;
+    }
+
+    try {
+        let dados_veiculos = await recuperarDados('dados_veiculos') || { veiculos: {} };
+        let motoristasEncontrados = new Set();
+
+        Object.entries(dados_veiculos.veiculos)
+            .filter(([key]) => key !== 'timestamp')
+            .forEach(([veiculo, dados]) => {
+                Object.values(dados.motoristas || {}).forEach(motorista => {
+                    if (motorista.nome.toLowerCase().includes(pesquisa)) {
+                        motoristasEncontrados.add(JSON.stringify({
+                            nome: motorista.nome,
+                            veiculo: veiculo
+                        }));
+                    }
+                });
+            });
+
+        let opcoesHtml = '';
+        Array.from(motoristasEncontrados)
+            .map(m => JSON.parse(m))
+            .sort((a, b) => a.nome.localeCompare(b.nome))
+            .forEach(motorista => {
+                opcoesHtml += `
+                    <div class="autocomplete-item" onclick="selecionarMotorista('${motorista.nome}')">
+                        <div class="autocomplete-item-content">
+                            <label class="autocomplete-item-title">${motorista.nome}</label>
+                            <label class="autocomplete-item-subtitle">Veículo: ${motorista.veiculo.toUpperCase()}</label>
+                        </div>
+                    </div>
+                `;
+            });
+
+        div.innerHTML = opcoesHtml;
+    } catch (error) {
+        console.error('Erro ao filtrar motoristas:', error);
+    }
+}
+
+async function carregarFrotas(veiculo) {
+    const selectPlaca = document.getElementById('placa');
+    selectPlaca.innerHTML = '<option value="">Selecione a placa</option>';
+
+    if (!veiculo) return;
+
+    let dados_veiculos = await recuperarDados('dados_veiculos') || { veiculos: {} };
+    const frotas = dados_veiculos.veiculos[veiculo]?.frotas || {};
+
+    Object.values(frotas).forEach(frota => {
+        selectPlaca.innerHTML += `
+            <option value="${frota.placa}">${frota.placa}</option>
+        `;
+    });
+
+    // Limpar campos
+    document.getElementById('modelo').value = '';
+    document.getElementById('status').value = '';
+}
+
+async function preencherDadosFrota(placa) {
+    if (!placa) return;
+
+    const veiculoSelecionado = document.getElementById('veiculo_selecionado').value;
+    let dados_veiculos = await recuperarDados('dados_veiculos') || { veiculos: {} };
+    const frota = dados_veiculos.veiculos[veiculoSelecionado]?.frotas[placa];
+
+    if (frota) {
+        document.getElementById('modelo').value = frota.modelo;
+        document.getElementById('status').value = frota.status;
+    }
+}
+
+function selecionarMotorista(nome) {
+    document.getElementById('nome_motorista').value = nome;
+    document.querySelector('.autocomplete-list').innerHTML = '';
 }
 
 async function carregarMotoristas(textarea) {
@@ -510,14 +599,8 @@ async function cadastrarMotorista() {
     const placa = document.getElementById('placa').value;
     const modelo = document.getElementById('modelo').value;
     const status = document.getElementById('status').value;
-    const custoMensal = document.getElementById('custo_mensal').value;
-    const litros = document.getElementById('litros').value;
-    const custoLitro = document.getElementById('custo_litro').value;
-    const tagPedagio = document.getElementById('tag_pedagio').value;
-    const tagEstacionamento = document.getElementById('tag_estacionamento').value;
-    const custosExtras = document.getElementById('custos_extras').value;
 
-    const camposObrigatorios = [nome, veiculoSelecionado, placa, modelo];
+    const camposObrigatorios = [nome, veiculoSelecionado, placa];
     if (camposObrigatorios.some(campo => campo === '')) {
         openPopup_v2('Por favor, preencha os campos obrigatórios', 'Campos Obrigatórios', true);
         return;
@@ -527,7 +610,7 @@ async function cadastrarMotorista() {
         await sincronizarDados('dados_veiculos');
         let dados_veiculos = await recuperarDados('dados_veiculos') || { veiculos: {} };
 
-        const idMotorista = Date.now().toString();
+        const idMotorista = gerar_id_5_digitos();
 
         const novoMotorista = {
             nome: nome,
@@ -535,40 +618,33 @@ async function cadastrarMotorista() {
                 placa: placa,
                 modelo: modelo,
                 status: status
-            },
-            custo_mensal_veiculo: custoMensal,
-            combustível: {
-                litros: litros,
-                custo_litro: custoLitro,
-                custo_total: (Number(litros) * Number(custoLitro)).toFixed(2)
-            },
-            pedagio: {
-                tag: tagPedagio
-            },
-            estacionamento: {
-                tag: tagEstacionamento
-            },
-            custos_extras: {
-                valor: custosExtras
             }
         };
 
-        if (!dados_veiculos.veiculos[veiculoSelecionado]) {
-            dados_veiculos.veiculos[veiculoSelecionado] = {
-                motoristas: {}
-            };
+        if (!dados_veiculos.veiculos[veiculoSelecionado].motoristas) {
+            dados_veiculos.veiculos[veiculoSelecionado].motoristas = {};
         }
 
         dados_veiculos.veiculos[veiculoSelecionado].motoristas[idMotorista] = novoMotorista;
 
         await inserirDados(dados_veiculos, 'dados_veiculos');
-
         await enviar(`dados_veiculos/veiculos/${veiculoSelecionado}/motoristas/${idMotorista}`, novoMotorista);
 
-        preencherTabelaMotoristas(veiculoSelecionado);
+        await preencherTabelaMotoristas(veiculoSelecionado);
 
         removerOverlay();
         remover_popup();
+
+        openPopup_v2(`
+            <div class="popup-message">
+                <img src="imagens/sucesso.png">
+                <label>Motorista cadastrado com sucesso!</label>
+            </div>
+        `, 'Sucesso');
+
+        setTimeout(() => {
+            remover_popup();
+        }, 1500);
 
     } catch (error) {
         console.error('Erro ao cadastrar motorista:', error);
