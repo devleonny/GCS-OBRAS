@@ -121,12 +121,6 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 
 }
 
-async function especialFalhasOrcamentos() {
-    await inserirDados({}, 'dados_orcamentos')
-    await sincronizarDados('dados_orcamentos')
-    await preencherOrcamentos()
-}
-
 async function preencherOrcamentos(alternar) {
 
     let div_orcamentos = document.getElementById('orcamentos')
