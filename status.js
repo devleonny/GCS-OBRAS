@@ -1,12 +1,6 @@
 let itens_adicionais = {}
 let filtrosTabelaParceiros = {}
 let id_orcam = ''
-let dataAtual = new Date();
-let data_status = dataAtual.toLocaleString('pt-BR', {
-    dateStyle: 'short',
-    timeStyle: 'short'
-});
-
 let fluxograma = {}
 let fluxogramaClone = {
     'ORÇAMENTOS': { cor: '#1CAF29' },
@@ -18,7 +12,7 @@ let fluxogramaClone = {
     'CONCLUÍDO': { cor: '#ff4500' },
     'FATURADO': { cor: '#b17724' },
     'PAGAMENTO RECEBIDO': { cor: '#b17724' },
-    'LPU PARCEIRO': {cor: '#003153'}
+    'LPU PARCEIRO': { cor: '#003153' }
 
 }
 
@@ -35,7 +29,7 @@ let fluxogramaPadrao = fluxograma = {
     'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
     'RETORNO DE MATERIAIS': { cor: '#aacc14' },
     'FINALIZADO': { cor: 'blue' },
-    'LPU PARCEIRO': {cor: '#003153'}
+    'LPU PARCEIRO': { cor: '#003153' }
 
 }
 
@@ -873,6 +867,7 @@ async function sugestoes(textarea, div, base) {
 
 }
 
+
 async function definir_campo(elemento, div, id) {
 
     let campo = String(div).split('_')[1]
@@ -917,6 +912,8 @@ async function definir_campo(elemento, div, id) {
     document.getElementById(campo).value = elemento.textContent
     document.getElementById(div).innerHTML = '' // Sugestões
 }
+
+
 
 function salvar_itens_adicionais(codigo) {
     let tabela = document.getElementById('linhas_manutencao')
@@ -1129,7 +1126,7 @@ async function salvar_requisicao(chave) {
     //Criar novo lançamento
     var novo_lancamento = {
         status: 'REQUISIÇÃO',
-        data: data_status,
+        data: data_atual('completa'),
         executor: acesso.usuario,
         comentario: document.getElementById("comentario_status").value,
         requisicoes: [],
@@ -1505,7 +1502,7 @@ async function abrir_esquema(id) {
                     `
             }
 
-              if (sst.status && typeof sst.status === 'string' && sst.status.includes('LPU PARCEIRO')) {
+            if (sst.status && typeof sst.status === 'string' && sst.status.includes('LPU PARCEIRO')) {
                 links_requisicoes += `
                     <div onclick="detalhar_lpu_parceiro('${chave}', undefined, true)" class="label_requisicao">
                         <img src="gifs/lampada.gif" style="width: 25px">
@@ -3004,7 +3001,7 @@ async function registrar_envio_material(chave) {
     let st = 'MATERIAL ENVIADO'
 
     status.executor = acesso.usuario
-    status.data = data_status
+    status.data = data_atual('completa')
     status.status = st
 
     historico[chave] = status
@@ -3275,7 +3272,7 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
     let menu_flutuante = ''
     let nome_cliente = orcamento.dados_orcam.cliente_selecionado
 
-   
+
     let comentarioExistente = ''
 
     if (chave && orcamento.status && orcamento.status.historico && orcamento.status.historico[chave]) {
@@ -3290,7 +3287,7 @@ async function detalhar_requisicao(chave, tipoRequisicao, apenas_visualizar) {
         </div> 
         `
 
-        
+
 
         if (cartao.comentario) {
             comentarioExistente = cartao.comentario
@@ -3455,7 +3452,7 @@ async function carregar_anexos(chave) {
     let orcamento = dados_orcamentos[id_orcam]
     let anexos_divs = ''
     let anexos = orcamento.status.historico[chave]?.anexos || {}
-    
+
 
     if (anexos) {
 
@@ -3829,29 +3826,32 @@ async function modalLPUParceiro() {
     acumulado =
         `
         <div style="background-color: #d2d2d2; padding: 5px; border-radius: 3px">
-        <div style="display: flex">
-            <div style=" display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px; margin-left: 10px">
-            ${stringHtml('Data', data_atual('completa'))}
-            ${stringHtml('Analista', acesso.nome_completo)}
-            ${stringHtml('Cliente',dadosEmpresa.cliente_selecionado)}
-            ${stringHtml('CNPJ',dadosEmpresa.cnpj)}
-            ${stringHtml('Endereço',dadosEmpresa.bairro)}
-            ${stringHtml('Cidade',dadosEmpresa.cidade)}
-            ${stringHtml('Estado',dadosEmpresa.estado)}
-            ${stringHtml('Margem para este serviço(%)', `<input id="margem_lpu" class="input-lpuparceiro" value="35" oninput="calcularLpuParceiro()">`)}
+            <div style="display: flex; justify-content: space-between;" margin-top: 5px>
+                <div style=" display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px; margin-left: 10px">
+                ${stringHtml('Data', data_atual('completa'))}
+                ${stringHtml('Analista', acesso.nome_completo)}
+                ${stringHtml('Cliente', dadosEmpresa.cliente_selecionado)}
+                ${stringHtml('CNPJ', dadosEmpresa.cnpj)}
+                ${stringHtml('Endereço', dadosEmpresa.bairro)}
+                ${stringHtml('Cidade', dadosEmpresa.cidade)}
+                ${stringHtml('Estado', dadosEmpresa.estado)}
+                ${stringHtml('Margem para este serviço(%)', `<input id="margem_lpu" class="input-lpuparceiro" value="35" oninput="calcularLpuParceiro()">`)}
+                ${stringHtml('Técnico:', `<textarea type="text" id="tecnico" oninput="sugestoesParceiro(this, 'clientes')" placeholder="Qual o nome do técnico?"></textarea><input style= "display: none">`)}
+                
+                </div>
+        
+                <div style="margin-top: 5px">
+                     ${stringHtml('Resumo', '<lalbel style="margin-bottom: 5px; padding: 10px 0 20px"></lalbel>')}
+                    ${stringHtml('Total do Valor Orçamento', '<lalbel style="margin-bottom: 5px; padding: 10px 0 20px"id="totalOrcamento"></lalbel>')}
+                    ${stringHtml('Total Margem Disponível', '<lalbel id="totalMargem"></lalbel>')}
+                    ${stringHtml('Total do Valor Parceiro', '<lalbe id="totalParceiro"l></lalbe>')}
+                    ${stringHtml('Total Desvio', '<lalbel id="totalDesvio"></lalbel>')}
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; margin-left: auto gap: 5px; margin-top:5px;">
+                    <button onclick=salvar_lpu_parceiro()>Salvar</button>
+                    <button>Gerar PDF</button>
+                </div>
             </div>
-       
-            <div style="margin-top: 15px">
-                ${stringHtml('Total do Valor Orçamento', '<lalbel style="margin-bottom: 5px; padding: 10px 0 20px"id="totalOrcamento"></lalbel>')}
-                ${stringHtml('Total Margem Disponível', '<lalbel id="totalMargem"></lalbel>')}
-                ${stringHtml('Total do Valor Parceiro', '<lalbe id="totalParceiro"l></lalbe>')}
-                ${stringHtml('Total Desvio', '<lalbel id="totalDesvio"></lalbel>')}
-            </div>
-            <div>
-                <button onclick=salvar_lpu_parceiro()>Salvar</button>
-                <button>Gerar PDF</button>
-            </div>
-        </div>
         <br>
         ${tabela}
         </div>
@@ -3903,7 +3903,7 @@ function calcularLpuParceiro() {
     const totalDesvioElement = document.getElementById('totalDesvio')
     totalDesvioElement.textContent = dinheiro(totais.desvio)
     document.getElementById('totalMargem').textContent = dinheiro(totais.margem)
-     
+
     if (totais.desvio > 0) {
         totalDesvioElement.style.color = 'green'
     } else {
@@ -3985,12 +3985,12 @@ async function salvar_lpu_parceiro() {
 
     remover_popup()
     await abrir_esquema(id_orcam)
-    
+
 }
 
 
 
-  async function detalhar_lpu_parceiro(chave, apenas_visualizar = false) {
+async function detalhar_lpu_parceiro(chave, apenas_visualizar = false) {
     if (!chave) chave = gerar_id_5_digitos();
 
     let dados_lpu = await recuperarDados('dados_orcamentos') || {};
@@ -4001,23 +4001,29 @@ async function salvar_lpu_parceiro() {
 
 function adicionarItemAdicional() {
     const bodyTabela = document.getElementById('bodyTabela');
+    let idAleatoria = gerar_id_5_digitos()
 
     if (!document.getElementById('labelItensAdicionais')) {
         const labelRow = document.createElement('tr');
         labelRow.id = 'labelItensAdicionais';
         labelRow.innerHTML = `
             <td colspan="11" style="text-align: center; font-weight: bold; padding-top: 15px;">
-                ITENS ADICIONAIS
+                SERVIÇOS ADICIONAIS
             </td>
         `;
         bodyTabela.appendChild(labelRow);
     }
 
-   
+
     const novaLinha = document.createElement('tr');
     novaLinha.innerHTML = `
-        <td contenteditable="true"></td>
-        <td contenteditable="true"></td>
+        <td>
+            
+        </td>
+        <td >
+            <textarea id="${idAleatoria}"style="border: none;" oninput="sugestoesParceiro(this, 'composicoes')"></textarea>
+            <input style="display: none;">
+        </td>
         <td contenteditable="true"></td>
         <td class="quantidade" contenteditable="true"></td>
         <td></td>
@@ -4039,4 +4045,134 @@ function adicionarItemAdicional() {
         <td><label></label></td>
     `;
     bodyTabela.appendChild(novaLinha);
+}
+
+
+
+
+
+function removerItemAdicional(botao) {
+    openPopup_v2(`
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
+            <label>Deseja apagar este item adicional?</label>
+            <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
+                <button style="background-color: green;" onclick="confirmarRemocaoLinha(this)">Confirmar</button>
+                <button style="background-color: red;" onclick="fecharPopup()">Cancelar</button>
+            </div>
+        </div>
+    `, 'Aviso', true);
+
+    // Armazena a linha que será removida no botão para referência posterior
+    window.linhaParaRemover = botao.closest('tr');
+}
+
+function confirmarRemocaoLinha() {
+    if (window.linhaParaRemover) {
+        window.linhaParaRemover.remove();
+        window.linhaParaRemover = null;
+
+        // Se não houver mais itens adicionais, remove a label também
+        const bodyTabela = document.getElementById('bodyTabela');
+        const temMaisItensAdicionais = [...bodyTabela.rows].some(row =>
+            row.querySelector('button[onclick^="removerItemAdicional"]')
+        );
+
+        if (!temMaisItensAdicionais) {
+            const label = document.getElementById('labelItensAdicionais');
+            if (label) label.remove();
+        }
+
+        fecharPopup();
+    }
+}
+
+
+async function sugestoesParceiro(textarea, base) {
+    
+    let baseOrcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = baseOrcamentos[id_orcam]
+    let lpu = String(orcamento.lpu_ativa).toLocaleLowerCase()
+
+    let query = String(textarea.innerText || textarea.value).toUpperCase()
+
+    let div_sugestoes = document.getElementById('div_sugestoes')
+    if (div_sugestoes) {
+        div_sugestoes.remove()
+    }
+
+    if (query === '') {
+        let campo = textarea.id
+        let endereco = document.getElementById(`endereco_${campo}`)
+
+        if (endereco) {
+            document.getElementById(`codigo_${campo}`).innerHTML = ''
+            endereco.innerHTML = ''
+            return
+        }
+
+        return
+    }
+
+    let dados = await recuperarDados(`dados_${base}`) || {}
+    let opcoes = ''
+    
+    for (id in dados) {
+        let item = dados[id]
+        let info = '';
+        let codBases;
+        let unidade = ''
+        let valor = ''
+
+        if (base == 'clientes') {
+            codBases = item.omie
+            info = String(item.nome)
+
+        } else if (base == 'composicoes') {
+            if(item.tipo != 'SERVIÇO') continue
+                codBases = item.codigo
+                info = String(item.descricao)
+                unidade = item.unidade
+                let historico = item?.[lpu]?.historico
+                let ativo = item?.[lpu]?.ativo
+                valor = historico?.[ativo]?.valor || 0
+        }
+
+        if (info.includes(query)) {
+            opcoes += `
+                <div onclick="definirCampoParceiro(this, '${textarea.id}', '${codBases}', '${unidade}', ${valor})" class="autocomplete-item" style="font-size: 0.8vw;">${info}</div>
+            `
+        }
+        
+    }
+    
+    
+    let posicao = textarea.getBoundingClientRect()
+    let left = posicao.left + window.scrollX
+    let top = posicao.bottom + window.scrollY
+
+    let div = `
+    <div id="div_sugestoes" class="autocomplete-list" style="position: absolute; top: ${top}px; left: ${left}px; border: 1px solid #ccc; width: 15vw;">
+        ${opcoes}
+    </div>`
+
+    document.body.insertAdjacentHTML('beforeend', div)
+    
+}
+
+async function definirCampoParceiro(elemento, idAleatoria, codBases, unidade, valor  ) {
+    let campo = document.getElementById(idAleatoria)
+
+    if (idAleatoria === 'tecnico') {
+        campo.nextElementSibling.value = codBases
+    } else {
+        campo.parentElement.previousElementSibling.textContent = codBases
+        campo.parentElement.nextElementSibling.textContent = unidade
+        campo.parentElement.nextElementSibling.nextElementSibling.nextElementSibling.textContent = dinheiro(valor)
+        
+    }
+    
+    campo.value = elemento.textContent
+   
+    document.getElementById('div_sugestoes').remove() // Sugestões
+  
 }
