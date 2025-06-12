@@ -6,19 +6,21 @@ let fluxogramaClone = {
     'ORÇAMENTOS': { cor: '#1CAF29' },
     'LOGÍSTICA': { cor: '#4CAF10' },
     'NFE - VENDAS': { cor: '#B05315' },
+    'LPU PARCEIRO': { cor: '#003153' },
     'REQUISIÇÃO': { cor: '#B12425' },
     'MATERIAL ENVIADO': { cor: '#b17724' },
     'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
     'CONCLUÍDO': { cor: '#ff4500' },
     'FATURADO': { cor: '#b17724' },
-    'PAGAMENTO RECEBIDO': { cor: '#b17724' },
-    'LPU PARCEIRO': { cor: '#003153' }
+    'PAGAMENTO RECEBIDO': { cor: '#b17724' }
+    
 
 }
 
 let fluxogramaPadrao = fluxograma = {
     'INCLUIR PEDIDO': { cor: '#4CAF50' },
     'PEDIDO': { cor: '#4CAF50' },
+    'LPU PARCEIRO': { cor: '#003153' },
     'REQUISIÇÃO': { cor: '#B12425' },
     'MATERIAL SEPARADO': { cor: '#b17724' },
     'FATURADO': { cor: '#ff4500' },
@@ -28,8 +30,8 @@ let fluxogramaPadrao = fluxograma = {
     'COTAÇÃO PENDENTE': { cor: '#0a989f' },
     'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
     'RETORNO DE MATERIAIS': { cor: '#aacc14' },
-    'FINALIZADO': { cor: 'blue' },
-    'LPU PARCEIRO': { cor: '#003153' }
+    'FINALIZADO': { cor: 'blue' }
+
 
 }
 
@@ -1513,7 +1515,7 @@ async function abrir_esquema(id) {
                     </div>
                     `
                 editar = `
-                    <div style="background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}" class="contorno_botoes" onclick="detalhar_requisicao('${chave}')">
+                    <div style="background-color: ${fluxogramaMesclado[sst.status]?.cor || '#808080'}" class="contorno_botoes" onclick="editarLpuParceiro('${chave}')">
                         <img src="imagens/editar4.png">
                         <label>Editar</label>
                     </div>
@@ -1567,6 +1569,50 @@ async function abrir_esquema(id) {
                     </div>
                     `
             }
+
+            if (String(sst.status).includes('LPU PARCEIRO')) {
+            // Adicionar tratamento específico para LPU Parceiro
+            let dadosLpu = sst;
+            
+            blocos_por_status['LPU PARCEIRO'] += `
+                <div class="bloko" style="border: 1px solid ${fluxogramaMesclado['LPU PARCEIRO'].cor}; background-color: white;">
+                <div style="cursor: pointer; padding: 10px; background-color: ${fluxogramaMesclado['LPU PARCEIRO'].cor}1f;">
+                    <label><strong>Executor:</strong> ${dadosLpu.analista}</label>
+                    <label><strong>Data:</strong> ${dadosLpu.data}</label>
+                    <label><strong>Margem:</strong> ${dadosLpu.margem_percentual}%</label>
+                    
+                    <div class="escondido" style="display: none;">
+                        <table class="tabela">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Quantidade</th>
+                                    <th>Valor Unitário</th>
+                                    <th>Total Parceiro</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${Object.values(dadosLpu.itens).map(item => `
+                                    <tr>
+                                        <td>${item.descricao}</td>
+                                        <td>${item.qtde}</td>
+                                        <td>${dinheiro(item.valor_parceiro_unitario)}</td>
+                                        <td>${dinheiro(item.total_parceiro)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        
+                        <button onclick="editarLpuParceiro('${chave}')">Editar</button>
+                    </div>
+                </div>
+                <div onclick="exibirItens(this)" style="cursor: pointer; background-color: ${fluxogramaMesclado['LPU PARCEIRO'].cor}; padding: 5px; text-align: center;">
+                    <label style="color: white;">▼</label>
+                </div>
+            </div>
+        `;
+    }
+
 
             var notas = ''
             if (sst.notas) {
@@ -3777,7 +3823,7 @@ async function modalLPUParceiro() {
             linhas += `
             <tr>
                 <td>${codigo}</td>
-                <td>${composicao.descricao}</td>
+                <td style="width: 50px; heigth: 50px">${composicao.descricao}</td>
                 <td>${composicao.unidade}</td>
                 <td class="quantidade">${qtde}</td>
                 <td>${dinheiro(custo)}</td>
@@ -3788,7 +3834,7 @@ async function modalLPUParceiro() {
                     <div style="display: flex; align-items: stretch; gap: 4px; width: 100%; height: 100%; box-sizing: border-box; padding: 2px 5px;">
                         <span style="display: flex; align-items: center;">R$</span>
                         <input
-                            oninput="calcularLpuParceiro()" 
+                            oninput="atualizarValorParceiro(this)" 
                             type="number" 
                             class="input-lpuparceiro" 
                             step="0.01"
@@ -3874,30 +3920,45 @@ function calcularLpuParceiro() {
     }
 
 
-    const bodyTabela = document.getElementById('bodyTabela')
-    const trs = bodyTabela.querySelectorAll('tr')
+    const bodyTabela = document.getElementById('bodyTabela');
+const trs = bodyTabela?.querySelectorAll('tr') || [];
 
-    for (tr of trs) {
-        let tds = tr.querySelectorAll('td')
+for (const tr of trs) {
+    const tds = tr.querySelectorAll('td');
 
-        let unitarioParceiro = Number(tds[8].querySelector('input').value)
-        let quantidade = conversor(tds[3].textContent)
-        let totalParceiro = quantidade * unitarioParceiro
-        tds[9].textContent = dinheiro(totalParceiro)
-        let totalOrcado = conversor(tds[5].textContent)
-        let totalMargem = totalOrcado * margemCalculo
-        let desvio = totalMargem - totalParceiro
-        tds[7].textContent = dinheiro(totalMargem)
-        let tdTotal = tds[10].querySelector('label')
-        tdTotal.textContent = dinheiro(desvio)
-        tdTotal.classList = desvio > 0 ? 'valor_preenchido' : 'valor_zero'
+    // Proteção: verifica se existem colunas suficientes
+    if (tds.length < 11) continue;
 
-        totais.orcamento += totalOrcado
-        totais.parceiro += totalParceiro
-        totais.desvio += desvio
-        totais.margem += totalMargem
+    // Tenta recuperar o input
+    const inputParceiro = tds[8].querySelector('input');
+    const labelDesvio = tds[10].querySelector('label');
 
-    }
+    if (!inputParceiro || !labelDesvio) continue;
+
+    const unitarioParceiro = Number(inputParceiro.value);
+    const quantidade = conversor(tds[3].textContent);
+    const totalParceiro = quantidade * unitarioParceiro;
+
+    tds[9].textContent = dinheiro(totalParceiro);
+
+    const totalOrcado = conversor(tds[5].textContent);
+    const totalMargem = totalOrcado * margemCalculo;
+    
+
+
+    const ehAdicional = tr.classList.contains('item-adicional')
+    let desvio = ehAdicional ? totalParceiro : totalMargem - totalParceiro;
+    labelDesvio.className = ehAdicional ? 'valor_zero' : (desvio > 0 ? 'valor_preenchido' : 'valor_zero');
+
+    
+    tds[7].textContent = dinheiro(totalMargem);
+    labelDesvio.textContent = dinheiro(desvio);
+
+    totais.orcamento += totalOrcado;
+    totais.parceiro += totalParceiro;
+    totais.desvio += desvio;
+    totais.margem += totalMargem;
+}
     document.getElementById('totalOrcamento').textContent = dinheiro(totais.orcamento)
     document.getElementById('totalParceiro').textContent = dinheiro(totais.parceiro)
     const totalDesvioElement = document.getElementById('totalDesvio')
@@ -3938,14 +3999,20 @@ async function salvar_lpu_parceiro() {
 
     let trs = document.querySelectorAll('#bodyTabela tr');
 
-    let chave = gerar_id_5_digitos()
+    let chave = sessionStorage.getItem('chave_lpu_em_edicao') || gerar_id_5_digitos();
 
-    for (let tr of trs) {
-        let tds = tr.querySelectorAll('td')
+    
+for (let tr of trs) {
+    let tds = tr.querySelectorAll('td');
+    
+    if (tds.length < 11) {
+        console.warn('Linha ignorada por ter menos de 11 células:', tr);
+        continue;
+    }
 
         let codigo = tds[0].textContent.trim();
-        let descricao = tds[1].textContent.trim();
-        let unidade = tds[2].textContent.trim();
+        let descricao = extrairTextoOuInput(tds[1])
+        let unidade = extrairTextoOuInput(tds[2])
         let qtde = conversor(tds[3].textContent.trim());
         let valor_orcado = conversor(tds[4].textContent.trim());
         let total_orcado = conversor(tds[5].textContent.trim());
@@ -3954,6 +4021,7 @@ async function salvar_lpu_parceiro() {
         let total_parceiro = qtde * valor_parceiro_unitario;
         let margem_reais = total_orcado * (margem / 100);
         let desvio = margem_reais - total_parceiro;
+        
 
         novo_lancamento.itens[codigo] = {
             descricao,
@@ -3982,10 +4050,17 @@ async function salvar_lpu_parceiro() {
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento);
+    sessionStorage.removeItem('chave_lpu_em_edicao');
 
     remover_popup()
     await abrir_esquema(id_orcam)
 
+}
+
+function extrairTextoOuInput(td) {
+    if (!td) return ''
+    const input = td.querySelector('input');
+    return input ? input.value.trim() : td.textContent.trim();
 }
 
 
@@ -4016,16 +4091,23 @@ function adicionarItemAdicional() {
 
 
     const novaLinha = document.createElement('tr');
+    novaLinha.classList.add('item-adicional')
     novaLinha.innerHTML = `
-        <td>
-            
+        <td style="position: relative">
+             <span 
+                onclick="removerItemAdicional(this)" 
+                style="position: absolute; top: 2px; right: 4px; cursor: pointer; color: red; font-weight: bold; font-size: 1.1vw"
+                title="Remover item"
+                >X
+            </span>
         </td>
         <td >
             <textarea id="${idAleatoria}"style="border: none;" oninput="sugestoesParceiro(this, 'composicoes')"></textarea>
             <input style="display: none;">
         </td>
-        <td contenteditable="true"></td>
-        <td class="quantidade" contenteditable="true"></td>
+        <td contenteditable="true">
+        </td>
+        <td class="quantidade" contenteditable="true" oninput="atualizarTotalOrcado(this)"></td>
         <td></td>
         <td></td>
         <td></td>
@@ -4050,7 +4132,6 @@ function adicionarItemAdicional() {
 
 
 
-
 function removerItemAdicional(botao) {
     openPopup_v2(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
@@ -4064,6 +4145,74 @@ function removerItemAdicional(botao) {
 
     // Armazena a linha que será removida no botão para referência posterior
     window.linhaParaRemover = botao.closest('tr');
+}
+
+function atualizarTotalOrcado(tdQuantidade) {
+    const margem = Number(document.getElementById('margem_lpu').value || 0)/100
+    const tr = tdQuantidade.closest('tr')
+    const tds = tr.querySelectorAll('td')
+
+    const quantidade = conversor(tds[3].textContent)
+    const valorUnitario = conversor(tds[4].textContent)
+    const totalOrcado = isNaN(quantidade) * isNaN(valorUnitario) ? 0 : quantidade * valorUnitario
+    const imposto = totalOrcado * 0.2;
+    const margemRS = totalOrcado * margem
+
+    tds[5].textContent = dinheiro(totalOrcado)
+    tds[6].textContent = dinheiro(imposto)
+    tds[7].textContent = dinheiro(margemRS)
+
+    calcularLpuParceiro();
+}
+
+function atualizarValorParceiro(input) {
+    const tr = input.closest('tr');
+    const tds = tr.querySelectorAll('td')
+
+    const unitarioParceiro = Number(input.value);
+    const quantidade = conversor(tds[3]?.textContent);
+    const totalParceiro = isNaN(unitarioParceiro) || isNaN(quantidade) ? 0 : unitarioParceiro * quantidade
+
+    tds[9].textContent = dinheiro(totalParceiro)
+
+    const margemRS = conversor(tds[7]?.textContent);
+    const desvio = margemRS - totalParceiro
+
+    const labelDesvio = tds[10].querySelector('label')
+    labelDesvio.textContent = dinheiro(desvio)
+    labelDesvio.className = desvio > 0 ? 'valor_preenchido' : 'valor_zero';
+
+    calcularTotaisGerais()
+}
+
+function calcularTotaisGerais() {
+    let totais = {
+        orcamento: 0,
+        parceiro: 0,
+        desvio: 0,
+        margem: 0
+    }
+
+    const trs = document.querySelectorAll('#bodyTabela tr');
+    for (const tr of trs) {
+        const tds = tr.querySelectorAll('td');
+        const totalOrcado = conversor(tds[5]?.textContent);
+        const totalParceiro = conversor(tds[9]?.textContent);
+        const margemRS = conversor(tds[7]?.textContent);
+        const desvio = totalParceiro;
+
+        totais.orcamento += totalOrcado;
+        totais.parceiro += totalParceiro;
+        totais.margem += margemRS;
+        totais.desvio += desvio;
+    }
+
+    document.getElementById('totalOrcamento').textContent = dinheiro(totais.orcamento);
+    document.getElementById('totalParceiro').textContent = dinheiro(totais.parceiro);
+    document.getElementById('totalMargem').textContent = dinheiro(totais.margem);
+    const totalDesvioElement = document.getElementById('totalDesvio');
+    totalDesvioElement.textContent = dinheiro(totais.desvio);
+    totalDesvioElement.style.color = totais.desvio > 0 ? 'green' : 'red';
 }
 
 function confirmarRemocaoLinha() {
@@ -4165,14 +4314,70 @@ async function definirCampoParceiro(elemento, idAleatoria, codBases, unidade, va
     if (idAleatoria === 'tecnico') {
         campo.nextElementSibling.value = codBases
     } else {
-        campo.parentElement.previousElementSibling.textContent = codBases
-        campo.parentElement.nextElementSibling.textContent = unidade
-        campo.parentElement.nextElementSibling.nextElementSibling.nextElementSibling.textContent = dinheiro(valor)
-        
+         let linha = campo.closest('tr')
+        let celulaCodigo = campo.parentElement.previousElementSibling
+        let celulaUnidade = campo.parentElement.nextElementSibling
+        let celulaValorUnitario = celulaUnidade.nextElementSibling.nextElementSibling
+        let celulaTotal = celulaValorUnitario.nextElementSibling
+
+        celulaCodigo.textContent = codBases
+        celulaUnidade.textContent = unidade
+        celulaValorUnitario.textContent = dinheiro(valor)
+
+       
+        let quantidadeCelula = linha.querySelector('.quantidade')
+        let quantidade = parseFloat(quantidadeCelula?.innerText.replace(',', '.') || 0)
+
+      
+        let total = quantidade * valor
+        celulaTotal.textContent = dinheiro(total)
     }
+
+    // Atualizar o texto do campo selecionado
+    if ('value' in campo) {
+        campo.value = elemento.textContent
+    } else {
+        campo.innerText = elemento.textContent
+    }
+
+        // campo.parentElement.previousElementSibling.textContent = codBases
+        // campo.parentElement.nextElementSibling.textContent = unidade
+        // campo.parentElement.nextElementSibling.nextElementSibling.nextElementSibling.textContent = dinheiro(valor)
+     
+    
     
     campo.value = elemento.textContent
    
     document.getElementById('div_sugestoes').remove() // Sugestões
   
+}
+
+function editarLpuParceiro (chave) {
+    let dados = dados_orcamentos[id_orcam]
+    if (!dados?.status?.historico?.[chave]) {
+        console.warn("Não há LPU Parceiro para editar", chave);
+        return;
+    }
+
+    let lancamento = dados.status.historico [chave]
+    document.getElementById('margem_lpu').value = lancamento.margem_percentual;
+
+    let trs = document.querySelectorAll('#bodyTabela tr')
+
+    for (let tr of trs) {
+        let tds = tr.querySelectorAll('td')
+        if (tds.length < 11) continue;
+
+        let codigo = tds[0].textContent.trim()
+        let item = lancamento.itens[codigo];
+        if (!item) continue;
+
+        let input = tds[8].querySelector('input')
+        if (input) {
+            input.value = item.valor_parceiro_unitario;
+            input.dispatchEvent(new Event('input'))
+        }
+    }
+
+    sessionStorage.setItem('chave_lpu_em_edicao', chave)
 }
