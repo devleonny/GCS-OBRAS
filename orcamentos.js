@@ -118,7 +118,6 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
             toolbar.insertAdjacentHTML('beforeend', label)
         }
     }
-
 }
 
 async function preencherOrcamentos(alternar) {
