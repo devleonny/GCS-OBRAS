@@ -1216,7 +1216,7 @@ function botao_novo_pagamento(id) {
 
 async function abrirAtalhos(id) {
 
-    let permitidos = ['adm', 'fin', 'diretoria', 'coordenacao']
+    let permitidos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
     id_orcam = id
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
@@ -1280,7 +1280,7 @@ async function arquivarOrcamento(idOrcamento) {
     if (orcamento.arquivado) {
         delete orcamento.arquivado
         deletar(`dados_orcamentos/${idOrcamento}/arquivado`)
-        
+
     } else {
 
         let dados = {
@@ -1297,6 +1297,68 @@ async function arquivarOrcamento(idOrcamento) {
     removerOverlay()
 
     openPopup_v2(mensagem(`${orcamento.arquivado ? 'Arquivado' : 'Desarquivado'} com sucesso!`, 'ARQUIVAMENTO'))
+
+}
+
+async function painelCustos() { //29
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[id_orcam]
+    let tabelas = {}
+    let colunas = ['Código', 'Descrição', 'Quantidade', 'Desconto', 'Margem', 'Custo Compra', 'Total Custo', 'Unitário Venda', 'Total Venda', 'Lucro Total']
+    let ths = ''
+
+    colunas.forEach(coluna => {
+        ths += `<th>${coluna}</th>`
+    })
+
+    for ([codigo, composicao] of Object.entries(orcamento.dados_composicoes)) {
+
+        if (!tabelas[composicao.tipo]) {
+            tabelas[composicao.tipo] = { linhas: '' }
+        }
+
+        console.log(composicao);    
+        let quantidade = composicao.qtde
+        let total = composicao.custo * quantidade
+        let desconto = composicao?.tipo_desconto == 'Dinheiro' ? composicao.desconto : ((composicao.desconto / 100) * total) / quantidade
+
+        tabelas[composicao.tipo].linhas += `
+        <tr>
+            <td>${codigo}</td>
+            <td style="text-align: left;">${composicao.descricao}</td>
+            <td>${quantidade}</td>
+            <td>${dinheiro(desconto)}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        `
+    }
+
+    let stringTabelas = ''
+
+    for ([tipo, tabela] of Object.entries(tabelas)) {
+        stringTabelas += `
+        <hr style="width: 80%;">
+        <table class="tabela">
+            <thead>
+                <tr>${ths}</tr>
+            </thead>
+            <tbody>
+                ${tabela.linhas}
+            </tbody>
+        </table>
+        `
+    }
+
+    acumulado = `
+        ${stringTabelas}
+    `
+
+    openPopup_v2(acumulado, 'Painel de Custos')
 
 }
 
@@ -1352,7 +1414,7 @@ async function abrirEsquema(id) {
                 ${levantamentos}
             </div>
             • 
-            <div onclick="mostrar_painel()" class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <div onclick="painelCustos()" class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px;">
                 <img src="imagens/pesquisar.png" style="width: 2vw;">
                 <label style="font-size: 0.8vw;">Exibir Painel de Custos</label>
             </div>
@@ -1946,7 +2008,7 @@ async function mostrar_painel() {
         let lucroUnitario = valorVendaTotal - custoTotal;
 
         console.log(produto);
-        
+
         linhas[produto.tipo].total_custo += custoTotal
         linhas[produto.tipo].total_orcado += valorVendaTotal
         linhas[produto.tipo].total_lucro += lucroUnitario
