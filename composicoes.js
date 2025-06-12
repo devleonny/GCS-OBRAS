@@ -116,16 +116,13 @@ async function carregar_tabela_v2() {
                 conteudo = `<img src="${conteudo || logo}" style="width: 4vw; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">`;
 
             } else if (chave.includes('lpu')) {
-                let preco_final = produto[chave];
+                let preco_final = 0;
                 if (dicionario(produto[chave]) && produto[chave].historico && Object.keys(produto[chave].historico).length > 0 && produto[chave].ativo) {
                     let ativo = produto[chave].ativo;
                     preco_final = produto[chave].historico?.[ativo]?.valor || 0;
-                } else {
-                    preco_final = '';
                 }
 
-                let estilo = preco_final !== '' ? 'valor_preenchido' : 'valor_zero';
-                conteudo = `<label class="${estilo}" onclick="abrirHistoricoPrecos('${codigo}', '${chave}')"> ${dinheiro(conversor(preco_final))}</label>`;
+                conteudo = `<label class="labelAprovacao" style="background-color: ${preco_final > 0 ? 'green': '#B12425'};" onclick="abrirHistoricoPrecos('${codigo}', '${chave}')"> ${dinheiro(conversor(preco_final))}</label>`;
 
             } else if (chave == 'agrupamentos') {
 
