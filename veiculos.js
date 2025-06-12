@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
     await sincronizarDados('dados_veiculos');
-    montarPainelVeiculos();
+    await montarPainelVeiculos();
 });
 
 function montarPainelVeiculos() {
@@ -31,13 +31,13 @@ function criarLayoutPrincipal() {
             </div>
             
             <div class="veiculos-area-tabela">
-                <div id="campoTotalMensal" class="total_geral">
-                    Total mensal: R$ 0,00
-                </div>
-                
                 <button class="botao-cadastro-motorista" onclick="abrirFormularioCadastro()">
                     Cadastrar Novo Motorista
                 </button>
+
+                <div id="campoTotalMensal" class="total_geral">
+                    Total mensal: R$ 0,00
+                </div>
                 
                 <table class="tabela">
                     <thead class="ths">
@@ -64,7 +64,16 @@ function cadastrarVeiculo() {
         <div class="form-cadastro-veiculo">
             <div class="form-grupo">
                 <label>Nome do Veículo</label>
-                <input type="text" id="nome_veiculo" placeholder="Ex: Mobi">
+                <div class="autocomplete-container">
+                    <input 
+                        type="text" 
+                        id="nome_veiculo" 
+                        class="autocomplete-input"
+                        placeholder="Ex: Mobi"
+                        oninput="filtrarVeiculos(this)"
+                    >
+                    <div class="autocomplete-list"></div>
+                </div>
             </div>
 
             <div class="form-grupo">
@@ -89,6 +98,55 @@ function cadastrarVeiculo() {
     openPopup_v2(form, 'Cadastro de Veículo');
 }
 
+async function filtrarVeiculos(input) {
+    const div = input.nextElementSibling;
+    const pesquisa = input.value.toLowerCase().trim();
+
+    if (!pesquisa) {
+        div.innerHTML = '';
+        return;
+    }
+
+    try {
+        let dados_veiculos = await recuperarDados('dados_veiculos') || { veiculos: {} };
+
+        const veiculosFiltrados = Object.keys(dados_veiculos.veiculos)
+            .filter(nome => nome !== 'timestamp' && nome.includes(pesquisa))
+            .sort();
+
+        let opcoesHtml = '';
+        veiculosFiltrados.forEach(nome => {
+            const frotasCount = Object.keys(dados_veiculos.veiculos[nome].frotas || {}).length;
+            opcoesHtml += `
+                <div 
+                    class="autocomplete-item" 
+                    onclick="selecionarVeiculoExistente('${nome}')"
+                >
+                    <div class="autocomplete-item-content">
+                        <label class="autocomplete-item-title">${nome.toUpperCase()}</label>
+                        <label class="autocomplete-item-subtitle">
+                            ${frotasCount} frota${frotasCount !== 1 ? 's' : ''} cadastrada${frotasCount !== 1 ? 's' : ''}
+                        </label>
+                    </div>
+                </div>
+            `;
+        });
+
+        div.innerHTML = opcoesHtml;
+
+    } catch (error) {
+        console.error('Erro ao filtrar veículos:', error);
+    }
+}
+
+function selecionarVeiculoExistente(nome) {
+    const input = document.getElementById('nome_veiculo');
+    const div = input.nextElementSibling;
+
+    input.value = nome;
+    div.innerHTML = '';
+}
+
 async function salvarVeiculo() {
     try {
         const nomeVeiculo = document.getElementById('nome_veiculo').value.toLowerCase().trim();
@@ -96,47 +154,53 @@ async function salvarVeiculo() {
         const modelo = document.getElementById('modelo_frota').value.trim();
         const status = document.getElementById('status_frota').value;
 
-        // Validação
         const camposObrigatorios = [nomeVeiculo, placa, modelo];
         if (camposObrigatorios.some(campo => campo === '')) {
             openPopup_v2('Por favor, preencha os campos obrigatórios', 'Campo obrigatório', true);
             return;
         }
 
-        // Sincronizar e recuperar dados
         await sincronizarDados('dados_veiculos');
-        let dados_veiculos = await recuperarDados('dados_veiculos');
+        let dados_veiculos = await recuperarDados('dados_veiculos') || { veiculos: {} };
 
-        // Garantir que a estrutura existe
-        if (!dados_veiculos) {
-            dados_veiculos = {};
-        }
         if (!dados_veiculos.veiculos) {
             dados_veiculos.veiculos = {};
         }
 
-        // Criar novo veículo
-        const novoVeiculo = {
-            frotas: {
-                [placa]: {
-                    placa: placa,
-                    modelo: modelo,
-                    status: status
-                }
-            },
-            motoristas: {},
-        };
+        if (dados_veiculos.veiculos[nomeVeiculo]) {
+            const frotasExistentes = dados_veiculos.veiculos[nomeVeiculo].frotas || {};
+            if (Object.values(frotasExistentes).some(frota => frota.placa === placa)) {
+                openPopup_v2(`
+                    <div class="popup-message">
+                        <img src="imagens/error.png">
+                        <p>Já existe um veículo cadastrado com esta placa!</p>
+                    </div>
+                `, 'Erro');
+                return;
+            }
 
-        // Adicionar novo veículo à estrutura
-        dados_veiculos.veiculos[nomeVeiculo] = novoVeiculo;
+            dados_veiculos.veiculos[nomeVeiculo].frotas[placa] = {
+                placa: placa,
+                modelo: modelo,
+                status: status
+            };
+        } else {
+            dados_veiculos.veiculos[nomeVeiculo] = {
+                frotas: {
+                    [placa]: {
+                        placa: placa,
+                        modelo: modelo,
+                        status: status
+                    }
+                },
+                motoristas: {}
+            };
+        }
 
-        // Salvar localmente
         await inserirDados(dados_veiculos, 'dados_veiculos');
 
-        // Enviar ao servidor
-        await enviar(`dados_veiculos/veiculos/${nomeVeiculo}`, novoVeiculo);
+        await enviar(`dados_veiculos/veiculos/${nomeVeiculo}`, dados_veiculos.veiculos[nomeVeiculo]);
 
-        // Atualizar interface
         const container = document.getElementById('tabelaRegistro');
         if (container) {
             container.innerHTML = criarLayoutPrincipal();
@@ -145,21 +209,19 @@ async function salvarVeiculo() {
             await botoesVeiculos(filtro, tbody);
         }
 
-        // Fechar popup
         removerOverlay();
         remover_popup();
 
-        // Mostrar mensagem de sucesso
         openPopup_v2(`
             <div class="popup-message">
                 <img src="imagens/sucesso.png">
-                <label>Veículo cadastrado com sucesso!</label>
+                <label>${dados_veiculos.veiculos[nomeVeiculo].frotas[placa] ? 'Nova frota adicionada' : 'Veículo cadastrado'} com sucesso!</label>
             </div>
         `, 'Sucesso');
 
         setTimeout(() => {
             remover_popup();
-        }, 500);
+        }, 1500);
 
     } catch (error) {
         console.error('Erro ao salvar veículo:', error);
@@ -186,7 +248,10 @@ async function botoesVeiculos(filtro) {
             await inserirDados(dados_veiculos, 'dados_veiculos');
         }
 
-        const veiculosOrdenados = Object.keys(dados_veiculos.veiculos).sort();
+        const veiculosOrdenados = Object.entries(dados_veiculos.veiculos)
+            .filter(([key, value]) => key !== 'timestamp' && typeof value === 'object')
+            .map(([key]) => key)
+            .sort();
 
         veiculosOrdenados.forEach(nomeVeiculo => {
             const btnHtml = `
