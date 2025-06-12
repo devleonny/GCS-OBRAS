@@ -196,3 +196,48 @@
   font-size: 12px;
   color: #666;
 }
+
+.botao-dados-veiculo:hover {
+  background-color: #1b5576 !important;
+}
+
+.info {
+  padding: 20px;
+}
+
+.info-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.info-title img {
+  width: 30px;
+  margin-right: 10px;
+}
+
+.info-title h3 {
+  margin: 0;
+  color: #24729d;
+}
+
+.info-grupos {
+  display: grid;
+  gap: 15px;
+}
+
+.info-grupo {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 5px;
+}
+
+.info-grupo label {
+  display: flex;
+  min-width: 80px;
+  font-weight: bold;
+}

@@ -6,7 +6,7 @@ const dados_veiculos = {
                     "codigo": "123456",
                     "placa": "AAA-1111",
                     "modelo": "Mobi Like",
-                    "status": "locado ou devolvido"
+                    "status": "locado"
                 }
             },
             "motoristas": {
@@ -15,13 +15,13 @@ const dados_veiculos = {
                     "dados_veiculo": {
                         "placa": "AAA-1111",
                         "modelo": "Mobi Like",
-                        "status": "locado ou devolvido"
+                        "status": "locado"
                     },
-                    "custo_mensal_veiculo": "R$ 1.000,00",
+                    "custo_mensal_veiculo": 1000,
                     "combustível": {
-                        "litros": "100",
-                        "custo_litro": "R$ 5,00",
-                        "custo_total": "R$ 500,00",
+                        "litros": 100,
+                        "custo_litro": 5,
+                        "custo_total": 500,
                         "anexos": {
                             "O3V5G": {
                                 "formato": "servidor",
@@ -60,7 +60,7 @@ const dados_veiculos = {
                         }
                     },
                     "custos_extras": {
-                        "valor": "R$ 100,00",
+                        "valor": 100,
                         "anexos": {
                             "87134": {
                                 "formato": "servidor",
@@ -78,7 +78,7 @@ const dados_veiculos = {
                     "codigo": "123456",
                     "placa": "AAA-2222",
                     "modelo": "Mobi Like",
-                    "status": "locado ou devolvido"
+                    "status": "devolvido"
                 }
             },
             "motoristas": {
@@ -87,13 +87,13 @@ const dados_veiculos = {
                     "dados_veiculo": {
                         "placa": "AAA-1111",
                         "modelo": "Mobi Like",
-                        "status": "locado ou devolvido"
+                        "status": "devolvido"
                     },
-                    "custo_mensal_veiculo": "R$ 5.000,00",
+                    "custo_mensal_veiculo": 5000,
                     "combustível": {
-                        "litros": "100",
-                        "custo_litro": "R$ 5,00",
-                        "custo_total": "R$ 500,00",
+                        "litros": 100,
+                        "custo_litro": 5,
+                        "custo_total": 500,
                         "anexos": {
                             "O3V5G": {
                                 "formato": "servidor",
@@ -132,7 +132,7 @@ const dados_veiculos = {
                         }
                     },
                     "custos_extras": {
-                        "valor": "R$ 100,00",
+                        "valor": 100,
                         "anexos": {
                             "87134": {
                                 "formato": "servidor",
@@ -217,7 +217,6 @@ function cadastrarVeiculo() {
 
             <div class="form-grupo">
                 <label>Frota</label>
-                <input type="text" id="codigo_frota" placeholder="Código">
                 <input type="text" id="placa_frota" placeholder="Placa">
                 <input type="text" id="modelo_frota" placeholder="Modelo">
                 <select id="status_frota">
@@ -240,12 +239,11 @@ function cadastrarVeiculo() {
 
 function salvarVeiculo() {
     const nomeVeiculo = document.getElementById('nome_veiculo').value.toLowerCase();
-    const codigo = document.getElementById('codigo_frota').value;
     const placa = document.getElementById('placa_frota').value;
     const modelo = document.getElementById('modelo_frota').value;
     const status = document.getElementById('status_frota').value;
 
-    const camposObrigatorios = [nomeVeiculo, codigo, placa, modelo];
+    const camposObrigatorios = [nomeVeiculo, placa, modelo];
     if (camposObrigatorios.some(campo => campo === '')) {
         openPopup_v2('Por favor, preencha os campos obrigatórios', 'Campo obrigatório', true);
         return;
@@ -254,7 +252,6 @@ function salvarVeiculo() {
     dados_veiculos.veiculos[nomeVeiculo] = {
         frotas: {
             [placa]: {
-                codigo: codigo,
                 placa: placa,
                 modelo: modelo,
                 status: status
@@ -300,13 +297,27 @@ function criarLinhaMotorista(motorista) {
     const multas = motorista.multas || {};
     const extras = motorista.custos_extras || {};
 
+    // Codificar os dados do veículo para passar como parâmetro
+    const dadosVeiculo = encodeURIComponent(JSON.stringify(motorista.dados_veiculo));
+
     return `
         <tr>
             <td>${motorista.nome || ''}</td>
             <td>
-                Placa: ${motorista.dados_veiculo?.placa || ''}<br>
-                Modelo: ${motorista.dados_veiculo?.modelo || ''}<br>
-                Status: ${motorista.dados_veiculo?.status || ''}
+                <button 
+                    class="botao-dados-veiculo" 
+                    onclick="mostrarDadosVeiculo('${dadosVeiculo}')"
+                    style="
+                        background-color: #24729d;
+                        color: white;
+                        border: none;
+                        padding: 5px 10px;
+                        border-radius: 3px;
+                        cursor: pointer;
+                    "
+                >
+                    Ver Dados do Veículo
+                </button>
             </td>
             <td>${custoMensal}</td>
             <td>${combustivel.litros ? `${combustivel.litros}L x ${combustivel.custo_litro} = ${combustivel.custo_total}` : ''}</td>
@@ -316,6 +327,40 @@ function criarLinhaMotorista(motorista) {
             <td>${extras.valor || ''}</td>
         </tr>
     `;
+}
+
+function mostrarDadosVeiculo(dadosVeiculoEncoded) {
+    const dadosVeiculo = JSON.parse(decodeURIComponent(dadosVeiculoEncoded));
+
+    const conteudo = `
+        <div class="info">
+            <div class="info-title">
+                <img src="imagens/veiculo.png">
+                <h3>Dados do Veículo</h3>
+            </div>
+            
+            <div class="info-grupos">
+                <div class="info-grupo">
+                    <label>Placa:</label>
+                    <span>${dadosVeiculo.placa || 'Não informado'}</span>
+                </div>
+                
+                <div class="info-grupo">
+                    <label>Modelo:</label>
+                    <span>${dadosVeiculo.modelo || 'Não informado'}</span>
+                </div>
+                
+                <div class="info-grupo">
+                    <label>Status:</label>
+                    <span style="color: ${dadosVeiculo.status === 'locado' ? 'green' : 'red'};">
+                        ${dadosVeiculo.status || 'Não informado'}
+                    </span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    openPopup_v2(conteudo, 'Informações do Veículo');
 }
 
 function preencherTabelaMotoristas(nomeVeiculo) {
@@ -366,12 +411,13 @@ function abrirFormularioCadastro() {
             <div class="form-grupo">
                 <label>Nome do Motorista</label>
                 <div class="autocomplete-container">
-                    <textarea 
+                    <input 
                         class="autocomplete-input"
                         id="nome_motorista"
+                        type="text"
                         placeholder="Digite o nome do motorista..."
                         oninput="carregarMotoristas(this)"
-                    ></textarea>
+                    >
                     <div class="autocomplete-list"></div>
                 </div>
             </div>
@@ -476,8 +522,6 @@ function selecionarMotorista(id, nome, veiculo, divOpcao) {
 
     textarea.value = nome;
     div.innerHTML = '';
-
-    // lógica adicional para preencher outros campos
 }
 
 function cadastrarMotorista() {
