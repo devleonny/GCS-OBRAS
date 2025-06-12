@@ -96,34 +96,27 @@ async function salvarVeiculo() {
         const modelo = document.getElementById('modelo_frota').value.trim();
         const status = document.getElementById('status_frota').value;
 
-        // Validation
+        // Validação
         const camposObrigatorios = [nomeVeiculo, placa, modelo];
         if (camposObrigatorios.some(campo => campo === '')) {
             openPopup_v2('Por favor, preencha os campos obrigatórios', 'Campo obrigatório', true);
             return;
         }
 
-        // Get current data
+        // Sincronizar e recuperar dados
         await sincronizarDados('dados_veiculos');
         let dados_veiculos = await recuperarDados('dados_veiculos');
 
-        // Inicializar estrutura se não existir
+        // Garantir que a estrutura existe
         if (!dados_veiculos) {
-            dados_veiculos = { veiculos: {} };
+            dados_veiculos = {};
         }
-
         if (!dados_veiculos.veiculos) {
             dados_veiculos.veiculos = {};
         }
 
-        // Check if vehicle already exists
-        if (dados_veiculos.veiculos[nomeVeiculo]) {
-            openPopup_v2('Já existe um veículo cadastrado com este nome', 'Erro', true);
-            return;
-        }
-
-        // Add new vehicle (sem timestamp no objeto principal)
-        dados_veiculos.veiculos[nomeVeiculo] = {
+        // Criar novo veículo
+        const novoVeiculo = {
             frotas: {
                 [placa]: {
                     placa: placa,
@@ -132,22 +125,48 @@ async function salvarVeiculo() {
                 }
             },
             motoristas: {},
-            timestamp: Date.now() // timestamp apenas dentro do objeto do veículo
         };
 
-        // Save locally
+        // Adicionar novo veículo à estrutura
+        dados_veiculos.veiculos[nomeVeiculo] = novoVeiculo;
+
+        // Salvar localmente
         await inserirDados(dados_veiculos, 'dados_veiculos');
 
-        // Send to server (enviar apenas o objeto do veículo)
-        await enviar(`dados_veiculos/veiculos/${nomeVeiculo}`, dados_veiculos.veiculos[nomeVeiculo]);
+        // Enviar ao servidor
+        await enviar(`dados_veiculos/veiculos/${nomeVeiculo}`, novoVeiculo);
 
-        // ...resto do código permanece igual...
+        // Atualizar interface
+        const container = document.getElementById('tabelaRegistro');
+        if (container) {
+            container.innerHTML = criarLayoutPrincipal();
+            const filtro = container.querySelector('.veiculos-toolbar-filtro');
+            const tbody = container.querySelector('#tabelaMotoristas');
+            await botoesVeiculos(filtro, tbody);
+        }
+
+        // Fechar popup
+        removerOverlay();
+        remover_popup();
+
+        // Mostrar mensagem de sucesso
+        openPopup_v2(`
+            <div class="popup-message">
+                <img src="imagens/sucesso.png">
+                <label>Veículo cadastrado com sucesso!</label>
+            </div>
+        `, 'Sucesso');
+
+        setTimeout(() => {
+            remover_popup();
+        }, 500);
+
     } catch (error) {
         console.error('Erro ao salvar veículo:', error);
         openPopup_v2(`
-            <div style="display: flex; align-items: center; justify-content: center; padding: 20px;">
-                <img src="imagens/error.png" style="width: 30px; margin-right: 10px;">
-                <label>Erro ao salvar veículo. Tente novamente.</label>
+            <div class="popup-message">
+                <img src="imagens/error.png">
+                <p>Erro ao salvar veículo. Tente novamente.</p>
             </div>
         `, 'Erro');
     }
@@ -155,25 +174,20 @@ async function salvarVeiculo() {
 
 async function botoesVeiculos(filtro) {
     try {
-        // Limpar botões anteriores
         const existingButtons = filtro.querySelectorAll('.filtro-veiculo');
         existingButtons.forEach(btn => btn.remove());
 
-        // Garantir que dados_veiculos existe e tem a estrutura correta
         await sincronizarDados('dados_veiculos');
         let dados_veiculos = await recuperarDados('dados_veiculos');
 
-        // Verificar se dados_veiculos existe e tem a propriedade veiculos
         if (!dados_veiculos || !dados_veiculos.veiculos) {
             console.log('Criando estrutura inicial de dados_veiculos');
             dados_veiculos = { veiculos: {} };
             await inserirDados(dados_veiculos, 'dados_veiculos');
         }
 
-        // Ordenar veículos alfabeticamente
         const veiculosOrdenados = Object.keys(dados_veiculos.veiculos).sort();
 
-        // Criar botões para cada veículo
         veiculosOrdenados.forEach(nomeVeiculo => {
             const btnHtml = `
                 <button type="button" class="filtro-veiculo" onclick="selecionarVeiculo(this, '${nomeVeiculo}')">
@@ -183,7 +197,6 @@ async function botoesVeiculos(filtro) {
             filtro.insertAdjacentHTML('beforeend', btnHtml);
         });
 
-        // Selecionar primeiro veículo por padrão se existir
         if (veiculosOrdenados.length > 0) {
             const firstButton = filtro.querySelector('.filtro-veiculo');
             if (firstButton) {
@@ -198,11 +211,9 @@ async function botoesVeiculos(filtro) {
 }
 
 async function selecionarVeiculo(button, nomeVeiculo) {
-    // Remove selection from all buttons
     const filtro = button.closest('.veiculos-toolbar-filtro');
     filtro.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
 
-    // Add selection to clicked button
     button.classList.add('selected');
 
     try {
@@ -220,7 +231,6 @@ function criarLinhaMotorista(motorista) {
     const multas = motorista.multas || {};
     const extras = motorista.custos_extras || {};
 
-    // Codificar os dados do veículo para passar como parâmetro
     const dadosVeiculo = encodeURIComponent(JSON.stringify(motorista.dados_veiculo));
 
     return `
@@ -316,8 +326,6 @@ async function preencherTabelaMotoristas(nomeVeiculo) {
 
             textarea.value = nome;
             div.innerHTML = '';
-
-            // lógica adicional para preencher outros campos
         }
         campoTotal.textContent = `Total mensal: R$ ${total.toLocaleString('pt-BR', {
             minimumFractionDigits: 2,
@@ -327,7 +335,6 @@ async function preencherTabelaMotoristas(nomeVeiculo) {
 }
 
 async function abrirFormularioCadastro() {
-    // Get available vehicles for select options
     await sincronizarDados('dados_veiculos');
     let dados_veiculos = await recuperarDados('dados_veiculos') || { veiculos: {} };
 
@@ -452,14 +459,11 @@ async function cadastrarMotorista() {
     }
 
     try {
-        // Recuperar dados atuais
         await sincronizarDados('dados_veiculos');
         let dados_veiculos = await recuperarDados('dados_veiculos') || { veiculos: {} };
 
-        // Gerar ID único para o motorista
         const idMotorista = Date.now().toString();
 
-        // Criar objeto do motorista
         const novoMotorista = {
             nome: nome,
             dados_veiculo: {
@@ -481,30 +485,23 @@ async function cadastrarMotorista() {
             },
             custos_extras: {
                 valor: custosExtras
-            },
-            timestamp: Date.now()
+            }
         };
 
-        // Se o veículo não existir, criar estrutura
         if (!dados_veiculos.veiculos[veiculoSelecionado]) {
             dados_veiculos.veiculos[veiculoSelecionado] = {
                 motoristas: {}
             };
         }
 
-        // Add motorista to the selected vehicle
         dados_veiculos.veiculos[veiculoSelecionado].motoristas[idMotorista] = novoMotorista;
 
-        // Save locally
         await inserirDados(dados_veiculos, 'dados_veiculos');
 
-        // Send to server
         await enviar(`dados_veiculos/veiculos/${veiculoSelecionado}/motoristas/${idMotorista}`, novoMotorista);
 
-        // Update interface
         preencherTabelaMotoristas(veiculoSelecionado);
 
-        // Close popup
         removerOverlay();
         remover_popup();
 
