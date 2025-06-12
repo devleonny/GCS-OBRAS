@@ -1686,51 +1686,45 @@ async function total() {
         }
     }
 
-    let desconto_calculo = 0;
+    // Inclusão dos totais em cada local;
     for ([campo, objeto] of Object.entries(totais)) {
 
-        if (campo == 'GERAL') continue
+        if (campo == 'GERAL') {
+            document.getElementById(`total_geral`).textContent = dinheiro(totais.GERAL.valor)
+        } else {
 
-        let divTotal = document.getElementById(`total_${campo}`)
-        if (divTotal) {
-            divTotal.textContent = dinheiro(objeto.valor)
-        }
+            let divTotal = document.getElementById(`total_${campo}`)
+            if (divTotal) {
+                divTotal.textContent = dinheiro(objeto.valor)
+            }
 
-        let trsTamanho = document.getElementById(`linhas_${campo}`).querySelectorAll('tr').length
-        if (trsTamanho == 0) {
-            document.getElementById(campo).remove()
-            document.getElementById(`toolbar_${campo}`).remove()
-            mostrarTabela()
+            let trsTamanho = document.getElementById(`linhas_${campo}`).querySelectorAll('tr').length
+            if (trsTamanho == 0) {
+                document.getElementById(campo).remove()
+                document.getElementById(`toolbar_${campo}`).remove()
+                mostrarTabela()
+            }
         }
     }
-
-    descontoAcumulado = descontoAcumulado + desconto_calculo
-    document.getElementById(`total_geral`).textContent = dinheiro(totais.GERAL.valor - desconto_calculo)
 
     let painel_desconto = document.getElementById('desconto_total')
     if (!carrefour) {
 
-        if (descontoAcumulado > totais.GERAL.valor) {
-            descontoAcumulado = totais.GERAL.valor
-        }
-
-        let desc_porc = descontoAcumulado == 0 ? 0 : (descontoAcumulado / totais.GERAL.bruto * 100).toFixed(2)
+        let diferencaDinheiro = totais.GERAL.valor - totais.GERAL.bruto
+        let diferencaPorcentagem = diferencaDinheiro == 0 ? 0 : (diferencaDinheiro / totais.GERAL.valor * 100).toFixed(2)
 
         painel_desconto.innerHTML = `
             <div class="resumo">
                 <label>RESUMO</label>
-                <hr style="width: 100%;">
-                <label>Total sem Desconto</label>
-                <label style="font-size: 1.5vw;" id="total_sem_desconto">${dinheiro(totais.GERAL.bruto)}</label>
-                <br>
-                <label>Desconto R$</label>
-                <label style="font-size: 1.5vw;" id="desconto_dinheiro">${dinheiro(descontoAcumulado)}</label>
-                <br>
-                <label>Desconto %</label>
-                <label style="font-size: 1.5vw;">${desc_porc}%</label>
-                <input style="display: none" id="desconto_porcentagem" value="${desc_porc}">
-            </div>
-        `
+                <hr style="width: 90%;">
+                <label>Total Bruto</label>
+                <label style="font-size: 1.5vw;">${dinheiro(totais.GERAL.bruto)}</label>
+                <label>Diferença R$</label>
+                <label style="font-size: 1.5vw;">${dinheiro(diferencaDinheiro)}</label>
+                <label>Diferença %</label>
+                <label style="font-size: 1.5vw;">${diferencaPorcentagem}%</label>
+                <input style="display: none" value="${diferencaPorcentagem}">
+            </div>`
     } else {
         painel_desconto.innerHTML = ''
     }
@@ -1738,7 +1732,7 @@ async function total() {
     // Informações complementares do orçamento;
     totalAcrescido > 0 ? orcamento_v2.total_acrescido = totalAcrescido : delete orcamento_v2.total_acrescido
     descontoAcumulado > 0 ? orcamento_v2.total_desconto = descontoAcumulado : delete orcamento_v2.total_desconto
-    orcamento_v2.total_geral = dinheiro(totais.GERAL.valor - desconto_calculo)
+    orcamento_v2.total_geral = totais.GERAL.valor - descontoAcumulado
     orcamento_v2.total_bruto = totais.GERAL.bruto
 
     baseOrcamento(orcamento_v2)
@@ -2625,15 +2619,19 @@ function painel_clientes() {
     })
 
     for (chave in orcamento_v2?.levantamentos || {}) {
-        var levantamento = orcamento_v2.levantamentos[chave]
-
+        let levantamento = orcamento_v2.levantamentos[chave]
         levantamentos += criarAnexoVisual(levantamento.nome, levantamento.link, `excluir_levantamento('${chave}')`)
+    }
 
+    let modelo = () =>{
+        return `
+        
+        `
     }
 
     let acumulado = `
 
-    <div style="background-color: #d2d2d2; padding: 10px;">
+    <div style="background-color: #d2d2d2; padding: 10px; width: 40vw;">
         <div style="display: flex; justify-content: start; align-items: center;">
             <div style="display: flex; flex-direction: column; gap: 10px; align-items: left; margin: 5px;">
 
@@ -2650,11 +2648,10 @@ function painel_clientes() {
             </div>
         </div>
 
-        <div
-            style="display: flex; flex-direction: column; gap: 5px; justify-content: center; align-items: start; border-radius: 3px; margin: 5px;">
+        <div style="display: flex; flex-direction: column; gap: 5px; justify-content: center; align-items: start; border-radius: 3px; margin: 5px;">
             <label style="font-size: 1.5vw;">Dados do Cliente</label>
-            <div class="linha">
 
+            <div class="linha">
                 <label>nº do Chamado</label>
                 <div style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 2px; flex-direction: column;">
                     <input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" onchange="salvar_preenchido()" value="${dados_orcam?.contrato || ''}">

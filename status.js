@@ -3543,11 +3543,20 @@ function getComputedStylesAsText(element) {
     return styleText;
 }
 
-const { ipcRenderer } = require('electron');
+if (typeof window !== 'undefined' && window.process && window.process.type) {
+    const { shell: electronShell } = require('electron');
+    shell = electronShell;
+}
 
-ipcRenderer.on('open-save-dialog', (event, { htmlContent, nomeArquivo }) => {
-    ipcRenderer.send('save-dialog', { htmlContent, nomeArquivo });
-});
+let ipcRenderer = null;
+if (typeof window !== 'undefined' && window.process && window.process.type) {
+    const { ipcRenderer: ipc } = require('electron');
+    ipcRenderer = ipc;
+
+    ipcRenderer.on('open-save-dialog', (event, { htmlContent, nomeArquivo }) => {
+        ipcRenderer.send('save-dialog', { htmlContent, nomeArquivo });
+    });
+}
 
 async function gerarpdf(cliente, pedido) {
 

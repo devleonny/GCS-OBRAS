@@ -178,7 +178,14 @@ async function identificacaoUser() {
 
     await sincronizarSetores()
     acesso = dados_setores[acesso.usuario]
+
+    if(acesso.permissao == 'novo') {
+        localStorage.removeItem('acesso')
+        return window.location.href = 'login.html'
+    }
+
     localStorage.setItem('acesso', JSON.stringify(acesso))
+    
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
 
     carregarIcones() // ícones da tela inicial;
@@ -473,7 +480,11 @@ function verificar_timestamp_nome(nome) {
     return false;
 }
 
-const { shell } = require('electron');
+let shell = null;
+if (typeof window !== 'undefined' && window.process && window.process.type) {
+    const { shell: electronShell } = require('electron');
+    shell = electronShell;
+}
 
 function abrirArquivo(link) {
 
@@ -2019,6 +2030,8 @@ async function verificarPendencias() {
 
 }
 
+localStorage.removeItem('dados_offline')
+
 async function verPedidoAprovacao(idOrcamento) { //29
 
     let permissao = acesso.permissao
@@ -2348,7 +2361,7 @@ function removerExcluidos(base) {
 
     if (dicionario(base)) {
         for ([id, objeto] of Object.entries(base)) {
-            if (objeto.excluido) delete base[id]
+            if (objeto.excluido || !objeto.timestamp) delete base[id]
         }
     }
 
