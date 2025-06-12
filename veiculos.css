@@ -101,6 +101,21 @@
   border-radius: 4px;
 }
 
+.form-grupo #novo-custo,
+.form-grupo #descricao-custo {
+  width: 100%;
+  min-width: 15vw !important;
+  max-width: 15vw !important;
+}
+
+.form-custos {
+  display: flex;
+  flex-direction: column;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 10px;
+}
+
 .botao-form {
   padding: 8px 15px;
   border: none;
@@ -117,6 +132,11 @@
 .botao-form.secundario {
   background: #666;
   color: white;
+}
+
+.botao-custo {
+  width: max-content;
+  margin-bottom: 1.5vw;
 }
 
 .botao-cadastro-veiculo {
@@ -394,4 +414,47 @@
 .autocomplete-item-subtitle {
   font-size: 0.8em;
   color: #666;
+}
+
+.custos-container {
+  padding: 20px;
+  max-width: 800px;
+}
+
+.tabela-custos {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.tabela-custos th,
+.tabela-custos td {
+  padding: 8px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.tabela-custos thead th {
+  background-color: #f5f5f5;
+}
+
+.botao-excluir {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.botao-excluir:hover {
+  background-color: #c82333;
+}
+
+.botao-custos {
+  background-color: #24729d;
+}
+
+.botao-custos:hover {
+  background-color: #1b5576;
 }

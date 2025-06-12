@@ -288,8 +288,10 @@ async function selecionarVeiculo(button, nomeVeiculo) {
     }
 }
 
-function criarLinhaMotorista(motorista) {
-    const custoMensal = motorista.custo_mensal_veiculo || 'R$ 0,00';
+function criarLinhaMotorista(motorista, idMotorista, nomeVeiculo) {
+    const custos = motorista.custo_mensal_veiculo?.custos || {};
+    const totalCustos = Object.values(custos).reduce((total, item) => total + (Number(item.custo) || 0), 0);
+
     const combustivel = motorista.combustível || {};
     const pedagio = motorista.pedagio || {};
     const estacionamento = motorista.estacionamento || {};
@@ -302,22 +304,15 @@ function criarLinhaMotorista(motorista) {
         <tr>
             <td>${motorista.nome || ''}</td>
             <td>
-                <button 
-                    class="botao-dados-veiculo" 
-                    onclick="mostrarDadosVeiculo('${dadosVeiculo}')"
-                    style="
-                        background-color: #24729d;
-                        color: white;
-                        border: none;
-                        padding: 5px 10px;
-                        border-radius: 3px;
-                        cursor: pointer;
-                    "
-                >
+                <button class="botao-dados-veiculo" onclick="mostrarDadosVeiculo('${dadosVeiculo}')">
                     Ver Dados do Veículo
                 </button>
             </td>
-            <td>${custoMensal}</td>
+            <td>
+                <button class="botao-custos" onclick="abrirPopupCustos('${idMotorista}', '${nomeVeiculo}', '${motorista.nome}')">
+                    ${totalCustos > 0 ? dinheiro(totalCustos) : 'Adicionar Custos'}
+                </button>
+            </td>
             <td>${combustivel.litros ? `${combustivel.litros}L x ${combustivel.custo_litro} = ${combustivel.custo_total}` : ''}</td>
             <td>${pedagio.tag || ''}</td>
             <td>${estacionamento.tag || ''}</td>
@@ -361,6 +356,139 @@ function mostrarDadosVeiculo(dadosVeiculoEncoded) {
     openPopup_v2(conteudo, 'Informações do Veículo');
 }
 
+async function abrirPopupCustos(idMotorista, nomeVeiculo, nomeMotorista) {
+    try {
+        let dados_veiculos = await recuperarDados('dados_veiculos');
+        
+        if (!dados_veiculos?.veiculos?.[nomeVeiculo]?.motoristas?.[idMotorista]) {
+            throw new Error('Motorista não encontrado');
+        }
+
+        const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
+        
+        if (!motorista.custo_mensal_veiculo) {
+            motorista.custo_mensal_veiculo = { custos: {} };
+        }
+
+        const custos = motorista.custo_mensal_veiculo.custos;
+        const totalCustos = Object.values(custos).reduce((total, item) => total + conversor(item.custo), 0);
+
+        const conteudo = `
+            <div class="custos-container">
+                <h3>Custos Mensais - ${nomeMotorista}</h3>
+                
+                <div class="form-grupo form-custos">
+                    <input type="number" id="novo-custo" placeholder="Valor do custo" step="0.01" min="0">
+                    <textarea type="text" id="descricao-custo" placeholder="Descrição *limite de 500 caracteres" maxlength="500"></textarea>
+                    <button onclick="adicionarCusto('${idMotorista}', '${nomeVeiculo}')" class="botao-form primario botao-custo">
+                        Adicionar Custo
+                    </button>
+                </div>
+
+                <table class="tabela">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Custo</th>
+                            <th>Descrição</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-custos">
+                        ${Object.entries(custos).map(([idCusto, custo]) => `
+                            <tr>
+                                <td>${custo.data}</td>
+                                <td>${dinheiro(custo.custo)}</td>
+                                <td>${custo.descricao}</td>
+                                <td>
+                                    <button onclick="excluirCusto('${idMotorista}', '${nomeVeiculo}', '${idCusto}')" class="botao-excluir">
+                                        Excluir
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td><strong>Total:</strong></td>
+                            <td><strong>${dinheiro(totalCustos)}</strong></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        `;
+
+        openPopup_v2(conteudo, 'Custos Mensais');
+
+    } catch (error) {
+        console.error('Erro ao abrir popup de custos:', error);
+        openPopup_v2(`
+            <div class="popup-message">
+                <img src="imagens/error.png">
+                <p>Erro ao carregar custos. Tente novamente.</p>
+            </div>
+        `, 'Erro');
+    }
+}
+
+async function adicionarCusto(idMotorista, nomeVeiculo) {
+    const valor = document.getElementById('novo-custo').value;
+    const descricao = document.getElementById('descricao-custo').value;
+
+    if (!valor || !descricao) {
+        openPopup_v2('Por favor, preencha todos os campos', 'Campos Obrigatórios', true);
+        return;
+    }
+
+    try {
+        let dados_veiculos = await recuperarDados('dados_veiculos') || { veiculos: {} };
+        const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
+
+        if (!motorista.custo_mensal_veiculo) {
+            motorista.custo_mensal_veiculo = { custos: {} };
+        }
+
+        const hoje = new Date();
+        const dataFormatada = hoje.toLocaleDateString('pt-BR');
+
+        const idCusto = gerar_id_5_digitos();
+        motorista.custo_mensal_veiculo.custos[idCusto] = {
+            custo: Number(valor),
+            descricao: descricao,
+            data: dataFormatada
+        };
+
+        await inserirDados(dados_veiculos, 'dados_veiculos');
+        await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
+
+        abrirPopupCustos(idMotorista, nomeVeiculo, motorista.nome);
+
+    } catch (error) {
+        console.error('Erro ao adicionar custo:', error);
+        openPopup_v2('Erro ao adicionar custo. Tente novamente.', 'Erro');
+    }
+}
+
+async function excluirCusto(idMotorista, nomeVeiculo, idCusto) {
+    try {
+        let dados_veiculos = await recuperarDados('dados_veiculos') || { veiculos: {} };
+        const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
+
+        delete motorista.custo_mensal_veiculo.custos[idCusto];
+
+        await inserirDados(dados_veiculos, 'dados_veiculos');
+        await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
+
+        abrirPopupCustos(idMotorista, nomeVeiculo, motorista.nome);
+
+    } catch (error) {
+        console.error('Erro ao excluir custo:', error);
+        openPopup_v2('Erro ao excluir custo. Tente novamente.', 'Erro');
+    }
+}
+
 async function preencherTabelaMotoristas(nomeVeiculo) {
     const tbody = document.getElementById('tabelaMotoristas');
     const campoTotal = document.getElementById('campoTotalMensal');
@@ -373,29 +501,18 @@ async function preencherTabelaMotoristas(nomeVeiculo) {
     let total = 0;
     let linhasHtml = '';
 
-    Object.values(veiculo.motoristas).forEach(motorista => {
-        const custoMensal = motorista.custo_mensal_veiculo || 'R$ 0,00';
-        const valor = Number(custoMensal.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
-        total += valor;
+    Object.entries(veiculo.motoristas).forEach(([idMotorista, motorista]) => {
+        const custos = motorista.custo_mensal_veiculo?.custos || {};
+        const totalCustos = Object.values(custos).reduce((total, item) => total + conversor(item.custo), 0);
+        total += totalCustos;
 
-        linhasHtml += criarLinhaMotorista(motorista);
+        linhasHtml += criarLinhaMotorista(motorista, idMotorista, nomeVeiculo);
     });
 
     tbody.innerHTML = linhasHtml;
 
     if (campoTotal) {
-
-        function selecionarMotorista(id, nome, veiculo, divOpcao) {
-            let div = divOpcao.parentElement;
-            let textarea = div.previousElementSibling;
-
-            textarea.value = nome;
-            div.innerHTML = '';
-        }
-        campoTotal.textContent = `Total mensal: R$ ${total.toLocaleString('pt-BR', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        })}`;
+        campoTotal.textContent = `Total mensal: ${dinheiro(total)}`;
     }
 }
 
