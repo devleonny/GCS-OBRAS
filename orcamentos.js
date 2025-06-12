@@ -132,7 +132,7 @@ async function preencherOrcamentos(alternar) {
     let div_orcamentos = document.getElementById('orcamentos')
     if (!div_orcamentos) return
     overlayAguarde()
-    
+
     document.getElementById('toolbar').innerHTML = ''
     div_orcamentos.innerHTML = ''
 
@@ -152,8 +152,10 @@ async function preencherOrcamentos(alternar) {
         if ((arquivados && orcamento.arquivado) || (!arquivados && !orcamento.arquivado)) {
 
             let dados_orcam = orcamento.dados_orcam
-
-            if (!dados_orcam) return await especialFalhasOrcamentos()
+            if (!dados_orcam) {
+                deletar(`dados_orcamentos/${idOrcamento}`)
+                continue
+            }
 
             let data = new Date(dados_orcam.data).toLocaleString('pt-BR', {
                 dateStyle: 'short',

@@ -1330,6 +1330,7 @@ function baixar_em_excel(nome_tabela, filename) {
 function fecharTabela(nome_tabela) {
     document.getElementById(nome_tabela).style.display = 'none'
     document.getElementById('overlay').style.display = 'none'
+
 }
 
 function calcular() {
@@ -2028,8 +2029,6 @@ async function verificarPendencias() {
     }
 
 }
-
-localStorage.removeItem('dados_offline')
 
 async function verPedidoAprovacao(idOrcamento) { //29
 
