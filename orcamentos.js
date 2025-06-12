@@ -129,10 +129,10 @@ async function especialFalhasOrcamentos() {
 
 async function preencherOrcamentos(alternar) {
 
-    overlayAguarde()
-
     let div_orcamentos = document.getElementById('orcamentos')
     if (!div_orcamentos) return
+    overlayAguarde()
+    
     document.getElementById('toolbar').innerHTML = ''
     div_orcamentos.innerHTML = ''
 

@@ -1840,7 +1840,6 @@ async function mostrar_painel() {
     let orcamento = dados_orcamentos[id_orcam]
     let pags = ''
     let total_pago = 0
-
     let pagamentos_painel = {}
 
     const dadosExiste = orcamento || orcamento.dados_composicoes;
@@ -1946,6 +1945,8 @@ async function mostrar_painel() {
 
         let lucroUnitario = valorVendaTotal - custoTotal;
 
+        console.log(produto);
+        
         linhas[produto.tipo].total_custo += custoTotal
         linhas[produto.tipo].total_orcado += valorVendaTotal
         linhas[produto.tipo].total_lucro += lucroUnitario
