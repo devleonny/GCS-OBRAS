@@ -1293,7 +1293,7 @@ async function arquivarOrcamento(idOrcamento) {
     }
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await preencher_orcamentos_v2()
+    await preencherOrcamentos()
     removerOverlay()
 
     openPopup_v2(mensagem(`${orcamento.arquivado ? 'Arquivado' : 'Desarquivado'} com sucesso!`, 'ARQUIVAMENTO'))
@@ -2531,7 +2531,7 @@ async function alterar_status(select, id) {
         filtrar_orcamentos(undefined, undefined, undefined, true);
         select.parentElement.parentElement.style.display = 'none';
     } else {
-        await preencher_orcamentos_v2();
+        await preencherOrcamentos();
     }
 
 }

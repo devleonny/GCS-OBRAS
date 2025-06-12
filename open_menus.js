@@ -1099,7 +1099,7 @@ async function apagar(codigo_orcamento) {
         deletar(`dados_orcamentos/${codigo_orcamento}`)
     }
 
-    await preencher_orcamentos_v2()
+    await preencherOrcamentos()
     remover_popup()
 }
 

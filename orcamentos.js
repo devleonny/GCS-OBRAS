@@ -4,12 +4,12 @@ let intervaloCurto
 let filtro;
 let arquivados = false
 
-preencher_orcamentos_v2()
+preencherOrcamentos()
 
 async function recuperar_orcamentos() {
 
     await sincronizarDados('dados_orcamentos')
-    await preencher_orcamentos_v2()
+    await preencherOrcamentos()
 
 }
 
@@ -121,7 +121,7 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
 
 }
 
-async function preencher_orcamentos_v2(alternar) {
+async function preencherOrcamentos(alternar) {
 
     overlayAguarde()
 
@@ -212,12 +212,12 @@ async function preencher_orcamentos_v2(alternar) {
                         ${opcoes}
                     </select>
                 </td>
-                <td>${label_pedidos}</td>
-                <td>${label_notas}</td>
-                <td>${dados_orcam.contrato}</td>
-                <td>${dados_orcam.cliente_selecionado}</td>
-                <td>${dados_orcam.cidade}</td>
-                <td>${dados_orcam.analista}</td>
+                <td style="text-align: left;">${label_pedidos}</td>
+                <td style="text-align: left;">${label_notas}</td>
+                <td style="text-align: left;">${dados_orcam.contrato}</td>
+                <td style="text-align: left;">${dados_orcam.cliente_selecionado}</td>
+                <td style="text-align: left;">${dados_orcam.cidade}</td>
+                <td style="text-align: left;">${dados_orcam.analista}</td>
                 <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>
                 <td style="white-space: nowrap;">${orcamento.lpu_ativa}</td>
                 <td style="text-align: center;" onclick="abrirAtalhos('${idOrcamento}')">
