@@ -27,6 +27,9 @@ function criarLayoutPrincipal() {
                 <button class="botao-cadastro-veiculo" id="btnCadastrarVeiculo">
                     Cadastrar Veículo
                 </button>
+                <button class="botao-remover-veiculo" onclick="abrirGerenciamentoFrotas()">
+                    Remover Veículo/Frota
+                </button>
                 <label>Veículos</label>
             </div>
             
@@ -837,7 +840,6 @@ async function carregarFrotas(veiculo) {
         `;
     });
 
-    // Limpar campos
     document.getElementById('modelo').value = '';
     document.getElementById('status').value = '';
 }
@@ -1231,7 +1233,6 @@ function calcularCustoTotal() {
     const custoLitro = Number(document.getElementById('custo_litro').value) || 0;
     const custoTotalInput = document.getElementById('custo_total');
     
-    // Only update if user hasn't manually changed the value
     if (!custoTotalInput.dataset.manuallyEdited) {
         custoTotalInput.value = (litros * custoLitro).toFixed(2);
     }
@@ -1286,7 +1287,6 @@ async function editarRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) {
     }
 }
 
-// Helper function to format date for input
 function formatarDataParaInput(data) {
     const [dia, mes, ano] = data.split('/');
     return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
@@ -1331,7 +1331,6 @@ async function salvarEdicaoRegistroCombustivel(idMotorista, nomeVeiculo, idRegis
     }
 }
 
-// Helper function to format date from input to display
 function formatarData(data) {
     const [ano, mes, dia] = data.split('-');
     return `${dia}/${mes}/${ano}`;
@@ -1364,7 +1363,6 @@ async function adicionarRegistroCombustivel(idMotorista, nomeVeiculo) {
         await inserirDados(dados_veiculos, 'dados_veiculos');
         await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
-        // Refresh the fuel records table instead of opening attachments popup
         remover_popup();
         abrirPopupCombustivel(idMotorista, nomeVeiculo, motorista.nome);
     } catch (error) {
@@ -1375,18 +1373,15 @@ async function adicionarRegistroCombustivel(idMotorista, nomeVeiculo) {
 
 async function salvarAnexoCombustivel(input, idMotorista, nomeVeiculo, idRegistro) {
     try {
-        // Validar arquivo
         if (!input.files || !input.files[0]) {
             throw new Error('Nenhum arquivo selecionado');
         }
 
-        // Upload do arquivo usando anexo_v2
         const anexos = await anexo_v2(input);
         if (!anexos || anexos.length === 0) {
             throw new Error('Erro ao fazer upload do arquivo');
         }
 
-        // Recuperar dados
         let dados_veiculos = await recuperarDados('dados_veiculos');
         if (!dados_veiculos?.veiculos?.[nomeVeiculo]?.motoristas?.[idMotorista]) {
             throw new Error('Motorista não encontrado');
@@ -1394,12 +1389,10 @@ async function salvarAnexoCombustivel(input, idMotorista, nomeVeiculo, idRegistr
 
         const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
 
-        // Inicializar estrutura de combustível se não existir
         if (!motorista.combustivel) {
             motorista.combustivel = { registros: {} };
         }
 
-        // Adicionar anexo no registro
         if (idRegistro) {
             if (!motorista.combustivel.registros[idRegistro]) {
                 throw new Error('Registro não encontrado');
@@ -1409,7 +1402,6 @@ async function salvarAnexoCombustivel(input, idMotorista, nomeVeiculo, idRegistr
                 motorista.combustivel.registros[idRegistro].anexos = {};
             }
 
-            // Adicionar cada anexo no formato correto
             anexos.forEach(anexo => {
                 const idAnexo = gerar_id_5_digitos();
                 motorista.combustivel.registros[idRegistro].anexos[idAnexo] = {
@@ -1419,11 +1411,9 @@ async function salvarAnexoCombustivel(input, idMotorista, nomeVeiculo, idRegistr
                 };
             });
 
-            // Salvar alterações
             await inserirDados(dados_veiculos, 'dados_veiculos');
             await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
-            // Atualizar visualização
             remover_popup();
             abrirAnexosCombustivel(idMotorista, nomeVeiculo, idRegistro);
         }
@@ -1539,5 +1529,176 @@ async function excluirRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) 
                 <p>Erro ao excluir registro. Tente novamente.</p>
             </div>
         `, 'Erro');
+    }
+}
+
+async function excluirFrota(nomeVeiculo, placa) {
+    try {
+        let dados_veiculos = await recuperarDados('dados_veiculos');
+        
+        delete dados_veiculos.veiculos[nomeVeiculo].frotas[placa];
+
+        // Check if vehicle should be deleted
+        const veiculoVazio = Object.keys(dados_veiculos.veiculos[nomeVeiculo].frotas).length === 0;
+        
+        if (veiculoVazio) {
+            delete dados_veiculos.veiculos[nomeVeiculo];
+            await deletar(`dados_veiculos/veiculos/${nomeVeiculo}`);
+        } else {
+            await deletar(`dados_veiculos/veiculos/${nomeVeiculo}/frotas/${placa}`);
+        }
+
+        await inserirDados(dados_veiculos, 'dados_veiculos');
+        
+        remover_popup();
+        abrirGerenciamentoFrotas();
+
+        // Show appropriate success message
+        openPopup_v2(`
+            <div class="popup-message">
+                <img src="imagens/sucesso.png">
+                <label>${veiculoVazio ? 
+                    `Frota e veículo ${nomeVeiculo.toUpperCase()} removidos com sucesso!` : 
+                    'Frota removida com sucesso!'}</label>
+            </div>
+        `, 'Sucesso');
+
+        if (veiculoVazio) {
+            const container = document.getElementById('tabelaRegistro');
+            if (container) {
+                container.innerHTML = criarLayoutPrincipal();
+                const filtro = container.querySelector('.veiculos-toolbar-filtro');
+                const tbody = container.querySelector('#tabelaMotoristas');
+                await botoesVeiculos(filtro, tbody);
+            }
+        }
+
+        setTimeout(() => {
+            remover_popup();
+        }, 1500);
+
+    } catch (error) {
+        console.error('Erro ao excluir frota:', error);
+        openPopup_v2(`
+            <div class="popup-message">
+                <img src="imagens/error.png">
+                <p>Erro ao excluir frota. Tente novamente.</p>
+            </div>
+        `, 'Erro');
+    }
+}
+
+async function tentarExcluirFrota(nomeVeiculo, placa) {
+    try {
+        let dados_veiculos = await recuperarDados('dados_veiculos');
+        const veiculo = dados_veiculos.veiculos[nomeVeiculo];
+        
+        const motoristasUsandoFrota = Object.entries(veiculo.motoristas || {})
+            .filter(([_, motorista]) => motorista.dados_veiculo.placa === placa);
+
+        if (motoristasUsandoFrota.length > 0) {
+            const listaMotoristas = motoristasUsandoFrota
+                .map(([_, motorista]) => motorista.nome)
+                .join('</li><li>');
+
+            openPopup_v2(`
+                <div class="aviso-exclusao">
+                    <img src="imagens/error.png" style="width: 30px;">
+                    <h4>Não é possível excluir esta frota</h4>
+                    <p>Os seguintes motoristas estão utilizando este veículo:</p>
+                    <ul>
+                        <li>${listaMotoristas}</li>
+                    </ul>
+                    <p>Remova os motoristas primeiro para poder excluir a frota.</p>
+                    <button onclick="remover_popup()" class="botao-form primario">
+                        Entendi
+                    </button>
+                </div>
+            `, 'Aviso');
+            return;
+        }
+
+        openPopup_v2(`
+            <div class="confirmar-exclusao-container">
+                <img src="gifs/alerta.gif" class="confirmar-exclusao-imagem">
+                <p>Tem certeza que deseja excluir a frota ${placa} do veículo ${nomeVeiculo}?</p>
+                <div class="confirmar-exclusao-botoes">
+                    <button onclick="remover_popup()" class="botao-cancelar">
+                        Cancelar
+                    </button>
+                    <button onclick="excluirFrota('${nomeVeiculo}', '${placa}')" class="botao-confirmar-exclusao">
+                        Confirmar Exclusão
+                    </button>
+                </div>
+            </div>
+        `, 'Confirmar Exclusão');
+
+    } catch (error) {
+        console.error('Erro ao verificar frota:', error);
+        openPopup_v2('Erro ao verificar dados. Tente novamente.', 'Erro');
+    }
+}
+
+async function abrirGerenciamentoFrotas() {
+    try {
+        let dados_veiculos = await recuperarDados('dados_veiculos');
+        let tabelasHtml = '';
+
+        for (let nomeVeiculo in dados_veiculos.veiculos) {
+            if (nomeVeiculo === 'timestamp') continue;
+
+            const veiculo = dados_veiculos.veiculos[nomeVeiculo];
+            const frotas = veiculo.frotas || {};
+            
+            tabelasHtml += `
+                <div class="frota-container">
+                    <h3>${nomeVeiculo.toUpperCase()}</h3>
+                    <table class="tabela">
+                        <thead>
+                            <tr>
+                                <th>Placa</th>
+                                <th>Modelo</th>
+                                <th>Status</th>
+                                <th>Motoristas</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(frotas).map(([placa, frota]) => {
+                                const motoristasUsandoFrota = Object.values(veiculo.motoristas || {})
+                                    .filter(m => m.dados_veiculo.placa === placa);
+                                
+                                return `
+                                    <tr>
+                                        <td>${placa}</td>
+                                        <td>${frota.modelo}</td>
+                                        <td>${frota.status}</td>
+                                        <td>${motoristasUsandoFrota.length}</td>
+                                        <td>
+                                            <button onclick="tentarExcluirFrota('${nomeVeiculo}', '${placa}')" 
+                                                    class="botao-excluir-frota">
+                                                Excluir Frota
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        const conteudo = `
+            <div class="gerenciamento-frotas">
+                ${tabelasHtml}
+            </div>
+        `;
+
+        openPopup_v2(conteudo, 'Gerenciamento de Frotas');
+
+    } catch (error) {
+        console.error('Erro ao abrir gerenciamento:', error);
+        openPopup_v2('Erro ao carregar dados. Tente novamente.', 'Erro');
     }
 }
