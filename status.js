@@ -1304,15 +1304,11 @@ async function arquivarOrcamento(idOrcamento) {
 
 }
 
-//painelCustos('ORCA_e4c0efdd-beac-44dd-a327-2e29db751757')
-
 async function painelCustos(id) { //29
 
-    if (id) id_orcam = id
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento = dados_orcamentos[id_orcam]
-    console.log(orcamento);
 
     let guiaCores = {
         'USO E CONSUMO': '#097fe6',
