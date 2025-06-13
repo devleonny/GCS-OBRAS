@@ -674,8 +674,8 @@ async function total(inputDigitado) {
                 // Inclusão dos dados atualizados nas tds
                 tdDescricao.textContent = dados_composicoes[codigo].descricao
                
-
-                totalLinha > 0 ? tdTotal.classList = 'input_valor' : tdTotal.classList = 'label_zerada'
+                tdTotal.classList = 'labelAprovacao'
+                tdTotal.style.backgroundColor = totalLinha > 0 ? 'green' : '#B12425'
                 tdTotal.textContent = dinheiro(totalLinha)
 
                 // Salvamento dos itens no Orcamento

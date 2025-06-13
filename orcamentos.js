@@ -1,14 +1,15 @@
-var filtrosAtivos = {}
-var intervaloCompleto
-var intervaloCurto
-var filtro;
+let filtrosAtivos = {}
+let intervaloCompleto
+let intervaloCurto
+let filtro;
+let arquivados = false
 
-preencher_orcamentos_v2()
+preencherOrcamentos()
 
 async function recuperar_orcamentos() {
 
     await sincronizarDados('dados_orcamentos')
-    await preencher_orcamentos_v2()
+    await preencherOrcamentos()
 
 }
 
@@ -33,8 +34,7 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
     trs.forEach(tr => {
         let tds = tr.querySelectorAll('td')
         let status = tds[1].querySelector('select').value
-
-        var mostrarLinha = true;
+        let mostrarLinha = true
 
         for (var col in filtrosAtivos) {
             var filtroTexto = filtrosAtivos[col];
@@ -118,95 +118,98 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
             toolbar.insertAdjacentHTML('beforeend', label)
         }
     }
-
 }
 
-async function preencher_orcamentos_v2() {
+async function preencherOrcamentos(alternar) {
 
     let div_orcamentos = document.getElementById('orcamentos')
-    if (!div_orcamentos) {
-        return
-    }
+    if (!div_orcamentos) return
+    overlayAguarde()
+
+    document.getElementById('toolbar').innerHTML = ''
+    div_orcamentos.innerHTML = ''
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
-    for ([id, orcamento] of Object.entries(dados_orcamentos)) {
-        try {
-            orcamento.dados_orcam.data
-        } catch {
-            console.log(id)
-        }
-    }
-
     let desordenado = Object.entries(dados_orcamentos)
-    desordenado.sort((a, b) => new Date(b[1].dados_orcam.data) - new Date(a[1].dados_orcam.data))
+
+    desordenado.sort((a, b) => new Date(b[1]?.dados_orcam?.data || '') - new Date(a[1]?.dados_orcam?.data || ''))
     dados_orcamentos = Object.fromEntries(desordenado)
 
     let linhas = ''
 
+    if (alternar) arquivados = !arquivados
+    document.getElementById('botaoArquivados').querySelector('label').textContent = arquivados ? 'Demais Orçamentos' : 'Orçamentos Arquivados'
+
     for ([idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
 
-        let dados_orcam = orcamento.dados_orcam
-        let data = new Date(dados_orcam.data).toLocaleString('pt-BR', {
-            dateStyle: 'short',
-            timeStyle: 'short'
-        })
+        if ((arquivados && orcamento.arquivado) || (!arquivados && !orcamento.arquivado)) {
 
-        let label_pedidos = ''
-        let label_notas = ''
+            let dados_orcam = orcamento.dados_orcam
+            if (!dados_orcam) {
+                deletar(`dados_orcamentos/${idOrcamento}`)
+                continue
+            }
 
-        if (orcamento.status && orcamento.status.historico) {
-            let historico = orcamento.status.historico
-            for (chave1 in historico) {
+            let data = new Date(dados_orcam.data).toLocaleString('pt-BR', {
+                dateStyle: 'short',
+                timeStyle: 'short'
+            })
 
-                let chave_historico = historico[chave1]
-                let status = chave_historico.status
+            let label_pedidos = ''
+            let label_notas = ''
 
-                if (status == 'PEDIDO') {
+            if (orcamento.status && orcamento.status.historico) {
+                let historico = orcamento.status.historico
+                for (chave1 in historico) {
 
-                    let num_pedido = chave_historico.pedido
-                    let tipo = chave_historico.tipo
-                    let valor_pedido = conversor(chave_historico.valor)
+                    let chave_historico = historico[chave1]
+                    let status = chave_historico.status
 
-                    label_pedidos += `
+                    if (status == 'PEDIDO') {
+
+                        let num_pedido = chave_historico.pedido
+                        let tipo = chave_historico.tipo
+                        let valor_pedido = conversor(chave_historico.valor)
+
+                        label_pedidos += `
                         <div class="etiqueta_pedidos"> 
                             <label style="font-size: 0.6vw;">${tipo}</label>
                             <label style="font-size: 0.7vw; margin: 2px;"><strong>${num_pedido}</strong></label>
                             <label style="font-size: 0.8vw; margin: 2px"><strong>${dinheiro(valor_pedido)}</strong></label>
                         </div>
                         `
-                }
+                    }
 
-                if (chave_historico.notas) {
+                    if (chave_historico.notas) {
 
-                    let nota = chave_historico.notas[0]
-                    let valor_nota = chave_historico.notas[0].valorNota || '---'
+                        let nota = chave_historico.notas[0]
+                        let valor_nota = chave_historico.notas[0].valorNota || '---'
 
 
-                    label_notas += `
+                        label_notas += `
                         <div class="etiqueta_pedidos">
                             <label style="font-size: 0.6vw;">${nota.modalidade}</label>
                             <label style="font-size: 0.7vw; margin: 2px;"><strong>${nota.nota}</strong></label>
                             <label style="font-size: 0.8vw; margin: 2px"><strong>${dinheiro(valor_nota)}</strong></label>
                         </div>
                     `
+                    }
                 }
             }
-        }
 
-        let st = 'INCLUIR PEDIDO'
-        if (orcamento.status && orcamento.status) {
-            st = orcamento.status.atual || 'INCLUIR PEDIDO'
-        }
+            let st = 'INCLUIR PEDIDO'
+            if (orcamento.status && orcamento.status) {
+                st = orcamento.status.atual || 'INCLUIR PEDIDO'
+            }
 
-        let opcoes = ''
-        for (fluxo in fluxograma) {
-            opcoes += `
+            let opcoes = ''
+            for (fluxo in fluxograma) {
+                opcoes += `
                 <option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>
             `
-        }
+            }
 
-        linhas += `
+            linhas += `
             <tr>
                 <td>${data}</td>
                 <td>
@@ -214,12 +217,12 @@ async function preencher_orcamentos_v2() {
                         ${opcoes}
                     </select>
                 </td>
-                <td>${label_pedidos}</td>
-                <td>${label_notas}</td>
-                <td>${dados_orcam.contrato}</td>
-                <td>${dados_orcam.cliente_selecionado}</td>
-                <td>${dados_orcam.cidade}</td>
-                <td>${dados_orcam.analista}</td>
+                <td style="text-align: left;">${label_pedidos}</td>
+                <td style="text-align: left;">${label_notas}</td>
+                <td style="text-align: left;">${dados_orcam.contrato}</td>
+                <td style="text-align: left;">${dados_orcam.cliente_selecionado}</td>
+                <td style="text-align: left;">${dados_orcam.cidade}</td>
+                <td style="text-align: left;">${dados_orcam.analista}</td>
                 <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>
                 <td style="white-space: nowrap;">${orcamento.lpu_ativa}</td>
                 <td style="text-align: center;" onclick="abrirAtalhos('${idOrcamento}')">
@@ -227,6 +230,7 @@ async function preencher_orcamentos_v2() {
                 </td>
             </tr>
             `
+        }
     }
 
     let cabecs = ['Última alteração', 'Status', 'Pedido', 'Notas', 'Chamado', 'Cliente', 'Cidade', 'Analista', 'Valor', 'LPU', 'Ações']
@@ -253,15 +257,13 @@ async function preencher_orcamentos_v2() {
 
     let linhas_orcamento = document.getElementById('linhas_orcamento')
 
-    if (linhas !== '') {
+    if (linhas_orcamento) {
+        linhas_orcamento.innerHTML = linhas
 
-        if (linhas_orcamento) {
-            linhas_orcamento.innerHTML = linhas
+    } else {
 
-        } else {
-
-            div_orcamentos.innerHTML = ''
-            let tabela = `
+        div_orcamentos.innerHTML = ''
+        let tabela = `
                     <table id="orcamentos_" class="tabela" style="font-size: 0.8vw;">
                         <thead>
                             <tr>${ths}</tr>
@@ -272,12 +274,12 @@ async function preencher_orcamentos_v2() {
                         </tbody>
                     </table>
                     `
-            div_orcamentos.insertAdjacentHTML('beforeend', tabela)
-        }
-
-        filtrar_orcamentos('TODOS')
-
+        div_orcamentos.insertAdjacentHTML('beforeend', tabela)
     }
+
+    filtrar_orcamentos('TODOS')
+
+    removerOverlay()
 
 }
 

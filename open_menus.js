@@ -1100,7 +1100,7 @@ async function apagar(codigo_orcamento) {
         deletar(`dados_orcamentos/${codigo_orcamento}`)
     }
 
-    await preencher_orcamentos_v2()
+    await preencherOrcamentos()
     remover_popup()
 }
 
@@ -1331,6 +1331,7 @@ function baixar_em_excel(nome_tabela, filename) {
 function fecharTabela(nome_tabela) {
     document.getElementById(nome_tabela).style.display = 'none'
     document.getElementById('overlay').style.display = 'none'
+
 }
 
 function calcular() {
@@ -2029,8 +2030,6 @@ async function verificarPendencias() {
     }
 
 }
-
-localStorage.removeItem('dados_offline')
 
 async function verPedidoAprovacao(idOrcamento) { //29
 

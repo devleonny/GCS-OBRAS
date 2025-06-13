@@ -99,7 +99,7 @@ async function exibirTabelaAgrupamentos() {
                     <td style="text-align: center;">${td_quantidade}</td>
                     <td>${produto.unidade}</td>
                     <td style="white-space: nowrap;">
-                        <label ${moduloComposicoes ? `onclick="abrir_historico_de_precos('${codigo}', '${lpu}')"` : ''} class="${preco != 0 ? 'valor_preenchido' : 'valor_zero'}">${dinheiro(preco)}</label>
+                        <label ${moduloComposicoes ? `onclick="abrir_historico_de_precos('${codigo}', '${lpu}')"` : ''} class="labelAprovacao" style="background-color: ${preco > 0 ? 'green' : '#B12425'}">${dinheiro(preco)}</label>
                     </td>
                     <td style="text-align: center;">
                         <img src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">
@@ -350,8 +350,7 @@ function calcularTotalAgrupamento(codigo, qtdeAvulsa, qtdeKit, preco) {
     // Atualizar valor total da linha
     let valorTotalElement = document.getElementById(`valorTotal_${codigo}`)
     if (valorTotalElement) {
-        let estiloPreco = preco == 0 ? 'valor_zero' : 'valor_preenchido'
-        valorTotalElement.innerHTML = `<label class="${estiloPreco}">${dinheiro(valorTotal)}</label>`
+        valorTotalElement.innerHTML = `<label class="labelAprovacao" style="background-color: ${preco > 0 ? 'green' : '#B12425'}">${dinheiro(valorTotal)}</label>`
     }
 
     // Recalcular total geral
@@ -1196,7 +1195,7 @@ async function ocultarZerados(ocultar) {
 
 async function tabelaProdutos() {
 
-    let permissoes = ['adm', 'log', 'editor', 'gerente', 'diretor']
+    let permissoes = ['adm', 'log', 'editor', 'gerente', 'diretor', 'coordenacao']
     let moduloComposicoes = permissoes.includes(acesso.permissao)
 
     let tabelas = { TODOS: { linhas: '' } }
@@ -1273,7 +1272,7 @@ async function tabelaProdutos() {
                             <td style="text-align: center;">${td_quantidade}</td>
                             <td>${produto.unidade}</td>
                             <td style="white-space: nowrap;">
-                                <label ${moduloComposicoes ? `onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')"` : ''} class="${preco != 0 ? 'valor_preenchido' : 'valor_zero'}">${dinheiro(preco)}</label>
+                                <label ${moduloComposicoes ? `onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')"` : ''} class="labelAprovacao" style="background-color: ${preco > 0 ? 'green' : '#B12425'}">${dinheiro(preco)}</label>
                             </td>
                             <td style="text-align: center;">
                                 <img src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">
@@ -1397,7 +1396,6 @@ async function gerenciarAgrupamentos(codigo) {
             preco = historico[ativo].valor;
         }
 
-        let estilo = preco == 0 ? 'label_zerada' : 'input_valor';
         let qtde = composicoesOrcamento?.[agrup]?.qtde || 0;
 
         linhas += `
@@ -1411,7 +1409,7 @@ async function gerenciarAgrupamentos(codigo) {
                     </div>
                 </td>
                 <td>
-                    <label class="${estilo}">${dinheiro(preco)}</label>
+                    <label class="labelAprovacao" style="background-color: ${preco > 0 ? 'green' : '#B12425'}">${dinheiro(preco)}</label>
                 </td>
                 <td><label></label></td>
                 <td>
@@ -1653,7 +1651,7 @@ async function total() {
                 return `
                     <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
                         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 5px;">
-                            <label class="${valor == 0 ? 'label_zerada' : 'input_valor'}"> ${dinheiro(valor)}</label>
+                            <label ${valor > 0 ? 'class="input_valor">' : `class="labelAprovacao" style="background-color: #B12425">`} ${dinheiro(valor)}</label>
                             ${unitario ? `<img onclick="alterarValorUnitario('${codigo}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5vw;">` : ''}
                         </div>
                         ${labelICMS}
