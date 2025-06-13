@@ -1,4 +1,4 @@
-let filtrosAtivos = {}
+let filtrosOrcamento = {}
 let intervaloCompleto
 let intervaloCurto
 let filtro;
@@ -20,7 +20,7 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
     }
 
     if (col !== undefined) {
-        filtrosAtivos[col] = String(texto).toLowerCase()
+        filtrosOrcamento[col] = String(texto).toLowerCase()
     }
 
     let linhas_orcamento = document.getElementById('linhas_orcamento')
@@ -36,8 +36,8 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
         let status = tds[1].querySelector('select').value
         let mostrarLinha = true
 
-        for (var col in filtrosAtivos) {
-            var filtroTexto = filtrosAtivos[col];
+        for (var col in filtrosOrcamento) {
+            var filtroTexto = filtrosOrcamento[col];
 
             if (filtroTexto && col < tds.length) {
                 let element = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].textContent

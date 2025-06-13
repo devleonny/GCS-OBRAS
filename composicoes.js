@@ -41,7 +41,7 @@ async function recuperar_composicoes() {
 
 async function carregar_tabela_v2() {
 
-    if(document.title !== 'COMPOSIÇÕES') return 
+    if (document.title !== 'COMPOSIÇÕES') return
 
     let adicionar_item = document.getElementById('adicionar_item')
     let btn_criar_lpu = document.getElementById('btn-criar-lpu')
@@ -122,7 +122,7 @@ async function carregar_tabela_v2() {
                     preco_final = produto[chave].historico?.[ativo]?.valor || 0;
                 }
 
-                conteudo = `<label class="labelAprovacao" style="background-color: ${preco_final > 0 ? 'green': '#B12425'};" onclick="abrirHistoricoPrecos('${codigo}', '${chave}')"> ${dinheiro(conversor(preco_final))}</label>`;
+                conteudo = `<label class="labelAprovacao" style="background-color: ${preco_final > 0 ? 'green' : '#B12425'};" onclick="abrirHistoricoPrecos('${codigo}', '${chave}')"> ${dinheiro(conversor(preco_final))}</label>`;
 
             } else if (chave == 'agrupamentos') {
 
@@ -910,7 +910,7 @@ function modelos(produto) {
             camposIniciais: [
                 { label: 'Preço Unitário (R$)', cor: '#91b7d9', id: 'custo', valor: produto?.custo || '' },
                 { label: 'Frete de Compra (2%)', readOnly: true, id: 'frete' },
-                { label: 'ICMS Creditado em nota (%)', valorSelect: produto?.icms_creditado_select, opcoes: ['IMPORTADO', 'NACIONAL', 'BAHIA'], cor: '#91b7d9', id: 'icms_creditado', valor: produto?.icms_creditado || '' },
+                { label: 'ICMS Creditado em nota (%)', valorSelect: produto?.icms_creditado_select, opcoes: ['IMPORTADO', 'NACIONAL', 'BAHIA', '7%'], cor: '#91b7d9', id: 'icms_creditado', valor: produto?.icms_creditado || '' },
                 { label: 'Aliquota ICMS (Bahia) (20.5%)', readOnly: true, id: 'icms_aliquota', valor: 20.5 },
                 { label: 'ICMS a ser pago (DIFAL) (%)', readOnly: true, id: 'difal', valor: '' },
                 { label: 'Valor do ICMS de Entrada (R$)', readOnly: true, id: 'icms_entrada' },
@@ -1069,27 +1069,28 @@ function calcular(campo, dadosCalculo = null) {
     let tabelaIcmsSaida = {
         'IMPORTADO': 4,
         'NACIONAL': 12,
-        'BAHIA': 20.5
+        'BAHIA': 20.5,
+        '7%': 7
     }
 
     let lucroLiquido = 0
 
-    function atualizarLucro(valorReferencia, totalImpostos, custoFinal = 0) {
+    function atualizarLucro(valorReferencia, totalImpostos, custoFinal = 0, extras = {}) {
         lucroLiquido = valorReferencia - (totalImpostos + custoFinal)
         let porcentagem = lucroLiquido / valorReferencia * 100
-
         if (isNaN(porcentagem)) porcentagem = 0
 
         if (dadosCalculo) {
             return {
-                lucroLiquido: lucroLiquido,
-                lucroPorcentagem: porcentagem
+                lucroLiquido,
+                lucroPorcentagem: porcentagem,
+                totalImpostos,
+                ...extras
             }
         }
 
         getElementById('lucro_liquido', dinheiro(lucroLiquido))
         getElementById('lucro_porcentagem', `${porcentagem.toFixed(2)}%`)
-
         let estilo = lucroLiquido > 0 ? 'lucroPositivo' : 'lucroNegativo'
         document.getElementById('lucro_liquido').classList = estilo
         document.getElementById('lucro_porcentagem').classList = estilo
@@ -1120,7 +1121,12 @@ function calcular(campo, dadosCalculo = null) {
             getElementById('total_impostos', dinheiro(totalImpostos))
         }
 
-        return atualizarLucro(precoVenda, totalImpostos)
+        return atualizarLucro(precoVenda, totalImpostos, 0, {
+            freteCompra: 0,
+            freteVenda: 0,
+            difal: 0,
+            margem: 0
+        })
 
     } else if (modalidadeCalculo == 'VENDA') {
 
@@ -1163,7 +1169,7 @@ function calcular(campo, dadosCalculo = null) {
 
         if (!dadosCalculo) {
             getElementById('icms_creditado', icmsCreditado)
-            getElementById('frete_venda', freteVenda.toFixed(0))
+            getElementById('frete_venda', freteVenda.toFixed(2))
             getElementById('porc_LP', dinheiro(lucroPresumido))
             getElementById('porc_CSLL', dinheiro(presuncaoCsll))
             getElementById('icms_saida_select', icmsSaidaSelect == 0.04 ? '4%' : icmsSaidaSelect == 0.12 ? '12%' : '20,5%')
@@ -1180,7 +1186,13 @@ function calcular(campo, dadosCalculo = null) {
             getElementById('total_impostos', dinheiro(totalImpostos))
         }
 
-        return atualizarLucro(precoVenda, totalImpostos, valorCusto + freteVenda)
+        return atualizarLucro(precoVenda, totalImpostos, valorCusto + freteVenda, {
+            freteCompra: frete,
+            freteVenda,
+            difal,
+            margem: Number(margem)
+        })
+
 
     } else if (modalidadeCalculo == 'USO E CONSUMO') {
 
@@ -1216,7 +1228,7 @@ function calcular(campo, dadosCalculo = null) {
 
         if (!dadosCalculo) {
             getElementById('icms_creditado', icmsCreditado)
-            getElementById('frete_venda', freteVenda.toFixed(0))
+            getElementById('frete_venda', freteVenda.toFixed(2))
             getElementById('aliq_presumido', dinheiro(aliqLp))
             getElementById('presuncao_csll', dinheiro(presuncaoCsll))
             getElementById('frete', frete.toFixed(2))
@@ -1232,7 +1244,13 @@ function calcular(campo, dadosCalculo = null) {
             getElementById('total_impostos', dinheiro(totalImpostos))
         }
 
-        return atualizarLucro(precoVenda, totalImpostos, valorCusto + freteVenda)
+        return atualizarLucro(precoVenda, totalImpostos, valorCusto + freteVenda, {
+            freteCompra: frete,
+            freteVenda,
+            difal,
+            margem: Number(margem)
+        })
+
     }
 }
 
@@ -1461,7 +1479,7 @@ async function salvarServidor(codigo) {
     divs.forEach(div => {
         let item = div.querySelector('label');
         let valor = div.querySelector('input') || div.querySelector('textarea') || div.querySelector('select');
-        if(item?.textContent == 'descricao') valor.value = String(valor.value).toUpperCase()
+        if (item?.textContent == 'descricao') valor.value = String(valor.value).toUpperCase()
         if (item && valor) dadosAtualizados[item.textContent] = valor.value;
 
     });

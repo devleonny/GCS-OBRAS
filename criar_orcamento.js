@@ -1730,7 +1730,7 @@ async function total() {
     // Informações complementares do orçamento;
     totalAcrescido > 0 ? orcamento_v2.total_acrescido = totalAcrescido : delete orcamento_v2.total_acrescido
     descontoAcumulado > 0 ? orcamento_v2.total_desconto = descontoAcumulado : delete orcamento_v2.total_desconto
-    orcamento_v2.total_geral = totais.GERAL.valor - descontoAcumulado
+    orcamento_v2.total_geral = totais.GERAL.valor
     orcamento_v2.total_bruto = totais.GERAL.bruto
 
     baseOrcamento(orcamento_v2)

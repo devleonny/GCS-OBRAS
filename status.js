@@ -1300,11 +1300,21 @@ async function arquivarOrcamento(idOrcamento) {
 
 }
 
-async function painelCustos() { //29
+painelCustos('ORCA_e4c0efdd-beac-44dd-a327-2e29db751757')
+
+async function painelCustos(id) { //29
+
+    if (id) id_orcam = id
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamento = dados_orcamentos[id_orcam]
+    console.log(orcamento);
+    
+    let estado = orcamento.dados_orcam.estado
+    let lpu = String(orcamento.lpu_ativa).toLowerCase()
     let tabelas = {}
-    let colunas = ['Código', 'Descrição', 'Quantidade', 'Desconto', 'Margem', 'Custo Compra', 'Total Custo', 'Unitário Venda', 'Total Venda', 'Lucro Total']
+    let totalGeral = 0
+    let colunas = ['Código', 'Descrição', 'Quantidade', 'Margem (%)', 'Unitário Venda', 'Total Venda', 'Desconto', 'Custo Compra', 'Impostos<br>Frete Saída<br>Difal', 'Lucro Total']
     let ths = ''
 
     colunas.forEach(coluna => {
@@ -1314,36 +1324,90 @@ async function painelCustos() { //29
     for ([codigo, composicao] of Object.entries(orcamento.dados_composicoes)) {
 
         if (!tabelas[composicao.tipo]) {
-            tabelas[composicao.tipo] = { linhas: '' }
+            tabelas[composicao.tipo] = { linhas: '', totais: { compra: 0, venda: 0, imposto: 0, lucro: 0, desconto: 0 } }
         }
 
-        console.log(composicao);    
+        let ativo = dados_composicoes?.[codigo]?.[lpu]?.ativo
+        let historico = dados_composicoes?.[codigo]?.[lpu]?.historico
+        let dadosPreco = historico?.[ativo] || {}
         let quantidade = composicao.qtde
         let total = composicao.custo * quantidade
-        let desconto = composicao?.tipo_desconto == 'Dinheiro' ? composicao.desconto : ((composicao.desconto / 100) * total) / quantidade
+        let desconto = 0
+        if (composicao.tipo_desconto) desconto = composicao.tipo_desconto == 'Dinheiro' ? composicao.desconto : ((composicao.desconto / 100) * total) / quantidade
+        let icmsSaida = dadosPreco?.icms_creditado == 4 ? 4 : estado == 'BA' ? 20.5 : 12
+
+        let dadosCalculo = {
+            custo: dadosPreco?.custo || 0,
+            valor: composicao.custo - (desconto / quantidade), // Valor de venda
+            icms_creditado: dadosPreco?.icms_creditado,
+            icmsSaida,
+            modalidadeCalculo: composicao.tipo
+        }
+
+        let lucratividade = calcular(undefined, dadosCalculo)
+        let freteSaidaImpostos = (lucratividade.freteVenda + lucratividade.totalImpostos) * quantidade
+        let totalVenda = composicao.custo * quantidade
+        let totalCompra = (dadosPreco?.valor_custo || 0) * quantidade
+        let totalCustos = freteSaidaImpostos + desconto + totalCompra
+        let totalLucro = totalVenda - totalCustos
+        let lucroPorcentagem = ((totalLucro / totalVenda) * 100).toFixed(0)
 
         tabelas[composicao.tipo].linhas += `
         <tr>
             <td>${codigo}</td>
             <td style="text-align: left;">${composicao.descricao}</td>
             <td>${quantidade}</td>
+            <td>${lucratividade?.margem || '--'}</td>
+            <td>${dinheiro(composicao.custo)}</td>
+            <td>${dinheiro(totalVenda)}</td>
             <td>${dinheiro(desconto)}</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
+            <td>${dinheiro(totalCompra)}</td>
+            <td>${dinheiro(freteSaidaImpostos)}</td>
+            <td>(${lucroPorcentagem}%) ${dinheiro(totalLucro)}</td>
         </tr>
+        `
+
+        let totais = tabelas[composicao.tipo].totais
+        totais.compra += (dadosPreco?.valor_custo || 0) * quantidade
+        totais.venda += totalVenda
+        totais.desconto += desconto
+        totais.imposto += freteSaidaImpostos
+        totais.lucro += totalLucro
+
+        totalGeral += totalVenda - desconto
+    }
+
+    let modelo = (valor1, valor2) => {
+        return `
+            <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px; width: 100%;">
+                <label style="font-size: 0.9vw;">${valor1}</label>
+                <label style="font-size: 1.2vw;"><strong>${valor2}</strong></label>
+            </div>
         `
     }
 
     let stringTabelas = ''
+    let stringTotais = ''
 
-    for ([tipo, tabela] of Object.entries(tabelas)) {
+    for (let [tipo, tabela] of Object.entries(tabelas)) {
+
+        stringTotais += `${modelo(`Total de ${tipo}`, dinheiro(tabela.totais.venda))}`
+
+        let lucroPorcentagem = ((tabela.totais.lucro / tabela.totais.venda) * 100).toFixed(0)
+        tabela.linhas += `
+        <tr>
+            <td style="text-align: right;" colspan="5"><strong>TOTAIS</strong></td>
+            <td>${dinheiro(tabela.totais.venda)}</td>
+            <td>${dinheiro(tabela.totais.desconto)}</td>
+            <td>${dinheiro(tabela.totais.compra)}</td>
+            <td>${dinheiro(tabela.totais.imposto)}</td>
+            <td>(${lucroPorcentagem}%) ${dinheiro(tabela.totais.lucro)}</td>
+        </tr>
+        `
         stringTabelas += `
-        <hr style="width: 80%;">
-        <table class="tabela">
+        <hr style="width: 100%;">
+        <label style="font-size: 1.5vw;">${tipo}</label>
+        <table class="tabela" style="width: 100%;">
             <thead>
                 <tr>${ths}</tr>
             </thead>
@@ -1355,9 +1419,14 @@ async function painelCustos() { //29
     }
 
     acumulado = `
+        <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px; width: 100%; margin-left: 2vw;">
+            ${modelo('Cliente', orcamento.dados_orcam.cliente_selecionado)}
+            ${modelo('Localização', orcamento.dados_orcam.cidade)}
+            ${stringTotais}
+            ${modelo('Total Geral', dinheiro(totalGeral))}
+        </div>
         ${stringTabelas}
     `
-
     openPopup_v2(acumulado, 'Painel de Custos')
 
 }
