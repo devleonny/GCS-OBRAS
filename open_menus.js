@@ -135,6 +135,10 @@ function carregarIcones() {
         ${atalho('Reembolsos & Pagamentos', 'reembolso', `window.location.href='pagamentos.html'`)}
         ${atalho('Painel Kanban', 'kanban', `window.location.href='projetos.html'`)}
         ${atalho('Agenda', 'agenda', `window.location.href='agenda.html'`)}
+
+        ${acesso.usuario === 'Dêivisson Oliveira' || registroHistorico 
+            ? atalho('Veiculo', 'veiculo', `window.location.href='veiculos.html'`)
+            : ''}
         
         ${registroHistorico
             ? atalho('Suporte', 'suporte', `window.location.href='tickets.html'`)
