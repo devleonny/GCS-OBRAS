@@ -940,7 +940,10 @@ async function abrirPopupCombustivel(idMotorista, nomeVeiculo, nomeMotorista) {
                     <div class="anexo-container">
                         <label for="anexo_combustivel" class="anexo-label">
                             Anexar Comprovante
-                            <input type="file" id="anexo_combustivel" style="display: none;" onchange="salvarAnexoCombustivel(this, '${idMotorista}', '${nomeVeiculo}')">
+                            <input type="file" 
+                                id="anexo_combustivel" 
+                                style="display: none;" 
+                                onchange="salvarAnexoCombustivel(this, '${idMotorista}', '${nomeVeiculo}')">
                         </label>
                     </div>
                     <button onclick="adicionarRegistroCombustivel('${idMotorista}', '${nomeVeiculo}')" class="botao-form primario">
@@ -1011,6 +1014,80 @@ function calcularCustoTotal() {
     document.getElementById('custo_total').value = (litros * custoLitro).toFixed(2);
 }
 
+async function editarRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) {
+    try {
+        const dados_veiculos = await recuperarDados('dados_veiculos');
+        const registro = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista].combustivel.registros[idRegistro];
+
+        const conteudo = `
+            <div class="form-grupo form-custos">
+                <h3>Editar Registro de Combustível</h3>
+                
+                <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                    <div class="form-grupo">
+                        <label>Litros:</label>
+                        <input type="number" id="edit_litros" value="${registro.litros}" step="0.01" min="0">
+                    </div>
+
+                    <div class="form-grupo">
+                        <label>Custo por Litro:</label>
+                        <input type="number" id="edit_custo_litro" value="${registro.custo_litro}" step="0.01" min="0" oninput="calcularCustoTotalEdicao()">
+                    </div>
+
+                    <div class="form-grupo">
+                        <label>Custo Total:</label>
+                        <input type="number" id="edit_custo_total" value="${registro.custo_total}" readonly>
+                    </div>
+                </div>
+
+                <button onclick="salvarEdicaoRegistroCombustivel('${idMotorista}', '${nomeVeiculo}', '${idRegistro}')" class="botao-form primario">
+                    Salvar Alterações
+                </button>
+            </div>
+        `;
+
+        openPopup_v2(conteudo, 'Editar Registro');
+    } catch (error) {
+        console.error('Erro ao abrir formulário de edição:', error);
+        openPopup_v2(`
+            <div class="popup-message">
+                <img src="imagens/error.png">
+                <p>Erro ao abrir formulário. Tente novamente.</p>
+            </div>
+        `, 'Erro');
+    }
+}
+
+function calcularCustoTotalEdicao() {
+    const litros = Number(document.getElementById('edit_litros').value) || 0;
+    const custoLitro = Number(document.getElementById('edit_custo_litro').value) || 0;
+    document.getElementById('edit_custo_total').value = (litros * custoLitro).toFixed(2);
+}
+
+async function salvarEdicaoRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) {
+    try {
+        const litros = Number(document.getElementById('edit_litros').value) || 0;
+        const custoLitro = Number(document.getElementById('edit_custo_litro').value) || 0;
+        const custoTotal = Number(document.getElementById('edit_custo_total').value) || 0;
+
+        let dados_veiculos = await recuperarDados('dados_veiculos');
+        const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
+        
+        motorista.combustivel.registros[idRegistro].litros = litros;
+        motorista.combustivel.registros[idRegistro].custo_litro = custoLitro;
+        motorista.combustivel.registros[idRegistro].custo_total = custoTotal;
+
+        await inserirDados(dados_veiculos, 'dados_veiculos');
+        await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
+
+        abrirPopupCombustivel(idMotorista, nomeVeiculo, motorista.nome);
+
+    } catch (error) {
+        console.error('Erro ao salvar alterações:', error);
+        openPopup_v2('Erro ao salvar alterações. Tente novamente.', 'Erro');
+    }
+}
+
 async function adicionarRegistroCombustivel(idMotorista, nomeVeiculo) {
     const litros = Number(document.getElementById('litros').value) || 0;
     const custoLitro = Number(document.getElementById('custo_litro').value) || 0;
@@ -1036,7 +1113,8 @@ async function adicionarRegistroCombustivel(idMotorista, nomeVeiculo) {
         await inserirDados(dados_veiculos, 'dados_veiculos');
         await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
-        abrirPopupCombustivel(idMotorista, nomeVeiculo, motorista.nome);
+        // Abrir popup de anexos após criar o registro
+        abrirAnexosCombustivel(idMotorista, nomeVeiculo, idRegistro);
 
     } catch (error) {
         console.error('Erro ao adicionar registro:', error);
@@ -1046,40 +1124,66 @@ async function adicionarRegistroCombustivel(idMotorista, nomeVeiculo) {
 
 async function salvarAnexoCombustivel(input, idMotorista, nomeVeiculo, idRegistro) {
     try {
+        // Validar arquivo
+        if (!input.files || !input.files[0]) {
+            throw new Error('Nenhum arquivo selecionado');
+        }
+
+        // Upload do arquivo usando anexo_v2
         const anexos = await anexo_v2(input);
-        let dados_veiculos = await recuperarDados('dados_veiculos') || { veiculos: {} };
+        if (!anexos || anexos.length === 0) {
+            throw new Error('Erro ao fazer upload do arquivo');
+        }
+
+        // Recuperar dados
+        let dados_veiculos = await recuperarDados('dados_veiculos');
+        if (!dados_veiculos?.veiculos?.[nomeVeiculo]?.motoristas?.[idMotorista]) {
+            throw new Error('Motorista não encontrado');
+        }
+
         const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
 
+        // Inicializar estrutura de combustível se não existir
+        if (!motorista.combustivel) {
+            motorista.combustivel = { registros: {} };
+        }
+
+        // Adicionar anexo no registro
         if (idRegistro) {
-            // Adicionar a um registro existente
+            if (!motorista.combustivel.registros[idRegistro]) {
+                throw new Error('Registro não encontrado');
+            }
+
             if (!motorista.combustivel.registros[idRegistro].anexos) {
                 motorista.combustivel.registros[idRegistro].anexos = {};
             }
+
+            // Adicionar cada anexo no formato correto
             anexos.forEach(anexo => {
                 const idAnexo = gerar_id_5_digitos();
-                motorista.combustivel.registros[idRegistro].anexos[idAnexo] = anexo;
+                motorista.combustivel.registros[idRegistro].anexos[idAnexo] = {
+                    nome: anexo.nome,
+                    formato: anexo.tipo || 'application/pdf',
+                    link: anexo.link
+                };
             });
-        } else {
-            // Guardar temporariamente para novo registro
-            if (!motorista.combustivel.anexos_temp) {
-                motorista.combustivel.anexos_temp = {};
-            }
-            anexos.forEach(anexo => {
-                const idAnexo = gerar_id_5_digitos();
-                motorista.combustivel.anexos_temp[idAnexo] = anexo;
-            });
-        }
 
-        await inserirDados(dados_veiculos, 'dados_veiculos');
-        await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
+            // Salvar alterações
+            await inserirDados(dados_veiculos, 'dados_veiculos');
+            await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
-        if (idRegistro) {
+            // Atualizar visualização
             abrirAnexosCombustivel(idMotorista, nomeVeiculo, idRegistro);
         }
 
     } catch (error) {
         console.error('Erro ao salvar anexo:', error);
-        openPopup_v2('Erro ao salvar anexo. Tente novamente.', 'Erro');
+        openPopup_v2(`
+            <div class="popup-message">
+                <img src="imagens/error.png">
+                <p>Erro ao salvar anexo: ${error.message}</p>
+            </div>
+        `, 'Erro');
     }
 }
 
@@ -1093,23 +1197,29 @@ async function abrirAnexosCombustivel(idMotorista, nomeVeiculo, idRegistro) {
             <div class="anexos-container">
                 <h3>Anexos do Registro</h3>
                 
+                <div id="container_anexos_combustivel" style="display: flex; flex-wrap: wrap; gap: 10px; margin: 10px;">
+                    ${Object.entries(anexos).map(([idAnexo, anexo]) => `
+                        <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 5px; background-color: #222; padding: 5px;">
+                            <div onclick="abrirArquivo('${anexo.link}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer;">
+                                <img src="imagens/anexo2.png" style="width: 2vw;">
+                                <label style="color: white; font-size: 0.8vw;">${anexo.nome}</label>
+                            </div>
+                            <img src="imagens/excluir.png" 
+                                style="width: 1.5vw; cursor: pointer;" 
+                                onclick="excluirAnexoCombustivel('${idMotorista}', '${nomeVeiculo}', '${idRegistro}', '${idAnexo}')" 
+                                title="Excluir anexo">
+                        </div>
+                    `).join('')}
+                </div>
+
                 <div class="form-grupo">
                     <label for="novo_anexo" class="anexo-label">
                         Adicionar Novo Anexo
-                        <input type="file" id="novo_anexo" style="display: none;" onchange="salvarAnexoCombustivel(this, '${idMotorista}', '${nomeVeiculo}', '${idRegistro}')">
+                        <input type="file" 
+                            id="novo_anexo" 
+                            style="display: none;" 
+                            onchange="salvarAnexoCombustivel(this, '${idMotorista}', '${nomeVeiculo}', '${idRegistro}')">
                     </label>
-                </div>
-
-                <div class="anexos-lista">
-                    ${Object.entries(anexos).map(([idAnexo, anexo]) => `
-                        <div class="anexo-item">
-                            <div onclick="abrirArquivo('${anexo.link}')" class="anexo-nome">
-                                <img src="imagens/anexo2.png">
-                                <span>${anexo.nome}</span>
-                            </div>
-                            <img src="imagens/excluir.png" onclick="excluirAnexoCombustivel('${idMotorista}', '${nomeVeiculo}', '${idRegistro}', '${idAnexo}')" title="Excluir anexo">
-                        </div>
-                    `).join('')}
                 </div>
             </div>
         `;
@@ -1118,7 +1228,12 @@ async function abrirAnexosCombustivel(idMotorista, nomeVeiculo, idRegistro) {
 
     } catch (error) {
         console.error('Erro ao abrir anexos:', error);
-        openPopup_v2('Erro ao abrir anexos. Tente novamente.', 'Erro');
+        openPopup_v2(`
+            <div class="popup-message">
+                <img src="imagens/error.png">
+                <p>Erro ao abrir anexos. Tente novamente.</p>
+            </div>
+        `, 'Erro');
     }
 }
 
@@ -1127,9 +1242,11 @@ async function excluirAnexoCombustivel(idMotorista, nomeVeiculo, idRegistro, idA
         let dados_veiculos = await recuperarDados('dados_veiculos');
         const registro = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista].combustivel.registros[idRegistro];
         
+        // Delete file from server
         const link = registro.anexos[idAnexo].link;
         deletar_arquivo_servidor(link);
         
+        // Delete reference from data
         delete registro.anexos[idAnexo];
 
         await inserirDados(dados_veiculos, 'dados_veiculos');
