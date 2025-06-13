@@ -1300,7 +1300,7 @@ async function arquivarOrcamento(idOrcamento) {
 
 }
 
-painelCustos('ORCA_e4c0efdd-beac-44dd-a327-2e29db751757')
+//painelCustos('ORCA_e4c0efdd-beac-44dd-a327-2e29db751757')
 
 async function painelCustos(id) { //29
 
