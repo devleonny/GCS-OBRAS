@@ -1333,7 +1333,7 @@ async function painelCustos(id) { //29
         let quantidade = composicao.qtde
         let total = composicao.custo * quantidade
         let desconto = 0
-        if (composicao.tipo_desconto) desconto = composicao.tipo_desconto == 'Dinheiro' ? composicao.desconto : ((composicao.desconto / 100) * total) / quantidade
+        if (composicao.tipo_desconto) desconto = composicao.tipo_desconto == 'Dinheiro' ? composicao.desconto : (composicao.desconto / 100) * total
         let icmsSaida = dadosPreco?.icms_creditado == 4 ? 4 : estado == 'BA' ? 20.5 : 12
 
         let dadosCalculo = {

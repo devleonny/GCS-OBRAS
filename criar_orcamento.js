@@ -1557,7 +1557,7 @@ async function total() {
 
                 if (valorDesconto.value != '') {
 
-                    if (valorDesconto.value == 'Porcentagem') {
+                    if (tipoDesconto.value == 'Porcentagem') {
                         if (valorDesconto.value < 0) {
                             valorDesconto.value = 0
                         } else if (valorDesconto.value > 100) {
