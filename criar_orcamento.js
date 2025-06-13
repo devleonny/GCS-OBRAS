@@ -2372,22 +2372,22 @@ function alterar_input_tabela(codigo) {
 
 }
 
-async function carregar_clientes(textarea) {
+async function carregarClientes(textarea) {
 
-    let div = textarea.nextElementSibling;
     let dados_clientes = await recuperarDados('dados_clientes') || {};
-    let pesquisa = String(textarea.value).replace(/[.-]/g, '').toLowerCase()
+    let pesquisa = String(textarea.value).replace(/[./-]/g, '').toLowerCase()
     let opcoes = ''
-    div.innerHTML = ''
+    let div = document.getElementById('div_sugestoes')
+    if(div) div.remove()
 
     for (cnpj in dados_clientes) {
         var cliente = dados_clientes[cnpj]
         let nome = cliente.nome.toLowerCase()
-        let cnpj_sem_format = cnpj.replace(/[.-]/g, '')
+        let cnpj_sem_format = cnpj.replace(/[./-]/g, '')
 
         if (nome.includes(pesquisa) || cnpj_sem_format.includes(pesquisa)) {
             opcoes += `
-            <div onclick="selecionar_cliente('${cnpj}', '${cliente.nome}', this)" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: start; justify-content: start; padding: 2px; border-bottom: solid 1px #d2d2d2;">
+            <div onclick="selecionarCliente('${cnpj}', '${cliente.nome}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: start; justify-content: start; padding: 2px; border-bottom: solid 1px #d2d2d2;">
                 <label style="width: 90%; font-size: 0.8vw;">${cliente.nome}</label>
                 <label style="width: 90%; font-size: 0.7vw;"><strong>${cnpj}</strong></label>
             </div>
@@ -2404,11 +2404,20 @@ async function carregar_clientes(textarea) {
         return
     }
 
-    div.innerHTML = opcoes
+    let posicao = textarea.getBoundingClientRect()
+    let left = posicao.left + window.scrollX
+    let top = posicao.bottom + window.scrollY
+
+    let div_sugestoes = `
+        <div id="div_sugestoes" class="autocomplete-list" style="position: absolute; top: ${top}px; left: ${left}px; border: 1px solid #ccc; width: 15vw;">
+            ${opcoes}
+        </div>
+    `
+    document.body.insertAdjacentHTML('beforeend', div_sugestoes)
 
 }
 
-async function selecionar_cliente(cnpj, nome, div_opcao) {
+async function selecionarCliente(cnpj, nome) {
 
     let dados_clientes = await recuperarDados('dados_clientes') || {};
     let cliente = dados_clientes[cnpj]
@@ -2419,13 +2428,10 @@ async function selecionar_cliente(cnpj, nome, div_opcao) {
     document.getElementById('cidade').textContent = cliente.cidade
     document.getElementById('estado').textContent = cliente.estado
 
-    let div = div_opcao.parentElement
-    let textarea = div.previousElementSibling
+    document.getElementById('div_sugestoes').remove()
 
+    let textarea = document.getElementById('cliente_selecionado')
     textarea.value = nome
-
-    div.innerHTML = ''
-
     salvar_preenchido()
 
 }
@@ -2621,23 +2627,31 @@ function painel_clientes() {
         levantamentos += criarAnexoVisual(levantamento.nome, levantamento.link, `excluir_levantamento('${chave}')`)
     }
 
-    let modelo = () =>{
+    let modelo = (valor1, valor2, idElemento) => {
         return `
-        
+            <div class="linha">
+                <label>${valor1}</label>
+                <div style="display: flex; 
+                align-items: center; 
+                justify-content: end; 
+                gap: 5px; 
+                width: 65%; 
+                margin-right: 10px;" 
+                ${idElemento ? `id="${idElemento}"` : ''}>${valor2 ? valor2 : ''}</div>
+            </div>
         `
     }
 
     let acumulado = `
 
-    <div style="background-color: #d2d2d2; padding: 10px; width: 40vw;">
+    <div style="background-color: #d2d2d2; padding: 10px; width: 30vw;">
+
         <div style="display: flex; justify-content: start; align-items: center;">
             <div style="display: flex; flex-direction: column; gap: 10px; align-items: left; margin: 5px;">
-
                 <div id="acompanhamento_dados_clientes" class="btn" onclick="recuperar_clientes()">
                     <img src="imagens/omie.png">
                     <label style="cursor: pointer;">Atualizar OMIE Clientes</label>
                 </div>
-
             </div>
 
             <div onclick="limpar_campos()" class="btn">
@@ -2647,135 +2661,63 @@ function painel_clientes() {
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 5px; justify-content: center; align-items: start; border-radius: 3px; margin: 5px;">
+
             <label style="font-size: 1.5vw;">Dados do Cliente</label>
 
-            <div class="linha">
-                <label>nº do Chamado</label>
-                <div style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 2px; flex-direction: column;">
-                    <input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" onchange="salvar_preenchido()" value="${dados_orcam?.contrato || ''}">
-
-                    <div style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 2px;">
-                        <input id="chamado_off" style="width: max-content; cursor: pointer;" type="checkbox"
-                            onchange="salvar_preenchido()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
-                        <label style="width: max-content;">Sem Chamado</label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="linha">
-                <label>Cliente</label>
-                <div class="autocomplete-container">
-                    <textarea style="width: 100%; font-size: 1.0vw;" class="autocomplete-input" id="cliente_selecionado"
-                        placeholder="Escreva o nome do Cliente..." oninput="carregar_clientes(this)">${dados_orcam?.cliente_selecionado || ''}</textarea>
-                    <div class="autocomplete-list"></div>
-                </div>
-            </div>
-
-            <div class="linha">
-                <label>CNPJ/CPF</label>
-                <label id="cnpj">${dados_orcam?.cnpj || '...'}</label>
-            </div>
-            <div class="linha">
-                <label>CEP</label>
-                <label id="cep">${dados_orcam?.cep || '...'}</label>
-            </div>
-            <div class="linha">
-                <label>Endereço</label>
-                <label id="bairro">${dados_orcam?.bairro || '...'}</label>
-            </div>
-            <div class="linha">
-                <label>Cidade</label>
-                <label id="cidade">${dados_orcam?.cidade || '...'}</label>
-            </div>
-            <div class="linha">
-                <label>Estado</label>
-                <label id="estado">${dados_orcam?.estado || '...'}</label>
-            </div>
-            <div class="linha">
-                <label>Tipo de Frete</label>
-                <select id="tipo_de_frete" onchange="salvar_preenchido()">
+            ${modelo('Chamado', `<input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" onchange="salvar_preenchido()" value="${dados_orcam?.contrato || ''}">
+                <input id="chamado_off" style="width: 2vw; height: 2vw; cursor: pointer;" type="checkbox"
+                        onchange="salvar_preenchido()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
+                <label style="white-space: nowrap;">Sem Chamado</label>`)}
+            ${modelo('Cliente',`<textarea class="autocomplete-input" id="cliente_selecionado" placeholder="Nome do Cliente" oninput="carregarClientes(this)"></textarea>`)}
+            ${modelo('CNPJ/CPF', dados_orcam?.cnpj, 'cnpj')}
+            ${modelo('Endereço', dados_orcam?.bairro, 'bairro')}
+            ${modelo('CEP', dados_orcam?.cep, 'cep')}
+            ${modelo('Cidade', dados_orcam?.cidade, 'cidade')}
+            ${modelo('Estado', dados_orcam?.estado, 'estado')}
+            ${modelo('Tipo de Frete', `<select id="tipo_de_frete" onchange="salvar_preenchido()">
                     <option ${dados_orcam?.tipo_de_frete == '--' ? 'selected' : ''}>--</option>
                     <option ${dados_orcam?.tipo_de_frete == 'CIF' ? 'selected' : ''}>CIF</option>
                     <option ${dados_orcam?.tipo_de_frete == 'FOB' ? 'selected' : ''}>FOB</option>
-                </select>
-            </div>
-            <div class="linha">
-                <label>Transportadora</label>
-                <input type="text" id="transportadora" placeholder="Transportadora" oninput="salvar_preenchido()" value="${dados_orcam?.transportadora || ''}">
-            </div>
-            <div class="linha">
-                <label>Considerações</label>
-                <div style="display: flex; flex-direction: column; align-items: start; justify-content: space-between;">
-                    <textarea id="consideracoes" oninput="salvar_preenchido()" rows="5" style="width: 100%; font-size: 1.0vw;"
-                        placeholder="Escopo do orçamento...">${dados_orcam?.consideracoes || ''}</textarea>
+                </select>`, 'estado')}
+            ${modelo('Transportadora', `<input type="text" id="transportadora" placeholder="Transportadora" oninput="salvar_preenchido()" value="${dados_orcam?.transportadora || ''}">`)}
+            ${modelo('Considerações', `<div style="display: flex; flex-direction: column; align-items: start; justify-content: center; width: 100%;">
+                    <textarea id="consideracoes" oninput="salvar_preenchido()" rows="5" style="resize: none; width: 100%; font-size: 1.0vw;"
+                    placeholder="Escopo do orçamento">${dados_orcam?.consideracoes}</textarea>
 
-                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                        <div class="contorno_botoes" style="background-color: #222; width: 100%;">
-                            <img src="imagens/anexo2.png" style="width: 15px;">
-                            <label style="width: 100%;" for="adicionar_levantamento">Anexar levantamento
-                                <input type="file" id="adicionar_levantamento" style="display: none;"
-                                    onchange="salvar_levantamento()">
-                            </label>
-                        </div>
-                        <div>
-                            ${levantamentos}
-                        </div>
+                    <div class="contorno_botoes" style="background-color: #222;">
+                        <img src="imagens/anexo2.png" style="width: 1.5vw;">
+                        <label style="width: 100%;" for="adicionar_levantamento">Anexar levantamento
+                            <input type="file" id="adicionar_levantamento" style="display: none;"
+                                onchange="salvar_levantamento()">
+                        </label>
                     </div>
-                </div>
-            </div>
-            <div class="linha">
-                <label>Condições de Pagamento</label>
-                <select id="condicoes" oninput="salvar_preenchido()">
-                    ${condicoes}
-                </select>
-            </div>
 
-            <div class="linha">
-                <label>Garantia</label>
-                <input id="garantia" placeholder="1 Ano" oninput="salvar_preenchido()" value="${dados_orcam?.garantia || ''}">
-            </div>
+                    ${levantamentos}
+                </div>
+                `)}
+            ${modelo('Pagamento',
+                `<select id="condicoes" oninput="salvar_preenchido()">
+                    ${condicoes}
+                </select>`)}
+            ${modelo('Garantia', `<input id="garantia" placeholder="1 Ano" oninput="salvar_preenchido()" value="${dados_orcam?.garantia}">`)}
 
             <label style="font-size: 1.5vw;">Dados do Analista</label>
-            <div class="linha">
-                <label>Analista</label>
-                <label id="analista">${dados_orcam?.analista || ''}</label>
-            </div>
-
-            <div class="linha">
-                <label>E-mail</label>
-                <label style="width: 70%;" id="email_analista">${dados_orcam?.email_analista || ''}</label>
-            </div>
-
-            <div class="linha">
-                <label>Telefone</label>
-                <label id="telefone_analista">${dados_orcam?.telefone_analista || ''}</label>
-            </div>
+            ${modelo('Analista', dados_orcam?.analista, 'analista')}
+            ${modelo('E-mail', dados_orcam?.email_analista, 'email_analista')}
+            ${modelo('Telefone', dados_orcam?.telefone_analista, 'telefone_analista')}
 
             <label style="font-size: 1.5vw;">Dados do Vendedor</label>
-            <div class="linha">
-                <label>Vendedor</label>
-                <select style="text-align: center; width: 100%;" id="vendedor" oninput="salvar_preenchido()">
-                </select>
-            </div>
-            <div class="linha">
-                <label>E-mail</label>
-                <label style="width: 70%;" id="email_vendedor"></label>
-            </div>
-            <div class="linha">
-                <label>Telefone</label>
-                <label id="telefone_vendedor"></label>
-            </div>
+            ${modelo('Vendedor', `<select style="text-align: center; width: 100%;" id="vendedor" oninput="salvar_preenchido()"></select>`)}
+            ${modelo('E-mail', '', 'email_vendedor')}
+            ${modelo('Telefone', '', 'telefone_vendedor')}
 
             <label style="font-size: 1.5vw;">Quem emite essa nota?</label>
-            <div class="linha">
-                <label>Empresa</label>
-                <select style="text-align: center; width: 100%;" id="emissor" oninput="salvar_preenchido()">
+
+            ${modelo('Empresa', `<select style="text-align: center; width: 100%;" id="emissor" oninput="salvar_preenchido()">
                     <option ${dados_orcam?.emissor == 'AC SOLUÇÕES' ? 'selected' : ''}>AC SOLUÇÕES</option>
                     <option ${dados_orcam?.emissor == 'HNW' ? 'selected' : ''}>HNW</option>
                     <option ${dados_orcam?.emissor == 'HNK' ? 'selected' : ''}>HNK</option>
-                </select>
-            </div>
-
+                </select>`)}
         </div>
 
         <div style="width: 100%; display: flex; gap: 10px; align-items: end; justify-content: right; margin-top: 5vh;">

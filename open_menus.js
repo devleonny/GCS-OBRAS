@@ -1445,7 +1445,8 @@ async function salvar_levantamento(id_orcamento) {
 
             abrir_esquema(id_orcamento);
         } else {
-            let orcamento_v2 = JSON.parse(localStorage.getItem("orcamento_v2")) || {};
+
+            let orcamento_v2 = baseOrcamento()
 
             if (!orcamento_v2.levantamentos) {
                 orcamento_v2.levantamentos = {};
@@ -1453,11 +1454,11 @@ async function salvar_levantamento(id_orcamento) {
 
             Object.assign(orcamento_v2.levantamentos, anexo_dados);
 
-            localStorage.setItem("orcamento_v2", JSON.stringify(orcamento_v2));
+            baseOrcamento(orcamento_v2)
             painel_clientes()
         }
     } catch (error) {
-        openPopup_v2(`Erro ao fazer upload: ${error.message}`, 'Aviso');
+        openPopup_v2(mensagem(`Erro ao fazer upload: ${error.message}`), 'ALERTA', true);
         console.error(error);
     }
 }
