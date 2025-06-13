@@ -136,7 +136,7 @@ function carregarIcones() {
         ${atalho('Painel Kanban', 'kanban', `window.location.href='projetos.html'`)}
         ${atalho('Agenda', 'agenda', `window.location.href='agenda.html'`)}
 
-        ${acesso.setor === 'CHAMADOS' || registroHistorico 
+        ${acesso.usuario === 'Dêivisson Oliveira' || registroHistorico 
             ? atalho('Veiculo', 'veiculo', `window.location.href='veiculos.html'`)
             : ''}
         
