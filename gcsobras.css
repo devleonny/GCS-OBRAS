@@ -182,6 +182,20 @@ body {
     gap: 1px;
 }
 
+.contornoTabela {
+    min-width: 30vw;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+    padding: 5px;
+}
+
+.contornoTabela label {
+    cursor: pointer;
+}
+
 .labelAprovacao {
     display: flex;
     align-items: center;
