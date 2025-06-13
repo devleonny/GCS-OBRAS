@@ -48,10 +48,8 @@ function criarLayoutPrincipal() {
                             <th>Combustível</th>
                             <th>Pedágio</th>
                             <th>Estacionamento</th>
-                            <th>Multas</th>
                             <th>Custos Extras</th>
-                            <th>Editar</th>
-                            <th>Ações</th>
+                            <th>Ação</th>
                         </tr>
                     </thead>
                     <tbody id="tabelaMotoristas"></tbody>
@@ -290,14 +288,147 @@ async function selecionarVeiculo(button, nomeVeiculo) {
     }
 }
 
+async function adicionarCustoExtra(idMotorista, nomeVeiculo) {
+    const valor = Number(document.getElementById('valor_extra').value) || 0;
+    const descricao = document.getElementById('descricao_extra').value;
+
+    if (!valor || !descricao) {
+        openPopup_v2('Por favor, preencha todos os campos', 'Campos Obrigatórios', true);
+        return;
+    }
+
+    try {
+        let dados_veiculos = await recuperarDados('dados_veiculos');
+        const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
+
+        if (!motorista.custos_extras) {
+            motorista.custos_extras = { registros: {} };
+        }
+
+        const idRegistro = gerar_id_5_digitos();
+        motorista.custos_extras.registros[idRegistro] = {
+            data: data_atual('curta'),
+            valor: valor,
+            descricao: descricao
+        };
+
+        await inserirDados(dados_veiculos, 'dados_veiculos');
+        await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
+
+        remover_popup();
+        abrirPopupExtras(idMotorista, nomeVeiculo, motorista.nome);
+
+    } catch (error) {
+        console.error('Erro ao adicionar custo extra:', error);
+        openPopup_v2('Erro ao adicionar custo extra. Tente novamente.', 'Erro');
+    }
+}
+
+async function editarCustoExtra(idMotorista, nomeVeiculo, idRegistro) {
+    try {
+        const dados_veiculos = await recuperarDados('dados_veiculos');
+        const registro = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista].custos_extras.registros[idRegistro];
+
+        const conteudo = `
+            <div class="popup-edit-container">
+                <h3>Editar Custo Extra</h3>
+                
+                <div class="form-edit-campos">
+                    <div class="campo-edit-grupo">
+                        <label for="edit_data">Data</label>
+                        <input type="date" id="edit_data" value="${formatarDataParaInput(registro.data)}">
+                    </div>
+
+                    <div class="campo-edit-grupo">
+                        <label for="edit_valor">Valor</label>
+                        <input type="number" id="edit_valor" value="${registro.valor}" step="0.01" min="0">
+                    </div>
+
+                    <div class="campo-edit-grupo">
+                        <label for="edit_descricao">Descrição</label>
+                        <textarea id="edit_descricao" rows="3">${registro.descricao}</textarea>
+                    </div>
+
+                    <div class="campo-edit-grupo">
+                        <button onclick="salvarEdicaoCustoExtra('${idMotorista}', '${nomeVeiculo}', '${idRegistro}')" class="botao-form primario">
+                            Salvar Alterações
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        openPopup_v2(conteudo, 'Editar Custo Extra', true);
+
+    } catch (error) {
+        console.error('Erro ao abrir formulário de edição:', error);
+        openPopup_v2('Erro ao abrir formulário. Tente novamente.', 'Erro');
+    }
+}
+
+async function salvarEdicaoCustoExtra(idMotorista, nomeVeiculo, idRegistro) {
+    try {
+        const valor = Number(document.getElementById('edit_valor').value) || 0;
+        const descricao = document.getElementById('edit_descricao').value;
+        const data = document.getElementById('edit_data').value;
+
+        if (!valor || !descricao) {
+            openPopup_v2('Por favor, preencha todos os campos', 'Campos Obrigatórios', true);
+            return;
+        }
+
+        let dados_veiculos = await recuperarDados('dados_veiculos');
+        const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
+        
+        motorista.custos_extras.registros[idRegistro] = {
+            data: formatarData(data),
+            valor: valor,
+            descricao: descricao
+        };
+
+        await inserirDados(dados_veiculos, 'dados_veiculos');
+        await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
+
+        remover_popup();
+        abrirPopupExtras(idMotorista, nomeVeiculo, motorista.nome);
+
+    } catch (error) {
+        console.error('Erro ao salvar alterações:', error);
+        openPopup_v2('Erro ao salvar alterações. Tente novamente.', 'Erro');
+    }
+}
+
+async function excluirCustoExtra(idMotorista, nomeVeiculo, idRegistro) {
+    try {
+        let dados_veiculos = await recuperarDados('dados_veiculos');
+        const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
+
+        delete motorista.custos_extras.registros[idRegistro];
+
+        await inserirDados(dados_veiculos, 'dados_veiculos');
+        await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
+
+        remover_popup();
+        abrirPopupExtras(idMotorista, nomeVeiculo, motorista.nome);
+
+    } catch (error) {
+        console.error('Erro ao excluir custo extra:', error);
+        openPopup_v2(`
+            <div class="popup-message">
+                <img src="imagens/error.png">
+                <p>Erro ao excluir custo extra. Tente novamente.</p>
+            </div>
+        `, 'Erro');
+    }
+}
+
 function criarLinhaMotorista(motorista, idMotorista, nomeVeiculo) {
     const custos = motorista.custo_mensal_veiculo?.custos || {};
     const totalCustos = Object.values(custos).reduce((total, item) => total + (Number(item.custo) || 0), 0);
 
-    const combustivel = motorista.combustível || {};
+    const combustivel = motorista.combustivel || {};
     const pedagio = motorista.pedagio || {};
     const estacionamento = motorista.estacionamento || {};
-    const multas = motorista.multas || {};
     const extras = motorista.custos_extras || {};
 
     const dadosVeiculo = encodeURIComponent(JSON.stringify(motorista.dados_veiculo));
@@ -322,10 +453,10 @@ function criarLinhaMotorista(motorista, idMotorista, nomeVeiculo) {
             </td>
             <td>${pedagio.tag || ''}</td>
             <td>${estacionamento.tag || ''}</td>
-            <td>${Object.keys(multas.anexos || {}).length ? 'Sim' : 'Não'}</td>
-            <td>${extras.valor || ''}</td>
             <td>
-                <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="editarMotorista('${idMotorista}', '${nomeVeiculo}')" title="Editar motorista">
+                <button class="botao-custos" onclick="abrirPopupExtras('${idMotorista}', '${nomeVeiculo}', '${motorista.nome}')">
+                    ${extras.registros ? 'Ver Registros' : 'Registrar Custos'}
+                </button>
             </td>
             <td style="text-align: center;">
                 <img src="imagens/excluir.png" style="width: 2vw; cursor: pointer;" onclick="confirmarExclusaoMotorista('${idMotorista}', '${nomeVeiculo}', '${motorista.nome}')" title="Excluir motorista">
@@ -928,15 +1059,35 @@ async function abrirPopupCombustivel(idMotorista, nomeVeiculo, nomeMotorista) {
         const registros = motorista.combustivel.registros;
         const totalLitros = Object.values(registros).reduce((total, reg) => total + (Number(reg.litros) || 0), 0);
         const totalCusto = Object.values(registros).reduce((total, reg) => total + (Number(reg.custo_total) || 0), 0);
-
+        const totalKm = Object.values(registros).reduce((total, reg) => total + (Number(reg.km) || 0), 0);
+        
         const conteudo = `
             <div class="custos-container">
                 <h3>Registros de Combustível - ${nomeMotorista}</h3>
                 
                 <div class="form-grupo form-custos">
-                    <input type="number" id="litros" placeholder="Quantidade de litros" step="0.01" min="0">
-                    <input type="number" id="custo_litro" placeholder="Custo por litro" step="0.01" min="0" oninput="calcularCustoTotal()">
-                    <input type="number" id="custo_total" placeholder="Custo total" step="0.01" min="0" readonly>
+                    <div class="form-combustivel-campos">
+                        <div class="campo-grupo">
+                            <label for="km">KM</label>
+                            <input type="number" id="km" placeholder="Quilometragem" step="1" min="0">
+                        </div>
+
+                        <div class="campo-grupo">
+                            <label for="litros">Litros</label>
+                            <input type="number" id="litros" placeholder="Quantidade de litros" step="0.01" min="0" oninput="calcularCustoTotal()">
+                        </div>
+
+                        <div class="campo-grupo">
+                            <label for="custo_litro">Custo/Litro</label>
+                            <input type="number" id="custo_litro" placeholder="Custo por litro" step="0.01" min="0" oninput="calcularCustoTotal()">
+                        </div>
+
+                        <div class="campo-grupo">
+                            <label for="custo_total">Custo total</label>
+                            <input type="number" id="custo_total" placeholder="Custo total" step="0.01" min="0">
+                        </div>
+                    </div>
+
                     <button onclick="adicionarRegistroCombustivel('${idMotorista}', '${nomeVeiculo}')" class="botao-form primario">
                         Adicionar Registro
                     </button>
@@ -946,6 +1097,7 @@ async function abrirPopupCombustivel(idMotorista, nomeVeiculo, nomeMotorista) {
                     <thead>
                         <tr>
                             <th>Data</th>
+                            <th>KM</th>
                             <th>Litros</th>
                             <th>Custo/Litro</th>
                             <th>Total</th>
@@ -957,12 +1109,13 @@ async function abrirPopupCombustivel(idMotorista, nomeVeiculo, nomeMotorista) {
                         ${Object.entries(registros).map(([idRegistro, registro]) => `
                             <tr>
                                 <td>${registro.data}</td>
+                                <td>${registro.km || 0}</td>
                                 <td>${registro.litros}</td>
                                 <td>${dinheiro(registro.custo_litro)}</td>
                                 <td>${dinheiro(registro.custo_total)}</td>
                                 <td>
                                     <button class="botao-anexos" onclick="abrirAnexosCombustivel('${idMotorista}', '${nomeVeiculo}', '${idRegistro}')">
-                                        Ver Anexos
+                                        Anexar PDF
                                     </button>
                                 </td>
                                 <td>
@@ -975,6 +1128,7 @@ async function abrirPopupCombustivel(idMotorista, nomeVeiculo, nomeMotorista) {
                     <tfoot>
                         <tr>
                             <td><strong>Total:</strong></td>
+                            <td><strong>${totalKm.toFixed(0)} KM</strong></td>
                             <td><strong>${totalLitros.toFixed(2)}L</strong></td>
                             <td></td>
                             <td><strong>${dinheiro(totalCusto)}</strong></td>
@@ -999,10 +1153,88 @@ async function abrirPopupCombustivel(idMotorista, nomeVeiculo, nomeMotorista) {
     }
 }
 
+async function abrirPopupExtras(idMotorista, nomeVeiculo, nomeMotorista) {
+    try {
+        let dados_veiculos = await recuperarDados('dados_veiculos');
+        const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
+        const extras = motorista.custos_extras || {};
+
+        const conteudo = `
+            <div class="custos-container">
+                <h3>Custos Extras - ${nomeMotorista}</h3>
+                
+                <div class="form-grupo form-custos">
+                    <div class="form-extras-campos">
+                        <div class="extras-grupo">
+                            <label for="valor_extra">Valor</label>
+                            <input type="number" id="valor_extra" placeholder="Valor do custo" step="0.01" min="0">
+                        </div>
+
+                        <div class="extras-grupo">
+                            <label for="descricao_extra">Descrição</label>
+                            <textarea id="descricao_extra" placeholder="Descreva o custo extra"></textarea>
+                        </div>
+                    </div>
+
+                    <button onclick="adicionarCustoExtra('${idMotorista}', '${nomeVeiculo}')" class="botao-form primario">
+                        Adicionar Custo Extra
+                    </button>
+                </div>
+
+                <table class="tabela">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Valor</th>
+                            <th>Descrição</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Object.entries(extras.registros || {}).map(([idRegistro, registro]) => `
+                            <tr>
+                                <td>${registro.data}</td>
+                                <td>${dinheiro(registro.valor)}</td>
+                                <td>${registro.descricao}</td>
+                                <td>
+                                    <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="editarCustoExtra('${idMotorista}', '${nomeVeiculo}', '${idRegistro}')" title="Editar registro">
+                                    <img src="imagens/excluir.png" style="width: 2vw; cursor: pointer;" onclick="excluirCustoExtra('${idMotorista}', '${nomeVeiculo}', '${idRegistro}')" title="Excluir registro">
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td><strong>Total:</strong></td>
+                            <td colspan="3"><strong>${dinheiro(Object.values(extras.registros || {}).reduce((total, reg) => total + (Number(reg.valor) || 0), 0))}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        `;
+
+        openPopup_v2(conteudo, 'Custos Extras');
+
+    } catch (error) {
+        console.error('Erro ao abrir popup de custos extras:', error);
+        openPopup_v2(`
+            <div class="popup-message">
+                <img src="imagens/error.png">
+                <p>Erro ao carregar custos extras. Tente novamente.</p>
+            </div>
+        `, 'Erro');
+    }
+}
+
 function calcularCustoTotal() {
     const litros = Number(document.getElementById('litros').value) || 0;
     const custoLitro = Number(document.getElementById('custo_litro').value) || 0;
-    document.getElementById('custo_total').value = (litros * custoLitro).toFixed(2);
+    const custoTotalInput = document.getElementById('custo_total');
+    
+    // Only update if user hasn't manually changed the value
+    if (!custoTotalInput.dataset.manuallyEdited) {
+        custoTotalInput.value = (litros * custoLitro).toFixed(2);
+    }
 }
 
 async function editarRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) {
@@ -1016,8 +1248,18 @@ async function editarRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) {
                 
                 <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
                     <div class="form-grupo">
+                        <label>Data:</label>
+                        <input type="date" id="edit_data" value="${formatarDataParaInput(registro.data)}">
+                    </div>
+
+                    <div class="form-grupo">
+                        <label>Quilometragem:</label>
+                        <input type="number" id="edit_km" value="${registro.km || 0}" step="1" min="0">
+                    </div>
+
+                    <div class="form-grupo">
                         <label>Litros:</label>
-                        <input type="number" id="edit_litros" value="${registro.litros}" step="0.01" min="0">
+                        <input type="number" id="edit_litros" value="${registro.litros}" step="0.01" min="0" oninput="calcularCustoTotalEdicao()">
                     </div>
 
                     <div class="form-grupo">
@@ -1027,7 +1269,7 @@ async function editarRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) {
 
                     <div class="form-grupo">
                         <label>Custo Total:</label>
-                        <input type="number" id="edit_custo_total" value="${registro.custo_total}" readonly>
+                        <input type="number" id="edit_custo_total" value="${registro.custo_total}" step="0.01" min="0">
                     </div>
                 </div>
 
@@ -1037,22 +1279,27 @@ async function editarRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) {
             </div>
         `;
 
-        openPopup_v2(conteudo, 'Editar Registro');
+        openPopup_v2(conteudo, 'Editar Registro', true);
     } catch (error) {
         console.error('Erro ao abrir formulário de edição:', error);
-        openPopup_v2(`
-            <div class="popup-message">
-                <img src="imagens/error.png">
-                <p>Erro ao abrir formulário. Tente novamente.</p>
-            </div>
-        `, 'Erro');
+        openPopup_v2('Erro ao abrir formulário. Tente novamente.', 'Erro');
     }
+}
+
+// Helper function to format date for input
+function formatarDataParaInput(data) {
+    const [dia, mes, ano] = data.split('/');
+    return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
 }
 
 function calcularCustoTotalEdicao() {
     const litros = Number(document.getElementById('edit_litros').value) || 0;
     const custoLitro = Number(document.getElementById('edit_custo_litro').value) || 0;
-    document.getElementById('edit_custo_total').value = (litros * custoLitro).toFixed(2);
+    const custoTotalInput = document.getElementById('edit_custo_total');
+    
+    if (!custoTotalInput.dataset.manuallyEdited) {
+        custoTotalInput.value = (litros * custoLitro).toFixed(2);
+    }
 }
 
 async function salvarEdicaoRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) {
@@ -1060,10 +1307,14 @@ async function salvarEdicaoRegistroCombustivel(idMotorista, nomeVeiculo, idRegis
         const litros = Number(document.getElementById('edit_litros').value) || 0;
         const custoLitro = Number(document.getElementById('edit_custo_litro').value) || 0;
         const custoTotal = Number(document.getElementById('edit_custo_total').value) || 0;
+        const km = Number(document.getElementById('edit_km').value) || 0;
+        const data = document.getElementById('edit_data').value;
 
         let dados_veiculos = await recuperarDados('dados_veiculos');
         const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
         
+        motorista.combustivel.registros[idRegistro].data = formatarData(data);
+        motorista.combustivel.registros[idRegistro].km = km;
         motorista.combustivel.registros[idRegistro].litros = litros;
         motorista.combustivel.registros[idRegistro].custo_litro = custoLitro;
         motorista.combustivel.registros[idRegistro].custo_total = custoTotal;
@@ -1071,6 +1322,7 @@ async function salvarEdicaoRegistroCombustivel(idMotorista, nomeVeiculo, idRegis
         await inserirDados(dados_veiculos, 'dados_veiculos');
         await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
+        remover_popup();
         abrirPopupCombustivel(idMotorista, nomeVeiculo, motorista.nome);
 
     } catch (error) {
@@ -1079,10 +1331,17 @@ async function salvarEdicaoRegistroCombustivel(idMotorista, nomeVeiculo, idRegis
     }
 }
 
+// Helper function to format date from input to display
+function formatarData(data) {
+    const [ano, mes, dia] = data.split('-');
+    return `${dia}/${mes}/${ano}`;
+}
+
 async function adicionarRegistroCombustivel(idMotorista, nomeVeiculo) {
     const litros = Number(document.getElementById('litros').value) || 0;
     const custoLitro = Number(document.getElementById('custo_litro').value) || 0;
     const custoTotal = Number(document.getElementById('custo_total').value) || 0;
+    const km = Number(document.getElementById('km').value) || 0;
 
     try {
         let dados_veiculos = await recuperarDados('dados_veiculos') || { veiculos: {} };
@@ -1095,6 +1354,7 @@ async function adicionarRegistroCombustivel(idMotorista, nomeVeiculo) {
         const idRegistro = gerar_id_5_digitos();
         motorista.combustivel.registros[idRegistro] = {
             data: data_atual('curta'),
+            km: km,
             litros,
             custo_litro: custoLitro,
             custo_total: custoTotal,
@@ -1105,20 +1365,8 @@ async function adicionarRegistroCombustivel(idMotorista, nomeVeiculo) {
         await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
         // Refresh the fuel records table instead of opening attachments popup
+        remover_popup();
         abrirPopupCombustivel(idMotorista, nomeVeiculo, motorista.nome);
-
-        // Show success message
-        openPopup_v2(`
-            <div class="popup-message">
-                <img src="imagens/sucesso.png">
-                <label>Registro adicionado com sucesso!</label>
-            </div>
-        `, 'Sucesso');
-
-        setTimeout(() => {
-            remover_popup();
-        }, 1500);
-
     } catch (error) {
         console.error('Erro ao adicionar registro:', error);
         openPopup_v2('Erro ao adicionar registro. Tente novamente.', 'Erro');
@@ -1176,6 +1424,7 @@ async function salvarAnexoCombustivel(input, idMotorista, nomeVeiculo, idRegistr
             await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
             // Atualizar visualização
+            remover_popup();
             abrirAnexosCombustivel(idMotorista, nomeVeiculo, idRegistro);
         }
 
@@ -1200,12 +1449,12 @@ async function abrirAnexosCombustivel(idMotorista, nomeVeiculo, idRegistro) {
             <div class="anexos-container">
                 <h3>Anexos do Registro</h3>
                 
-                <div id="container_anexos_combustivel" style="display: flex; flex-wrap: wrap; gap: 10px; margin: 10px;">
+                <div id="container_anexos_combustivel">
                     ${Object.entries(anexos).map(([idAnexo, anexo]) => `
                         <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 5px; background-color: #222; padding: 5px;">
                             <div onclick="abrirArquivo('${anexo.link}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer;">
                                 <img src="imagens/anexo2.png" style="width: 2vw;">
-                                <label style="color: white; font-size: 0.8vw;">${anexo.nome}</label>
+                                <label style="color: white; font-size: 0.8vw;">${anexo.nome.substring(0, 10)}${anexo.nome.length > 10 ? '...' : ''}</label>
                             </div>
                             <img src="imagens/excluir.png" 
                                 style="width: 1.5vw; cursor: pointer;" 
@@ -1270,19 +1519,25 @@ async function excluirRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) 
         
         // Excluir anexos do servidor
         const anexos = motorista.combustivel.registros[idRegistro].anexos || {};
-        Object.values(anexos).forEach(anexo => {
-            deletar_arquivo_servidor(anexo.link);
-        });
+        for (let idAnexo in anexos) {
+            await deletar(`uploads/${anexos[idAnexo].link}`);
+        }
 
         delete motorista.combustivel.registros[idRegistro];
 
         await inserirDados(dados_veiculos, 'dados_veiculos');
         await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
+        remover_popup();
         abrirPopupCombustivel(idMotorista, nomeVeiculo, motorista.nome);
 
     } catch (error) {
         console.error('Erro ao excluir registro:', error);
-        openPopup_v2('Erro ao excluir registro. Tente novamente.', 'Erro');
+        openPopup_v2(`
+            <div class="popup-message">
+                <img src="imagens/error.png">
+                <p>Erro ao excluir registro. Tente novamente.</p>
+            </div>
+        `, 'Erro');
     }
 }

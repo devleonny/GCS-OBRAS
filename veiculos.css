@@ -111,9 +111,46 @@
 .form-custos {
   display: flex;
   flex-direction: column;
-  justify-content: center !important;
-  align-items: center !important;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+.form-custos button {
+  margin-top: 10px;
+  width: auto;
+  min-width: 200px;
+}
+
+.form-combustivel-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto 5px auto;
+  padding: 20px;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.campo-grupo {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: center;
   gap: 10px;
+}
+
+.campo-grupo label {
+  font-weight: bold;
+  color: #333;
+  text-align: left;
+}
+
+.campo-grupo input {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 
 .botao-form {
@@ -507,11 +544,6 @@
 .botao-combustivel {
   background-color: #24729d;
   color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 4px;
-  cursor: pointer;
-  min-width: 150px;
 }
 
 .botao-combustivel:hover {
@@ -521,6 +553,10 @@
 .anexos-container {
   padding: 20px;
   max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .anexos-lista {
@@ -568,6 +604,13 @@
   padding: 10px;
   border-radius: 4px;
   background-color: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 .contorno_interno {
@@ -587,4 +630,118 @@
 
 .contorno:hover {
   transform: scale(1.02);
+}
+
+.form-extras-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.extras-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+}
+
+.extras-grupo label {
+  font-weight: bold;
+  color: #333;
+  text-align: left;
+  margin-bottom: 5px;
+}
+
+.extras-grupo input,
+.extras-grupo textarea {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.extras-grupo textarea {
+  min-height: 80px;
+  resize: vertical;
+  width: 95%;
+}
+
+.form-custos {
+  max-width: 400px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 20px;
+}
+
+.form-custos h3 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.botoes-acao {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.botao-form.primario {
+  padding: 10px 20px;
+  min-width: 150px;
+  font-size: 14px;
+}
+
+.popup-edit-container {
+  padding: 20px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.popup-edit-container h3 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.form-edit-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  background: #f5f5f5;
+  padding: 20px;
+  border-radius: 4px;
+}
+
+.campo-edit-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.campo-edit-grupo label {
+  font-weight: bold;
+  color: #333;
+}
+
+.campo-edit-grupo input,
+.campo-edit-grupo textarea {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.campo-edit-grupo textarea {
+  min-height: 80px;
+  resize: vertical;
+  width: 90%;
+}
+
+.campo-edit-grupo button {
+  margin-top: 10px;
 }
