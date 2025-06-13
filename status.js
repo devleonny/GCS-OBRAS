@@ -1367,7 +1367,7 @@ async function painelCustos(id) { //29
         tabelas[composicao.tipo].linhas += `
         <tr>
             <td>${codigo}</td>
-            <td style="text-align: left;">${composicao.descricao}</td>
+            <td style="text-align: left; width: 20vw;">${composicao.descricao}</td>
             <td>${quantidade}</td>
             <td>${lucratividade?.margem || '--'}</td>
             <td>${dinheiro(composicao.custo)}</td>
