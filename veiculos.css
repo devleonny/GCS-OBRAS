@@ -503,3 +503,67 @@
 .botao-confirmar-exclusao:hover {
   background-color: #c82333;
 }
+
+.botao-combustivel {
+  background-color: #24729d;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 150px;
+}
+
+.botao-combustivel:hover {
+  background-color: #1b5576;
+}
+
+.anexo-container {
+  width: 100%;
+  text-align: center;
+}
+
+.anexo-label {
+  display: inline-block;
+  padding: 8px 15px;
+  background-color: #4CAF50;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.anexo-label:hover {
+  background-color: #45a049;
+}
+
+.anexos-container {
+  padding: 20px;
+  max-width: 600px;
+}
+
+.anexos-lista {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.anexo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+.anexo-nome {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.anexo-nome img {
+  width: 24px;
+}
