@@ -937,15 +937,6 @@ async function abrirPopupCombustivel(idMotorista, nomeVeiculo, nomeMotorista) {
                     <input type="number" id="litros" placeholder="Quantidade de litros" step="0.01" min="0">
                     <input type="number" id="custo_litro" placeholder="Custo por litro" step="0.01" min="0" oninput="calcularCustoTotal()">
                     <input type="number" id="custo_total" placeholder="Custo total" step="0.01" min="0" readonly>
-                    <div class="anexo-container">
-                        <label for="anexo_combustivel" class="anexo-label">
-                            Anexar Comprovante
-                            <input type="file" 
-                                id="anexo_combustivel" 
-                                style="display: none;" 
-                                onchange="salvarAnexoCombustivel(this, '${idMotorista}', '${nomeVeiculo}')">
-                        </label>
-                    </div>
                     <button onclick="adicionarRegistroCombustivel('${idMotorista}', '${nomeVeiculo}')" class="botao-form primario">
                         Adicionar Registro
                     </button>
@@ -1113,8 +1104,20 @@ async function adicionarRegistroCombustivel(idMotorista, nomeVeiculo) {
         await inserirDados(dados_veiculos, 'dados_veiculos');
         await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
-        // Abrir popup de anexos após criar o registro
-        abrirAnexosCombustivel(idMotorista, nomeVeiculo, idRegistro);
+        // Refresh the fuel records table instead of opening attachments popup
+        abrirPopupCombustivel(idMotorista, nomeVeiculo, motorista.nome);
+
+        // Show success message
+        openPopup_v2(`
+            <div class="popup-message">
+                <img src="imagens/sucesso.png">
+                <label>Registro adicionado com sucesso!</label>
+            </div>
+        `, 'Sucesso');
+
+        setTimeout(() => {
+            remover_popup();
+        }, 1500);
 
     } catch (error) {
         console.error('Erro ao adicionar registro:', error);
