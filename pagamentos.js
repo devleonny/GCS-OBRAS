@@ -1584,6 +1584,15 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
 
     openPopup_v2(acumulado, 'Solicitação de Pagamento')
 
+    let valorTotalParceiro = localStorage.getItem('pagamento_valor_total_parceiro');
+    if (valorTotalParceiro) {
+        const campoTotal = document.getElementById('total_de_pagamento');
+        if (campoTotal) {
+            campoTotal.textContent = `R$ ${dinheiro(valorTotalParceiro)}`;
+        }
+        localStorage.removeItem('pagamento_valor_total_parceiro'); // limpa para não ficar acumulando
+    }
+
     intervaloCompleto = setInterval(function () {
         if (!tempo || !tempo.textContent) {
             clearInterval(intervaloCompleto)
