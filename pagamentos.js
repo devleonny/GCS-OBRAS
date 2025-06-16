@@ -1356,7 +1356,7 @@ async function criar_pagamento_v2() {
         var esquema = document.getElementById('esquema')
         if (esquema) {
             fechar_esquema()
-            abrir_esquema(id_orcam)
+            abrirEsquema(id_orcam)
         }
 
         if (document.title == 'PAGAMENTOS') {

@@ -1443,7 +1443,7 @@ async function salvar_levantamento(id_orcamento) {
                 await enviar(`dados_orcamentos/${id_orcamento}/levantamentos/${id_anexo}`, anexo_dados[id_anexo]);
             }
 
-            abrir_esquema(id_orcamento);
+            abrirEsquema(id_orcamento);
         } else {
 
             let orcamento_v2 = baseOrcamento()
@@ -1472,7 +1472,7 @@ async function excluir_levantamento(id_orcamento, id_anexo) {
     await deletar(`dados_orcamentos/${id_orcamento}/levantamentos/${id_anexo}`)
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
-    abrir_esquema(id_orcamento)
+    abrirEsquema(id_orcamento)
 
 }
 
@@ -1668,10 +1668,6 @@ function connectWebSocket() {
 
     socket.onmessage = (event) => {
         let data = JSON.parse(event.data);
-        let caminho = data?.caminho || ''
-        let base = caminho.split('/')[0]
-
-        if (base !== 'registrosAlteracoes' && data.tipo !== 'usuarios_online') console.log('📢', data)
 
         if (data.tipo == 'usuarios_online') localStorage.setItem('usuariosOnline', JSON.stringify(data.usuarios))
 
