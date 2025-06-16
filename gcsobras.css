@@ -613,6 +613,11 @@ button {
     cursor: pointer;
 }
 
+.botaoLPUParceiro {
+    background-color: #3b444c;
+    display: flex;
+}
+
 .botao_popup img {
     width: 1.0vw;
 }

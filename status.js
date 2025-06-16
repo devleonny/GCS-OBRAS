@@ -1340,8 +1340,8 @@ async function abrir_esquema(id) {
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     let dados_categorias = JSON.parse(localStorage.getItem('dados_categorias')) || {}
     let orcamento = dados_orcamentos[id]
-    console.log(orcamento);
-    
+
+
     let setor = dados_setores[acesso.usuario]?.setor
     let permissao = dados_setores[acesso.usuario]?.permissao
     let categorias = Object.fromEntries(
@@ -1506,7 +1506,7 @@ async function abrir_esquema(id) {
                     `
             }
 
-            if (sst.status  && typeof sst.status === 'string' && sst.status.includes('LPU PARCEIRO')) {
+            if (sst.status && typeof sst.status === 'string' && sst.status.includes('LPU PARCEIRO')) {
                 links_requisicoes += `
                     <div onclick="detalharLpuParceiro('${chave}', undefined, true)" class="label_requisicao">
                         <img src="gifs/lampada.gif" style="width: 25px">
@@ -1792,7 +1792,7 @@ async function abrir_esquema(id) {
 
     };
 
-    
+
 
     let painel_custos = `
 
@@ -3771,10 +3771,10 @@ async function modalLPUParceiro() {
     let orcamento = baseOrcamentos[id_orcam]
 
     let itensOrcamento = orcamento.dados_composicoes
-    console.log(itensOrcamento);
+
 
     for ([codigo, composicao] of Object.entries(itensOrcamento)) {
-        console.log(composicao);
+
 
         if (composicao.tipo === 'SERVIÇO') {
             let custo = composicao.custo
@@ -3819,7 +3819,7 @@ async function modalLPUParceiro() {
             <tbody id="bodyTabela">${linhas}</tbody>
         </table>
         <div style="display: flex; justify-content: end; margin-top: 10px;">
-            <button onclick="adicionarItemAdicional()" style="padding: 6px 12px;">Adicionar novo serviço</button>
+            <button class="botaoLPUParceiro"onclick="adicionarItemAdicional()" style="padding: 6px 12px;">Adicionar novo serviço</button>
         </div>`;
     let stringHtml = (titulo, valor) => {
         return `
@@ -3855,7 +3855,7 @@ async function modalLPUParceiro() {
                     ${stringHtml('Total Desvio', '<lalbel id="totalDesvio"></lalbel>')}
                 </div>
                 <div class="contorno_botoes()" style="display: flex; flex-direction: column; align-items: flex-end; margin-left: auto gap: 5px; margin-top:5px;">
-                    <button onclick=salvar_lpu_parceiro()>Salvar</button>
+                    <button class="botaoLPUParceiro" onclick=salvarLpuParceiro()>Salvar</button>
                 </div>
                
                     
@@ -3976,75 +3976,92 @@ function calcularLpuParceiro() {
 }
 
 
-async function salvar_lpu_parceiro() {
-    overlayAguarde()
+async function salvarLpuParceiro() {
+    overlayAguarde();
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
     if (!orcamento) {
         console.error('Orçamento não encontrado para id_orcam:', id_orcam);
         return;
     }
-    let margem = Number(document.getElementById('margem_lpu').value)
+
+    let margem = Number(document.getElementById('margem_lpu').value);
+    let tecnico = String(document.getElementById('tecnico').value) || ''
 
     let novo_lancamento = {
         status: 'LPU PARCEIRO',
         data: data_atual('completa'),
         analista: acesso.nome_completo,
         margem_percentual: margem,
+        tecnicoLpu: tecnico,
         itens: {},
+        itens_adicionais: [],
         totais: {
             orcamento: 0,
             parceiro: 0,
             desvio: 0,
             margem: 0
         }
-    }
+    };
+
+
 
     let trs = document.querySelectorAll('#bodyTabela tr');
-
     let chave = sessionStorage.getItem('chave_lpu_em_edicao') || gerar_id_5_digitos();
-
 
     for (let tr of trs) {
         let tds = tr.querySelectorAll('td');
-
         if (tds.length < 11) {
             console.warn('Linha ignorada por ter menos de 11 células:', tr);
             continue;
         }
 
+        let isAdicional = tr.classList.contains('item-adicional');
         let codigo = tds[0].textContent.trim();
-        let descricao = extrairTextoOuInput(tds[1])
-        let unidade = extrairTextoOuInput(tds[2])
+        let descricao = tr.querySelector('textarea')?.value?.trim() || extrairTextoOuInput(tds[1]);
+        let unidade = extrairTextoOuInput(tds[2]);
         let qtde = conversor(tds[3].textContent.trim());
         let valor_orcado = conversor(tds[4].textContent.trim());
         let total_orcado = conversor(tds[5].textContent.trim());
         let imposto = conversor(tds[6].textContent.trim());
-        let valor_parceiro_unitario = Number(tds[8].querySelector('input').value);
+
+        let valor_parceiro_unitario = Number(tds[8].querySelector('input')?.value || 0);
         let total_parceiro = qtde * valor_parceiro_unitario;
         let margem_reais = total_orcado * (margem / 100);
         let desvio = margem_reais - total_parceiro;
 
+        if (isAdicional) {
+            // Adicionais não precisam de todos os campos
+            novo_lancamento.itens_adicionais = novo_lancamento.itens_adicionais || [];
+            novo_lancamento.itens_adicionais.push({
+                codigo,
+                descricao,
+                unidade,
+                qtde,
+                valor_parceiro_unitario,
+                total_parceiro
+            });
+        } else {
+            // Itens principais
+            novo_lancamento.itens[codigo] = {
+                descricao,
+                unidade,
+                qtde,
+                valor_orcado,
+                total_orcado,
+                imposto,
+                valor_parceiro_unitario,
+                total_parceiro,
+                margem_reais,
+                desvio
+            };
 
-        novo_lancamento.itens[codigo] = {
-            descricao,
-            unidade,
-            qtde,
-            valor_orcado,
-            total_orcado,
-            imposto,
-            valor_parceiro_unitario,
-            total_parceiro,
-            margem_reais,
-            desvio
+            novo_lancamento.totais.orcamento += total_orcado;
+            novo_lancamento.totais.parceiro += total_parceiro;
+            novo_lancamento.totais.margem += margem_reais;
+            novo_lancamento.totais.desvio += desvio;
         }
-
-        novo_lancamento.totais.orcamento += total_orcado;
-        novo_lancamento.totais.parceiro += total_parceiro;
-        novo_lancamento.totais.margem += margem_reais;
-        novo_lancamento.totais.desvio += desvio;
     }
-
 
     orcamento.status = orcamento.status || {};
     orcamento.status.historico = orcamento.status.historico || {};
@@ -4053,11 +4070,51 @@ async function salvar_lpu_parceiro() {
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento);
+
     sessionStorage.removeItem('chave_lpu_em_edicao');
+    remover_popup();
+    await abrir_esquema(id_orcam);
 
-    remover_popup()
-    await abrir_esquema(id_orcam)
+}
 
+async function salvarItensAdicionais(chave) {
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let orcamento = dados_orcamentos[id_orcam];
+    if (!orcamento || !orcamento.status || !orcamento.status.historico || !orcamento.status.historico[chave]) {
+        console.error('Histórico não encontrado para chave:', chave);
+        return;
+    }
+
+    let itens_adicionais = [];
+    const linhasAdicionais = document.querySelectorAll('.item-adicional');
+
+    linhasAdicionais.forEach(linha => {
+        const descricao = linha.querySelector('textarea')?.value || '';
+        const codigo = linha.querySelector('.codigo-item')?.textContent || '';
+        const unidade = linha.cells[2]?.textContent || '';
+        const quantidade = parseFloat(linha.querySelector('.quantidade')?.innerText.replace(',', '.') || 0);
+        const valorUnitario = parseFloat(linha.querySelector('.input-lpuparceiro')?.value || 0);
+        const total = quantidade * valorUnitario;
+
+        if (descricao) {
+            itens_adicionais.push({
+                codigo: codigo,
+                descricao: descricao,
+                unidade: unidade,
+                qtde: quantidade,
+                valor_parceiro_unitario: valorUnitario,
+                total_parceiro: total
+            });
+        }
+    });
+
+    // Salvar os itens adicionais no mesmo lançamento do histórico
+    orcamento.status.historico[chave].itens_adicionais = itens_adicionais;
+
+    // Atualizar o objeto de dados
+    dados_orcamentos[id_orcam] = orcamento;
+    await inserirDados(dados_orcamentos, 'dados_orcamentos');
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/itens_adicionais`, itens_adicionais);
 }
 
 function extrairTextoOuInput(td) {
@@ -4067,22 +4124,119 @@ function extrairTextoOuInput(td) {
 }
 
 
-
 async function detalharLpuParceiro(chave) {
-
     let dadosOrcamentos = await recuperarDados('dados_orcamentos') || {};
-    let orcamento = dadosOrcamentos[id_orcam]
-    let dadosLpu = orcamento.status.historico[chave]
+    let orcamento = dadosOrcamentos[id_orcam];
+    let dadosLpu = orcamento.status.historico[chave];
+
+
     let modelo = () => {
         return `
             <div style="display: flex; flex-direction: column">
                 <label>${valor1}</label>
                 <label>${valor2}</label>
             </div>
+        `;
+    }
+
+    let stringHtml = (titulo, valor) => {
+        return `
+        <div style="display: flex; justifty-content: start; align-items: center; gap: 5px;">
+        <label><strong>${titulo}</strong>:</label>
+        <label>${valor}</label>
+        </div>
         `
     }
-    let acumulado = `
-                
+    let dadosEmpresa = orcamento.dados_orcam
+    let margemLPU = dadosLpu.margem_percentual
+    let tecnicoLPU = dadosLpu.tecnicoLpu
+
+
+
+    let cabecalhoInfo = `
+        <div style="display: flex; justify-content: space-between">
+            <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
+                ${stringHtml('Data', data_atual('completa'))}
+                ${stringHtml('Analista', acesso?.nome_completo || '')}
+                ${stringHtml('Cliente', dadosEmpresa?.cliente_selecionado || '')}
+                ${stringHtml('CNPJ', dadosEmpresa?.cnpj || '')}
+                ${stringHtml('Endereço', dadosEmpresa?.endereco || '')}
+                ${stringHtml('Cidade', dadosEmpresa?.cidade || '')}
+                ${stringHtml('Estado', dadosEmpresa?.estado || '')}
+                ${stringHtml('Margem', margemLPU)}
+                ${stringHtml('Técnico', tecnicoLPU || '')}
+            </div>
+            <div>
+                <button><strong>Solicitar Pagamento</strong></button>
+                <button onclick"gerarpdf()"><strong>Gerar PDF</strong></button>
+            </div>
+
+
+        </div>
+    `;
+
+    let linhas = Object.values(dadosLpu.itens).map(item => `
+
+        <tr>
+            <td>${item.descricao}</td>
+            <td>${item.qtde}</td>
+            <td>${dinheiro(item.valor_parceiro_unitario)}</td>
+            <td>${dinheiro(item.total_parceiro)}</td>
+        </tr>
+    `);
+
+
+    if (dadosLpu.itens_adicionais && dadosLpu.itens_adicionais.length > 0) {
+        linhas.push(`
+            <tr>
+                <td colspan="4" style="text-align: center; font-weight: bold; padding-top: 10px;">
+                    SERVIÇOS ADICIONAIS
+                </td>
+            </tr>
+        `);
+
+        linhas.push(...dadosLpu.itens_adicionais.map(item => `
+            <tr>
+                <td>${item.descricao}</td>
+                <td>${item.qtde}</td>
+                <td>${dinheiro(item.valor_parceiro_unitario)}</td>
+                <td>${dinheiro(item.total_parceiro)}</td>
+            </tr>
+        `));
+    }
+
+    let totalOrcamento = 0;
+    let totalMargem = 0;
+    let totalParceiro = 0
+
+    for (const item of Object.values(dadosLpu.itens)) {
+        totalOrcamento += item.total_orcado || 0;
+        totalMargem += item.margem_reais || 0;
+        totalParceiro += item.total_parceiro
+    }
+
+    for (const item of dadosLpu.itens_adicionais || []) {
+        totalParceiro += item.total_parceiro || 0
+    }
+
+    linhas.push(`
+        <tr><td colspan="4" style="padding-top: 20px;"></td></tr>
+        <tr>
+            <td colspan="3" style="text-align: right; font-weight: bold; background-color: #eaeaea">TOTAL DO ORÇAMENTO VENDIDO:</td>
+            <td>${dinheiro(totalOrcamento)}</td>
+        </tr>
+        <tr>
+            <td colspan="3" style="text-align: right; font-weight: bold; background-color: #eaeaea">TOTAL MARGEM DO ORÇAMENTO DISPONÍVEL:</td>
+            <td>${dinheiro(totalMargem)}</td>
+        </tr>
+        <tr>
+            <td colspan="3" style="text-align: right; font-weight: bold; background-color: #eaeaea"><strong>TOTAL LPU PARCEIRO:</strong></td>
+            <td>${dinheiro(totalParceiro)}</td>
+        </tr>
+    `);
+
+    // Monta a tabela com as linhas finais
+    let tabela = `
         <table class="tabela">
             <thead>
                 <tr>
@@ -4093,19 +4247,58 @@ async function detalharLpuParceiro(chave) {
                 </tr>
             </thead>
             <tbody>
-                ${Object.values(dadosLpu.itens).map(item => `
-                    <tr>
-                        <td>${item.descricao}</td>
-                        <td>${item.qtde}</td>
-                        <td>${dinheiro(item.valor_parceiro_unitario)}</td>
-                        <td>${dinheiro(item.total_parceiro)}</td>
-                    </tr>
-                `).join('')}
+                ${linhas.join('')}
             </tbody>
-        </table>    
-              `
-    openPopup_v2(acumulado, 'Detalhamento Itens Parceiro', true)
+        </table>
+    `;
+
+    let acumulado = `
+    ${cabecalhoInfo}
+    ${tabela}
+    `
+
+    openPopup_v2(acumulado, 'Detalhamento Itens Parceiro', true);
+
 }
+
+// async function detalharLpuParceiro(chave) {
+
+//     let dadosOrcamentos = await recuperarDados('dados_orcamentos') || {};
+//     let orcamento = dadosOrcamentos[id_orcam]
+//     let dadosLpu = orcamento.status.historico[chave]
+//     let modelo = () => {
+//         return `
+//             <div style="display: flex; flex-direction: column">
+//                 <label>${valor1}</label>
+//                 <label>${valor2}</label>
+//             </div>
+//         `
+//     }
+//     let acumulado = `
+
+//         <table class="tabela">
+//             <thead>
+//                 <tr>
+//                     <th>Item</th>
+//                     <th>Quantidade</th>
+//                     <th>Valor Unitário</th>
+//                     <th>Total Parceiro</th>
+//                 </tr>
+//             </thead>
+//             <tbody>
+//                 ${Object.values(dadosLpu.itens).map(item => `
+//                     <tr>
+//                         <td>${item.descricao}</td>
+//                         <td>${item.qtde}</td>
+//                         <td>${dinheiro(item.valor_parceiro_unitario)}</td>
+//                         <td>${dinheiro(item.total_parceiro)}</td>
+//                     </tr>
+//                 `).join('')}
+//             </tbody>
+//         </table>    
+//               `
+//     openPopup_v2(acumulado, 'Detalhamento Itens Parceiro', true)
+// }
 
 
 
