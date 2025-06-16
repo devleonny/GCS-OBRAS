@@ -703,7 +703,9 @@ async function preencherTabelaMotoristas(nomeVeiculo) {
 
     tbody.innerHTML = linhasHtml;
 
-    campoTotal?.textContent = `Total mensal: ${dinheiro(total)}`;
+    if (campoTotal) {
+        campoTotal.textContent = `Total mensal: ${dinheiro(total)}`;
+    }
 }
 
 async function abrirFormularioCadastro() {
@@ -1015,6 +1017,8 @@ async function atualizarListaMotoristas() {
         `, 'Erro');
     }
 }
+
+document.getElementById('atualizar_dados_veiculos').addEventListener('click', atualizarDadosVeiculos);
 
 async function atualizarDadosVeiculos() {
     try {
