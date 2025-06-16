@@ -1,4 +1,3 @@
-// Preencher desenvolvedores apenas com usuários adm do dados_setores
 let desenvolvedores = {};
 Object.keys(dados_setores)
     .filter(key => dados_setores[key].permissao === 'adm' && dados_setores[key].setor === 'SUPORTE')
@@ -92,7 +91,6 @@ function novoTicket() {
 
     openPopup_v2(conteudo, 'Novo Ticket');
 
-    // Event listener para o formulário
     document.getElementById('ticket-form').addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -143,13 +141,11 @@ function novoTicket() {
         }
     });
 
-    // Focar no primeiro campo
     setTimeout(() => {
         document.getElementById('ticket-titulo').focus();
     }, 100);
 }
 
-// Função para abrir popup de edição
 function abrirPopupEdicao(ticketId, ticket) {
     if (!ticket) {
         alert('Ticket não encontrado!');
@@ -222,7 +218,6 @@ function abrirPopupEdicao(ticketId, ticket) {
 
     openPopup_v2(conteudo, 'Editar Ticket');
 
-    // Event listener para o formulário de edição
     document.getElementById('edit-form').addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -233,13 +228,11 @@ function abrirPopupEdicao(ticketId, ticket) {
         try {
             const formData = new FormData(e.target);
 
-            // Atualizar dados do ticket
             ticket.status = formData.get('status');
             ticket.prioridade = formData.get('prioridade');
             ticket.usuario = formData.get('usuario');
             ticket.desenvolvedor = formData.get('desenvolvedor');
 
-            // Atualizar data de conclusão se finalizado
             if (ticket.status === 'finalizado') {
                 ticket.dataConclusao = new Date().toLocaleString('pt-BR');
             } else {
@@ -255,7 +248,6 @@ function abrirPopupEdicao(ticketId, ticket) {
             setTimeout(() => {
                 remover_popup();
             }, 1000);
-
         } catch (error) {
             console.error('Erro ao salvar ticket:', error);
 
@@ -271,14 +263,12 @@ function abrirPopupEdicao(ticketId, ticket) {
     });
 }
 
-// Função para abrir popup de detalhes
 function abrirPopupDetalhes(ticket) {
     if (!ticket) {
         alert('Ticket não encontrado!');
         return;
     }
 
-    // Ícones para categorias
     let categoriaIcon = '';
     switch (ticket.categoria) {
         case 'bug': categoriaIcon = '🐛'; break;
@@ -380,7 +370,6 @@ function abrirPopupDetalhes(ticket) {
     openPopup_v2(conteudo, 'Detalhes do Ticket');
 }
 
-// Função para gerar UUID
 function gerarUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
         const r = Math.random() * 16 | 0;
@@ -389,15 +378,12 @@ function gerarUUID() {
     });
 }
 
-// Função para obter nome do usuário
 function obterNomeUsuario() {
     try {
-        // Primeiro tenta usar a variável global acesso
         if (typeof acesso !== 'undefined' && acesso) {
             return acesso.nome_completo || acesso.nome || 'Usuário Atual';
         }
 
-        // Fallback para localStorage se acesso global não estiver disponível
         const acessoLocal = JSON.parse(localStorage.getItem('acesso')) || {};
         return acessoLocal.nome_completo || acessoLocal.nome || 'Usuário Atual';
     } catch (error) {
@@ -406,15 +392,12 @@ function obterNomeUsuario() {
     }
 }
 
-// Função para verificar se usuário é admin
 function isAdmin() {
     try {
-        // Primeiro tenta usar a variável global acesso
         if (typeof acesso !== 'undefined' && acesso && acesso.permissao) {
             return acesso.permissao === 'adm';
         }
 
-        // Fallback para localStorage se acesso global não estiver disponível
         const acessoLocal = JSON.parse(localStorage.getItem('acesso')) || {};
         return acessoLocal.permissao === 'adm';
     } catch (error) {
@@ -423,7 +406,6 @@ function isAdmin() {
     }
 }
 
-// Função para excluir ticket
 async function excluirTicket(ticketId) {
     if (!isAdmin()) {
         openPopup_v2(`
@@ -455,7 +437,6 @@ async function excluirTicket(ticketId) {
     openPopup_v2(conteudo, 'Confirmar Exclusão');
 }
 
-// Função para confirmar exclusão
 async function confirmarExclusaoTicket(ticketId) {
     try {
         let dados_tickets = {};
@@ -469,13 +450,8 @@ async function confirmarExclusaoTicket(ticketId) {
         if (dados_tickets[ticketId]) {
             delete dados_tickets[ticketId];
 
-            // Segue o padrão da função "apagar" de open_menus.js
-            if (typeof inserirDados === 'function') {
-                await inserirDados(dados_tickets, 'dados_tickets');
-            }
-            if (typeof deletar === 'function') {
-                await deletar(`dados_tickets/${ticketId}`);
-            }
+            await inserirDados(dados_tickets, 'dados_tickets');
+            await deletar(`dados_tickets/${ticketId}`);
 
             openPopup_v2(`
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
@@ -489,7 +465,6 @@ async function confirmarExclusaoTicket(ticketId) {
                 await recuperar_tickets();
             }, 300);
         }
-
     } catch (error) {
         console.error('Erro ao excluir ticket:', error);
 
@@ -502,7 +477,6 @@ async function confirmarExclusaoTicket(ticketId) {
     }
 }
 
-// Função para salvar ticket
 async function salvarTicket(ticketData) {
     try {
         if (typeof recuperarDados === 'function' && typeof inserirDados === 'function' && typeof enviar === 'function') {
@@ -525,9 +499,7 @@ async function salvarTicket(ticketData) {
     }
 }
 
-// Função para salvar ticket editado
 async function salvarTicketEditado(ticketId, ticketData) {
-
     try {
         if (typeof recuperarDados === 'function' && typeof inserirDados === 'function' && typeof enviar === 'function') {
             let dados_tickets = await recuperarDados('dados_tickets') || {};
@@ -546,7 +518,6 @@ async function salvarTicketEditado(ticketId, ticketData) {
 
 }
 
-// Função para buscar dados do ticket para edição
 async function buscarTicketParaEdicao(ticketId) {
     try {
         let dados_tickets = {};
@@ -558,46 +529,44 @@ async function buscarTicketParaEdicao(ticketId) {
         }
 
         return dados_tickets[ticketId];
-
     } catch (error) {
         console.error('Erro ao buscar ticket:', error);
         return null;
     }
 }
 
-// Atualizar função editarTicket para usar busca assíncrona
 function editarTicket(ticketId) {
     buscarTicketParaEdicao(ticketId).then(ticket => {
-        if (ticket) {
-            abrirPopupEdicao(ticketId, ticket);
-        } else {
+        if (!ticket) {
             openPopup_v2(`
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
                     <img src="imagens/cancel.png" style="width: 3vw;">
                     <label>Ticket não encontrado!</label>
                 </div>
             `, 'Erro');
+            return;
         }
+
+        abrirPopupEdicao(ticketId, ticket);
     });
 }
 
-// Atualizar função mostrarDetalhesTicket para usar busca assíncrona  
 function mostrarDetalhesTicket(ticketId) {
     buscarTicketParaEdicao(ticketId).then(ticket => {
-        if (ticket) {
-            abrirPopupDetalhes(ticket);
-        } else {
+        if (!ticket) {
             openPopup_v2(`
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
                     <img src="imagens/cancel.png" style="width: 3vw;">
                     <label>Ticket não encontrado!</label>
-                                </div>
+                </div>
             `, 'Erro');
+            return;
         }
+
+        abrirPopupDetalhes(ticket);
     });
 }
 
-// Função para definir cores dos status
 function coresStatus(status) {
     let coresStatus = {
         'não iniciado': '#B12425',
@@ -610,7 +579,6 @@ function coresStatus(status) {
     return coresStatus[status] || '#938e28';
 }
 
-// Função para definir cores das prioridades
 function coresPrioridade(prioridade) {
     let coresPrioridade = {
         'baixa': '#4CAF50',
@@ -622,13 +590,10 @@ function coresPrioridade(prioridade) {
     return coresPrioridade[prioridade] || '#938e28';
 }
 
-// Função para carregar tickets com debug
 async function carregarTickets() {
     try {
-
         let dados_tickets = {};
 
-        // Sempre sincronize antes de ler!
         if (typeof sincronizarDados === 'function') {
             await sincronizarDados('dados_tickets');
         }
@@ -654,9 +619,7 @@ async function carregarTickets() {
             return;
         }
 
-        // Continuar com a renderização...
         renderizarTabelaTickets(dados_tickets, div_tickets);
-
     } catch (error) {
         console.error('Erro ao carregar tickets:', error);
         console.error('Stack trace:', error.stack);
@@ -669,9 +632,7 @@ async function carregarTickets() {
     }
 }
 
-// Função separada para renderizar a tabela
 function renderizarTabelaTickets(dados_tickets, div_tickets) {
-    // Ordenar por data
     let desordenado = Object.entries(dados_tickets);
     desordenado.sort((a, b) => {
         let dataA = new Date(a[1].dataAbertura || 0);
@@ -682,7 +643,7 @@ function renderizarTabelaTickets(dados_tickets, div_tickets) {
 
     let linhas = '';
     const mostrarExcluir = isAdmin();
-    const mostrarEditar = isAdmin(); // Também verificar para editar
+    const mostrarEditar = isAdmin();
 
     for (let ticketId in dados_tickets) {
         let ticket = dados_tickets[ticketId];
@@ -770,23 +731,17 @@ function renderizarTabelaTickets(dados_tickets, div_tickets) {
         `;
     }
 
-    // Montar colunas dinamicamente baseado nas permissões
     let colunas = ['ID', 'Título', 'Prioridade', 'Categoria', 'Local', 'Usuário', 'Desenvolvedor', 'Data Abertura', 'Data Conclusão', 'Status', 'Detalhes'];
 
-    if (mostrarEditar) {
-        colunas.push('Editar');
-    }
+    if (mostrarEditar) colunas.push('Editar');
 
-    if (mostrarExcluir) {
-        colunas.push('Excluir');
-    }
+    if (mostrarExcluir) colunas.push('Excluir');
 
     let ths = '';
     let tsh = '';
     colunas.forEach((col, i) => {
         ths += `<th style="text-align: center;">${col}</th>`;
 
-        // Adicione a condição para a coluna ID
         if (col !== 'Excluir' && col !== 'Editar' && col !== 'Detalhes') {
             tsh += `
             <th style="background-color: white; border-radius: 0px;">
@@ -823,17 +778,13 @@ function renderizarTabelaTickets(dados_tickets, div_tickets) {
     filtrarTickets('TODOS');
 }
 
-// Função para mostrar popup de contato do desenvolvedor
 async function mostrarContatoDesenvolvedor(ticketId, usuarioNome) {
-    // Encontra a linha da tabela que contém o botão clicado
     const linha = event.target.closest('tr');
     if (!linha) return;
 
-    // Obtém o nome do desenvolvedor da coluna
     const desenvolvedorNome = linha.querySelector('.nome-desenvolvedor')?.textContent.trim();
     if (!desenvolvedorNome || desenvolvedorNome === '-') return;
 
-    // Busca os dados do desenvolvedor no objeto
     const devInfo = desenvolvedores[desenvolvedorNome];
     if (!devInfo) {
         openPopup_v2(`
@@ -845,12 +796,10 @@ async function mostrarContatoDesenvolvedor(ticketId, usuarioNome) {
         return;
     }
 
-    // Mensagem padrão para WhatsApp
     const mensagemPadrao = `
         Prezado ${desenvolvedorNome}, espero que esteja bem. Gostaria de tratar sobre o ticket #${ticketId}, aberto por ${usuarioNome}. Poderia, por gentileza, me auxiliar com este atendimento?
     `;
 
-    // Conteúdo do popup
     const conteudo = `
         <div class="dev-contact-popup">
             <h3 class="popup-title">Contato do Desenvolvedor</h3>
@@ -893,7 +842,6 @@ async function mostrarContatoDesenvolvedor(ticketId, usuarioNome) {
     openPopup_v2(conteudo, 'Contato do Desenvolvedor');
 }
 
-// Função para abrir WhatsApp com mensagem pré-definida
 function abrirWhatsApp(telefone, mensagem) {
     const numero = telefone.replace(/\D/g, '');
     if (!numero) return;
@@ -903,7 +851,6 @@ function abrirWhatsApp(telefone, mensagem) {
     remover_popup();
 }
 
-// Função para formatar telefone
 function formatarTelefone(telefone) {
     if (!telefone) return 'Não informado';
     const nums = telefone.replace(/\D/g, '');
@@ -913,7 +860,6 @@ function formatarTelefone(telefone) {
     return telefone;
 }
 
-// Função para copiar telefone
 function copiarParaAreaTransferencia(texto) {
     const input = document.createElement('input');
     input.value = texto.replace(/\D/g, '');
@@ -932,7 +878,6 @@ function copiarParaAreaTransferencia(texto) {
     setTimeout(remover_popup, 1500);
 }
 
-// Função para filtrar tickets seguindo padrão do sistema
 function filtrarTickets(ultimo_status, col, texto, apenas_toolbar) {
     if (!window.filtrosAtivosTickets) window.filtrosAtivosTickets = {};
 
@@ -946,7 +891,6 @@ function filtrarTickets(ultimo_status, col, texto, apenas_toolbar) {
     let trs = linhas_tickets.querySelectorAll('tr');
     let contadores = { TODOS: 0, listas: ['TODOS'] };
 
-    // Inicializa todos os status possíveis
     trs.forEach(tr => {
         let tds = tr.querySelectorAll('td');
         if (tds.length === 0) return;
@@ -955,7 +899,6 @@ function filtrarTickets(ultimo_status, col, texto, apenas_toolbar) {
         if (!contadores[status]) contadores[status] = 0;
     });
 
-    // Conta todos os tickets para cada status (independente de filtro)
     let totaisPorStatus = {};
     contadores.listas.forEach(st => { if (st !== 'TODOS') totaisPorStatus[st] = 0; });
     trs.forEach(tr => {
@@ -965,17 +908,14 @@ function filtrarTickets(ultimo_status, col, texto, apenas_toolbar) {
         if (status in totaisPorStatus) totaisPorStatus[status]++;
     });
 
-    // Total absoluto de tickets (sem filtro)
     let totalAbsolutoTickets = trs.length;
 
-    // Agora, conte apenas os visíveis para cada status
     trs.forEach(tr => {
         let tds = tr.querySelectorAll('td');
         if (tds.length === 0) return;
         let status = tds[9].textContent.toLowerCase().trim();
         let mostrarLinha = true;
 
-        // Filtros de texto
         for (let col in window.filtrosAtivosTickets) {
             let filtroTexto = window.filtrosAtivosTickets[col];
             if (filtroTexto && col < tds.length) {
@@ -989,24 +929,19 @@ function filtrarTickets(ultimo_status, col, texto, apenas_toolbar) {
             }
         }
 
-        // Filtro de status
         if (filtro !== undefined && filtro !== 'TODOS') {
             mostrarLinha = mostrarLinha && (status === filtro.toLowerCase());
         }
 
-        if (mostrarLinha) {
-            contadores[status]++;
-        }
+        if (mostrarLinha) contadores[status]++;
 
         tr.style.display = mostrarLinha ? 'table-row' : 'none';
     });
 
-    // Soma dos visíveis para TODOS (não será mais usada para o contador da toolbar)
     contadores['TODOS'] = contadores.listas
         .filter(st => st !== 'TODOS')
         .reduce((acc, st) => acc + (contadores[st] || 0), 0);
 
-    // Atualizar toolbar
     let toolbar = document.getElementById('toolbar');
     if (toolbar) {
         toolbar.innerHTML = '';
@@ -1024,7 +959,6 @@ function filtrarTickets(ultimo_status, col, texto, apenas_toolbar) {
                 if ((filtro === st || (filtro === undefined && st === 'TODOS'))) {
                     bg = '#d2d2d2'; bg2 = '#222';
                 }
-                // 'TODOS' sempre mostra o total absoluto de tickets
                 let valor = (st === 'TODOS') ? totalAbsolutoTickets : totaisPorStatus[st] || 0;
                 let label = `
                     <div onclick="filtrarTickets('${st}')"
@@ -1051,26 +985,17 @@ function filtrarTickets(ultimo_status, col, texto, apenas_toolbar) {
     }
 }
 
-// Função para atualizar tickets (similar ao recuperar_orcamentos)
 async function recuperar_tickets() {
-
-    if (typeof sincronizarDados === 'function') {
-        await sincronizarDados('dados_tickets');
-    }
-
+    await sincronizarDados('dados_tickets');
     await carregarTickets();
-
 }
 
-// Função auxiliar para capitalizar primeira letra (seguindo padrão do sistema)
 function inicial_maiuscula(str) {
     if (typeof str !== 'string') return str;
     return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
-// Verificar se as funções do sistema estão disponíveis no carregamento
 document.addEventListener('DOMContentLoaded', async function () {
-    // Aguardar um pouco para garantir que todas as funções foram carregadas
     setTimeout(async () => {
         await recuperar_tickets();
     }, 500);
