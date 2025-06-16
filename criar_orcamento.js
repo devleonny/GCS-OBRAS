@@ -1591,8 +1591,10 @@ async function total() {
                         valorDesconto.value = ''
                         avisoDesconto = 1 // Preencher os dados da empresa;
 
+                    } else if (acesso.permissao == 'adm' || acesso.permissao == 'diretoria') {
+                        // Liberado;
+
                     } else if (resultado.lucroPorcentagem < 10) {
-                        if (acesso.permissao == 'adm' || acesso.permissao == 'diretoria') continue
                         valorDesconto.value = ''
                         avisoDesconto = 2 // Lucro mínimo atingido (10%);
 
