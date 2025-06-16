@@ -264,7 +264,7 @@ async function preencherOrcamentos(alternar) {
 
         div_orcamentos.innerHTML = ''
         let tabela = `
-                    <table id="orcamentos_" class="tabela" style="font-size: 0.8vw;">
+                    <table id="orcamentos_" class="tabela">
                         <thead>
                             <tr>${ths}</tr>
                             <tr id="tsh">${tsh}</tr>
