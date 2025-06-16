@@ -1,6 +1,9 @@
 let filtrosAtivos = {}
 let filtroAgrupamentos = {}
 let divComposicoes = document.getElementById('composicoes')
+
+const usuariosPermitidosParaEditar = ['log', 'editor', 'adm', 'gerente', 'diretoria'];
+
 const alerta = (termo) => `
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
@@ -113,7 +116,11 @@ async function carregar_tabela_v2() {
             chave = String(chave)
             if (chave == 'imagem') {
                 alinhamento = 'center';
-                conteudo = `<img src="${conteudo || logo}" style="width: 4vw; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">`;
+                conteudo = `<img 
+                                src="${conteudo || logo}" 
+                                style="width: 4vw; cursor: pointer;" 
+                                ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="ampliar_especial(this, '${codigo}')"` : ''}
+                            >`;
 
             } else if (chave.includes('lpu')) {
                 let preco_final = 0;
@@ -122,7 +129,11 @@ async function carregar_tabela_v2() {
                     preco_final = produto[chave].historico?.[ativo]?.valor || 0;
                 }
 
-                conteudo = `<label class="labelAprovacao" style="background-color: ${preco_final > 0 ? 'green' : '#B12425'};" onclick="abrirHistoricoPrecos('${codigo}', '${chave}')"> ${dinheiro(conversor(preco_final))}</label>`;
+                conteudo = `<label 
+                                class="labelAprovacao" 
+                                style="background-color: ${preco_final > 0 ? 'green' : '#B12425'};" 
+                                ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="abrirHistoricoPrecos('${codigo}', '${chave}')"` : ''}
+                            > ${dinheiro(conversor(preco_final))}</label>`;
 
             } else if (chave == 'agrupamentos') {
 
@@ -163,7 +174,11 @@ async function carregar_tabela_v2() {
                 })
 
                 conteudo = `
-                <select class="opcoesSelect" onchange="alterarChave('${codigo}', '${chave}', this)">
+                <select 
+                    class="opcoesSelect" 
+                    onchange="alterarChave('${codigo}', '${chave}', this)"
+                    ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? '' : 'disabled'}
+                >
                     ${opcoes}
                 </select>
                 `
@@ -173,7 +188,13 @@ async function carregar_tabela_v2() {
             tds[chave] = `<td style="text-align: ${alinhamento}; max-width: 200px;">${conteudo}</td>`;
         });
 
-        tds.editar = `<td style="width: 70px;"><img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')"></td>`;
+        tds.editar = `<td style="width: 70px;">
+                        <img 
+                            src="imagens/editar.png" 
+                            style="width: 2vw; cursor: pointer;" 
+                            ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="cadastrar_editar_item('${codigo}')"` : ''}
+                        >
+                    </td>`;
 
         let celulas = '';
         colunas.forEach(col => {

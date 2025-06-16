@@ -124,11 +124,7 @@ function carregarIcones() {
 
     let icones = `
         ${atalho('Orçamentos', 'projeto', `window.location.href='orcamentos.html'`)}
-
-        ${moduloComposicoes
-            ? atalho('Composições', 'composicoes', `window.location.href='composicoes.html'`)
-            : ''}
-
+        ${atalho('Composições', 'composicoes', `window.location.href='composicoes.html'`)}
         ${atalho('Chamados', 'chamados', `window.location.href='chamados.html'`)}
         ${atalho('Cotações', 'cotacao2', `window.location.href='cotacoes.html'`)}
         ${atalho('Estoque', 'estoque', `window.location.href='estoque.html'`)}
@@ -153,9 +149,8 @@ function carregarIcones() {
         icones = `
         ${atalho('Orçamentos', 'projeto', `window.location.href='orcamentos.html'`)}
 
-        ${moduloComposicoes
-                ? atalho('Composições', 'composicoes', `window.location.href='composicoes.html'`)
-                : ''}
+        ${atalho('Composições', 'composicoes', `window.location.href='composicoes.html'`)}
+
          ${registroHistorico
                 ? atalho('Histórico de Alterações GCS', 'historico', `window.location.href='historicoRegistros.html'`)
                 : ''}
