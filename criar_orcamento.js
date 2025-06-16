@@ -2616,7 +2616,7 @@ function painel_clientes() {
     let dados_orcam = orcamento_v2?.dados_orcam || {}
     let levantamentos = ''
 
-    let dados_pagamentos = ["A definir", "15 dias", "30 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
+    let dados_pagamentos = ["A definir", "15 dias", "30 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
     let condicoes = ''
     dados_pagamentos.forEach(pag => {
         condicoes += `
@@ -2701,7 +2701,7 @@ function painel_clientes() {
         `<select id="condicoes" oninput="salvar_preenchido()">
                     ${condicoes}
                 </select>`)}
-            ${modelo('Garantia', `<input id="garantia" placeholder="1 Ano" oninput="salvar_preenchido()" value="${dados_orcam?.garantia}">`)}
+            ${modelo('Garantia', `<input id="garantia" oninput="salvar_preenchido()" value="${dados_orcam?.garantia || ''}">`)}
 
             <label style="font-size: 1.5vw;">Dados do Analista</label>
             ${modelo('Analista', dados_orcam?.analista, 'analista')}
