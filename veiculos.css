@@ -76,17 +76,38 @@
   background: #45a049;
 }
 
-.form-cadastro-motorista {
+.form-cadastro-motorista,
+.form-edit-campos {
   display: flex;
   flex-direction: column;
   gap: 15px;
   padding: 20px;
+  background-color: #d2d2d2 !important;
+  width: 25vw;
 }
 
 .form-grupo {
   display: flex;
   flex-direction: column;
   gap: 5px;
+}
+
+.form-grupo .form-campos {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.form-grupo .form-campos input,
+.form-grupo .form-campos select {
+  width: 17vw;
+  box-sizing: border-box;
+  padding: 8px;
+  height: 35px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
 }
 
 .form-grupo label {
@@ -159,6 +180,8 @@
   border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
+  width: fit-content;
+  margin: 0 auto;
 }
 
 .botao-form.primario {
@@ -198,6 +221,8 @@
   flex-direction: column;
   gap: 15px;
   padding: 20px;
+  background-color: #d2d2d2;
+  width: 25vw;
 }
 
 .form-cadastro-veiculo .form-grupo {
@@ -756,6 +781,7 @@
 }
 
 .gerenciamento-frotas {
+  background-color: #d2d2d2;
   padding: 20px;
   max-width: 800px;
   margin: 0 auto;
