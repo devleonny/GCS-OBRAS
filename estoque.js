@@ -9,7 +9,7 @@ async function recuperar_estoque() {
 
     await sincronizarDados('dados_estoque')
     await carregar_estoque()
-    
+
 }
 
 async function carregar_estoque() {
@@ -66,9 +66,27 @@ async function carregar_estoque() {
     })
 
     let dados_estoque_ordenado = Object.entries(dados_estoque)
-        .sort(([, a], [, b]) => (b.timestamp || 0) - (a.timestamp || 0))
-        .reduce((acc, [key, value]) => {
-            acc[key] = value;
+        .map(([codigo, item]) => {
+            let totalMovimentacoes = 0;
+
+            const estoqueNovo = item.estoque?.historico;
+            if (estoqueNovo) totalMovimentacoes += Object.keys(item.estoque.historico).length;
+
+            const estoqueUsado = item.estoque_usado?.historico;
+            if (estoqueUsado) totalMovimentacoes += Object.keys(item.estoque_usado.historico).length;
+
+            const estoqueSp = item.estoque_sp?.historico;
+            if (estoqueSp) totalMovimentacoes += Object.keys(item.estoque_sp.historico).length;
+
+            return {
+                codigo,
+                item,
+                totalMovimentacoes
+            };
+        })
+        .sort((itemAtual, proximoItem) => proximoItem.totalMovimentacoes - itemAtual.totalMovimentacoes)
+        .reduce((acc, { codigo, item }) => {
+            acc[codigo] = item;
             return acc;
         }, {});
 
@@ -686,7 +704,7 @@ async function abrir_estoque(codigo, stq) {
     let atual = conversor(estoque.quantidade ? estoque.quantidade : 0)
     let inicial = atual
     let linhas = ''
-    
+
     if (estoque.historico) {
 
         let historicoArray = Object.entries(estoque.historico);
