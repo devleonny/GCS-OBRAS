@@ -744,14 +744,20 @@ async function abrirFormularioCadastro() {
 
             <div class="form-grupo">
                 <label>Dados do Veículo</label>
-                <label>Placa</label>
-                <select id="placa" onchange="preencherDadosFrota(this.value)">
-                    <option value="">Selecione a placa</option>
-                </select>
-                <label>Modelo</label>
-                <input type="text" id="modelo" placeholder="Modelo" readonly>
-                <label>Status</label>
-                <input type="text" id="status" placeholder="status" readonly>
+                <div class="form-campos">
+                    <label>Placa</label>
+                    <select id="placa" onchange="preencherDadosFrota(this.value)">
+                        <option value="">Selecione a placa</option>
+                    </select>
+                </div>
+                <div class="form-campos">
+                    <label>Modelo</label>
+                    <input type="text" id="modelo" placeholder="Modelo" readonly>
+                </div>
+                <div class="form-campos">
+                    <label>Status</label>
+                    <input type="text" id="status" placeholder="status" readonly>
+                </div>
             </div>
 
             <div class="form-grupo">
