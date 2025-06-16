@@ -865,7 +865,6 @@ function mostrar_ocultar_alertas() {
 }
 
 
-// Improved XLSX loading function
 async function carregarXLSX() {
     return new Promise((resolve, reject) => {
         if (typeof XLSX !== 'undefined') {
@@ -876,7 +875,6 @@ async function carregarXLSX() {
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
         script.onload = () => {
-            // Additional check to ensure XLSX is fully initialized
             const checkInitialization = () => {
                 if (typeof XLSX !== 'undefined' && typeof XLSX.utils !== 'undefined') {
                     resolve();
@@ -894,27 +892,17 @@ async function carregarXLSX() {
 
 async function para_excel(tabela_id, nome_personalizado) {
     try {
-        // 1. Verificação e carregamento da biblioteca
         if (typeof XLSX === 'undefined') {
-            await new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
-                script.onload = resolve;
-                script.onerror = () => reject(new Error('Falha ao carregar a biblioteca XLSX'));
-                document.head.appendChild(script);
-            });
+            await carregarXLSX();
         }
 
-        // 2. Verificação da tabela
         const tabela = document.getElementById(tabela_id);
         if (!tabela) {
             throw new Error(`Tabela com ID '${tabela_id}' não encontrada`);
         }
 
-        // 3. Clone e preparação da tabela
         const tabelaClone = tabela.cloneNode(true);
 
-        // Processar elementos interativos
         tabelaClone.querySelectorAll('input, textarea, select').forEach(elemento => {
             const celula = elemento.closest('td, th');
             if (celula) {
@@ -928,21 +916,17 @@ async function para_excel(tabela_id, nome_personalizado) {
             }
         });
 
-        // Remover elementos não exportáveis
         tabelaClone.querySelectorAll('[data-no-export], .no-export').forEach(el => el.remove());
 
-        // 4. Conversão para Excel
         const worksheet = XLSX.utils.table_to_sheet(tabelaClone);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Dados");
 
-        // 5. Nome do arquivo
         const data = new Date().toISOString().slice(0, 10).replace(/-/g, '');
         const nomeArquivo = nome_personalizado
             ? `${nome_personalizado}_${data}.xlsx`
             : `exportacao_${data}.xlsx`;
 
-        // 6. Exportação
         XLSX.writeFile(workbook, nomeArquivo, {
             compression: true
         });
@@ -950,7 +934,6 @@ async function para_excel(tabela_id, nome_personalizado) {
     } catch (erro) {
         console.error("Erro detalhado:", erro);
 
-        // Mensagem amigável para o usuário
         let mensagem = erro.message;
         if (erro.message.includes('XLSX is not defined')) {
             mensagem = "Biblioteca de exportação não carregada. Recarregue a página e tente novamente.";
