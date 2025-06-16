@@ -1592,6 +1592,7 @@ async function total() {
                         avisoDesconto = 1 // Preencher os dados da empresa;
 
                     } else if (resultado.lucroPorcentagem < 10) {
+                        if (acesso.permissao == 'adm' || acesso.permissao == 'diretoria') continue
                         valorDesconto.value = ''
                         avisoDesconto = 2 // Lucro mínimo atingido (10%);
 
@@ -2378,7 +2379,7 @@ async function carregarClientes(textarea) {
     let pesquisa = String(textarea.value).replace(/[./-]/g, '').toLowerCase()
     let opcoes = ''
     let div = document.getElementById('div_sugestoes')
-    if(div) div.remove()
+    if (div) div.remove()
 
     for (cnpj in dados_clientes) {
         var cliente = dados_clientes[cnpj]
@@ -2668,7 +2669,7 @@ function painel_clientes() {
                 <input id="chamado_off" style="width: 2vw; height: 2vw; cursor: pointer;" type="checkbox"
                         onchange="salvar_preenchido()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
                 <label style="white-space: nowrap;">Sem Chamado</label>`)}
-            ${modelo('Cliente',`<textarea class="autocomplete-input" id="cliente_selecionado" placeholder="Nome do Cliente" oninput="carregarClientes(this)"></textarea>`)}
+            ${modelo('Cliente', `<textarea class="autocomplete-input" id="cliente_selecionado" placeholder="Nome do Cliente" oninput="carregarClientes(this)"></textarea>`)}
             ${modelo('CNPJ/CPF', dados_orcam?.cnpj, 'cnpj')}
             ${modelo('Endereço', dados_orcam?.bairro, 'bairro')}
             ${modelo('CEP', dados_orcam?.cep, 'cep')}
@@ -2696,7 +2697,7 @@ function painel_clientes() {
                 </div>
                 `)}
             ${modelo('Pagamento',
-                `<select id="condicoes" oninput="salvar_preenchido()">
+        `<select id="condicoes" oninput="salvar_preenchido()">
                     ${condicoes}
                 </select>`)}
             ${modelo('Garantia', `<input id="garantia" placeholder="1 Ano" oninput="salvar_preenchido()" value="${dados_orcam?.garantia}">`)}
