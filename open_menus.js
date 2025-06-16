@@ -136,7 +136,7 @@ function carregarIcones() {
         ${atalho('Painel Kanban', 'kanban', `window.location.href='projetos.html'`)}
         ${atalho('Agenda', 'agenda', `window.location.href='agenda.html'`)}
 
-        ${acesso.usuario === 'Dêivisson Oliveira' || registroHistorico 
+        ${registroHistorico
             ? atalho('Veiculo', 'veiculo', `window.location.href='veiculos.html'`)
             : ''}
         
@@ -182,13 +182,13 @@ async function identificacaoUser() {
     await sincronizarSetores()
     acesso = dados_setores[acesso.usuario]
 
-    if(acesso.permissao == 'novo') {
+    if (acesso.permissao == 'novo') {
         localStorage.removeItem('acesso')
         return window.location.href = 'login.html'
     }
 
     localStorage.setItem('acesso', JSON.stringify(acesso))
-    
+
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
 
     carregarIcones() // ícones da tela inicial;
