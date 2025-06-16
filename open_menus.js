@@ -953,6 +953,31 @@ async function para_excel(tabela_id, nome_personalizado) {
     }
 }
 
+function verificarXLSX() {
+    if (typeof XLSX === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js';
+        script.async = true;
+        document.head.appendChild(script);
+
+        return new Promise((resolve, reject) => {
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Falha ao carregar XLSX'));
+        });
+    }
+    return Promise.resolve();
+}
+
+async function exportarParaExcel() {
+    try {
+        await verificarXLSX();
+        await para_excel('tabela_estoque');
+    } catch (erro) {
+        console.error("Erro ao exportar:", erro);
+        openPopup_v2(mensagem("Erro ao exportar para Excel. Tente novamente."), "Erro");
+    }
+}
+
 async function remover_popup(nao_remover_anteriores) {
 
     let pop_ups = document.querySelectorAll('#temp_pop')
