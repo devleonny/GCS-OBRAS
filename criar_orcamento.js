@@ -2684,7 +2684,7 @@ function painel_clientes() {
             ${modelo('Transportadora', `<input type="text" id="transportadora" placeholder="Transportadora" oninput="salvar_preenchido()" value="${dados_orcam?.transportadora || ''}">`)}
             ${modelo('Considerações', `<div style="display: flex; flex-direction: column; align-items: start; justify-content: center; width: 100%;">
                     <textarea id="consideracoes" oninput="salvar_preenchido()" rows="5" style="resize: none; width: 100%; font-size: 1.0vw;"
-                    placeholder="Escopo do orçamento">${dados_orcam?.consideracoes}</textarea>
+                    placeholder="Escopo do orçamento">${dados_orcam?.consideracoes || ''}</textarea>
 
                     <div class="contorno_botoes" style="background-color: #222;">
                         <img src="imagens/anexo2.png" style="width: 1.5vw;">
