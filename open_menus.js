@@ -115,7 +115,7 @@ function carregarIcones() {
     let registroHistorico = acesso.permissao == 'adm'
     let atalho = (termo, img, funcao) => {
         return `
-            <div class="block" style="flex-direction: column;" onclick="${funcao}">
+            <div class="block" style="flex-direction: column; justify-content: space-evenly;" onclick="${funcao}">
                 <img src="imagens/${img}.png">
                 <label>${termo}</label>
             </div>        

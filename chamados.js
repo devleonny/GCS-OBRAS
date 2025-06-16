@@ -252,7 +252,7 @@ async function abrir_manutencao(id) {
     }
 
     let pessoas = ['tecnico', 'cliente']
-    let labelString = (termo, valor) =>{
+    let labelString = (termo, valor) => {
         return `
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: start;">
             <label style="font-size: 0.7vw;"><strong>${termo}</strong></label>
@@ -424,7 +424,7 @@ async function capturar_html_pdf(id) {
     let pessoas = ['tecnico', 'cliente']
     let divs = ''
 
-    if(!manutencao) return removerOverlay()
+    if (!manutencao) return removerOverlay()
 
     pessoas.forEach(pessoa => {
         let elementos = ''
@@ -979,7 +979,7 @@ function remover_esta_linha(td) {
 
 async function sugestoes(textarea, base) {
 
-    let query = String(textarea.value).toUpperCase()
+    let query = String(textarea.value).toLowerCase()
     let div_sugestoes = document.getElementById('div_sugestoes')
     if (div_sugestoes) {
         div_sugestoes.remove()
@@ -1000,35 +1000,40 @@ async function sugestoes(textarea, base) {
 
     let dados = await recuperarDados(`dados_${base}`) || {}
     let opcoes = ''
-    
+
     for (id in dados) {
         let item = dados[id]
-        let info;
-        let dados_endereco;
-        let cod_omie;
+        let conteudoOpcao;
+        let codigo;
 
         if (base == 'clientes') {
-            cod_omie = item.omie
-            info = String(item.nome)
-            dados_endereco = `
-            <label><strong>CNPJ/CPF:</strong> ${item.cnpj}</label>
-            <label style="text-align: left;"><strong>Rua/Bairro:</strong> ${item.bairro}</label>
-            <label><strong>CEP:</strong> ${item.cep}</label>
-            <label><strong>Cidade:</strong> ${item.cidade}</label>
-            <label><strong>Estado:</strong> ${item.estado}</label>
-            `.replace(/'/g, "&apos;")
-                .replace(/"/g, "&quot;")
-                .replace(/\r?\n|\r/g, "");
+
+            let cnpj = id.replace(/[./-]/g, '')
+            let nome = item.nome.toLowerCase()
+
+            if (!cnpj.includes(query) && !nome.includes(query)) continue
+
+            codigo = item.omie
+            conteudoOpcao = `
+            <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                <label style="font-size: 1.0vw;">${item.nome}</label>
+                <label style="font-size: 0.7vw;"><strong>${id}</strong></label>
+            </div>
+            `
 
         } else if (base == 'estoque') {
-            info = String(item.descricao)
+
+            let descricao = String(item.descricao).toLocaleLowerCase()
+
+            if (!descricao.includes(query)) continue
+
+            conteudoOpcao = String(item.descricao)
         }
 
-        if (info.includes(query)) {
-            opcoes += `
-                <div onclick="definir_campo(this, '${textarea.id}', '${dados_endereco}', '${cod_omie}', '${id}')" class="autocomplete-item" style="font-size: 0.8vw;">${info}</div>
-            `
-        }
+        opcoes += `
+            <div onclick="definir_campo(this, '${textarea.id}', '${id}')" class="autocomplete-item" style="font-size: 0.8vw;">${conteudoOpcao}</div>
+        `
+
     }
 
     let posicao = textarea.getBoundingClientRect()
@@ -1044,14 +1049,33 @@ async function sugestoes(textarea, base) {
 
 }
 
-async function definir_campo(elemento, campo, string_html, omie, id) {
+async function definir_campo(elemento, campo, id) {
+
+    let termo;
 
     if (campo == 'tecnico' || campo == 'cliente') {
 
+        let dados_clientes = await recuperarDados('dados_clientes') || {}
+        let cliente = dados_clientes[id]
+
+        dadosEndereco = `
+            <label><strong>CNPJ/CPF:</strong> ${id}</label>
+            <label style="text-align: left;"><strong>Rua/Bairro:</strong> ${cliente.bairro}</label>
+            <label><strong>CEP:</strong> ${cliente.cep}</label>
+            <label><strong>Cidade:</strong> ${cliente.cidade}</label>
+            <label><strong>Estado:</strong> ${cliente.estado}</label>
+            `
         let endereco = document.getElementById(`endereco_${campo}`)
-        endereco.innerHTML = string_html.replace(/&apos;/g, "'").replace(/&quot;/g, '"');
+        endereco.innerHTML = dadosEndereco
+
+        let codigo = document.getElementById(`codigo_${campo}`)
+        if (codigo) codigo.textContent = cliente.omie
+
+        termo = cliente.nome
 
     } else {
+
+        termo = elemento.textContent
 
         let input_aleatorio = document.getElementById(`input_${campo}`)
         input_aleatorio.value = id
@@ -1091,17 +1115,12 @@ async function definir_campo(elemento, campo, string_html, omie, id) {
 
     }
 
-    let codigo = document.getElementById(`codigo_${campo}`)
-    if (codigo) {
-        codigo.textContent = omie
-    }
-
     let div_sugestoes = document.getElementById('div_sugestoes')
     if (div_sugestoes) {
         div_sugestoes.remove()
     }
 
-    document.getElementById(campo).value = elemento.textContent
+    document.getElementById(campo).value = termo
 }
 
 async function atualizar_base_clientes() {
