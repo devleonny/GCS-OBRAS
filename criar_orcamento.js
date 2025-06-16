@@ -2670,7 +2670,7 @@ function painel_clientes() {
                 <input id="chamado_off" style="width: 2vw; height: 2vw; cursor: pointer;" type="checkbox"
                         onchange="salvar_preenchido()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
                 <label style="white-space: nowrap;">Sem Chamado</label>`)}
-            ${modelo('Cliente', `<textarea class="autocomplete-input" id="cliente_selecionado" placeholder="Nome do Cliente" oninput="carregarClientes(this)"></textarea>`)}
+            ${modelo('Cliente', `<textarea class="autocomplete-input" id="cliente_selecionado" placeholder="Nome do Cliente" oninput="carregarClientes(this)">${dados_orcam?.cliente_selecionado || ''}</textarea>`)}
             ${modelo('CNPJ/CPF', dados_orcam?.cnpj, 'cnpj')}
             ${modelo('Endereço', dados_orcam?.bairro, 'bairro')}
             ${modelo('CEP', dados_orcam?.cep, 'cep')}
