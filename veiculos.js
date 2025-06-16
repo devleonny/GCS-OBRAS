@@ -28,7 +28,7 @@ function criarLayoutPrincipal() {
                     Cadastrar Veículo
                 </button>
                 <button class="botao-remover-veiculo" onclick="abrirGerenciamentoFrotas()">
-                    Remover Veículo/Frota
+                    Gerenciamento de Veículo/Frota
                 </button>
                 <label>Veículos</label>
             </div>
