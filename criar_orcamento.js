@@ -2616,7 +2616,7 @@ function painel_clientes() {
     let dados_orcam = orcamento_v2?.dados_orcam || {}
     let levantamentos = ''
 
-    let dados_pagamentos = ["A definir", "15 dias", "30 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
+    let dados_pagamentos = ["--", "15 dias", "30 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
     let condicoes = ''
     dados_pagamentos.forEach(pag => {
         condicoes += `
@@ -2681,7 +2681,7 @@ function painel_clientes() {
                     <option ${dados_orcam?.tipo_de_frete == 'CIF' ? 'selected' : ''}>CIF</option>
                     <option ${dados_orcam?.tipo_de_frete == 'FOB' ? 'selected' : ''}>FOB</option>
                 </select>`, 'estado')}
-            ${modelo('Transportadora', `<input type="text" id="transportadora" placeholder="Transportadora" oninput="salvar_preenchido()" value="${dados_orcam?.transportadora || ''}">`)}
+            ${modelo('Transportadora', `<input type="text" id="transportadora" oninput="salvar_preenchido()" value="${dados_orcam?.transportadora || '--'}">`)}
             ${modelo('Considerações', `<div style="display: flex; flex-direction: column; align-items: start; justify-content: center; width: 100%;">
                     <textarea id="consideracoes" oninput="salvar_preenchido()" rows="5" style="resize: none; width: 100%; font-size: 1.0vw;"
                     placeholder="Escopo do orçamento">${dados_orcam?.consideracoes || ''}</textarea>
@@ -2701,7 +2701,7 @@ function painel_clientes() {
         `<select id="condicoes" oninput="salvar_preenchido()">
                     ${condicoes}
                 </select>`)}
-            ${modelo('Garantia', `<input id="garantia" oninput="salvar_preenchido()" value="${dados_orcam?.garantia || ''}">`)}
+            ${modelo('Garantia', `<input id="garantia" oninput="salvar_preenchido()" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">`)}
 
             <label style="font-size: 1.5vw;">Dados do Analista</label>
             ${modelo('Analista', dados_orcam?.analista, 'analista')}
