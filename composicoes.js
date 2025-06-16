@@ -1,8 +1,7 @@
 let filtrosAtivos = {}
 let filtroAgrupamentos = {}
 let divComposicoes = document.getElementById('composicoes')
-
-const usuariosPermitidosParaEditar = ['log', 'editor', 'adm', 'gerente', 'diretoria'];
+const usuariosPermitidosParaEditar = ['log', 'editor', 'adm', 'gerente', 'diretoria', 'coordenacao'];
 
 const alerta = (termo) => `
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
