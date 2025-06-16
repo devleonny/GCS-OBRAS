@@ -265,13 +265,8 @@ async function botoesVeiculos(filtro) {
             filtro.insertAdjacentHTML('beforeend', btnHtml);
         });
 
-        if (veiculosOrdenados.length > 0) {
-            const firstButton = filtro.querySelector('.filtro-veiculo');
-            if (firstButton) {
-                selecionarVeiculo(firstButton, veiculosOrdenados[0]);
-            }
-        }
-
+        const firstButton = filtro.querySelector('.filtro-veiculo');
+        firstButton && veiculosOrdenados.length > 0 && selecionarVeiculo(firstButton, veiculosOrdenados[0]);
     } catch (error) {
         console.error('Erro ao carregar botões dos veículos:', error);
         openPopup_v2('Erro ao carregar lista de veículos. Tente novamente.', 'Erro');
@@ -382,7 +377,7 @@ async function salvarEdicaoCustoExtra(idMotorista, nomeVeiculo, idRegistro) {
 
         let dados_veiculos = await recuperarDados('dados_veiculos');
         const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
-        
+
         motorista.custos_extras.registros[idRegistro] = {
             data: formatarData(data),
             valor: valor,
@@ -488,15 +483,15 @@ async function confirmarExclusaoMotorista(idMotorista, nomeVeiculo, nomeMotorist
 async function excluirMotorista(idMotorista, nomeVeiculo) {
     try {
         let dados_veiculos = await recuperarDados('dados_veiculos') || {};
-        
+
         delete dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
-        
+
         await inserirDados(dados_veiculos, 'dados_veiculos');
-        
+
         await deletar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`);
 
         remover_popup();
-        
+
         openPopup_v2(`
             <div class="popup-message">
                 <img src="imagens/sucesso.png">
@@ -558,13 +553,13 @@ function mostrarDadosVeiculo(dadosVeiculoEncoded) {
 async function abrirPopupCustos(idMotorista, nomeVeiculo, nomeMotorista) {
     try {
         let dados_veiculos = await recuperarDados('dados_veiculos');
-        
+
         if (!dados_veiculos?.veiculos?.[nomeVeiculo]?.motoristas?.[idMotorista]) {
             throw new Error('Motorista não encontrado');
         }
 
         const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
-        
+
         if (!motorista.custo_mensal_veiculo) {
             motorista.custo_mensal_veiculo = { custos: {} };
         }
@@ -708,9 +703,7 @@ async function preencherTabelaMotoristas(nomeVeiculo) {
 
     tbody.innerHTML = linhasHtml;
 
-    if (campoTotal) {
-        campoTotal.textContent = `Total mensal: ${dinheiro(total)}`;
-    }
+    campoTotal?.textContent = `Total mensal: ${dinheiro(total)}`;
 }
 
 async function abrirFormularioCadastro() {
@@ -820,7 +813,7 @@ async function filtrarMotoristas(input) {
 function selecionarMotoristaExistente(nome) {
     const input = document.getElementById('nome_motorista');
     const div = input.nextElementSibling;
-    
+
     input.value = nome;
     div.innerHTML = '';
 }
@@ -982,8 +975,6 @@ async function atualizarListaMotoristas() {
     `, 'Atualizando lista de motoristas');
 
     try {
-        let dados_veiculos_atuais = await recuperarDados('dados_veiculos') || {};
-
         await sincronizarDados('dados_veiculos', true);
         let dados_veiculos_novos = await recuperarDados('dados_veiculos');
 
@@ -1028,7 +1019,7 @@ async function atualizarListaMotoristas() {
 async function atualizarDadosVeiculos() {
     try {
         await sincronizarDados('dados_veiculos', true);
-        
+
         const container = document.getElementById('tabelaRegistro');
         if (container) {
             container.innerHTML = criarLayoutPrincipal();
@@ -1047,22 +1038,20 @@ async function atualizarDadosVeiculos() {
 async function abrirPopupCombustivel(idMotorista, nomeVeiculo, nomeMotorista) {
     try {
         let dados_veiculos = await recuperarDados('dados_veiculos');
-        
+
         if (!dados_veiculos?.veiculos?.[nomeVeiculo]?.motoristas?.[idMotorista]) {
             throw new Error('Motorista não encontrado');
         }
 
         const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
-        
-        if (!motorista.combustivel) {
-            motorista.combustivel = { registros: {} };
-        }
+
+        if (!motorista.combustivel) motorista.combustivel = { registros: {} };
 
         const registros = motorista.combustivel.registros;
         const totalLitros = Object.values(registros).reduce((total, reg) => total + (Number(reg.litros) || 0), 0);
         const totalCusto = Object.values(registros).reduce((total, reg) => total + (Number(reg.custo_total) || 0), 0);
         const totalKm = Object.values(registros).reduce((total, reg) => total + (Number(reg.km) || 0), 0);
-        
+
         const conteudo = `
             <div class="custos-container">
                 <h3>Registros de Combustível - ${nomeMotorista}</h3>
@@ -1232,7 +1221,7 @@ function calcularCustoTotal() {
     const litros = Number(document.getElementById('litros').value) || 0;
     const custoLitro = Number(document.getElementById('custo_litro').value) || 0;
     const custoTotalInput = document.getElementById('custo_total');
-    
+
     if (!custoTotalInput.dataset.manuallyEdited) {
         custoTotalInput.value = (litros * custoLitro).toFixed(2);
     }
@@ -1296,7 +1285,7 @@ function calcularCustoTotalEdicao() {
     const litros = Number(document.getElementById('edit_litros').value) || 0;
     const custoLitro = Number(document.getElementById('edit_custo_litro').value) || 0;
     const custoTotalInput = document.getElementById('edit_custo_total');
-    
+
     if (!custoTotalInput.dataset.manuallyEdited) {
         custoTotalInput.value = (litros * custoLitro).toFixed(2);
     }
@@ -1312,7 +1301,7 @@ async function salvarEdicaoRegistroCombustivel(idMotorista, nomeVeiculo, idRegis
 
         let dados_veiculos = await recuperarDados('dados_veiculos');
         const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
-        
+
         motorista.combustivel.registros[idRegistro].data = formatarData(data);
         motorista.combustivel.registros[idRegistro].km = km;
         motorista.combustivel.registros[idRegistro].litros = litros;
@@ -1324,7 +1313,6 @@ async function salvarEdicaoRegistroCombustivel(idMotorista, nomeVeiculo, idRegis
 
         remover_popup();
         abrirPopupCombustivel(idMotorista, nomeVeiculo, motorista.nome);
-
     } catch (error) {
         console.error('Erro ao salvar alterações:', error);
         openPopup_v2('Erro ao salvar alterações. Tente novamente.', 'Erro');
@@ -1417,7 +1405,6 @@ async function salvarAnexoCombustivel(input, idMotorista, nomeVeiculo, idRegistr
             remover_popup();
             abrirAnexosCombustivel(idMotorista, nomeVeiculo, idRegistro);
         }
-
     } catch (error) {
         console.error('Erro ao salvar anexo:', error);
         openPopup_v2(`
@@ -1483,12 +1470,10 @@ async function excluirAnexoCombustivel(idMotorista, nomeVeiculo, idRegistro, idA
     try {
         let dados_veiculos = await recuperarDados('dados_veiculos');
         const registro = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista].combustivel.registros[idRegistro];
-        
-        // Delete file from server
+
         const link = registro.anexos[idAnexo].link;
         deletar_arquivo_servidor(link);
-        
-        // Delete reference from data
+
         delete registro.anexos[idAnexo];
 
         await inserirDados(dados_veiculos, 'dados_veiculos');
@@ -1506,8 +1491,7 @@ async function excluirRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) 
     try {
         let dados_veiculos = await recuperarDados('dados_veiculos');
         const motorista = dados_veiculos.veiculos[nomeVeiculo].motoristas[idMotorista];
-        
-        // Excluir anexos do servidor
+
         const anexos = motorista.combustivel.registros[idRegistro].anexos || {};
         for (let idAnexo in anexos) {
             await deletar(`uploads/${anexos[idAnexo].link}`);
@@ -1520,7 +1504,6 @@ async function excluirRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) 
 
         remover_popup();
         abrirPopupCombustivel(idMotorista, nomeVeiculo, motorista.nome);
-
     } catch (error) {
         console.error('Erro ao excluir registro:', error);
         openPopup_v2(`
@@ -1535,12 +1518,11 @@ async function excluirRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) 
 async function excluirFrota(nomeVeiculo, placa) {
     try {
         let dados_veiculos = await recuperarDados('dados_veiculos');
-        
+
         delete dados_veiculos.veiculos[nomeVeiculo].frotas[placa];
 
-        // Check if vehicle should be deleted
         const veiculoVazio = Object.keys(dados_veiculos.veiculos[nomeVeiculo].frotas).length === 0;
-        
+
         if (veiculoVazio) {
             delete dados_veiculos.veiculos[nomeVeiculo];
             await deletar(`dados_veiculos/veiculos/${nomeVeiculo}`);
@@ -1549,17 +1531,16 @@ async function excluirFrota(nomeVeiculo, placa) {
         }
 
         await inserirDados(dados_veiculos, 'dados_veiculos');
-        
+
         remover_popup();
         abrirGerenciamentoFrotas();
 
-        // Show appropriate success message
         openPopup_v2(`
             <div class="popup-message">
                 <img src="imagens/sucesso.png">
-                <label>${veiculoVazio ? 
-                    `Frota e veículo ${nomeVeiculo.toUpperCase()} removidos com sucesso!` : 
-                    'Frota removida com sucesso!'}</label>
+                <label>${veiculoVazio ?
+                `Frota e veículo ${nomeVeiculo.toUpperCase()} removidos com sucesso!` :
+                'Frota removida com sucesso!'}</label>
             </div>
         `, 'Sucesso');
 
@@ -1576,7 +1557,6 @@ async function excluirFrota(nomeVeiculo, placa) {
         setTimeout(() => {
             remover_popup();
         }, 1500);
-
     } catch (error) {
         console.error('Erro ao excluir frota:', error);
         openPopup_v2(`
@@ -1592,7 +1572,7 @@ async function tentarExcluirFrota(nomeVeiculo, placa) {
     try {
         let dados_veiculos = await recuperarDados('dados_veiculos');
         const veiculo = dados_veiculos.veiculos[nomeVeiculo];
-        
+
         const motoristasUsandoFrota = Object.entries(veiculo.motoristas || {})
             .filter(([_, motorista]) => motorista.dados_veiculo.placa === placa);
 
@@ -1632,7 +1612,6 @@ async function tentarExcluirFrota(nomeVeiculo, placa) {
                 </div>
             </div>
         `, 'Confirmar Exclusão');
-
     } catch (error) {
         console.error('Erro ao verificar frota:', error);
         openPopup_v2('Erro ao verificar dados. Tente novamente.', 'Erro');
@@ -1649,7 +1628,7 @@ async function abrirGerenciamentoFrotas() {
 
             const veiculo = dados_veiculos.veiculos[nomeVeiculo];
             const frotas = veiculo.frotas || {};
-            
+
             tabelasHtml += `
                 <div class="frota-container">
                     <h3>${nomeVeiculo.toUpperCase()}</h3>
@@ -1665,10 +1644,10 @@ async function abrirGerenciamentoFrotas() {
                         </thead>
                         <tbody>
                             ${Object.entries(frotas).map(([placa, frota]) => {
-                                const motoristasUsandoFrota = Object.values(veiculo.motoristas || {})
-                                    .filter(m => m.dados_veiculo.placa === placa);
-                                
-                                return `
+                const motoristasUsandoFrota = Object.values(veiculo.motoristas || {})
+                    .filter(m => m.dados_veiculo.placa === placa);
+
+                return `
                                     <tr>
                                         <td>${placa}</td>
                                         <td>${frota.modelo}</td>
@@ -1682,7 +1661,7 @@ async function abrirGerenciamentoFrotas() {
                                         </td>
                                     </tr>
                                 `;
-                            }).join('')}
+            }).join('')}
                         </tbody>
                     </table>
                 </div>
@@ -1696,7 +1675,6 @@ async function abrirGerenciamentoFrotas() {
         `;
 
         openPopup_v2(conteudo, 'Gerenciamento de Frotas');
-
     } catch (error) {
         console.error('Erro ao abrir gerenciamento:', error);
         openPopup_v2('Erro ao carregar dados. Tente novamente.', 'Erro');
