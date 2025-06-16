@@ -1443,10 +1443,12 @@ async function abrirAnexosCombustivel(idMotorista, nomeVeiculo, idRegistro) {
                                 <img src="imagens/anexo2.png" style="width: 2vw;">
                                 <label style="color: white; font-size: 0.8vw;">${anexo.nome.substring(0, 10)}${anexo.nome.length > 10 ? '...' : ''}</label>
                             </div>
-                            <img src="imagens/excluir.png" 
+                            <img 
+                                src="imagens/excluir.png" 
                                 style="width: 1.5vw; cursor: pointer;" 
                                 onclick="excluirAnexoCombustivel('${idMotorista}', '${nomeVeiculo}', '${idRegistro}', '${idAnexo}')" 
-                                title="Excluir anexo">
+                                title="Excluir anexo"
+                            >
                         </div>
                     `).join('')}
                 </div>
@@ -1664,10 +1666,18 @@ async function abrirGerenciamentoFrotas() {
                                         <td>${frota.status}</td>
                                         <td>${motoristasUsandoFrota.length}</td>
                                         <td>
-                                            <button onclick="tentarExcluirFrota('${nomeVeiculo}', '${placa}')" 
-                                                    class="botao-excluir-frota">
-                                                Excluir Frota
-                                            </button>
+                                            <img 
+                                                src="imagens/editar.png" 
+                                                style="width: 1.5vw; cursor: pointer;" 
+                                                onclick="editarFrota('${nomeVeiculo}', '${placa}')" 
+                                                title="Editar frota"
+                                            >
+                                            <img
+                                                src="imagens/excluir.png"
+                                                style="width: 1.5vw; cursor: pointer;"
+                                                onclick="tentarExcluirFrota('${nomeVeiculo}', '${placa}')"
+                                                title="Excluir frota"
+                                            >
                                         </td>
                                     </tr>
                                 `;
@@ -1688,5 +1698,84 @@ async function abrirGerenciamentoFrotas() {
     } catch (error) {
         console.error('Erro ao abrir gerenciamento:', error);
         openPopup_v2('Erro ao carregar dados. Tente novamente.', 'Erro');
+    }
+}
+
+async function editarFrota(nomeVeiculo, placa) {
+    try {
+        let dados_veiculos = await recuperarDados('dados_veiculos');
+        const frota = dados_veiculos.veiculos[nomeVeiculo].frotas[placa];
+
+        const conteudo = `
+            <div class="form-edit-campos">
+                <div class="form-grupo">
+                    <label>Placa</label>
+                    <input type="text" id="edit_placa" value="${frota.placa}" readonly>
+                </div>
+                
+                <div class="form-grupo">
+                    <label>Modelo</label>
+                    <input type="text" id="edit_modelo" value="${frota.modelo}">
+                </div>
+                
+                <div class="form-grupo">
+                    <label>Status</label>
+                    <select id="edit_status">
+                        <option value="locado" ${frota.status === 'locado' ? 'selected' : ''}>Locado</option>
+                        <option value="devolvido" ${frota.status === 'devolvido' ? 'selected' : ''}>Devolvido</option>
+                    </select>
+                </div>
+
+                <button onclick="salvarEdicaoFrota('${nomeVeiculo}', '${placa}')" class="botao-form primario">
+                    Salvar Alterações
+                </button>
+            </div>
+        `;
+
+        openPopup_v2(conteudo, 'Editar Frota', true);
+    } catch (error) {
+        console.error('Erro ao abrir edição:', error);
+        openPopup_v2('Erro ao carregar dados. Tente novamente.', 'Erro');
+    }
+}
+
+async function salvarEdicaoFrota(nomeVeiculo, placa) {
+    try {
+        const modelo = document.getElementById('edit_modelo').value;
+        const status = document.getElementById('edit_status').value;
+
+        if (!modelo || !status) {
+            openPopup_v2('Por favor, preencha todos os campos', 'Campos Obrigatórios', true);
+            return;
+        }
+
+        let dados_veiculos = await recuperarDados('dados_veiculos');
+
+        dados_veiculos.veiculos[nomeVeiculo].frotas[placa] = {
+            placa: placa,
+            modelo: modelo,
+            status: status
+        };
+
+        await inserirDados(dados_veiculos, 'dados_veiculos');
+        await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/frotas/${placa}`, dados_veiculos.veiculos[nomeVeiculo].frotas[placa]);
+
+        remover_popup();
+        abrirGerenciamentoFrotas();
+
+        openPopup_v2(`
+            <div class="popup-message">
+                <img src="imagens/sucesso.png">
+                <label>Frota atualizada com sucesso!</label>
+            </div>
+        `, 'Sucesso');
+
+        setTimeout(() => {
+            remover_popup();
+        }, 1500);
+
+    } catch (error) {
+        console.error('Erro ao salvar alterações:', error);
+        openPopup_v2('Erro ao salvar alterações. Tente novamente.', 'Erro');
     }
 }
