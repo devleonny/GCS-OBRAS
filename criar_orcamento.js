@@ -1122,8 +1122,7 @@ async function enviar_dados() {
     }
 
     // Autorizações - Deconto - Acréscimo;
-    let desconto_porcentagem = document.getElementById('desconto_porcentagem') //29
-    if ((desconto_porcentagem && Number(desconto_porcentagem.value) > 0) || orcamento_v2.alterado) {
+    if (orcamento_v2.total_desconto > 0 || orcamento_v2.alterado) {
         orcamento_v2.aprovacao = {
             status: 'pendente',
             usuario: acesso.usuario
@@ -1723,7 +1722,7 @@ async function total() {
                 <label>Diferença R$</label>
                 <label style="font-size: 1.5vw;">${dinheiro(diferencaDinheiro)}</label>
                 <label>Diferença %</label>
-                <label style="font-size: 1.5vw;">${diferencaPorcentagem}%</label>
+                <label style="font-size: 1.5vw;" id="diferenca">${diferencaPorcentagem}%</label>
                 <input style="display: none" value="${diferencaPorcentagem}">
             </div>`
     } else {
