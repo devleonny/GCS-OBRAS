@@ -3997,6 +3997,7 @@ async function salvarLpuParceiro() {
 
     let margem = Number(document.getElementById('margem_lpu').value);
     let tecnico = String(document.getElementById('tecnico').value) || ''
+    let dadosEmpresa = orcamento.dados_orcam
 
     let novo_lancamento = {
         status: 'LPU PARCEIRO',
@@ -4095,80 +4096,100 @@ async function salvarLpuParceiro() {
 
 }
 
-function gerarExcelLPUParceiro(dados) {
-    let linhas = [];
+async function gerarExcelLPUParceiro(lancamento) {
+    const wb = XLSX.utils.book_new();
 
-    // Cabeçalho com metadados
-    linhas.push(['Data:', dados.data || '']);
-    linhas.push(['Analista:', dados.analista || '']);
-    linhas.push(['Cliente:', dados.cliente || '']);
-    linhas.push(['CNPJ:', dados.cnpj || '']);
-    linhas.push(['Endereço:', dados.endereco || '']);
-    linhas.push(['Cidade:', dados.cidade || '']);
-    linhas.push(['Estado:', dados.estado || '']);
-    linhas.push(['Margem para este serviço(%):', dados.margem_percentual != null ? dados.margem_percentual + '%' : '']);
-    linhas.push(['Técnico:', dados.tecnicoLpu || '']);
-    linhas.push([]); // Linha em branco
+    const cabecalhos = [
+        "Código", "Descrição", "Unidade", "Quantidade",
+        "Valor Parceiro Unitário", "Total Parceiro"
+    ];
 
-    // Cabeçalhos da tabela
-    linhas.push([
-        'Código',
-        'Descrição',
-        'Unidade',
-        'Quantidade',
-        'Valor Parceiro Unitário',
-        'Total Parceiro'
-    ]);
+    const dados = [];
 
-    // Itens principais
-    for (let [codigo, item] of Object.entries(dados.itens)) {
-        linhas.push([
+    // Cabeçalho superior (cliente, data, etc.)
+    dados.push(["Data", lancamento.data]);
+    dados.push(["Analista", lancamento.analista]);
+    dados.push(["Cliente", lancamento.cliente]);
+    dados.push(["CNPJ", lancamento.cnpj]);
+    dados.push(["Endereço", lancamento.endereco]);
+    dados.push(["Cidade", lancamento.cidade]);
+    dados.push(["Estado", lancamento.estado]);
+    dados.push(["Técnico", lancamento.tecnicoLpu]);
+    dados.push([]);
+    dados.push(cabecalhos); // Linha 11
+
+    let linhaInicial = dados.length + 1;
+
+    let index = 0;
+    for (let [codigo, item] of Object.entries(lancamento.itens)) {
+        const linhaExcel = [
             codigo,
             item.descricao,
             item.unidade,
             item.qtde,
             item.valor_parceiro_unitario,
-            item.total_parceiro
-        ]);
+            { f: `D${linhaInicial + index}*E${linhaInicial + index}` } // fórmula Excel
+        ];
+        dados.push(linhaExcel);
+        index++;
     }
 
-    // Itens adicionais
-    if (dados.itens_adicionais?.length > 0) {
-        linhas.push(['', '--- SERVIÇOS ADICIONAIS ---', '', '', '', '']);
-        for (let item of dados.itens_adicionais) {
-            linhas.push([
-                item.codigo || '',
-                item.descricao,
-                item.unidade,
-                item.qtde,
-                item.valor_parceiro_unitario,
-                item.total_parceiro
-            ]);
+    for (let adicional of lancamento.itens_adicionais || []) {
+        const linhaExcel = [
+            adicional.codigo,
+            adicional.descricao,
+            adicional.unidade,
+            adicional.qtde,
+            adicional.valor_parceiro_unitario,
+            { f: `D${linhaInicial + index}*E${linhaInicial + index}` }
+        ];
+        dados.push(linhaExcel);
+        index++;
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(dados);
+
+    // Estilização das colunas
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = 0; R <= range.e.r; ++R) {
+        for (let C = 0; C <= range.e.c; ++C) {
+            const cell_address = { c: C, r: R };
+            const cell_ref = XLSX.utils.encode_cell(cell_address);
+            const cell = ws[cell_ref];
+            if (!cell) continue;
+
+            cell.s = {
+                font: { name: 'Calibri', sz: 11 },
+                alignment: { vertical: "center", horizontal: "left", wrapText: true },
+                border: {
+                    top: { style: "thin", color:'#d2d2' },
+                    bottom: { style: "thin", color: { auto: 1 } },
+                    left: { style: "thin", color: { auto: 1 } },
+                    right: { style: "thin", color: { auto: 1 } }
+                },
+                fill: R === 10 ? {
+                    patternType: "solid",
+                    fgColor: { rgb: "D9D9D9" }
+                } : undefined
+            };
         }
     }
 
-    // Criação da planilha
-    let ws = XLSX.utils.aoa_to_sheet(linhas);
+    ws['!cols'] = [
+        { wch: 10 }, // Código
+        { wch: 50 }, // Descrição
+        { wch: 10 }, // Unidade
+        { wch: 12 }, // Quantidade
+        { wch: 18 }, // Valor Parceiro
+        { wch: 18 }  // Total Parceiro
+    ];
 
-    // Ajuste automático de largura das colunas
-    const colWidths = linhas[0].map((_, colIdx) => {
-        const maxLength = linhas.reduce((acc, row) => {
-            const cell = row[colIdx];
-            const len = cell ? cell.toString().length : 0;
-            return Math.max(acc, len);
-        }, 10);
-        return { wch: maxLength + 2 };
-    });
-
-    ws['!cols'] = colWidths;
-
-    // Criação do workbook e download
-    let wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "LPU Parceiro");
 
-    let nomeArquivo = `LPU_Parceiro_${dados.tecnicoLpu || 'tecnico'}.xlsx`;
-    XLSX.writeFile(wb, nomeArquivo);
+    XLSX.writeFile(wb, `LPU_Parceiro_${lancamento.cliente}.xlsx`);
 }
+
+
 
 
 function exportarComoExcelHTML(dados) {
