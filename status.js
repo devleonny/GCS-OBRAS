@@ -4286,46 +4286,6 @@ async function gerarPdfParceiro({ tabela, cnpj }) {
                 padding: 5px;
                 margin: 5px;
             }
-                
-            .tabela {
-                border-collapse: collapse;
-                border-radius: 5px;
-                overflow: hidden;
-            }
-            
-            .tabela th {
-                background-color: #151749;
-                color: white;
-            }
-
-            .tabela th, .tabela td {
-                margin: 5px;
-                text-align: left;
-            }
-
-            .tabela td {
-                background-color: #99999940;
-            }
-
-            label {
-                margin: 5px;
-            }
-            
-            @media print {
-                body {
-                    -webkit-print-color-adjust: exact;
-                    print-color-adjust: exact;
-                }
-
-                header,
-                footer {
-                    display: none !important;
-                }
-
-                .table-container {
-                    margin-right: 0;
-                }
-            }
             </style>
         </head>
         <body>
