@@ -4303,7 +4303,6 @@ function extrairTextoOuInput(td) {
     return input ? input.value.trim() : td.textContent.trim();
 }
 
-
 async function detalharLpuParceiro(chave) {
     let dadosOrcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dadosOrcamentos[id_orcam];
@@ -4330,30 +4329,6 @@ async function detalharLpuParceiro(chave) {
     let dadosEmpresa = orcamento.dados_orcam
     let margemLPU = dadosLpu.margem_percentual
     let tecnicoLPU = dadosLpu.tecnicoLpu
-
-
-
-    let cabecalhoInfo = `
-        <div style="display: flex; justify-content: space-between">
-            <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
-                ${stringHtml('Data', data_atual('completa'))}
-                ${stringHtml('Analista', acesso?.nome_completo || '')}
-                ${stringHtml('Cliente', dadosEmpresa?.cliente_selecionado || '')}
-                ${stringHtml('CNPJ', dadosEmpresa?.cnpj || '')}
-                ${stringHtml('Endereço', dadosEmpresa?.endereco || '')}
-                ${stringHtml('Cidade', dadosEmpresa?.cidade || '')}
-                ${stringHtml('Estado', dadosEmpresa?.estado || '')}
-                ${stringHtml('Margem', margemLPU)}
-                ${stringHtml('Técnico', tecnicoLPU || '')}
-            </div>
-            <div>
-                <button><strong>Solicitar Pagamento</strong></button>
-                <button onclick"gerarpdf()"><strong>Gerar PDF</strong></button>
-            </div>
-
-
-        </div>
-    `;
 
     let linhas = Object.values(dadosLpu.itens).map(item => `
 
@@ -4432,13 +4407,78 @@ async function detalharLpuParceiro(chave) {
         </table>
     `;
 
+    let cabecalhoInfo = `
+        <div style="display: flex; justify-content: space-between">
+            <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
+                ${stringHtml('Data', data_atual('completa'))}
+                ${stringHtml('Analista', acesso?.nome_completo || '')}
+                ${stringHtml('Cliente', dadosEmpresa?.cliente_selecionado || '')}
+                ${stringHtml('CNPJ', dadosEmpresa?.cnpj || '')}
+                ${stringHtml('Endereço', dadosEmpresa?.endereco || '')}
+                ${stringHtml('Cidade', dadosEmpresa?.cidade || '')}
+                ${stringHtml('Estado', dadosEmpresa?.estado || '')}
+                ${stringHtml('Margem', margemLPU)}
+                ${stringHtml('Técnico', tecnicoLPU || '')}
+            </div>
+            <div>
+                <button><strong>Solicitar Pagamento</strong></button>
+                <button id="btnGerarPdf"><strong>Gerar PDF</strong></button>
+            </div>
+        </div>
+    `;
+
     let acumulado = `
-    ${cabecalhoInfo}
-    ${tabela}
+        ${cabecalhoInfo}
+        ${tabela}
     `
 
     openPopup_v2(acumulado, 'Detalhamento Itens Parceiro', true);
 
+    document.getElementById('btnGerarPdf').addEventListener('click', () => {
+        gerarPdfParceiro({
+            tabela: tabela,
+            cnpj: dadosEmpresa?.cnpj || ''
+        });
+    });
+}
+
+async function gerarPdfParceiro({ tabela, cnpj }) {
+    let htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+            <style>
+            body {
+                font-family: 'Poppins', sans-serif;
+            }
+            .titulo {
+                border-radius: 5px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: #151749;
+                padding: 10px;
+                font-size: 1.5em;
+                color: white;
+                height: 20px;
+            }
+            .contorno {
+                border-radius: 5px;
+                height: max-content;
+                border: 1px solid #151749;
+                padding: 5px;
+                margin: 5px;
+            }
+            </style>
+        </head>
+        <body>
+            ${tabela}
+        </body>
+        </html>`
+        ;
+
+    await gerar_pdf_online(htmlContent, `LPU_PACEIRO_${cnpj}`);
 }
 
 async function gerarpdfParceiro(cliente, pedido) {
