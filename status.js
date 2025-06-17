@@ -1511,7 +1511,7 @@ async function abrir_esquema(id) {
                     <div onclick="detalharLpuParceiro('${chave}', undefined, true)" class="label_requisicao">
                         <img src="gifs/lampada.gif" style="width: 25px">
                         <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; cursor: pointer;">
-                            <label style="cursor: pointer;"><strong>LPU PARCEIRO DISPONÍVEL</strong></label>
+                            <label style="cursor: pointer;"><strong>LPU DISPONÍVEL</strong></label>
                             <label style="font-size: 0.7em; cursor: pointer;">Clique Aqui</label>
                         </div>
                     
@@ -3751,6 +3751,7 @@ function mostrarElementoSeTiverPermissao({ listaDePermissao, elementoHTML }) {
 async function modalLPUParceiro() {
     const baseOrcamentos = await recuperarDados('dados_orcamentos') || {};
 
+   
     let acumulado = '';
     let cabecalhos = ['ID', 'Descrição', 'Medida', 'Quantidade', 'Valor Orçamento', 'Valor Total Orçado', 'Impostos (20%)', 'Margem (R$)', 'Valor Parceiro', 'Total Parceiro', 'Desvio'];
     let thSearch = '';
@@ -3855,7 +3856,7 @@ async function modalLPUParceiro() {
                     ${stringHtml('Total Desvio', '<lalbel id="totalDesvio"></lalbel>')}
                 </div>
                 <div class="contorno_botoes()" style="display: flex; flex-direction: column; align-items: flex-end; margin-left: auto gap: 5px; margin-top:5px;">
-                    <button class="botaoLPUParceiro" onclick=salvarLpuParceiro()>Salvar</button>
+                    <button class="botaoLPUParceiro" onclick="salvarLpuParceiro()">Salvar e Gerar Excel</button>
                 </div>
                
                     
@@ -3867,6 +3868,15 @@ async function modalLPUParceiro() {
 
     openPopup_v2(acumulado, 'LPU Parceiro', true);
     calcularLpuParceiro()
+
+    const historico = baseOrcamentos[id_orcam]?.status?.historico || {};
+    const ultimaChave = Object.keys(historico).pop();
+    const dadosSalvos = historico[ultimaChave];
+
+    if (dadosSalvos) {
+        document.getElementById('tecnico').value = dadosSalvos?.tecnicoLpu || '';
+        document.getElementById('margem_lpu').value = dadosSalvos?.margem_percentual || 35;
+    }
 
 }
 
@@ -3994,6 +4004,11 @@ async function salvarLpuParceiro() {
         analista: acesso.nome_completo,
         margem_percentual: margem,
         tecnicoLpu: tecnico,
+        cliente: dadosEmpresa.cliente_selecionado,
+        cnpj: dadosEmpresa.cnpj,
+        endereco: dadosEmpresa.bairro,
+        cidade: dadosEmpresa.cidade,
+        estado: dadosEmpresa.estado,
         itens: {},
         itens_adicionais: [],
         totais: {
@@ -4003,7 +4018,6 @@ async function salvarLpuParceiro() {
             margem: 0
         }
     };
-
 
 
     let trs = document.querySelectorAll('#bodyTabela tr');
@@ -4071,11 +4085,177 @@ async function salvarLpuParceiro() {
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento);
 
+    gerarExcelLPUParceiro(novo_lancamento);
+
     sessionStorage.removeItem('chave_lpu_em_edicao');
+
+    exportarComoExcelHTML(novo_lancamento)
     remover_popup();
     await abrir_esquema(id_orcam);
 
 }
+
+function gerarExcelLPUParceiro(dados) {
+    let linhas = [];
+
+    // Cabeçalho com metadados
+    linhas.push(['Data:', dados.data || '']);
+    linhas.push(['Analista:', dados.analista || '']);
+    linhas.push(['Cliente:', dados.cliente || '']);
+    linhas.push(['CNPJ:', dados.cnpj || '']);
+    linhas.push(['Endereço:', dados.endereco || '']);
+    linhas.push(['Cidade:', dados.cidade || '']);
+    linhas.push(['Estado:', dados.estado || '']);
+    linhas.push(['Margem para este serviço(%):', dados.margem_percentual != null ? dados.margem_percentual + '%' : '']);
+    linhas.push(['Técnico:', dados.tecnicoLpu || '']);
+    linhas.push([]); // Linha em branco
+
+    // Cabeçalhos da tabela
+    linhas.push([
+        'Código',
+        'Descrição',
+        'Unidade',
+        'Quantidade',
+        'Valor Parceiro Unitário',
+        'Total Parceiro'
+    ]);
+
+    // Itens principais
+    for (let [codigo, item] of Object.entries(dados.itens)) {
+        linhas.push([
+            codigo,
+            item.descricao,
+            item.unidade,
+            item.qtde,
+            item.valor_parceiro_unitario,
+            item.total_parceiro
+        ]);
+    }
+
+    // Itens adicionais
+    if (dados.itens_adicionais?.length > 0) {
+        linhas.push(['', '--- SERVIÇOS ADICIONAIS ---', '', '', '', '']);
+        for (let item of dados.itens_adicionais) {
+            linhas.push([
+                item.codigo || '',
+                item.descricao,
+                item.unidade,
+                item.qtde,
+                item.valor_parceiro_unitario,
+                item.total_parceiro
+            ]);
+        }
+    }
+
+    // Criação da planilha
+    let ws = XLSX.utils.aoa_to_sheet(linhas);
+
+    // Ajuste automático de largura das colunas
+    const colWidths = linhas[0].map((_, colIdx) => {
+        const maxLength = linhas.reduce((acc, row) => {
+            const cell = row[colIdx];
+            const len = cell ? cell.toString().length : 0;
+            return Math.max(acc, len);
+        }, 10);
+        return { wch: maxLength + 2 };
+    });
+
+    ws['!cols'] = colWidths;
+
+    // Criação do workbook e download
+    let wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "LPU Parceiro");
+
+    let nomeArquivo = `LPU_Parceiro_${dados.tecnicoLpu || 'tecnico'}.xlsx`;
+    XLSX.writeFile(wb, nomeArquivo);
+}
+
+
+function exportarComoExcelHTML(dados) {
+    let html = `
+    <html xmlns:x="urn:schemas-microsoft-com:office:excel">
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            table, th, td {
+                border: 1px solid black;
+                border-collapse: collapse;
+                padding: 5px;
+            }
+            th {
+                background-color: #d2d2d2;
+            }
+            td, th {
+                text-align: left;
+                vertical-align: middle;
+            }
+        </style>
+    </head>
+    <body>
+        <table>
+            <tr><th colspan="6">LPU PARCEIRO</th></tr>
+            <tr><td><strong>Data:</strong></td><td>${dados.data}</td><td><strong>Analista:</strong></td><td>${dados.analista}</td></tr>
+            <tr><td><strong>Cliente:</strong></td><td>${dados.cliente}</td><td><strong>CNPJ:</strong></td><td>${dados.cnpj}</td></tr>
+            <tr><td><strong>Endereço:</strong></td><td>${dados.endereco}</td><td><strong>Cidade:</strong></td><td>${dados.cidade}</td><td><strong>Estado:</strong></td><td>${dados.estado}</td></tr>
+            <tr><td><strong>Margem:</strong></td><td>${dados.margem_percentual}%</td><td><strong>Técnico:</strong></td><td>${dados.tecnicoLpu}</td></tr>
+        </table>
+        <br>
+        <table>
+            <tr>
+                <th>Código</th>
+                <th>Descrição</th>
+                <th>Unidade</th>
+                <th>Quantidade</th>
+                <th>Valor Parceiro Unitário</th>
+                <th>Total Parceiro</th>
+            </tr>`;
+
+    for (let [codigo, item] of Object.entries(dados.itens)) {
+        html += `
+            <tr>
+                <td>${codigo}</td>
+                <td>${item.descricao}</td>
+                <td>${item.unidade}</td>
+                <td>${item.qtde}</td>
+                <td>${item.valor_parceiro_unitario}</td>
+                <td>${item.total_parceiro}</td>
+            </tr>`;
+    }
+
+    if (dados.itens_adicionais?.length > 0) {
+        html += `<tr><td colspan="6"><strong>--- SERVIÇOS ADICIONAIS ---</strong></td></tr>`;
+        for (let item of dados.itens_adicionais) {
+            html += `
+            <tr>
+                <td>${item.codigo || ''}</td>
+                <td>${item.descricao}</td>
+                <td>${item.unidade}</td>
+                <td>${item.qtde}</td>
+                <td>${item.valor_parceiro_unitario}</td>
+                <td>${item.total_parceiro}</td>
+            </tr>`;
+        }
+    }
+
+    html += `
+        </table>
+    </body>
+    </html>`;
+
+    let blob = new Blob([html], { type: "application/vnd.ms-excel" });
+    let url = URL.createObjectURL(blob);
+
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = `LPU_Parceiro_${dados.tecnicoLpu || 'tecnico'}.xls`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+
+
+
+
 
 async function salvarItensAdicionais(chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
@@ -4261,7 +4441,7 @@ async function detalharLpuParceiro(chave) {
 
 }
 
-async function gerarpdf(cliente, pedido) {
+async function gerarpdfParceiro(cliente, pedido) {
 
     var janela = document.querySelectorAll('.janela')
     janela = janela[janela.length - 1]
