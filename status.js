@@ -1525,7 +1525,6 @@ function elementosEspecificos(chave, historico) {
             ${labelDestaque('Data de Saída', auxiliarDatas(historico.envio.data_saida))}
             ${labelDestaque('Data de Entrega', auxiliarDatas(historico.envio.previsao))}
         `
-
     }
 
     if (funcaoEditar !== '') {

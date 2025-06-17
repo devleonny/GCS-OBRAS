@@ -202,7 +202,7 @@ async function preencher_v2() {
         let tds = {}
 
         tds[1] = `<td>${item.codigo}</td>`
-        tds[2] = `<td>${item?.descricao || 'N/A'}</td>`
+        tds[2] = `<td style="text-align: left;">${item?.descricao || 'N/A'}</td>`
         tds[3] = `<td style="text-align: center;"><img src="${itemComposicao?.imagem || item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 2vw;"></td>`
         tds[4] = `<td>${item?.unidade || 'UN'}</td>`
         tds[5] = `<td>${item.qtde}</td>`
@@ -246,7 +246,7 @@ async function preencher_v2() {
             <div style="display: flex; align-items: center; justify-content: start;">
                 <label style="font-size: 1.3vw;"><strong>${tab.includes('USO') ? `${tab} - SERVIÇO` : tab}</strong></label> 
             </div>
-            <table class="tabela">
+            <table class="tabela" style="display: table-row;">
                 <thead style="font-size: 0.7em; color: white; background-color: ${config[tab]?.cor || '#222'}">
                     ${totais[tab].ths}
                 </thead>

@@ -2473,3 +2473,26 @@ async function sincronizarDados(base, overlayOff) {
 
     if (!overlayOff) removerOverlay()
 }
+
+async function verificarDadosNotas(tipo, numero) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/notas", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tipo, numero })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
+}

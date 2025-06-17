@@ -652,20 +652,6 @@ select {
 
 }
 
-th {
-    border: 1px solid transparent;
-    color: white;
-}
-
-td {
-    background-color: white;
-    border: 1px solid transparent;
-    opacity: 0.9;
-    vertical-align: middle;
-    text-align: center;
-    padding: 8px;
-}
-
 h1 {
     background-color: white;
     font-size: 2.4em;
@@ -1660,13 +1646,14 @@ input[type=range]::-moz-range-thumb {
     color: #222;
     font-size: 0.8vw;
     padding: 8px;
-    border: 1px solid #404040;
 }
 
 .tabela td {
+    padding: 8px;
+    background-color: white;
     font-size: 0.8vw;
     overflow: hidden;
-    border: 1px solid #797979;
+    border: 1px solid #d2d2d2;
 }
 
 .tabela thead {
