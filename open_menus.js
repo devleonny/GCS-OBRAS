@@ -873,7 +873,9 @@ async function carregarXLSX() {
         }
 
         const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+        script.src = 'https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js';
+        script.async = true;
+
         script.onload = () => {
             const checkInitialization = () => {
                 if (typeof XLSX !== 'undefined' && typeof XLSX.utils !== 'undefined') {
@@ -884,7 +886,11 @@ async function carregarXLSX() {
             };
             checkInitialization();
         };
-        script.onerror = () => reject(new Error("Falha ao carregar a biblioteca XLSX"));
+
+        script.onerror = () => {
+            reject(new Error("Falha ao carregar a biblioteca XLSX"));
+        }
+
         document.head.appendChild(script);
     });
 }
@@ -970,11 +976,29 @@ function verificarXLSX() {
 
 async function exportarParaExcel() {
     try {
-        await verificarXLSX();
-        await para_excel('tabela_estoque');
+        overlayAguarde();
+        await carregarXLSX();
+
+        const data = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+
+        const tabela = document.getElementById('tabela_estoque');
+        if (!tabela) throw new Error('Tabela de estoque não encontrada.');
+
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.table_to_sheet(tabela);
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Estoque");
+
+        XLSX.writeFile(workbook, `estoque_${data}.xlsx`);
+
+        removerOverlay();
     } catch (erro) {
         console.error("Erro ao exportar:", erro);
-        openPopup_v2(mensagem("Erro ao exportar para Excel. Tente novamente."), "Erro");
+        removerOverlay();
+        openPopup_v2(`
+            <div style="display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Erro ao exportar para Excel: ${erro.message}</label>
+            </div>`, 'ERRO');
     }
 }
 
