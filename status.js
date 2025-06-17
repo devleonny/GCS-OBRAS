@@ -4261,45 +4261,92 @@ async function detalharLpuParceiro(chave) {
 
 }
 
-// async function detalharLpuParceiro(chave) {
+async function gerarpdf(cliente, pedido) {
 
-//     let dadosOrcamentos = await recuperarDados('dados_orcamentos') || {};
-//     let orcamento = dadosOrcamentos[id_orcam]
-//     let dadosLpu = orcamento.status.historico[chave]
-//     let modelo = () => {
-//         return `
-//             <div style="display: flex; flex-direction: column">
-//                 <label>${valor1}</label>
-//                 <label>${valor2}</label>
-//             </div>
-//         `
-//     }
-//     let acumulado = `
+    var janela = document.querySelectorAll('.janela')
+    janela = janela[janela.length - 1]
 
-//         <table class="tabela">
-//             <thead>
-//                 <tr>
-//                     <th>Item</th>
-//                     <th>Quantidade</th>
-//                     <th>Valor Unitário</th>
-//                     <th>Total Parceiro</th>
-//                 </tr>
-//             </thead>
-//             <tbody>
-//                 ${Object.values(dadosLpu.itens).map(item => `
-//                     <tr>
-//                         <td>${item.descricao}</td>
-//                         <td>${item.qtde}</td>
-//                         <td>${dinheiro(item.valor_parceiro_unitario)}</td>
-//                         <td>${dinheiro(item.total_parceiro)}</td>
-//                     </tr>
-//                 `).join('')}
-//             </tbody>
-//         </table>    
-//               `
-//     openPopup_v2(acumulado, 'Detalhamento Itens Parceiro', true)
-// }
+    var htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+        <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .titulo {
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #151749;
+            padding: 10px;
+            font-size: 1.5em;
+            color: white;
+            height: 20px;
+        }
+        .contorno {
+            border-radius: 5px;
+            height: max-content;
+            border: 1px solid #151749;
+            padding: 5px;
+            margin: 5px;
+        }
+            
+        .tabela {
+            border-collapse: collapse;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .tabela th {
+            background-color: #151749;
+            color: white;
+        }
 
+        .tabela th, .tabela td {
+            margin: 5px;
+            text-align: left;
+        }
+
+        .tabela td {
+            background-color: #99999940;
+        }
+
+        label {
+            margin: 5px;
+        }
+        
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            header,
+            footer {
+                display: none !important;
+            }
+
+            .table-container {
+                margin-right: 0;
+            }
+        }
+        </style>
+    </head>
+    <body>
+        ${janela.innerHTML}
+    </body>
+    </html>`;
+
+    if (pedido.includes("?")) {
+        pedido = ""
+    }
+
+    await gerar_pdf_online(htmlContent, `REQUISICAO_${cliente}_${pedido}`);
+
+}
 
 
 function adicionarItemAdicional() {
