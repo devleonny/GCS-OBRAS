@@ -4242,20 +4242,24 @@ async function detalharLpuParceiro(chave) {
             </div>
             <div>
                 <button><strong>Solicitar Pagamento</strong></button>
-                <button onclick="${gerarPdfParceiro({ tabela, cnpj: dadosEmpresa?.cnpj })}"><strong>Gerar PDF</strong></button>
+                <button id="btnGerarPdf"><strong>Gerar PDF</strong></button>
             </div>
-
-
         </div>
     `;
 
     let acumulado = `
-    ${cabecalhoInfo}
-    ${tabela}
+        ${cabecalhoInfo}
+        ${tabela}
     `
 
     openPopup_v2(acumulado, 'Detalhamento Itens Parceiro', true);
 
+    document.getElementById('btnGerarPdf').addEventListener('click', () => {
+        gerarPdfParceiro({
+            tabela: tabela,
+            cnpj: dadosEmpresa?.cnpj || ''
+        });
+    });
 }
 
 async function gerarPdfParceiro({ tabela, cnpj }) {
