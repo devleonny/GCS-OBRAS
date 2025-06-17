@@ -279,43 +279,62 @@ async function painelAdicionarNotas(chave) {
 
     let acumulado = `
         <div id="painelNotas" style="background-color: #d2d2d2; display: flex; justify-content: center; flex-direction: column; align-items: start; padding: 2vw;">
-
             <div style="display: flex; justify-content: space-evenly; align-items: center; padding: 10px;">
                 <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
             </div>
 
             <hr style="width: 100%;">
 
-            ${modelo('Remessa, Venda ou Serviço', `<select id="tipo" class="pedido">${opcoes}</select>`)}
-            ${modelo('Número da Nota', `<input type="number" class="pedido" id="nota" value="${notas?.nota || ''}">`)}
-            ${modelo('Valor da Nota', `<input type="number" class="pedido" id="valorNota" value="${notas?.valorNota || ''}">`)}
-            
-            ${modelo('', `
-                <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-                    <div style="display: flex; align-items: start; justify-content: center; flex-direction: column;">
-                        <label>Parcela</label>
-                        <input type="date" class="pedido">
-                    </div>
-                    <div style="display: flex; align-items: start; justify-content: center;  flex-direction: column;">
-                        <label>Valor</label>                    
-                        <input type="number" class="pedido">
-                    </div>
-                    <img src="imagens/cancel.png" style="width: 2vw; cursor: pointer;" onclick="removerPagamento(this)">
-                </div>
-                `)}
+            ${modelo('Digite o número da NF',
+        `<input class="pedido">
+                <button onclick="buscarNFOmie(this)" style="background-color: green;">Buscar dados</button>`)}
 
-            <button onclick="maisPagamentos(this)">Mais parcelas</button>
-
-            ${modelo('Comentário', `<textarea rows="3" class="pedido" id="comentario_status">${st?.comentario || ''}</textarea>`)}            
-
-            <hr style="width: 100%">
-
-            <button style="background-color: green;" onclick="salvarNotas('${chave}')">Salvar</button>
+            <div id="detalhesNF"></div>
 
         </div>
         `;
 
     openPopup_v2(acumulado, 'Nova Nota Fiscal', true);
+
+}
+
+async function buscarNFOmie(elemento) {
+
+    overlayAguarde()
+
+    let documentos = { danfe: '', xml: '' }
+    let numero = elemento.previousElementSibling.value
+    let detalhesNF = document.getElementById('detalhesNF')
+    detalhesNF.innerHTML = ''
+
+    let resultado = await verificarDadosNotas('nf', numero)
+
+    console.log(resultado);
+    
+    if (resultado.faultstring) return detalhesNF.innerHTML = 'Falha na API'
+
+    if (resultado?.cUrlDanfe !== '') { //29
+        documentos.danfe = botao('DANFE', `abrirArquivo('${resultado?.cUrlDanfe}')`, '#B12425')
+    }
+
+    let parcelas = resultado.titulos
+        .map(parcela => `<label><strong>Data:</strong> ${parcela.dDtVenc} || <strong>Valor: </strong>${dinheiro(parcela.nValorTitulo)}</label><br>`)
+        .join('')
+
+    detalhesNF.innerHTML = `
+        ${modelo('Cliente', resultado.nfDestInt.cRazao)}
+        ${modelo('CNPJ', resultado.nfDestInt.cnpj_cpf)}
+        ${modelo('Total', dinheiro(resultado.total.ICMSTot.vNF))}
+        
+        <hr style="width: 100%;">
+        ${modelo('Parcelas', parcelas)}
+
+        ${documentos.danfe}
+        ${documentos.xml}
+
+    `
+    // trazer o pdf e o xml?
+    removerOverlay()
 
 }
 
@@ -1457,7 +1476,7 @@ function auxiliarDatas(data) {
     return `${dia}/${mes}/${ano}`
 }
 
-function elementosEspecificos(chave, historico) { 
+function elementosEspecificos(chave, historico) {
 
     let acumulado = ''
     let funcaoEditar = ''
@@ -1631,7 +1650,7 @@ async function abrirEsquema(id) {
         `
 
     let levantamentos = Object.entries(orcamento?.levantamentos || {})
-        .map(([iDlevantamento, levantamento]) => `${criarAnexoVisual(levantamento.nome, levantamento.link, `excluir_levantamento('${iDlevantamento}', '${chave}')`)}`)
+        .map(([iDlevantamento, levantamento]) => `${criarAnexoVisual(levantamento.nome, levantamento.link, `excluir_levantamento('${iDlevantamento}', '${iDlevantamento}')`)}`)
         .join('')
 
     let divLevantamentos = `
@@ -1664,9 +1683,9 @@ async function abrirEsquema(id) {
                     ${botao('Nova Requisição', `abrirModalTipoRequisicao()`, '#B12425')}
                     ${botao('Nova Nota Fiscal', `painelAdicionarNotas()`, '#ff4500')}
 
-                    ${(acesso.permissao == 'adm' || acesso.setor == 'LOGÍSTICA') 
-                        ? botao('Novo Envio de Material', `envioMaterial()`, '#b17724') 
-                        : ''}
+                    ${(acesso.permissao == 'adm' || acesso.setor == 'LOGÍSTICA')
+            ? botao('Novo Envio de Material', `envioMaterial()`, '#b17724')
+            : ''}
 
                     ${botao('Produtos sem Requisição', `mostrarItensPendentes()`, '')}
                 </div>

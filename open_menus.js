@@ -488,6 +488,8 @@ function abrirArquivo(link) {
 
     if (verificar_timestamp_nome(link)) { // Se for um link composto por timestamp, então vem do servidor;
         link = `https://leonny.dev.br/uploads/${link}`
+    } else if (link.includes('http')) { // Links completos;
+        link = link
     } else { // Antigo Google;
         link = `https://drive.google.com/file/d/${link}/view?usp=drivesdk`
     }
@@ -2011,7 +2013,7 @@ function data_atual(estilo, nivel) {
     }
 }
 
-async function verAprovacoes() { 
+async function verAprovacoes() {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
     let guia = {
@@ -2474,12 +2476,12 @@ async function sincronizarDados(base, overlayOff) {
     if (!overlayOff) removerOverlay()
 }
 
-async function verificarDadosNotas(tipo, numero) {
+async function verificarDadosNotas(numero) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/notas", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ tipo, numero })
+            body: JSON.stringify({ numero })
         })
             .then(response => {
                 if (!response.ok) {
