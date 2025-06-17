@@ -2011,7 +2011,7 @@ function data_atual(estilo, nivel) {
     }
 }
 
-async function verAprovacoes() { //29
+async function verAprovacoes() { 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
     let guia = {
@@ -2042,7 +2042,10 @@ async function verAprovacoes() { //29
         `
     })
 
-    for (let [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
+    let desordenado = Object.entries(dados_orcamentos)
+    desordenado.sort((a, b) => new Date(b[1]?.dados_orcam?.data || '') - new Date(a[1]?.dados_orcam?.data || ''))
+
+    for (let [idOrcamento, orcamento] of desordenado) {
 
         if (!orcamento.aprovacao) continue
 

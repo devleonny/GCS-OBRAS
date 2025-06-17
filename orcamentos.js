@@ -130,8 +130,8 @@ async function preencherOrcamentos(alternar) {
     div_orcamentos.innerHTML = ''
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    
     let desordenado = Object.entries(dados_orcamentos)
-
     desordenado.sort((a, b) => new Date(b[1]?.dados_orcam?.data || '') - new Date(a[1]?.dados_orcam?.data || ''))
     dados_orcamentos = Object.fromEntries(desordenado)
 

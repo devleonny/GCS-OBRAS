@@ -1512,7 +1512,7 @@ function elementosEspecificos(chave, historico) {
             ${labelDestaque('Nota', historico.notas[0].nota)}
             ${labelDestaque('Tipo', historico.notas[0].modalidade)}
             ${labelDestaque('Valor Total', dinheiro(historico.notas[0].valorNota))}
-            <hr style="width: 80%;">
+            <hr style="width: 100%;">
             ${parcelas}
         `
     } else if (historico.envio) {
