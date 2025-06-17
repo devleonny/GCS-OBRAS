@@ -228,7 +228,7 @@ async function preencher_v2() {
             colunas.forEach(col => {
 
                 let complemento = ''
-                if(item.tipo == 'VENDA') complemento = 'COM ICMS'
+                if(item.tipo == 'VENDA' && (col == 9 || col == 10)) complemento = 'COM ICMS'
 
                 totais[item.tipo].ths += `<th style="color: white;">${cabecalho[col]} ${complemento}</th>`
             })
