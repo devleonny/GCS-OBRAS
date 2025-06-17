@@ -1457,7 +1457,7 @@ function auxiliarDatas(data) {
     return `${dia}/${mes}/${ano}`
 }
 
-function elementosEspecificos(chave, historico) { //29
+function elementosEspecificos(chave, historico) { 
 
     let acumulado = ''
     let funcaoEditar = ''
@@ -1515,6 +1515,17 @@ function elementosEspecificos(chave, historico) { //29
             <hr style="width: 80%;">
             ${parcelas}
         `
+    } else if (historico.envio) {
+
+        funcaoEditar = `envioMaterial('${chave}')`
+
+        acumulado = `
+            ${labelDestaque('Rastreio', historico.envio.rastreio)}
+            ${labelDestaque('Transportadora', historico.envio.transportadora)}
+            ${labelDestaque('Data de Saída', auxiliarDatas(historico.envio.data_saida))}
+            ${labelDestaque('Data de Entrega', auxiliarDatas(historico.envio.previsao))}
+        `
+
     }
 
     if (funcaoEditar !== '') {
