@@ -98,7 +98,7 @@ async function preencher_v2() {
             'Número do Chamado': informacoes.contrato,
             'Tipo de Frete': informacoes.tipo_de_frete,
             'Condições de Pagamento': informacoes.condicoes,
-            'Garantia': informacoes.garantia == '' ? '1 ano' : informacoes.garantia,
+            'Garantia': informacoes.garantia == '' ? 'Conforme tratativa Comercial' : informacoes.garantia,
             'REF': ''
         },
         'Dados do Cliente': {
