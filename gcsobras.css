@@ -22,6 +22,17 @@ body {
     gap: 20px;
 }
 
+.campoRequisicao {
+    text-align: center;
+    background-color: #b2e2b4; 
+    width: 10vw;
+    padding: 10px;
+    font-size: 1.2vw;
+    border-radius: 5px;
+    margin: 5px;
+    cursor: pointer;
+}
+
 .divOnline {
     position: absolute;
     border-radius: 3px;
@@ -829,7 +840,8 @@ button {
     max-width: 90vw;
     text-align: center;
     font-size: 1.0vw;
-    border-radius: 10px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
@@ -1745,14 +1757,14 @@ input[type=range]::-moz-range-thumb {
     font-size: 0.9vw;
     align-items: center;
     display: flex;
+    margin-left: 5px;
+    padding: 3px;
+    border-radius: 3px;
     width: max-content;
     height: max-content;
     margin-left: 5px;
-    background-color: #d2d2d2;
-    color: #000;
-    padding: 3px;
-
-
+    background-color: white;
+    color: #000
 }
 
 .contorno_botoes {
@@ -1796,7 +1808,6 @@ input[type=range]::-moz-range-thumb {
     font-size: 0.7vw;
     height: max-content;
     width: 90%;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     overflow-y: auto;
     flex-shrink: 0;
@@ -1804,10 +1815,7 @@ input[type=range]::-moz-range-thumb {
 
 .container-blocos {
     display: flex;
-    gap: 10px;
     overflow-x: auto;
-    padding: 10px;
-    min-width: 100%;
 }
 
 .itens_financeiro {
@@ -1865,15 +1873,15 @@ input[type=range]::-moz-range-thumb {
 }
 
 .pedido {
-    width: 200px;
     padding: 10px;
     font-size: 1.2vw;
-    color: #ffffff;
-    background-color: #4CAF50;
     border-radius: 5px;
-    display: inline-block;
     margin: 5px;
-    text-align: center;
+    cursor: pointer;
+}
+
+.pedido textarea {
+    width: 100%;
 }
 
 .autocomplete-container {
