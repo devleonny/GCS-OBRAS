@@ -11,13 +11,13 @@ const modelo = (valor1, valor2) => {
 }
 
 const labelDestaque = (valor1, valor2) => {
-    return `<label style="white-space: nowrap;"><strong>${valor1}: </strong>${valor2}</label>`
+    return `<label style="text-align: left;"><strong>${valor1}: </strong>${valor2}</label>`
 }
 
 const botao = (valor1, funcao, cor) => {
     return `
         <div class="contorno_botoes" style="box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3); background-color: ${cor};" onclick="${funcao}">
-            <label>Novo <strong>${valor1}</strong></label>
+            <label>${valor1}</label>
         </div>
         `}
 
@@ -1546,13 +1546,6 @@ async function abrirEsquema(id) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id]
     let blocosStatus = {}
-    let levantamentos = ''
-    if (orcamento.levantamentos) {
-        for (chave in orcamento.levantamentos) {
-            let levantamento = orcamento.levantamentos[chave]
-            levantamentos += criarAnexoVisual(levantamento.nome, levantamento.link, `excluir_levantamento('${id}', '${chave}')`)
-        }
-    }
 
     for ([chave, historico] of Object.entries(orcamento.status?.historico || {})) {
 
@@ -1614,14 +1607,17 @@ async function abrirEsquema(id) {
     let blocos = ''
     for ([statusCartao, div] of Object.entries(blocosStatus)) {
         blocos += `
-            <div style="display: flex; flex-direction: column; justify-content: start; align-items: center; width: 16vw; overflow-y: auto; gap: 10px;">
+            <div style="display: flex; flex-direction: column; justify-content: start; align-items: center; width: 16vw; gap: 10px;">
                 ${div}
             </div>
             `
     }
 
-    let selectStatus = `
+    let linha1 = `
         <div style="display: flex; align-items: end; justify-content: start; gap: 10px;">
+
+            ${botao('Atualizar Página', `sincronizarReabrir()`, '#222')}
+
             <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 2px;">
                 <label>Status atual</label>
                 <select onchange="alterar_status(this)" style="font-size: 1vw; border-radius: 3px; padding: 3px;">
@@ -1635,54 +1631,50 @@ async function abrirEsquema(id) {
         </div>
         `
 
+    let levantamentos = Object.entries(orcamento?.levantamentos || {})
+        .map(([iDlevantamento, levantamento]) => `${criarAnexoVisual(levantamento.nome, levantamento.link, `excluir_levantamento('${iDlevantamento}', '${chave}')`)}`)
+        .join('')
+
+    let divLevantamentos = `
+        <div style="display: flex; justify-content: start; align-items: center; flex-direction: column; gap: 2px; margin-right: 20px; margin-top: 10px;">
+            <div class="contorno_botoes" for="adicionar_levantamento">
+                <img src="imagens/anexo2.png" style="width: 2vw;">
+                <label style="font-size: 0.8vw; color: white;"> Anexar levantamento
+                    <input type="file" id="adicionar_levantamento" style="display: none;"
+                        onchange="salvar_levantamento('${id}')">
+                </label>
+            </div>
+            ${levantamentos}
+        </div>
+    `
+
     let acumulado = `
 
-        <div style="max-height: 80vh; overflow: auto; background-color: #d2d2d2; display: flex; flex-direction: column; gap: 15px; min-width: 60vw; padding: 2vw;">
-
-            <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-                <div onclick="sincronizarReabrir()" style="display: flex; flex-direction: column; justify-content: left; align-items: center; cursor: pointer;">
-                    <img src="imagens/atualizar2.png" style="width: 3vw;">
-                    <label style="font-size: 1vw;">Atualizar</label>
-                </div>
-                • 
-                <div style="display: flex; justify-content: start; align-items: start; flex-direction: column; gap: 2px;">
-                    <div class="contorno_botoes">
-                        <img src="imagens/anexo2.png" style="width: 2vw;">
-                        <label style="font-size: 0.8vw; color: white;" for="adicionar_levantamento"> Anexar levantamento
-                            <input type="file" id="adicionar_levantamento" style="display: none;"
-                                onchange="salvar_levantamento('${id}')">
-                        </label>
-                    </div>
-                    ${levantamentos}
-                </div>
-                • 
-                <div onclick="mostrar_itens_restantes('${id_orcam}')" class="contorno_botoes" style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-                    <img src="imagens/interrogacao.png" style="width: 2vw;">
-                    <label style="font-size: 0.8vw;">Itens Pendentes</label>
-                </div>
-            </div>
+        <div style="min-height: max-content; height: 70vh; overflow: auto; background-color: #d2d2d2; display: flex; flex-direction: column; gap: 15px; min-width: 60vw; padding: 2vw;">
 
             <div style="display: flex; flex-direction: column; gap: 10px; padding: 3px;">
 
-                <hr style="width: 100%;">
-
-                ${selectStatus}
+                ${linha1}
 
                 <hr style="width: 100%;">
 
                 <div style="display: flex; gap: 10px; font-size: 0.9vw;">
                     
-                    ${botao('Pagamento', `tela_pagamento()`, '#097fe6')}
-                    ${botao('Pedido', `painelAdicionarPedido()`, '#4CAF50')}
-                    ${botao('Requisição', `abrirModalTipoRequisicao()`, '#B12425')}
-                    ${botao('Nota Fiscal', `painelAdicionarNotas()`, '#ff4500')}
+                    ${botao('Novo Pagamento', `tela_pagamento()`, '#097fe6')}
+                    ${botao('Novo Pedido', `painelAdicionarPedido()`, '#4CAF50')}
+                    ${botao('Nova Requisição', `abrirModalTipoRequisicao()`, '#B12425')}
+                    ${botao('Nova Nota Fiscal', `painelAdicionarNotas()`, '#ff4500')}
 
-                    ${(acesso.permissao == 'adm' || acesso.setor == 'LOGÍSTICA') ?
-            botao('Envio de Material', `envioMaterial()`, '#b17724') : ''}
+                    ${(acesso.permissao == 'adm' || acesso.setor == 'LOGÍSTICA') 
+                        ? botao('Novo Envio de Material', `envioMaterial()`, '#b17724') 
+                        : ''}
+
+                    ${botao('Produtos sem Requisição', `mostrarItensPendentes()`, '')}
                 </div>
             </div>
 
             <div class="container-blocos">
+                ${divLevantamentos}
                 ${blocos}
             </div>
         </div>`
@@ -1692,7 +1684,7 @@ async function abrirEsquema(id) {
 
 }
 
-async function mostrar_itens_restantes(id_orcam) {
+async function mostrarItensPendentes() {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
@@ -1700,18 +1692,8 @@ async function mostrar_itens_restantes(id_orcam) {
     let itens_no_orcamento = orcamento.dados_composicoes
     let valoresTotais = {}
 
-    let acumulado = `
-
-        <table class="tabela">
-
-            <tr>
-                <th>Codigo</th>
-                <th>Item</th>
-                <th>Itens Orçados</th>
-                <th>Itens Pendentes</th>
-            </tr>
-
-    `
+    let acumulado = ''
+    let linhas = ''
 
     if (orcamento.status) {
 
@@ -1754,7 +1736,7 @@ async function mostrar_itens_restantes(id_orcam) {
 
         }
 
-        acumulado += `
+        linhas += `
         
             <tr style="border: 1px solid black;">
                 <td>${item.codigo}</td>
@@ -1768,12 +1750,20 @@ async function mostrar_itens_restantes(id_orcam) {
     })
 
     acumulado += `
-    
+
+        <table class="tabela">
+            <thead>
+                <th>Codigo</th>
+                <th>Item</th>
+                <th>Itens Orçados</th>
+                <th>Itens Pendentes</th>
+            </thead>
+            <tbody>${linhas}</tbody>
         </table>
     
     `
 
-    openPopup_v2(acumulado, "Itens Pendentes")
+    openPopup_v2(acumulado, "Itens Pendentes", true)
 
 }
 
