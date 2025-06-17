@@ -1011,23 +1011,19 @@ async function exportarParaExcel() {
         const tabela = document.getElementById('tabela_estoque');
         if (!tabela) throw new Error('Tabela de estoque não encontrada');
 
-        // Pega os cabeçalhos (exceto 'Excluir')
         const headers = [];
-        // Começa do índice 1 para pular a coluna 'Excluir'
         tabela.querySelectorAll('th').forEach((th, index) => {
-            if (index > 0) { // Pula o primeiro cabeçalho (Excluir)
+            if (index > 0) {
                 headers.push(th.textContent.trim());
             }
         });
 
-        // Adiciona os cabeçalhos
         worksheet.addRow(headers);
 
-        // Pega os dados das células
         tabela.querySelectorAll('tbody tr').forEach(tr => {
             const rowData = [];
             tr.querySelectorAll('td').forEach((td, index) => {
-                if (index > 0) { // Pula a primeira coluna (Excluir)
+                if (index > 0) {
                     const input = td.querySelector('input');
                     rowData.push(input ? input.value : td.textContent.trim());
                 }
@@ -1037,16 +1033,13 @@ async function exportarParaExcel() {
             }
         });
 
-        // Formata as colunas
         worksheet.columns.forEach(column => {
             column.width = 15;
         });
 
-        // Gera o arquivo
         const data = new Date().toISOString().slice(0, 10).replace(/-/g, '');
         const buffer = await workbook.xlsx.writeBuffer();
 
-        // Cria blob e link para download
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
