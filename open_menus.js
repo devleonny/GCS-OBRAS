@@ -982,15 +982,17 @@ async function loadXLSX() {
         script.src = 'https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js';
         script.onload = () => {
             const checkXLSX = () => {
-                if (typeof XLSX !== 'undefined') {
-                    resolve();
-                } else {
-                    setTimeout(checkXLSX, 100);
+                if (typeof XLSX === 'undefined') {
+                    return setTimeout(checkXLSX, 100);
                 }
+
+                resolve();
             }
+
             checkXLSX();
         }
         script.onerror = () => reject(new Error('Falha ao carregar biblioteca XLSX'));
+
         document.head.appendChild(script);
     })
 }
@@ -999,43 +1001,64 @@ async function exportarParaExcel() {
     try {
         overlayAguarde();
 
-        await loadXLSX();
+        if (typeof ExcelJS === 'undefined') {
+            throw new Error('Biblioteca ExcelJS não está carregada');
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Estoque');
 
         const tabela = document.getElementById('tabela_estoque');
-        if (!tabela) throw new Error('Tabela de estoque não encontrada.');
+        if (!tabela) throw new Error('Tabela de estoque não encontrada');
 
-        const tabelaClone = tabela.cloneNode(true);
-
-        tabelaClone.querySelectorAll('input, textarea').forEach(elemento => {
-            const td = elemento.closest('td');
-            if (td) td.textContent = elemento.value;
-        })
-
-        tabelaClone.querySelectorAll('th').forEach((th, index) => {
-            if (th.textContent.trim() === 'Excluir') {
-                const rows = tabelaClone.querySelectorAll('tr');
-                rows.forEach(row => {
-                    const td = row.cells[index];
-                    if (td) td.remove();
-                })
-                th.remove();
+        // Pega os cabeçalhos (exceto 'Excluir')
+        const headers = [];
+        // Começa do índice 1 para pular a coluna 'Excluir'
+        tabela.querySelectorAll('th').forEach((th, index) => {
+            if (index > 0) { // Pula o primeiro cabeçalho (Excluir)
+                headers.push(th.textContent.trim());
             }
-        })
+        });
 
-        const worksheet = XLSX.utils.table_to_sheet(tabelaClone);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Estoque");
+        // Adiciona os cabeçalhos
+        worksheet.addRow(headers);
 
+        // Pega os dados das células
+        tabela.querySelectorAll('tbody tr').forEach(tr => {
+            const rowData = [];
+            tr.querySelectorAll('td').forEach((td, index) => {
+                if (index > 0) { // Pula a primeira coluna (Excluir)
+                    const input = td.querySelector('input');
+                    rowData.push(input ? input.value : td.textContent.trim());
+                }
+            });
+            if (rowData.length > 0) {
+                worksheet.addRow(rowData);
+            }
+        });
+
+        // Formata as colunas
+        worksheet.columns.forEach(column => {
+            column.width = 15;
+        });
+
+        // Gera o arquivo
         const data = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        const nomeArquivo = `estoque_${data}.xlsx`;
+        const buffer = await workbook.xlsx.writeBuffer();
 
-        XLSX.writeFile(workbook, nomeArquivo);
+        // Cria blob e link para download
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `estoque_${data}.xlsx`;
+        link.click();
+        window.URL.revokeObjectURL(url);
 
         removerOverlay();
     } catch (erro) {
         console.error("Erro ao exportar:", erro);
         removerOverlay();
-
         openPopup_v2(`
             <div style="display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center; flex-direction: column;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
@@ -1114,12 +1137,10 @@ function conversor(stringMonetario) {
 }
 
 function dinheiro(valor) {
-    if (valor === '') {
-        return 'R$ 0,00';
-    } else {
-        valor = Number(valor);
-        return 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
+    if (valor === '') return 'R$ 0,00';
+
+    valor = Number(valor);
+    return 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function ir_para(modulo) {
