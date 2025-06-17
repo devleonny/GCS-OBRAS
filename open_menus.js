@@ -977,12 +977,28 @@ function verificarXLSX() {
 async function exportarParaExcel() {
     try {
         overlayAguarde();
-        await carregarXLSX();
+
+        await new Promise((resolve, reject) => {
+            if (typeof XLSX !== 'undefined') {
+                resolve();
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = 'https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js';
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Falha ao carregar biblioteca XLSX'));
+            document.head.appendChild(script);
+        })
 
         const data = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
         const tabela = document.getElementById('tabela_estoque');
         if (!tabela) throw new Error('Tabela de estoque não encontrada.');
+
+        if (typeof XLSX === 'undefined') {
+            throw new Error('Biblioteca XLSX não carregada.');
+        }
 
         const workbook = XLSX.utils.book_new();
         const worksheet = XLSX.utils.table_to_sheet(tabela);
