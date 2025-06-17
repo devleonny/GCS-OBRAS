@@ -8,6 +8,11 @@
     <link rel="stylesheet" type="text/css" href="gcsobras.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <script>
+        if (typeof XLSX === 'undefined') {
+            document.write('<script src="./lib/xlsx.full.min.js"><\/script>');
+        }
+    </script>
     <style>
         .labelEstoque {
             cursor: pointer;

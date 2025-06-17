@@ -873,7 +873,9 @@ async function carregarXLSX() {
         }
 
         const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+        script.src = 'https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js';
+        script.async = true;
+
         script.onload = () => {
             const checkInitialization = () => {
                 if (typeof XLSX !== 'undefined' && typeof XLSX.utils !== 'undefined') {
@@ -884,7 +886,11 @@ async function carregarXLSX() {
             };
             checkInitialization();
         };
-        script.onerror = () => reject(new Error("Falha ao carregar a biblioteca XLSX"));
+
+        script.onerror = () => {
+            reject(new Error("Falha ao carregar a biblioteca XLSX"));
+        }
+
         document.head.appendChild(script);
     });
 }
@@ -968,13 +974,75 @@ function verificarXLSX() {
     return Promise.resolve();
 }
 
+async function loadXLSX() {
+    if (typeof XLSX !== 'undefined') return;
+
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js';
+        script.onload = () => {
+            const checkXLSX = () => {
+                if (typeof XLSX !== 'undefined') {
+                    resolve();
+                } else {
+                    setTimeout(checkXLSX, 100);
+                }
+            }
+            checkXLSX();
+        }
+        script.onerror = () => reject(new Error('Falha ao carregar biblioteca XLSX'));
+        document.head.appendChild(script);
+    })
+}
+
 async function exportarParaExcel() {
     try {
-        await verificarXLSX();
-        await para_excel('tabela_estoque');
+        overlayAguarde();
+
+        await loadXLSX();
+
+        const tabela = document.getElementById('tabela_estoque');
+        if (!tabela) throw new Error('Tabela de estoque não encontrada.');
+
+        const tabelaClone = tabela.cloneNode(true);
+
+        tabelaClone.querySelectorAll('input, textarea').forEach(elemento => {
+            const td = elemento.closest('td');
+            if (td) td.textContent = elemento.value;
+        })
+
+        tabelaClone.querySelectorAll('th').forEach((th, index) => {
+            if (th.textContent.trim() === 'Excluir') {
+                const rows = tabelaClone.querySelectorAll('tr');
+                rows.forEach(row => {
+                    const td = row.cells[index];
+                    if (td) td.remove();
+                })
+                th.remove();
+            }
+        })
+
+        const worksheet = XLSX.utils.table_to_sheet(tabelaClone);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Estoque");
+
+        const data = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const nomeArquivo = `estoque_${data}.xlsx`;
+
+        XLSX.writeFile(workbook, nomeArquivo);
+
+        removerOverlay();
     } catch (erro) {
         console.error("Erro ao exportar:", erro);
-        openPopup_v2(mensagem("Erro ao exportar para Excel. Tente novamente."), "Erro");
+        removerOverlay();
+
+        openPopup_v2(`
+            <div style="display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center; flex-direction: column;">
+                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <label>Erro ao exportar para Excel:</label>
+                <label style="font-size: 0.8em;">${erro.message}</label>
+                <button onclick="remover_popup()" style="background-color: #B12425;">Fechar</button>
+            </div>`, 'ERRO');
     }
 }
 
