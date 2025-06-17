@@ -1545,6 +1545,7 @@ async function abrirEsquema(id) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id]
     let blocosStatus = {}
+    let chave = ''
 
     for ([chave, historico] of Object.entries(orcamento.status?.historico || {})) {
 
