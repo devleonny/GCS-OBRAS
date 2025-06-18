@@ -4086,7 +4086,7 @@ async function salvarLpuParceiro() {
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento);
 
-    gerarExcelLPUParceiro(novo_lancamento);
+    // gerarExcelLPUParceiro(novo_lancamento);
 
     sessionStorage.removeItem('chave_lpu_em_edicao');
 
@@ -4189,94 +4189,173 @@ async function gerarExcelLPUParceiro(lancamento) {
     XLSX.writeFile(wb, `LPU_Parceiro_${lancamento.cliente}.xlsx`);
 }
 
-
-
-
 function exportarComoExcelHTML(dados) {
     let html = `
     <html xmlns:x="urn:schemas-microsoft-com:office:excel">
     <head>
         <meta charset="UTF-8">
         <style>
-            table, th, td {
-                border: 1px solid black;
-                border-collapse: collapse;
-                padding: 5px;
+            .numero {
+                mso-number-format:"0";
+                text-align: right;
             }
-            th {
-                background-color: #d2d2d2;
+            .texto {
+                mso-number-format:"\\@";
+                text-align: left;
+            }
+            .moeda {
+                mso-number-format:"R$ #,##0.00";
+                text-align: right;
+            }
+            .formula {
+                mso-number-format:"R$ #,##0.00";
+                text-align: right;
+                width: 250px !important;
+            }
+            .cabecalho {
+                background-color: rgb(0, 138, 0);
+                color: white;
+                font-weight: bold;
+                text-align: center;
+            }
+            .total {
+                font-weight: bold;
+                background-color: #e9ecef;
             }
             td, th {
-                text-align: left;
-                vertical-align: middle;
+                border: 0.5pt solid #000000;
+                padding: 5px;
             }
+            table {
+                border-collapse: collapse;
+                table-layout: fixed;
+                width: 100%;
+            }
+            /* Definindo larguras específicas para cada coluna */
+            col.col1 { width: 100px; }   /* Código */
+            col.col2 { width: 300px; }   /* Descrição */
+            col.col3 { width: 80px; }    /* Unidade */
+            col.col4 { width: 100px; }   /* Quantidade */
+            col.col5 { width: 120px; }   /* Valor Unitário */
+            col.col6 { width: 250px; }   /* Total Parceiro */
         </style>
     </head>
     <body>
-        <table>
-            <tr><th colspan="6">LPU PARCEIRO</th></tr>
-            <tr><td><strong>Data:</strong></td><td>${dados.data}</td><td><strong>Analista:</strong></td><td>${dados.analista}</td></tr>
-            <tr><td><strong>Cliente:</strong></td><td>${dados.cliente}</td><td><strong>CNPJ:</strong></td><td>${dados.cnpj}</td></tr>
-            <tr><td><strong>Endereço:</strong></td><td>${dados.endereco}</td><td><strong>Cidade:</strong></td><td>${dados.cidade}</td><td><strong>Estado:</strong></td><td>${dados.estado}</td></tr>
-            <tr><td><strong>Margem:</strong></td><td>${dados.margem_percentual}%</td><td><strong>Técnico:</strong></td><td>${dados.tecnicoLpu}</td></tr>
-        </table>
-        <br>
+        <div style="text-align: center; margin-bottom: 20px">
+            <h2>LPU PARCEIRO - GCS SISTEMAS</h2>
+        </div>
+        
         <table>
             <tr>
-                <th>Código</th>
-                <th>Descrição</th>
-                <th>Unidade</th>
-                <th>Quantidade</th>
-                <th>Valor Parceiro Unitário</th>
-                <th>Total Parceiro</th>
-            </tr>`;
+                <td class="texto"><strong>Data:</strong></td>
+                <td class="texto">${dados.data}</td>
+                <td class="texto"><strong>Analista:</strong></td>
+                <td class="texto">${dados.analista}</td>
+            </tr>
+            <tr>
+                <td class="texto"><strong>Cliente:</strong></td>
+                <td class="texto">${dados.cliente}</td>
+                <td class="texto"><strong>CNPJ:</strong></td>
+                <td class="texto">${dados.cnpj}</td>
+            </tr>
+            <tr>
+                <td class="texto"><strong>Endereço:</strong></td>
+                <td class="texto">${dados.endereco}</td>
+                <td class="texto"><strong>Cidade/Estado:</strong></td>
+                <td class="texto">${dados.cidade} - ${dados.estado}</td>
+            </tr>
+            <tr>
+                <td class="texto"><strong>Margem:</strong></td>
+                <td class="texto">${dados.margem_percentual}%</td>
+                <td class="texto"><strong>Técnico:</strong></td>
+                <td class="texto">${dados.tecnicoLpu}</td>
+            </tr>
+        </table>
 
+        <br>
+
+        <table>
+            <colgroup>
+                <col class="col1">
+                <col class="col2">
+                <col class="col3">
+                <col class="col4">
+                <col class="col5">
+                <col class="col6">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th class="cabecalho" style="width: 100px">Código</th>
+                    <th class="cabecalho" style="width: 300px">Descrição</th>
+                    <th class="cabecalho" style="width: 80px">Unidade</th>
+                    <th class="cabecalho" style="width: 100px">Quantidade</th>
+                    <th class="cabecalho" style="width: 120px">Valor Unitário</th>
+                    <th class="cabecalho" style="width: 250px">Total</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+    let linha = 9; // Começa após o cabeçalho
     for (let [codigo, item] of Object.entries(dados.itens)) {
         html += `
             <tr>
-                <td>${codigo}</td>
-                <td>${item.descricao}</td>
-                <td>${item.unidade}</td>
-                <td>${item.qtde}</td>
-                <td>${item.valor_parceiro_unitario}</td>
-                <td>${item.total_parceiro}</td>
+                <td class="texto">${codigo}</td>
+                <td class="texto">${item.descricao}</td>
+                <td class="texto" style="text-align: center">${item.unidade}</td>
+                <td class="numero">${item.qtde}</td>
+                <td class="moeda">${item.valor_parceiro_unitario}</td>
+                <td class="formula">
+                    =MULT(D${linha};E${linha})
+                </td>
             </tr>`;
+        linha++;
     }
 
     if (dados.itens_adicionais?.length > 0) {
-        html += `<tr><td colspan="6"><strong>--- SERVIÇOS ADICIONAIS ---</strong></td></tr>`;
+        html += `
+            <tr>
+                <td colspan="6" style="text-align: center; font-weight: bold; background-color: #e9ecef">
+                    SERVIÇOS ADICIONAIS
+                </td>
+            </tr>`;
+
         for (let item of dados.itens_adicionais) {
             html += `
-            <tr>
-                <td>${item.codigo || ''}</td>
-                <td>${item.descricao}</td>
-                <td>${item.unidade}</td>
-                <td>${item.qtde}</td>
-                <td>${item.valor_parceiro_unitario}</td>
-                <td>${item.total_parceiro}</td>
-            </tr>`;
+                <tr>
+                    <td class="texto">${item.codigo || ''}</td>
+                    <td class="texto">${item.descricao}</td>
+                    <td class="texto" style="text-align: center">${item.unidade}</td>
+                    <td class="numero">${item.qtde}</td>
+                    <td class="moeda">${item.valor_parceiro_unitario}</td>
+                    <td class="formula">
+                        =MULT(D${linha};E${linha})
+                    </td>
+                </tr>`;
+            linha++;
         }
     }
 
     html += `
-        </table>
+            <tr><td colspan="6" style="border: none; height: 20px"></td></tr>
+            <tr class="total">
+                <td colspan="5" style="text-align: right"><strong>TOTAL DO ORÇAMENTO VENDIDO:</strong></td>
+                <td class="formula">
+                    =SOMA(F9:F${linha - 1})
+                </td>
+            </tr>
+        </tbody>
+    </table>
     </body>
     </html>`;
 
     let blob = new Blob([html], { type: "application/vnd.ms-excel" });
     let url = URL.createObjectURL(blob);
-
     let a = document.createElement("a");
     a.href = url;
     a.download = `LPU_Parceiro_${dados.tecnicoLpu || 'tecnico'}.xls`;
     a.click();
     URL.revokeObjectURL(url);
 }
-
-
-
-
-
 
 async function salvarItensAdicionais(chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
