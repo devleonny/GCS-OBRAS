@@ -1,21 +1,3 @@
-document.addEventListener('DOMContentLoaded', async () => {
-    const pagamentoLPU = JSON.parse(localStorage.getItem('pagamentoLPU')) || {};
-
-    if (pagamentoLPU?.abrirModal) {
-        localStorage.removeItem('pagamentoLPU');
-
-        await tela_pagamento();
-
-        setTimeout(() => {
-            const recebedor = document.getElementById('recebedor');
-            const cc = document.getElementById('cc');
-
-            if (recebedor) recebedor.value = pagamentoLPU.tecnico;
-            if (cc) cc.value = pagamentoLPU.cliente;
-        }, 200)
-    }
-})
-
 let filtrosAtivosPagamentos = {}
 let opcoesStatus = [
     'Aguardando aprovação da Diretoria',
@@ -1601,6 +1583,20 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
     `;
 
     openPopup_v2(acumulado, 'Solicitação de Pagamento')
+
+    const pagamentoLPU = JSON.parse(localStorage.getItem('pagamentoLPU')) || {};
+
+    if (pagamentoLPU?.abrirModal) {
+        localStorage.removeItem('pagamentoLPU');
+
+        return setTimeout(() => {
+            const recebedor = document.getElementById('recebedor');
+            const cc = document.getElementById('cc');
+
+            if (recebedor) recebedor.value = pagamentoLPU.tecnico;
+            if (cc) cc.value = pagamentoLPU.cliente;
+        }, 200)
+    }
 
     intervaloCompleto = setInterval(function () {
         if (!tempo || !tempo.textContent) {
