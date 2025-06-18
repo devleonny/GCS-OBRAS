@@ -501,7 +501,7 @@ async function calcularRequisicao(sincronizar) {
                         tipo = tds[3].querySelector('select') ? tds[3].querySelector('select').value : tds[3].querySelector('label').textContent
                     }
 
-                    let qtde = tds[4].querySelector('input') ? Number(tds[4].querySelector('input').value) : conversor(tds[4].textContent)
+                    let qtde = tds[4].querySelector('input') ? Number(tds[4].querySelector('input').value) : Number(tds[4].textContent)
 
                     if (item.tipo_desconto) {
                         let desconto = item.tipo_desconto == 'Dinheiro' ? item.desconto : (item.custo * (item.desconto / 100))
@@ -1302,7 +1302,12 @@ async function arquivarOrcamento(idOrcamento) {
 
 }
 
-async function painelCustos(id) {
+
+painelCustos()
+
+async function painelCustos() {
+
+    id_orcam = 'ORCA_9cf80d04-fb67-4e7b-9b64-237bfb464607'
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
@@ -1484,8 +1489,8 @@ async function painelCustos(id) {
 function mostrarDetalhes(td, mostrar, freteVenda, compraLinha, totalImpostos) {
 
     let detalhesPreco = document.getElementById('detalhesPreco')
-    if(detalhesPreco) detalhesPreco.remove()
-    if(!mostrar) return
+    if (detalhesPreco) detalhesPreco.remove()
+    if (!mostrar) return
 
     let posicao = td.getBoundingClientRect()
     let left = posicao.left + window.scrollX
@@ -1952,17 +1957,6 @@ async function mostrarHistoricoStatus() {
     openPopup_v2(html, 'Histórico de Alterações de Status', true);
 }
 
-// Add this function to handle closing the popup and returning to main view
-function fecharPopup() {
-    remover_popup();
-
-    // Verifique se deve voltar pra o
-    const lastView = JSON.parse(localStorage.getItem('lastStatusView'));
-    if (lastView && lastView.view === 'status') {
-        abrirEsquema(lastView.id_orcam);
-    }
-}
-
 function exibirItens(div) {
 
     let elemento = div.previousElementSibling;
@@ -1976,297 +1970,6 @@ function exibirItens(div) {
         exibir ? label.textContent = 'menos' : label.textContent = 'ver mais'
 
     });
-}
-
-async function iniciar_cotacao(id_orcam) {
-
-    overlayAguarde()
-
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    let orcamento = dados_orcamentos[id_orcam]
-    let itens_do_orcamento = dados_orcamentos[id_orcam].dados_composicoes
-    let todos_os_status = orcamento.status.historico
-    let itens = {} // Dicionário;
-    let tem_requisicao = false
-
-    for (chave2 in todos_os_status) {
-
-        let status = todos_os_status[chave2]
-
-        if (String(status.status).includes('REQUISIÇÃO')) {
-
-            if (status.requisicoes) {
-
-                tem_requisicao = true
-
-            }
-
-        }
-
-    }
-
-    if (!tem_requisicao) {
-        return openPopup_v2(mensagem('Precisa ter uma requisição para criar uma cotação'), 'ALERTA')
-    }
-
-    for (chave2 in todos_os_status) {
-        let his = todos_os_status[chave2]
-        if (String(his.status).includes('REQUISIÇÃO')) {
-
-            let requisicao = his.requisicoes
-
-            requisicao.forEach(item => {
-
-                let it = item.codigo
-
-                if (!itens[it]) {
-                    itens[it] = {
-                        quantidade: 0,
-                        estoque: 0,
-                        fornecedores: []
-                    }
-                }
-
-                itens[it].tipoUnitario = dados_composicoes[it] !== undefined ? dados_composicoes[it].unidade : itens_do_orcamento[it].unidade
-                itens[it].partnumber = item.partnumber
-                itens[it].quantidade += conversor(item.qtde_enviar)
-                itens[it].nomeItem = dados_composicoes[it] !== undefined ? dados_composicoes[it].descricao : itens_do_orcamento[it].descricao
-
-            })
-
-            let adicionais = his.adicionais || {}
-
-            for (ad in adicionais) {
-
-                let pais = adicionais[ad]
-
-                if (itens[ad]) {
-                    delete itens[ad]
-                }
-
-                for (filho in pais) {
-
-                    let pais_e_filhos = pais[filho]
-
-                    if (!itens[filho]) {
-                        itens[filho] = {
-                            quantidade: 0,
-                            estoque: 0,
-                            fornecedores: []
-                        }
-                    }
-
-                    itens[filho].tipoUnitario = pais_e_filhos.unidade
-                    itens[filho].partnumber = pais_e_filhos.partnumber
-                    itens[filho].quantidade += conversor(pais_e_filhos.qtde)
-                    itens[filho].nomeItem = filho
-
-                }
-
-            }
-
-        }
-    }
-
-    // Converter dicionário em lista; 
-
-    let itens_em_lista = []
-    let i = 1
-    for (it in itens) {
-        itens[it].numeroItem = i
-        itens_em_lista.push(itens[it])
-        i++
-    }
-
-    // Fim
-
-    let id_compartilhado = gerar_id_5_digitos()
-    let data = new Date()
-    let nova_cotacao = {
-        informacoes: {
-            id: id_compartilhado,
-            data: data.toLocaleDateString('pt-BR'),
-            hora: `${String(data.getHours()).padStart(2, '0')}:${String(data.getMinutes()).padStart(2, '0')}:${String(data.getSeconds()).padStart(2, '0')}`,
-            criador: acesso.usuario,
-            apelidoCotacao: orcamento.dados_orcam.cliente_selecionado,
-            idOrcamento: id_orcam,
-            chavePedido: chave
-        },
-        dados: itens_em_lista,
-        valorFinal: [],
-        operacao: 'incluir',
-        status: 'Pendente'
-    }
-
-    let data_completa = new Date().toLocaleString('pt-BR', {
-        dateStyle: 'short',
-        timeStyle: 'short'
-    });
-
-    orcamento.status.historico[id_compartilhado] = {
-        status: 'COTAÇÃO PENDENTE',
-        data: data_completa,
-        executor: acesso.usuario,
-        cotacao: nova_cotacao
-    };
-
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${id_compartilhado}`, orcamento.status.historico[id_compartilhado])
-    await enviar(`dados_cotacao/${id_compartilhado}`, nova_cotacao)
-
-    document.getElementById("aguarde").remove()
-
-    await abrirEsquema(id_orcam)
-
-}
-
-async function valores_manuais() {
-
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let orcamento = dados_orcamentos[id_orcam];
-
-    let acumulado = `
-
-    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: Arial, sans-serif;">
-
-    <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
-
-        <label class="novo_titulo">Gestão de Custos</label>
-
-    </div>
-    
-    <div style="padding: 20px; border-radius: 8px; text-align: center;">
-        <label for="nome-valor-manual" style="display: block; margin-bottom: 5px; font-weight: bold;">Nome do Valor Manual:</label>
-        <input type="text" id="nome-valor-manual" placeholder="Digite o nome" 
-            style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px;">
-
-        <label for="valor-manual" style="display: block; margin-bottom: 5px; font-weight: bold;">Valor Manual:</label>
-        <input type="number" id="valor-manual" placeholder="Digite o valor" 
-            style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px;">
-
-        <button onclick="salvarValorManual()" 
-            style="width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">
-            Salvar
-        </button>
-    </div>
-
-    </div>
-
-    `
-
-    openPopup_v2(acumulado)
-
-}
-
-async function salvarValorManual() {
-
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-
-    let nome = document.getElementById("nome-valor-manual").value.trim();
-    let valor = document.getElementById("valor-manual").value.trim();
-
-    if (!nome || !valor) {
-        openPopup_v2("⚠️ Por favor, preencha todos os campos.");
-        return;
-    }
-
-    if (!dados_orcamentos[id_orcam].valoresManuais) {
-        dados_orcamentos[id_orcam].valoresManuais = {};
-    }
-
-    let idValorManual = gerar_id_5_digitos(); // 🔥 Gera um ID único
-
-    dados_orcamentos[id_orcam].valoresManuais[idValorManual] = {
-        nomeValorManual: nome,
-        valorManual: parseFloat(valor)
-    };
-
-    // 🔥 Limpa os inputs após salvar
-    document.getElementById("nome-valor-manual").value = "";
-    document.getElementById("valor-manual").value = "";
-
-    remover_popup()
-
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${id_orcam}/valoresManuais/${idValorManual}`, dados_orcamentos[id_orcam].valoresManuais[idValorManual]);
-
-    abrirEsquema(id_orcam)
-
-}
-
-async function removerValorManual(id_orcam, idValorManual) {
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-
-    if (!dados_orcamentos[id_orcam]?.valoresManuais || !dados_orcamentos[id_orcam].valoresManuais[idValorManual]) {
-        return;
-    }
-
-    // 🗑️ Remove o valor manual do objeto
-    delete dados_orcamentos[id_orcam].valoresManuais[idValorManual];
-
-    // 🔥 Atualiza o localStorage e envia para a nuvem
-    await inserirDados(dados_orcamentos, 'dados_orcamentos');
-    await deletar(`dados_orcamentos/${id_orcam}/valoresManuais/${idValorManual}`);
-
-    // 🔄 Atualiza a exibição do orçamento
-    abrirEsquema(id_orcam);
-}
-
-function calcularResultado(orcamento) {
-    if (!orcamento || !orcamento.total_geral) return "Erro nos dados";
-
-    // 🔥 Converte total_geral para número (removendo "R$ " e convertendo vírgula para ponto)
-    let totalGeral = parseFloat(orcamento.total_geral.replace("R$ ", "").replace(/\./g, "").replace(",", "."));
-
-    if (isNaN(totalGeral)) return "Erro no total_geral";
-
-    // 🔥 Soma os valores de valoresManuais
-    let somaValoresManuais = Object.values(orcamento.valoresManuais || {})
-        .reduce((soma, item) => soma + (parseFloat(item.valorManual) || 0), 0);
-
-    // 🔥 Subtrai a soma dos valores manuais do total geral
-    let resultadoFinal = totalGeral - somaValoresManuais;
-
-    return resultadoFinal;
-}
-
-
-async function retorno_de_materiais(chave) {
-
-    chave == undefined ? chave = gerar_id_5_digitos() : chave
-
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let orcamento = dados_orcamentos[id_orcam];
-    let linhas = ''
-
-    Object.values(orcamento.dados_composicoes).forEach(item => {
-        linhas += `
-        <tr>
-            <td data-codigo="${item.codigo}">${dados_composicoes[item?.codigo]?.descricao}</td>
-            <td style="text-align: center;">${item.qtde}</td>
-            <td><input style="background-color: #4CAF50; padding: 3px; border-radius: 3px;" type="number"></td>
-        </tr>
-        `
-    })
-
-    let acumulado = `
-    <table id="tabelaRetornoMateriais" class="tabela" style="width: 50vw;">
-        <thead>
-            <th>Descrição</th>
-            <th>Quantidade Disponivel</th>
-            <th>Quantidade para Retorno</th>
-        </thead>
-        <tbody>
-            ${linhas}
-        </tbody>
-    </table>
-    <hr style="width: 80%;">
-    <button style="background-color: #4CAF50;" onclick="salvar_materiais_retorno('${chave}')">Salvar</button>
-    `
-    openPopup_v2(acumulado, 'Retorno de Materiais', true)
-
 }
 
 async function salvar_materiais_retorno(chave) {
@@ -2348,100 +2051,6 @@ async function registrarEnvioMaterial(chave) {
     remover_popup()
     await abrirEsquema(id_orcam)
 
-}
-
-function calcular_quantidades(requisicoes, itens_no_orcamento) {
-
-    if (itens_no_orcamento == undefined) {
-
-        return { cor: '', label_porcentagem: '' }
-    }
-
-    var porcentagem = {
-        qtde_enviar: 0,
-        qtde_orcamento: 0
-    }
-
-    if (!dicionario(itens_no_orcamento)) {
-        var novo_itens_do_orcamento = {};
-
-        itens_no_orcamento.forEach(it => {
-
-            if (!novo_itens_do_orcamento[it.codigo]) {
-                novo_itens_do_orcamento[it.codigo] = it;
-            }
-        });
-
-        itens_no_orcamento = novo_itens_do_orcamento;
-    }
-
-    let totalQtde = Object.values(itens_no_orcamento).reduce((acc, item) => acc + Number(item.qtde), 0);
-
-    totalQtde = conversor(totalQtde)
-
-    porcentagem.qtde_orcamento = totalQtde
-
-    requisicoes.forEach(req => {
-
-        var qtde_enviar = conversor(req.qtde_enviar)
-
-        porcentagem.qtde_enviar += qtde_enviar
-
-    })
-
-    var valor_porcentagem = (porcentagem.qtde_enviar / porcentagem.qtde_orcamento) * 100
-    var cor = '#B12425'
-    var label_porcentagem = `${valor_porcentagem.toFixed(0)}% Preenchido`
-
-    if (!porcentagem.qtde_enviar || !porcentagem.qtde_orcamento) {
-        label_porcentagem = 'Em branco'
-    }
-
-    if (valor_porcentagem > 90) {
-        cor = 'green'
-    } else if (valor_porcentagem > 50) {
-        cor = 'orangered'
-    } else if (valor_porcentagem > 20) {
-        cor = 'orange'
-    }
-
-    var infos = {
-        label_porcentagem: label_porcentagem,
-        cor: cor
-    }
-
-    return infos
-
-}
-
-function calcular_quantidades_v2(historico, itens_no_orcamento) {
-    let quantidades = {}
-
-    for (chave in historico) {
-        if (historico[chave].requisicoes) {
-            var requisicoes = historico[chave].requisicoes
-
-            requisicoes.forEach(item => {
-                if (!quantidades[item.codigo]) {
-                    quantidades[item.codigo] = {
-                        qtde_enviar: 0,
-                        qtde_orcamento: 0,
-                        porcentagem: 0
-                    };
-                }
-
-                var qtde_enviar = conversor(item.qtde_enviar)
-                var qtde_orcamento = conversor(itens_no_orcamento[item.codigo].qtde)
-                var porcentagem = qtde_enviar / qtde_orcamento
-
-                quantidades[item.codigo].qtde_enviar += qtde_enviar
-                quantidades[item.codigo].qtde_orcamento += qtde_orcamento
-                quantidades[item.codigo].porcentagem += porcentagem
-            })
-        }
-    }
-
-    return quantidades
 }
 
 function confirmar_exclusao_comentario(id_comentario, chave) {
@@ -2740,11 +2349,6 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
     mostrarItensAdicionais()
 }
 
-function close_chave() {
-    abrirAtalhos(id_orcam)
-    document.getElementById('alerta').remove()
-}
-
 async function salvar_anexo(chave, input) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
@@ -2823,15 +2427,6 @@ async function atualizar_partnumber(dicionario) {
     }
 
     await inserirDados(dados_composicoes, 'dados_composicoes')
-}
-
-function getComputedStylesAsText(element) {
-    const computedStyles = window.getComputedStyle(element);
-    let styleText = "";
-    for (let property of computedStyles) {
-        styleText += `${property}: ${computedStyles.getPropertyValue(property)}; `;
-    }
-    return styleText;
 }
 
 if (typeof window !== 'undefined' && window.process && window.process.type) {
