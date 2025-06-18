@@ -1320,7 +1320,7 @@ async function painelCustos(id) {
     let totalBruto = 0
     let totalDesconto = 0
     let totalLucro = 0
-    let colunas = ['Código', 'Descrição', 'Quantidade', 'Margem (%)', 'Unitário Venda', 'Total Venda', 'Desconto', 'Custo Compra', 'Impostos<br>Frete Saída<br>Difal', 'Lucro Total']
+    let colunas = ['Código', 'Descrição', 'Quantidade', 'Margem (%)', 'Unitário Venda', 'Total Venda', 'Desconto', 'Lucro Total']
     let ths = ''
 
     colunas.forEach(coluna => {
@@ -1367,9 +1367,11 @@ async function painelCustos(id) {
             <td>${dinheiro(composicao.custo)}</td>
             <td>${dinheiro(vendaLinha)}</td>
             <td>${dinheiro(desconto)}</td>
-            <td>${dinheiro(compraLinha)}</td>
-            <td>${dinheiro(freteSaidaImpostos)}</td>
-            <td style="white-space: nowrap;">(${lucroPorcentagem}%) ${dinheiro(lucroLinha)}</td>
+            <td style="position: relative; white-space: nowrap;" 
+            onmouseover="mostrarDetalhes(this, true, ${lucratividade.freteVenda}, ${compraLinha}, ${lucratividade.totalImpostos})"
+            onmouseout="mostrarDetalhes(this, false)">
+                (${lucroPorcentagem}%) ${dinheiro(lucroLinha)}
+            </td>
         </tr>
         `
 
@@ -1413,7 +1415,7 @@ async function painelCustos(id) {
         `
         tabela.linhas += `
         <tr>
-            <td style="text-align: right;" colspan="5"><strong>TOTAIS</strong></td>
+            <td style="text-align: right;" colspan="3"><strong>TOTAIS</strong></td>
             <td>${dinheiro(tabela.totais.bruto)}</td>
             <td>${dinheiro(tabela.totais.desconto)}</td>
             <td>${dinheiro(tabela.totais.compra)}</td>
@@ -1422,10 +1424,10 @@ async function painelCustos(id) {
         </tr>
         `
         stringTabelas += `
-        <div class="contornoTabela" style="background-color: ${guiaCores[tipo]};" onclick="exibirTabela(this)">
+        <div class="contornoTabela" style="background-color: ${guiaCores[tipo]};">
             <div style="display: flex; justify-content: end; align-items: center; gap: 5px; width: 100%;">
                 <label style="font-size: 1.5vw; color: white; text-align: right;">${tipo}</label>
-                <img src="imagens/pasta.png" style="width: 2vw;">
+                <img src="imagens/pasta.png" style="width: 2vw;" onclick="exibirTabela(this)">
             </div>
             <table class="tabela" style="width: 100%; display: none;">
                 <thead>
@@ -1452,12 +1454,12 @@ async function painelCustos(id) {
                 <div class="contornoTabela">
                     <label>Resumo</label>
                     <table class="tabela">
-                        <thead>
-                            <th>Tipo</th>
-                            <th>Total Bruto</th>
-                            <th>Total Desconto</th>
-                            <th>Total Geral</th>
-                            <th>Total Lucro</th>
+                        <thead style="background-color: #797979;">
+                            <th style="color: white;">Tipo</th>
+                            <th style="color: white;">Total Bruto</th>
+                            <th style="color: white;">Total Desconto</th>
+                            <th style="color: white;">Total Geral</th>
+                            <th style="color: white;">Total Lucro</th>
                         </thead>
                         <tbody>
                             ${linhasTotais}
@@ -1479,9 +1481,42 @@ async function painelCustos(id) {
 
 }
 
+function mostrarDetalhes(td, mostrar, freteVenda, compraLinha, totalImpostos) {
+
+    let detalhesPreco = document.getElementById('detalhesPreco')
+    if(detalhesPreco) detalhesPreco.remove()
+    if(!mostrar) return
+
+    let posicao = td.getBoundingClientRect()
+    let left = posicao.left + window.scrollX
+    let top = posicao.bottom + window.scrollY
+
+    let acumulado = `
+    <div id="detalhesPreco" class="detalhesValores" style="position: absolute; top: ${top}px; left: ${left}px;">
+        <table class="tabela">
+            <thead>
+                <th>Frete Saída</th>
+                <th>Custo Compra</th>
+                <th>Impostos</th>
+            <thead>
+            <tbody>
+                <tr>
+                    <td style="white-space: nowrap;">${dinheiro(freteVenda)}</td>
+                    <td style="white-space: nowrap;">${dinheiro(compraLinha)}</td>
+                    <td style="white-space: nowrap;">${dinheiro(totalImpostos)}</td>
+                <tr>
+            </tbody>
+        </table>
+    </div>
+    `
+
+    document.body.insertAdjacentHTML('beforeend', acumulado)
+
+}
+
 function exibirTabela(div) {
 
-    let tabela = div.querySelector('table')
+    let tabela = div.parentElement.nextElementSibling
     let visibilidadeAtual = tabela.style.display
 
     tabela.style.display = visibilidadeAtual == 'none' ? 'table-row' : 'none'

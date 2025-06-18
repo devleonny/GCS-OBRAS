@@ -1631,6 +1631,16 @@ input[type=range]::-moz-range-thumb {
     cursor: pointer;
 }
 
+.detalhesValores {
+    padding: 2px;
+    gap: 5px;
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    background-color: #797979; 
+    z-index: 10005;
+}
+
 .tabela {
     background-color: #d2d2d2;
     border-collapse: collapse;
