@@ -3751,7 +3751,7 @@ function mostrarElementoSeTiverPermissao({ listaDePermissao, elementoHTML }) {
 async function modalLPUParceiro() {
     const baseOrcamentos = await recuperarDados('dados_orcamentos') || {};
 
-   
+
     let acumulado = '';
     let cabecalhos = ['ID', 'Descrição', 'Medida', 'Quantidade', 'Valor Orçamento', 'Valor Total Orçado', 'Impostos (20%)', 'Margem (R$)', 'Valor Parceiro', 'Total Parceiro', 'Desvio'];
     let thSearch = '';
@@ -4162,7 +4162,7 @@ async function gerarExcelLPUParceiro(lancamento) {
                 font: { name: 'Calibri', sz: 11 },
                 alignment: { vertical: "center", horizontal: "left", wrapText: true },
                 border: {
-                    top: { style: "thin", color:'#d2d2' },
+                    top: { style: "thin", color: '#d2d2' },
                     bottom: { style: "thin", color: { auto: 1 } },
                     left: { style: "thin", color: { auto: 1 } },
                     right: { style: "thin", color: { auto: 1 } }
@@ -4442,7 +4442,7 @@ async function detalharLpuParceiro(chave) {
                 ${stringHtml('Técnico', tecnicoLPU || '')}
             </div>
             <div>
-                <button><strong>Solicitar Pagamento</strong></button>
+                <button onclick="solicitarPagamentoLPU('${tecnicoLPU}', '${dadosEmpresa?.cliente_selecionado || ''}')"><strong>Solicitar Pagamento</strong></button>
                 <button id="btnGerarPdf"><strong>Gerar PDF</strong></button>
             </div>
         </div>
@@ -4461,6 +4461,16 @@ async function detalharLpuParceiro(chave) {
             cnpj: dadosEmpresa?.cnpj || ''
         });
     });
+}
+
+function solicitarPagamentoLPU(tecnico, cliente) {
+    localStorage.setItem('pagamentoLPU', JSON.stringify({
+        tecnico: tecnico,
+        cliente: cliente,
+        abrirModal: true
+    }))
+
+    window.location.href = 'pagamentos.html';
 }
 
 async function gerarPdfParceiro({ tabela, cnpj }) {
