@@ -1653,6 +1653,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 .tabela th {
+    border: solid 1px #d2d2d2;
     color: #222;
     font-size: 0.8vw;
     padding: 8px;
