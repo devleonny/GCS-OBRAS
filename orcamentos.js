@@ -160,7 +160,7 @@ async function preencherOrcamentos(alternar) {
 
             if (orcamento.status && orcamento.status.historico) {
 
-                for([chave, historico] of Object.entries(orcamento.status.historico))
+                for ([chave, historico] of Object.entries(orcamento.status.historico)) {
 
                     if (historico.status == 'PEDIDO') {
 
@@ -183,10 +183,12 @@ async function preencherOrcamentos(alternar) {
                         <div class="etiqueta_pedidos">
                             <label style="font-size: 0.6vw;">${historico.tipo}</label>
                             <label style="font-size: 0.7vw; margin: 2px;"><strong>${historico.nf}</strong></label>
-                            <label style="font-size: 0.8vw; margin: 2px"><strong>${dinheiro(historico.valor)}</strong></label>
+                            <label style="font-size: 0.8vw; margin: 2px;"><strong>${dinheiro(historico.valor)}</strong></label>
                         </div>
                     `
+                    }
                 }
+
             }
 
             let st = 'INCLUIR PEDIDO'

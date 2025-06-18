@@ -312,7 +312,6 @@ async function buscarNFOmie(elemento) {
 
     overlayAguarde()
 
-    let documentos = { danfe: '', xml: '' }
     let numero = elemento.previousElementSibling.previousElementSibling.value
     let tipo = elemento.previousElementSibling.value == 'Venda/Remessa' ? 'venda_remessa' : 'serviço'
     let detalhesNF = document.getElementById('detalhesNF')
@@ -324,10 +323,6 @@ async function buscarNFOmie(elemento) {
         dadosNota = {}
         removerOverlay()
         return detalhesNF.innerHTML = `${resultado.faultstring}`
-    }
-
-    if (resultado?.cUrlDanfe !== '') {
-        documentos.danfe = botao('DANFE', `abrirArquivo('${resultado?.cUrlDanfe}')`, '#B12425')
     }
 
     let divParcelas = ''
@@ -364,9 +359,6 @@ async function buscarNFOmie(elemento) {
         ${modelo('Total', dinheiro(tipo == 'serviço' ? resultado.Valores.nValorTotalServicos : resultado.total.ICMSTot.vNF))}
         
         ${divParcelas}
-
-        ${documentos.danfe}
-        ${documentos.xml}
 
         ${modelo('Comentário', `<textarea style="width: 90%;" id="comentario"></textarea>`)}
 
@@ -1546,7 +1538,7 @@ function elementosEspecificos(chave, historico) {
             ${labelDestaque('Nota', historico.nf)}
             ${labelDestaque('Tipo', historico.tipo)}
             ${labelDestaque('Valor Total', dinheiro(historico.valor))}
-            ${historico?.notaOriginal?.cUrlDanfe !== '' ? botao('DANFE', `abrirArquivo('${historico?.notaOriginal?.cUrlDanfe}')`, '#B12425') : ''}
+            ${historico?.notaOriginal?.cUrlDanfe !== '' ? botao('PDF', `abrirArquivo('${historico?.notaOriginal?.cUrlDanfe}')`, '#B12425') : ''}
             ${divPacelas}
         `
     } else if (historico.envio) {
