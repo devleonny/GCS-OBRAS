@@ -1302,12 +1302,7 @@ async function arquivarOrcamento(idOrcamento) {
 
 }
 
-
-painelCustos()
-
 async function painelCustos() {
-
-    id_orcam = 'ORCA_9cf80d04-fb67-4e7b-9b64-237bfb464607'
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
