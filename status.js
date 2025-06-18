@@ -1769,8 +1769,8 @@ async function abrir_esquema(id) {
                                     onclick="painel_adicionar_notas()">
                                     <label>Nova <strong>Nota Fiscal</strong></label>
                                 </div>
-                                 <div class="contorno_botoes" style="background-color:${fluxogramaMesclado['LPU PARCEIRO'].cor}; flex-direction: column;"
-                                    onclick="modalLPUParceiro()"
+                                <div class="contorno_botoes" style="background-color:${fluxogramaMesclado['LPU PARCEIRO'].cor}; flex-direction: column;"
+                                    onclick="novaLPUParceiro()"
                                     <label>Nova<strong>LPU Parceiro</strong></label>
                                 </div>
 
@@ -3867,17 +3867,48 @@ async function modalLPUParceiro() {
         `
 
     openPopup_v2(acumulado, 'LPU Parceiro', true);
-    calcularLpuParceiro()
+ setTimeout(() => {
+    calcularLpuParceiro();
 
-    const historico = baseOrcamentos[id_orcam]?.status?.historico || {};
-    const ultimaChave = Object.keys(historico).pop();
-    const dadosSalvos = historico[ultimaChave];
+    const chaveEdicao = sessionStorage.getItem('chaveLpuEmEdicao');
 
-    if (dadosSalvos) {
-        document.getElementById('tecnico').value = dadosSalvos?.tecnicoLpu || '';
-        document.getElementById('margem_lpu').value = dadosSalvos?.margem_percentual || 35;
+    if (chaveEdicao) {
+        const historico = baseOrcamentos[id_orcam]?.status?.historico || {};
+        const dadosSalvos = historico[chaveEdicao];
+
+        if (dadosSalvos) {
+            document.getElementById('tecnico').value = dadosSalvos?.tecnicoLpu || '';
+            document.getElementById('margem_lpu').value = dadosSalvos?.margem_percentual || 35;
+
+            const trs = document.querySelectorAll('#bodyTabela tr');
+            for (let tr of trs) {
+                let tds = tr.querySelectorAll('td');
+                const codigo = tds[0]?.textContent.trim();
+                const itemSalvo = dadosSalvos.itens?.[codigo];
+                if (itemSalvo) {
+                    const input = tds[8]?.querySelector('input');
+                    if (input) input.value = itemSalvo.valor_parceiro_unitario;
+                }
+            }
+
+            for (let adicional of dadosSalvos.itens_adicionais || []) {
+                adicionarItemAdicional(adicional);
+            }
+
+            document.querySelector('.botaoLPUParceiro').textContent = 'Salvar Edição';
+        }
+    } else {
+        // Modo novo: limpar campos e rótulo
+        document.getElementById('tecnico').value = '';
+        document.getElementById('margem_lpu').value = 35;
+        document.querySelector('.botaoLPUParceiro').textContent = 'Salvar e Gerar Excel';
     }
+}, 0);
+}
 
+function novaLPUParceiro() {
+    sessionStorage.removeItem('chaveLpuEmEdicao');
+    modalLPUParceiro();
 }
 
 function calcularLpuParceiro() {
@@ -3988,6 +4019,8 @@ function calcularLpuParceiro() {
 
 async function salvarLpuParceiro() {
     overlayAguarde();
+    let chave = sessionStorage.getItem('chaveLpuEmEdicao') || gerar_id_5_digitos();
+
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
     if (!orcamento) {
@@ -4022,7 +4055,7 @@ async function salvarLpuParceiro() {
 
 
     let trs = document.querySelectorAll('#bodyTabela tr');
-    let chave = sessionStorage.getItem('chave_lpu_em_edicao') || gerar_id_5_digitos();
+    
 
     for (let tr of trs) {
         let tds = tr.querySelectorAll('td');
@@ -4086,9 +4119,9 @@ async function salvarLpuParceiro() {
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento);
 
-    // gerarExcelLPUParceiro(novo_lancamento);
 
-    sessionStorage.removeItem('chave_lpu_em_edicao');
+
+    sessionStorage.removeItem('chaveLpuEmEdicao');
 
     exportarComoExcelHTML(novo_lancamento)
     remover_popup();
@@ -4096,98 +4129,6 @@ async function salvarLpuParceiro() {
 
 }
 
-async function gerarExcelLPUParceiro(lancamento) {
-    const wb = XLSX.utils.book_new();
-
-    const cabecalhos = [
-        "Código", "Descrição", "Unidade", "Quantidade",
-        "Valor Parceiro Unitário", "Total Parceiro"
-    ];
-
-    const dados = [];
-
-    // Cabeçalho superior (cliente, data, etc.)
-    dados.push(["Data", lancamento.data]);
-    dados.push(["Analista", lancamento.analista]);
-    dados.push(["Cliente", lancamento.cliente]);
-    dados.push(["CNPJ", lancamento.cnpj]);
-    dados.push(["Endereço", lancamento.endereco]);
-    dados.push(["Cidade", lancamento.cidade]);
-    dados.push(["Estado", lancamento.estado]);
-    dados.push(["Técnico", lancamento.tecnicoLpu]);
-    dados.push([]);
-    dados.push(cabecalhos); // Linha 11
-
-    let linhaInicial = dados.length + 1;
-
-    let index = 0;
-    for (let [codigo, item] of Object.entries(lancamento.itens)) {
-        const linhaExcel = [
-            codigo,
-            item.descricao,
-            item.unidade,
-            item.qtde,
-            item.valor_parceiro_unitario,
-            { f: `D${linhaInicial + index}*E${linhaInicial + index}` } // fórmula Excel
-        ];
-        dados.push(linhaExcel);
-        index++;
-    }
-
-    for (let adicional of lancamento.itens_adicionais || []) {
-        const linhaExcel = [
-            adicional.codigo,
-            adicional.descricao,
-            adicional.unidade,
-            adicional.qtde,
-            adicional.valor_parceiro_unitario,
-            { f: `D${linhaInicial + index}*E${linhaInicial + index}` }
-        ];
-        dados.push(linhaExcel);
-        index++;
-    }
-
-    const ws = XLSX.utils.aoa_to_sheet(dados);
-
-    // Estilização das colunas
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    for (let R = 0; R <= range.e.r; ++R) {
-        for (let C = 0; C <= range.e.c; ++C) {
-            const cell_address = { c: C, r: R };
-            const cell_ref = XLSX.utils.encode_cell(cell_address);
-            const cell = ws[cell_ref];
-            if (!cell) continue;
-
-            cell.s = {
-                font: { name: 'Calibri', sz: 11 },
-                alignment: { vertical: "center", horizontal: "left", wrapText: true },
-                border: {
-                    top: { style: "thin", color: '#d2d2' },
-                    bottom: { style: "thin", color: { auto: 1 } },
-                    left: { style: "thin", color: { auto: 1 } },
-                    right: { style: "thin", color: { auto: 1 } }
-                },
-                fill: R === 10 ? {
-                    patternType: "solid",
-                    fgColor: { rgb: "D9D9D9" }
-                } : undefined
-            };
-        }
-    }
-
-    ws['!cols'] = [
-        { wch: 10 }, // Código
-        { wch: 50 }, // Descrição
-        { wch: 10 }, // Unidade
-        { wch: 12 }, // Quantidade
-        { wch: 18 }, // Valor Parceiro
-        { wch: 18 }  // Total Parceiro
-    ];
-
-    XLSX.utils.book_append_sheet(wb, ws, "LPU Parceiro");
-
-    XLSX.writeFile(wb, `LPU_Parceiro_${lancamento.cliente}.xlsx`);
-}
 
 function exportarComoExcelHTML(dados) {
     let html = `
@@ -4624,10 +4565,22 @@ async function gerarPdfParceiro({ tabela, cnpj }) {
     await gerar_pdf_online(htmlContent, `LPU_PACEIRO_${cnpj}`);
 }
 
-function adicionarItemAdicional() {
+function adicionarItemAdicional(dados = {}) {
     const bodyTabela = document.getElementById('bodyTabela');
-    let idAleatoria = gerar_id_5_digitos()
+    const idAleatoria = gerar_id_5_digitos();
 
+    // Cálculo automático se os dados não foram salvos
+    const qtde = Number(dados.qtde || 0);
+    const valorUnit = Number(dados.valor_orcamento || dados.valor_parceiro_unitario || 0);
+    const margem = Number(document.getElementById('margem_lpu')?.value || 0) / 100;
+
+    const totalOrcado = valorUnit * qtde;
+    const impostos = totalOrcado * 0.2;
+    const valorComMargem = totalOrcado + (totalOrcado * margem);
+    const totalParceiro = Number(dados.valor_parceiro_unitario || 0) * qtde;
+    const desvio = totalParceiro - valorComMargem;
+
+    // Adiciona label "SERVIÇOS ADICIONAIS" se não existir
     if (!document.getElementById('labelItensAdicionais')) {
         const labelRow = document.createElement('tr');
         labelRow.id = 'labelItensAdicionais';
@@ -4637,33 +4590,30 @@ function adicionarItemAdicional() {
             </td>
         `;
         bodyTabela.appendChild(labelRow);
-        calcularLpuParceiro()
     }
 
-
     const novaLinha = document.createElement('tr');
-    novaLinha.classList.add('item-adicional')
+    novaLinha.classList.add('item-adicional');
+
     novaLinha.innerHTML = `
         <td style="position: relative;">
-    
-            <div class="codigo-item" style="padding-right: 20px;"></div>
+            <div class="codigo-item" style="padding-right: 20px;">${dados.codigo || ''}</div>
             <span 
                 onclick="removerItemAdicional(this)" 
                 style="position: absolute; top: 2px; right: 4px; cursor: pointer; color: red; font-weight: bold; font-size: 1.3em;"
                 title="Remover item"
             >X</span>
         </td>
-        <td >
-            <textarea id="${idAleatoria}"style="border: none;" oninput="sugestoesParceiro(this, 'composicoes')"></textarea>
+        <td>
+            <textarea id="${idAleatoria}" style="border: none;" oninput="sugestoesParceiro(this, 'composicoes')">${dados.descricao || ''}</textarea>
             <input style="display: none;">
         </td>
-        <td contenteditable="true">
-        </td>
-        <td class="quantidade" contenteditable="true" oninput="atualizarTotalOrcado(this)"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
+        <td contenteditable="true">${dados.unidade || ''}</td>
+        <td class="quantidade" contenteditable="true" oninput="atualizarTotalOrcado(this)">${dados.qtde || ''}</td>
+        <td>${dinheiro(dados.valor_orcamento ?? valorUnit)}</td>
+        <td>${dinheiro(dados.total_orcado ?? totalOrcado)}</td>
+        <td>${dinheiro(dados.impostos ?? impostos)}</td>
+        <td>${dinheiro(dados.margem ?? (valorComMargem - totalOrcado))}</td>
         <td style="padding: 0; white-space: nowrap; height: 100%;">
             <div style="display: flex; align-items: stretch; gap: 4px; width: 100%; height: 100%; box-sizing: border-box; padding: 2px 5px;">
                 <span style="display: flex; align-items: center;">R$</span>
@@ -4672,14 +4622,32 @@ function adicionarItemAdicional() {
                     type="number" 
                     class="input-lpuparceiro" 
                     step="0.01"
+                    value="${dados.valor_parceiro_unitario || ''}"
                 >
             </div>
         </td>
-        <td></td>
-        <td><label></label></td>
+        <td>${dinheiro(dados.total_parceiro ?? totalParceiro)}</td>
+        <td><label>${dinheiro(dados.desvio ?? desvio)}</label></td>
     `;
+
     bodyTabela.appendChild(novaLinha);
+
+if (dados?.descricao && dados?.codigo && dados?.valor_orcamento && dados?.unidade) {
+    const textarea = novaLinha.querySelector('textarea');
+    definirCampoParceiro(
+        { textContent: dados.descricao },
+        textarea.id,
+        dados.codigo,
+        dados.unidade,
+        dados.valor_orcamento
+    );
 }
+
+calcularLpuParceiro();
+
+}
+
+
 
 
 
@@ -4848,7 +4816,7 @@ async function definirCampoParceiro(elemento, idAleatoria, codBases, unidade, va
         let celulaValorUnitario = celulaUnidade.nextElementSibling?.nextElementSibling;
         let celulaTotal = celulaValorUnitario?.nextElementSibling;
 
-        // Atualiza o código do item
+ 
         let divCodigo = celulaCodigo.querySelector('.codigo-item');
         if (divCodigo) {
             divCodigo.textContent = codBases;
@@ -4856,11 +4824,11 @@ async function definirCampoParceiro(elemento, idAleatoria, codBases, unidade, va
             celulaCodigo.textContent = codBases; // fallback
         }
 
-        // Atualiza unidade e valor unitário
+    
         celulaUnidade.textContent = unidade;
         celulaValorUnitario.textContent = dinheiro(valor);
 
-        // Atualiza total com base na quantidade (se houver)
+
         let quantidadeCelula = linha.querySelector('.quantidade');
         let quantidade = parseFloat(quantidadeCelula?.innerText.replace(',', '.') || 0);
         let total = quantidade * valor;
@@ -4874,7 +4842,7 @@ async function definirCampoParceiro(elemento, idAleatoria, codBases, unidade, va
         campo.innerText = elemento.textContent;
     }
 
-    // Remove a div de sugestões (com segurança)
+
     let div_sugestoes = document.getElementById('div_sugestoes');
     if (div_sugestoes) div_sugestoes.remove();
 
@@ -4882,33 +4850,43 @@ async function definirCampoParceiro(elemento, idAleatoria, codBases, unidade, va
     campo.blur();
 }
 
-function editarLpuParceiro(chave) {
-    let dados = dados_orcamentos[id_orcam]
-    if (!dados?.status?.historico?.[chave]) {
-        console.warn("Não há LPU Parceiro para editar", chave);
-        return;
-    }
+async function editarLpuParceiro(chave) {
+    const baseOrcamentos = await recuperarDados('dados_orcamentos') || {};
+    const orcamento = baseOrcamentos[id_orcam];
+    if (!orcamento) return;
 
-    let lancamento = dados.status.historico[chave]
-    document.getElementById('margem_lpu').value = lancamento.margem_percentual;
+    const historico = orcamento?.status?.historico || {};
+    const dadosSalvos = historico[chave];
+    if (!dadosSalvos) return;
 
-    let trs = document.querySelectorAll('#bodyTabela tr')
+    sessionStorage.setItem('chaveLpuEmEdicao', chave);
 
+    await modalLPUParceiro();
+    setTimeout(() => {})
+    document.getElementById('margem_lpu').value = dadosSalvos.margem_percentual || 35;
+    document.getElementById('tecnico').value = dadosSalvos.tecnicoLpu || '';
+
+    const trs = document.querySelectorAll('#bodyTabela tr');
     for (let tr of trs) {
-        let tds = tr.querySelectorAll('td')
-        if (tds.length < 11) continue;
+        let tds = tr.querySelectorAll('td');
+        const codigo = tds[0]?.textContent.trim();
+        if (!codigo) continue;
 
-        let codigo = tds[0].textContent.trim()
-        let item = lancamento.itens[codigo];
-        if (!item) continue;
+        const itemSalvo = dadosSalvos.itens[codigo];
+        if (!itemSalvo) continue;
 
-        let input = tds[8].querySelector('input')
-        if (input) {
-            input.value = item.valor_parceiro_unitario;
-            input.dispatchEvent(new Event('input'))
+        const inputValorParceiro = tds[8]?.querySelector('input');
+        if (inputValorParceiro) {
+            inputValorParceiro.value = itemSalvo.valor_parceiro_unitario;
         }
     }
 
-    sessionStorage.setItem('chave_lpu_em_edicao', chave)
+    for (let adicional of dadosSalvos.itens_adicionais || []) {
+        adicionarItemAdicional(adicional);
+    }
+
+    calcularLpuParceiro();
 }
+
+
 
