@@ -2475,12 +2475,12 @@ async function sincronizarDados(base, overlayOff) {
     if (!overlayOff) removerOverlay()
 }
 
-async function verificarNF(numero, tipo) {
+async function verificarNF(numero, tipo, app) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/notas", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ numero, tipo })
+            body: JSON.stringify({ numero, tipo, app })
         })
             .then(response => {
                 if (!response.ok) {

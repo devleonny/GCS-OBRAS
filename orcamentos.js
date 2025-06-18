@@ -185,7 +185,7 @@ async function preencherOrcamentos(alternar) {
                             <label style="font-size: 0.7vw; margin: 2px;"><strong>${historico.nf}</strong></label>
                             <label style="font-size: 0.8vw; margin: 2px;"><strong>${dinheiro(historico.valor)}</strong></label>
                         </div>
-                    `
+                        `
                     }
                 }
 

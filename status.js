@@ -291,9 +291,16 @@ async function painelAdicionarNotas() {
                 `
                 <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
                     <input class="pedido">
-                        <select class="pedido">
+
+                    <select class="pedido">
                         <option>Venda/Remessa</option>
                         <option>Serviço</option>
+                    </select>
+
+                    <select class="pedido">
+                        <option>AC</option>
+                        <option>HNW</option>
+                        <option>HNK</option>
                     </select>
                     <button onclick="buscarNFOmie(this)" style="background-color: #097fe6;">Buscar dados</button>
                 </div>
@@ -312,12 +319,14 @@ async function buscarNFOmie(elemento) {
 
     overlayAguarde()
 
-    let numero = elemento.previousElementSibling.previousElementSibling.value
-    let tipo = elemento.previousElementSibling.value == 'Venda/Remessa' ? 'venda_remessa' : 'serviço'
+    let numero = elemento.previousElementSibling.previousElementSibling.previousElementSibling.value
+    let tipo = elemento.previousElementSibling.previousElementSibling.value == 'Venda/Remessa' ? 'venda_remessa' : 'serviço'
+    let app = elemento.previousElementSibling.value
+
     let detalhesNF = document.getElementById('detalhesNF')
     detalhesNF.innerHTML = ''
 
-    let resultado = await verificarNF(numero, tipo)
+    let resultado = await verificarNF(numero, tipo, app)
 
     if (resultado.faultstring) {
         dadosNota = {}
@@ -343,6 +352,7 @@ async function buscarNFOmie(elemento) {
     }
 
     dadosNota = {
+        app,
         notaOriginal: resultado,
         tipo: tipo == 'serviço' ? 'Serviço' : guiaTipo[resultado.pedido.opPedido],
         nf: tipo == 'serviço' ? resultado.Cabecalho.nNumeroNFSe : resultado.ide.nNF,
