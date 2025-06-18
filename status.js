@@ -287,8 +287,8 @@ async function painelAdicionarNotas() {
 
             <hr style="width: 100%;">
 
-            ${modelo('Digite o número da NF', 
-                `
+            ${modelo('Digite o número da NF',
+        `
                 <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
                     <input class="pedido">
 
@@ -382,12 +382,17 @@ async function buscarNFOmie(elemento) {
 
 async function salvarNota() {
 
+    overlayAguarde()
+
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam]
     let chave = gerar_id_5_digitos()
     let comentario = document.getElementById('comentario').value
 
-    if (Object.keys(dadosNota).length == 0) return openPopup_v2(mensagem(`A busca não recuperou dados`), 'ALERTA', true)
+    if (Object.keys(dadosNota).length == 0) {
+        removerOverlay()
+        return openPopup_v2(mensagem(`A busca não recuperou dados`), 'ALERTA', true)
+    }
 
     if (!orcamento.status) orcamento.status = {}
     if (!orcamento.status.historico) orcamento.status.historico = {}
@@ -1534,7 +1539,7 @@ function elementosEspecificos(chave, historico) {
             `
     } else if (historico.status == 'FATURADO') {
         let divPacelas = ''
-        
+
         let parcelas = (historico?.parcelas || [])
             .map(parcela => `Parcela ${parcela.nParcela} <br> ${labelDestaque(parcela.dDtVenc, dinheiro(parcela.nValorTitulo))}`)
             .join('')
