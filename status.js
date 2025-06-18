@@ -4204,13 +4204,8 @@ function exportarComoExcelHTML(dados) {
                 text-align: left;
             }
             .moeda {
-                mso-number-format:"R$ #,##0.00";
+                mso-number-format:"R$ 0.00";
                 text-align: right;
-            }
-            .formula {
-                mso-number-format:"R$ #,##0.00";
-                text-align: right;
-                width: 250px !important;
             }
             .cabecalho {
                 background-color: rgb(0, 138, 0);
@@ -4228,16 +4223,7 @@ function exportarComoExcelHTML(dados) {
             }
             table {
                 border-collapse: collapse;
-                table-layout: fixed;
-                width: 100%;
             }
-            /* Definindo larguras específicas para cada coluna */
-            col.col1 { width: 100px; }   /* Código */
-            col.col2 { width: 300px; }   /* Descrição */
-            col.col3 { width: 80px; }    /* Unidade */
-            col.col4 { width: 100px; }   /* Quantidade */
-            col.col5 { width: 120px; }   /* Valor Unitário */
-            col.col6 { width: 250px; }   /* Total Parceiro */
         </style>
     </head>
     <body>
@@ -4275,22 +4261,14 @@ function exportarComoExcelHTML(dados) {
         <br>
 
         <table>
-            <colgroup>
-                <col class="col1">
-                <col class="col2">
-                <col class="col3">
-                <col class="col4">
-                <col class="col5">
-                <col class="col6">
-            </colgroup>
             <thead>
                 <tr>
-                    <th class="cabecalho" style="width: 100px">Código</th>
-                    <th class="cabecalho" style="width: 300px">Descrição</th>
-                    <th class="cabecalho" style="width: 80px">Unidade</th>
-                    <th class="cabecalho" style="width: 100px">Quantidade</th>
-                    <th class="cabecalho" style="width: 120px">Valor Unitário</th>
-                    <th class="cabecalho" style="width: 250px">Total</th>
+                    <th class="cabecalho">Código</th>
+                    <th class="cabecalho">Descrição</th>
+                    <th class="cabecalho">Unidade</th>
+                    <th class="cabecalho">Quantidade</th>
+                    <th class="cabecalho">Valor Unitário</th>
+                    <th class="cabecalho">Total</th>
                 </tr>
             </thead>
             <tbody>`;
@@ -4304,7 +4282,7 @@ function exportarComoExcelHTML(dados) {
                 <td class="texto" style="text-align: center">${item.unidade}</td>
                 <td class="numero">${item.qtde}</td>
                 <td class="moeda">${item.valor_parceiro_unitario}</td>
-                <td class="formula">
+                <td class="moeda">
                     =MULT(D${linha};E${linha})
                 </td>
             </tr>`;
@@ -4327,7 +4305,7 @@ function exportarComoExcelHTML(dados) {
                     <td class="texto" style="text-align: center">${item.unidade}</td>
                     <td class="numero">${item.qtde}</td>
                     <td class="moeda">${item.valor_parceiro_unitario}</td>
-                    <td class="formula">
+                    <td class="moeda">
                         =MULT(D${linha};E${linha})
                     </td>
                 </tr>`;
