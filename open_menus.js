@@ -751,8 +751,7 @@ function openPopup_v2(elementoHTML, titulo, nao_remover_anteriores) {
 
         </div>
 
-    </div>
-    `;
+    </div>`;
 
     remover_popup(nao_remover_anteriores)
     removerOverlay()
@@ -776,8 +775,8 @@ function criarAnexoVisual(nome, link_anexo, funcao_excluir) {
         : nome;
 
     return `
-        <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 2px; background-color: #222; color: white;">
-            <div onclick="abrirArquivo('${link_anexo}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 2px;">
+        <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: 100%; gap: 2px; background-color: #222; color: white;">
+            <div onclick="abrirArquivo('${link_anexo}')" class="contorno_interno" style="width: 100%; display: flex; align-items: center; justify-content: start; gap: 2px;">
                 <img src="imagens/anexo2.png" style="width: 2vw;">
                 <label style="font-size: 0.7vw; cursor: pointer;" title="${nome}">${nomeFormatado}</label>
             </div>
@@ -2476,12 +2475,12 @@ async function sincronizarDados(base, overlayOff) {
     if (!overlayOff) removerOverlay()
 }
 
-async function verificarDadosNotas(numero) {
+async function verificarNF(numero, tipo) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/notas", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ numero })
+            body: JSON.stringify({ numero, tipo })
         })
             .then(response => {
                 if (!response.ok) {

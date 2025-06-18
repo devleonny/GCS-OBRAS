@@ -130,7 +130,7 @@ async function preencherOrcamentos(alternar) {
     div_orcamentos.innerHTML = ''
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    
+
     let desordenado = Object.entries(dados_orcamentos)
     desordenado.sort((a, b) => new Date(b[1]?.dados_orcam?.data || '') - new Date(a[1]?.dados_orcam?.data || ''))
     dados_orcamentos = Object.fromEntries(desordenado)
@@ -159,17 +159,14 @@ async function preencherOrcamentos(alternar) {
             let label_notas = ''
 
             if (orcamento.status && orcamento.status.historico) {
-                let historico = orcamento.status.historico
-                for (chave1 in historico) {
 
-                    let chave_historico = historico[chave1]
-                    let status = chave_historico.status
+                for([chave, historico] of Object.entries(orcamento.status.historico))
 
-                    if (status == 'PEDIDO') {
+                    if (historico.status == 'PEDIDO') {
 
-                        let num_pedido = chave_historico.pedido
-                        let tipo = chave_historico.tipo
-                        let valor_pedido = conversor(chave_historico.valor)
+                        let num_pedido = historico.pedido
+                        let tipo = historico.tipo
+                        let valor_pedido = conversor(historico.valor)
 
                         label_pedidos += `
                         <div class="etiqueta_pedidos"> 
@@ -180,20 +177,15 @@ async function preencherOrcamentos(alternar) {
                         `
                     }
 
-                    if (chave_historico.notas) {
-
-                        let nota = chave_historico.notas[0]
-                        let valor_nota = chave_historico.notas[0].valorNota || '---'
-
+                    if (historico.status == 'FATURADO') {
 
                         label_notas += `
                         <div class="etiqueta_pedidos">
-                            <label style="font-size: 0.6vw;">${nota.modalidade}</label>
-                            <label style="font-size: 0.7vw; margin: 2px;"><strong>${nota.nota}</strong></label>
-                            <label style="font-size: 0.8vw; margin: 2px"><strong>${dinheiro(valor_nota)}</strong></label>
+                            <label style="font-size: 0.6vw;">${historico.tipo}</label>
+                            <label style="font-size: 0.7vw; margin: 2px;"><strong>${historico.nf}</strong></label>
+                            <label style="font-size: 0.8vw; margin: 2px"><strong>${dinheiro(historico.valor)}</strong></label>
                         </div>
                     `
-                    }
                 }
             }
 

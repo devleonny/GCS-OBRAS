@@ -1,11 +1,19 @@
 let itens_adicionais = {}
 let id_orcam = ''
 let fluxograma = {}
+let dadosNota = {}
+let guiaTipo = {
+    '11': 'Venda',
+    '01': 'Venda de Serviço',
+    '13': 'Devolução de Venda',
+    '14': 'Remessa',
+    '16': 'Nota Complementar de Saída'
+}
 const modelo = (valor1, valor2) => {
     return `
-        <div style="display: flex; flex-direction: column; align-items: start; margin-bottom: 5px;">
+        <div style="display: flex; flex-direction: column; align-items: start; margin-bottom: 5px; width: 100%;">
             <label><strong>${valor1}</strong></label>
-            <div>${valor2}</div>
+            <div style="width: 100%; text-align: left;">${valor2}</div>
         </div>
         `
 }
@@ -265,17 +273,11 @@ async function painelAdicionarPedido() {
 
 }
 
-async function painelAdicionarNotas(chave) {
+async function painelAdicionarNotas() {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
     let cliente = orcamento.dados_orcam.cliente_selecionado;
-    chave = chave === undefined ? gerar_id_5_digitos() : chave;
-    let st = orcamento.status?.historico?.[chave] || {};
-    let notas = st.notas?.[0] || {};
-    let opcoes = ['Selecione', 'Remessa', 'Venda', 'Serviço', 'Venda + Serviço']
-        .map(op => `<option ${notas?.modalidade == op ? 'selected' : ''}>${op}</option>`)
-        .join('')
 
     let acumulado = `
         <div id="painelNotas" style="background-color: #d2d2d2; display: flex; justify-content: center; flex-direction: column; align-items: start; padding: 2vw;">
@@ -285,16 +287,24 @@ async function painelAdicionarNotas(chave) {
 
             <hr style="width: 100%;">
 
-            ${modelo('Digite o número da NF',
-        `<input class="pedido">
-                <button onclick="buscarNFOmie(this)" style="background-color: green;">Buscar dados</button>`)}
+            ${modelo('Digite o número da NF', 
+                `
+                <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <input class="pedido">
+                        <select class="pedido">
+                        <option>Venda/Remessa</option>
+                        <option>Serviço</option>
+                    </select>
+                    <button onclick="buscarNFOmie(this)" style="background-color: #097fe6;">Buscar dados</button>
+                </div>
+                `)}
 
-            <div id="detalhesNF"></div>
+            <div id="detalhesNF" style="width: 100%;"></div>
 
         </div>
         `;
 
-    openPopup_v2(acumulado, 'Nova Nota Fiscal', true);
+    openPopup_v2(acumulado, 'Vincular Nota Fiscal', true);
 
 }
 
@@ -303,39 +313,105 @@ async function buscarNFOmie(elemento) {
     overlayAguarde()
 
     let documentos = { danfe: '', xml: '' }
-    let numero = elemento.previousElementSibling.value
+    let numero = elemento.previousElementSibling.previousElementSibling.value
+    let tipo = elemento.previousElementSibling.value == 'Venda/Remessa' ? 'venda_remessa' : 'serviço'
     let detalhesNF = document.getElementById('detalhesNF')
     detalhesNF.innerHTML = ''
 
-    let resultado = await verificarDadosNotas('nf', numero)
+    let resultado = await verificarNF(numero, tipo)
 
-    console.log(resultado);
-    
-    if (resultado.faultstring) return detalhesNF.innerHTML = 'Falha na API'
+    if (resultado.faultstring) {
+        dadosNota = {}
+        removerOverlay()
+        return detalhesNF.innerHTML = `${resultado.faultstring}`
+    }
 
-    if (resultado?.cUrlDanfe !== '') { //29
+    if (resultado?.cUrlDanfe !== '') {
         documentos.danfe = botao('DANFE', `abrirArquivo('${resultado?.cUrlDanfe}')`, '#B12425')
     }
 
-    let parcelas = resultado.titulos
-        .map(parcela => `<label><strong>Data:</strong> ${parcela.dDtVenc} || <strong>Valor: </strong>${dinheiro(parcela.nValorTitulo)}</label><br>`)
+    let divParcelas = ''
+    let parcelas = (resultado?.titulos || [])
+        .map((parcela, i) =>
+            `${modelo(`Parcela ${i + 1}`,
+                `<label>${parcela.dDtVenc} <strong>${dinheiro(parcela.nValorTitulo)}</strong></label><br>`)}`)
         .join('')
 
-    detalhesNF.innerHTML = `
-        ${modelo('Cliente', resultado.nfDestInt.cRazao)}
-        ${modelo('CNPJ', resultado.nfDestInt.cnpj_cpf)}
-        ${modelo('Total', dinheiro(resultado.total.ICMSTot.vNF))}
-        
+    if (parcelas !== '') {
+        divParcelas = `
         <hr style="width: 100%;">
-        ${modelo('Parcelas', parcelas)}
+
+        ${parcelas}
+
+        <hr style="width: 100%;">
+        `
+    }
+
+    dadosNota = {
+        notaOriginal: resultado,
+        tipo: tipo == 'serviço' ? 'Serviço' : guiaTipo[resultado.pedido.opPedido],
+        nf: tipo == 'serviço' ? resultado.Cabecalho.nNumeroNFSe : resultado.ide.nNF,
+        dEmi: tipo == 'serviço' ? resultado.Inclusao.cDataInclusao : resultado.ide.dEmi,
+        hEmi: tipo == 'serviço' ? resultado.Inclusao.cHoraInclusao : resultado.ide.dReg,
+        valor: tipo == 'serviço' ? resultado.Valores.nValorTotalServicos : resultado.total.ICMSTot.vNF,
+        parcelas: resultado?.titulos || [],
+    }
+
+    detalhesNF.innerHTML = `
+        ${modelo('Tipo', tipo == 'serviço' ? 'Serviço' : guiaTipo[resultado.pedido.opPedido])}
+        ${modelo('Cliente', tipo == 'serviço' ? resultado.Cabecalho.cRazaoDestinatario : resultado.nfDestInt.cRazao)}
+        ${modelo('CNPJ', tipo == 'serviço' ? resultado.Cabecalho.cCNPJDestinatario : resultado.nfDestInt.cnpj_cpf)}
+        ${modelo('Total', dinheiro(tipo == 'serviço' ? resultado.Valores.nValorTotalServicos : resultado.total.ICMSTot.vNF))}
+        
+        ${divParcelas}
 
         ${documentos.danfe}
         ${documentos.xml}
 
+        ${modelo('Comentário', `<textarea style="width: 90%;" id="comentario"></textarea>`)}
+
+        <div style="width: 100%; display: flex; justify-content: end; align-items: center;">
+            <button onclick="salvarNota()" style="background-color: green;">Salvar</button>
+        </div>
     `
     // trazer o pdf e o xml?
     removerOverlay()
+}
 
+async function salvarNota() {
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let orcamento = dados_orcamentos[id_orcam]
+    let chave = gerar_id_5_digitos()
+    let comentario = document.getElementById('comentario').value
+
+    if (Object.keys(dadosNota).length == 0) return openPopup_v2(mensagem(`A busca não recuperou dados`), 'ALERTA', true)
+
+    if (!orcamento.status) orcamento.status = {}
+    if (!orcamento.status.historico) orcamento.status.historico = {}
+    if (!orcamento.status.historico[chave]) orcamento.status.historico[chave] = {}
+
+    let dados = {
+        status: 'FATURADO',
+        data: data_atual('completa'),
+        executor: acesso.usuario,
+        comentario
+    }
+
+    dados = {
+        ...dados,
+        ...dadosNota
+    }
+
+    orcamento.status.historico[chave] = dados
+
+    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, dados)
+
+    remover_popup()
+    await abrirEsquema(id_orcam)
+
+    itens_adicionais = {}
 }
 
 function removerPagamento(botao) {
@@ -1019,71 +1095,6 @@ async function salvarPedido() {
 
 }
 
-async function salvarNotas(chave) {
-    let nota = document.getElementById('nota')
-    let valorNota = Number(document.getElementById('valorNota').value)
-    let tipo = document.getElementById('tipo')
-    let comentario_status = document.getElementById('comentario_status')
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    let orcamento = dados_orcamentos[id_orcam];
-    let painelNotas = document.getElementById('painelNotas')
-    let inputs = painelNotas.querySelectorAll('input')
-    let parcelas = {}
-    let somaParcelas = 0
-
-    inputs.forEach(input => {
-
-        if (input.type == 'date' && input.value != '') {
-            let idParcela = gerar_id_5_digitos()
-            let valor = Number(input.parentElement.nextElementSibling.querySelector('input').value)
-            parcelas[idParcela] = {
-                data: input.value,
-                valor
-            }
-
-            somaParcelas += valor
-        }
-    })
-
-    if (somaParcelas !== valorNota) return openPopup_v2(mensagem(`Total das parcelas é diferente do total da Nota`), 'ALERTA', true)
-
-    if (tipo.value == 'Selecione' || nota.value == '' || valorNota == '') {
-
-        return openPopup_v2(mensagem(`Existem campos em Branco`), 'ALERTA', true)
-
-    }
-
-    if (!orcamento.status) orcamento.status = {}
-    if (!orcamento.status.historico) orcamento.status.historico = {}
-    if (!orcamento.status.historico[chave]) orcamento.status.historico[chave] = {}
-
-    let dados = {
-        status: 'FATURADO',
-        data: data_atual('completa'),
-        executor: acesso.usuario,
-        comentario: comentario_status.value,
-        parcelas,
-        notas: [{
-            nota: nota.value,
-            modalidade: tipo.value,
-            valorNota: valorNota,
-        }]
-    }
-
-    orcamento.status.historico[chave] = {
-        ...orcamento.status.historico[chave],
-        ...dados
-    }
-
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
-
-    remover_popup()
-    await abrirEsquema(id_orcam)
-
-    itens_adicionais = {}
-}
-
 async function salvar_requisicao(chave) {
 
     overlayAguarde()
@@ -1519,20 +1530,24 @@ function elementosEspecificos(chave, historico) {
                 ${modeloCampos(historico.tipo, 'tipo', 'Tipo')}
             </div>
             `
-    } else if (historico.notas) {
-
-        funcaoEditar = `painelAdicionarNotas('${chave}')`
-
-        let parcelas = Object.entries(historico.parcelas || {})
-            .map(([idParcela, parcela]) => `${labelDestaque(auxiliarDatas(parcela.data), dinheiro(parcela.valor))}`)
+    } else if (historico.status == 'FATURADO') {
+        let divPacelas = ''
+        
+        let parcelas = (historico?.parcelas || [])
+            .map(parcela => `Parcela ${parcela.nParcela} <br> ${labelDestaque(parcela.dDtVenc, dinheiro(parcela.nValorTitulo))}`)
             .join('')
 
-        acumulado = `
-            ${labelDestaque('Nota', historico.notas[0].nota)}
-            ${labelDestaque('Tipo', historico.notas[0].modalidade)}
-            ${labelDestaque('Valor Total', dinheiro(historico.notas[0].valorNota))}
+        if (parcelas !== '') divPacelas = `
             <hr style="width: 100%;">
             ${parcelas}
+        `
+
+        acumulado = `
+            ${labelDestaque('Nota', historico.nf)}
+            ${labelDestaque('Tipo', historico.tipo)}
+            ${labelDestaque('Valor Total', dinheiro(historico.valor))}
+            ${historico?.notaOriginal?.cUrlDanfe !== '' ? botao('DANFE', `abrirArquivo('${historico?.notaOriginal?.cUrlDanfe}')`, '#B12425') : ''}
+            ${divPacelas}
         `
     } else if (historico.envio) {
 
@@ -1582,7 +1597,7 @@ async function abrirEsquema(id) {
                     ${labelDestaque('Chamado', orcamento.dados_orcam.contrato)}
                     ${labelDestaque('Executor', historico.executor)}
                     ${labelDestaque('Data', historico.data)}
-                    ${labelDestaque('Comentário', historico.comentario)}
+                    ${labelDestaque('Comentário', historico?.comentario || '')}
                     ${labelDestaque('Executor', historico.executor)}
 
                     ${elementosEspecificos(chave, historico)}
@@ -1655,7 +1670,8 @@ async function abrirEsquema(id) {
         .join('')
 
     let divLevantamentos = `
-        <div style="display: flex; justify-content: start; align-items: center; flex-direction: column; gap: 2px; margin-right: 20px; margin-top: 10px;">
+        <div style="display: flex; justify-content: start; align-items: start; flex-direction: column; gap: 2px; margin-right: 20px; margin-top: 10px;">
+
             <div class="contorno_botoes" for="adicionar_levantamento">
                 <img src="imagens/anexo2.png" style="width: 2vw;">
                 <label style="font-size: 0.8vw; color: white;"> Anexar levantamento
@@ -1663,13 +1679,13 @@ async function abrirEsquema(id) {
                         onchange="salvar_levantamento('${id}')">
                 </label>
             </div>
+
             ${levantamentos}
-        </div>
-    `
+        </div>`
 
     let acumulado = `
 
-        <div style="min-height: max-content; height: 70vh; overflow: auto; background-color: #d2d2d2; display: flex; flex-direction: column; gap: 15px; min-width: 60vw; padding: 2vw;">
+        <div style="min-height: max-content; height: 70vh; overflow: auto; background-color: #d2d2d2; display: flex; flex-direction: column; gap: 15px; min-width: 70vw; padding: 2vw;">
 
             <div style="display: flex; flex-direction: column; gap: 10px; padding: 3px;">
 
