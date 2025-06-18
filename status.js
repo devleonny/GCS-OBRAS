@@ -4457,7 +4457,23 @@ async function detalharLpuParceiro(chave) {
 
     document.getElementById('btnGerarPdf').addEventListener('click', () => {
         gerarPdfParceiro({
-            tabela: tabela,
+            tabela: `
+                <div class="header">
+                    <img src="imagens/BG.png" alt="GCS Logo">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
+                    ${stringHtml('Data', data_atual('completa'))}
+                    ${stringHtml('Analista', acesso?.nome_completo || '')}
+                    ${stringHtml('Cliente', dadosEmpresa?.cliente_selecionado || '')}
+                    ${stringHtml('CNPJ', dadosEmpresa?.cnpj || '')}
+                    ${stringHtml('Endereço', dadosEmpresa?.endereco || '')}
+                    ${stringHtml('Cidade', dadosEmpresa?.cidade || '')}
+                    ${stringHtml('Estado', dadosEmpresa?.estado || '')}
+                    ${stringHtml('Margem', margemLPU)}
+                    ${stringHtml('Técnico', tecnicoLPU || '')}
+                </div>
+                ${tabela}
+            `,
             cnpj: dadosEmpresa?.cnpj || ''
         });
     });
@@ -4491,28 +4507,17 @@ async function gerarPdfParceiro({ tabela, cnpj }) {
                 width: 21cm;
                 min-height: 29.7cm;
             }
-            .titulo {
-                border-radius: 5px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background-color: rgb(0, 138, 0);
-                padding: 10px;
-                font-size: 1.5em;
-                color: white;
-                height: 20px;
-                margin-bottom: 20px;
-            }
-            .contorno {
-                border-radius: 5px;
-                height: max-content;
-                border: 1px solid rgb(0, 138, 0);
-                padding: 5px;
-                margin: 5px;
+            .header {
                 width: 100%;
-                box-sizing: border-box;
+                text-align: center;
+                margin-bottom: 20px;
+                background-color: #151749;
+                padding: 10px 0;
+                border-radius: 5px;
             }
-
+            .header img {
+                height: 70px;
+            }
             .tabela {
                 width: 100%;
                 border-collapse: collapse;
@@ -4520,7 +4525,6 @@ async function gerarPdfParceiro({ tabela, cnpj }) {
                 overflow: hidden;
                 margin-bottom: 20px;
             }
-
             .tabela th {
                 background-color: rgb(0, 138, 0);
                 color: white;
@@ -4528,58 +4532,28 @@ async function gerarPdfParceiro({ tabela, cnpj }) {
                 text-align: left;
                 font-weight: bold;
             }
-
             .tabela th, .tabela td {
                 border: 1px solid #ddd;
                 padding: 8px;
                 text-align: left;
             }
-
             .tabela td {
                 background-color: #ffffff;
             }
-
             .tabela tr:nth-child(even) td {
                 background-color: #f9f9f9;
             }
-
-            label {
-                margin: 5px;
-                font-size: 11pt;
-            }
-
-            .header-info {
-                margin-bottom: 20px;
-            }
-
-            .header-info div {
-                margin-bottom: 5px;
-            }
-
-            .footer {
-                position: fixed;
-                bottom: 0;
-                width: 100%;
-                padding: 10px;
-                text-align: center;
-                font-size: 8pt;
-                color: #666;
-            }
-
             @media print {
                 body {
                     -webkit-print-color-adjust: exact;
                     print-color-adjust: exact;
                 }
-
                 .tabela th {
                     background-color: rgb(0, 138, 0) !important;
                     color: white !important;
                 }
-
-                header,
-                footer {
-                    display: none !important;
+                .header {
+                    background-color: #151749 !important;
                 }
             }
             </style>
@@ -4592,94 +4566,6 @@ async function gerarPdfParceiro({ tabela, cnpj }) {
 
     await gerar_pdf_online(htmlContent, `LPU_PACEIRO_${cnpj}`);
 }
-
-// async function gerarpdfParceiro(cliente, pedido) {
-
-//     var janela = document.querySelectorAll('.janela')
-//     janela = janela[janela.length - 1]
-
-//     var htmlContent = `
-//     <!DOCTYPE html>
-//     <html>
-//     <head>
-//         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-//         <style>
-//         body {
-//             font-family: 'Poppins', sans-serif;
-//         }
-//         .titulo {
-//             border-radius: 5px;
-//             display: flex;
-//             align-items: center;
-//             justify-content: center;
-//             background-color: #151749;
-//             padding: 10px;
-//             font-size: 1.5em;
-//             color: white;
-//             height: 20px;
-//         }
-//         .contorno {
-//             border-radius: 5px;
-//             height: max-content;
-//             border: 1px solid #151749;
-//             padding: 5px;
-//             margin: 5px;
-//         }
-
-//         .tabela {
-//             border-collapse: collapse;
-//             border-radius: 5px;
-//             overflow: hidden;
-//         }
-
-//         .tabela th {
-//             background-color: #151749;
-//             color: white;
-//         }
-
-//         .tabela th, .tabela td {
-//             margin: 5px;
-//             text-align: left;
-//         }
-
-//         .tabela td {
-//             background-color: #99999940;
-//         }
-
-//         label {
-//             margin: 5px;
-//         }
-
-//         @media print {
-//             body {
-//                 -webkit-print-color-adjust: exact;
-//                 print-color-adjust: exact;
-//             }
-
-//             header,
-//             footer {
-//                 display: none !important;
-//             }
-
-//             .table-container {
-//                 margin-right: 0;
-//             }
-//         }
-//         </style>
-//     </head>
-//     <body>
-//         ${janela.innerHTML}
-//     </body>
-//     </html>`;
-
-//     if (pedido.includes("?")) {
-//         pedido = ""
-//     }
-
-//     await gerar_pdf_online(htmlContent, `REQUISICAO_${cliente}_${pedido}`);
-
-// }
-
 
 function adicionarItemAdicional() {
     const bodyTabela = document.getElementById('bodyTabela');
