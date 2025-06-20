@@ -4874,13 +4874,12 @@ async function buscarDadosLpu(chave) {
 async function abrirModalLpu(dadosLpu) {
     await modalLPUParceiro();
 
-    preencherDadosBasicos(dadosLpu);
-
-    preencherItensPrincipais(dadosLpu.itens);
-
-    preencherItensAdicionais(dadosLpu.itens_adicionais);
-
-    calcularLpuParceiro();
+    setTimeout(() => {
+        preencherDadosBasicos(dadosLpu);
+        preencherItensPrincipais(dadosLpu.itens);
+        preencherItensAdicionais(dadosLpu.itens_adicionais);
+        calcularLpuParceiro();
+    }, 0);
 }
 
 function preencherDadosBasicos(dados) {
@@ -4891,7 +4890,7 @@ function preencherDadosBasicos(dados) {
 
     Object.entries(campos).forEach(([id, valor]) => {
         const elemento = document.getElementById(id);
-        elemento?.value = valor;
+        if (elemento) elemento.value = valor;
     });
 }
 
@@ -4906,7 +4905,7 @@ function preencherItensPrincipais(itens) {
         if (!item) return;
 
         const inputValor = linha.querySelector('.input-lpuparceiro');
-        inputValor?.value = item.valor_parceiro_unitario;
+        if (inputValor) inputValor.value = item.valor_parceiro_unitario;
     })
 }
 

@@ -199,7 +199,7 @@ async function preencher_orcamentos_v2() {
         if (orc.status && orc.status) {
             st = orc.status.atual || 'INCLUIR PEDIDO'
         }
-        
+
         let opcoes = '';
 
         if (typeof fluxograma !== 'undefined') {
