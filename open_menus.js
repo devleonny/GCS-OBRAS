@@ -109,9 +109,6 @@ function carregarIcones() {
 
     let ativar = JSON.parse(localStorage.getItem('modoClone')) || false
     let painel_geral = document.getElementById('painel_geral')
-    let permissoesLiberadas = ['adm', 'gerente', 'diretoria', 'editor', 'log']
-    let setoresLiberados = ['LOGÍSTICA']
-    let moduloComposicoes = (permissoesLiberadas.includes(acesso.permissao) || setoresLiberados.includes(acesso.setor))
     let registroHistorico = acesso.permissao == 'adm'
     let atalho = (termo, img, funcao) => {
         return `

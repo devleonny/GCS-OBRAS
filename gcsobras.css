@@ -194,6 +194,7 @@ body {
 }
 
 .contornoTabela {
+    border-radius: 2px;
     min-width: 30vw;
     cursor: pointer;
     display: flex;

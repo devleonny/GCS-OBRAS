@@ -203,9 +203,23 @@ async function preencherOrcamentos(alternar) {
             `
             }
 
+            let {
+                impostos = 0,
+                custo_compra = 0,
+                frete_venda = 0,
+            } = orcamento?.dados_custos || {}
+
+            let lucratividade = orcamento.total_geral - impostos - custo_compra - frete_venda
+            let lucratividadePorcentagem = Number(((lucratividade / orcamento.total_geral) * 100).toFixed(0))
+
             linhas += `
             <tr>
-                <td>${data}</td>
+                <td>
+                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                        <label style="font-size: 0.6vw;">${data}</label>
+                        <label>${orcamento.lpu_ativa}</label>
+                    </div>
+                </td>
                 <td>
                     <select class="opcoesSelect" onchange="alterar_status(this, '${idOrcamento}')">
                         ${opcoes}
@@ -213,12 +227,16 @@ async function preencherOrcamentos(alternar) {
                 </td>
                 <td style="text-align: left;">${label_pedidos}</td>
                 <td style="text-align: left;">${label_notas}</td>
-                <td style="text-align: left;">${dados_orcam.contrato}</td>
-                <td style="text-align: left;">${dados_orcam.cliente_selecionado}</td>
+                <td style="text-align: left;">
+                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                        <label style="font-size: 0.6vw;">${dados_orcam.contrato}</label>
+                        <label>${dados_orcam.cliente_selecionado}</label>
+                    </div>
+                </td>
                 <td style="text-align: left;">${dados_orcam.cidade}</td>
                 <td style="text-align: left;">${dados_orcam.analista}</td>
+                <td>${divPorcentagem(lucratividadePorcentagem)}</td>
                 <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>
-                <td style="white-space: nowrap;">${orcamento.lpu_ativa}</td>
                 <td style="text-align: center;" onclick="abrirAtalhos('${idOrcamento}')">
                     <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;">
                 </td>
@@ -227,7 +245,7 @@ async function preencherOrcamentos(alternar) {
         }
     }
 
-    let cabecs = ['Última alteração', 'Status', 'Pedido', 'Notas', 'Chamado', 'Cliente', 'Cidade', 'Analista', 'Valor', 'LPU', 'Ações']
+    let cabecs = ['Data <br> LPU', 'Status', 'Pedido', 'Notas', 'Chamado <br> Cliente', 'Cidade', 'Analista', 'Lc %', 'Valor', 'Ações']
     let ths = ''
     let tsh = ''
     cabecs.forEach((cab, i) => {
