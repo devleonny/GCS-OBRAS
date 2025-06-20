@@ -3892,10 +3892,6 @@ async function modalLPUParceiro() {
                     }
                 }
 
-                for (let adicional of dadosSalvos.itens_adicionais || []) {
-                    adicionarItemAdicional(adicional);
-                }
-
                 document.querySelector('.botaoLPUParceiro').textContent = 'Salvar Edição';
             }
         } else {
@@ -4203,8 +4199,6 @@ async function salvarLpuParceiro() {
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento);
-
-
 
     sessionStorage.removeItem('chaveLpuEmEdicao');
 
@@ -4939,7 +4933,7 @@ async function editarLpuParceiro(chave) {
         const dadosLpu = await buscarDadosLpu(chave);
         if (!dadosLpu) throw new Error('Dados da LPU não encontrados.');
 
-        sessionStorage.setItem('lpuEmEdicao', chave);
+        sessionStorage.setItem('chaveLpuEmEdicao', chave);
 
         await abrirModalLpu(dadosLpu);
     } catch (erro) {
