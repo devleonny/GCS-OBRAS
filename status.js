@@ -3856,7 +3856,8 @@ async function modalLPUParceiro() {
                     ${stringHtml('Total Desvio', '<lalbel id="totalDesvio"></lalbel>')}
                 </div>
                 <div class="contorno_botoes()" style="display: flex; flex-direction: column; align-items: flex-end; margin-left: auto gap: 5px; margin-top:5px;">
-                    <button class="botaoLPUParceiro" onclick="salvarLpuParceiro()">Salvar e Gerar Excel</button>
+                    <button class="botaoLPUParceiro" onclick="salvarLpuParceiro()" style="padding: 6px 12px;">Salvar</button>
+                    <button class="botaoLPUParceiro" onclick="gerarExcelLpuParceiro()" style="padding: 6px 12px;">Gerar Excel</button>
                 </div>
                
                     
@@ -3898,10 +3899,9 @@ async function modalLPUParceiro() {
                 document.querySelector('.botaoLPUParceiro').textContent = 'Salvar Edição';
             }
         } else {
-            // Modo novo: limpar campos e rótulo
             document.getElementById('tecnico').value = '';
             document.getElementById('margem_lpu').value = 35;
-            document.querySelector('.botaoLPUParceiro').textContent = 'Salvar e Gerar Excel';
+            document.querySelector('.botaoLPUParceiro').textContent = 'Salvar';
         }
     }, 0);
 }
@@ -3909,6 +3909,91 @@ async function modalLPUParceiro() {
 function novaLPUParceiro() {
     sessionStorage.removeItem('chaveLpuEmEdicao');
     modalLPUParceiro();
+}
+
+function gerarExcelLpuParceiro() {
+    // Recupera os dados atuais da tela para gerar o Excel
+    let margem = Number(document.getElementById('margem_lpu').value);
+    let tecnico = String(document.getElementById('tecnico').value) || '';
+    let dadosEmpresa = (() => {
+        // Busca os dados do orçamento atual
+        let orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
+        let orcamento = orcamentos[id_orcam];
+        return orcamento?.dados_orcam || {};
+    })();
+
+    let dadosParaExcel = {
+        status: 'LPU PARCEIRO',
+        data: data_atual('completa'),
+        analista: acesso.nome_completo,
+        margem_percentual: margem,
+        tecnicoLpu: tecnico,
+        cliente: dadosEmpresa.cliente_selecionado,
+        cnpj: dadosEmpresa.cnpj,
+        endereco: dadosEmpresa.bairro,
+        cidade: dadosEmpresa.cidade,
+        estado: dadosEmpresa.estado,
+        itens: {},
+        itens_adicionais: [],
+        totais: {
+            orcamento: 0,
+            parceiro: 0,
+            desvio: 0,
+            margem: 0
+        }
+    };
+
+    let trs = document.querySelectorAll('#bodyTabela tr');
+    for (let tr of trs) {
+        let tds = tr.querySelectorAll('td');
+        if (tds.length < 11) continue;
+
+        let isAdicional = tr.classList.contains('item-adicional');
+        let codigo = tds[0].textContent.trim();
+        let descricao = tr.querySelector('textarea')?.value?.trim() || extrairTextoOuInput(tds[1]);
+        let unidade = extrairTextoOuInput(tds[2]);
+        let qtde = conversor(tds[3].textContent.trim());
+        let valor_orcado = conversor(tds[4].textContent.trim());
+        let total_orcado = conversor(tds[5].textContent.trim());
+        let imposto = conversor(tds[6].textContent.trim());
+
+        let valor_parceiro_unitario = Number(tds[8].querySelector('input')?.value || 0);
+        let total_parceiro = qtde * valor_parceiro_unitario;
+        let margem_reais = total_orcado * (margem / 100);
+        let desvio = margem_reais - total_parceiro;
+
+        if (isAdicional) {
+            dadosParaExcel.itens_adicionais = dadosParaExcel.itens_adicionais || [];
+            dadosParaExcel.itens_adicionais.push({
+                codigo,
+                descricao,
+                unidade,
+                qtde,
+                valor_parceiro_unitario,
+                total_parceiro
+            });
+        } else {
+            dadosParaExcel.itens[codigo] = {
+                descricao,
+                unidade,
+                qtde,
+                valor_orcado,
+                total_orcado,
+                imposto,
+                valor_parceiro_unitario,
+                total_parceiro,
+                margem_reais,
+                desvio
+            };
+
+            dadosParaExcel.totais.orcamento += total_orcado;
+            dadosParaExcel.totais.parceiro += total_parceiro;
+            dadosParaExcel.totais.margem += margem_reais;
+            dadosParaExcel.totais.desvio += desvio;
+        }
+    }
+
+    exportarComoExcelHTML(dadosParaExcel);
 }
 
 function calcularLpuParceiro() {
@@ -4123,7 +4208,6 @@ async function salvarLpuParceiro() {
 
     sessionStorage.removeItem('chaveLpuEmEdicao');
 
-    exportarComoExcelHTML(novo_lancamento)
     remover_popup();
     await abrir_esquema(id_orcam);
 
