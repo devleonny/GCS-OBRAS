@@ -1302,7 +1302,6 @@ input:checked+.slider:before {
 }
 
 input[type=range] {
-    -webkit-appearance: none;
     width: 350px;
     height: 12px;
     background: #e9e9e9;

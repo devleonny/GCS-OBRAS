@@ -229,7 +229,7 @@ async function preencherOrcamentos(alternar) {
                 <td style="text-align: left;">${label_notas}</td>
                 <td style="text-align: left;">
                     <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                        <label style="font-size: 0.6vw;">${dados_orcam.contrato}</label>
+                        <label style="font-size: 0.6vw;"><strong>${dados_orcam.contrato}</strong></label>
                         <label>${dados_orcam.cliente_selecionado}</label>
                     </div>
                 </td>
