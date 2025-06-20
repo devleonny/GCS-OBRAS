@@ -3867,43 +3867,43 @@ async function modalLPUParceiro() {
         `
 
     openPopup_v2(acumulado, 'LPU Parceiro', true);
- setTimeout(() => {
-    calcularLpuParceiro();
+    setTimeout(() => {
+        calcularLpuParceiro();
 
-    const chaveEdicao = sessionStorage.getItem('chaveLpuEmEdicao');
+        const chaveEdicao = sessionStorage.getItem('chaveLpuEmEdicao');
 
-    if (chaveEdicao) {
-        const historico = baseOrcamentos[id_orcam]?.status?.historico || {};
-        const dadosSalvos = historico[chaveEdicao];
+        if (chaveEdicao) {
+            const historico = baseOrcamentos[id_orcam]?.status?.historico || {};
+            const dadosSalvos = historico[chaveEdicao];
 
-        if (dadosSalvos) {
-            document.getElementById('tecnico').value = dadosSalvos?.tecnicoLpu || '';
-            document.getElementById('margem_lpu').value = dadosSalvos?.margem_percentual || 35;
+            if (dadosSalvos) {
+                document.getElementById('tecnico').value = dadosSalvos?.tecnicoLpu || '';
+                document.getElementById('margem_lpu').value = dadosSalvos?.margem_percentual || 35;
 
-            const trs = document.querySelectorAll('#bodyTabela tr');
-            for (let tr of trs) {
-                let tds = tr.querySelectorAll('td');
-                const codigo = tds[0]?.textContent.trim();
-                const itemSalvo = dadosSalvos.itens?.[codigo];
-                if (itemSalvo) {
-                    const input = tds[8]?.querySelector('input');
-                    if (input) input.value = itemSalvo.valor_parceiro_unitario;
+                const trs = document.querySelectorAll('#bodyTabela tr');
+                for (let tr of trs) {
+                    let tds = tr.querySelectorAll('td');
+                    const codigo = tds[0]?.textContent.trim();
+                    const itemSalvo = dadosSalvos.itens?.[codigo];
+                    if (itemSalvo) {
+                        const input = tds[8]?.querySelector('input');
+                        if (input) input.value = itemSalvo.valor_parceiro_unitario;
+                    }
                 }
-            }
 
-            for (let adicional of dadosSalvos.itens_adicionais || []) {
-                adicionarItemAdicional(adicional);
-            }
+                for (let adicional of dadosSalvos.itens_adicionais || []) {
+                    adicionarItemAdicional(adicional);
+                }
 
-            document.querySelector('.botaoLPUParceiro').textContent = 'Salvar Edição';
+                document.querySelector('.botaoLPUParceiro').textContent = 'Salvar Edição';
+            }
+        } else {
+            // Modo novo: limpar campos e rótulo
+            document.getElementById('tecnico').value = '';
+            document.getElementById('margem_lpu').value = 35;
+            document.querySelector('.botaoLPUParceiro').textContent = 'Salvar e Gerar Excel';
         }
-    } else {
-        // Modo novo: limpar campos e rótulo
-        document.getElementById('tecnico').value = '';
-        document.getElementById('margem_lpu').value = 35;
-        document.querySelector('.botaoLPUParceiro').textContent = 'Salvar e Gerar Excel';
-    }
-}, 0);
+    }, 0);
 }
 
 function novaLPUParceiro() {
@@ -4055,7 +4055,7 @@ async function salvarLpuParceiro() {
 
 
     let trs = document.querySelectorAll('#bodyTabela tr');
-    
+
 
     for (let tr of trs) {
         let tds = tr.querySelectorAll('td');
@@ -4632,18 +4632,18 @@ function adicionarItemAdicional(dados = {}) {
 
     bodyTabela.appendChild(novaLinha);
 
-if (dados?.descricao && dados?.codigo && dados?.valor_orcamento && dados?.unidade) {
-    const textarea = novaLinha.querySelector('textarea');
-    definirCampoParceiro(
-        { textContent: dados.descricao },
-        textarea.id,
-        dados.codigo,
-        dados.unidade,
-        dados.valor_orcamento
-    );
-}
+    if (dados?.descricao && dados?.codigo && dados?.valor_orcamento && dados?.unidade) {
+        const textarea = novaLinha.querySelector('textarea');
+        definirCampoParceiro(
+            { textContent: dados.descricao },
+            textarea.id,
+            dados.codigo,
+            dados.unidade,
+            dados.valor_orcamento
+        );
+    }
 
-calcularLpuParceiro();
+    calcularLpuParceiro();
 
 }
 
@@ -4816,7 +4816,7 @@ async function definirCampoParceiro(elemento, idAleatoria, codBases, unidade, va
         let celulaValorUnitario = celulaUnidade.nextElementSibling?.nextElementSibling;
         let celulaTotal = celulaValorUnitario?.nextElementSibling;
 
- 
+
         let divCodigo = celulaCodigo.querySelector('.codigo-item');
         if (divCodigo) {
             divCodigo.textContent = codBases;
@@ -4824,7 +4824,7 @@ async function definirCampoParceiro(elemento, idAleatoria, codBases, unidade, va
             celulaCodigo.textContent = codBases; // fallback
         }
 
-    
+
         celulaUnidade.textContent = unidade;
         celulaValorUnitario.textContent = dinheiro(valor);
 
@@ -4851,42 +4851,82 @@ async function definirCampoParceiro(elemento, idAleatoria, codBases, unidade, va
 }
 
 async function editarLpuParceiro(chave) {
-    const baseOrcamentos = await recuperarDados('dados_orcamentos') || {};
-    const orcamento = baseOrcamentos[id_orcam];
-    if (!orcamento) return;
+    try {
+        const dadosLpu = await buscarDadosLpu(chave);
+        if (!dadosLpu) throw new Error('Dados da LPU não encontrados.');
 
-    const historico = orcamento?.status?.historico || {};
-    const dadosSalvos = historico[chave];
-    if (!dadosSalvos) return;
+        sessionStorage.setItem('lpuEmEdicao', chave);
 
-    sessionStorage.setItem('chaveLpuEmEdicao', chave);
+        await abrirModalLpu(dadosLpu);
+    } catch (erro) {
+        console.error('Erro ao editar LPU:', erro);
+        mostrarErro('Não foi possível carregar os dados para edição');
+    }
+}
 
+async function buscarDadosLpu(chave) {
+    const dados = await recuperarDados('dados_orcamentos');
+    if (!dados?.[id_orcam]?.status?.historico?.[chave]) return null;
+
+    return dados[id_orcam].status.historico[chave];
+}
+
+async function abrirModalLpu(dadosLpu) {
     await modalLPUParceiro();
-    setTimeout(() => {})
-    document.getElementById('margem_lpu').value = dadosSalvos.margem_percentual || 35;
-    document.getElementById('tecnico').value = dadosSalvos.tecnicoLpu || '';
 
-    const trs = document.querySelectorAll('#bodyTabela tr');
-    for (let tr of trs) {
-        let tds = tr.querySelectorAll('td');
-        const codigo = tds[0]?.textContent.trim();
-        if (!codigo) continue;
+    preencherDadosBasicos(dadosLpu);
 
-        const itemSalvo = dadosSalvos.itens[codigo];
-        if (!itemSalvo) continue;
+    preencherItensPrincipais(dadosLpu.itens);
 
-        const inputValorParceiro = tds[8]?.querySelector('input');
-        if (inputValorParceiro) {
-            inputValorParceiro.value = itemSalvo.valor_parceiro_unitario;
-        }
-    }
-
-    for (let adicional of dadosSalvos.itens_adicionais || []) {
-        adicionarItemAdicional(adicional);
-    }
+    preencherItensAdicionais(dadosLpu.itens_adicionais);
 
     calcularLpuParceiro();
 }
 
+function preencherDadosBasicos(dados) {
+    const campos = {
+        'margem_lpu': dados.margem_percentual || 35,
+        'tecnico': dados.tecnicoLpu || ''
+    };
+
+    Object.entries(campos).forEach(([id, valor]) => {
+        const elemento = document.getElementById(id);
+        elemento?.value = valor;
+    });
+}
 
 
+function preencherItensPrincipais(itens) {
+    const linhas = document.querySelectorAll('#bodyTabela tr');
+    linhas.forEach(linha => {
+        const codigo = linha.querySelector('td')?.textContent?.trim();
+        if (!codigo) return;
+
+        const item = itens[codigo];
+        if (!item) return;
+
+        const inputValor = linha.querySelector('.input-lpuparceiro');
+        inputValor?.value = item.valor_parceiro_unitario;
+    })
+}
+
+function preencherItensAdicionais(itens = []) {
+    itens.forEach(item => {
+        adicionarItemAdicional({
+            codigo: item.codigo,
+            descricao: item.descricao,
+            unidade: item.unidade,
+            qtde: item.qtde,
+            valor_parceiro_unitario: item.valor_parceiro_unitario,
+        });
+    });
+}
+
+function mostrarErro(mensagem) {
+    openPopup_v2(`
+        <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+            <label>${mensagem}</label>
+        </div>
+    `, 'Erro', true);
+}
