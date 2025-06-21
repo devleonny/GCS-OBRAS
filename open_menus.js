@@ -649,57 +649,48 @@ function executarTransacao(db, nome_da_base, dados) {
     });
 }
 
-async function recuperarDados(nome_da_base, ambos) {
-    const getDados = (nomeBase) => {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open('Bases')
+async function recuperarDados(nome_da_base) {
+    return new Promise((resolve, reject) => {
 
-            request.onsuccess = function (event) {
-                const db = event.target.result
+        let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
 
-                if (!db.objectStoreNames.contains(nomeBase)) {
-                    resolve(null)
-                    return
-                }
+        if (modoClone) nome_da_base = `${nome_da_base}_clone`
 
-                const transaction = db.transaction([nomeBase], 'readonly')
-                const store = transaction.objectStore(nomeBase)
+        const request = indexedDB.open('Bases');
 
-                const getRequest = store.get(1)
+        request.onsuccess = function (event) {
+            const db = event.target.result;
 
-                getRequest.onsuccess = function (event) {
-                    let dados = event.target.result
-                    if (dados && dados.id) delete dados.id
-                    resolve(dados || null)
-                }
-
-                getRequest.onerror = function (event) {
-                    reject(event.target.error)
-                }
+            // Verificar se a store existe;
+            if (!db.objectStoreNames.contains(nome_da_base)) {
+                resolve(null);
+                return;
             }
 
-            request.onerror = function (event) {
-                reject(event.target.error)
-            }
-        })
-    }
+            const transaction = db.transaction([nome_da_base], 'readonly');
+            const store = transaction.objectStore(nome_da_base);
 
-    
-    console.log(ambos);
-    
+            const getRequest = store.get(1);
 
-    if (ambos) {
-        const [original, clone] = await Promise.all([
-            getDados(nome_da_base),
-            getDados(`${nome_da_base}_clone`)
-        ])
+            getRequest.onsuccess = function (event) {
+                let dados = event.target.result
 
-        return { ...original, ...clone }
-    }
+                if (dados && dados.id) {
+                    delete dados.id
+                }
 
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
-    let baseFinal = modoClone ? `${nome_da_base}_clone` : nome_da_base
-    return await getDados(baseFinal)
+                resolve(event.target.result || null);
+            };
+
+            getRequest.onerror = function (event) {
+                reject(event.target.error);
+            };
+        };
+
+        request.onerror = function (event) {
+            reject(event.target.error);
+        };
+    });
 }
 
 function openPopup_v2(elementoHTML, titulo, nao_remover_anteriores) {
