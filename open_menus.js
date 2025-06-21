@@ -684,6 +684,10 @@ async function recuperarDados(nome_da_base, ambos) {
         })
     }
 
+    
+    console.log(ambos);
+    
+
     if (ambos) {
         const [original, clone] = await Promise.all([
             getDados(nome_da_base),
@@ -694,8 +698,6 @@ async function recuperarDados(nome_da_base, ambos) {
     }
 
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
-    console.log(modoClone);
-    
     let baseFinal = modoClone ? `${nome_da_base}_clone` : nome_da_base
     return await getDados(baseFinal)
 }
