@@ -101,7 +101,7 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
                     flex-direction: column;
                     justify-content: center; 
                     align-items: center; 
-                    gap: 3px;
+                    margin-left: 3px;
                     cursor: pointer;
                     padding: 10px;
                     font-size: 0.8vw;
