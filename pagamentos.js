@@ -1139,8 +1139,7 @@ function alterar_centro_de_custo(id) {
 
     <div class="autocomplete-container">
         <label id="id_orcamento" style="display: none;"></label>
-        <textarea style="width: 80%;" type="text" class="autocomplete-input" id="cc"
-            placeholder="Chamado D7777 ou Loja SAM'S... ou Setor LOGÍSTICA..." oninput="carregar_opcoes_cc(this)"></textarea>
+        <textarea style="width: 80%; font-size: 1.0vw;" type="text" class="autocomplete-input" id="cc" oninput="carregar_opcoes_cc(this)"></textarea>
         <div class="autocomplete-list"></div>
     </div>
 
@@ -2388,7 +2387,8 @@ async function carregar_opcoes_cc(textarea) {
     let div = textarea.nextElementSibling
     div.innerHTML = ''
     let departamentos_fixos = JSON.parse(localStorage.getItem('departamentos_fixos')) || [];
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let dados_orcamentos = await recuperarDados('dados_orcamentos', true) || {};
+    
     let opcoes = ''
 
     departamentos_fixos.forEach(dep => {

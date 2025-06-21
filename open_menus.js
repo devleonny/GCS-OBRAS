@@ -107,7 +107,7 @@ function carregarIcones() {
 
     if (document.title != 'Página Inicial') return
 
-    let ativar = JSON.parse(localStorage.getItem('modoClone')) || false
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
     let painel_geral = document.getElementById('painel_geral')
     let registroHistorico = acesso.permissao == 'adm'
     let atalho = (termo, img, funcao) => {
@@ -123,37 +123,27 @@ function carregarIcones() {
         ${atalho('Orçamentos', 'projeto', `window.location.href='orcamentos.html'`)}
         ${atalho('Composições', 'composicoes', `window.location.href='composicoes.html'`)}
         ${atalho('Chamados', 'chamados', `window.location.href='chamados.html'`)}
-        ${atalho('Cotações', 'cotacao2', `window.location.href='cotacoes.html'`)}
         ${atalho('Estoque', 'estoque', `window.location.href='estoque.html'`)}
         ${atalho('Reembolsos & Pagamentos', 'reembolso', `window.location.href='pagamentos.html'`)}
         ${atalho('Painel Kanban', 'kanban', `window.location.href='projetos.html'`)}
         ${atalho('Agenda', 'agenda', `window.location.href='agenda.html'`)}
-
-        ${registroHistorico
-            ? atalho('Veiculo', 'veiculo', `window.location.href='veiculos.html'`)
-            : ''}
         
-        ${registroHistorico
-            ? atalho('Suporte', 'suporte', `window.location.href='tickets.html'`)
-            : ''}
         
         ${registroHistorico
             ? atalho('Histórico de Alterações GCS', 'historico', `window.location.href='historicoRegistros.html'`)
             : ''}
     `
 
-    if (ativar) {
+    if (modoClone) {
         icones = `
         ${atalho('Orçamentos', 'projeto', `window.location.href='orcamentos.html'`)}
-
         ${atalho('Composições', 'composicoes', `window.location.href='composicoes.html'`)}
-
-         ${registroHistorico
+        
+        ${registroHistorico
                 ? atalho('Histórico de Alterações GCS', 'historico', `window.location.href='historicoRegistros.html'`)
                 : ''}
-             `
+        `
     }
-
     painel_geral.innerHTML = icones
 }
 
@@ -659,48 +649,53 @@ function executarTransacao(db, nome_da_base, dados) {
     });
 }
 
-async function recuperarDados(nome_da_base) {
-    return new Promise((resolve, reject) => {
+async function recuperarDados(nome_da_base, ambos) {
+    const getDados = (nomeBase) => {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('Bases')
 
-        let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+            request.onsuccess = function (event) {
+                const db = event.target.result
 
-        if (modoClone) nome_da_base = `${nome_da_base}_clone`
-
-        const request = indexedDB.open('Bases');
-
-        request.onsuccess = function (event) {
-            const db = event.target.result;
-
-            // Verificar se a store existe;
-            if (!db.objectStoreNames.contains(nome_da_base)) {
-                resolve(null);
-                return;
-            }
-
-            const transaction = db.transaction([nome_da_base], 'readonly');
-            const store = transaction.objectStore(nome_da_base);
-
-            const getRequest = store.get(1);
-
-            getRequest.onsuccess = function (event) {
-                let dados = event.target.result
-
-                if (dados && dados.id) {
-                    delete dados.id
+                if (!db.objectStoreNames.contains(nomeBase)) {
+                    resolve(null)
+                    return
                 }
 
-                resolve(event.target.result || null);
-            };
+                const transaction = db.transaction([nomeBase], 'readonly')
+                const store = transaction.objectStore(nomeBase)
 
-            getRequest.onerror = function (event) {
-                reject(event.target.error);
-            };
-        };
+                const getRequest = store.get(1)
 
-        request.onerror = function (event) {
-            reject(event.target.error);
-        };
-    });
+                getRequest.onsuccess = function (event) {
+                    let dados = event.target.result
+                    if (dados && dados.id) delete dados.id
+                    resolve(dados || null)
+                }
+
+                getRequest.onerror = function (event) {
+                    reject(event.target.error)
+                }
+            }
+
+            request.onerror = function (event) {
+                reject(event.target.error)
+            }
+        })
+    }
+
+    if (ambos) {
+        const [original, clone] = await Promise.all([
+            getDados(nome_da_base),
+            getDados(`${nome_da_base}_clone`)
+        ])
+
+        return { ...original, ...clone }
+    }
+
+    const modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    const baseFinal = modoClone ? `${nome_da_base}_clone` : nome_da_base
+    return await getDados(baseFinal)
 }
 
 function openPopup_v2(elementoHTML, titulo, nao_remover_anteriores) {
