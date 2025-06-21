@@ -1306,7 +1306,7 @@ async function painelCustos() {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam]
-
+    
     let guiaCores = {
         'USO E CONSUMO': '#097fe6',
         'VENDA': '#B12425',
@@ -1655,7 +1655,6 @@ function elementosEspecificos(chave, historico) {
             `
     } else if (historico.status == 'FATURADO') {
         let divPacelas = ''
-        console.log(historico?.parcelas);
         
         let parcelas = (historico?.parcelas || [])
             .map(parcela => `Parcela ${parcela.nParcela} <br> ${labelDestaque(parcela.dDtVenc, dinheiro(parcela.nValorTitulo))}`)

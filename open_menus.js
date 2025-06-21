@@ -574,7 +574,7 @@ async function reprocessar_offline() {
 }
 
 async function inserirDados(dados, nome_da_base) {
-    const modoClone = JSON.parse(localStorage.getItem('modoClone')) || false;
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false;
     if (modoClone) nome_da_base = `${nome_da_base}_clone`;
 
     const db = await abrirBanco('Bases');
@@ -693,8 +693,10 @@ async function recuperarDados(nome_da_base, ambos) {
         return { ...original, ...clone }
     }
 
-    const modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
-    const baseFinal = modoClone ? `${nome_da_base}_clone` : nome_da_base
+    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    console.log(modoClone);
+    
+    let baseFinal = modoClone ? `${nome_da_base}_clone` : nome_da_base
     return await getDados(baseFinal)
 }
 
