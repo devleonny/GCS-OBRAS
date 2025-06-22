@@ -1427,7 +1427,7 @@ async function painelCustos() {
     let modeloLabel = (valor1, valor2) => `
     <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
         <label style="font-size: 0.9vw;">${valor1}</label>
-        <label style="font-size: 1.2vw;"><strong>${valor2}</strong></label>
+        <label style="font-size: 0.9vw;"><strong>${valor2}</strong></label>
     </div>
     `
 
