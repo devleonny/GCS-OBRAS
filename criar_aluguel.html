@@ -9,21 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
     <style>
-        body {
-            font-size: 0.9vw;
-            background: linear-gradient(45deg, #151749, #B12425);
-            animation: none;
-        }
-
-        body::before {
-            animation: none;
-            background: none;
-        }
-
-        a {
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        .tabela th {
+            border: none;
         }
 
         .label_imposto_porcentagem {
@@ -241,7 +228,7 @@
             color: white;
             border-radius: 5px;
         }
-        
+
         .label_nomes {
             background-color: #ffffff;
             border-radius: 5px;
@@ -383,16 +370,6 @@
 
     <div id="content" class="cont">
 
-        <div class="top" id="menu_inferior">
-            <div style="display: none; justify-content: center; align-items: center;" id="atualizando">
-                <img src="gifs/loading.gif" style="width: 5vw;">
-                <label class="novo_titulo" style="font-size: 1.5em;">Atualizando...</label>
-            </div>
-            <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-                <label style="color: white;">Calculadora ICMS</label>
-                <img src="imagens/calculadora.png" style="width: 50px; cursor: pointer;" onclick="exibir_calculadora()">
-            </div>
-        </div>
 
         <div id="orcamento_padrao">
 
@@ -447,7 +424,8 @@
                                 <option>ANUAL</option>
                             </select>
                             <label style="font-size: 1em;">Quantidade</label>
-                            <input id="quantidadePeriodo" oninput="total()" style="width: 15vw; background-color: white; border-radius: 3px; padding: 5px; color: #222; cursor: pointer;">
+                            <input id="quantidadePeriodo" oninput="total()"
+                                style="width: 15vw; background-color: white; border-radius: 3px; padding: 5px; color: #222; cursor: pointer;">
                         </div>
                     </div>
                     <div

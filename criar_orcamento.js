@@ -1094,14 +1094,10 @@ function pesquisarProdutos(col, elemento) {
 }
 
 async function recuperarComposicoes() {
-    overlayAguarde()
 
-    let nuvem = await receber('dados_composicoes')
-    await inserirDados(nuvem, 'dados_composicoes')
+    await sincronizarDados('dados_composicoes')
     await tabelaProdutos()
 
-    let aguarde = document.getElementById('aguarde')
-    if (aguarde) aguarde.remove()
 }
 
 async function ocultarZerados(ocultar) {
