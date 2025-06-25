@@ -672,7 +672,7 @@ async function alterarStatusPagamento(idPagamento, select) {
 function deseja_excluir_pagamento(id) {
 
     return openPopup_v2(`
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
+        <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column; padding: 2vw;">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Deseja realmente excluir o pagamento?</label>
@@ -1032,7 +1032,30 @@ async function recuperarPagamentos() {
     overlayAguarde()
 
     await lista_setores()
-    await sincronizarDados('lista_pagamentos')
+
+    await sincronizarDados('lista_pagamentos', true)
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+    let usuariosPermitidos = ['diretoria', 'adm']
+    let setoresPermitidos = ['FINANCEIRO']
+    let pagamentosFiltrados = {}
+
+    if (usuariosPermitidos.includes(acesso.permissao) || setoresPermitidos.includes(acesso.setor)) {
+        pagamentosFiltrados = lista_pagamentos
+
+    } else {
+
+        for ([idPagamento, pagamento] of Object.entries(lista_pagamentos)) {
+
+            if (pagamento.criado == acesso.usuario) {
+                pagamentosFiltrados[idPagamento] = pagamento
+            }
+
+        }
+
+    }
+
+    await inserirDados(pagamentosFiltrados, 'lista_pagamentos')
+
     await retomarPaginacao()
 
     remover_popup()
@@ -1043,35 +1066,37 @@ async function atualizar_feedback(resposta, id_pagamento) {
 
     overlayAguarde()
 
-    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-    let pagamento = lista_pagamentos[id_pagamento];
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+    let pagamento = lista_pagamentos[id_pagamento]
     let dataFormatada = data_atual('completa')
+    let justificativa = document.getElementById('justificativa').value
     let usuario = acesso.usuario;
-    let justificativa = document.getElementById('justificativa').value;
-    let categoria_atual = pagamento.param[0].categorias[0].codigo_categoria
     let permissao = acesso.permissao
     let setor = acesso.setor
 
-    // Definir status com base na resposta e na permissão
+    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    let setorUsuarioPagamento = dados_setores?.[pagamento.criado]?.setor || ''
+
     let status;
+
     if (resposta) {
 
         switch (true) {
-            case (permissao == 'gerente' || permissao == 'adm') && categoria_atual == "2.01.99": // Pagamento de Parceiros
-                status = 'Aguardando aprovação da Qualidade';
-                break
-
             case permissao == 'diretoria': // Aprovação Diretoria
                 status = 'Aprovado pela Diretoria';
                 lancar_pagamento(pagamento)
                 break
 
-            case permissao == 'fin' || (permissao == 'gerente' && setor == 'RH'): // Aprovação RH e FINANCEIRO
+            case permissao == 'fin': // Aprovação RH e FINANCEIRO
                 status = `Aprovado pelo ${setor}`;
                 lancar_pagamento(pagamento)
                 break
 
-            case permissao == 'gerente' || permissao == 'adm' || permissao == 'qualidade': // Demais Gestores
+            case permissao !== 'qualidade' && setorUsuarioPagamento == 'INFRA' && categoria_atual == '2.01.99': // Setor de INFRA e Pagamento de Parceiro;
+                status = 'Aguardando aprovação da Qualidade';
+                break
+
+            case permissao == 'gerente' || permissao == 'qualidade': // Demais Gestores
                 status = 'Aguardando aprovação da Diretoria';
                 break
 
@@ -1352,15 +1377,7 @@ async function criar_pagamento_v2() {
             </div>                
         `)
 
-        var esquema = document.getElementById('esquema')
-        if (esquema) {
-            fechar_esquema()
-            abrirEsquema(id_orcam)
-        }
-
-        if (document.title == 'PAGAMENTOS') {
-            await retomarPaginacao()
-        }
+        if (document.title == 'PAGAMENTOS') await retomarPaginacao()
 
         localStorage.removeItem('ultimo_pagamento')
 
@@ -2388,7 +2405,7 @@ async function carregar_opcoes_cc(textarea) {
     div.innerHTML = ''
     let departamentos_fixos = JSON.parse(localStorage.getItem('departamentos_fixos')) || [];
     let dados_orcamentos = await recuperarDados('dados_orcamentos', true) || {};
-    
+
     let opcoes = ''
 
     departamentos_fixos.forEach(dep => {
@@ -2502,27 +2519,4 @@ async function duplicar_pagamento(id_pagamento) {
 
     tela_pagamento(true)
 
-}
-
-async function filtrarPagamentosUsuario(usuario) {
-    return new Promise((resolve, reject) => {
-        fetch("https://leonny.dev.br/pagamentosFiltrados", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ usuario })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                resolve(data);
-            })
-            .catch(err => {
-                console.error(err)
-                reject()
-            });
-    })
 }
