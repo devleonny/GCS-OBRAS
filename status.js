@@ -43,7 +43,6 @@ let fluxogramaClone = {
 }
 
 let fluxogramaPadrao = fluxograma = {
-    'INCLUIR PEDIDO': { cor: '#4CAF50' },
     'PEDIDO': { cor: '#4CAF50' },
     'REQUISIÇÃO': { cor: '#B12425' },
     'MATERIAL SEPARADO': { cor: '#b17724' },

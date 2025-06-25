@@ -191,16 +191,11 @@ async function preencherOrcamentos(alternar) {
 
             }
 
-            let st = 'INCLUIR PEDIDO'
-            if (orcamento.status && orcamento.status) {
-                st = orcamento.status.atual || 'INCLUIR PEDIDO'
-            }
+            let st = orcamento?.status?.atual || ''
 
-            let opcoes = ''
+            let opcoes = '<option></option>'
             for (fluxo in fluxograma) {
-                opcoes += `
-                <option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>
-            `
+                opcoes += `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`
             }
 
             let {
