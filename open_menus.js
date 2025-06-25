@@ -186,7 +186,7 @@ async function identificacaoUser() {
         `
     }
 
-    let permitidosAprovacoes = ['adm', 'coordenacao', 'diretoria']
+    let permitidosAprovacoes = ['adm', 'diretoria']
 
     if (document.title !== 'PDF' && acesso.usuario) {
 
@@ -2115,7 +2115,7 @@ async function verificarPendencias() {
 async function verPedidoAprovacao(idOrcamento) { //29
 
     let permissao = acesso.permissao
-    let pessoasPermitidas = ['coordenacao', 'adm', 'diretoria']
+    let pessoasPermitidas = ['adm', 'diretoria']
     if (!pessoasPermitidas.includes(permissao)) return openPopup_v2(mensagem('Você não tem acesso'), 'AVISO', true)
 
     let acumulado = ''
