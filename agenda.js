@@ -145,6 +145,8 @@ async function carregar_tabela(alterar) {
 
         let regiao = dados_agenda_tecnicos[omieFuncionario]?.regiao_atual || 'Sem Região'
 
+        if(acesso.permissao !== 'adm' && regiao == 'Administrativo') continue
+
         let mostrarSeta = (funcionario.departamentos_fixos && Object.keys(funcionario.departamentos_fixos).length > 0)
 
         linhas += `

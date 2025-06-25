@@ -568,6 +568,7 @@ async function carregarTabelas() {
     let stringsTabelas = ''
     let dadosComposicoes = orcamento_v2.dados_composicoes
     let padraoFiltro = localStorage.getItem('padraoFiltro')
+    let exibirDesconto = ['adm', 'diretoria'].includes(acesso.permissao)
 
     if (padraoFiltro == null) {
         padraoFiltro = 'tipo'
@@ -595,17 +596,19 @@ async function carregarTabelas() {
             </td>
             <td style="position: relative;"></td>
 
-            ${carrefour ? '' :
-                `<td>
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
-                    <select onchange="total()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
-                        <option ${produto?.tipo_desconto == 'Porcentagem' ? 'selected' : ''}>Porcentagem</option>
-                        <option ${produto?.tipo_desconto == 'Dinheiro' ? 'selected' : ''}>Dinheiro</option>
-                    </select>
-                    <input type="number" oninput="total()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;" value="${produto?.desconto || ''}">
-                </div>
-            </td>
-            `}
+            ${carrefour
+                ? ''
+                : `
+                <td style="display: ${exibirDesconto ? '' : 'none'}">
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
+                        <select onchange="total()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
+                            <option ${produto?.tipo_desconto == 'Porcentagem' ? 'selected' : ''}>Porcentagem</option>
+                            <option ${produto?.tipo_desconto == 'Dinheiro' ? 'selected' : ''}>Dinheiro</option>
+                        </select>
+                        <input type="number" oninput="total()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;" value="${produto?.desconto || ''}">
+                    </div>
+                </td>
+                `}
             <td></td>
             <td style="text-align: center;">
                 <img onclick="ampliar_especial(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
@@ -640,7 +643,7 @@ async function carregarTabelas() {
                     <th style="color: white;">Medida</th>
                     <th style="color: white;">Quantidade</th>
                     <th style="color: white;">Custo Unitário</th>
-                    ${!carrefour ? '<th style="color: white;">Desconto</th>' : ''}
+                    ${!carrefour ? `<th style="display: ${exibirDesconto ? '' : 'none'}; color: white;">Desconto</th>` : ''}
                     <th style="color: white;">Valor Total</th>
                     <th style="color: white;">Imagem *Ilustrativa</th>
                     <th style="color: white;">Remover</th>
