@@ -54,7 +54,7 @@ async function consultar_pagamentos() {
         await inserirDados(dados_categorias, 'dados_categorias')
     }
 
-    let orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let orcamentos = await recuperarDados('dados_orcamentos', true) || {};
     let dados_clientes = await recuperarDados('dados_clientes') || {};
     let clientes = {}
     let linhas = ''
@@ -2395,10 +2395,11 @@ async function carregar_opcoes_cc(textarea) {
         if (contrato.includes(pesquisa) || cliente.includes(pesquisa)) {
 
             opcoes += `
-                <div onclick="selecionar_cc('${id}', '${cliente}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px;">
-                    <label style="width: 100%; font-size: 0.8vw;"><strong>Chamado</strong> ${orc.dados_orcam.contrato}</label>
-                    <label style="width: 100%; font-size: 1.0vw;">${orc.dados_orcam.cliente_selecionado}</label>
-                    <label style="width: 100%; font-size: 0.8vw;"><strong>Analista</strong> ${orc.dados_orcam.analista}</label>
+                <div onclick="selecionar_cc('${id}', '${cliente}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px;">
+                    <label style="width: 100%; font-size: 0.7vw;"><strong>Chamado</strong> ${orc.dados_orcam.contrato}</label>
+                    <label style="width: 100%; font-size: 0.7vw;"><strong>Valor</strong> ${dinheiro(orc.total_geral)}</label>
+                    <label style="width: 100%; font-size: 0.7vw;"><strong>Analista</strong> ${orc.dados_orcam.analista}</label>
+                    <label style="width: 100%; font-size: 0.8vw;">${orc.dados_orcam.cliente_selecionado}</label>
                 </div>
                 `
         }
