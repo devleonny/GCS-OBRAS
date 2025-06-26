@@ -16,27 +16,22 @@ async function filtrarPagamentos() {
     let setoresPermitidos = ['FINANCEIRO']
     let pagamentosFiltrados = {}
 
-    if (usuariosPermitidos.includes(acesso.permissao) || setoresPermitidos.includes(acesso.setor)) {
-        pagamentosFiltrados = lista_pagamentos
+    for (let [idPagamento, pagamento] of Object.entries(lista_pagamentos)) {
 
-    } else {
+        if (
+            (usuariosPermitidos.includes(acesso.permissao) || setoresPermitidos.includes(acesso.setor))
+        ) {
+            if (pagamento.mes && acesso.permissao != 'adm') continue;
 
-        for (let [idPagamento, pagamento] of Object.entries(lista_pagamentos)) {
+            pagamentosFiltrados[idPagamento] = pagamento;
 
-            if (
-                
-                pagamento.criado == acesso.usuario ||
-
-                (acesso.permissao == 'gerente' && pagamento.status.includes('Gerência')) ||
-
-                (acesso.permissao == 'qualidade' && pagamento.status.includes('Qualidade'))
-
-            ) {
-                pagamentosFiltrados[idPagamento] = pagamento
-            }
-
+        } else if (
+            pagamento.criado == acesso.usuario ||
+            (acesso.permissao == 'gerente' && pagamento.status.includes('Gerência')) ||
+            (acesso.permissao == 'qualidade' && pagamento.status.includes('Qualidade'))
+        ) {
+            pagamentosFiltrados[idPagamento] = pagamento;
         }
-
     }
 
     return pagamentosFiltrados
