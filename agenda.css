@@ -48,10 +48,6 @@ input {
   font-size: 0.8vw;
 }
 
-.selected {
-  background-color: #cce5ff;
-}
-
 #etiqueta {
   font-size: 0.8vw;
   background-color: white;
@@ -67,7 +63,7 @@ td:first-child {
   text-overflow: ellipsis;
 }
 
-.selecionado {
+.selected {
   background-color: rgba(0, 123, 255);
   border: 1px solid blue;
 }

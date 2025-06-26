@@ -189,7 +189,7 @@ async function carregar_tabela(alterar) {
         </div>
     `
 
-    let modeloBotao = (valor1, link, imagem) => `
+    let modeloBotao = (valor1, link) => `
         <div onclick="${link}">
           <label>${valor1}</label>
         </div>
