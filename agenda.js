@@ -98,16 +98,16 @@ async function carregar_tabela(alterar) {
     let linhas = ''
     let dias = new Date(selectAno, meses[selecMes] + 1, 0).getDate()
     let ths = `
-        <th>Técnicos</th>
-        <th>Região</th>
-        <th>Config</th>
+        <th style="color: white;">Técnicos</th>
+        <th style="color: white;">Região</th>
+        <th style="color: white;">Config</th>
     `
     for (let i = 1; i <= dias; i++) { // Cabeçalho dias/Semanas do mês
         let data = new Date(selectAno, meses[selecMes], i)
 
         ths += `
         <th>
-            <div style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
+            <div style="color: white; display: flex; align-items: center; justify-content: center; flex-direction: column;">
                 <label>${i}</label>
                 <label>${semana[data.getDay()]}</label>
             </div>
@@ -145,7 +145,7 @@ async function carregar_tabela(alterar) {
 
         let regiao = dados_agenda_tecnicos[omieFuncionario]?.regiao_atual || 'Sem Região'
 
-        if(acesso.permissao !== 'adm' && regiao == 'Administrativo') continue
+        if (acesso.permissao !== 'adm' && regiao == 'Administrativo') continue
 
         let mostrarSeta = (funcionario.departamentos_fixos && Object.keys(funcionario.departamentos_fixos).length > 0)
 
@@ -169,9 +169,9 @@ async function carregar_tabela(alterar) {
     let string_regioes = ''
     regioes.forEach(regiao => {
         string_regioes += `
-        <div style="display: flex; align-items: center; justify-content: left; gap: 2px;">
-            <input style="width: 2vw; height: 2vw; cursor: pointer;" type="checkbox" onchange="incluir_regiao(this)">
+        <div style="display: flex; align-items: center; justify-content: end; gap: 2px;">
             <label style="font-size: 0.8vw;">${regiao}</label>
+            <input style="width: 2vw; height: 2vw; cursor: pointer;" type="checkbox" onchange="incluir_regiao(this)">
         </div>
         `
     })
@@ -179,7 +179,7 @@ async function carregar_tabela(alterar) {
     let tabela = `
         <div class="fundo_tabela" id="dados_agenda">
             <table id="tabelaAgenda" class="tabela" style="table-layout: fixed;">
-                <thead>
+                <thead style="background-color: #797979;">
                     ${ths}
                 </thead>
                 <tbody>
@@ -189,10 +189,32 @@ async function carregar_tabela(alterar) {
         </div>
     `
 
+    let modeloBotao = (valor1, link, imagem) => `
+        <div onclick="${link}">
+          <label>${valor1}</label>
+        </div>
+    `
+
     let acumulado = `
     <div class="fundo">
 
-        <div style="color: white; display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 1vw; width: 17vw;">
+        <div style="display: flex; flex-direction: column; align-items: end; justify-content: center; gap: 1vw; width: 17vw;">
+
+            <div class="linksAgenda">
+
+                ${modeloBotao('Sincronizar Departamentos', 'sincronizar_departamentos()')}
+
+                ${modeloBotao('Distribuição | Omie', 'painelDistruibuicao()')}
+
+                ${modeloBotao('Voltar', `window.location.href='inicial.html'`)}
+
+                ${modeloBotao('Atualizar', `recuperar_agenda()`)}
+
+                ${modeloBotao('Novo Funcionário', `abrir_opcoes()`)}
+
+            </div>
+
+            <hr style="width: 100%;">
 
             <label>Mês</label>
             <select id="mes" onchange="iniciar_agendas(true)">
@@ -203,6 +225,7 @@ async function carregar_tabela(alterar) {
 
             <label>Ano</label>
             <select id="ano" onchange="iniciar_agendas(true)">
+                <option ${selectAno == 2024 ? 'selected' : ''}>2024</option>
                 <option ${selectAno == 2025 ? 'selected' : ''}>2025</option>
                 <option ${selectAno == 2026 ? 'selected' : ''}>2026</option>
             </select>
@@ -390,10 +413,20 @@ async function apagar_agenda(omie_tecnico) {
 async function abrir_opcoes() {
 
     let acumulado = `
-        <div style="margin: 10px; gap: 10px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
-            <label>Escolha o Funcionário:</label>
-            <textarea id="textareaFuncionario" oninput="sugestoes(this, true)"></textarea>
-            <div></div>
+
+        <div style="display: flex; align-items: center; justify-content: center; gap: 15px; background-color: #d2d2d2; padding: 2vw;">
+
+            <div style="margin: 10px; gap: 10px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                <label>Escolha o Funcionário</label>
+                <textarea id="textareaFuncionario" oninput="sugestoes(this, true)"></textarea>
+                <div></div>
+            </div>
+
+            <div class="btn" onclick="recuperarClientes()">
+                <img src="imagens/omie.png">
+                <label style="cursor: pointer;">Atualizar OMIE Clientes</label>
+            </div>
+
         </div>
     `
     openPopup_v2(acumulado, 'Novo Funcionário')
@@ -592,7 +625,7 @@ async function filtrar_por_regiao() {
     let regioes_ativas = JSON.parse(localStorage.getItem('regioes_ativas')) || [];
 
     inputs.forEach(input => {
-        let regiao = input.nextElementSibling.textContent;
+        let regiao = input.previousElementSibling.textContent;
         input.checked = regioes_ativas.includes(regiao);
     });
 
@@ -611,7 +644,7 @@ async function filtrar_por_regiao() {
 }
 
 async function incluir_regiao(input) {
-    let regiao = input.nextElementSibling.textContent;
+    let regiao = input.previousElementSibling.textContent;
     let regioes_ativas = JSON.parse(localStorage.getItem('regioes_ativas')) || [];
 
     if (input.checked) {
@@ -941,9 +974,7 @@ async function distribuicaoFuncionario() {
             let total = 0
 
             for (let [dia, objeto] of Object.entries(agenda)) {
-                if (!contadores[objeto.departamento]) {
-                    contadores[objeto.departamento] = 0
-                }
+                if (!contadores[objeto.departamento]) contadores[objeto.departamento] = 0
                 contadores[objeto.departamento]++
                 total++
             }
@@ -951,8 +982,7 @@ async function distribuicaoFuncionario() {
             for (let [departamento, quantidade] of Object.entries(contadores)) {
                 let porcentagem = quantidade / total
                 labelsDistribuicao += `
-                <label><strong>${conversor(porcentagem.toFixed(2))}%</strong> ${dados_departamentos[departamento].descricao}</label>
-                `
+                <label><strong>${conversor(porcentagem.toFixed(2))}%</strong> ${dados_departamentos[departamento].descricao}</label>`
 
                 if (!auxPagamFuncionario[codigoFuncionario]) {
                     auxPagamFuncionario[codigoFuncionario] = { distribuicao: [] }
@@ -960,7 +990,7 @@ async function distribuicaoFuncionario() {
 
                 auxPagamFuncionario[codigoFuncionario].distribuicao.push({
                     cCodDep: departamento,
-                    nPerDep: Number((porcentagem * 100).toFixed(8))
+                    nPerDep: Number((porcentagem * 100).toFixed(7))
                 })
 
             }
@@ -979,8 +1009,8 @@ async function distribuicaoFuncionario() {
 
         linhas += `
             <tr>
-                <td style="text-align: left;" id="${codigoFuncionario}">${clientesOmie[codigoFuncionario].nome}</td>
-                <td><input class="opcoesSelect"></td>
+                <td style="text-align: left;" id="${codigoFuncionario}">${clientesOmie[codigoFuncionario]?.nome || codigoFuncionario}</td>
+                <td><input type="number" class="opcoesSelect"></td>
                 <td>
                     <div style="display: flex; justify-content: start; flex-direction: column; align-items: start;">
                         ${labelsDistribuicao}
@@ -1066,9 +1096,12 @@ async function enviarPagamentos() {
         let omieFuncionario = tds[0].id
         let idPagamento = unicoID()
         let valorDocumento = Number(tds[1].querySelector('input').value)
+        
         if (valorDocumento == 0) continue
 
-        let distribuicao = auxPagamFuncionario[omieFuncionario].distribuicao
+        let distribuicao = auxPagamFuncionario[omieFuncionario]?.distribuicao
+
+        if (!distribuicao) return openPopup_v2(mensagem('Não existe rateio para este funcionário'), 'AVISO', true)
 
         let param = [
             {
@@ -1114,7 +1147,7 @@ async function enviarPagamentos() {
 
     openPopup_v2(acumulado, 'Carregando', true)
     let carregamento = document.getElementById('carregamento')
-    let tamanho = Object.keys(pagamentos)
+    let tamanho = Object.keys(pagamentos).length
     let i = 1
     for (let [idPagamento, pagamento] of Object.entries(pagamentos)) {
 
@@ -1125,7 +1158,7 @@ async function enviarPagamentos() {
         if (resposta.faultstring) pagamento.status = 'Não lançado'
 
         lista_pagamentos[idPagamento] = pagamento
-        enviar(`lista_pagamento/${idPagamento}`, pagamento)
+        enviar(`lista_pagamentos/${idPagamento}`, pagamento)
         i++
     }
 
@@ -1133,7 +1166,6 @@ async function enviarPagamentos() {
 
     remover_popup()
     await distribuicaoFuncionario()
-    console.log(pagamentos)
 
 }
 

@@ -1,15 +1,19 @@
+body {
+  width: max-content;
+}
+
 .fundo {
-  width: 90vw;
   display: flex;
   align-items: start;
   justify-content: left;
-  background-color: #2f4f6f;
+  background-color: #d2d2d2;
   padding: 1vw;
   margin: 1vw;
   gap: 1vw;
 }
 
-button, textarea {
+button,
+textarea {
   font-size: 0.9vw;
 }
 
@@ -92,6 +96,34 @@ td:first-child {
   padding: 2px;
 }
 
+.linksAgenda {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: end;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.linksAgenda label {
+  cursor: pointer;
+}
+
+.linksAgenda div {
+  padding: 5px;
+  width: 100%;
+  display: flex;
+  justify-content: end;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.linksAgenda div:hover {
+  background-color: #797979;
+  color: white;
+}
+
 select,
 .campos {
   cursor: pointer;
@@ -107,13 +139,6 @@ select,
 .select_regiao {
   background-color: #2f4f6f;
   color: white;
-}
-
-.fundo_tabela {
-  resize: both;
-  height: max-content;
-  max-height: 90vh;
-  overflow: auto;
 }
 
 th {
