@@ -1438,23 +1438,23 @@ function gerar_id_5_digitos() {
 
 function pesquisar_generico(coluna, texto, filtro, id) {
 
-    filtro[coluna] = String(texto).toLowerCase();
+    filtro[coluna] = String(texto).toLowerCase().replace('.', '')
 
     let tbody = document.getElementById(id);
     let trs = tbody.querySelectorAll('tr');
     let contador = 0
 
     trs.forEach(function (tr) {
-        var tds = tr.querySelectorAll('td');
-        var mostrarLinha = true;
+        let tds = tr.querySelectorAll('td');
+        let mostrarLinha = true;
 
         for (var col in filtro) {
-            var filtroTexto = filtro[col];
+            let filtroTexto = filtro[col];
 
             if (filtroTexto && col < tds.length) {
                 let element = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].querySelector('select') || tds[col].textContent
                 let conteudoCelula = element.value ? element.value : element
-                let texto_campo = String(conteudoCelula).toLowerCase()
+                let texto_campo = String(conteudoCelula).toLowerCase().replace('.', '')
 
                 if (!texto_campo.includes(filtroTexto)) {
                     mostrarLinha = false;
