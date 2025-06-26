@@ -1211,17 +1211,9 @@ function timestamp(dataStr, horaStr) {
     return data.getTime();
 }
 
-async function recuperar_clientes() {
+async function recuperarClientes() {
 
-    var acompanhamento_dados_clientes = document.getElementById('acompanhamento_dados_clientes')
-    if (acompanhamento_dados_clientes) {
-        acompanhamento_dados_clientes.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: left;">
-            <img src="gifs/loading.gif" style="width: 50px">
-            <label>Aguarde alguns segundos... </label>
-        </div>
-        `
-    }
+    overlayAguarde()
 
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let timestamps = {
@@ -1269,7 +1261,9 @@ async function recuperar_clientes() {
         let objeto = await dados_clientes_por_pagina(1, data, hora, modalidade);
 
         if (objeto.faultstring) {
-            return console.log(objeto)
+            removerOverlay()
+            openPopup_v2(mensagem('Não foi possível carregar, tente novamente.', 'AVISO', true))
+            return
         }
 
         alimentar_objeto(objeto);
@@ -1320,13 +1314,7 @@ async function recuperar_clientes() {
     }
 
     await inserirDados(dados_clientes, 'dados_clientes')
-
-    if (acompanhamento_dados_clientes) {
-        acompanhamento_dados_clientes.innerHTML = `
-            <img src="imagens/omie.png">
-            <label style="cursor: pointer;">Atualizar OMIE Clientes</label>
-            `
-    }
+    removerOverlay()
 
 }
 

@@ -1181,7 +1181,7 @@ function painel_clientes() {
         <div style="display: flex; justify-content: start; align-items: center;">
             <div style="display: flex; flex-direction: column; gap: 10px; align-items: left; margin: 5px;">
 
-                <div id="acompanhamento_dados_clientes" class="btn" onclick="recuperar_clientes()">
+                <div id="acompanhamento_dados_clientes" class="btn" onclick="recuperarClientes()">
                     <img src="imagens/omie.png">
                     <label style="cursor: pointer;">Atualizar OMIE Clientes</label>
                 </div>

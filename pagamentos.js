@@ -1468,14 +1468,8 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
                         <div class="autocomplete-list"></div>
                     </div>
 
-                    <img src="imagens/atualizar_2.png" style="width: 2vw; cursor: pointer; margin-right: 5px;" onclick="atualizar_base_clientes()">
+                    <img src="imagens/atualizar_2.png" style="width: 2vw; cursor: pointer; margin-right: 5px;" onclick="recuperarClientes()">
 
-                </div>
-
-                <div id="aguarde_2"
-                    style="display: none; width: 100%; align-items: center; justify-content: center; gap: 10px;">
-                    <img src="gifs/loading.gif" style="width: 5vw">
-                    <label>Verificando clientes do Omie...</label>
                 </div>
 
             </div>
@@ -1662,25 +1656,6 @@ async function atualizarFormaPagamento() {
     `;
 
     await calculadora_pagamento()
-}
-
-async function atualizar_base_clientes() {
-
-    var div_recebedor = document.getElementById('div_recebedor')
-    var aguarde_2 = document.getElementById('aguarde_2')
-
-    if (div_recebedor) {
-
-        div_recebedor.style.display = 'none'
-        aguarde_2.style.display = 'flex'
-
-        await recuperar_clientes()
-
-        div_recebedor.style.display = 'flex'
-        aguarde_2.style.display = 'none'
-
-    }
-
 }
 
 function calcular_custo() {

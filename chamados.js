@@ -1126,7 +1126,7 @@ async function definir_campo(elemento, campo, id) {
 async function atualizar_base_clientes() {
 
     overlayAguarde()
-    await recuperar_clientes()
+    await recuperarClientes()
     removerOverlay()
 
 }
