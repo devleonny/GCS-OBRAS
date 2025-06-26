@@ -56,13 +56,6 @@ input {
   position: absolute;
 }
 
-td:first-child {
-  white-space: nowrap;
-  width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .selected {
   background-color: rgba(0, 123, 255);
   border: 1px solid blue;

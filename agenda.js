@@ -98,6 +98,7 @@ async function carregar_tabela(alterar) {
     let linhas = ''
     let dias = new Date(selectAno, meses[selecMes] + 1, 0).getDate()
     let ths = `
+        <th style="color: white;"></th>
         <th style="color: white;">Técnicos</th>
         <th style="color: white;">Região</th>
         <th style="color: white;">Config</th>
@@ -151,6 +152,7 @@ async function carregar_tabela(alterar) {
 
         linhas += `
         <tr>
+            <td class="drag-handle">☰</td>
             <td id="${omieFuncionario}" style="text-align: left;">${funcionario.nome || omieFuncionario}</td>
             <td>
                 <label style="font-size: 0.7vw;">${regiao}</label>
@@ -182,7 +184,7 @@ async function carregar_tabela(alterar) {
                 <thead style="background-color: #797979;">
                     ${ths}
                 </thead>
-                <tbody>
+                <tbody id="bodyAgenda">
                     ${linhas}
                 </tbody>
             </table>
@@ -255,6 +257,11 @@ async function carregar_tabela(alterar) {
     } else {
         document.body.insertAdjacentHTML('beforeend', acumulado)
     }
+
+    new Sortable(document.getElementById('bodyAgenda'), {
+        animation: 150,
+        handle: '.drag-handle'
+    });
 
     arrastarCelulas()
 
@@ -631,9 +638,9 @@ async function filtrar_por_regiao() {
 
     trs.forEach(tr => {
         let tds = tr.querySelectorAll('td');
-        let codigo_tecnico = tds[0].id;
+        let codigo_tecnico = tds[1].id;
         let regiao_do_tecnico = dados_agenda_tecnicos?.[codigo_tecnico]?.regiao_atual || '';
-        let nome_tecnico = String(tds[0].textContent).toLowerCase();
+        let nome_tecnico = String(tds[1].textContent).toLowerCase();
 
         let mostrar_linha =
             (regioes_ativas.length === 0 || regioes_ativas.includes(regiao_do_tecnico)) &&
@@ -825,30 +832,24 @@ function colorir_tabela() {
 
         tds.forEach((td, i) => {
 
-            if (i > 2) {
+            let input = td.querySelector('input')
 
-                let input = td.querySelector('input')
+            if (input && input.value != '') {
 
-                if (input.value != '') {
+                if (!departamentos[input.value]) {
 
-                    if (!departamentos[input.value]) {
-
-                        let estilos = back_fonte()
-                        departamentos[input.value] = {
-                            bg: estilos.corFundo,
-                            cor: estilos.corTexto
-                        }
+                    let estilos = back_fonte()
+                    departamentos[input.value] = {
+                        bg: estilos.corFundo,
+                        cor: estilos.corTexto
                     }
-
-                    td.style.backgroundColor = departamentos[input.value].bg
-                    input.style.color = departamentos[input.value].cor
-
-                } else {
-                    td.style.backgroundColor = ''
-                    td.style.color = 'black'
                 }
 
+                td.style.backgroundColor = departamentos[input.value].bg
+                input.style.color = departamentos[input.value].cor
+
             }
+
         })
 
     })
@@ -1096,7 +1097,7 @@ async function enviarPagamentos() {
         let omieFuncionario = tds[0].id
         let idPagamento = unicoID()
         let valorDocumento = Number(tds[1].querySelector('input').value)
-        
+
         if (valorDocumento == 0) continue
 
         let distribuicao = auxPagamFuncionario[omieFuncionario]?.distribuicao
@@ -1692,7 +1693,8 @@ function arrastarCelulas() {
     })
 
     tabela.addEventListener('mouseover', e => {
-        if (!isDragging || e.target.tagName !== 'TD') return
+        if (!isDragging || e.target.tagName !== 'TD') return clearSelection()
+        if (!e.target.querySelector('input')) return clearSelection()
 
         clearSelection()
         const coords = getCellCoords(e.target)
