@@ -9,18 +9,49 @@ let opcoesStatus = [
 
 consultar_pagamentos()
 
+async function filtrarPagamentos() {
+
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+    let usuariosPermitidos = ['diretoria', 'adm']
+    let setoresPermitidos = ['FINANCEIRO']
+    let pagamentosFiltrados = {}
+
+    if (usuariosPermitidos.includes(acesso.permissao) || setoresPermitidos.includes(acesso.setor)) {
+        pagamentosFiltrados = lista_pagamentos
+
+    } else {
+
+        for (let [idPagamento, pagamento] of Object.entries(lista_pagamentos)) {
+
+            if (
+                
+                pagamento.criado == acesso.usuario ||
+
+                (acesso.permissao == 'gerente' && pagamento.status.includes('Gerência')) ||
+
+                (acesso.permissao == 'qualidade' && pagamento.status.includes('Qualidade'))
+
+            ) {
+                pagamentosFiltrados[idPagamento] = pagamento
+            }
+
+        }
+
+    }
+
+    return pagamentosFiltrados
+}
+
 async function consultar_pagamentos() {
 
     let div_pagamentos = document.getElementById('div_pagamentos')
-    if (!div_pagamentos) {
-        return
-    }
+    if (!div_pagamentos) return
 
     div_pagamentos.innerHTML = ''
 
     //Chamada para o endpoint que já retorna os pagamentos filtrados;
     let acumulado = ''
-    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    let lista_pagamentos = await filtrarPagamentos() // Filtrar de acordo com o usuário atual;
 
     let dados_categorias = await recuperarDados('dados_categorias')
     if (!dados_categorias) {
@@ -255,9 +286,7 @@ async function abrir_detalhes(id_pagamento) {
         inserirDados(dados_categorias, 'dados_categorias')
     }
 
-    var cc = 'Erro 404'
-
-    var dados_clientes_invertido = {};
+    let dados_clientes_invertido = {};
 
     for (cnpj in dados_clientes) {
         dados_clientes_invertido[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
@@ -266,13 +295,7 @@ async function abrir_detalhes(id_pagamento) {
     dados_clientes = dados_clientes_invertido // Cod Omie em evidência;
 
     let pagamento = lista_pagamentos[id_pagamento]
-
-    if (dados_orcamentos[pagamento.id_orcamento]) {
-        cc = dados_orcamentos[pagamento.id_orcamento].dados_orcam?.cliente_selecionado
-    } else {
-        cc = pagamento.id_orcamento
-    }
-
+    let cc = dados_orcamentos?.[pagamento.id_orcamento]?.dados_orcam?.cliente_selecionado || pagamento.id_orcamento
     let anexos = ''
     let cliente = pagamento.param[0].codigo_cliente_fornecedor
     let cliente_omie = pagamento.param[0].codigo_cliente_fornecedor
@@ -1032,30 +1055,7 @@ async function recuperarPagamentos() {
     overlayAguarde()
 
     await lista_setores()
-
     await sincronizarDados('lista_pagamentos', true)
-    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
-    let usuariosPermitidos = ['diretoria', 'adm']
-    let setoresPermitidos = ['FINANCEIRO']
-    let pagamentosFiltrados = {}
-
-    if (usuariosPermitidos.includes(acesso.permissao) || setoresPermitidos.includes(acesso.setor)) {
-        pagamentosFiltrados = lista_pagamentos
-
-    } else {
-
-        for ([idPagamento, pagamento] of Object.entries(lista_pagamentos)) {
-
-            if (pagamento.criado == acesso.usuario) {
-                pagamentosFiltrados[idPagamento] = pagamento
-            }
-
-        }
-
-    }
-
-    await inserirDados(pagamentosFiltrados, 'lista_pagamentos')
-
     await retomarPaginacao()
 
     remover_popup()
