@@ -240,6 +240,7 @@ async function painelAdicionarPedido() {
                 ${modelo('Tipo de Pedido', `
                     <select id="tipo" class="pedido">
                         <option>Selecione</option>
+                        <option>Locação</option>
                         <option>Serviço</option>
                         <option>Venda</option>
                         <option>Venda + Serviço</option>
@@ -247,7 +248,7 @@ async function painelAdicionarPedido() {
                     `)}
 
                 ${modelo('',
-        `<div style="display: flex; gap: 10px; align-items: center; justify-content: center; align-items: center;">
+        `<div style="display: flex; gap: 10px; align-items: center; justify-content: start;">
                     <input type="checkbox" onchange="ocultar_pedido(this)" style="cursor: pointer; width: 30px; height: 30px;">
                     <label>Sem Pedido</label>
                 </div>`)}
