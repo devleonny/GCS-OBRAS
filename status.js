@@ -847,7 +847,6 @@ function adicionar_linha_manut(ad, dados) {
                 </div>
                 <div style="position: relative; width: 25vw; height: 30px; background-color: #b5b5b5;">
                     <textarea style="background-color: transparent; height: 100%; resize: none; border: none; outline: none;" type="text" id="${aleatorio}" oninput="sugestoes(this, 'estoque')">${dados?.descricao || ''}</textarea>
-                    <div class="autocomplete-list" id="sug_${aleatorio}"></div> 
                     <input id="input_${aleatorio}" style="display: none;">
                 </div>
 
@@ -939,14 +938,13 @@ async function sugestoes(textarea, base) {
 
 }
 
-async function definir_campo(elemento, div, id) {
+async function definir_campo(elemento, textareaID, id) {
 
-    let campo = String(div).split('_')[1]
+    let input_aleatorio = document.getElementById(`input_${textareaID}`)
 
-    let input_aleatorio = document.getElementById(`input_${campo}`)
     input_aleatorio.value = id
 
-    let dados_estoque = await recuperarDados('dados_estoque') || {}
+    let dados_estoque = await recuperarDados('dados_estoque', true) || {}
     let estoques = ['estoque', 'estoque_usado']
 
     let dic_quantidades = {}
@@ -980,8 +978,10 @@ async function definir_campo(elemento, div, id) {
 
     })
 
-    document.getElementById(campo).value = elemento.textContent
-    document.getElementById(div).innerHTML = '' // Sugestões
+    document.getElementById(textareaID).value = elemento.textContent
+
+    let divSugestoes = document.getElementById('div_sugestoes')
+    if(divSugestoes) divSugestoes.remove()
 }
 
 function salvar_itens_adicionais(codigo) {

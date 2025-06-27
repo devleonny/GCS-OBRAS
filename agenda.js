@@ -910,6 +910,7 @@ async function distribuicaoFuncionario() {
     let clientesOmie = await recuperarDados('dados_clientes') || {}
     let permitidos = ['adm', 'fin']
     let setores = ['FINANCEIRO']
+    let totaisCategoria = {}
 
     if (!permitidos.includes(acesso.permissao) && !setores.includes(acesso.setor)) {
         let mensagem = `
@@ -955,7 +956,7 @@ async function distribuicaoFuncionario() {
     auxPagamFuncionario = {} // Reiniciar este contador para lançamentos futuros;
 
     for ([codigoFuncionario, objeto] of Object.entries(dados_agenda_tecnicos)) {
-        
+
         let agenda = objeto.agendas[chaveAgenda]
         let labelsDistribuicao = ''
 
@@ -989,10 +990,17 @@ async function distribuicaoFuncionario() {
         let labelsPagamentos = ''
         if (pagamentosPorFuncionario[codigoFuncionario]) {
             pagamentosPorFuncionario[codigoFuncionario].forEach(pagamento => {
+
                 let param = pagamento.param[0]
                 let codCategoria = param.categorias[0].codigo_categoria
+                let nomeCategoria = categoriasChaves[codCategoria]
+                if (!totaisCategoria[nomeCategoria]) {
+                    totaisCategoria[nomeCategoria] = 0
+                }
+                totaisCategoria[nomeCategoria] += param.valor_documento
+
                 labelsPagamentos += `
-                    <label onclick="detalhesPagamento()" class="marcador" style="cursor: pointer; background-color: ${pagamento.status != 'PAGO' ? '#B12425' : 'green'};">${categoriasChaves[codCategoria]} - ${dinheiro(param.valor_documento)}</label>
+                    <label onclick="detalhesPagamento()" class="marcador" style="cursor: pointer; background-color: ${pagamento.status != 'PAGO' ? '#B12425' : 'green'};">${nomeCategoria} - ${dinheiro(param.valor_documento)}</label>
                 `
             })
         }
@@ -1017,11 +1025,11 @@ async function distribuicaoFuncionario() {
 
     let tabela = `
         <table class="tabela">
-            <thead>
-                <th>Funcionário</th>
-                <th>Valores</th>
-                <th>Distribuição</th>
-                <th>Pagamentos Realizados</th>
+            <thead style="background-color: #797979;">
+                <th style="color: white;">Funcionário</th>
+                <th style="color: white;">Valores</th>
+                <th style="color: white;">Distribuição</th>
+                <th style="color: white;">Pagamentos Realizados</th>
             </thead>
             <tbody id="tbodyPagamentos">
                 ${linhas}
@@ -1029,21 +1037,37 @@ async function distribuicaoFuncionario() {
         </table>
     `
 
+    let resumoValoresCategorias = ''
+    
+    for(categoria in totaisCategoria) {
+        resumoValoresCategorias += `
+        <label class="marcador">${categoria} - ${dinheiro(totaisCategoria[categoria])}
+        `
+    }
+
     acumulado = `
         <div style="gap: 5px; background-color: #d2d2d2; display: flex; flex-direction: column; align-items: start; justify-content: start; padding: 2vw;">
             <label>Tabela de Distribuição</label>
             <hr style="width: 100%;">
-            <label>Categoria</label>
-            <select id="categoriaPagamentos">
-                ${opcoesCategorias}
-            </select>
-            <label>Data de Vencimento</label>
-            <input id="vencimentoPagamentos" type="date" style="padding: 5px; border-radius: 3px;">
-            <label>Observação</label>
-            <textarea id="observacaoPagamentos"></textarea>
-            <hr style="width: 100%;">
-            <button style="background-color: #4CAF50" onclick="enviarPagamentos()">Enviar Pagamentos</button>
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
 
+                <div style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 5px;">
+                    <label>Categoria</label>
+                    <select id="categoriaPagamentos">
+                        ${opcoesCategorias}
+                    </select>
+                    <label>Data de Vencimento</label>
+                    <input id="vencimentoPagamentos" type="date" style="padding: 5px; border-radius: 3px;">
+                    <label>Observação</label>
+                    <textarea id="observacaoPagamentos"></textarea>
+                    <hr style="width: 100%;">
+                    <button style="background-color: #4CAF50" onclick="enviarPagamentos()">Enviar Pagamentos</button>
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
+                    ${resumoValoresCategorias}
+                </div>
+            </div>
             ${tabela}
         </div>
     `
