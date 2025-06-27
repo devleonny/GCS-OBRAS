@@ -1258,7 +1258,7 @@ async function recuperarClientes() {
 
         let data = resultado[modalidade].data
         let hora = resultado[modalidade].hora
-        let objeto = await dados_clientes_por_pagina(1, data, hora, modalidade);
+        let objeto = await dadosClientesPorPagina(1, data, hora, modalidade);
 
         if (objeto.faultstring) {
             removerOverlay()
@@ -1269,13 +1269,13 @@ async function recuperarClientes() {
         alimentar_objeto(objeto);
 
         for (let i = 2; i <= objeto.total_de_paginas; i++) {
-            objeto = await dados_clientes_por_pagina(i, data, hora, modalidade);
+            objeto = await dadosClientesPorPagina(i, data, hora, modalidade);
             alimentar_objeto(objeto);
         }
 
         function alimentar_objeto(dados) {
             dados.clientes_cadastro.forEach((item) => {
-                clientes[item.cnpj_cpf] = {
+                clientes[item.codigo_cliente_omie] = {
                     inativo: item.inativo,
                     nome: item.nome_fantasia,
                     cnpj: item.cnpj_cpf,
@@ -1318,7 +1318,7 @@ async function recuperarClientes() {
 
 }
 
-async function dados_clientes_por_pagina(pagina, data, hora, modalidade) {
+async function dadosClientesPorPagina(pagina, data, hora, modalidade) {
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/clientes", {
             method: "POST",

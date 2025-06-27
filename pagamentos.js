@@ -1072,7 +1072,11 @@ async function atualizar_feedback(resposta, id_pagamento) {
     let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
     let setorUsuarioPagamento = dados_setores?.[pagamento.criado]?.setor || ''
 
-    let status;
+    let categorias = pagamento.param[0].categorias
+    let pagamentoParceiroAtivo = false
+    for (item of categorias) {
+        if (item.codigo_categoria == '2.01.99') pagamentoParceiroAtivo = true
+    }
 
     if (resposta) {
 
@@ -1087,7 +1091,7 @@ async function atualizar_feedback(resposta, id_pagamento) {
                 lancar_pagamento(pagamento)
                 break
 
-            case permissao !== 'qualidade' && setorUsuarioPagamento == 'INFRA' && categoria_atual == '2.01.99': // Setor de INFRA e Pagamento de Parceiro;
+            case permissao !== 'qualidade' && setorUsuarioPagamento == 'INFRA' && pagamentoParceiroAtivo: // Setor de INFRA e Pagamento de Parceiro;
                 status = 'Aguardando aprovação da Qualidade';
                 break
 

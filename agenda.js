@@ -1,5 +1,4 @@
 let filtro_tecnicos = {}
-let clientesOmie = {}
 let dados_departamentos = {}
 let dados_agenda_tecnicos = {}
 let dados_categorias = {}
@@ -193,14 +192,14 @@ async function carregar_tabela(alterar) {
 
     let modeloBotao = (valor1, link) => `
         <div onclick="${link}">
-          <label>${valor1}</label>
+          <label style="text-align: right;">${valor1}</label>
         </div>
     `
 
     let acumulado = `
     <div class="fundo">
 
-        <div style="display: flex; flex-direction: column; align-items: end; justify-content: center; gap: 1vw; width: 17vw;">
+        <div style="display: flex; flex-direction: column; align-items: end; justify-content: center; gap: 1vw; width: 10vw;">
 
             <div class="linksAgenda">
 
@@ -257,11 +256,6 @@ async function carregar_tabela(alterar) {
     } else {
         document.body.insertAdjacentHTML('beforeend', acumulado)
     }
-
-    new Sortable(document.getElementById('bodyAgenda'), {
-        animation: 150,
-        handle: '.drag-handle'
-    });
 
     arrastarCelulas()
 
@@ -330,12 +324,7 @@ async function carregarBases() {
         await sincronizar_departamentos()
     }
 
-    let dados_clientes = await recuperarDados('dados_clientes')
-    clientesOmie = {}
-    for (id in dados_clientes) {
-        let cliente = dados_clientes[id]
-        clientesOmie[cliente.omie] = cliente
-    }
+    let clientesOmie = await recuperarDados('dados_clientes')
 
     dados_agenda_tecnicos = await recuperarDados('dados_agenda_tecnicos') || {};
     if (!dados_agenda_tecnicos || Object.keys(dados_agenda_tecnicos).length == 0) {
@@ -441,6 +430,7 @@ async function abrir_opcoes() {
 
 async function sugestoes(input, tecnicos) {
 
+    let clientesOmie = await recuperarDados('dados_clientes') || {}
     let pesquisa = String(input.value).toLowerCase()
     let opcoes = ''
 
@@ -495,9 +485,7 @@ async function sugestoes(input, tecnicos) {
 
     }
 
-    if (opcoes == '') {
-        return
-    }
+    if (opcoes == '') return
 
     document.body.insertAdjacentHTML('beforeend', div)
 }
@@ -778,8 +766,9 @@ async function gerenciarDepartamentoFixo(omieDepartamento, codigoFuncionario, op
 
 }
 
-function confirmar_apagar_tecnico(omieFuncionario) {
+async function confirmar_apagar_tecnico(omieFuncionario) {
 
+    let clientesOmie = await recuperarDados('dados_clientes') || {}
     let funcionario = clientesOmie[omieFuncionario]
 
     openPopup_v2(`
@@ -918,9 +907,9 @@ async function painelDistruibuicao() {
 async function distribuicaoFuncionario() {
 
     remover_popup()
-
+    let clientesOmie = await recuperarDados('dados_clientes') || {}
     let permitidos = ['adm', 'fin']
-    let setores = ['RH', 'FINANCEIRO']
+    let setores = ['FINANCEIRO']
 
     if (!permitidos.includes(acesso.permissao) && !setores.includes(acesso.setor)) {
         let mensagem = `
@@ -966,7 +955,7 @@ async function distribuicaoFuncionario() {
     auxPagamFuncionario = {} // Reiniciar este contador para lançamentos futuros;
 
     for ([codigoFuncionario, objeto] of Object.entries(dados_agenda_tecnicos)) {
-
+        
         let agenda = objeto.agendas[chaveAgenda]
         let labelsDistribuicao = ''
 
@@ -1102,7 +1091,7 @@ async function enviarPagamentos() {
 
         let distribuicao = auxPagamFuncionario[omieFuncionario]?.distribuicao
 
-        if (!distribuicao) return openPopup_v2(mensagem('Não existe rateio para este funcionário'), 'AVISO', true)
+        if (!distribuicao) distribuicao = []
 
         let param = [
             {
@@ -1173,7 +1162,7 @@ async function enviarPagamentos() {
 async function distribuicaoDepartamento() {
 
     remover_popup()
-
+    let clientesOmie = await recuperarDados('dados_clientes') || {}
     let permitidos = ['adm', 'fin']
     let setores = ['RH', 'FINANCEIRO']
 
@@ -1385,7 +1374,7 @@ async function gerarTabelas(tipo, editavel, distribuicao) {
         let nome = dados_departamentos[omie]?.descricao || omie
         linhas += ` 
             <tr>
-                <td>${nome}</td>
+                <td style="text-align: right;">${nome}</td>
                 <td style="text-align: center;">${departamento}</td>
                 <td style="position: relative; text-align: center; width: 200px;">
                     <div style="background-color: #d2d2d2; width: 100%; height: 25px; position: relative;">

@@ -80,9 +80,9 @@ input {
 
 .marcador {
   background-color: green;
-  color: white;
-  border-radius: 3px;
-  padding: 2px;
+  color: #ededed;
+  border-radius: 2px;
+  padding: 3px;
 }
 
 .linksAgenda {
