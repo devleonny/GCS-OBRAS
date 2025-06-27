@@ -1041,7 +1041,7 @@ async function distribuicaoFuncionario() {
     
     for(categoria in totaisCategoria) {
         resumoValoresCategorias += `
-        <label class="marcador">${categoria} - ${dinheiro(totaisCategoria[categoria])}
+        <label class="marcador">${categoria} - ${dinheiro(totaisCategoria[categoria])}</label>
         `
     }
 
@@ -1064,7 +1064,7 @@ async function distribuicaoFuncionario() {
                     <button style="background-color: #4CAF50" onclick="enviarPagamentos()">Enviar Pagamentos</button>
                 </div>
 
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
+                <div style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 5px;">
                     ${resumoValoresCategorias}
                 </div>
             </div>

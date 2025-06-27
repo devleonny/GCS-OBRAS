@@ -872,7 +872,7 @@ function adicionar_linha_manut(ad, dados) {
                 </div>
 
                 <div style="width: 5vw; display: flex; align-items: center; justify-content: center;">
-                    <img src="imagens/remover.png" onclick="remover_esta_linha(this)" style="width: 30px; cursor: pointer;">
+                    <img src="imagens/remover.png" onclick="removerLinhaAdicional(this)" style="width: 30px; cursor: pointer;">
                 </div>
             </div>
             <hr style="width: 100%; margin: 0px;">
@@ -882,8 +882,8 @@ function adicionar_linha_manut(ad, dados) {
     }
 }
 
-function remover_esta_linha(div_menor) {
-    let linha_completa = div_menor.closest('.linha_completa')
+function removerLinhaAdicional(div_menor) {
+    let linha_completa = div_menor.parentElement.parentElement.parentElement
     if (linha_completa) {
         linha_completa.remove()
     }
