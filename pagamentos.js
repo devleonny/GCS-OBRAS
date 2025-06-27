@@ -1457,29 +1457,6 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
 
             </div>
 
-            <div id="container_cnpj_cpf" style="display: none; align-items: center; gap: 10px; width: 100%;">
-
-                <div class="numero" style="background-color: transparent;">
-                    <img src="gifs/alerta.gif" style="width: 30px; height: 30px;">
-                </div>
-
-                <div class="itens_financeiro" style="background-color: #B12425">
-                    <div
-                        style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
-                        <div style="display: flex; align-items: center; justify-content: center; width: 100%;">
-                            <input style="width: 80%;" type="text" id="cnpj_cpf" oninput="calculadoraPagamento()"
-                                placeholder="Digite o CNPJ ou CPF aqui...">
-                            <img src="imagens/confirmar.png" onclick="botao_cadastrar_cliente()" id="botao_cadastrar_cliente"
-                                style="margin: 10px; cursor: pointer; width: 2vw;">
-                        </div>
-
-                        <label style="font-size: 0.7em;">Esse <strong>recebedor</strong> parece novo...
-                            preencha o CPF/CNPJ e clique no símbolo de confirmação. </label>
-                    </div>
-                </div>
-
-            </div>
-
             <div class="ordem">
                 <label id="descricao_numero" class="numero">${ordenar()}</label>
                 <div class="itens_financeiro">
@@ -1850,7 +1827,6 @@ async function calculadoraPagamento() {
             }
         }
 
-        let container_cnpj_cpf = document.getElementById('container_cnpj_cpf')
         descricao.value == '' ? colorir('#B12425', 'descricao_numero') : colorir('green', 'descricao_numero')
 
         ultimo_pagamento.descricao = descricao.value
@@ -1867,17 +1843,14 @@ async function calculadoraPagamento() {
             }
 
             if (!cadastrado) {
-                container_cnpj_cpf.style.display = 'flex'
                 bloqueio = true
             } else {
                 colorir('green', 'recebedor_numero')
-                container_cnpj_cpf.style.display = 'none'
                 ultimo_pagamento.recebedor = cod_omie.textContent
             }
 
         } else {
             bloqueio = true
-            container_cnpj_cpf.style.display = 'flex'
             colorir('#B12425', 'recebedor_numero')
         }
 
@@ -2047,64 +2020,6 @@ function apagar_categoria(elemento) {
     calculadoraPagamento()
 }
 
-async function botao_cadastrar_cliente() {
-    let cnpj_cpf = document.getElementById('cnpj_cpf')
-    let textarea_nome = document.getElementById('recebedor')
-    let container_cnpj_cpf = document.getElementById('container_cnpj_cpf')
-    let aguarde_2 = document.getElementById('aguarde_2')
-    let div_recebedor = document.getElementById('div_recebedor')
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let codigo_omie = document.getElementById('codigo_omie')
-
-    div_recebedor.style.display = 'none'
-    container_cnpj_cpf.style.display = 'none'
-    aguarde_2.style.display = 'flex'
-
-    let resposta = await cadastrarCliente(textarea_nome.value, cnpj_cpf.value)
-
-    if (resposta.faultstring) {
-        let texto = resposta.faultstring
-        let regex = /CPF\/CNPJ \[(.*?)\].*?Id \[(.*?)\]/;
-        let match = texto.match(regex);
-
-        if (match) {
-            let cpfCnpj = match[1];
-            let omie = match[2];
-
-            if (!dados_clientes[cpfCnpj]) {
-                dados_clientes[cpfCnpj] = {
-                    omie: omie,
-                    nome: textarea_nome.value
-                }
-            }
-            await inserirDados(dados_clientes, 'dados_clientes')
-        }
-
-    } else if (resposta.codigo_cliente_omie) {
-
-        let omie = resposta.codigo_cliente_omie
-        let cpfCnpj = formatarCpfCnpj(cnpj_cpf.value)
-
-        if (!dados_clientes[cpfCnpj]) {
-            dados_clientes[cpfCnpj] = {
-                omie: omie,
-                nome: textarea_nome.value
-            }
-        }
-        await inserirDados(dados_clientes, 'dados_clientes')
-    }
-
-    let cliente = dados_clientes[formatarCpfCnpj(cnpj_cpf.value)]
-    codigo_omie.textContent = cliente.omie
-    textarea_nome.value = cliente.nome
-
-    div_recebedor.style.display = 'flex'
-    aguarde_2.style.display = 'none'
-
-    await calculadoraPagamento()
-
-}
-
 function formatarCpfCnpj(numero) {
     numero = numero.replace(/\D/g, '');
 
@@ -2113,34 +2028,6 @@ function formatarCpfCnpj(numero) {
     } else if (numero.length === 14) {
         return numero.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
     }
-}
-
-async function cadastrarCliente(nome, cnpj_cpf) {
-    return new Promise((resolve, reject) => {
-        fetch("https://leonny.dev.br/cadastrar", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                nome: nome,
-                cnpj_cpf: cnpj_cpf
-            }),
-        })
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error("Erro na requisição: " + response.status);
-                }
-                return response.json();
-            })
-            .then((data) => {
-                resolve(data);
-            })
-            .catch((error) => {
-                console.error("Erro:", error);
-                reject({});
-            });
-    });
 }
 
 async function remover_anx(anx) {
