@@ -205,11 +205,9 @@ async function carregar_tabela(alterar) {
 
                 ${modeloBotao('Sincronizar Departamentos', 'sincronizar_departamentos()')}
 
-                ${modeloBotao('Distribuição | Omie', 'painelDistruibuicao()')}
+                ${modeloBotao('Dist. Departamentos', 'distribuicaoDepartamento()')}
 
-                ${modeloBotao('Voltar', `window.location.href='inicial.html'`)}
-
-                ${modeloBotao('Atualizar', `recuperar_agenda()`)}
+                ${modeloBotao('Dist. Funcionários', 'distribuicaoFuncionario()')}
 
                 ${modeloBotao('Novo Funcionário', `abrir_opcoes()`)}
 
@@ -890,18 +888,6 @@ function nome_em_destaque(elemento, mostrar) {
 let relatorios = {
     tecnico: {},
     departamentos: { total: 0 }
-}
-
-async function painelDistruibuicao() {
-
-    let mensagem = `
-    <div class="opcoesPainel">
-        <label onclick="distribuicaoDepartamento()">Pagamentos por Departamento</label>
-        <label onclick="distribuicaoFuncionario()">Pagamentos por Funcionário</label>
-    </div>
-    `
-
-    openPopup_v2(mensagem, 'Escolha a distribuição')
 }
 
 async function distribuicaoFuncionario() {

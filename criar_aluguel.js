@@ -107,15 +107,6 @@ async function carregarTabelas() {
                 <input oninput="total(this)" type="number" class="campoValor" value="${produto?.custo || ''}">
             </td>
             <td>
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
-                    <select onchange="total()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
-                        <option ${produto?.tipo_desconto == 'Porcentagem' ? 'selected' : ''}>Porcentagem</option>
-                        <option ${produto?.tipo_desconto == 'Dinheiro' ? 'selected' : ''}>Dinheiro</option>
-                    </select>
-                    <input type="number" oninput="total()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;" value="${produto?.desconto || ''}">
-                </div>
-            </td>
-            <td>
                 <label></label>
             </td>
             <td style="text-align: center;">
@@ -149,7 +140,6 @@ async function carregarTabelas() {
                     <th style="color: white;">Medida</th>
                     <th style="color: white;">Quantidade</th>
                     <th style="color: white;">Custo Unitário Locação</th>
-                    <th style="color: white;">Desconto</th>
                     <th style="color: white;">Valor Total</th>
                     <th style="color: white;">Imagem *Ilustrativa</th>
                     <th style="color: white;">Remover</th>
@@ -231,89 +221,47 @@ async function removerItem(codigo, img) {
 }
 
 async function enviar_dados() {
-
     let orcamento_v2 = baseOrcamento()
 
     if (!orcamento_v2.dados_orcam) {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Preencha os dados do Cliente</label>
-            </div>
-        `);
+        return openPopup_v2(avisoHTML('Preencha os dados do Cliente'), 'ALERTA')
     }
 
     let dados_orcam = orcamento_v2.dados_orcam;
     let chamado = dados_orcam.contrato
 
     if (dados_orcam.cliente_selecionado === '') {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Cliente em branco</label>
-            </div>
-        `);
+        return openPopup_v2(avisoHTML('Cliente em branco'), 'ALERTA')
     }
 
     if (chamado === '') {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Chamado em branco</label>
-            </div>
-        `);
+        return openPopup_v2(avisoHTML('Chamado em branco'), 'ALERTA')
     }
 
     let existente = await verificar_chamado_existente(chamado, orcamento_v2.id, false)
 
     if (chamado !== 'sequencial' && existente?.situacao) {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Chamado já Existente</label>
-            </div>
-        `)
+        return openPopup_v2(avisoHTML('Chamado já Existente'), 'ALERTA')
     }
 
     if (chamado.slice(0, 1) !== 'D' && chamado !== 'sequencial' && chamado.slice(0, 3) !== 'ORC') {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Chamado deve começar com D</label>
-            </div>
-        `);
+        return openPopup_v2(avisoHTML('Chamado deve começar com D'), 'ALERTA')
     }
 
     if (dados_orcam.estado === '') {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Estado em branco</label>
-            </div>
-        `);
+        return openPopup_v2(avisoHTML('Estado em branco'), 'ALERTA')
     }
 
     if (dados_orcam.cnpj === '') {
-        return openPopup_v2(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>CNPJ em branco</label>
-            </div>
-        `);
+        return openPopup_v2(avisoHTML('CNPJ em branco'), 'ALERTA')
     }
 
-    let desconto_porcentagem = document.getElementById('desconto_porcentagem')
-    if (desconto_porcentagem && Number(desconto_porcentagem.value) > 0) {
-        if (!(orcamento_v2.aprovacao && orcamento_v2.aprovacao.status === 'aprovado')) {
-            return autorizarAlteracao();
+    if (orcamento_v2.total_desconto > 0 || orcamento_v2.alterado) {
+        orcamento_v2.aprovacao = {
+            status: 'pendente',
+            usuario: acesso.usuario
         }
     }
-
-    if (orcamento_v2.dados_composicoes_orcamento || orcamento_v2.dados_composicoes_orcamento === null) {
-        delete orcamento_v2.dados_composicoes_orcamento;
-    }
-
-    orcamento_v2.tabela = 'orcamentos';
 
     if (orcamento_v2.dados_orcam.contrato == 'sequencial') {
         let sequencial = await verificar_chamado_existente(undefined, undefined, true)
@@ -325,7 +273,7 @@ async function enviar_dados() {
     }
 
     openPopup_v2(`
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+        <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
             <img src="imagens/concluido.png" style="width: 3vw; height: 3vw;">
             <label>Aguarde... redirecionando...</label>
         </div>
@@ -338,61 +286,6 @@ async function enviar_dados() {
 
     baseOrcamento(undefined, true)
     location.href = 'orcamentos.html';
-
-}
-
-async function autorizarAlteracao(reaprovacao) {
-    let orcamento_v2 = baseOrcamento()
-
-    if (!orcamento_v2.aprovacao) {
-        orcamento_v2.aprovacao = {}
-    }
-
-    orcamento_v2.aprovacao.id = orcamento_v2.aprovacao.id || gerar_id_5_digitos();
-    let id = orcamento_v2.aprovacao.id;
-
-    let dados = {
-        desconto_porcentagem: document.getElementById('desconto_porcentagem').value,
-        total_sem_desconto: document.getElementById('total_sem_desconto').textContent,
-        desconto_dinheiro: document.getElementById('desconto_dinheiro').textContent,
-        total_geral: document.getElementById('total_geral').textContent
-    }
-
-    let mensagem = `
-        <img src="gifs/loading.gif" style="width: 5vw;">
-        <label>Algum Gerente deve autorizar este desconto... </label>
-    `
-    if (!reaprovacao && (orcamento_v2.aprovacao.status && orcamento_v2.aprovacao.status == 'reprovado')) {
-        mensagem = `
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
-            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-                <img src="imagens/cancel.png" style="width: 3vw;">
-                <div style="display: flex; align-items: center; justify-content: start; gap: 5px; flex-direction: column;">
-                    <label>Solicitação reprovada</label>
-                    <label>${orcamento_v2.aprovacao.justificativa}</label>
-                </div>
-            </div>
-
-            <hr style="width: 100%;">
-            
-            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-                <label>Tentar de novo?</label> 
-                <button style="background-color: #4CAF50;" onclick="autorizarAlteracao(true)">Sim</button>
-            </div>
-        </div>
-        `
-    } else {
-
-        await enviar(`aprovacoes/${id}`, dados)
-        baseOrcamento(orcamento_v2)
-    }
-
-    openPopup_v2(`
-            <div id="aguardando_aprovacao" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                ${mensagem}
-            </div>
-        `)
-
 }
 
 function pesquisarProdutos(col, elemento) {
@@ -569,7 +462,7 @@ function alterarTabela(tabela) {
 }
 
 async function total(inputDigitado) {
-    
+
     let orcamento_v2 = baseOrcamento()
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let desconto_acumulado = 0
@@ -612,57 +505,15 @@ async function total(inputDigitado) {
                 let tdDescricao = tds[1]
                 let tdQuantidade = tds[3].querySelector('input')
                 let tdCusto = tds[4].querySelector('input')
-                let tdDesconto = tds[5]
-                let tdTotal = tds[6].querySelector('label')
-            
-                
+                let tdTotal = tds[5].querySelector('label')
 
                 let valorUnitario = Number(tdCusto.value)
                 let quantidade = Number(tdQuantidade.value)
-                let descricao = dados_composicoes[codigo].descricao
-                let tipo = dados_composicoes[codigo].tipo
+                let descricao = dados_composicoes[codigo]?.descricao || 'Atualize a base de Produtos'
                 let totalLinha = valorUnitario * quantidade
-
-                // Desconto;
-                let desconto = 0
-                let valorDesconto
-                let tipoDesconto
-
-                tipoDesconto = tdDesconto.querySelector('select')
-                valorDesconto = tdDesconto.querySelector('input')
-
-                if (tipoDesconto.value == 'Porcentagem') {
-                    if (valorDesconto.value < 0) {
-                        valorDesconto.value = 0
-                    } else if (valorDesconto.value > 100) {
-                        valorDesconto.value = 100
-                    }
-
-                    desconto = valorDesconto.value / 100 * totalLinha
-
-                } else {
-                    if (valorDesconto.value < 0) {
-                        valorDesconto.value = 0
-                    } else if (valorDesconto.value > totalLinha) {
-                        valorDesconto.value = totalLinha
-                    }
-
-                    desconto = Number(valorDesconto.value)
-
-                }
-
-                if (desconto == 0) {
-                    tipoDesconto.classList = 'desconto_off'
-                    valorDesconto.classList = 'desconto_off'
-                } else {
-                    tipoDesconto.classList = 'desconto_on'
-                    valorDesconto.classList = 'desconto_on'
-                }
 
                 // Valor bruto sem desconto;
                 totais.GERAL.bruto += totalLinha
-                totalLinha = totalLinha - desconto
-                desconto_acumulado += desconto
 
                 if (!totais[modo]) {
                     totais[modo] = { valor: 0, exibir: 'none' }
@@ -672,8 +523,8 @@ async function total(inputDigitado) {
                 totais.GERAL.valor += totalLinha
 
                 // Inclusão dos dados atualizados nas tds
-                tdDescricao.textContent = dados_composicoes[codigo].descricao
-               
+                tdDescricao.textContent = descricao
+
                 tdTotal.classList = 'labelAprovacao'
                 tdTotal.style.backgroundColor = totalLinha > 0 ? 'green' : '#B12425'
                 tdTotal.textContent = dinheiro(totalLinha)
@@ -690,98 +541,17 @@ async function total(inputDigitado) {
                 itemSalvo.custo = valorUnitario
                 itemSalvo.tipo = modo // Salvar como 'ALUGUEL' para que as próximas tabelas sejam configuradas de acordo;
 
-                if (Number(valorDesconto.value) !== 0) {
-                    itemSalvo.tipoDesconto = tipoDesconto.value
-                    itemSalvo.desconto = Number(valorDesconto.value)
-                } else {
-                    delete itemSalvo.tipoDesconto
-                    delete itemSalvo.desconto
-                }
-
             })
         }
     }
 
-    let desconto_calculo = 0;
-    let desconto_geral = document.getElementById('desconto_geral')
-    let tipo_de_desconto = desconto_geral.previousElementSibling
-
-    if (desconto_geral.value !== '') {
-        orcamento_v2.desconto_geral = conversor(Number(desconto_geral.value))
-        orcamento_v2.tipo_de_desconto = tipo_de_desconto.value
-    } else {
-        delete orcamento_v2.desconto_geral
-        delete orcamento_v2.tipo_de_desconto
-    }
-
     for (tot in totais) {
-
-        if (tot !== 'GERAL') {
-
-            let divTotal = document.getElementById(`total_${tot}`)
-            if (divTotal) {
-                divTotal.textContent = dinheiro(totais[tot].valor)
-            }
-
-        } else {
-
-            if (desconto_geral.value !== '') { // 29
-                if (tipo_de_desconto.value == 'Porcentagem') {
-
-                    if (desconto_geral.value < 0) {
-                        desconto_geral.value = 0
-                    } else if (desconto_geral.value > 100) {
-                        desconto_geral.value = 100
-                    }
-
-                    desconto_calculo = (desconto_geral.value / 100) * totais[tot].valor
-
-                } else {
-
-                    if (desconto_geral.value < 0) {
-                        //desconto_geral.value = 0
-                    } else if (desconto_geral.value > totais[tot].valor) {
-                        //desconto_geral.value = totais[tot].valor
-                    }
-
-                    desconto_calculo = Number(desconto_geral.value)
-
-                }
-            }
-        }
+        let divTotal = document.getElementById(`total_${tot}`)
+        if (divTotal) divTotal.textContent = dinheiro(totais[tot].valor)
     }
 
-    let desconto_geral_linhas = desconto_acumulado + desconto_calculo
-    document.getElementById(`total_geral`).textContent = dinheiro(totais.GERAL.valor - desconto_calculo)
-
-    let painel_desconto = document.getElementById('desconto_total')
-
-    desconto_geral.parentElement.parentElement.style.display = 'flex'
-
-    if (desconto_geral_linhas > totais.GERAL.valor) {
-        desconto_geral_linhas = totais.GERAL.valor
-    }
-
-    let desc_porc = desconto_geral_linhas == 0 ? 0 : (desconto_geral_linhas / totais.GERAL.bruto * 100).toFixed(2)
-
-    painel_desconto.innerHTML = `
-            <div class="resumo">
-                <label>RESUMO</label>
-                <hr style="width: 100%;">
-                <label>Total sem Desconto</label>
-                <label style="font-size: 1.5vw;" id="total_sem_desconto">${dinheiro(totais.GERAL.bruto)}</label>
-                <br>
-                <label>Desconto R$</label>
-                <label style="font-size: 1.5vw;" id="desconto_dinheiro">${dinheiro(desconto_geral_linhas)}</label>
-                <br>
-                <label>Desconto %</label>
-                <label style="font-size: 1.5vw;">${desc_porc}%</label>
-                <input style="display: none" id="desconto_porcentagem" value="${desc_porc}">
-            </div>
-        `
-
-    orcamento_v2.total_geral = dinheiro(totais.GERAL.valor - desconto_calculo)
-    orcamento_v2.total_bruto = totais.GERAL.bruto
+    document.getElementById('total_geral').textContent = dinheiro(totais.GERAL.valor)
+    orcamento_v2.total_geral = totais.GERAL.valor
 
     baseOrcamento(orcamento_v2)
 
@@ -1152,190 +922,4 @@ function excluir_levantamento(chave) {
         baseOrcamento(orcamento_v2)
 
     }
-}
-
-function painel_clientes() {
-
-    let orcamento_v2 = baseOrcamento()
-    let dados_orcam = orcamento_v2?.dados_orcam || {}
-    let levantamentos = ''
-
-    let dados_pagamentos = ["A definir", "15 dias", "30 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
-    let condicoes = ''
-    dados_pagamentos.forEach(pag => {
-        condicoes += `
-            <option ${dados_orcam?.condicoes == pag ? 'selected' : ''}>${pag}</option>
-        `
-    })
-
-    for (chave in orcamento_v2?.levantamentos || {}) {
-        var levantamento = orcamento_v2.levantamentos[chave]
-
-        levantamentos += criarAnexoVisual(levantamento.nome, levantamento.link, `excluir_levantamento('${chave}')`)
-
-    }
-
-    let acumulado = `
-
-    <div style="background-color: #d2d2d2; padding: 10px;">
-        <div style="display: flex; justify-content: start; align-items: center;">
-            <div style="display: flex; flex-direction: column; gap: 10px; align-items: left; margin: 5px;">
-
-                <div id="acompanhamento_dados_clientes" class="btn" onclick="recuperarClientes()">
-                    <img src="imagens/omie.png">
-                    <label style="cursor: pointer;">Atualizar OMIE Clientes</label>
-                </div>
-
-            </div>
-
-            <div onclick="limpar_campos()" class="btn">
-                <img src="imagens/limpar.png" style="width: 2vw;">
-                <label style="cursor: pointer;">Limpar Campos</label>
-            </div>
-        </div>
-
-        <div
-            style="display: flex; flex-direction: column; gap: 5px; justify-content: center; align-items: start; border-radius: 3px; margin: 5px;">
-            <label style="font-size: 1.5vw;">Dados do Cliente</label>
-            <div class="linha">
-
-                <label>nº do Chamado</label>
-                <div style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 2px; flex-direction: column;">
-                    <input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" onchange="salvar_preenchido()" value="${dados_orcam?.contrato || ''}">
-
-                    <div style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 2px;">
-                        <input id="chamado_off" style="width: max-content; cursor: pointer;" type="checkbox"
-                            onchange="salvar_preenchido()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
-                        <label style="width: max-content;">Sem Chamado</label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="linha">
-                <label>Cliente</label>
-                <div class="autocomplete-container">
-                    <textarea style="width: 100%; font-size: 1.0vw;" class="autocomplete-input" id="cliente_selecionado"
-                        placeholder="Escreva o nome do Cliente..." oninput="carregar_clientes(this)">${dados_orcam?.cliente_selecionado || ''}</textarea>
-                    <div class="autocomplete-list"></div>
-                </div>
-            </div>
-
-            <div class="linha">
-                <label>CNPJ/CPF</label>
-                <label id="cnpj">${dados_orcam?.cnpj || '...'}</label>
-            </div>
-            <div class="linha">
-                <label>CEP</label>
-                <label id="cep">${dados_orcam?.cep || '...'}</label>
-            </div>
-            <div class="linha">
-                <label>Endereço</label>
-                <label id="bairro">${dados_orcam?.bairro || '...'}</label>
-            </div>
-            <div class="linha">
-                <label>Cidade</label>
-                <label id="cidade">${dados_orcam?.cidade || '...'}</label>
-            </div>
-            <div class="linha">
-                <label>Estado</label>
-                <label id="estado">${dados_orcam?.estado || '...'}</label>
-            </div>
-            <div class="linha">
-                <label>Tipo de Frete</label>
-                <select id="tipo_de_frete" onchange="salvar_preenchido()">
-                    <option ${dados_orcam?.tipo_de_frete == '--' ? 'selected' : ''}>--</option>
-                    <option ${dados_orcam?.tipo_de_frete == 'CIF' ? 'selected' : ''}>CIF</option>
-                    <option ${dados_orcam?.tipo_de_frete == 'FOB' ? 'selected' : ''}>FOB</option>
-                </select>
-            </div>
-            <div class="linha">
-                <label>Transportadora</label>
-                <input type="text" id="transportadora" placeholder="Transportadora" oninput="salvar_preenchido()" value="${dados_orcam?.transportadora || ''}">
-            </div>
-            <div class="linha">
-                <label>Considerações</label>
-                <div style="display: flex; flex-direction: column; align-items: start; justify-content: space-between;">
-                    <textarea id="consideracoes" oninput="salvar_preenchido()" rows="5" style="width: 100%; font-size: 1.0vw;"
-                        placeholder="Escopo do orçamento...">${dados_orcam?.consideracoes || ''}</textarea>
-
-                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                        <div class="contorno_botoes" style="background-color: #222; width: 100%;">
-                            <img src="imagens/anexo2.png" style="width: 15px;">
-                            <label style="width: 100%;" for="adicionar_levantamento">Anexar levantamento
-                                <input type="file" id="adicionar_levantamento" style="display: none;"
-                                    onchange="salvar_levantamento()">
-                            </label>
-                        </div>
-                        <div>
-                            ${levantamentos}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="linha">
-                <label>Condições de Pagamento</label>
-                <select id="condicoes" oninput="salvar_preenchido()">
-                    ${condicoes}
-                </select>
-            </div>
-
-            <div class="linha">
-                <label>Garantia</label>
-                <input id="garantia" placeholder="1 Ano" oninput="salvar_preenchido()" value="${dados_orcam?.garantia || ''}">
-            </div>
-
-            <label style="font-size: 1.5vw;">Dados do Analista</label>
-            <div class="linha">
-                <label>Analista</label>
-                <label id="analista">${dados_orcam?.analista || ''}</label>
-            </div>
-
-            <div class="linha">
-                <label>E-mail</label>
-                <label style="width: 70%;" id="email_analista">${dados_orcam?.email_analista || ''}</label>
-            </div>
-
-            <div class="linha">
-                <label>Telefone</label>
-                <label id="telefone_analista">${dados_orcam?.telefone_analista || ''}</label>
-            </div>
-
-            <label style="font-size: 1.5vw;">Dados do Vendedor</label>
-            <div class="linha">
-                <label>Vendedor</label>
-                <select style="text-align: center; width: 100%;" id="vendedor" oninput="salvar_preenchido()">
-                </select>
-            </div>
-            <div class="linha">
-                <label>E-mail</label>
-                <label style="width: 70%;" id="email_vendedor"></label>
-            </div>
-            <div class="linha">
-                <label>Telefone</label>
-                <label id="telefone_vendedor"></label>
-            </div>
-
-            <label style="font-size: 1.5vw;">Quem emite essa nota?</label>
-            <div class="linha">
-                <label>Empresa</label>
-                <select style="text-align: center; width: 100%;" id="emissor" oninput="salvar_preenchido()">
-                    <option ${dados_orcam?.emissor == 'AC SOLUÇÕES' ? 'selected' : ''}>AC SOLUÇÕES</option>
-                    <option ${dados_orcam?.emissor == 'HNW' ? 'selected' : ''}>HNW</option>
-                    <option ${dados_orcam?.emissor == 'HNK' ? 'selected' : ''}>HNK</option>
-                </select>
-            </div>
-
-        </div>
-
-        <div style="width: 100%; display: flex; gap: 10px; align-items: end; justify-content: right; margin-top: 5vh;">
-            <label><strong>Data de criação</strong> ou <strong>Alteração</strong></label>
-            <label id="data">${new Date(dados_orcam?.data || new Date()).toLocaleDateString('pt-BR')}</label>
-        </div>
-    </div>
-    `
-
-    openPopup_v2(acumulado, 'Dados do Cliente')
-
-    vendedores_analistas()
-
 }

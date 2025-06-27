@@ -10,7 +10,34 @@
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 
-<body></body>
+<body>
+
+  <div class="top" style="width: 97vw;">
+
+    <img src="imagens/BG.png" style="width: 150px;">
+    <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; color: white;">
+      <label class="novo_titulo">Chamados</label>
+      <label id="nome_filtro"></label>
+    </div>
+
+    <div style="display: flex; justify-content: center; gap: 10px;">
+
+      <div class="blocosCabecalho">
+
+        <div onclick="window.location.href='inicial.html'">
+          <label>Menu Inicial</label>
+          <img src="imagens/voltar.png">
+        </div>
+        <div onclick="recuperar_agenda()">
+          <label>Atualizar</label>
+          <img src="imagens/atualizar_2.png">
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</body>
 
 <script src="open_menus.js"></script>
 <script src="agenda.js"></script>

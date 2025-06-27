@@ -502,6 +502,7 @@ async function calcularRequisicao(sincronizar) {
                     }
 
                     let qtde = tds[4].querySelector('input') ? Number(tds[4].querySelector('input').value) : Number(tds[4].textContent)
+                    
 
                     if (item.tipo_desconto) {
                         let desconto = item.tipo_desconto == 'Dinheiro' ? item.desconto : (item.custo * (item.desconto / 100))
@@ -679,14 +680,14 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
                 </td>
                 <td style="text-align: center;">
                     ${apenas_visualizar
-                ? `<label style="font-size: 1.2em;">${item?.qtde_enviar || ''}</label>`
+                ? `<label style="font-size: 1.2em;">${item?.qtde_enviar || 0}</label>`
                 : `
                         <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
                             <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; gap: 5px;">
                                 <label>Quantidade a enviar</label>
                                 <input class="campoRequisicao" type="number" oninput="calcularRequisicao()" min="0" value="${item?.qtde_enviar || ''}">
                             </div>
-                            <label class="num">${itensOrcamento[codigo]?.qtde || ''}</label>
+                            <label class="num">${itensOrcamento[codigo]?.qtde || 0}</label>
                         </div>
                     `}
                 </td>
@@ -2293,6 +2294,8 @@ async function chamar_excluir(id) {
 async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
 
     if (!chave) chave = gerar_id_5_digitos()
+
+    console.log(chave);
 
     let usuario = acesso.usuario
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
