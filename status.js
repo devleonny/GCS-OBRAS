@@ -909,7 +909,7 @@ async function sugestoes(textarea, div, base) {
         return
     }
 
-    let dados = await recuperarDados(`dados_${base}`) || {}
+    let dados = await recuperarDados(`dados_${base}`, true) || {}
     let opcoes = ''
 
     for (id in dados) {
