@@ -846,7 +846,7 @@ function adicionar_linha_manut(ad, dados) {
                     <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="text" value="${dados?.partnumber || ''}">
                 </div>
                 <div style="position: relative; width: 25vw; height: 30px; background-color: #b5b5b5;">
-                    <textarea style="background-color: transparent; height: 100%; resize: none; border: none; outline: none;" type="text" id="${aleatorio}" oninput="sugestoes(this, 'sug_${aleatorio}', 'estoque')">${dados?.descricao || ''}</textarea>
+                    <textarea style="background-color: transparent; height: 100%; resize: none; border: none; outline: none;" type="text" id="${aleatorio}" oninput="sugestoes(this, 'estoque')">${dados?.descricao || ''}</textarea>
                     <div class="autocomplete-list" id="sug_${aleatorio}"></div> 
                     <input id="input_${aleatorio}" style="display: none;">
                 </div>
@@ -890,14 +890,14 @@ function remover_esta_linha(div_menor) {
     }
 }
 
-async function sugestoes(textarea, div, base) {
+async function sugestoes(textarea, base) {
 
-    let div_sugestoes = document.getElementById(div)
-    let query = String(textarea.value).toUpperCase()
-    div_sugestoes.innerHTML = '';
+    let query = String(textarea.value).toLowerCase()
+    let div_sugestoes = document.getElementById('div_sugestoes')
+    if (div_sugestoes) div_sugestoes.remove()
 
     if (query === '') {
-        let campo = div.split('_')[1]
+        let campo = textarea.id
         let endereco = document.getElementById(`endereco_${campo}`)
 
         if (endereco) {
@@ -914,18 +914,28 @@ async function sugestoes(textarea, div, base) {
 
     for (id in dados) {
         let item = dados[id]
-        let info;
+        let conteudoOpcao;
+        let descricao = String(item.descricao).toLocaleLowerCase()
 
-        info = String(item.descricao)
+        if (!descricao.includes(query)) continue
 
-        if (info.includes(query)) {
-            opcoes += `
-                    <div onclick="definir_campo(this, '${div}', '${id}')" class="autocomplete-item" style="font-size: 0.8vw;">${info}</div>
-                `
-        }
+        conteudoOpcao = String(item.descricao)
+
+        opcoes += `
+            <div onclick="definir_campo(this, '${textarea.id}', '${id}')" class="autocomplete-item" style="font-size: 0.8vw;">${conteudoOpcao}</div>
+        `
     }
 
-    div_sugestoes.innerHTML = opcoes
+    let posicao = textarea.getBoundingClientRect()
+    let left = posicao.left + window.scrollX
+    let top = posicao.bottom + window.scrollY
+
+    let div = `
+    <div id="div_sugestoes" class="autocomplete-list" style="position: absolute; top: ${top}px; left: ${left}px; border: 1px solid #ccc; width: 15vw;">
+        ${opcoes}
+    </div>`
+
+    document.body.insertAdjacentHTML('beforeend', div)
 
 }
 
@@ -1306,7 +1316,7 @@ async function painelCustos() {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam]
-    
+
     let guiaCores = {
         'USO E CONSUMO': '#097fe6',
         'VENDA': '#B12425',
@@ -1476,9 +1486,9 @@ async function painelCustos() {
 }
 
 function divPorcentagem(porcentagem) {
-  let valor = Math.max(0, Math.min(100, Number(porcentagem) || 0)); 
+    let valor = Math.max(0, Math.min(100, Number(porcentagem) || 0));
 
-  return `
+    return `
     <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
         <div style="width: 100px; height: 12px; background: #eee; border-radius: 6px; overflow: hidden;">
         <div style="width: ${valor}%; height: 100%; background: ${valor >= 70 ? '#4caf50' : valor >= 40 ? '#ffc107' : '#f44336'};"></div>
@@ -1655,7 +1665,7 @@ function elementosEspecificos(chave, historico) {
             `
     } else if (historico.status == 'FATURADO') {
         let divPacelas = ''
-        
+
         let parcelas = (historico?.parcelas || [])
             .map(parcela => `Parcela ${parcela.nParcela} <br> ${labelDestaque(parcela.dDtVenc, dinheiro(parcela.nValorTitulo))}`)
             .join('')
