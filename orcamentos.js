@@ -3,6 +3,21 @@ let intervaloCompleto
 let intervaloCurto
 let filtro;
 let arquivados = false
+let auxiliarFaturamento = {}
+let meses = {
+    '01': 'Janeiro',
+    '02': 'Fevereiro',
+    '03': 'Março',
+    '04': 'Abril',
+    '05': 'Maio',
+    '06': 'Junho',
+    '07': 'Julho',
+    '08': 'Agosto',
+    '09': 'Setembro',
+    '10': 'Outubro',
+    '11': 'Novembro',
+    '12': 'Dezembro'
+}
 
 preencherOrcamentos()
 
@@ -179,6 +194,15 @@ async function preencherOrcamentos(alternar) {
 
                     if (historico.status == 'FATURADO') {
 
+                        if (historico.parcelas && historico.parcelas.length > 0) {
+
+                            if (!auxiliarFaturamento[idOrcamento]) {
+                                auxiliarFaturamento[idOrcamento] = []
+                            }
+
+                            auxiliarFaturamento[idOrcamento].push(historico)
+                        }
+
                         label_notas += `
                         <div class="etiqueta_pedidos">
                             <label style="font-size: 0.6vw;">${historico.tipo}</label>
@@ -287,6 +311,105 @@ async function preencherOrcamentos(alternar) {
     filtrar_orcamentos('TODOS')
 
     removerOverlay()
+
+}
+
+async function verificarParcelas() {
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let valores = {}
+
+    for (let [idOrcamento, notas] of Object.entries(auxiliarFaturamento)) {
+        let orcamento = dados_orcamentos[idOrcamento]
+
+        notas.forEach(nota => {
+
+            nota.parcelas.forEach(parcela => {
+
+                console.log(parcela);
+
+
+                let [dia, mes, ano] = parcela.dDtVenc.split('/')
+
+                if (!valores[ano]) {
+                    valores[ano] = { total: 0, meses: {} }
+                }
+
+                if (!valores[ano].meses[mes]) {
+                    valores[ano].meses[mes] = { parcelas: [], total: 0 }
+                }
+
+                valores[ano].total += parcela.nValorTitulo
+                valores[ano].meses[mes].total += parcela.nValorTitulo
+
+                valores[ano].meses[mes].parcelas.push({
+                    orcamento: orcamento.dados_orcam.cliente_selecionado,
+                    parcela: parcela.nParcela,
+                    vencimento: parcela.dDtVenc,
+                    valor: parcela.nValorTitulo,
+                    idOrcamento
+                })
+
+            })
+        })
+
+    }
+
+    let elementos = ''
+    for ([ano, objeto] of Object.entries(valores)) {
+
+        elementos += `
+        <label style="font-size: 1.5vw;">[<strong>${ano}</strong>] ${dinheiro(objeto.total)}</label>
+        <hr style="width: 100%;">
+        `
+        let linhas = ''
+        for (mes in objeto.meses) {
+
+            let divParcelas = ''
+            objeto.meses[mes].parcelas.forEach(fragPacela => {
+
+                divParcelas += `
+                <div class="parcela">
+                    <label><strong>Vencimento</strong> ${fragPacela.vencimento}</label>
+                    <label><strong>Parcela ${fragPacela.parcela}</strong> ${dinheiro(fragPacela.valor)}</label>
+                    <div style="display: flex; justify-content: start; align-items: center; gap: 5px;">
+                        <img src="imagens/projeto.png" style="cursor: pointer; width: 2vw;" onclick="abrirEsquema('${fragPacela.idOrcamento}')">
+                        <label>${fragPacela.orcamento}</label>
+                    </div>
+                </div>
+                `
+            })
+            linhas += `
+            <div style="display: flex; justify-content: center; align-items: center; gap: 5px;" onclick="mostrarParcelas(this)">
+                <img src="imagens/pasta.png" style="width: 2vw; cursor: pointer;">
+                <label><strong>${meses[mes]}</strong> ${dinheiro(objeto.meses[mes].total)}</label>
+            </div>
+
+            <div style="display: none; flex-direction: column; align-items: start; justify-content: start; gap: 2px;">
+                ${divParcelas}
+            </div>
+            `
+        }
+
+        elementos += linhas
+
+    }
+
+    let acumulado = `
+        <div style="display: flex; justify-content: start; align-items: start; flex-direction: column; background-color: #d2d2d2; padding: 5px; width: 40vw;">
+            ${elementos}
+        </div>
+    `
+    popup(acumulado, 'Faturamento Parcelas')
+
+}
+
+function mostrarParcelas(divSuperior) {
+
+    let divSeguinte = divSuperior.nextElementSibling
+    let visibilidade = divSeguinte.style.display
+
+    divSeguinte.style.display = visibilidade == 'none' ? 'flex' : 'none'
 
 }
 

@@ -1047,6 +1047,7 @@ async function atualizar_feedback(resposta, id_pagamento) {
     let usuario = acesso.usuario;
     let permissao = acesso.permissao
     let setor = acesso.setor
+    let status;
 
     let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
     let setorUsuarioPagamento = dados_setores?.[pagamento.criado]?.setor || ''
@@ -1058,31 +1059,19 @@ async function atualizar_feedback(resposta, id_pagamento) {
     }
 
     if (resposta) {
-
-        switch (true) {
-            case permissao == 'diretoria': // Aprovação Diretoria
-                status = 'Aprovado pela Diretoria';
-                lancar_pagamento(pagamento)
-                break
-
-            case permissao == 'fin': // Aprovação RH e FINANCEIRO
-                status = `Aprovado pelo ${setor}`;
-                lancar_pagamento(pagamento)
-                break
-
-            case permissao !== 'qualidade' && setorUsuarioPagamento == 'INFRA' && pagamentoParceiroAtivo: // Setor de INFRA e Pagamento de Parceiro;
-                status = 'Aguardando aprovação da Qualidade';
-                break
-
-            case permissao == 'gerente' || permissao == 'qualidade': // Demais Gestores
-                status = 'Aguardando aprovação da Diretoria';
-                break
-
-            default: // Outros usuários comuns;
-                status = 'Aguardando aprovação da Gerência';
-                break
+        if (permissao == 'diretoria') {
+            status = 'Aprovado pela Diretoria';
+            lancar_pagamento(pagamento);
+        } else if (permissao == 'fin' || (permissao == 'gerente' && setor == 'FINANCEIRO')) {
+            status = `Aprovado pelo ${setor}`;
+            lancar_pagamento(pagamento);
+        } else if (permissao !== 'qualidade' && setorUsuarioPagamento == 'INFRA' && pagamentoParceiroAtivo) {
+            status = 'Aguardando aprovação da Qualidade';
+        } else if (permissao == 'gerente' || permissao == 'qualidade') {
+            status = 'Aguardando aprovação da Diretoria';
+        } else {
+            status = 'Aguardando aprovação da Gerência';
         }
-
     } else {
         status = `Reprovado por ${permissao}`;
     }

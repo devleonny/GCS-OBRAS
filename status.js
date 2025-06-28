@@ -1710,6 +1710,8 @@ function elementosEspecificos(chave, historico) {
 
 async function abrirEsquema(id) {
 
+    if(id) id_orcam = id
+
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id]
     let blocosStatus = {}

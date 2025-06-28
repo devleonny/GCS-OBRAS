@@ -44,37 +44,6 @@ function ativarCloneGCS(ativar) {
 
 }
 
-async function enviarMensagem(button, his) {
-
-    overlayAguarde()
-
-    let alertasChamados = await recuperarDados('alertasChamados') || {}
-    let alerta = alertasChamados[his]
-    let idMensagem = gerar_id_5_digitos()
-    if (!alerta.respostas) {
-        alerta.respostas = {}
-    }
-
-    let resposta = {
-        usuario: acesso.usuario,
-        data: data_atual('completa'),
-        mensagem: button.previousElementSibling.value,
-        lido: false
-    }
-
-    alerta.respostas[idMensagem] = resposta
-
-    await enviar(`alertasChamados/${his}/respostas/${idMensagem}`, resposta)
-    await inserirDados(alertasChamados, 'alertasChamados')
-    await verificarAlertas()
-    remover_popup()
-
-    let divAlertas = document.getElementById('divAlertas')
-    if (divAlertas) divAlertas.remove()
-    await painelMensagens()
-
-}
-
 function carregarIcones() {
 
     if (document.title != 'Página Inicial') return
@@ -1016,15 +985,6 @@ async function ir_pdf(orcam_) {
     } catch {
         window.location.href = `pdf.html`;
     }
-}
-
-function criar_orcamento_janela() {
-
-    const { ipcRenderer } = require('electron');
-
-    //novo 28/08/2024;
-    ipcRenderer.invoke('open-new-window', 'criar_orcamento.html');
-    //window.location.href = ('pdf.html');
 }
 
 function removerLinha(select) {

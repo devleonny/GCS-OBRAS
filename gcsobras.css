@@ -10,6 +10,22 @@ body {
     min-height: 100vh;
 }
 
+.parcela {
+    cursor: pointer;
+    width: 100%;
+    padding: 3px;
+    border-radius: 2px;
+    background-color: #b1b1b1;
+    margin-left: 2vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
+}
+.parcela label {
+    cursor: pointer;
+}   
+
 .top {
     display: flex;
     width: 100%;
