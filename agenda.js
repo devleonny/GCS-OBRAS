@@ -158,7 +158,7 @@ async function carregar_tabela(alterar) {
             </td>
             <td style="text-align: center;">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 1vw;">
-                    <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;" onclick="abrir_detalhes('${omieFuncionario}')">
+                    <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;" onclick="abrirDetalhes('${omieFuncionario}')">
                     ${mostrarSeta ? `<img src="imagens/direita.png" style="width: 2vw; cursor: pointer;" onclick="dispararDistribuicao('${omieFuncionario}')">` : ''}
                 </div>
             </td>
@@ -655,7 +655,7 @@ async function incluir_regiao(input) {
     await filtrar_por_regiao();
 }
 
-async function abrir_detalhes(codigo_tecnico) {
+async function abrirDetalhes(codigo_tecnico) {
 
     let clientesOmie = await recuperarDados('dados_clientes') || {}
     let tecnico = dados_agenda_tecnicos[codigo_tecnico]
@@ -761,7 +761,7 @@ async function gerenciarDepartamentoFixo(omieDepartamento, codigoFuncionario, op
     remover_popup()
     await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
     await carregar_tabela()
-    await abrir_detalhes(codigoFuncionario)
+    await abrirDetalhes(codigoFuncionario)
 
 }
 
@@ -984,10 +984,11 @@ async function distribuicaoFuncionario() {
                 if (!totaisCategoria[nomeCategoria]) {
                     totaisCategoria[nomeCategoria] = 0
                 }
+                
                 totaisCategoria[nomeCategoria] += param.valor_documento
 
                 labelsPagamentos += `
-                    <label onclick="detalhesPagamento()" class="marcador" style="cursor: pointer; background-color: ${pagamento.status != 'PAGO' ? '#B12425' : 'green'};">${nomeCategoria} - ${dinheiro(param.valor_documento)}</label>
+                    <label class="marcador" style="cursor: pointer; background-color: ${pagamento.status != 'PAGO' ? '#B12425' : 'green'};">${nomeCategoria} - ${dinheiro(param.valor_documento)}</label>
                 `
             })
         }

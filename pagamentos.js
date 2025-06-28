@@ -2187,12 +2187,12 @@ async function opcoesClientes(textarea) {
     for ([omie, cliente] of Object.entries(dados_clientes)) {
 
         let nome = String(cliente.nome).toLowerCase()
-        let form_cnpj = String(cnpj).replace(/\D/g, '')
+        let form_cnpj = String(cliente.cnpj).replace(/\D/g, '')
 
         if (form_cnpj.includes(pesquisa) || nome.includes(pesquisa)) {
             opcoes += `
                 <div onclick="selecionar_cliente('${omie}', '${nome}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: start; justify-content: start;">
-                    <label style="width: 90%; font-size: 0.8vw;"><strong>CNPJ/CPF</strong> ${cnpj}</label>
+                    <label style="width: 90%; font-size: 0.8vw;"><strong>CNPJ/CPF</strong> ${cliente.cnpj}</label>
                     <label style="width: 90%; font-size: 0.8vw;"><strong>Cliente</strong> ${nome.toUpperCase()}</label>
                 </div>
                 `
