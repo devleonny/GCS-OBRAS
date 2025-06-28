@@ -238,7 +238,7 @@ async function exibirTabelaAgrupamentos() {
         </div>
     `
 
-    openPopup_v2(conteudoPopup, 'Produtos com Agrupamentos')
+    popup(conteudoPopup, 'Produtos com Agrupamentos')
 
     let primeiraTabelaComDados = Object.keys(tabelas)[0] || 'TODOS'
     alterarTabelaAgrupamentos(primeiraTabelaComDados)
@@ -271,7 +271,7 @@ async function mostrarAgrupamentos(codigo) {
     let orcamento_v2 = baseOrcamento()
 
     if (!produto || !produto.agrupamentos || Object.keys(produto.agrupamentos).length === 0) {
-        openPopup_v2(`
+        popup(`
             <div style="text-align: center; padding: 20px;">
                 <p>Este produto não possui agrupamentos configurados.</p>
             </div>
@@ -320,7 +320,7 @@ async function mostrarAgrupamentos(codigo) {
         </div>
     `
 
-    openPopup_v2(conteudoPopup, 'Agrupamentos do Produto')
+    popup(conteudoPopup, 'Agrupamentos do Produto')
 }
 
 function calcularTotalAgrupamento(codigo, qtdeAvulsa, qtdeKit, preco) {
@@ -374,13 +374,13 @@ async function adicionarItemAgrupamento(codigoItem, codigoPai) {
     let qtdeTotal = parseFloat(tds[4].textContent) || 0
 
     if (qtdeTotal <= 0) {
-        openPopup_v2(avisoHTML('Quantidade deve ser maior que zero!', 'AVISO', true))
+        popup(avisoHTML('Quantidade deve ser maior que zero!', 'AVISO', true))
         return
     }
 
     await incluirItemComPai(codigoItem, qtdeTotal, codigoPai)
 
-    openPopup_v2(`
+    popup(`
         <div style="text-align: center; padding: 20px;">
             <img src="imagens/concluido.png" style="width: 50px;">
             <p>Item ${codigoItem} adicionado com quantidade ${qtdeTotal}!</p>
@@ -410,7 +410,7 @@ async function adicionarTodoAgrupamento(codigoPrincipal) {
         }
     }
 
-    openPopup_v2(`
+    popup(`
         <div style="text-align: center; padding: 20px;">
             <img src="imagens/concluido.png" style="width: 50px;">
             <p>${itensAdicionados} itens do kit foram adicionados ao orçamento!</p>
@@ -421,7 +421,7 @@ async function adicionarTodoAgrupamento(codigoPrincipal) {
 
 function apagar_orçamento() {
 
-    openPopup_v2(`
+    popup(`
         <div style="display: flex; flex-direction: column; align-items: center; margin: 2vw;">
             <label>Tem certeza que deseja apagar o Orçamento?</label>
             <button onclick="confirmar_exclusao()" style="background-color: green;">Confirmar</button>
@@ -533,7 +533,7 @@ async function atualizarOpcoesLPU() {
             resolve()
         } catch {
             reject()
-            openPopup_v2(avisoHTML('Houve um erro ao carregar'), 'ALERTA')
+            popup(avisoHTML('Houve um erro ao carregar'), 'ALERTA')
         }
     })
 }
@@ -754,7 +754,7 @@ async function removerItem(codigo, img) {
 
             let tipoItem = temAgrupamentos ? 'kit com agrupamentos' : 'item pai'
 
-            openPopup_v2(`
+            popup(`
                 <div style="padding: 20px;">
                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
                         <img src="gifs/alerta.gif" style="width: 40px;">
@@ -866,7 +866,7 @@ async function confirmarExclusaoCompleta(codigoPai, img) {
 
     let listaAfetados = itensAfetados.map(item => `<li>${item}</li>`).join('')
 
-    openPopup_v2(`
+    popup(`
         <div style="padding: 20px;">
             <div style="text-align: center; margin-bottom: 15px;">
                 <img src="imagens/concluido.png" style="width: 50px;">
@@ -885,7 +885,7 @@ function mostrarHistoricoAgrupamentos(codigo) {
     let item = orcamento_v2.dados_composicoes[codigo]
 
     if (!item || !item.historico_agrupamentos) {
-        openPopup_v2(`
+        popup(`
             <div style="text-align: center; padding: 20px;">
                 <p>Este item não possui histórico de agrupamentos.</p>
             </div>
@@ -921,7 +921,7 @@ function mostrarHistoricoAgrupamentos(codigo) {
         </div>
     `
 
-    openPopup_v2(conteudo, 'Histórico de Agrupamentos')
+    popup(conteudo, 'Histórico de Agrupamentos')
 }
 
 function encontrarLinhaItem(codigo) {
@@ -1017,36 +1017,36 @@ async function enviar_dados() {
     let orcamento_v2 = baseOrcamento()
 
     if (!orcamento_v2.dados_orcam) {
-        return openPopup_v2(avisoHTML('Preencha os dados do Cliente'), 'ALERTA')
+        return popup(avisoHTML('Preencha os dados do Cliente'), 'ALERTA')
     }
 
     let dados_orcam = orcamento_v2.dados_orcam;
     let chamado = dados_orcam.contrato
 
     if (dados_orcam.cliente_selecionado === '') {
-        return openPopup_v2(avisoHTML('Cliente em branco'), 'ALERTA')
+        return popup(avisoHTML('Cliente em branco'), 'ALERTA')
     }
 
     if (chamado === '') {
-        return openPopup_v2(avisoHTML('Chamado em branco'), 'ALERTA')
+        return popup(avisoHTML('Chamado em branco'), 'ALERTA')
     }
 
     let existente = await verificar_chamado_existente(chamado, orcamento_v2.id, false)
 
     if (chamado !== 'sequencial' && existente?.situacao) {
-        return openPopup_v2(avisoHTML('Chamado já Existente'), 'ALERTA')
+        return popup(avisoHTML('Chamado já Existente'), 'ALERTA')
     }
 
     if (chamado.slice(0, 1) !== 'D' && chamado !== 'sequencial' && chamado.slice(0, 3) !== 'ORC') {
-        return openPopup_v2(avisoHTML('Chamado deve começar com D'), 'ALERTA')
+        return popup(avisoHTML('Chamado deve começar com D'), 'ALERTA')
     }
 
     if (dados_orcam.estado === '') {
-        return openPopup_v2(avisoHTML('Estado em branco'), 'ALERTA')
+        return popup(avisoHTML('Estado em branco'), 'ALERTA')
     }
 
     if (dados_orcam.cnpj === '') {
-        return openPopup_v2(avisoHTML('CNPJ em branco'), 'ALERTA')
+        return popup(avisoHTML('CNPJ em branco'), 'ALERTA')
     }
 
     if (orcamento_v2.total_desconto > 0 || orcamento_v2.alterado) {
@@ -1065,7 +1065,7 @@ async function enviar_dados() {
         orcamento_v2.id = 'ORCA_' + unicoID();
     }
 
-    openPopup_v2(`
+    popup(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
             <img src="imagens/concluido.png" style="width: 3vw; height: 3vw;">
             <label>Aguarde... redirecionando...</label>
@@ -1617,7 +1617,7 @@ async function total() {
             3: 'Atualize os valores no ITEM [ICMS Creditado, Custo de Compra...]'
         }
 
-        openPopup_v2(avisoHTML(avisos[avisoDesconto]), 'AVISO')
+        popup(avisoHTML(avisos[avisoDesconto]), 'AVISO')
     }
 
 }
@@ -1627,7 +1627,7 @@ async function alterarValorUnitario(codigo) {
     let produto = dados_composicoes[codigo]
     let lpu = String(document.getElementById('lpu').value).toLowerCase()
 
-    if (lpu == 'lpu carrefour') return openPopup_v2(mensagem('Carrefour não permite mudanças de valores'), 'AVISO')
+    if (lpu == 'lpu carrefour') return popup(mensagem('Carrefour não permite mudanças de valores'), 'AVISO')
 
     let ativo = produto?.[lpu]?.ativo || 0
     let historico = produto?.[lpu]?.historico || {}
@@ -1654,7 +1654,7 @@ async function alterarValorUnitario(codigo) {
     </div>
     `
 
-    openPopup_v2(acumulado, 'ALTERAR PREÇO')
+    popup(acumulado, 'ALTERAR PREÇO')
 
 }
 
@@ -1666,7 +1666,7 @@ async function confirmarNovoPreco(codigo, precoOriginal, operacao) {
     if (operacao == 'incluir') {
         let valor = Number(document.getElementById('novoValor').value)
 
-        if (precoOriginal >= valor) return openPopup_v2(avisoHTML('O valor precisa ser maior que o Original'), 'AVISO', true)
+        if (precoOriginal >= valor) return popup(avisoHTML('O valor precisa ser maior que o Original'), 'AVISO', true)
         orcamento.alterado = true
         item.custo_original = precoOriginal
         item.custo = valor

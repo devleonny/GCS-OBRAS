@@ -611,7 +611,7 @@ async function abrir_valores(codigo) {
         `
     }
 
-    openPopup_v2(acumulado, 'Informar valor de Compra')
+    popup(acumulado, 'Informar valor de Compra')
 }
 
 async function salvar_dados_compra(codigo, cpr, campo, img) {
@@ -850,7 +850,7 @@ async function abrir_estoque(codigo, stq) {
 
     `
 
-    openPopup_v2(acumulado, 'Movimentação de estoque')
+    popup(acumulado, 'Movimentação de estoque')
 
 }
 
@@ -1008,7 +1008,7 @@ async function incluir_linha() {
     </div>
     `;
 
-    openPopup_v2(acumulado, 'Cadastro de Item');
+    popup(acumulado, 'Cadastro de Item');
 
     // 🔥 Ativa os auto-completes após abrir o popup
     setupAutoComplete("categorias", "categorias-dropdown", categoriasArray);
@@ -1147,7 +1147,7 @@ async function remover_linha_excluir_item(elemento) {
 
         let item = dados_estoque[codigo]
 
-        openPopup_v2(`
+        popup(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Deseja excluir este item?</label>
@@ -1283,7 +1283,7 @@ function relatorio_movimento() {
     <div id="relatorio"></div>
     `
 
-    openPopup_v2(acumulado, 'Relatório de Movimentos')
+    popup(acumulado, 'Relatório de Movimentos')
 
 }
 

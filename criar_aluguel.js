@@ -19,7 +19,7 @@ function coresTabelas(tabela) {
 
 function apagar_orçamento() {
 
-    openPopup_v2(`
+    popup(`
         <div style="display: flex; flex-direction: column; align-items: center; margin: 2vw;">
             <label>Tem certeza que deseja apagar o Orçamento?</label>
             <button onclick="confirmar_exclusao()" style="background-color: green;">Confirmar</button>
@@ -224,36 +224,36 @@ async function enviar_dados() {
     let orcamento_v2 = baseOrcamento()
 
     if (!orcamento_v2.dados_orcam) {
-        return openPopup_v2(avisoHTML('Preencha os dados do Cliente'), 'ALERTA')
+        return popup(avisoHTML('Preencha os dados do Cliente'), 'ALERTA')
     }
 
     let dados_orcam = orcamento_v2.dados_orcam;
     let chamado = dados_orcam.contrato
 
     if (dados_orcam.cliente_selecionado === '') {
-        return openPopup_v2(avisoHTML('Cliente em branco'), 'ALERTA')
+        return popup(avisoHTML('Cliente em branco'), 'ALERTA')
     }
 
     if (chamado === '') {
-        return openPopup_v2(avisoHTML('Chamado em branco'), 'ALERTA')
+        return popup(avisoHTML('Chamado em branco'), 'ALERTA')
     }
 
     let existente = await verificar_chamado_existente(chamado, orcamento_v2.id, false)
 
     if (chamado !== 'sequencial' && existente?.situacao) {
-        return openPopup_v2(avisoHTML('Chamado já Existente'), 'ALERTA')
+        return popup(avisoHTML('Chamado já Existente'), 'ALERTA')
     }
 
     if (chamado.slice(0, 1) !== 'D' && chamado !== 'sequencial' && chamado.slice(0, 3) !== 'ORC') {
-        return openPopup_v2(avisoHTML('Chamado deve começar com D'), 'ALERTA')
+        return popup(avisoHTML('Chamado deve começar com D'), 'ALERTA')
     }
 
     if (dados_orcam.estado === '') {
-        return openPopup_v2(avisoHTML('Estado em branco'), 'ALERTA')
+        return popup(avisoHTML('Estado em branco'), 'ALERTA')
     }
 
     if (dados_orcam.cnpj === '') {
-        return openPopup_v2(avisoHTML('CNPJ em branco'), 'ALERTA')
+        return popup(avisoHTML('CNPJ em branco'), 'ALERTA')
     }
 
     if (orcamento_v2.total_desconto > 0 || orcamento_v2.alterado) {
@@ -272,7 +272,7 @@ async function enviar_dados() {
         orcamento_v2.id = 'ORCA_' + unicoID();
     }
 
-    openPopup_v2(`
+    popup(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
             <img src="imagens/concluido.png" style="width: 3vw; height: 3vw;">
             <label>Aguarde... redirecionando...</label>
@@ -753,7 +753,7 @@ async function selecionar_cliente(cnpj, nome, div_opcao) {
 }
 
 function limpar_campos() {
-    openPopup_v2(`
+    popup(`
         <div style="gap: 10px; display: flex; align-items: center; flex-direction: column;">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <label>Deseja limpar campos?</label>

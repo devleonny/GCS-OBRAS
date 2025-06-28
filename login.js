@@ -60,7 +60,7 @@ function cadastrar() {
 
             </div>`
 
-    openPopup_v2(conteudo, 'Cadastro')
+    popup(conteudo, 'Cadastro')
 
 }
 
@@ -78,7 +78,7 @@ function acesso_login() {
     let url = 'https://leonny.dev.br/acesso'
 
     if (inputs[0].value == '' || inputs[1].value == '') {
-        openPopup_v2(mensagem('Senha e/ou usuário não informado(s)'), 'ALERTA', true)
+        popup(mensagem('Senha e/ou usuário não informado(s)'), 'ALERTA', true)
         divAcesso.style.display = 'flex'
 
     } else {
@@ -108,7 +108,7 @@ function acesso_login() {
             .then(data => {
 
                 if (data.permissao == 'novo') {
-                    openPopup_v2(mensagem('Alguém do setor de SUPORTE precisa autorizar sua entrada!'), 'ALERTA', true)
+                    popup(mensagem('Alguém do setor de SUPORTE precisa autorizar sua entrada!'), 'ALERTA', true)
                 } else if (data.permissao !== 'novo') {
                     localStorage.setItem('acesso', JSON.stringify(data));
                     window.location.href = 'inicial.html';
@@ -118,7 +118,7 @@ function acesso_login() {
 
             })
             .catch(data => {
-                openPopup_v2(mensagem(data.erro), 'ALERTA', true);
+                popup(mensagem(data.erro), 'ALERTA', true);
                 divAcesso.style.display = 'flex'
             });
 
@@ -142,7 +142,7 @@ function salvarCadastro() {
 
     if (usuario == "" || senha == "" || email == "") {
 
-        openPopup_v2(mensagem('Senha, usuário ou e-mail não informado(s)'), 'AVISO', true)
+        popup(mensagem('Senha, usuário ou e-mail não informado(s)'), 'AVISO', true)
 
     } else {
 
@@ -176,18 +176,18 @@ function salvarCadastro() {
 
                 switch (true) {
                     case data.erro:
-                        openPopup_v2(mensagem(data.erro), 'AVISO', true);
+                        popup(mensagem(data.erro), 'AVISO', true);
                         break;
                     case data.permissao == 'novo':
-                        openPopup_v2(mensagem('Seu cadastro foi realizado! Alguém do setor de SUPORTE precisa autorizar sua entrada!'), 'ALERTA')
+                        popup(mensagem('Seu cadastro foi realizado! Alguém do setor de SUPORTE precisa autorizar sua entrada!'), 'ALERTA')
                         break;
                     default:
-                        openPopup_v2(mensagem('Servidor Offline... fale com o Setor de Programação'), 'AVISO', true);
+                        popup(mensagem('Servidor Offline... fale com o Setor de Programação'), 'AVISO', true);
                 }
 
             })
             .catch(error => {
-                openPopup_v2(mensagem(error.erro), 'AVISO', true);
+                popup(mensagem(error.erro), 'AVISO', true);
             });
 
     }

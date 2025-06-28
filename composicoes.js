@@ -11,7 +11,7 @@ const alerta = (termo) => `
     `
 
 function criar_lpu() {
-    openPopup_v2(`
+    popup(`
         <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
             <label style="font-size: 1.2em;">Digite o nome da nova LPU:</label>
             <input id="nome-lpu" type="text" placeholder="Ex: LPU Novo" style="padding: 10px; width: 80%; border-radius: 5px;">
@@ -245,7 +245,7 @@ async function retomarPaginacao() {
             pesquisar_generico(col, filtrosAtivos[col], filtrosAtivos, 'linhasComposicoes')
         }
     } catch {
-        openPopup_v2(`Não foi possível retomar a paginação`)
+        popup(`Não foi possível retomar a paginação`)
     }
 }
 
@@ -325,7 +325,7 @@ async function abrirFiltros() {
         <button style="background-color: #4CAF50;" onclick="aplicarFiltros()">Confirmar</button>
     `
 
-    openPopup_v2(acumulado, 'Filtrar Itens')
+    popup(acumulado, 'Filtrar Itens')
 
 }
 
@@ -496,7 +496,7 @@ async function abrir_agrupamentos(codigo) {
 
         </div>    
     `
-    openPopup_v2(acumulado, 'Agrupamentos')
+    popup(acumulado, 'Agrupamentos')
 
     if (produto.agrupamentos) {
         var div_agrupamentos = document.getElementById('div_agrupamentos')
@@ -741,7 +741,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
     </div>
     `
 
-    openPopup_v2(acumulado, 'Valores de Venda')
+    popup(acumulado, 'Valores de Venda')
 
 }
 
@@ -1054,7 +1054,7 @@ async function adicionarCotacao(codigo, lpu, cotacao) {
     </div>
     `
 
-    openPopup_v2(acumulado, 'Gestão de Preço', true)
+    popup(acumulado, 'Gestão de Preço', true)
     calcular()
 
 }
@@ -1332,7 +1332,7 @@ async function salvarPreco(codigo, lpu, cotacao) {
 
     // Verificar antes se a porcentagem é aceitável;
     let resultado = calcular(undefined, historico[id])
-    if (resultado.lucroPorcentagem < 10) return openPopup_v2(alerta('Percentual de lucro não pode ser menor que 10%'), 'ALERTA', true)
+    if (resultado.lucroPorcentagem < 10) return popup(alerta('Percentual de lucro não pode ser menor que 10%'), 'ALERTA', true)
 
     produto[lpu] = produto[lpu] || { historico: {} };
     produto[lpu].historico = historico;
@@ -1423,7 +1423,7 @@ async function cadastrar_editar_item(codigo) {
         <button style="background-color: #4CAF50; margin: 0px;" onclick="${funcao}">Salvar</buttton>
     </div>
     `
-    openPopup_v2(acumulado, 'Dados do Item')
+    popup(acumulado, 'Dados do Item')
 }
 
 async function confirmar_exclusao_item(codigo) {
@@ -1432,7 +1432,7 @@ async function confirmar_exclusao_item(codigo) {
 
     remover_popup()
 
-    openPopup_v2(`
+    popup(`
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
             <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                 <img src="gifs/alerta.gif">
@@ -1484,7 +1484,7 @@ async function salvarServidor(codigo) {
                 <label>Não foi possível cadastrar o item... tente novamente</label>
             </div>
             `
-            return openPopup_v2(mensagem, 'Aviso')
+            return popup(mensagem, 'Aviso')
         }
 
         codigo = resposta.status // Aqui é retornado o último número sequencial +1 para cadasto;
@@ -1558,7 +1558,7 @@ function salvarNovaLPU() {
     let texto_aviso = document.getElementById("texto-aviso")
 
     if (nomeLPU === "") {
-        return openPopup_v2('Digite um nome válido para a LPU!', 'Aviso', true);
+        return popup('Digite um nome válido para a LPU!', 'Aviso', true);
     }
 
     nomeLPU = nomeLPU.toLowerCase(); // Converte para maiúsculas

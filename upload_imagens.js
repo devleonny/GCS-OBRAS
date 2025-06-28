@@ -31,7 +31,7 @@ function ampliar_especial(local_img, codigo) {
     `;
 
 
-    openPopup_v2(acumulado, 'Imagem', true)
+    popup(acumulado, 'Imagem', true)
 }
 
 async function importar_imagem(local_img, codigo) {

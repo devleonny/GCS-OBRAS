@@ -27,7 +27,7 @@ const itensImportados = [
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F5') f5()
-    if (event.key === 'F2') openPopup_v2(new Date().getTime(), 'TIMESTAMP', true)
+    if (event.key === 'F2') popup(new Date().getTime(), 'TIMESTAMP', true)
 })
 
 function f5() {
@@ -41,40 +41,6 @@ function ativarCloneGCS(ativar) {
     localStorage.setItem('modoClone', ativar)
     carregarIcones()
     corFundo()
-
-}
-
-async function verificarAlertas() {
-
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
-    if (modoClone) return
-
-    await sincronizarDados('alertasChamados', true)
-    let alertasChamados = await recuperarDados('alertasChamados') || {}
-
-    let contador = 0
-
-    for (let [his, alerta] of Object.entries(alertasChamados)) {
-
-        let respostas = alerta?.respostas || {}
-
-        for (let [idMensagem, resposta] of Object.entries(respostas)) {
-            if (
-                (alerta.enviadoDe == acesso.usuario || alerta.destinado == acesso.usuario) // Precisam ser as pessoas envolvidas;
-                && !resposta.lido // A mensagem precisa não ter sido lida;
-                && resposta.usuario != acesso.usuario // E o usuário que recebe tem quer ser diferente do usuário que enviou;
-            ) {
-                contador++
-            }
-        }
-
-    }
-
-    let contadorMensagens = document.getElementById('contadorMensagens')
-    if (contadorMensagens) {
-        contadorMensagens.style.display = contador == 0 ? 'none' : 'flex'
-        contadorMensagens.textContent = contador
-    }
 
 }
 
@@ -180,7 +146,6 @@ async function identificacaoUser() {
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
 
     carregarIcones() // ícones da tela inicial;
-    verificarAlertas() // Verificar a quantidade de mensagens;
     verificarPendencias() // Pendencias de aprovação;
 
     let modelo = (imagem, funcao, idElemento) => {
@@ -203,7 +168,6 @@ async function identificacaoUser() {
                     <label>Online</label>
                 </div>
 
-                ${!modoClone ? modelo('mensagem', 'abrirMensagens(this)', 'contadorMensagens') : ''}
                 ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
                 ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
 
@@ -239,115 +203,6 @@ async function sincronizarSetores() {
     localStorage.setItem('dados_setores', JSON.stringify(dadosMesclados))
 
     return dadosMesclados
-
-}
-
-async function abrirMensagens(elementoOrigial) {
-    let alertasChamados = await recuperarDados('alertasChamados') || {}
-    let divAlertas = document.getElementById('divAlertas')
-    if (divAlertas) return divAlertas.remove()
-
-    let alertas = ''
-    for (let [his, alerta] of Object.entries(alertasChamados)) {
-
-        if (alerta.destinado == acesso.usuario || alerta.enviadoDe == acesso.usuario) {
-
-            let mensagens = ''
-            for ([idMensagem, resposta] of Object.entries(alerta?.respostas || {})) {
-
-                let confirmacaoLeitura = ''
-                if (resposta.usuario != acesso.usuario) {
-                    confirmacaoLeitura = `
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
-                        <input type="checkbox" style="cursor: pointer;" onchange="marcarLido(this, '${his}', '${idMensagem}')" ${resposta.lido ? 'checked' : ''}>
-                        <label>Lido</label>
-                    </div>`
-                } else {
-                    confirmacaoLeitura = `<img src="imagens/${resposta.lido ? 'doublecheck' : 'naolido'}.png" style="width: 2vw;">`
-                }
-
-                mensagens += `
-                    <div style="display: flex; justify-content: center; align-items: start; width: 100%;">
-                        <span class="bordaWhatsapp"></span>
-                        <div class="balaoWhatsapp">
-                            <label><strong>${resposta.usuario}</strong> diz:</label>
-                            <label>${resposta.mensagem}</label>
-
-                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px; width: 100%;">
-                                <label><strong>${resposta.data}</strong></label>
-                                ${confirmacaoLeitura}
-                            </div>
-                        </div>
-                    </div>
-                `
-            }
-
-            mensagens += `
-                <div style="width: 100%; display: flex; align-items: center; justify-content: start;">
-                    <textarea placeholder="Digite uma mensagem"></textarea>
-                    <button style="background-color: green;" onclick="enviarMensagem(this, '${his}')">Enviar</button>
-                </div>
-            `
-
-            alertas += `
-                <div class="contornoMensagem">
-
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="irChamado('${alerta.manutencao}', '${his}')">
-                        <label class="labelMensagem"><strong>Clique aqui</strong> [${alerta.chamado}]</label>
-                    </div>
-                    <br>
-                    ${mensagens}
-                </div>
-                `
-        }
-    }
-
-    let pos = elementoOrigial.getBoundingClientRect();
-
-    if (alertas == '') alertas = `<hr style="width: 80%;"><label>Você não possui mensagens no momento</label>`
-
-    let acumulado = `
-    <div id="divAlertas" class="divOnline" style="background-color: #d2d2d2; left: ${pos.left + window.scrollX}px; top: ${pos.bottom + window.scrollY}px;">
-        <label style="font-size: 1.2vw;">MENSAGENS</label>
-        ${alertas}
-    </div>
-    `
-    document.body.insertAdjacentHTML('beforeend', acumulado)
-
-}
-
-async function irChamado(idChamado, idAlerta) {
-
-    let chamadoArmazenado = localStorage.getItem('irChamado')
-
-    if (chamadoArmazenado) {
-        chamadoArmazenado = JSON.parse(chamadoArmazenado)
-        await sincronizarDados('dados_manutencao')
-        let dados_manutencao = await recuperarDados('dados_manutencao') || {}
-        if (dados_manutencao[chamadoArmazenado.idChamado]) {
-            await abrir_manutencao(chamadoArmazenado.idChamado)
-        } else {
-            openPopup_v2(mensagem('O chamado não existe mais...'), 'AVISO')
-        }
-        localStorage.removeItem('irChamado')
-        deletar(`alertasChamados/${chamadoArmazenado.idAlerta}`)
-    } else if (idChamado) {
-        localStorage.setItem('irChamado', JSON.stringify({ idChamado, idAlerta }))
-        window.location.href = 'chamados.html'
-    }
-
-}
-
-async function marcarLido(input, his, idMensagem) {
-
-    let alertasChamados = await recuperarDados('alertasChamados') || {}
-
-    let alerta = alertasChamados[his]
-    alerta.respostas[idMensagem].lido = input.checked
-
-    await inserirDados(alertasChamados, 'alertasChamados')
-    await enviar(`alertasChamados/${his}/respostas/${idMensagem}/lido`, input.checked)
-    await verificarAlertas()
 
 }
 
@@ -441,7 +296,7 @@ async function configs() {
     </div>
     `
     remover_popup()
-    openPopup_v2(acumulado, 'Configurações')
+    popup(acumulado, 'Configurações')
 
 }
 
@@ -495,7 +350,7 @@ function abrirArquivo(link) {
 }
 
 function deseja_sair() {
-    openPopup_v2(`
+    popup(`
         <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin: 2vw;">
             <label>Deseja Sair?</label>
             <button onclick="sair()" style="background-color: green">Sim</button>
@@ -704,7 +559,7 @@ async function recuperarDados(nome_da_base, ambos) {
     return await getDados(baseFinal)
 }
 
-function openPopup_v2(elementoHTML, titulo, nao_remover_anteriores) {
+function popup(elementoHTML, titulo, nao_remover_anteriores) {
 
     let popup_v2 = `
     <div id="temp_pop" 
@@ -944,7 +799,7 @@ async function para_excel(tabela_id, nome_personalizado) {
             mensagem = "Biblioteca de exportação não carregada. Recarregue a página e tente novamente.";
         }
 
-        openPopup_v2(`
+        popup(`
             <div style="color: #b71c1c; padding: 20px; text-align: center;">
                 <h3>⚠️ Erro na Exportação</h3>
                 <p>${mensagem}</p>
@@ -1051,7 +906,7 @@ async function exportarParaExcel() {
     } catch (erro) {
         console.error("Erro ao exportar:", erro);
         removerOverlay();
-        openPopup_v2(`
+        popup(`
             <div style="display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center; flex-direction: column;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Erro ao exportar para Excel:</label>
@@ -1268,7 +1123,7 @@ async function recuperarClientes() {
 
         if (objeto.faultstring) {
             removerOverlay()
-            openPopup_v2(mensagem('Não foi possível carregar, tente novamente.', 'AVISO', true))
+            popup(mensagem('Não foi possível carregar, tente novamente.', 'AVISO', true))
             return
         }
 
@@ -1530,7 +1385,7 @@ async function salvar_levantamento(id_orcamento) {
             painel_clientes()
         }
     } catch (error) {
-        openPopup_v2(mensagem(`Erro ao fazer upload: ${error.message}`), 'ALERTA', true);
+        popup(mensagem(`Erro ao fazer upload: ${error.message}`), 'ALERTA', true);
         console.error(error);
     }
 }
@@ -1827,7 +1682,7 @@ async function gerar_pdf_online(htmlString, nome) {
 
 async function refazer_pagamento(id_pagamento) {
 
-    openPopup_v2(`
+    popup(`
         <div style="margin: 1vw; display: flex; align-items: center; justify-content: center; gap: 5px;">
             <img src="gifs/loading.gif" style="width: 5vw;">
             <label>Aguarde...</label>
@@ -1844,7 +1699,7 @@ async function refazer_pagamento(id_pagamento) {
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
         await abrir_detalhes(id_pagamento)
     } else {
-        openPopup_v2(`
+        popup(`
             <div style="margin: 1vw;">
                 <label>Atualize os pagamentos e tente novamente.</label>
             </div>
@@ -1907,7 +1762,7 @@ async function anexo_v2(arquivoInput) {
                 resolve(data);
             })
             .catch(error => {
-                openPopup_v2(`
+                popup(`
                     <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
                         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                         <label>🔴🔴🔴 O serviço de armazenamentos está Offline 🔴🔴🔴</label> <br>
@@ -2086,7 +1941,7 @@ async function verAprovacoes() {
         ${tabelasString}
     </div>
     `
-    openPopup_v2(acumulado, 'Aprovações de Orçamento', true)
+    popup(acumulado, 'Aprovações de Orçamento', true)
 }
 
 async function verificarPendencias() {
@@ -2110,7 +1965,7 @@ async function verPedidoAprovacao(idOrcamento) { //29
 
     let permissao = acesso.permissao
     let pessoasPermitidas = ['adm', 'diretoria']
-    if (!pessoasPermitidas.includes(permissao)) return openPopup_v2(mensagem('Você não tem acesso'), 'AVISO', true)
+    if (!pessoasPermitidas.includes(permissao)) return popup(mensagem('Você não tem acesso'), 'AVISO', true)
 
     let acumulado = ''
     let tabelas = {}
@@ -2240,7 +2095,7 @@ async function verPedidoAprovacao(idOrcamento) { //29
             </div>
         `
 
-    openPopup_v2(acumulado, 'Detalhes', true)
+    popup(acumulado, 'Detalhes', true)
 
 }
 
@@ -2603,7 +2458,7 @@ function painel_clientes() {
     </div>
     `
 
-    openPopup_v2(acumulado, 'Dados do Cliente')
+    popup(acumulado, 'Dados do Cliente')
 
     vendedores_analistas()
 }
@@ -2669,7 +2524,7 @@ async function selecionarCliente(omie, nome) {
 }
 
 function limpar_campos() {
-    openPopup_v2(`
+    popup(`
         <div style="gap: 10px; display: flex; align-items: center; flex-direction: column;">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <label>Deseja limpar campos?</label>

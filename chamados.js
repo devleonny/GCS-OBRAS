@@ -2,7 +2,6 @@ let filtro_manutencao = {}
 let filtro;
 
 carregar_manutencoes()
-irChamado() // Necessário para reproduzir o chamado quando alguém clicar;
 
 async function recuperar_manutencoes() {
     await sincronizarDados('dados_manutencao')
@@ -219,12 +218,6 @@ async function abrir_manutencao(id) {
     let dados_manutencao = await recuperarDados('dados_manutencao') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let dados_estoque = await recuperarDados('dados_estoque') || {}
-    let alertasChamados = await recuperarDados('alertasChamados') || {}
-    let dados_clientes_omie = {}
-
-    for (cnpj in dados_clientes) {
-        dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
-    }
 
     await criar_manutencao(id)
     if (id) renderizarAnexos(id)
@@ -265,7 +258,7 @@ async function abrir_manutencao(id) {
         let chave = `codigo_${pessoa}`
 
         if (manutencao[chave] && manutencao[chave] !== '') {
-            let item = dados_clientes_omie[manutencao[chave]] || {};
+            let item = dados_clientes[manutencao[chave]] || {};
             document.getElementById(chave).textContent = manutencao[chave]
             document.getElementById(pessoa).value = item.nome || '--';
 
@@ -327,9 +320,8 @@ async function abrir_manutencao(id) {
 
     let div_historico = document.getElementById('historico')
     let infos = "";
-    let contagem = 0
+
     for ([his, historico] of Object.entries(manutencao?.historico || {})) {
-        contagem++
 
         let imagem;
 
@@ -353,20 +345,12 @@ async function abrir_manutencao(id) {
                 imagem = 'cancel'
         }
 
-        let sino = `
-        <div style="position: relative;">
-            ${alertasChamados[his] ? `<img id="${his}" src="imagens/concluido.png" style="width: 1.5vw; position: absolute; top: -10px; left: -10px;">` : ''}
-            ${salvarPrimeiroUsuario(manutencao?.historico || {}) != acesso.usuario && historico.usuario == acesso.usuario
-                ? `<img src="gifs/sino1.gif" class="sino" onclick="ativarNotificacao(this, '${id}', '${his}')">`
-                : ''}
-        </div>
-        `
         infos += `
         <div style="display: flex; align-items: flex-start; gap: 10px;">
             <div style="display: flex; flex-direction: column; align-items: start; width: 35%;">
                 <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 5px;">
                     <img src="imagens/${imagem}.png" style="width: 30px;">
-                    <div style="display: flex; gap: 0px; flex-direction: column; align-items: start;">
+                    <div style="text-align: left; display: flex; gap: 0px; flex-direction: column; align-items: start; justify-content: start;">
                         <label><strong>Data: </strong>${historico.data}</label><br>
                         <label><strong>Status: </strong>${historico.status_manutencao}</label><br>
                         <label><strong>Usuário: </strong>${historico.usuario}</label>
@@ -376,8 +360,6 @@ async function abrir_manutencao(id) {
             <div style="width: 70%; display: flex; text-align: center; align-items: center; gap: 8px">
                 <label style="text-align: center"><strong>Comentário: </strong></label>
                 <textarea style="background-color: white; width: 50%;" readonly>${historico.comentario}</textarea>
-                ${contagem != 1 ? sino : ''}
-
             </div>
         </div>
         <hr style="width: 100%;">
@@ -386,7 +368,7 @@ async function abrir_manutencao(id) {
 
     let elemento = `
         <br>
-        <div style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px; padding: 5px;">Histórico</div>
+        <div style="background-color: #797979; color: white; padding: 5px;">Histórico</div>
 
         <div style="background-color: #d2d2d2; color: #222; padding: 5px;">
             ${infos}
@@ -414,10 +396,6 @@ async function capturar_html_pdf(id) {
     let dados_manutencao = await recuperarDados('dados_manutencao') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let dados_estoque = await recuperarDados('dados_estoque') || {}
-    let dados_clientes_omie = {}
-    for (cnpj in dados_clientes) {
-        dados_clientes_omie[dados_clientes[cnpj].omie] = dados_clientes[cnpj]
-    }
 
     let manutencao = dados_manutencao[id]
     let campos = ['nome', 'cnpj', 'bairro', 'cep', 'cidade', 'estado']
@@ -431,7 +409,7 @@ async function capturar_html_pdf(id) {
         let codigo = manutencao[`codigo_${pessoa}`]
 
         if (codigo !== '') {
-            let dados = dados_clientes_omie[codigo] || {}
+            let dados = dados_clientes[codigo] || {}
 
             campos.forEach(campo => {
                 elementos += `<label style="text-align: left;"><strong>${campo.toUpperCase()}: </strong>${dados[campo]}</label>`
@@ -474,7 +452,7 @@ async function capturar_html_pdf(id) {
 
     let tabela = `
         <label style="font-size: 1.5em;">REQUISIÇÃO ${manutencao.chamado}</label>
-        <table>
+        <table class="tabela">
             <thead>
                 <th>Part Number</th>
                 <th>Quantidade</th>
@@ -565,7 +543,7 @@ async function criar_manutencao(id) {
     if (!id) id = gerar_id_5_digitos()
 
     let tela = `
-            <div style="width: 100%; display: flex; align-items: center; justify-content: space-evenly; color: #222; padding: 5px;">
+            <div style="display: flex; align-items: start; justify-content: start; color: #222; padding: 5px; gap: 15px;">
                 <div style="display: flex; flex-direction: column; align-items: start;">
 
                     <label style="font-size: 1.2vw;">Cliente | Loja</label>
@@ -662,15 +640,15 @@ async function criar_manutencao(id) {
             <hr style="width: 100%;">
             <table class="tabela">
 
-                <thead>
+                <thead style="background-color: #797979;">
                     <tr>
-                        <th>Part Number</th>
-                        <th>Descrição</th>
-                        <th>Quantidade</th>
-                        <th>Comentário</th>
-                        <th>Estoque</th>
-                        <th>Estoque Usado</th>
-                        <th>Remover</th>
+                        <th style="color: white;">Part Number</th>
+                        <th style="color: white;">Descrição</th>
+                        <th style="color: white;">Quantidade</th>
+                        <th style="color: white;">Comentário</th>
+                        <th style="color: white;">Estoque</th>
+                        <th style="color: white;">Estoque Usado</th>
+                        <th style="color: white;">Remover</th>
                     </tr>
                 </thead>
 
@@ -683,17 +661,15 @@ async function criar_manutencao(id) {
             </table>
         `
 
-    let layoutBotao = (nome, funcao, img) => {
-        return `
+    let layoutBotao = (nome, funcao, img) => `
                 <div onclick="${funcao}" class="botoesChamado">
                     <img src="imagens/${img}.png" style="cursor: pointer; width: 2vw;">
                     <label>${nome}</label>
                 </div>
             `
-    }
 
     let botoes = `
-            <div style="width: 60vw; display: flex; align-items: center; justify-content: start; gap: 5px;">
+            <div style="width: 100%; display: flex; align-items: center; justify-content: start; gap: 2px;">
 
                 ${layoutBotao('Adicionar Peça', 'adicionar_linha_manut()', 'chamados')}
                 ${layoutBotao('Salvar', `enviar_manutencao('${id}')`, 'estoque')}
@@ -705,61 +681,21 @@ async function criar_manutencao(id) {
             </div>
         `
     let acumulado = `
-        <div class="telaChamado">
-            ${tela}
-            ${tabela}
-            <div id="historico" style="width: 100%;"></div>
+        <div style="width: 60vw; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #d2d2d2; padding: 5px;">
+            <div class="telaChamado">
+                ${tela}
+                ${tabela}
+                <div id="historico" style="width: 100%;"></div>
+            </div>
+            ${botoes}
         </div>
-        ${botoes}
         `
 
-    openPopup_v2(acumulado, `Requisição de Materiais`)
+    popup(acumulado, `Requisição de Materiais`)
 }
 
 async function sincronizarEstoque() {
     await sincronizarDados('dados_estoque')
-}
-
-async function ativarNotificacao(img, id, his) {
-
-    let div = img.parentElement
-    let imgs = div.querySelectorAll('img')
-
-    if (imgs.length > 1) return // O alerta já foi emitido;
-
-    let dados_manutencao = await recuperarDados('dados_manutencao') || {}
-    let manutencao = dados_manutencao[id]
-    console.log(manutencao);
-
-    let historico = manutencao.historico[his]
-    let alertasChamados = await recuperarDados('alertasChamados') || {}
-    let idMensagem = gerar_id_5_digitos()
-    let dados = {
-        chamado: manutencao.chamado,
-        manutencao: id,
-        historico: his,
-        enviadoDe: acesso.usuario,
-        comentario: historico.comentario,
-        data: historico.data,
-        destinado: salvarPrimeiroUsuario(manutencao?.historico || manutencao.usuario),
-        respostas: {
-            [idMensagem]: {
-                usuario: acesso.usuario,
-                data: historico.data,
-                mensagem: historico.comentario,
-                lido: false
-            }
-        }
-    }
-
-    alertasChamados[his] = dados
-    await inserirDados(alertasChamados, 'alertasChamados')
-    enviar(`alertasChamados/${his}`, dados)
-
-    let confirmado = `<img id="${his}" src="imagens/concluido.png" style="width: 1.5vw; position: absolute; top: -10px; left: -10px;">`
-
-    div.insertAdjacentHTML('beforeend', confirmado)
-
 }
 
 function mostrar_anexos(label) {
@@ -777,7 +713,7 @@ function mostrar_anexos(label) {
 
 function confirmar_exclusao(id) {
 
-    openPopup_v2(`
+    popup(`
         <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
             <img src="gifs/alerta.gif" style="width: 3vw;">
             <label>Confirmar exclusão?</label>

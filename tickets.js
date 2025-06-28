@@ -89,7 +89,7 @@ function novoTicket() {
         </div>
     `;
 
-    openPopup_v2(conteudo, 'Novo Ticket');
+    popup(conteudo, 'Novo Ticket');
 
     document.getElementById('ticket-form').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -216,7 +216,7 @@ function abrirPopupEdicao(ticketId, ticket) {
         </div>
     `;
 
-    openPopup_v2(conteudo, 'Editar Ticket');
+    popup(conteudo, 'Editar Ticket');
 
     document.getElementById('edit-form').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -367,7 +367,7 @@ function abrirPopupDetalhes(ticket) {
         </div>
     `;
 
-    openPopup_v2(conteudo, 'Detalhes do Ticket');
+    popup(conteudo, 'Detalhes do Ticket');
 }
 
 function gerarUUID() {
@@ -408,7 +408,7 @@ function isAdmin() {
 
 async function excluirTicket(ticketId) {
     if (!isAdmin()) {
-        openPopup_v2(`
+        popup(`
             <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
                 <img src="imagens/cancel.png" style="width: 3vw;">
                 <label>Apenas administradores podem excluir tickets.</label>
@@ -434,7 +434,7 @@ async function excluirTicket(ticketId) {
         </div>
     `;
 
-    openPopup_v2(conteudo, 'Confirmar Exclusão');
+    popup(conteudo, 'Confirmar Exclusão');
 }
 
 async function confirmarExclusaoTicket(ticketId) {
@@ -453,7 +453,7 @@ async function confirmarExclusaoTicket(ticketId) {
             await inserirDados(dados_tickets, 'dados_tickets');
             await deletar(`dados_tickets/${ticketId}`);
 
-            openPopup_v2(`
+            popup(`
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
                     <img src="imagens/concluido.png" style="width: 3vw;">
                     <label>Ticket excluído com sucesso!</label>
@@ -468,7 +468,7 @@ async function confirmarExclusaoTicket(ticketId) {
     } catch (error) {
         console.error('Erro ao excluir ticket:', error);
 
-        openPopup_v2(`
+        popup(`
             <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
                 <img src="imagens/cancel.png" style="width: 3vw;">
                 <label>Erro ao excluir ticket. Tente novamente.</label>
@@ -538,7 +538,7 @@ async function buscarTicketParaEdicao(ticketId) {
 function editarTicket(ticketId) {
     buscarTicketParaEdicao(ticketId).then(ticket => {
         if (!ticket) {
-            openPopup_v2(`
+            popup(`
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
                     <img src="imagens/cancel.png" style="width: 3vw;">
                     <label>Ticket não encontrado!</label>
@@ -554,7 +554,7 @@ function editarTicket(ticketId) {
 function mostrarDetalhesTicket(ticketId) {
     buscarTicketParaEdicao(ticketId).then(ticket => {
         if (!ticket) {
-            openPopup_v2(`
+            popup(`
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
                     <img src="imagens/cancel.png" style="width: 3vw;">
                     <label>Ticket não encontrado!</label>
@@ -787,7 +787,7 @@ async function mostrarContatoDesenvolvedor(ticketId, usuarioNome) {
 
     const devInfo = desenvolvedores[desenvolvedorNome];
     if (!devInfo) {
-        openPopup_v2(`
+        popup(`
             <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
                 <img src="imagens/cancel.png" style="width: 3vw;">
                 <label>Informações do desenvolvedor não encontradas!</label>
@@ -839,7 +839,7 @@ async function mostrarContatoDesenvolvedor(ticketId, usuarioNome) {
         </div>
     `;
 
-    openPopup_v2(conteudo, 'Contato do Desenvolvedor');
+    popup(conteudo, 'Contato do Desenvolvedor');
 }
 
 function abrirWhatsApp(telefone, mensagem) {
@@ -868,7 +868,7 @@ function copiarParaAreaTransferencia(texto) {
     document.execCommand('copy');
     document.body.removeChild(input);
 
-    openPopup_v2(`
+    popup(`
         <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 20px;">
             <img src="imagens/concluido.png" style="width: 2vw;">
             <label>Telefone copiado!</label>

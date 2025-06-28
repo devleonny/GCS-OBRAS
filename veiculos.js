@@ -98,7 +98,7 @@ function cadastrarVeiculo() {
         </div>
     `;
 
-    openPopup_v2(form, 'Cadastro de Veículo');
+    popup(form, 'Cadastro de Veículo');
 }
 
 async function filtrarVeiculos(input) {
@@ -159,7 +159,7 @@ async function salvarVeiculo() {
 
         const camposObrigatorios = [nomeVeiculo, placa, modelo];
         if (camposObrigatorios.some(campo => campo === '')) {
-            openPopup_v2('Por favor, preencha os campos obrigatórios', 'Campo obrigatório', true);
+            popup('Por favor, preencha os campos obrigatórios', 'Campo obrigatório', true);
             return;
         }
 
@@ -173,7 +173,7 @@ async function salvarVeiculo() {
         if (dados_veiculos.veiculos[nomeVeiculo]) {
             const frotasExistentes = dados_veiculos.veiculos[nomeVeiculo].frotas || {};
             if (Object.values(frotasExistentes).some(frota => frota.placa === placa)) {
-                openPopup_v2(`
+                popup(`
                     <div class="popup-message">
                         <img src="imagens/error.png">
                         <p>Já existe um veículo cadastrado com esta placa!</p>
@@ -215,7 +215,7 @@ async function salvarVeiculo() {
         removerOverlay();
         remover_popup();
 
-        openPopup_v2(`
+        popup(`
             <div class="popup-message">
                 <img src="imagens/sucesso.png">
                 <label>${dados_veiculos.veiculos[nomeVeiculo].frotas[placa] ? 'Nova frota adicionada' : 'Veículo cadastrado'} com sucesso!</label>
@@ -228,7 +228,7 @@ async function salvarVeiculo() {
 
     } catch (error) {
         console.error('Erro ao salvar veículo:', error);
-        openPopup_v2(`
+        popup(`
             <div class="popup-message">
                 <img src="imagens/error.png">
                 <p>Erro ao salvar veículo. Tente novamente.</p>
@@ -269,7 +269,7 @@ async function botoesVeiculos(filtro) {
         firstButton && veiculosOrdenados.length > 0 && selecionarVeiculo(firstButton, veiculosOrdenados[0]);
     } catch (error) {
         console.error('Erro ao carregar botões dos veículos:', error);
-        openPopup_v2('Erro ao carregar lista de veículos. Tente novamente.', 'Erro');
+        popup('Erro ao carregar lista de veículos. Tente novamente.', 'Erro');
     }
 }
 
@@ -291,7 +291,7 @@ async function adicionarCustoExtra(idMotorista, nomeVeiculo) {
     const descricao = document.getElementById('descricao_extra').value;
 
     if (!valor || !descricao) {
-        openPopup_v2('Por favor, preencha todos os campos', 'Campos Obrigatórios', true);
+        popup('Por favor, preencha todos os campos', 'Campos Obrigatórios', true);
         return;
     }
 
@@ -318,7 +318,7 @@ async function adicionarCustoExtra(idMotorista, nomeVeiculo) {
 
     } catch (error) {
         console.error('Erro ao adicionar custo extra:', error);
-        openPopup_v2('Erro ao adicionar custo extra. Tente novamente.', 'Erro');
+        popup('Erro ao adicionar custo extra. Tente novamente.', 'Erro');
     }
 }
 
@@ -356,11 +356,11 @@ async function editarCustoExtra(idMotorista, nomeVeiculo, idRegistro) {
             </div>
         `;
 
-        openPopup_v2(conteudo, 'Editar Custo Extra', true);
+        popup(conteudo, 'Editar Custo Extra', true);
 
     } catch (error) {
         console.error('Erro ao abrir formulário de edição:', error);
-        openPopup_v2('Erro ao abrir formulário. Tente novamente.', 'Erro');
+        popup('Erro ao abrir formulário. Tente novamente.', 'Erro');
     }
 }
 
@@ -371,7 +371,7 @@ async function salvarEdicaoCustoExtra(idMotorista, nomeVeiculo, idRegistro) {
         const data = document.getElementById('edit_data').value;
 
         if (!valor || !descricao) {
-            openPopup_v2('Por favor, preencha todos os campos', 'Campos Obrigatórios', true);
+            popup('Por favor, preencha todos os campos', 'Campos Obrigatórios', true);
             return;
         }
 
@@ -392,7 +392,7 @@ async function salvarEdicaoCustoExtra(idMotorista, nomeVeiculo, idRegistro) {
 
     } catch (error) {
         console.error('Erro ao salvar alterações:', error);
-        openPopup_v2('Erro ao salvar alterações. Tente novamente.', 'Erro');
+        popup('Erro ao salvar alterações. Tente novamente.', 'Erro');
     }
 }
 
@@ -411,7 +411,7 @@ async function excluirCustoExtra(idMotorista, nomeVeiculo, idRegistro) {
 
     } catch (error) {
         console.error('Erro ao excluir custo extra:', error);
-        openPopup_v2(`
+        popup(`
             <div class="popup-message">
                 <img src="imagens/error.png">
                 <p>Erro ao excluir custo extra. Tente novamente.</p>
@@ -464,7 +464,7 @@ function criarLinhaMotorista(motorista, idMotorista, nomeVeiculo) {
 }
 
 async function confirmarExclusaoMotorista(idMotorista, nomeVeiculo, nomeMotorista) {
-    openPopup_v2(`
+    popup(`
         <div class="confirmar-exclusao-container">
             <img src="gifs/alerta.gif" class="confirmar-exclusao-imagem">
             <label>Tem certeza que deseja excluir o motorista ${nomeMotorista}?</label>
@@ -492,7 +492,7 @@ async function excluirMotorista(idMotorista, nomeVeiculo) {
 
         remover_popup();
 
-        openPopup_v2(`
+        popup(`
             <div class="popup-message">
                 <img src="imagens/sucesso.png">
                 <label>Motorista excluído com sucesso!</label>
@@ -507,7 +507,7 @@ async function excluirMotorista(idMotorista, nomeVeiculo) {
 
     } catch (error) {
         console.error('Erro ao excluir motorista:', error);
-        openPopup_v2(`
+        popup(`
             <div class="popup-message">
                 <img src="imagens/error.png">
                 <p>Erro ao excluir motorista. Tente novamente.</p>
@@ -547,7 +547,7 @@ function mostrarDadosVeiculo(dadosVeiculoEncoded) {
         </div>
     `;
 
-    openPopup_v2(conteudo, 'Informações do Veículo');
+    popup(conteudo, 'Informações do Veículo');
 }
 
 async function abrirPopupCustos(idMotorista, nomeVeiculo, nomeMotorista) {
@@ -612,11 +612,11 @@ async function abrirPopupCustos(idMotorista, nomeVeiculo, nomeMotorista) {
             </div>
         `;
 
-        openPopup_v2(conteudo, 'Custos Mensais');
+        popup(conteudo, 'Custos Mensais');
 
     } catch (error) {
         console.error('Erro ao abrir popup de custos:', error);
-        openPopup_v2(`
+        popup(`
             <div class="popup-message">
                 <img src="imagens/error.png">
                 <p>Erro ao carregar custos. Tente novamente.</p>
@@ -630,7 +630,7 @@ async function adicionarCusto(idMotorista, nomeVeiculo) {
     const descricao = document.getElementById('descricao-custo').value;
 
     if (!valor || !descricao) {
-        openPopup_v2('Por favor, preencha todos os campos', 'Campos Obrigatórios', true);
+        popup('Por favor, preencha todos os campos', 'Campos Obrigatórios', true);
         return;
     }
 
@@ -659,7 +659,7 @@ async function adicionarCusto(idMotorista, nomeVeiculo) {
 
     } catch (error) {
         console.error('Erro ao adicionar custo:', error);
-        openPopup_v2('Erro ao adicionar custo. Tente novamente.', 'Erro');
+        popup('Erro ao adicionar custo. Tente novamente.', 'Erro');
     }
 }
 
@@ -677,7 +677,7 @@ async function excluirCusto(idMotorista, nomeVeiculo, idCusto) {
 
     } catch (error) {
         console.error('Erro ao excluir custo:', error);
-        openPopup_v2('Erro ao excluir custo. Tente novamente.', 'Erro');
+        popup('Erro ao excluir custo. Tente novamente.', 'Erro');
     }
 }
 
@@ -768,7 +768,7 @@ async function abrirFormularioCadastro() {
         </div>
     `;
 
-    openPopup_v2(form, 'Cadastro de Motorista');
+    popup(form, 'Cadastro de Motorista');
 }
 
 async function filtrarMotoristas(input) {
@@ -924,7 +924,7 @@ async function cadastrarMotorista() {
 
     const camposObrigatorios = [nome, veiculoSelecionado, placa];
     if (camposObrigatorios.some(campo => campo === '')) {
-        openPopup_v2('Por favor, preencha os campos obrigatórios', 'Campos Obrigatórios', true);
+        popup('Por favor, preencha os campos obrigatórios', 'Campos Obrigatórios', true);
         return;
     }
 
@@ -957,7 +957,7 @@ async function cadastrarMotorista() {
         removerOverlay();
         remover_popup();
 
-        openPopup_v2(`
+        popup(`
             <div class="popup-message">
                 <img src="imagens/sucesso.png">
                 <label>Motorista cadastrado com sucesso!</label>
@@ -970,12 +970,12 @@ async function cadastrarMotorista() {
 
     } catch (error) {
         console.error('Erro ao cadastrar motorista:', error);
-        openPopup_v2('Erro ao cadastrar motorista. Tente novamente.', 'Erro');
+        popup('Erro ao cadastrar motorista. Tente novamente.', 'Erro');
     }
 }
 
 async function atualizarListaMotoristas() {
-    openPopup_v2(`
+    popup(`
         <div style="display: flex; align-items: center; justify-content: left;">
             <img src="gifs/loading.gif" style="width: 50px">
             <label>Aguarde alguns segundos... </label>
@@ -999,7 +999,7 @@ async function atualizarListaMotoristas() {
         removerOverlay();
         remover_popup();
 
-        openPopup_v2(`
+        popup(`
             <div style="display: flex; align-items: center; justify-content: center; padding: 20px;">
                 <img src="imagens/sucesso.png" style="width: 30px; margin-right: 10px;">
                 <label>Lista de motoristas atualizada com sucesso!</label>
@@ -1015,7 +1015,7 @@ async function atualizarListaMotoristas() {
         removerOverlay();
         remover_popup();
 
-        openPopup_v2(`
+        popup(`
             <div style="display: flex; align-items: center; justify-content: center; padding: 20px;">
                 <img src="imagens/error.png" style="width: 30px; margin-right: 10px;">
                 <label>Erro ao atualizar lista de motoristas. Tente novamente.</label>
@@ -1141,11 +1141,11 @@ async function abrirPopupCombustivel(idMotorista, nomeVeiculo, nomeMotorista) {
             </div>
         `;
 
-        openPopup_v2(conteudo, 'Registros de Combustível');
+        popup(conteudo, 'Registros de Combustível');
 
     } catch (error) {
         console.error('Erro ao abrir popup de combustível:', error);
-        openPopup_v2(`
+        popup(`
             <div class="popup-message">
                 <img src="imagens/error.png">
                 <p>Erro ao carregar registros. Tente novamente.</p>
@@ -1214,11 +1214,11 @@ async function abrirPopupExtras(idMotorista, nomeVeiculo, nomeMotorista) {
             </div>
         `;
 
-        openPopup_v2(conteudo, 'Custos Extras');
+        popup(conteudo, 'Custos Extras');
 
     } catch (error) {
         console.error('Erro ao abrir popup de custos extras:', error);
-        openPopup_v2(`
+        popup(`
             <div class="popup-message">
                 <img src="imagens/error.png">
                 <p>Erro ao carregar custos extras. Tente novamente.</p>
@@ -1279,10 +1279,10 @@ async function editarRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) {
             </div>
         `;
 
-        openPopup_v2(conteudo, 'Editar Registro', true);
+        popup(conteudo, 'Editar Registro', true);
     } catch (error) {
         console.error('Erro ao abrir formulário de edição:', error);
-        openPopup_v2('Erro ao abrir formulário. Tente novamente.', 'Erro');
+        popup('Erro ao abrir formulário. Tente novamente.', 'Erro');
     }
 }
 
@@ -1325,7 +1325,7 @@ async function salvarEdicaoRegistroCombustivel(idMotorista, nomeVeiculo, idRegis
         abrirPopupCombustivel(idMotorista, nomeVeiculo, motorista.nome);
     } catch (error) {
         console.error('Erro ao salvar alterações:', error);
-        openPopup_v2('Erro ao salvar alterações. Tente novamente.', 'Erro');
+        popup('Erro ao salvar alterações. Tente novamente.', 'Erro');
     }
 }
 
@@ -1365,7 +1365,7 @@ async function adicionarRegistroCombustivel(idMotorista, nomeVeiculo) {
         abrirPopupCombustivel(idMotorista, nomeVeiculo, motorista.nome);
     } catch (error) {
         console.error('Erro ao adicionar registro:', error);
-        openPopup_v2('Erro ao adicionar registro. Tente novamente.', 'Erro');
+        popup('Erro ao adicionar registro. Tente novamente.', 'Erro');
     }
 }
 
@@ -1417,7 +1417,7 @@ async function salvarAnexoCombustivel(input, idMotorista, nomeVeiculo, idRegistr
         }
     } catch (error) {
         console.error('Erro ao salvar anexo:', error);
-        openPopup_v2(`
+        popup(`
             <div class="popup-message">
                 <img src="imagens/error.png">
                 <p>Erro ao salvar anexo: ${error.message}</p>
@@ -1465,11 +1465,11 @@ async function abrirAnexosCombustivel(idMotorista, nomeVeiculo, idRegistro) {
             </div>
         `;
 
-        openPopup_v2(conteudo, 'Anexos do Registro', true);
+        popup(conteudo, 'Anexos do Registro', true);
 
     } catch (error) {
         console.error('Erro ao abrir anexos:', error);
-        openPopup_v2(`
+        popup(`
             <div class="popup-message">
                 <img src="imagens/error.png">
                 <p>Erro ao abrir anexos. Tente novamente.</p>
@@ -1495,7 +1495,7 @@ async function excluirAnexoCombustivel(idMotorista, nomeVeiculo, idRegistro, idA
 
     } catch (error) {
         console.error('Erro ao excluir anexo:', error);
-        openPopup_v2('Erro ao excluir anexo. Tente novamente.', 'Erro');
+        popup('Erro ao excluir anexo. Tente novamente.', 'Erro');
     }
 }
 
@@ -1518,7 +1518,7 @@ async function excluirRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) 
         abrirPopupCombustivel(idMotorista, nomeVeiculo, motorista.nome);
     } catch (error) {
         console.error('Erro ao excluir registro:', error);
-        openPopup_v2(`
+        popup(`
             <div class="popup-message">
                 <img src="imagens/error.png">
                 <p>Erro ao excluir registro. Tente novamente.</p>
@@ -1547,7 +1547,7 @@ async function excluirFrota(nomeVeiculo, placa) {
         remover_popup();
         abrirGerenciamentoFrotas();
 
-        openPopup_v2(`
+        popup(`
             <div class="popup-message">
                 <img src="imagens/sucesso.png">
                 <label>${veiculoVazio ?
@@ -1571,7 +1571,7 @@ async function excluirFrota(nomeVeiculo, placa) {
         }, 1500);
     } catch (error) {
         console.error('Erro ao excluir frota:', error);
-        openPopup_v2(`
+        popup(`
             <div class="popup-message">
                 <img src="imagens/error.png">
                 <p>Erro ao excluir frota. Tente novamente.</p>
@@ -1593,7 +1593,7 @@ async function tentarExcluirFrota(nomeVeiculo, placa) {
                 .map(([_, motorista]) => motorista.nome)
                 .join('</li><li>');
 
-            openPopup_v2(`
+            popup(`
                 <div class="aviso-exclusao">
                     <img src="imagens/error.png" style="width: 30px;">
                     <h4>Não é possível excluir esta frota</h4>
@@ -1610,7 +1610,7 @@ async function tentarExcluirFrota(nomeVeiculo, placa) {
             return;
         }
 
-        openPopup_v2(`
+        popup(`
             <div class="confirmar-exclusao-container">
                 <img src="gifs/alerta.gif" class="confirmar-exclusao-imagem">
                 <p>Tem certeza que deseja excluir a frota ${placa} do veículo ${nomeVeiculo}?</p>
@@ -1626,7 +1626,7 @@ async function tentarExcluirFrota(nomeVeiculo, placa) {
         `, 'Confirmar Exclusão');
     } catch (error) {
         console.error('Erro ao verificar frota:', error);
-        openPopup_v2('Erro ao verificar dados. Tente novamente.', 'Erro');
+        popup('Erro ao verificar dados. Tente novamente.', 'Erro');
     }
 }
 
@@ -1694,10 +1694,10 @@ async function abrirGerenciamentoFrotas() {
             </div>
         `;
 
-        openPopup_v2(conteudo, 'Gerenciamento de Frotas');
+        popup(conteudo, 'Gerenciamento de Frotas');
     } catch (error) {
         console.error('Erro ao abrir gerenciamento:', error);
-        openPopup_v2('Erro ao carregar dados. Tente novamente.', 'Erro');
+        popup('Erro ao carregar dados. Tente novamente.', 'Erro');
     }
 }
 
@@ -1732,10 +1732,10 @@ async function editarFrota(nomeVeiculo, placa) {
             </div>
         `;
 
-        openPopup_v2(conteudo, 'Editar Frota', true);
+        popup(conteudo, 'Editar Frota', true);
     } catch (error) {
         console.error('Erro ao abrir edição:', error);
-        openPopup_v2('Erro ao carregar dados. Tente novamente.', 'Erro');
+        popup('Erro ao carregar dados. Tente novamente.', 'Erro');
     }
 }
 
@@ -1745,7 +1745,7 @@ async function salvarEdicaoFrota(nomeVeiculo, placa) {
         const status = document.getElementById('edit_status').value;
 
         if (!modelo || !status) {
-            openPopup_v2('Por favor, preencha todos os campos', 'Campos Obrigatórios', true);
+            popup('Por favor, preencha todos os campos', 'Campos Obrigatórios', true);
             return;
         }
 
@@ -1763,7 +1763,7 @@ async function salvarEdicaoFrota(nomeVeiculo, placa) {
         remover_popup();
         abrirGerenciamentoFrotas();
 
-        openPopup_v2(`
+        popup(`
             <div class="popup-message">
                 <img src="imagens/sucesso.png">
                 <label>Frota atualizada com sucesso!</label>
@@ -1776,6 +1776,6 @@ async function salvarEdicaoFrota(nomeVeiculo, placa) {
 
     } catch (error) {
         console.error('Erro ao salvar alterações:', error);
-        openPopup_v2('Erro ao salvar alterações. Tente novamente.', 'Erro');
+        popup('Erro ao salvar alterações. Tente novamente.', 'Erro');
     }
 }

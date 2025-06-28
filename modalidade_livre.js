@@ -6,7 +6,7 @@ let updateTimeout;
 
 function retornar_ao_orcamento_tradicional() {
 
-    openPopup_v2(`
+    popup(`
 
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column; margin: 2vw;">
 
@@ -34,7 +34,7 @@ function carregar_layout_modalidade_tradicional() {
 
 function modalidade_livre_de_orcamento() {
 
-    openPopup_v2(`
+    popup(`
 
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column; margin: 2vw;">
 

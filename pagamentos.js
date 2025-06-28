@@ -629,7 +629,7 @@ async function abrir_detalhes(id_pagamento) {
     </div>
     `
 
-    openPopup_v2(acumulado, 'Detalhes do Pagamento')
+    popup(acumulado, 'Detalhes do Pagamento')
 
     // Depois que se abre o pagamento, percorra os anexos e preencha cada item;
     if (pagamento.anexos_parceiros) {
@@ -668,7 +668,7 @@ async function alterarStatusPagamento(idPagamento, select) {
 
 function deseja_excluir_pagamento(id) {
 
-    return openPopup_v2(`
+    return popup(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column; padding: 2vw;">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
@@ -692,7 +692,7 @@ async function deseja_excluir_categoria(id, indice) {
 
     let categoria = pagamento.param[0].categorias[indice]
 
-    return openPopup_v2(`
+    return popup(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
@@ -726,7 +726,7 @@ async function confirmar_exclusao_categoria(id, indice) {
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
 
     } else {
-        return openPopup_v2(`
+        return popup(`
             <div style="display: none; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Falha ao atualizar os dados neste pagamento. Tente novamente.</label>
@@ -783,7 +783,7 @@ async function modal_editar_pagamento(id, indice) {
         </div>    
     `
 
-    return openPopup_v2(acumulado, 'Categorias', true)
+    return popup(acumulado, 'Categorias', true)
 
 }
 
@@ -832,7 +832,7 @@ async function editar_pagamento(id, indice) {
         await abrir_detalhes(id)
 
     } else {
-        return openPopup_v2(`
+        return popup(`
             <div style="display: none; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Falha ao atualizar os dados neste pagamento. Tente novamente.</label>
@@ -1348,7 +1348,7 @@ async function criar_pagamento_v2() {
 
         inserirDados(lista_pagamentos, 'lista_pagamentos');
 
-        openPopup_v2(`
+        popup(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="imagens/concluido.png" style="width: 3vw; height: 3vw;">
                 <label>Pagamento Solicitado</label>
@@ -1543,7 +1543,7 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
         </div>
     `;
 
-    openPopup_v2(acumulado, 'Solicitação de Pagamento')
+    popup(acumulado, 'Solicitação de Pagamento')
 
     intervaloCompleto = setInterval(function () {
         if (!tempo || !tempo.textContent) {

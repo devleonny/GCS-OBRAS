@@ -219,7 +219,7 @@ async function resumo_orcamentos() {
         </div>
     `;
 
-    openPopup_v2(acumulado);
+    popup(acumulado);
 }
 
 async function painelAdicionarPedido() {
@@ -269,7 +269,7 @@ async function painelAdicionarPedido() {
         </div>
     `
 
-    openPopup_v2(acumulado, "Novo Pedido", true)
+    popup(acumulado, "Novo Pedido", true)
 
 }
 
@@ -311,7 +311,7 @@ async function painelAdicionarNotas() {
         </div>
         `;
 
-    openPopup_v2(acumulado, 'Vincular Nota Fiscal', true);
+    popup(acumulado, 'Vincular Nota Fiscal', true);
 
 }
 
@@ -391,7 +391,7 @@ async function salvarNota() {
 
     if (Object.keys(dadosNota).length == 0) {
         removerOverlay()
-        return openPopup_v2(mensagem(`A busca não recuperou dados`), 'ALERTA', true)
+        return popup(mensagem(`A busca não recuperou dados`), 'ALERTA', true)
     }
 
     if (!orcamento.status) orcamento.status = {}
@@ -734,7 +734,7 @@ function abrirModalTipoRequisicao() {
         </div>
     `;
 
-    openPopup_v2(modal, 'Escolha o tipo de Requisição', true);
+    popup(modal, 'Escolha o tipo de Requisição', true);
 }
 
 function escolherTipoRequisicao(tipo) {
@@ -813,7 +813,7 @@ async function abrir_adicionais(codigo) {
         </div>
     `
 
-    openPopup_v2(acumulado, 'Itens Adicionais', true)
+    popup(acumulado, 'Itens Adicionais', true)
 
     for (cd in itens_adicionais) {
 
@@ -1074,7 +1074,7 @@ async function salvarPedido() {
 
     if (valor.value == '' || tipo.value == 'Selecione' || pedido.value == '') {
 
-        return openPopup_v2(mensagem(`Existem campos em Branco`, 'ALERTA', true))
+        return popup(mensagem(`Existem campos em Branco`, 'ALERTA', true))
 
     }
 
@@ -1157,7 +1157,7 @@ async function salvar_requisicao(chave) {
 
         if (partnumber == '' && qtde > 0) {
             document.getElementById("aguarde")?.remove();
-            return openPopup_v2(`
+            return popup(`
                     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                         <label> Preencha os Códigos do Omie pendentes</label>
@@ -1183,7 +1183,7 @@ async function salvar_requisicao(chave) {
     // Se não houver itens válidos, mostra mensagem de erro
     if (!temItensValidos) {
         document.getElementById("aguarde")?.remove();
-        return openPopup_v2(`
+        return popup(`
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Nenhum item válido foi informado</label>
@@ -1280,7 +1280,7 @@ async function abrirAtalhos(id) {
         </div>
     `
 
-    openPopup_v2(acumulado, 'Opções do Orçamento')
+    popup(acumulado, 'Opções do Orçamento')
 
 }
 
@@ -1309,7 +1309,7 @@ async function arquivarOrcamento(idOrcamento) {
     await preencherOrcamentos()
     removerOverlay()
 
-    openPopup_v2(mensagem(`${orcamento.arquivado ? 'Arquivado' : 'Desarquivado'} com sucesso!`, 'ARQUIVAMENTO'))
+    popup(mensagem(`${orcamento.arquivado ? 'Arquivado' : 'Desarquivado'} com sucesso!`, 'ARQUIVAMENTO'))
 
 }
 
@@ -1482,7 +1482,7 @@ async function painelCustos() {
             </div>
         </div>
     `
-    openPopup_v2(acumulado, 'Painel de Custos')
+    popup(acumulado, 'Painel de Custos')
 
 }
 
@@ -1849,7 +1849,7 @@ async function abrirEsquema(id) {
         </div>`
 
     let titulo = `${orcamento.dados_orcam.contrato} - ${orcamento.dados_orcam.cliente_selecionado}`
-    openPopup_v2(acumulado, titulo)
+    popup(acumulado, titulo)
 
 }
 
@@ -1932,7 +1932,7 @@ async function mostrarItensPendentes() {
     
     `
 
-    openPopup_v2(acumulado, "Itens Pendentes", true)
+    popup(acumulado, "Itens Pendentes", true)
 
 }
 
@@ -2011,7 +2011,7 @@ async function mostrarHistoricoStatus() {
     const orcamento = dados_orcamentos[id_orcam];
 
     if (!orcamento?.status?.historicoStatus || orcamento.status.historicoStatus.length === 0) {
-        openPopup_v2('<div style="padding:20px;text-align:center;">Nenhuma alteração de status registrada.</div>', 'Histórico de Status', true);
+        popup('<div style="padding:20px;text-align:center;">Nenhuma alteração de status registrada.</div>', 'Histórico de Status', true);
         return;
     }
 
@@ -2041,7 +2041,7 @@ async function mostrarHistoricoStatus() {
     </div>
     `;
 
-    openPopup_v2(html, 'Histórico de Alterações de Status', true);
+    popup(html, 'Histórico de Alterações de Status', true);
 }
 
 function exibirItens(div) {
@@ -2141,7 +2141,7 @@ async function registrarEnvioMaterial(chave) {
 }
 
 function confirmar_exclusao_comentario(id_comentario, chave) {
-    openPopup_v2(`
+    popup(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
             <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
             <label>Excluir o comentário?</label>
@@ -2282,7 +2282,7 @@ async function excluirAnexo(chave, id_anexo, img) {
 }
 
 async function chamar_excluir(id) {
-    openPopup_v2(`
+    popup(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
             <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
             <label>Deseja realmente excluir o orçamento?</label>
@@ -2431,7 +2431,7 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
         </table>
     <div>
     `
-    openPopup_v2(acumulado, 'Requisição', true)
+    popup(acumulado, 'Requisição', true)
 
     // Preenche os campos com os dados existentes se estiver editando    
     await calcularRequisicao()
@@ -2443,7 +2443,7 @@ async function salvar_anexo(chave, input) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
     if (input.files.length === 0) {
-        openPopup_v2('Nenhum arquivo selecionado...');
+        popup('Nenhum arquivo selecionado...');
         return;
     }
 
@@ -2494,7 +2494,7 @@ async function apagarStatusHistorico(chave) {
     let criador = dados_orcamentos[id_orcam]?.status?.historico[chave]?.executor || '';
     let permitidos = acesso.permissao == 'adm' || acesso.usuario == criador;
 
-    if (!permitidos) openPopup_v2(mensagem(`Você não tem permissão para excluir este item`), 'ALERTA', true)
+    if (!permitidos) popup(mensagem(`Você não tem permissão para excluir este item`), 'ALERTA', true)
 
     delete dados_orcamentos[id_orcam].status.historico[chave]
     await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`)
@@ -2664,7 +2664,7 @@ async function envioMaterial(chave) {
       
     </div>
     `
-    openPopup_v2(acumulado, 'Envio de Material', true)
+    popup(acumulado, 'Envio de Material', true)
 }
 
 function mostrarElementoSeTiverPermissao({ listaDePermissao, elementoHTML }) {

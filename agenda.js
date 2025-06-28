@@ -157,7 +157,7 @@ async function carregar_tabela(alterar) {
                 <label style="font-size: 0.7vw;">${regiao}</label>
             </td>
             <td style="text-align: center;">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 1vw;">
+                <div style="display: flex; align-items: center; justify-content: start; gap: 1vw;">
                     <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;" onclick="abrirDetalhes('${omieFuncionario}')">
                     ${mostrarSeta ? `<img src="imagens/direita.png" style="width: 2vw; cursor: pointer;" onclick="dispararDistribuicao('${omieFuncionario}')">` : ''}
                 </div>
@@ -192,7 +192,7 @@ async function carregar_tabela(alterar) {
 
     let modeloBotao = (valor1, link) => `
         <div onclick="${link}">
-          <label style="text-align: right;">${valor1}</label>
+          <label style="text-align: right; font-size: 1.0vw;">${valor1}</label>
         </div>
     `
 
@@ -374,7 +374,7 @@ async function apagar_dia(diaOmieTecnico) {
 
 async function confirmar_apagar_agenda(omie_tecnico) {
 
-    openPopup_v2(`
+    popup(`
         <div style="margin: 10px; gap: 10px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
             <label>Apagar a agenda deste mês para este técnico?</label>
             <label>${clientesOmie?.[omie_tecnico]?.nome || omie_tecnico}</label>
@@ -423,7 +423,7 @@ async function abrir_opcoes() {
 
         </div>
     `
-    openPopup_v2(acumulado, 'Novo Funcionário')
+    popup(acumulado, 'Novo Funcionário')
 }
 
 async function sugestoes(input, tecnicos) {
@@ -506,7 +506,7 @@ async function escolher_tecnico(omie_tecnico, nome_tecnico) {
     }
 
     if (dados_agenda_tecnicos[omie_tecnico]) {
-        openPopup_v2(`
+        popup(`
             <div style="margin: 10px;">
                 <label>Técnico já existente na base!</label>
             </div>
@@ -725,7 +725,7 @@ async function abrirDetalhes(codigo_tecnico) {
     </div>
     `
 
-    openPopup_v2(acumulado, 'Configurações')
+    popup(acumulado, 'Configurações')
 
 }
 
@@ -770,7 +770,7 @@ async function confirmar_apagar_tecnico(omieFuncionario) {
     let clientesOmie = await recuperarDados('dados_clientes') || {}
     let funcionario = clientesOmie[omieFuncionario]
 
-    openPopup_v2(`
+    popup(`
         <div style="margin: 10px; gap: 10px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
             <label>Apagar este técnico?</label>
             <label>${funcionario?.nome || omieFuncionario}</label>
@@ -906,7 +906,7 @@ async function distribuicaoFuncionario() {
                 <label>Apenas setores RH, ADM e FINANCEIRO estão liberados para este painel</label>
             </div>
         `
-        return openPopup_v2(mensagem, 'Aviso')
+        return popup(mensagem, 'Aviso')
     }
 
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
@@ -984,11 +984,16 @@ async function distribuicaoFuncionario() {
                 if (!totaisCategoria[nomeCategoria]) {
                     totaisCategoria[nomeCategoria] = 0
                 }
-                
+
+                let distPagamento = JSON.stringify(pagamento.param[0].distribuicao)
+                let distAtual = JSON.stringify(auxPagamFuncionario[codigoFuncionario]?.distribuicao || [])
+
+                let cor = distPagamento != distAtual ? '#B12425' : 'green'
+
                 totaisCategoria[nomeCategoria] += param.valor_documento
 
                 labelsPagamentos += `
-                    <label class="marcador" style="cursor: pointer; background-color: ${pagamento.status != 'PAGO' ? '#B12425' : 'green'};">${nomeCategoria} - ${dinheiro(param.valor_documento)}</label>
+                    <label onclick="atualizarDepartamentos(this, ${codigoFuncionario})" id="${pagamento.id_pagamento}" class="marcador" style="cursor: pointer; background-color: ${cor};">${nomeCategoria} - ${dinheiro(param.valor_documento)}</label>
                 `
             })
         }
@@ -1026,8 +1031,8 @@ async function distribuicaoFuncionario() {
     `
 
     let resumoValoresCategorias = ''
-    
-    for(categoria in totaisCategoria) {
+
+    for (categoria in totaisCategoria) {
         resumoValoresCategorias += `
         <label class="marcador">${categoria} - ${dinheiro(totaisCategoria[categoria])}</label>
         `
@@ -1060,7 +1065,28 @@ async function distribuicaoFuncionario() {
         </div>
     `
 
-    openPopup_v2(acumulado, 'Distribuição por Funcionário')
+    popup(acumulado, 'Distribuição por Funcionário')
+
+}
+
+async function atualizarDepartamentos(label, codFuncionario) {
+
+    overlayAguarde()
+
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+
+    let pagamento = lista_pagamentos[label.id]
+
+    pagamento.param[0].distribuicao = auxPagamFuncionario[codFuncionario].distribuicao
+
+    let resposta = await lancar_pagamento(pagamento, 'AlterarContaPagar')
+
+    if (!resposta.faultstring) {
+        await inserirDados(lista_pagamentos, 'lista_pagamentos')
+        label.style.backgroundColor = 'green'
+    }
+
+    popup(mensagem(resposta.faultstring ? resposta.faultstring : resposta.descricao_status), 'AVISO', true)
 
 }
 
@@ -1085,7 +1111,7 @@ async function enviarPagamentos() {
 
     for (let campo of campos) {
         if (!campo.valor) {
-            return openPopup_v2(mensagemHTML(campo.nome), 'Aviso', true)
+            return popup(mensagemHTML(campo.nome), 'Aviso', true)
         }
     }
 
@@ -1147,7 +1173,7 @@ async function enviarPagamentos() {
             </div>
         `
 
-    openPopup_v2(acumulado, 'Carregando', true)
+    popup(acumulado, 'Carregando', true)
     let carregamento = document.getElementById('carregamento')
     let tamanho = Object.keys(pagamentos).length
     let i = 1
@@ -1185,7 +1211,7 @@ async function distribuicaoDepartamento() {
                 <label>Apenas setores RH, ADM e FINANCEIRO estão liberados para este painel</label>
             </div>
         `
-        return openPopup_v2(mensagem, 'Aviso')
+        return popup(mensagem, 'Aviso')
     }
 
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
@@ -1333,7 +1359,7 @@ async function distribuicaoDepartamento() {
         </div>
         `
 
-    openPopup_v2(acumulado, 'Distribuição por Departamento')
+    popup(acumulado, 'Distribuição por Departamento')
 
 }
 
@@ -1347,7 +1373,7 @@ async function confirmarExclusao(idPagamento) {
         <button onclick="excluirPagamento('${idPagamento}')">Confirmar</button>
     
     `
-    openPopup_v2(mensagem, 'Aviso', true)
+    popup(mensagem, 'Aviso', true)
 }
 
 async function excluirPagamento(idPagamento) {
@@ -1543,7 +1569,7 @@ async function incluirLancamento(idPagamento) {
     </div>
     `
 
-    openPopup_v2(acumulado, 'Lançamento', true)
+    popup(acumulado, 'Lançamento', true)
 
     calcularDistribuicao('tbody')
 }
@@ -1576,7 +1602,7 @@ async function salvarLancamento(idPagamento) {
 
     for (let campo of campos) {
         if (!campo.valor) {
-            return openPopup_v2(mensagemHTML(campo.nome), 'Aviso', true)
+            return popup(mensagemHTML(campo.nome), 'Aviso', true)
         }
     }
 
@@ -1601,7 +1627,7 @@ async function salvarLancamento(idPagamento) {
         let nPerDep = Number((Number(tds[3].querySelector('input').value) * 100).toFixed(8))
 
         if (isNaN(cCodDep) || isNaN(nPerDep)) {
-            return openPopup_v2(`Verifique o departamento: ${tds[0].textContent} > ${cCodDep} | ${nValDep}`)
+            return popup(`Verifique o departamento: ${tds[0].textContent} > ${cCodDep} | ${nValDep}`)
         }
 
         if (tds.length > 2) {
