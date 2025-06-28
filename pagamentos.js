@@ -2145,7 +2145,7 @@ async function carregar_opcoes_categorias(textarea) {
 
         if (categoria.includes(pesquisa)) {
             opcoes += `
-                <div onclick="selecionar_categoria('${codigo}', '${categoria}', '${id}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                <div onclick="selecionarCategoria('${codigo}', '${categoria}', '${id}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: start; justify-content: start;">
                     <label style="width: 90%; font-size: 0.8vw;">${categoria.toUpperCase()}</label>
                 </div>
                 `
@@ -2165,7 +2165,7 @@ async function carregar_opcoes_categorias(textarea) {
 
 }
 
-function selecionar_categoria(codigo, categoria, id) {
+function selecionarCategoria(codigo, categoria, id) {
     let textarea = document.getElementById(id)
     let label_codigo = textarea.previousElementSibling;
     label_codigo.textContent = codigo
