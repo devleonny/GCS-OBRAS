@@ -785,56 +785,6 @@ function pagina_adicionar() {
     window.location.href = 'criar_orcamento.html'
 }
 
-function vendedores_analistas() {
-    var dados_vendedores = {
-        'GRUPO COSTA SILVA': {
-            email: 'comercial@acsolucoesintegradas.com.br',
-            telefone: '(71) 3901-3655'
-        },
-        'Sérgio Bergamini': {
-            email: 'sergio.bergamini@acsolucoesintegradas.com.br',
-            telefone: '(11) 98938-2759'
-        },
-        'Fernando Queiroz': {
-            email: 'fernando.queiroz@acsolucoesintegradas.com.br',
-            telefone: '(11) 99442-8826'
-        }
-    }
-
-    var vendedores = Object.keys(dados_vendedores)
-
-    var select = document.getElementById('vendedor')
-
-    select.addEventListener('change', function () {
-        atualizar_dados_vendedores()
-        salvar_preenchido()
-    })
-
-    vendedores.forEach(function (vend_) {
-        var option = document.createElement('option')
-        option.textContent = vend_
-        select.appendChild(option)
-    })
-
-    var dados_acesso = JSON.parse(localStorage.getItem('acesso'))
-
-    document.getElementById('analista').textContent = dados_acesso.nome_completo
-    document.getElementById('email_analista').textContent = dados_acesso.email
-    document.getElementById('telefone_analista').textContent = dados_acesso.telefone
-
-    atualizar_dados_vendedores()
-
-}
-
-function atualizar_dados_vendedores() {
-
-    var dados_vendedores = JSON.parse(localStorage.getItem('vendedores'))
-    var vendedor = document.getElementById('vendedor').value
-    document.getElementById('email_vendedor').textContent = dados_vendedores[vendedor]['email']
-    document.getElementById('telefone_vendedor').textContent = dados_vendedores[vendedor]['telefone']
-
-}
-
 async function salvar_preenchido() {
 
     let orcamento_v2 = baseOrcamento()

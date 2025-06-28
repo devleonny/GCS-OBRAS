@@ -657,6 +657,7 @@ async function incluir_regiao(input) {
 
 async function abrir_detalhes(codigo_tecnico) {
 
+    let clientesOmie = await recuperarDados('dados_clientes') || {}
     let tecnico = dados_agenda_tecnicos[codigo_tecnico]
     let atual = tecnico.regiao_atual
 
