@@ -146,6 +146,7 @@ async function preencherOrcamentos(alternar) {
     div_orcamentos.innerHTML = ''
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
 
     let desordenado = Object.entries(dados_orcamentos)
     desordenado.sort((a, b) => new Date(b[1]?.dados_orcam?.data || '') - new Date(a[1]?.dados_orcam?.data || ''))
@@ -165,6 +166,8 @@ async function preencherOrcamentos(alternar) {
                 deletar(`dados_orcamentos/${idOrcamento}`)
                 continue
             }
+
+            let cliente = dados_clientes?.[dados_orcam.omie_cliente] || {}
 
             let data = new Date(dados_orcam.data).toLocaleString('pt-BR', {
                 dateStyle: 'short',
@@ -250,10 +253,10 @@ async function preencherOrcamentos(alternar) {
                 <td style="text-align: left;">
                     <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
                         <label style="font-size: 0.6vw;"><strong>${dados_orcam.contrato}</strong></label>
-                        <label>${dados_orcam.cliente_selecionado}</label>
+                        <label>${cliente?.nome || ''}</label>
                     </div>
                 </td>
-                <td style="text-align: left;">${dados_orcam.cidade}</td>
+                <td style="text-align: left;">${cliente?.cidade || ''}</td>
                 <td style="text-align: left;">${dados_orcam.analista}</td>
                 <td>${divPorcentagem(lucratividadePorcentagem)}</td>
                 <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>
@@ -350,7 +353,6 @@ async function verificarParcelas() {
 
             })
         })
-
     }
 
     let elementos = ''

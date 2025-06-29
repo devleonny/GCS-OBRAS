@@ -1129,7 +1129,7 @@ async function salvar_levantamento(id_orcamento) {
             Object.assign(orcamento_v2.levantamentos, anexo_dados);
 
             baseOrcamento(orcamento_v2)
-            painel_clientes()
+            painelClientes()
         }
     } catch (error) {
         popup(mensagem(`Erro ao fazer upload: ${error.message}`), 'ALERTA', true);
@@ -2072,11 +2072,23 @@ async function verificarNF(numero, tipo, app) {
     })
 }
 
+async function atualizarBaseClientes() {
+    await sincronizarDados('dados_clientes')
+    await painelClientes()
+}
 
-function painel_clientes() {
+async function painelClientes() {
     let orcamento_v2 = baseOrcamento()
     let dados_orcam = orcamento_v2?.dados_orcam || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
+    let cliente = dados_clientes?.[dados_orcam?.omie_cliente] || {}
     let levantamentos = ''
+
+    // Caso a base de clientes esteja desatualizada;
+    if (dados_orcam.omie_cliente && Object.keys(cliente).length == 0) {
+        await atualizarBaseClientes()
+        return await painelClientes()
+    }
 
     let dados_pagamentos = ["--", "15 dias", "30 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
     let condicoes = ''
@@ -2112,13 +2124,13 @@ function painel_clientes() {
 
         <div style="display: flex; justify-content: start; align-items: center;">
             <div style="display: flex; flex-direction: column; gap: 10px; align-items: left; margin: 5px;">
-                <div id="acompanhamento_dados_clientes" class="btn" onclick="recuperarClientes()">
+                <div id="acompanhamento_dados_clientes" class="btn" onclick="atualizarBaseClientes()">
                     <img src="imagens/omie.png">
                     <label style="cursor: pointer;">Atualizar OMIE Clientes</label>
                 </div>
             </div>
 
-            <div onclick="limpar_campos()" class="btn">
+            <div onclick="executarLimparCampos()" class="btn">
                 <img src="imagens/limpar.png" style="width: 2vw;">
                 <label style="cursor: pointer;">Limpar Campos</label>
             </div>
@@ -2128,24 +2140,24 @@ function painel_clientes() {
 
             <label style="font-size: 1.5vw;">Dados do Cliente</label>
 
-            ${modelo('Chamado', `<input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" onchange="salvar_preenchido()" value="${dados_orcam?.contrato || ''}">
+            ${modelo('Chamado', `<input id="contrato" style="font-size: 1.0vw; display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" onchange="salvarDadosCliente()" value="${dados_orcam?.contrato || ''}">
                 <input id="chamado_off" style="width: 2vw; height: 2vw; cursor: pointer;" type="checkbox"
-                        onchange="salvar_preenchido()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
+                        onchange="salvarDadosCliente()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
                 <label style="white-space: nowrap;">Sem Chamado</label>`)}
-            ${modelo('Cliente', `<textarea class="autocomplete-input" id="cliente_selecionado" style="font-size: 1.0vw;" oninput="carregarClientes(this)">${dados_orcam?.cliente_selecionado || ''}</textarea>`)}
-            ${modelo('CNPJ/CPF', dados_orcam?.cnpj, 'cnpj')}
-            ${modelo('Endereço', dados_orcam?.bairro, 'bairro')}
-            ${modelo('CEP', dados_orcam?.cep, 'cep')}
-            ${modelo('Cidade', dados_orcam?.cidade, 'cidade')}
-            ${modelo('Estado', dados_orcam?.estado, 'estado')}
-            ${modelo('Tipo de Frete', `<select id="tipo_de_frete" onchange="salvar_preenchido()">
+            ${modelo('Cliente', `<textarea class="autocomplete-input" id="cliente_selecionado" style="font-size: 1.0vw;" oninput="carregarClientes(this)">${cliente?.nome || ''}</textarea>`)}
+            ${modelo('CNPJ/CPF', cliente?.cnpj, 'cnpj')}
+            ${modelo('Endereço', cliente?.bairro, 'bairro')}
+            ${modelo('CEP', cliente?.cep, 'cep')}
+            ${modelo('Cidade', cliente?.cidade, 'cidade')}
+            ${modelo('Estado', cliente?.estado, 'estado')}
+            ${modelo('Tipo de Frete', `<select id="tipo_de_frete" onchange="salvarDadosCliente()">
                     <option ${dados_orcam?.tipo_de_frete == '--' ? 'selected' : ''}>--</option>
                     <option ${dados_orcam?.tipo_de_frete == 'CIF' ? 'selected' : ''}>CIF</option>
                     <option ${dados_orcam?.tipo_de_frete == 'FOB' ? 'selected' : ''}>FOB</option>
                 </select>`, 'estado')}
-            ${modelo('Transportadora', `<input type="text" id="transportadora" oninput="salvar_preenchido()" value="${dados_orcam?.transportadora || '--'}">`)}
+            ${modelo('Transportadora', `<input type="text" id="transportadora" oninput="salvarDadosCliente()" value="${dados_orcam?.transportadora || '--'}">`)}
             ${modelo('Considerações', `<div style="display: flex; flex-direction: column; align-items: start; justify-content: center; width: 100%;">
-                    <textarea id="consideracoes" oninput="salvar_preenchido()" rows="5" style="resize: none; width: 100%; font-size: 1.0vw;"
+                    <textarea id="consideracoes" oninput="salvarDadosCliente()" rows="5" style="resize: none; width: 100%; font-size: 1.0vw;"
                     placeholder="Escopo do orçamento">${dados_orcam?.consideracoes || ''}</textarea>
 
                     <div class="contorno_botoes" style="background-color: #222;">
@@ -2160,10 +2172,10 @@ function painel_clientes() {
                 </div>
                 `)}
             ${modelo('Pagamento',
-        `<select id="condicoes" oninput="salvar_preenchido()">
+        `<select id="condicoes" oninput="salvarDadosCliente()">
                     ${condicoes}
                 </select>`)}
-            ${modelo('Garantia', `<input id="garantia" oninput="salvar_preenchido()" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">`)}
+            ${modelo('Garantia', `<input id="garantia" oninput="salvarDadosCliente()" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">`)}
 
             <label style="font-size: 1.5vw;">Dados do Analista</label>
             ${modelo('Analista', dados_orcam?.analista, 'analista')}
@@ -2171,13 +2183,13 @@ function painel_clientes() {
             ${modelo('Telefone', dados_orcam?.telefone_analista, 'telefone_analista')}
 
             <label style="font-size: 1.5vw;">Dados do Vendedor</label>
-            ${modelo('Vendedor', `<select style="text-align: center; width: 100%;" id="vendedor" oninput="salvar_preenchido()"></select>`)}
+            ${modelo('Vendedor', `<select style="text-align: center; width: 100%;" id="vendedor" oninput="salvarDadosCliente()"></select>`)}
             ${modelo('E-mail', '', 'email_vendedor')}
             ${modelo('Telefone', '', 'telefone_vendedor')}
 
             <label style="font-size: 1.5vw;">Quem emite essa nota?</label>
 
-            ${modelo('Empresa', `<select style="text-align: center; width: 100%;" id="emissor" oninput="salvar_preenchido()">
+            ${modelo('Empresa', `<select style="text-align: center; width: 100%;" id="emissor" oninput="salvarDadosCliente()">
                     <option ${dados_orcam?.emissor == 'AC SOLUÇÕES' ? 'selected' : ''}>AC SOLUÇÕES</option>
                     <option ${dados_orcam?.emissor == 'HNW' ? 'selected' : ''}>HNW</option>
                     <option ${dados_orcam?.emissor == 'HNK' ? 'selected' : ''}>HNK</option>
@@ -2194,6 +2206,68 @@ function painel_clientes() {
     popup(acumulado, 'Dados do Cliente')
 
     vendedores_analistas()
+}
+
+async function salvarDadosCliente() {
+    let orcamento_v2 = baseOrcamento()
+
+    let dados_analista = {
+        email: document.getElementById('email_analista').textContent,
+        nome: document.getElementById('analista').textContent,
+        telefone: document.getElementById('telefone_analista').textContent
+    };
+
+    if (!orcamento_v2.dados_orcam) {
+        orcamento_v2.dados_orcam = {}
+    }
+
+    if (orcamento_v2.id) {
+        dados_analista.email = orcamento_v2.dados_orcam.email_analista;
+        dados_analista.telefone = orcamento_v2.dados_orcam.telefone_analista;
+        dados_analista.nome = orcamento_v2.dados_orcam.analista;
+    }
+
+    let contrato = document.getElementById('contrato')
+    let checkbox = document.getElementById('chamado_off')
+
+    if (checkbox.checked) {
+        orcamento_v2.dados_orcam.contrato = 'sequencial'
+        contrato.style.display = 'none'
+
+    } else if (contrato.value == 'sequencial' || orcamento_v2.dados_orcam?.contrato == 'sequencial') {
+        orcamento_v2.dados_orcam.contrato = ''
+        contrato.value = ''
+        contrato.style.display = 'block'
+
+    } else {
+        orcamento_v2.dados_orcam.contrato = contrato.value
+        contrato.style.display = 'block'
+    }
+
+    orcamento_v2.dados_orcam = {
+        ...orcamento_v2.dados_orcam,
+        analista: dados_analista.nome,
+        condicoes: document.getElementById('condicoes').value,
+        consideracoes: document.getElementById('consideracoes').value,
+        data: new Date(),
+        email_analista: dados_analista.email,
+        email_vendedor: document.getElementById('email_vendedor').textContent,
+        garantia: document.getElementById('garantia').value,
+        telefone_analista: dados_analista.telefone,
+        transportadora: document.getElementById('transportadora').value,
+        telefone_vendedor: document.getElementById('telefone_vendedor').textContent,
+        tipo_de_frete: document.getElementById('tipo_de_frete').value,
+        vendedor: document.getElementById('vendedor').value,
+        emissor: document.getElementById('emissor').value
+    };
+
+    baseOrcamento(orcamento_v2)
+
+    if (orcamento_v2.lpu_ativa === 'MODALIDADE LIVRE') {
+        total_v2();
+    } else {
+        await total();
+    }
 }
 
 async function carregarClientes(textarea) {
@@ -2243,6 +2317,11 @@ async function selecionarCliente(omie, nome) {
     let dados_clientes = await recuperarDados('dados_clientes') || {};
     let cliente = dados_clientes[omie]
 
+    let orcamento = baseOrcamento()
+    if (!orcamento.dados_orcam) orcamento.dados_orcam = {}
+    orcamento.dados_orcam.omie_cliente = omie
+    baseOrcamento(orcamento)
+
     document.getElementById('cnpj').textContent = cliente.cnpj
     document.getElementById('cep').textContent = cliente.cep
     document.getElementById('bairro').textContent = cliente.bairro
@@ -2253,34 +2332,21 @@ async function selecionarCliente(omie, nome) {
 
     let textarea = document.getElementById('cliente_selecionado')
     textarea.value = nome
-    salvar_preenchido()
+    salvarDadosCliente()
 }
 
-function limpar_campos() {
-    popup(`
-        <div style="gap: 10px; display: flex; align-items: center; flex-direction: column;">
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <label>Deseja limpar campos?</label>
-            </div>
-            <label onclick="executar_limpar_campos()" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
-        </div>`)
-}
+function executarLimparCampos() {
 
-function executar_limpar_campos() {
-    document.getElementById('cnpj').value = ''
-    document.getElementById('cliente_selecionado').value = ''
     document.getElementById('consideracoes').value = ''
     document.getElementById('tipo_de_frete').value = ''
     document.getElementById('transportadora').value = ''
 
-    // Limpar campos de texto (textContent)
-    document.getElementById('cep').textContent = ''
-    document.getElementById('estado').textContent = ''
-    document.getElementById('cidade').textContent = ''
-    document.getElementById('bairro').textContent = ''
+    let orcamento = baseOrcamento()
+    if (orcamento.dados_orcam && orcamento.dados_orcam.omie_cliente) delete orcamento.dados_orcam.omie_cliente
+    baseOrcamento(orcamento)
 
-    salvar_preenchido();
-    remover_popup();
+    salvarDadosCliente();
+    painelClientes()
 }
 
 function vendedores_analistas() {
@@ -2305,7 +2371,7 @@ function vendedores_analistas() {
 
     select.addEventListener('change', function () {
         atualizar_dados_vendedores()
-        salvar_preenchido()
+        salvarDadosCliente()
     })
 
     vendedores.forEach(function (vend_) {

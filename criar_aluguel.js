@@ -748,7 +748,7 @@ async function selecionar_cliente(cnpj, nome, div_opcao) {
 
     div.innerHTML = ''
 
-    salvar_preenchido()
+    salvarDadosCliente()
 
 }
 
@@ -776,83 +776,13 @@ function executar_limpar_campos() {
     document.getElementById('cidade').textContent = ''
     document.getElementById('bairro').textContent = ''
 
-    salvar_preenchido();
+    salvarDadosCliente();
     remover_popup();
 }
 
 function pagina_adicionar() {
-    salvar_preenchido()
+    salvarDadosCliente()
     window.location.href = 'criar_orcamento.html'
-}
-
-async function salvar_preenchido() {
-
-    let orcamento_v2 = baseOrcamento()
-
-    let dados_analista = {
-        email: document.getElementById('email_analista').textContent,
-        nome: document.getElementById('analista').textContent,
-        telefone: document.getElementById('telefone_analista').textContent
-    };
-
-    if (orcamento_v2.id) {
-        dados_analista.email = orcamento_v2.dados_orcam.email_analista;
-        dados_analista.telefone = orcamento_v2.dados_orcam.telefone_analista;
-        dados_analista.nome = orcamento_v2.dados_orcam.analista;
-    }
-
-    if (!orcamento_v2.dados_orcam) {
-        orcamento_v2.dados_orcam = {}
-    }
-
-    let contrato = document.getElementById('contrato')
-    let checkbox = document.getElementById('chamado_off')
-
-    if (checkbox.checked) {
-        orcamento_v2.dados_orcam.contrato = 'sequencial'
-        contrato.style.display = 'none'
-
-    } else if (contrato.value == 'sequencial' || orcamento_v2.dados_orcam?.contrato == 'sequencial') {
-        orcamento_v2.dados_orcam.contrato = ''
-        contrato.value = ''
-        contrato.style.display = 'block'
-
-    } else {
-        orcamento_v2.dados_orcam.contrato = contrato.value
-        contrato.style.display = 'block'
-    }
-
-    orcamento_v2.dados_orcam = {
-        ...orcamento_v2.dados_orcam,
-        analista: dados_analista.nome,
-        estado: document.getElementById('estado').textContent,
-        bairro: document.getElementById('bairro').textContent,
-        cep: document.getElementById('cep').textContent,
-        cidade: document.getElementById('cidade').textContent,
-        cliente_selecionado: document.getElementById('cliente_selecionado').value,
-        cnpj: document.getElementById('cnpj').textContent,
-        condicoes: document.getElementById('condicoes').value,
-        consideracoes: document.getElementById('consideracoes').value,
-        data: new Date(),
-        email_analista: dados_analista.email,
-        email_vendedor: document.getElementById('email_vendedor').textContent,
-        garantia: document.getElementById('garantia').value,
-        telefone_analista: dados_analista.telefone,
-        transportadora: document.getElementById('transportadora').value,
-        telefone_vendedor: document.getElementById('telefone_vendedor').textContent,
-        tipo_de_frete: document.getElementById('tipo_de_frete').value,
-        vendedor: document.getElementById('vendedor').value,
-        emissor: document.getElementById('emissor').value
-    };
-
-    baseOrcamento(orcamento_v2)
-
-    if (orcamento_v2.lpu_ativa === 'MODALIDADE LIVRE') {
-        total_v2();
-    } else {
-        await total();
-    }
-
 }
 
 function tipo_elemento(element) {

@@ -1229,10 +1229,12 @@ async function abrirAtalhos(id) {
     id_orcam = id
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
     let orcamento = dados_orcamentos[id]
     let analista = orcamento.dados_orcam.analista
     let emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     let botoesDisponiveis = ''
+    let cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente]?.nome || ''
 
     let modeloBotoes = (imagem, nome, funcao) => {
         return `
@@ -1274,7 +1276,7 @@ async function abrirAtalhos(id) {
 
     let acumulado = `
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: start; width: 30vw;">
-            <label style="color: #222; font-size: 1.5vw;" id="cliente_status">${orcamento.dados_orcam.cliente_selecionado}</label>
+            <label style="color: #222; font-size: 1.5vw; text-align: left;" id="cliente_status">${cliente}</label>
             <hr style="width: 100%">
             ${botoesDisponiveis}
         </div>
@@ -1713,7 +1715,9 @@ async function abrirEsquema(id) {
     if(id) id_orcam = id
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
     let orcamento = dados_orcamentos[id]
+    let cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente]?.nome || ''
     let blocosStatus = {}
     let chave = ''
 
@@ -1850,7 +1854,7 @@ async function abrirEsquema(id) {
             </div>
         </div>`
 
-    let titulo = `${orcamento.dados_orcam.contrato} - ${orcamento.dados_orcam.cliente_selecionado}`
+    let titulo = `${orcamento.dados_orcam.contrato} - ${cliente}`
     popup(acumulado, titulo)
 
 }
