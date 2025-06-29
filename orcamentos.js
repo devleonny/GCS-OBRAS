@@ -24,6 +24,7 @@ preencherOrcamentos()
 async function recuperar_orcamentos() {
 
     await sincronizarDados('dados_orcamentos')
+    await sincronizarDados('dados_composicoes')
     await preencherOrcamentos()
 
 }

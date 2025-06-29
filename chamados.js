@@ -937,23 +937,21 @@ async function sugestoes(textarea, base) {
     let dados = await recuperarDados(`dados_${base}`) || {}
     let opcoes = ''
 
-    for (id in dados) {
-        let item = dados[id]
+    for ([id, item] of Object.entries(dados)) {
+
         let conteudoOpcao;
-        let codigo;
 
         if (base == 'clientes') {
 
-            let cnpj = id.replace(/[./-]/g, '')
+            let cnpj = item.cnpj.replace(/[./-]/g, '')
             let nome = item.nome.toLowerCase()
 
             if (!cnpj.includes(query) && !nome.includes(query)) continue
 
-            codigo = item.omie
             conteudoOpcao = `
             <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                <label style="font-size: 1.0vw;">${item.nome}</label>
-                <label style="font-size: 0.7vw;"><strong>${id}</strong></label>
+                <label style="font-size: 0.9vw;">${item.nome}</label>
+                <label style="font-size: 0.7vw;"><strong>${item.cnpj}</strong></label>
             </div>
             `
 

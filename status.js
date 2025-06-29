@@ -24,7 +24,7 @@ const labelDestaque = (valor1, valor2) => {
 
 const botao = (valor1, funcao, cor) => {
     return `
-        <div class="contorno_botoes" style="box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3); background-color: ${cor};" onclick="${funcao}">
+        <div class="contorno_botoes" style="background-color: ${cor};" onclick="${funcao}">
             <label>${valor1}</label>
         </div>
         `}
