@@ -112,8 +112,6 @@ async function identificacaoUser() {
 
     localStorage.setItem('acesso', JSON.stringify(acesso))
 
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
-
     carregarIcones() // ícones da tela inicial;
     verificarPendencias() // Pendencias de aprovação;
 
@@ -444,7 +442,6 @@ function atualizarVersaoBanco(nome, versao, nome_da_base) {
     });
 }
 
-
 function executarTransacao(db, nome_da_base, dados) {
     return new Promise((resolve, reject) => {
         if (!dados) return resolve();
@@ -666,27 +663,6 @@ function ajustar_janela(ampliar) {
 function dicionario(item) {
     return typeof item === "object" && item !== null && item.constructor === Object;
 }
-
-function mostrar_ocultar_alertas() {
-    var alertas_div = document.getElementById('alertas_div')
-    var icone_alerta = document.getElementById('icone_alerta')
-
-    if (alertas_div && icone_alerta) {
-        alertas_div.classList.toggle('show');
-
-        if (icone_alerta.style.display == 'flex') {
-            icone_alerta.style.display = 'none'
-            if (overlay) {
-                overlay.style.display = 'block'
-            }
-        } else {
-            remover_popup()
-            icone_alerta.style.display = 'flex'
-        }
-
-    }
-}
-
 
 async function carregarXLSX() {
     return new Promise((resolve, reject) => {
@@ -927,12 +903,6 @@ function unicoID() {
     return uuid;
 }
 
-function ampliar(url) {
-    var div = document.getElementById('imagem_upload');
-    document.getElementById('img').src = url
-    div.classList.toggle('show');
-}
-
 function conversor(stringMonetario) {
     if (typeof stringMonetario === 'number') {
         return stringMonetario;
@@ -1015,192 +985,10 @@ function formatodata(data) {
     return `${ano}-${mes}-${dia}`;
 }
 
-function fechar_popup_composicoes() {
-    document.getElementById('retangulo_glass').style.display = 'none'
-    document.getElementById('overlay').style.display = 'none'
-}
-
-function fechar_popup_logistica() {
-    document.getElementById('retangulo_logistica').style.display = 'none'
-}
-
-function timestamp(dataStr, horaStr) {
-    const [dia, mes, ano] = dataStr.split('/').map(Number);
-    const [hora, minuto, segundo] = horaStr.split(':').map(Number);
-
-    const data = new Date(ano, mes - 1, dia, hora, minuto, segundo);
-    return data.getTime();
-}
-
 async function recuperarClientes() {
 
-    overlayAguarde()
+    await sincronizarDados('dados_clientes')
 
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let timestamps = {
-        alteracao: [],
-        inclusao: []
-    }
-
-    for (cnpj in dados_clientes) {
-        let cliente = dados_clientes[cnpj]
-        if (cliente.alteracao) {
-            timestamps.alteracao.push(cliente.alteracao)
-        }
-
-        if (cliente.inclusao) {
-            timestamps.inclusao.push(cliente.inclusao)
-        }
-
-    }
-
-    // Verificar os maiores timestamps em cada lista;
-    let resultado = {};
-    for (let chave in timestamps) {
-        if (timestamps[chave].length > 0) {
-            let maior = timestamps[chave].reduce((max, item) =>
-                item.timestamp > max.timestamp ? item : max
-            );
-            resultado[chave] = maior;
-        }
-    }
-
-    if (Object.keys(resultado).length == 0) { // Caso seja a primeira vez de execução;
-        resultado = {
-            inclusao: {
-                data: '01/01/2000',
-                hora: '00:00:00'
-            }
-        }
-    }
-
-    let clientes = {};
-    for (modalidade in resultado) {
-
-        let data = resultado[modalidade].data
-        let hora = resultado[modalidade].hora
-        let objeto = await dadosClientesPorPagina(1, data, hora, modalidade);
-
-        if (objeto.faultstring) {
-            removerOverlay()
-            popup(mensagem('Não foi possível carregar, tente novamente.', 'AVISO', true))
-            return
-        }
-
-        alimentar_objeto(objeto);
-
-        for (let i = 2; i <= objeto.total_de_paginas; i++) {
-            objeto = await dadosClientesPorPagina(i, data, hora, modalidade);
-            alimentar_objeto(objeto);
-        }
-
-        function alimentar_objeto(dados) {
-            dados.clientes_cadastro.forEach((item) => {
-                clientes[item.codigo_cliente_omie] = {
-                    inativo: item.inativo,
-                    nome: item.nome_fantasia,
-                    cnpj: item.cnpj_cpf,
-                    cep: item.cep,
-                    cidade: item.cidade,
-                    bairro: item.endereco,
-                    estado: item.estado,
-                    omie: item.codigo_cliente_omie,
-                    tags: item.tags,
-                    inclusao: {
-                        timestamp: timestamp(item.info.dInc, item.info.hInc),
-                        data: item.info.dInc,
-                        hora: item.info.hInc
-                    },
-                    alteracao: {
-                        timestamp: timestamp(item.info.dAlt, item.info.hAlt),
-                        data: item.info.dAlt,
-                        hora: item.info.hAlt
-                    }
-                };
-            });
-        }
-
-    }
-
-    for (cnpj in clientes) {
-
-        let cliente = clientes[cnpj]
-
-        if (cliente.inativo == 'S' && dados_clientes[cnpj]) {
-            delete dados_clientes[cnpj]
-        } else {
-            dados_clientes[cnpj] = cliente
-        }
-
-    }
-
-    await inserirDados(dados_clientes, 'dados_clientes')
-    removerOverlay()
-
-}
-
-async function dadosClientesPorPagina(pagina, data, hora, modalidade) {
-    return new Promise((resolve, reject) => {
-        fetch("https://leonny.dev.br/clientes", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                pagina: pagina,
-                data: data,
-                hora: hora,
-                modalidade: modalidade
-            }),
-        })
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error("Erro na requisição: " + response.status);
-                }
-                return response.json();
-            })
-            .then((data) => {
-                resolve(data);
-            })
-            .catch((error) => {
-                console.error("Erro:", error);
-                reject({});
-            });
-    });
-}
-
-async function recuperar() {
-
-    return new Promise((resolve, reject) => {
-        var requisicoes = {
-            'vendedores': 'vendedores'
-        }
-
-        var alicia_keys = Object.keys(requisicoes);
-        var promises = alicia_keys.map(function (api) {
-            let url = `https://script.google.com/macros/s/AKfycbxhsF99yBozPGOHJxsRlf9OEAXO_t8ne3Z2J6o0J58QXvbHhSA67cF3J6nIY7wtgHuN/exec?bloco=${api}`;
-
-            return fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Erro ao carregar os dados');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    localStorage.setItem(requisicoes[api], JSON.stringify(data));
-                });
-        });
-
-        Promise.all(promises)
-            .then(() => {
-                resolve();
-            })
-            .catch(error => {
-                console.error('Ocorreu um erro:', error);
-                reject(error);
-            });
-    });
 }
 
 function formatartextoHtml(texto) {
@@ -1221,7 +1009,6 @@ function baixar_em_excel(nome_tabela, filename) {
 function fecharTabela(nome_tabela) {
     document.getElementById(nome_tabela).style.display = 'none'
     document.getElementById('overlay').style.display = 'none'
-
 }
 
 function calcular() {
@@ -1365,19 +1152,7 @@ async function excluir_levantamento(id_orcamento, id_anexo) {
 
 async function recuperar_estoque() {
 
-    if (document.getElementById('tela')) {
-
-        overlayAguarde()
-
-        let estoque_nuvem = await receber('dados_estoque') || {}
-        await inserirDados(estoque_nuvem, 'dados_estoque')
-
-        let aguarde = document.getElementById('aguarde')
-        if (aguarde) {
-            aguarde.remove()
-        }
-
-    }
+    await sincronizarDados('dados_estoque')
 
 }
 
@@ -1415,9 +1190,7 @@ function capturarValorCelula(celula) {
 
     let valor = celula.innerText.toLowerCase();
 
-    // 🔥 Exceção para valores monetários no formato "R$ 0,00"
     if (/^r\$\s[\d.,]+$/.test(valor)) {
-        // Remove "R$", remove separadores de milhar, substitui vírgula por ponto e converte para número
         valor = valor.replace("r$", "").trim().replace(/\./g, "").replace(",", ".");
         return parseFloat(valor);
     }
@@ -1464,8 +1237,8 @@ async function receber(chave) {
                 resolve(data);
             })
             .catch(err => {
-                console.error(err)
-                reject({})
+                popup(mensagem('Falha no Servidor: Tente novamente'), 'ALERTA', true)
+                resolve({})
             });
     })
 }
@@ -2359,7 +2132,7 @@ function painel_clientes() {
                 <input id="chamado_off" style="width: 2vw; height: 2vw; cursor: pointer;" type="checkbox"
                         onchange="salvar_preenchido()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
                 <label style="white-space: nowrap;">Sem Chamado</label>`)}
-            ${modelo('Cliente', `<textarea class="autocomplete-input" id="cliente_selecionado" placeholder="Nome do Cliente" oninput="carregarClientes(this)">${dados_orcam?.cliente_selecionado || ''}</textarea>`)}
+            ${modelo('Cliente', `<textarea class="autocomplete-input" id="cliente_selecionado" style="font-size: 1.0vw;" oninput="carregarClientes(this)">${dados_orcam?.cliente_selecionado || ''}</textarea>`)}
             ${modelo('CNPJ/CPF', dados_orcam?.cnpj, 'cnpj')}
             ${modelo('Endereço', dados_orcam?.bairro, 'bairro')}
             ${modelo('CEP', dados_orcam?.cep, 'cep')}

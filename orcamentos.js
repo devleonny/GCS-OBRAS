@@ -326,9 +326,6 @@ async function verificarParcelas() {
 
             nota.parcelas.forEach(parcela => {
 
-                console.log(parcela);
-
-
                 let [dia, mes, ano] = parcela.dDtVenc.split('/')
 
                 if (!valores[ano]) {
