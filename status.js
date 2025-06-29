@@ -224,16 +224,8 @@ async function resumo_orcamentos() {
 
 async function painelAdicionarPedido() {
 
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let cliente = dados_orcamentos[id_orcam].dados_orcam.cliente_selecionado
-
     let acumulado = `
         <div style="background-color: #d2d2d2; padding: 2vw;">
-            <div style="display: flex; justify-content: space-evenly; align-items: center;">
-                <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
-            </div>
-
-            <hr style="width: 100%">
 
             <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px; padding: 10px">
 
@@ -275,17 +267,8 @@ async function painelAdicionarPedido() {
 
 async function painelAdicionarNotas() {
 
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    let orcamento = dados_orcamentos[id_orcam];
-    let cliente = orcamento.dados_orcam.cliente_selecionado;
-
     let acumulado = `
         <div id="painelNotas" style="background-color: #d2d2d2; display: flex; justify-content: center; flex-direction: column; align-items: start; padding: 2vw;">
-            <div style="display: flex; justify-content: space-evenly; align-items: center; padding: 10px;">
-                <label class="novo_titulo" style="color: #222" id="nome_cliente">${cliente}</label>
-            </div>
-
-            <hr style="width: 100%;">
 
             ${modelo('Digite o número da NF',
         `
@@ -502,7 +485,7 @@ async function calcularRequisicao(sincronizar) {
                     }
 
                     let qtde = tds[4].querySelector('input') ? Number(tds[4].querySelector('input').value) : Number(tds[4].textContent)
-                    
+
 
                     if (item.tipo_desconto) {
                         let desconto = item.tipo_desconto == 'Dinheiro' ? item.desconto : (item.custo * (item.desconto / 100))
@@ -982,7 +965,7 @@ async function definir_campo(elemento, textareaID, id) {
     document.getElementById(textareaID).value = elemento.textContent
 
     let divSugestoes = document.getElementById('div_sugestoes')
-    if(divSugestoes) divSugestoes.remove()
+    if (divSugestoes) divSugestoes.remove()
 }
 
 function salvar_itens_adicionais(codigo) {
@@ -1634,10 +1617,10 @@ function elementosEspecificos(chave, historico) {
         acumulado = `
             ${labelDestaque('Total Requisição', historico.total_requisicao)}
             <div onclick="detalharRequisicao('${chave}', undefined, true)" class="label_requisicao">
-                <img src="gifs/lampada.gif" style="width: 25px">
-                <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; cursor: pointer;">
-                    <label style="cursor: pointer;"><strong>REQUISIÇÃO DISPONÍVEL</strong></label>
-                    <label style="font-size: 0.7em; cursor: pointer;">Clique Aqui</label>
+                <img src="gifs/lampada.gif" style="width: 2vw;">
+                <div style="text-align: left; display: flex; flex-direction: column; align-items: start; justify-content: center; cursor: pointer;">
+                    <label style="font-size: 0.7vw;"><strong>REQUISIÇÃO DISPONÍVEL</strong></label>
+                    <label style="font-size: 0.7vw;">Clique Aqui</label>
                 </div>
             </div>
         `
@@ -1712,7 +1695,7 @@ function elementosEspecificos(chave, historico) {
 
 async function abrirEsquema(id) {
 
-    if(id) id_orcam = id
+    if (id) id_orcam = id
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
@@ -2301,13 +2284,12 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
 
     if (!chave) chave = gerar_id_5_digitos()
 
-    console.log(chave);
-
     let usuario = acesso.usuario
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam];
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
+    let cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
     let menu_flutuante = ''
-    let nome_cliente = orcamento.dados_orcam.cliente_selecionado
 
     // Carrega os itens adicionais se existirem
     itens_adicionais = {}
@@ -2375,6 +2357,10 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
         `
     }
 
+    let modeloLabel = (valor1, valor2) => `
+        <label style="color: #222; text-align: left;"><strong>${valor1}</strong> ${valor2}</label>
+    `
+
     let acumulado = `
     ${menu_flutuante}
 
@@ -2394,14 +2380,13 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
         <div class="contorno">
             <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; font-size: 1.0em;">Dados do Cliente</div>
             <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; justify-content: start; align-items: start; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
-                <label style="color: #222" id="nome_cliente"><strong>Cliente</strong> ${nome_cliente}</label>
-                <label style="display: none" id="id_orcam"></label>
-                <label style="color: #222"><strong>CNPJ</strong> ${orcamento.dados_orcam.cnpj}</label>
-                <label style="color: #222"><strong>Endereço</strong> ${orcamento.dados_orcam.bairro}</label>
-                <label style="color: #222"><strong>Cidade</strong> ${orcamento.dados_orcam.cidade}</label>
-                <label style="color: #222"><strong>Estado</strong> ${orcamento.dados_orcam.estado}</label>
-                <label style="color: #222"><strong>Chamado</strong> ${orcamento.dados_orcam.contrato}</label>
-                <label style="color: #222"><strong>Condições</strong> ${orcamento.dados_orcam.condicoes}</label>
+
+                ${modeloLabel('Cliente', cliente?.nome || '')}
+                ${modeloLabel('Endereço', cliente?.bairro || '')}
+                ${modeloLabel('Cidade', cliente?.cidade || '')}
+                ${modeloLabel('Chamado', orcamento.dados_orcam.contrato)}
+                ${modeloLabel('Condições', orcamento.dados_orcam.condicoes)}
+
             </div>
         </div>
 
