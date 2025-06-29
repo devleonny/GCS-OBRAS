@@ -39,7 +39,7 @@ function criar_bloco_html(titulo, dados) {
     var linhas = ''
 
     for (item in dados) {
-        if (dados[item] !== '') {
+        if (dados[item] && dados[item] !== '') {
             linhas += `
             <label style="margin: 5px;"><strong>${item}</strong> <br>${dados[item].replace(/\n/g, '<br>')}</label>
         `
@@ -89,7 +89,11 @@ async function preencher_v2() {
     let orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
 
     // LÓGICA DOS DADOS
-    let informacoes = orcamento_v2.dados_orcam
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
+    let informacoes = { 
+        ...orcamento_v2.dados_orcam,
+        ...dados_clientes?.[orcamento_v2.dados_orcam.omie_cliente] || {}
+    }
 
     let empresaEmissora = dadosEmpresas[informacoes?.emissor || 'AC SOLUÇÕES']
 
@@ -102,7 +106,7 @@ async function preencher_v2() {
             'REF': ''
         },
         'Dados do Cliente': {
-            'Razão Social ou Nome Fantasia': informacoes.cliente_selecionado,
+            'Razão Social ou Nome Fantasia': informacoes.nome,
             'CNPJ': informacoes.cnpj,
             'CEP': informacoes.cep,
             'Endereço': informacoes.bairro,
