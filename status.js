@@ -1214,6 +1214,7 @@ async function abrirAtalhos(id) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let orcamento = dados_orcamentos[id]
+
     let analista = orcamento.dados_orcam.analista
     let emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     let botoesDisponiveis = ''
