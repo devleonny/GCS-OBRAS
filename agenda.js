@@ -1,4 +1,5 @@
 let filtro_tecnicos = {}
+let filtroPagamentos = {}
 let dados_departamentos = {}
 let dados_agenda_tecnicos = {}
 let dados_categorias = {}
@@ -58,6 +59,7 @@ async function sincronizar_departamentos() {
 }
 
 async function recuperar_agenda() {
+    await sincronizarDados('dados_clientes')
     await sincronizarDados('dados_agenda_tecnicos')
     await carregar_tabela()
 }
@@ -211,6 +213,8 @@ async function carregar_tabela(alterar) {
 
                 ${modeloBotao('Novo Funcionário', `abrir_opcoes()`)}
 
+                ${modeloBotao('Disparar em Massa', `disparoEmMassa()`)}
+
             </div>
 
             <hr style="width: 100%;">
@@ -263,6 +267,22 @@ async function carregar_tabela(alterar) {
 
     filtrar_por_regiao()
     filtrar_tabela('0', 'tabelaAgenda') // Script genérico que organiza a tabela com base na coluna e no ID da tabela.
+}
+
+function disparoEmMassa() {
+    if (acesso.permissao !== 'adm') return popup(mensagem('Apenas ADM podem executar esta ação', 'ALERTA'))
+
+    let tbody = document.getElementById('bodyAgenda')
+    let trs = tbody.querySelectorAll('tr')
+
+    for (tr of trs) {
+
+        let tds = tr.querySelectorAll('td')
+        let codOmie = tds[1].id
+        dispararDistribuicao(codOmie)
+
+    }
+
 }
 
 async function dispararDistribuicao(omieFuncionario) {
@@ -991,7 +1011,7 @@ async function distribuicaoFuncionario() {
                 let imagem = distPagamento != distAtual ? 'reprovado' : 'aprovado'
 
                 totaisCategoria[nomeCategoria] += param.valor_documento
-                
+
                 labelsPagamentos += `
                     <div class="divValores" id="${pagamento.id_pagamento}" onclick="atualizarDepartamentos(this, ${codigoFuncionario})">
                         <img src="imagens/${imagem}.png" style="width: 2vw;">
@@ -1023,13 +1043,27 @@ async function distribuicaoFuncionario() {
         `
     }
 
+    let ths = ''
+    let tsh = ''
+    let colunas = ['Funcionário', 'Valores', 'Distribuição', 'Pagamentos Realizados']
+        .map((col, i) => {
+            console.log(i);
+            
+            ths += `<th style="color: white;">${col}</th>`
+            tsh += `<th style="background-color: white;">
+                        <div style="display: flex; align-items: center; justify-content: center;">
+                            <input oninput="pesquisar_generico(${i}, this, filtroPagamentos,'tbodyPagamentos')">
+                            <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                        </div>
+                    </th>
+            `
+        })
+
     let tabela = `
         <table class="tabela">
             <thead style="background-color: #797979;">
-                <th style="color: white;">Funcionário</th>
-                <th style="color: white;">Valores</th>
-                <th style="color: white;">Distribuição</th>
-                <th style="color: white;">Pagamentos Realizados</th>
+                <tr>${ths}</tr>
+                <tr>${tsh}</tr>
             </thead>
             <tbody id="tbodyPagamentos">
                 ${linhas}
