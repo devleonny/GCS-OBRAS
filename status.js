@@ -1259,7 +1259,7 @@ async function abrirAtalhos(id) {
     }
 
     let acumulado = `
-        <div style="display: flex; flex-direction: column; justify-content: center; align-items: start; width: 30vw;">
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: start; width: 30vw; padding: 1vw;">
             <label style="color: #222; font-size: 1.5vw; text-align: left;" id="cliente_status">${cliente}</label>
             <hr style="width: 100%">
             ${botoesDisponiveis}
@@ -1823,11 +1823,12 @@ async function abrirEsquema(id) {
                     ${botao('Novo Pedido', `painelAdicionarPedido()`, '#4CAF50')}
                     ${botao('Nova Requisição', `abrirModalTipoRequisicao()`, '#B12425')}
                     ${botao('Nova Nota Fiscal', `painelAdicionarNotas()`, '#ff4500')}
-                    ${botao('LPU Parceiro', `modalLPUParceiro()`, '#ff4500')}
 
                     ${(acesso.permissao == 'adm' || acesso.setor == 'LOGÍSTICA')
             ? botao('Novo Envio de Material', `envioMaterial()`, '#b17724')
             : ''}
+                    
+                    ${botao('LPU Parceiro', `modalLPUParceiro()`, '#0062d5')}
 
                     ${botao('Produtos sem Requisição', `mostrarItensPendentes()`, '')}
                 </div>

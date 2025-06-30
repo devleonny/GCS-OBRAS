@@ -1,4 +1,4 @@
-async function modalLPUParceiro() {
+async function modalLPUParceiro(chave) {
     const baseOrcamentos = await recuperarDados('dados_orcamentos') || {};
 
     let acumulado = '';
@@ -8,7 +8,7 @@ async function modalLPUParceiro() {
     let linhas = '';
 
     cabecalhos.forEach((cabecalho, i) => {
-        thHead += `<th>${cabecalho}</th>`;
+        thHead += `<th style="color: white;">${cabecalho}</th>`;
         thSearch +=
             `<th style="background-color: white">
                 <div style="display: flex; justify-content:space-between; align-items: center">
@@ -50,7 +50,7 @@ async function modalLPUParceiro() {
                     </div>
                 </td>
                  <td></td>
-                <td><label></label></td>
+                <td><label class="labelAprovacao"></label></td>
                 
             </tr>
         `
@@ -59,7 +59,7 @@ async function modalLPUParceiro() {
 
     let tabela =
         `<table class="tabela">
-            <thead>
+            <thead style="background-color: #797979;">
                 <tr>${thHead}</tr>
                 <tr>${thSearch}</tr>
             </thead>
@@ -76,7 +76,13 @@ async function modalLPUParceiro() {
         </div>
         `
     }
-    let dadosEmpresa = orcamento.dados_orcam
+
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
+    let dadosEmpresa = {
+        ...orcamento.dados_orcam,
+        ...dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
+    }
+
     acumulado =
         `
         <div style="background-color: #d2d2d2; padding: 5px; border-radius: 3px">
@@ -84,13 +90,13 @@ async function modalLPUParceiro() {
                 <div style=" display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px; margin-left: 10px">
                 ${stringHtml('Data', data_atual('completa'))}
                 ${stringHtml('Analista', acesso.nome_completo)}
-                ${stringHtml('Cliente', dadosEmpresa.cliente_selecionado)}
+                ${stringHtml('Cliente', dadosEmpresa.nome)}
                 ${stringHtml('CNPJ', dadosEmpresa.cnpj)}
                 ${stringHtml('Endereço', dadosEmpresa.bairro)}
                 ${stringHtml('Cidade', dadosEmpresa.cidade)}
                 ${stringHtml('Estado', dadosEmpresa.estado)}
                 ${stringHtml('Margem para este serviço(%)', `<input id="margem_lpu" class="input-lpuparceiro" value="35" oninput="calcularLpuParceiro()">`)}
-                ${stringHtml('Técnico:', `<textarea type="text" id="tecnico" oninput="sugestoesParceiro(this, 'clientes')" placeholder="Qual o nome do técnico?"></textarea><input style= "display: none">`)}
+                ${stringHtml('Técnico', `<textarea type="text" id="tecnico" oninput="sugestoesParceiro(this, 'clientes')" placeholder="Qual o nome do técnico?"></textarea><input style= "display: none">`)}
                 
                 </div>
         
@@ -113,56 +119,43 @@ async function modalLPUParceiro() {
         </div>
         `
 
-    openPopup_v2(acumulado, 'LPU Parceiro', true);
-    setTimeout(() => {
-        calcularLpuParceiro();
+    popup(acumulado, 'LPU Parceiro', true)
 
-        const chaveEdicao = sessionStorage.getItem('chaveLpuEmEdicao');
+    calcularLpuParceiro();
 
-        if (chaveEdicao) {
-            const historico = baseOrcamentos[id_orcam]?.status?.historico || {};
-            const dadosSalvos = historico[chaveEdicao];
+    const historico = baseOrcamentos[id_orcam]?.status?.historico || {};
+    const dadosSalvos = historico[chave] || {}
 
-            if (dadosSalvos) {
-                document.getElementById('tecnico').value = dadosSalvos?.tecnicoLpu || '';
-                document.getElementById('margem_lpu').value = dadosSalvos?.margem_percentual || 35;
+    document.getElementById('tecnico').value = dadosSalvos?.tecnicoLpu || '';
+    document.getElementById('margem_lpu').value = dadosSalvos?.margem_percentual || 35;
 
-                const trs = document.querySelectorAll('#bodyTabela tr');
-                for (let tr of trs) {
-                    let tds = tr.querySelectorAll('td');
-                    const codigo = tds[0]?.textContent.trim();
-                    const itemSalvo = dadosSalvos.itens?.[codigo];
-                    if (itemSalvo) {
-                        const input = tds[8]?.querySelector('input');
-                        if (input) input.value = itemSalvo.valor_parceiro_unitario;
-                    }
-                }
-
-                document.querySelector('.botaoLPUParceiro').textContent = 'Salvar Edição';
-            }
-        } else {
-            document.getElementById('tecnico').value = '';
-            document.getElementById('margem_lpu').value = 35;
-            document.querySelector('.botaoLPUParceiro').textContent = 'Salvar';
+    const trs = document.querySelectorAll('#bodyTabela tr');
+    for (let tr of trs) {
+        let tds = tr.querySelectorAll('td');
+        const codigo = tds[0]?.textContent.trim();
+        const itemSalvo = dadosSalvos.itens?.[codigo];
+        if (itemSalvo) {
+            const input = tds[8]?.querySelector('input');
+            if (input) input.value = itemSalvo.valor_parceiro_unitario;
         }
-    }, 0);
+    }
+
+    document.querySelector('.botaoLPUParceiro').textContent = 'Salvar Edição';
+
 }
 
-function novaLPUParceiro() {
-    sessionStorage.removeItem('chaveLpuEmEdicao');
-    modalLPUParceiro();
-}
+async function gerarExcelLpuParceiro() {
 
-function gerarExcelLpuParceiro() {
-    // Recupera os dados atuais da tela para gerar o Excel
     let margem = Number(document.getElementById('margem_lpu').value);
     let tecnico = String(document.getElementById('tecnico').value) || '';
-    let dadosEmpresa = (() => {
-        // Busca os dados do orçamento atual
-        let orcamentos = JSON.parse(localStorage.getItem('dados_orcamentos')) || {};
-        let orcamento = orcamentos[id_orcam];
-        return orcamento?.dados_orcam || {};
-    })();
+
+    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
+    let orcamento = dados_orcamentos[id_orcam]
+    let dadosEmpresa = {
+        ...orcamento.dados_orcam,
+        ...dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
+    }
 
     let dadosParaExcel = {
         status: 'LPU PARCEIRO',
@@ -170,7 +163,7 @@ function gerarExcelLpuParceiro() {
         analista: acesso.nome_completo,
         margem_percentual: margem,
         tecnicoLpu: tecnico,
-        cliente: dadosEmpresa.cliente_selecionado,
+        cliente: dadosEmpresa.nome,
         cnpj: dadosEmpresa.cnpj,
         endereco: dadosEmpresa.bairro,
         cidade: dadosEmpresa.cidade,
@@ -316,7 +309,7 @@ function calcularLpuParceiro() {
         if (tr.classList.contains('item-adicional')) {
 
             labelDesvio.textContent = dinheiro(-totalParceiro);
-            labelDesvio.className = 'valor_zero';
+            labelDesvio.className = 'labelAprovacao';
             tds[7].textContent = dinheiro(0);
         } else {
 
@@ -325,7 +318,7 @@ function calcularLpuParceiro() {
             const desvioLinha = margemLinha - totalParceiro;
 
             labelDesvio.textContent = dinheiro(desvioLinha);
-            labelDesvio.className = desvioLinha >= 0 ? 'valor_preenchido' : 'valor_zero';
+            labelDesvio.style.backgroundColor = desvioLinha >= 0 ? 'green' : '#B12425';
             tds[7].textContent = dinheiro(margemLinha);
         }
 
@@ -343,18 +336,12 @@ function calcularLpuParceiro() {
 
 }
 
-
 async function salvarLpuParceiro() {
     overlayAguarde();
-    let chave = sessionStorage.getItem('chaveLpuEmEdicao') || gerar_id_5_digitos();
+    let chave = gerar_id_5_digitos();
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
-    if (!orcamento) {
-        console.error('Orçamento não encontrado para id_orcam:', id_orcam);
-        return;
-    }
-
     let margem = Number(document.getElementById('margem_lpu').value);
     let tecnico = String(document.getElementById('tecnico').value) || ''
     let dadosEmpresa = orcamento.dados_orcam
@@ -380,9 +367,7 @@ async function salvarLpuParceiro() {
         }
     };
 
-
     let trs = document.querySelectorAll('#bodyTabela tr');
-
 
     for (let tr of trs) {
         let tds = tr.querySelectorAll('td');
@@ -445,8 +430,6 @@ async function salvarLpuParceiro() {
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento);
-
-    sessionStorage.removeItem('chaveLpuEmEdicao');
 
     remover_popup();
     await abrir_esquema(id_orcam);
@@ -775,7 +758,7 @@ async function detalharLpuParceiro(chave) {
         ${tabela}
     `
 
-    openPopup_v2(acumulado, 'Detalhamento Itens Parceiro', true);
+    popup(acumulado, 'Detalhamento Itens Parceiro', true);
 
     document.getElementById('btnGerarPdf').addEventListener('click', () => {
         gerarPdfParceiro({
@@ -972,7 +955,7 @@ function adicionarItemAdicional(dados = {}) {
 }
 
 function removerItemAdicional(botao) {
-    openPopup_v2(`
+    popup(`
         <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; margin: 2vw;">
             <label>Deseja apagar este item adicional?</label>
             <div style="display: flex; justify-content: center; align-items: center; gap: 20px;">
@@ -1019,7 +1002,7 @@ function atualizarValorParceiro(input) {
 
     const labelDesvio = tds[10].querySelector('label')
     labelDesvio.textContent = dinheiro(desvio)
-    labelDesvio.className = desvio > 0 ? 'valor_preenchido' : 'valor_zero';
+    labelDesvio.style.backgroundColor = desvio > 0 ? 'green' : '#B12425';
 
     calcularLpuParceiro()
 }
@@ -1166,35 +1149,7 @@ async function definirCampoParceiro(elemento, idAleatoria, codBases, unidade, va
 }
 
 async function editarLpuParceiro(chave) {
-    try {
-        const dadosLpu = await buscarDadosLpu(chave);
-        if (!dadosLpu) throw new Error('Dados da LPU não encontrados.');
 
-        sessionStorage.setItem('chaveLpuEmEdicao', chave);
-
-        await abrirModalLpu(dadosLpu);
-    } catch (erro) {
-        console.error('Erro ao editar LPU:', erro);
-        mostrarErro('Não foi possível carregar os dados para edição');
-    }
-}
-
-async function buscarDadosLpu(chave) {
-    const dados = await recuperarDados('dados_orcamentos');
-    if (!dados?.[id_orcam]?.status?.historico?.[chave]) return null;
-
-    return dados[id_orcam].status.historico[chave];
-}
-
-async function abrirModalLpu(dadosLpu) {
-    await modalLPUParceiro();
-
-    setTimeout(() => {
-        preencherDadosBasicos(dadosLpu);
-        preencherItensPrincipais(dadosLpu.itens);
-        preencherItensAdicionais(dadosLpu.itens_adicionais);
-        calcularLpuParceiro();
-    }, 0);
 }
 
 function preencherDadosBasicos(dados) {
@@ -1233,13 +1188,4 @@ function preencherItensAdicionais(itens = []) {
             valor_parceiro_unitario: item.valor_parceiro_unitario,
         });
     });
-}
-
-function mostrarErro(mensagem) {
-    openPopup_v2(`
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-            <label>${mensagem}</label>
-        </div>
-    `, 'Erro', true);
 }

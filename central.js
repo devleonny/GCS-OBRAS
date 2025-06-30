@@ -2038,8 +2038,6 @@ async function sincronizarDados(base, overlayOff) {
     let nuvem = await receber(base) || {}
     let dados_local = await recuperarDados(base) || {}
 
-    dados_local = removerExcluidos(dados_local)
-
     let dadosMesclados = {
         ...dados_local,
         ...nuvem

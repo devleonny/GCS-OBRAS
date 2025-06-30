@@ -852,7 +852,6 @@ button {
 .janela {
     overflow: auto;
     max-height: 90vh;
-    padding: 5px;
 }
 
 .janela_fora {
