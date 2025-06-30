@@ -125,8 +125,6 @@ async function modalLPUParceiro(chave) {
 
     popup(acumulado, 'LPU Parceiro', true)
 
-    calcularLpuParceiro();
-
     // Caso seja informada a CHAVE, então os dados são preenchidos;
     const historico = baseOrcamentos[id_orcam]?.status?.historico || {};
     const dadosSalvos = historico[chave] || {}
@@ -148,6 +146,8 @@ async function modalLPUParceiro(chave) {
             if (inputValor) inputValor.value = itemSalvo.valor_parceiro_unitario;
         }
     }
+
+    calcularLpuParceiro();
 
 }
 
@@ -261,7 +261,8 @@ function calcularLpuParceiro() {
         let valorParceiro = Number(inputParceiro.value) || 0;
 
         let totalParceiro = quantidade * valorParceiro;
-        let totalOrcado = conversor(tds[5].textContent);
+        let unitOrcado = conversor(tds[4].textContent);
+        let totalOrcado = unitOrcado * quantidade
         let margemLinha = totalOrcado * margemPercentual;
         let desvioLinha = margemLinha - totalParceiro;
 
@@ -281,9 +282,15 @@ function calcularLpuParceiro() {
             calculos.principais.desvio += desvioLinha;
             labelDesvio.style.backgroundColor = desvioLinha >= 0 ? 'green' : '#B12425';
             labelDesvio.textContent = dinheiro(desvioLinha);
-            tds[7].textContent = dinheiro(margemLinha);
+            tds[7].innerHTML = `
+            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column;">
+                <label><strong>UN</strong> ${dinheiro((margemLinha / quantidade))}</label>
+                <hr style="width: 100%;">
+                <label><strong>T</strong> ${dinheiro(margemLinha)}</label>
+            </div>`
         }
 
+        tds[5].textContent = dinheiro(totalOrcado)
         tds[9].textContent = dinheiro(totalParceiro);
     }
 

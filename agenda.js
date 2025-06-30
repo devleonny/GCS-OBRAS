@@ -269,7 +269,7 @@ async function carregar_tabela(alterar) {
     filtrar_tabela('0', 'tabelaAgenda') // Script genérico que organiza a tabela com base na coluna e no ID da tabela.
 }
 
-function disparoEmMassa() {
+async function disparoEmMassa() {
     if (acesso.permissao !== 'adm') return popup(mensagem('Apenas ADM podem executar esta ação', 'ALERTA'))
 
     let tbody = document.getElementById('bodyAgenda')
@@ -279,13 +279,16 @@ function disparoEmMassa() {
 
         let tds = tr.querySelectorAll('td')
         let codOmie = tds[1].id
-        dispararDistribuicao(codOmie)
+        dispararDistribuicao(codOmie, true) // Ignorar os carregamentos;
 
     }
 
+    await carregar_tabela();
+    remover_popup();
+
 }
 
-async function dispararDistribuicao(omieFuncionario) {
+async function dispararDistribuicao(omieFuncionario, ignorarCarregamento) {
     overlayAguarde()
 
     let mes = document.getElementById('mes').value;
@@ -323,6 +326,8 @@ async function dispararDistribuicao(omieFuncionario) {
         }
     }
 
+    if (!distribuicao) return
+
     for (let [codigoDepartamento, objeto] of Object.entries(distribuicao)) {
 
         let diasDepartamento = Math.floor((objeto.distribuicao / 100) * diasMes)
@@ -331,8 +336,11 @@ async function dispararDistribuicao(omieFuncionario) {
     }
 
     await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos');
-    await carregar_tabela();
-    remover_popup();
+
+    if (!ignorarCarregamento) {
+        await carregar_tabela();
+        remover_popup();
+    }
 }
 
 async function carregarBases() {
