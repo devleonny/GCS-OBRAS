@@ -368,7 +368,7 @@ async function carregarBases() {
 
     dados_categorias = await recuperarDados('dados_categorias') || {}
     categoriasChaves = dados_categorias
-    if (!dados_categorias) dados_categorias = await receber('dados_categorias', 0)
+    if (!dados_categorias || Object.keys(dados_categorias) == 0) dados_categorias = await receber('dados_categorias', 0)
     dados_categorias = Object.entries(dados_categorias).sort((a, b) => {
         return a[1].localeCompare(b[1])
     })
