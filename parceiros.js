@@ -34,7 +34,13 @@ async function modalLPUParceiro(chave) {
                 <td>${codigo}</td>
                 <td style="text-align: left;">${composicao.descricao}</td>
                 <td>${composicao.unidade}</td>
-                <td class="quantidade">${qtde}</td>
+                <td>
+                    <input class="campoRequisicao" 
+                    oninput="atualizarValorParceiro(this)"
+                    type="number"
+                    step="0.01"
+                    value="${qtde}">
+                </td>
                 <td>${dinheiro(custo)}</td>
                 <td>${dinheiro(total)}</td>
                 <td>${dinheiro(imposto)}</td>
@@ -45,7 +51,6 @@ async function modalLPUParceiro(chave) {
                             class="campoRequisicao"
                             oninput="atualizarValorParceiro(this)" 
                             type="number" 
-                            class="input-lpuparceiro" 
                             step="0.01">
                     </div>
                 </td>
@@ -69,14 +74,12 @@ async function modalLPUParceiro(chave) {
         ${botao('Adicionar Serviço', 'adicionarItemAdicional()', '#222')}
         `;
 
-    let stringHtml = (titulo, valor) => {
-        return `
+    let stringHtml = (titulo, valor) => `
         <div style="display: flex; justifty-content: start; align-items: center; gap: 5px;">
         <label><strong>${titulo}</strong>:</label>
         <label>${valor}</label>
         </div>
         `
-    }
 
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let dadosEmpresa = {
@@ -137,8 +140,12 @@ async function modalLPUParceiro(chave) {
         const codigo = tds[0]?.textContent.trim();
         const itemSalvo = dadosSalvos.itens?.[codigo];
         if (itemSalvo) {
-            const input = tds[8]?.querySelector('input');
-            if (input) input.value = itemSalvo.valor_parceiro_unitario;
+
+            let inputQtde = tds[3]?.querySelector('input');
+            if (inputQtde) inputQtde.value = itemSalvo.qtde;
+
+            let inputValor = tds[8]?.querySelector('input');
+            if (inputValor) inputValor.value = itemSalvo.valor_parceiro_unitario;
         }
     }
 
@@ -250,7 +257,7 @@ function calcularLpuParceiro() {
         let labelDesvio = tds[10].querySelector('label');
         if (!inputParceiro || !labelDesvio) continue;
 
-        let quantidade = conversor(tds[3].textContent);
+        let quantidade = Number(tds[3].querySelector('input').value)
         let valorParceiro = Number(inputParceiro.value) || 0;
 
         let totalParceiro = quantidade * valorParceiro;
@@ -333,7 +340,7 @@ async function salvarLpuParceiro(chave) {
         let codigo = tds[0].textContent.trim();
         let descricao = tr.querySelector('textarea')?.value?.trim() || extrairTextoOuInput(tds[1]);
         let unidade = extrairTextoOuInput(tds[2]);
-        let qtde = conversor(tds[3].textContent.trim());
+        let qtde = Number(tds[3].querySelector('input').value);
         let valor_orcado = conversor(tds[4].textContent.trim());
         let total_orcado = conversor(tds[5].textContent.trim());
         let imposto = conversor(tds[6].textContent.trim());

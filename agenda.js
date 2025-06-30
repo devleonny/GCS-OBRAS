@@ -980,7 +980,7 @@ async function distribuicaoFuncionario() {
             for (let [departamento, quantidade] of Object.entries(contadores)) {
                 let porcentagem = quantidade / total
                 labelsDistribuicao += `
-                <label><strong>${conversor(porcentagem.toFixed(2))}%</strong> ${dados_departamentos[departamento].descricao}</label>`
+                <label><strong>${conversor(porcentagem.toFixed(2))}%</strong> ${dados_departamentos?.[departamento]?.descricao || '??'}</label>`
 
                 if (!auxPagamFuncionario[codigoFuncionario]) {
                     auxPagamFuncionario[codigoFuncionario] = { distribuicao: [] }
