@@ -1708,17 +1708,13 @@ function elementosEspecificos(chave, historico) {
 async function abrirEsquema(id) {
 
     if (id) id_orcam = id
-
-    console.log(id_orcam);
     
-
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let orcamento = dados_orcamentos[id]
-    let cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente]?.nome || ''
+    let cliente = dados_clientes?.[orcamento?.dados_orcam.omie_cliente]?.nome || ''
     let blocosStatus = {}
     let chave = ''
-    console.log(orcamento);
 
     for ([chave, historico] of Object.entries(orcamento.status?.historico || {})) {
 
@@ -2323,7 +2319,7 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
                     <img src="imagens/pdf.png">
                     <label>PDF</label>
                 </div>
-            </div> 
+            </div>
             `
         }
 
@@ -2382,9 +2378,8 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
     let acumulado = `
     ${menu_flutuante}
 
-    <div style="display: flex; align-items: center; justify-content: center; width: 100%; background-color: #151749; border-radius: 3px;">
-        <img src="https://i.imgur.com/AYa4cNv.png" 
-    style="height: 100px;">
+    <div style="display: flex; align-items: center; justify-content: center; width: 100%; background-color: #151749;">
+        <img src="https://i.imgur.com/AYa4cNv.png" style="height: 100px;">
     </div>
 
     <div style="display: flex; align-items: center; justify-content: center; width: 100%;">

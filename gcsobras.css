@@ -1591,9 +1591,10 @@ input[type=range]::-moz-range-thumb {
 }
 
 .menu_flutuante {
-    z-index: 333;
+    z-index: 10006;
     background-color: #222;
     position: fixed;
+    gap: 10px;
     bottom: 10px;
     left: 5px;
     display: flex;

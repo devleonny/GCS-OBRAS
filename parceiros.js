@@ -295,21 +295,21 @@ function calcularLpuParceiro() {
 }
 
 
-async function salvarLpuParceiro() {
+async function salvarLpuParceiro(chave) {
     overlayAguarde();
-    let chave = gerar_id_5_digitos();
+    chave = chave ? chave : gerar_id_5_digitos();
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
     let margem = Number(document.getElementById('margem_lpu').value);
-    let omieTecnico = document.getElementById('tecnico').nextElementSibling.value
+    let omie_tecnico = document.getElementById('tecnico').nextElementSibling.value
 
     let novo_lancamento = {
         status: 'LPU PARCEIRO',
         data: data_atual('completa'),
         executor: acesso.usuario,
         margem_percentual: margem,
-        tecnicoLpu: omieTecnico,
+        omie_tecnico,
         itens: {},
         itens_adicionais: [],
         totais: {
@@ -385,7 +385,7 @@ async function salvarLpuParceiro() {
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento);
 
     remover_popup();
-    await abrirEsquema();
+    await abrirEsquema(id_orcam);
 
 }
 
@@ -587,27 +587,20 @@ async function detalharLpuParceiro(chave) {
     let orcamento = dadosOrcamentos[id_orcam];
     let dadosLpu = orcamento.status.historico[chave];
 
-
-    let modelo = () => {
-        return `
-            <div style="display: flex; flex-direction: column">
-                <label>${valor1}</label>
-                <label>${valor2}</label>
-            </div>
-        `;
-    }
-
-    let stringHtml = (titulo, valor) => {
-        return `
+    let stringHtml = (titulo, valor) => `
         <div style="display: flex; justifty-content: start; align-items: center; gap: 5px;">
-        <label><strong>${titulo}</strong>:</label>
-        <label>${valor}</label>
+            <label><strong>${titulo}</strong>:</label>
+            <label>${valor}</label>
         </div>
         `
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
+    let cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
+    let dadosEmpresa = {
+        ...orcamento.dados_orcam,
+        ...cliente
     }
-    let dadosEmpresa = orcamento.dados_orcam
     let margemLPU = dadosLpu.margem_percentual
-    let tecnicoLPU = dadosLpu.tecnicoLpu
+    let tecnicoLPU = dados_clientes?.[dadosLpu.omie_tecnico]?.nome || 'Não informado'
 
     let linhas = Object.values(dadosLpu.itens).map(item => `
 
@@ -691,7 +684,7 @@ async function detalharLpuParceiro(chave) {
             <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
                 ${stringHtml('Data', data_atual('completa'))}
                 ${stringHtml('Analista', acesso?.nome_completo || '')}
-                ${stringHtml('Cliente', dadosEmpresa?.cliente_selecionado || '')}
+                ${stringHtml('Cliente', dadosEmpresa?.nome || '')}
                 ${stringHtml('CNPJ', dadosEmpresa?.cnpj || '')}
                 ${stringHtml('Endereço', dadosEmpresa?.endereco || '')}
                 ${stringHtml('Cidade', dadosEmpresa?.cidade || '')}
@@ -699,16 +692,31 @@ async function detalharLpuParceiro(chave) {
                 ${stringHtml('Margem', margemLPU)}
                 ${stringHtml('Técnico', tecnicoLPU || '')}
             </div>
-            <div>
-                <button onclick="solicitarPagamentoLPU('${tecnicoLPU}', '${dadosEmpresa?.cliente_selecionado || ''}')"><strong>Solicitar Pagamento</strong></button>
-                <button id="btnGerarPdf"><strong>Gerar PDF</strong></button>
-            </div>
         </div>
     `;
 
+    let botoes = `
+        <div class="menu_flutuante" id="menu_flutuante">
+
+            <div class="icone" id="btnGerarPdf">
+                <img src="imagens/pdf.png">
+                <label>PDF</label>
+            </div>
+            
+            <div class="icone" id="btnGerarPdf">
+                <img src="imagens/reembolso.png">
+                <label>Pagamento</label>
+            </div>
+
+        </div>
+    `
+
     let acumulado = `
-        ${cabecalhoInfo}
-        ${tabela}
+        <div style="padding: 1vw;">
+            ${cabecalhoInfo}
+            ${tabela}
+        </div>
+        ${botoes}
     `
 
     popup(acumulado, 'Detalhamento Itens Parceiro', true);
@@ -717,34 +725,14 @@ async function detalharLpuParceiro(chave) {
         gerarPdfParceiro({
             tabela: `
                 <div class="header">
-                    <img src="imagens/BG.png" alt="GCS Logo">
+                    <img src="https://i.imgur.com/qZLbNfb.png">
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
-                    ${stringHtml('Data', data_atual('completa'))}
-                    ${stringHtml('Analista', acesso?.nome_completo || '')}
-                    ${stringHtml('Cliente', dadosEmpresa?.cliente_selecionado || '')}
-                    ${stringHtml('CNPJ', dadosEmpresa?.cnpj || '')}
-                    ${stringHtml('Endereço', dadosEmpresa?.endereco || '')}
-                    ${stringHtml('Cidade', dadosEmpresa?.cidade || '')}
-                    ${stringHtml('Estado', dadosEmpresa?.estado || '')}
-                    ${stringHtml('Margem', margemLPU)}
-                    ${stringHtml('Técnico', tecnicoLPU || '')}
-                </div>
+                ${cabecalhoInfo}
                 ${tabela}
             `,
             cnpj: dadosEmpresa?.cnpj || ''
         });
     });
-}
-
-function solicitarPagamentoLPU(tecnico, cliente) {
-    localStorage.setItem('pagamentoLPU', JSON.stringify({
-        tecnico: tecnico,
-        cliente: cliente,
-        abrirModal: true
-    }))
-
-    window.location.href = 'pagamentos.html';
 }
 
 async function gerarPdfParceiro({ tabela, cnpj }) {
