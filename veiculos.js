@@ -1024,8 +1024,6 @@ async function atualizarListaMotoristas() {
     }
 }
 
-document.getElementById('atualizar_dados_veiculos').addEventListener('click', atualizarDadosVeiculos);
-
 async function atualizarDadosVeiculos() {
     try {
         await sincronizarDados('dados_veiculos', true);
