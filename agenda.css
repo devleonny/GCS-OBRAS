@@ -6,6 +6,22 @@ body {
   flex-direction: column;
 }
 
+.divValores {
+  cursor: pointer;
+  width: 90%;
+  padding: 3px;
+  border-radius: 2px;
+  background-color: #e5e5e5;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 5px;
+}
+
+.divValores label {
+  cursor: pointer;
+}
+
 label {
   font-size: 1.0vw;
 }

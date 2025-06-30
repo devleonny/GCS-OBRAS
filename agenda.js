@@ -988,13 +988,20 @@ async function distribuicaoFuncionario() {
                 let distPagamento = JSON.stringify(pagamento.param[0].distribuicao)
                 let distAtual = JSON.stringify(auxPagamFuncionario[codigoFuncionario]?.distribuicao || [])
 
-                let cor = distPagamento != distAtual ? '#B12425' : 'green'
+                let imagem = distPagamento != distAtual ? 'reprovado' : 'aprovado'
 
                 totaisCategoria[nomeCategoria] += param.valor_documento
-
+                
                 labelsPagamentos += `
-                    <label onclick="atualizarDepartamentos(this, ${codigoFuncionario})" id="${pagamento.id_pagamento}" class="marcador" style="cursor: pointer; background-color: ${cor};">${nomeCategoria} - ${dinheiro(param.valor_documento)}</label>
-                `
+                    <div class="divValores" id="${pagamento.id_pagamento}" onclick="atualizarDepartamentos(this, ${codigoFuncionario})">
+                        <img src="imagens/${imagem}.png" style="width: 2vw;">
+                        <div style="display: flex; align-items: start; justify-content: start; flex-direction: column;">
+                            <label style="font-size: 0.7vw;"><strong>${nomeCategoria}</strong></label>
+                            <label style="font-size: 0.7vw;">${pagamento.param[0].data_vencimento}</label>
+                            <label style="font-size: 0.9vw;">${dinheiro(param.valor_documento)}</label>
+                        </div>
+                    </div>
+                    `
             })
         }
 
@@ -1069,13 +1076,13 @@ async function distribuicaoFuncionario() {
 
 }
 
-async function atualizarDepartamentos(label, codFuncionario) {
+async function atualizarDepartamentos(divMaior, codFuncionario) {
 
     overlayAguarde()
 
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
 
-    let pagamento = lista_pagamentos[label.id]
+    let pagamento = lista_pagamentos[divMaior.id]
 
     pagamento.param[0].distribuicao = auxPagamFuncionario[codFuncionario].distribuicao
 
@@ -1083,7 +1090,7 @@ async function atualizarDepartamentos(label, codFuncionario) {
 
     if (!resposta.faultstring) {
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
-        label.style.backgroundColor = 'green'
+        divMaior.querySelector('img').src = 'imagens/aprovado.png'
     }
 
     popup(mensagem(resposta.faultstring ? resposta.faultstring : resposta.descricao_status), 'AVISO', true)
