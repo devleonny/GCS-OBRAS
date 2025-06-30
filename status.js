@@ -1823,7 +1823,7 @@ async function abrirEsquema(id) {
                     ${botao('Novo Pedido', `painelAdicionarPedido()`, '#4CAF50')}
                     ${botao('Nova Requisição', `abrirModalTipoRequisicao()`, '#B12425')}
                     ${botao('Nova Nota Fiscal', `painelAdicionarNotas()`, '#ff4500')}
-                    ${botao('LPU Parceiro', `painelAdicionarNotas()`, '#ff4500')}
+                    ${botao('LPU Parceiro', `modalLPUParceiro()`, '#ff4500')}
 
                     ${(acesso.permissao == 'adm' || acesso.setor == 'LOGÍSTICA')
             ? botao('Novo Envio de Material', `envioMaterial()`, '#b17724')
