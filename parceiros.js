@@ -1,7 +1,6 @@
 async function modalLPUParceiro() {
     const baseOrcamentos = await recuperarDados('dados_orcamentos') || {};
 
-
     let acumulado = '';
     let cabecalhos = ['ID', 'Descrição', 'Medida', 'Quantidade', 'Valor Orçamento', 'Valor Total Orçado', 'Impostos (20%)', 'Margem (R$)', 'Valor Parceiro', 'Total Parceiro', 'Desvio'];
     let thSearch = '';
@@ -47,8 +46,7 @@ async function modalLPUParceiro() {
                             oninput="atualizarValorParceiro(this)" 
                             type="number" 
                             class="input-lpuparceiro" 
-                            step="0.01"
-                        >
+                            step="0.01">
                     </div>
                 </td>
                  <td></td>
