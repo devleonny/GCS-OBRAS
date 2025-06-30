@@ -2043,7 +2043,7 @@ async function sincronizarDados(base, overlayOff) {
         ...nuvem
     }
 
-    removerExcluidos(dadosMesclados)
+    dadosMesclados = removerExcluidos(dadosMesclados)
 
     await inserirDados(dadosMesclados, base)
 

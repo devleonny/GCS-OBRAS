@@ -2658,10 +2658,3 @@ async function envioMaterial(chave) {
     `
     popup(acumulado, 'Envio de Material', true)
 }
-
-function mostrarElementoSeTiverPermissao({ listaDePermissao, elementoHTML }) {
-    const permissaoOuSetorDoUsuario = acesso.permissao || acesso.setor;
-    const usuarioTemPermissao = listaDePermissao.includes(permissaoOuSetorDoUsuario);
-
-    return usuarioTemPermissao ? elementoHTML : '';
-}
