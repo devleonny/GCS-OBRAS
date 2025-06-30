@@ -550,12 +550,6 @@ function popup(elementoHTML, titulo, nao_remover_anteriores) {
                 </div>
                 <div style="display: flex; align-items: center; justify-content: center;">
 
-                    <div class="botao_popup" onclick="ajustar_janela(false)">
-                        <label>_</label>
-                    </div>
-                    <div class="botao_popup" onclick="ajustar_janela(true)">
-                        <img src="imagens/max.png">
-                    </div>
                     <div class="botao_popup" style="border-top-right-radius: 5px; background-color: #b12425;" onclick="remover_popup()">
                         <label>×</label>
                     </div>
@@ -602,63 +596,6 @@ function criarAnexoVisual(nome, link_anexo, funcao_excluir) {
             </div>
             <img src="imagens/cancel.png" style="display: ${displayExcluir}; width: 2vw; cursor: pointer;" onclick="${funcao_excluir}">
         </div>`;
-}
-
-let janela_original = { width: '', height: '', maxWidth: '', maxHeight: '' };
-let janela_original_simples = { width: '', height: '', maxWidth: '', maxHeight: '' };
-let maximizado = false;
-
-function ajustar_janela(ampliar) {
-    let janela_fora = document.querySelectorAll('.janela_fora')
-    let janela = document.querySelectorAll('.janela')
-
-    janela_fora = janela_fora[janela_fora.length - 1]
-    janela = janela[janela.length - 1]
-
-    if (!janela_fora || !janela) return;
-
-    if (ampliar) {
-        if (!maximizado) {
-            // Salvar tamanhos originais da janela principal
-            let estilosFora = getComputedStyle(janela_fora);
-            janela_original.width = estilosFora.width;
-            janela_original.height = estilosFora.height;
-            janela_original.maxWidth = estilosFora.maxWidth;
-            janela_original.maxHeight = estilosFora.maxHeight;
-
-            // Salvar tamanhos originais da janela simples
-            let estilosJanela = getComputedStyle(janela);
-            janela_original_simples.width = estilosJanela.width;
-            janela_original_simples.height = estilosJanela.height;
-            janela_original_simples.maxWidth = estilosJanela.maxWidth;
-            janela_original_simples.maxHeight = estilosJanela.maxHeight;
-        }
-
-        // Maximizar
-        janela_fora.style.width = '100vw';
-        janela_fora.style.maxWidth = '100vw';
-        janela_fora.style.height = '98vh';
-        janela_fora.style.maxHeight = '100vh';
-
-        janela.style.width = '100%';
-        janela.style.height = '100vh';
-        janela.style.maxHeight = '100vh';
-
-        maximizado = true;
-    } else {
-        // Restaurar tamanhos originais
-        janela_fora.style.width = janela_original.width;
-        janela_fora.style.maxWidth = janela_original.maxWidth;
-        janela_fora.style.height = janela_original.height;
-        janela_fora.style.maxHeight = janela_original.maxHeight;
-
-        janela.style.width = janela_original_simples.width;
-        janela.style.height = janela_original_simples.height;
-        janela.style.maxWidth = janela_original_simples.maxWidth;
-        janela.style.maxHeight = janela_original_simples.maxHeight;
-
-        maximizado = false;
-    }
 }
 
 function dicionario(item) {
