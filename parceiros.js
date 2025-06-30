@@ -869,7 +869,14 @@ function adicionarItemAdicional(dados = {}) {
             <input style="display: none;">
         </td>
         <td contenteditable="true">${dados.unidade || ''}</td>
-        <td class="quantidade" contenteditable="true" oninput="atualizarTotalOrcado(this)">${dados.qtde || ''}</td>
+        <td>
+            <input
+                oninput="calcularLpuParceiro()" 
+                type="number" 
+                class="campoRequisicao" 
+                step="0.01"
+                value="${dados.qtde || ''}">
+        </td>
         <td>${dinheiro(dados.valor_orcamento ?? valorUnit)}</td>
         <td>${dinheiro(dados.total_orcado ?? totalOrcado)}</td>
         <td>${dinheiro(dados.impostos ?? impostos)}</td>
