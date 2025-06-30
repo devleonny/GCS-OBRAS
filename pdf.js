@@ -250,7 +250,7 @@ async function preencher_v2() {
             <div style="display: flex; align-items: center; justify-content: start;">
                 <label style="font-size: 1.3vw;"><strong>${tab.includes('USO') ? `${tab} - SERVIÇO` : tab}</strong></label> 
             </div>
-            <table class="tabela" style="display: table-row;">
+            <table class="tabela">
                 <thead style="font-size: 0.7em; color: white; background-color: ${config[tab]?.cor || '#222'}">
                     ${totais[tab].ths}
                 </thead>
