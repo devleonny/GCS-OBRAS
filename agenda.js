@@ -1047,12 +1047,10 @@ async function distribuicaoFuncionario() {
     let tsh = ''
     let colunas = ['Funcionário', 'Valores', 'Distribuição', 'Pagamentos Realizados']
         .map((col, i) => {
-            console.log(i);
-            
             ths += `<th style="color: white;">${col}</th>`
             tsh += `<th style="background-color: white;">
                         <div style="display: flex; align-items: center; justify-content: center;">
-                            <input oninput="pesquisar_generico(${i}, this, filtroPagamentos,'tbodyPagamentos')">
+                            <input oninput="pesquisar_generico(${i}, this.value, filtroPagamentos,'tbodyPagamentos')">
                             <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
                         </div>
                     </th>

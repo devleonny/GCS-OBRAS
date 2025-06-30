@@ -217,7 +217,7 @@ async function salvarVeiculo() {
 
         popup(`
             <div class="popup-message">
-                <img src="imagens/sucesso.png">
+                <img src="imagens/joinha.png">
                 <label>${dados_veiculos.veiculos[nomeVeiculo].frotas[placa] ? 'Nova frota adicionada' : 'Veículo cadastrado'} com sucesso!</label>
             </div>
         `, 'Sucesso');
@@ -494,7 +494,7 @@ async function excluirMotorista(idMotorista, nomeVeiculo) {
 
         popup(`
             <div class="popup-message">
-                <img src="imagens/sucesso.png">
+                <img src="imagens/joinha.png">
                 <label>Motorista excluído com sucesso!</label>
             </div>
         `, 'Sucesso');
@@ -959,7 +959,7 @@ async function cadastrarMotorista() {
 
         popup(`
             <div class="popup-message">
-                <img src="imagens/sucesso.png">
+                <img src="imagens/joinha.png">
                 <label>Motorista cadastrado com sucesso!</label>
             </div>
         `, 'Sucesso');
@@ -1001,7 +1001,7 @@ async function atualizarListaMotoristas() {
 
         popup(`
             <div style="display: flex; align-items: center; justify-content: center; padding: 20px;">
-                <img src="imagens/sucesso.png" style="width: 30px; margin-right: 10px;">
+                <img src="imagens/joinha.png" style="width: 30px; margin-right: 10px;">
                 <label>Lista de motoristas atualizada com sucesso!</label>
             </div>
         `, 'Sucesso');
@@ -1549,7 +1549,7 @@ async function excluirFrota(nomeVeiculo, placa) {
 
         popup(`
             <div class="popup-message">
-                <img src="imagens/sucesso.png">
+                <img src="imagens/joinha.png">
                 <label>${veiculoVazio ?
                 `Frota e veículo ${nomeVeiculo.toUpperCase()} removidos com sucesso!` :
                 'Frota removida com sucesso!'}</label>
@@ -1765,7 +1765,7 @@ async function salvarEdicaoFrota(nomeVeiculo, placa) {
 
         popup(`
             <div class="popup-message">
-                <img src="imagens/sucesso.png">
+                <img src="imagens/joinha.png">
                 <label>Frota atualizada com sucesso!</label>
             </div>
         `, 'Sucesso');
