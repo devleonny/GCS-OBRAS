@@ -62,13 +62,14 @@ async function consultar_pagamentos() {
         .map(idPagamento => {
 
             let pagamento = lista_pagamentos[idPagamento];
+            let omieCliente = orcamentos?.[pagamento.id_orcamento]?.dados_orcam?.omie_cliente || ''
+            let nome_orcamento = dados_clientes?.[omieCliente]?.nome || pagamento.id_orcamento
 
             let valor_categorias = pagamento.param[0].categorias.map(cat =>
                 `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
             ).join('');
-            let nome_orcamento = orcamentos[pagamento.id_orcamento]
-                ? orcamentos[pagamento.id_orcamento].dados_orcam?.cliente_selecionado
-                : pagamento.id_orcamento;
+
+
             let data_registro = pagamento.data_registro || pagamento.param[0].data_previsao;
 
             return {
@@ -95,46 +96,44 @@ async function consultar_pagamentos() {
 
     let contagens = { TODOS: { qtde: 0, valor: 0 } }
 
-    for (pagamento in pagamentosFiltrados) {
+    for ([idPagamento, pagamento] of Object.entries(pagamentosFiltrados)) {
 
-        let pg = pagamentosFiltrados[pagamento]
-
-        if (!contagens[pg.status]) {
-            contagens[pg.status] = { qtde: 0, valor: 0 }
+        if (!contagens[pagamento.status]) {
+            contagens[pagamento.status] = { qtde: 0, valor: 0 }
         }
 
-        contagens[pg.status].qtde++
-        contagens[pg.status].valor += pg.param[0].valor_documento
+        contagens[pagamento.status].qtde++
+        contagens[pagamento.status].valor += pagamento.param[0].valor_documento
 
         contagens.TODOS.qtde++
-        contagens.TODOS.valor += pg.param[0].valor_documento
+        contagens.TODOS.valor += pagamento.param[0].valor_documento
 
         let div = `
             <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-                <img src="${iconePagamento(pg.status)}" style="width: 2vw;">
-                <label>${pg.status}</label>
+                <img src="${iconePagamento(pagamento.status)}" style="width: 2vw;">
+                <label>${pagamento.status}</label>
             </div>
             `
         let setor_criador = ''
-        if (dados_setores[pg.criado]) {
-            setor_criador = dados_setores[pg.criado].setor
+        if (dados_setores[pagamento.criado]) {
+            setor_criador = dados_setores[pagamento.criado].setor
         }
 
-        let recebedor = pg.param[0].codigo_cliente_fornecedor
+        let recebedor = pagamento.param[0].codigo_cliente_fornecedor
         if (dados_clientes[recebedor]) {
             recebedor = dados_clientes[recebedor].nome
         }
 
         linhas += `
                 <tr>
-                    <td>${pg.data_previsao}</td>
-                    <td>${pg.nome_orcamento}</td>
-                    <td style="text-align: left;">${pg.valor_categorias}</td>
+                    <td>${pagamento.data_previsao}</td>
+                    <td>${pagamento.nome_orcamento}</td>
+                    <td style="text-align: left;">${pagamento.valor_categorias}</td>
                     <td>${div}</td>
-                    <td>${pg.criado}</td>
+                    <td>${pagamento.criado}</td>
                     <td>${setor_criador}</td>
                     <td>${recebedor}</td>
-                    <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrir_detalhes('${pg.id}')"></td>
+                    <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrir_detalhes('${idPagamento}')"></td>
                 </tr>
             `
     };

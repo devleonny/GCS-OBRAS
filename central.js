@@ -1668,7 +1668,7 @@ async function verAprovacoes() {
     }
 
     acumulado = `
-    <div style="background-color: #d2d2d2; border-radius: 3px; padding: 5px;">
+    <div style="background-color: #d2d2d2; padding: 5px;">
 
         <label style="font-size: 1.5vw;">Fila de Aprovação</label>
 
@@ -1705,7 +1705,9 @@ async function verPedidoAprovacao(idOrcamento) { //29
     let tabelas = {}
     let divTabelas = ''
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
     let orcamento = dados_orcamentos[idOrcamento]
+    let cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
 
     for ([codigo, composicao] of Object.entries(orcamento.dados_composicoes)) {
 
@@ -1793,8 +1795,8 @@ async function verPedidoAprovacao(idOrcamento) { //29
                 <div style="display: flex; align-items: center; justify-content: start; gap: 2vw;">
                     <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
                         ${divOrganizada(orcamento.dados_orcam.analista, 'Solicitante')}
-                        ${divOrganizada(orcamento.dados_orcam.cliente_selecionado, 'Cliente')}
-                        ${divOrganizada(orcamento.dados_orcam.cidade, 'Localidade')}
+                        ${divOrganizada(cliente?.nome || '?', 'Cliente')}
+                        ${divOrganizada(cliente?.cidade || '?', 'Localidade')}
                     </div>
                     <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
                         ${divOrganizada(dinheiro(totalGeral), 'Total Geral')}

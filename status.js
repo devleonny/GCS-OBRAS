@@ -9,25 +9,20 @@ let guiaTipo = {
     '14': 'Remessa',
     '16': 'Nota Complementar de Saída'
 }
-const modelo = (valor1, valor2) => {
-    return `
+const modelo = (valor1, valor2) => `
         <div style="display: flex; flex-direction: column; align-items: start; margin-bottom: 5px; width: 100%;">
             <label><strong>${valor1}</strong></label>
             <div style="width: 100%; text-align: left;">${valor2}</div>
         </div>
         `
-}
 
-const labelDestaque = (valor1, valor2) => {
-    return `<label style="text-align: left;"><strong>${valor1}: </strong>${valor2}</label>`
-}
+const labelDestaque = (valor1, valor2) => `<label style="text-align: left;"><strong>${valor1}: </strong>${valor2}</label>`
 
-const botao = (valor1, funcao, cor) => {
-    return `
+const botao = (valor1, funcao, cor) => `
         <div class="contorno_botoes" style="background-color: ${cor};" onclick="${funcao}">
             <label>${valor1}</label>
         </div>
-        `}
+        `
 
 let fluxogramaClone = {
     'ORÇAMENTOS': { cor: '#1CAF29' },
@@ -39,7 +34,8 @@ let fluxogramaClone = {
     'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
     'CONCLUÍDO': { cor: '#ff4500' },
     'FATURADO': { cor: '#b17724' },
-    'PAGAMENTO RECEBIDO': { cor: '#b17724' }
+    'PAGAMENTO RECEBIDO': { cor: '#b17724' },
+    'LPU PARCEIRO': { cor: '#0062d5' }
 }
 
 let fluxogramaPadrao = fluxograma = {
@@ -54,6 +50,7 @@ let fluxogramaPadrao = fluxograma = {
     'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
     'RETORNO DE MATERIAIS': { cor: '#aacc14' },
     'FINALIZADO': { cor: 'blue' },
+    'LPU PARCEIRO': { cor: '#0062d5' }
 }
 
 // O objeto foi mesclado com o intuito de obter as formatações de ambos os aplicativos sem precisar criar um objeto para isso;
@@ -1625,6 +1622,20 @@ function elementosEspecificos(chave, historico) {
                 </div>
             </div>
         `
+    } else if (historico.status == 'LPU PARCEIRO') {
+
+        funcaoEditar = `modalLPUParceiro('${chave}')`
+
+        acumulado = `
+            <div onclick="detalharLpuParceiro('${chave}')" class="label_requisicao">
+                <img src="gifs/lampada.gif" style="width: 2vw;">
+                <div style="text-align: left; display: flex; flex-direction: column; align-items: start; justify-content: center; cursor: pointer;">
+                    <label style="font-size: 0.7vw;"><strong>LPU DISPONÍVEL</strong></label>
+                    <label style="font-size: 0.7vw;">Clique Aqui</label>
+                </div>
+            </div>
+        `
+
     } else if (historico.status == 'PEDIDO') {
 
         let modeloCampos = (valor1, campo, titulo) => {
@@ -1698,12 +1709,16 @@ async function abrirEsquema(id) {
 
     if (id) id_orcam = id
 
+    console.log(id_orcam);
+    
+
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let orcamento = dados_orcamentos[id]
     let cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente]?.nome || ''
     let blocosStatus = {}
     let chave = ''
+    console.log(orcamento);
 
     for ([chave, historico] of Object.entries(orcamento.status?.historico || {})) {
 
@@ -1754,7 +1769,7 @@ async function abrirEsquema(id) {
                     <br>
                 </div>
 
-                <div style="cursor: pointer; background-color: ${cor}; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
+                <div style="cursor: pointer; background-color: ${cor}; display: flex; align-items: center; justify-content: center;" onclick="exibirItens(this)">
                     <label style="color: white; font-size: 0.9vw;">ver mais</label>
                 </div>
 

@@ -22,9 +22,10 @@ body {
     justify-content: start;
     align-items: start;
 }
+
 .parcela label {
     cursor: pointer;
-}   
+}
 
 .top {
     display: flex;
@@ -238,7 +239,6 @@ body {
     width: 70vw;
     background-color: #d2d2d2;
     color: #222;
-    border-radius: 3px;
     padding: 5px;
     display: flex;
     justify-content: start;
@@ -1837,7 +1837,6 @@ input[type=range]::-moz-range-thumb {
     position: relative;
     flex-direction: column;
     gap: 3px;
-    padding: 5px;
     border-radius: 3px;
     font-size: 0.7vw;
     height: max-content;
@@ -1970,6 +1969,11 @@ input[type=range]::-moz-range-thumb {
     gap: 10px;
     justify-content: left;
     align-items: center;
+    width: 80%;
+}
+
+.label_requisicao label {
+    cursor: pointer;
 }
 
 .anexos {
