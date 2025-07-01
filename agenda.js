@@ -1212,7 +1212,7 @@ async function enviarPagamentos() {
     }
 
     let acumulado = `
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
                 <img src="gifs/loading.gif" style="width: 3vw;">
                 <label id="carregamento">Carregando...</label>
             </div>

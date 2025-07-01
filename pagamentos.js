@@ -2218,6 +2218,7 @@ async function carregar_opcoes_cc(textarea) {
     div.innerHTML = ''
     let departamentos_fixos = JSON.parse(localStorage.getItem('departamentos_fixos')) || [];
     let dados_orcamentos = await recuperarDados('dados_orcamentos', true) || {};
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
 
     let opcoes = ''
 
@@ -2230,19 +2231,20 @@ async function carregar_opcoes_cc(textarea) {
         `}
     })
 
-    for (id in dados_orcamentos) {
-        var orc = dados_orcamentos[id];
-        let contrato = String(orc.dados_orcam.contrato).toLowerCase()
-        let cliente = String(orc.dados_orcam.cliente_selecionado).toLocaleLowerCase()
+    for ([idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
+
+        let cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente]?.nome || '??'
+        let contrato = String(orcamento.dados_orcam.contrato).toLowerCase()
+        cliente = cliente.toLowerCase()
 
         if (contrato.includes(pesquisa) || cliente.includes(pesquisa)) {
 
             opcoes += `
                 <div onclick="selecionar_cc('${id}', '${cliente}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px;">
-                    <label style="width: 100%; font-size: 0.7vw;"><strong>Chamado</strong> ${orc.dados_orcam.contrato}</label>
-                    <label style="width: 100%; font-size: 0.7vw;"><strong>Valor</strong> ${dinheiro(orc.total_geral)}</label>
-                    <label style="width: 100%; font-size: 0.7vw;"><strong>Analista</strong> ${orc.dados_orcam.analista}</label>
-                    <label style="width: 100%; font-size: 0.8vw;">${orc.dados_orcam.cliente_selecionado}</label>
+                    <label style="width: 100%; font-size: 0.7vw;"><strong>Chamado</strong> ${orcamento.dados_orcam.contrato}</label>
+                    <label style="width: 100%; font-size: 0.7vw;"><strong>Valor</strong> ${dinheiro(orcamento.total_geral)}</label>
+                    <label style="width: 100%; font-size: 0.7vw;"><strong>Analista</strong> ${orcamento.dados_orcam.analista}</label>
+                    <label style="width: 100%; font-size: 0.8vw;">${cliente}</label>
                 </div>
                 `
         }
