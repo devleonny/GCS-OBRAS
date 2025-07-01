@@ -151,12 +151,6 @@ function mensagem_carregamento(mensagem) {
     ocorrencias.appendChild(div_aguarde)
 }
 
-async function testess() {
-    await leankeep(); // Autorização;
-
-    await teste()
-}
-
 async function atualizar_dados_api() {
 
     mensagem_carregamento('Autenticando o LeanKeep...')
@@ -187,34 +181,6 @@ async function atualizar_dados_api() {
 
     localStorage.setItem('carimbo', new Date())
     document.getElementById('carimbo').textContent = `Atualizado em: ${new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`;
-}
-
-async function teste() {
-    return new Promise((resolve, reject) => {
-        fetch(`https://lighthousev2.lkp.app.br/v1/ocorrencias/tipicas/5795?siteId=60399`, {
-            method: 'GET',
-            headers: {
-                'accept': 'text/plain',
-                'EmpresaId': '5795',
-                'Authorization': `Bearer ${autorizacao}`
-            }
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erro na requisição: ' + response.statusText);
-                }
-                return response.text();
-            })
-            .then(data => {
-                console.log(JSON.parse(data))
-                resolve(data);
-            })
-            .catch(error => {
-                console.error('Erro ao buscar dados:', error);
-                reject()
-            });
-
-    })
 }
 
 var estados = {
@@ -583,7 +549,7 @@ function api_ocorrencias(pagina) {
             });
     });
 }
-0
+
 async function buscar_ocorrencias() {
 
     var request = indexedDB.open("LeanKeep", 1);
