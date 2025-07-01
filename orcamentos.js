@@ -322,10 +322,12 @@ async function preencherOrcamentos(alternar) {
 async function verificarParcelas() {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
     let valores = {}
 
     for (let [idOrcamento, notas] of Object.entries(auxiliarFaturamento)) {
         let orcamento = dados_orcamentos[idOrcamento]
+        let nomeCliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente]?.nome || '??'
 
         notas.forEach(nota => {
 
@@ -345,7 +347,7 @@ async function verificarParcelas() {
                 valores[ano].meses[mes].total += parcela.nValorTitulo
 
                 valores[ano].meses[mes].parcelas.push({
-                    orcamento: orcamento.dados_orcam.cliente_selecionado,
+                    orcamento: nomeCliente,
                     parcela: parcela.nParcela,
                     vencimento: parcela.dDtVenc,
                     valor: parcela.nValorTitulo,
