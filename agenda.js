@@ -149,8 +149,6 @@ async function carregar_tabela(alterar) {
 
         if (acesso.permissao !== 'adm' && regiao == 'Administrativo') continue
 
-        let mostrarSeta = (funcionario.departamentos_fixos && Object.keys(funcionario.departamentos_fixos).length > 0)
-
         linhas += `
         <tr>
             <td class="drag-handle">☰</td>
@@ -159,10 +157,7 @@ async function carregar_tabela(alterar) {
                 <label style="font-size: 0.7vw;">${regiao}</label>
             </td>
             <td style="text-align: center;">
-                <div style="display: flex; align-items: center; justify-content: start; gap: 1vw;">
-                    <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;" onclick="abrirDetalhes('${omieFuncionario}')">
-                    ${mostrarSeta ? `<img src="imagens/direita.png" style="width: 2vw; cursor: pointer;" onclick="dispararDistribuicao('${omieFuncionario}')">` : ''}
-                </div>
+                <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;" onclick="abrirDetalhes('${omieFuncionario}')">
             </td>
             ${celulas_dias}
         </tr>
@@ -205,15 +200,11 @@ async function carregar_tabela(alterar) {
 
             <div class="linksAgenda">
 
-                ${modeloBotao('Sincronizar Departamentos', 'sincronizar_departamentos()')}
-
-                ${modeloBotao('Dist. Departamentos', 'distribuicaoDepartamento()')}
+                ${modeloBotao('Sinc. Departamentos', 'sincronizar_departamentos()')}
 
                 ${modeloBotao('Dist. Funcionários', 'distribuicaoFuncionario()')}
 
                 ${modeloBotao('Novo Funcionário', `abrir_opcoes()`)}
-
-                ${modeloBotao('Disparar em Massa', `disparoEmMassa()`)}
 
             </div>
 
@@ -267,80 +258,6 @@ async function carregar_tabela(alterar) {
 
     filtrar_por_regiao()
     filtrar_tabela('0', 'tabelaAgenda') // Script genérico que organiza a tabela com base na coluna e no ID da tabela.
-}
-
-async function disparoEmMassa() {
-    if (acesso.permissao !== 'adm') return popup(mensagem('Apenas ADM podem executar esta ação', 'ALERTA'))
-
-    let tbody = document.getElementById('bodyAgenda')
-    let trs = tbody.querySelectorAll('tr')
-
-    for (tr of trs) {
-
-        let tds = tr.querySelectorAll('td')
-        let codOmie = tds[1].id
-        dispararDistribuicao(codOmie, true) // Ignorar os carregamentos;
-
-    }
-
-    await carregar_tabela();
-    remover_popup();
-
-}
-
-async function dispararDistribuicao(omieFuncionario, ignorarCarregamento) {
-    overlayAguarde()
-
-    let mes = document.getElementById('mes').value;
-    let ano = document.getElementById('ano').value;
-
-    let funcionario = dados_agenda_tecnicos[omieFuncionario];
-    if (!funcionario.agendas) funcionario.agendas = {};
-
-    let chaveAgenda = `${ano}_${meses[mes]}`;
-    if (!funcionario.agendas[chaveAgenda]) funcionario.agendas[chaveAgenda] = {};
-
-    let agenda = funcionario.agendas[chaveAgenda];
-    let distribuicao = funcionario.departamentos_fixos;
-    let diasMes = new Date(ano, meses[mes] + 1, 0).getDate();
-    let dia = 1;
-    let dataAgora = data_atual('completa');
-
-    function preencherAgenda(codigoDepartamento, diasDepartamento) {
-
-        diasDepartamento = dia + diasDepartamento
-
-        if (diasDepartamento > diasMes) diasDepartamento = diasMes
-
-        for (let i = dia; i <= diasDepartamento; i++) {
-
-            let diaDaSemana = new Date(ano, meses[mes], dia).getDay()
-            if (diaDaSemana == 0 || diaDaSemana == 6) {
-                if (agenda[dia]) delete agenda[dia]
-                dia++
-                continue
-            }
-
-            agenda[dia] = { departamento: codigoDepartamento, usuario: acesso.usuario, data: dataAgora }
-            dia++
-        }
-    }
-
-    if (!distribuicao) return
-
-    for (let [codigoDepartamento, objeto] of Object.entries(distribuicao)) {
-
-        let diasDepartamento = Math.floor((objeto.distribuicao / 100) * diasMes)
-        preencherAgenda(codigoDepartamento, diasDepartamento)
-
-    }
-
-    await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos');
-
-    if (!ignorarCarregamento) {
-        await carregar_tabela();
-        remover_popup();
-    }
 }
 
 async function carregarBases() {
@@ -402,13 +319,15 @@ async function apagar_dia(diaOmieTecnico) {
 
 async function confirmar_apagar_agenda(omie_tecnico) {
 
+    let clientesOmie = await recuperarDados('dados_clientes') || {}
+
     popup(`
-        <div style="margin: 10px; gap: 10px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+        <div style="margin: 10px; gap: 10px; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 2vw;">
             <label>Apagar a agenda deste mês para este técnico?</label>
             <label>${clientesOmie?.[omie_tecnico]?.nome || omie_tecnico}</label>
             <button style="background-color: #4CAF50;" onclick="apagar_agenda('${omie_tecnico}')">Confirmar</button>
         </div>
-        `, 'Aviso')
+        `, 'Aviso', true)
 
 }
 
@@ -747,7 +666,7 @@ async function abrirDetalhes(codigo_tecnico) {
     </div>
     `
 
-    popup(acumulado, 'Configurações')
+    popup(acumulado, 'Configurações', true)
 
 }
 
@@ -969,7 +888,24 @@ async function distribuicaoFuncionario() {
         let agenda = objeto.agendas[chaveAgenda]
         let labelsDistribuicao = ''
 
-        if (agenda) {
+        if (!auxPagamFuncionario[codigoFuncionario]) {
+            auxPagamFuncionario[codigoFuncionario] = { distribuicao: [] }
+        }
+
+        if (objeto.departamentos_fixos) {
+
+            for ([departamento, objeto] of Object.entries(objeto.departamentos_fixos)) {
+
+                labelsDistribuicao += `
+                <label style="text-align: left;"><strong>${objeto.distribuicao}%</strong> ${dados_departamentos?.[departamento]?.descricao || '??'}</label>`
+
+                auxPagamFuncionario[codigoFuncionario].distribuicao.push({
+                    cCodDep: departamento,
+                    nPerDep: objeto.distribuicao
+                })
+            }
+
+        } else if (agenda) {
             let contadores = {}
             let total = 0
 
@@ -984,15 +920,10 @@ async function distribuicaoFuncionario() {
                 labelsDistribuicao += `
                 <label><strong>${conversor(porcentagem.toFixed(2))}%</strong> ${dados_departamentos?.[departamento]?.descricao || '??'}</label>`
 
-                if (!auxPagamFuncionario[codigoFuncionario]) {
-                    auxPagamFuncionario[codigoFuncionario] = { distribuicao: [] }
-                }
-
                 auxPagamFuncionario[codigoFuncionario].distribuicao.push({
                     cCodDep: departamento,
                     nPerDep: Number((porcentagem * 100).toFixed(7))
                 })
-
             }
         }
 
@@ -1029,8 +960,13 @@ async function distribuicaoFuncionario() {
 
         linhas += `
             <tr>
-                <td style="text-align: left;" id="${codigoFuncionario}">${clientesOmie[codigoFuncionario]?.nome || codigoFuncionario}</td>
-                <td><input type="number" class="opcoesSelect"></td>
+                <td id="${codigoFuncionario}">
+                    <div style="display: flex; align-items: center; justify-content: start; gap: 1vw; margin-left: 5px;">
+                        <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;" onclick="abrirDetalhes('${codigoFuncionario}')">
+                        <label style="text-align: left;">${clientesOmie[codigoFuncionario]?.nome || codigoFuncionario}</label>
+                    </div>
+                </td>
+                <td><input type="number" class="opcoesSelect" style="width: max-content;"></td>
                 <td>${objeto?.regiao_atual || 'Sem Região'}</td>
                 <td>
                     <div style="display: flex; justify-content: start; flex-direction: column; align-items: start;">
@@ -1239,494 +1175,6 @@ async function enviarPagamentos() {
 
     remover_popup()
     await distribuicaoFuncionario()
-
-}
-
-async function distribuicaoDepartamento() {
-
-    remover_popup()
-    let clientesOmie = await recuperarDados('dados_clientes') || {}
-    let permitidos = ['adm', 'fin']
-    let setores = ['RH', 'FINANCEIRO']
-
-    if (!permitidos.includes(acesso.permissao) && !setores.includes(acesso.setor)) {
-        let mensagem = `
-            <div id="aviso_campo_branco" style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Apenas setores RH, ADM e FINANCEIRO estão liberados para este painel</label>
-            </div>
-        `
-        return popup(mensagem, 'Aviso')
-    }
-
-    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
-
-    let selectMes = document.getElementById('mes').value
-    let ano = document.getElementById('ano').value
-    let mes = meses[selectMes]
-
-    // Recuperar pagamentos deste mês;
-    let divsPagamentos = ''
-    for ([idPagamento, pagamento] of Object.entries(lista_pagamentos)) {
-
-        if (pagamento.departamento == 'AGENDA' && pagamento.mes == mes && pagamento.ano == ano) {
-
-            let param = pagamento.param[0]
-            let categoria = categoriasChaves[pagamento.param[0].categorias[0].codigo_categoria]
-            let valor = param.valor_documento
-            let observacao = param.observacao
-            let dataVencimento = param.data_vencimento
-            let clienteFornecedor = clientesOmie?.[param.codigo_cliente_fornecedor]?.nome || 'Desatualizado...'
-            let status = pagamento.status
-
-            divsPagamentos += `
-            <div style="display: flex; justify-content: left; align-items: start; width: 100%;">
-                <div class="blocoPagamentoPai" onclick="incluirLancamento('${idPagamento}')">
-                    <div class="blocoPagamento">
-                        <div>
-                            <label><strong>Categoria</strong></label>
-                            <label>${categoria}</label>
-                        </div>
-                        <div>
-                            <label><strong>Vencimento</strong></label>
-                            <label>${dataVencimento}</label>
-                        </div>
-                        <div>
-                            <label><strong>Valor</strong></label>
-                            <label>${dinheiro(valor)}</label>
-                        </div>
-                    </div>
-
-                    <div class="blocoPagamento">
-                        <div>
-                            <label><strong>Observação</strong></label>
-                            <label style="text-align: left; padding: 5px;">${observacao}</label>
-                        </div>
-                        <div>
-                            <label><strong>Cliente / Fornecedor</strong></label>
-                            <label style="text-align: left; padding: 5px;">${clienteFornecedor}</label>
-                        </div>
-                        <div>
-                            <label><strong>Status</strong></label>
-                            <label style="text-align: left; padding: 5px;">${status}</label>
-                        </div>                        
-                    </div>
-                </div>
-
-                <div style="background-color: white; height: 100%;">
-                    <img src="imagens/cancel.png" style="width: 2vw; cursor: pointer; padding: 5px;" onclick="confirmarExclusao('${idPagamento}')">
-                </div>
-            </div>
-            `
-        }
-    }
-
-    relatorios = {
-        tecnico: {},
-        departamentos: { total: 0 }
-    }
-
-    for (let [id, tecnico] of Object.entries(dados_agenda_tecnicos)) {
-
-        let agendas = tecnico.agendas || {}
-        let omieTecnico = tecnico.omie
-        let agendaAtual = `${ano}_${mes}`
-
-        if (!relatorios.tecnico[omieTecnico]) {
-            relatorios.tecnico[omieTecnico] = {}
-        }
-
-        let relatorio = relatorios.tecnico[omieTecnico]
-
-        if (agendas[agendaAtual]) {
-
-            if (!relatorio.departamentos) {
-                relatorio.departamentos = { total: 0 }
-            }
-            let departamentos = relatorio.departamentos
-
-            for (dia in agendas[agendaAtual]) {
-
-                let departamento = agendas[agendaAtual][dia].departamento
-
-                if (!departamentos[departamento]) {
-                    departamentos[departamento] = 0
-                }
-
-                if (!relatorios.departamentos[departamento]) {
-                    relatorios.departamentos[departamento] = 0
-                }
-
-
-                relatorios.departamentos[departamento]++ // Acrescenta 1 para o técnico em seu próprio relatório;
-                departamentos.total++ // Aqui é o total geral no relatório do técnico;
-
-                departamentos[departamento]++ // Acrescenta 1 para a loja para o relátorio geral;
-                relatorios.departamentos.total++ // Acrescenta 1 para a loja para o relatório de departamentos;
-            }
-        }
-    }
-
-    if (divsPagamentos == '') {
-        divsPagamentos = `
-            <div class="blocoPagamentoPai">
-                <div class="blocoPagamento">
-                    <div>
-                        <label>Sem pagamentos lançados</label>
-                    </div>
-                </div>
-            </div>
-        `
-    }
-
-    let acumulado = `
-
-        <div style="background-color: #d2d2d2; display: flex; justify-content: start; align-items: start; gap: 1vw; width: 70vw; padding: 5px;">
-            <div style="width: 50%; display: flex; align-items: center; justify-content: start; flex-direction: column;">
-                <label>Distribuição por Departamento</label>
-                <hr style="width: 100%;">
-                ${await gerarTabelas('departamentos', false)}
-            </div>
-
-            <div style="width: 50%;">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 1vw;">
-                    <label>Lançamentos</label>
-                    <div class="contorno_botoes" style="background-color: #097fe6" onclick="incluirLancamento()">
-                        <label>Novo <strong>Lançamento</strong></label>
-                    </div>
-                </div>
-                <br>
-                <div class="painelPagamentos">
-                    ${divsPagamentos}
-                </div>
-
-            </div>
-        </div>
-        `
-
-    popup(acumulado, 'Distribuição por Departamento')
-
-}
-
-async function confirmarExclusao(idPagamento) {
-
-    let mensagem = `
-        <div id="aviso_campo_branco" style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-            <label>Deseja realmente excluir?</label>
-        </div>
-        <button onclick="excluirPagamento('${idPagamento}')">Confirmar</button>
-    
-    `
-    popup(mensagem, 'Aviso', true)
-}
-
-async function excluirPagamento(idPagamento) {
-
-    overlayAguarde()
-
-    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
-
-    delete lista_pagamentos[idPagamento]
-
-    await inserirDados(lista_pagamentos, 'lista_pagamentos')
-
-    remover_popup()
-    await painelDistruibuicao()
-
-}
-
-async function gerarTabelas(tipo, editavel, distribuicao) {
-
-    let dados_departamentos = await recuperarDados('dados_departamentos') || {}
-    let relatorioDepartamento = distribuicao ? distribuicao : relatorios[tipo]
-
-    if (!relatorioDepartamento) return '<label>Erro</label>'
-
-    let linhas = ''
-    let totalPorcentagem = 0
-    let totalDepartamentos = relatorioDepartamento.total
-
-    for ([omie, departamento] of Object.entries(relatorioDepartamento)) {
-
-        if (omie == 'total') continue
-
-        let porcentagem = departamento / totalDepartamentos
-        let labelPorcentagem = `${((porcentagem * 100)).toFixed(2)}%`
-        totalPorcentagem += (porcentagem * 100)
-        let nome = dados_departamentos[omie]?.descricao || omie
-        linhas += ` 
-            <tr>
-                <td style="text-align: right;">${nome}</td>
-                <td style="text-align: center;">${departamento}</td>
-                <td style="position: relative; text-align: center; width: 200px;">
-                    <div style="background-color: #d2d2d2; width: 100%; height: 25px; position: relative;">
-                        <div style="background-color: #4fef69; width: ${labelPorcentagem}; height: 100%; position: absolute; top: 0; left: 0;"></div>
-                        <span style="position: relative; z-index: 1; line-height: 25px;">${labelPorcentagem}</span>
-                    </div>
-                </td>
-                ${editavel
-                ? `<td id="${omie}">
-                        <label>R$ 0,00</label> 
-                        <input style="display: none;" type="number" value="${porcentagem}">
-                    </td>`
-                : ''}
-            </tr>
-        `
-    }
-
-    linhas += `
-            <tr>
-                <td colspan="2" style="text-align: center;">${totalPorcentagem.toFixed(0)}%</td>
-                ${editavel ? `<td colspan="2" style="text-align: center;">R$ 0,00</td>` : '<td></td>'}
-            </tr>
-        `
-
-    let tabela =
-        `<table class="tabela" style="width: 100%;">
-            <thead>
-                <th>Departamento</th>
-                <th>Dias Acumulados</th>
-                <th>% Distribuição</th>
-                ${editavel ? `<th>R$ Distribuição</th>` : ''}
-            </thead>
-            <tbody ${editavel ? `id="tbody"` : ''}>
-                ${linhas}
-            </tbody>
-        </table>`
-
-    return tabela
-}
-
-function calcularDistribuicao(localizacao) {
-    let tbody = document.getElementById(localizacao)
-
-    if (localizacao.tagName === 'INPUT') {
-        tbody = localizacao.parentElement.parentElement.parentElement // INPUT > TD > TR > TBODY
-    }
-
-    let valorTotal = Number(document.getElementById('valorTotal').value)
-
-    if (tbody) {
-        let trs = Array.from(tbody.querySelectorAll('tr'))
-        let total = {
-            porcentagem: 0,
-            dinheiro: 0
-        }
-
-        let linhasValidas = trs.filter(tr => tr.querySelectorAll('td').length > 2)
-
-        linhasValidas.forEach(tr => {
-            let tds = tr.querySelectorAll('td')
-            let input = tds[3].querySelector('input')
-            let label = tds[3].querySelector('label')
-
-            let porcentagem = Number(input.value)
-
-            let valor = porcentagem * valorTotal
-
-            label.textContent = dinheiro(valor)
-
-            total.porcentagem += porcentagem
-            total.dinheiro += valor
-        })
-
-        let trTotal = trs.find(tr => tr.querySelectorAll('td').length <= 2)
-        if (trTotal) {
-            let tds = trTotal.querySelectorAll('td')
-            tds[0].textContent = `${(total.porcentagem * 100).toFixed(0)}%`
-            tds[1].textContent = dinheiro(total.dinheiro)
-        }
-    }
-}
-
-function dataInput(data) {
-    let splitData = data.split('/')
-    data = new Date(splitData[2], Number(splitData[1]) - 1, splitData[0])
-    let ano = data.getFullYear()
-    let mes = String(data.getMonth() + 1).padStart(2, '0')
-    let dia = String(data.getDate()).padStart(2, '0')
-    return `${ano}-${mes}-${dia}`
-}
-
-async function incluirLancamento(idPagamento) {
-
-    let pagamento = { param: [{}] }
-
-    if (idPagamento) {
-        let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
-        pagamento = lista_pagamentos[idPagamento]
-    }
-
-    let param = pagamento.param[0]
-    let opcoes = `<option></option>` // Primeira opção em branco
-
-    for (let [idCategoria, nomeCategoria] of dados_categorias) {
-        opcoes += `<option value="${idCategoria}" ${param?.categorias?.[0]?.codigo_categoria == idCategoria ? 'selected' : ''}>${nomeCategoria}</option>`
-    }
-
-    let dataVencimento = ''
-
-    if (param.data_vencimento) {
-        dataVencimento = dataInput(param.data_vencimento)
-    }
-
-    let acumulado = `
-    <div id="telaLancamento" style="max-height: 80%; overflow: auto; padding: 5px; width: 30vw; background-color: #d2d2d2; border-radius: 3px; display: flex; justify-content: center; align-items: start; flex-direction: column;">
-
-        <label>Cliente / Fornecedor</label>
-        <input style="display: none;" value="${param?.codigo_cliente_fornecedor || ''}">
-        <textarea style="width: 95%;" id="textareaFuncionario" oninput="sugestoes(this, true)">${clientesOmie[param?.codigo_cliente_fornecedor]?.nome || ''}</textarea>
-        <div></div>
-
-        <hr style="width: 100%;">
-        <div style="display: flex; justify-content: start; align-items: center; gap: 1vw;"> 
-            <label>Data de Pagamento</label>
-            <input id="dataVencimento" type="date" value="${dataVencimento}" style="padding: 5px; border-radius: 3px;">
-        </div>
-
-        <hr style="width: 100%;">
-        <div style="display: flex; justify-content: start; align-items: center; gap: 1vw;"> 
-            <label>Categoria</label>
-            <select id="categoria">
-                ${opcoes}
-            </select>
-        </div>
-
-        <hr style="width: 100%;">
-        <label>Observação</label>
-        <textarea id="observacao" rows="5" style="width: 95%;">${param?.observacao || ''}</textarea>
-
-        <hr style="width: 100%;">
-        <div style="display: flex; justify-content: start; align-items: center; gap: 1vw;"> 
-            <label>Valor</label>
-            <input value="${param?.valor_documento || ''}" oninput="calcularDistribuicao('tbody')" id="valorTotal" type="number" style="width: 10vw; padding: 5px; border-radius: 3px;">
-        </div>
-
-        <hr style="width: 100%;">
-
-        <label>Distribuição</label>
-        ${await gerarTabelas('departamentos', true)}
-
-        <hr style="width: 100%;">
-        <button style="background-color: #097fe6;" onclick="salvarLancamento('${idPagamento}')">Salvar Lançamento</button>
-
-    </div>
-    `
-
-    popup(acumulado, 'Lançamento', true)
-
-    calcularDistribuicao('tbody')
-}
-
-
-async function salvarLancamento(idPagamento) {
-
-    overlayAguarde()
-
-    let call = idPagamento ? 'AlterarContaPagar' : false
-    idPagamento ? idPagamento : unicoID()
-
-    let selectMes = document.getElementById('mes').value
-    let ano = document.getElementById('ano').value
-    let mes = meses[selectMes]
-
-    let codigoCliente = document.getElementById('textareaFuncionario').previousElementSibling.value
-    let valorDocumento = document.getElementById('valorTotal').value
-    let observacao = document.getElementById('observacao').value
-    let dataVencimento = document.getElementById('dataVencimento').value
-    let codigoCategoria = document.getElementById('categoria').value
-
-    let campos = [
-        { nome: 'Cliente / Fornecedor', valor: codigoCliente },
-        { nome: 'Data de Vencimento', valor: dataVencimento },
-        { nome: 'Categoria', valor: codigoCategoria },
-        { nome: 'Observação', valor: observacao },
-        { nome: 'Valor do Documento', valor: valorDocumento }
-    ]
-
-    for (let campo of campos) {
-        if (!campo.valor) {
-            return popup(mensagemHTML(campo.nome), 'Aviso', true)
-        }
-    }
-
-    codigoCliente = Number(codigoCliente)
-    valorDocumento = Number(valorDocumento)
-
-    let [anoInput, mesInput, diaInput] = dataVencimento.split('-')
-    dataVencimento = `${diaInput}/${mesInput}/${anoInput}`
-
-    let distribuicao = []
-
-    let tbody = document.getElementById('tbody')
-    let trs = tbody.querySelectorAll('tr')
-
-    for (i in trs) {
-
-        if (i == (trs.length - 1)) break // Pular a última linha que é do total
-
-        let tr = trs[i]
-        let tds = tr.querySelectorAll('td')
-        let cCodDep = Number(tds[3].id)
-        let nPerDep = Number((Number(tds[3].querySelector('input').value) * 100).toFixed(8))
-
-        if (isNaN(cCodDep) || isNaN(nPerDep)) {
-            return popup(`Verifique o departamento: ${tds[0].textContent} > ${cCodDep} | ${nValDep}`)
-        }
-
-        if (tds.length > 2) {
-            distribuicao.push({
-                cCodDep,
-                nPerDep
-            })
-        }
-    }
-
-    let param = [
-        {
-            "codigo_cliente_fornecedor": codigoCliente,
-            "valor_documento": valorDocumento,
-            "observacao": observacao,
-            "codigo_lancamento_integracao": idPagamento,
-            "data_vencimento": dataVencimento,
-            "categorias": [{
-                codigo_categoria: codigoCategoria,
-                valor: valorDocumento
-            }],
-            "data_previsao": dataVencimento,
-            "id_conta_corrente": 6054234828, // Itaú AC
-            "distribuicao": distribuicao
-        }
-    ]
-
-    let pagamento = {
-        distribuicao: relatorios.departamentos,
-        mes,
-        ano,
-        status: 'AGENDA',
-        id_pagamento: idPagamento,
-        id_orcamento: 'AGENDA',
-        departamento: 'AGENDA',
-        data_registro: data_atual('completa'),
-        anexos: {},
-        anexos_parceiros: {},
-        criado: acesso.usuario,
-        param
-    }
-
-    let resposta = await lancar_pagamento(pagamento, call)
-
-    console.log(resposta);
-
-    enviar(`lista_pagamentos/${idPagamento}`, pagamento)
-    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
-
-    lista_pagamentos[idPagamento] = pagamento
-    await inserirDados(lista_pagamentos, `lista_pagamentos`)
-
-    remover_popup()
-    await distribuicaoDepartamento()
 
 }
 
