@@ -1381,6 +1381,7 @@ async function refazer_pagamento(id_pagamento) {
 
 async function lancar_pagamento(pagamento, call) {
     return new Promise((resolve, reject) => {
+
         fetch("https://leonny.dev.br/lancar_pagamento", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

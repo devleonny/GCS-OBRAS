@@ -96,7 +96,7 @@ async function consultar_pagamentos() {
 
     let contagens = { TODOS: { qtde: 0, valor: 0 } }
 
-    for ([idPagamento, pagamento] of Object.entries(pagamentosFiltrados)) {
+    for ([ordem, pagamento] of Object.entries(pagamentosFiltrados)) {
 
         if (!contagens[pagamento.status]) {
             contagens[pagamento.status] = { qtde: 0, valor: 0 }
@@ -133,7 +133,7 @@ async function consultar_pagamentos() {
                     <td>${pagamento.criado}</td>
                     <td>${setor_criador}</td>
                     <td>${recebedor}</td>
-                    <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrir_detalhes('${idPagamento}')"></td>
+                    <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrir_detalhes('${pagamento.id}')"></td>
                 </tr>
             `
     };
@@ -275,10 +275,10 @@ async function abrir_detalhes(id_pagamento) {
     }
 
     let pagamento = lista_pagamentos[id_pagamento]
-    let cc = dados_orcamentos?.[pagamento.id_orcamento]?.dados_orcam?.cliente_selecionado || pagamento.id_orcamento
     let anexos = ''
     let cliente_omie = pagamento.param[0].codigo_cliente_fornecedor
     let cliente = dados_clientes[cliente_omie] ? dados_clientes[cliente_omie].nome : pagamento.param[0].codigo_cliente_fornecedor
+    let cc = cliente?.nome || ''
 
     for (anx in pagamento.anexos) {
         let anexo = pagamento.anexos[anx]
