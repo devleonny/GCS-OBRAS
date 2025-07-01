@@ -534,13 +534,7 @@ async function escolher_tecnico(omie_tecnico, nome_tecnico) {
     }
 
     if (dados_agenda_tecnicos[omie_tecnico]) {
-        popup(`
-            <div style="margin: 10px;">
-                <label>Técnico já existente na base!</label>
-            </div>
-            `
-            , 'Aviso', true)
-        return
+        return popup(mensagem('Técnico já existente na base'), 'Aviso', true)
 
     } else {
 
@@ -1037,6 +1031,7 @@ async function distribuicaoFuncionario() {
             <tr>
                 <td style="text-align: left;" id="${codigoFuncionario}">${clientesOmie[codigoFuncionario]?.nome || codigoFuncionario}</td>
                 <td><input type="number" class="opcoesSelect"></td>
+                <td>${objeto?.regiao_atual || 'Sem Região'}</td>
                 <td>
                     <div style="display: flex; justify-content: start; flex-direction: column; align-items: start;">
                         ${labelsDistribuicao}
@@ -1053,7 +1048,7 @@ async function distribuicaoFuncionario() {
 
     let ths = ''
     let tsh = ''
-    let colunas = ['Funcionário', 'Valores', 'Distribuição', 'Pagamentos Realizados']
+    let colunas = ['Funcionário', 'Valores', 'Setor', 'Distribuição', 'Pagamentos Realizados']
         .map((col, i) => {
             ths += `<th style="color: white;">${col}</th>`
             tsh += `<th style="background-color: white;">
@@ -1081,7 +1076,10 @@ async function distribuicaoFuncionario() {
 
     for (categoria in totaisCategoria) {
         resumoValoresCategorias += `
-        <label class="marcador">${categoria} - ${dinheiro(totaisCategoria[categoria])}</label>
+        <div class="resumoCategorias">
+            <label style="font-size: 0.9vw;">${categoria}</label>
+            <label>${dinheiro(totaisCategoria[categoria])}</label>
+        </div>
         `
     }
 

@@ -1590,6 +1590,25 @@ input[type=range]::-moz-range-thumb {
     cursor: pointer;
 }
 
+.resumoCategorias {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
+    text-align: left;
+    color: white;
+    background-color: #797979;
+    padding: 5px;
+    border-radius: 2px;
+    width: 100%;
+}
+
+.resumoCategorias label {
+    cursor: pointer;
+    font-size: 1.5vw;
+}
+
 .menu_flutuante {
     z-index: 10006;
     background-color: #222;

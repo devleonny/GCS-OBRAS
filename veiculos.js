@@ -137,7 +137,7 @@ async function filtrarVeiculos(input) {
 
         div.innerHTML = opcoesHtml;
 
-    } catch (error) {
+    } catch (error) {A
         console.error('Erro ao filtrar veículos:', error);
     }
 }
@@ -1113,9 +1113,7 @@ async function abrirPopupCombustivel(idMotorista, nomeVeiculo, nomeMotorista) {
                                 <td>${dinheiro(registro.custo_litro)}</td>
                                 <td>${dinheiro(registro.custo_total)}</td>
                                 <td>
-                                    <button class="botao-anexos" onclick="abrirAnexosCombustivel('${idMotorista}', '${nomeVeiculo}', '${idRegistro}')">
-                                        Anexar PDF
-                                    </button>
+                                    <img src="imagens/pdf.png" style="cursor: pointer; width: 2vw;" onclick="abrirAnexosCombustivel('${idMotorista}', '${nomeVeiculo}', '${idRegistro}')">
                                 </td>
                                 <td>
                                     <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="editarRegistroCombustivel('${idMotorista}', '${nomeVeiculo}', '${idRegistro}')" title="Editar registro">
