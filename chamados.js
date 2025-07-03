@@ -531,7 +531,7 @@ async function capturar_html_pdf(id) {
 
     await gerar_pdf_online(html, nome);
 
-    remover_popup()
+    removerPopup()
     await abrir_manutencao(id)
 }
 
@@ -540,7 +540,7 @@ async function criar_manutencao(id) {
 
     let displayBotaoAnexos = (acesso.permissao == "adm" || acesso.setor == "LOGÍSTICA") ? "flex" : "none"
 
-    if (!id) id = gerar_id_5_digitos()
+    if (!id) id = ID5digitos()
 
     let tela = `
             <div style="display: flex; align-items: start; justify-content: start; color: #222; padding: 5px; gap: 15px;">
@@ -732,7 +732,7 @@ async function excluir_manutencao(id) {
 
     deletar(`dados_manutencao/${id}`)
 
-    remover_popup()
+    removerPopup()
 
     await carregar_manutencoes()
 
@@ -808,7 +808,7 @@ async function enviar_manutencao(id) {
     };
 
     // Gera uma chave única para a nova atualização
-    let chaveAtualizacao = gerar_id_5_digitos();
+    let chaveAtualizacao = ID5digitos();
     manutencao.historico[chaveAtualizacao] = novaAtualizacao;
 
     let tabela = document.getElementById('linhasManutencao')
@@ -818,7 +818,7 @@ async function enviar_manutencao(id) {
     linhas.forEach(linha => {
         let celulas = linha.querySelectorAll('input, textarea')
         if (celulas.length > 0) {
-            pecas[gerar_id_5_digitos()] = {
+            pecas[ID5digitos()] = {
                 partnumber: celulas[0].value,
                 descricao: celulas[1].value,
                 codigo: celulas[2].value,
@@ -851,7 +851,7 @@ async function enviar_manutencao(id) {
 
     await inserirDados(dados_manutencao, 'dados_manutencao')
 
-    remover_popup()
+    removerPopup()
 
     await carregar_manutencoes()
 
@@ -859,7 +859,7 @@ async function enviar_manutencao(id) {
 
 function adicionar_linha_manut() {
     let tbody = document.getElementById('linhasManutencao')
-    let aleatorio = gerar_id_5_digitos()
+    let aleatorio = ID5digitos()
 
     let excluir_inicial = document.getElementById('excluir_inicial')
     if (excluir_inicial) {

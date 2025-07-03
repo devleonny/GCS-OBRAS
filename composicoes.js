@@ -38,7 +38,7 @@ async function recuperar_composicoes() {
 
     await inserirDados(dadosMescladosComposicoes, 'dados_composicoes')
     await carregar_tabela_v2()
-    remover_popup()
+    removerPopup()
 }
 
 async function carregar_tabela_v2() {
@@ -377,7 +377,7 @@ async function aplicarFiltros() {
     colunasComposicoes[modo] = colunas
 
     localStorage.setItem('colunasComposicoes', JSON.stringify(colunasComposicoes))
-    remover_popup()
+    removerPopup()
 
     await carregar_tabela_v2()
 
@@ -530,7 +530,7 @@ async function salvar_agrupamentos(codigo) {
 
         await enviar(`dados_composicoes/${codigo}/agrupamentos`, produto.agrupamentos)
 
-        remover_popup()
+        removerPopup()
 
         await retomarPaginacao()
     }
@@ -800,7 +800,7 @@ async function excluir_cotacao(codigo, lpu, cotacao) {
             registrarAlteracao('dados_composicoes', codigo, comentario)
         }
 
-        remover_popup()
+        removerPopup()
         await abrirHistoricoPrecos(codigo, lpu);
 
     }
@@ -1291,7 +1291,7 @@ async function salvarPreco(codigo, lpu, cotacao) {
     let margem = getElementById('margem')
     let fornecedor = getElementById('fornecedor')
     let valor_custo = getElementById('valor_custo')
-    let id = cotacao || gerar_id_5_digitos();
+    let id = cotacao || ID5digitos();
     let modalidade_icms = getElementById('modalidade_icms_select')
     let icms_saida = getElementById('icms_saida')
 
@@ -1338,7 +1338,7 @@ async function salvarPreco(codigo, lpu, cotacao) {
     produto[lpu].historico = historico;
 
     await inserirDados(dados_composicoes, 'dados_composicoes')
-    remover_popup()
+    removerPopup()
     await abrirHistoricoPrecos(codigo, lpu);
 
     enviar(`dados_composicoes/${codigo}/${lpu}/historico/${id}`, historico[id])
@@ -1430,7 +1430,7 @@ async function confirmar_exclusao_item(codigo) {
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 
-    remover_popup()
+    removerPopup()
 
     popup(`
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
@@ -1458,7 +1458,7 @@ async function exclusao_item(codigo) {
 
         deletar(`dados_composicoes/${codigo}`)
         await inserirDados(dados_composicoes, 'dados_composicoes')
-        remover_popup()
+        removerPopup()
         await retomarPaginacao()
     }
 
@@ -1519,7 +1519,7 @@ async function salvarServidor(codigo) {
     await inserirDados(dados_composicoes, 'dados_composicoes')
 
     await retomarPaginacao()
-    remover_popup();
+    removerPopup();
 
     await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
     registrarAlteracao('dados_composicoes', codigo, comentario)
@@ -1582,7 +1582,7 @@ function salvarNovaLPU() {
     lpusCriadas.push(nomeLPU);
     localStorage.setItem("lpus_criadas", JSON.stringify(lpusCriadas));
 
-    remover_popup();
+    removerPopup();
 }
 
 async function para_excel() {

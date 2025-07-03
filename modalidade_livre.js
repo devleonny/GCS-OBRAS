@@ -50,7 +50,7 @@ function modalidade_livre_de_orcamento() {
 
 function carregar_layout_modalidade_livre() {
 
-    remover_popup()
+    removerPopup()
 
     orcamento_padrao.style.display = 'none';
     menu_inferior.style.display = 'none';

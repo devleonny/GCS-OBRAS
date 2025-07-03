@@ -709,7 +709,7 @@ async function deseja_excluir_categoria(id, indice) {
 
 async function confirmar_exclusao_categoria(id, indice) {
 
-    remover_popup()
+    removerPopup()
 
     var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
 
@@ -802,7 +802,7 @@ async function editar_pagamento(id, indice) {
     let valorMudado = Number(document.getElementById('valor_mudado').value)
     let categoriaMudada = document.getElementById('categoria_mudada')
 
-    remover_popup()
+    removerPopup()
     overlayAguarde()
 
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
@@ -880,7 +880,7 @@ async function retomarPaginacao() {
 
 async function relancar_pagamento(id) {
 
-    remover_popup()
+    removerPopup()
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     let pagamento = lista_pagamentos[id]
     pagamento.status = 'Nova tentativa...'
@@ -892,7 +892,7 @@ async function relancar_pagamento(id) {
 
 async function confirmar_exclusao_pagamento(id) {
 
-    remover_popup()
+    removerPopup()
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     delete lista_pagamentos[id]
 
@@ -1031,7 +1031,7 @@ async function recuperarPagamentos() {
     await sincronizarDados('lista_pagamentos', true)
     await retomarPaginacao()
 
-    remover_popup()
+    removerPopup()
 
 }
 
@@ -1082,7 +1082,7 @@ async function atualizar_feedback(resposta, id_pagamento) {
         data: dataFormatada
     };
 
-    let id_justificativa = gerar_id_5_digitos()
+    let id_justificativa = ID5digitos()
     pagamento.status = status
 
     if (!pagamento.historico) {
@@ -1328,7 +1328,7 @@ async function criar_pagamento_v2() {
 
         enviar(`lista_pagamentos/${id_pagamento}`, pagamento)
 
-        remover_popup()
+        removerPopup()
 
         var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
 
@@ -2076,7 +2076,7 @@ async function salvar_anexos_parceiros(input, campo, id_pagamento) {
 
         anexos.forEach(anexo => {
 
-            let id = gerar_id_5_digitos()
+            let id = ID5digitos()
 
             if (pagamento.anexos_parceiros[campo][id]) {
                 pagamento.anexos_parceiros[campo][id] = {}
@@ -2122,7 +2122,7 @@ async function carregar_opcoes_categorias(textarea) {
 
     let pesquisa = String(textarea.value).toLowerCase()
     let div = textarea.nextElementSibling
-    let id = gerar_id_5_digitos()
+    let id = ID5digitos()
     textarea.id = id
     div.innerHTML = ''
     let dados_categorias = await recuperarDados('dados_categorias') || {};

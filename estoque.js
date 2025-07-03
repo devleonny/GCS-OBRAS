@@ -628,7 +628,7 @@ async function salvar_dados_compra(codigo, cpr, campo, img) {
 
     }
 
-    remover_popup()
+    removerPopup()
     await abrir_valores(codigo)
 }
 
@@ -642,7 +642,7 @@ async function excluir_preco(codigo, cpr) {
     await deletar(`dados_estoque/${codigo}/valor_compra/${cpr}`)
     await inserirDados(dados_estoque, 'dados_estoque')
 
-    remover_popup()
+    removerPopup()
     await abrir_valores(codigo)
 }
 
@@ -665,7 +665,7 @@ async function salvar_valor(codigo) {
             item.valor_compra = {}
         }
 
-        let id = gerar_id_5_digitos()
+        let id = ID5digitos()
 
         let compra = {
             vl_compra: conversor(vl_compra.value),
@@ -684,7 +684,7 @@ async function salvar_valor(codigo) {
 
     }
 
-    remover_popup()
+    removerPopup()
     await carregar_estoque()
     await abrir_valores(codigo)
 
@@ -881,7 +881,7 @@ async function remover_historico(codigo, stq, chave) {
     await inserirDados(dados_estoque, 'dados_estoque')
     await deletar(`dados_estoque/${codigo}/${stq}/historico/${chave}`)
 
-    remover_popup()
+    removerPopup()
     await abrir_estoque(codigo, stq)
 
 }
@@ -892,9 +892,9 @@ async function salvar_movimento(codigo, stq, inicial) {
     let comentario = document.getElementById('comentario')
     let entrada = document.getElementById('entrada')
     let saida = document.getElementById('saida')
-    let id = gerar_id_5_digitos()
+    let id = ID5digitos()
 
-    remover_popup()
+    removerPopup()
 
     let dados_estoque = await recuperarDados('dados_estoque') || {}
     let item = dados_estoque[codigo]
@@ -1100,9 +1100,9 @@ function setupAutoComplete(inputId, dropdownId, dataArray) {
 
 async function salvar_item(button) {
 
-    remover_popup()
+    removerPopup()
     let div_maior = button.parentElement
-    let codigo = gerar_id_5_digitos()
+    let codigo = ID5digitos()
     let inputs = div_maior.querySelectorAll('input, textarea')
 
     let dados_estoque = await recuperarDados('dados_estoque') || {}
@@ -1169,7 +1169,7 @@ async function remover_linha_excluir_item(elemento) {
 
 async function confirmar_exclusao(codigo) {
 
-    remover_popup()
+    removerPopup()
 
     let dados_estoque = await recuperarDados('dados_estoque') || {}
     delete dados_estoque[codigo]
@@ -1225,7 +1225,7 @@ async function salvar_dados_estoque(img, codigo, chave) {
 async function retomar_paginacao(codigo, stq) {
     await carregar_estoque()
 
-    remover_popup()
+    removerPopup()
 
     if (Object.keys(filtrosComplexos).length > 0) {
         executarPesquisa()

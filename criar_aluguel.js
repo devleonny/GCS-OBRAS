@@ -69,7 +69,7 @@ function confirmar_exclusao() {
 
     baseOrcamento(undefined, true)
     location.href = 'criar_aluguel.html'
-    remover_popup()
+    removerPopup()
 
 }
 
@@ -777,7 +777,7 @@ function executar_limpar_campos() {
     document.getElementById('bairro').textContent = ''
 
     salvarDadosCliente();
-    remover_popup();
+    removerPopup();
 }
 
 function pagina_adicionar() {

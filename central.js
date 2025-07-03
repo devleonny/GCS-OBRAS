@@ -2,6 +2,20 @@ let acesso = JSON.parse(localStorage.getItem('acesso'))
 let dados_setores = {}
 let filtrosUsuarios = {}
 let filtrosPendencias = {}
+const modelo = (valor1, valor2) => `
+        <div style="display: flex; flex-direction: column; align-items: start; margin-bottom: 5px; width: 100%;">
+            <label><strong>${valor1}</strong></label>
+            <div style="width: 100%; text-align: left;">${valor2}</div>
+        </div>
+        `
+
+const labelDestaque = (valor1, valor2) => `<label style="text-align: left;"><strong>${valor1}: </strong>${valor2}</label>`
+
+const botao = (valor1, funcao, cor) => `
+        <div class="contorno_botoes" style="background-color: ${cor};" onclick="${funcao}">
+            <label>${valor1}</label>
+        </div>
+        `
 const avisoHTML = (termo) => `
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
@@ -263,7 +277,7 @@ async function configs() {
         ${tabela}
     </div>
     `
-    remover_popup()
+    removerPopup()
     popup(acumulado, 'Configurações')
 
 }
@@ -550,7 +564,7 @@ function popup(elementoHTML, titulo, nao_remover_anteriores) {
                 </div>
                 <div style="display: flex; align-items: center; justify-content: center;">
 
-                    <div class="botao_popup" style="border-top-right-radius: 5px; background-color: #b12425;" onclick="remover_popup()">
+                    <div class="botao_popup" style="border-top-right-radius: 5px; background-color: #b12425;" onclick="removerPopup()">
                         <label>×</label>
                     </div>
 
@@ -567,7 +581,7 @@ function popup(elementoHTML, titulo, nao_remover_anteriores) {
 
     </div>`;
 
-    remover_popup(nao_remover_anteriores)
+    removerPopup(nao_remover_anteriores)
     removerOverlay()
     document.body.insertAdjacentHTML('beforeend', popup_v2);
 
@@ -687,7 +701,7 @@ async function para_excel(tabela_id, nome_personalizado) {
                 <h3>⚠️ Erro na Exportação</h3>
                 <p>${mensagem}</p>
                 <div style="margin-top: 20px;">
-                    <button onclick="remover_popup()" style="padding: 8px 16px; background: #b71c1c; color: white; border: none; border-radius: 4px;">
+                    <button onclick="removerPopup()" style="padding: 8px 16px; background: #b71c1c; color: white; border: none; border-radius: 4px;">
                         Fechar
                     </button>
                 </div>
@@ -794,12 +808,12 @@ async function exportarParaExcel() {
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Erro ao exportar para Excel:</label>
                 <label style="font-size: 0.8em;">${erro.message}</label>
-                <button onclick="remover_popup()" style="background-color: #B12425;">Fechar</button>
+                <button onclick="removerPopup()" style="background-color: #B12425;">Fechar</button>
             </div>`, 'ERRO');
     }
 }
 
-async function remover_popup(nao_remover_anteriores) {
+async function removerPopup(nao_remover_anteriores) {
 
     let pop_ups = document.querySelectorAll('#temp_pop')
 
@@ -911,7 +925,7 @@ async function apagar(codigo_orcamento) {
     }
 
     await preencherOrcamentos()
-    remover_popup()
+    removerPopup()
 }
 
 function formatodata(data) {
@@ -960,7 +974,7 @@ function calcular() {
     valor_com_imposto.textContent = dinheiro(resultado)
 }
 
-function gerar_id_5_digitos() {
+function ID5digitos() {
     const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let id = '';
     for (let i = 0; i < 5; i++) {
@@ -1035,7 +1049,7 @@ async function salvar_levantamento(id_orcamento) {
 
         let anexo_dados = {};
         anexos.forEach(anexo => {
-            let id_anexo = gerar_id_5_digitos();
+            let id_anexo = ID5digitos();
             anexo_dados[id_anexo] = anexo;
         });
 
@@ -1240,7 +1254,7 @@ function enviar(caminho, info) {
 
 function salvar_offline(objeto, operacao) {
     let dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {}
-    let id = gerar_id_5_digitos()
+    let id = ID5digitos()
 
     if (!dados_offline[operacao]) {
         dados_offline[operacao] = {}
@@ -1363,7 +1377,7 @@ async function refazer_pagamento(id_pagamento) {
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
 
     if (lista_pagamentos[id_pagamento]) {
-        remover_popup()
+        removerPopup()
         let pagamento = lista_pagamentos[id_pagamento]
         console.log(await lancar_pagamento(pagamento))
         pagamento.status = 'Pagamento salvo localmente'
@@ -1793,8 +1807,8 @@ function visibilidadeOrcamento(div) {
 async function respostaAprovacao(botao, idOrcamento, status) {
 
     // Dois popups pra fechar;
-    remover_popup()
-    remover_popup()
+    removerPopup()
+    removerPopup()
 
     let justificativa = botao.parentElement.parentElement.querySelector('textarea').value
     let dados = {
@@ -1923,7 +1937,7 @@ function registrarAlteracao(base, id, comentario) {
         id
     }
 
-    let idRegistro = gerar_id_5_digitos()
+    let idRegistro = ID5digitos()
 
     enviar(`registrosAlteracoes/${idRegistro}`, novoRegistro)
 }
@@ -2218,6 +2232,8 @@ async function carregarClientes(textarea) {
     let div = document.getElementById('div_sugestoes')
     if (div) div.remove()
 
+    if (pesquisa == '') return
+
     for ([omie, cliente] of Object.entries(dados_clientes)) {
 
         let nome = cliente.nome.toLowerCase()
@@ -2232,7 +2248,7 @@ async function carregarClientes(textarea) {
         `}
     }
 
-    if (pesquisa == '') {
+    if (document.title !== 'Veículos' && pesquisa == '') {
         document.getElementById('cnpj').textContent = '...'
         document.getElementById('cnpj').textContent = '...'
         document.getElementById('cep').textContent = '...'
@@ -2255,25 +2271,33 @@ async function carregarClientes(textarea) {
 }
 
 async function selecionarCliente(omie, nome) {
-    let dados_clientes = await recuperarDados('dados_clientes') || {};
-    let cliente = dados_clientes[omie]
 
-    let orcamento = baseOrcamento()
-    if (!orcamento.dados_orcam) orcamento.dados_orcam = {}
-    orcamento.dados_orcam.omie_cliente = omie
-    baseOrcamento(orcamento)
+    if (document.title == 'Veículos') {
+        let omie_motorista = document.getElementById('motorista')
+        omie_motorista.value = nome
+        omie_motorista.nextElementSibling.value = omie
 
-    document.getElementById('cnpj').textContent = cliente.cnpj
-    document.getElementById('cep').textContent = cliente.cep
-    document.getElementById('bairro').textContent = cliente.bairro
-    document.getElementById('cidade').textContent = cliente.cidade
-    document.getElementById('estado').textContent = cliente.estado
+    } else {
+        let dados_clientes = await recuperarDados('dados_clientes') || {};
+        let cliente = dados_clientes[omie]
+
+        let orcamento = baseOrcamento()
+        if (!orcamento.dados_orcam) orcamento.dados_orcam = {}
+        orcamento.dados_orcam.omie_cliente = omie
+        baseOrcamento(orcamento)
+
+        document.getElementById('cnpj').textContent = cliente.cnpj
+        document.getElementById('cep').textContent = cliente.cep
+        document.getElementById('bairro').textContent = cliente.bairro
+        document.getElementById('cidade').textContent = cliente.cidade
+        document.getElementById('estado').textContent = cliente.estado
+
+        let textarea = document.getElementById('cliente_selecionado')
+        textarea.value = nome
+        salvarDadosCliente()
+    }
 
     document.getElementById('div_sugestoes').remove()
-
-    let textarea = document.getElementById('cliente_selecionado')
-    textarea.value = nome
-    salvarDadosCliente()
 }
 
 function executarLimparCampos() {

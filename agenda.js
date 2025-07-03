@@ -55,7 +55,7 @@ async function sincronizar_departamentos() {
     await inserirDados(departamentosNuvem, 'dados_departamentos')
     await inserirDados(await receber('dados_categorias'), 'dados_categorias')
 
-    remover_popup()
+    removerPopup()
 }
 
 async function recuperar_agenda() {
@@ -254,7 +254,7 @@ async function carregar_tabela(alterar) {
 
     colorir_tabela()
 
-    remover_popup()
+    removerPopup()
 
     filtrar_por_regiao()
     filtrar_tabela('0', 'tabelaAgenda') // Script genérico que organiza a tabela com base na coluna e no ID da tabela.
@@ -333,7 +333,7 @@ async function confirmar_apagar_agenda(omie_tecnico) {
 
 async function apagar_agenda(omie_tecnico) {
 
-    remover_popup()
+    removerPopup()
 
     let mes = document.getElementById('mes').value
     let ano = document.getElementById('ano').value
@@ -476,7 +476,7 @@ async function salvar_tecnico(omie_tecnico) {
 
     enviar(`dados_agenda_tecnicos/${omie_tecnico}`, dados_agenda_tecnicos[omie_tecnico])
 
-    remover_popup()
+    removerPopup()
 
     await carregar_tabela()
 
@@ -699,7 +699,7 @@ async function gerenciarDepartamentoFixo(omieDepartamento, codigoFuncionario, op
     }
 
     enviar(`dados_agenda_tecnicos/${codigoFuncionario}/departamentos_fixos`, depFixos)
-    remover_popup()
+    removerPopup()
     await inserirDados(dados_agenda_tecnicos, 'dados_agenda_tecnicos')
     await carregar_tabela()
     await abrirDetalhes(codigoFuncionario)
@@ -723,7 +723,7 @@ async function confirmar_apagar_tecnico(omieFuncionario) {
 
 async function apagar_tecnico(omie_tecnico) {
 
-    remover_popup()
+    removerPopup()
 
     delete dados_agenda_tecnicos[omie_tecnico]
 
@@ -834,7 +834,7 @@ let relatorios = {
 
 async function distribuicaoFuncionario() {
 
-    remover_popup()
+    removerPopup()
     let clientesOmie = await recuperarDados('dados_clientes') || {}
     let permitidos = ['adm', 'fin']
     let setores = ['FINANCEIRO']
@@ -1173,7 +1173,7 @@ async function enviarPagamentos() {
 
     await inserirDados(lista_pagamentos, 'lista_pagamentos')
 
-    remover_popup()
+    removerPopup()
     await distribuicaoFuncionario()
 
 }

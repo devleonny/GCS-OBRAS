@@ -213,7 +213,7 @@ async function salvarVeiculo() {
         }
 
         removerOverlay();
-        remover_popup();
+        removerPopup();
 
         popup(`
             <div class="popup-message">
@@ -223,7 +223,7 @@ async function salvarVeiculo() {
         `, 'Sucesso');
 
         setTimeout(() => {
-            remover_popup();
+            removerPopup();
         }, 1500);
 
     } catch (error) {
@@ -303,7 +303,7 @@ async function adicionarCustoExtra(idMotorista, nomeVeiculo) {
             motorista.custos_extras = { registros: {} };
         }
 
-        const idRegistro = gerar_id_5_digitos();
+        const idRegistro = ID5digitos();
         motorista.custos_extras.registros[idRegistro] = {
             data: data_atual('curta'),
             valor: valor,
@@ -313,7 +313,7 @@ async function adicionarCustoExtra(idMotorista, nomeVeiculo) {
         await inserirDados(dados_veiculos, 'dados_veiculos');
         await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
-        remover_popup();
+        removerPopup();
         abrirPopupExtras(idMotorista, nomeVeiculo, motorista.nome);
 
     } catch (error) {
@@ -387,7 +387,7 @@ async function salvarEdicaoCustoExtra(idMotorista, nomeVeiculo, idRegistro) {
         await inserirDados(dados_veiculos, 'dados_veiculos');
         await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
-        remover_popup();
+        removerPopup();
         abrirPopupExtras(idMotorista, nomeVeiculo, motorista.nome);
 
     } catch (error) {
@@ -406,7 +406,7 @@ async function excluirCustoExtra(idMotorista, nomeVeiculo, idRegistro) {
         await inserirDados(dados_veiculos, 'dados_veiculos');
         await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
-        remover_popup();
+        removerPopup();
         abrirPopupExtras(idMotorista, nomeVeiculo, motorista.nome);
 
     } catch (error) {
@@ -469,7 +469,7 @@ async function confirmarExclusaoMotorista(idMotorista, nomeVeiculo, nomeMotorist
             <img src="gifs/alerta.gif" class="confirmar-exclusao-imagem">
             <label>Tem certeza que deseja excluir o motorista ${nomeMotorista}?</label>
             <div class="confirmar-exclusao-botoes">
-                <button onclick="remover_popup()" class="botao-cancelar">
+                <button onclick="removerPopup()" class="botao-cancelar">
                     Cancelar
                 </button>
                 <button onclick="excluirMotorista('${idMotorista}', '${nomeVeiculo}')" class="botao-confirmar-exclusao">
@@ -490,7 +490,7 @@ async function excluirMotorista(idMotorista, nomeVeiculo) {
 
         await deletar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`);
 
-        remover_popup();
+        removerPopup();
 
         popup(`
             <div class="popup-message">
@@ -502,7 +502,7 @@ async function excluirMotorista(idMotorista, nomeVeiculo) {
         await preencherTabelaMotoristas(nomeVeiculo);
 
         setTimeout(() => {
-            remover_popup();
+            removerPopup();
         }, 500);
 
     } catch (error) {
@@ -645,7 +645,7 @@ async function adicionarCusto(idMotorista, nomeVeiculo) {
         const hoje = new Date();
         const dataFormatada = hoje.toLocaleDateString('pt-BR');
 
-        const idCusto = gerar_id_5_digitos();
+        const idCusto = ID5digitos();
         motorista.custo_mensal_veiculo.custos[idCusto] = {
             custo: Number(valor),
             descricao: descricao,
@@ -932,7 +932,7 @@ async function cadastrarMotorista() {
         await sincronizarDados('dados_veiculos');
         let dados_veiculos = await recuperarDados('dados_veiculos') || { veiculos: {} };
 
-        const idMotorista = gerar_id_5_digitos();
+        const idMotorista = ID5digitos();
 
         const novoMotorista = {
             nome: nome,
@@ -955,7 +955,7 @@ async function cadastrarMotorista() {
         await preencherTabelaMotoristas(veiculoSelecionado);
 
         removerOverlay();
-        remover_popup();
+        removerPopup();
 
         popup(`
             <div class="popup-message">
@@ -965,7 +965,7 @@ async function cadastrarMotorista() {
         `, 'Sucesso');
 
         setTimeout(() => {
-            remover_popup();
+            removerPopup();
         }, 1500);
 
     } catch (error) {
@@ -997,7 +997,7 @@ async function atualizarListaMotoristas() {
         }
 
         removerOverlay();
-        remover_popup();
+        removerPopup();
 
         popup(`
             <div style="display: flex; align-items: center; justify-content: center; padding: 20px;">
@@ -1007,13 +1007,13 @@ async function atualizarListaMotoristas() {
         `, 'Sucesso');
 
         setTimeout(() => {
-            remover_popup();
+            removerPopup();
         }, 500);
 
     } catch (error) {
         console.error('Erro ao atualizar lista:', error);
         removerOverlay();
-        remover_popup();
+        removerPopup();
 
         popup(`
             <div style="display: flex; align-items: center; justify-content: center; padding: 20px;">
@@ -1317,7 +1317,7 @@ async function salvarEdicaoRegistroCombustivel(idMotorista, nomeVeiculo, idRegis
         await inserirDados(dados_veiculos, 'dados_veiculos');
         await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
-        remover_popup();
+        removerPopup();
         abrirPopupCombustivel(idMotorista, nomeVeiculo, motorista.nome);
     } catch (error) {
         console.error('Erro ao salvar alterações:', error);
@@ -1344,7 +1344,7 @@ async function adicionarRegistroCombustivel(idMotorista, nomeVeiculo) {
             motorista.combustivel = { registros: {} };
         }
 
-        const idRegistro = gerar_id_5_digitos();
+        const idRegistro = ID5digitos();
         motorista.combustivel.registros[idRegistro] = {
             data: data_atual('curta'),
             km: km,
@@ -1357,7 +1357,7 @@ async function adicionarRegistroCombustivel(idMotorista, nomeVeiculo) {
         await inserirDados(dados_veiculos, 'dados_veiculos');
         await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
-        remover_popup();
+        removerPopup();
         abrirPopupCombustivel(idMotorista, nomeVeiculo, motorista.nome);
     } catch (error) {
         console.error('Erro ao adicionar registro:', error);
@@ -1397,7 +1397,7 @@ async function salvarAnexoCombustivel(input, idMotorista, nomeVeiculo, idRegistr
             }
 
             anexos.forEach(anexo => {
-                const idAnexo = gerar_id_5_digitos();
+                const idAnexo = ID5digitos();
                 motorista.combustivel.registros[idRegistro].anexos[idAnexo] = {
                     nome: anexo.nome,
                     formato: anexo.tipo || 'application/pdf',
@@ -1408,7 +1408,7 @@ async function salvarAnexoCombustivel(input, idMotorista, nomeVeiculo, idRegistr
             await inserirDados(dados_veiculos, 'dados_veiculos');
             await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
-            remover_popup();
+            removerPopup();
             abrirAnexosCombustivel(idMotorista, nomeVeiculo, idRegistro);
         }
     } catch (error) {
@@ -1510,7 +1510,7 @@ async function excluirRegistroCombustivel(idMotorista, nomeVeiculo, idRegistro) 
         await inserirDados(dados_veiculos, 'dados_veiculos');
         await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/motoristas/${idMotorista}`, motorista);
 
-        remover_popup();
+        removerPopup();
         abrirPopupCombustivel(idMotorista, nomeVeiculo, motorista.nome);
     } catch (error) {
         console.error('Erro ao excluir registro:', error);
@@ -1540,7 +1540,7 @@ async function excluirFrota(nomeVeiculo, placa) {
 
         await inserirDados(dados_veiculos, 'dados_veiculos');
 
-        remover_popup();
+        removerPopup();
         abrirGerenciamentoFrotas();
 
         popup(`
@@ -1563,7 +1563,7 @@ async function excluirFrota(nomeVeiculo, placa) {
         }
 
         setTimeout(() => {
-            remover_popup();
+            removerPopup();
         }, 1500);
     } catch (error) {
         console.error('Erro ao excluir frota:', error);
@@ -1598,7 +1598,7 @@ async function tentarExcluirFrota(nomeVeiculo, placa) {
                         <li>${listaMotoristas}</li>
                     </ul>
                     <p>Remova os motoristas primeiro para poder excluir a frota.</p>
-                    <button onclick="remover_popup()" class="botao-form primario">
+                    <button onclick="removerPopup()" class="botao-form primario">
                         Entendi
                     </button>
                 </div>
@@ -1611,7 +1611,7 @@ async function tentarExcluirFrota(nomeVeiculo, placa) {
                 <img src="gifs/alerta.gif" class="confirmar-exclusao-imagem">
                 <p>Tem certeza que deseja excluir a frota ${placa} do veículo ${nomeVeiculo}?</p>
                 <div class="confirmar-exclusao-botoes">
-                    <button onclick="remover_popup()" class="botao-cancelar">
+                    <button onclick="removerPopup()" class="botao-cancelar">
                         Cancelar
                     </button>
                     <button onclick="excluirFrota('${nomeVeiculo}', '${placa}')" class="botao-confirmar-exclusao">
@@ -1756,7 +1756,7 @@ async function salvarEdicaoFrota(nomeVeiculo, placa) {
         await inserirDados(dados_veiculos, 'dados_veiculos');
         await enviar(`dados_veiculos/veiculos/${nomeVeiculo}/frotas/${placa}`, dados_veiculos.veiculos[nomeVeiculo].frotas[placa]);
 
-        remover_popup();
+        removerPopup();
         abrirGerenciamentoFrotas();
 
         popup(`
@@ -1767,7 +1767,7 @@ async function salvarEdicaoFrota(nomeVeiculo, placa) {
         `, 'Sucesso');
 
         setTimeout(() => {
-            remover_popup();
+            removerPopup();
         }, 1500);
 
     } catch (error) {
