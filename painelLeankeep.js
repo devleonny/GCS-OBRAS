@@ -257,6 +257,8 @@ async function leankeep() {
                     return response.json();
                 })
                 .then(data => {
+                    console.log(data);
+                    
                     autorizacao = data.authToken.token;
                     document.getElementById('acesso').style.display = 'none'
                     document.getElementById('overlay').style.display = 'none'
@@ -514,8 +516,6 @@ async function pesquisar() {
         document.getElementById('qtde_' + item).textContent = contagem[item];
     });
 }
-
-
 
 function api_ocorrencias(pagina) {
     return new Promise((resolve, reject) => {
