@@ -5,6 +5,12 @@ const modeloLabel = (valor1, elemento) => `
 </div>
 `
 let filtroVeiculos = {}
+const labelDupla = (valor1, valor2) => `
+    <div style="display: flex; flex-direction: column; align-items: start;">
+        <label style="font-size: 0.7vw;"><strong>${valor1}</strong></label>
+        <label style="font-size: 0.9vw;">${valor2}</label>
+    </div>
+`
 const botaoVeiculos = (valor1, funcao, cor) => `
     <div class="botoes" style="background-color: ${cor};" onclick="${funcao}">
         <label>${valor1}</label>
@@ -186,12 +192,14 @@ async function painelValores(idCusto) {
 
             ${modeloLabel('Custo Total', `<input value="${custo?.custo_total || ''}" type="number" id="custo_total" placeholder="Total do lançamento" type="number">`)}
             ${modeloLabel('Comentário', `<textarea id="comentario" placeholder="Comente algo">${custo?.comentario || ''}</textarea>`)}
+            
+            <div id="dados_veiculos" class="contornoDestaque"></div>
             ${modeloLabel('Motorista', `
                 <select id="veiculo" onchange="dadosVeiculo()">
                     ${opcoesMotoristas}
                 </select>
                 `)}
-            <div id="dados_veiculos"></div>
+            
     `
 
     let funcao = idCusto ? `salvarValores('${idCusto}')` : `salvarValores()`
@@ -318,10 +326,13 @@ async function dadosVeiculo(input) {
 
     if (veiculo) {
         acumulado = `
-        <div style="display: flex; justify-content: start; align-items: start; flex-direction: column; gap: 5px;">
-            ${labelDestaque('Modelo', veiculo.modelo)}
-            ${labelDestaque('Placa', veiculo.placa)}
-            ${labelDestaque('Status', veiculo.status)}
+        <div style="display: flex; justify-content: space-evenly; align-items: center; width: 100%;">
+            <img src="imagens/veiculo.png" style="width: 3vw;">
+            <div style="display: flex; justify-content: start; align-items: start; flex-direction: column;">
+                ${labelDupla('Modelo', veiculo.modelo)}
+                ${labelDupla('Placa', veiculo.placa)}
+                ${labelDupla('Status', veiculo.status)}
+            </div>
         </div>    
     `}
 
@@ -349,7 +360,7 @@ async function novoMotorista(idMotorista) {
     let modeloVeiculo = veiculos?.[idVeiculo]?.modelo || ''
 
     let opcoes = Object.entries(veiculos)
-        .map(veiculo => `<option value="${veiculo[0]}" ${veiculo[1].modelo == modeloVeiculo ? 'selected' : ''}>${veiculo[1].modelo}</option>`)
+        .map(([idVeiculo, veiculo]) => `<option value="${idVeiculo}" ${veiculo.modelo == modeloVeiculo ? 'selected' : ''}>${veiculo.modelo} ${veiculo.placa}</option>`)
         .join('')
 
     let acumulado = `
@@ -360,18 +371,17 @@ async function novoMotorista(idMotorista) {
             <input id="omie" value="${idMotorista || ''}" style="display: none;">
             `)}
 
-            <div style="display: flex; align-items: center; justiry-conetent: center; gap: 5px;">
+            <div class="contornoDestaque">
                 <input style="width: 1.5vw; height: 1.5vw;" type="checkbox" onchange="dadosVeiculo(this)">
                 <label>Sem veículo no momento</label>
             </div>
             
+            <div id="dados_veiculos" class="contornoDestaque"></div>
             ${modeloLabel('Selecione o veículo', `
                 <select id="veiculo" onchange="dadosVeiculo()">
                     ${opcoes}
                 </select>
                 `)}
-
-            <div id="dados_veiculos"></div>
 
             <hr style="width: 100%;">
             ${botaoVeiculos('Salvar', 'salvarMotorista()', 'green')}

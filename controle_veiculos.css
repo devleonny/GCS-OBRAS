@@ -5,7 +5,21 @@ select {
     cursor: pointer;
     padding: 5px;
     border-radius: 3px;
-    border: 1px solid #c5c5c5
+    border: 1px solid #c5c5c5;
+    background-color: #ffffffc4;
+}
+
+.contornoDestaque {
+    background-color: #ffffffc4;
+    width: 100%;
+    border: solid 1px #797979;
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
 }
 
 .diVeiculos {
@@ -25,7 +39,7 @@ select {
 }
 
 .diVeiculos:hover {
-    color: white ;
+    color: white;
     background-color: #097fe6;
 }
 
@@ -44,13 +58,13 @@ select {
 }
 
 .paineis {
-    width: 30vw;
+    width: max-content;
     display: flex;
     flex-direction: column;
     align-items: start;
     justify-content: center;
     gap: 10px;
-    padding: 1vw;
+    padding: 2vw;
     background-color: #d2d2d2;
 }
 
