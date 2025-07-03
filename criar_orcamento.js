@@ -1332,7 +1332,10 @@ async function gerenciarAgrupamentos(codigo) {
 }
 
 async function total() {
+
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
     dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
     let orcamento_v2 = baseOrcamento()
     let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
     let carrefour = orcamento_v2.lpu_ativa == 'LPU CARREFOUR'
@@ -1340,10 +1343,12 @@ async function total() {
     let divTabelas = document.getElementById('tabelas')
     let tables = divTabelas.querySelectorAll('table')
     let padraoFiltro = localStorage.getItem('padraoFiltro')
-    let estado = orcamento_v2?.dados_orcam?.estado || false
     let avisoDesconto = 0
     let totalAcrescido = 0
     let descontoAcumulado = 0
+
+    let cliente = dados_clientes?.[orcamento_v2.dados_orcam.omie_cliente] || ''
+    let estado = cliente.estado || false
 
     if (!orcamento_v2.dados_composicoes) orcamento_v2.dados_composicoes = {}
 
