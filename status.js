@@ -1789,7 +1789,7 @@ async function abrirEsquema(id) {
         `
 
     let levantamentos = Object.entries(orcamento?.levantamentos || {})
-        .map(([iDlevantamento, levantamento]) => `${criarAnexoVisual(levantamento.nome, levantamento.link, `excluir_levantamento('${iDlevantamento}', '${iDlevantamento}')`)}`)
+        .map(([iDlevantamento, levantamento]) => `${criarAnexoVisual(levantamento.nome, levantamento.link, `excluir_levantamento('${id_orcam}', '${iDlevantamento}')`)}`)
         .join('')
 
     let divLevantamentos = `
