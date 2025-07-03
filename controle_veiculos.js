@@ -56,7 +56,6 @@ async function carregarTabela() {
     let botoesCarros = Object.entries(veiculos)
         .map(([idVeiculo, veiculo]) => `
             <div class="diVeiculos" onclick="novoVeiculo('${idVeiculo}')">
-
                 <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
 
                 <div style="display: flex; justify-content: center; align-items: start; flex-direction: column;">
@@ -64,7 +63,6 @@ async function carregarTabela() {
                     <label style="font-size: 0.8vw;">${veiculo.placa}</label>
                     <label>${veiculo.status}</label>
                 </div>
-
             </div>
             `)
         .join('')
