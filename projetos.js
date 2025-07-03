@@ -1660,7 +1660,7 @@ async function salvar_anexos_kanban(input, idTarefa) {
         return;
     }
 
-    let anexos = await anexo_v2(input); // Simulação da função de upload
+    let anexos = await importarAnexos(input); // Simulação da função de upload
     let dados = JSON.parse(localStorage.getItem("dados_kanban")) || { listas: {}, tarefas: {} };
     let tarefa = dados.tarefas[idTarefa];
 

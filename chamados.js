@@ -1118,7 +1118,7 @@ async function salvar_anexos_manutencao(input, id) {
         return;
     }
 
-    let anexos = await anexo_v2(input); // Simulação da função de upload
+    let anexos = await importarAnexos(input); // Simulação da função de upload
     await inserirDados(await receber('dados_manutencao'), 'dados_manutencao');
     let dados_manutencao = await recuperarDados('dados_manutencao') || {};
     let manutencao = dados_manutencao[id];

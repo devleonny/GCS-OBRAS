@@ -2439,7 +2439,7 @@ async function salvar_anexo(chave, input) {
         return;
     }
 
-    let anexos = await anexo_v2(input) // Retorna uma lista [{}, {}]
+    let anexos = await importarAnexos(input) // Retorna uma lista [{}, {}]
 
     anexos.forEach(anexo => {
 
