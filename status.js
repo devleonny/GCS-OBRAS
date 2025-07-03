@@ -476,6 +476,8 @@ async function calcularRequisicao(sincronizar) {
                         item.custo = item.custo - desconto
                     }
 
+                    item.custo = Number(item.custo.toFixed(2))
+
                     let totalLinhas = item.custo * qtde
                     tds[5].querySelector('label').innerHTML = `${dinheiro(item.custo)}` // Unitário
                     tds[6].querySelector('label').innerHTML = `${dinheiro(totalLinhas)}` // Total
