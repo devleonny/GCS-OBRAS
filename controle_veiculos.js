@@ -69,6 +69,16 @@ async function carregarTabela() {
             `)
         .join('')
 
+    function conversorData(data) {
+
+        if(!data) return ''
+
+        let [ano, mes, dia] = data.split('-')
+        let dataFormatada = `${dia}/${mes}/${ano}`
+
+        return dataFormatada
+    }
+
     let ths = '', tsh = ''
     let colunas = ['Usuário & Data', 'Veículo', 'Motorista', 'Tipo', 'Valor', 'Comentário', 'Anexos', 'Editar']
         .map((coluna, i) => {
@@ -99,7 +109,7 @@ async function carregarTabela() {
             <td>
                 <div style="display: flex; flex-direction: column; align-items: start;">
                     <label><strong>${custo.usuario}</strong></label>
-                    <label>${custo.data}</label>
+                    <label>${conversorData(custo.data_pagamento)}</label>
                 </div>
             </td>
             <td>
@@ -179,6 +189,7 @@ async function painelValores(idCusto) {
         .join('')
 
     let campos = `
+            ${modeloLabel('Data do Pagamento', `<input id="data_pagamento" type="date" value="${custo?.data_pagamento || ''}">`)}
             ${modeloLabel('Categoria', `
                 <select id="categoria" onchange="ocultarCampos(this)">
                     ${categorias}
@@ -240,6 +251,7 @@ async function salvarValores(idCusto) {
         categoria,
         custo_total: obterValores('custo_total'),
         comentario: obterValores('comentario'),
+        data_pagamento: obterValores('data_pagamento'),
         data: data_atual('completa'),
         usuario: acesso.usuario
     }
