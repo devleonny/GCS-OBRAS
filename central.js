@@ -82,8 +82,7 @@ function carregarIcones() {
         ${atalho('Reembolsos & Pagamentos', 'reembolso', `window.location.href='pagamentos.html'`)}
         ${atalho('Painel Kanban', 'kanban', `window.location.href='projetos.html'`)}
         ${atalho('Agenda', 'agenda', `window.location.href='agenda.html'`)}
-        ${atalho('Veículos', 'veiculo', `window.location.href='veiculos.html'`)}
-        
+        ${atalho('Veículos', 'veiculo', `window.location.href='controle_veiculos.html'`)}
         
         ${registroHistorico
             ? atalho('Histórico de Alterações GCS', 'historico', `window.location.href='historicoRegistros.html'`)

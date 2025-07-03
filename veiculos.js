@@ -1371,7 +1371,7 @@ async function salvarAnexoCombustivel(input, idMotorista, nomeVeiculo, idRegistr
             throw new Error('Nenhum arquivo selecionado');
         }
 
-        const anexos = await anexo_v2(input);
+        const anexos = await importarAnexos(input);
         if (!anexos || anexos.length === 0) {
             throw new Error('Erro ao fazer upload do arquivo');
         }

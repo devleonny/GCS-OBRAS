@@ -20,25 +20,44 @@ const categorias = {
 carregarTabela()
 
 async function carregarTabela() {
-    let motoristas = await recuperarDados('motoristas') || {}
+
     let veiculos = await recuperarDados('veiculos') || {}
-    let botoesCarros = Object.entries(veiculos)
-        .map(veiculo => `
-            <div class="diVeiculos" onclick="novoVeiculo('${veiculo[0]}')">
-                <label><strong>${veiculo[1].modelo}</strong></label>
-                <label style="font-size: 0.8vw;">${veiculo[1].placa}</label>
-                <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
-                    <img src="imagens/${veiculo[1].status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
-                    <label>${veiculo[1].status}</label>
+    let motoristas = await recuperarDados('motoristas') || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
+    let custo_veiculos = await recuperarDados('custo_veiculos') || {}
+
+    let botoesMotoristas = Object.entries(motoristas)
+        .map(([idMotorista, motorista]) =>
+            `<div class="diVeiculos" onclick="novoMotorista('${idMotorista}')">
+                <img src="imagens/${veiculos?.[motorista.veiculo]?.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
+                <div style="display: flex; justify-content: center; align-items: start; flex-direction: column;">
+                    <label><strong>${String(dados_clientes[idMotorista].nome).slice(0, 10)}...</strong></label>
+                    <label><strong>${veiculos?.[motorista.veiculo]?.modelo || ''}</strong> ${veiculos?.[motorista.veiculo]?.placa || 'Sem veículo'}</label>
                 </div>
             </div>
             `)
         .join('')
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
+
+    let botoesCarros = Object.entries(veiculos)
+        .map(([idVeiculo, veiculo]) => `
+            <div class="diVeiculos" onclick="novoVeiculo('${idVeiculo}')">
+
+                <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
+
+                <div style="display: flex; justify-content: center; align-items: start; flex-direction: column;">
+                    <label><strong>${veiculo.modelo}</strong></label>
+                    <label style="font-size: 0.8vw;">${veiculo.placa}</label>
+                    <label>${veiculo.status}</label>
+                </div>
+
+            </div>
+            `)
+        .join('')
+
     let ths = '', tsh = ''
-    let colunas = ['Motorista', 'Veículo', 'Combustível', 'Pedágio', 'Multas', 'Custos Extras']
+    let colunas = ['Usuário & Data', 'Veículo', 'Motorista', 'Tipo', 'Valor', 'Comentário', 'Anexos', 'Editar']
         .map((coluna, i) => {
-            tsh += `
+            tsh += (coluna == 'Editar' || coluna == 'Anexos') ? '<th style="background-color: white;"></th>' : `
             <th style="background-color: white;">
                 <div style="display: flex; align-items: center; justify-content: center;">
                     <input oninput="pesquisar_generico(${i}, this.value, filtroVeiculos, 'bodyVeiculos')" style="border: none;">
@@ -49,47 +68,52 @@ async function carregarTabela() {
             ths += `<th style="color: white;">${coluna}</th>`
         })
 
-    let divModelo = (valor1, nome, idMotorista, categoria) => `
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-            <label style="cursor: pointer;" onclick="abrirCustos('${categoria}', '${idMotorista}')">${dinheiro(valor1)}</label>
-            <img onclick="painelValores('${nome}', '${idMotorista}', '${categoria}')" src="imagens/baixar.png" style="cursor: pointer; width: 1.5vw;">
-        </div>
-    `
-    function somarValores(objeto) {
-        let soma = 0
-
-        for ([id, dados] of Object.entries(objeto)) {
-            soma += dados.custo_total
-        }
-
-        return soma
-    }
-
     let linhas = ''
-    for (let [idMotorista, motorista] of Object.entries(motoristas)) {
+    for (let [idCusto, custo] of Object.entries(custo_veiculos)) {
 
-        let nome = dados_clientes[idMotorista].nome
-        let veiculo = veiculos[motorista.veiculo]
+        let anexos = Object.entries(custo?.anexos || {})
+            .map(([idAnexo, anexo]) => `
+                ${criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo('${idCusto}', '${idAnexo}', this)`)}
+                `)
+            .join('')
+        let nome = dados_clientes[custo.motorista].nome
+        let veiculo = veiculos[custo.veiculo]
 
         linhas += `
         <tr>
             <td>
-                <div style="display: flex; justify-content: start; align-items: center; gap: 10px;">
-                    <img onclick="novoMotorista('${idMotorista}')" src="imagens/construcao.png" style="cursor: pointer; width: 1.5vw;">
-                    <label>${nome}</label>
+                <div style="display: flex; flex-direction: column; align-items: start;">
+                    <label><strong>${custo.usuario}</strong></label>
+                    <label>${custo.data}</label>
                 </div>
             </td>
             <td>
-                <div style="display: flex; align-items: start; justify-content: start; flex-direction: column;">
-                    <label>${veiculo.placa}</label>
-                    <label>${veiculo.modelo}</label>
-                    <label>${veiculo.status}</label>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
+                    <label><strong>${veiculo.modelo}</strong></label>
+                    <label style="font-size: 0.8vw;">${veiculo.placa}</label>
+
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
+                        <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
+                        <label>${veiculo.status}</label>
+                    </div>
+                </div>
+            </td>            
+            <td>${nome}</td>
+            <td>${custo.categoria}</td>
+            <td>${dinheiro(custo.custo_total)}</td>
+            <td style="text-align: left;">${custo.comentario}</td>
+            <td>
+                <div style="display: flex; align-items: center;">
+                    <img onclick="document.getElementById('${idCusto}').click()" src="imagens/baixar.png" style="cursor: pointer; width: 1.5vw;">
+                    <input id="${idCusto}" type="file" style="display: none;" onchange="salvarAnexoCusto(this)" multiple>
+                    <div style="display: flex; flex-direction: column;">
+                        ${anexos}
+                    </div>
                 </div>
             </td>
-            <td>${divModelo(somarValores(motorista?.combustivel || {}), nome, idMotorista, 'Combustível')}</td>
-            <td>${divModelo(somarValores(motorista?.pedagio || {}), nome, idMotorista, 'Pedágio')}</td>
-            <td>${divModelo(somarValores(motorista?.multas || {}), nome, idMotorista, 'Multas')}</td>
-            <td>${divModelo(somarValores(motorista?.extras || {}), nome, idMotorista, 'Custos Extras')}</td>
+            <td style="text-align: center;">
+                <img onclick="painelValores('${idCusto}')" src="imagens/editar.png" style="cursor: pointer; width: 1.5vw;">
+            </td>
         </tr>
         `
     }
@@ -98,14 +122,17 @@ async function carregarTabela() {
 
     <div style="border-radius: 2px; background-color: #d2d2d2; display: flex; justify-content: center; align-items: start; gap: 10px;">
 
-        <div style="width: 10vw;">
-            ${botaoVeiculos('Novo Motorista', 'novoMotorista()')}
+        <div style="width: 15vw;">
+            ${botaoVeiculos('Adicionar Custo', 'painelValores()', 'green')}
             <hr style="width: 100%;">
-            ${botaoVeiculos('Novo Veículo', 'novoVeiculo()')}
+            ${botaoVeiculos('Novo Motorista', 'novoMotorista()', '#04549a')}
+            ${botoesMotoristas}
+            <hr style="width: 100%;">
+            ${botaoVeiculos('Novo Veículo', 'novoVeiculo()', '#04549a')}
             ${botoesCarros}
         </div>
-    
-        <table class="tabela" style="width: 100%;">
+
+        <table class="tabela" style="display: table-row;">
             <thead style="background-color: #797979;">
                 <tr>${ths}</tr>
                 <tr>${tsh}</tr>
@@ -120,104 +147,80 @@ async function carregarTabela() {
     document.getElementById('tabelaRegistro').innerHTML = acumulado
 }
 
+async function painelValores(idCusto) {
 
-async function abrirCustos(categoria, idMotorista) {
-
+    let custo_veiculos = await recuperarDados('custo_veiculos') || {}
     let motoristas = await recuperarDados('motoristas') || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
+    let custo = custo_veiculos[idCusto]
 
-    let motorista = motoristas[idMotorista]
-
-    let categoriaReal = categorias[categoria]
-
-    let valores = motorista?.[categoriaReal] || {}
-    let linhas = ''
-
-    let ths = ['Data', 'Usuário', 'Comentário', 'Valores', 'Excluir']
-        .map(coluna => `<th style="color: white;">${coluna}</th>`)
+    let opcoesMotoristas = Object.entries(motoristas)
+        .map(([idMotorista, motorista]) =>
+            `<option data-id="${idMotorista}" value="${custo?.veiculo || motorista?.veiculo || ''}" ${custo?.motorista == idMotorista ? 'selected' : ''}>${dados_clientes[idMotorista].nome}</option>`)
         .join('')
 
-    for (let [id, dados] of Object.entries(valores)) {
-        linhas += `
-            <tr>
-                <td>${dados.data}</td>
-                <td>${dados.usuario}</td>
-                <td style="text-align: left;">${dados.comentario}</td>
-                <td>${dinheiro(dados.custo_total)}</td>
-                <td><img onclick="excluirValor('${categoria}', '${id}', '${idMotorista}')" src="imagens/cancel.png" style="cursor: pointer; width: 1.5vw;"></td> 
-            </tr>
-        `
-    }
+    let categorias = ['Combustível', 'Pedágio', 'Multa', 'Mensalidade', 'Custos Extras']
+        .map(categoria => `<option ${custo?.categoria == categoria ? 'selected' : ''}>${categoria}</option>`)
+        .join('')
 
-    let acumulado = `
-        <div class="paineis">
-            
-            <table class="tabela" style="width: 100%;">
-                <thead style="background-color: #797979;">
-                    ${ths}
-                </thead>
-                <tbody>${linhas}</tbody>
-            </table>
+    let campos = `
+            ${modeloLabel('Categoria', `
+                <select id="categoria" onchange="ocultarCampos(this)">
+                    ${categorias}
+                </select>
+                `)}
 
-        </div>
-    `
-    popup(acumulado, categoria)
-}
+            <div id="camposAdicionais">
+                ${modeloLabel('KM', `<input value="${custo?.km || ''}" type="number" id="km" placeholder="Quilometragem atual" type="number">`)}
+                ${modeloLabel('Litros', `<input value="${custo?.litros || ''}" type="number" id="litros" placeholder="Quantidade de litros" type="number">`)}
+            </div>
 
-async function excluirValor(categoria, idValor, idMotorista) {
-
-    overlayAguarde()
-    let motoristas = await recuperarDados('motoristas') || {}
-
-    let categoriaReal = categorias[categoria]
-    delete motoristas[idMotorista][categoriaReal][idValor]
-
-    await inserirDados(motoristas, 'motoristas')
-
-    await carregarTabela()
-    await abrirCustos(categoria, idMotorista)
-
-}
-
-async function painelValores(nome, idMotorista, categoria) {
-
-    let campos = ''
-
-    if (categoria == 'Combustível') {
-        campos += `
-            ${modeloLabel('KM', `<input type="number" id="km" placeholder="Quilometragem" type="number">`)}
-            ${modeloLabel('Litros', `<input type="number" id="litros" placeholder="Quantidade de litros" type="number">`)}
-            ${modeloLabel('Custo/Litro', `<input type="number" id="custo_litro" placeholder="Custo por litro" type="number">`)}
-        `
-    }
-
-    campos += `
-        ${modeloLabel('Custo Total', `<input type="number" id="custo_total" placeholder="Total do lançamento" type="number">`)}
-        ${modeloLabel('Comentário', `<textarea id="comentario"></textarea>`)}
+            ${modeloLabel('Custo Total', `<input value="${custo?.custo_total || ''}" type="number" id="custo_total" placeholder="Total do lançamento" type="number">`)}
+            ${modeloLabel('Comentário', `<textarea id="comentario" placeholder="Comente algo">${custo?.comentario || ''}</textarea>`)}
+            ${modeloLabel('Motorista', `
+                <select id="veiculo" onchange="dadosVeiculo()">
+                    ${opcoesMotoristas}
+                </select>
+                `)}
+            <div id="dados_veiculos"></div>
     `
 
+    let funcao = idCusto ? `salvarValores('${idCusto}')` : `salvarValores()`
     let acumulado = `
         <div class="paineis">
-            <label>${nome}</label>
-            <hr style="width: 100%;">
             ${campos}
             <hr style="width: 100%;">
-            ${botaoVeiculos('Incluir', `salvarValores('${idMotorista}', '${categoria}')`, 'green')}
+            ${botaoVeiculos('Adicionar', funcao, 'green')}
         </div>
     `
-    popup(acumulado, categoria)
+    popup(acumulado, 'Adicionar Custo')
+
+    ocultarCampos({ value: custo?.categoria || 'Combustível' })
+    await dadosVeiculo()
 }
 
-async function salvarValores(idMotorista, categoria) {
+function ocultarCampos(select) {
+    let camposAdicionais = document.getElementById('camposAdicionais')
+    camposAdicionais.style.display = select.value == 'Combustível' ? '' : 'none'
+}
+
+async function salvarValores(idCusto) {
 
     overlayAguarde()
-    let motoristas = await recuperarDados('motoristas') || {}
+    let custo_veiculos = await recuperarDados('custo_veiculos') || {}
+    let select = document.getElementById('veiculo')
+    let idMotorista = select.options[select.selectedIndex].dataset.id
+    let categoria = obterValores('categoria')
+    idCusto = idCusto || ID5digitos()
 
-    let categoriaReal = categorias[categoria]
-    let motorista = motoristas[idMotorista]
-    let idCusto = ID5digitos()
-    if (!motorista[categoriaReal]) motorista[categoriaReal] = {}
+    if (select.value == '') return popup(mensagem('O condutor está sem veículo'), 'ALERTA', true)
+
+    if (!custo_veiculos[idCusto]) custo_veiculos[idCusto] = {}
 
     let dados = {
+        motorista: idMotorista,
+        veiculo: select.value,
+        categoria,
         custo_total: obterValores('custo_total'),
         comentario: obterValores('comentario'),
         data: data_atual('completa'),
@@ -227,12 +230,16 @@ async function salvarValores(idMotorista, categoria) {
     if (categoria == 'Combustível') {
         dados.km = obterValores('km')
         dados.litros = obterValores('litros')
-        dados.custo_litro = obterValores('custo_litro')
     }
 
-    motorista[categoriaReal][idCusto] = dados
+    custo_veiculos[idCusto] = {
+        ...custo_veiculos[idCusto],
+        ...dados
+    }
 
-    await inserirDados(motoristas, 'motoristas')
+    enviar(`custo_veiculos/${idCusto}`, custo_veiculos[idCusto])
+    await inserirDados(custo_veiculos, 'custo_veiculos')
+    await carregarTabela()
 
     removerPopup()
 }
@@ -275,7 +282,7 @@ async function salvarVeiculo(idVeiculo) {
 
     overlayAguarde()
     let veiculos = await recuperarDados('veiculos') || {}
-    idVeiculo ? idVeiculo : ID5digitos()
+    idVeiculo = idVeiculo || ID5digitos()
     let veiculo = {
         modelo: obterValores('modelo'),
         placa: obterValores('placa'),
@@ -284,6 +291,7 @@ async function salvarVeiculo(idVeiculo) {
 
     veiculos[idVeiculo] = veiculo
 
+    enviar(`veiculos/${idVeiculo}`, veiculo)
     await inserirDados(veiculos, 'veiculos')
     await carregarTabela()
 
@@ -291,20 +299,36 @@ async function salvarVeiculo(idVeiculo) {
     removerOverlay()
 }
 
-async function dadosVeiculo() {
+async function dadosVeiculo(input) {
+
     let veiculos = await recuperarDados('veiculos') || {}
-    let idVeiculo = obterValores('veiculo')
+    let select = document.getElementById('veiculo')
+    let idVeiculo = select.value
     let veiculo = veiculos[idVeiculo]
+    let acumulado = `<label>Sem Veículo</label>`
+
+    if (veiculo) {
+        acumulado = `
+        <div style="display: flex; justify-content: start; align-items: start; flex-direction: column; gap: 5px;">
+            ${labelDestaque('Modelo', veiculo.modelo)}
+            ${labelDestaque('Placa', veiculo.placa)}
+            ${labelDestaque('Status', veiculo.status)}
+        </div>    
+    `}
 
     let div = document.getElementById('dados_veiculos')
 
-    div.innerHTML = `
-    <div style="display: flex; justify-content: start; align-items: start; flex-direction: column; gap: 5px;">
-        ${labelDestaque('Modelo', veiculo.modelo)}
-        ${labelDestaque('Placa', veiculo.placa)}
-        ${labelDestaque('Status', veiculo.status)}
-    </div>
-    `
+    if (input && input.checked) {
+        select.style.display = 'none'
+        select.previousElementSibling.style.display = 'none'
+        div.innerHTML = ''
+        return
+    }
+
+    select.style.display = ''
+    select.previousElementSibling.style.display = ''
+
+    div.innerHTML = acumulado
 }
 
 async function novoMotorista(idMotorista) {
@@ -321,11 +345,17 @@ async function novoMotorista(idMotorista) {
 
     let acumulado = `
         <div class="paineis">
+
             ${modeloLabel('Motorista', `
             <textarea id="motorista" oninput="carregarClientes(this)">${dados_clientes?.[idMotorista]?.nome || idMotorista || ''}</textarea> 
             <input id="omie" value="${idMotorista || ''}" style="display: none;">
             `)}
 
+            <div style="display: flex; align-items: center; justiry-conetent: center; gap: 5px;">
+                <input style="width: 1.5vw; height: 1.5vw;" type="checkbox" onchange="dadosVeiculo(this)">
+                <label>Sem veículo no momento</label>
+            </div>
+            
             ${modeloLabel('Selecione o veículo', `
                 <select id="veiculo" onchange="dadosVeiculo()">
                     ${opcoes}
@@ -336,7 +366,8 @@ async function novoMotorista(idMotorista) {
 
             <hr style="width: 100%;">
             ${botaoVeiculos('Salvar', 'salvarMotorista()', 'green')}
-        </div>
+        <div>
+   
     `
     popup(acumulado, 'Novo Motorista')
 
@@ -348,15 +379,52 @@ async function salvarMotorista() {
     overlayAguarde()
     let motoristas = await recuperarDados('motoristas') || {}
     let idMotorista = obterValores('omie')
-    let motorista = {
-        veiculo: obterValores('veiculo')
+    let motorista = {}
+    let veiculo = document.getElementById('veiculo')
+
+    if (veiculo.style.display !== 'none') {
+        motorista.veiculo = veiculo.value
     }
 
     motoristas[idMotorista] = motorista
 
+    enviar(`motoristas/${idMotorista}`, motorista)
     await inserirDados(motoristas, 'motoristas')
 
     await carregarTabela()
     removerPopup()
     removerOverlay()
+}
+
+async function removerAnexo(idCusto, idAnexo, img) {
+
+    let custo_veiculos = await recuperarDados('custo_veiculos')
+    let custo = custo_veiculos[idCusto]
+
+    delete custo.anexos[idAnexo]
+
+    deletar(`custo_veiculos/${idCusto}/anexos/${idAnexo}`)
+    await inserirDados(custo_veiculos, 'custo_veiculos')
+
+    img.parentElement.remove()
+}
+
+async function salvarAnexoCusto(input) {
+
+    let dadosAnexos = await importarAnexos(input)
+    let custo_veiculos = await recuperarDados('custo_veiculos')
+    let idCusto = input.id
+    let custo = custo_veiculos[idCusto]
+
+    if (!custo.anexos) custo.anexos = {}
+
+    dadosAnexos.forEach(anexo => {
+        let idAnexo = ID5digitos()
+        custo.anexos[idAnexo] = anexo
+        input.nextElementSibling.insertAdjacentHTML('afterend', criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo('${idCusto}', '${idAnexo}', this)`))
+        enviar(`custo_veiculos/${idCusto}/anexos/${idAnexo}`, anexo)
+    })
+
+    await inserirDados(custo_veiculos, 'custo_veiculos')
+
 }
