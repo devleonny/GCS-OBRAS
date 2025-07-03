@@ -1347,7 +1347,7 @@ async function total() {
     let totalAcrescido = 0
     let descontoAcumulado = 0
 
-    let cliente = dados_clientes?.[orcamento_v2.dados_orcam.omie_cliente] || ''
+    let cliente = dados_clientes?.[orcamento_v2.dados_orcam?.omie_cliente] || ''
     let estado = cliente.estado || false
 
     if (!orcamento_v2.dados_composicoes) orcamento_v2.dados_composicoes = {}
