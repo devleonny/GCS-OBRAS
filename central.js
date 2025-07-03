@@ -599,12 +599,12 @@ function criarAnexoVisual(nome, link_anexo, funcao_excluir) {
         : nome;
 
     return `
-        <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: 100%; gap: 2px; background-color: #222; color: white;">
+        <div class="contorno" style="display: flex; align-items: center; justify-content: center; gap: 2px; background-color: #222; color: white;">
             <div onclick="abrirArquivo('${link_anexo}')" class="contorno_interno" style="width: 100%; display: flex; align-items: center; justify-content: start; gap: 2px;">
-                <img src="imagens/anexo2.png" style="width: 2vw;">
+                <img src="imagens/anexo2.png" style="width: 1.5vw;">
                 <label style="font-size: 0.7vw; cursor: pointer;" title="${nome}">${nomeFormatado}</label>
             </div>
-            <img src="imagens/cancel.png" style="display: ${displayExcluir}; width: 2vw; cursor: pointer;" onclick="${funcao_excluir}">
+            <img src="imagens/cancel.png" style="display: ${displayExcluir}; width: 1.5vw; cursor: pointer;" onclick="${funcao_excluir}">
         </div>`;
 }
 
@@ -1041,7 +1041,7 @@ async function salvar_levantamento(id_orcamento) {
     }
 
     try {
-        let anexos = await anexo_v2(elemento); // Nova função de upload
+        let anexos = await importarAnexos(elemento); // Nova função de upload
 
         let anexo_dados = {};
         anexos.forEach(anexo => {
@@ -1427,7 +1427,7 @@ function formatarData(dataISO) {
     return dataISO; // Retorna a data original caso não esteja no formato esperado
 }
 
-async function anexo_v2(arquivoInput) {
+async function importarAnexos(arquivoInput) {
     return new Promise((resolve, reject) => {
         const formData = new FormData();
 
@@ -1444,13 +1444,7 @@ async function anexo_v2(arquivoInput) {
                 resolve(data);
             })
             .catch(error => {
-                popup(`
-                    <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
-                        <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                        <label>🔴🔴🔴 O serviço de armazenamentos está Offline 🔴🔴🔴</label> <br>
-                        <label>Fale com um administrador para reiniciar o serviço</label>
-                    </div>
-                    `)
+                popup(mensagem('O Servidor caiu... solicite que um ADM reinicie o serviço'))
                 reject();
             });
     });

@@ -1029,6 +1029,7 @@ async function recuperarPagamentos() {
 
     await lista_setores()
     await sincronizarDados('lista_pagamentos', true)
+    await sincronizarDados('dados_clientes', true)
     await retomarPaginacao()
 
     removerPopup()
@@ -1549,7 +1550,7 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
 }
 
 async function salvar_anexos_pagamentos(input, id_pagamento) {
-    let anexos = await anexo_v2(input)
+    let anexos = await importarAnexos(input)
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
     let pagamento = lista_pagamentos[id_pagamento]
 
@@ -2038,7 +2039,7 @@ async function remover_anx(anx) {
 
 async function salvar_anexos_parceiros(input, campo, id_pagamento) {
 
-    let anexos = await anexo_v2(input)
+    let anexos = await importarAnexos(input)
 
     if (id_pagamento == undefined) { // O anexo do parceiro é incluído no formulário de pagamento; (Pagamento ainda não existe)
 
