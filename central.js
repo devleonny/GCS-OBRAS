@@ -591,11 +591,7 @@ function criarAnexoVisual(nome, link_anexo, funcao_excluir) {
 
     let displayExcluir = 'flex'
 
-    if (!funcao_excluir) {
-
-        displayExcluir = 'none'
-
-    }
+    if (!funcao_excluir) displayExcluir = 'none'
 
     // Formata o nome para exibição curta
     const nomeFormatado = nome.length > 15
