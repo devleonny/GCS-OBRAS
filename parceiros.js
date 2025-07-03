@@ -311,7 +311,7 @@ function calcularLpuParceiro() {
 
 async function salvarLpuParceiro(chave) {
     overlayAguarde();
-    chave = chave ? chave : gerar_id_5_digitos();
+    chave = chave ? chave : ID5digitos();
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let orcamento = dados_orcamentos[id_orcam];
@@ -398,7 +398,7 @@ async function salvarLpuParceiro(chave) {
     await inserirDados(dados_orcamentos, 'dados_orcamentos');
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento);
 
-    remover_popup();
+    removerPopup();
     await abrirEsquema(id_orcam);
 
 }
@@ -829,7 +829,7 @@ async function gerarPdfParceiro({ tabela, cnpj }) {
 
 function adicionarItemAdicional(dados = {}) {
     const bodyTabela = document.getElementById('bodyTabela');
-    const idAleatoria = gerar_id_5_digitos();
+    const idAleatoria = ID5digitos();
 
     // Cálculo automático se os dados não foram salvos
     const qtde = Number(dados.qtde || 0);

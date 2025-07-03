@@ -76,7 +76,7 @@ function novoTicket() {
                 </div>
 
                 <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-                    <button type="button" onclick="remover_popup()" 
+                    <button type="button" onclick="removerPopup()" 
                             style="padding: 8px 20px; border: none; border-radius: 4px; background-color: #6c757d; color: white; font-weight: 600; cursor: pointer; min-width: 100px;">
                         Cancelar
                     </button>
@@ -124,7 +124,7 @@ function novoTicket() {
             submitBtn.style.backgroundColor = '#28a745';
 
             setTimeout(() => {
-                remover_popup();
+                removerPopup();
             }, 1000);
 
         } catch (error) {
@@ -203,7 +203,7 @@ function abrirPopupEdicao(ticketId, ticket) {
                 </div>
 
                 <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-                    <button type="button" onclick="remover_popup()" 
+                    <button type="button" onclick="removerPopup()" 
                             style="padding: 8px 20px; border: none; border-radius: 4px; background-color: #6c757d; color: white; font-weight: 600; cursor: pointer; min-width: 100px;">
                         Cancelar
                     </button>
@@ -246,7 +246,7 @@ function abrirPopupEdicao(ticketId, ticket) {
             submitBtn.style.backgroundColor = '#28a745';
 
             setTimeout(() => {
-                remover_popup();
+                removerPopup();
             }, 1000);
         } catch (error) {
             console.error('Erro ao salvar ticket:', error);
@@ -359,7 +359,7 @@ function abrirPopupDetalhes(ticket) {
             </div>
 
             <div style="text-align: center; margin-top: 20px;">
-                <button onclick="remover_popup()" 
+                <button onclick="removerPopup()" 
                         style="padding: 8px 20px; border: none; border-radius: 4px; background-color: #151749; color: white; font-weight: 600; cursor: pointer; min-width: 100px;">
                     Fechar
                 </button>
@@ -422,7 +422,7 @@ async function excluirTicket(ticketId) {
             <img src="gifs/alerta.gif" style="width: 3vw;">
             <label>Tem certeza que deseja excluir este ticket?</label>
             <div style="display: flex; gap: 10px;">
-                <button onclick="remover_popup()" 
+                <button onclick="removerPopup()" 
                         style="padding: 8px 20px; border: none; border-radius: 4px; background-color: #6c757d; color: white; font-weight: 600; cursor: pointer;">
                     Cancelar
                 </button>
@@ -461,7 +461,7 @@ async function confirmarExclusaoTicket(ticketId) {
             `, 'Sucesso');
 
             setTimeout(async () => {
-                remover_popup();
+                removerPopup();
                 await recuperar_tickets();
             }, 300);
         }
@@ -848,7 +848,7 @@ function abrirWhatsApp(telefone, mensagem) {
 
     const url = `https://wa.me/55${numero}?text=${mensagem}`;
     window.open(url, '_blank');
-    remover_popup();
+    removerPopup();
 }
 
 function formatarTelefone(telefone) {
@@ -875,7 +875,7 @@ function copiarParaAreaTransferencia(texto) {
         </div>
     `, 'Sucesso');
 
-    setTimeout(remover_popup, 1500);
+    setTimeout(removerPopup, 1500);
 }
 
 function filtrarTickets(ultimo_status, col, texto, apenas_toolbar) {

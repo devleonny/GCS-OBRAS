@@ -9,20 +9,6 @@ let guiaTipo = {
     '14': 'Remessa',
     '16': 'Nota Complementar de Saída'
 }
-const modelo = (valor1, valor2) => `
-        <div style="display: flex; flex-direction: column; align-items: start; margin-bottom: 5px; width: 100%;">
-            <label><strong>${valor1}</strong></label>
-            <div style="width: 100%; text-align: left;">${valor2}</div>
-        </div>
-        `
-
-const labelDestaque = (valor1, valor2) => `<label style="text-align: left;"><strong>${valor1}: </strong>${valor2}</label>`
-
-const botao = (valor1, funcao, cor) => `
-        <div class="contorno_botoes" style="background-color: ${cor};" onclick="${funcao}">
-            <label>${valor1}</label>
-        </div>
-        `
 
 let fluxogramaClone = {
     'ORÇAMENTOS': { cor: '#1CAF29' },
@@ -366,7 +352,7 @@ async function salvarNota() {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam]
-    let chave = gerar_id_5_digitos()
+    let chave = ID5digitos()
     let comentario = document.getElementById('comentario').value
 
     if (Object.keys(dadosNota).length == 0) {
@@ -395,7 +381,7 @@ async function salvarNota() {
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, dados)
 
-    remover_popup()
+    removerPopup()
     await abrirEsquema(id_orcam)
 
     itens_adicionais = {}
@@ -812,7 +798,7 @@ async function abrir_adicionais(codigo) {
 
 function adicionar_linha_manut(ad, dados) {
     let tbody = document.getElementById('linhas_manutencao')
-    let aleatorio = ad ? ad : gerar_id_5_digitos()
+    let aleatorio = ad ? ad : ID5digitos()
 
     let excluir_inicial = document.getElementById('excluir_inicial')
     if (excluir_inicial) {
@@ -990,7 +976,7 @@ function salvar_itens_adicionais(codigo) {
     })
 
     mostrarItensAdicionais()
-    remover_popup()
+    removerPopup()
 }
 
 
@@ -1050,7 +1036,7 @@ async function salvarPedido() {
     let valor = document.getElementById('valor')
     let tipo = document.getElementById('tipo')
     let pedido = document.getElementById('pedido')
-    let chave = gerar_id_5_digitos()
+    let chave = ID5digitos()
 
     if (valor.value == '' || tipo.value == 'Selecione' || pedido.value == '') {
 
@@ -1088,7 +1074,7 @@ async function salvarPedido() {
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, dados)
 
-    remover_popup()
+    removerPopup()
     await abrirEsquema(id_orcam)
 
 }
@@ -1191,7 +1177,7 @@ async function salvar_requisicao(chave) {
     if (aguarde) {
         aguarde.remove()
     }
-    remover_popup()
+    removerPopup()
     await abrirEsquema(id_orcam)
 }
 
@@ -2081,7 +2067,7 @@ async function salvar_materiais_retorno(chave) {
         dadosMateriaisRetorno[codigo] = quantidade;
     }
 
-    remover_popup()
+    removerPopup()
 
     let data_completa = new Date().toLocaleString('pt-BR', {
         dateStyle: 'short',
@@ -2097,7 +2083,7 @@ async function salvar_materiais_retorno(chave) {
 
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
 
-    remover_popup()
+    removerPopup()
     await abrirEsquema(id_orcam)
 
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, orcamento.status.historico[chave])
@@ -2138,7 +2124,7 @@ async function registrarEnvioMaterial(chave) {
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, status)
 
-    remover_popup()
+    removerPopup()
     await abrirEsquema(id_orcam)
 
 }
@@ -2150,7 +2136,7 @@ function confirmar_exclusao_comentario(id_comentario, chave) {
             <label>Excluir o comentário?</label>
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
             <button onclick="excluir_comentario('${id_comentario}', '${chave}')" style="background-color: green">Confirmar</button>
-            <button onclick="remover_popup()">Cancelar</button>
+            <button onclick="removerPopup()">Cancelar</button>
             </div>
         </div>
         `)
@@ -2162,7 +2148,7 @@ async function excluir_comentario(id_comentario, chave) {
 
     delete comentarios[id_comentario]
 
-    remover_popup()
+    removerPopup()
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
     await deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/comentarios/${id_comentario}`)
     await carregar_comentarios(chave)
@@ -2206,7 +2192,7 @@ async function salvar_comentario(chave) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let orcamento = dados_orcamentos[id_orcam]
 
-    var id = gerar_id_5_digitos()
+    var id = ID5digitos()
 
     var comentario = {
         id: id,
@@ -2268,7 +2254,7 @@ function pesquisar_pagamentos(input) {
 
 async function excluirAnexo(chave, id_anexo, img) {
 
-    remover_popup()
+    removerPopup()
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
 
@@ -2296,7 +2282,7 @@ async function chamar_excluir(id) {
 
 async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
 
-    if (!chave) chave = gerar_id_5_digitos()
+    if (!chave) chave = ID5digitos()
 
     let usuario = acesso.usuario
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
@@ -2459,7 +2445,7 @@ async function salvar_anexo(chave, input) {
             dados_orcamentos[id_orcam].status.historico[chave].anexos = {};
         }
 
-        let id = gerar_id_5_digitos()
+        let id = ID5digitos()
 
         dados_orcamentos[id_orcam].status.historico[chave].anexos[id] = anexo
         enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/anexos/${id}`, anexo)
@@ -2493,7 +2479,7 @@ async function carregar_anexos(chave) {
 
 async function apagarStatusHistorico(chave) {
 
-    remover_popup()
+    removerPopup()
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let criador = dados_orcamentos[id_orcam]?.status?.historico[chave]?.executor || '';
     let permitidos = acesso.permissao == 'adm' || acesso.usuario == criador;
@@ -2633,7 +2619,7 @@ async function envioMaterial(chave) {
         envio = orcamento.status.historico[chave].envio
         comentario = orcamento.status.historico[chave].comentario
     } else {
-        chave = gerar_id_5_digitos()
+        chave = ID5digitos()
     }
 
     let transportadoras = ['JAMEF', 'CORREIOS', 'RODOVIÁRIA', 'JADLOG', 'AÉREO', 'OUTRAS']

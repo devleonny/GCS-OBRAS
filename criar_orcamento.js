@@ -489,7 +489,7 @@ function orcamento_que_deve_voltar() {
 function confirmar_exclusao() {
     baseOrcamento(undefined, true)
     location.href = 'criar_orcamento.html'
-    remover_popup()
+    removerPopup()
 }
 
 async function atualizarOpcoesLPU() {
@@ -1680,7 +1680,7 @@ async function confirmarNovoPreco(codigo, precoOriginal, operacao) {
 
     baseOrcamento(orcamento)
     await total()
-    remover_popup()
+    removerPopup()
 }
 
 async function incluirItemOld(codigo, novaQuantidade) {

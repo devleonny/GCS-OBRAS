@@ -3,7 +3,7 @@ async function recuperarRegistros() {
     overlayAguarde()
     await sincronizarDados('registrosAlteracoes')    
     await carregarRegistros()
-    remover_popup()
+    removerPopup()
 }
 
 carregarRegistros()

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veículos</title>
+    <link rel="stylesheet" type="text/css" href="gcsobras.css">
+    <link rel="stylesheet" type="text/css" href="controle_veiculos.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+</head>
+
+<body>
+
+    <div class="top">
+
+        <img src="imagens/BG.png" style="width: 150px;">
+
+        <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; color: white;">
+            <label class="novo_titulo">Veículos</label>
+            <label id="nome_filtro"></label>
+        </div>
+
+        <div class="blocosCabecalho">
+            <div onclick="window.location.href='inicial.html'">
+                <label>Menu Inicial</label>
+                <img src="imagens/voltar.png">
+            </div>
+
+            <div onclick="atualizarDadosVeiculos()">
+                <label>Atualizar</label>
+                <img src="imagens/atualizar_2.png">
+            </div>
+        </div>
+    </div>
+
+    <div id="tabelaRegistro"></div>
+</body>
+<script src="central.js"></script>
+<script src="controle_veiculos.js"></script>
+
+</html>
