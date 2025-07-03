@@ -355,7 +355,7 @@ function removerOverlay() {
 }
 
 function overlayAguarde() {
-
+    
     let aguarde = document.getElementById('aguarde')
     if (aguarde) aguarde.remove()
 
@@ -372,9 +372,9 @@ function overlayAguarde() {
                 height: 100%;
                 z-index: 10005;
                 font-size: 1.5em;
-                border-radius: 3px;
-            ">
+                border-radius: 3px;">
         <img src="gifs/loading.gif" style="width: 5vw;">
+        <div id="divMensagem">Por favor, aguarde...</div>
     </div>
     `
     document.body.insertAdjacentHTML('beforeend', elemento)
@@ -385,6 +385,15 @@ function overlayAguarde() {
     );
 
     document.getElementById('aguarde').style.height = `${pageHeight}px`;
+
+    setTimeout(() => {
+        let mensagem = document.getElementById('divMensagem')
+
+        if(mensagem) mensagem.innerHTML = `
+            <label onclick="this.parentElement.remove()" style="cursor: pointer; text-decoration: underline; cursor: pointer;">Cancelar?</label>
+        `
+
+    }, 60 * 1000);
 
 }
 
