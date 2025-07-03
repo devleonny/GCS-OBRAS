@@ -17,6 +17,15 @@ const categorias = {
     'Custos Extras': 'extras'
 }
 
+async function atualizarDadosVeiculos() {
+    await sincronizarDados('motoristas')
+    await sincronizarDados('dados_clientes')
+    await sincronizarDados('veiculos')
+    await sincronizarDados('custo_veiculos')
+
+    await carregarTabela()
+}
+
 carregarTabela()
 
 async function carregarTabela() {
