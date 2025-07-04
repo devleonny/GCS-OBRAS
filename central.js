@@ -177,8 +177,6 @@ async function sincronizarSetores() {
     const maiorTimestamp = timestamps.length ? Math.max(...timestamps) : 0
     let nuvem = await lista_setores(maiorTimestamp)
 
-    if (nuvem == 'Falhou') return {}
-
     let dadosMesclados = {
         ...dados_setores,
         ...nuvem
@@ -1910,7 +1908,8 @@ async function lista_setores(timestamp) {
             .then(data => {
                 resolve(data);
             })
-            .catch(reject());
+            .catch(error => reject(error));
+
     })
 }
 
