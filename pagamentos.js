@@ -4,7 +4,7 @@ let opcoesStatus = [
     'Aguardando aprovação da Diretoria',
     'Aguardando aprovação da Gerência',
     'Pagamento Excluído',
-    'Salvo localmente'
+    'Processando...'
 ]
 
 consultar_pagamentos()
@@ -253,6 +253,9 @@ function iconePagamento(status) {
             break
         case status == 'Aguardando aprovação da Gerência':
             icone = 'gerente'
+            break
+        case status == 'Processando...':
+            icone = 'salvo'
             break
         case status == 'TODOS':
             icone = 'todos'
@@ -1276,7 +1279,7 @@ async function criar_pagamento_v2() {
         let permissao = acesso.permissao
 
         if (conversor(total) < 500) {
-            pagamento.status = 'Pagamento salvo localmente'
+            pagamento.status = 'Processando...'
             lancar_pagamento(pagamento)
         } else if (permissao == 'gerente') {
             pagamento.status = 'Aguardando aprovação da Diretoria'

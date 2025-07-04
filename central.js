@@ -113,6 +113,8 @@ function corFundo() {
 async function identificacaoUser() {
     corFundo()
 
+    if (!navigator.onLine) return window.location.href = 'offline.html'
+
     if (document.title == 'Login') return
     if (!acesso) return window.location.href = 'login.html'
 
@@ -175,6 +177,8 @@ async function sincronizarSetores() {
     const maiorTimestamp = timestamps.length ? Math.max(...timestamps) : 0
     let nuvem = await lista_setores(maiorTimestamp)
 
+    if (nuvem == 'Falhou') return {}
+
     let dadosMesclados = {
         ...dados_setores,
         ...nuvem
@@ -182,8 +186,6 @@ async function sincronizarSetores() {
 
     dados_setores = dadosMesclados
     localStorage.setItem('dados_setores', JSON.stringify(dadosMesclados))
-
-    return dadosMesclados
 
 }
 
@@ -355,7 +357,7 @@ function removerOverlay() {
 }
 
 function overlayAguarde() {
-    
+
     let aguarde = document.getElementById('aguarde')
     if (aguarde) aguarde.remove()
 
@@ -389,7 +391,7 @@ function overlayAguarde() {
     setTimeout(() => {
         let mensagem = document.getElementById('divMensagem')
 
-        if(mensagem) mensagem.innerHTML = `
+        if (mensagem) mensagem.innerHTML = `
             <label onclick="this.parentElement.remove()" style="cursor: pointer; text-decoration: underline; cursor: pointer;">Cancelar?</label>
         `
 
@@ -1372,29 +1374,17 @@ async function gerar_pdf_online(htmlString, nome) {
 
 async function refazer_pagamento(id_pagamento) {
 
-    popup(`
-        <div style="margin: 1vw; display: flex; align-items: center; justify-content: center; gap: 5px;">
-            <img src="gifs/loading.gif" style="width: 5vw;">
-            <label>Aguarde...</label>
-        </div>
-        `, 'Aviso', true)
+    overlayAguarde()
 
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
 
-    if (lista_pagamentos[id_pagamento]) {
-        removerPopup()
-        let pagamento = lista_pagamentos[id_pagamento]
-        console.log(await lancar_pagamento(pagamento))
-        pagamento.status = 'Pagamento salvo localmente'
-        await inserirDados(lista_pagamentos, 'lista_pagamentos')
-        await abrirDetalhesPagamentos(id_pagamento)
-    } else {
-        popup(`
-            <div style="margin: 1vw;">
-                <label>Atualize os pagamentos e tente novamente.</label>
-            </div>
-            `, 'Aviso', true)
-    }
+    if (!lista_pagamentos[id_pagamento]) return popup(mensagem('Algo deu ruim...'), 'AVISO', true)
+
+    let pagamento = lista_pagamentos[id_pagamento]
+    console.log(await lancar_pagamento(pagamento))
+    pagamento.status = 'Processando...'
+    await inserirDados(lista_pagamentos, 'lista_pagamentos')
+    await abrirDetalhesPagamentos(id_pagamento)
 
 }
 
@@ -1920,10 +1910,7 @@ async function lista_setores(timestamp) {
             .then(data => {
                 resolve(data);
             })
-            .catch(err => {
-                console.error(err)
-                reject()
-            });
+            .catch(reject());
     })
 }
 
