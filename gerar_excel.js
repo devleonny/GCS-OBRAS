@@ -1,6 +1,7 @@
 async function ir_excel(orcam_) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
     let orcamento = dados_orcamentos[orcam_]
 
     var wb = new ExcelJS.Workbook();
@@ -20,8 +21,10 @@ async function ir_excel(orcam_) {
             extension: 'png',
         });
 
-        let estado = `${orcamento.dados_orcam.estado}`
-        let nome_arquivo = `${orcamento.dados_orcam.cliente_selecionado} ${orcamento.dados_orcam.contrato}`
+        let omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
+        let cliente = dados_clientes?.[omie_cliente] || {}
+        let estado = cliente?.estado || ''
+        let nome_arquivo = `${cliente?.nome || '--'} ${orcamento.dados_orcam.contrato}`
         let carrefour = orcamento.lpu_ativa == 'LPU CARREFOUR' ? true : false
         var venda_headers;
         var servico_headers;
@@ -53,6 +56,8 @@ async function ir_excel(orcam_) {
 
                 let item = orcamento.dados_composicoes[it]
                 item.tipo = item.tipo ? item.tipo : dados_composicoes[item.codigo].tipo
+
+                if (item.tipo == 'USO E CONSUMO') item.tipo = 'SERVIÇO'
 
                 if (item.tipo !== tabela) {
                     continue
@@ -272,7 +277,7 @@ async function ir_excel(orcam_) {
         });
 
         ws_orcamento.getRow(1).height = 3 * 28.35;
-        
+
         let estiloHeader = {
             font: {
                 size: 20,
@@ -292,8 +297,7 @@ async function ir_excel(orcam_) {
         ws_orcamento.getCell('H1').alignment = estiloHeader.alignment;
         ws_orcamento.getCell('H1').numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-';
 
-        var escopo = orcamento.dados_orcam.consideracoes;
-
+        let escopo = orcamento.dados_orcam.consideracoes;
         let col_serviço = carrefour ? 'I' : 'F'
         let col_venda = carrefour ? 'L' : 'I'
 

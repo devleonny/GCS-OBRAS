@@ -353,9 +353,11 @@ async function gerarPDF() {
     preencher_v2();
     ocultarElementos()
 
-    const orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
-    const contrato = orcamento_v2.dados_orcam.contrato;
-    const cliente = orcamento_v2.dados_orcam.cliente_selecionado;
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
+    const orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {}
+    const contrato = orcamento_v2.dados_orcam.contrato
+    let omie_cliente = orcamento_v2.dados_orcam?.omie_cliente || ''
+    let cliente = dados_clientes?.[omie_cliente]?.nome || ''
 
     await gerar_pdf_online(document.documentElement.outerHTML, `Orcamento_${cliente}_${contrato}`);
     ocultarElementos()
