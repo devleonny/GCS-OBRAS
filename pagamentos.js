@@ -133,7 +133,7 @@ async function consultar_pagamentos() {
                     <td>${pagamento.criado}</td>
                     <td>${setor_criador}</td>
                     <td>${recebedor}</td>
-                    <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrir_detalhes('${pagamento.id}')"></td>
+                    <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrirDetalhesPagamentos('${pagamento.id}')"></td>
                 </tr>
             `
     };
@@ -262,71 +262,97 @@ function iconePagamento(status) {
     return `imagens/${icone}.png`
 }
 
-async function abrir_detalhes(id_pagamento) {
+function justificativaHTML(idPagamento) {
+
+    return `
+        <div class="balao">
+
+            <div style="display: flex; align-items: center; justify-content: center; width: 100%;">
+
+                <img src="gifs/alerta.gif" style="width: 3vw;">
+
+                <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; width: 100%; gap: 3px;">
+                    <label style="font-size: 1.3vw;">Responda a solicitação aqui</label>
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px; width: 70%;">
+                        <textarea id="justificativa" style="width: 100%; font-size: 0.8vw;" placeholder="Descreva o motivo da aprovação/reprovação" oninput="auxiliar(this)"></textarea>
+                        <button id="aprovar" style="display: none; background-color: green; padding: 5px;" onclick="atualizar_feedback(true, '${idPagamento}')">Aprovar</button>
+                        <button id="reprovar" onclick="atualizar_feedback(false, '${idPagamento}')" style="display: none; padding: 5px;">Reprovar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `
+}
+
+async function abrirDetalhesPagamentos(id_pagamento) {
 
     ordem = 0
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     let dados_clientes = await recuperarDados('dados_clientes') || {};
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    let dados_orcamentos = await recuperarDados('dados_orcamentos', true) || {};
     let dados_categorias = await recuperarDados('dados_categorias')
+
     if (!dados_categorias) {
         dados_categorias = await receber('dados_categorias')
-        inserirDados(dados_categorias, 'dados_categorias')
+        await inserirDados(dados_categorias, 'dados_categorias')
     }
 
+    let valores = ''
+    let painelParceiro =  false
+
+    let permissao = acesso.permissao
+    let permissoesEdicao = ['adm', 'fin', 'gerente']
     let pagamento = lista_pagamentos[id_pagamento]
-    let anexos = ''
     let cliente_omie = pagamento.param[0].codigo_cliente_fornecedor
     let cliente = dados_clientes[cliente_omie] ? dados_clientes[cliente_omie].nome : pagamento.param[0].codigo_cliente_fornecedor
-    let cc = cliente?.nome || ''
 
-    for (anx in pagamento.anexos) {
-        let anexo = pagamento.anexos[anx]
-        anexos += criarAnexoVisual(anexo.nome, anexo.link, `excluir_anexo_complementares('${id_pagamento}', '${anx}')`);
+    let omieClienteOrcamento = dados_orcamentos?.[pagamento.id_orcamento]?.dados_orcam?.omie_cliente || ''
+    let cc = dados_clientes?.[omieClienteOrcamento]?.nome || 'Indisponível'
+
+    let anexos = Object.entries(pagamento?.anexos || {})
+        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexoPagamento('${id_pagamento}', '${idAnexo}')`))
+        .join('')
+
+    function imagemEspecifica(justificativa) {
+
+        let cor = '#222'
+        let imagem = "imagens/remover.png"
+        if (justificativa.status.includes('Aprovado')) {
+            cor = '#4CAF50'
+            imagem = "imagens/concluido.png"
+        } else if (dados_setores[justificativa.usuario]?.permissao == 'qualidade') {
+            cor = '#32a5e7'
+            imagem = "imagens/qualidade.png"
+        } else if (justificativa.status.includes('Reprovado')) {
+            cor = '#B12425'
+            imagem = "imagens/remover.png"
+        } else if (justificativa.status.includes('Aguardando')) {
+            cor = '#D97302'
+            imagem = "imagens/avencer.png"
+        } else if (justificativa.status.includes('Aguardando')) {
+            cor = '#D97302'
+            imagem = "imagens/avencer.png"
+        } else {
+            cor = '#B12425'
+        }
+
+        return { imagem, cor }
+
     }
 
-    let historico = ''
-    let cor = '#222'
-    if (pagamento.historico) {
-
-        for (his in pagamento.historico) {
-
-            let justificativa = pagamento.historico[his]
-
-            var imagem = "imagens/remover.png"
-            if (justificativa.status.includes('Aprovado')) {
-                cor = '#4CAF50'
-                imagem = "imagens/concluido.png"
-            } else if (dados_setores[justificativa.usuario]?.permissao == 'qualidade') {
-                cor = '#32a5e7'
-                imagem = "imagens/qualidade.png"
-            } else if (justificativa.status.includes('Reprovado')) {
-                cor = '#B12425'
-                imagem = "imagens/remover.png"
-            } else if (justificativa.status.includes('Aguardando')) {
-                cor = '#D97302'
-                imagem = "imagens/avencer.png"
-            } else if (justificativa.status.includes('Aguardando')) {
-                cor = '#D97302'
-                imagem = "imagens/avencer.png"
-            } else {
-                cor = '#B12425'
-            }
-
-            historico += `
-            <div style="display: flex; gap: 10px; align-items: center; margin: 3vw;">
-                <div class="vitrificado" style="border: 2px solid ${cor}">
+    let historico = Object.entries(pagamento?.historico || {})
+        .map(([his, justificativa]) => `<div style="display: flex; gap: 10px; align-items: center; margin: 3vw;">
+                <div class="vitrificado" style="border: 2px solid ${imagemEspecifica(justificativa).cor}">
                     <p><strong>Status </strong>${justificativa.status}</p>
                     <p><strong>Usuário </strong>${justificativa.usuario}</p>
                     <p><strong>Data </strong>${justificativa.data}</p>
                     <p><strong>Justificativa </strong>${justificativa.justificativa.replace(/\n/g, "<br>")}</p>
                 </div>
-                <img src="${imagem}" style="width: 3vw;">
-            </div>
-            `
-        }
+                <img src="${imagemEspecifica(justificativa).imagem}" style="width: 3vw;">
+            </div>`)
+        .join('')
 
-    }
 
     let acoes_orcamento = ''
 
@@ -348,23 +374,11 @@ async function abrir_detalhes(id_pagamento) {
     
     `
 
-    let ultima_alteracao = ''
-    if (pagamento.ultima_alteracao) {
-        ultima_alteracao = `alterado às ${pagamento.ultima_alteracao}`
-    }
-
-    let valores = ''
-    let habilitar_painel_parceiro = {
-        ativar: false,
-        valor: 0
-    }
-
-    let categoria_atual = ''
     pagamento.param[0].categorias.forEach((item, indice) => {
 
         let displayLabel = 'none';
 
-        if (acesso.permissao === 'adm') {
+        if (permissao == 'adm') {
             displayLabel = '';
         }
 
@@ -376,13 +390,13 @@ async function abrir_detalhes(id_pagamento) {
             </div>
         `
         if (String(dados_categorias[item.codigo_categoria]).includes('Parceiros')) {
-            habilitar_painel_parceiro.ativar = true
-            habilitar_painel_parceiro.valor += item.valor
+            painelParceiro.ativar = true
+            painelParceiro.valor += item.valor
         }
-        categoria_atual = dados_categorias[item.codigo_categoria]
+
     })
 
-    let div_valores = `
+    let divValores = `
         <div style="display: flex; flex-direction: column; width: 100%;">
             ${valores}
             <hr style="width: 100%;">
@@ -396,49 +410,17 @@ async function abrir_detalhes(id_pagamento) {
             </div>
         </div>
         `
-    let permissao = acesso.permissao
 
-    let acumulado = ''
-    if (
-        pagamento.param[0].valor_documento >= 500 &&
-        (permissao == 'gerente' ||
-            permissao == 'adm' ||
-            permissao == 'diretoria' ||
-            permissao == 'fin' ||
-            pagamento.criado == acesso.usuario ||
-            (permissao == "qualidade" && categoria_atual.includes("Parceiros")))
-    ) {
-        acumulado += `
-        <div class="balao">
-
-            <div style="display: flex; align-items: center; justify-content: center; width: 100%;">
-
-                <img src="gifs/alerta.gif" style="width: 3vw;">
-
-                <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; width: 100%; gap: 3px;">
-                    <label style="font-size: 1.3vw;">Responda a solicitação aqui</label>
-
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px; width: 70%;">
-                        <textarea id="justificativa" style="width: 100%; font-size: 0.8vw;" placeholder="Descreva o motivo da aprovação/reprovação" oninput="auxiliar(this)"></textarea>
-                        <button id="aprovar" style="display: none; background-color: green; padding: 5px;" onclick="atualizar_feedback(true, '${id_pagamento}')">Aprovar</button>
-                        <button id="reprovar" onclick="atualizar_feedback(false, '${id_pagamento}')" style="display: none; padding: 5px;">Reprovar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        `
-    }
-
-    let botao_editar = ''
-    if (acesso.usuario == pagamento.criado || (permissao == 'adm' || permissao == 'fin' || permissao == 'gerente')) {
-        botao_editar = `
+    let btnEditar = ''
+    if (acesso.usuario == pagamento.criado || permissoesEdicao.includes(permissao)) {
+        btnEditar = `
             <label style="position: absolute; top: 1vw; right: 1vw; text-decoration: underline; font-size: 0.9vw;" onclick="editar_comentario('${id_pagamento}')">Editar</label>
         `
     }
 
-    let info_adicional_parceiro = ''
+    let formParceiros = ''
 
-    if (habilitar_painel_parceiro.ativar) {
+    if (painelParceiro) {
 
         let campos = {
             pedido: 'PDF do pedido do Cliente',
@@ -450,11 +432,11 @@ async function abrir_detalhes(id_pagamento) {
         }
 
         let infos = ''
-        for (campo in campos) {
-            let info_existente = ''
+        for (let campo in campos) {
+            let docsExistentes = ''
             if (campo == 'orcamento' && dados_orcamentos[pagamento.id_orcamento]) {
 
-                info_existente += `
+                docsExistentes += `
                     <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
                         <div onclick="ir_pdf('${pagamento.id_orcamento}')" class="contorno_interno" style="display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 15vw;">
                             <img src="imagens/anexo2.png" style="width: 25px; height: 25px;">
@@ -465,7 +447,7 @@ async function abrir_detalhes(id_pagamento) {
             }
 
             if (campo == 'pedido') {
-                let info_existente = ''
+                docsExistentes = ''
                 let orcamento = ''
                 if (dados_orcamentos[pagamento.id_orcamento]) {
                     orcamento = dados_orcamentos[pagamento.id_orcamento]
@@ -481,7 +463,7 @@ async function abrir_detalhes(id_pagamento) {
                             for (anx in anexos) {
                                 let anexo = anexos[anx]
 
-                                info_existente += criarAnexoVisual(anexo.nome, anexo.link);
+                                docsExistentes += criarAnexoVisual(anexo.nome, anexo.link);
 
                             }
                         }
@@ -489,7 +471,7 @@ async function abrir_detalhes(id_pagamento) {
                 }
             }
 
-            var label_elemento = campos[campo]
+            let label_elemento = campos[campo]
             infos += `
             <div style="display: flex; flex-direction: column;">
                 <div style="display: flex; gap: 5px; align-items: center; justify-content: left;">
@@ -505,7 +487,7 @@ async function abrir_detalhes(id_pagamento) {
                         </div> 
                     
                         <div id="container_${campo}" class="container">
-                        ${info_existente}
+                        ${docsExistentes}
                         </div>
 
                     </div> 
@@ -523,7 +505,7 @@ async function abrir_detalhes(id_pagamento) {
             resultado = `${(v_pago / v_orcado * 100).toFixed(0)}%`
         }
 
-        info_adicional_parceiro = `
+        formParceiros = `
         <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; gap: 5px; width: 100%;">
             ${infos}
             <div style="display: flex; flex-direction: column;">
@@ -546,7 +528,7 @@ async function abrir_detalhes(id_pagamento) {
                                 <img src="imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="editar_resumo('${pagamento.id_pagamento}')">
                             </div>
                             </td>
-                            <td style="color: #222; white-space: nowrap;" id="v_pago">${dinheiro(habilitar_painel_parceiro.valor)}</td>
+                            <td style="color: #222; white-space: nowrap;" id="v_pago">${dinheiro(painelParceiro.valor)}</td>
                             <td style="color: #222;" id="resultado">${resultado}</td>
                         </tr>
                     </tbody>
@@ -571,43 +553,48 @@ async function abrir_detalhes(id_pagamento) {
     }
 
     let divStatus = `<label>${pagamento.status}</label>`
-    if (acesso.permissao == 'adm') {
+    if (permissao == 'adm') {
         let opcoes = ''
         opcoesStatus.forEach(op => {
             opcoes += `<option ${pagamento.status == op ? 'selected' : ''}>${op}</option>`
         })
 
         divStatus = `
-            <select class="opcoesSelect" onchange="alterarStatusPagamento('${id_pagamento}', this)">
+            <select class="opcoesSelect" style="width: max-content;" onchange="alterarStatusPagamento('${id_pagamento}', this)">
                 ${opcoes}
             </select>
         `
     }
 
-    acumulado += `
-    <div style="max-width: 50vw; display: flex; gap: 10px; flex-direction: column; align-items: baseline; text-align: left; overflow: auto; padding: 2vw;">
+    let acumulado = `
+    
+    ${justificativaHTML(id_pagamento)}
+
+    <div style="width: 60vw; display: flex; gap: 10px; flex-direction: column; align-items: baseline; text-align: left; overflow: auto; padding: 2vw;">
         ${acoes_orcamento}
         ${btns}
-        <div style="display: flex; align-items: center; justify-content: left; gap: 5px;">
-            <label style="white-space: nowrap;"><strong>Status atual • </strong></label>
-            ${divStatus}
-        </div>
-        <label><strong>Quem recebe? • </strong> ${cliente}</label>
-        <div id="centro_de_custo_div" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-            <label><strong>Centro de Custo</strong> • ${cc}</label>
-            <img src="gifs/alerta.gif" style="width: 30px; cursor: pointer;" onclick="alterar_centro_de_custo('${id_pagamento}')">
-        </div>
-        <label><strong>Data de Solicitação</strong> • ${pagamento.data_registro}</label>
-        <label><strong>Data de Pagamento</strong> • ${pagamento.param[0].data_vencimento}</label>
 
-        ${div_valores}
+        ${modelo('Status Atual', `${divStatus}`)}
+        ${modelo('Quem recebe', `${cliente}`)}
+        
+        ${modelo('Centro de Custo', `
+            <div style="display: flex; align-items: center; justify-content: start; gap: 10px;">
+                <label>${cc}</label>
+                ${botao('Alterar', `alterarCC('${id_pagamento}')`, 'green')}
+            </div>
+            `)}
+        
+        ${modelo('Data de Solicitação', `${pagamento.data_registro}`)}
+        ${modelo('Data de Pagamento', `${pagamento.param[0].data_vencimento}`)}
 
-        ${info_adicional_parceiro}
+        ${divValores}
+
+        ${formParceiros}
 
         <div id="comentario" class="contorno" style="width: 90%;">
             <div class="contorno_interno">
-                <label style="width: 100%;"><strong>Observações </strong> •  ${ultima_alteracao} <br> ${pagamento.param[0].observacao.replace(/\||\n/g, "<br>")}</label>
-                ${botao_editar}
+                <label style="width: 100%;"><strong>Observações </strong><br> ${pagamento.param[0].observacao.replace(/\||\n/g, "<br>")}</label>
+                ${btnEditar}
             </div>
         </div>
 
@@ -632,7 +619,9 @@ async function abrir_detalhes(id_pagamento) {
 
     // Depois que se abre o pagamento, percorra os anexos e preencha cada item;
     if (pagamento.anexos_parceiros) {
+
         let itens = pagamento.anexos_parceiros
+
         for (item in itens) {
             let anexos_on = itens[item]
 
@@ -734,7 +723,7 @@ async function confirmar_exclusao_categoria(id, indice) {
     }
 
     await recuperarPagamentos()
-    await abrir_detalhes(id)
+    await abrirDetalhesPagamentos(id)
 
 }
 
@@ -828,7 +817,7 @@ async function editar_pagamento(id, indice) {
 
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
         await retomarPaginacao()
-        await abrir_detalhes(id)
+        await abrirDetalhesPagamentos(id)
 
     } else {
         return popup(`
@@ -911,7 +900,7 @@ function deletar_arquivo_servidor(link) {
         .catch(error => console.error('Erro:', error));
 }
 
-async function excluir_anexo_complementares(id_pagamento, anx) {
+async function excluirAnexoPagamento(id_pagamento, anx) {
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
 
     if (
@@ -927,7 +916,7 @@ async function excluir_anexo_complementares(id_pagamento, anx) {
 
         deletar(`lista_pagamentos/${id_pagamento}/anexos/${anx}`)
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
-        await abrir_detalhes(id_pagamento)
+        await abrirDetalhesPagamentos(id_pagamento)
     }
 
 }
@@ -946,7 +935,7 @@ async function excluir_anexo_parceiro(id_pagamento, campo, anx) {
         delete lista_pagamentos[id_pagamento].anexos_parceiros[campo][anx]
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
         deletar(`lista_pagamentos/${id_pagamento}/anexos_parceiros/${campo}/${anx}`)
-        await abrir_detalhes(id_pagamento)
+        await abrirDetalhesPagamentos(id_pagamento)
     }
 
 }
@@ -957,7 +946,7 @@ function editar_resumo(id_pagamento) {
         container_resumo.innerHTML = `
         <input placeholder="R$ 0,00" type="number" oninput="calcular_custo()" id="v_orcado">
         <img src="imagens/concluido.png" style="width: 30px; cursor: pointer;" onclick="atualizar_resumo('${id_pagamento}')">
-        <img src="imagens/cancel.png" style="width: 30px; cursor: pointer;" onclick=" abrir_detalhes('${id_pagamento}')">
+        <img src="imagens/cancel.png" style="width: 30px; cursor: pointer;" onclick=" abrirDetalhesPagamentos('${id_pagamento}')">
         `
     }
 }
@@ -979,7 +968,7 @@ async function atualizar_resumo(id_pagamento) {
     enviar(`lista_pagamentos/${id_pagamento}/resumo`, pagamento.resumo)
 
     await inserirDados(lista_pagamentos, 'lista_pagamentos');
-    await abrir_detalhes(id_pagamento)
+    await abrirDetalhesPagamentos(id_pagamento)
 
 }
 
@@ -1092,7 +1081,7 @@ async function atualizar_feedback(resposta, id_pagamento) {
     pagamento.historico[id_justificativa] = historico
 
     await inserirDados(lista_pagamentos, 'lista_pagamentos')
-    await abrir_detalhes(id_pagamento)
+    await abrirDetalhesPagamentos(id_pagamento)
     await retomarPaginacao()
 
     await enviar(`lista_pagamentos/${id_pagamento}/historico/${id_justificativa}`, historico)
@@ -1115,42 +1104,10 @@ async function editar_comentario(id) {
         </textarea>
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px;">
             <button onclick="salvar_comentario_pagamento('${id}')" style="background-color: green">Alterar Comentário</button>
-            <button onclick="abrir_detalhes('${id}')">Cancelar</button>
+            <button onclick="abrirDetalhesPagamentos('${id}')">Cancelar</button>
         </div>
         `
     }
-
-}
-
-function alterar_centro_de_custo(id) {
-
-    var centro_de_custo_div = document.getElementById('centro_de_custo_div')
-
-    centro_de_custo_div.innerHTML = `
-    <label>Escolha o novo centro de custo</label>
-
-    <div class="autocomplete-container">
-        <label id="id_orcamento" style="display: none;"></label>
-        <textarea style="width: 80%; font-size: 1.0vw;" type="text" class="autocomplete-input" id="cc" oninput="carregar_opcoes_cc(this)"></textarea>
-        <div class="autocomplete-list"></div>
-    </div>
-
-    <img src="imagens/concluido.png" style="width: 20px; cursor: pointer;" onclick="salvar_centro_de_custo('${id}')">
-    </div>
-    `
-}
-
-async function salvar_centro_de_custo(id) {
-    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-    let id_orcamento = document.getElementById('id_orcamento').textContent
-    var pagamento = lista_pagamentos[id]
-
-    pagamento.id_orcamento = id_orcamento
-
-    enviar(`lista_pagamentos/${id}/id_orcamento`, id_orcamento)
-
-    await inserirDados(lista_pagamentos, 'lista_pagamentos');
-    await abrir_detalhes(id)
 
 }
 
@@ -1169,7 +1126,7 @@ async function salvar_comentario_pagamento(id) {
     enviar(`lista_pagamentos/${id}/ultima_alteracao`, dataFormatada)
 
     await inserirDados(lista_pagamentos, 'lista_pagamentos')
-    await abrir_detalhes(id)
+    await abrirDetalhesPagamentos(id)
 
 }
 
@@ -1395,8 +1352,7 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
                 <div class="autocomplete-container">
                     <label id="id_orcamento" style="display: none;"></label>
                     <textarea style="width: 80%;" type="text" class="autocomplete-input"
-                        placeholder="Chamado D7777 ou Loja SAM'S... ou Setor LOGÍSTICA..." oninput="carregar_opcoes_cc(this)" id="cc"></textarea>
-                    <div class="autocomplete-list"></div>
+                        placeholder="Chamado D7777 ou Loja SAM'S... ou Setor LOGÍSTICA..." oninput="opcoesCC(this)" id="cc"></textarea>
                 </div>
 
                 <img src="imagens/atualizar_2.png" style="position: relative; width: 2vw; cursor: pointer; margin-right: 5px;" onclick="atualizar_departamentos()">
@@ -1581,7 +1537,7 @@ async function salvar_anexos_pagamentos(input, id_pagamento) {
 
     if (id_pagamento !== undefined) {
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
-        abrir_detalhes(id_pagamento)
+        abrirDetalhesPagamentos(id_pagamento)
     }
 
     await recuperar_ultimo_pagamento()
@@ -2212,11 +2168,9 @@ function selecionar_cliente(omie, nome) {
     calculadoraPagamento()
 }
 
-async function carregar_opcoes_cc(textarea) {
+async function opcoesCC(textarea) {
 
     let pesquisa = String(textarea.value).toLowerCase()
-    let div = textarea.nextElementSibling
-    div.innerHTML = ''
     let departamentos_fixos = JSON.parse(localStorage.getItem('departamentos_fixos')) || [];
     let dados_orcamentos = await recuperarDados('dados_orcamentos', true) || {};
     let dados_clientes = await recuperarDados('dados_clientes') || {}
@@ -2226,7 +2180,7 @@ async function carregar_opcoes_cc(textarea) {
     departamentos_fixos.forEach(dep => {
         if (dep.toLowerCase().includes(pesquisa)) {
             opcoes += `
-            <div onclick="selecionar_cc('${dep}', '${dep}', '${dep}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: start; justify-content: start; padding: 5px;">
+            <div onclick="selecionarCC('${dep}', '${dep}', '${dep}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: start; justify-content: start; padding: 5px;">
                 <label style="width: 100%; font-size: 0.8vw;"><strong>Setor</strong> ${dep}</label>
             </div>
         `}
@@ -2241,7 +2195,7 @@ async function carregar_opcoes_cc(textarea) {
         if (contrato.includes(pesquisa) || cliente.includes(pesquisa)) {
 
             opcoes += `
-                <div onclick="selecionar_cc('${id}', '${cliente}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px;">
+                <div onclick="selecionarCC('${id}', '${cliente}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px;">
                     <label style="width: 100%; font-size: 0.7vw;"><strong>Chamado</strong> ${orcamento.dados_orcam.contrato}</label>
                     <label style="width: 100%; font-size: 0.7vw;"><strong>Valor</strong> ${dinheiro(orcamento.total_geral)}</label>
                     <label style="width: 100%; font-size: 0.7vw;"><strong>Analista</strong> ${orcamento.dados_orcam.analista}</label>
@@ -2254,23 +2208,69 @@ async function carregar_opcoes_cc(textarea) {
 
     document.getElementById('id_orcamento').textContent = ''
 
-    if (pesquisa == '') {
-        opcoes = ''
-    }
+    let div = document.getElementById('div_sugestoes')
+    if(div) div.remove()
 
-    div.innerHTML = opcoes
+    if (pesquisa == '') return
+
+    let posicao = textarea.getBoundingClientRect()
+    let left = posicao.left + window.scrollX
+    let top = posicao.bottom + window.scrollY
+
+    let divSugestoes = `
+    <div id="div_sugestoes" class="autocomplete-list" style="position: absolute; top: ${top}px; left: ${left}px; border: 1px solid #ccc; width: 15vw;">
+        ${opcoes}
+    </div>`
+
+    document.body.insertAdjacentHTML('beforeend', divSugestoes)
+
     await calculadoraPagamento()
 }
 
-function selecionar_cc(id_orcamento, cliente) {
+function alterarCC(id) {
+
+    let acumulado = `
+    <div style="padding: 2vw; display: flex; align-items: center; justify-content: center; gap: 10px; background-color: #d2d2d2;">
+
+        <label id="id_orcamento" style="display: none;"></label>
+        <textarea style="width: 80%; font-size: 1.0vw;" type="text" class="autocomplete-input" id="cc" oninput="opcoesCC(this)"></textarea>
+
+        ${botao('Confirmar', `salvarCC('${id}')`, 'green')}
+
+    </div>
+    `
+
+    popup(acumulado, 'Selecione o novo Centro de Custo', true)
+}
+
+async function salvarCC(id) {
+
+    overlayAguarde()
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    let id_orcamento = document.getElementById('id_orcamento').textContent
+    let pagamento = lista_pagamentos[id]
+
+    pagamento.id_orcamento = id_orcamento
+
+    enviar(`lista_pagamentos/${id}/id_orcamento`, id_orcamento)
+
+    await inserirDados(lista_pagamentos, 'lista_pagamentos');
+    removerPopup()
+    await abrirDetalhesPagamentos(id)
+
+}
+
+async function selecionarCC(id_orcamento, cliente) {
+
     let b = document.getElementById('id_orcamento')
     b.textContent = id_orcamento
     let textarea = b.nextElementSibling
-
     textarea.value = cliente.toUpperCase()
-    let sugestoes = textarea.nextElementSibling
-    sugestoes.innerHTML = ''
-    calculadoraPagamento()
+
+    let divSugestoes = document.getElementById('div_sugestoes')
+    if(divSugestoes) divSugestoes.remove()
+
+    await calculadoraPagamento()
 }
 
 async function duplicar_pagamento(id_pagamento) {

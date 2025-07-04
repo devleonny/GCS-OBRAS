@@ -566,10 +566,10 @@ function popup(elementoHTML, titulo, nao_remover_anteriores) {
 
         <div class="janela_fora">
             
-            <div style="background-color: transparent; width: 100%; display: flex; justify-content: center; align-items: center;">
-                <div class="botao_popup" style="pointer-events: none; width: 100%; display: flex; justify-content: space-between; align-items: center; border-top-left-radius: 5px;">
-                    <label style="margin-left: 1vw; margin-right: 3vw; color: white;">${titulo || 'GCS'}</label>
-                </div>
+            <div class="topo_popup">
+
+                <label style="background-color: transparent; color: white; margin-left: 1vw;">${titulo || 'GCS'}</label>
+
                 <div style="display: flex; align-items: center; justify-content: center;">
 
                     <div class="botao_popup" style="border-top-right-radius: 5px; background-color: #b12425;" onclick="removerPopup()">
@@ -577,6 +577,7 @@ function popup(elementoHTML, titulo, nao_remover_anteriores) {
                     </div>
 
                 </div>
+
             </div>
             
             <div class="janela">
@@ -1386,7 +1387,7 @@ async function refazer_pagamento(id_pagamento) {
         console.log(await lancar_pagamento(pagamento))
         pagamento.status = 'Pagamento salvo localmente'
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
-        await abrir_detalhes(id_pagamento)
+        await abrirDetalhesPagamentos(id_pagamento)
     } else {
         popup(`
             <div style="margin: 1vw;">

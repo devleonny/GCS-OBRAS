@@ -869,6 +869,16 @@ button {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
+.topo_popup {
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    background-color: #3b444c;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .botao_popup {
     background-color: #3b444c;
     display: flex;
@@ -1951,7 +1961,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 .autocomplete-list {
-    position: absolute;
+    position: relative;
     top: 100%;
     left: 0;
     width: 100%;

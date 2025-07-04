@@ -405,9 +405,7 @@ async function sugestoes(input, tecnicos) {
     }
 
     let div_sugestoes = document.getElementById('div_sugestoes')
-    if (div_sugestoes) {
-        div_sugestoes.remove()
-    }
+    if (div_sugestoes) div_sugestoes.remove()
 
     let posicao = input.getBoundingClientRect()
     let left = posicao.left + window.scrollX
@@ -438,9 +436,7 @@ async function sugestoes(input, tecnicos) {
 async function escolher_tecnico(omie_tecnico, nome_tecnico) {
 
     let div_sugestoes = document.getElementById('div_sugestoes')
-    if (div_sugestoes) {
-        div_sugestoes.remove()
-    }
+    if (div_sugestoes) div_sugestoes.remove()
 
     // Caso seja apenas a tela de Lançamento;
     let telaLancamento = document.getElementById('telaLancamento')
@@ -485,9 +481,7 @@ async function salvar_tecnico(omie_tecnico) {
 async function definir_campo(input_id, omie_departamento, descricao) {
 
     let div_sugestoes = document.getElementById('div_sugestoes')
-    if (div_sugestoes) {
-        div_sugestoes.remove()
-    }
+    if (div_sugestoes) div_sugestoes.remove()
 
     if (input_id == '' || omie_departamento == '') {
         return

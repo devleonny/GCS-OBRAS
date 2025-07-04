@@ -965,7 +965,7 @@ async function sugestoes(textarea, base) {
         }
 
         opcoes += `
-            <div onclick="definir_campo(this, '${textarea.id}', '${id}')" class="autocomplete-item" style="font-size: 0.8vw;">${conteudoOpcao}</div>
+            <div onclick="definirCampo(this, '${textarea.id}', '${id}')" class="autocomplete-item" style="font-size: 0.8vw;">${conteudoOpcao}</div>
         `
 
     }
@@ -983,7 +983,7 @@ async function sugestoes(textarea, base) {
 
 }
 
-async function definir_campo(elemento, campo, id) {
+async function definirCampo(elemento, campo, id) {
 
     let termo;
 
@@ -1050,9 +1050,7 @@ async function definir_campo(elemento, campo, id) {
     }
 
     let div_sugestoes = document.getElementById('div_sugestoes')
-    if (div_sugestoes) {
-        div_sugestoes.remove()
-    }
+    if (div_sugestoes) div_sugestoes.remove()
 
     document.getElementById(campo).value = termo
 }

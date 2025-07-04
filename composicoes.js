@@ -1180,8 +1180,7 @@ function calcular(campo, dadosCalculo = null) {
         let pis = precoVenda * 0.0065
         let cofins = precoVenda * 0.03
 
-        let icmsSaidaSelect = icmsCreditado == 4 ? 0.04 : 0.205
-        if (campo == 'icms_saida_select') icmsSaidaSelect = conversor(getElementById('icms_saida_select')) / 100
+        let icmsSaidaSelect = icmsCreditado == 4 ? 0.04 : conversor(getElementById('icms_saida_select')) / 100
 
         let icmsSaida = dadosCalculo?.icmsSaida / 100 || icmsSaidaSelect
         let icms = precoVenda * icmsSaida
@@ -1332,7 +1331,7 @@ async function salvarPreco(codigo, lpu, cotacao) {
 
     // Verificar antes se a porcentagem é aceitável;
     let resultado = calcular(undefined, historico[id])
-    if (resultado.lucroPorcentagem < 10) return popup(alerta('Percentual de lucro não pode ser menor que 10%'), 'ALERTA', true)
+    if (resultado.lucroPorcentagem < 10 && acesso.permissao !== 'diretoria') return popup(alerta('Percentual de lucro não pode ser menor que 10%'), 'ALERTA', true)
 
     produto[lpu] = produto[lpu] || { historico: {} };
     produto[lpu].historico = historico;
