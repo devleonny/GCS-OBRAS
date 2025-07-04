@@ -1393,7 +1393,6 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
                         <label id="codigo_omie" style="display: none;"></label>
                         <textarea style="width: 80%;" oninput="opcoesClientes(this)" type="text"
                             class="autocomplete-input" placeholder="Quem receberá?" id="recebedor"></textarea>
-                        <div class="autocomplete-list"></div>
                     </div>
 
                     <img src="imagens/atualizar_2.png" style="width: 2vw; cursor: pointer; margin-right: 5px;" onclick="recuperarClientes()">
@@ -2124,8 +2123,6 @@ function selecionarCategoria(codigo, categoria, id) {
 async function opcoesClientes(textarea) {
 
     let pesquisa = String(textarea.value).toLowerCase()
-    let div = textarea.nextElementSibling
-    div.innerHTML = ''
     let dados_clientes = await recuperarDados('dados_clientes') || {};
     let opcoes = ''
 
@@ -2136,9 +2133,9 @@ async function opcoesClientes(textarea) {
 
         if (form_cnpj.includes(pesquisa) || nome.includes(pesquisa)) {
             opcoes += `
-                <div onclick="selecionar_cliente('${omie}', '${nome}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: start; justify-content: start;">
-                    <label style="width: 90%; font-size: 0.8vw;"><strong>CNPJ/CPF</strong> ${cliente.cnpj}</label>
-                    <label style="width: 90%; font-size: 0.8vw;"><strong>Cliente</strong> ${nome.toUpperCase()}</label>
+                <div onclick="selecionarCliente('${omie}', '${nome}')" class="autocomplete-item" style="text-align: left; display: flex; flex-direction: column; align-items: start; justify-content: start;">
+                    <label style="width: 90%; font-size: 0.9vw;">${nome.toUpperCase()}</label>
+                    <label style="width: 90%; font-size: 0.7vw;"><strong>${cliente.cnpj}</strong></label>
                 </div>
                 `
         }
@@ -2147,25 +2144,34 @@ async function opcoesClientes(textarea) {
 
     document.getElementById('codigo_omie').textContent = ''
 
-    if (pesquisa == '') {
-        opcoes = ''
-    }
+    let div = document.getElementById('div_sugestoes')
+    if(div) div.remove()
 
-    div.innerHTML = opcoes
-    calculadoraPagamento()
+    if (pesquisa == '') return
+
+    let posicao = textarea.getBoundingClientRect()
+    let left = posicao.left + window.scrollX
+    let top = posicao.bottom + window.scrollY
+
+    let divSugestoes = `
+    <div id="div_sugestoes" class="autocomplete-list" style="position: absolute; top: ${top}px; left: ${left}px; border: 1px solid #ccc; width: 15vw;">
+        ${opcoes}
+    </div>`
+
+    document.body.insertAdjacentHTML('beforeend', divSugestoes)
 
 }
 
-function selecionar_cliente(omie, nome) {
+async function selecionarCliente(omie, nome) {
 
     let b = document.getElementById('codigo_omie')
     b.textContent = omie
     let textarea = b.nextElementSibling
-
     textarea.value = nome.toUpperCase()
-    let sugestoes = textarea.nextElementSibling
-    sugestoes.innerHTML = ''
-    calculadoraPagamento()
+
+    let div = document.getElementById('div_sugestoes')
+    if(div) div.remove()
+    await calculadoraPagamento()
 }
 
 async function opcoesCC(textarea) {
@@ -2195,7 +2201,7 @@ async function opcoesCC(textarea) {
         if (contrato.includes(pesquisa) || cliente.includes(pesquisa)) {
 
             opcoes += `
-                <div onclick="selecionarCC('${id}', '${cliente}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px;">
+                <div onclick="selecionarCC('${idOrcamento}', '${cliente}')" class="autocomplete-item" style="text-align: left; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px;">
                     <label style="width: 100%; font-size: 0.7vw;"><strong>Chamado</strong> ${orcamento.dados_orcam.contrato}</label>
                     <label style="width: 100%; font-size: 0.7vw;"><strong>Valor</strong> ${dinheiro(orcamento.total_geral)}</label>
                     <label style="width: 100%; font-size: 0.7vw;"><strong>Analista</strong> ${orcamento.dados_orcam.analista}</label>
