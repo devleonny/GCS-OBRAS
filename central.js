@@ -110,10 +110,26 @@ function corFundo() {
     }
 }
 
+function offline() {
+
+    let acumulado = `
+    <div class="telaOffline">
+
+        <div class="mensagemTela">
+            <img src="gifs/offline.gif">
+            <label>Você está offline...</label>
+            ${botao('Reconectar', `window.location.href = 'inicial.html'`)}
+        </div>
+    </div>
+    `
+
+    document.body.innerHTML = acumulado
+}
+
 async function identificacaoUser() {
     corFundo()
 
-    if (!navigator.onLine) return window.location.href = 'offline.html'
+    if (!navigator.onLine) return offline()
 
     if (document.title == 'Login') return
     if (!acesso) return window.location.href = 'login.html'

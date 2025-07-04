@@ -572,6 +572,28 @@ body {
     margin: 10px;
 }
 
+.mensagemTela {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1vw;
+    background-color: white;
+    padding: 2vw;
+    border-radius: 3px;
+}
+
+.mensagemTela img {
+    width: 5vw;
+}
+
+.telaOffline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 60vh;
+}
+
 .salvar {
     margin: 5px;
     width: 40%;
