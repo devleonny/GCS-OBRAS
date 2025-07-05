@@ -1441,12 +1441,12 @@ input[type=range]::-moz-range-thumb {
 }
 
 .block:hover {
-    transition: 0.2s ease;
     color: #222;
     background-color: #ffffffc6;
 }
 
 .block label {
+    cursor: pointer;
     font-size: 0.8vw;
 }
 
