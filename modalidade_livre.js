@@ -76,7 +76,7 @@ function carregar_layout_modalidade_livre() {
                         <img src="imagens/gerente.png">
                         <label>Dados Cliente</label>
                     </div>
-                    <div class="btn_menu" onclick="enviar_dados()">
+                    <div class="btn_menu" onclick="enviarDados()">
                         <img src="imagens/salvo.png">
                         <label>Salvar Orçamento</label>
                     </div>
@@ -273,7 +273,7 @@ function carregar_tabela() {
                         <option ${item.tipo === 'VENDA' ? 'selected' : ''}>VENDA</option>
                     </select>
                 </td>
-                <td><img src="${imagem}" style="width: 50px; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')"></td>
+                <td><img src="${imagem}" style="width: 50px; cursor: pointer;" onclick="abrirImagem(this, '${codigo}')"></td>
                 <td><img src="imagens/excluir.png" onclick="removerLinha_v2('${codigo}')" style="cursor: pointer;"></td>
             </tr>
 

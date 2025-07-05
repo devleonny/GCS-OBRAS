@@ -2,6 +2,29 @@ let acesso = JSON.parse(localStorage.getItem('acesso'))
 let dados_setores = {}
 let filtrosUsuarios = {}
 let filtrosPendencias = {}
+const metaforas = [
+    "Um monitor sem imagens para exibir",
+    "Um sistema de vigilância sem olhos",
+    "Uma rede sem nós conectados",
+    "Uma central de segurança em silêncio",
+    "Uma câmera sem ângulos para vigiar",
+    "Um gravador sem arquivos para armazenar",
+    "Um mapa sem áreas para monitorar",
+    "Uma sala de controle sem alertas",
+    "Um software sem dados para processar",
+    "Uma instalação sem cabos para ligar",
+    "Um alarme sem disparo",
+    "Um servidor sem logs de acesso",
+    "Um banco de dados sem registros",
+    "Uma cerca virtual sem perímetro",
+    "Um sensor sem movimento detectado",
+    "Um sistema de monitoramento sem eventos",
+    "Uma interface sem transmissões ao vivo",
+    "Uma tela de múltiplas câmeras em branco",
+    "Um painel de controle sem notificações",
+    "Uma infraestrutura sem dispositivos ativos"
+]
+
 const modelo = (valor1, valor2) => `
         <div style="display: flex; flex-direction: column; align-items: start; margin-bottom: 5px; width: 100%;">
             <label><strong>${valor1}</strong></label>
@@ -376,21 +399,23 @@ function overlayAguarde() {
     if (aguarde) aguarde.remove()
 
     let elemento = `
-    <div id="aguarde" style="display: flex; 
-                align-items: center; 
-                justify-content: center; 
+    <div id="aguarde" style="
+                display: flex; 
+                align-items: start; 
+                justify-content: start;
                 background-color: rgba(0, 0, 0, 0.7);
                 color: white;
                 position: absolute;
                 top: 0;
                 left: 0;
                 width: 100%;
-                height: 100%;
                 z-index: 10005;
                 font-size: 1.5em;
                 border-radius: 3px;">
-        <img src="gifs/loading.gif" style="width: 5vw;">
-        <div id="divMensagem">Por favor, aguarde...</div>
+        <div id="divMensagem" style="position: fixed; top: 1vw; left: 1vw; display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <img src="gifs/loading.gif" style="width: 5vw;">
+            <label>Por favor, aguarde...</label>
+        </div>
     </div>
     `
     document.body.insertAdjacentHTML('beforeend', elemento)
@@ -406,7 +431,8 @@ function overlayAguarde() {
         let mensagem = document.getElementById('divMensagem')
 
         if (mensagem) mensagem.innerHTML = `
-            <label onclick="this.parentElement.remove()" style="cursor: pointer; text-decoration: underline; cursor: pointer;">Cancelar?</label>
+            <img src="gifs/atencao.gif" style="width: 3vw;">
+            <label onclick="this.parentElement.parentElement.remove()" style="cursor: pointer; cursor: pointer;">Cancelar?</label>
         `
 
     }, 60 * 1000);
@@ -2076,7 +2102,7 @@ async function painelClientes() {
 
     let acumulado = `
 
-    <div style="background-color: #d2d2d2; padding: 10px; width: 30vw;">
+    <div style="background-color: #d2d2d2; padding: 10px;">
 
         <div style="display: flex; justify-content: start; align-items: center;">
             <div style="display: flex; flex-direction: column; gap: 10px; align-items: left; margin: 5px;">
@@ -2100,7 +2126,7 @@ async function painelClientes() {
                 <input id="chamado_off" style="width: 2vw; height: 2vw; cursor: pointer;" type="checkbox"
                         onchange="salvarDadosCliente()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
                 <label style="white-space: nowrap;">Sem Chamado</label>`)}
-            ${modelo('Cliente', `<textarea class="autocomplete-input" id="cliente_selecionado" style="font-size: 1.0vw;" oninput="carregarClientes(this)">${cliente?.nome || ''}</textarea>`)}
+            ${modelo('Cliente', `<textarea class="autocomplete-input" id="cliente_selecionado" style="font-size: 1.0vw; width: 100%;" oninput="carregarClientes(this)">${cliente?.nome || ''}</textarea>`)}
             ${modelo('CNPJ/CPF', cliente?.cnpj, 'cnpj')}
             ${modelo('Endereço', cliente?.bairro, 'bairro')}
             ${modelo('CEP', cliente?.cep, 'cep')}

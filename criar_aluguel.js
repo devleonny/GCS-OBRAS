@@ -28,29 +28,6 @@ function apagar_orçamento() {
 
 }
 
-let metaforas = [
-    "Um monitor sem imagens para exibir",
-    "Um sistema de vigilância sem olhos",
-    "Uma rede sem nós conectados",
-    "Uma central de segurança em silêncio",
-    "Uma câmera sem ângulos para vigiar",
-    "Um gravador sem arquivos para armazenar",
-    "Um mapa sem áreas para monitorar",
-    "Uma sala de controle sem alertas",
-    "Um software sem dados para processar",
-    "Uma instalação sem cabos para ligar",
-    "Um alarme sem disparo",
-    "Um servidor sem logs de acesso",
-    "Um banco de dados sem registros",
-    "Uma cerca virtual sem perímetro",
-    "Um sensor sem movimento detectado",
-    "Um sistema de monitoramento sem eventos",
-    "Uma interface sem transmissões ao vivo",
-    "Uma tela de múltiplas câmeras em branco",
-    "Um painel de controle sem notificações",
-    "Uma infraestrutura sem dispositivos ativos"
-]
-
 function fechar_ir_orcamentos() {
     location.href = 'orcamentos.html'
 }
@@ -110,7 +87,7 @@ async function carregarTabelas() {
                 <label></label>
             </td>
             <td style="text-align: center;">
-                <img onclick="ampliar_especial(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
+                <img onclick="abrirImagem(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
             </td>
             <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo}', this)" style="cursor: pointer; width: 2vw;"></td>
         </tr>
@@ -220,7 +197,7 @@ async function removerItem(codigo, img) {
 
 }
 
-async function enviar_dados() {
+async function enviarDados() {
     let orcamento_v2 = baseOrcamento()
 
     if (!orcamento_v2.dados_orcam) {
@@ -368,7 +345,7 @@ async function tabelaProdutos() {
                             </td>
                             <td style="text-align: center;">${td_quantidade}</td>
                             <td style="text-align: center;">
-                                <img src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;" onclick="ampliar_especial(this, '${codigo}')">
+                                <img src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;" onclick="abrirImagem(this, '${codigo}')">
                             </td>
                         </tr>
                     `
@@ -603,7 +580,7 @@ async function incluirItem(codigo, novaQuantidade) {
                 <label></label>
             </td>
             <td style="text-align: center;">
-                <img onclick="ampliar_especial(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
+                <img onclick="abrirImagem(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
             </td>
             <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo}', this)" style="cursor: pointer; width: 2vw;"></td>
         </tr>
@@ -663,133 +640,6 @@ function itemExistente(tipo, codigo, quantidade) {
 
     return incluir
 
-}
-
-function alterar_input_tabela(codigo) {
-    let tabela_itens = document.getElementById('tabela_itens')
-
-    if (tabela_itens) {
-        let orcamento_v2 = baseOrcamento()
-        let table = tabela_itens.querySelector('table')
-        let tbody = table.querySelector('tbody')
-        let trs = tbody.querySelectorAll('tr')
-
-        trs.forEach(tr => {
-
-            let tds = tr.querySelectorAll('td')
-            let cod = tds[0].textContent
-
-            if (cod == codigo && orcamento_v2.dados_composicoes && orcamento_v2.dados_composicoes[codigo]) {
-
-                let td_quantidade = `
-                <input type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
-                `
-                tds[5].innerHTML = td_quantidade
-
-            }
-
-        })
-
-    }
-
-}
-
-async function carregar_clientes(textarea) {
-
-    let div = textarea.nextElementSibling;
-    let dados_clientes = await recuperarDados('dados_clientes') || {};
-    let pesquisa = String(textarea.value).replace(/[.-]/g, '').toLowerCase()
-    let opcoes = ''
-    div.innerHTML = ''
-
-    for (cnpj in dados_clientes) {
-        var cliente = dados_clientes[cnpj]
-        let nome = cliente.nome.toLowerCase()
-        let cnpj_sem_format = cnpj.replace(/[.-]/g, '')
-
-        if (nome.includes(pesquisa) || cnpj_sem_format.includes(pesquisa)) {
-            opcoes += `
-            <div onclick="selecionar_cliente('${cnpj}', '${cliente.nome}', this)" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: start; justify-content: start; padding: 2px; border-bottom: solid 1px #d2d2d2;">
-                <label style="width: 90%; font-size: 0.8vw;">${cliente.nome}</label>
-                <label style="width: 90%; font-size: 0.7vw;"><strong>${cnpj}</strong></label>
-            </div>
-        `}
-    }
-
-    if (pesquisa == '') {
-        document.getElementById('cnpj').textContent = '...'
-        document.getElementById('cnpj').textContent = '...'
-        document.getElementById('cep').textContent = '...'
-        document.getElementById('bairro').textContent = '...'
-        document.getElementById('cidade').textContent = '...'
-        document.getElementById('estado').textContent = '...'
-        return
-    }
-
-    div.innerHTML = opcoes
-
-}
-
-async function selecionar_cliente(cnpj, nome, div_opcao) {
-
-    let dados_clientes = await recuperarDados('dados_clientes') || {};
-    let cliente = dados_clientes[cnpj]
-
-    document.getElementById('cnpj').textContent = cnpj
-    document.getElementById('cep').textContent = cliente.cep
-    document.getElementById('bairro').textContent = cliente.bairro
-    document.getElementById('cidade').textContent = cliente.cidade
-    document.getElementById('estado').textContent = cliente.estado
-
-    let div = div_opcao.parentElement
-    let textarea = div.previousElementSibling
-
-    textarea.value = nome
-
-    div.innerHTML = ''
-
-    salvarDadosCliente()
-
-}
-
-function limpar_campos() {
-    popup(`
-        <div style="gap: 10px; display: flex; align-items: center; flex-direction: column;">
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <label>Deseja limpar campos?</label>
-            </div>
-            <label onclick="executar_limpar_campos()" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
-        </div>`)
-}
-
-function executar_limpar_campos() {
-
-    document.getElementById('cnpj').value = ''
-    document.getElementById('cliente_selecionado').value = ''
-    document.getElementById('consideracoes').value = ''
-    document.getElementById('tipo_de_frete').value = ''
-    document.getElementById('transportadora').value = ''
-
-    // Limpar campos de texto (textContent)
-    document.getElementById('cep').textContent = ''
-    document.getElementById('estado').textContent = ''
-    document.getElementById('cidade').textContent = ''
-    document.getElementById('bairro').textContent = ''
-
-    salvarDadosCliente();
-    removerPopup();
-}
-
-function pagina_adicionar() {
-    salvarDadosCliente()
-    window.location.href = 'criar_orcamento.html'
-}
-
-function tipo_elemento(element) {
-    if ('value' in element && (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT')) {
-        return 'value';
-    }
-    return 'textContent';
 }
 
 function excluir_levantamento(chave) {

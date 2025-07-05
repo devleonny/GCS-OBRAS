@@ -118,7 +118,8 @@ async function carregar_tabela_v2() {
                 conteudo = `<img 
                                 src="${conteudo || logo}" 
                                 style="width: 4vw; cursor: pointer;" 
-                                ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="ampliar_especial(this, '${codigo}')"` : ''}
+                                name="${codigo}"
+                                ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="abrirImagem('${codigo}')"` : ''}
                             >`;
 
             } else if (chave.includes('lpu')) {
