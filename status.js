@@ -1200,6 +1200,9 @@ async function abrirAtalhos(id) {
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let orcamento = dados_orcamentos[id]
 
+    console.log(orcamento);
+
+
     let analista = orcamento.dados_orcam.analista
     let emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     let botoesDisponiveis = ''
@@ -1287,7 +1290,10 @@ async function arquivarOrcamento(idOrcamento) {
 async function painelCustos() {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
     let orcamento = dados_orcamentos[id_orcam]
+    let omieCliente = orcamento?.dados_orcam?.omie_cliente || ''
+    let cliente = dados_clientes?.[omieCliente] || {}
 
     let guiaCores = {
         'USO E CONSUMO': '#097fe6',
@@ -1403,7 +1409,6 @@ async function painelCustos() {
     }
 
     let elementosPagamentos = await carregarPagamentos(orcamento.pagamentos)
-    let totalPagamentos = elementosPagamentos.total ? elementosPagamentos.total : 0
     let stringPagamentos = elementosPagamentos.tabelas ? elementosPagamentos.tabelas : `Sem Pagamentos`
 
     let modeloLabel = (valor1, valor2) => `
@@ -1416,17 +1421,16 @@ async function painelCustos() {
     let custoCompraGeral = orcamento?.dados_custos?.custo_compra || 0
     let freteVendaGeral = orcamento?.dados_custos?.frete_venda || 0
     let impostosGeral = orcamento?.dados_custos?.impostos || 0
+    let totalPagamentos = orcamento?.dados_custos?.pagamentos || 0
     let lucratividade = orcamento.total_geral - custoCompraGeral - impostosGeral - freteVendaGeral - totalPagamentos
     let porcentagem = Number(((lucratividade / orcamento.total_geral) * 100).toFixed(0))
 
     let acumulado = `
         <div style="background-color: #d2d2d2; display: flex; flex-direction: column; align-items: start; justify-content: center; padding: 2vw;">
 
-            <br>
-
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                ${modelo('Cliente', orcamento.dados_orcam.cliente_selecionado)}
-                ${modelo('Localização', orcamento.dados_orcam.cidade)}
+                ${modelo('Cliente', cliente?.nome || 'Indispoível')}
+                ${modelo('Localização', cliente?.cidade || 'Indisponível')}
             </div>
             
             <hr style="width: 100%;">
@@ -1477,6 +1481,7 @@ async function carregarPagamentos(pagamentos) {
     let total = 0
     let tabelas = ''
     let dados_categorias = await recuperarDados('dados_categorias') || {}
+    let lista_pagamentos = await recuperarDados('lista_pagamentos', true) || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let clientesOmie = Object.fromEntries(
         Object.values(dados_clientes).map(cliente => [cliente.omie, cliente])
@@ -1500,24 +1505,30 @@ async function carregarPagamentos(pagamentos) {
     `
 
     let pagamentosCategorias = {}
-    for (let [idPagamento, pagamento] of Object.entries(pagamentos)) {
 
-        let requisicaoOmie = pagamento.param[0]
-        let categorias = requisicaoOmie.categorias
+    for (let idPagamento of pagamentos) {
 
-        for (item of categorias) {
+        if (!lista_pagamentos[idPagamento]) continue
+
+        let pagamento = lista_pagamentos[idPagamento]
+
+        let categorias = pagamento.param[0].categorias
+
+        categorias.forEach(item => {
 
             if (!pagamentosCategorias[item.codigo_categoria]) pagamentosCategorias[item.codigo_categoria] = []
 
             let recorte = {
                 valor: item.valor,
-                recebedor: requisicaoOmie.codigo_cliente_fornecedor,
-                vencimento: requisicaoOmie.data_vencimento,
-                observacao: requisicaoOmie.observacao
+                recebedor: pagamento.param[0].codigo_cliente_fornecedor,
+                vencimento: pagamento.param[0].data_vencimento,
+                observacao: pagamento.param[0].observacao
             }
 
             pagamentosCategorias[item.codigo_categoria].push(recorte)
-        }
+
+        })
+
     }
 
     for ([codCategoria, lista] of Object.entries(pagamentosCategorias)) {

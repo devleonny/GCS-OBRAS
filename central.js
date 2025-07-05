@@ -133,14 +133,19 @@ function corFundo() {
     }
 }
 
-function offline() {
+function offline(motivo) {
+
+    const motivos = {
+        1: 'Você está offline...',
+        2: 'O servidor GCS caiu...'
+    }
 
     let acumulado = `
     <div class="telaOffline">
 
         <div class="mensagemTela">
             <img src="gifs/offline.gif">
-            <label>Você está offline...</label>
+            <label>${motivos[motivo]}</label>
             ${botao('Reconectar', `window.location.href = 'inicial.html'`)}
         </div>
     </div>
@@ -152,7 +157,7 @@ function offline() {
 async function identificacaoUser() {
     corFundo()
 
-    if (!navigator.onLine) return offline()
+    if (!navigator.onLine) return offline(1)
 
     if (document.title == 'Login') return
     if (!acesso) return window.location.href = 'login.html'
@@ -1227,7 +1232,7 @@ async function receber(chave) {
                 resolve(data);
             })
             .catch(err => {
-                popup(mensagem('Falha no Servidor: Tente novamente'), 'ALERTA', true)
+                offline(2)
                 resolve({})
             });
     })
@@ -1926,24 +1931,23 @@ async function servicos(servico, alteracao) {
 }
 
 async function lista_setores(timestamp) {
-    return new Promise((resolve, reject) => {
-        fetch("https://leonny.dev.br/setores", {
+    try {
+        const response = await fetch("https://leonny.dev.br/setores", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ timestamp })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                resolve(data);
-            })
-            .catch(error => reject(error));
+        });
 
-    })
+        if (!response.ok) {
+            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data;
+
+    } catch {
+        return {}
+    }
 }
 
 function registrarAlteracao(base, id, comentario) {

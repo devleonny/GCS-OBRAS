@@ -231,9 +231,10 @@ async function preencherOrcamentos(alternar) {
                 impostos = 0,
                 custo_compra = 0,
                 frete_venda = 0,
+                pagamentos = 0
             } = orcamento?.dados_custos || {}
 
-            let lucratividade = orcamento.total_geral - impostos - custo_compra - frete_venda
+            let lucratividade = orcamento.total_geral - impostos - custo_compra - frete_venda - pagamentos
             let lucratividadePorcentagem = Number(((lucratividade / orcamento.total_geral) * 100).toFixed(0))
 
             linhas += `
