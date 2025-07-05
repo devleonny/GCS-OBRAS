@@ -326,7 +326,7 @@ async function alterar_usuario(campo, usuario, select) {
     }
 }
 
-function verificar_timestamp_nome(nome) {
+function verifTimestampNome(nome) {
     let regex = /^(\d{13})\.\w+$/;
     let match = nome.match(regex);
 
@@ -347,10 +347,8 @@ if (typeof window !== 'undefined' && window.process && window.process.type) {
 
 function abrirArquivo(link) {
 
-    if (verificar_timestamp_nome(link)) { // Se for um link composto por timestamp, então vem do servidor;
+    if (verifTimestampNome(link)) { // Se for um link composto por timestamp, então vem do servidor;
         link = `https://leonny.dev.br/uploads/${link}`
-    } else if (link.includes('http')) { // Links completos;
-        link = link
     } else { // Antigo Google;
         link = `https://drive.google.com/file/d/${link}/view?usp=drivesdk`
     }

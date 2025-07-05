@@ -1661,11 +1661,19 @@ function elementosEspecificos(chave, historico) {
             ${parcelas}
         `
 
+        let botaoDANFE = ''
+
+        if (historico.notaOriginal) {
+            let tipo = historico.tipo == 'Serviço' ? 'serviço' : 'venda_remessa'
+            let codOmieNF = tipo == 'venda_remessa' ? historico.notaOriginal.compl.nIdNF : historico.notaOriginal.Cabecalho.nCodNF
+            botaoDANFE = botao('PDF', `abrirDANFE('${codOmieNF}', '${tipo}', '${historico.app}')`, '#B12425')
+        }
+
         acumulado = `
             ${labelDestaque('Nota', historico.nf)}
             ${labelDestaque('Tipo', historico.tipo)}
             ${labelDestaque('Valor Total', dinheiro(historico.valor))}
-            ${historico?.notaOriginal?.cUrlDanfe !== '' ? botao('PDF', `abrirArquivo('${historico?.notaOriginal?.cUrlDanfe}')`, '#B12425') : ''}
+            ${botaoDANFE}
             ${divPacelas}
         `
     } else if (historico.envio) {
@@ -1696,7 +1704,7 @@ function elementosEspecificos(chave, historico) {
 async function abrirEsquema(id) {
 
     if (id) id_orcam = id
-    
+
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let orcamento = dados_orcamentos[id]
@@ -2659,4 +2667,43 @@ async function envioMaterial(chave) {
     </div>
     `
     popup(acumulado, 'Envio de Material', true)
+}
+
+async function abrirDANFE(codOmieNF, tipo, app) {
+
+    overlayAguarde()
+
+    const resposta = await buscarDANFE(codOmieNF, tipo, app)
+
+    if (resposta.faultstring) return popup(mensagem('Não foi possível abrir a DANFE'), 'AVISO', true)
+
+    removerOverlay()
+
+    try {
+        shell.openExternal(resposta);
+    } catch {
+        window.open(resposta, '_blank');
+    }
+
+}
+
+async function buscarDANFE(codOmieNF, tipo, app) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/danfe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ codOmieNF, tipo, app })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(error => reject(error));
+
+    })
 }
