@@ -303,14 +303,7 @@ async function configs() {
     `
 
     let acumulado = `
-    <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 1vw;">
-        <label>Ative ou Desative a função:</label>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-            <input type="checkbox" style="width: 25px; height: 25px;" onchange="servicos('livre', this.checked)" ${status ? 'checked' : ''}>
-            <label>Modalidade Livre</label>
-        </div>
-
-        <hr style="width: 100%;">
+    <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 10px; padding: 2vw;">
         <label>Gestão de Usuários</label>
         ${tabela}
     </div>

@@ -46,7 +46,7 @@ async function carregarTabela() {
             `<div class="diVeiculos" onclick="novoMotorista('${idMotorista}')">
                 <img src="imagens/${veiculos?.[motorista.veiculo]?.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
                 <div style="display: flex; justify-content: center; align-items: start; flex-direction: column;">
-                    <label><strong>${String(dados_clientes[idMotorista].nome).slice(0, 10)}...</strong></label>
+                    <label><strong>${String(dados_clientes?.[idMotorista]?.nome || '').slice(0, 10)}...</strong></label>
                     <label><strong>${veiculos?.[motorista.veiculo]?.modelo || ''}</strong> ${veiculos?.[motorista.veiculo]?.placa || 'Sem veículo'}</label>
                 </div>
             </div>
@@ -408,6 +408,9 @@ async function salvarMotorista() {
     overlayAguarde()
     let motoristas = await recuperarDados('motoristas') || {}
     let idMotorista = obterValores('omie')
+
+    if(idMotorista == '') return popup(mensagem('Escolha um motorista'), 'AVISO', true)
+
     let motorista = {}
     let veiculo = document.getElementById('veiculo')
 

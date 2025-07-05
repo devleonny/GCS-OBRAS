@@ -35,6 +35,7 @@ select {
 }
 
 .diVeiculos label {
+    font-size: 1.0vw;
     cursor: pointer;
 }
 
@@ -54,6 +55,8 @@ select {
 }
 
 .botoes label {
+    white-space: nowrap;
+    font-size: 1.0vw;
     cursor: pointer;
 }
 
