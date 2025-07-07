@@ -359,8 +359,7 @@ function abrirArquivo(link) {
     }
 
     try {
-        const { ipcRenderer } = require('electron');
-        ipcRenderer.invoke('open-new-window', link);
+        shell.openExternal(link);
     } catch {
         window.open(link, '_blank');
     }
