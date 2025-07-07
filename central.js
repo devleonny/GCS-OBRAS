@@ -359,7 +359,8 @@ function abrirArquivo(link) {
     }
 
     try {
-        shell.openExternal(link);
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.invoke('open-new-window', link);
     } catch {
         window.open(link, '_blank');
     }
@@ -2381,4 +2382,43 @@ function atualizar_dados_vendedores() {
     let vendedor = document.getElementById('vendedor').value
     document.getElementById('email_vendedor').textContent = dados_vendedores[vendedor]['email']
     document.getElementById('telefone_vendedor').textContent = dados_vendedores[vendedor]['telefone']
+}
+
+async function abrirDANFE(codOmieNF, tipo, app) {
+
+    overlayAguarde()
+
+    const resposta = await buscarDANFE(codOmieNF, tipo, app)
+
+    if (resposta.faultstring) return popup(mensagem('Não foi possível abrir a DANFE'), 'AVISO', true)
+
+    removerOverlay()
+
+    try {
+        shell.openExternal(resposta);
+    } catch {
+        window.open(resposta, '_blank');
+    }
+
+}
+
+async function buscarDANFE(codOmieNF, tipo, app) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/danfe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ codOmieNF, tipo, app })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(error => reject(error));
+
+    })
 }
