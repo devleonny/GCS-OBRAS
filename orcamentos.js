@@ -122,7 +122,6 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
                     cursor: pointer;
                     padding: 10px;
                     font-size: 0.8vw;
-                    color: #222;
                     border-top-left-radius: 5px;
                     border-top-right-radius: 5px;
                     ">

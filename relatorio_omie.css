@@ -1,0 +1,48 @@
+.blocoParcela {
+    margin: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #e8e8e8;
+    padding: 3px;
+    border-radius: 2px;
+    gap: 5px;
+}
+
+.blocoValores {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    background-color: #d2d2d2;
+    padding: 5px;
+    border-radius: 2px;
+}
+
+.itensToolbar {
+    background-color: #d2d2d2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-left: 3px;
+    cursor: pointer;
+    padding: 10px;
+    font-size: 0.8vw;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+.toolbarRelatorio {
+    margin-left: 5vw;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: start;
+    flex-wrap: wrap-reverse;
+}
+
+.toolbarRelatorio label {
+    font-size: 1.2vw;
+    cursor: pointer;
+}

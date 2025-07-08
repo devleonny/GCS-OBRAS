@@ -78,7 +78,7 @@ async function carregarTabela() {
     }
 
     let ths = '', tsh = ''
-    let colunas = ['Usuário & Data', 'Veículo', 'Motorista', 'Tipo', 'Valor', 'Comentário', 'Anexos', 'Editar']
+    let colunas = ['Usuário & Data', 'Veículo', 'Tipo', 'Valor', 'Comentário', 'Anexos', 'Editar']
         .map((coluna, i) => {
             tsh += (coluna == 'Editar' || coluna == 'Anexos') ? '<th style="background-color: white;"></th>' : `
             <th style="background-color: white;">
@@ -92,7 +92,7 @@ async function carregarTabela() {
         })
 
     let linhas = ''
-    for (let [idCusto, custo] of Object.entries(custo_veiculos)) {
+    for (let [idCusto, custo] of Object.entries(custo_veiculos).reverse()) {
 
         let anexos = Object.entries(custo?.anexos || {})
             .map(([idAnexo, anexo]) => `
@@ -110,18 +110,21 @@ async function carregarTabela() {
                     <label>${conversorData(custo.data_pagamento)}</label>
                 </div>
             </td>
-            <td>
-                <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
-                    <label><strong>${veiculo.modelo}</strong></label>
-                    <label style="font-size: 0.8vw;">${veiculo.placa}</label>
 
+            <td>
+                <div style="display: flex; align-items: start; justify-content: center; flex-direction: column;">
+                    <label>${nome}</label>
                     <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
-                        <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
-                        <label>${veiculo.status}</label>
+                        <label style="font-size: 0.8vw;"><strong>${veiculo.placa}</strong></label>
+
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
+                            <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
+                            <label>${veiculo.status}</label>
+                        </div>
                     </div>
                 </div>
-            </td>            
-            <td>${nome}</td>
+            </td>
+
             <td>${custo.categoria}</td>
             <td>${dinheiro(custo.custo_total)}</td>
             <td style="text-align: left;">${custo.comentario}</td>
