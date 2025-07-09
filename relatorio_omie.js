@@ -100,15 +100,7 @@ async function carregarTabela() {
                     <tr>
                         <td>${nota.categoria}</td>
                         <td>
-                            <div class="balaoNF">
-                                <div class="balao1">
-                                    <label style="font-size: auto;">${nf}</label>
-                                    <label style="font-size: auto;"><strong>${nota.dataRegistro}</strong></label>
-                                </div>
-                                <div class="balao2" onclick="abrirDANFE('${nota.codOmie}', '${tipo}', '${app}')">
-                                    PDF
-                                </div>
-                            </div>
+                            ${balaoPDF(nf, nota.dataRegistro, nota.codOmie, tipo, app)}
                         </td>
                         <td style="font-size: 1.2vw;">${dinheiro(nota.total)}</td>
                         <td>${parcelas(nota.parcelas)}</td>

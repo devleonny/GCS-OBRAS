@@ -294,6 +294,9 @@ async function buscarNFOmie(elemento) {
 
     let resultado = await verificarNF(numero, tipo, app)
 
+    console.log(resultado);
+    
+
     if (resultado.faultstring) {
         dadosNota = {}
         removerOverlay()
@@ -1199,10 +1202,6 @@ async function abrirAtalhos(id) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let orcamento = dados_orcamentos[id]
-
-    console.log(orcamento);
-
-
     let analista = orcamento.dados_orcam.analista
     let emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     let botoesDisponiveis = ''
@@ -1672,18 +1671,20 @@ function elementosEspecificos(chave, historico) {
             ${parcelas}
         `
 
-        let botaoDANFE = ''
+        let botaoDANFE = `
+            ${labelDestaque('Nota', historico.nf)}
+            ${labelDestaque('Tipo', historico.tipo)}
+        `
 
         if (historico.notaOriginal) {
             let tipo = historico.tipo == 'Serviço' ? 'serviço' : 'venda_remessa'
             let codOmieNF = tipo == 'venda_remessa' ? historico.notaOriginal.compl.nIdNF : historico.notaOriginal.Cabecalho.nCodNF
-            botaoDANFE = botao('PDF', `abrirDANFE('${codOmieNF}', '${tipo}', '${historico.app}')`, '#B12425')
+            botaoDANFE = balaoPDF(historico.nf, historico.tipo, codOmieNF, tipo, historico.app)
         }
 
         acumulado = `
-            ${labelDestaque('Nota', historico.nf)}
-            ${labelDestaque('Tipo', historico.tipo)}
             ${labelDestaque('Valor Total', dinheiro(historico.valor))}
+            <br>
             ${botaoDANFE}
             ${divPacelas}
         `
@@ -1713,6 +1714,8 @@ function elementosEspecificos(chave, historico) {
 }
 
 async function abrirEsquema(id) {
+
+    overlayAguarde()
 
     if (id) id_orcam = id
 

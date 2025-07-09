@@ -51,6 +51,21 @@ const mensagem = (mensagem) => `
         <label>${mensagem}</label>
     </div>
     `
+const balaoPDF = (nf, info, codOmie, tipo, app) => {
+
+    const bg = document.title == 'ORÇAMENTOS' ? 'white' : '#e8e8e8'
+
+    return `
+    <div class="balaoNF" onclick="abrirDANFE('${codOmie}', '${tipo}', '${app}')">
+        <div class="balao1" style="background-color: ${bg};">
+            <label style="font-size: auto;">${nf}</label>
+            <label style="font-size: auto;"><strong>${info}</strong></label>
+        </div>
+        <div class="balao2">
+            PDF
+        </div>
+    </div>
+`}
 
 const logo = 'https://i.imgur.com/Nb8sPs0.png'
 const esquemas = {

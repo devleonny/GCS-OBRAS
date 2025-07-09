@@ -2124,3 +2124,38 @@ input[type="file"]#input-anexos {
 input[type="file"]#input-anexos:hover {
     background: #282a3a;
 }
+
+.balaoNF {
+    margin-left: 5px;
+    cursor: pointer;
+    width: 90%;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+}
+
+.balaoNF label {
+    cursor: pointer;
+}
+
+.balao1 {
+    cursor: pointer;
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.balao2 {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    width: 20%;
+    background-color: #B12425;
+    color: white;
+}
