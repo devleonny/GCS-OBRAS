@@ -103,7 +103,6 @@ function carregarIcones() {
         ${atalho('Chamados', 'chamados', `window.location.href='chamados.html'`)}
         ${atalho('Estoque', 'estoque', `window.location.href='estoque.html'`)}
         ${atalho('Reembolsos', 'reembolso', `window.location.href='pagamentos.html'`)}
-        ${atalho('Painel Kanban', 'kanban', `window.location.href='projetos.html'`)}
         ${atalho('Agenda', 'agenda', `window.location.href='agenda.html'`)}
         ${atalho('Veículos', 'veiculo', `window.location.href='controle_veiculos.html'`)}
         
