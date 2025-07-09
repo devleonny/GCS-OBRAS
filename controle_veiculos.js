@@ -46,7 +46,7 @@ async function carregarTabela() {
             `<div class="diVeiculos" onclick="novoMotorista('${idMotorista}')">
                 <img src="imagens/${veiculos?.[motorista.veiculo]?.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
                 <div style="display: flex; justify-content: center; align-items: start; flex-direction: column;">
-                    <label><strong>${String(dados_clientes?.[idMotorista]?.nome || '').slice(0, 10)}...</strong></label>
+                    <label>${String(dados_clientes?.[idMotorista]?.nome || '').slice(0, 10)}...</label>
                     <label><strong>${veiculos?.[motorista.veiculo]?.modelo || ''}</strong> ${veiculos?.[motorista.veiculo]?.placa || 'Sem veículo'}</label>
                 </div>
             </div>
@@ -101,9 +101,6 @@ async function carregarTabela() {
             .join('')
         let nome = dados_clientes[custo.motorista].nome
         let veiculo = veiculos[custo.veiculo]
-
-        console.log(custo);
-
 
         linhas += `
         <tr>
