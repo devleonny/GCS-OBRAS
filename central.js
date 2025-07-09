@@ -1575,6 +1575,7 @@ function data_atual(estilo, nivel) {
 
 async function verAprovacoes() {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    let dados_clientes = await recuperarDados('dados_clientes') || {}
 
     let guia = {
         pendente: '#ff8c1b',
@@ -1610,20 +1611,22 @@ async function verAprovacoes() {
     for (let [idOrcamento, orcamento] of desordenado) {
 
         if (!orcamento.aprovacao) continue
-
+        
         let dados_orcam = orcamento.dados_orcam || {}
         let aprovacao = orcamento.aprovacao
         let status = aprovacao?.status || 'desconhecido'
         let porcentagemDiferenca = (((orcamento.total_geral - orcamento.total_bruto) / orcamento.total_bruto) * 100).toFixed(2)
+        let omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
+        let cliente = dados_clientes?.[omie_cliente] || {}
 
         tabelas[status == 'pendente' ? 'pendente' : 'todos'].linhas += `
         <tr>
-            <td>${dados_orcam?.contrato || '--'}</td>
-            <td>${dados_orcam?.cliente_selecionado || '--'}</td>
+            <td style="text-align: left;">${dados_orcam?.contrato || '--'}</td>
+            <td style="text-align: left;">${cliente?.nome || '--'}</td>
             <td>${dinheiro(orcamento.total_bruto)}</td>
             <td>${dinheiro(orcamento.total_geral)}</td>
             <td><label class="labelAprovacao" style="background-color: ${porcentagemDiferenca > 0 ? 'green' : '#B12425'}">${porcentagemDiferenca}%</label></td>
-            <td>${dados_orcam?.cidade || ''}</td>
+            <td>${cliente?.cidade || ''}</td>
             <td>${aprovacao?.usuario || '--'}</td>
             <td>
                 <div style="display: flex; align-items: center; justify-content: start; gap: 1vw;">
