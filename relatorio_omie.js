@@ -192,6 +192,7 @@ async function carregarTabela() {
 
     let divRelatorio = document.getElementById('divRelatorio')
     if (divRelatorio) {
+        document.querySelector('.toolbarRelatorio').innerHTML = toolbarApp
         document.getElementById('tabelas').innerHTML = stringTabelas
     } else {
         document.body.insertAdjacentHTML('beforeend', acumulado)
