@@ -393,8 +393,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
             </div>
         `
         if (String(dados_categorias[item.codigo_categoria]).includes('Parceiros')) {
-            painelParceiro.ativar = true
-            painelParceiro.valor += item.valor
+            painelParceiro = true
         }
 
     })
