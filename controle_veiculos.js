@@ -78,7 +78,7 @@ async function carregarTabela() {
     }
 
     let ths = '', tsh = ''
-    let colunas = ['Usuário & Data', 'Veículo', 'Tipo', 'Valor', 'Comentário', 'Anexos', 'Editar']
+    let colunas = ['Usuário & Data', 'Veículo', 'Tipo', 'Valor & Data Pagamento', 'Cartão', 'Comentário', 'Anexos', 'Editar']
         .map((coluna, i) => {
             tsh += (coluna == 'Editar' || coluna == 'Anexos') ? '<th style="background-color: white;"></th>' : `
             <th style="background-color: white;">
@@ -102,12 +102,15 @@ async function carregarTabela() {
         let nome = dados_clientes[custo.motorista].nome
         let veiculo = veiculos[custo.veiculo]
 
+        console.log(custo);
+        
+
         linhas += `
         <tr>
             <td>
                 <div style="display: flex; flex-direction: column; align-items: start;">
                     <label><strong>${custo.usuario}</strong></label>
-                    <label>${conversorData(custo.data_pagamento)}</label>
+                    <label>${custo.data}</label>
                 </div>
             </td>
 
@@ -124,10 +127,18 @@ async function carregarTabela() {
                     </div>
                 </div>
             </td>
-
             <td>${custo.categoria}</td>
-            <td>${dinheiro(custo.custo_total)}</td>
+
+            <td>
+                <div style="display: flex; align-items: start; justify-content: start; flex-direction: column;">
+                    <label>${dinheiro(custo.custo_total)}</label>
+                    <label><strong>${conversorData(custo.data_pagamento)}</strong></label>
+                </div>
+            </td>
+
+            <td>${custo?.cartao || 'Não informado'}</td>
             <td style="text-align: left;">${custo.comentario}</td>
+
             <td>
                 <div style="display: flex; align-items: center;">
                     <img onclick="document.getElementById('${idCusto}').click()" src="imagens/baixar.png" style="cursor: pointer; width: 1.5vw;">
@@ -196,7 +207,7 @@ async function painelValores(idCusto) {
                     ${categorias}
                 </select>
                 `)}
-
+            ${modeloLabel('Final do Cartão', `<input id="cartao" placeholder="XXXX" value="${custo?.cartao || ''}">`)}
             <div id="camposAdicionais">
                 ${modeloLabel('KM', `<input value="${custo?.km || ''}" type="number" id="km" placeholder="Quilometragem atual" type="number">`)}
                 ${modeloLabel('Litros', `<input value="${custo?.litros || ''}" type="number" id="litros" placeholder="Quantidade de litros" type="number">`)}
@@ -250,6 +261,7 @@ async function salvarValores(idCusto) {
         motorista: idMotorista,
         veiculo: select.value,
         categoria,
+        cartao: obterValores('cartao'),
         custo_total: obterValores('custo_total'),
         comentario: obterValores('comentario'),
         data_pagamento: obterValores('data_pagamento'),
