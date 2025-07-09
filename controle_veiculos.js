@@ -69,7 +69,7 @@ async function carregarTabela() {
 
     function conversorData(data) {
 
-        if(!data) return ''
+        if (!data) return ''
 
         let [ano, mes, dia] = data.split('-')
         let dataFormatada = `${dia}/${mes}/${ano}`
@@ -103,7 +103,7 @@ async function carregarTabela() {
         let veiculo = veiculos[custo.veiculo]
 
         console.log(custo);
-        
+
 
         linhas += `
         <tr>
@@ -257,14 +257,22 @@ async function salvarValores(idCusto) {
 
     if (!custo_veiculos[idCusto]) custo_veiculos[idCusto] = {}
 
+    const cartao = obterValores('cartao')
+    const custo_total = obterValores('custo_total')
+    const data_pagamento = obterValores('data_pagamento')
+
+    if (cartao == '') return popup(mensagem(`Preencha o final do cartão usado`), 'ALERTA', true)
+    if (custo_total == '') return popup(mensagem(`Preencha o valor do pagamento`), 'ALERTA', true)
+    if (data_pagamento == '') return popup(mensagem(`Preencha a data de pagamento`), 'ALERTA', true)
+
     let dados = {
         motorista: idMotorista,
         veiculo: select.value,
         categoria,
-        cartao: obterValores('cartao'),
-        custo_total: obterValores('custo_total'),
+        cartao,
+        custo_total,
         comentario: obterValores('comentario'),
-        data_pagamento: obterValores('data_pagamento'),
+        data_pagamento,
         data: data_atual('completa'),
         usuario: acesso.usuario
     }
@@ -424,7 +432,7 @@ async function salvarMotorista() {
     let motoristas = await recuperarDados('motoristas') || {}
     let idMotorista = obterValores('omie')
 
-    if(idMotorista == '') return popup(mensagem('Escolha um motorista'), 'AVISO', true)
+    if (idMotorista == '') return popup(mensagem('Escolha um motorista'), 'AVISO', true)
 
     let motorista = {}
     let veiculo = document.getElementById('veiculo')
