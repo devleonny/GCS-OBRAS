@@ -1837,7 +1837,6 @@ async function abrirEsquema(id) {
 
                 <div style="display: flex; gap: 10px; font-size: 0.9vw;">
                     
-                    ${botao('Novo Pagamento', `tela_pagamento()`, '#097fe6')}
                     ${botao('Novo Pedido', `painelAdicionarPedido()`, '#4CAF50')}
                     ${botao('Nova Requisição', `abrirModalTipoRequisicao()`, '#B12425')}
                     ${botao('Nova Nota Fiscal', `painelAdicionarNotas()`, '#ff4500')}

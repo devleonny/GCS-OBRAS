@@ -46,3 +46,63 @@
     font-size: 1.2vw;
     cursor: pointer;
 }
+
+.filtros {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    border-radius: 3px;
+    background-color: #d2d2d2;
+    padding: 5px;
+    margin-bottom: 3vh;
+}
+
+.filtros div {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin: 2px;
+}
+
+.filtros input {
+    cursor: pointer;
+    width: 100%;
+    padding: 3px;
+    border-radius: 3px;
+}
+
+.titulos {
+    color: white;
+    font-size: 1.2vw;
+}
+
+.balaoNF {
+    background-color: #e8e8e8;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+}
+
+.balao1 {
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.balao2 {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    width: 20%;
+    background-color: #B12425;
+    color: white;
+}

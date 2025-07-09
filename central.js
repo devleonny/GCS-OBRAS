@@ -85,9 +85,9 @@ function carregarIcones() {
 
     if (document.title != 'Página Inicial') return
 
+    let autorizadosPainelNotas = ['adm', 'diretoria', 'gerente', 'fin']
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
     let painel_geral = document.getElementById('painel_geral')
-    let registroHistorico = acesso.permissao == 'adm'
     let atalho = (termo, img, funcao) => {
         return `
             <div class="block" style="flex-direction: column; justify-content: space-evenly;" onclick="${funcao}">
@@ -105,22 +105,16 @@ function carregarIcones() {
         ${atalho('Reembolsos', 'reembolso', `window.location.href='pagamentos.html'`)}
         ${atalho('Agenda', 'agenda', `window.location.href='agenda.html'`)}
         ${atalho('Veículos', 'veiculo', `window.location.href='controle_veiculos.html'`)}
-        
-        ${registroHistorico
-            ? atalho('Histórico de Alterações GCS', 'historico', `window.location.href='historicoRegistros.html'`)
-            : ''}
+        ${autorizadosPainelNotas.includes(acesso.permissao) ? atalho('NFs', 'veiculo', `window.location.href='relatorio_omie.html'`) : ''}
     `
 
     if (modoClone) {
         icones = `
         ${atalho('Orçamentos', 'projeto', `window.location.href='orcamentos.html'`)}
         ${atalho('Composições', 'composicoes', `window.location.href='composicoes.html'`)}
-        
-        ${registroHistorico
-                ? atalho('Histórico de Alterações GCS', 'historico', `window.location.href='historicoRegistros.html'`)
-                : ''}
         `
     }
+    
     painel_geral.innerHTML = icones
 }
 
@@ -308,6 +302,7 @@ async function configs() {
 
     let acumulado = `
     <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 10px; padding: 2vw;">
+        ${botao('Registro de Logs do Sistema', `window.location.href='historicoRegistros.html'`)}
         <label>Gestão de Usuários</label>
         ${tabela}
     </div>
