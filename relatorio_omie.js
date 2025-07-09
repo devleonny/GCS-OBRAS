@@ -7,9 +7,30 @@ async function atualizarRelatorio() {
 
     overlayAguarde()
     const nuvem = await baixarRelatorio()
-    const dados_relatorio = await recuperarDados('dados_relatorio')
+    let dados_relatorio = await recuperarDados('dados_relatorio') || {}
 
-    await inserirDados({ ...dados_relatorio, ...nuvem }, 'dados_relatorio')
+    for (const [app, apps] of Object.entries(nuvem)) {
+
+        if (app == 'atualizado') continue
+
+        if (!dados_relatorio[app]) dados_relatorio[app] = {}
+
+        let relatorioApp = dados_relatorio[app]
+
+        for (let [tipo, tipos] of Object.entries(apps)) {
+
+            if (!relatorioApp[tipo]) relatorioApp[tipo] = {}
+
+            relatorioApp[tipo] = {
+                ...relatorioApp[tipo],
+                ...tipos
+            }
+        }
+    }
+
+    dados_relatorio.atualizado = nuvem.atualizado
+
+    await inserirDados(dados_relatorio, 'dados_relatorio')
 
     await carregarTabela()
 
@@ -274,7 +295,7 @@ function mostrarTabela(app) {
 
     let tabelaApp = document.getElementById(app)
     if (!tabelaApp) return
-    
+
     tabelaApp.style.display = 'table-row'
     document.getElementById(`toolbar_${app}`).style.opacity = '1'
 
@@ -320,8 +341,6 @@ async function baixarRelatorio() {
                 return response.json();
             })
             .then(data => {
-                console.log(data);
-
                 resolve(data);
             })
             .catch(err => {
