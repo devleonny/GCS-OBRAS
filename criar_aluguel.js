@@ -251,7 +251,7 @@ async function enviarDados() {
 
     popup(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
-            <img src="imagens/concluido.png" style="width: 3vw; height: 3vw;">
+            <img src="imagens/concluido.png" style="width: 2vw;">
             <label>Aguarde... redirecionando...</label>
         </div>
     `)
