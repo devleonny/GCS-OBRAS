@@ -105,7 +105,7 @@ function carregarIcones() {
         ${atalho('Reembolsos', 'reembolso', `window.location.href='pagamentos.html'`)}
         ${atalho('Agenda', 'agenda', `window.location.href='agenda.html'`)}
         ${atalho('Veículos', 'veiculo', `window.location.href='controle_veiculos.html'`)}
-        ${autorizadosPainelNotas.includes(acesso.permissao) ? atalho('NFs', 'veiculo', `window.location.href='relatorio_omie.html'`) : ''}
+        ${autorizadosPainelNotas.includes(acesso.permissao) ? atalho('Faturamento NFs', 'relatorio', `window.location.href='relatorio_omie.html'`) : ''}
     `
 
     if (modoClone) {
@@ -114,7 +114,7 @@ function carregarIcones() {
         ${atalho('Composições', 'composicoes', `window.location.href='composicoes.html'`)}
         `
     }
-    
+
     painel_geral.innerHTML = icones
 }
 
