@@ -145,8 +145,11 @@ async function carregarTabela() {
                     </div>
                 </div>
             </td>
-            <td style="text-align: center;">
-                <img onclick="painelValores('${idCusto}')" src="imagens/editar.png" style="cursor: pointer; width: 1.5vw;">
+            <td>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <img onclick="painelValores('${idCusto}')" src="imagens/editar.png" style="cursor: pointer; width: 1.5vw;">
+                    ${(acesso.permissao == 'adm' || acesso.usuario == custo.usuario) ? `<img onclick="painelExcluir('${idCusto}')" src="imagens/excluir.png" style="cursor: pointer; width: 1.5vw;">` : ''}
+                </div>
             </td>
         </tr>
         `
@@ -179,6 +182,34 @@ async function carregarTabela() {
     </div>
     `
     document.getElementById('tabelaRegistro').innerHTML = acumulado
+}
+
+function painelExcluir(idCusto) {
+
+    let acumulado = `
+    <div style="display: flex; align-items: center; gap: 2vw; justify-content: center; padding: 2vw; background-color: #d2d2d2;">
+
+        <label>Deseja excluir este lançamento?</label>
+        
+        ${botao('Confirmar', `excluirCusto('${idCusto}')`, `green`)}
+    
+    </div>
+    `
+
+    popup(acumulado, 'Tem certeza?')
+}
+
+async function excluirCusto(idCusto) {
+
+    removerPopup()
+    overlayAguarde()
+    let custo_veiculos = await recuperarDados('custo_veiculos') || {}
+    delete custo_veiculos[idCusto]
+    await inserirDados(custo_veiculos, 'custo_veiculos')
+    deletar(`custo_veiculos/${idCusto}`)
+    await carregarTabela()
+    removerOverlay()
+
 }
 
 async function painelValores(idCusto) {
