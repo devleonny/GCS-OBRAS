@@ -33,8 +33,6 @@ async function carregarTabela() {
 
     let dados_relatorio = await recuperarDados('dados_relatorio') || {}
 
-    console.log(dados_relatorio)
-
     document.getElementById('atualizado').textContent = `Atualizado em: ${dados_relatorio?.atualizado || '--'}`
 
     let tabelas = {}
