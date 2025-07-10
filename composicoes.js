@@ -203,7 +203,7 @@ async function carregar_tabela_v2() {
             }
         });
 
-        tbody += `<tr>${celulas}</tr>`;
+        tbody += `<tr id="tr_${codigo}">${celulas}</tr>`;
     }
 
     let acumulado = `
@@ -1433,7 +1433,7 @@ async function confirmar_exclusao_item(codigo) {
     removerPopup()
 
     popup(`
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
+        <div style="padding: 2vw; background-color: #d2d2d2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;">
             <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                 <img src="gifs/alerta.gif">
                 <label>Tem certeza que deseja excluir este item?</label>
@@ -1441,7 +1441,7 @@ async function confirmar_exclusao_item(codigo) {
             <label style="font-size: 0.7em;">${dados_composicoes[codigo].descricao}</label>
             <button onclick="exclusao_item('${codigo}')">Confirmar</button>
         </div>
-        `)
+        `, 'Tem certeza?')
 
 }
 
@@ -1458,17 +1458,21 @@ async function exclusao_item(codigo) {
 
         deletar(`dados_composicoes/${codigo}`)
         await inserirDados(dados_composicoes, 'dados_composicoes')
+
+        const trProduto = document.getElementById(`tr_${codigo}`)
+
+        if (trProduto) trProduto.remove()
+
         removerPopup()
-        await retomarPaginacao()
     }
 
 }
 
 async function salvarServidor(codigo) {
-    let novoCadastro = false
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
     overlayAguarde()
+    let novoCadastro = false
+    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
     let comentario = ''
     let descricaoProduto = ''
 
@@ -1519,7 +1523,9 @@ async function salvarServidor(codigo) {
     await inserirDados(dados_composicoes, 'dados_composicoes')
 
     await retomarPaginacao()
-    removerPopup();
+    removerPopup()
+
+    if (document.title == 'Criar Orçamento') await tabelaProdutos()
 
     await enviar(`dados_composicoes/${codigo}`, dados_composicoes[codigo]);
     registrarAlteracao('dados_composicoes', codigo, comentario)

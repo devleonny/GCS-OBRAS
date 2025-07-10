@@ -382,12 +382,10 @@ async function tabelaProdutos() {
     if (tabela_itens) {
 
         dados_composicoes = await recuperarDados('dados_composicoes') || {}
-        if (Object.keys(dados_composicoes) == 0) {
-            await recuperarComposicoes()
-        }
 
-        for (codigo in dados_composicoes) {
-            let produto = dados_composicoes[codigo]
+        if (Object.keys(dados_composicoes) == 0) await recuperarComposicoes()
+
+        for ([codigo, produto] of Object.entries(dados_composicoes)) {
 
             if (!produto.tipo) continue
 
@@ -414,47 +412,47 @@ async function tabelaProdutos() {
 
             if (preco == 0 && ocultarZerados) continue
 
-            if (produto.status != "INATIVO") {
+            if (produto.status == "INATIVO") continue
 
-                let td_quantidade = `
+            let td_quantidade = `
                     <input type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
                     `
-                let opcoes = ''
-                esquemas.sistema.forEach(op => {
-                    opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
-                })
-                let linha = `
-                        <tr>
-                            <td style="white-space: nowrap;">${codigo}</td>
-                            <td style="position: relative;">
-                                <div style="display: flex; justify-content: start; align-items: center; gap: 10px;">
-                                    ${moduloComposicoes ? `<img src="imagens/editar.png" style="width: 1.5vw; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')">` : ''}
-                                    ${moduloComposicoes ? `<img src="imagens/construcao.png" style="width: 1.5vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">` : ''}
-                                    <label style="text-align: left;">${produto.descricao}</label>
-                                </div>
-                                ${(produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) ? `<img src="gifs/lampada.gif" onclick="mostrarAgrupamentos('${codigo}')" style="position: absolute; top: 3px; right: 1vw; width: 1.5vw; cursor: pointer;">` : ''}
-                            </td>
-                            <td>${produto.fabricante}</td>
-                            <td>${produto.modelo}</td>
-                            <td>
-                                <select class="opcoesSelect" onchange="alterarChave('${codigo}', 'sistema', this)">
-                                    ${opcoes}
-                                </select>
-                            </td>
-                            <td style="text-align: center;">${td_quantidade}</td>
-                            <td>${produto.unidade}</td>
-                            <td style="white-space: nowrap;">
-                                <label ${moduloComposicoes ? `onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')"` : ''} class="labelAprovacao" style="background-color: ${preco > 0 ? 'green' : '#B12425'}">${dinheiro(preco)}</label>
-                            </td>
-                            <td style="text-align: center;">
-                                <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;">
-                            </td>
-                        </tr>
-                    `
+            let opcoes = esquemas.sistema.map(op => `
+                    <option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`)
+                .join('')
 
-                tabelas[produto.tipo].linhas += linha
-                tabelas.TODOS.linhas += linha
-            }
+            let linha = `
+                    <tr id="tr_${codigo}">
+                        <td style="white-space: nowrap;">${codigo}</td>
+                        <td style="position: relative;">
+                            <div style="display: flex; justify-content: start; align-items: center; gap: 10px;">
+                                ${moduloComposicoes ? `<img src="imagens/editar.png" style="width: 1.5vw; cursor: pointer;" onclick="cadastrar_editar_item('${codigo}')">` : ''}
+                                ${moduloComposicoes ? `<img src="imagens/excluir.png" style="width: 1.5vw; cursor: pointer;" onclick="confirmar_exclusao_item('${codigo}')">` : ''}
+                                <label style="text-align: left;">${produto.descricao}</label>
+                            </div>
+                            ${(produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0) ? `<img src="gifs/lampada.gif" onclick="mostrarAgrupamentos('${codigo}')" style="position: absolute; top: 3px; right: 1vw; width: 1.5vw; cursor: pointer;">` : ''}
+                        </td>
+                        <td>${produto.fabricante}</td>
+                        <td>${produto.modelo}</td>
+                        <td>
+                            <select class="opcoesSelect" onchange="alterarChave('${codigo}', 'sistema', this)">
+                                ${opcoes}
+                            </select>
+                        </td>
+                        <td style="text-align: center;">${td_quantidade}</td>
+                        <td>${produto.unidade}</td>
+                        <td style="white-space: nowrap;">
+                            <label ${moduloComposicoes ? `onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')"` : ''} class="labelAprovacao" style="background-color: ${preco > 0 ? 'green' : '#B12425'}">${dinheiro(preco)}</label>
+                        </td>
+                        <td style="text-align: center;">
+                            <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;">
+                        </td>
+                    </tr>
+                `
+
+            tabelas[produto.tipo].linhas += linha
+            tabelas.TODOS.linhas += linha
+
         }
 
         let colunas = ['Código', 'Descrição', 'Fabricante', 'Modelo', 'Sistema', 'Quantidade', 'Unidade', 'Valor', 'Imagem *Ilustrativa']
