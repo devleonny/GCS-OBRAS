@@ -39,30 +39,34 @@ async function atualizarPrecos() {
 
     if (modalidade == 'MODALIDADE LIVRE') return await carregar_layout_modalidade_livre()
 
-    if (orcamentoBase.id) {
+    if (orcamentoBase.id && orcamentoBase.edicaoAntigos) {
 
-        popup(`
+        return popup(`
             <div style="background-color: #d2d2d2; padding: 2vw; flex-direction: column; display: flex; gap: 5px;">
 
                 <label>Você quer manter os valores antigos deste orçamento ou deseja atualizar tudo?</label>
 
-                ${botao('Atualizar os preços', `removerPopup(); atualizarOpcoesLPU()`, 'green')}
+                ${botao('Atualizar os preços', `removerPopup(); manterPrecosAntigos(false)`, 'green')}
 
-                ${botao('Manter os preços antigos', `removerPopup(); manterPrecosAntigos()`, '')}
+                ${botao('Manter os preços antigos', `removerPopup(); manterPrecosAntigos(true)`, '')}
 
             </div>
             `, 'ATENÇÃO')
     }
 
+    await atualizarOpcoesLPU()
+
 }
 
-async function manterPrecosAntigos() {
+async function manterPrecosAntigos(resposta) {
 
     let orcamentoBase = baseOrcamento()
 
     for ([codigo, produto] of Object.entries(orcamentoBase.dados_composicoes)) {
-        produto.antigo = true
+        produto.antigo = resposta
     }
+
+    orcamentoBase.edicaoAntigos = resposta
 
     baseOrcamento(orcamentoBase)
 
@@ -139,7 +143,7 @@ async function carregarTabelas() {
     let tabelas = {}
     let toolbarSuperior = ''
     let stringsTabelas = ''
-    let dadosComposicoes = orcamentoBase.dados_composicoes
+    let dadosComposicoes = orcamentoBase?.dados_composicoes || {}
     let padraoFiltro = localStorage.getItem('padraoFiltro')
 
     if (padraoFiltro == null) {
@@ -149,8 +153,10 @@ async function carregarTabelas() {
 
     document.getElementById(`filtro${padraoFiltro}`).checked = true
 
-    for (codigo in dadosComposicoes) {
-        let produto = dadosComposicoes[codigo]
+    for ([codigo, produto] of Object.entries(dadosComposicoes)) {
+
+        // Caso o item não exista, traga os dados dele no orçamento;
+        if (!baseComposicoes[codigo]) baseComposicoes[codigo] = orcamentoBase.dados_composicoes[codigo]
 
         let opcoes = ''
         esquemas.sistema.forEach(op => {
@@ -594,12 +600,8 @@ async function total() {
             let total = 0
             let precos = { custo: 0, lucro: 0 }
 
-            if (!dados_composicoes[codigo]) {
-                dados_composicoes[codigo] = {
-                    descricao: orcamentoBase.dados_composicoes[codigo]?.descricao || 'N/A',
-                    tipo: orcamentoBase.dados_composicoes[codigo]?.tipo
-                }
-            }
+            // Caso o item não exista, traga os dados dele no orçamento;
+            if (!dados_composicoes[codigo]) dados_composicoes[codigo] = orcamentoBase.dados_composicoes[codigo]
 
             let descricao = dados_composicoes[codigo].descricao
             let tipo = dados_composicoes[codigo].tipo
