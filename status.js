@@ -11,6 +11,7 @@ let guiaTipo = {
 }
 
 let fluxogramaClone = {
+    'LEVANTAMENTO': { cor: '#0062d5' },
     'ORÇAMENTOS': { cor: '#1CAF29' },
     'LOGÍSTICA': { cor: '#4CAF10' },
     'NFE - VENDAS': { cor: '#B05315' },
@@ -21,12 +22,13 @@ let fluxogramaClone = {
     'CONCLUÍDO': { cor: '#ff4500' },
     'FATURADO': { cor: '#b17724' },
     'PAGAMENTO RECEBIDO': { cor: '#b17724' },
-    'LPU PARCEIRO': { cor: '#0062d5' },
-    'LEVANTAMENTO': { cor: '#0062d5' }
+    'LPU PARCEIRO': { cor: '#0062d5' }
 }
 
 let fluxogramaPadrao = fluxograma = {
+    'LEVANTAMENTO': { cor: '#0062d5' },
     'PEDIDO': { cor: '#4CAF50' },
+    'LPU PARCEIRO': { cor: '#0062d5' },
     'REQUISIÇÃO': { cor: '#B12425' },
     'MATERIAL SEPARADO': { cor: '#b17724' },
     'FATURADO': { cor: '#ff4500' },
@@ -36,9 +38,8 @@ let fluxogramaPadrao = fluxograma = {
     'COTAÇÃO PENDENTE': { cor: '#0a989f' },
     'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
     'RETORNO DE MATERIAIS': { cor: '#aacc14' },
-    'FINALIZADO': { cor: 'blue' },
-    'LPU PARCEIRO': { cor: '#0062d5' },
-    'LEVANTAMENTO': { cor: '#0062d5' }
+    'FINALIZADO': { cor: 'blue' }
+
 }
 
 // O objeto foi mesclado com o intuito de obter as formatações de ambos os aplicativos sem precisar criar um objeto para isso;
