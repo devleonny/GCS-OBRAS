@@ -33,6 +33,13 @@ function apagarOrcamento() {
 atualizarPrecos()
 
 async function atualizarPrecos() {
+
+    overlayAguarde()
+
+    await sincronizarDados('dados_composicoes')
+
+    removerOverlay()
+
     let orcamentoBase = baseOrcamento()
 
     let modalidade = orcamentoBase.lpu_ativa
@@ -70,9 +77,17 @@ async function atualizarPrecos() {
 async function manterPrecosAntigos(resposta) {
 
     let orcamentoBase = baseOrcamento()
+    const dados_composicoes = await recuperarDados('dados_composicoes')
+    const lpu = String(orcamentoBase.lpu_ativa).toLocaleLowerCase()
 
     for ([codigo, produto] of Object.entries(orcamentoBase.dados_composicoes)) {
-        produto.antigo = resposta
+
+        const precos = dados_composicoes?.[codigo]?.[lpu] || { ativo: 0, historico: { 0: { valor: 0 } } }
+        const ativo = precos.ativo
+        const historico = precos.historico
+        const preco = historico[ativo].valor
+
+        if(produto.custo !== preco) produto.antigo = resposta
     }
 
     orcamentoBase.edicaoAntigos = resposta
@@ -163,11 +178,6 @@ async function carregarTabelas() {
 
         // Caso o item não exista, traga os dados dele no orçamento;
         if (!baseComposicoes[codigo]) baseComposicoes[codigo] = orcamentoBase.dados_composicoes[codigo]
-
-        let opcoes = ''
-        esquemas.sistema.forEach(op => {
-            opcoes += `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`
-        })
 
         let linha = `
         <tr>
@@ -410,13 +420,7 @@ async function tabelaProdutos() {
             let preco = 0
             let ativo = 0
             let historico = 0
-            let lpu;
-
-            if (document.getElementById('lpu')) {
-                lpu = String(document.getElementById('lpu').value).toLowerCase()
-            } else {
-                lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
-            }
+            const lpu = String(orcamentoBase.lpu_ativa).toLocaleLowerCase()
 
             if (produto[lpu] && produto[lpu].ativo && produto[lpu].historico) {
                 ativo = produto[lpu].ativo
