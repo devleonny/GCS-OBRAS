@@ -302,7 +302,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     }
 
     let valores = ''
-    let painelParceiro =  false
+    let painelParceiro = false
 
     let permissao = acesso.permissao
     let permissoesEdicao = ['adm', 'fin', 'gerente']
@@ -498,15 +498,6 @@ async function abrirDetalhesPagamentos(id_pagamento) {
             `
         }
 
-        let v_pago = ''
-        let v_orcado = ''
-        let resultado = '%'
-        if (pagamento.resumo) {
-            v_pago = conversor(pagamento.resumo.v_pago)
-            v_orcado = conversor(pagamento.resumo.v_orcado)
-            resultado = `${(v_pago / v_orcado * 100).toFixed(0)}%`
-        }
-
         formParceiros = `
         <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; gap: 5px; width: 100%;">
             ${infos}
@@ -516,25 +507,9 @@ async function abrirDetalhesPagamentos(id_pagamento) {
                     <label>Resumo de Custo</label>          
                 </div>
                 <br>
-                <table class="tabela">
-                    <thead>
-                        <th>Valor Orçado Válido</th>
-                        <th>A Pagar</th>
-                        <th>%</th>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="color: #222; white-space: nowrap;">
-                            <div id="container_resumo" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                <label id="v_orcado">${dinheiro(v_orcado)}</label>
-                                <img src="imagens/editar.png" style="width: 30px; cursor: pointer;" onclick="editar_resumo('${pagamento.id_pagamento}')">
-                            </div>
-                            </td>
-                            <td style="color: #222; white-space: nowrap;" id="v_pago">${dinheiro(painelParceiro.valor)}</td>
-                            <td style="color: #222;" id="resultado">${resultado}</td>
-                        </tr>
-                    </tbody>
-                </table>
+
+                ${carregarTabelaCustoParceiro({ resumo: pagamento.resumo, id_pagamento: pagamento.id_pagamento })}
+
             </div>
         </div>
         `
@@ -639,7 +614,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
         }
     }
 
-    colorir_parceiros()
+    calcularCusto()
 
 }
 
@@ -664,7 +639,7 @@ function deseja_excluir_pagamento(id) {
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Deseja realmente excluir o pagamento?</label>
             </div>
-            <label onclick="confirmar_exclusao_pagamento('${id}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
+            <label onclick="confirmarExclusao_pagamento('${id}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
         </div>
         `, 'AVISO')
 
@@ -692,13 +667,13 @@ async function deseja_excluir_categoria(id, indice) {
                 <label>Categoria: ${dados_categorias[categoria.codigo_categoria]}</label>
                 <label>Valor Atual: ${dinheiro(categoria.valor)}</label>
             </div>
-            <label onclick="confirmar_exclusao_categoria('${id}', '${indice}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
+            <label onclick="confirmarExclusao_categoria('${id}', '${indice}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
         </div>
         `)
 
 }
 
-async function confirmar_exclusao_categoria(id, indice) {
+async function confirmarExclusao_categoria(id, indice) {
 
     removerPopup()
 
@@ -881,7 +856,7 @@ async function relancar_pagamento(id) {
 
 }
 
-async function confirmar_exclusao_pagamento(id) {
+async function confirmarExclusao_pagamento(id) {
 
     removerPopup()
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
@@ -942,61 +917,22 @@ async function excluir_anexo_parceiro(id_pagamento, campo, anx) {
 
 }
 
-function editar_resumo(id_pagamento) {
-    var container_resumo = document.getElementById('container_resumo')
-    if (container_resumo) {
-        container_resumo.innerHTML = `
-        <input placeholder="R$ 0,00" type="number" oninput="calcular_custo()" id="v_orcado">
-        <img src="imagens/concluido.png" style="width: 30px; cursor: pointer;" onclick="atualizar_resumo('${id_pagamento}')">
-        <img src="imagens/cancel.png" style="width: 30px; cursor: pointer;" onclick=" abrirDetalhesPagamentos('${id_pagamento}')">
-        `
-    }
-}
+function colorirParceiros() {
 
-async function atualizar_resumo(id_pagamento) {
-
-    var v_pago = conversor(document.getElementById('v_pago').textContent)
-    var v_orcado = Number(document.getElementById('v_orcado').value)
-    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-
-    var pagamento = lista_pagamentos[id_pagamento]
-
-    if (!pagamento.resumo) {
-        pagamento.resumo = {}
-    }
-
-    pagamento.resumo = { v_pago, v_orcado }
-
-    enviar(`lista_pagamentos/${id_pagamento}/resumo`, pagamento.resumo)
-
-    await inserirDados(lista_pagamentos, 'lista_pagamentos');
-    await abrirDetalhesPagamentos(id_pagamento)
-
-}
-
-function colorir_parceiros() {
-
-    var labels = document.querySelectorAll('label.numero')
-    var divs = document.querySelectorAll('div.container')
+    let labels = document.querySelectorAll('label.numero')
+    let divs = document.querySelectorAll('div.container')
 
     if (labels) {
 
         divs.forEach((div, i) => {
-            if (div.children.length == 0) {
-                labels[i].style.backgroundColor = '#B12425'
-            } else {
-                labels[i].style.backgroundColor = 'green'
-            }
+
+            labels[i].style.backgroundColor = div.children.length == 0 ? '#B12425' : 'green'
+
         })
 
-        if (labels.length > 0) {
-            var v_orcado = document.getElementById('v_orcado')
-            if (v_orcado && conversor(v_orcado.textContent) == 0) {
-                labels[labels.length - 1].style.backgroundColor = '#B12425'
-            } else {
-                labels[labels.length - 1].style.backgroundColor = 'green'
-            }
-        }
+        let v_orcado = document.getElementById('v_orcado')
+        if (v_orcado) labels[labels.length - 1].style.backgroundColor = v_orcado.value == 0 ? '#B12425' : 'green'
+
     }
 }
 
@@ -1460,7 +1396,7 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
 
             </div>
 
-            ${incluir_campos_adicionais()}
+            ${incluirCamposAdicionais()}
 
             <div style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;" class="time">
     
@@ -1564,23 +1500,7 @@ async function atualizarFormaPagamento() {
     await calculadoraPagamento()
 }
 
-function calcular_custo() {
-    var resultado = document.getElementById('resultado')
-    if (resultado) {
-
-        var v_pago = conversor(document.getElementById('v_pago').textContent)
-        var v_orcado = document.getElementById('v_orcado')
-
-        var porcentagem = (v_pago / v_orcado.value * 100).toFixed(0)
-
-        resultado.innerHTML = `
-        ${porcentagem}%
-        `
-    }
-
-}
-
-function incluir_campos_adicionais() {
+function incluirCamposAdicionais() {
 
     var campos = {
         lpu_parceiro: { titulo: 'LPU do parceiro de serviço & material' },
@@ -1609,39 +1529,110 @@ function incluir_campos_adicionais() {
             `
     }
 
-    var acumulado = `
-    <div id="painel_parceiro" style="display: none; flex-direction: column; align-items: start; justify-content: start; gap: 5px; width: 100%;">
-        ${campos_div}
-        
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-            <label id="recebedor_numero" class="numero">${ordenar()}</label>
-            <div style="background-color: #d2d2d2;">
-                <table style="font-size: 1vw;">
+    return `
+        <div id="painel_parceiro" style="display: none; flex-direction: column; align-items: start; justify-content: start; gap: 5px; width: 100%;">
+            ${campos_div}
+            <br>
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <label id="recebedor_numero" class="numero">${ordenar()}</label>
+
+                ${carregarTabelaCustoParceiro()}
+
+            </div>
+        </div>
+        <br>
+    `
+}
+
+async function atualizarResumo(id_pagamento) {
+
+    const divAtualizar = document.getElementById('atualizarResumo')
+
+    divAtualizar.innerHTML = `<img src="gifs/loading.gif" style="width: 2vw;">`
+
+    const v_pago = conversor(document.getElementById('v_pago').textContent)
+    const v_orcado = Number(document.getElementById('v_orcado').value)
+    const v_lpu = Number(document.getElementById('v_lpu').value)
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+
+    let pagamento = lista_pagamentos[id_pagamento]
+
+    if (!pagamento.resumo) pagamento.resumo = {}
+
+    pagamento.resumo = { v_pago, v_orcado, v_lpu }
+
+    enviar(`lista_pagamentos/${id_pagamento}/resumo`, pagamento.resumo)
+
+    await inserirDados(lista_pagamentos, 'lista_pagamentos')
+
+    divAtualizar.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <img src="imagens/concluido.png" style="width: 1.5vw">
+            <label>Atualizado!</label>
+        </div>
+        `
+    setTimeout(() => {
+        divAtualizar.innerHTML = `${botao('Atualizar', `atualizarResumo('${id_pagamento}')`, 'green')}`
+    }, 3000)
+
+}
+
+function calcularCusto() {
+
+    let v_pago = conversor(document.getElementById('v_pago').textContent)
+    let v_lpu = Number(document.getElementById('v_lpu').value)
+    let v_orcado = Number(document.getElementById('v_orcado').value)
+
+    document.getElementById('res_VO').innerHTML = v_orcado !== 0 ? `${((v_lpu / v_orcado) * 100).toFixed(0)}%` : '--'
+    document.getElementById('res_ORAP').innerHTML = v_orcado !== 0 ? `${((v_pago / v_orcado) * 100).toFixed(0)}%` : '--'
+
+    colorirParceiros()
+
+}
+
+function carregarTabelaCustoParceiro(dados = {}) {
+
+    const { resumo, id_pagamento } = dados
+
+    if (resumo && isNaN(resumo.v_pago)) resumo.v_pago = conversor(resumo.v_pago)
+
+    const botaoAtualizar = resumo
+        ? `
+    <div id="atualizarResumo">
+        ${botao('Atualizar', `atualizarResumo('${id_pagamento}')`, 'green')}
+    </div>
+    `
+        : ''
+
+    return `
+            <div style="display: flex; align-items: start; flex-direction: column; justify-content: start; gap: 5px;">
+                ${botaoAtualizar}
+                <table class="tabela">
                     <thead>
-                        <th>Valor Orçado Válido</th>
+                        <th>Valor Orçado</th>
+                        <th>LPU do Parceiro</th>
+                        <th>% LPU x VO</th>
                         <th>A Pagar</th>
-                        <th>%</th>
+                        <th>% A Pagar x LPU</th>
                     </thead>
                     <tbody>
                         <tr>
-                            <td><input style="border: none; width: 100%; background-color: transparent;" id="v_orcado" placeholder="Valor Orçado" oninput="calcular_custo()"></td>
-                            <td style="color: #222; white-space: nowrap;" id="v_pago"></td>
-                            <td style="color: #222;" id="resultado"></td>
+                            <td><input value="${resumo?.v_orcado || ''}" id="v_orcado" type="number" placeholder="Orçado" oninput="calcularCusto()"></td>
+                            <td><input value="${resumo?.v_lpu || ''}" id="v_lpu" type="number" placeholder="LPU do Parceiro" oninput="calcularCusto()"></td>
+                            <td id="res_VO"></td>
+                            <td id="v_pago">${dinheiro(resumo?.v_pago) || ''}</td>
+                            <td id="res_ORAP"></td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-        </div>
-    </div>
-    `
-
-    return acumulado
+        `
 }
 
 async function calculadoraPagamento() {
 
-    var central_categorias = document.getElementById('central_categorias')
-    var bloqueio = false
+    let central_categorias = document.getElementById('central_categorias')
+    let bloqueio = false
 
     function colorir(cor, elemento) {
         document.getElementById(elemento).style.backgroundColor = cor
@@ -1812,6 +1803,8 @@ async function calculadoraPagamento() {
         localStorage.setItem('ultimo_pagamento', JSON.stringify(ultimo_pagamento))
 
     }
+
+    calcularCusto()
 
     return bloqueio
 }
@@ -2147,7 +2140,7 @@ async function opcoesClientes(textarea) {
     document.getElementById('codigo_omie').textContent = ''
 
     let div = document.getElementById('div_sugestoes')
-    if(div) div.remove()
+    if (div) div.remove()
 
     if (pesquisa == '') return
 
@@ -2172,7 +2165,7 @@ async function selecionarCliente(omie, nome) {
     textarea.value = nome.toUpperCase()
 
     let div = document.getElementById('div_sugestoes')
-    if(div) div.remove()
+    if (div) div.remove()
     await calculadoraPagamento()
 }
 
@@ -2217,7 +2210,7 @@ async function opcoesCC(textarea) {
     document.getElementById('id_orcamento').textContent = ''
 
     let div = document.getElementById('div_sugestoes')
-    if(div) div.remove()
+    if (div) div.remove()
 
     if (pesquisa == '') return
 
@@ -2276,7 +2269,7 @@ async function selecionarCC(id_orcamento, cliente) {
     textarea.value = cliente.toUpperCase()
 
     let divSugestoes = document.getElementById('div_sugestoes')
-    if(divSugestoes) divSugestoes.remove()
+    if (divSugestoes) divSugestoes.remove()
 
     await calculadoraPagamento()
 }
