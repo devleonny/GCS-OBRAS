@@ -787,7 +787,7 @@ async function total() {
     if (!carrefour) {
 
         let diferencaDinheiro = totais.GERAL.valor - totais.GERAL.bruto
-        let diferencaPorcentagem = diferencaDinheiro == 0 ? 0 : (diferencaDinheiro / totais.GERAL.valor * 100).toFixed(2)
+        let diferencaPorcentagem = diferencaDinheiro == 0 ? 0 : (diferencaDinheiro / totais.GERAL.bruto * 100).toFixed(2)
 
         painel_desconto.innerHTML = `
             <div class="resumo">
