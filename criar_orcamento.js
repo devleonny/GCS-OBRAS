@@ -22,11 +22,11 @@ function coresTabelas(tabela) {
 function apagarOrcamento() {
 
     popup(`
-        <div style="display: flex; flex-direction: column; align-items: center; margin: 2vw;">
+        <div style="display: flex; gap: 1vw; align-items: center; padding: 2vw; background-color: #d2d2d2;">
             <label>Tem certeza que deseja apagar o Orçamento?</label>
-            <button onclick="confirmarExclusao()" style="background-color: green;">Confirmar</button>
+            ${botao('Confirmar', `confirmarExclusao()`, 'green')}
         </div>
-        `, 'Atenção')
+        `, 'AVISO')
 
 }
 
@@ -42,13 +42,22 @@ async function atualizarPrecos() {
     if (orcamentoBase.id && orcamentoBase.edicaoAntigos == undefined) {
 
         return popup(`
-            <div style="background-color: #d2d2d2; padding: 2vw; flex-direction: column; display: flex; gap: 5px;">
+            <div style="width: 40vw; background-color: #d2d2d2; padding: 2vw; flex-direction: column; display: flex; gap: 5px;">
 
-                <label>Você quer manter os valores antigos deste orçamento ou deseja atualizar tudo?</label>
+                <p style="text-align: left;">
+                    A partir de agora você pode decidir se quer editar este orçamento 
+                    considerando os preços de <strong>quando o orçamento foi feito</strong>, ou se prefere atualizar 
+                    os preços dos produtos com base na tabela atual:
+                </p>
 
                 ${botao('Atualizar os preços', `removerPopup(); manterPrecosAntigos(false)`, 'green')}
 
                 ${botao('Manter os preços antigos', `removerPopup(); manterPrecosAntigos(true)`, '')}
+
+                 <p style="text-align: left;">
+                    Se quiser manter os preços antigos, mas quer atualizar determinados itens, escolha <strong>Manter os preços antigos</strong>
+                    e altere o preço individualmente clicando no ícone <img src="imagens/atrasado.png" style="width: 1.5vw;">
+                 </p>
 
             </div>
             `, 'ATENÇÃO')
@@ -730,6 +739,7 @@ async function total() {
                     </td>`
             }
 
+            let imagem = dados_composicoes[codigo]?.imagem || logo
             let icmsSaidaDecimal = icmsSaida / 100
             let valorLiqSemICMS = valorUnitario - (valorUnitario * icmsSaidaDecimal)
             let valorTotSemICMS = totalLinha - (totalLinha * icmsSaidaDecimal)
@@ -741,7 +751,10 @@ async function total() {
                     <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
                         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 5px;">
                             <label ${valor > 0 ? 'class="input_valor">' : `class="labelAprovacao" style="background-color: #B12425">`} ${dinheiro(valor)}</label>
-                            ${unitario ? `<img onclick="alterarValorUnitario('${codigo}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5vw;">` : ''}
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
+                                ${(unitario && itemSalvo.antigo !== undefined) ? `<img onclick="gerenciarPrecoAntigo('${codigo}')" src="imagens/atrasado.png" style="cursor: pointer; width: 1.5vw;">` : ''}
+                                ${unitario ? `<img onclick="alterarValorUnitario('${codigo}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5vw;">` : ''}
+                            </div>
                         </div>
                         ${labelICMS}
                     </div>
@@ -752,8 +765,6 @@ async function total() {
 
             if (carrefour) { acrescimo = 0 }
             tds[6 + acrescimo].innerHTML = labelValores(totalLinha, valorTotSemICMS, icmsSaida)
-
-            let imagem = dados_composicoes[codigo]?.imagem || logo
 
             itemSalvo.descricao = descricao
             itemSalvo.unidade = dados_composicoes[codigo]?.unidade || 'UN'
@@ -849,6 +860,52 @@ async function total() {
 
         popup(avisoHTML(avisos[avisoDesconto]), 'AVISO')
     }
+
+}
+
+async function gerenciarPrecoAntigo(codigo) {
+
+    const orcamentoBase = baseOrcamento()
+    const produto = orcamentoBase.dados_composicoes[codigo]
+
+    let acumulado = `
+        <div style="padding: 2vw; background-color: #d2d2d2; display: flex; justify-content: center; align-items: center; gap: 2vw;">
+
+            <img src="${produto.imagem}" style="width: 10vw; border-radius: 2px;">
+
+            <div style="display: flex; flex-direction: column; justify-content: start; align-items: start; gap: 5px;">
+                <label>${produto.descricao}</label>
+
+                ${botao('Atualizar preço?', `alterarPrecoAntigo('${codigo}', false)`, 'green')}
+                ${botao('Recuperar o preço antigo?', `alterarPrecoAntigo('${codigo}', true)`)}
+            </div>
+
+        </div>
+    `
+
+    popup(acumulado, 'GERENCIAR PREÇO')
+}
+
+async function alterarPrecoAntigo(codigo, resposta) {
+
+    overlayAguarde()
+    let orcamentoBase = baseOrcamento()
+
+    if (resposta) {
+
+        const dados_orcamentos = await recuperarDados('dados_orcamentos')
+        const composicoes = dados_orcamentos[orcamentoBase.id].dados_composicoes
+        orcamentoBase.dados_composicoes[codigo].custo = composicoes[codigo].custo
+
+    }
+
+    orcamentoBase.dados_composicoes[codigo].antigo = resposta
+
+    baseOrcamento(orcamentoBase)
+
+    await total()
+
+    removerPopup()
 
 }
 
