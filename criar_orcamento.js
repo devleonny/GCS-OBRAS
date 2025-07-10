@@ -39,7 +39,7 @@ async function atualizarPrecos() {
 
     if (modalidade == 'MODALIDADE LIVRE') return await carregar_layout_modalidade_livre()
 
-    if (orcamentoBase.id && orcamentoBase.edicaoAntigos) {
+    if (orcamentoBase.id && orcamentoBase.edicaoAntigos == undefined) {
 
         return popup(`
             <div style="background-color: #d2d2d2; padding: 2vw; flex-direction: column; display: flex; gap: 5px;">
@@ -108,13 +108,10 @@ async function atualizarOpcoesLPU() {
     ]
 
     let lpu = document.getElementById('lpu')
-
-    if (lpu.value !== '') {
-        orcamentoBase.lpu_ativa = lpu.value
-        baseOrcamento(orcamentoBase)
-    }
-
     if (lpu) lpu.innerHTML = LPUS.map(lpu => `<option ${orcamentoBase?.lpu_ativa == lpu ? 'selected' : ''}>${lpu}</option>`).join('')
+
+    orcamentoBase.lpu_ativa = lpu.value
+    baseOrcamento(orcamentoBase)
 
     await tabelaProdutos()
     await carregarTabelas()
