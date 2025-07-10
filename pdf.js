@@ -71,8 +71,8 @@ async function atualizar_dados_pdf() {
             let dados_orcamentos = await receber('dados_orcamentos')
             await inserirDados(dados_orcamentos, 'dados_orcamentos')
             let pdf = JSON.parse(localStorage.getItem('pdf'))
-            let orcamento_v2 = dados_orcamentos[pdf.id]
-            localStorage.setItem('pdf', JSON.stringify(orcamento_v2))
+            let orcamentoBase = dados_orcamentos[pdf.id]
+            localStorage.setItem('pdf', JSON.stringify(orcamentoBase))
         } catch (error) {
             const ERROR_MESSAGE = 'Erro ao atualizar os itens da composição:'
             console.log(ERROR_MESSAGE, error)
@@ -86,13 +86,13 @@ async function atualizar_dados_pdf() {
 async function preencher_v2() {
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    let orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {};
+    let orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {};
 
     // LÓGICA DOS DADOS
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let informacoes = { 
-        ...orcamento_v2.dados_orcam,
-        ...dados_clientes?.[orcamento_v2.dados_orcam.omie_cliente] || {}
+        ...orcamentoBase.dados_orcam,
+        ...dados_clientes?.[orcamentoBase.dados_orcam.omie_cliente] || {}
     }
 
     let empresaEmissora = dadosEmpresas[informacoes?.emissor || 'AC SOLUÇÕES']
@@ -137,7 +137,7 @@ async function preencher_v2() {
     html_orcamento.innerHTML = ''
 
     let tabelas = ''
-    let itens = orcamento_v2.dados_composicoes
+    let itens = orcamentoBase.dados_composicoes
 
     let cabecalho = {
         1: 'Código',
@@ -169,7 +169,7 @@ async function preencher_v2() {
         let colunas = config[item.tipo].colunas
 
         let itemComposicao = dados_composicoes[it]
-        let lpu = String(orcamento_v2.lpu_ativa).toLowerCase()
+        let lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
         let tabelaPreco = itemComposicao?.[lpu]
 
 
@@ -273,8 +273,8 @@ async function preencher_v2() {
 
     let divs_totais = ''
     let etiqueta_desconto = ''
-    let total_bruto = orcamento_v2?.total_bruto || 0
-    let total_liquido = orcamento_v2.total_geral;
+    let total_bruto = orcamentoBase?.total_bruto || 0
+    let total_liquido = orcamentoBase.total_geral;
 
     if (total_bruto != 0) { // Quer dizer que existe desconto neste orçamento;
         totais.DESCONTO = { valor: Number(total_bruto.toFixed(2)) - conversor(total_liquido) }
@@ -354,9 +354,9 @@ async function gerarPDF() {
     ocultarElementos()
 
     let dados_clientes = await recuperarDados('dados_clientes') || {}
-    const orcamento_v2 = JSON.parse(localStorage.getItem('pdf')) || {}
-    const contrato = orcamento_v2.dados_orcam.contrato
-    let omie_cliente = orcamento_v2.dados_orcam?.omie_cliente || ''
+    const orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {}
+    const contrato = orcamentoBase.dados_orcam.contrato
+    let omie_cliente = orcamentoBase.dados_orcam?.omie_cliente || ''
     let cliente = dados_clientes?.[omie_cliente]?.nome || ''
 
     await gerar_pdf_online(document.documentElement.outerHTML, `Orcamento_${cliente}_${contrato}`);

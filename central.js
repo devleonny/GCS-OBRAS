@@ -1107,13 +1107,13 @@ async function salvar_levantamento(id_orcamento) {
 
         if (id_orcamento) {
             let dados_orcamentos = await recuperarDados("dados_orcamentos") || {};
-            let orcamento_v2 = dados_orcamentos[id_orcamento] || {};
+            let orcamentoBase = dados_orcamentos[id_orcamento] || {};
 
-            if (!orcamento_v2.levantamentos) {
-                orcamento_v2.levantamentos = {};
+            if (!orcamentoBase.levantamentos) {
+                orcamentoBase.levantamentos = {};
             }
 
-            Object.assign(orcamento_v2.levantamentos, anexo_dados);
+            Object.assign(orcamentoBase.levantamentos, anexo_dados);
 
             await inserirDados(dados_orcamentos, "dados_orcamentos");
 
@@ -1124,15 +1124,15 @@ async function salvar_levantamento(id_orcamento) {
             abrirEsquema(id_orcamento);
         } else {
 
-            let orcamento_v2 = baseOrcamento()
+            let orcamentoBase = baseOrcamento()
 
-            if (!orcamento_v2.levantamentos) {
-                orcamento_v2.levantamentos = {};
+            if (!orcamentoBase.levantamentos) {
+                orcamentoBase.levantamentos = {};
             }
 
-            Object.assign(orcamento_v2.levantamentos, anexo_dados);
+            Object.assign(orcamentoBase.levantamentos, anexo_dados);
 
-            baseOrcamento(orcamento_v2)
+            baseOrcamento(orcamentoBase)
             painelClientes()
         }
     } catch (error) {
@@ -2067,8 +2067,8 @@ async function atualizarBaseClientes() {
 }
 
 async function painelClientes() {
-    let orcamento_v2 = baseOrcamento()
-    let dados_orcam = orcamento_v2?.dados_orcam || {}
+    let orcamentoBase = baseOrcamento()
+    let dados_orcam = orcamentoBase?.dados_orcam || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let cliente = dados_clientes?.[dados_orcam?.omie_cliente] || {}
     let levantamentos = ''
@@ -2087,8 +2087,8 @@ async function painelClientes() {
         `
     })
 
-    for (chave in orcamento_v2?.levantamentos || {}) {
-        let levantamento = orcamento_v2.levantamentos[chave]
+    for (chave in orcamentoBase?.levantamentos || {}) {
+        let levantamento = orcamentoBase.levantamentos[chave]
         levantamentos += criarAnexoVisual(levantamento.nome, levantamento.link, `excluir_levantamento('${chave}')`)
     }
 
@@ -2198,7 +2198,7 @@ async function painelClientes() {
 }
 
 async function salvarDadosCliente() {
-    let orcamento_v2 = baseOrcamento()
+    let orcamentoBase = baseOrcamento()
 
     let dados_analista = {
         email: document.getElementById('email_analista').textContent,
@@ -2206,35 +2206,35 @@ async function salvarDadosCliente() {
         telefone: document.getElementById('telefone_analista').textContent
     };
 
-    if (!orcamento_v2.dados_orcam) {
-        orcamento_v2.dados_orcam = {}
+    if (!orcamentoBase.dados_orcam) {
+        orcamentoBase.dados_orcam = {}
     }
 
-    if (orcamento_v2.id) {
-        dados_analista.email = orcamento_v2.dados_orcam.email_analista;
-        dados_analista.telefone = orcamento_v2.dados_orcam.telefone_analista;
-        dados_analista.nome = orcamento_v2.dados_orcam.analista;
+    if (orcamentoBase.id) {
+        dados_analista.email = orcamentoBase.dados_orcam.email_analista;
+        dados_analista.telefone = orcamentoBase.dados_orcam.telefone_analista;
+        dados_analista.nome = orcamentoBase.dados_orcam.analista;
     }
 
     let contrato = document.getElementById('contrato')
     let checkbox = document.getElementById('chamado_off')
 
     if (checkbox.checked) {
-        orcamento_v2.dados_orcam.contrato = 'sequencial'
+        orcamentoBase.dados_orcam.contrato = 'sequencial'
         contrato.style.display = 'none'
 
-    } else if (contrato.value == 'sequencial' || orcamento_v2.dados_orcam?.contrato == 'sequencial') {
-        orcamento_v2.dados_orcam.contrato = ''
+    } else if (contrato.value == 'sequencial' || orcamentoBase.dados_orcam?.contrato == 'sequencial') {
+        orcamentoBase.dados_orcam.contrato = ''
         contrato.value = ''
         contrato.style.display = 'block'
 
     } else {
-        orcamento_v2.dados_orcam.contrato = contrato.value
+        orcamentoBase.dados_orcam.contrato = contrato.value
         contrato.style.display = 'block'
     }
 
-    orcamento_v2.dados_orcam = {
-        ...orcamento_v2.dados_orcam,
+    orcamentoBase.dados_orcam = {
+        ...orcamentoBase.dados_orcam,
         analista: dados_analista.nome,
         condicoes: document.getElementById('condicoes').value,
         consideracoes: document.getElementById('consideracoes').value,
@@ -2250,9 +2250,9 @@ async function salvarDadosCliente() {
         emissor: document.getElementById('emissor').value
     };
 
-    baseOrcamento(orcamento_v2)
+    baseOrcamento(orcamentoBase)
 
-    if (orcamento_v2.lpu_ativa === 'MODALIDADE LIVRE') {
+    if (orcamentoBase.lpu_ativa === 'MODALIDADE LIVRE') {
         total_v2();
     } else {
         await total();

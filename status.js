@@ -21,7 +21,8 @@ let fluxogramaClone = {
     'CONCLUÍDO': { cor: '#ff4500' },
     'FATURADO': { cor: '#b17724' },
     'PAGAMENTO RECEBIDO': { cor: '#b17724' },
-    'LPU PARCEIRO': { cor: '#0062d5' }
+    'LPU PARCEIRO': { cor: '#0062d5' },
+    'LEVANTAMENTO': { cor: '#0062d5' }
 }
 
 let fluxogramaPadrao = fluxograma = {
@@ -36,7 +37,8 @@ let fluxogramaPadrao = fluxograma = {
     'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
     'RETORNO DE MATERIAIS': { cor: '#aacc14' },
     'FINALIZADO': { cor: 'blue' },
-    'LPU PARCEIRO': { cor: '#0062d5' }
+    'LPU PARCEIRO': { cor: '#0062d5' },
+    'LEVANTAMENTO': { cor: '#0062d5' }
 }
 
 // O objeto foi mesclado com o intuito de obter as formatações de ambos os aplicativos sem precisar criar um objeto para isso;
@@ -295,7 +297,7 @@ async function buscarNFOmie(elemento) {
     let resultado = await verificarNF(numero, tipo, app)
 
     console.log(resultado);
-    
+
 
     if (resultado.faultstring) {
         dadosNota = {}
@@ -2152,7 +2154,7 @@ async function registrarEnvioMaterial(chave) {
 
 }
 
-function confirmar_exclusao_comentario(id_comentario, chave) {
+function confirmarExclusao_comentario(id_comentario, chave) {
     popup(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
             <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
@@ -2188,7 +2190,7 @@ async function carregar_comentarios(chave) {
             let excluir = ''
 
             if (acesso.usuario == item.usuario || acesso.permissao == 'adm') {
-                excluir = ` •<label onclick="confirmar_exclusao_comentario('${it}', '${chave}')" style="text-decoration: underline; cursor: pointer;"> Excluir</label>`
+                excluir = ` •<label onclick="confirmarExclusao_comentario('${it}', '${chave}')" style="text-decoration: underline; cursor: pointer;"> Excluir</label>`
             }
 
             comentss += `

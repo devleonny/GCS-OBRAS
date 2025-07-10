@@ -17,32 +17,32 @@ function coresTabelas(tabela) {
     }
 }
 
-function apagar_orçamento() {
+function apagarOrcamento() {
 
     popup(`
         <div style="display: flex; flex-direction: column; align-items: center; margin: 2vw;">
             <label>Tem certeza que deseja apagar o Orçamento?</label>
-            <button onclick="confirmar_exclusao()" style="background-color: green;">Confirmar</button>
+            <button onclick="confirmarExclusao()" style="background-color: green;">Confirmar</button>
         </div>
         `, 'Atenção')
 
 }
 
-function fechar_ir_orcamentos() {
+function fecharIrOrcamento() {
     location.href = 'orcamentos.html'
 }
 
-function orcamento_que_deve_voltar() {
+function reabrirOrcamento() {
 
-    let orcamento_v2 = baseOrcamento()
+    let orcamentoBase = baseOrcamento()
 
-    if (orcamento_v2.id) {
-        localStorage.setItem('orcamento_que_deve_voltar', JSON.stringify(orcamento_v2.id))
+    if (orcamentoBase.id) {
+        localStorage.setItem('reabrirOrcamento', JSON.stringify(orcamentoBase.id))
     }
 
 }
 
-function confirmar_exclusao() {
+function confirmarExclusao() {
 
     baseOrcamento(undefined, true)
     location.href = 'criar_aluguel.html'
@@ -59,15 +59,15 @@ async function iniciarScripts() {
 
 async function carregarTabelas() {
 
-    let orcamento_v2 = baseOrcamento()
+    let orcamentoBase = baseOrcamento()
     let divTabelas = document.getElementById('tabelas')
     let tabelas = {}
     let toolbarSuperior = ''
     let stringsTabelas = ''
-    let dadosComposicoes = orcamento_v2.dados_composicoes
+    let dadosComposicoes = orcamentoBase.dados_composicoes
 
-    document.getElementById('lpu').value = orcamento_v2?.periodo || 'DIA'
-    document.getElementById('quantidadePeriodo').value = orcamento_v2?.quantidadePeriodo || ''
+    document.getElementById('lpu').value = orcamentoBase?.periodo || 'DIA'
+    document.getElementById('quantidadePeriodo').value = orcamentoBase?.quantidadePeriodo || ''
 
     for (codigo in dadosComposicoes) {
 
@@ -113,7 +113,7 @@ async function carregarTabelas() {
             <table id="cabecalho_${tabela}" class="tabela" style="table-layout: auto; width: 100%;">
                 <thead id="thead_${tabela}" style="background-color: ${coresTabelas(tabela)};">
                     <th style="color: white;">Código</th>
-                    <th style="color: white;">${orcamento_v2.lpu_ativa}</th>
+                    <th style="color: white;">${orcamentoBase.lpu_ativa}</th>
                     <th style="color: white;">Medida</th>
                     <th style="color: white;">Quantidade</th>
                     <th style="color: white;">Custo Unitário Locação</th>
@@ -136,12 +136,12 @@ async function carregarTabelas() {
         ${stringsTabelas}`
 
     let desconto_geral = document.getElementById('desconto_geral')
-    if (orcamento_v2.desconto_geral) {
-        desconto_geral.value = orcamento_v2.desconto_geral
+    if (orcamentoBase.desconto_geral) {
+        desconto_geral.value = orcamentoBase.desconto_geral
     }
 
-    if (orcamento_v2.tipo_de_desconto) {
-        desconto_geral.previousElementSibling.value = orcamento_v2.tipo_de_desconto
+    if (orcamentoBase.tipo_de_desconto) {
+        desconto_geral.previousElementSibling.value = orcamentoBase.tipo_de_desconto
     }
 
     await total()
@@ -150,9 +150,9 @@ async function carregarTabelas() {
 }
 
 function atualizarPeriodo(periodo) {
-    let orcamento_v2 = baseOrcamento()
-    orcamento_v2.periodo = periodo
-    baseOrcamento(orcamento_v2)
+    let orcamentoBase = baseOrcamento()
+    orcamentoBase.periodo = periodo
+    baseOrcamento(orcamentoBase)
 }
 
 function mostrarTabela(tabela) {
@@ -182,13 +182,13 @@ function mostrarTabela(tabela) {
 
 async function removerItem(codigo, img) {
 
-    let orcamento_v2 = baseOrcamento()
+    let orcamentoBase = baseOrcamento()
 
-    if (orcamento_v2.dados_composicoes[codigo]) {
+    if (orcamentoBase.dados_composicoes[codigo]) {
 
-        delete orcamento_v2.dados_composicoes[codigo]
+        delete orcamentoBase.dados_composicoes[codigo]
 
-        baseOrcamento(orcamento_v2)
+        baseOrcamento(orcamentoBase)
 
         img.parentElement.parentElement.remove() // Equivalente a tr
 
@@ -198,13 +198,13 @@ async function removerItem(codigo, img) {
 }
 
 async function enviarDados() {
-    let orcamento_v2 = baseOrcamento()
+    let orcamentoBase = baseOrcamento()
 
-    if (!orcamento_v2.dados_orcam) {
+    if (!orcamentoBase.dados_orcam) {
         return popup(avisoHTML('Preencha os dados do Cliente'), 'ALERTA')
     }
 
-    let dados_orcam = orcamento_v2.dados_orcam;
+    let dados_orcam = orcamentoBase.dados_orcam;
     let chamado = dados_orcam.contrato
 
     if (dados_orcam.cliente_selecionado === '') {
@@ -215,7 +215,7 @@ async function enviarDados() {
         return popup(avisoHTML('Chamado em branco'), 'ALERTA')
     }
 
-    let existente = await verificar_chamado_existente(chamado, orcamento_v2.id, false)
+    let existente = await verificar_chamado_existente(chamado, orcamentoBase.id, false)
 
     if (chamado !== 'sequencial' && existente?.situacao) {
         return popup(avisoHTML('Chamado já Existente'), 'ALERTA')
@@ -233,20 +233,20 @@ async function enviarDados() {
         return popup(avisoHTML('CNPJ em branco'), 'ALERTA')
     }
 
-    if (orcamento_v2.total_desconto > 0 || orcamento_v2.alterado) {
-        orcamento_v2.aprovacao = {
+    if (orcamentoBase.total_desconto > 0 || orcamentoBase.alterado) {
+        orcamentoBase.aprovacao = {
             status: 'pendente',
             usuario: acesso.usuario
         }
     }
 
-    if (orcamento_v2.dados_orcam.contrato == 'sequencial') {
+    if (orcamentoBase.dados_orcam.contrato == 'sequencial') {
         let sequencial = await verificar_chamado_existente(undefined, undefined, true)
-        orcamento_v2.dados_orcam.contrato = `ORC_${sequencial.proximo}`
+        orcamentoBase.dados_orcam.contrato = `ORC_${sequencial.proximo}`
     }
 
-    if (!orcamento_v2.id) {
-        orcamento_v2.id = 'ORCA_' + unicoID();
+    if (!orcamentoBase.id) {
+        orcamentoBase.id = 'ORCA_' + unicoID();
     }
 
     popup(`
@@ -257,9 +257,9 @@ async function enviarDados() {
     `)
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    dados_orcamentos[orcamento_v2.id] = orcamento_v2
+    dados_orcamentos[orcamentoBase.id] = orcamentoBase
     await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${orcamento_v2.id}`, orcamento_v2);
+    await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase);
 
     baseOrcamento(undefined, true)
     location.href = 'orcamentos.html';
@@ -440,7 +440,7 @@ function alterarTabela(tabela) {
 
 async function total(inputDigitado) {
 
-    let orcamento_v2 = baseOrcamento()
+    let orcamentoBase = baseOrcamento()
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let desconto_acumulado = 0
     let totais = { GERAL: { valor: 0, exibir: 'none', bruto: 0 } }
@@ -448,11 +448,11 @@ async function total(inputDigitado) {
     let tables = divTabelas.querySelectorAll('table')
     let quantidadePeriodo = document.getElementById('quantidadePeriodo').value
 
-    orcamento_v2.lpu_ativa = modo // Salvando no mesmo local que as LPUs, para mostrar na tabela geral;
-    orcamento_v2.quantidadePeriodo = quantidadePeriodo
+    orcamentoBase.lpu_ativa = modo // Salvando no mesmo local que as LPUs, para mostrar na tabela geral;
+    orcamentoBase.quantidadePeriodo = quantidadePeriodo
 
-    if (!orcamento_v2.dados_composicoes) {
-        orcamento_v2.dados_composicoes = {}
+    if (!orcamentoBase.dados_composicoes) {
+        orcamentoBase.dados_composicoes = {}
     }
 
     tables.forEach(tab => {
@@ -460,7 +460,7 @@ async function total(inputDigitado) {
         totais[nomeTabela] = { valor: 0, exibir: 'none' }
     })
 
-    if (orcamento_v2.dados_composicoes) {
+    if (orcamentoBase.dados_composicoes) {
         for (let tabela in totais) {
 
             if (tabela == 'GERAL') continue
@@ -507,11 +507,11 @@ async function total(inputDigitado) {
                 tdTotal.textContent = dinheiro(totalLinha)
 
                 // Salvamento dos itens no Orcamento
-                if (!orcamento_v2.dados_composicoes[codigo]) {
-                    orcamento_v2.dados_composicoes[codigo] = {}
+                if (!orcamentoBase.dados_composicoes[codigo]) {
+                    orcamentoBase.dados_composicoes[codigo] = {}
                 }
 
-                let itemSalvo = orcamento_v2.dados_composicoes[codigo]
+                let itemSalvo = orcamentoBase.dados_composicoes[codigo]
                 itemSalvo.codigo = codigo
                 itemSalvo.descricao = descricao
                 itemSalvo.qtde = quantidade
@@ -528,9 +528,9 @@ async function total(inputDigitado) {
     }
 
     document.getElementById('total_geral').textContent = dinheiro(totais.GERAL.valor)
-    orcamento_v2.total_geral = totais.GERAL.valor
+    orcamentoBase.total_geral = totais.GERAL.valor
 
-    baseOrcamento(orcamento_v2)
+    baseOrcamento(orcamentoBase)
 
     // Mensagem aleatório de boas vindas;
     let aleatorio = Math.floor(Math.random() * metaforas.length)
@@ -543,7 +543,7 @@ async function total(inputDigitado) {
     let divQuieto = document.getElementById('quieto')
     if (divQuieto) divQuieto.remove()
 
-    if (orcamento_v2.dados_composicoes && Object.keys(orcamento_v2.dados_composicoes).length > 0) {
+    if (orcamentoBase.dados_composicoes && Object.keys(orcamentoBase.dados_composicoes).length > 0) {
         document.getElementById('toolbarSuperior').style.display = 'flex'
     } else {
         tabelas.insertAdjacentHTML('afterbegin', quieto)
@@ -553,7 +553,7 @@ async function total(inputDigitado) {
 
 async function incluirItem(codigo, novaQuantidade) {
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    let orcamento_v2 = baseOrcamento()
+    let orcamentoBase = baseOrcamento()
     let produto = dados_composicoes[codigo]
 
     let linha = `
@@ -592,11 +592,11 @@ async function incluirItem(codigo, novaQuantidade) {
 
         if (!tbody) { // Lançamento do 1º Item de cada tipo;
 
-            if (!orcamento_v2.dados_composicoes) {
-                orcamento_v2.dados_composicoes = {}
+            if (!orcamentoBase.dados_composicoes) {
+                orcamentoBase.dados_composicoes = {}
             }
 
-            orcamento_v2.dados_composicoes[codigo] = {
+            orcamentoBase.dados_composicoes[codigo] = {
                 codigo: codigo,
                 qtde: novaQuantidade,
                 tipo: produto?.tipo,
@@ -605,7 +605,7 @@ async function incluirItem(codigo, novaQuantidade) {
                 descricao: produto?.descricao
             }
 
-            baseOrcamento(orcamento_v2)
+            baseOrcamento(orcamentoBase)
             return carregarTabelas()
 
         } else {
@@ -619,7 +619,7 @@ async function incluirItem(codigo, novaQuantidade) {
 function itemExistente(tipo, codigo, quantidade) {
 
     let incluir = true
-    let orcamento_v2 = baseOrcamento()
+    let orcamentoBase = baseOrcamento()
     let linhas = document.getElementById(`linhas_${tipo}`)
     if (!linhas) return incluir
     let trs = linhas.querySelectorAll('tr')
@@ -627,7 +627,7 @@ function itemExistente(tipo, codigo, quantidade) {
     trs.forEach(tr => {
 
         let tds = tr.querySelectorAll('td')
-        let acrescimo = orcamento_v2.lpu_ativa !== 'LPU CARREFOUR' ? 0 : 1
+        let acrescimo = orcamentoBase.lpu_ativa !== 'LPU CARREFOUR' ? 0 : 1
 
         if (tds[0].textContent == codigo) {
 
@@ -643,13 +643,13 @@ function itemExistente(tipo, codigo, quantidade) {
 }
 
 function excluir_levantamento(chave) {
-    var orcamento_v2 = baseOrcamento()
+    var orcamentoBase = baseOrcamento()
 
-    if (orcamento_v2.levantamentos) {
+    if (orcamentoBase.levantamentos) {
 
-        delete orcamento_v2.levantamentos[chave]
+        delete orcamentoBase.levantamentos[chave]
 
-        baseOrcamento(orcamento_v2)
+        baseOrcamento(orcamentoBase)
 
     }
 }

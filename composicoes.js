@@ -1409,7 +1409,7 @@ async function cadastrar_editar_item(codigo) {
     ${codigo ? `
     <div style="display: flex; align-items: center; justify-content: center; gap: 5px; position: absolute; bottom: 5px; right: 15px; ">
         <label style="font-size: 0.7em;">${codigo}</label>
-        <img src="imagens/cancel.png" style="width: 15px; cursor: pointer;" onclick="confirmar_exclusao_item('${codigo}')">
+        <img src="imagens/cancel.png" style="width: 15px; cursor: pointer;" onclick="confirmarExclusao_item('${codigo}')">
     </div>` : ''}
 
     <div id="cadastrar_item" style="width: 30vw; background-color: white; color: #222; padding: 5px; border-radius: 5px; margin: 1vw;">
@@ -1426,7 +1426,7 @@ async function cadastrar_editar_item(codigo) {
     popup(acumulado, 'Dados do Item')
 }
 
-async function confirmar_exclusao_item(codigo) {
+async function confirmarExclusao_item(codigo) {
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
 

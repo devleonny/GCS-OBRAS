@@ -1154,7 +1154,7 @@ async function remover_linha_excluir_item(elemento) {
             </div>
             <label style="font-size: 0.7em;">${item.partnumber} - ${item.descricao}</label>
             <div style="display: flex; justify-content: center; align-items: center; gap: 15px;">
-                <button onclick="confirmar_exclusao('${codigo}')">Confirmar</button>
+                <button onclick="confirmarExclusao('${codigo}')">Confirmar</button>
             </div>
         `)
 
@@ -1167,7 +1167,7 @@ async function remover_linha_excluir_item(elemento) {
 
 }
 
-async function confirmar_exclusao(codigo) {
+async function confirmarExclusao(codigo) {
 
     removerPopup()
 

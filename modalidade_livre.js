@@ -22,11 +22,11 @@ function retornar_ao_orcamento_tradicional() {
 
 function carregar_layout_modalidade_tradicional() {
 
-    let orcamento_v2 = baseOrcamento()
-    delete orcamento_v2.dados_composicoes
-    delete orcamento_v2.lpu_ativa
+    let orcamentoBase = baseOrcamento()
+    delete orcamentoBase.dados_composicoes
+    delete orcamentoBase.lpu_ativa
 
-    baseOrcamento(orcamento_v2)
+    baseOrcamento(orcamentoBase)
 
     location.href = 'criar_orcamento.html'
 
@@ -57,10 +57,10 @@ function carregar_layout_modalidade_livre() {
     orcamento_livre.innerHTML = '';
     content.style = 'border: none'
 
-    let orcamento_v2 = baseOrcamento()
+    let orcamentoBase = baseOrcamento()
 
-    orcamento_v2.lpu_ativa = 'MODALIDADE LIVRE'
-    baseOrcamento(orcamento_v2)
+    orcamentoBase.lpu_ativa = 'MODALIDADE LIVRE'
+    baseOrcamento(orcamentoBase)
 
     orcamento_livre.innerHTML = `
         <div id="menu_superior"
@@ -80,7 +80,7 @@ function carregar_layout_modalidade_livre() {
                         <img src="imagens/salvo.png">
                         <label>Salvar Orçamento</label>
                     </div>
-                    <div class="btn_menu" onclick="apagar_orçamento()">
+                    <div class="btn_menu" onclick="apagarOrcamento()">
                         <img src="imagens/remover.png">
                         <label>Apagar Orçamento</label>
                     </div>
@@ -186,16 +186,16 @@ function importar() {
 
     let entradaItens = document.getElementById('entrada_itens').value.trim().split('\n');
 
-    let orcamento_v2 = baseOrcamento()
+    let orcamentoBase = baseOrcamento()
 
-    orcamento_v2.dados_composicoes = orcamento_v2.dados_composicoes || {};
+    orcamentoBase.dados_composicoes = orcamentoBase.dados_composicoes || {};
 
     let tipo = document.getElementById('tipo_importar').value;
 
     let maxNumeroL = Math.max(
 
         0,
-        ...Object.keys(orcamento_v2.dados_composicoes)
+        ...Object.keys(orcamentoBase.dados_composicoes)
             .map(chave => parseInt(chave))
             .filter(numero => !isNaN(numero))
 
@@ -209,7 +209,7 @@ function importar() {
 
             maxNumeroL++;
 
-            orcamento_v2.dados_composicoes[`${maxNumeroL}L`] = {
+            orcamentoBase.dados_composicoes[`${maxNumeroL}L`] = {
                 codigo: `${maxNumeroL}L`,
                 descricao,
                 qtde: conversor(quantidade),
@@ -225,7 +225,7 @@ function importar() {
 
     });
 
-    baseOrcamento(orcamento_v2)
+    baseOrcamento(orcamentoBase)
     carregar_tabela();
 
 }
@@ -233,9 +233,9 @@ function importar() {
 
 function carregar_tabela() {
 
-    let orcamento_v2 = baseOrcamento()
+    let orcamentoBase = baseOrcamento()
 
-    if (!orcamento_v2.dados_composicoes) {
+    if (!orcamentoBase.dados_composicoes) {
 
         return
 
@@ -244,7 +244,7 @@ function carregar_tabela() {
     document.getElementById('tabela_serviço').innerHTML = '';
     document.getElementById('tabela_venda').innerHTML = '';
 
-    let composicoes = orcamento_v2.dados_composicoes
+    let composicoes = orcamentoBase.dados_composicoes
 
     for (let codigo in composicoes) {
 
@@ -290,11 +290,11 @@ function carregar_tabela() {
 function total_v2(recarregar) {
 
     let tabelas = ['serviço', 'venda']
-    let orcamento_v2 = baseOrcamento()
+    let orcamentoBase = baseOrcamento()
 
-    if (!orcamento_v2.dados_composicoes) {
+    if (!orcamentoBase.dados_composicoes) {
 
-        orcamento_v2.dados_composicoes = {}
+        orcamentoBase.dados_composicoes = {}
 
     }
 
@@ -306,7 +306,7 @@ function total_v2(recarregar) {
 
     }
 
-    let composicoes = orcamento_v2.dados_composicoes
+    let composicoes = orcamentoBase.dados_composicoes
 
     tabelas.forEach(tabela => {
 
@@ -352,9 +352,9 @@ function total_v2(recarregar) {
 
     }
 
-    orcamento_v2.lpu_ativa = 'MODALIDADE LIVRE'
-    orcamento_v2.total_geral = dinheiro(totais.GERAL)
-    baseOrcamento(orcamento_v2)
+    orcamentoBase.lpu_ativa = 'MODALIDADE LIVRE'
+    orcamentoBase.total_geral = dinheiro(totais.GERAL)
+    baseOrcamento(orcamentoBase)
 
     if (recarregar) {
 
@@ -365,15 +365,15 @@ function total_v2(recarregar) {
 }
 
 function adicionarLinha_v2(tipo) {
-    let orcamento_v2 = baseOrcamento()
+    let orcamentoBase = baseOrcamento()
 
-    const dadosComposicoesExiste = orcamento_v2.dados_composicoes;
+    const dadosComposicoesExiste = orcamentoBase.dados_composicoes;
     if (!dadosComposicoesExiste) {
-        orcamento_v2.dados_composicoes = {};
+        orcamentoBase.dados_composicoes = {};
     }
 
     let maxNumero = 0;
-    Object.keys(orcamento_v2.dados_composicoes).forEach(chave => {
+    Object.keys(orcamentoBase.dados_composicoes).forEach(chave => {
         let numero = parseInt(chave);
         if (!isNaN(numero) && numero > maxNumero) {
             maxNumero = numero;
@@ -382,7 +382,7 @@ function adicionarLinha_v2(tipo) {
 
     let novoCodigo = `${maxNumero + 1}L`;
 
-    orcamento_v2.dados_composicoes[novoCodigo] = {
+    orcamentoBase.dados_composicoes[novoCodigo] = {
         codigo: novoCodigo,
         descricao: '',
         qtde: 1,
@@ -393,22 +393,22 @@ function adicionarLinha_v2(tipo) {
         imagem: 'https://i.imgur.com/gUcc7iG.png'
     };
 
-    baseOrcamento(orcamento_v2)
+    baseOrcamento(orcamentoBase)
     carregar_tabela();
 }
 
 function removerLinha_v2(codigo) {
 
-    let orcamento_v2 = baseOrcamento()
-    orcamento_v2.dados_composicoes
+    let orcamentoBase = baseOrcamento()
+    orcamentoBase.dados_composicoes
 
-    if (orcamento_v2.dados_composicoes[codigo]) {
+    if (orcamentoBase.dados_composicoes[codigo]) {
 
-        delete orcamento_v2.dados_composicoes[codigo]
+        delete orcamentoBase.dados_composicoes[codigo]
 
     }
 
-    baseOrcamento(orcamento_v2)
+    baseOrcamento(orcamentoBase)
 
     carregar_tabela();
 

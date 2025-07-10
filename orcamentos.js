@@ -419,13 +419,13 @@ function mostrarParcelas(divSuperior) {
 async function editar(orcam_) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    let orcamento_v2 = dados_orcamentos[orcam_];
+    let orcamentoBase = dados_orcamentos[orcam_];
 
-    if (orcamento_v2.aprovacao) delete orcamento_v2.aprovacao
+    if (orcamentoBase.aprovacao) delete orcamentoBase.aprovacao
 
-    let tipoOrcamento = orcamento_v2.lpu_ativa == 'ALUGUEL' ? 'aluguel' : 'orcamento'
+    let tipoOrcamento = orcamentoBase.lpu_ativa == 'ALUGUEL' ? 'aluguel' : 'orcamento'
 
-    baseOrcamento(orcamento_v2)
+    baseOrcamento(orcamentoBase)
 
     window.location.href = `criar_${tipoOrcamento}.html`;
 
@@ -433,12 +433,12 @@ async function editar(orcam_) {
 
 async function duplicar(orcam_) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let orcamento_v2 = dados_orcamentos[orcam_]
+    let orcamentoBase = dados_orcamentos[orcam_]
     let novoOrcamento = {}
 
-    novoOrcamento.dados_orcam = orcamento_v2.dados_orcam
-    novoOrcamento.dados_composicoes = orcamento_v2.dados_composicoes
-    novoOrcamento.lpu_ativa = orcamento_v2.lpu_ativa
+    novoOrcamento.dados_orcam = orcamentoBase.dados_orcam
+    novoOrcamento.dados_composicoes = orcamentoBase.dados_composicoes
+    novoOrcamento.lpu_ativa = orcamentoBase.lpu_ativa
     novoOrcamento.dados_orcam.contrato = ''
     novoOrcamento.dados_orcam.analista = acesso.nome_completo
     novoOrcamento.dados_orcam.email_analista = acesso.email

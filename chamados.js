@@ -676,7 +676,7 @@ async function criar_manutencao(id) {
                 ${layoutBotao('PDF', `capturar_html_pdf('${id}')`, 'pdf')}
                 ${layoutBotao('Sincronizar Clientes/Técnicos', `atualizar_base_clientes()`, 'atualizar3')}
                 ${layoutBotao('Sincronizar Estoque', `sincronizarEstoque()`, 'cloudsync')}
-                ${layoutBotao('Excluir Manutenção', `confirmar_exclusao('${id}')`, 'cancel')}
+                ${layoutBotao('Excluir Manutenção', `confirmarExclusao('${id}')`, 'cancel')}
 
             </div>
         `
@@ -711,7 +711,7 @@ function mostrar_anexos(label) {
     label.parentElement.nextElementSibling.style.display = display
 }
 
-function confirmar_exclusao(id) {
+function confirmarExclusao(id) {
 
     popup(`
         <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
