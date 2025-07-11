@@ -7,7 +7,7 @@ let opcoesStatus = [
     'Processando...'
 ]
 
-consultar_pagamentos()
+carregarPagamentos()
 
 async function filtrarPagamentos() {
 
@@ -37,7 +37,7 @@ async function filtrarPagamentos() {
     return pagamentosFiltrados
 }
 
-async function consultar_pagamentos() {
+async function carregarPagamentos() {
 
     let div_pagamentos = document.getElementById('div_pagamentos')
     if (!div_pagamentos) return
@@ -49,6 +49,11 @@ async function consultar_pagamentos() {
     let lista_pagamentos = await filtrarPagamentos() // Filtrar de acordo com o usuário atual;
 
     let dados_categorias = await recuperarDados('dados_categorias')
+
+    console.log(dados_categorias);
+    
+    console.log(Object.keys(dados_categorias).length);
+    
     if (!dados_categorias) {
         dados_categorias = await receber('dados_categorias')
         await inserirDados(dados_categorias, 'dados_categorias')
@@ -831,7 +836,7 @@ async function alterarParam(id, param) {
 
 async function retomarPaginacao() {
 
-    await consultar_pagamentos()
+    await carregarPagamentos()
 
     let tabela = document.getElementById('pagamentos')
     let thead = tabela.querySelector('thead')
@@ -1233,8 +1238,8 @@ async function criar_pagamento_v2() {
         inserirDados(lista_pagamentos, 'lista_pagamentos');
 
         popup(`
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="imagens/concluido.png" style="width: 3vw; height: 3vw;">
+            <div style="padding: 2vw; background-color: #d2d2d2; display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="imagens/concluido.png" style="width: 2vw; height: 3vw;">
                 <label>Pagamento Solicitado</label>
             </div>                
         `)

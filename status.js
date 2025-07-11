@@ -2,13 +2,6 @@ let itens_adicionais = {}
 let id_orcam = ''
 let fluxograma = {}
 let dadosNota = {}
-let guiaTipo = {
-    '11': 'Venda',
-    '01': 'Venda de Serviço',
-    '13': 'Devolução de Venda',
-    '14': 'Remessa',
-    '16': 'Nota Complementar de Saída'
-}
 
 let fluxogramaClone = {
     'LEVANTAMENTO': { cor: '#0062d5' },
@@ -297,20 +290,19 @@ async function buscarNFOmie(elemento) {
 
     let resultado = await verificarNF(numero, tipo, app)
 
-    console.log(resultado);
-
-
     if (resultado.faultstring) {
         dadosNota = {}
         removerOverlay()
         return detalhesNF.innerHTML = `${resultado.faultstring}`
     }
 
+    dadosNota = resultado
+
     let divParcelas = ''
-    let parcelas = (resultado?.titulos || [])
+    let parcelas = dadosNota.parcelas
         .map((parcela, i) =>
             `${modelo(`Parcela ${i + 1}`,
-                `<label>${parcela.dDtVenc} <strong>${dinheiro(parcela.nValorTitulo)}</strong></label><br>`)}`)
+                `<label>${parcela.dDtVenc} <strong>${dinheiro(parcela?.nValorTitulo || parcela?.nValor || '??')}</strong></label><br>`)}`)
         .join('')
 
     if (parcelas !== '') {
@@ -323,22 +315,12 @@ async function buscarNFOmie(elemento) {
         `
     }
 
-    dadosNota = {
-        app,
-        notaOriginal: resultado,
-        tipo: tipo == 'serviço' ? 'Serviço' : guiaTipo[resultado.pedido.opPedido],
-        nf: tipo == 'serviço' ? resultado.Cabecalho.nNumeroNFSe : resultado.ide.nNF,
-        dEmi: tipo == 'serviço' ? resultado.Inclusao.cDataInclusao : resultado.ide.dEmi,
-        hEmi: tipo == 'serviço' ? resultado.Inclusao.cHoraInclusao : resultado.ide.dReg,
-        valor: tipo == 'serviço' ? resultado.Valores.nValorTotalServicos : resultado.total.ICMSTot.vNF,
-        parcelas: resultado?.titulos || [],
-    }
-
     detalhesNF.innerHTML = `
-        ${modelo('Tipo', tipo == 'serviço' ? 'Serviço' : guiaTipo[resultado.pedido.opPedido])}
-        ${modelo('Cliente', tipo == 'serviço' ? resultado.Cabecalho.cRazaoDestinatario : resultado.nfDestInt.cRazao)}
-        ${modelo('CNPJ', tipo == 'serviço' ? resultado.Cabecalho.cCNPJDestinatario : resultado.nfDestInt.cnpj_cpf)}
-        ${modelo('Total', dinheiro(tipo == 'serviço' ? resultado.Valores.nValorTotalServicos : resultado.total.ICMSTot.vNF))}
+        ${modelo('Tipo', dadosNota.tipo)}
+        ${modelo('Cliente', dadosNota.cliente)}
+        ${modelo('CNPJ', dadosNota.cnpj)}
+        ${modelo('Cidade', dadosNota.cidade)}
+        ${modelo('Total', dinheiro(dadosNota.valor))}
         
         ${divParcelas}
 

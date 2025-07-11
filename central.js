@@ -77,6 +77,9 @@ const itensImportados = [
     'gcs-725', 'gcs-726', 'gcs-738', 'gcs-739', 'gcs-734', 'gcs-740', 'gcs-741', 'gcs-730', 'gcs-742', 'gcs-743', 'gcs-744', 'gcs-747', 'gcs-729', 'gcs-728', 'gcs-727', 'gcs-1135', 'gcs-1136', 'gcs-1137'
 ]
 
+// Provisoriamente até apagar todas as bases;
+indexedDB.deleteDatabase('Bases')
+
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F5') f5()
     if (event.key === 'F2') popup(new Date().getTime(), 'TIMESTAMP', true)
@@ -206,7 +209,7 @@ async function identificacaoUser() {
                 ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
                 ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
 
-                <label onclick="deseja_sair()"
+                <label onclick="deslogarUsuario()"
                 style="cursor: pointer; color: white;">${acesso.usuario} • ${acesso.permissao} • ${acesso.setor} • Sair</label>
             </div>
 
@@ -374,11 +377,11 @@ function abrirArquivo(link) {
     }
 }
 
-function deseja_sair() {
+function deslogarUsuario() {
     popup(`
-        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin: 2vw;">
+        <div style="background-color: #d2d2d2; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 2vw;">
             <label>Deseja Sair?</label>
-            <button onclick="sair()" style="background-color: green">Sim</button>
+            ${botao('Sim', `sair()`, 'green')}
         </div>
         `, 'Aviso')
 }
@@ -446,7 +449,7 @@ function overlayAguarde() {
 
 setInterval(async function () {
     await reprocessar_offline()
-}, 60000)
+}, 5 * 60 * 1000)
 
 async function reprocessar_offline() {
     let dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {};
@@ -471,113 +474,90 @@ async function reprocessar_offline() {
     }
 }
 
-async function inserirDados(dados, nome_da_base) {
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false;
-    if (modoClone) nome_da_base = `${nome_da_base}_clone`;
+async function inserirDados(dados, nomeBase) {
+    const nomeBanco = 'GCS'
 
-    const db = await abrirBanco('Bases');
+    const clone = JSON.parse(localStorage.getItem('modoClone')) || false
+    nomeBase = clone ? `${nomeBase}_clone` : nomeBase
 
-    if (!db.objectStoreNames.contains(nome_da_base)) {
-        const novaVersao = db.version + 1;
-        db.close();
-        const upgradedDB = await atualizarVersaoBanco('Bases', novaVersao, nome_da_base);
-        await executarTransacao(upgradedDB, nome_da_base, dados);
-    } else {
-        await executarTransacao(db, nome_da_base, dados);
-    }
-}
+    const existeStore = await new Promise((resolve, reject) => {
+        const req = indexedDB.open(nomeBanco)
+        req.onsuccess = () => {
+            const db = req.result
+            const existe = db.objectStoreNames.contains(nomeBase)
+            const versaoAtual = db.version
+            db.close()
+            resolve({ existe, versaoAtual })
+        }
+        req.onerror = () => reject(req.error)
+    })
 
-// Função para abrir banco
-function abrirBanco(nome) {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(nome);
-        request.onsuccess = event => resolve(event.target.result);
-        request.onerror = event => reject(event.target.error);
-    });
-}
-
-// Função para atualizar versão e criar objectStore
-function atualizarVersaoBanco(nome, versao, nome_da_base) {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(nome, versao);
-
-        request.onupgradeneeded = event => {
-            const db = event.target.result;
-            db.createObjectStore(nome_da_base, { keyPath: 'id' });
-            console.log(`Store "${nome_da_base}" criada com sucesso.`);
-        };
-
-        request.onsuccess = event => resolve(event.target.result);
-        request.onerror = event => reject(event.target.error);
-    });
-}
-
-function executarTransacao(db, nome_da_base, dados) {
-    return new Promise((resolve, reject) => {
-        if (!dados) return resolve();
-
-        const transaction = db.transaction([nome_da_base], 'readwrite');
-        const store = transaction.objectStore(nome_da_base);
-
-        const clearRequest = store.clear();
-
-        clearRequest.onsuccess = () => {
-            try {
-                if (Array.isArray(dados)) {
-                    dados.forEach(item => {
-                        item.id = 1;
-                        const addRequest = store.put(item);
-                        addRequest.onerror = event => console.error('Erro ao adicionar item:', event.target.error);
-                    });
-                } else {
-                    dados.id = 1;
-                    const addRequest = store.put(dados);
-                    addRequest.onerror = event => console.error('Erro ao adicionar item:', event.target.error);
-                }
-            } catch (err) {
-                reject(err);
+    if (!existeStore.existe) {
+        await new Promise((resolve, reject) => {
+            const req = indexedDB.open(nomeBanco, existeStore.versaoAtual + 1)
+            req.onupgradeneeded = e => {
+                const db = e.target.result
+                db.createObjectStore(nomeBase, { keyPath: 'id' })
             }
-        };
+            req.onsuccess = e => {
+                e.target.result.close()
+                resolve()
+            }
+            req.onerror = () => reject(req.error)
+        })
+    }
 
-        clearRequest.onerror = event => reject(event.target.error);
-        transaction.onerror = event => reject(event.target.error);
+    // Agora insere os dados
+    const reqFinal = indexedDB.open(nomeBanco)
+    reqFinal.onsuccess = () => {
+        const db = reqFinal.result
+        const tx = db.transaction(nomeBase, 'readwrite')
+        const store = tx.objectStore(nomeBase)
 
-        transaction.oncomplete = () => resolve();
-    });
+        for (const id in dados) {
+            if (Object.prototype.hasOwnProperty.call(dados, id)) {
+                const item = dados[id]
+                item.id = id
+                store.put(item) // put atualiza ou cria
+            }
+        }
+
+        tx.oncomplete = () => db.close()
+    }
+    reqFinal.onerror = () => {
+        console.error('Erro final ao abrir o banco:', reqFinal.error)
+    }
 }
 
 async function recuperarDados(nome_da_base, ambos) {
     const getDados = (nomeBase) => {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open('Bases')
+            const request = indexedDB.open('GCS')
 
             request.onsuccess = function (event) {
                 const db = event.target.result
 
                 if (!db.objectStoreNames.contains(nomeBase)) {
-                    resolve(null)
+                    resolve({})
                     return
                 }
 
                 const transaction = db.transaction([nomeBase], 'readonly')
                 const store = transaction.objectStore(nomeBase)
 
-                const getRequest = store.get(1)
+                const getRequest = store.getAll()
 
                 getRequest.onsuccess = function (event) {
                     let dados = event.target.result
-                    if (dados && dados.id) delete dados.id
-                    resolve(dados || null)
+                    dados = Object.fromEntries(dados.map(item => [item.id, item]))
+                    resolve(dados)
                 }
 
-                getRequest.onerror = function (event) {
-                    reject(event.target.error)
-                }
+                getRequest.onerror = event => reject(event.target.error)
+
             }
 
-            request.onerror = function (event) {
-                reject(event.target.error)
-            }
+            request.onerror = event => reject(event.target.error)
         })
     }
 
@@ -1611,7 +1591,7 @@ async function verAprovacoes() {
     for (let [idOrcamento, orcamento] of desordenado) {
 
         if (!orcamento.aprovacao) continue
-        
+
         let dados_orcam = orcamento.dados_orcam || {}
         let aprovacao = orcamento.aprovacao
         let status = aprovacao?.status || 'desconhecido'
