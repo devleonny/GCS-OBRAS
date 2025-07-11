@@ -41,26 +41,16 @@ async function carregarPagamentos() {
 
     let div_pagamentos = document.getElementById('div_pagamentos')
     if (!div_pagamentos) return
-
     div_pagamentos.innerHTML = ''
+
+    await sincronizarDados('dados_categorias')
 
     //Chamada para o endpoint que já retorna os pagamentos filtrados;
     let acumulado = ''
     let lista_pagamentos = await filtrarPagamentos() // Filtrar de acordo com o usuário atual;
-
-    let dados_categorias = await recuperarDados('dados_categorias')
-
-    console.log(dados_categorias);
-    
-    console.log(Object.keys(dados_categorias).length);
-    
-    if (!dados_categorias) {
-        dados_categorias = await receber('dados_categorias')
-        await inserirDados(dados_categorias, 'dados_categorias')
-    }
-
-    let orcamentos = await recuperarDados('dados_orcamentos', true) || {};
-    let dados_clientes = await recuperarDados('dados_clientes') || {};
+    const dados_categorias = await recuperarDados('dados_categorias')
+    const orcamentos = await recuperarDados('dados_orcamentos', true) || {};
+    const dados_clientes = await recuperarDados('dados_clientes') || {};
     let linhas = ''
 
     let pagamentosFiltrados = Object.keys(lista_pagamentos)
@@ -71,7 +61,7 @@ async function carregarPagamentos() {
             let nome_orcamento = dados_clientes?.[omieCliente]?.nome || pagamento.id_orcamento
 
             let valor_categorias = pagamento.param[0].categorias.map(cat =>
-                `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria]}</p>`
+                `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria].categoria}</p>`
             ).join('');
 
 
@@ -299,12 +289,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
     let dados_clientes = await recuperarDados('dados_clientes') || {};
     let dados_orcamentos = await recuperarDados('dados_orcamentos', true) || {};
-    let dados_categorias = await recuperarDados('dados_categorias')
-
-    if (!dados_categorias) {
-        dados_categorias = await receber('dados_categorias')
-        await inserirDados(dados_categorias, 'dados_categorias')
-    }
+    const dados_categorias = await recuperarDados('dados_categorias')
 
     let valores = ''
     let painelParceiro = false
@@ -392,12 +377,12 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
         valores += `
             <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
-                <label><strong>${dinheiro(item.valor)}</strong> - ${dados_categorias[item.codigo_categoria]}</label>
+                <label><strong>${dinheiro(item.valor)}</strong> - ${dados_categorias[item.codigo_categoria].categoria}</label>
                 <img style="width: 2vw; cursor: pointer; display: ${displayLabel};" src="imagens/editar.png" onclick="modal_editar_pagamento('${id_pagamento}', '${indice}')">
                 <img style="width: 25px; cursor: pointer; display: ${displayLabel};" src="imagens/excluir.png" onclick="deseja_excluir_categoria('${id_pagamento}', '${indice}')">
             </div>
         `
-        if (String(dados_categorias[item.codigo_categoria]).includes('Parceiros')) {
+        if (String(dados_categorias[item.codigo_categoria].categoria).includes('Parceiros')) {
             painelParceiro = true
         }
 
@@ -652,12 +637,9 @@ function deseja_excluir_pagamento(id) {
 
 async function deseja_excluir_categoria(id, indice) {
 
-    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-    let dados_categorias = await recuperarDados('dados_categorias')
-    if (!dados_categorias) {
-        dados_categorias = await receber('dados_categorias')
-        inserirDados(dados_categorias, 'dados_categorias')
-    }
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    const dados_categorias = await recuperarDados('dados_categorias')
+
     let pagamento = lista_pagamentos[id]
 
     let categoria = pagamento.param[0].categorias[indice]
@@ -669,7 +651,7 @@ async function deseja_excluir_categoria(id, indice) {
                 <label>Deseja realmente excluir essa categoria?</label>
             </div>
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
-                <label>Categoria: ${dados_categorias[categoria.codigo_categoria]}</label>
+                <label>Categoria: ${dados_categorias[categoria.codigo_categoria].categoria}</label>
                 <label>Valor Atual: ${dinheiro(categoria.valor)}</label>
             </div>
             <label onclick="confirmarExclusao_categoria('${id}', '${indice}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
@@ -711,12 +693,8 @@ async function confirmarExclusao_categoria(id, indice) {
 
 async function modal_editar_pagamento(id, indice) {
 
-    var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-    let dados_categorias = await recuperarDados('dados_categorias')
-    if (!dados_categorias) {
-        dados_categorias = await receber('dados_categorias')
-        await inserirDados(dados_categorias, 'dados_categorias')
-    }
+    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+    const dados_categorias = await recuperarDados('dados_categorias')
 
     let funcao = indice ? `editar_pagamento('${id}', ${indice})` : `editar_pagamento('${id}')`
     let categoriaAtual;
@@ -728,8 +706,8 @@ async function modal_editar_pagamento(id, indice) {
     }
 
     let opcoes = ''
-    Object.entries(dados_categorias).forEach(([codigo, categoria]) => {
-        opcoes += `<option data-codigo="${codigo}" ${categoriaAtual == codigo ? 'selected' : ''}>${categoria}</option>`
+    Object.entries(dados_categorias).forEach(([codigo, objeto]) => {
+        opcoes += `<option data-codigo="${codigo}" ${categoriaAtual == codigo ? 'selected' : ''}>${objeto.categoria}</option>`
     })
 
     let acumulado = `
@@ -1937,8 +1915,7 @@ async function nova_categoria() {
             <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; width: 30%; padding: 5px;">
                 <label>Categoria</label>
                 <label style="display: none;"></label>
-                <textarea type="text" oninput="carregar_opcoes_categorias(this)" placeholder="Categoria" style="width: 100%; font-size: 0.8vw;"></textarea>
-                <div class="autocomplete-list"></div>
+                <textarea type="text" oninput="opcoesCategorias(this)" placeholder="Categoria" style="width: 100%; font-size: 0.8vw;"></textarea>
             </div>
 
             <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; width: 30%; padding: 5px;">
@@ -2074,37 +2051,46 @@ async function excluir_anexo_parceiro_2(campo, anx) {
 
 }
 
-async function carregar_opcoes_categorias(textarea) {
+async function opcoesCategorias(textarea) {
 
     let pesquisa = String(textarea.value).toLowerCase()
-    let div = textarea.nextElementSibling
+    let div = document.getElementById('div_sugestoes')
+    if (div) div.remove()
+
     let id = ID5digitos()
     textarea.id = id
-    div.innerHTML = ''
-    let dados_categorias = await recuperarDados('dados_categorias') || {};
+
+    const dados_categorias = await recuperarDados('dados_categorias')
     let opcoes = ''
 
-    for (codigo in dados_categorias) {
-        var categoria = String(dados_categorias[codigo]).toLowerCase();
+    for ([codigo, objeto] of Object.entries(dados_categorias)) {
 
-        if (categoria.includes(pesquisa)) {
+        const termo = objeto.categoria.toLowerCase()
+
+        if (termo.includes(pesquisa)) {
             opcoes += `
-                <div onclick="selecionarCategoria('${codigo}', '${categoria}', '${id}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: start; justify-content: start;">
-                    <label style="width: 90%; font-size: 0.8vw;">${categoria.toUpperCase()}</label>
+                <div class="autocomplete-item" onclick="selecionarCategoria('${codigo}', '${objeto.categoria}', '${id}')">
+                    <label style="font-size: 1.0vw;">${objeto.categoria.toUpperCase()}</label>
                 </div>
                 `
         }
-
     }
 
     let label_codigo = textarea.previousElementSibling;
     label_codigo.textContent = ''
 
-    if (pesquisa == '') {
-        opcoes = ''
-    }
+    if (pesquisa == '') return
 
-    div.innerHTML = opcoes
+    let posicao = textarea.getBoundingClientRect()
+    let left = posicao.left + window.scrollX
+    let top = posicao.bottom + window.scrollY
+
+    let div_sugestoes = `
+        <div id="div_sugestoes" class="autocomplete-list" style="position: absolute; top: ${top}px; left: ${left}px; border: 1px solid #ccc; width: 15vw;">
+            ${opcoes}
+        </div>
+    `
+    document.body.insertAdjacentHTML('beforeend', div_sugestoes)
     calculadoraPagamento()
 
 }
@@ -2115,8 +2101,8 @@ function selecionarCategoria(codigo, categoria, id) {
     label_codigo.textContent = codigo
     textarea.value = categoria.toUpperCase()
 
-    let sugestoes = textarea.nextElementSibling
-    sugestoes.innerHTML = ''
+    let div = document.getElementById('div_sugestoes')
+    if (div) div.remove()
     calculadoraPagamento()
 }
 
@@ -2282,11 +2268,7 @@ async function selecionarCC(id_orcamento, cliente) {
 async function duplicar_pagamento(id_pagamento) {
 
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-    let dados_categorias = await recuperarDados('dados_categorias')
-    if (!dados_categorias) {
-        dados_categorias = await receber('dados_categorias')
-        inserirDados(dados_categorias, 'dados_categorias')
-    }
+    const dados_categorias = await recuperarDados('dados_categorias')
 
     let pagamento = lista_pagamentos[id_pagamento]
 
@@ -2296,12 +2278,12 @@ async function duplicar_pagamento(id_pagamento) {
 
     Object.entries(pagamento.param[0].categorias).forEach(categoriaPagamento => {
 
-        Object.entries(dados_categorias).forEach(([chave, nomecategoria]) => {
+        Object.entries(dados_categorias).forEach(([chave, objeto]) => {
 
             if (categoriaPagamento[1].codigo_categoria == chave) {
 
                 categorias[contador] = {
-                    nome: nomecategoria,
+                    nome: objeto.categoria,
                     codigo: chave,
                     valor: categoriaPagamento[1].valor
                 };
