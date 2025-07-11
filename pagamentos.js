@@ -44,6 +44,7 @@ async function carregarPagamentos() {
     div_pagamentos.innerHTML = ''
 
     await sincronizarDados('dados_categorias')
+    await sincronizarDados('lista_pagamentos')
 
     //Chamada para o endpoint que já retorna os pagamentos filtrados;
     let acumulado = ''
