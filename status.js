@@ -330,7 +330,6 @@ async function buscarNFOmie(elemento) {
             <button onclick="salvarNota()" style="background-color: green;">Salvar</button>
         </div>
     `
-    // trazer o pdf e o xml?
     removerOverlay()
 }
 
@@ -1995,7 +1994,7 @@ async function alterar_status(select, id) {
     }
 
     if (tela_orcamentos) {
-        filtrar_orcamentos(undefined, undefined, undefined, true);
+        filtrarOrcamentos(undefined, undefined, undefined, true);
         select.parentElement.parentElement.style.display = 'none';
     } else {
         await preencherOrcamentos();

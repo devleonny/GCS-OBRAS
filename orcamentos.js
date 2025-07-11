@@ -30,7 +30,7 @@ async function recuperar_orcamentos() {
 
 }
 
-function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
+function filtrarOrcamentos(ultimo_status, col, texto, apenas_toolbar) {
 
     if (ultimo_status !== undefined) {
         filtro = ultimo_status
@@ -111,7 +111,7 @@ function filtrar_orcamentos(ultimo_status, col, texto, apenas_toolbar) {
             }
 
             let label = `
-                <div onclick="filtrar_orcamentos('${st}')" 
+                <div onclick="filtrarOrcamentos('${st}')" 
                     style="background-color:${bg}; 
                     color: #222; 
                     display: flex; 
@@ -251,10 +251,13 @@ async function preencherOrcamentos(alternar) {
                 </td>
                 <td style="text-align: left;">${label_pedidos}</td>
                 <td style="text-align: left;">${label_notas}</td>
-                <td style="text-align: left;">
-                    <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                        <label style="font-size: 0.6vw;"><strong>${dados_orcam.contrato}</strong></label>
-                        <label>${cliente?.nome || ''}</label>
+                <td>
+                    <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
+                        ${(acesso.permissao && dados_orcam.cliente_selecionado) ? `*<img onclick="painelAlteracaoCliente('${idOrcamento}')" src="gifs/alerta.gif" style="width: 1.5vw; cursor: pointer;">` : ''}
+                        <div style="text-align: left; display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                            <label style="font-size: 0.6vw;"><strong>${dados_orcam.contrato}</strong></label>
+                            <label>${cliente?.nome || ''}</label>
+                        </div>
                     </div>
                 </td>
                 <td style="text-align: left;">${cliente?.cidade || ''}</td>
@@ -281,7 +284,7 @@ async function preencherOrcamentos(alternar) {
             tsh += `
                 <th style="background-color: white; border-radius: 0px;">
                     <div style="position: relative;">
-                        <input placeholder="..." style="text-align: left;" oninput="filtrar_orcamentos(undefined, ${i}, this.value)">
+                        <input placeholder="..." style="text-align: left;" oninput="filtrarOrcamentos(undefined, ${i}, this.value)">
                         <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
                     </div>
                 </th>
@@ -313,9 +316,73 @@ async function preencherOrcamentos(alternar) {
         div_orcamentos.insertAdjacentHTML('beforeend', tabela)
     }
 
-    filtrar_orcamentos('TODOS')
+    filtrarOrcamentos('TODOS')
 
     removerOverlay()
+
+}
+
+async function painelAlteracaoCliente(idOrcamento) {
+
+    overlayAguarde()
+
+    const dados_orcamentos = await recuperarDados('dados_orcamentos')
+    const orcamento = dados_orcamentos[idOrcamento]
+    const dados_clientes = await recuperarDados('dados_clientes')
+    const opcoes = Object.entries(dados_clientes)
+        .map(([codOmie, cliente]) => `<option value="${codOmie}">${cliente.nome}</option>`)
+        .join('')
+
+
+    const acumulado = `
+    <div style="display: flex; align-items: start; flex-direction: column; justify-content: center; padding: 2vw; background-color: #d2d2d2;">
+
+        ${modelo('Cliente', orcamento.dados_orcam.cliente_selecionado)}
+        ${modelo('Cliente', orcamento.dados_orcam.cnpj)}
+        ${modelo('Cliente', orcamento.dados_orcam.cidade)}
+
+        <hr style="width: 100%;">
+
+        <label for="clientes">Clientes Omie</label>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <input style="padding: 5px; width: 100%; border-radius: 3px;" list="clientes" id="cliente">
+            <datalist id="clientes">${opcoes}</datalist>
+            ${botao('Salvar', `associarClienteOrcamento('${idOrcamento}')`, 'green')}
+        </div>
+
+    </div>
+    `
+
+    popup(acumulado, 'ATUALIZAR CLIENTE')
+}
+
+async function associarClienteOrcamento(idOrcamento) {
+
+    overlayAguarde()
+
+    const dados_orcamentos = await recuperarDados('dados_orcamentos')
+    let orcamento = dados_orcamentos[idOrcamento]
+
+    const codOmie = document.getElementById('cliente').value
+
+    orcamento.dados_orcam.omie_cliente = Number(codOmie)
+    delete orcamento.dados_orcam.cliente_selecionado
+    delete orcamento.dados_orcam.cidade
+    delete orcamento.dados_orcam.cnpj
+    delete orcamento.dados_orcam.estado
+    delete orcamento.dados_orcam.cep
+    delete orcamento.dados_orcam.bairro
+    delete orcamento.dados_orcam.cliente_selecionado
+
+    enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamento.dados_orcam)
+
+    console.log({ [idOrcamento]: orcamento });
+
+    await inserirDados({ idOrcamento: orcamento }, 'dados_orcamentos')
+
+    filtrarOrcamentos(undefined, undefined, undefined, true);
+
+    removerPopup()
 
 }
 
