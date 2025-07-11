@@ -376,9 +376,7 @@ async function associarClienteOrcamento(idOrcamento) {
 
     enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamento.dados_orcam)
 
-    console.log({ [idOrcamento]: orcamento });
-
-    await inserirDados({ idOrcamento: orcamento }, 'dados_orcamentos')
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 
     filtrarOrcamentos(undefined, undefined, undefined, true);
 
