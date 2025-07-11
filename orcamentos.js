@@ -330,7 +330,7 @@ async function painelAlteracaoCliente(idOrcamento) {
     const orcamento = dados_orcamentos[idOrcamento]
     const dados_clientes = await recuperarDados('dados_clientes')
     const opcoes = Object.entries(dados_clientes)
-        .map(([codOmie, cliente]) => `<option value="${codOmie}">${cliente.nome}</option>`)
+        .map(([codOmie, cliente]) => `<option value="${codOmie}">${cliente.cnpj} - ${cliente.nome}</option>`)
         .join('')
 
 
