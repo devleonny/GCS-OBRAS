@@ -79,6 +79,7 @@ const itensImportados = [
 
 // Provisoriamente até apagar todas as bases;
 indexedDB.deleteDatabase('Bases')
+indexedDB.deleteDatabase('firebase-heartbeat-database')
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F5') f5()
