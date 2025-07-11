@@ -476,57 +476,63 @@ async function reprocessar_offline() {
 }
 
 async function inserirDados(dados, nomeBase) {
-    const nomeBanco = 'GCS'
+    const nomeBanco = 'GCS';
+    const clone = JSON.parse(localStorage.getItem('modoClone')) || false;
+    nomeBase = clone ? `${nomeBase}_clone` : nomeBase;
 
-    const clone = JSON.parse(localStorage.getItem('modoClone')) || false
-    nomeBase = clone ? `${nomeBase}_clone` : nomeBase
+    // Abre ou cria o banco de dados
+    const db = await abrirOuCriarBanco(nomeBanco, nomeBase);
+    
+    try {
+        await inserirEmLotes(db, nomeBase, dados);
+    } finally {
+        db.close();
+    }
+}
 
-    const existeStore = await new Promise((resolve, reject) => {
-        const req = indexedDB.open(nomeBanco)
-        req.onsuccess = () => {
-            const db = req.result
-            const existe = db.objectStoreNames.contains(nomeBase)
-            const versaoAtual = db.version
-            db.close()
-            resolve({ existe, versaoAtual })
-        }
-        req.onerror = () => reject(req.error)
-    })
+async function abrirOuCriarBanco(nomeBanco, nomeBase) {
+    // Primeira tentativa de abertura
+    let db = await new Promise((resolve, reject) => {
+        const req = indexedDB.open(nomeBanco);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = reject;
+    });
 
-    if (!existeStore.existe) {
+    // Se a store não existe, cria uma nova versão
+    if (!db.objectStoreNames.contains(nomeBase)) {
+        db.close();
+        const novaVersao = db.version + 1;
+        
+        db = await new Promise((resolve, reject) => {
+            const req = indexedDB.open(nomeBanco, novaVersao);
+            req.onupgradeneeded = (e) => {
+                e.target.result.createObjectStore(nomeBase, { keyPath: 'id' });
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = reject;
+        });
+    }
+
+    return db;
+}
+
+async function inserirEmLotes(db, nomeBase, dados, tamanhoLote = 100) {
+    const ids = Object.keys(dados);
+    
+    for (let i = 0; i < ids.length; i += tamanhoLote) {
         await new Promise((resolve, reject) => {
-            const req = indexedDB.open(nomeBanco, existeStore.versaoAtual + 1)
-            req.onupgradeneeded = e => {
-                const db = e.target.result
-                db.createObjectStore(nomeBase, { keyPath: 'id' })
-            }
-            req.onsuccess = e => {
-                e.target.result.close()
-                resolve()
-            }
-            req.onerror = () => reject(req.error)
-        })
-    }
-
-    // Agora insere os dados
-    const reqFinal = indexedDB.open(nomeBanco)
-    reqFinal.onsuccess = () => {
-        const db = reqFinal.result
-        const tx = db.transaction(nomeBase, 'readwrite')
-        const store = tx.objectStore(nomeBase)
-
-        for (const id in dados) {
-            if (Object.prototype.hasOwnProperty.call(dados, id)) {
-                const item = dados[id]
-                item.id = id
-                store.put(item) // put atualiza ou cria
-            }
-        }
-
-        tx.oncomplete = () => db.close()
-    }
-    reqFinal.onerror = () => {
-        console.error('Erro final ao abrir o banco:', reqFinal.error)
+            const tx = db.transaction(nomeBase, 'readwrite');
+            const store = tx.objectStore(nomeBase);
+            
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+            
+            const lote = ids.slice(i, i + tamanhoLote);
+            lote.forEach(id => {
+                const item = { ...dados[id], id };
+                store.put(item);
+            });
+        });
     }
 }
 
@@ -549,8 +555,14 @@ async function recuperarDados(nome_da_base, ambos) {
                 const getRequest = store.getAll()
 
                 getRequest.onsuccess = function (event) {
-                    let dados = event.target.result
-                    dados = Object.fromEntries(dados.map(item => [item.id, item]))
+                    const array = event.target.result
+                    const dados = {}
+
+                    for (let i = 0; i < array.length; i++) {
+                        const item = array[i]
+                        dados[item.id] = item
+                    }
+
                     resolve(dados)
                 }
 

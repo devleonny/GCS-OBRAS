@@ -333,7 +333,6 @@ async function painelAlteracaoCliente(idOrcamento) {
         .map(([codOmie, cliente]) => `<option value="${codOmie}">${cliente.cnpj} - ${cliente.nome}</option>`)
         .join('')
 
-
     const acumulado = `
     <div style="display: flex; align-items: start; flex-direction: column; justify-content: center; padding: 2vw; background-color: #d2d2d2;">
 

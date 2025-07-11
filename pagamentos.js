@@ -625,7 +625,7 @@ async function alterarStatusPagamento(idPagamento, select) {
 function deseja_excluir_pagamento(id) {
 
     return popup(`
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column; padding: 2vw;">
+        <div style="background-color: #d2d2d2; display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column; padding: 2vw;">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Deseja realmente excluir o pagamento?</label>
