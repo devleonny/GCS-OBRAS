@@ -1052,7 +1052,7 @@ async function abrirAtalhos(id) {
     }
 
     let acumulado = `
-        <div style="display: flex; flex-direction: column; justify-content: center; align-items: start; width: 30vw; padding: 1vw;">
+        <div style="background-color: #d2d2d2; display: flex; flex-direction: column; justify-content: center; align-items: start; width: 30vw; padding: 1vw; gap: 5px;">
             <label style="color: #222; font-size: 1.5vw; text-align: left;" id="cliente_status">${cliente.nome}</label>
             <hr style="width: 100%">
             ${botoesDisponiveis}
@@ -1104,7 +1104,6 @@ async function painelCustos() {
         'SERVIÇO': 'green',
         'ALUGUEL': '#e96300'
     }
-    console.log(orcamento);
 
     let tabelasPorTipo = {}
     let colunas = ['Código', 'Descrição', 'Quantidade', 'Margem (%)', 'Unitário Venda', 'Total Venda', 'Desconto', 'Lucro Total']

@@ -555,23 +555,38 @@ async function recuperarDado(nomeBase, id) {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(nomeBaseCentral)
 
-        request.onsuccess = function () {
+        request.onsuccess = () => {
             const db = request.result
-            const tx = db.transaction(nomeBase, 'readonly')
-            const store = tx.objectStore(nomeBase)
-            const getRequest = store.get(id)
 
-            getRequest.onsuccess = () => {
-                const item = getRequest.result || {}
-                resolve(item)
+            const tentarRecuperar = (base, fallback = false) => {
+                const tx = db.transaction(base, 'readonly')
+                const store = tx.objectStore(base)
+                const getRequest = store.get(id)
+
+                getRequest.onsuccess = () => {
+                    const item = getRequest.result
+                    if (item || fallback) {
+                        db.close()
+                        resolve(item || {})
+                    } else {
+                        tentarRecuperar(`${base}_clone`, true)
+                    }
+                }
+
+                getRequest.onerror = () => {
+                    if (fallback) {
+                        db.close()
+                        resolve({})
+                    } else {
+                        tentarRecuperar(`${base}_clone`, true)
+                    }
+                }
             }
 
-            getRequest.onerror = () => {
-                resolve({})
-            }
-
-            tx.oncomplete = () => db.close()
+            tentarRecuperar(nomeBase)
         }
+
+        request.onerror = () => reject(request.error)
     })
 }
 

@@ -2,10 +2,43 @@
             overflow-y: hidden;
         }
 
+        .detalhesPagamento {
+            margin: 0 1vw 1vw 1vw;
+            padding-top: 1vw;
+            width: 100%;
+            gap: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: start;
+            justify-content: start;
+            height: 70vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
         .vitrificado {
-            padding: 20px;
+            padding: 1vw;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 70%;
+            text-align: left;
+            background-color: #ffffffde;
             border-radius: 3px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .balao {
+            padding: 5px;
+            display: flex;
+            color: wheat;
+            align-items: center;
+            justify-content: center;
+            background-color: #222;
+        }
+
+        .balao textarea {
+            border-radius: 1px;
         }
 
         .contagem {
