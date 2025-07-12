@@ -6,55 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PAGAMENTOS</title>
     <link rel="stylesheet" type="text/css" href="gcsobras.css">
+    <link rel="stylesheet" type="text/css" href="pagamentos.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
-    <style>
-        .vitrificado {
-            padding: 20px;
-            border-radius: 3px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .contagem {
-            cursor: pointer;
-            text-align: center;
-            width: 3vw;
-            border-radius: 3px;
-            padding: 5px;
-            background-color: #222;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .contorno {
-            position: relative;
-            width: 100%;
-            border: 1px solid #222;
-            border-radius: 5px;
-            padding: 5px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn_detalhes {
-            display: flex;
-            align-items: center;
-            justify-content: left;
-            gap: 10px;
-            background-color: #eeeeee;
-            border-radius: 3px;
-            cursor: pointer;
-            padding: 3px;
-        }
-
-        .btn_detalhes:hover {
-            background-color: #222;
-            color: white;
-        }
-
-        .btn_detalhes img {
-            width: 2vw;
-            cursor: pointer;
-        }
-    </style>
 </head>
 
 <body>
@@ -74,6 +27,11 @@
                 <div onclick="recuperarPagamentos()">
                     <label>Atualizar</label>
                     <img src="imagens/atualizar_2.png">
+                </div>
+
+                <div onclick="tela_pagamento(true)">
+                    <label>Novo Pagamento</label>
+                    <img src="imagens/reembolso.png">
                 </div>
             </div>
 

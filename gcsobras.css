@@ -318,7 +318,7 @@ body {
 }
 
 .blocosCabecalho div {
-    padding: 3px;
+    padding: 3px 3px 3px 1vw;
     gap: 1vw;
     justify-content: end;
     align-items: center;
@@ -1611,12 +1611,11 @@ input[type=range]::-moz-range-thumb {
     align-items: center;
     display: flex;
     gap: 10px;
-    justify-content: left;
+    justify-content: center;
     background-color: white;
     color: #555;
-    padding: 5px;
     margin: 5px;
-    border-radius: 5px;
+    border-radius: 2px;
 }
 
 .anexos2 div {
@@ -1735,7 +1734,6 @@ input[type=range]::-moz-range-thumb {
     background-color: white;
     border-collapse: collapse;
     table-layout: fixed;
-    font-size: 0.7vw;
 }
 
 .tabela thead input {

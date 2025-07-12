@@ -1,0 +1,117 @@
+        .vitrificado {
+            padding: 20px;
+            border-radius: 3px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .contagem {
+            cursor: pointer;
+            text-align: center;
+            width: 3vw;
+            border-radius: 3px;
+            padding: 5px;
+            background-color: #222;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .contorno {
+            position: relative;
+            width: 100%;
+            border: 1px solid #222;
+            border-radius: 5px;
+            padding: 5px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn_detalhes {
+            display: flex;
+            align-items: center;
+            justify-content: left;
+            gap: 10px;
+            background-color: #eeeeee;
+            border-radius: 3px;
+            cursor: pointer;
+            padding: 3px;
+        }
+
+        .btn_detalhes:hover {
+            background-color: #222;
+            color: white;
+        }
+
+        .btn_detalhes img {
+            width: 2vw;
+            cursor: pointer;
+        }
+
+        .divTabela {
+            width: 70%;
+            height: 60vh;
+            overflow-y: auto;
+            border-radius: 2px;
+        }
+
+        .painelEsquerdo {
+            gap: 3px;
+            width: 100%;
+            padding: 1vw;
+            display: flex;
+            flex-direction: column;
+            align-items: end;
+            justify-content: start;
+            overflow-y: auto;
+            max-height: 55vh;
+            margin-right: 10px;
+        }
+
+        .painelEsquerdo::-webkit-scrollbar, .divTabela::-webkit-scrollbar {
+            display: none;
+        }
+
+        .painelEsquerdo label {
+            cursor: pointer;
+        }
+
+        .ambosLadosEtiqueta {
+            cursor: pointer;
+            background-color: #d2d2d2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+        }
+
+        .ladoQuantidade {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            text-align: center;
+            height: 3vw;
+            width: 3vw;
+            border-radius: 1px;
+            font-size: 1.5vw;
+            padding-left: 1vw;
+            padding-right: 1vw;
+            background-color: #b7b7b7;
+            border-top-right-radius: 5px;
+            border-bottom-right-radius: 5px;
+        }
+
+        .ladoTexto {
+            cursor: pointer;
+            gap: 1vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            border-top-left-radius: 5px;
+            border-bottom-left-radius: 5px;
+            padding-left: 2vw;
+            text-align: right;
+        }
+
+        .ladoTexto img {
+            cursor: pointer;
+            margin-right: 1vw;
+        }

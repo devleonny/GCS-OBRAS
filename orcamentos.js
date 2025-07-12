@@ -326,8 +326,7 @@ async function painelAlteracaoCliente(idOrcamento) {
 
     overlayAguarde()
 
-    const dados_orcamentos = await recuperarDados('dados_orcamentos')
-    const orcamento = dados_orcamentos[idOrcamento]
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     const dados_clientes = await recuperarDados('dados_clientes')
     const opcoes = Object.entries(dados_clientes)
         .map(([codOmie, cliente]) => `<option value="${codOmie}">${cliente.cnpj} - ${cliente.nome}</option>`)
@@ -359,8 +358,7 @@ async function associarClienteOrcamento(idOrcamento) {
 
     overlayAguarde()
 
-    const dados_orcamentos = await recuperarDados('dados_orcamentos')
-    let orcamento = dados_orcamentos[idOrcamento]
+    let orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
 
     const codOmie = document.getElementById('cliente').value
 
@@ -482,8 +480,7 @@ function mostrarParcelas(divSuperior) {
 
 async function editar(orcam_) {
 
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    let orcamentoBase = dados_orcamentos[orcam_];
+    let orcamentoBase = await recuperarDado('dados_orcamentos', orcam_)
 
     if (orcamentoBase.aprovacao) delete orcamentoBase.aprovacao
 
@@ -496,8 +493,8 @@ async function editar(orcam_) {
 }
 
 async function duplicar(orcam_) {
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let orcamentoBase = dados_orcamentos[orcam_]
+
+    let orcamentoBase = await recuperarDado('dados_orcamentos', orcam_)
     let novoOrcamento = {}
 
     novoOrcamento.dados_orcam = orcamentoBase.dados_orcam

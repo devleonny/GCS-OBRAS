@@ -2,6 +2,7 @@ let acesso = JSON.parse(localStorage.getItem('acesso'))
 let dados_setores = {}
 let filtrosUsuarios = {}
 let filtrosPendencias = {}
+const nomeBaseCentral = 'GCS'
 const metaforas = [
     "Um monitor sem imagens para exibir",
     "Um sistema de vigilância sem olhos",
@@ -46,7 +47,7 @@ const avisoHTML = (termo) => `
     </div>
     `
 const mensagem = (mensagem) => `
-    <div style="display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center;">
+    <div style="background-color: #d2d2d2; display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center;">
         <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
         <label>${mensagem}</label>
     </div>
@@ -475,14 +476,28 @@ async function reprocessar_offline() {
     }
 }
 
+async function deletarDB(id, base) {
+
+    const request = indexedDB.open(nomeBaseCentral)
+
+    request.onsuccess = function () {
+        const db = request.result
+        const tx = db.transaction(base, 'readwrite')
+        const store = tx.objectStore(base)
+        store.delete(id)
+
+        tx.oncomplete = () => db.close()
+    }
+}
+
 async function inserirDados(dados, nomeBase) {
-    const nomeBanco = 'GCS';
+
     const clone = JSON.parse(localStorage.getItem('modoClone')) || false;
     nomeBase = clone ? `${nomeBase}_clone` : nomeBase;
 
     // Abre ou cria o banco de dados
-    const db = await abrirOuCriarBanco(nomeBanco, nomeBase);
-    
+    const db = await abrirOuCriarBanco(nomeBase);
+
     try {
         await inserirEmLotes(db, nomeBase, dados);
     } finally {
@@ -490,10 +505,10 @@ async function inserirDados(dados, nomeBase) {
     }
 }
 
-async function abrirOuCriarBanco(nomeBanco, nomeBase) {
+async function abrirOuCriarBanco(nomeBase) {
     // Primeira tentativa de abertura
     let db = await new Promise((resolve, reject) => {
-        const req = indexedDB.open(nomeBanco);
+        const req = indexedDB.open(nomeBaseCentral);
         req.onsuccess = () => resolve(req.result);
         req.onerror = reject;
     });
@@ -502,9 +517,9 @@ async function abrirOuCriarBanco(nomeBanco, nomeBase) {
     if (!db.objectStoreNames.contains(nomeBase)) {
         db.close();
         const novaVersao = db.version + 1;
-        
+
         db = await new Promise((resolve, reject) => {
-            const req = indexedDB.open(nomeBanco, novaVersao);
+            const req = indexedDB.open(nomeBaseCentral, novaVersao);
             req.onupgradeneeded = (e) => {
                 e.target.result.createObjectStore(nomeBase, { keyPath: 'id' });
             };
@@ -518,15 +533,15 @@ async function abrirOuCriarBanco(nomeBanco, nomeBase) {
 
 async function inserirEmLotes(db, nomeBase, dados, tamanhoLote = 100) {
     const ids = Object.keys(dados);
-    
+
     for (let i = 0; i < ids.length; i += tamanhoLote) {
         await new Promise((resolve, reject) => {
             const tx = db.transaction(nomeBase, 'readwrite');
             const store = tx.objectStore(nomeBase);
-            
+
             tx.oncomplete = resolve;
             tx.onerror = () => reject(tx.error);
-            
+
             const lote = ids.slice(i, i + tamanhoLote);
             lote.forEach(id => {
                 const item = { ...dados[id], id };
@@ -536,10 +551,34 @@ async function inserirEmLotes(db, nomeBase, dados, tamanhoLote = 100) {
     }
 }
 
+async function recuperarDado(nomeBase, id) {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(nomeBaseCentral)
+
+        request.onsuccess = function () {
+            const db = request.result
+            const tx = db.transaction(nomeBase, 'readonly')
+            const store = tx.objectStore(nomeBase)
+            const getRequest = store.get(id)
+
+            getRequest.onsuccess = () => {
+                const item = getRequest.result || {}
+                resolve(item)
+            }
+
+            getRequest.onerror = () => {
+                resolve({})
+            }
+
+            tx.oncomplete = () => db.close()
+        }
+    })
+}
+
 async function recuperarDados(nome_da_base, ambos) {
     const getDados = (nomeBase) => {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open('GCS')
+            const request = indexedDB.open(nomeBaseCentral)
 
             request.onsuccess = function (event) {
                 const db = event.target.result
@@ -691,7 +730,6 @@ async function carregarXLSX() {
     });
 }
 
-
 async function para_excel(tabela_id, nome_personalizado) {
     try {
         if (typeof XLSX === 'undefined') {
@@ -753,44 +791,6 @@ async function para_excel(tabela_id, nome_personalizado) {
             </div>
         `, 'Erro na Exportação');
     }
-}
-
-function verificarXLSX() {
-    if (typeof XLSX === 'undefined') {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js';
-        script.async = true;
-        document.head.appendChild(script);
-
-        return new Promise((resolve, reject) => {
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error('Falha ao carregar XLSX'));
-        });
-    }
-    return Promise.resolve();
-}
-
-async function loadXLSX() {
-    if (typeof XLSX !== 'undefined') return;
-
-    return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js';
-        script.onload = () => {
-            const checkXLSX = () => {
-                if (typeof XLSX === 'undefined') {
-                    return setTimeout(checkXLSX, 100);
-                }
-
-                resolve();
-            }
-
-            checkXLSX();
-        }
-        script.onerror = () => reject(new Error('Falha ao carregar biblioteca XLSX'));
-
-        document.head.appendChild(script);
-    })
 }
 
 async function exportarParaExcel() {
@@ -934,11 +934,6 @@ function ir_para(modulo) {
 
 }
 
-function fecharPopup() {
-    var popup = document.getElementById('popup');
-    popup.classList.remove('aberto');
-}
-
 async function ir_pdf(orcam_) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
@@ -954,69 +949,21 @@ async function ir_pdf(orcam_) {
     }
 }
 
-function removerLinha(select) {
-    var linha = select.closest('tr');
-    linha.parentNode.removeChild(linha);
-}
-
-async function apagar(codigo_orcamento) {
+async function excluirOrcamento(idOrcamento) {
     overlayAguarde()
 
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    if (dados_orcamentos[codigo_orcamento]) {
-        delete dados_orcamentos[codigo_orcamento]
-        await inserirDados(dados_orcamentos, 'dados_orcamentos')
-        deletar(`dados_orcamentos/${codigo_orcamento}`)
-    }
+    await deletarDB(idOrcamento, 'dados_orcamentos')
+
+    deletar(`dados_orcamentos/${idOrcamento}`)
 
     await preencherOrcamentos()
     removerPopup()
-}
-
-function formatodata(data) {
-
-    var partes = data.split('/');
-    var dia = partes[0];
-    var mes = partes[1];
-    var ano = partes[2];
-    return `${ano}-${mes}-${dia}`;
 }
 
 async function recuperarClientes() {
 
     await sincronizarDados('dados_clientes')
 
-}
-
-function formatartextoHtml(texto) {
-    return texto.replace(/\n/g, '<br>');
-}
-
-function baixar_em_excel(nome_tabela, filename) {
-
-    var table = document.getElementById(nome_tabela)
-
-    var wb = XLSX.utils.table_to_book(table, { sheet: "GCS" });
-
-    filename = filename ? filename + '.xlsx' : 'excel_data.xlsx';
-
-    XLSX.writeFile(wb, filename);
-}
-
-function fecharTabela(nome_tabela) {
-    document.getElementById(nome_tabela).style.display = 'none'
-    document.getElementById('overlay').style.display = 'none'
-}
-
-function calcular() {
-    var valor = Number(valor_liquido.value)
-
-    var porcentagem = 0
-    icms_toggle.checked == true ? porcentagem = 0.12 : porcentagem = 0.205
-
-    var resultado = valor * 1 / (1 - porcentagem)
-
-    valor_com_imposto.textContent = dinheiro(resultado)
 }
 
 function ID5digitos() {
@@ -1195,23 +1142,22 @@ function capturarValorCelula(celula) {
     return valor;
 }
 
-//--- SERVIÇO DE ARMAZENAMENTO ---\\
+// SERVIÇO DE ARMAZENAMENTO 
 async function receber(chave) {
 
     let chavePartes = chave.split('/')
-    let timestamps = []
+    let timestamp = 0
     let dados = await recuperarDados(chavePartes[0]) || {}
 
-    for ([id, objeto] of Object.entries(dados)) {
-        if (objeto.timestamp) timestamps.push(objeto.timestamp)
+    for (const [id, objeto] of Object.entries(dados)) {
+        if (objeto.timestamp && objeto.timestamp > timestamp) timestamp = objeto.timestamp
     }
 
-    const maiorTimestamp = timestamps.length ? Math.max(...timestamps) : 0
     const modoClone = JSON.parse(localStorage.getItem('modoClone')) || false;
     const body = {
         chave: chave,
         app: modoClone ? 'clone' : undefined,
-        timestamp: maiorTimestamp
+        timestamp: timestamp
     };
 
     const obs = {
@@ -1246,9 +1192,7 @@ async function deletar(chave) {
     let objeto = { chave }
 
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
-    if (modoClone) {
-        objeto.app = 'clone'
-    }
+    if (modoClone) objeto.app = 'clone'
 
     return new Promise((resolve) => {
         fetch(url, {
@@ -2001,15 +1945,30 @@ function baseOrcamento(orcamento, remover) {
     }
 }
 
-function removerExcluidos(base) {
+async function removerExcluidos(base) {
 
-    if (dicionario(base)) {
-        for ([id, objeto] of Object.entries(base)) {
-            if (objeto.excluido || !objeto.timestamp) delete base[id]
+    const request = indexedDB.open(nomeBaseCentral)
+
+    request.onsuccess = function () {
+        const db = request.result
+        const tx = db.transaction(base, 'readwrite')
+        const store = tx.objectStore(base)
+
+        const cursorRequest = store.openCursor()
+
+        cursorRequest.onsuccess = function (event) {
+            const cursor = event.target.result
+
+            if (cursor) {
+                const item = cursor.value
+                if (item.excluido) cursor.delete()
+                cursor.continue()
+            }
         }
+
+        tx.oncomplete = () => db.close()
     }
 
-    return base
 }
 
 async function sincronizarDados(base, overlayOff) {
@@ -2017,16 +1976,8 @@ async function sincronizarDados(base, overlayOff) {
     if (!overlayOff) overlayAguarde()
 
     let nuvem = await receber(base) || {}
-    let dados_local = await recuperarDados(base) || {}
-
-    let dadosMesclados = {
-        ...dados_local,
-        ...nuvem
-    }
-
-    dadosMesclados = removerExcluidos(dadosMesclados)
-
-    await inserirDados(dadosMesclados, base)
+    await inserirDados(nuvem, base)
+    await removerExcluidos(base)
 
     if (!overlayOff) removerOverlay()
 }
@@ -2329,15 +2280,9 @@ async function selecionarCliente(omie, nome) {
 
 function executarLimparCampos() {
 
-    document.getElementById('consideracoes').value = ''
-    document.getElementById('tipo_de_frete').value = ''
-    document.getElementById('transportadora').value = ''
-
     let orcamento = baseOrcamento()
-    if (orcamento.dados_orcam && orcamento.dados_orcam.omie_cliente) delete orcamento.dados_orcam.omie_cliente
+    if (orcamento.dados_orcam) delete orcamento.dados_orcam
     baseOrcamento(orcamento)
-
-    salvarDadosCliente();
     painelClientes()
 }
 

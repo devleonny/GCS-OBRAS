@@ -163,55 +163,54 @@ async function carregarPagamentos() {
         if (item.valor == 0) continue
 
         titulos += `
-            <div style="width: 100%; display: flex; align-items: center; justify-content: left; gap: 10px; font-size: 1.0vw;" onclick="pesquisar_generico(3, '${nomeStatus == 'TODOS' ? '' : nomeStatus}', filtrosAtivosPagamentos, 'body')">
-                <label class="contagem" style="background-color: #B12425; color: white;">${item.qtde}</label>
-                <img src="${iconePagamento(nomeStatus)}" style="width: 2vw;">
+
+            <div class="ambosLadosEtiqueta" onclick="pesquisar_generico(3, '${nomeStatus == 'TODOS' ? '' : nomeStatus}', filtrosAtivosPagamentos, 'body')">
                 
-                <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                    <Label style="display: flex; gap: 10px; font-size: 0.8vw;">${nomeStatus}</label>
-                    <label>${dinheiro(item.valor)}</label>
+                <div class="ladoTexto">
+                    <div style="display: flex; flex-direction: column; align-items: end; justify-content: end;">
+                        <Label style="font-size: 0.8vw;"><strong>${nomeStatus}</strong></label>
+                        <label style="font-size: 0.8vw;">${dinheiro(item.valor)}</label>
+                    </div>
+                    <img src="${iconePagamento(nomeStatus)}" style="width: 2vw;">
                 </div>
+
+                <div class="ladoQuantidade">
+                    ${item.qtde}
+                </div>
+                
             </div>
-            <hr style="width: 100%;">
             `
     }
 
     let div_titulos = `
-        <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; width: 30%;">
+        <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; width: 30%;">
 
-            <div class="contorno_botoes" style="background-color: #097fe6" onclick="tela_pagamento(true)">
-                <label>Novo <strong>Pagamento</strong></label>
-            </div>
-
-            <div class="contorno_botoes" style="background-color: #ffffffe3; color: #222; display: flex; flex-direction: column; gap: 3px; align-items: start; justify-content: left; margin: 10px;">
+            <div class="painelEsquerdo">
                 ${titulos}
             </div>
+
         </div>
         `
     acumulado += `
-        <div id="div_pagamentos">
-            <div style="display: flex; justify-content: center; align-items: start; gap: 10px;">
-                ${div_titulos}
-                <div style="border-radius: 5px; height: 800px; overflow-y: auto;">
-                    <table id="pagamentos" class="tabela">
-                        <thead>
-                            <tr>${cabecalho1}</tr>
-                            <tr id="thead_pesquisa">${cabecalho2}</tr>
-                        </thead>
-                        <tbody id="body">
-                            ${linhas}
-                        </tbody>
-                    </table>
-                </div>
+        <div id="div_pagamentos" style="display: flex; justify-content: center; align-items: start; margin-right: 1vw;">
+
+            ${div_titulos}
+
+            <div class="divTabela">
+                <table id="pagamentos" class="tabela">
+                    <thead>
+                        <tr>${cabecalho1}</tr>
+                        <tr id="thead_pesquisa">${cabecalho2}</tr>
+                    </thead>
+                    <tbody id="body">
+                        ${linhas}
+                    </tbody>
+                </table>
             </div>
+
         </div>
         `
-    let elementus = `
-        <div id="pagamentos">
-            ${acumulado}
-        <div>
-        `
-    div_pagamentos.innerHTML = elementus
+    div_pagamentos.innerHTML = acumulado
 
 }
 
