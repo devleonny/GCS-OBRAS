@@ -1916,7 +1916,7 @@ function confirmarExclusao_comentario(id_comentario, chave) {
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
             ${botao('Confirmar', `excluir_comentario('${id_comentario}', '${chave}')`, 'green')}
         </div>
-        `, 'AVISO', true)   
+        `, 'AVISO', true)
 }
 
 async function excluir_comentario(id_comentario, chave) {

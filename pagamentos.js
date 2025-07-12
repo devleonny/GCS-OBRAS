@@ -41,7 +41,6 @@ async function carregarPagamentos() {
 
     let div_pagamentos = document.getElementById('div_pagamentos')
     if (!div_pagamentos) return
-    div_pagamentos.innerHTML = ''
 
     await sincronizarDados('dados_categorias')
     await sincronizarDados('lista_pagamentos')
@@ -286,9 +285,8 @@ function justificativaHTML(idPagamento) {
 async function abrirDetalhesPagamentos(id_pagamento) {
 
     ordem = 0
-    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
+
     let dados_clientes = await recuperarDados('dados_clientes') || {};
-    let dados_orcamentos = await recuperarDados('dados_orcamentos', true) || {};
     const dados_categorias = await recuperarDados('dados_categorias')
 
     let valores = ''
@@ -296,12 +294,13 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
     let permissao = acesso.permissao
     let permissoesEdicao = ['adm', 'fin', 'gerente']
-    let pagamento = lista_pagamentos[id_pagamento]
+    let pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
     let cliente_omie = pagamento.param[0].codigo_cliente_fornecedor
-    let cliente = dados_clientes[cliente_omie] ? dados_clientes[cliente_omie].nome : pagamento.param[0].codigo_cliente_fornecedor
+    let cliente = await recuperarDado('dados_clientes', cliente_omie)
 
-    let omieClienteOrcamento = dados_orcamentos?.[pagamento.id_orcamento]?.dados_orcam?.omie_cliente || ''
-    let cc = dados_clientes?.[omieClienteOrcamento]?.nome || 'Indisponível'
+    let orcamento = await recuperarDado('dados_orcamentos', pagamento.id_orcamento)
+    let omieClienteOrcamento = orcamento?.dados_orcam?.omie_cliente || ''
+    let clienteOrcamento = await recuperarDado('dados_clientes', omieClienteOrcamento)
 
     let anexos = Object.entries(pagamento?.anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexoPagamento('${id_pagamento}', '${idAnexo}')`))
@@ -349,7 +348,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
     let acoes_orcamento = ''
 
-    if (dados_orcamentos[pagamento.id_orcamento]) {
+    if (orcamento) {
         acoes_orcamento += `
         <div class="btn_detalhes" onclick="abrirAtalhos('${pagamento.id_orcamento}')">
             <img src="imagens/pasta.png">
@@ -426,7 +425,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
         let infos = ''
         for (let campo in campos) {
             let docsExistentes = ''
-            if (campo == 'orcamento' && dados_orcamentos[pagamento.id_orcamento]) {
+            if (campo == 'orcamento' && orcamento) {
 
                 docsExistentes += `
                     <div class="contorno" style="display: flex; align-items: center; justify-content: center; width: max-content; gap: 10px; background-color: #222; color: white;">
@@ -440,14 +439,10 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
             if (campo == 'pedido') {
                 docsExistentes = ''
-                let orcamento = ''
-                if (dados_orcamentos[pagamento.id_orcamento]) {
-                    orcamento = dados_orcamentos[pagamento.id_orcamento]
-                }
 
                 if (orcamento.status && orcamento.status.historico && orcamento.status.historico) {
                     var his = orcamento.status.historico
-                    for (hist in his) {
+                    for (let hist in his) {
                         var item_historico = his[hist]
                         if (String(item_historico.status).includes('PEDIDO')) {
                             let anexos = item_historico.anexos
@@ -542,11 +537,11 @@ async function abrirDetalhesPagamentos(id_pagamento) {
         ${btns}
 
         ${modelo('Status Atual', `${divStatus}`)}
-        ${modelo('Quem recebe', `${cliente}`)}
+        ${modelo('Quem recebe', `${cliente.nome}`)}
         
         ${modelo('Centro de Custo', `
             <div style="display: flex; align-items: center; justify-content: start; gap: 10px;">
-                <label>${cc}</label>
+                <label>${clienteOrcamento?.nome || pagamento.id_orcamento}</label>
                 ${botao('Alterar', `alterarCC('${id_pagamento}')`, 'green')}
             </div>
             `)}
@@ -626,12 +621,12 @@ function deseja_excluir_pagamento(id) {
     return popup(`
         <div style="background-color: #d2d2d2; display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column; padding: 2vw;">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <img src="gifs/alerta.gif" style="width: 3vw;">
                 <label>Deseja realmente excluir o pagamento?</label>
             </div>
-            <label onclick="confirmarExclusao_pagamento('${id}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
+            <label onclick="confirmarExclusaoPagamento('${id}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
         </div>
-        `, 'AVISO')
+        `, 'AVISO', true)
 
 }
 
@@ -647,7 +642,7 @@ async function deseja_excluir_categoria(id, indice) {
     return popup(`
         <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <img src="gifs/alerta.gif" style="width: 3vw;">
                 <label>Deseja realmente excluir essa categoria?</label>
             </div>
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column;">
@@ -680,7 +675,7 @@ async function confirmarExclusao_categoria(id, indice) {
     } else {
         return popup(`
             <div style="display: none; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <img src="gifs/alerta.gif" style="width: 3vw;">
                 <label>Falha ao atualizar os dados neste pagamento. Tente novamente.</label>
             </div>
             `, 'Aviso', true)
@@ -782,7 +777,7 @@ async function editar_pagamento(id, indice) {
     } else {
         return popup(`
             <div style="display: none; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+                <img src="gifs/alerta.gif" style="width: 3vw;">
                 <label>Falha ao atualizar os dados neste pagamento. Tente novamente.</label>
             </div>
             `, 'Aviso', true)
@@ -816,7 +811,7 @@ async function retomarPaginacao() {
 
     await carregarPagamentos()
 
-    let tabela = document.getElementById('pagamentos')
+    let tabela = document.getElementById('div_pagamentos')
     let thead = tabela.querySelector('thead')
     let tsearch = thead.querySelectorAll('tr')[1]
     let ths = tsearch.querySelectorAll('th')
@@ -839,14 +834,14 @@ async function relancar_pagamento(id) {
 
 }
 
-async function confirmarExclusao_pagamento(id) {
+async function confirmarExclusaoPagamento(id) {
 
-    removerPopup()
-    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
-    delete lista_pagamentos[id]
+    removerPopup() //PopUp
+    removerPopup() //Tela de Pagamento
 
-    deletar(`lista_pagamentos/${id}`)
-    await inserirDados(lista_pagamentos, 'lista_pagamentos')
+    await deletarDB('lista_pagamentos', id)
+    await deletar(`lista_pagamentos/${id}`)
+
     await retomarPaginacao()
 
 }
@@ -1056,18 +1051,17 @@ async function criar_pagamento_v2() {
 
     if (!await calculadoraPagamento()) {
 
-        var id_pagamento = unicoID()
-        var acesso = JSON.parse(localStorage.getItem('acesso'))
-        var total = document.getElementById('total_de_pagamento').textContent
-        var codigo_cliente = document.getElementById('codigo_omie').textContent
+        const id_pagamento = unicoID()
+        let total = document.getElementById('total_de_pagamento').textContent
+        let codigo_cliente = document.getElementById('codigo_omie').textContent
 
         let descricao = `Solicitante: ${acesso.usuario} |`
 
         // Categorias
-        var valores = central_categorias.querySelectorAll('input[type="number"]');
-        var textareas = central_categorias.querySelectorAll('textarea');
-        var rateio_categorias = [];
-        var categorias_acumuladas = {};
+        let valores = central_categorias.querySelectorAll('input[type="number"]');
+        let textareas = central_categorias.querySelectorAll('textarea');
+        let rateio_categorias = [];
+        let categorias_acumuladas = {};
         let atraso_na_data = 0
 
         textareas.forEach((textarea, i) => {
@@ -1094,7 +1088,7 @@ async function criar_pagamento_v2() {
             }
         })
 
-        for (var codigo_categoria in categorias_acumuladas) {
+        for (let codigo_categoria in categorias_acumuladas) {
             rateio_categorias.push({
                 'codigo_categoria': codigo_categoria,
                 'valor': categorias_acumuladas[codigo_categoria]
@@ -1103,11 +1097,11 @@ async function criar_pagamento_v2() {
 
         const selectElement = document.getElementById('forma_pagamento');
         const formaSelecionada = selectElement.value;
-        var objetoDataVencimento = ""
+        let objetoDataVencimento = ""
 
         if (formaSelecionada === 'Chave Pix') {
 
-            var chave_pix = document.getElementById('pix').value
+            let chave_pix = document.getElementById('pix').value
 
             descricao += `Chave PIX: ${chave_pix} |`
 
@@ -1149,7 +1143,7 @@ async function criar_pagamento_v2() {
 
         descricao += document.getElementById('descricao_pagamento').value
 
-        var param = [
+        let param = [
             {
                 "codigo_cliente_fornecedor": codigo_cliente,
                 "valor_documento": conversor(total),
@@ -1170,7 +1164,7 @@ async function criar_pagamento_v2() {
             id_orcam = id_orcamento.textContent
         }
 
-        var pagamento = {
+        let pagamento = {
             'id_pagamento': id_pagamento,
             'id_orcamento': id_orcam,
             'departamento': id_orcam,
@@ -1181,9 +1175,9 @@ async function criar_pagamento_v2() {
             param
         }
 
-        var v_orcado = document.getElementById('v_orcado')
+        let v_orcado = document.getElementById('v_orcado')
         if (v_orcado) {
-            var v_pago = document.getElementById('v_pago')
+            let v_pago = document.getElementById('v_pago')
             pagamento.resumo = {
                 v_pago: v_pago.textContent,
                 v_orcado: v_orcado.value,
@@ -1205,26 +1199,22 @@ async function criar_pagamento_v2() {
             pagamento.status = 'Aguardando aprovação da Gerência'
         }
 
-        enviar(`lista_pagamentos/${id_pagamento}`, pagamento)
+        await enviar(`lista_pagamentos/${id_pagamento}`, pagamento)
 
         removerPopup()
 
-        var lista_pagamentos = await recuperarDados('lista_pagamentos') || {};
-
-        lista_pagamentos[pagamento.id_pagamento] = pagamento
-
-        inserirDados(lista_pagamentos, 'lista_pagamentos');
-
-        popup(`
-            <div style="padding: 2vw; background-color: #d2d2d2; display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="imagens/concluido.png" style="width: 2vw; height: 3vw;">
-                <label>Pagamento Solicitado</label>
-            </div>                
-        `)
+        await inserirDados({ [id_pagamento]: pagamento }, 'lista_pagamentos');
 
         if (document.title == 'PAGAMENTOS') await retomarPaginacao()
 
         localStorage.removeItem('ultimo_pagamento')
+
+        popup(`
+            <div style="padding: 2vw; background-color: #d2d2d2; display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <img src="imagens/concluido.png" style="width: 2vw;">
+                <label>Pagamento Solicitado</label>
+            </div>                
+        `)
 
     }
 
@@ -1562,6 +1552,8 @@ async function atualizarResumo(id_pagamento) {
 
 function calcularCusto() {
 
+    if (!document.getElementById('v_pago')) return
+
     let v_pago = conversor(document.getElementById('v_pago').textContent)
     let v_lpu = Number(document.getElementById('v_lpu').value)
     let v_orcado = Number(document.getElementById('v_orcado').value)
@@ -1570,7 +1562,6 @@ function calcularCusto() {
     document.getElementById('res_ORAP').innerHTML = v_orcado !== 0 ? `${((v_pago / v_orcado) * 100).toFixed(0)}%` : '--'
 
     colorirParceiros()
-
 }
 
 function carregarTabelaCustoParceiro(dados = {}) {

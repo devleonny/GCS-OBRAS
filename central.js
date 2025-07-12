@@ -476,7 +476,7 @@ async function reprocessar_offline() {
     }
 }
 
-async function deletarDB(id, base) {
+async function deletarDB(base, id) {
 
     const request = indexedDB.open(nomeBaseCentral)
 
@@ -952,7 +952,7 @@ async function ir_pdf(orcam_) {
 async function excluirOrcamento(idOrcamento) {
     overlayAguarde()
 
-    await deletarDB(idOrcamento, 'dados_orcamentos')
+    await deletarDB('dados_orcamentos', idOrcamento)
 
     deletar(`dados_orcamentos/${idOrcamento}`)
 
@@ -1180,6 +1180,7 @@ async function receber(chave) {
                 resolve(data);
             })
             .catch(err => {
+                console.log(err);
                 offline(2)
                 resolve({})
             });
