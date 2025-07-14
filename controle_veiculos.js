@@ -92,7 +92,14 @@ async function carregarTabela() {
         })
 
     let linhas = ''
-    for (let [idCusto, custo] of Object.entries(custo_veiculos).reverse()) {
+
+    custo_veiculos = Object.fromEntries(
+        Object.entries(custo_veiculos).sort((a, b) => {
+            return new Date(b[1].data_pagamento) - new Date(a[1].data_pagamento);
+        })
+    );
+
+    for (let [idCusto, custo] of Object.entries(custo_veiculos)) {
 
         let anexos = Object.entries(custo?.anexos || {})
             .map(([idAnexo, anexo]) => `
