@@ -2,7 +2,6 @@ let acesso = JSON.parse(localStorage.getItem('acesso'))
 let dados_setores = {}
 let filtrosUsuarios = {}
 let filtrosPendencias = {}
-const nomeBaseCentral = 'GCS'
 const metaforas = [
     "Um monitor sem imagens para exibir",
     "Um sistema de vigilância sem olhos",
@@ -80,7 +79,46 @@ const itensImportados = [
 
 // Provisoriamente até apagar todas as bases;
 indexedDB.deleteDatabase('Bases')
+indexedDB.deleteDatabase('GCS v2')
 indexedDB.deleteDatabase('firebase-heartbeat-database')
+limparStores('Bases')
+
+async function limparStores(storeParaManter) {
+    const nomeBanco = 'GCS';
+
+    const versaoAtual = await new Promise((resolve, reject) => {
+        const req = indexedDB.open(nomeBanco);
+        req.onsuccess = () => {
+            const db = req.result;
+            const versao = db.version;
+            db.close();
+            resolve(versao);
+        };
+        req.onerror = (e) => reject(e.target.error);
+    });
+
+    const db = await new Promise((resolve, reject) => {
+        const novaVersao = versaoAtual + 1;
+        const req = indexedDB.open(nomeBanco, novaVersao);
+
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            const stores = Array.from(db.objectStoreNames);
+
+            for (const store of stores) {
+                if (store !== storeParaManter) {
+                    db.deleteObjectStore(store);
+                    console.log(`Excluído: ${store}`);
+                }
+            }
+        };
+
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = (e) => reject(e.target.error);
+    });
+
+    db.close();
+}
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F5') f5()
@@ -125,7 +163,9 @@ function carregarIcones() {
         ${atalho('Reembolsos', 'reembolso', `window.location.href='pagamentos.html'`)}
         ${atalho('Agenda', 'agenda', `window.location.href='agenda.html'`)}
         ${atalho('Veículos', 'veiculo', `window.location.href='controle_veiculos.html'`)}
+        ${atalho('RH', 'veiculo', `window.location.href='rh.html'`)}
         ${autorizadosPainelNotas.includes(acesso.permissao) ? atalho('Faturamento NFs', 'relatorio', `window.location.href='relatorio_omie.html'`) : ''}
+        ${atalho('Ocorrências', 'megafone', `window.location.href='ocorrencias.html'`)}
     `
 
     if (modoClone) {
@@ -141,7 +181,9 @@ function carregarIcones() {
 function corFundo() {
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
 
-    if (document.title !== 'PDF') {
+    const paginasBloqueadas = ['PDF', 'Ocorrências']
+
+    if (!paginasBloqueadas.includes(document.title)) {
         document.body.style.background = modoClone ? 'linear-gradient(45deg, #249f41, #151749)' : 'linear-gradient(45deg, #B12425, #151749)'
     }
 }
@@ -476,170 +518,182 @@ async function reprocessar_offline() {
     }
 }
 
-async function deletarDB(base, id) {
+const nomeBaseCentral = 'GCS'
+const nomeStore = 'Bases'
 
-    const request = indexedDB.open(nomeBaseCentral)
+async function deletarDB(base, idInterno) {
+    const db = await new Promise((resolve, reject) => {
+        const request = indexedDB.open(nomeBaseCentral);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = (e) => reject(e.target.error);
+    });
 
-    request.onsuccess = function () {
-        const db = request.result
-        const tx = db.transaction(base, 'readwrite')
-        const store = tx.objectStore(base)
-        store.delete(id)
-
-        tx.oncomplete = () => db.close()
+    if (!db.objectStoreNames.contains(nomeStore)) {
+        db.close();
+        return;
     }
+
+    const tx = db.transaction(nomeStore, 'readwrite');
+    const store = tx.objectStore(nomeStore);
+
+    // Pega o objeto inteiro da base
+    const registro = await new Promise((resolve, reject) => {
+        const req = store.get(base);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = (e) => reject(e.target.error);
+    });
+
+    if (registro && registro.dados && registro.dados[idInterno]) {
+        delete registro.dados[idInterno]; // remove o item interno
+
+        // Salva de volta com o mesmo id
+        await new Promise((resolve, reject) => {
+            const putReq = store.put(registro);
+            putReq.onsuccess = resolve;
+            putReq.onerror = (e) => reject(e.target.error);
+        });
+    }
+
+    await new Promise((resolve) => {
+        tx.oncomplete = resolve;
+    });
+
+    db.close();
 }
 
 async function inserirDados(dados, nomeBase) {
 
     const clone = JSON.parse(localStorage.getItem('modoClone')) || false;
-    nomeBase = clone ? `${nomeBase}_clone` : nomeBase;
 
-    // Abre ou cria o banco de dados
-    const db = await abrirOuCriarBanco(nomeBase);
+    nomeBase = clone ? `${nomeBase}_clone` : nomeBase
 
-    try {
-        await inserirEmLotes(db, nomeBase, dados);
-    } finally {
-        db.close();
-    }
-}
-
-async function abrirOuCriarBanco(nomeBase) {
-    // Primeira tentativa de abertura
-    let db = await new Promise((resolve, reject) => {
+    const versao = await new Promise((resolve, reject) => {
         const req = indexedDB.open(nomeBaseCentral);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = reject;
+        req.onsuccess = () => {
+            const db = req.result;
+            const precisaCriar = !db.objectStoreNames.contains(nomeStore);
+            const versaoAtual = db.version;
+            db.close();
+            resolve(precisaCriar ? versaoAtual + 1 : versaoAtual);
+        };
+        req.onerror = (e) => reject(e.target.error);
     });
 
-    // Se a store não existe, cria uma nova versão
-    if (!db.objectStoreNames.contains(nomeBase)) {
-        db.close();
-        const novaVersao = db.version + 1;
-
-        db = await new Promise((resolve, reject) => {
-            const req = indexedDB.open(nomeBaseCentral, novaVersao);
-            req.onupgradeneeded = (e) => {
-                e.target.result.createObjectStore(nomeBase, { keyPath: 'id' });
-            };
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = reject;
-        });
-    }
-
-    return db;
-}
-
-async function inserirEmLotes(db, nomeBase, dados, tamanhoLote = 100) {
-    const ids = Object.keys(dados);
-
-    for (let i = 0; i < ids.length; i += tamanhoLote) {
-        await new Promise((resolve, reject) => {
-            const tx = db.transaction(nomeBase, 'readwrite');
-            const store = tx.objectStore(nomeBase);
-
-            tx.oncomplete = resolve;
-            tx.onerror = () => reject(tx.error);
-
-            const lote = ids.slice(i, i + tamanhoLote);
-            lote.forEach(id => {
-                const item = { ...dados[id], id };
-                store.put(item);
-            });
-        });
-    }
-}
-
-async function recuperarDado(nomeBase, id) {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(nomeBaseCentral)
-
-        request.onsuccess = () => {
-            const db = request.result
-
-            const tentarRecuperar = (base, fallback = false) => {
-                const tx = db.transaction(base, 'readonly')
-                const store = tx.objectStore(base)
-                const getRequest = store.get(id)
-
-                getRequest.onsuccess = () => {
-                    const item = getRequest.result
-                    if (item || fallback) {
-                        db.close()
-                        resolve(item || {})
-                    } else {
-                        tentarRecuperar(`${base}_clone`, true)
-                    }
-                }
-
-                getRequest.onerror = () => {
-                    if (fallback) {
-                        db.close()
-                        resolve({})
-                    } else {
-                        tentarRecuperar(`${base}_clone`, true)
-                    }
-                }
+    const db = await new Promise((resolve, reject) => {
+        const req = indexedDB.open(nomeBaseCentral, versao);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(nomeStore)) {
+                db.createObjectStore(nomeStore, { keyPath: 'id' });
             }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = (e) => reject(e.target.error);
+    });
 
-            tentarRecuperar(nomeBase)
+    const tx = db.transaction(nomeStore, 'readwrite');
+    const store = tx.objectStore(nomeStore);
+
+    const antigo = await new Promise((resolve, reject) => {
+        const req = store.get(nomeBase);
+        req.onsuccess = () => resolve(req.result?.dados || {});
+        req.onerror = (e) => reject(e.target.error);
+    });
+
+    let dadosMesclados = { ...antigo, ...dados };
+
+    dadosMesclados = Object.fromEntries(
+        Object.entries(dadosMesclados).filter(([_, valor]) => !valor?.excluido)
+    );
+
+    await store.put({ id: nomeBase, dados: dadosMesclados });
+
+    await new Promise((resolve, reject) => {
+        tx.oncomplete = resolve;
+        tx.onerror = reject;
+    });
+
+    db.close();
+}
+
+async function recuperarDados(nomeBase, ambos) {
+
+    const getDadosPorBase = async (base) => {
+        const db = await new Promise((resolve, reject) => {
+            const request = indexedDB.open(nomeBaseCentral);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = (e) => reject(e.target.error);
+        });
+
+        if (!db.objectStoreNames.contains(nomeStore)) {
+            return {};
         }
 
-        request.onerror = () => reject(request.error)
-    })
-}
+        const tx = db.transaction(nomeStore, 'readonly');
+        const store = tx.objectStore(nomeStore);
 
-async function recuperarDados(nome_da_base, ambos) {
-    const getDados = (nomeBase) => {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(nomeBaseCentral)
+        const item = await new Promise((resolve, reject) => {
+            const req = store.get(base);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = (e) => reject(e.target.error);
+        });
 
-            request.onsuccess = function (event) {
-                const db = event.target.result
+        db.close();
 
-                if (!db.objectStoreNames.contains(nomeBase)) {
-                    resolve({})
-                    return
-                }
-
-                const transaction = db.transaction([nomeBase], 'readonly')
-                const store = transaction.objectStore(nomeBase)
-
-                const getRequest = store.getAll()
-
-                getRequest.onsuccess = function (event) {
-                    const array = event.target.result
-                    const dados = {}
-
-                    for (let i = 0; i < array.length; i++) {
-                        const item = array[i]
-                        dados[item.id] = item
-                    }
-
-                    resolve(dados)
-                }
-
-                getRequest.onerror = event => reject(event.target.error)
-
-            }
-
-            request.onerror = event => reject(event.target.error)
-        })
-    }
+        return item?.dados || {};
+    };
 
     if (ambos) {
         const [original, clone] = await Promise.all([
-            getDados(nome_da_base),
-            getDados(`${nome_da_base}_clone`)
-        ])
-
-        return { ...original, ...clone }
+            getDadosPorBase(nomeBase),
+            getDadosPorBase(`${nomeBase}_clone`)
+        ]);
+        return { ...original, ...clone };
     }
 
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
-    let baseFinal = modoClone ? `${nome_da_base}_clone` : nome_da_base
-    return await getDados(baseFinal)
+    const modoClone = JSON.parse(localStorage.getItem('modoClone')) || false;
+    const baseFinal = modoClone ? `${nomeBase}_clone` : nomeBase;
+    return await getDadosPorBase(baseFinal);
+}
+
+async function recuperarDado(nomeBase, id) {
+    const abrirDB = () => {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(nomeBaseCentral);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = (e) => reject(e.target.error);
+        });
+    };
+
+    const buscar = async (db, base, id) => {
+        if (!db.objectStoreNames.contains(nomeStore)) return null;
+
+        const tx = db.transaction(nomeStore, 'readonly');
+        const store = tx.objectStore(nomeStore);
+
+        const registro = await new Promise((resolve, reject) => {
+            const req = store.get(base);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = (e) => reject(e.target.error);
+        });
+
+        return registro?.dados?.[id] || null;
+    };
+
+    const db = await abrirDB();
+
+    let resultado = await buscar(db, nomeBase, id);
+
+    if (!resultado) {
+        const baseAlternativa = nomeBase.endsWith('_clone')
+            ? nomeBase.replace('_clone', '')
+            : `${nomeBase}_clone`;
+
+        resultado = await buscar(db, baseAlternativa, id);
+    }
+
+    db.close();
+    return resultado;
 }
 
 function popup(elementoHTML, titulo, nao_remover_anteriores) {
@@ -1961,39 +2015,12 @@ function baseOrcamento(orcamento, remover) {
     }
 }
 
-async function removerExcluidos(base) {
-
-    const request = indexedDB.open(nomeBaseCentral)
-
-    request.onsuccess = function () {
-        const db = request.result
-        const tx = db.transaction(base, 'readwrite')
-        const store = tx.objectStore(base)
-
-        const cursorRequest = store.openCursor()
-
-        cursorRequest.onsuccess = function (event) {
-            const cursor = event.target.result
-
-            if (cursor) {
-                const item = cursor.value
-                if (item.excluido) cursor.delete()
-                cursor.continue()
-            }
-        }
-
-        tx.oncomplete = () => db.close()
-    }
-
-}
-
 async function sincronizarDados(base, overlayOff) {
 
     if (!overlayOff) overlayAguarde()
 
     let nuvem = await receber(base) || {}
     await inserirDados(nuvem, base)
-    await removerExcluidos(base)
 
     if (!overlayOff) removerOverlay()
 }
