@@ -67,6 +67,7 @@ function cadastrar() {
 document.getElementById('acesso_usuario').addEventListener('click', () => {
     acesso_login()
 })
+
 function acesso_login() {
     console.log('login');
     

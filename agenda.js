@@ -3,7 +3,6 @@ let filtroPagamentos = {}
 let dados_departamentos = {}
 let dados_agenda_tecnicos = {}
 let dados_categorias = {}
-let categoriasChaves = {}
 let auxPagamFuncionario = {}
 const mensagemHTML = (termo) => `
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
@@ -45,17 +44,15 @@ async function iniciar_agendas(alterar) {
     await carregar_tabela(alterar)
 }
 
-async function sincronizar_departamentos() {
+async function sincronizarDepartamentos() {
 
     overlayAguarde()
 
-    await sincronizar('departamentos')
-    let departamentosNuvem = await receber('dados_departamentos')
-    dados_departamentos = departamentosNuvem
-    await inserirDados(departamentosNuvem, 'dados_departamentos')
-    await inserirDados(await receber('dados_categorias'), 'dados_categorias')
+    await sincronizar('departamentos') // No servidor > Omie;
+    await sincronizarDados('dados_departamentos') // Do servidor > Cliente;
+    dados_departamentos = await recuperarDados('dados_departamentos')
 
-    removerPopup()
+    removerOverlay()
 }
 
 async function recuperar_agenda() {
@@ -200,7 +197,7 @@ async function carregar_tabela(alterar) {
 
             <div class="linksAgenda">
 
-                ${modeloBotao('Sinc. Departamentos', 'sincronizar_departamentos()')}
+                ${modeloBotao('Sinc. Departamentos', 'sincronizarDepartamentos()')}
 
                 ${modeloBotao('Dist. Funcionários', 'distribuicaoFuncionario()')}
 
@@ -264,7 +261,7 @@ async function carregarBases() {
 
     dados_departamentos = await recuperarDados('dados_departamentos') || {}
     if (Object.keys(dados_departamentos) == 0) {
-        await sincronizar_departamentos()
+        await sincronizarDepartamentos()
     }
 
     let clientesOmie = await recuperarDados('dados_clientes')
@@ -283,12 +280,9 @@ async function carregarBases() {
 
     dados_agenda_tecnicos = Object.fromEntries(ordenado)
 
+    await sincronizarDados('dados_categorias')
+
     dados_categorias = await recuperarDados('dados_categorias') || {}
-    categoriasChaves = dados_categorias
-    if (!dados_categorias || Object.keys(dados_categorias) == 0) dados_categorias = await receber('dados_categorias', 0)
-    dados_categorias = Object.entries(dados_categorias).sort((a, b) => {
-        return a[1].localeCompare(b[1])
-    })
 
 }
 
@@ -861,16 +855,8 @@ async function distribuicaoFuncionario() {
         }
     }
 
-    let opcoesCategorias = ''
-    opcoesCategorias += `
-        <option></option>
-    `
-    dados_categorias.forEach(categoria => {
-        let [codigo, descricao] = categoria
-        opcoesCategorias += `
-            <option value="${codigo}">${descricao}</option>
-        `
-    })
+    const opcoesCategorias = Object.entries(dados_categorias)
+        .map(([codigo, dados]) => `<option value="${codigo}">${dados.categoria}</option>`).join('')
 
     let acumulado = ''
     let linhas = ''
@@ -927,7 +913,7 @@ async function distribuicaoFuncionario() {
 
                 let param = pagamento.param[0]
                 let codCategoria = param.categorias[0].codigo_categoria
-                let nomeCategoria = categoriasChaves[codCategoria]
+                let nomeCategoria = dados_categorias[codCategoria].categoria
                 if (!totaisCategoria[nomeCategoria]) {
                     totaisCategoria[nomeCategoria] = 0
                 }
