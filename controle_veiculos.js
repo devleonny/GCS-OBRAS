@@ -120,13 +120,13 @@ async function carregarTabela() {
 
             <td>
                 <div style="display: flex; align-items: start; justify-content: center; flex-direction: column;">
-                    <label>${nome}</label>
+                    <label title="${nome}">${nome.slice(0,20)}...</label>
                     <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
-                        <label style="font-size: 0.8vw;"><strong>${veiculo.placa}</strong></label>
+                        <label style="font-size: 0.7vw;">${veiculo.placa}</label>
 
                         <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
-                            <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
-                            <label>${veiculo.status}</label>
+                            <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1vw;">
+                            <label style="font-size: 0.7vw;">${veiculo.status}</label>
                         </div>
                     </div>
                 </div>
@@ -135,8 +135,8 @@ async function carregarTabela() {
 
             <td>
                 <div style="display: flex; align-items: start; justify-content: start; flex-direction: column;">
-                    <label>${dinheiro(custo.custo_total)}</label>
-                    <label><strong>${conversorData(custo.data_pagamento)}</strong></label>
+                    <label><strong>${dinheiro(custo.custo_total)}</strong></label>
+                    <label style="font-size: 0.7vw;">${conversorData(custo.data_pagamento)}</label>
                 </div>
             </td>
 
@@ -166,7 +166,7 @@ async function carregarTabela() {
 
     <div style="border-radius: 2px; background-color: #d2d2d2; display: flex; justify-content: center; align-items: start; gap: 10px;">
 
-        <div style="width: 15vw;">
+        <div style="width: 20vw; border-right: dashed 1px #797979; padding-right: 1vw;">
             ${botaoVeiculos('Adicionar Custo', 'painelValores()', 'green')}
             <hr style="width: 100%;">
             ${botaoVeiculos('Novo Motorista', 'novoMotorista()', '#04549a')}
