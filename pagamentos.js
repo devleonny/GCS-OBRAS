@@ -1386,8 +1386,6 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
 async function salvar_anexos_pagamentos(input, id_pagamento) {
     let anexos = await importarAnexos(input)
 
-    let pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
-
     anexos.forEach(anexo => {
 
         if (id_pagamento !== undefined) {
@@ -1414,6 +1412,7 @@ async function salvar_anexos_pagamentos(input, id_pagamento) {
     })
 
     if (id_pagamento !== undefined) {
+        let pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
         await inserirDados({ [id_pagamento]: pagamento }, 'lista_pagamentos')
         abrirDetalhesPagamentos(id_pagamento)
     }
