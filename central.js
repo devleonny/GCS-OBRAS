@@ -165,11 +165,9 @@ function carregarIcones() {
         ${atalho('Veículos', 'veiculo', `window.location.href='controle_veiculos.html'`)}
 
         ${autorizadosPainelNotas.includes(acesso.permissao) ? atalho('Faturamento NFs', 'relatorio', `window.location.href='relatorio_omie.html'`) : ''}
-
+        ${atalho('Ocorrências', 'megafone', `window.location.href='ocorrencias.html'`)}
     `
-//        ${atalho('RH', 'gerente', `window.location.href='rh.html'`)}
-
-//        ${atalho('Ocorrências', 'megafone', `window.location.href='ocorrencias.html'`)}
+    //        ${atalho('RH', 'gerente', `window.location.href='rh.html'`)}
     if (modoClone) {
         icones = `
         ${atalho('Orçamentos', 'projeto', `window.location.href='orcamentos.html'`)}
@@ -183,7 +181,7 @@ function carregarIcones() {
 function corFundo() {
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
 
-    const paginasBloqueadas = ['PDF', 'Ocorrências']
+    const paginasBloqueadas = ['PDF']
 
     if (!paginasBloqueadas.includes(document.title)) {
         document.body.style.background = modoClone ? 'linear-gradient(45deg, #249f41, #151749)' : 'linear-gradient(45deg, #B12425, #151749)'
@@ -1261,7 +1259,7 @@ async function receber(chave) {
 async function deletar(chave) {
     const url = `https://leonny.dev.br/deletar`;
 
-    let objeto = { chave }
+    let objeto = { chave, usuario: acesso.usuario }
 
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
     if (modoClone) objeto.app = 'clone'
