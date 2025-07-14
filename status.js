@@ -1053,7 +1053,7 @@ async function abrirAtalhos(id) {
 
     let acumulado = `
         <div style="background-color: #d2d2d2; display: flex; flex-direction: column; justify-content: center; align-items: start; width: 30vw; padding: 1vw; gap: 5px;">
-            <label style="color: #222; font-size: 1.5vw; text-align: left;" id="cliente_status">${cliente.nome}</label>
+            <label style="color: #222; font-size: 1.5vw; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
             <hr style="width: 100%">
             ${botoesDisponiveis}
         </div>
@@ -1661,7 +1661,7 @@ async function abrirEsquema(id) {
             </div>
         </div>`
 
-    let titulo = `${orcamento.dados_orcam.contrato} - ${cliente.nome}`
+    let titulo = `${orcamento.dados_orcam.contrato} - ${cliente?.nome || '??'}`
     popup(acumulado, titulo)
 
 }
