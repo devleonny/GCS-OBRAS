@@ -39,6 +39,7 @@ async function modalLPUParceiro(chave) {
                     oninput="atualizarValorParceiro(this)"
                     type="number"
                     step="0.01"
+                    data-original="${qtde}"
                     value="${qtde}">
                 </td>
                 <td>${dinheiro(custo)}</td>
@@ -100,7 +101,7 @@ async function modalLPUParceiro(chave) {
                     ${stringHtml('Endereço', dadosEmpresa.bairro)}
                     ${stringHtml('Cidade', dadosEmpresa.cidade)}
                     ${stringHtml('Estado', dadosEmpresa.estado)}
-                    ${stringHtml('Margem para este serviço(%)', `<input id="margem_lpu" class="campoRequisicao" style="background-color: white;" value="35" oninput="calcularLpuParceiro()">`)}
+                    ${stringHtml('Margem para este serviço(%)', `<input id="margem_lpu" class="campoRequisicao" style="background-color: white;" value="40" oninput="calcularLpuParceiro()">`)}
                     ${stringHtml('Técnico', `<textarea type="text" id="tecnico" oninput="sugestoesParceiro(this, 'clientes')" placeholder="Qual o nome do técnico?"></textarea><input style="display: none">`)}
                 </div>
         
@@ -130,7 +131,7 @@ async function modalLPUParceiro(chave) {
     const dadosSalvos = historico[chave] || {}
 
     document.getElementById('tecnico').value = dadosSalvos?.tecnicoLpu || '';
-    document.getElementById('margem_lpu').value = dadosSalvos?.margem_percentual || 35;
+    document.getElementById('margem_lpu').value = dadosSalvos?.margem_percentual || 40;
 
     const trs = document.querySelectorAll('#bodyTabela tr');
     for (let tr of trs) {
@@ -257,7 +258,14 @@ function calcularLpuParceiro() {
         let labelDesvio = tds[10].querySelector('label');
         if (!inputParceiro || !labelDesvio) continue;
 
-        let quantidade = Number(tds[3].querySelector('input').value)
+        let inputQtde = tds[3].querySelector('input')
+        const qtdeOriginal = Number(inputQtde.dataset.original)
+        const qtdeDigitada = Number(inputQtde.value)
+
+        let quantidade = qtdeDigitada > qtdeOriginal ? qtdeOriginal : qtdeDigitada
+
+        inputQtde.value = quantidade
+
         let valorParceiro = Number(inputParceiro.value) || 0;
 
         let totalParceiro = quantidade * valorParceiro;
@@ -1074,13 +1082,9 @@ async function definirCampoParceiro(elemento, idAleatoria, codBases, unidade, va
     campo.blur();
 }
 
-async function editarLpuParceiro(chave) {
-
-}
-
 function preencherDadosBasicos(dados) {
     const campos = {
-        'margem_lpu': dados.margem_percentual || 35,
+        'margem_lpu': dados.margem_percentual || 40,
         'tecnico': dados.tecnicoLpu || ''
     };
 

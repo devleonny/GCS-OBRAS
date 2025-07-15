@@ -2,6 +2,8 @@ let acesso = JSON.parse(localStorage.getItem('acesso'))
 let dados_setores = {}
 let filtrosUsuarios = {}
 let filtrosPendencias = {}
+const horizontal = `display: flex; align-items: center; justify-content: center;`
+const vertical = `display: flex; align-items: start; justify-content: start; flex-direction: column;`
 const metaforas = [
     "Um monitor sem imagens para exibir",
     "Um sistema de vigilância sem olhos",
@@ -1331,13 +1333,9 @@ function enviar(caminho, info) {
     return new Promise((resolve) => {
         let objeto = {
             caminho: caminho,
+            app: verificarApp(),
             valor: info
         };
-
-        let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
-        if (modoClone) {
-            objeto.app = 'clone'
-        }
 
         fetch("https://leonny.dev.br/salvar", {
             method: "POST",
@@ -1751,6 +1749,9 @@ async function verAprovacoes() {
 }
 
 async function verificarPendencias() {
+
+    if (document.title == 'Ocorrências') return // Se carregar em ocorrências, como ele usa uma base diferente, sem "dados_orcamentos", vai dar erro;
+
     await sincronizarDados('dados_orcamentos', true)
     let dados_orcamentos = await recuperarDados('dados_orcamentos')
     let contador = 0
@@ -1764,7 +1765,6 @@ async function verificarPendencias() {
         contadorPendencias.style.display = contador == 0 ? 'none' : 'flex'
         contadorPendencias.textContent = contador
     }
-
 }
 
 async function verPedidoAprovacao(idOrcamento) { //29
