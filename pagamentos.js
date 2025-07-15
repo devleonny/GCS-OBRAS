@@ -1027,6 +1027,8 @@ async function salvar_comentario_pagamento(id) {
 
 async function criar_pagamento_v2() {
 
+    overlayAguarde()
+
     if (!await calculadoraPagamento()) {
 
         const id_pagamento = unicoID()
