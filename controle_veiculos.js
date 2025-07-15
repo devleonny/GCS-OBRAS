@@ -140,7 +140,7 @@ async function carregarTabela() {
                 </div>
             </td>
 
-            <td>${custo?.cartao || 'Não informado'}</td>
+            <td>${veiculo?.cartao || 'Não informado'}</td>
             <td style="text-align: left;">${custo.comentario}</td>
 
             <td>
@@ -219,6 +219,9 @@ async function excluirCusto(idCusto) {
 
 async function painelValores(idCusto) {
 
+    await sincronizarDados('veiculos')
+    await sincronizarDados('motoristas')
+
     let custo_veiculos = await recuperarDados('custo_veiculos') || {}
     let motoristas = await recuperarDados('motoristas') || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
@@ -240,7 +243,6 @@ async function painelValores(idCusto) {
                     ${categorias}
                 </select>
                 `)}
-            ${modeloLabel('Final do Cartão', `<input id="cartao" placeholder="XXXX" value="${custo?.cartao || ''}">`)}
             <div id="camposAdicionais">
                 ${modeloLabel('KM', `<input value="${custo?.km || ''}" type="number" id="km" placeholder="Quilometragem atual" type="number">`)}
                 ${modeloLabel('Litros', `<input value="${custo?.litros || ''}" type="number" id="litros" placeholder="Quantidade de litros" type="number">`)}
@@ -302,7 +304,6 @@ async function salvarValores(idCusto) {
         motorista: idMotorista,
         veiculo: select.value,
         categoria,
-        cartao,
         custo_total,
         comentario: obterValores('comentario'),
         data_pagamento,
@@ -340,6 +341,7 @@ async function novoVeiculo(idVeiculo) {
     <div class="paineis">
         ${modeloLabel('Placa', `<input value="${veiculo?.placa || ''}" id="placa" placeholder="Placa">`)}
         ${modeloLabel('Modelo', `<input value="${veiculo?.modelo || ''}" id="modelo" placeholder="Modelo">`)}
+        ${modeloLabel('Final do Cartão', `<input value="${veiculo?.cartao || ''}" id="cartao" placeholder="Final do Cartão abastecimento">`)}
         ${modeloLabel('Status', `
             <select id="status">
                 ${opcoes}
@@ -369,7 +371,8 @@ async function salvarVeiculo(idVeiculo) {
     let veiculo = {
         modelo: obterValores('modelo'),
         placa: obterValores('placa'),
-        status: obterValores('status')
+        status: obterValores('status'),
+        cartao: obterValores('cartao')
     }
 
     veiculos[idVeiculo] = veiculo
@@ -393,8 +396,9 @@ async function dadosVeiculo(input) {
     if (veiculo) {
         acumulado = `
         <div style="display: flex; justify-content: space-evenly; align-items: center; width: 100%;">
-            <img src="imagens/veiculo.png" style="width: 3vw;">
+            <img src="imagens/veiculo.png" style="width: 5vw;">
             <div style="display: flex; justify-content: start; align-items: start; flex-direction: column;">
+                ${labelDupla('Final do Cartão', veiculo?.cartao || 'Não informado')}
                 ${labelDupla('Modelo', veiculo.modelo)}
                 ${labelDupla('Placa', veiculo.placa)}
                 ${labelDupla('Status', veiculo.status)}
