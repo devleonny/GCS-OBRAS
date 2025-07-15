@@ -257,14 +257,21 @@ async function painelValores(idCusto) {
     await sincronizarDados('motoristas')
 
     let custo_veiculos = await recuperarDados('custo_veiculos') || {}
-    let motoristas = await recuperarDados('motoristas') || {}
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let custo = custo_veiculos[idCusto]
+    let motoristas = await recuperarDados('motoristas') || {};
+    let dados_clientes = await recuperarDados('dados_clientes') || {};
+    let custo = custo_veiculos[idCusto];
 
     let opcoesMotoristas = Object.entries(motoristas)
+        .sort((a, b) => {
+            const nomeA = (dados_clientes[a[0]]?.nome || '').toLowerCase();
+            const nomeB = (dados_clientes[b[0]]?.nome || '').toLowerCase();
+            return nomeA.localeCompare(nomeB);
+        })
         .map(([idMotorista, motorista]) =>
-            `<option data-id="${idMotorista}" value="${custo?.veiculo || motorista?.veiculo || ''}" ${custo?.motorista == idMotorista ? 'selected' : ''}>${dados_clientes[idMotorista].nome}</option>`)
-        .join('')
+            `<option data-id="${idMotorista}" value="${custo?.veiculo || motorista?.veiculo || ''}" ${custo?.motorista == idMotorista ? 'selected' : ''}>
+            ${dados_clientes[idMotorista]?.nome || 'Sem nome'}
+        </option>`)
+        .join('');
 
     let categorias = ['Combustível', 'Pedágio', 'Multa', 'Mensalidade', 'Custos Extras']
         .map(categoria => `<option ${custo?.categoria == categoria ? 'selected' : ''}>${categoria}</option>`)
