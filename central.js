@@ -175,7 +175,7 @@ function carregarIcones() {
 
     if (document.title != 'Página Inicial') return
 
-    let autorizadosPainelNotas = ['adm', 'diretoria', 'gerente', 'fin']
+    let autorizadosPainelNotas = ['adm', 'diretoria', 'fin']
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
     let painel_geral = document.getElementById('painel_geral')
     let atalho = (termo, img, funcao) => {

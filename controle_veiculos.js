@@ -210,10 +210,8 @@ async function excluirCusto(idCusto) {
 
     removerPopup()
     overlayAguarde()
-    let custo_veiculos = await recuperarDados('custo_veiculos') || {}
-    delete custo_veiculos[idCusto]
-    await inserirDados(custo_veiculos, 'custo_veiculos')
-    deletar(`custo_veiculos/${idCusto}`)
+    await deletarDB('custo_veiculos', idCusto)
+    await deletar(`custo_veiculos/${idCusto}`)
     await carregarTabela()
     removerOverlay()
 
