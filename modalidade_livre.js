@@ -53,10 +53,7 @@ function carregar_layout_modalidade_livre() {
     removerPopup()
 
     orcamento_padrao.style.display = 'none';
-    menu_inferior.style.display = 'none';
     orcamento_livre.innerHTML = '';
-    content.style = 'border: none'
-
     let orcamentoBase = baseOrcamento()
 
     orcamentoBase.lpu_ativa = 'MODALIDADE LIVRE'
@@ -138,7 +135,7 @@ function carregar_layout_modalidade_livre() {
                 <label style="text-align: right; color: white;">Total de Serviço: </label>
                 <label style="text-align: right; color: white;" id="tt_serviço"></label>
             </div>
-            <table style="border-collapse: collapse; width: 100%; background-color: green;">
+            <table class="tabela">
                 <thead>
                     <th>Ordem</th>
                     <th>Descrição</th>
@@ -160,7 +157,7 @@ function carregar_layout_modalidade_livre() {
                 <label style="text-align: right; color: white;">Total de Venda: </label>
                 <label style="text-align: right; color: white;" id="tt_venda"></label>
             </div>
-            <table style="border-collapse: collapse; width: 100%; background-color: #B12425;">
+            <table class="tabela">
                 <thead>
                     <th>Ordem</th>
                     <th>Descrição</th>
@@ -353,7 +350,7 @@ function total_v2(recarregar) {
     }
 
     orcamentoBase.lpu_ativa = 'MODALIDADE LIVRE'
-    orcamentoBase.total_geral = dinheiro(totais.GERAL)
+    orcamentoBase.total_geral = totais.GERAL
     baseOrcamento(orcamentoBase)
 
     if (recarregar) {
