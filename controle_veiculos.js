@@ -471,7 +471,7 @@ async function novoMotorista(idMotorista) {
         <div class="paineis">
 
             ${modeloLabel('Motorista', `
-            <textarea id="motorista" oninput="carregarClientes(this)">${dados_clientes?.[idMotorista]?.nome || idMotorista || ''}</textarea> 
+            <textarea id="omieMotorista" oninput="carregarClientes(this)">${dados_clientes?.[idMotorista]?.nome || idMotorista || ''}</textarea> 
             <input id="omie" value="${idMotorista || ''}" style="display: none;">
             `)}
 

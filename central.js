@@ -2370,7 +2370,7 @@ async function carregarClientes(textarea) {
 async function selecionarCliente(omie, nome) {
 
     if (document.title == 'Veículos') {
-        let omie_motorista = document.getElementById('motorista')
+        let omie_motorista = document.getElementById('omieMotorista')
         omie_motorista.value = nome
         omie_motorista.nextElementSibling.value = omie
 
