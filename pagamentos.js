@@ -290,7 +290,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     let cliente_omie = pagamento.param[0].codigo_cliente_fornecedor
     let cliente = await recuperarDado('dados_clientes', cliente_omie)
 
-    let orcamento = await recuperarDado('dados_orcamentos', pagamento.id_orcamento)
+    let orcamento = await recuperarDado('dados_orcamentos', pagamento.id_orcamento) || false
     let omieClienteOrcamento = orcamento?.dados_orcam?.omie_cliente || ''
     let clienteOrcamento = await recuperarDado('dados_clientes', omieClienteOrcamento)
 
