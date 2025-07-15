@@ -122,8 +122,38 @@ async function limparStores(storeParaManter) {
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F5') f5()
-    if (event.key === 'F2') popup(new Date().getTime(), 'TIMESTAMP', true)
+    if (event.key === 'F2') f2()
 })
+
+async function f2() {
+
+    const acumulado = `
+        <div style="padding: 2vw; background-color: #d2d2d2; display: flex; flex-direction: column; justify-content: start; align-items: start; gap: 5px;">
+
+            ${botao('Sincronizar Pagamentos com o Omie', `respostaSincronizacao('pagamentos')`)}
+
+            ${botao('Sincronizar Departamentos com o Omie', `respostaSincronizacao('departamentos')`)}
+
+            <div id="localResposta"></div>
+
+            <hr style="width: 100%;">
+            <label style="cursor: pointer;">${new Date().getTime()}</label>
+        </div>
+    `
+    popup(acumulado, 'Ferramentas', true)
+}
+
+async function respostaSincronizacao(script) {
+
+    let localResposta = document.getElementById('localResposta')
+
+    localResposta.innerHTML = `<img src="gifs/loading.gif" style="width: 3vw;">`
+
+    const resposta = await sincronizar(script)
+
+    localResposta.innerHTML = resposta.status
+
+}
 
 function f5() {
     location.reload();
@@ -1211,6 +1241,20 @@ function capturarValorCelula(celula) {
     return valor;
 }
 
+function verificarApp() {
+
+    let app = ''
+
+    if (document.title == 'Ocorrências') {
+        app = 'ocorrencias'
+    } else {
+        let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+        if (modoClone) objeto.app = 'clone'
+    }
+
+    return app
+}
+
 // SERVIÇO DE ARMAZENAMENTO 
 async function receber(chave) {
 
@@ -1222,10 +1266,9 @@ async function receber(chave) {
         if (objeto.timestamp && objeto.timestamp > timestamp) timestamp = objeto.timestamp
     }
 
-    const modoClone = JSON.parse(localStorage.getItem('modoClone')) || false;
-    const body = {
+    let objeto = {
+        app: verificarApp(),
         chave: chave,
-        app: modoClone ? 'clone' : undefined,
         timestamp: timestamp
     };
 
@@ -1234,7 +1277,7 @@ async function receber(chave) {
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(objeto)
     };
 
     return new Promise((resolve, reject) => {
@@ -1256,13 +1299,14 @@ async function receber(chave) {
     })
 }
 
-async function deletar(chave) {
+async function deletar(chave, app) {
     const url = `https://leonny.dev.br/deletar`;
 
-    let objeto = { chave, usuario: acesso.usuario }
-
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
-    if (modoClone) objeto.app = 'clone'
+    let objeto = {
+        chave,
+        usuario: acesso.usuario,
+        app: verificarApp()
+    }
 
     return new Promise((resolve) => {
         fetch(url, {
@@ -1440,6 +1484,34 @@ async function refazer_pagamento(id_pagamento) {
 
 }
 
+async function reprocessarAnexos(idPagamento) {
+    overlayAguarde()
+    return new Promise((resolve, reject) => {
+
+        fetch("https://leonny.dev.br/reprocessar_anexos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idPagamento })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.text();
+            })
+            .then(data => {
+                console.log(JSON.parse(data))
+                popup(mensagem('Finalizado'), 'ALERTA', true)
+                resolve(data);
+            })
+            .catch(err => {
+                console.log(err)
+                popup(mensagem('Finalizado'), 'ALERTA', true)
+                reject(err)
+            })
+    })
+}
+
 async function lancar_pagamento(pagamento, call) {
     return new Promise((resolve, reject) => {
 
@@ -1502,18 +1574,22 @@ async function importarAnexos(arquivoInput) {
 }
 
 function sincronizar(script) {
+    return new Promise((resolve, reject) => {
 
-    fetch('https://leonny.dev.br/sincronizar', {
-        method: 'POST',
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ script })
-    })
-        .then(response => response.text())
-        .then(data => {
-            console.log(JSON.parse(data));
+        fetch('https://leonny.dev.br/sincronizar', {
+            method: 'POST',
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ script })
         })
-        .catch(error => console.error('Erro na requisição:', error));
+            .then(response => response.text())
+            .then(data => {
+                resolve(JSON.parse(data))
+            })
+            .catch(error => {
+                reject(error)
+            });
 
+    })
 }
 
 function data_atual(estilo, nivel) {

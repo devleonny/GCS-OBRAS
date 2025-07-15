@@ -384,13 +384,14 @@ async function abrirDetalhesPagamentos(id_pagamento) {
         <div style="display: flex; flex-direction: column; width: 100%;">
             ${valores}
             <hr style="width: 100%;">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; justify-content: start; gap: 5vw;">
                 <label>${dinheiro(pagamento.param[0].valor_documento)}</label>
-                ${acesso.permissao == 'adm' ?
-            `<div class="btn_detalhes" style="width: max-content;" onclick="painelEditarPagamento('${id_pagamento}')">
+                ${acesso.permissao == 'adm'
+            ? `<div class="btn_detalhes" style="width: max-content;" onclick="painelEditarPagamento('${id_pagamento}')">
                     <img src="imagens/baixar.png">
                     <label style="cursor: pointer;">Acrescentar Valor</label>
-                </div>`: ''}
+                </div>`
+            : ''}
             </div>
         </div>
         `
@@ -546,6 +547,8 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
             ${divValores}
 
+            <hr style="width: 100%;">
+
             ${formParceiros}
             <br>
             <div id="comentario" class="contorno" style="width: 90%;">
@@ -555,14 +558,21 @@ async function abrirDetalhesPagamentos(id_pagamento) {
                 </div>
             </div>
 
-            <label><strong>Anexos </strong> • 
-            
+            <div style="display: flex; align-items: center; justify-content: center; gap: 1vw;">
+                <label><strong>Anexos</strong> • </label>  
+                
                 <label for="adicionar_anexo_pagamento" style="text-decoration: underline; cursor: pointer;">
                     Incluir Anexo
                     <input type="file" id="adicionar_anexo_pagamento" style="display: none;" onchange="salvar_anexos_pagamentos(this, '${id_pagamento}')" multiple>
                 </label>
 
-            </label>
+                ${acesso.permissao == 'adm'
+                    ? `<div class="btn_detalhes" style="width: max-content;" onclick="reprocessarAnexos('${id_pagamento}')">
+                            <img src="imagens/omie.png">
+                            <label style="cursor: pointer;">Reimportar Anexos no Omie</label>
+                        </div>`
+                    : ''}
+            </div>
             
             <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 3px;">
                 ${anexos}
