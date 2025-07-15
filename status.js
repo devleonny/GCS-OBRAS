@@ -1012,7 +1012,6 @@ async function abrirAtalhos(id) {
     let emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     let botoesDisponiveis = ''
 
-
     let modeloBotoes = (imagem, nome, funcao) => {
         return `
         <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="${funcao}">

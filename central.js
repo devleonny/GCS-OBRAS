@@ -554,6 +554,11 @@ const nomeBaseCentral = 'GCS'
 const nomeStore = 'Bases'
 
 async function deletarDB(base, idInterno) {
+
+    const clone = JSON.parse(localStorage.getItem('modoClone')) || false;
+
+    base = clone ? `${base}_clone` : base
+
     const db = await new Promise((resolve, reject) => {
         const request = indexedDB.open(nomeBaseCentral);
         request.onsuccess = () => resolve(request.result);
@@ -1051,6 +1056,7 @@ async function ir_pdf(orcam_) {
 }
 
 async function excluirOrcamento(idOrcamento) {
+    removerPopup()
     overlayAguarde()
 
     await deletarDB('dados_orcamentos', idOrcamento)
