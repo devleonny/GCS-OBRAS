@@ -1251,7 +1251,7 @@ function verificarApp() {
         app = 'ocorrencias'
     } else {
         let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
-        if (modoClone) objeto.app = 'clone'
+        if (modoClone) app = 'clone'
     }
 
     return app
