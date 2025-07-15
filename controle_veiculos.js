@@ -326,11 +326,9 @@ async function salvarValores(idCusto) {
 
     if (!custo_veiculos[idCusto]) custo_veiculos[idCusto] = {}
 
-    const cartao = obterValores('cartao')
     const custo_total = obterValores('custo_total')
     const data_pagamento = obterValores('data_pagamento')
 
-    if (cartao == '') return popup(mensagem(`Preencha o final do cartão usado`), 'ALERTA', true)
     if (custo_total == '') return popup(mensagem(`Preencha o valor do pagamento`), 'ALERTA', true)
     if (data_pagamento == '') return popup(mensagem(`Preencha a data de pagamento`), 'ALERTA', true)
 
