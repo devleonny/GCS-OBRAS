@@ -45,8 +45,9 @@ async function carregarTabela() {
         .map(([idMotorista, motorista]) =>
             `<div class="diVeiculos" onclick="novoMotorista('${idMotorista}')">
                 <img src="imagens/${veiculos?.[motorista.veiculo]?.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
-                <div style="display: flex; justify-content: center; align-items: start; flex-direction: column;">
-                    <label>${String(dados_clientes?.[idMotorista]?.nome || '').slice(0, 10)}...</label>
+
+                <div style="${vertical}">
+                    <label name="motorista">${String(dados_clientes?.[idMotorista]?.nome || '').slice(0, 10)}...</label>
                     <label><strong>${veiculos?.[motorista.veiculo]?.modelo || ''}</strong> ${veiculos?.[motorista.veiculo]?.placa || 'Sem veículo'}</label>
                 </div>
             </div>
@@ -58,10 +59,10 @@ async function carregarTabela() {
             <div class="diVeiculos" onclick="novoVeiculo('${idVeiculo}')">
                 <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
 
-                <div style="display: flex; justify-content: center; align-items: start; flex-direction: column;">
-                    <label><strong>${veiculo.modelo}</strong></label>
-                    <label style="font-size: 0.8vw;">${veiculo.placa}</label>
-                    <label>${veiculo.status}</label>
+                <div style="${vertical}">
+                    <label name="veículo"><strong>${veiculo.modelo}</strong></label>
+                    <label name="veículo" style="font-size: 0.8vw;">${veiculo.placa}</label>
+                    <label name="veículo">${veiculo.status}</label>
                 </div>
             </div>
             `)
@@ -120,7 +121,7 @@ async function carregarTabela() {
 
             <td>
                 <div style="display: flex; align-items: start; justify-content: center; flex-direction: column;">
-                    <label title="${nome}">${nome.slice(0,20)}...</label>
+                    <label title="${nome}">${nome.slice(0, 20)}...</label>
                     <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
                         <label style="font-size: 0.7vw;">${veiculo.placa}</label>
 
@@ -162,18 +163,33 @@ async function carregarTabela() {
         `
     }
 
+    const pesquisa = (modalidade) => `
+    <div style="${horizontal}; background-color: white; border-radius: 2px;">
+        <input oninput="pesquisarBotoes(this, '${modalidade}')" placeholder="Pesquisar ${modalidade}">
+        <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+    </div>
+    `
+
     let acumulado = `
 
     <div style="border-radius: 2px; background-color: #d2d2d2; display: flex; justify-content: center; align-items: start; gap: 10px;">
 
         <div style="width: 20vw; border-right: dashed 1px #797979; padding-right: 1vw;">
+
             ${botaoVeiculos('Adicionar Custo', 'painelValores()', 'green')}
+
             <hr style="width: 100%;">
+
             ${botaoVeiculos('Novo Motorista', 'novoMotorista()', '#04549a')}
-            ${botoesMotoristas}
+            ${pesquisa('motorista')}
+            <div id="motorista">${botoesMotoristas}</div>
+
             <hr style="width: 100%;">
+
             ${botaoVeiculos('Novo Veículo', 'novoVeiculo()', '#04549a')}
-            ${botoesCarros}
+            ${pesquisa('veículo')}
+            <div id="veículo">${botoesCarros}</div>
+
         </div>
 
         <table class="tabela" style="display: table-row;">
@@ -189,6 +205,24 @@ async function carregarTabela() {
     </div>
     `
     document.getElementById('tabelaRegistro').innerHTML = acumulado
+}
+
+function pesquisarBotoes(input, modalidade) {
+    const container = document.getElementById(modalidade);
+    const termo = input.value.toLowerCase();
+    const divs = container.querySelectorAll('div');
+
+    for (let div of divs) {
+        const labels = div.querySelectorAll(`[name="${modalidade}"]`);
+        let tdsTermos = '';
+
+        for (let label of labels) {
+            tdsTermos += ' ' + label.textContent.toLowerCase();
+        }
+
+        const visivel = tdsTermos.includes(termo) || termo === '';
+        div.style.display = visivel ? 'flex' : 'none';
+    }
 }
 
 function painelExcluir(idCusto) {
