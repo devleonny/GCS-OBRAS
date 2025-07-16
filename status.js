@@ -1786,7 +1786,7 @@ async function alterar_status(select, id) {
             orcamento.status.historicoStatus = []
         }
 
-        let statusAnterior = dados_orcamentos[id_orcam].status?.atual || '--'
+        let statusAnterior = orcamento.status?.atual || '--'
         orcamento.status.atual = select.value
 
         // Adicionar registro de mudança de status
