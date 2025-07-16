@@ -1,4 +1,6 @@
 .blocoParcela {
+    width: 95%;
+    cursor: pointer;
     margin: 2px;
     display: flex;
     align-items: center;
@@ -9,6 +11,10 @@
     gap: 5px;
 }
 
+.blocoParcela label {
+    cursor: pointer;
+}
+
 .blocoValores {
     display: flex;
     align-items: start;
@@ -17,6 +23,10 @@
     background-color: #d2d2d2;
     padding: 5px;
     border-radius: 2px;
+}
+
+.blocoValores label {
+    text-align: center;
 }
 
 .itensToolbar {

@@ -50,7 +50,7 @@ const imagensStatus = (status) => {
     return imagens?.[status] || 'reprovado'
 }
 
-async function carregarTabela() {
+async function carregarTabela(app) {
 
     let dados_relatorio = await recuperarDados('dados_relatorio') || {}
 
@@ -117,7 +117,7 @@ async function carregarTabela() {
                 const tipo = nota.categoria == 'serviço' ? 'serviço' : 'venda_remessa'
                 tabelas[app].linhas += `
                     <tr>
-                        <td>${nota.categoria}</td>
+                        <td name="categoria">${nota.categoria}</td>
                         <td>
                             ${balaoPDF(nf, nota.dataRegistro, nota.codOmie, tipo, app)}
                         </td>
@@ -184,7 +184,9 @@ async function carregarTabela() {
 
     let acumulado = `
         <div id="divRelatorio" style="width: 100%; display: flex; align-items: start; justify-content: start; gap: 5px;">
-            <div style="margin-top: 10vh;">
+
+            <div>
+        
                 <label class="titulos">Data Emissão NF</label>
                 <div class="filtros">
                     <div>
@@ -196,7 +198,9 @@ async function carregarTabela() {
                         <input type="date" onchange="dataPesquisa(this.value, 'ate')">
                     </div>
                 </div>
+
                 <div id="resumoValores"></div>
+            
             </div>
             <div style="flex-direction: column;">
                 <div class="toolbarRelatorio">
@@ -217,7 +221,14 @@ async function carregarTabela() {
         document.body.insertAdjacentHTML('beforeend', acumulado)
     }
 
-    mostrarTabela(apps[0])
+    mostrarTabela(app ? app : apps[0])
+}
+
+async function limparFiltros(app) {
+
+    await carregarTabela(app)
+    filtroRelatorio[app] = {}
+    carregarFiltros(app)
 }
 
 function dataJS(data) {
@@ -236,31 +247,85 @@ async function dataPesquisa(dt, campo) {
 
 }
 
+
 function calcularResumo(app) {
 
     let resumoValores = {
-        status: {}
+        status: {},
+        categorias: {}
     }
 
     const tabela = document.getElementById(app)
     const status = tabela.querySelectorAll('[name="status"]')
     const valorStatus = tabela.querySelectorAll('[name="valorStatus"]')
+    const categorias = tabela.querySelectorAll('[name="categoria"]')
+
+    const termoST = filtroRelatorio[app]['3'] || ''
+    const termoCAT = filtroRelatorio[app]['0'] || ''
+
+    categorias.forEach(td => {
+
+        const tr = td.closest('tr')
+
+        const statusTD = tr.querySelectorAll('td')[3].querySelectorAll('[name="status"]')
+        const valores = tr.querySelectorAll('td')[3].querySelectorAll('[name="valorStatus"]')
+        let valor = 0
+
+        valores.forEach((td, i) => {
+            if (termoST == '' || (statusTD[i].textContent == String(termoST).toUpperCase())) valor += conversor(td.textContent)
+        })
+
+        // Por Status, caso a linha esteja visível;
+        const somar = tr.style.display !== 'none'
+        const categoria = td.textContent
+
+        if (!resumoValores.categorias[categoria]) resumoValores.categorias[categoria] = 0
+        if ((somar && termoCAT == categoria) || termoCAT == '') resumoValores.categorias[categoria] += valor
+
+    })
 
     status.forEach((st, i) => {
 
         const valor = conversor(valorStatus[i].textContent)
 
         // Por Status, caso a linha esteja visível;
-        if (st.closest('tr').style.display !== 'none') {
-            if (!resumoValores.status[st.textContent]) resumoValores.status[st.textContent] = 0
-            resumoValores.status[st.textContent] += valor
-        }
+        const somar = st.closest('tr').style.display !== 'none'
+
+        if (!resumoValores.status[st.textContent]) resumoValores.status[st.textContent] = 0
+        if ((somar && termoST == String(st.textContent).toLowerCase()) || termoST == '') resumoValores.status[st.textContent] += valor
 
     })
+
+    for ([st, valor] of Object.entries(resumoValores.status)) {
+
+        let localValor = document.getElementById(st)
+        if (localValor) localValor.textContent = dinheiro(valor)
+
+    }
+
+    for ([cat, valor] of Object.entries(resumoValores.categorias)) {
+
+        let localValor = document.getElementById(cat)
+        if (localValor) localValor.textContent = dinheiro(valor)
+
+    }
+
+    return resumoValores
+
+}
+
+function carregarFiltros(app) {
+
+    const resumoValores = calcularResumo(app)
+
+    const termoST = filtroRelatorio[app]['3'] || ''
+    const termoCAT = filtroRelatorio[app]['0'] || ''
 
     const indStatus = Object.entries(resumoValores.status)
         .map(([st, valor]) => `
             <div class="blocoParcela">
+
+                <input ${termoST == String(st).toLowerCase() ? 'checked' : ''} style="cursor: pointer; width: 1.5vw; height: 1.5vw;" type="radio" onclick="pesquisar_generico(3, '${st}', filtroRelatorio['${app}'], 'bodyRelatorio_${app}'); calcularResumo('${app}')" name="inputStatus" style="cursor: pointer; width: 1.5vw; height: 1.5vw;">
 
                 <div style="flex-direction: column;">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
@@ -270,7 +335,27 @@ function calcularResumo(app) {
                 </div>
 
                 <div class="blocoValores">
-                    <label name="valorStatus" style="white-space: nowrap; font-size: 1.0vw;">${dinheiro(valor)}</label>
+                    <label name="valorStatus" style="white-space: nowrap; font-size: 0.8vw;" id="${st}">${dinheiro(valor)}</label>
+                </div>
+
+            </div>
+        `)
+        .join('')
+
+    const indCategorias = Object.entries(resumoValores.categorias)
+        .map(([cat, valor]) => `
+            <div class="blocoParcela">
+
+                <input ${termoCAT == String(cat).toLowerCase() ? 'checked' : ''} style="cursor: pointer; width: 1.5vw; height: 1.5vw;" type="radio" name="inputCategoria" onclick="pesquisar_generico(0, '${cat}', filtroRelatorio['${app}'], 'bodyRelatorio_${app}'); calcularResumo('${app}')" style="width: 1.5vw; height: 1.5vw;">
+
+                <div style="flex-direction: column;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
+                        <label name="status" style="white-space: nowrap; font-size: 0.7vw;">${cat}</label>
+                    </div>
+                </div>
+
+                <div class="blocoValores">
+                    <label name="valorStatus" style="white-space: nowrap; font-size: 0.8vw;" id="${cat}">${dinheiro(valor)}</label>
                 </div>
 
             </div>
@@ -278,9 +363,22 @@ function calcularResumo(app) {
         .join('')
 
     let acumulado = `
-        <label class="titulos">Status Recebimento</label>
-        ${indStatus !== '' ? indStatus : '...'}
-    `
+        ${botao('Limpar Filtros', `limparFiltros('${app}')`)}
+        <br>
+        <div style="${vertical}; gap: 3px;">
+            <label class="titulos">Status Recebimento</label>
+            <label style="font-size: 0.7vw; color: white;">[Clique para filtrar]</label>
+            ${indStatus}
+        </div>
+        <br>
+        <div style="${vertical}; gap: 3px;">
+            <label class="titulos">Filtrar por Tipo</label>
+            <label style="font-size: 0.7vw; color: white;">[Clique para filtrar]</label>
+            ${indCategorias}
+        </div>
+        `
+
+    if (indStatus == '') return
 
     document.getElementById('resumoValores').innerHTML = acumulado
 
@@ -299,7 +397,7 @@ function mostrarTabela(app) {
     tabelaApp.style.display = 'table-row'
     document.getElementById(`toolbar_${app}`).style.opacity = '1'
 
-    calcularResumo(app)
+    carregarFiltros(app)
 }
 
 async function baixarRelatorio() {
