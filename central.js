@@ -279,6 +279,9 @@ async function identificacaoUser() {
 
     localStorage.setItem('acesso', JSON.stringify(acesso))
 
+    const usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []
+    const totalUsuarios = [...new Set(usuariosOnline)]
+
     carregarIcones() // ícones da tela inicial;
     verificarPendencias() // Pendencias de aprovação;
 
@@ -300,6 +303,7 @@ async function identificacaoUser() {
                 <div class="botaoUsuarios" onclick="painelUsuarios(this)">
                     <img src="imagens/online.png">
                     <label>Online</label>
+                    <label>${totalUsuarios.length}</label>
                 </div>
 
                 ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
