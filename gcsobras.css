@@ -332,6 +332,17 @@ body {
     cursor: pointer;
 }
 
+.painelBotoes {
+    display: flex;
+    align-items: start;
+    justify-content: end;
+    border-top-right-radius: 2px;
+    border-top-left-radius: 2px;
+    background-color: #b1b1b1;
+    gap: 2px;
+    width: 100%;
+}
+
 .atalhos {
     width: 100%;
     display: flex;

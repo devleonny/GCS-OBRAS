@@ -89,7 +89,7 @@ async function carregarTabela() {
                 </div>
             </th>
             `
-            ths += `<th style="color: white;">${coluna}</th>`
+            ths += `<th>${coluna}</th>`
         })
 
     let linhas = ''
@@ -171,19 +171,19 @@ async function carregarTabela() {
 
     let acumulado = `
 
-    <div style="border-radius: 2px; background-color: #d2d2d2; display: flex; justify-content: center; align-items: start; gap: 10px;">
+    <div style="padding: 1vw; border-radius: 2px; background-color: #00000038; display: flex; justify-content: center; align-items: start; gap: 10px;">
 
         <div style="width: 20vw; border-right: dashed 1px #797979; padding-right: 1vw;">
 
             ${botaoVeiculos('Adicionar Custo', 'painelValores()', 'green')}
 
-            <hr style="width: 100%;">
+            <br>
 
             ${botaoVeiculos('Novo Motorista', 'novoMotorista()', '#04549a')}
             ${pesquisa('motorista')}
             <div id="motorista">${botoesMotoristas}</div>
 
-            <hr style="width: 100%;">
+            <br>
 
             ${botaoVeiculos('Novo Veículo', 'novoVeiculo()', '#04549a')}
             ${pesquisa('veículo')}
@@ -191,15 +191,20 @@ async function carregarTabela() {
 
         </div>
 
-        <table class="tabela" style="display: table-row;">
-            <thead style="background-color: #797979;">
-                <tr>${ths}</tr>
-                <tr>${tsh}</tr>
-            </thead>
-            <tbody id="bodyVeiculos">
-                ${linhas}
-            </tbody>
-        </table>
+        <div style="${vertical}; margin-top: 1vw;">
+            <div class="painelBotoes" style="height: 5vh;"></div>
+            <div>
+                <table class="tabela" style="display: table-row;">
+                    <thead>
+                        <tr>${ths}</tr>
+                        <tr>${tsh}</tr>
+                    </thead>
+                    <tbody id="bodyVeiculos">
+                        ${linhas}
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
     </div>
     `
