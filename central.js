@@ -175,7 +175,18 @@ function carregarIcones() {
 
     if (document.title != 'Página Inicial') return
 
-    let autorizadosPainelNotas = ['adm', 'diretoria', 'fin']
+    const autorizadosPainelNotas = (acesso) => {
+        const liberados = {
+            permissao: ['adm', 'diretoria', 'fin'],
+            usuario: ['Tayna', 'Livia']
+        }
+
+        return (
+            liberados.permissao.includes(acesso.permissao) ||
+            liberados.usuario.includes(acesso.usuario)
+        );
+    }
+
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
     let painel_geral = document.getElementById('painel_geral')
     let atalho = (termo, img, funcao) => {
@@ -196,7 +207,7 @@ function carregarIcones() {
         ${atalho('Agenda', 'agenda', `window.location.href='agenda.html'`)}
         ${atalho('Veículos', 'veiculo', `window.location.href='controle_veiculos.html'`)}
 
-        ${autorizadosPainelNotas.includes(acesso.permissao) ? atalho('Faturamento NFs', 'relatorio', `window.location.href='relatorio_omie.html'`) : ''}
+        ${autorizadosPainelNotas(acesso) ? atalho('Faturamento NFs', 'relatorio', `window.location.href='relatorio_omie.html'`) : ''}
         ${atalho('Ocorrências', 'megafone', `window.location.href='ocorrencias.html'`)}
     `
     //        ${atalho('RH', 'gerente', `window.location.href='rh.html'`)}
