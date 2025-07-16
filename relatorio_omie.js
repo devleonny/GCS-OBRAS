@@ -183,9 +183,9 @@ async function carregarTabela(app) {
     }
 
     let acumulado = `
-        <div id="divRelatorio" style="width: 100%; display: flex; align-items: start; justify-content: start; gap: 5px;">
+        <div id="divRelatorio" class="relatorioDiv">
 
-            <div>
+            <div class="blocoEsquerdo">
         
                 <label class="titulos">Data Emissão NF</label>
                 <div class="filtros">

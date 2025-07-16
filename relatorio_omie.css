@@ -11,6 +11,24 @@
     gap: 5px;
 }
 
+.blocoEsquerdo {
+    margin: 1vw;
+    padding-right: 1vw;
+    height: 100vh;
+    border-right: 1px dashed #d2d2d2;
+}
+
+.relatorioDiv {
+    padding: 5px;
+    border-radius: 2px;
+    background-color: rgba(0, 0, 0, 0.219);
+    width: 100%;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    gap: 5px;
+}
+
 .blocoParcela label {
     cursor: pointer;
 }
