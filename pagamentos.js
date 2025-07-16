@@ -1396,41 +1396,37 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
 }
 
 async function salvar_anexos_pagamentos(input, id_pagamento) {
-    let anexos = await importarAnexos(input)
+    const anexos = await importarAnexos(input);
 
-    anexos.forEach(anexo => {
+    if (id_pagamento !== undefined) {
+        let pagamento = await recuperarDado('lista_pagamentos', id_pagamento);
 
-        if (id_pagamento !== undefined) {
+        if (!pagamento.anexos) pagamento.anexos = {};
 
-            if (!pagamento.anexos) {
-                pagamento.anexos = {}
-            }
+        anexos.forEach(anexo => {
+            pagamento.anexos[anexo.link] = anexo;
+            enviar(`lista_pagamentos/${id_pagamento}/anexos/${anexo.link}`, anexo);
+        });
 
-            pagamento.anexos[anexo.link] = anexo
-            enviar(`lista_pagamentos/${id_pagamento}/anexos/${anexo.link}`, anexo)
+        await inserirDados({ [id_pagamento]: pagamento }, 'lista_pagamentos');
+        await abrirDetalhesPagamentos(id_pagamento);
+    } else {
+        let ultimo_pagamento = JSON.parse(localStorage.getItem('ultimo_pagamento')) || {};
 
-        } else {
-            let ultimo_pagamento = JSON.parse(localStorage.getItem('ultimo_pagamento')) || {}
-            if (!ultimo_pagamento.anexos) {
-                ultimo_pagamento.anexos = {}
-            }
+        if (!ultimo_pagamento.anexos) ultimo_pagamento.anexos = {};
+
+        anexos.forEach(anexo => {
             ultimo_pagamento.anexos[anexo.link] = {
                 nome: anexo.nome,
                 formato: anexo.formato,
                 link: anexo.link
             };
-            localStorage.setItem('ultimo_pagamento', JSON.stringify(ultimo_pagamento))
-        }
-    })
+        });
 
-    if (id_pagamento !== undefined) {
-        let pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
-        await inserirDados({ [id_pagamento]: pagamento }, 'lista_pagamentos')
-        abrirDetalhesPagamentos(id_pagamento)
+        localStorage.setItem('ultimo_pagamento', JSON.stringify(ultimo_pagamento));
     }
 
-    await recuperarUltimoPagamento()
-
+    await recuperarUltimoPagamento();
 }
 
 async function atualizarFormaPagamento() {
