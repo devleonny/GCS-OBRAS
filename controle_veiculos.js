@@ -155,8 +155,7 @@ async function carregarTabela() {
             </td>
             <td>
                 <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-                    <img onclick="painelValores('${idCusto}')" src="imagens/editar.png" style="cursor: pointer; width: 1.5vw;">
-                    ${(acesso.permissao == 'adm' || acesso.usuario == custo.usuario) ? `<img onclick="painelExcluir('${idCusto}')" src="imagens/excluir.png" style="cursor: pointer; width: 1.5vw;">` : ''}
+                    <img src="imagens/pesquisar2.png" style="width: 1.5vw; cursor: pointer;" onclick="painelAtalhos('${idCusto}')">
                 </div>
             </td>
         </tr>
@@ -207,6 +206,21 @@ async function carregarTabela() {
     document.getElementById('tabelaRegistro').innerHTML = acumulado
 }
 
+
+async function painelAtalhos(idCusto) {
+
+    const custo = await recuperarDado('custo_veiculos', idCusto)
+
+    const acumulado = `
+    <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw;">
+        ${modeloBotoes('duplicar', 'Duplicar Pagamento', `painelValores('${idCusto}', true)`)}
+        ${modeloBotoes('editar', 'Editar Pagamento', `painelValores('${idCusto}')`)}
+        ${(acesso.permissao == 'adm' || acesso.usuario == custo.usuario) ? modeloBotoes('excluir', 'Excluir Pagamento', `painelExcluir('${idCusto}')`) : ''}
+    </div>
+    `
+    popup(acumulado, 'ATALHOS')
+}
+
 function pesquisarBotoes(input, modalidade) {
     const container = document.getElementById(modalidade);
     const termo = input.value.toLowerCase();
@@ -251,7 +265,7 @@ async function excluirCusto(idCusto) {
 
 }
 
-async function painelValores(idCusto) {
+async function painelValores(idCusto, duplicar) {
 
     await sincronizarDados('veiculos')
     await sincronizarDados('motoristas')
@@ -300,8 +314,8 @@ async function painelValores(idCusto) {
                 `)}
             
     `
+    let funcao = !idCusto ? `salvarValores()` : duplicar ? `salvarValores(false)` : `salvarValores('${idCusto}')`
 
-    let funcao = idCusto ? `salvarValores('${idCusto}')` : `salvarValores()`
     let acumulado = `
         <div class="paineis">
             ${campos}

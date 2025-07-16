@@ -69,6 +69,15 @@ const balaoPDF = (nf, info, codOmie, tipo, app) => {
     </div>
 `}
 
+const modeloBotoes = (imagem, nome, funcao) => {
+    return `
+    <div class="atalhos" onclick="${funcao}">
+        <img src="imagens/${imagem}.png" style="width: 3vw;">
+        <label style="cursor: pointer;">${nome}</label>
+    </div>
+    `
+}
+
 const logo = 'https://i.imgur.com/Nb8sPs0.png'
 const esquemas = {
     'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS'],

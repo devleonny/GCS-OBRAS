@@ -1011,16 +1011,6 @@ async function abrirAtalhos(id) {
     let analista = orcamento.dados_orcam.analista
     let emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     let botoesDisponiveis = ''
-
-    let modeloBotoes = (imagem, nome, funcao) => {
-        return `
-        <div style="cursor: pointer; display: flex; gap: 10px; align-items: center; justify-content: left;" onclick="${funcao}">
-            <img src="imagens/${imagem}.png" style="width: 3vw;">
-            <label style="cursor: pointer;">${nome}</label>
-        </div>
-        `
-    }
-
     let termoArquivar = 'Arquivar Orçamento'
     let iconeArquivar = 'pasta'
 
