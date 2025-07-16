@@ -34,8 +34,6 @@ async function recuperar_composicoes() {
         ...nuvem
     }
 
-    removerExcluidos(dadosMescladosComposicoes)
-
     await inserirDados(dadosMescladosComposicoes, 'dados_composicoes')
     await carregar_tabela_v2()
     removerPopup()
