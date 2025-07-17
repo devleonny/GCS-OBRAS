@@ -10,6 +10,19 @@ body {
     overflow: hidden;
 }
 
+.campos {
+    cursor: pointer;
+    padding: 5px;
+    width: 100%;
+    border: 1px solid #b1b1b1;
+    background-color: #b1b1b1;
+    border-radius: 2px;
+}
+
+.campos:hover {
+    border: 1px solid #797979;
+}
+
 .rodapeTabela {
     width: 100%;
     height: 2vh;

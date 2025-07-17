@@ -28,7 +28,7 @@ const metaforas = [
 ]
 
 const modelo = (valor1, valor2) => `
-        <div style="display: flex; flex-direction: column; align-items: start; margin-bottom: 5px; width: 100%;">
+        <div style="gap: 3px; display: flex; flex-direction: column; align-items: start; margin-bottom: 5px; width: 100%;">
             <label><strong>${valor1}</strong></label>
             <div style="width: 100%; text-align: left;">${valor2}</div>
         </div>

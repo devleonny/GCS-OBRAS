@@ -20,7 +20,7 @@ const menus = {
         imagem: 'megafone',
         paineis: [{
             nome: 'Painel',
-            funcao: 'carregar'
+            funcao: 'carregarOcorrencias()'
         },
         {
             nome: 'Lista de Ocorrências',
@@ -73,6 +73,10 @@ const menus = {
         {
             nome: 'Status de Correção',
             funcao: `carregarTabelasAuxiliares('correcoes')`
+        },        
+        {
+            nome: 'Tipos',
+            funcao: `carregarTabelasAuxiliares('tipos')`
         },
         ]
 
@@ -362,5 +366,81 @@ async function excluir(cod, tabela) {
 
     await carregarTabelasAuxiliares(tabela)
     removerOverlay()
+
+}
+
+carregarOcorrencias()
+
+async function carregarOcorrencias() {
+    removerMenus()
+    const dados_ocorrencias = await recuperarDados('dados_ocorrencias')
+
+    let acumulado = `
+    
+        <div style="${vertical};">
+            <div class="painelBotoes">
+                ${botao('Novo', 'formularioOcorrencia()')}
+                ${botao('Excluir', ``)}
+                ${botao('Baixa', ``)}
+                ${botao('Inativar', ``)}
+            </div>
+            <div style="width: 70vw; height: max-content; max-height: 60vh; overflow-y: auto;">
+
+            </div>
+            <div class="rodapeTabela"></div>
+        </div>
+    
+    `
+
+    painelCentral.innerHTML = acumulado
+
+}
+
+
+async function formularioOcorrencia() {
+
+    const unidades = await recuperarDados('unidades')
+    const sistemas = await recuperarDados('sistemas')
+    const prioridades = await recuperarDados('prioridades')
+    const correcoes = await recuperarDados('correcoes')
+    const tipos = await recuperarDados('tipos')
+
+    const opcoes = (base) => Object.entries(base)
+        .map(([cod, recorte]) => `<option>${recorte.nome}</option>`)
+        .join('')
+
+   const acumulado = `
+    <div style="${vertical}; background-color: #d2d2d2; padding: 2vw; ">
+        <div style="${horizontal}; align-items: start; gap: 2vw;">
+            <div style="${vertical}; gap: 5px;">
+                ${modelo('Unidade de Manutenção', '<label class="campos">Selecionar</label>')}
+                ${modelo('Sistema', '<label class="campos">Selecionar</label>')}
+                ${modelo('Prioridade', `<select class="campos">${opcoes(prioridades)}</select>`)}
+            </div>
+            <div style="${vertical}; gap: 5px;">
+                ${modelo('Tipo', `<select class="campos">${opcoes(tipos)}</select>`)}
+                ${modelo('Solicitante', `<label class="campos">${acesso.usuario}</label>`)}
+                ${modelo('Executor / Responsável', '<label class="campos">Selecionar</label>')}
+                ${modelo('Data / Hora', `<label class="campos">${new Date().toLocaleString('pt-BR')}</label>`)}
+                ${modelo('Descrição', '<textarea class="campos"></textarea>')}
+            </div>
+            <div style="${vertical}; gap: 5px;">
+                ${modelo('Data Limite para a Execução', '<input class="campos" type="date">')}
+                ${modelo('Anexos', '<label class="campos">Clique aqui</label>')}
+            </div>
+        </div>
+        <hr style="width: 100%;">
+
+        <label>CORREÇÕES</label>
+
+        <div></div>
+   </div>
+   <div style="${horizontal}; justify-content: start; background-color: #3b444c; padding: 5px; gap: 1vw;">
+        ${botao('Salvar')}
+        ${botao('Fechar')}
+   </div>
+   `
+
+   popup(acumulado, 'OCORRÊNCIA')
 
 }
