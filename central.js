@@ -78,6 +78,9 @@ const modeloBotoes = (imagem, nome, funcao) => {
     `
 }
 
+const nomeBaseCentral = 'GCS'
+const nomeStore = 'Bases'
+
 const logo = 'https://i.imgur.com/Nb8sPs0.png'
 const esquemas = {
     'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS'],
@@ -93,6 +96,57 @@ indexedDB.deleteDatabase('Bases')
 indexedDB.deleteDatabase('GCS v2')
 indexedDB.deleteDatabase('firebase-heartbeat-database')
 limparStores('Bases')
+despoluicaoGCS()
+
+
+async function despoluicaoGCS(resetar) {
+
+    const atualizado = resetar ? !resetar : JSON.parse(localStorage.getItem('atualizado')) || false
+
+    if (atualizado) return
+
+    overlayAguarde(true)
+
+    let divMensagem = document.getElementById('divMensagem')
+
+    divMensagem.innerHTML = `
+    <div style="${vertical}; gap: 1vh;">
+        <label>GCS: Por favor, aguarde...</label>
+        <br>
+        
+        <div id="logs" style="${vertical}; gap: 1vh;"></div>
+    </div>
+    `
+
+    let logs = document.getElementById('logs')
+
+    logs.insertAdjacentHTML('beforeend', '<label>Resetando bases de dados...</label>')
+    indexedDB.deleteDatabase('GCS')
+
+    logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
+
+    ativarCloneGCS(false)
+
+    let bases = ['dados_orcamentos', 'dados_composicoes', 'dados_clientes', 'dados_estoque', 'lista_pagamentos', 'dados_manutencao']
+
+    for (const base of bases) {
+        await sincronizarDados(base, true)
+        logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: ${base}</label>`)
+    }
+
+    ativarCloneGCS(true)
+
+    bases = ['dados_orcamentos', 'dados_composicoes', 'dados_clientes']
+
+    for (const base of bases) {
+        await sincronizarDados(base, true)
+        logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: ${base}</label>`)
+    }
+
+    localStorage.setItem('atualizado', true)
+    removerOverlay()
+
+}
 
 async function limparStores(storeParaManter) {
     const nomeBanco = 'GCS';
@@ -119,7 +173,6 @@ async function limparStores(storeParaManter) {
             for (const store of stores) {
                 if (store !== storeParaManter) {
                     db.deleteObjectStore(store);
-                    console.log(`Excluído: ${store}`);
                 }
             }
         };
@@ -134,6 +187,7 @@ async function limparStores(storeParaManter) {
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F5') f5()
     if (event.key === 'F2') f2()
+    if (event.ctrlKey && event.key === 'Delete') despoluicaoGCS(true)
 })
 
 async function f2() {
@@ -215,15 +269,15 @@ function carregarIcones() {
         ${atalho('Reembolsos', 'reembolso', `window.location.href='pagamentos.html'`)}
         ${atalho('Agenda', 'agenda', `window.location.href='agenda.html'`)}
         ${atalho('Veículos', 'veiculo', `window.location.href='controle_veiculos.html'`)}
-
         ${autorizadosPainelNotas(acesso) ? atalho('Faturamento NFs', 'relatorio', `window.location.href='relatorio_omie.html'`) : ''}
-        ${atalho('Ocorrências', 'megafone', `window.location.href='ocorrencias.html'`)}
+
     `
     //        ${atalho('RH', 'gerente', `window.location.href='rh.html'`)}
     if (modoClone) {
         icones = `
         ${atalho('Orçamentos', 'projeto', `window.location.href='orcamentos.html'`)}
         ${atalho('Composições', 'composicoes', `window.location.href='composicoes.html'`)}
+        ${acesso.permissao == 'adm' ? atalho('Ocorrências', 'megafone', `window.location.href='ocorrencias.html'`) : ''}
         `
     }
 
@@ -501,7 +555,7 @@ function removerOverlay() {
     if (aguarde) aguarde.remove()
 }
 
-function overlayAguarde() {
+function overlayAguarde(desabilitar) {
 
     let aguarde = document.getElementById('aguarde')
     if (aguarde) aguarde.remove()
@@ -535,15 +589,15 @@ function overlayAguarde() {
 
     document.getElementById('aguarde').style.height = `${pageHeight}px`;
 
-    setTimeout(() => {
-        let mensagem = document.getElementById('divMensagem')
+    if (!desabilitar) {
+        setTimeout(() => {
+            let mensagem = document.getElementById('divMensagem')
 
-        if (mensagem) mensagem.innerHTML = `
+            if (mensagem) mensagem.innerHTML = `
             <img src="gifs/atencao.gif" style="width: 3vw;">
             <label onclick="this.parentElement.parentElement.remove()" style="cursor: pointer; cursor: pointer;">Cancelar?</label>
-        `
-
-    }, 60 * 1000);
+        `}, 60 * 1000);
+    }
 
 }
 
@@ -573,9 +627,6 @@ async function reprocessar_offline() {
         }
     }
 }
-
-const nomeBaseCentral = 'GCS'
-const nomeStore = 'Bases'
 
 async function deletarDB(base, idInterno) {
 
