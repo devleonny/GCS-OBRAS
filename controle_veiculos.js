@@ -292,7 +292,7 @@ async function painelValores(idCusto, duplicar) {
         </option>`)
         .join('');
 
-    let categorias = ['Combustível', 'Pedágio', 'Multa', 'Mensalidade', 'Custos Extras']
+    let categorias = ['Combustível']
         .map(categoria => `<option ${custo?.categoria == categoria ? 'selected' : ''}>${categoria}</option>`)
         .join('')
 

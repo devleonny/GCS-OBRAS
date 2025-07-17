@@ -1,21 +1,14 @@
 let painelCentral = document.querySelector('.painelCentral')
 let filtrosOcorrencias = {}
 
-const btn = (imagem, termo) => `
-    <div class="btnLateral" onclick="opcoesPainel('${termo}')">
+const btn = (imagem, termo, link) => `
+    <div class="btnLateral" onclick="${link ? link : `opcoesPainel('${termo}')`}">
         <img src="imagens/${imagem}.png" style="width: 1.5vw;">
         <label>${termo}</label>
     </div>
 `
 
 const menus = {
-    'Início': {
-        imagem: 'LG',
-        paineis: [{
-            nome: 'Página Inicial GCS',
-            funcao: `window.location.href='inicial.html'`
-        }]
-    },
     'Dashboard': {
         imagem: 'relatorio',
         paineis: [{
@@ -27,7 +20,7 @@ const menus = {
         imagem: 'megafone',
         paineis: [{
             nome: 'Painel',
-            funcao: ''
+            funcao: 'carregar'
         },
         {
             nome: 'Lista de Ocorrências',
@@ -63,16 +56,25 @@ const menus = {
         imagem: 'gerente',
         paineis: [{
             nome: 'Unidades de Manutenção',
-            funcao: 'carregarUnidades()'
-        },
-        {
-            nome: 'Sistemas',
-            funcao: `carregarSistemas()`
+            funcao: `painelCadastro('dados_clientes', 'unidades', 'Clientes', 'Unidades')`
         },
         {
             nome: 'Equipamentos',
-            funcao: `carregarEquipamentos()`
-        }]
+            funcao: `painelCadastro('dados_composicoes', 'equipamentos', 'Composições', 'Equipamentos')`
+        },
+        {
+            nome: 'Sistemas',
+            funcao: `carregarTabelasAuxiliares('sistemas')`
+        },
+        {
+            nome: 'Prioridades de Correção',
+            funcao: `carregarTabelasAuxiliares('prioridades')`
+        },
+        {
+            nome: 'Status de Correção',
+            funcao: `carregarTabelasAuxiliares('correcoes')`
+        },
+        ]
 
     },
     'Configurações': {
@@ -84,11 +86,18 @@ const menus = {
     },
 }
 
+const esquemaCampos = {
+    dados_clientes: ['nome', 'cnpj', 'cidade'],
+    dados_composicoes: ['descricao', 'modelo', 'tipo']
+}
+
 botoesLaterais()
 
 function botoesLaterais() {
 
     let painelLateral = document.querySelector('.painelLateral')
+
+    painelLateral.insertAdjacentHTML('beforeend', btn('LG', 'Início', `window.location.href='inicial.html'`))
 
     for (const [termo, dados] of Object.entries(menus)) {
         painelLateral.insertAdjacentHTML('beforeend', btn(dados.imagem, termo))
@@ -120,199 +129,102 @@ function removerMenus() {
     if (painelCascata) painelCascata.remove()
 }
 
-async function carregarSistemas() {
+async function painelCadastro(nomeBaseReferencia, nomeBaseFinal, tituloReferencia, tituloFinal) {
 
     removerMenus()
-    await sincronizarDados('sistemas')
-
-    const sistemas = await recuperarDados('sistemas')
-
-    const linhas = Object.entries(sistemas)
-        .map(([cod, sistema]) => `
-        <tr>
-            <td>${sistema.nome}</td>
-            <td>
-                <div style="${horizontal};">
-                    <img onclick="editarSistema('${cod}')" src="imagens/pesquisar2.png" style="cursor: pointer; width: 1.5vw;">
-                </div>
-            </td>
-        </tr>
-        `).join('')
-
-    let acumulado = `
-        <div style="${vertical};">
-            <div class="painelBotoes">
-                ${botao('Novo', 'editarSistema()')}
-            </div>
-            <div style="height: 60vh; overflow-y: auto;">
-                <table class="tabela">
-                    <thead>
-                        <th>Nome</th>
-                        <th>Ações</th>
-                    </thead>
-
-                    <tbody>
-                        ${linhas}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    `
-
-    painelCentral.innerHTML = acumulado
-}
-
-async function editarSistema(cod) {
-
-    let sistema = {}
-
-    if (cod) {
-        const sistemas = await recuperarDados('sistemas')
-        sistema = sistemas[cod]
-    } else {
-        cod = ID5digitos()
-    }
+    const dadosReferencia = await recuperarDados(nomeBaseReferencia)
+    const dadosFinal = await recuperarDados(nomeBaseFinal)
 
     const acumulado = `
-        <div style="padding: 2vw; background-color: #d2d2d2;">
-            <div style="${horizontal}; gap: 5px;">
-                <textarea id="sistema" style="padding: 5px; border-radius: 2px;">${sistema?.nome || ''}</textarea>
-                ${botao('Salvar', `salvarSistema('${cod}')`, 'green')}
-            </div>
-            <hr style="width: 100%;">
-            ${acesso.permissao == 'adm' ? botao('Excluir sistema', `excluirSistema('${cod}')`) : ''}
-        </div>
+
+        ${tabelasHTML(dadosReferencia, tituloReferencia)}
+
+        <div style="border-right: 1px dashed #d2d2d2; margin: 1vw; height: 80vh;"></div>
+
+        ${tabelasHTML(dadosFinal, tituloFinal)}
+
     `
+    painelCentral.innerHTML = acumulado
 
-    popup(acumulado, 'Sistema', true)
-
-}
-
-async function salvarSistema(cod) {
-
-    overlayAguarde()
-    let sistemas = await recuperarDados('sistemas')
-    let sistema = sistemas[cod] || {}
-    const novoNome = document.getElementById('sistema')
-
-    if (novoNome) {
-        sistema.nome = novoNome.value
-        await inserirDados(sistemas, 'sistemas')
-        await enviar(`sistemas/${cod}`, sistema)
-    }
-
-    await carregarSistemas()
-    removerOverlay()
-}
-
-async function excluirSistema(cod) {
-
-    removerPopup()
-    overlayAguarde()
-
-    await deletarDB('sistemas', cod)
-    await deletar(`sistemas/${cod}`)
-
-    await carregarSistemas()
-
-    removerOverlay()
-
-}
-
-async function gerenciarUnidades() {
-
-    removerMenus()
-    const dados_clientes = await recuperarDados('dados_composicoes')
-    const equipamentos = await recuperarDados('equipamentos')
-
-    function tabelasHTML(base, chave) {
+    // Função que carrega os elementos
+    function tabelasHTML(base, tituloAtual) {
 
         let linhas = ''
 
-        if(!filtrosOcorrencias[chave]) filtrosOcorrencias[chave] = {}
+        if (!filtrosOcorrencias[tituloAtual]) filtrosOcorrencias[tituloAtual] = {}
 
-        Object.entries(base).forEach(([codigo, composicao]) =>
+        Object.entries(base).forEach(([cod, recorte]) => {
+
+            const labels = esquemaCampos[nomeBaseReferencia]
+                .map(campo => modelo(String(campo).toUpperCase(), recorte?.[campo] || '??'))
+                .join('')
 
             linhas += `
             <tr>
                 <td>
                     <div style="${horizontal}; justify-content: space-between; width: 100%;">
                         <div style="${vertical};">
-                            ${modelo('Descricao', composicao.descricao)}
-                            ${modelo('Fabricante', composicao.fabricante)}
-                            ${modelo('Modelo', composicao.modelo)}
-                            ${modelo('Tipo', composicao.tipo)}
+
+                            ${labels}
+
                         </div>
                         
                     </div>
                 </td>
                 <td style="text-align: center;">
-                    <input name="${chave}" id="${codigo}" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
+                    <input name="${tituloAtual}" id="${cod}" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
                 </td>
             </tr>`
-        )
+        })
 
-        return `<table class="tabela" style="display: table-row;">
-            <thead>
-                <tr>
-                    <th>
-                        <div style="${horizontal}; gap: 2px;">
-                            <label>Descrição</label>
-                        </div>
-                    </th>
-                    <th>
-                        <input type="checkbox" style="width: 1.5vw; height: 1.5vw;" onclick="marcarTodosVisiveis(this)">
-                        <label>Todos</label>
-                    </th>
-                </tr>
-                <tr>
-                    <th style="background-color: white;">
-                        <div style="display: flex; align-items: center; justify-content: center;">
-                            <input placeholder="Pesquise o Equipamento" oninput="pesquisar_generico(0, this.value, filtrosOcorrencias['${chave}'], 'body_${chave}')">
-                            <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
-                        </div>
-                    </th>
-                    <th style="background-color: white;"></th>
-                </tr>
-            </thead>
-            <tbody id="body_${chave}">${linhas}</tbody>
-        </table>`
+        return `
+        <div>
+            <label style="font-size: 2.0vw; color: white;">${tituloAtual} - ${Object.keys(base).length}</label>
+            <div class="painelBotoes">
+                ${botao('Mover', `gerenciar('${tituloAtual}', '${nomeBaseReferencia}', '${nomeBaseFinal}', '${tituloReferencia}', '${tituloFinal}')`)}
+            </div>
+            <div style="height: max-content; max-height: 70vh; overflow-y: auto;">
+                <table class="tabela" style="display: table-row;">
+                    <thead>
+                        <tr>
+                            <th>
+                                <div style="${horizontal}; gap: 2px;">
+                                    <label>Descrição</label>
+                                </div>
+                            </th>
+                            <th>
+                                <div style="${horizontal}; gap: 5px;">
+                                    <input type="checkbox" style="width: 1.5vw; height: 1.5vw;" onclick="marcarTodosVisiveis(this)">
+                                    <label>Todos</label>
+                                </div>
+                            </th>
+                        </tr>
+                        <tr>
+                            <th style="background-color: white;">
+                                <div style="display: flex; align-items: center; justify-content: center;">
+                                    <input placeholder="Pesquise o Equipamento" oninput="pesquisar_generico(0, this.value, filtrosOcorrencias['${tituloAtual}'], 'body_${tituloAtual}')">
+                                    <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                                </div>
+                            </th>
+                            <th style="background-color: white;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="body_${tituloAtual}">${linhas}</tbody>
+                </table>
+            </div>
+            <div class="rodapeTabela"></div>
+        </div>
+        `
     }
-
-    let acumulado = `
-        <div>
-            <label style="font-size: 2.0vw; color: white;">Equipamentos Disponíveis - ${Object.keys(dados_composicoes).length}</label>
-            <div class="painelBotoes">
-                ${botao('Importar', `gerenciarEquipamentos('Composicoes')`)}
-            </div>
-            <div style="height: 70vh; overflow-y: auto;">
-                ${tabelasHTML(dados_composicoes, 'Composições')}
-            </div>
-        </div>
-
-        <img src="imagens/direita.png" style="width: 3vw; margin: 1vw;">
-
-        <div>
-            <label style="font-size: 2.0vw; color: white;">Equipamentos Ativas - ${Object.keys(equipamentos).length}</label>
-            <div class="painelBotoes">
-                ${botao('Remover', `gerenciarEquipamentos('Equipamentos')`)}
-            </div>
-            <div style="height: 70vh; overflow-y: auto;">
-                ${tabelasHTML(equipamentos, 'Equipamentos')}
-            </div>
-        </div>
-    `
-
-    painelCentral.innerHTML = acumulado
 
 }
 
-async function gerenciarUnidades(base) {
+async function gerenciar(tituloAtual, nomeBaseReferencia, nomeBaseFinal, tituloReferencia, tituloFinal) {
 
     overlayAguarde()
 
-    const dados_clientes = await recuperarDados('dados_clientes')
-    let inputs = document.querySelectorAll(`[name="${base}"]`)
+    const dadosReferencia = await recuperarDados(nomeBaseReferencia)
+    let inputs = document.querySelectorAll(`[name="${tituloAtual}"]`)
 
     let dados = {}
 
@@ -320,21 +232,22 @@ async function gerenciarUnidades(base) {
 
         if (inputTab.checked) {
 
-            const idCliente = inputTab.id
+            const id = inputTab.id
 
-            if (base == 'Clientes') {
-                dados[idCliente] = dados_clientes[idCliente]
-            } else if (base == 'Unidades') {
-                await deletarDB('unidades', idCliente)
+            if (tituloAtual == tituloReferencia) {
+                dados[id] = dadosReferencia[id]
+
+            } else {
+                await deletarDB(nomeBaseFinal, id)
             }
 
         }
 
     }
 
-    if (base == 'Clientes') await inserirDados(dados, 'unidades')
+    if (tituloAtual == tituloReferencia) await inserirDados(dados, nomeBaseFinal)
 
-    await carregarUnidades()
+    await painelCadastro(nomeBaseReferencia, nomeBaseFinal, tituloReferencia, tituloFinal)
 
     removerOverlay()
 
@@ -355,141 +268,20 @@ function marcarTodosVisiveis(input) {
 
 }
 
-async function carregarEquipamentos() {
+async function carregarTabelasAuxiliares(nomeBaseAuxiliar) {
 
     removerMenus()
-    const dados_composicoes = await recuperarDados('dados_composicoes')
-    const equipamentos = await recuperarDados('equipamentos')
+    await sincronizarDados(nomeBaseAuxiliar)
 
-    function tabelasHTML(base, chave) {
+    const baseAuxiliar = await recuperarDados(nomeBaseAuxiliar)
 
-        let linhas = ''
-
-        if(!filtrosOcorrencias[chave]) filtrosOcorrencias[chave] = {}
-
-        Object.entries(base).forEach(([codigo, composicao]) =>
-
-            linhas += `
-            <tr>
-                <td>
-                    <div style="${horizontal}; justify-content: space-between; width: 100%;">
-                        <div style="${vertical};">
-                            ${modelo('Descricao', composicao.descricao)}
-                            ${modelo('Fabricante', composicao.fabricante)}
-                            ${modelo('Modelo', composicao.modelo)}
-                            ${modelo('Tipo', composicao.tipo)}
-                        </div>
-                        
-                    </div>
-                </td>
-                <td style="text-align: center;">
-                    <input name="${chave}" id="${codigo}" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
-                </td>
-            </tr>`
-        )
-
-        return `<table class="tabela" style="display: table-row;">
-            <thead>
-                <tr>
-                    <th>
-                        <div style="${horizontal}; gap: 2px;">
-                            <label>Descrição</label>
-                        </div>
-                    </th>
-                    <th>
-                        <input type="checkbox" style="width: 1.5vw; height: 1.5vw;" onclick="marcarTodosVisiveis(this)">
-                        <label>Todos</label>
-                    </th>
-                </tr>
-                <tr>
-                    <th style="background-color: white;">
-                        <div style="display: flex; align-items: center; justify-content: center;">
-                            <input placeholder="Pesquise o Equipamento" oninput="pesquisar_generico(0, this.value, filtrosOcorrencias['${chave}'], 'body_${chave}')">
-                            <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
-                        </div>
-                    </th>
-                    <th style="background-color: white;"></th>
-                </tr>
-            </thead>
-            <tbody id="body_${chave}">${linhas}</tbody>
-        </table>`
-    }
-
-    let acumulado = `
-        <div>
-            <label style="font-size: 2.0vw; color: white;">Equipamentos Disponíveis - ${Object.keys(dados_composicoes).length}</label>
-            <div class="painelBotoes">
-                ${botao('Importar', `gerenciarEquipamentos('Composicoes')`)}
-            </div>
-            <div style="height: 70vh; overflow-y: auto;">
-                ${tabelasHTML(dados_composicoes, 'Composições')}
-            </div>
-        </div>
-
-        <img src="imagens/direita.png" style="width: 3vw; margin: 1vw;">
-
-        <div>
-            <label style="font-size: 2.0vw; color: white;">Equipamentos Ativas - ${Object.keys(equipamentos).length}</label>
-            <div class="painelBotoes">
-                ${botao('Remover', `gerenciarEquipamentos('Equipamentos')`)}
-            </div>
-            <div style="height: 70vh; overflow-y: auto;">
-                ${tabelasHTML(equipamentos, 'Equipamentos')}
-            </div>
-        </div>
-    `
-
-    painelCentral.innerHTML = acumulado
-
-}
-
-async function gerenciarEquipamentos(base) {
-
-    overlayAguarde()
-
-    const dados_composicoes = await recuperarDados('dados_composicoes')
-    let inputs = document.querySelectorAll(`[name="${base}"]`)
-
-    let dados = {}
-
-    for (let inputTab of inputs) {
-
-        if (inputTab.checked) {
-
-            const codigo = inputTab.id
-
-            if (base == 'Composicoes') {
-                dados[codigo] = dados_composicoes[codigo]
-            } else if (base == 'Equipamentos') {
-                await deletarDB('equipamentos', codigo)
-            }
-
-        }
-
-    }
-
-    if (base == 'Composicoes') await inserirDados(dados, 'equipamentos')
-
-    await carregarEquipamentos()
-
-    removerOverlay()
-
-}
-
-async function carregarSistemas() {
-
-    removerMenus()
-    await sincronizarDados('sistemas')
-
-    const sistemas = await recuperarDados('sistemas')
-
-    const linhas = Object.entries(sistemas)
-        .map(([cod, sistema]) => `
+    const linhas = Object.entries(baseAuxiliar)
+        .map(([cod, recorte]) => `
         <tr>
-            <td>${sistema.nome}</td>
+            <td>${recorte.nome}</td>
             <td>
                 <div style="${horizontal};">
-                    <img onclick="editarSistema('${cod}')" src="imagens/pesquisar2.png" style="cursor: pointer; width: 1.5vw;">
+                    <img onclick="editar('${cod}', '${nomeBaseAuxiliar}')" src="imagens/pesquisar2.png" style="cursor: pointer; width: 1.5vw;">
                 </div>
             </td>
         </tr>
@@ -498,9 +290,9 @@ async function carregarSistemas() {
     let acumulado = `
         <div style="${vertical};">
             <div class="painelBotoes">
-                ${botao('Novo', 'editarSistema()')}
+                ${botao('Novo', `editar('${nomeBaseAuxiliar}')`)}
             </div>
-            <div style="height: 60vh; overflow-y: auto;">
+            <div style="height: max-content; max-height: 60vh; overflow-y: auto;">
                 <table class="tabela">
                     <thead>
                         <th>Nome</th>
@@ -512,8 +304,63 @@ async function carregarSistemas() {
                     </tbody>
                 </table>
             </div>
+            <div class="rodapeTabela"></div>
         </div>
     `
 
     painelCentral.innerHTML = acumulado
+}
+
+async function editar(cod, tabela) {
+
+    let dado = {}
+
+    if (cod) {
+        dado = await recuperarDado(cod, tabela)
+    } else {
+        cod = ID5digitos()
+    }
+
+    const acumulado = `
+        <div style="padding: 2vw; background-color: #d2d2d2;">
+            <div style="${horizontal}; gap: 5px;">
+                <textarea id="campo" style="padding: 5px; border-radius: 2px;">${dado?.nome || ''}</textarea>
+                ${botao('Salvar', `salvar('${cod}', '${tabela}')`, 'green')}
+            </div>
+            <hr style="width: 100%;">
+            ${acesso.permissao == 'adm' ? botao('Excluir', `excluir('${cod}', '${tabela}')`) : ''}
+        </div>
+    `
+
+    popup(acumulado, inicialMaiuscula(tabela), true)
+
+}
+
+async function salvar(cod, tabela) {
+
+    overlayAguarde()
+    let dado = await recuperarDado(cod, tabela) || {}
+    const novoNome = document.getElementById('campo')
+
+    if (novoNome) {
+        dado.nome = novoNome.value
+        await inserirDados(dado, tabela)
+        await enviar(`${tabela}/${cod}`, dado)
+    }
+
+    await carregarTabelasAuxiliares(tabela)
+    removerOverlay()
+}
+
+async function excluir(cod, tabela) {
+
+    removerPopup()
+    overlayAguarde()
+
+    await deletarDB(tabela, cod)
+    await deletar(`${tabela}/${cod}`)
+
+    await carregarTabelasAuxiliares(tabela)
+    removerOverlay()
+
 }
