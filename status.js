@@ -529,7 +529,7 @@ function abrirModalTipoRequisicao(btn) {
 
     const miniJanela = document.querySelector('.miniJanela')
 
-    if(miniJanela) miniJanela.remove()
+    if (miniJanela) miniJanela.remove()
 
     document.body.insertAdjacentHTML('beforeend', acumulado);
 }
@@ -927,6 +927,8 @@ async function salvar_requisicao(chave) {
     let novo_lancamento = {
         status: 'REQUISIÇÃO',
         data: data_atual('completa'),
+        transportadora: document.getElementById('transportadora').value,
+        volumes: document.getElementById('volumes').value,
         executor: acesso.usuario,
         comentario: document.getElementById("comentario_status").value,
         requisicoes: [],
@@ -981,14 +983,6 @@ async function salvar_requisicao(chave) {
     itens_adicionais = {}
     removerPopup()
     await abrirEsquema(id_orcam)
-}
-
-function botao_novo_pedido(id) {
-    return `
-    <div class="contorno_botoes" style="background-color: ${fluxogramaMesclado['PEDIDO']?.cor}" onclick="painelAdicionarPedido()">
-        <label>Novo <strong>Pedido </strong></label>
-    </div>
-`
 }
 
 async function abrirAtalhos(id) {
@@ -1291,7 +1285,7 @@ async function pagamentosVinculados(pagamentos) {
 
         let pagamento = await recuperarDado('lista_pagamentos', idPagamento)
 
-        if(!pagamento) continue
+        if (!pagamento) continue
 
         let categorias = pagamento.param[0].categorias
 
@@ -1394,6 +1388,8 @@ function elementosEspecificos(chave, historico) {
         funcaoEditar = `detalharRequisicao('${chave}')`
         acumulado = `
             ${labelDestaque('Total Requisição', historico.total_requisicao)}
+            ${historico.transportadora ? labelDestaque('Transportadora', historico.transportadora) : ''}
+            ${historico.volumes ? labelDestaque('Volumes', historico.volumes) : ''}
             <div onclick="detalharRequisicao('${chave}', undefined, true)" class="label_requisicao">
                 <img src="gifs/lampada.gif" style="width: 2vw;">
                 <div style="text-align: left; display: flex; flex-direction: column; align-items: start; justify-content: center; cursor: pointer;">
@@ -1424,12 +1420,14 @@ function elementosEspecificos(chave, historico) {
                 .join('');
             let estilo = `border-radius: 2px; font-size: 0.7vw; padding: 5px; cursor: pointer;`
             return `
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 5px; width: 100%;">
+            <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 5px;">
                 <label><strong>${titulo}:</strong></label>
-                ${campo == 'tipo'
-                    ? `<select style="${estilo}" onchange="atualizarPedido('${chave}', '${campo}', this)">${opcoes}</select>`
-                    : `<input style="${estilo}" value="${valor1}" oninput="mostrarConfirmacao(this)">`}
-                <img src="imagens/concluido.png" style="display: none; width: 1vw;" onclick="atualizarPedido('${chave}', '${campo}', this)">
+                <div style="${horizontal}; gap: 2px;">
+                    ${campo == 'tipo'
+                        ? `<select style="${estilo}" onchange="atualizarPedido('${chave}', '${campo}', this)">${opcoes}</select>`
+                        : `<input style="${estilo}" value="${valor1}" oninput="mostrarConfirmacao(this)">`}
+                    <img src="imagens/concluido.png" style="display: none; width: 1vw;" onclick="atualizarPedido('${chave}', '${campo}', this)">
+                </div>
             </div>
             `
         }
@@ -2040,21 +2038,18 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
 
     if (!chave) chave = ID5digitos()
 
-    let usuario = acesso.usuario
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const dados_clientes = await recuperarDados('dados_clientes') || {}
+    const cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
+    const cartao = orcamento?.status?.historico?.[chave] || {}
     let menu_flutuante = ''
 
     // Carrega os itens adicionais se existirem
     itens_adicionais = {}
     let comentarioExistente = ''
 
-    if (chave && orcamento.status && orcamento.status.historico && orcamento.status.historico[chave]) {
-        let cartao = orcamento.status.historico[chave]
-
-        if (apenas_visualizar) {
-            menu_flutuante = `
+    if (apenas_visualizar) {
+        menu_flutuante = `
             <div class="menu_flutuante" id="menu_flutuante">
                 <div class="icone" onclick="gerarpdf('${orcamento.dados_orcam.cliente_selecionado}', '${cartao.pedido}')">
                     <img src="imagens/pdf.png">
@@ -2062,20 +2057,11 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
                 </div>
             </div>
             `
-        }
-
-        if (cartao.adicionais) {
-            itens_adicionais = cartao.adicionais
-        }
-
-        if (cartao.comentario) {
-            comentarioExistente = cartao.comentario
-        }
-
-        if (cartao.requisicoes) {
-            requisicoesExistente = cartao.requisicoes
-        }
     }
+
+    if (cartao.adicionais) itens_adicionais = cartao.adicionais
+    if (cartao.comentario) comentarioExistente = cartao.comentario
+    if (cartao.requisicoes) requisicoesExistente = cartao.requisicoes
 
     let campos = ''
     let toolbar = ''
@@ -2093,13 +2079,16 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
             <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; font-size: 1.0em;">Dados da Requisição</div>
             <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
                 
-                <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-                    <label><strong>Data</strong> </label> <label id="data_status">${data_atual('completa')}</label>
-                </div>
+                ${modelo('Transportadora', `
+                <select id="transportadora" style="padding: 5px; border-radius: 2px;">
 
-                <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
-                    <label><strong>Executor</strong> </label> <label id="usuario_status">${usuario}</label>
-                </div>
+                ${['JAMEF', 'CORREIOS', 'JADLOG', 'OUTROS']
+                .map(op => `<option ${cartao?.transportadora == op ? 'selected' : ''}>${op}</option>`)
+                .join('')}
+                
+                </select>`)}
+
+                ${modelo('Volumes', `<input value="${cartao?.volumes || ''}" id="volumes" style="padding: 5px; border-radius: 2px;" type="number">`)}
 
                 <div style="display: flex; flex-direction: column; gap: 3px; align-items: start;">
                     <label><strong>Comentário</strong></label>
