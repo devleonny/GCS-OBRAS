@@ -10,6 +10,20 @@ body {
     min-height: 100vh;
 }
 
+.miniJanela {
+    display: flex;
+    justify-content: start;
+    align-items: start;
+    flex-direction: column;
+    padding: 3px;
+    border-radius: 2px;
+    background-color: #d2d2d2;
+    box-shadow: 0px 0px 3px #222;
+    gap: 5px;
+    position: fixed;
+    z-index: 10010;
+}
+
 .parcela {
     cursor: pointer;
     width: 100%;

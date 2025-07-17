@@ -517,32 +517,23 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
 
 }
 
-function abrirModalTipoRequisicao() {
-    let modal = `
-        <div style="text-align: center">
-            <button onclick="escolherTipoRequisicao('equipamentos')" style="
-                background-color: #4CAF50;
-                color: white;
-                padding: 10px 20px;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                margin-right: 10px;">
-            Requisição de Equipamentos
-            </button>
-            <button onclick="escolherTipoRequisicao('infraestrutura')" style="
-                background-color: #2196F3;
-                color: white;
-                padding: 10px 20px;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-            ">Requisição de Infraestrutura</button>
+function abrirModalTipoRequisicao(btn) {
+    const pos = btn.getBoundingClientRect();
+
+    const acumulado = `
+        <div onmouseleave="this.remove()" class="miniJanela" style="top: ${pos.bottom}px; left: ${pos.left}px;">
+            ${botao('Equipamentos', `escolherTipoRequisicao('equipamentos')`, '#4CAF50')}
+            ${botao('Infraestrutura', `escolherTipoRequisicao('infraestrutura')`, '#2196F3')}
         </div>
     `;
 
-    popup(modal, 'Escolha o tipo de Requisição', true);
+    const miniJanela = document.querySelector('.miniJanela')
+
+    if(miniJanela) miniJanela.remove()
+
+    document.body.insertAdjacentHTML('beforeend', acumulado);
 }
+
 
 function escolherTipoRequisicao(tipo) {
     fecharModalTipoRequisicao();
@@ -1631,7 +1622,7 @@ async function abrirEsquema(id) {
                 <div style="display: flex; gap: 10px; font-size: 0.9vw;">
                     
                     ${botao('Novo Pedido', `painelAdicionarPedido()`, '#4CAF50')}
-                    ${botao('Nova Requisição', `abrirModalTipoRequisicao()`, '#B12425')}
+                    ${botao('Nova Requisição', `abrirModalTipoRequisicao(this)`, '#B12425')}
                     ${botao('Nova Nota Fiscal', `painelAdicionarNotas()`, '#ff4500')}
 
                     ${(acesso.permissao == 'adm' || acesso.setor == 'LOGÍSTICA')

@@ -144,6 +144,7 @@ async function despoluicaoGCS(resetar) {
     }
 
     localStorage.setItem('atualizado', true)
+    window.location.href = 'inicial.html'
     removerOverlay()
 
 }
