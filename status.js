@@ -2116,6 +2116,9 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
         <label style="color: #222; text-align: left;"><strong>${valor1}</strong> ${valor2}</label>
     `
 
+    const colunas = ['Código', 'OMIE /Partnumber', 'Informações do Item', 'Tipo', 'Quantidade', 'Valor Unitário', 'Valor Total', 'Requisição']
+        .map(col => `<th>${col}</th>`).join('')
+
     let acumulado = `
     ${menu_flutuante}
 
@@ -2136,6 +2139,7 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
             <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; justify-content: start; align-items: start; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
 
                 ${modeloLabel('Cliente', cliente?.nome || '')}
+                ${modeloLabel('CNPJ', cliente?.cnpj || '')}
                 ${modeloLabel('Endereço', cliente?.bairro || '')}
                 ${modeloLabel('Cidade', cliente?.cidade || '')}
                 ${modeloLabel('Chamado', orcamento.dados_orcam.contrato)}
@@ -2160,16 +2164,8 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
     <div class="contorno">
         ${toolbar}
         <table class="tabela" id="tabela_requisicoes" style="width: 100%; font-size: 0.8em; table-layout: auto; border-radius: 0px;">
-            <thead>
-                <th style="text-align: center;">Código</th>
-                <th style="text-align: center;">OMIE / Partnumber</th>
-                <th style="text-align: center;">Informações do Item</th>                        
-                <th style="text-align: center;">Tipo</th>         
-                <th style="text-align: center;">Quantidade</th>
-                <th style="text-align: center;">Valor Unitário</th>     
-                <th style="text-align: center;">Valor Total</th>         
-                <th style="text-align: center;">Requisição</th>
-            </thead>
+            <thead>${colunas}</thead>
+            
             <tbody>
                 ${await carregar_itens(apenas_visualizar, tipoRequisicao, chave)}
             </tbody>

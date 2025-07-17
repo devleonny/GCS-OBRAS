@@ -370,7 +370,8 @@ body {
 }
 
 .atalhos:hover {
-    background-color: #b1b1b1;
+    color: white;
+    background-color: #323940;
 }
 
 .img_ag {
