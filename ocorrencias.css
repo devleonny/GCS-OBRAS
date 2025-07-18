@@ -15,12 +15,11 @@ input {
 }
 
 .blocoMaior {
+    height: 30vh;
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: start;
-    background-color: red;
-    padding-left: 5px;
     border-bottom: 1px solid #222;
 }
 
@@ -34,12 +33,14 @@ input {
 }
 
 .tabelaChamado {
+    height: 100%;
     background-color: white;
     width: 40vw;
     padding: 8px;
 }
 
 .tabelaChamado td {
+    padding: 3px;
     text-align: center;
 }
 

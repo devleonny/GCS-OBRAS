@@ -568,15 +568,6 @@ async function incluirItem(codigo, novaQuantidade) {
                 <input oninput="total()" type="number" class="campoValor">
             </td>
             <td>
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
-                    <select onchange="total()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
-                        <option>Porcentagem</option>
-                        <option>Dinheiro</option>
-                    </select>
-                    <input type="number" oninput="total()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;" value="${produto?.desconto || ''}">
-                </div>
-            </td>
-            <td>
                 <label></label>
             </td>
             <td style="text-align: center;">
