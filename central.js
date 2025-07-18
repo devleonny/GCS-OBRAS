@@ -325,7 +325,7 @@ async function identificacaoUser() {
     if (!acesso) return window.location.href = 'login.html'
 
     await sincronizarSetores()
-    acesso = dados_setores[acesso.usuario]
+    acesso = await recuperarDado('dados_setores', acesso.usuario)
 
     if (acesso.permissao == 'novo') {
         localStorage.removeItem('acesso')
@@ -376,7 +376,7 @@ async function identificacaoUser() {
 
 async function sincronizarSetores() {
 
-    dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
+    dados_setores = await recuperarDados('dados_setores')
     let timestamps = []
     for ([usuario, objeto] of Object.entries(dados_setores)) {
         if (objeto.timestamp) {
@@ -387,13 +387,7 @@ async function sincronizarSetores() {
     const maiorTimestamp = timestamps.length ? Math.max(...timestamps) : 0
     let nuvem = await lista_setores(maiorTimestamp)
 
-    let dadosMesclados = {
-        ...dados_setores,
-        ...nuvem
-    }
-
-    dados_setores = dadosMesclados
-    localStorage.setItem('dados_setores', JSON.stringify(dadosMesclados))
+    await inserirDados(nuvem, 'dados_setores')
 
 }
 
@@ -573,8 +567,7 @@ function overlayAguarde(desabilitar) {
                 left: 0;
                 width: 100%;
                 z-index: 10005;
-                font-size: 1.5em;
-                border-radius: 3px;">
+                font-size: 1.5em;">
         <div id="divMensagem" style="position: fixed; top: 1vw; left: 1vw; display: flex; align-items: center; justify-content: center; gap: 10px;">
             <img src="gifs/loading.gif" style="width: 5vw;">
             <label>Por favor, aguarde...</label>
@@ -1484,8 +1477,7 @@ function painelUsuarios(elementoOrigial) {
     if (divUsuarios) return divUsuarios.remove()
 
     let usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []
-    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
-
+    
     let stringUsuarios = {
         online: { linhas: '', quantidade: 0 },
         offline: { linhas: '', quantidade: 0 },

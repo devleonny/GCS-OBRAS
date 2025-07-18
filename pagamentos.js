@@ -937,8 +937,6 @@ async function atualizar_feedback(resposta, id_pagamento) {
     let permissao = acesso.permissao
     let setor = acesso.setor
     let status;
-
-    let dados_setores = JSON.parse(localStorage.getItem('dados_setores')) || {}
     let setorUsuarioPagamento = dados_setores?.[pagamento.criado]?.setor || ''
 
     let categorias = pagamento.param[0].categorias

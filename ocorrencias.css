@@ -10,6 +10,10 @@ body {
     overflow: hidden;
 }
 
+input {
+    font-size: 1.0vw;
+}
+
 .campos {
     cursor: pointer;
     padding: 5px;

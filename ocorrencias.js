@@ -73,7 +73,7 @@ const menus = {
         {
             nome: 'Status de Correção',
             funcao: `carregarTabelasAuxiliares('correcoes')`
-        },        
+        },
         {
             nome: 'Tipos',
             funcao: `carregarTabelasAuxiliares('tipos')`
@@ -92,7 +92,11 @@ const menus = {
 
 const esquemaCampos = {
     dados_clientes: ['nome', 'cnpj', 'cidade'],
-    dados_composicoes: ['descricao', 'modelo', 'tipo']
+    dados_composicoes: ['descricao', 'modelo', 'tipo'],
+    sistemas: ['nome'],
+    unidades: ['nome', 'cnpj', 'cidade'],
+    prioridades: ['nome'],
+    tipos: ['nome']
 }
 
 botoesLaterais()
@@ -405,42 +409,93 @@ async function formularioOcorrencia() {
     const correcoes = await recuperarDados('correcoes')
     const tipos = await recuperarDados('tipos')
 
-    const opcoes = (base) => Object.entries(base)
-        .map(([cod, recorte]) => `<option>${recorte.nome}</option>`)
-        .join('')
+    const labelBotao = (id, base) => `<label class="campos" id="${id}" onclick="caixaOpcoes('${id}', '${base}')">Selecionar</label>`
 
-   const acumulado = `
-    <div style="${vertical}; background-color: #d2d2d2; padding: 2vw; ">
-        <div style="${horizontal}; align-items: start; gap: 2vw;">
-            <div style="${vertical}; gap: 5px;">
-                ${modelo('Unidade de Manutenção', '<label class="campos">Selecionar</label>')}
-                ${modelo('Sistema', '<label class="campos">Selecionar</label>')}
-                ${modelo('Prioridade', `<select class="campos">${opcoes(prioridades)}</select>`)}
+    const acumulado = `
+        <div style="${vertical}; background-color: #d2d2d2; padding: 2vw; ">
+            <div style="${horizontal}; align-items: start; gap: 2vw;">
+                <div style="${vertical}; gap: 5px;">
+                    ${modelo('Unidade de Manutenção', labelBotao('unidade', 'unidades'))}
+                    ${modelo('Sistema', labelBotao('sistema', 'sistemas'))}
+                    ${modelo('Prioridade', labelBotao('prioridade', 'prioridades'))}
+                </div>
+                <div style="${vertical}; gap: 5px;">
+                    ${modelo('Tipo', labelBotao('tipo', 'tipos'))}
+                    ${modelo('Solicitante', `<label class="campos">${acesso.usuario}</label>`)}
+                    ${modelo('Executor / Responsável', labelBotao('executor', 'dados_setores'))}
+                    ${modelo('Data / Hora', `<label class="campos">${new Date().toLocaleString('pt-BR')}</label>`)}
+                    ${modelo('Descrição', '<textarea id="descricao" class="campos"></textarea>')}
+                </div>
+                <div style="${vertical}; gap: 5px;">
+                    ${modelo('Data Limite para a Execução', '<input class="campos" type="date">')}
+                    ${modelo('Anexos', '<label class="campos">Clique aqui</label>')}
+                </div>
             </div>
-            <div style="${vertical}; gap: 5px;">
-                ${modelo('Tipo', `<select class="campos">${opcoes(tipos)}</select>`)}
-                ${modelo('Solicitante', `<label class="campos">${acesso.usuario}</label>`)}
-                ${modelo('Executor / Responsável', '<label class="campos">Selecionar</label>')}
-                ${modelo('Data / Hora', `<label class="campos">${new Date().toLocaleString('pt-BR')}</label>`)}
-                ${modelo('Descrição', '<textarea class="campos"></textarea>')}
-            </div>
-            <div style="${vertical}; gap: 5px;">
-                ${modelo('Data Limite para a Execução', '<input class="campos" type="date">')}
-                ${modelo('Anexos', '<label class="campos">Clique aqui</label>')}
-            </div>
+            <hr style="width: 100%;">
+
+            <label>CORREÇÕES</label>
+
+            <div></div>
         </div>
-        <hr style="width: 100%;">
-
-        <label>CORREÇÕES</label>
-
-        <div></div>
-   </div>
-   <div style="${horizontal}; justify-content: start; background-color: #3b444c; padding: 5px; gap: 1vw;">
-        ${botao('Salvar')}
-        ${botao('Fechar')}
-   </div>
+        <div style="${horizontal}; justify-content: start; background-color: #a0a0a0ff; padding: 5px; gap: 1vw;">
+                ${botao('Salvar')}
+        </div>
    `
 
-   popup(acumulado, 'OCORRÊNCIA')
+    popup(acumulado, 'OCORRÊNCIA')
+
+}
+
+async function caixaOpcoes(id, nomeBase) {
+
+    const base = await recuperarDados(nomeBase)
+    let opcoesDiv = ''
+
+    for ([cod, dado] of Object.entries(base)) {
+
+        const labels = esquemaCampos[nomeBase]
+            .map(campo => `<label>${dado[campo]}</label>`)
+            .join('')
+
+        opcoesDiv += `
+            <div class="atalhos" onclick="selecionar('${id}', '${dado[esquemaCampos[nomeBase][0]]}')" style="${vertical}; gap: 2px; max-width: 40vw;">
+                ${labels}
+            </div>`
+    }
+
+    const acumulado = `
+        <div style="${horizontal}; background-color: white;">
+            <input oninput="pesquisar(this)" placeholder="Pesquisar itens" style="width: 100%;">
+            <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+        </div>
+        <div id="camposOpcoes" style="padding: 1vw; gap: 5px; ${vertical}; background-color: #d2d2d2; width: 30vw; max-height: 40vh; height: max-content; overflow-y: auto; overflow-x: hidden;">
+            ${opcoesDiv}
+        </div>
+    `
+
+    popup(acumulado, 'Selecione o item', true)
+
+}
+
+function selecionar(idLabel, termo) {
+    document.getElementById(idLabel).textContent = termo
+    removerPopup()
+}
+
+function pesquisar(input) {
+
+    const termoPesquisa = String(input.value).toLowerCase()
+
+    const camposOpcoes = document.getElementById('camposOpcoes')
+
+    const divs = camposOpcoes.querySelectorAll('div')
+
+    for (const div of divs) {
+
+        const termoDiv = String(div.textContent).toLocaleLowerCase()
+
+        div.style.display = (termoDiv.includes(termoPesquisa) || termoPesquisa == '') ? '' : 'none'
+
+    }
 
 }
