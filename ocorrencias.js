@@ -96,7 +96,8 @@ const esquemaCampos = {
     sistemas: ['nome'],
     unidades: ['nome', 'cnpj', 'cidade'],
     prioridades: ['nome'],
-    tipos: ['nome']
+    tipos: ['nome'],
+    dados_setores: ['usuario']
 }
 
 botoesLaterais()
