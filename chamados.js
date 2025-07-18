@@ -111,7 +111,7 @@ function filtrar_manutencoes(ultimo_status, col, texto) {
             border-top-right-radius: 5px;
             ">
 
-            <label>${inicial_maiuscula(st)}</label>
+            <label>${inicialMaiuscula(st)}</label>
             <label style="text-align: center; background-color: ${bg2}; color: #d2d2d2; border-radius: 3px; padding-left: 10px; padding-right: 10px; width: 50%;">${contadores[st]}</label>
 
         </div>

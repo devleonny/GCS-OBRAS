@@ -49,7 +49,7 @@ async function carregarRegistros() {
     for (base in bases) {
         toolbar += `
             <div ${base === 'Todos' ? `style="background-color: #d2d2d2;"`: ''} class="divToolbar" onclick="filtrarRegistros('${base}', this)">
-                <label>${inicial_maiuscula(String(base).replace('_', ' '))}</label>
+                <label>${inicialMaiuscula(String(base).replace('_', ' '))}</label>
             </div>
 
         `

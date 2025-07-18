@@ -14,6 +14,16 @@ input {
     font-size: 1.0vw;
 }
 
+.blocoMaior {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    background-color: red;
+    padding-left: 5px;
+    border-bottom: 1px solid #222;
+}
+
 .campos {
     cursor: pointer;
     padding: 5px;
@@ -21,6 +31,16 @@ input {
     border: 1px solid #b1b1b1;
     background-color: #b1b1b1;
     border-radius: 2px;
+}
+
+.tabelaChamado {
+    background-color: white;
+    width: 40vw;
+    padding: 8px;
+}
+
+.tabelaChamado td {
+    text-align: center;
 }
 
 .campos:hover {

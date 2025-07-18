@@ -87,7 +87,7 @@ async function carregar_tabela_v2() {
     let tsc = {};
 
     cabecalhos.forEach(cab => {
-        ths[cab] = `<th style="position: relative; cursor: pointer; text-align: left;">${inicial_maiuscula(cab)}</th>`
+        ths[cab] = `<th style="position: relative; cursor: pointer; text-align: left;">${inicialMaiuscula(cab)}</th>`
         tsc[cab] = `
             <th style="background-color: white;">
                 <div style="display: flex; align-items: center; justify-content: center;">
@@ -300,7 +300,7 @@ async function abrirFiltros() {
     cabecalhos.forEach(cabecalho => {
         opcoes += `
         <label>
-            <input type="checkbox" value="${cabecalho}" ${colunas.includes(cabecalho) ? 'checked' : ''}> ${inicial_maiuscula(cabecalho)}
+            <input type="checkbox" value="${cabecalho}" ${colunas.includes(cabecalho) ? 'checked' : ''}> ${inicialMaiuscula(cabecalho)}
         </label>
         `
     })

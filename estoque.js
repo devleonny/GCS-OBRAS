@@ -44,7 +44,7 @@ async function carregar_estoque() {
     colunas.forEach((col, i) => {
 
         let indice_correto = i + 1
-        let coluna = inicial_maiuscula(col)
+        let coluna = inicialMaiuscula(col)
         thc += `
             <th style="cursor: pointer; position: relative;">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 2vw;">

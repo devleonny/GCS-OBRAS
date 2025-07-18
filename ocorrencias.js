@@ -211,7 +211,7 @@ async function painelCadastro(nomeBaseReferencia, nomeBaseFinal, tituloReferenci
                         <tr>
                             <th style="background-color: white;">
                                 <div style="display: flex; align-items: center; justify-content: center;">
-                                    <input placeholder="Pesquise o Equipamento" oninput="pesquisar_generico(0, this.value, filtrosOcorrencias['${tituloAtual}'], 'body_${tituloAtual}')">
+                                    <input placeholder="Pesquisar" oninput="pesquisar_generico(0, this.value, filtrosOcorrencias['${tituloAtual}'], 'body_${tituloAtual}')">
                                     <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
                                 </div>
                             </th>
@@ -376,9 +376,92 @@ async function excluir(cod, tabela) {
 
 carregarOcorrencias()
 
+function dtAuxOcorrencia(dt) {
+
+    if (!dt) return '--'
+
+    const [ano, mes, dia] = dt.split('-')
+
+    return `${dia}/${mes}/${ano}`
+}
+
 async function carregarOcorrencias() {
     removerMenus()
     const dados_ocorrencias = await recuperarDados('dados_ocorrencias')
+    const sistemas = await recuperarDados('sistemas')
+    const tipos = await recuperarDados('tipos')
+    const prioridades = await recuperarDados('prioridades')
+    const unidades = await recuperarDados('unidades')
+
+    const bgs = {
+        'Não analisada': 'red',
+        'Agendada': 'orange',
+        'Solucionada': 'green'
+    }
+
+    let tabelas = ''
+
+    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) {
+
+        const status = ocorrencia?.analise || 'Não analisada'
+
+        tabelas += `
+        <div class="blocoMaior" style="background-color: ${bgs[status]};">
+            <table class="tabelaChamado">
+                <tbody>
+
+                    <tr>
+                        <td>${status}</td>
+                        <td style="text-align: left;">${ocorrencia?.dataRegistro || ''}</td>
+                        <td style="text-align: left;">${ocorrencia?.executor || ''}</td>
+                        <td>
+                            <div style="${vertical}; align-items: center;">
+                                <label style="text-align: center;">Dt Limt Exec</label> 
+                                </label>${dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao)}</label>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>
+                            <label style="text-decoration: underline; cursor: pointer;" onclick="formularioOcorrencia('${idOcorrencia}')">Nº ${idOcorrencia}</label>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Tipo</td>
+                        <td style="text-align: left;">${tipos?.[ocorrencia?.tipo]?.nome || '...'}</td>
+                    </tr>
+
+                    <tr>
+                        <td>Unidade de Manutenção</td>
+                        <td colspan="2" style="text-align: left;">${unidades?.[ocorrencia?.unidade]?.nome || '...'}</td>
+                        <td style="${horizontal}; justify-content: right;">${botao('Incluir Correção')}</td>
+                    </tr>
+
+                    <tr>
+                        <td>Sistema</td>
+                        <td style="text-align: left;">${sistemas?.[ocorrencia?.sistema]?.nome || '...'}</td>
+                    </tr>
+                    
+                    <tr>
+                        <td>Prioridade</td>
+                        <td colspan="2" style="text-align: left;">${prioridades?.[ocorrencia?.prioridade]?.nome || '...'}</td>
+                    </tr>   
+                    
+                    <tr>
+                        <td>Descrição</td>
+                        <td colspan="3" style="text-align: left;">${ocorrencia?.descricao || '...'}</td>
+                    </tr>                      
+                
+                </tbody>
+            </table>
+            
+            <img src="imagens/LG.png" style="width: 5vw;">
+            
+        </div>
+        `
+    }
 
     let acumulado = `
     
@@ -389,9 +472,15 @@ async function carregarOcorrencias() {
                 ${botao('Baixa', ``)}
                 ${botao('Inativar', ``)}
             </div>
-            <div style="width: 70vw; height: max-content; max-height: 60vh; overflow-y: auto;">
+
+            <div style="${horizontal};">
+
+                <div style="width: 70vw; height: max-content; overflow-y: auto; overflow-x: hidden;">
+                    ${tabelas}
+                </div>
 
             </div>
+
             <div class="rodapeTabela"></div>
         </div>
     
@@ -401,34 +490,44 @@ async function carregarOcorrencias() {
 
 }
 
+async function formularioOcorrencia(idOcorrencia) {
 
-async function formularioOcorrencia() {
+    const ocorrencia = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : {}
 
+    const dados_setores = await recuperarDados('dados_setores')
     const unidades = await recuperarDados('unidades')
     const sistemas = await recuperarDados('sistemas')
     const prioridades = await recuperarDados('prioridades')
     const correcoes = await recuperarDados('correcoes')
     const tipos = await recuperarDados('tipos')
+    const funcao = idOcorrencia ? `salvarOcorrencia('${idOcorrencia}')` : 'salvarOcorrencia()'
 
-    const labelBotao = (id, base) => `<label class="campos" id="${id}" onclick="caixaOpcoes('${id}', '${base}')">Selecionar</label>`
+    const labelBotao = (chave, nomebase, base) => {
+
+        const id = ocorrencia?.[chave] || undefined
+
+        const possivelValor = base[id]?.nome || base[id]?.usuario || 'Selecionar'
+
+        return `<label class="campos" name="${chave}" ${id ? `id="${id}"` : ''} onclick="caixaOpcoes('${chave}', '${nomebase}')">${possivelValor}</label>`
+    }
 
     const acumulado = `
         <div style="${vertical}; background-color: #d2d2d2; padding: 2vw; ">
             <div style="${horizontal}; align-items: start; gap: 2vw;">
                 <div style="${vertical}; gap: 5px;">
-                    ${modelo('Unidade de Manutenção', labelBotao('unidade', 'unidades'))}
-                    ${modelo('Sistema', labelBotao('sistema', 'sistemas'))}
-                    ${modelo('Prioridade', labelBotao('prioridade', 'prioridades'))}
+                    ${modelo('Unidade de Manutenção', labelBotao('unidade', 'unidades', unidades))}
+                    ${modelo('Sistema', labelBotao('sistema', 'sistemas', sistemas))}
+                    ${modelo('Prioridade', labelBotao('prioridade', 'prioridades', prioridades))}
                 </div>
                 <div style="${vertical}; gap: 5px;">
-                    ${modelo('Tipo', labelBotao('tipo', 'tipos'))}
+                    ${modelo('Tipo', labelBotao('tipo', 'tipos', tipos))}
                     ${modelo('Solicitante', `<label class="campos">${acesso.usuario}</label>`)}
-                    ${modelo('Executor / Responsável', labelBotao('executor', 'dados_setores'))}
+                    ${modelo('Executor / Responsável', labelBotao('executor', 'dados_setores', dados_setores))}
                     ${modelo('Data / Hora', `<label class="campos">${new Date().toLocaleString('pt-BR')}</label>`)}
-                    ${modelo('Descrição', '<textarea id="descricao" class="campos"></textarea>')}
+                    ${modelo('Descrição', `<textarea name="descricao" class="campos">${ocorrencia?.descricao || ''}</textarea>`)}
                 </div>
                 <div style="${vertical}; gap: 5px;">
-                    ${modelo('Data Limite para a Execução', '<input class="campos" type="date">')}
+                    ${modelo('Data Limite para a Execução', `<input name="dataLimiteExecucao" class="campos" type="date" value="${ocorrencia?.dataLimiteExecucao || ''}">`)}
                     ${modelo('Anexos', '<label class="campos">Clique aqui</label>')}
                 </div>
             </div>
@@ -439,7 +538,7 @@ async function formularioOcorrencia() {
             <div></div>
         </div>
         <div style="${horizontal}; justify-content: start; background-color: #a0a0a0ff; padding: 5px; gap: 1vw;">
-                ${botao('Salvar')}
+                ${botao('Salvar', funcao)}
         </div>
    `
 
@@ -447,7 +546,44 @@ async function formularioOcorrencia() {
 
 }
 
-async function caixaOpcoes(id, nomeBase) {
+async function salvarOcorrencia(idOcorrencia) {
+
+    overlayAguarde()
+
+    function obter(name, propriedade) {
+        const elemento = document.querySelector(`[name=${name}]`)
+        return elemento[propriedade] ? elemento[propriedade] : false
+    }
+
+    const campos = ['unidade', 'sistema', 'prioridade', 'tipo', 'executor']
+    let ocorrencia = {}
+
+    for (const campo of campos) {
+        const resultado = obter(campo, 'id')
+
+        if (!resultado) return popup(mensagem(`Preencha o campo ${inicialMaiuscula(campo)}`), 'ALERTA', true)
+
+        ocorrencia[campo] = resultado
+    }
+
+    ocorrencia.dataRegistro = new Date().toLocaleString('pt-BR')
+    ocorrencia.dataLimiteExecucao = obter('dataLimiteExecucao', 'value')
+    ocorrencia.descricao = obter('descricao', 'value')
+
+    if (idOcorrencia) {
+        await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
+        await enviar(`dados_ocorrencias/${idOcorrencia}`, ocorrencia)
+    } else {
+        await enviar('dados_ocorrencias/0000', ocorrencia)
+        await sincronizarDados('dados_ocorrencias')
+    }
+
+    await carregarOcorrencias()
+
+    removerPopup()
+}
+
+async function caixaOpcoes(name, nomeBase) {
 
     const base = await recuperarDados(nomeBase)
     let opcoesDiv = ''
@@ -459,7 +595,7 @@ async function caixaOpcoes(id, nomeBase) {
             .join('')
 
         opcoesDiv += `
-            <div class="atalhos" onclick="selecionar('${id}', '${dado[esquemaCampos[nomeBase][0]]}')" style="${vertical}; gap: 2px; max-width: 40vw;">
+            <div class="atalhos" onclick="selecionar('${name}', '${cod}', '${dado[esquemaCampos[nomeBase][0]]}')" style="${vertical}; gap: 2px; max-width: 40vw;">
                 ${labels}
             </div>`
     }
@@ -478,8 +614,10 @@ async function caixaOpcoes(id, nomeBase) {
 
 }
 
-function selecionar(idLabel, termo) {
-    document.getElementById(idLabel).textContent = termo
+function selecionar(name, id, termo) {
+    const elemento = document.querySelector(`[name=${name}]`)
+    elemento.textContent = termo
+    elemento.id = id
     removerPopup()
 }
 

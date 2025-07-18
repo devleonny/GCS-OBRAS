@@ -535,7 +535,7 @@ function deslogarUsuario() {
         `, 'Aviso')
 }
 
-function inicial_maiuscula(string) {
+function inicialMaiuscula(string) {
     if (string == undefined) {
         return ''
     }
