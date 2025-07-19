@@ -15,12 +15,29 @@ input {
 }
 
 .blocoMaior {
-    height: 30vh;
-    width: 100%;
     display: flex;
     align-items: center;
     justify-content: start;
     border-bottom: 1px solid #222;
+}
+
+.divsListagem {
+    font-size: 1.0vw;
+    border-bottom: 1px solid #222;
+    padding: 5px;
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    background-color: #e6e6e6;
+}
+
+.blocosIrmaos {
+    width: 50%;
+    flex-direction: column;
+    border-right: 1px solid #222;
+    display: flex;
+    align-items: center;
+    justify-content: start;
 }
 
 .campos {
@@ -33,13 +50,14 @@ input {
 }
 
 .tabelaChamado {
+    width: 100%;
     height: 100%;
     background-color: white;
-    width: 40vw;
     padding: 8px;
 }
 
 .tabelaChamado td {
+    font-size: 1.0vw;
     padding: 3px;
     text-align: center;
 }

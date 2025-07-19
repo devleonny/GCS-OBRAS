@@ -12,7 +12,7 @@ const menus = {
     'Dashboard': {
         imagem: 'relatorio',
         paineis: [{
-            nome: '',
+            nome: 'Não disponível',
             funcao: ''
         }]
     },
@@ -34,21 +34,7 @@ const menus = {
     'Relatórios': {
         imagem: 'prancheta',
         paineis: [{
-            nome: '',
-            funcao: ''
-        }]
-    },
-    'Materiais': {
-        imagem: 'estoque',
-        paineis: [{
-            nome: '',
-            funcao: ''
-        }]
-    },
-    'Documentos': {
-        imagem: 'duplicar',
-        paineis: [{
-            nome: '',
+            nome: 'Não disponível',
             funcao: ''
         }]
     },
@@ -84,7 +70,7 @@ const menus = {
     'Configurações': {
         imagem: 'ajustar',
         paineis: [{
-            nome: '',
+            nome: 'Não disponível',
             funcao: ''
         }]
     },
@@ -102,6 +88,8 @@ const esquemaCampos = {
 }
 
 botoesLaterais()
+//carregarOcorrencias()
+painelCadastro('dados_composicoes', 'equipamentos', 'Composições', 'Equipamentos')
 
 function botoesLaterais() {
 
@@ -146,12 +134,14 @@ async function painelCadastro(nomeBaseReferencia, nomeBaseFinal, tituloReferenci
     const dadosFinal = await recuperarDados(nomeBaseFinal)
 
     const acumulado = `
+        <div style="${horizontal}; width: 85vw;">
+            ${tabelasHTML(dadosReferencia, tituloReferencia)}
 
-        ${tabelasHTML(dadosReferencia, tituloReferencia)}
+            <div style="border-right: 1px dashed #d2d2d2; margin: 1vw; height: 80vh;"></div>
 
-        <div style="border-right: 1px dashed #d2d2d2; margin: 1vw; height: 80vh;"></div>
+            ${tabelasHTML(dadosFinal, tituloFinal)}
 
-        ${tabelasHTML(dadosFinal, tituloFinal)}
+        </div>
 
     `
     painelCentral.innerHTML = acumulado
@@ -170,57 +160,33 @@ async function painelCadastro(nomeBaseReferencia, nomeBaseFinal, tituloReferenci
                 .join('')
 
             linhas += `
-            <tr>
-                <td>
-                    <div style="${horizontal}; justify-content: space-between; width: 100%;">
-                        <div style="${vertical};">
+            <div name="camposOpcoes_${tituloAtual}" class="divsListagem">
+                <input name="${tituloAtual}" id="${cod}" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
+                <div style="${vertical};">
 
-                            ${labels}
+                    ${labels}
 
-                        </div>
-                        
-                    </div>
-                </td>
-                <td style="text-align: center;">
-                    <input name="${tituloAtual}" id="${cod}" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
-                </td>
-            </tr>`
+                </div>
+            </div>`
         })
 
         return `
-        <div>
+        <div style="width: 50%;">
             <label style="font-size: 2.0vw; color: white;">${tituloAtual} - ${Object.keys(base).length}</label>
-            <div class="painelBotoes">
+            <div class="painelBotoes" style="justify-content: start; align-items: center; gap: 1vw;">
+                <div style="${horizontal}; gap: 5px;">
+                    <input type="checkbox" style="width: 1.5vw; height: 1.5vw;" onclick="marcarTodosVisiveis(this, '${tituloAtual}')">
+                    <label>Todos</label>
+                </div>
+                <div style="${horizontal}; background-color: white; border-radius: 5px; padding-left: 1vw; padding-right: 1vw;">
+                    <input oninput="pesquisar(this, '${tituloAtual}')" placeholder="Pesquisar" style="width: 100%;">
+                    <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                </div>
                 ${botao('Mover', `gerenciar('${tituloAtual}', '${nomeBaseReferencia}', '${nomeBaseFinal}', '${tituloReferencia}', '${tituloFinal}')`)}
             </div>
-            <div style="height: max-content; max-height: 70vh; overflow-y: auto;">
-                <table class="tabela" style="display: table-row;">
-                    <thead>
-                        <tr>
-                            <th>
-                                <div style="${horizontal}; gap: 2px;">
-                                    <label>Descrição</label>
-                                </div>
-                            </th>
-                            <th>
-                                <div style="${horizontal}; gap: 5px;">
-                                    <input type="checkbox" style="width: 1.5vw; height: 1.5vw;" onclick="marcarTodosVisiveis(this)">
-                                    <label>Todos</label>
-                                </div>
-                            </th>
-                        </tr>
-                        <tr>
-                            <th style="background-color: white;">
-                                <div style="display: flex; align-items: center; justify-content: center;">
-                                    <input placeholder="Pesquisar" oninput="pesquisar_generico(0, this.value, filtrosOcorrencias['${tituloAtual}'], 'body_${tituloAtual}')">
-                                    <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
-                                </div>
-                            </th>
-                            <th style="background-color: white;"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="body_${tituloAtual}">${linhas}</tbody>
-                </table>
+
+            <div style="width: 100%; height: max-content; max-height: 65vh; overflow-y: auto; overflow-x: hidden;">
+                ${linhas}
             </div>
             <div class="rodapeTabela"></div>
         </div>
@@ -263,15 +229,16 @@ async function gerenciar(tituloAtual, nomeBaseReferencia, nomeBaseFinal, tituloR
 
 }
 
-function marcarTodosVisiveis(input) {
+function marcarTodosVisiveis(input, tituloAtual) {
 
-    let tabela = input.closest('table')
+    let inputs = document.querySelectorAll(`[name='${tituloAtual}']`)
+    console.log(input, tituloAtual);
+    
+    let camposOpcoes = document.querySelectorAll(`[name=camposOpcoes_${tituloAtual}']`)
 
-    let inputs = tabela.querySelectorAll('input')
+    inputs.forEach((inputTab, i) => {
 
-    inputs.forEach(inputTab => {
-
-        const marcar = inputTab.closest('tr').style.display !== 'none'
+        const marcar = camposOpcoes[i].style.display !== 'none'
         if (marcar) inputTab.checked = input.checked
 
     })
@@ -375,8 +342,6 @@ async function excluir(cod, tabela) {
 
 }
 
-carregarOcorrencias()
-
 function dtAuxOcorrencia(dt) {
 
     if (!dt) return '--'
@@ -387,17 +352,23 @@ function dtAuxOcorrencia(dt) {
 }
 
 function ir(img, acao, idOcorrencia) {
-    const divMaior = img.parentElement.parentElement
-    const tabelas = divMaior.querySelectorAll('table')
+    const divMaior = img.closest('div')?.parentElement
+    const tabelas = divMaior?.querySelectorAll('table') || []
     const paginaAtual = document.getElementById(idOcorrencia)
-    const numberPaginaAtual = Number(paginaAtual.textContent)
 
-    for(const tabela of tabelas) {
+    if (!paginaAtual) return
 
-    console.log(tabela.id)
+    const numeroAtual = Number(paginaAtual.textContent)
+    const proximoNumero = acao === 'avancar' ? numeroAtual + 1 : numeroAtual - 1
+    const novaPagina = document.getElementById(`${idOcorrencia}_${proximoNumero}`)
 
-    }
+    if (!novaPagina) return
+
+    for (const tabela of tabelas) tabela.style.display = 'none'
+    novaPagina.style.display = ''
+    paginaAtual.textContent = proximoNumero
 }
+
 
 async function carregarOcorrencias() {
     removerMenus()
@@ -416,7 +387,7 @@ async function carregarOcorrencias() {
 
     function gerarCorrecoes(idOcorrencia, dadosCorrecoes) {
 
-        if (!dadosCorrecoes) return `<div style="${horizontal}; width: 100%;"><img src="imagens/BG.png" style="width: 15vw;"></div>`
+        if (!dadosCorrecoes) return `<div style="${horizontal}; width: 50%;"><img src="imagens/BG.png" style="width: 15vw;"></div>`
         let correcoesDiv = ''
         let pagina = 1
         for (const [idCorrecao, recorte] of Object.entries(dadosCorrecoes)) {
@@ -447,7 +418,7 @@ async function carregarOcorrencias() {
         }
 
         const acumulado = `
-            <div class="blocoMaior" style="background-color: white; flex-direction: column; border-left: 1px solid #222;">
+            <div class="blocosIrmaos">
                 ${correcoesDiv}
 
                 <div style="${horizontal}; gap: 5px; margin-bottom: 2vh;">
@@ -455,7 +426,7 @@ async function carregarOcorrencias() {
                     <label id="${idOcorrencia}">1</label>
                     <label>de</label>
                     <label>${pagina - 1}</label>
-                    <img onclick="ir(this, avancar, '${idOcorrencia}')" src="imagens/dir.png" style="width: 1.5vw; cursor: pointer;">
+                    <img onclick="ir(this, 'avancar', '${idOcorrencia}')" src="imagens/dir.png" style="width: 1.5vw; cursor: pointer;">
                 </div>
             </div>
         `
@@ -471,13 +442,13 @@ async function carregarOcorrencias() {
         const status = ocorrencia?.analise || 'Não analisada'
 
         tabelas += `
-        <div class="blocoMaior">
-            <div style="background-color: ${bgs[status]}; padding-left: 5px; height: 100%;">
+        <div name="camposOpcoes" class="blocoMaior" style="background: linear-gradient(to right,  ${bgs[status]} 50%, ${ocorrencia.correcoes ? 'white' : 'transparent'} 50%); padding-left: 5px;">
+            <div class="blocosIrmaos">
                 <table class="tabelaChamado">
                     <tbody>
 
                         <tr>
-                            <td>${status}</td>
+                            <td style="font-size: 0.8vw;">${status}</td>
                             <td style="text-align: left;">${ocorrencia?.dataRegistro || ''}</td>
                             <td style="text-align: left;">${ocorrencia?.solicitante || ''}</td>
                             <td>
@@ -500,7 +471,7 @@ async function carregarOcorrencias() {
                         </tr>
 
                         <tr>
-                            <td>Unidade de Manutenção</td>
+                            <td>Und Manutenção</td>
                             <td colspan="2" style="text-align: left;">${unidades?.[ocorrencia?.unidade]?.nome || '...'}</td>
                             <td style="${horizontal}; justify-content: right;">${botao('Incluir Correção', `formularioCorrecao('${idOcorrencia}')`)}</td>
                         </tr>
@@ -533,19 +504,19 @@ async function carregarOcorrencias() {
     let acumulado = `
     
         <div style="${vertical};">
-            <div class="painelBotoes">
+            <div class="painelBotoes" style="align-items: center;">
+                <div style="${horizontal}; background-color: white; border-radius: 5px; padding-left: 1vw; padding-right: 1vw;">
+                    <input oninput="pesquisar(this)" placeholder="Pesquisar chamados" style="width: 100%;">
+                    <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                </div>
                 ${botao('Novo', 'formularioOcorrencia()')}
                 ${botao('Excluir', ``)}
                 ${botao('Baixa', ``)}
                 ${botao('Inativar', ``)}
             </div>
 
-            <div style="${horizontal};">
-
-                <div style="width: 70vw; height: 70vh; max-content; overflow-y: auto; overflow-x: hidden;">
-                    ${tabelas}
-                </div>
-
+            <div style="height: max-content; width: 85vw; max-height: 70vh; overflow: auto;">
+                ${tabelas}
             </div>
 
             <div class="rodapeTabela"></div>
@@ -726,7 +697,8 @@ async function salvarOcorrencia(idOcorrencia) {
     ocorrencia.descricao = obter('descricao', 'value')
 
     if (idOcorrencia) {
-        await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
+        const ocorrenciaAtual = await recuperarDado('dados_ocorrencias', idOcorrencia)
+        await inserirDados({ [idOcorrencia]: { ...ocorrenciaAtual, ...ocorrencia } }, 'dados_ocorrencias')
         await enviar(`dados_ocorrencias/${idOcorrencia}`, ocorrencia)
     } else {
         await enviar('dados_ocorrencias/0000', ocorrencia)
@@ -750,7 +722,7 @@ async function caixaOpcoes(name, nomeBase) {
             .join('')
 
         opcoesDiv += `
-            <div class="atalhos" onclick="selecionar('${name}', '${cod}', '${dado[esquemaCampos[nomeBase][0]]}')" style="${vertical}; gap: 2px; max-width: 40vw;">
+            <div name="camposOpcoes" class="atalhos" onclick="selecionar('${name}', '${cod}', '${dado[esquemaCampos[nomeBase][0]]}')" style="${vertical}; gap: 2px; max-width: 40vw;">
                 ${labels}
             </div>`
     }
@@ -760,7 +732,7 @@ async function caixaOpcoes(name, nomeBase) {
             <input oninput="pesquisar(this)" placeholder="Pesquisar itens" style="width: 100%;">
             <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
         </div>
-        <div id="camposOpcoes" style="padding: 1vw; gap: 5px; ${vertical}; background-color: #d2d2d2; width: 30vw; max-height: 40vh; height: max-content; overflow-y: auto; overflow-x: hidden;">
+        <div style="padding: 1vw; gap: 5px; ${vertical}; background-color: #d2d2d2; width: 30vw; max-height: 40vh; height: max-content; overflow-y: auto; overflow-x: hidden;">
             ${opcoesDiv}
         </div>
     `
@@ -776,13 +748,11 @@ function selecionar(name, id, termo) {
     removerPopup()
 }
 
-function pesquisar(input) {
+function pesquisar(input, tituloAtual) {
 
     const termoPesquisa = String(input.value).toLowerCase()
 
-    const camposOpcoes = document.getElementById('camposOpcoes')
-
-    const divs = camposOpcoes.querySelectorAll('div')
+    const divs = document.querySelectorAll(`[name="camposOpcoes${tituloAtual ? `_${tituloAtual}` : ''}"]`)
 
     for (const div of divs) {
 
