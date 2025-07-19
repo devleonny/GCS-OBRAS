@@ -1428,6 +1428,24 @@ function enviar(caminho, info) {
     });
 }
 
+function ativarChaveOcorrencias(nomeBase, dados) {
+    return new Promise((resolve) => {
+        fetch("https://leonny.dev.br/chavesOcorrencias", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ nomeBase, dados })
+        })
+            .then(data => resolve(data))
+            .catch((erro) => {
+                console.error(erro);
+                salvar_offline(objeto, 'enviar');
+                resolve();
+            });
+    });
+}
+
 function salvar_offline(objeto, operacao) {
     let dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {}
     let id = ID5digitos()
@@ -1477,7 +1495,7 @@ function painelUsuarios(elementoOrigial) {
     if (divUsuarios) return divUsuarios.remove()
 
     let usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []
-    
+
     let stringUsuarios = {
         online: { linhas: '', quantidade: 0 },
         offline: { linhas: '', quantidade: 0 },

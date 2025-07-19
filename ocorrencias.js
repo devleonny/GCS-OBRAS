@@ -42,11 +42,11 @@ const menus = {
         imagem: 'gerente',
         paineis: [{
             nome: 'Unidades de Manutenção',
-            funcao: `painelCadastro('dados_clientes', 'unidades', 'Clientes', 'Unidades')`
+            funcao: `painelCadastro('dados_clientes')`
         },
         {
             nome: 'Equipamentos',
-            funcao: `painelCadastro('dados_composicoes', 'equipamentos', 'Composições', 'Equipamentos')`
+            funcao: `painelCadastro('dados_composicoes')`
         },
         {
             nome: 'Sistemas',
@@ -81,15 +81,14 @@ const esquemaCampos = {
     dados_clientes: ['nome', 'cnpj', 'cidade'],
     dados_composicoes: ['descricao', 'modelo', 'tipo'],
     sistemas: ['nome'],
-    unidades: ['nome', 'cnpj', 'cidade'],
     prioridades: ['nome'],
     tipos: ['nome'],
     dados_setores: ['usuario']
 }
 
 botoesLaterais()
-//carregarOcorrencias()
-painelCadastro('dados_composicoes', 'equipamentos', 'Composições', 'Equipamentos')
+carregarOcorrencias()
+//painelCadastro('dados_composicoes')
 
 function botoesLaterais() {
 
@@ -127,103 +126,129 @@ function removerMenus() {
     if (painelCascata) painelCascata.remove()
 }
 
-async function painelCadastro(nomeBaseReferencia, nomeBaseFinal, tituloReferencia, tituloFinal) {
+async function painelCadastro(nomeBaseReferencia) {
 
     removerMenus()
+
     const dadosReferencia = await recuperarDados(nomeBaseReferencia)
-    const dadosFinal = await recuperarDados(nomeBaseFinal)
+
+    const tabelas = tabelasHTML()
 
     const acumulado = `
         <div style="${horizontal}; width: 85vw;">
-            ${tabelasHTML(dadosReferencia, tituloReferencia)}
+            ${tabelas.referencia}
 
             <div style="border-right: 1px dashed #d2d2d2; margin: 1vw; height: 80vh;"></div>
 
-            ${tabelasHTML(dadosFinal, tituloFinal)}
-
+            ${tabelas.ativos}
         </div>
 
     `
     painelCentral.innerHTML = acumulado
 
     // Função que carrega os elementos
-    function tabelasHTML(base, tituloAtual) {
+    function tabelasHTML() {
 
-        let linhas = ''
+        let tabelas = {}
+        let linhas = {
+            referencia: {
+                string: '',
+                quantidade: 0
+            },
+            ativos: {
+                string: '',
+                quantidade: 0
+            },
+        }
 
-        if (!filtrosOcorrencias[tituloAtual]) filtrosOcorrencias[tituloAtual] = {}
-
-        Object.entries(base).forEach(([cod, recorte]) => {
+        Object.entries(dadosReferencia).forEach(([cod, recorte]) => {
 
             const labels = esquemaCampos[nomeBaseReferencia]
                 .map(campo => modelo(String(campo).toUpperCase(), recorte?.[campo] || '??'))
                 .join('')
 
-            linhas += `
-            <div name="camposOpcoes_${tituloAtual}" class="divsListagem">
-                <input name="${tituloAtual}" id="${cod}" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
-                <div style="${vertical};">
+            linhas.referencia.quantidade++
+            linhas.referencia.string += `
+                <div name="psq_referencia" class="divsListagem">
+                    <input name="referencia" id="${cod}" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
+                    <div style="${vertical};">
 
-                    ${labels}
+                        ${labels}
 
-                </div>
-            </div>`
+                    </div>
+                </div>`
+
+            if (recorte.ocorrencia) {
+                linhas.ativos.quantidade++
+                linhas.ativos.string += `
+                <div name="psq_ativos" class="divsListagem">
+                    <input name="ativos" id="${cod}" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
+                    <div style="${vertical};">
+
+                        ${labels}
+
+                    </div>
+                </div>`}
         })
 
-        return `
-        <div style="width: 50%;">
-            <label style="font-size: 2.0vw; color: white;">${tituloAtual} - ${Object.keys(base).length}</label>
-            <div class="painelBotoes" style="justify-content: start; align-items: center; gap: 1vw;">
-                <div style="${horizontal}; gap: 5px;">
-                    <input type="checkbox" style="width: 1.5vw; height: 1.5vw;" onclick="marcarTodosVisiveis(this, '${tituloAtual}')">
-                    <label>Todos</label>
-                </div>
-                <div style="${horizontal}; background-color: white; border-radius: 5px; padding-left: 1vw; padding-right: 1vw;">
-                    <input oninput="pesquisar(this, '${tituloAtual}')" placeholder="Pesquisar" style="width: 100%;">
-                    <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
-                </div>
-                ${botao('Mover', `gerenciar('${tituloAtual}', '${nomeBaseReferencia}', '${nomeBaseFinal}', '${tituloReferencia}', '${tituloFinal}')`)}
-            </div>
+        for (const [tabela, conteudo] of Object.entries(linhas)) {
 
-            <div style="width: 100%; height: max-content; max-height: 65vh; overflow-y: auto; overflow-x: hidden;">
-                ${linhas}
-            </div>
-            <div class="rodapeTabela"></div>
-        </div>
-        `
+            tabelas[tabela] = `
+                <div style="width: 50%;">
+                    <label style="font-size: 2.0vw; color: white;">${tabela} - ${conteudo.quantidade}</label>
+                    <div class="painelBotoes" style="justify-content: start; align-items: center; gap: 1vw;">
+                        <div style="${horizontal}; gap: 5px;">
+                            <input type="checkbox" style="width: 1.5vw; height: 1.5vw;" onclick="marcarTodosVisiveis(this, '${tabela}')">
+                            <label>Todos</label>
+                        </div>
+                        <div style="${horizontal}; background-color: white; border-radius: 5px; padding-left: 1vw; padding-right: 1vw;">
+                            <input oninput="pesquisar(this, '${tabela}')" placeholder="Pesquisar" style="width: 100%;">
+                            <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                        </div>
+                        ${botao('Mover', `gerenciar('${tabela}', '${nomeBaseReferencia}')`)}
+                    </div>
+
+                    <div style="width: 100%; height: max-content; max-height: 65vh; overflow-y: auto; overflow-x: hidden;">
+                        ${conteudo.string}
+                    </div>
+                    <div class="rodapeTabela"></div>
+                </div>
+           `
+
+        }
+
+        return tabelas
     }
 
 }
 
-async function gerenciar(tituloAtual, nomeBaseReferencia, nomeBaseFinal, tituloReferencia, tituloFinal) {
+async function gerenciar(tabela, nomeBaseReferencia) {
 
     overlayAguarde()
 
-    const dadosReferencia = await recuperarDados(nomeBaseReferencia)
-    let inputs = document.querySelectorAll(`[name="${tituloAtual}"]`)
-
-    let dados = {}
+    let dadosReferencia = await recuperarDados(nomeBaseReferencia)
+    let inputs = document.querySelectorAll(`[name="${tabela}"]`)
+    let alteracoes = {}
 
     for (let inputTab of inputs) {
 
         if (inputTab.checked) {
 
             const id = inputTab.id
+            const ativo = tabela == 'referencia'
 
-            if (tituloAtual == tituloReferencia) {
-                dados[id] = dadosReferencia[id]
-
-            } else {
-                await deletarDB(nomeBaseFinal, id)
-            }
+            alteracoes[id] = ativo
+            dadosReferencia[id].ocorrencia = ativo
 
         }
 
     }
 
-    if (tituloAtual == tituloReferencia) await inserirDados(dados, nomeBaseFinal)
+    await ativarChaveOcorrencias(nomeBaseReferencia, alteracoes)
 
-    await painelCadastro(nomeBaseReferencia, nomeBaseFinal, tituloReferencia, tituloFinal)
+    await inserirDados(dadosReferencia, nomeBaseReferencia)
+
+    await painelCadastro(nomeBaseReferencia)
 
     removerOverlay()
 
@@ -232,13 +257,11 @@ async function gerenciar(tituloAtual, nomeBaseReferencia, nomeBaseFinal, tituloR
 function marcarTodosVisiveis(input, tituloAtual) {
 
     let inputs = document.querySelectorAll(`[name='${tituloAtual}']`)
-    console.log(input, tituloAtual);
-    
-    let camposOpcoes = document.querySelectorAll(`[name=camposOpcoes_${tituloAtual}']`)
 
     inputs.forEach((inputTab, i) => {
 
-        const marcar = camposOpcoes[i].style.display !== 'none'
+        const div = inputTab.parentElement
+        const marcar = div.style.display !== 'none'
         if (marcar) inputTab.checked = input.checked
 
     })
@@ -354,46 +377,44 @@ function dtAuxOcorrencia(dt) {
 function ir(img, acao, idOcorrencia) {
     const divMaior = img.closest('div')?.parentElement
     const tabelas = divMaior?.querySelectorAll('table') || []
-    const paginaAtual = document.getElementById(idOcorrencia)
+    const paginaAtual = img.closest('div').querySelectorAll('label')[0]
 
     if (!paginaAtual) return
 
     const numeroAtual = Number(paginaAtual.textContent)
     const proximoNumero = acao === 'avancar' ? numeroAtual + 1 : numeroAtual - 1
-    const novaPagina = document.getElementById(`${idOcorrencia}_${proximoNumero}`)
+    const novaPagina = document.querySelectorAll(`[name=${idOcorrencia}_${proximoNumero}]`)
 
-    if (!novaPagina) return
+    if (novaPagina.length == 0) return
 
     for (const tabela of tabelas) tabela.style.display = 'none'
-    novaPagina.style.display = ''
+    novaPagina.forEach(pag => pag.style.display = '')
     paginaAtual.textContent = proximoNumero
 }
 
+function filtrarAtivos(base) {
 
-async function carregarOcorrencias() {
-    removerMenus()
-    const dados_ocorrencias = await recuperarDados('dados_ocorrencias')
-    const sistemas = await recuperarDados('sistemas')
-    const tipos = await recuperarDados('tipos')
-    const prioridades = await recuperarDados('prioridades')
-    const unidades = await recuperarDados('unidades')
-    const correcoes = await recuperarDados('correcoes')
+    let baseFiltrada = {}
 
-    const bgs = {
-        'Não analisada': 'red',
-        'Agendada': 'orange',
-        'Solucionada': 'green'
+    for ([id, recorte] of Object.entries(base)) {
+        if (recorte.ocorrencia) baseFiltrada[id] = recorte
     }
 
-    function gerarCorrecoes(idOcorrencia, dadosCorrecoes) {
+    return baseFiltrada
 
-        if (!dadosCorrecoes) return `<div style="${horizontal}; width: 50%;"><img src="imagens/BG.png" style="width: 15vw;"></div>`
-        let correcoesDiv = ''
-        let pagina = 1
-        for (const [idCorrecao, recorte] of Object.entries(dadosCorrecoes)) {
+}
 
-            correcoesDiv += `
-                <table class="tabelaChamado" id="${idOcorrencia}_${pagina}" style="display: ${pagina == 1 ? '' : 'none'}; width: 100%;">
+async function gerarCorrecoes(idOcorrencia, dadosCorrecoes, corFundo) {
+
+    const correcoes = await recuperarDados('correcoes')
+
+    if (!dadosCorrecoes) return `<div style="${horizontal}; width: 50%; border-radius: 3px; background-color: ${corFundo};"><img src="imagens/BG.png" style="width: 15vw;"></div>`
+    let correcoesDiv = ''
+    let pagina = 1
+    for (const [idCorrecao, recorte] of Object.entries(dadosCorrecoes)) {
+
+        correcoesDiv += `
+                <table class="tabelaChamado" name="${idOcorrencia}_${pagina}" style="display: ${pagina == 1 ? '' : 'none'}; width: 100%;">
                     <tbody>
 
                         <tr>
@@ -414,16 +435,16 @@ async function carregarOcorrencias() {
                     </tbody>
                 </table>`
 
-            pagina++
-        }
+        pagina++
+    }
 
-        const acumulado = `
+    const acumulado = `
             <div class="blocosIrmaos">
                 ${correcoesDiv}
 
-                <div style="${horizontal}; gap: 5px; margin-bottom: 2vh;">
+                <div style="${horizontal}; gap: 5px; margin-bottom: 1vh; margin-top: 1vh;">
                     <img onclick="ir(this, 'voltar', '${idOcorrencia}')" src="imagens/esq.png" style="width: 1.5vw; cursor: pointer;">
-                    <label id="${idOcorrencia}">1</label>
+                    <label>1</label>
                     <label>de</label>
                     <label>${pagina - 1}</label>
                     <img onclick="ir(this, 'avancar', '${idOcorrencia}')" src="imagens/dir.png" style="width: 1.5vw; cursor: pointer;">
@@ -431,20 +452,42 @@ async function carregarOcorrencias() {
             </div>
         `
 
-        return acumulado
+    return acumulado
 
+}
+
+async function carregarOcorrencias() {
+    removerMenus()
+    const dados_ocorrencias = await recuperarDados('dados_ocorrencias')
+    const sistemas = await recuperarDados('sistemas')
+    const tipos = await recuperarDados('tipos')
+    const prioridades = await recuperarDados('prioridades')
+    const dados_clientes = await recuperarDados('dados_clientes')
+    const correcoes = await recuperarDados('correcoes')
+
+    const bgs = (status) => {
+
+        const cores = {
+            'Não analisada': 'red',
+            'Agendada': 'orange',
+            'Solucionada': 'green'
+        }
+
+        return cores?.[status] || 'orange'
     }
 
     let tabelas = ''
 
-    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) {
+    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) {
 
-        const status = ocorrencia?.analise || 'Não analisada'
+        const ultimaCorrecao = Object.entries(ocorrencia?.correcoes || {}).reverse()[0]?.[1] || []
+        const status = correcoes[ultimaCorrecao?.correcao]?.nome || 'Não analisada'
 
         tabelas += `
-        <div name="camposOpcoes" class="blocoMaior" style="background: linear-gradient(to right,  ${bgs[status]} 50%, ${ocorrencia.correcoes ? 'white' : 'transparent'} 50%); padding-left: 5px;">
-            <div class="blocosIrmaos">
+        <div name="psq_ocorrencias" class="blocoMaior" style="background: linear-gradient(to right,  ${bgs(status)} 50%, ${ocorrencia.correcoes ? 'white' : 'transparent'} 50%); padding-left: 5px;">
+            <div class="blocosIrmaos" style="border-right: 1px solid #222;">
                 <table class="tabelaChamado">
+                    <input style="position: absolute; top: 0; left: 0;" type="checkbox">
                     <tbody>
 
                         <tr>
@@ -472,7 +515,7 @@ async function carregarOcorrencias() {
 
                         <tr>
                             <td>Und Manutenção</td>
-                            <td colspan="2" style="text-align: left;">${unidades?.[ocorrencia?.unidade]?.nome || '...'}</td>
+                            <td colspan="2" style="text-align: left;">${dados_clientes?.[ocorrencia?.unidade]?.nome || '...'}</td>
                             <td style="${horizontal}; justify-content: right;">${botao('Incluir Correção', `formularioCorrecao('${idOcorrencia}')`)}</td>
                         </tr>
 
@@ -495,7 +538,7 @@ async function carregarOcorrencias() {
                 </table>
             </div>
 
-            ${gerarCorrecoes(idOcorrencia, ocorrencia.correcoes)}
+            ${await gerarCorrecoes(idOcorrencia, ocorrencia.correcoes, 'transparent')}
             
         </div>
         `
@@ -504,9 +547,9 @@ async function carregarOcorrencias() {
     let acumulado = `
     
         <div style="${vertical};">
-            <div class="painelBotoes" style="align-items: center;">
-                <div style="${horizontal}; background-color: white; border-radius: 5px; padding-left: 1vw; padding-right: 1vw;">
-                    <input oninput="pesquisar(this)" placeholder="Pesquisar chamados" style="width: 100%;">
+            <div class="painelBotoes" style="justify-content: start; align-items: center;">
+                <div style="margin-left: 1vw; ${horizontal}; background-color: white; border-radius: 5px; padding-left: 1vw; padding-right: 1vw;">
+                    <input oninput="pesquisar(this, 'ocorrencias')" placeholder="Pesquisar chamados" style="width: 100%;">
                     <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
                 </div>
                 ${botao('Novo', 'formularioOcorrencia()')}
@@ -569,7 +612,15 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
                     ${modelo('Descrição', `<textarea name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>`)}
                 </div>
                 <div style="${vertical}; gap: 5px;">
-                    ${modelo('Anexos', '<label class="campos">Clique aqui</label>')}
+                    ${modelo('Anexos', `
+                            <label class="campos">
+                                Clique aqui
+                                <input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia}', '${idCorrecao}')">
+                            </label>
+                        `)}
+                    <div id="anexos" style="${vertical};">
+                        ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}', '${idCorrecao}')`)).join('')}
+                    </div>
                 </div>
             </div>
 
@@ -586,9 +637,9 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
 async function formularioOcorrencia(idOcorrencia) {
 
     const ocorrencia = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : {}
-
     const dados_setores = await recuperarDados('dados_setores')
-    const unidades = await recuperarDados('unidades')
+    const dados_clientes = await recuperarDados('dados_clientes')
+    const unidades = filtrarAtivos(dados_clientes)
     const sistemas = await recuperarDados('sistemas')
     const prioridades = await recuperarDados('prioridades')
     const tipos = await recuperarDados('tipos')
@@ -604,10 +655,10 @@ async function formularioOcorrencia(idOcorrencia) {
     }
 
     const acumulado = `
-        <div style="${vertical}; background-color: #d2d2d2; padding: 2vw; ">
+        <div style="${vertical}; background-color: #d2d2d2; padding: 2vw; max-width: 60vw; max-height: 60vh; overflow-y: auto; overflow-x: hidden;">
             <div style="${horizontal}; align-items: start; gap: 2vw;">
                 <div style="${vertical}; gap: 5px;">
-                    ${modelo('Unidade de Manutenção', labelBotao('unidade', 'unidades', unidades))}
+                    ${modelo('Unidade de Manutenção', labelBotao('unidade', 'dados_clientes', unidades))}
                     ${modelo('Sistema', labelBotao('sistema', 'sistemas', sistemas))}
                     ${modelo('Prioridade', labelBotao('prioridade', 'prioridades', prioridades))}
                 </div>
@@ -620,14 +671,23 @@ async function formularioOcorrencia(idOcorrencia) {
                 </div>
                 <div style="${vertical}; gap: 5px;">
                     ${modelo('Data Limite para a Execução', `<input name="dataLimiteExecucao" class="campos" type="date" value="${ocorrencia?.dataLimiteExecucao || ''}">`)}
-                    ${modelo('Anexos', '<label class="campos">Clique aqui</label>')}
+                    ${modelo('Anexos', `
+                            <label class="campos">
+                                Clique aqui
+                                <input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia}')">
+                            </label>
+                        `)}
+                    <div id="anexos" style="${vertical};">
+                        ${Object.entries(ocorrencia?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')`)).join('')}
+                    </div>
                 </div>
             </div>
             <hr style="width: 100%;">
 
             <label>CORREÇÕES</label>
 
-            <div></div>
+            ${await gerarCorrecoes(idOcorrencia, ocorrencia.correcoes, '#222')}
+
         </div>
         <div style="${horizontal}; justify-content: start; background-color: #a0a0a0ff; padding: 5px; gap: 1vw;">
                 ${botao('Salvar', funcao)}
@@ -712,7 +772,10 @@ async function salvarOcorrencia(idOcorrencia) {
 
 async function caixaOpcoes(name, nomeBase) {
 
-    const base = await recuperarDados(nomeBase)
+    let base = await recuperarDados(nomeBase)
+
+    if (nomeBase.includes('clientes') || nomeBase.includes('composicoes')) base = filtrarAtivos(base)
+
     let opcoesDiv = ''
 
     for ([cod, dado] of Object.entries(base)) {
@@ -752,7 +815,7 @@ function pesquisar(input, tituloAtual) {
 
     const termoPesquisa = String(input.value).toLowerCase()
 
-    const divs = document.querySelectorAll(`[name="camposOpcoes${tituloAtual ? `_${tituloAtual}` : ''}"]`)
+    const divs = document.querySelectorAll(`[name=${tituloAtual ? `psq_${tituloAtual}` : 'camposOpcoes'}]`)
 
     for (const div of divs) {
 
@@ -761,5 +824,58 @@ function pesquisar(input, tituloAtual) {
         div.style.display = (termoDiv.includes(termoPesquisa) || termoPesquisa == '') ? '' : 'none'
 
     }
+
+}
+
+async function anexosOcorrencias(input, idOcorrencia, idCorrecao) {
+
+    overlayAguarde()
+
+    const divAnexos = document.getElementById('anexos')
+    let ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+    let objeto = {}
+
+    if (idCorrecao) {
+        if (!ocorrencia.correcoes[idCorrecao].anexos) ocorrencia.correcoes[idCorrecao].anexos = {}
+        objeto = ocorrencia.correcoes[idCorrecao].anexos
+    } else {
+        if (!ocorrencia.anexos) ocorrencia.anexos = {}
+        objeto = ocorrencia.anexos
+    }
+
+    const anexos = await importarAnexos(input)
+
+    anexos.forEach(anexo => {
+        const idAnexo = ID5digitos()
+        objeto[idAnexo] = anexo
+
+        if (divAnexos) divAnexos.insertAdjacentHTML('beforeend', criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}' ${idCorrecao ? `, '${idCorrecao}'` : ''})`))
+
+    })
+
+    await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
+
+    removerOverlay()
+
+}
+
+
+async function removerAnexo(img, idAnexo, idOcorrencia, idCorrecao) {
+
+    overlayAguarde()
+
+    let ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+
+    if (idCorrecao) {
+        delete ocorrencia.correcoes[idCorrecao].anexos[idAnexo]
+    } else {
+        delete ocorrencia.anexos[idAnexo]
+    }
+
+    await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
+
+    img.parentElement.remove()
+
+    removerOverlay()
 
 }
