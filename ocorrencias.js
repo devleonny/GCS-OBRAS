@@ -203,7 +203,7 @@ async function painelCadastro(nomeBaseReferencia) {
 
             tabelas[tabela] = `
                 <div style="width: 50%;">
-                    <label style="font-size: 2.0vw; color: white;">${tabela} - ${conteudo.quantidade}</label>
+                    <label style="font-size: 2.0vw; color: white;">${inicialMaiuscula(tabela)} - ${conteudo.quantidade}</label>
                     <div class="painelBotoes" style="justify-content: start; align-items: center; gap: 1vw;">
                         <div style="${horizontal}; gap: 5px;">
                             <input type="checkbox" style="width: 1.5vw; height: 1.5vw;" onclick="marcarTodosVisiveis(this, '${tabela}')">
