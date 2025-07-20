@@ -480,8 +480,7 @@ async function carregarOcorrencias() {
 
     for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) {
 
-        const ultimaCorrecao = Object.entries(ocorrencia?.correcoes || {}).reverse()[0]?.[1] || []
-        const status = correcoes[ultimaCorrecao?.correcao]?.nome || 'Não analisada'
+        const status = correcoes[ocorrencia?.correcao]?.nome || 'Não analisada'
 
         tabelas += `
         <div name="psq_ocorrencias" class="blocoMaior" style="background: linear-gradient(to right,  ${bgs(status)} 50%, ${ocorrencia.correcoes ? 'white' : 'transparent'} 50%); padding-left: 5px;">
@@ -571,6 +570,24 @@ async function carregarOcorrencias() {
 
 }
 
+function maisLabel() {
+
+    let div = document.getElementById('equipamentos')
+    const opcoes = ['UND', 'METRO', 'CX'].map(op => `<option>${op}</option>`).join('')
+    const temporario = ID5digitos()
+
+    const label = `
+        <div style="${horizontal}; gap: 5px;">
+            <input class="campos" type="number" placeholder="quantidade">
+            <select class="campos">${opcoes}</select>
+            <label class="campos" name="${temporario}" onclick="caixaOpcoes('${temporario}', 'dados_composicoes')">Clique aqui</label>
+            <img src="imagens/cancel.png" style="width: 1.5vw; cursor: pointer;">
+        </div> 
+    `
+
+    div.insertAdjacentHTML('beforeend', label)
+}
+
 async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
     const dados_setores = await recuperarDados('dados_setores')
@@ -589,7 +606,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
     }
 
     const acumulado = `
-        <div style="${vertical}; background-color: #d2d2d2; padding: 2vw; ">
+        <div style="${vertical}; background-color: #d2d2d2; padding: 2vw; max-height: 60vh; overflow-y: auto; overflow-x: hidden;">
             <div style="${horizontal}; align-items: start; gap: 2vw;">
                 <div style="${vertical}; gap: 5px;">
                     ${modelo('Status da Correção', labelBotao('correcao', 'correcoes', correcoes))}
@@ -605,11 +622,19 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
                             <input name="horaTermino" class="campos" type="time" value="${correcao?.horaTermino || ''}">
                         </div>
                         `)}
+                
                 </div>
                 <div style="${vertical}; gap: 5px;">
                     ${modelo('Solicitante', labelBotao('solicitante', 'dados_setores', dados_setores))}
                     ${modelo('Executor / Responsável', labelBotao('executor', 'dados_setores', dados_setores))}
                     ${modelo('Descrição', `<textarea name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>`)}
+
+                    <div style="${horizontal}; gap: 5px;">
+                        <label>Equipamentos usados</label>
+                        <img src="imagens/baixar.png" style="width: 1.5vw; cursor: pointer;" onclick="maisLabel()">
+                    </div>
+                    
+                    <div style="${vertical}; gap: 2px;" id="equipamentos"></div>
                 </div>
                 <div style="${vertical}; gap: 5px;">
                     ${modelo('Anexos', `
@@ -721,6 +746,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
 
     if (!ocorrencia.correcoes) ocorrencia.correcoes = {}
 
+    ocorrencia.correcao = correcao.correcao
     ocorrencia.correcoes[idCorrecao] = correcao
 
     await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
@@ -791,9 +817,11 @@ async function caixaOpcoes(name, nomeBase) {
     }
 
     const acumulado = `
-        <div style="${horizontal}; background-color: white;">
-            <input oninput="pesquisar(this)" placeholder="Pesquisar itens" style="width: 100%;">
-            <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+        <div style="${horizontal}; justify-content: left; background-color: #b1b1b1;">
+            <div style="${horizontal}; padding-left: 1vw; padding-right: 1vw; margin: 5px; background-color: white; border-radius: 10px;">
+                <input oninput="pesquisar(this)" placeholder="Pesquisar itens" style="width: 100%;">
+                <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+            </div>
         </div>
         <div style="padding: 1vw; gap: 5px; ${vertical}; background-color: #d2d2d2; width: 30vw; max-height: 40vh; height: max-content; overflow-y: auto; overflow-x: hidden;">
             ${opcoesDiv}
@@ -805,7 +833,7 @@ async function caixaOpcoes(name, nomeBase) {
 }
 
 function selecionar(name, id, termo) {
-    const elemento = document.querySelector(`[name=${name}]`)
+    const elemento = document.querySelector(`[name='${name}']`)
     elemento.textContent = termo
     elemento.id = id
     removerPopup()

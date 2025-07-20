@@ -10,7 +10,7 @@ body {
     overflow: hidden;
 }
 
-input {
+input, select, textarea {
     font-size: 1.0vw;
 }
 
@@ -42,9 +42,11 @@ input {
 }
 
 .campos {
+    text-align: left;
     cursor: pointer;
     padding: 5px;
     width: 100%;
+    max-width: 20vw;
     border: 1px solid #b1b1b1;
     background-color: #b1b1b1;
     border-radius: 2px;
