@@ -1,5 +1,5 @@
 let painelCentral = document.querySelector('.painelCentral')
-let filtrosOcorrencias = {}
+let filtrosOcorrencias = { chamados: {} }
 let anexosProvisorios = {}
 
 const btn = (imagem, termo, link) => `
@@ -10,28 +10,6 @@ const btn = (imagem, termo, link) => `
 `
 
 const menus = {
-    'Dashboard': {
-        imagem: 'relatorio',
-        paineis: [{
-            nome: 'Não disponível',
-            funcao: ''
-        }]
-    },
-    'Ocorrências': {
-        imagem: 'megafone',
-        paineis: [{
-            nome: 'Painel',
-            funcao: 'carregarOcorrencias()'
-        },
-        {
-            nome: 'Lista de Ocorrências',
-            funcao: ''
-        },
-        {
-            nome: 'Ocorrências ',
-            funcao: ''
-        }]
-    },
     'Relatórios': {
         imagem: 'prancheta',
         paineis: [{
@@ -77,6 +55,28 @@ const menus = {
     },
 }
 
+const labelBotao = (chave, nomebase, base, dados) => {
+
+    const id = dados?.[chave] || undefined
+
+    const possivelValor = base[id]?.nome || base[id]?.usuario || 'Selecionar'
+
+    return `
+        <div style="${horizontal}; justify-content: start; gap: 5px;">
+            <img src="imagens/cancel.png" style="width: 1.5vw; cursor: pointer;" onclick="removerCampo(this)">
+            <label class="campos" name="${chave}" ${id ? `id="${id}"` : ''} onclick="caixaOpcoes('${chave}', '${nomebase}')">${possivelValor}</label>
+        </div>
+    `
+}
+
+function removerCampo(img) {
+
+    let label = img.nextElementSibling
+    label.removeAttribute('id')
+    label.textContent = 'Selecionar'
+
+}
+
 const esquemaCampos = {
     correcoes: ['nome'],
     dados_clientes: ['nome', 'cnpj', 'cidade'],
@@ -88,7 +88,8 @@ const esquemaCampos = {
 }
 
 botoesLaterais()
-carregarOcorrencias()
+dashboard()
+//carregarOcorrencias()
 //painelCadastro('dados_composicoes')
 
 async function atualizarOcorrencias() {
@@ -103,6 +104,8 @@ function botoesLaterais() {
     let painelLateral = document.querySelector('.painelLateral')
 
     painelLateral.insertAdjacentHTML('beforeend', btn('LG', 'Início', `window.location.href='inicial.html'`))
+    painelLateral.insertAdjacentHTML('beforeend', btn('relatorio', 'Dashboard', `dashboard()`))
+    painelLateral.insertAdjacentHTML('beforeend', btn('megafone', 'Ocorrências', `carregarOcorrencias()`))
 
     for (const [termo, dados] of Object.entries(menus)) {
         painelLateral.insertAdjacentHTML('beforeend', btn(dados.imagem, termo))
@@ -137,6 +140,9 @@ function removerMenus() {
 async function painelCadastro(nomeBaseReferencia) {
 
     removerMenus()
+    document.title = '...'
+    await sincronizarDados('dados_clientes')
+    document.title = 'Ocorrências'
 
     const dadosReferencia = await recuperarDados(nomeBaseReferencia)
 
@@ -336,7 +342,7 @@ async function editar(tabela, cod) {
                 ${botao('Salvar', `salvar('${tabela}', '${cod}')`, 'green')}
             </div>
             <hr style="width: 100%;">
-            ${acesso.permissao == 'adm' ? botao('Excluir', `excluir('${cod}', '${tabela}')`) : ''}
+            ${acesso.permissao == 'adm' ? botao('Excluir', `excluir('${cod}', '${tabela}')`, '#B12425') : ''}
         </div>
     `
 
@@ -375,7 +381,7 @@ async function excluir(cod, tabela) {
 
 function dtAuxOcorrencia(dt) {
 
-    if (!dt) return '--'
+    if (!dt || '') return '--'
 
     const [ano, mes, dia] = dt.split('-')
 
@@ -437,7 +443,7 @@ async function gerarCorrecoes(idOcorrencia, dadosCorrecoes, corFundo) {
                             <td>${dtAuxOcorrencia(recorte.dataInicio)}</td>
                             <td style="${horizontal}; justify-content: right;">
                                 ${botao('Editar', `formularioCorrecao('${idOcorrencia}', '${idCorrecao}')`)}
-                                ${botao('Excluir', `confirmarExclusao('${idOcorrencia}', '${idCorrecao}')`)}
+                                ${botao('Excluir', `confirmarExclusao('${idOcorrencia}', '${idCorrecao}')`, '#B12425')}
                             </td>
                         </tr>
                         <tr>
@@ -499,7 +505,7 @@ async function carregarOcorrencias() {
         <div name="psq_ocorrencias" class="blocoMaior" style="background: linear-gradient(to right,  ${bgs(status)} 50%, ${ocorrencia.correcoes ? 'white' : 'transparent'} 50%); padding-left: 5px;">
             <div class="blocosIrmaos" style="border-right: 1px solid #222;">
                 <table class="tabelaChamado">
-                    <input name="input_correncias" style="position: absolute; top: 0; left: 0;" type="checkbox">
+                    <input name="input_correncias" style="position: absolute; top: 0; left: 0; width: 1.5vw; height: 1.5vw;" type="checkbox">
                     <tbody>
 
                         <tr>
@@ -529,8 +535,8 @@ async function carregarOcorrencias() {
                             <td>Und Manutenção</td>
                             <td colspan="2" style="text-align: left;">${dados_clientes?.[ocorrencia?.unidade]?.nome || '...'}</td>
                             <td style="${horizontal}; justify-content: right;">
-                                ${botao('Incluir Correção', `formularioCorrecao('${idOcorrencia}')`)}
-                                ${botao('Excluir', `confirmarExclusao('${idOcorrencia}')`)}
+                                ${botao('Incluir Correção', `formularioCorrecao('${idOcorrencia}')`, '#e47a00')}
+                                ${botao('Excluir', `confirmarExclusao('${idOcorrencia}')`, '#B12425')}
                             </td>
                         </tr>
 
@@ -562,7 +568,7 @@ async function carregarOcorrencias() {
     let acumulado = `
     
         <div style="${vertical};">
-            <div class="painelBotoes" style="justify-content: start; align-items: center;">
+            <div class="painelBotoes" style="justify-content: start; align-items: center; height: 5vh;">
                 <div style="${horizontal}; gap: 5px;">
                     <input type="checkbox" style="width: 1.5vw; height: 1.5vw;" onclick="marcarTodosVisiveis(this, 'input_correncias')">
                     <label>Todos</label>
@@ -572,7 +578,7 @@ async function carregarOcorrencias() {
                     <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
                 </div>
                 ${botao('Novo', 'formularioOcorrencia()')}
-                ${botao('Excluir', ``)}
+                ${botao('Excluir', ``, '#B12425')}
                 ${botao('Baixa', ``)}
                 ${botao('Inativar', ``)}
                 ${botao('Atualizar', `atualizarOcorrencias()`)}
@@ -661,15 +667,6 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
     const funcao = idCorrecao ? `salvarCorrecao('${idOcorrencia}', '${idCorrecao}')` : `salvarCorrecao('${idOcorrencia}')`
 
-    const labelBotao = (chave, nomebase, base) => {
-
-        const id = correcao?.[chave] || undefined
-
-        const possivelValor = base[id]?.nome || base[id]?.usuario || 'Selecionar'
-
-        return `<label class="campos" name="${chave}" ${id ? `id="${id}"` : ''} onclick="caixaOpcoes('${chave}', '${nomebase}')">${possivelValor}</label>`
-    }
-
     let equipamentos = ''
     for (const [id, equip] of Object.entries(correcao?.equipamentos || {})) equipamentos += await maisLabel(equip)
 
@@ -677,7 +674,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
         <div style="${vertical}; background-color: #d2d2d2; padding: 2vw; max-height: 60vh; overflow-y: auto; overflow-x: hidden;">
             <div style="${horizontal}; align-items: start; gap: 2vw;">
                 <div style="${vertical}; gap: 5px;">
-                    ${modelo('Status da Correção', labelBotao('tipoCorrecao', 'correcoes', correcoes))}
+                    ${modelo('Status da Correção', labelBotao('tipoCorrecao', 'correcoes', correcoes, correcao))}
                     ${modelo('Data/Hora', `
                         <div style="${horizontal}; gap: 2px;">
                             <input name="dataInicio" class="campos" type="date" value="${correcao?.dataInicio || ''}">
@@ -693,8 +690,8 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
                 
                 </div>
                 <div style="${vertical}; gap: 5px;">
-                    ${modelo('Solicitante', labelBotao('solicitante', 'dados_setores', dados_setores))}
-                    ${modelo('Executor / Responsável', labelBotao('executor', 'dados_setores', dados_setores))}
+                    ${modelo('Solicitante', labelBotao('solicitante', 'dados_setores', dados_setores, correcao))}
+                    ${modelo('Executor / Responsável', labelBotao('executor', 'dados_setores', dados_setores, correcao))}
                     ${modelo('Descrição', `<textarea name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>`)}
 
                     <div style="${horizontal}; gap: 5px;">
@@ -740,27 +737,18 @@ async function formularioOcorrencia(idOcorrencia) {
     const tipos = await recuperarDados('tipos')
     const funcao = idOcorrencia ? `salvarOcorrencia('${idOcorrencia}')` : 'salvarOcorrencia()'
 
-    const labelBotao = (chave, nomebase, base) => {
-
-        const id = ocorrencia?.[chave] || undefined
-
-        const possivelValor = base[id]?.nome || base[id]?.usuario || 'Selecionar'
-
-        return `<label class="campos" name="${chave}" ${id ? `id="${id}"` : ''} onclick="caixaOpcoes('${chave}', '${nomebase}')">${possivelValor}</label>`
-    }
-
     const acumulado = `
         <div style="${vertical}; background-color: #d2d2d2; padding: 2vw; max-width: 60vw; max-height: 60vh; overflow-y: auto; overflow-x: hidden;">
             <div style="${horizontal}; align-items: start; gap: 2vw;">
                 <div style="${vertical}; gap: 5px;">
-                    ${modelo('Unidade de Manutenção', labelBotao('unidade', 'dados_clientes', unidades))}
-                    ${modelo('Sistema', labelBotao('sistema', 'sistemas', sistemas))}
-                    ${modelo('Prioridade', labelBotao('prioridade', 'prioridades', prioridades))}
+                    ${modelo('Unidade de Manutenção', labelBotao('unidade', 'dados_clientes', unidades, ocorrencia))}
+                    ${modelo('Sistema', labelBotao('sistema', 'sistemas', sistemas, ocorrencia))}
+                    ${modelo('Prioridade', labelBotao('prioridade', 'prioridades', prioridades, ocorrencia))}
                 </div>
                 <div style="${vertical}; gap: 5px;">
-                    ${modelo('Tipo', labelBotao('tipo', 'tipos', tipos))}
-                    ${modelo('Solicitante', labelBotao('solicitante', 'dados_setores', dados_setores))}
-                    ${modelo('Executor / Responsável', labelBotao('executor', 'dados_setores', dados_setores))}
+                    ${modelo('Tipo', labelBotao('tipo', 'tipos', tipos, ocorrencia))}
+                    ${modelo('Solicitante', labelBotao('solicitante', 'dados_setores', dados_setores, ocorrencia))}
+                    ${modelo('Executor / Responsável', labelBotao('executor', 'dados_setores', dados_setores, ocorrencia))}
                     ${modelo('Data / Hora', `<label class="campos">${new Date().toLocaleString('pt-BR')}</label>`)}
                     ${modelo('Descrição', `<textarea rows="7" name="descricao" class="campos">${ocorrencia?.descricao || ''}</textarea>`)}
                 </div>
@@ -844,13 +832,11 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
         }
     }
 
-    await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, correcao)
-    await enviar(`dados_ocorrencias/${idOcorrencia}/tipoCorrecao`, correcao.tipoCorrecao)
-
     ocorrencia.tipoCorrecao = correcao.tipoCorrecao // Atualiza no objeto principal também;
 
+    await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, correcao)
+    await enviar(`dados_ocorrencias/${idOcorrencia}/tipoCorrecao`, correcao.tipoCorrecao)
     await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
-
     await carregarOcorrencias()
 
     anexosProvisorios = {}
@@ -889,7 +875,7 @@ async function salvarOcorrencia(idOcorrencia) {
 
     if (idOcorrencia) {
         const ocorrenciaAtual = await recuperarDado('dados_ocorrencias', idOcorrencia)
-        await inserirDados({ [idOcorrencia]: { ...ocorrencia, ...ocorrenciaAtual } }, 'dados_ocorrencias')
+        await inserirDados({ [idOcorrencia]: { ...ocorrenciaAtual, ...ocorrencia } }, 'dados_ocorrencias')
         await enviar(`dados_ocorrencias/${idOcorrencia}`, ocorrencia)
     } else {
         await enviar('dados_ocorrencias/0000', ocorrencia)
@@ -989,7 +975,7 @@ async function anexosOcorrencias(input, idOcorrencia, idCorrecao) {
 
     })
 
-    if(!novo) await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
+    if (!novo) await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
 
     removerOverlay()
 
@@ -1013,5 +999,297 @@ async function removerAnexo(img, idAnexo, idOcorrencia, idCorrecao) {
     img.parentElement.remove()
 
     removerOverlay()
+
+}
+
+function diferencaEmDias(data1, data2) {
+
+    if (data1 == '' || data2 == '') return 0
+    const dt1 = new Date(data1)
+    const dt2 = new Date(data2)
+
+    const diffMs = dt1 - dt2
+    const diffDias = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+    return diffDias
+}
+
+async function dashboard(dadosFiltrados) {
+
+    removerMenus()
+
+    const dados_ocorrencias = dadosFiltrados ? dadosFiltrados : await recuperarDados('dados_ocorrencias')
+    const dados_clientes = await recuperarDados('dados_clientes')
+    const sistemas = await recuperarDados('dados_clientes')
+    const correcoes = await recuperarDados('correcoes')
+    const tipos = await recuperarDados('tipos')
+    const prioridades = await recuperarDados('prioridades')
+    const dados_setores = await recuperarDados('dados_setores')
+    let linhas = ''
+    let contador = {
+        abertos: 0,
+        atrasados: 0,
+        finalizados: 0
+    }
+
+    const totalOcorrencias = Object.keys(dados_ocorrencias).length
+
+    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) {
+
+        let dtTermino = ''
+        let executores = ''
+        let solicitantes = ''
+
+        for (const [idCorrecao, correcao] of Object.entries(ocorrencia?.correcoes || {})) {
+            if (correcao.dataTermino !== '') dtTermino = correcao.dataTermino
+
+            executores += `<label style="white-space: nowrap;">${correcao?.executor || '--'}</label>`
+            solicitantes += `<label style="white-space: nowrap;">${correcao?.solicitante || '--'}</label>`
+
+        }
+
+        const dias = diferencaEmDias(ocorrencia.dataLimiteExecucao, dtTermino)
+
+        if (dias > 0 && dtTermino !== '') {
+            contador.finalizados++
+        } else if (dias < 0 && dtTermino !== '') {
+            contador.atrasados++
+        } else if (dtTermino == '') {
+            contador.abertos++
+        }
+
+        linhas += `
+            <tr>
+                <td>${idOcorrencia}</td>
+                <td>${dados_clientes[ocorrencia.unidade].nome}</td>
+                <td>${ocorrencia.dataRegistro.split(',')[0]}</td>
+                <td>${dtAuxOcorrencia(ocorrencia.dataLimiteExecucao)}</td>
+                <td>${dtAuxOcorrencia(dtTermino)}</td>
+                <td style="text-align: center; ${dias < 0 ? 'background-color: #b12425; color: white;' : ''}">${dias}</td>
+                <td>${correcoes?.[ocorrencia.tipoCorrecao]?.nome || ''}</td>
+                <td>
+                    <div style="${vertical}">
+                        ${executores}
+                    </div>
+                </td>
+                <td>
+                    <div style="${vertical}">
+                        ${solicitantes}
+                    </div>
+                </td>
+                <td style="text-align: center;">
+                    <div style="${horizontal};">
+                        <img src="imagens/pesquisar2.png" style="width: 1.5vw; cursor: pointer;">
+                    </div>
+                </td>
+            </tr>
+        `
+    }
+
+    let cabecalho = { th: '', thPesquisa: '' }
+    const colunas = ['Chamado', 'Loja', 'Data Abertura', 'Data Limite', 'Data Execução', 'Dias', 'Status Correção', 'Executores', 'Solicitante', 'Detalhes']
+        .map(op => {
+            cabecalho.th += `<th>${op}</th>`
+        })
+
+    const totaisLabel = (porc, texto, total, cor) => `
+        <div class="totalBox" style="background-color: ${cor ? cor : '#222'};">
+            <label style="font-size: 1.2vw;">${porc}</label>
+            <label style="font-size: 1.5vw;">${texto}</label>
+            <label style="font-size: 2.0vw;"><strong>${total}</strong></label>
+        </div>
+    `
+
+    const modelo = (titulo, html, name, nomeBase) => {
+
+        html = html ? html : `
+            <label class="campos" onclick="caixaOpcoesRelatorio('${name}', '${nomeBase}')">Selecionar</label>
+            <br>
+            <div name="${name}"></div>
+        `
+        const bloco = `
+            <div class="blocoFiltro">
+                <label>${titulo}</label>
+                ${html}
+            </div>
+       `
+        return bloco
+    }
+
+    const porcentagem = (valor) => `${((valor / totalOcorrencias) * 100).toFixed(0)}%`
+
+    const tabela = `
+        <div style="heigth: max-content; heinght: 60vw; overflow-y auto;" id="tabelaRelatorio">
+            <table class="tabela">
+                <thead>
+                    <tr>${cabecalho.th}</tr>
+                </thead>
+                <tbody id="bodyOcorrencias">${linhas}</tbody>
+            </table>
+        </div>
+    `
+
+    const pesquisa = (campo, col) => `
+        <div style="${horizontal}; padding-left: 1vw; padding-right: 1vw; margin: 5px; background-color: white; border-radius: 10px;">
+            <input oninput="pesquisar_generico('${col}', this.value, filtrosOcorrencias.chamados, 'bodyOcorrencias')" placeholder="Pesquisar ${campo}" style="width: 100%;">
+            <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+        </div>
+    `
+
+    const acumulado = `
+
+        <div style="${horizontal}; align-items: start; gap: 10px;">
+
+            <div style="${vertical}; width: 75%;">
+                <div class="painelBotoes">
+                    <label class="tituloDashboard">Relatório de Chamados</label>
+                </div>
+                <div style="${horizontal}; justify-content: space-evenly; width: 100%; align-items: start; background-color: #a3a3a3; width: 100%; padding-top: 10px; padding-bottom: 10px;">
+                    <div style="${vertical}; gap: 5px;">
+                        <div style="${horizontal}; gap: 5px;">
+                            ${modelo('Dt Início', `<input class="campos" type="date">`)}
+                            ${modelo('Dt Término', `<input class="campos" type="date">`)}
+                        </div>
+                        ${pesquisa('lojas', 1)}
+                        ${pesquisa('chamados', 0)}
+                    </div>
+                    ${modelo('Solicitante', false, 'solicitante', 'dados_setores')}
+                    ${modelo('Executor', false, 'executor', 'dados_setores')}
+                    ${modelo('Status da Correção', false, 'correcao', 'correcoes')}
+                    ${modelo('Status de Finalização', false, 'correcao', 'correcoes')}
+                </div>
+                ${tabela}
+                <div class="rodapeTabela"></div>
+            </div>
+
+            <div style="${vertical}; gap: 2vh; width: 25%;">
+                ${totaisLabel('', 'Total de Chamados', Object.entries(dados_ocorrencias).length, '#00563f')}
+                ${totaisLabel(porcentagem(contador.finalizados), 'Finalizados no Prazo', contador.finalizados, 'green')}
+                ${totaisLabel(porcentagem(contador.abertos), 'Em Aberto', contador.abertos, '#a28409')}
+                ${totaisLabel(porcentagem(contador.atrasados), 'Atrasados', contador.atrasados, '#B12425')}
+            </div>
+
+        </div>
+    `
+
+    const tabelaRelatorio = document.getElementById('tabelaRelatorio')
+    if (tabelaRelatorio) return tabelaRelatorio.innerHTML = tabela
+
+    painelCentral.innerHTML = acumulado
+
+}
+
+async function caixaOpcoesRelatorio(name, nomeBase) {
+
+    let base = await recuperarDados(nomeBase)
+
+    if (nomeBase.includes('clientes') || nomeBase.includes('composicoes')) base = filtrarAtivos(base)
+
+    let opcoesDiv = ''
+
+    const bloco = document.querySelector(`[name='${name}']`)
+    const permitidos = []
+    if (bloco) {
+        const labels = bloco.querySelectorAll('label')
+        for (const label of labels) if (!permitidos.includes(label.id)) permitidos.push(label.id)
+    }
+
+    for ([cod, dado] of Object.entries(base)) {
+
+        const labels = esquemaCampos[nomeBase]
+            .map(campo => `
+                <label id="${cod}">${dado[campo]}</label>
+                ${nomeBase == 'dados_setores' ? `<label style="font-size: 0.7vw;">${dado.setor}</label>` : ''}
+                `)
+            .join('')
+
+        opcoesDiv += `
+            <div name="camposOpcoes" class="atalhosRelatorio">
+                <input ${permitidos.includes(cod) ? 'checked' : ''} name="itensFiltro" id="${cod}" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
+                ${labels}
+            </div>`
+    }
+
+    const acumulado = `
+        <div style="${horizontal}; justify-content: left; background-color: #b1b1b1; gap: 1vw; padding: 1vw;">
+            <div style="${horizontal}; gap: 5px;">
+                <input type="checkbox" style="width: 1.5vw; height: 1.5vw;" onclick="marcarTodosVisiveis(this, 'itensFiltro')">
+                <label>Todos</label>
+            </div>
+            <img src="imagens/concluido.png" style="width: 2vw; cursor: pointer;" onclick="filtrarRelatorio('${name}')">
+            <div style="${horizontal}; padding-left: 1vw; padding-right: 1vw; margin: 5px; background-color: white; border-radius: 10px;">
+                <input oninput="pesquisar(this)" placeholder="Pesquisar itens" style="width: 100%;">
+                <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+            </div>
+        </div>
+        <div style="padding: 1vw; gap: 5px; ${vertical}; background-color: #d2d2d2; width: 30vw; max-height: 40vh; height: max-content; overflow-y: auto; overflow-x: hidden;">
+            ${opcoesDiv}
+        </div>
+    `
+
+    popup(acumulado, 'Selecione o item', true)
+
+}
+
+async function filtrarRelatorio(nameBloco) {
+
+    let bloco = document.querySelector(`[name='${nameBloco}']`)
+
+    if (bloco) {
+
+        bloco.innerHTML = ''
+        const checkboxes = document.querySelectorAll(`[name='itensFiltro']`)
+
+        for (const input of checkboxes) {
+
+            if (input.checked) {
+                const labels = input.parentElement.querySelectorAll('label')
+                const item = `
+                    <label name="${nameBloco}_filtros" id="${labels[0].id}" style="${horizontal}; justify-content: start; gap: 5px; width: 100%;">
+                        <img src="imagens/cancel.png" style="width: 1.2vw; cursor: pointer;" onclick="this.parentElement.remove(); processarFiltros()">
+                        ${labels[0].textContent}
+                    </label>
+                `
+                bloco.insertAdjacentHTML('beforeend', item)
+            }
+        }
+    }
+
+    await processarFiltros()
+    removerPopup()
+}
+
+async function processarFiltros() {
+
+    let dados_ocorrencias = await recuperarDados('dados_ocorrencias')
+
+
+    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) {
+
+        let manter = false
+        // 1º Filtro: Solicitante
+        const bloco = document.querySelector(`[name='solicitante']`)
+        const permitidos = []
+        if (bloco) {
+            const labels = bloco.querySelectorAll('label')
+            for (const label of labels) if (!permitidos.includes(label.id)) permitidos.push(label.id)
+        }
+
+        // 2º Filtro: 
+        console.log(permitidos);
+
+
+        manter = permitidos.includes(ocorrencia.solicitante)
+
+
+
+
+        if (!manter && !permitidos.length == 0) {
+            delete dados_ocorrencias[idOcorrencia]
+        }
+
+    }
+
+    await dashboard(dados_ocorrencias)
 
 }

@@ -6,12 +6,73 @@
     align-items: start;
 }
 
+.totalBox {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background-color: #222;
+    color: white;
+    padding: 0.5vw;
+    text-align: center;
+    border-radius: 8px;
+}
+
 body {
     overflow: hidden;
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
     font-size: 1.0vw;
+}
+
+.blocoFiltro {
+    background-color: #e6e6e6;
+    padding: 10px;
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+}
+
+.blocoFiltro div label{
+    font-size: 0.7vw;
+    border-radius: 2px;
+    background-color: #383838;
+    color: white;
+    padding: 3px;
+}
+
+.blocoFiltro div {
+    gap: 1px;
+    border: 1px solid #c3c3c3;
+    width: max-content;
+    max-width: 15vw;
+    background-color: #d1d1d1;
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    overflow-y: visible;
+    overflow-x: hidden;
+    max-height: 20vh;
+    height: max-content;
+}
+
+.atalhosRelatorio {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    background-color: #e2e2e2;
+    border-radius: 3px;
+    padding: 10px;
+    width: 100%;
+    gap: 5px;
 }
 
 .blocoMaior {
@@ -42,14 +103,18 @@ input, select, textarea {
 }
 
 .campos {
+    font-size: 0.8vw;
     text-align: left;
     cursor: pointer;
     padding: 5px;
-    width: 100%;
     max-width: 20vw;
-    border: 1px solid #b1b1b1;
-    background-color: #b1b1b1;
-    border-radius: 2px;
+    background-color: #b5b5b5;
+    border-radius: 5px;
+}
+
+.campos:hover {
+    background-color: #00563f;
+    color: white;
 }
 
 .tabelaChamado {
@@ -59,14 +124,21 @@ input, select, textarea {
     padding: 8px;
 }
 
+.tituloDashboard {
+    border-radius: 3px;
+    text-align: center;
+    width: 100%;
+    margin: 10px;
+    padding: 1vw;
+    color: white;
+    background-color: #00563f;
+    font-size: 2.0vw;
+}
+
 .tabelaChamado td {
     font-size: 1.0vw;
     padding: 3px;
     text-align: center;
-}
-
-.campos:hover {
-    border: 1px solid #797979;
 }
 
 .rodapeTabela {
@@ -144,12 +216,11 @@ input, select, textarea {
 }
 
 .painelCentral {
-    padding: 2vw;
     border-radius: 2px;
     background-color: #00000038;
     margin-top: 1vw;
-    margin-left: 2vw;
-    width: max-content;
+    padding: 2vw;
+    width: 85vw;
     display: flex;
     justify-content: start;
     align-items: start;

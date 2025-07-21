@@ -347,9 +347,10 @@ body {
 }
 
 .painelBotoes {
+    min-height: 4vh;
     display: flex;
     align-items: start;
-    justify-content: end;
+    justify-content: start;
     border-top-right-radius: 2px;
     border-top-left-radius: 2px;
     background-color: #b1b1b1;
