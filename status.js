@@ -970,8 +970,6 @@ async function salvar_requisicao(chave) {
         }
     }
 
-    if (!temItensValidos) return popup(mensagem('Nenhum item foi preenchido'), 'Aviso', true);
-
     orcamento.status.historico[chave] = novo_lancamento
 
     await inserirDados({ [id_orcam]: orcamento }, "dados_orcamentos");
