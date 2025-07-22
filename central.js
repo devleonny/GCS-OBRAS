@@ -2,6 +2,7 @@ let acesso = JSON.parse(localStorage.getItem('acesso'))
 let dados_setores = {}
 let filtrosUsuarios = {}
 let filtrosPendencias = {}
+const paginasBloqueadas = ['PDF', 'OS']
 const horizontal = `display: flex; align-items: center; justify-content: center;`
 const vertical = `display: flex; align-items: start; justify-content: start; flex-direction: column;`
 const metaforas = [
@@ -288,8 +289,6 @@ function carregarIcones() {
 function corFundo() {
     let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
 
-    const paginasBloqueadas = ['PDF']
-
     if (!paginasBloqueadas.includes(document.title)) {
         document.body.style.background = modoClone ? 'linear-gradient(45deg, #249f41, #151749)' : 'linear-gradient(45deg, #B12425, #151749)'
     }
@@ -351,7 +350,7 @@ async function identificacaoUser() {
 
     let permitidosAprovacoes = ['adm', 'diretoria']
 
-    if (document.title !== 'PDF' && acesso.usuario) {
+    if (!paginasBloqueadas.includes(document.title) && acesso.usuario) {
 
         let texto = `
             <div class="cabecalhoUsuario">

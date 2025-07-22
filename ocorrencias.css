@@ -39,7 +39,7 @@ textarea {
     justify-content: start;
 }
 
-.blocoFiltro div label{
+.blocoFiltro div label {
     font-size: 0.7vw;
     border-radius: 2px;
     background-color: #383838;
@@ -100,6 +100,31 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: start;
+}
+
+.balaoOcorrencias {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.balaoSolicitante {
+    font-size: 0.6vw;
+    cursor: pointer;
+    padding: 5px;
+    background-color: #222;
+    border-bottom-left-radius: 15px;
+    border-top-left-radius: 15px;
+}
+
+.balaoExecutor {
+    font-size: 0.6vw;
+    cursor: pointer;
+    padding: 5px;
+    background-color: #222222c8;
+    border-bottom-right-radius: 15px;
+    border-top-right-radius: 15px;
 }
 
 .campos {

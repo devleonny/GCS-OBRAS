@@ -1034,19 +1034,24 @@ async function dashboard(dadosFiltrados) {
 
     const totalOcorrencias = Object.keys(dados_ocorrencias).length
 
+    const balao = (valor1, valor2) => `
+        <div class="balaoOcorrencias">
+            <div class="balaoSolicitante">${valor1 || '--'}</div>
+            <div class="balaoExecutor">${valor2 || '--'}</div>
+        </div>
+    `
+
     for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) {
 
         let dtTermino = ''
-        let executores = ''
-        let solicitantes = ''
+        let baloes = ''
 
         for (const [idCorrecao, correcao] of Object.entries(ocorrencia?.correcoes || {})) {
             if (correcao.dataTermino !== '') dtTermino = correcao.dataTermino
-
-            executores += `<label style="white-space: nowrap;">${correcao?.executor || '--'}</label>`
-            solicitantes += `<label style="white-space: nowrap;">${correcao?.solicitante || '--'}</label>`
-
+            baloes += balao(correcao?.solicitante, correcao?.executor)
         }
+
+        if (!ocorrencia.correcoes) baloes += balao('--', '--')
 
         const dias = diferencaEmDias(ocorrencia.dataLimiteExecucao, dtTermino)
 
@@ -1068,13 +1073,8 @@ async function dashboard(dadosFiltrados) {
                 <td style="text-align: center; ${dias < 0 ? 'background-color: #b12425; color: white;' : ''}">${dias}</td>
                 <td>${correcoes?.[ocorrencia.tipoCorrecao]?.nome || ''}</td>
                 <td>
-                    <div style="${vertical}">
-                        ${executores}
-                    </div>
-                </td>
-                <td>
-                    <div style="${vertical}">
-                        ${solicitantes}
+                    <div style="${vertical}; gap: 2px;">
+                        ${baloes}
                     </div>
                 </td>
                 <td style="text-align: center;">
@@ -1087,7 +1087,7 @@ async function dashboard(dadosFiltrados) {
     }
 
     let cabecalho = { th: '', thPesquisa: '' }
-    const colunas = ['Chamado', 'Loja', 'Data Abertura', 'Data Limite', 'Data Execução', 'Dias', 'Status Correção', 'Executores', 'Solicitante', 'Detalhes']
+    const colunas = ['Chamado', 'Loja', 'Data Abertura', 'Data Limite', 'Data Execução', 'Dias', 'Status Correção', 'Solicitante > Executor', 'Detalhes']
         .map(op => {
             cabecalho.th += `<th>${op}</th>`
         })
@@ -1144,7 +1144,7 @@ async function dashboard(dadosFiltrados) {
                 <div class="painelBotoes">
                     <label class="tituloDashboard">Relatório de Chamados</label>
                 </div>
-                <div style="${horizontal}; justify-content: space-evenly; width: 100%; align-items: start; background-color: #a3a3a3; width: 100%; padding-top: 10px; padding-bottom: 10px;">
+                <div style="${horizontal}; gap: 2px; justify-content: space-evenly; width: 100%; align-items: start; background-color: #a3a3a3; width: 100%; padding-top: 10px; padding-bottom: 10px;">
                     <div style="${vertical}; gap: 5px;">
                         <div style="${horizontal}; gap: 5px;">
                             ${modelo('Dt Início', `<input class="campos" type="date">`)}
@@ -1155,8 +1155,8 @@ async function dashboard(dadosFiltrados) {
                     </div>
                     ${modelo('Solicitante', false, 'solicitante', 'dados_setores')}
                     ${modelo('Executor', false, 'executor', 'dados_setores')}
-                    ${modelo('Status da Correção', false, 'correcao', 'correcoes')}
-                    ${modelo('Status de Finalização', false, 'correcao', 'correcoes')}
+                    ${modelo('Status da Correção', false, 'tipoCorrecao', 'correcoes')}
+                    ${modelo('Status de Finalização', false, 'tipoCorrecao', 'correcoes')}
                 </div>
                 ${tabela}
                 <div class="rodapeTabela"></div>
@@ -1181,11 +1181,9 @@ async function dashboard(dadosFiltrados) {
 
 async function caixaOpcoesRelatorio(name, nomeBase) {
 
-    let base = await recuperarDados(nomeBase)
+    let base = await recuperarDados(nomeBase);
 
     if (nomeBase.includes('clientes') || nomeBase.includes('composicoes')) base = filtrarAtivos(base)
-
-    let opcoesDiv = ''
 
     const bloco = document.querySelector(`[name='${name}']`)
     const permitidos = []
@@ -1193,6 +1191,13 @@ async function caixaOpcoesRelatorio(name, nomeBase) {
         const labels = bloco.querySelectorAll('label')
         for (const label of labels) if (!permitidos.includes(label.id)) permitidos.push(label.id)
     }
+
+    let opcoesDiv = `
+        <div name="camposOpcoes" class="atalhosRelatorio">
+            <input ${permitidos.includes('Em Branco') ? 'checked' : ''} name="itensFiltro" id="Em Branco" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
+            <label id="Em Branco">Em Branco</label>
+        </div>
+    `
 
     for ([cod, dado] of Object.entries(base)) {
 
@@ -1262,34 +1267,73 @@ async function filtrarRelatorio(nameBloco) {
 async function processarFiltros() {
 
     let dados_ocorrencias = await recuperarDados('dados_ocorrencias')
+    let dadosFiltrados = {}
 
+    let permitidos = {
+        solicitante: [],
+        executor: [],
+        tipoCorrecao: []
+    }
+
+    for (let [nameBloco, objeto] of Object.entries(permitidos)) {
+        const bloco = document.querySelector(`[name='${nameBloco}']`)
+
+        if (bloco) {
+            const labels = bloco.querySelectorAll('label')
+            for (const label of labels) if (!objeto.includes(label.id)) objeto.push(label.id)
+        }
+    }
+
+    const vazio = () => {
+
+        let estaVazio = true
+        for (const [name, lista] of Object.entries(permitidos)) {
+            if (lista.length > 0) estaVazio = false
+        }
+
+        return estaVazio
+    }
+
+    const filtrado = (lista1, lista2) => {
+
+        let exibir = true
+        for (const item of lista1) {
+            if (!lista2.includes(item)) exibir = false
+        }
+
+        return exibir
+    }
 
     for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) {
 
-        let manter = false
-        // 1º Filtro: Solicitante
-        const bloco = document.querySelector(`[name='solicitante']`)
-        const permitidos = []
-        if (bloco) {
-            const labels = bloco.querySelectorAll('label')
-            for (const label of labels) if (!permitidos.includes(label.id)) permitidos.push(label.id)
+        let campos = {
+            solicitante: new Set(),
+            executor: new Set(),
+            tipoCorrecao: new Set()
         }
 
-        // 2º Filtro: 
-        console.log(permitidos);
+        for (const [idCorrecao, correcao] of Object.entries(ocorrencia?.correcoes || {})) {
+            campos.solicitante.add(correcao?.solicitante || 'Em Branco')
+            campos.executor.add(correcao?.executor || 'Em Branco')
+            campos.tipoCorrecao.add(correcao?.tipoCorrecao || 'Em Branco')
+        }
 
+        if (!ocorrencia.correcoes) {
+            campos.solicitante.add('Em Branco')
+            campos.executor.add('Em Branco')
+            campos.tipoCorrecao.add('Em Branco')
+        }
 
-        manter = permitidos.includes(ocorrencia.solicitante)
+        let permSolicitante = filtrado(permitidos.solicitante, [...campos.solicitante])
+        let permExecutor = filtrado(permitidos.executor, [...campos.executor])
+        let permCorrecao = filtrado(permitidos.tipoCorrecao, [...campos.tipoCorrecao])
 
-
-
-
-        if (!manter && !permitidos.length == 0) {
-            delete dados_ocorrencias[idOcorrencia]
+        if ((permSolicitante && permExecutor && permCorrecao) || vazio()) {
+            dadosFiltrados[idOcorrencia] = ocorrencia
         }
 
     }
 
-    await dashboard(dados_ocorrencias)
+    await dashboard(dadosFiltrados)
 
 }

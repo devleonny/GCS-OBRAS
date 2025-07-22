@@ -1015,6 +1015,7 @@ async function abrirAtalhos(id) {
         ${modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`)}
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
+        ${modeloBotoes('LG', 'OS em PDF', `irOS('${id}')`)}
         `
     }
 
@@ -1424,8 +1425,8 @@ function elementosEspecificos(chave, historico) {
                 <label><strong>${titulo}:</strong></label>
                 <div style="${horizontal}; gap: 2px;">
                     ${campo == 'tipo'
-                        ? `<select style="${estilo}" onchange="atualizarPedido('${chave}', '${campo}', this)">${opcoes}</select>`
-                        : `<input style="${estilo}" value="${valor1}" oninput="mostrarConfirmacao(this)">`}
+                    ? `<select style="${estilo}" onchange="atualizarPedido('${chave}', '${campo}', this)">${opcoes}</select>`
+                    : `<input style="${estilo}" value="${valor1}" oninput="mostrarConfirmacao(this)">`}
                     <img src="imagens/concluido.png" style="display: none; width: 1vw;" onclick="atualizarPedido('${chave}', '${campo}', this)">
                 </div>
             </div>
@@ -2395,4 +2396,17 @@ async function envioMaterial(chave) {
     </div>
     `
     popup(acumulado, 'Envio de Material', true)
+}
+
+async function irOS(idOrcamento) {
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
+    localStorage.setItem('pdf', JSON.stringify(orcamento))
+
+    try {
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.invoke('open-new-window', `os.html`);
+
+    } catch {
+        window.location.href = `os.html`;
+    }
 }
