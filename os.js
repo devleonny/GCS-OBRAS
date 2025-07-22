@@ -91,10 +91,10 @@ async function carregarOS() {
 
 async function gerarPDF() {
 
-    const blc = document.querySelector('.blc')
-    if (blc) blc.style.display = 'none'
+    const botoesSuperior = document.querySelector('.botoesSuperior')
+    if (botoesSuperior) botoesSuperior.style.display = 'none'
 
     await gerar_pdf_online(document.documentElement.outerHTML, `OS_${nomeCliente}_${chamado}`);
 
-    if (blc) blc.style.display = ''
+    if (botoesSuperior) botoesSuperior.style.display = ''
 }
