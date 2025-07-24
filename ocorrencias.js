@@ -602,20 +602,24 @@ async function carregarOcorrencias() {
     let acumulado = `
     
         <div style="${vertical};">
-            <div class="painelBotoes" style="justify-content: start; align-items: center; height: 5vh;">
+            <div class="painelBotoes" style="justify-content: space-between; align-items: center; height: 5vh;">
                 <div style="${horizontal}; gap: 5px;">
-                    <input type="checkbox" style="width: 1.5vw; height: 1.5vw;" onclick="marcarTodosVisiveis(this, 'input_correncias')">
-                    <label>Todos</label>
+                    <div style="${horizontal}; gap: 5px;">
+                        <input type="checkbox" style="width: 1.5vw; height: 1.5vw;" onclick="marcarTodosVisiveis(this, 'input_correncias')">
+                        <label>Todos</label>
+                    </div>
+                    <div style="margin-left: 1vw; ${horizontal}; background-color: white; border-radius: 5px; padding-left: 1vw; padding-right: 1vw;">
+                        <input oninput="pesquisar(this, 'ocorrencias')" placeholder="Pesquisar chamados" style="width: 100%;">
+                        <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                    </div>
                 </div>
-                <div style="margin-left: 1vw; ${horizontal}; background-color: white; border-radius: 5px; padding-left: 1vw; padding-right: 1vw;">
-                    <input oninput="pesquisar(this, 'ocorrencias')" placeholder="Pesquisar chamados" style="width: 100%;">
-                    <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                <div style="${horizontal}; gap: 5px;">
+                    ${botao('Novo', 'formularioOcorrencia()')}
+                    ${botao('Excluir', ``, '#B12425')}
+                    ${botao('Baixa', ``)}
+                    ${botao('Inativar', ``)}
+                    ${botao('Atualizar', `atualizarOcorrencias()`)}
                 </div>
-                ${botao('Novo', 'formularioOcorrencia()')}
-                ${botao('Excluir', ``, '#B12425')}
-                ${botao('Baixa', ``)}
-                ${botao('Inativar', ``)}
-                ${botao('Atualizar', `atualizarOcorrencias()`)}
             </div>
 
             <div style="height: max-content; width: 85vw; max-height: 70vh; overflow: auto;">
