@@ -39,7 +39,7 @@ const labelDestaque = (valor1, valor2) => `<label style="text-align: left;"><str
 
 const botao = (valor1, funcao, cor) => `
         <div class="contorno_botoes" style="background-color: ${cor};" onclick="${funcao}">
-            <label>${valor1}</label>
+            <label style="white-space: nowrap;">${valor1}</label>
         </div>
         `
 const avisoHTML = (termo) => `
@@ -387,14 +387,13 @@ async function sincronizarSetores() {
     let nuvem = await lista_setores(maiorTimestamp)
 
     await inserirDados(nuvem, 'dados_setores')
+    dados_setores = await recuperarDados('dados_setores')
 
 }
 
 async function configs() {
 
     overlayAguarde()
-
-    let status = await servicos('livre')
 
     await sincronizarSetores()
 
@@ -437,13 +436,19 @@ async function configs() {
             <td>
                 <select class="opcoesSelect" onchange="alterar_usuario('setor', '${usuario}', this)" style="cursor: pointer;">${opcoes_setores}</select>
             </td>
+            <td>
+                <div style="${horizontal}; gap: 5px;">
+                    <img src="imagens/atualizar3.png" style="width: 1.5vw; cursor: pointer;" onclick="alterarMobi7('${usuario}')">
+                    <label>${dados?.mobi7 || ''}</label>
+                </div>
+            </td>
         </tr>
         `
     }
 
     let ths = ''
     let tbusca = ''
-    let cabecalhos = ['Usuário', 'Permissão', 'Setores']
+    let cabecalhos = ['Usuário', 'Permissão', 'Setores', 'Mobi7']
     cabecalhos.forEach((cabecalho, i) => {
         ths += `<th>${cabecalho}</th>`
         tbusca += `
@@ -476,6 +481,26 @@ async function configs() {
     removerPopup()
     popup(acumulado, 'Configurações')
 
+}
+
+function alterarMobi7(usuario) {
+
+    const acumulado = `
+        <div style="${horizontal}; gap: 5px; padding: 2vw; background-color: #d2d2d2;">
+            <input id="novoApelido" style="padding: 5px; border-radius: 3px;" placeholder="Apelido na Mobi 7 Localiza">
+            ${botao('Atualizar', `salvarMobi7('${usuario}')`, 'green')}
+        </div>
+    `
+    popup(acumulado, 'Atualizar nome Mobi7', true)
+}
+
+async function salvarMobi7(usuario) {
+
+    overlayAguarde()
+    const novoApelido = document.getElementById('novoApelido')
+    await configuracoes(usuario, 'mobi7', novoApelido.value)
+    await configs()
+    removerPopup()
 }
 
 async function alterar_usuario(campo, usuario, select) {
@@ -786,15 +811,15 @@ async function recuperarDado(nomeBase, id) {
     };
 
     const db = await abrirDB();
+    const modoClone = JSON.parse(localStorage.getItem('modoClone')) || false;
 
-    let resultado = await buscar(db, nomeBase, id);
+    const base1 = modoClone ? `${nomeBase}_clone` : nomeBase;
+    const base2 = modoClone ? nomeBase : `${nomeBase}_clone`;
+
+    let resultado = await buscar(db, base1, id);
 
     if (!resultado) {
-        const baseAlternativa = nomeBase.endsWith('_clone')
-            ? nomeBase.replace('_clone', '')
-            : `${nomeBase}_clone`;
-
-        resultado = await buscar(db, baseAlternativa, id);
+        resultado = await buscar(db, base2, id);
     }
 
     db.close();
@@ -2567,6 +2592,27 @@ async function buscarDANFE(codOmieNF, tipo, app) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ codOmieNF, tipo, app })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(error => reject(error));
+
+    })
+}
+
+async function mobi7({ base, usuarioMobi7, dtInicial, dtFinal }) {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/mobi7", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ base, usuarioMobi7, dtInicial, dtFinal })
         })
             .then(response => {
                 if (!response.ok) {

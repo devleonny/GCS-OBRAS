@@ -76,6 +76,7 @@ textarea {
 }
 
 .blocoMaior {
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: start;
@@ -100,6 +101,18 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: start;
+}
+
+.fechar {
+    cursor: pointer;
+    color: #444444;
+    float: right;
+    font-size: 2vw;
+    font-weight: bold;
+}
+
+.fechar:hover {
+    color: red;
 }
 
 .balaoOcorrencias {
@@ -137,13 +150,38 @@ textarea {
     border-radius: 5px;
 }
 
+.fundoTec {
+    border: 1px solid #797979;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    background-color: #e7e7e7;
+    border-radius: 3px;
+    width: 50%;
+    height: max-content;
+    max-height: 40vh;
+    overflow-y: auto;
+    margin: 1vw;
+    padding-left: 1vw;
+}
+
 .campos:hover {
     background-color: #00563f;
     color: white;
 }
 
+.tabela1 {
+    border-collapse: collapse;
+}
+
+.tabela1 td {
+    border: solid 1px #222;
+    width: 50%;
+    text-align: center;
+}
+
 .tabelaChamado {
-    width: 100%;
     height: 100%;
     background-color: white;
     padding: 8px;
