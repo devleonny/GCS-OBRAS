@@ -92,14 +92,6 @@ const itensImportados = [
     'gcs-725', 'gcs-726', 'gcs-738', 'gcs-739', 'gcs-734', 'gcs-740', 'gcs-741', 'gcs-730', 'gcs-742', 'gcs-743', 'gcs-744', 'gcs-747', 'gcs-729', 'gcs-728', 'gcs-727', 'gcs-1135', 'gcs-1136', 'gcs-1137'
 ]
 
-// Provisoriamente até apagar todas as bases;
-indexedDB.deleteDatabase('Bases')
-indexedDB.deleteDatabase('GCS v2')
-indexedDB.deleteDatabase('firebase-heartbeat-database')
-limparStores('Bases')
-despoluicaoGCS()
-
-
 async function despoluicaoGCS(resetar) {
 
     const atualizado = resetar ? !resetar : JSON.parse(localStorage.getItem('atualizado')) || false
