@@ -26,22 +26,6 @@ const menus = {
         {
             nome: 'Equipamentos',
             funcao: `painelCadastro('dados_composicoes')`
-        },
-        {
-            nome: 'Sistemas',
-            funcao: `carregarTabelasAuxiliares('sistemas')`
-        },
-        {
-            nome: 'Prioridades de Correção',
-            funcao: `carregarTabelasAuxiliares('prioridades')`
-        },
-        {
-            nome: 'Status de Correção',
-            funcao: `carregarTabelasAuxiliares('correcoes')`
-        },
-        {
-            nome: 'Tipos',
-            funcao: `carregarTabelasAuxiliares('tipos')`
         }
         ]
 
@@ -49,8 +33,8 @@ const menus = {
     'Configurações': {
         imagem: 'ajustar',
         paineis: [{
-            nome: 'Não disponível',
-            funcao: ''
+            nome: 'Campos de Formulário',
+            funcao: 'telaConfiguracoes()'
         }]
     },
 }
@@ -97,7 +81,30 @@ const modeloCampos = (valor1, elemento) => `
 botoesLaterais()
 //dashboard()
 carregarOcorrencias()
-//painelCadastro('dados_composicoes')
+//painelCadastro('dados_clientes')
+//telaConfiguracoes()
+
+
+async function telaConfiguracoes() {
+
+    overlayAguarde()
+
+    const acumulado = `
+    <div style="${vertical}; gap: 1vh;">
+        <div style="${horizontal}; gap: 10px; align-items: start;">
+            ${await carregarTabelasAuxiliares('empresas')}
+            ${await carregarTabelasAuxiliares('sistemas')}
+            ${await carregarTabelasAuxiliares('prioridades')}
+            ${await carregarTabelasAuxiliares('correcoes')}
+            ${await carregarTabelasAuxiliares('tipos')}
+        </div>
+    </div>
+    `
+
+    painelCentral.innerHTML = acumulado
+
+    removerOverlay()
+}
 
 async function atualizarOcorrencias() {
 
@@ -106,7 +113,11 @@ async function atualizarOcorrencias() {
 
 }
 
-function botoesLaterais() {
+async function botoesLaterais() {
+
+    const empresas = await recuperarDados('empresas')
+    let empresaAtiva = document.getElementById('empresaAtiva')
+    empresaAtiva.textContent = empresas?.[acesso?.empresa]?.nome || 'Usuário sem Grupo'
 
     let painelLateral = document.querySelector('.painelLateral')
 
@@ -144,31 +155,51 @@ function removerMenus() {
     if (painelCascata) painelCascata.remove()
 }
 
-async function painelCadastro(nomeBaseReferencia) {
+async function painelCadastro(nomeBaseReferencia, codigoEmpresa) {
 
     removerMenus()
     document.title = '...'
-    await sincronizarDados('dados_clientes')
+    await sincronizarDados(nomeBaseReferencia)
     document.title = 'Ocorrências'
 
-    const dadosReferencia = await recuperarDados(nomeBaseReferencia)
+    overlayAguarde()
 
-    const tabelas = tabelasHTML()
+    const dadosReferencia = await recuperarDados(nomeBaseReferencia)
+    const empresas = await recuperarDados('empresas')
+    const opcoes = Object.entries(empresas)
+        .map(([id, empresa]) => `<option value="${id}" ${codigoEmpresa == id ? 'selected' : ''}>${empresa.nome}</option>`).join('')
+    const tabelas = tabelasHTML(codigoEmpresa ? codigoEmpresa : Object.keys(empresas)[0])
+
+    const divTabelasString = `
+        ${tabelas.referencia}
+
+        <div style="border-right: 1px dashed #d2d2d2; margin: 1vw; height: 80vh;"></div>
+
+        ${tabelas.ativos}
+    `
 
     const acumulado = `
-        <div style="${horizontal}; width: 85vw;">
-            ${tabelas.referencia}
+        <div style="${vertical}; gap: 10px;">
 
-            <div style="border-right: 1px dashed #d2d2d2; margin: 1vw; height: 80vh;"></div>
+            <div style="${horizontal}; gap: 5px;">
+                <label style="color: white; white-space: nowrap;">Selecione o Grupo</label>
+                <select class="opcoesSelect" onchange="painelCadastro('${nomeBaseReferencia}', this.value)">${opcoes}</select>
+            </div>
 
-            ${tabelas.ativos}
+            <div style="${horizontal}; width: 85vw;" id="divTabelas">
+                ${divTabelasString}
+            </div>
         </div>
-
     `
+
+    removerOverlay()
+
+    let divTabelas = document.getElementById('divTabelas')
+    if (divTabelas) return divTabelas.innerHTML = divTabelasString
     painelCentral.innerHTML = acumulado
 
-    // Função que carrega os elementos
-    function tabelasHTML() {
+    // Função que carrega os elementos;
+    function tabelasHTML(codigoEmpresa) {
 
         let tabelas = {}
         let linhas = {
@@ -199,7 +230,7 @@ async function painelCadastro(nomeBaseReferencia) {
                     </div>
                 </div>`
 
-            if (recorte.ocorrencia) {
+            if (recorte.ocorrencia && recorte.ocorrencia.includes(codigoEmpresa)) {
                 linhas.ativos.quantidade++
                 linhas.ativos.string += `
                 <div name="psq_ativos" class="divsListagem">
@@ -222,11 +253,13 @@ async function painelCadastro(nomeBaseReferencia) {
                             <input type="checkbox" style="width: 1.5vw; height: 1.5vw;" onclick="marcarTodosVisiveis(this, '${tabela}')">
                             <label>Todos</label>
                         </div>
+
                         <div style="${horizontal}; background-color: white; border-radius: 5px; padding-left: 1vw; padding-right: 1vw;">
                             <input oninput="pesquisar(this, '${tabela}')" placeholder="Pesquisar" style="width: 100%;">
                             <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
                         </div>
-                        ${botao('Mover', `gerenciar('${tabela}', '${nomeBaseReferencia}')`)}
+
+                        ${botao(tabela == 'referencia' ? 'Incluir' : 'Remover', `gerenciar('${tabela}', '${nomeBaseReferencia}', '${codigoEmpresa}')`)}
                     </div>
 
                     <div style="width: 100%; height: max-content; max-height: 65vh; overflow-y: auto; overflow-x: hidden;">
@@ -243,36 +276,45 @@ async function painelCadastro(nomeBaseReferencia) {
 
 }
 
-async function gerenciar(tabela, nomeBaseReferencia) {
+async function gerenciar(tabela, nomeBaseReferencia, codigoEmpresa) {
+    overlayAguarde();
 
-    overlayAguarde()
+    let dadosReferencia = await recuperarDados(nomeBaseReferencia);
+    let inputs = document.querySelectorAll(`[name="${tabela}"]`);
+    const ativo = tabela == 'referencia';
 
-    let dadosReferencia = await recuperarDados(nomeBaseReferencia)
-    let inputs = document.querySelectorAll(`[name="${tabela}"]`)
-    let alteracoes = {}
+    let alteracoes = {
+        ativo,
+        codigoEmpresa,
+        nomeBaseReferencia,
+        listagem: []
+    };
 
     for (let inputTab of inputs) {
-
         if (inputTab.checked) {
+            const id = inputTab.id;
+            const recorte = dadosReferencia[id];
+            if (!recorte.ocorrencia) recorte.ocorrencia = [];
 
-            const id = inputTab.id
-            const ativo = tabela == 'referencia'
+            if (ativo) {
 
-            alteracoes[id] = ativo
-            dadosReferencia[id].ocorrencia = ativo
+                if (!recorte.ocorrencia.includes(codigoEmpresa)) {
+                    recorte.ocorrencia.push(codigoEmpresa);
+                }
 
+            } else {
+
+                recorte.ocorrencia = recorte.ocorrencia.filter(cod => cod !== codigoEmpresa);
+                if (recorte.ocorrencia.length === 0) delete recorte.ocorrencia;
+            }
+
+            alteracoes.listagem.push(id)
         }
-
     }
 
-    await ativarChaveOcorrencias(nomeBaseReferencia, alteracoes)
-
-    await inserirDados(dadosReferencia, nomeBaseReferencia)
-
-    await painelCadastro(nomeBaseReferencia)
-
-    removerOverlay()
-
+    await inserirDados(dadosReferencia, nomeBaseReferencia);
+    await painelCadastro(nomeBaseReferencia, codigoEmpresa);
+    removerOverlay();
 }
 
 function marcarTodosVisiveis(input, tituloAtual) {
@@ -292,32 +334,32 @@ function marcarTodosVisiveis(input, tituloAtual) {
 async function carregarTabelasAuxiliares(nomeBaseAuxiliar) {
 
     removerMenus()
-    await sincronizarDados(nomeBaseAuxiliar)
+    await sincronizarDados(nomeBaseAuxiliar, true)
 
     const baseAuxiliar = await recuperarDados(nomeBaseAuxiliar)
 
     const linhas = Object.entries(baseAuxiliar)
         .map(([cod, recorte]) => `
         <tr>
-            <td>${recorte.nome}</td>
             <td>
-                <div style="${horizontal};">
+                <div style="${horizontal}; justify-content: start; gap: 10px;">
                     <img onclick="editar('${nomeBaseAuxiliar}', '${cod}')" src="imagens/pesquisar2.png" style="cursor: pointer; width: 1.5vw;">
+                    <label>${recorte.nome}</label>
                 </div>
             </td>
         </tr>
         `).join('')
 
     let acumulado = `
-        <div style="${vertical};">
-            <div class="painelBotoes">
+        <div style="${vertical};" id="${nomeBaseAuxiliar}">
+            <div class="painelBotoes" style="align-items: center;">
                 ${botao('Novo', `editar('${nomeBaseAuxiliar}')`)}
+                <label style="font-size: 1.2vw;">${inicialMaiuscula(nomeBaseAuxiliar)}</label>
             </div>
-            <div style="height: max-content; max-height: 60vh; overflow-y: auto;">
-                <table class="tabela">
+            <div style="height: max-content; max-height: 60vh; overflow-y: auto; width: 15vw;">
+                <table class="tabela" style="width: 100%;">
                     <thead>
                         <th>Nome</th>
-                        <th>Ações</th>
                     </thead>
 
                     <tbody>
@@ -329,7 +371,9 @@ async function carregarTabelasAuxiliares(nomeBaseAuxiliar) {
         </div>
     `
 
-    painelCentral.innerHTML = acumulado
+    let tabelaExistente = document.getElementById(nomeBaseAuxiliar)
+    if (tabelaExistente) return tabelaExistente.innerHTML = acumulado
+    return acumulado
 }
 
 async function editar(tabela, cod) {
@@ -543,8 +587,9 @@ async function carregarRoteiro(idOcorrencia, idCorrecao) {
 }
 
 async function carregarOcorrencias() {
+
     removerMenus()
-    const dados_ocorrencias = await recuperarDados('dados_ocorrencias')
+    const dados_ocorrencias = await baixarOcorrencias()
     const sistemas = await recuperarDados('sistemas')
     const tipos = await recuperarDados('tipos')
     const prioridades = await recuperarDados('prioridades')

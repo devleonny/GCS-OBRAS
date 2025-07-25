@@ -395,8 +395,20 @@ async function configs() {
 
     await sincronizarSetores()
 
+    // Especial para ocorrências;
+    const title = document.title
+    document.title = 'Ocorrências'
+    await sincronizarDados('empresas')
+    document.title = title
+    // Fim
+
+    const empresas = {
+        ...await recuperarDados('empresas'),
+        ...{ '': { nome: '' } }
+    }
+
     let linhas = ''
-    let listas = {
+    const listas = {
         permissoes: ['', 'adm', 'user', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
         setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE']
     }
@@ -408,32 +420,29 @@ async function configs() {
             return obj;
         }, {});
 
+    const tdPreenchida = (coluna, opcoes) => `
+        <td>
+            <select class="opcoesSelect" onchange="alterar_usuario('${coluna}', '${usuario}', this)" style="cursor: pointer;">${opcoes}</select>
+        </td>
+    `
+
     for ([usuario, dados] of Object.entries(dados_setores)) {
 
-        let opcoes_permissao = ''
-        let opcoes_setores = ''
+        const opcoesEmpresas = Object.entries(empresas).reverse()
+            .map(([id, empresa]) => `<option value="${id}" ${dados.empresa == id ? 'selected' : ''}>${empresa.nome}</option>`).join('')
 
-        listas.permissoes.forEach(permissao => {
-            opcoes_permissao += `
-            <option ${dados?.permissao == permissao ? 'selected' : ''}>${permissao}</option>
-            `
-        })
+        const opcoesPermissao = listas.permissoes
+            .map(permissao => `<option value="${permissao}" ${dados?.permissao == permissao ? 'selected' : ''}>${permissao}</option>`).join('')
 
-        listas.setores.forEach(setor => {
-            opcoes_setores += `
-            <option ${dados?.setor == setor ? 'selected' : ''}>${setor}</option>
-            `
-        })
+        const opcoesSetores = listas.setores
+            .map(setor => `<option value="${setor}" ${dados?.setor == setor ? 'selected' : ''}>${setor}</option>`).join('')
 
         linhas += `
         <tr>
             <td style="text-align: left;">${usuario}</td>
-            <td>
-                <select class="opcoesSelect" onchange="alterar_usuario('permissao', '${usuario}', this)" style="cursor: pointer;">${opcoes_permissao}</select>
-            </td>
-            <td>
-                <select class="opcoesSelect" onchange="alterar_usuario('setor', '${usuario}', this)" style="cursor: pointer;">${opcoes_setores}</select>
-            </td>
+            ${tdPreenchida('permissao', opcoesPermissao)}
+            ${tdPreenchida('setor', opcoesSetores)}
+            ${tdPreenchida('empresa', opcoesEmpresas)}
             <td>
                 <div style="${horizontal}; gap: 5px;">
                     <img src="imagens/atualizar3.png" style="width: 1.5vw; cursor: pointer;" onclick="alterarMobi7('${usuario}')">
@@ -446,7 +455,7 @@ async function configs() {
 
     let ths = ''
     let tbusca = ''
-    let cabecalhos = ['Usuário', 'Permissão', 'Setores', 'Mobi7']
+    let cabecalhos = ['Usuário', 'Permissão', 'Setores', 'Empresa', 'Mobi7']
     cabecalhos.forEach((cabecalho, i) => {
         ths += `<th>${cabecalho}</th>`
         tbusca += `
@@ -460,7 +469,7 @@ async function configs() {
     })
 
     let tabela = `
-    <table class="tabela" style="width: 30vw;">
+    <table class="tabela">
         <thead>
             <tr>${ths}</tr>
             <tr>${tbusca}</tr>
@@ -506,9 +515,11 @@ async function alterar_usuario(campo, usuario, select) {
     if (dados_setores[usuario]) {
 
         let alteracao = await configuracoes(usuario, campo, select.value) // Se alterar no servidor, altera localmente;
-        if (alteracao.status) {
+
+        if (alteracao?.status) {
             dados_setores[usuario][campo] = select.value
         } else {
+            popup(mensagem(`Não foi possível alterar: ${alteracao?.erro || 'Tente novamente mais tarde'}`), 'ALERTA', true)
             select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
         }
     }
@@ -1444,14 +1455,14 @@ function enviar(caminho, info) {
     });
 }
 
-function ativarChaveOcorrencias(nomeBase, dados) {
+function ativarChaveOcorrencias(dados) {
     return new Promise((resolve) => {
         fetch("https://leonny.dev.br/chavesOcorrencias", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ nomeBase, dados })
+            body: JSON.stringify(dados)
         })
             .then(data => resolve(data))
             .catch((erro) => {
@@ -2605,6 +2616,27 @@ async function mobi7({ base, usuarioMobi7, dtInicial, dtFinal }) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ base, usuarioMobi7, dtInicial, dtFinal })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(error => reject(error));
+
+    })
+}
+
+async function baixarOcorrencias() {
+    return new Promise((resolve, reject) => {
+        fetch("https://leonny.dev.br/ocorrencias", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ usuario: acesso.usuario })
         })
             .then(response => {
                 if (!response.ok) {

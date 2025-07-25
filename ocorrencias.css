@@ -1,6 +1,7 @@
 .central {
     margin-left: 15vw;
     display: flex;
+    flex-direction: column;
     width: 100%;
     justify-content: start;
     align-items: start;
@@ -17,6 +18,11 @@
     padding: 0.5vw;
     text-align: center;
     border-radius: 8px;
+}
+
+#empresaAtiva {
+    color: white;
+    font-size: 2vw;
 }
 
 body {
@@ -172,6 +178,7 @@ textarea {
 }
 
 .tabela1 {
+    width: 100%;
     border-collapse: collapse;
 }
 
@@ -205,6 +212,7 @@ textarea {
 }
 
 .rodapeTabela {
+    border-top: 1px solid;
     width: 100%;
     height: 2vh;
     border-bottom-left-radius: 3px;
