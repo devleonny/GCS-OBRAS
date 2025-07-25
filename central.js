@@ -92,6 +92,13 @@ const itensImportados = [
     'gcs-725', 'gcs-726', 'gcs-738', 'gcs-739', 'gcs-734', 'gcs-740', 'gcs-741', 'gcs-730', 'gcs-742', 'gcs-743', 'gcs-744', 'gcs-747', 'gcs-729', 'gcs-728', 'gcs-727', 'gcs-1135', 'gcs-1136', 'gcs-1137'
 ]
 
+const link = document.createElement('link');
+link.rel = 'icon';
+link.type = 'imagens/png';
+link.href = 'imagens/LG.png'; // ou o caminho desejado
+
+document.head.appendChild(link);
+
 async function despoluicaoGCS(resetar) {
 
     const atualizado = resetar ? !resetar : JSON.parse(localStorage.getItem('atualizado')) || false
