@@ -1179,7 +1179,7 @@ function calcular(campo, dadosCalculo = null) {
         let pis = precoVenda * 0.0065
         let cofins = precoVenda * 0.03
 
-        let icmsSaidaSelect = icmsCreditado == 4 ? 0.04 : conversor(getElementById('icms_saida_select')) / 100
+        let icmsSaidaSelect = conversor(getElementById('icms_saida_select')) / 100
 
         let icmsSaida = dadosCalculo?.icmsSaida / 100 || icmsSaidaSelect
         let icms = precoVenda * icmsSaida
@@ -1190,7 +1190,7 @@ function calcular(campo, dadosCalculo = null) {
             getElementById('frete_venda', freteVenda.toFixed(2))
             getElementById('porc_LP', dinheiro(lucroPresumido))
             getElementById('porc_CSLL', dinheiro(presuncaoCsll))
-            getElementById('icms_saida_select', icmsSaidaSelect == 0.04 ? '4%' : icmsSaidaSelect == 0.12 ? '12%' : '20,5%')
+            getElementById('icms_saida_select', icmsSaidaSelect == 0.12 ? '12%' : '20,5%')
             getElementById('icms_saida', dinheiro(icms.toFixed(0)))
             getElementById('frete', frete.toFixed(2))
             getElementById('difal', difal)
