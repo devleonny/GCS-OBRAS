@@ -95,8 +95,7 @@ const itensImportados = [
 const link = document.createElement('link');
 link.rel = 'icon';
 link.type = 'imagens/png';
-link.href = 'imagens/LG.png'; // ou o caminho desejado
-
+link.href = 'imagens/LG.png';
 document.head.appendChild(link);
 
 async function despoluicaoGCS(resetar) {
@@ -1137,14 +1136,8 @@ async function ir_pdf(orcam_) {
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     localStorage.setItem('pdf', JSON.stringify(dados_orcamentos[orcam_]));
 
-    try {
-        const { ipcRenderer } = require('electron');
-        const pdfUrl = `pdf.html`;
-        ipcRenderer.invoke('open-new-window', pdfUrl);
+    window.open('pdf.html', '_blank')
 
-    } catch {
-        window.location.href = `pdf.html`;
-    }
 }
 
 async function excluirOrcamento(idOrcamento) {

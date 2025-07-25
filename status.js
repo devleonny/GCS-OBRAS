@@ -2400,11 +2400,5 @@ async function irOS(idOrcamento) {
     const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
     localStorage.setItem('pdf', JSON.stringify(orcamento))
 
-    try {
-        const { ipcRenderer } = require('electron');
-        ipcRenderer.invoke('open-new-window', `os.html`);
-
-    } catch {
-        window.location.href = `os.html`;
-    }
+    window.open('os.html', '_blank')
 }
