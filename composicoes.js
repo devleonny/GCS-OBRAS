@@ -71,7 +71,7 @@ async function carregar_tabela_v2() {
 
     cabecalhos.push('editar');
 
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    let modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
     let colunasComposicoes = JSON.parse(localStorage.getItem('colunasComposicoes')) || {}
     let modo = modoClone ? 'clone' : 'antigos'
     if (!colunasComposicoes[modo]) {
@@ -286,7 +286,7 @@ async function abrirFiltros() {
     cabecalhos.push('editar', ...lpusCriadas);
 
     let acumulado = ''
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    let modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
     let colunasComposicoes = JSON.parse(localStorage.getItem('colunasComposicoes')) || {}
     let modo = modoClone ? 'clone' : 'antigos'
     if (!colunasComposicoes[modo]) {
@@ -366,7 +366,7 @@ async function aplicarFiltros() {
         }
     })
 
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    let modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
     let colunasComposicoes = JSON.parse(localStorage.getItem('colunasComposicoes')) || {}
     let modo = modoClone ? 'clone' : 'antigos'
     if (!colunasComposicoes[modo]) {
@@ -1352,7 +1352,7 @@ async function cadastrar_editar_item(codigo) {
 
     let colunas = ['descricao', 'fabricante', 'modelo', 'unidade', 'ncm', 'tipo', 'omie']
 
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    let modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
     if (!modoClone) colunas.push('descricaocarrefour')
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
@@ -1533,7 +1533,7 @@ async function salvarServidor(codigo) {
 async function verificarCodigoExistente() {
     return new Promise((resolve, reject) => {
 
-        let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+        let modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
 
         fetch("https://leonny.dev.br/codigo", {
             method: "POST",

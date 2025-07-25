@@ -45,7 +45,7 @@ verificarFluxograma()
 
 function verificarFluxograma() {
 
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    let modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
     modoClone ? fluxograma = fluxogramaClone : fluxograma = fluxogramaPadrao
 
 }
