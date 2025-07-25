@@ -228,7 +228,7 @@ identificacaoUser()
 
 function ativarCloneGCS(ativar) {
 
-    localStorage.setItem('modoClone', ativar)
+    sessionStorage.setItem('modoClone', ativar);
     carregarIcones()
     corFundo()
 
@@ -250,7 +250,7 @@ function carregarIcones() {
         );
     }
 
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    let modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
     let painel_geral = document.getElementById('painel_geral')
     let atalho = (termo, img, funcao) => {
         return `
@@ -285,7 +285,7 @@ function carregarIcones() {
 }
 
 function corFundo() {
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    let modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
 
     if (!paginasBloqueadas.includes(document.title)) {
         document.body.style.background = modoClone ? 'linear-gradient(45deg, #249f41, #151749)' : 'linear-gradient(45deg, #B12425, #151749)'
@@ -646,7 +646,7 @@ async function reprocessar_offline() {
 
 async function deletarDB(base, idInterno) {
 
-    const clone = JSON.parse(localStorage.getItem('modoClone')) || false;
+    const clone = JSON.parse(sessionStorage.getItem('modoClone')) || false;
 
     base = clone ? `${base}_clone` : base
 
@@ -691,7 +691,7 @@ async function deletarDB(base, idInterno) {
 
 async function inserirDados(dados, nomeBase) {
 
-    const clone = JSON.parse(localStorage.getItem('modoClone')) || false;
+    const clone = JSON.parse(sessionStorage.getItem('modoClone')) || false;
 
     nomeBase = clone ? `${nomeBase}_clone` : nomeBase
 
@@ -779,7 +779,7 @@ async function recuperarDados(nomeBase, ambos) {
         return { ...original, ...clone };
     }
 
-    const modoClone = JSON.parse(localStorage.getItem('modoClone')) || false;
+    const modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false;
     const baseFinal = modoClone ? `${nomeBase}_clone` : nomeBase;
     return await getDadosPorBase(baseFinal);
 }
@@ -809,7 +809,7 @@ async function recuperarDado(nomeBase, id) {
     };
 
     const db = await abrirDB();
-    const modoClone = JSON.parse(localStorage.getItem('modoClone')) || false;
+    const modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false;
 
     const base1 = modoClone ? `${nomeBase}_clone` : nomeBase;
     const base2 = modoClone ? nomeBase : `${nomeBase}_clone`;
@@ -1341,7 +1341,7 @@ function verificarApp() {
     if (document.title == 'Ocorrências') {
         app = 'ocorrencias'
     } else {
-        let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+        let modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
         if (modoClone) app = 'clone'
     }
 
@@ -2064,7 +2064,7 @@ async function respostaAprovacao(botao, idOrcamento, status) {
 async function verificar_chamado_existente(chamado, id_atual, sequencial) {
     return new Promise((resolve, reject) => {
 
-        let clone = JSON.parse(localStorage.getItem('modoClone')) || false
+        let clone = JSON.parse(sessionStorage.getItem('modoClone')) || false
 
         fetch("https://leonny.dev.br/chamado", {
             method: "POST",
@@ -2169,7 +2169,7 @@ function registrarAlteracao(base, id, comentario) {
 
 function baseOrcamento(orcamento, remover) {
 
-    let modoClone = JSON.parse(localStorage.getItem('modoClone')) || false
+    let modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
     let app = modoClone ? 'clone' : 'antigos'
     let orcamentos = JSON.parse(localStorage.getItem('orcamentos')) || {}
 
