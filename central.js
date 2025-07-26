@@ -331,6 +331,8 @@ async function identificacaoUser() {
 
     localStorage.setItem('acesso', JSON.stringify(acesso))
 
+    if(document.title == 'Ocorrências') return
+
     const usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []
     const totalUsuarios = [...new Set(usuariosOnline)]
 

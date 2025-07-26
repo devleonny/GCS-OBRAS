@@ -9,36 +9,6 @@ const btn = (imagem, termo, link) => `
     </div>
 `
 
-const menus = {
-    'Relatórios': {
-        imagem: 'prancheta',
-        paineis: [{
-            nome: 'Não disponível',
-            funcao: ''
-        }]
-    },
-    'Cadastros': {
-        imagem: 'gerente',
-        paineis: [{
-            nome: 'Unidades de Manutenção',
-            funcao: `painelCadastro('dados_clientes')`
-        },
-        {
-            nome: 'Equipamentos',
-            funcao: `painelCadastro('dados_composicoes')`
-        }
-        ]
-
-    },
-    'Configurações': {
-        imagem: 'ajustar',
-        paineis: [{
-            nome: 'Campos de Formulário',
-            funcao: 'telaConfiguracoes()'
-        }]
-    },
-}
-
 const labelBotao = (chave, nomebase, base, dados) => {
 
     const id = dados?.[chave] || undefined
@@ -80,7 +50,7 @@ const modeloCampos = (valor1, elemento) => `
 
 botoesLaterais()
 //dashboard()
-carregarOcorrencias()
+//carregarOcorrencias()
 //painelCadastro('dados_clientes')
 //telaConfiguracoes()
 
@@ -121,13 +91,61 @@ async function botoesLaterais() {
 
     let painelLateral = document.querySelector('.painelLateral')
 
-    painelLateral.insertAdjacentHTML('beforeend', btn('LG', 'Início', `window.location.href='inicial.html'`))
-    painelLateral.insertAdjacentHTML('beforeend', btn('relatorio', 'Dashboard', `dashboard()`))
-    painelLateral.insertAdjacentHTML('beforeend', btn('megafone', 'Ocorrências', `carregarOcorrencias()`))
+    const acumulado = `
+        ${btn('chamados', 'Nova Ocorrência', 'formularioOcorrencia()')}
+        ${btn('megafone', 'Ocorrências', `carregarOcorrencias()`)}
+        ${btn('relatorio', 'Dashboard', `dashboard()`)}
+        ${btn('empresa', 'Unidades', `painelCadastro('dados_clientes')`)}
+        ${btn('composicoes', 'Equipamentos', `painelCadastro('dados_composicoes')`)}
+        ${btn('ajustar', 'Cadastros', `telaConfiguracoes()`)}
+        ${btn('gerente', 'Usuários', `usuarios()`)}
+        ${btn('LG', 'GCS', `window.location.href='inicial.html'`)}
+    `
 
-    for (const [termo, dados] of Object.entries(menus)) {
-        painelLateral.insertAdjacentHTML('beforeend', btn(dados.imagem, termo))
+    painelLateral.innerHTML = acumulado
+
+}
+
+async function usuarios() {
+
+    const dados_setores = await recuperarDados('dados_setores')
+    const empresas = await recuperarDados('empresas')
+    let linhas = ''
+
+    for (const [usuario, dados] of Object.entries(dados_setores)) {
+        const opcoesEmpresas = Object.entries(empresas).reverse()
+            .map(([id, empresa]) => `<option value="${id}" ${dados.empresa == id ? 'selected' : ''}>${empresa.nome}</option>`).join('')
+
+        linhas += `
+            <tr>
+                <td>${usuario}</td>
+                <td>${dados.setor}</td>
+                <td><select>${opcoesEmpresas}</select></td>
+                <td>
+                    <div style="${horizontal}; gap: 5px;">
+                        <img src="imagens/atualizar3.png" style="width: 1.5vw; cursor: pointer;" onclick="alterarMobi7('${usuario}')">
+                        <label>${dados?.mobi7 || ''}</label>
+                    </div>
+                </td>
+            </tr>
+        `
     }
+
+    const acumulado = `
+        <div style="${vertical};">
+            <div class="painelBotoes" style="align-items: center;">
+                <label style="padding: 1vw;">Gerenciar Usuários</label>
+            </div>
+            <div style="height: 50vh; overflow-y: auto;">
+                <table class="tabela">
+                    <tbody>${linhas}</tbody>
+                </table>
+            </div>
+            <div class="rodapeTabela"></div>
+        </div>
+    `
+
+    painelCentral.innerHTML = acumulado
 
 }
 
@@ -171,11 +189,13 @@ async function painelCadastro(nomeBaseReferencia, codigoEmpresa) {
     const tabelas = tabelasHTML(codigoEmpresa ? codigoEmpresa : Object.keys(empresas)[0])
 
     const divTabelasString = `
-        ${tabelas.referencia}
+        <div style="display: flex; align-items: start; justify-content: center; width: 100%;">
+            ${tabelas.referencia}
 
-        <div style="border-right: 1px dashed #d2d2d2; margin: 1vw; height: 80vh;"></div>
+            <div style="border-right: 1px dashed #d2d2d2; margin: 1vw; height: 80vh;"></div>
 
-        ${tabelas.ativos}
+            ${tabelas.ativos}
+        </div>
     `
 
     const acumulado = `
@@ -216,17 +236,15 @@ async function painelCadastro(nomeBaseReferencia, codigoEmpresa) {
         Object.entries(dadosReferencia).forEach(([cod, recorte]) => {
 
             const labels = esquemaCampos[nomeBaseReferencia]
-                .map(campo => modelo(String(campo).toUpperCase(), recorte?.[campo] || '??'))
+                .map(campo => modeloCampos(String(campo).toUpperCase(), recorte?.[campo] || '??'))
                 .join('')
 
             linhas.referencia.quantidade++
             linhas.referencia.string += `
                 <div name="psq_referencia" class="divsListagem">
-                    <input name="referencia" id="${cod}" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
-                    <div style="${vertical};">
-
+                    <div style="${vertical}; width: 100%; position: relative;">
+                        <input name="referencia" id="${cod}" type="checkbox" style=" position: absolute; top: 0; left: 0; width: 1.5vw; height: 1.5vw;">
                         ${labels}
-
                     </div>
                 </div>`
 
@@ -235,7 +253,7 @@ async function painelCadastro(nomeBaseReferencia, codigoEmpresa) {
                 linhas.ativos.string += `
                 <div name="psq_ativos" class="divsListagem">
                     <input name="ativos" id="${cod}" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
-                    <div style="${vertical};">
+                    <div style="${vertical}; width: 100%;">
 
                         ${labels}
 
@@ -262,7 +280,7 @@ async function painelCadastro(nomeBaseReferencia, codigoEmpresa) {
                         ${botao(tabela == 'referencia' ? 'Incluir' : 'Remover', `gerenciar('${tabela}', '${nomeBaseReferencia}', '${codigoEmpresa}')`)}
                     </div>
 
-                    <div style="width: 100%; height: max-content; max-height: 65vh; overflow-y: auto; overflow-x: hidden;">
+                    <div style="width: 100%; height: max-content; max-height: 50vh; overflow-y: auto; overflow-x: hidden;">
                         ${conteudo.string}
                     </div>
                     <div class="rodapeTabela"></div>
@@ -281,10 +299,10 @@ async function gerenciar(tabela, nomeBaseReferencia, codigoEmpresa) {
 
     let dadosReferencia = await recuperarDados(nomeBaseReferencia);
     let inputs = document.querySelectorAll(`[name="${tabela}"]`);
-    const ativo = tabela == 'referencia';
+    const registrar = tabela == 'referencia';
 
     let alteracoes = {
-        ativo,
+        registrar,
         codigoEmpresa,
         nomeBaseReferencia,
         listagem: []
@@ -296,7 +314,7 @@ async function gerenciar(tabela, nomeBaseReferencia, codigoEmpresa) {
             const recorte = dadosReferencia[id];
             if (!recorte.ocorrencia) recorte.ocorrencia = [];
 
-            if (ativo) {
+            if (registrar) {
 
                 if (!recorte.ocorrencia.includes(codigoEmpresa)) {
                     recorte.ocorrencia.push(codigoEmpresa);
@@ -312,6 +330,7 @@ async function gerenciar(tabela, nomeBaseReferencia, codigoEmpresa) {
         }
     }
 
+    await ativarChaveOcorrencias(alteracoes)
     await inserirDados(dadosReferencia, nomeBaseReferencia);
     await painelCadastro(nomeBaseReferencia, codigoEmpresa);
     removerOverlay();
@@ -588,8 +607,12 @@ async function carregarRoteiro(idOcorrencia, idCorrecao) {
 
 async function carregarOcorrencias() {
 
+    overlayAguarde()
+
     removerMenus()
-    const dados_ocorrencias = await baixarOcorrencias()
+    const resposta = await baixarOcorrencias()
+    const dados_ocorrencias = resposta.dados
+    document.getElementById('empresaAtiva').textContent = resposta.empresa
     const sistemas = await recuperarDados('sistemas')
     const tipos = await recuperarDados('tipos')
     const prioridades = await recuperarDados('prioridades')
@@ -639,7 +662,6 @@ async function carregarOcorrencias() {
                         <img src="imagens/BG.png" style="width: 15vw;">
                     </div>
                 </td>`}
-            
         </tr>
         `
     }
@@ -675,10 +697,11 @@ async function carregarOcorrencias() {
 
             <div class="rodapeTabela"></div>
         </div>
-    
     `
 
     painelCentral.innerHTML = acumulado
+
+    removerOverlay()
 
 }
 
@@ -830,24 +853,28 @@ async function formularioOcorrencia(idOcorrencia) {
                     ${modelo('Sistema', labelBotao('sistema', 'sistemas', sistemas, ocorrencia))}
                     ${modelo('Prioridade', labelBotao('prioridade', 'prioridades', prioridades, ocorrencia))}
                 </div>
-                <div style="${vertical}; gap: 5px;">
-                    ${modelo('Tipo', labelBotao('tipo', 'tipos', tipos, ocorrencia))}
-                    ${modelo('Solicitante', labelBotao('solicitante', 'dados_setores', dados_setores, ocorrencia))}
-                    ${modelo('Executor / Responsável', labelBotao('executor', 'dados_setores', dados_setores, ocorrencia))}
-                    ${modelo('Data / Hora', `<label class="campos">${new Date().toLocaleString('pt-BR')}</label>`)}
-                    ${modelo('Descrição', `<textarea rows="7" name="descricao" class="campos">${ocorrencia?.descricao || ''}</textarea>`)}
-                </div>
-                <div style="${vertical}; gap: 5px;">
-                    ${modelo('Data Limite para a Execução', `<input name="dataLimiteExecucao" class="campos" type="date" value="${ocorrencia?.dataLimiteExecucao || ''}">`)}
-                    ${modelo('Anexos', `
-                            <label class="campos">
-                                Clique aqui
-                                <input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia ? idOcorrencia : 'novo'}')">
-                            </label>
-                        `)}
-                    <div id="anexos" style="${vertical};">
-                        ${Object.entries(ocorrencia?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')`)).join('')}
+                <div style="${vertical}; gap: 1vh;">
+                    <div style="${horizontal}; align-items: start; gap: 1vw;">
+                        <div style="${vertical}; gap: 5px;">
+                            ${modelo('Tipo', labelBotao('tipo', 'tipos', tipos, ocorrencia))}
+                            ${modelo('Solicitante', labelBotao('solicitante', 'dados_setores', dados_setores, ocorrencia))}
+                            ${modelo('Executor / Responsável', labelBotao('executor', 'dados_setores', dados_setores, ocorrencia))}
+                            ${modelo('Data / Hora', `<label class="campos">${new Date().toLocaleString('pt-BR')}</label>`)}
+                        </div>
+                        <div style="${vertical}; gap: 5px;">
+                            ${modelo('Data Limite para a Execução', `<input name="dataLimiteExecucao" class="campos" type="date" value="${ocorrencia?.dataLimiteExecucao || ''}">`)}
+                            ${modelo('Anexos', `
+                                    <label class="campos">
+                                        Clique aqui
+                                        <input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia ? idOcorrencia : 'novo'}')">
+                                    </label>
+                                `)}
+                            <div id="anexos" style="${vertical};">
+                                ${Object.entries(ocorrencia?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')`)).join('')}
+                            </div>
+                        </div>
                     </div>
+                    ${modelo('Descrição', `<textarea rows="7" style="width: 100%;" name="descricao" class="campos">${ocorrencia?.descricao || ''}</textarea>`)}
                 </div>
             </div>
 
@@ -1106,7 +1133,14 @@ async function dashboard(dadosFiltrados) {
 
     removerMenus()
 
-    const dados_ocorrencias = dadosFiltrados ? dadosFiltrados : await recuperarDados('dados_ocorrencias')
+    let dados_ocorrencias = {}
+    if (dadosFiltrados) {
+        dados_ocorrencias = dadosFiltrados
+    } else {
+        const resposta = await baixarOcorrencias()
+        dados_ocorrencias = resposta.dados
+    }
+
     const dados_clientes = await recuperarDados('dados_clientes')
     const correcoes = await recuperarDados('correcoes')
 

@@ -25,10 +25,6 @@
     font-size: 2vw;
 }
 
-body {
-    overflow: hidden;
-}
-
 input,
 select,
 textarea {
@@ -90,12 +86,13 @@ textarea {
 }
 
 .divsListagem {
+    width: 100%;
     font-size: 1.0vw;
     border-bottom: 1px solid #222;
     padding: 5px;
     display: flex;
     justify-content: start;
-    align-items: center;
+    align-items: start;
     background-color: #e6e6e6;
 }
 
