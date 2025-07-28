@@ -571,11 +571,10 @@ function overlayAguarde(desabilitar) {
                 top: 0;
                 left: 0;
                 width: 100%;
-                z-index: 10005;
-                font-size: 1.5em;">
+                z-index: 10005;">
         <div id="divMensagem" style="display: flex; align-items: center; justify-content: center; gap: 5px; width: 100%; height: 10vh;">
             <img src="gifs/loading.gif" style="width: 5vw;">
-            <label>Por favor, aguarde...</label>
+            <label style="font-size: 1.2vw;">Por favor, aguarde...</label>
         </div>
     </div>
     `

@@ -58,13 +58,12 @@ const esquemaCampos = {
 
 const modeloCampos = (valor1, elemento) => `
     <div style="${horizontal}; gap: 5px; width: 100%;">
-        <label style="width: 30%; text-align: right;"><strong>${valor1}</strong></label>
-        <div style="width: 70%; text-align: justify; padding-right: 1vw;">${elemento}</div>
+        <label style="width: 30%; text-align: right; font-size: 0.7vw;"><strong>${valor1}</strong></label>
+        <div style="width: 70%; text-align: justify; padding-right: 1vw; font-size: 0.9vw;">${elemento}</div>
     </div>
 `
 
 botoesLaterais()
-
 
 async function telaConfiguracoes() {
 
