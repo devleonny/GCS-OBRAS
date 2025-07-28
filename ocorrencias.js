@@ -1,6 +1,7 @@
 let painelCentral = document.querySelector('.painelCentral')
 let filtrosOcorrencias = { chamados: {} }
 let anexosProvisorios = {}
+let filtroUsuariosOcorrencias = {}
 const telaInicial = `
     <div style="display: flex; align-items: center; justify-content: center; width: 80vw; height: 70vh;">
         <img src="imagens/BG.png" style="width: 30vw;">
@@ -159,7 +160,7 @@ async function usuarios() {
             <tr>
                 <td>${usuario}</td>
                 <td>${dados.setor}</td>
-                <td><select>${opcoesEmpresas}</select></td>
+                <td><select class="opcoesSelect">${opcoesEmpresas}</select></td>
                 <td>
                     <div style="${horizontal}; gap: 5px;">
                         <img src="imagens/atualizar3.png" style="width: 1.5vw; cursor: pointer;" onclick="alterarMobi7('${usuario}')">
@@ -171,16 +172,29 @@ async function usuarios() {
     }
 
     const acumulado = `
-        <div style="${vertical};">
-            <div class="painelBotoes" style="align-items: center;">
-                <label style="padding: 1vw;">Gerenciar Usuários</label>
+        <div style="${horizontal}; gap: 1vw; align-items: start;">
+        
+            <div style="${vertical};">
+                <div class="painelBotoes" style="align-items: center; justify-content: center;">
+                    <div style="${horizontal}; background-color: white; border-radius: 5px; padding-left: 1vw; padding-right: 1vw;">
+                        <input oninput="pesquisar_generico('0', this.value, filtroUsuariosOcorrencias, 'bodyUsuarios')" placeholder="Pesquisar Usuário" style="width: 100%;">
+                        <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                    </div>
+                </div>
+                <div style="height: max-content; max-height: 50vh; overflow-y: auto;">
+                    <table class="tabela">
+                        <tbody id="bodyUsuarios">${linhas}</tbody>
+                    </table>
+                </div>
+                <div class="rodapeTabela"></div>
             </div>
-            <div style="height: max-content; max-height: 50vh; overflow-y: auto;">
-                <table class="tabela">
-                    <tbody>${linhas}</tbody>
-                </table>
+            <div class="informativo">
+                <img src="imagens/gerente.png" style="width: 3vw;">
+                <div style="${vertical};">
+                    <label>Gerencie os Grupos/Empresas de cada Usuário.</label>
+                    <label>Associe os nomes dos motoristas da plataforma Mobi7 para que seja possível rastrear os movimentos dos técnicos.</label>
+                </div>
             </div>
-            <div class="rodapeTabela"></div>
         </div>
     `
 
@@ -197,7 +211,8 @@ async function painelCadastro(nomeBaseReferencia, codigoEmpresa) {
     overlayAguarde()
 
     const dadosReferencia = await recuperarDados(nomeBaseReferencia)
-    const empresas = await recuperarDados('empresas')
+    let empresas = await recuperarDados('empresas')
+    delete empresas['0']
     const opcoes = Object.entries(empresas)
         .map(([id, empresa]) => `<option value="${id}" ${codigoEmpresa == id ? 'selected' : ''}>${empresa.nome}</option>`).join('')
     const tabelas = tabelasHTML(codigoEmpresa ? codigoEmpresa : Object.keys(empresas)[0])
@@ -614,7 +629,7 @@ async function carregarOcorrencias() {
     const sistemas = await recuperarDados('sistemas')
     const tipos = await recuperarDados('tipos')
     const prioridades = await recuperarDados('prioridades')
-    const dados_empresas = await recuperarDados('empresas')
+    const dados_empresas = await recuperarDados('dados_empresas')
     const correcoes = await recuperarDados('correcoes')
 
     let linhas = ''
@@ -988,7 +1003,7 @@ async function salvarOcorrencia(idOcorrencia) {
         await enviar(`dados_ocorrencias/${idOcorrencia}`, ocorrencia)
     } else {
         await enviar('dados_ocorrencias/0000', ocorrencia)
-        await sincronizarDados('dados_ocorrencias')
+        await atualizarOcorrencias()
     }
 
     anexosProvisorios = {}
@@ -1001,7 +1016,7 @@ async function caixaOpcoes(name, nomeBase) {
 
     let base = await recuperarDados(nomeBase)
     let opcoesDiv = ''
-
+    
     for ([cod, dado] of Object.entries(base)) {
 
         const labels = esquemaCampos[nomeBase]

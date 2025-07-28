@@ -493,6 +493,8 @@ async function alterar_usuario(campo, usuario, select) {
             select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
         }
     }
+
+    if(document.title == 'Ocorrências') await usuarios()
 }
 
 function verifTimestampNome(nome) {
@@ -571,7 +573,7 @@ function overlayAguarde(desabilitar) {
                 width: 100%;
                 z-index: 10005;
                 font-size: 1.5em;">
-        <div id="divMensagem" style="position: fixed; top: 1vw; left: 1vw; display: flex; align-items: center; justify-content: center; gap: 10px;">
+        <div id="divMensagem" style="display: flex; align-items: center; justify-content: center; gap: 5px; width: 100%; height: 10vh;">
             <img src="gifs/loading.gif" style="width: 5vw;">
             <label>Por favor, aguarde...</label>
         </div>

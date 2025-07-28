@@ -33,6 +33,16 @@ body {
     border-radius: 8px;
 }
 
+.informativo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #d2d2d2;
+    gap: 1vw;
+    padding: 1vw;
+    border-radius: 3px;
+}
+
 #empresaAtiva {
     color: white;
     font-size: 2vw;
