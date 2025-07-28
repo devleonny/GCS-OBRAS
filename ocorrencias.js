@@ -92,8 +92,9 @@ async function atualizarOcorrencias() {
     for (const base of basesAuxiliares) await sincronizarDados(base, true)
 
     const resposta = await baixarOcorrencias()
-    await inserirDados(resposta.ocorrencias, 'dados_ocorrencias')
-    await inserirDados(resposta.clientes, 'dados_clientes')
+
+    await inserirDados(resposta.ocorrencias, 'dados_ocorrencias', resposta.resetar)
+    await inserirDados(resposta.clientes, 'dados_clientes', resposta.resetar)
     document.getElementById('empresaAtiva').textContent = resposta.empresa
 
     removerOverlay()
@@ -123,6 +124,9 @@ async function botoesLaterais() {
         ${btn('gerente', 'Usuários', `usuarios()`)}
         ${btn('LG', 'GCS', `window.location.href='inicial.html'`)}`
     }
+
+    acumulado += btn('sair', 'Sair', `deslogarUsuario()`)
+
 
     painelLateral.innerHTML = acumulado
 
