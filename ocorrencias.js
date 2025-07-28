@@ -110,7 +110,7 @@ async function botoesLaterais() {
     let painelLateral = document.querySelector('.painelLateral')
 
     let acumulado = `
-        ${btn('atualizar3', 'Atualizar', 'atualizarOcorrencias()')}
+        ${btn('atualizar3', 'Atualizar', 'botoesLaterais()')}
         ${btn('chamados', 'Nova Ocorrência', 'formularioOcorrencia()')}
         ${btn('megafone', 'Ocorrências', `carregarOcorrencias()`)}
         ${btn('relatorio', 'Dashboard', `dashboard()`)}
