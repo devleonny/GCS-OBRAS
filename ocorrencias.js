@@ -574,11 +574,12 @@ async function carregarRoteiro(idOcorrencia, idCorrecao) {
     const usuarioMobi7 = dadosUsuario?.mobi7 || ''
     const dtInicial = correcao.dataInicio
     const dtFinal = correcao.dataTermino
-
+    const hrInicial = correcao.horaInicio
+    const hrFinal = correcao.horaTermino
 
     if (usuarioMobi7 == '' || dtInicial == '' || dtFinal == '') return painel.innerHTML = mensagem('Correção sem dados de Inicio/Final e/ou Executor')
 
-    const roteiro = await mobi7({ usuarioMobi7, dtInicial, dtFinal })
+    const roteiro = await mobi7({ usuarioMobi7, dtInicial, dtFinal, hrInicial, hrFinal })
 
     if (roteiro.length == 0) return painel.innerHTML = mensagem('Sem Dados')
 
@@ -1015,7 +1016,7 @@ async function caixaOpcoes(name, nomeBase) {
 
     let base = await recuperarDados(nomeBase)
     let opcoesDiv = ''
-    
+
     for ([cod, dado] of Object.entries(base)) {
 
         const labels = esquemaCampos[nomeBase]
