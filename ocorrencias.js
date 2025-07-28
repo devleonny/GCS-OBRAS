@@ -1,6 +1,11 @@
 let painelCentral = document.querySelector('.painelCentral')
 let filtrosOcorrencias = { chamados: {} }
 let anexosProvisorios = {}
+const telaInicial = `
+    <div style="display: flex; align-items: center; justify-content: center; width: 80vw; height: 70vh;">
+        <img src="imagens/BG.png" style="width: 30vw;">
+    </div>
+`
 
 let opcoesValidas = {
     solicitante: new Set(),
@@ -41,7 +46,9 @@ function removerCampo(img) {
 const esquemaCampos = {
     correcoes: ['nome'],
     dados_clientes: ['nome', 'cnpj', 'cidade'],
+    dados_empresas: ['nome', 'cnpj', 'cidade'],
     dados_composicoes: ['descricao', 'modelo', 'tipo'],
+    equipamentos: ['descricao', 'modelo', 'tipo'],
     sistemas: ['nome'],
     prioridades: ['nome'],
     tipos: ['nome'],
@@ -56,10 +63,6 @@ const modeloCampos = (valor1, elemento) => `
 `
 
 botoesLaterais()
-//dashboard()
-//carregarOcorrencias()
-//painelCadastro('dados_clientes')
-//telaConfiguracoes()
 
 
 async function telaConfiguracoes() {
@@ -87,6 +90,8 @@ async function atualizarOcorrencias() {
 
     overlayAguarde()
 
+    painelCentral.innerHTML = telaInicial
+
     const basesAuxiliares = ['empresas', 'sistemas', 'prioridades', 'correcoes', 'tipos']
 
     for (const base of basesAuxiliares) await sincronizarDados(base, true)
@@ -94,7 +99,7 @@ async function atualizarOcorrencias() {
     const resposta = await baixarOcorrencias()
 
     await inserirDados(resposta.ocorrencias, 'dados_ocorrencias', resposta.resetar)
-    await inserirDados(resposta.clientes, 'dados_clientes', resposta.resetar)
+    await inserirDados(resposta.clientes, 'dados_empresas', resposta.resetar)
     document.getElementById('empresaAtiva').textContent = resposta.empresa
 
     removerOverlay()
@@ -183,33 +188,8 @@ async function usuarios() {
 
 }
 
-function opcoesPainel(termo) {
-
-    const opcoes = menus[termo].paineis
-        .map(op => `<label onclick="${op.funcao}">${op.nome}</label>`).join('')
-
-    let acumulado = `
-    <div class="painelCascata">
-        <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="removerMenus()">×</span>
-        ${opcoes}
-    </div>
-    `
-    let painelCascata = document.querySelector('.painelCascata')
-    if (painelCascata) painelCascata.remove()
-
-    let painelLateral = document.querySelector('.painelLateral')
-    painelLateral.insertAdjacentHTML('afterend', acumulado)
-
-}
-
-function removerMenus() {
-    let painelCascata = document.querySelector('.painelCascata')
-    if (painelCascata) painelCascata.remove()
-}
-
 async function painelCadastro(nomeBaseReferencia, codigoEmpresa) {
 
-    removerMenus()
     document.title = '...'
     await sincronizarDados(nomeBaseReferencia)
     document.title = 'Ocorrências'
@@ -386,7 +366,6 @@ function marcarTodosVisiveis(input, tituloAtual) {
 
 async function carregarTabelasAuxiliares(nomeBaseAuxiliar) {
 
-    removerMenus()
     await sincronizarDados(nomeBaseAuxiliar, true)
 
     const baseAuxiliar = await recuperarDados(nomeBaseAuxiliar)
@@ -631,12 +610,11 @@ async function carregarOcorrencias() {
 
     overlayAguarde()
 
-    removerMenus()
     const dados_ocorrencias = await recuperarDados('dados_ocorrencias')
     const sistemas = await recuperarDados('sistemas')
     const tipos = await recuperarDados('tipos')
     const prioridades = await recuperarDados('prioridades')
-    const dados_clientes = await recuperarDados('dados_clientes')
+    const dados_empresas = await recuperarDados('empresas')
     const correcoes = await recuperarDados('correcoes')
 
     let linhas = ''
@@ -666,7 +644,7 @@ async function carregarOcorrencias() {
                     ${modeloCampos('Dt Limt Execução', dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao))}
                     ${modeloCampos('Número', idOcorrencia)}
                     ${modeloCampos('Tipo', tipos?.[ocorrencia?.tipo]?.nome || '...')}
-                    ${modeloCampos('Und Manutenção', dados_clientes?.[ocorrencia?.unidade]?.nome || '...')}
+                    ${modeloCampos('Und Manutenção', dados_empresas?.[ocorrencia?.unidade]?.nome || '...')}
                     ${modeloCampos('Sistema', sistemas?.[ocorrencia?.sistema]?.nome || '...')}
                     ${modeloCampos('Prioridade', prioridades?.[ocorrencia?.prioridade]?.nome || '...')}
                     ${modeloCampos('Descrição ', ocorrencia?.descricao || '...')}
@@ -729,7 +707,7 @@ async function maisLabel({ codigo, quantidade, unidade } = {}) {
     const temporario = ID5digitos()
     let nome = 'Clique aqui'
     if (codigo) {
-        const produto = await recuperarDado('dados_composicoes', codigo)
+        const produto = await recuperarDado('equipamentos', codigo)
         nome = produto.descricao
     }
 
@@ -737,7 +715,7 @@ async function maisLabel({ codigo, quantidade, unidade } = {}) {
         <div style="${horizontal}; gap: 5px; width: 100%;">
             <input class="campos" type="number" placeholder="quantidade" value="${quantidade || ''}">
             <select class="campos">${opcoes}</select>
-            <label class="campos" name="${temporario}" ${codigo ? `id="${codigo}"` : ''} onclick="caixaOpcoes('${temporario}', 'dados_composicoes')">${nome}</label>
+            <label class="campos" name="${temporario}" ${codigo ? `id="${codigo}"` : ''} onclick="caixaOpcoes('${temporario}', 'equipamentos')">${nome}</label>
             <img src="imagens/cancel.png" style="width: 1.5vw; cursor: pointer;" onclick="this.parentElement.remove()">
         </div> 
     `
@@ -855,8 +833,7 @@ async function formularioOcorrencia(idOcorrencia) {
 
     const ocorrencia = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : {}
     const dados_setores = await recuperarDados('dados_setores')
-    const dados_clientes = await recuperarDados('dados_clientes')
-    const unidades = dados_clientes
+    const dados_empresas = await recuperarDados('dados_empresas')
     const sistemas = await recuperarDados('sistemas')
     const prioridades = await recuperarDados('prioridades')
     const tipos = await recuperarDados('tipos')
@@ -866,7 +843,7 @@ async function formularioOcorrencia(idOcorrencia) {
         <div style="${vertical}; background-color: #d2d2d2; padding: 2vw; max-width: 60vw; max-height: 60vh; overflow-y: auto; overflow-x: hidden;">
             <div style="${horizontal}; align-items: start; gap: 2vw;">
                 <div style="${vertical}; gap: 5px;">
-                    ${modelo('Unidade de Manutenção', labelBotao('unidade', 'dados_clientes', unidades, ocorrencia))}
+                    ${modelo('Unidade de Manutenção', labelBotao('unidade', 'dados_empresas', dados_empresas, ocorrencia))}
                     ${modelo('Sistema', labelBotao('sistema', 'sistemas', sistemas, ocorrencia))}
                     ${modelo('Prioridade', labelBotao('prioridade', 'prioridades', prioridades, ocorrencia))}
                 </div>
@@ -1147,10 +1124,8 @@ async function dashboard(dadosFiltrados) {
 
     overlayAguarde()
 
-    removerMenus()
-
     const dados_ocorrencias = dadosFiltrados ? dadosFiltrados : await recuperarDados('dados_ocorrencias')
-    const dados_clientes = await recuperarDados('dados_clientes')
+    const dados_empresas = await recuperarDados('dados_empresas')
     const correcoes = await recuperarDados('correcoes')
 
     let linhas = ''
@@ -1210,7 +1185,7 @@ async function dashboard(dadosFiltrados) {
         linhas += `
             <tr>
                 <td>${idOcorrencia}</td>
-                <td>${dados_clientes[ocorrencia.unidade].nome}</td>
+                <td>${dados_empresas?.[ocorrencia?.unidade]?.nome || '...'}</td>
                 <td>${ocorrencia.dataRegistro.split(',')[0]}</td>
                 <td>${dtAuxOcorrencia(ocorrencia.dataLimiteExecucao)}</td>
                 <td>${dtAuxOcorrencia(dtTermino)}</td>
@@ -1319,11 +1294,10 @@ async function dashboard(dadosFiltrados) {
     `
 
     const tabelaRelatorio = document.getElementById('tabelaRelatorio')
-    if (tabelaRelatorio) return tabelaRelatorio.innerHTML = tabela
-
-    painelCentral.innerHTML = acumulado
-
     removerOverlay()
+
+    if (tabelaRelatorio) return tabelaRelatorio.innerHTML = tabela
+    painelCentral.innerHTML = acumulado
 
 }
 
