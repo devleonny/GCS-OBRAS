@@ -347,7 +347,6 @@ body {
 }
 
 .painelBotoes {
-    border-bottom: 1px solid;
     min-height: 4vh;
     display: flex;
     align-items: start;

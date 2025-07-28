@@ -1,10 +1,23 @@
 .central {
+    position: absolute;
+    top: 10px;
     margin-left: 15vw;
     display: flex;
     flex-direction: column;
     width: 100%;
     justify-content: start;
     align-items: start;
+}
+
+.negativo {
+    background-color: #b12425;
+    padding: 5px;
+    border-radius: 3px;
+    color: white;
+}
+
+body {
+    overflow: hidden;
 }
 
 .totalBox {

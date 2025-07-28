@@ -2,6 +2,13 @@ let painelCentral = document.querySelector('.painelCentral')
 let filtrosOcorrencias = { chamados: {} }
 let anexosProvisorios = {}
 
+let opcoesValidas = {
+    solicitante: new Set(),
+    executor: new Set(),
+    tipoCorrecao: new Set(),
+    finalizado: new Set()
+}
+
 const btn = (imagem, termo, link) => `
     <div class="btnLateral" onclick="${link ? link : `opcoesPainel('${termo}')`}">
         <img src="imagens/${imagem}.png" style="width: 1.5vw;">
@@ -78,41 +85,63 @@ async function telaConfiguracoes() {
 
 async function atualizarOcorrencias() {
 
-    await sincronizarDados('dados_ocorrencias')
-    await carregarOcorrencias()
+    overlayAguarde()
 
+    const basesAuxiliares = ['empresas', 'sistemas', 'prioridades', 'correcoes', 'tipos']
+
+    for (const base of basesAuxiliares) await sincronizarDados(base, true)
+
+    const resposta = await baixarOcorrencias()
+    await inserirDados(resposta.ocorrencias, 'dados_ocorrencias')
+    await inserirDados(resposta.clientes, 'dados_clientes')
+    document.getElementById('empresaAtiva').textContent = resposta.empresa
+
+    removerOverlay()
 }
 
 async function botoesLaterais() {
 
-    const empresas = await recuperarDados('empresas')
-    let empresaAtiva = document.getElementById('empresaAtiva')
-    empresaAtiva.textContent = empresas?.[acesso?.empresa]?.nome || 'Usuário sem Grupo'
+    overlayAguarde()
 
+    await atualizarOcorrencias()
+
+    const permitidos = ['adm', 'gerente', 'diretoria', 'coordenacao', 'fin']
     let painelLateral = document.querySelector('.painelLateral')
 
-    const acumulado = `
+    let acumulado = `
         ${btn('chamados', 'Nova Ocorrência', 'formularioOcorrencia()')}
         ${btn('megafone', 'Ocorrências', `carregarOcorrencias()`)}
         ${btn('relatorio', 'Dashboard', `dashboard()`)}
+    `
+
+    if (permitidos.includes(acesso.permissao)) {
+        acumulado += `
         ${btn('empresa', 'Unidades', `painelCadastro('dados_clientes')`)}
         ${btn('composicoes', 'Equipamentos', `painelCadastro('dados_composicoes')`)}
         ${btn('ajustar', 'Cadastros', `telaConfiguracoes()`)}
         ${btn('gerente', 'Usuários', `usuarios()`)}
-        ${btn('LG', 'GCS', `window.location.href='inicial.html'`)}
-    `
+        ${btn('LG', 'GCS', `window.location.href='inicial.html'`)}`
+    }
 
     painelLateral.innerHTML = acumulado
+
+    removerOverlay()
 
 }
 
 async function usuarios() {
 
     const dados_setores = await recuperarDados('dados_setores')
-    const empresas = await recuperarDados('empresas')
+    const empresas = {
+        ...await recuperarDados('empresas'),
+        ...{ '': { nome: '' } }
+    }
     let linhas = ''
 
     for (const [usuario, dados] of Object.entries(dados_setores)) {
+
+        if (dados.permissao !== 'ocorrencias') continue
+
         const opcoesEmpresas = Object.entries(empresas).reverse()
             .map(([id, empresa]) => `<option value="${id}" ${dados.empresa == id ? 'selected' : ''}>${empresa.nome}</option>`).join('')
 
@@ -136,7 +165,7 @@ async function usuarios() {
             <div class="painelBotoes" style="align-items: center;">
                 <label style="padding: 1vw;">Gerenciar Usuários</label>
             </div>
-            <div style="height: 50vh; overflow-y: auto;">
+            <div style="height: max-content; max-height: 50vh; overflow-y: auto;">
                 <table class="tabela">
                     <tbody>${linhas}</tbody>
                 </table>
@@ -458,18 +487,6 @@ function dtAuxOcorrencia(dt) {
     return `${dia}/${mes}/${ano}`
 }
 
-function filtrarAtivos(base) {
-
-    let baseFiltrada = {}
-
-    for ([id, recorte] of Object.entries(base)) {
-        if (recorte.ocorrencia) baseFiltrada[id] = recorte
-    }
-
-    return baseFiltrada
-
-}
-
 async function gerarCorrecoes(idOcorrencia, dadosCorrecoes, ativarRelatorio) {
 
     const correcoes = await recuperarDados('correcoes')
@@ -610,9 +627,7 @@ async function carregarOcorrencias() {
     overlayAguarde()
 
     removerMenus()
-    const resposta = await baixarOcorrencias()
-    const dados_ocorrencias = resposta.dados
-    document.getElementById('empresaAtiva').textContent = resposta.empresa
+    const dados_ocorrencias = await recuperarDados('dados_ocorrencias')
     const sistemas = await recuperarDados('sistemas')
     const tipos = await recuperarDados('tipos')
     const prioridades = await recuperarDados('prioridades')
@@ -630,7 +645,7 @@ async function carregarOcorrencias() {
             
             <td style="background-color: white;">
               
-                <div style="${vertical}; gap: 5px; width: 100%;">
+                <div style="${vertical}; gap: 5px; width: 100%; position: relative;">
 
                     <input name="input_correncias" style="position: absolute; top: 0; left: 0; width: 1.5vw; height: 1.5vw;" type="checkbox">
 
@@ -682,9 +697,6 @@ async function carregarOcorrencias() {
                 </div>
                 <div style="${horizontal}; gap: 5px;">
                     ${botao('Novo', 'formularioOcorrencia()')}
-                    ${botao('Excluir', ``, '#B12425')}
-                    ${botao('Baixa', ``)}
-                    ${botao('Inativar', ``)}
                     ${botao('Atualizar', `atualizarOcorrencias()`)}
                 </div>
             </div>
@@ -839,7 +851,7 @@ async function formularioOcorrencia(idOcorrencia) {
     const ocorrencia = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : {}
     const dados_setores = await recuperarDados('dados_setores')
     const dados_clientes = await recuperarDados('dados_clientes')
-    const unidades = filtrarAtivos(dados_clientes)
+    const unidades = dados_clientes
     const sistemas = await recuperarDados('sistemas')
     const prioridades = await recuperarDados('prioridades')
     const tipos = await recuperarDados('tipos')
@@ -1006,9 +1018,6 @@ async function salvarOcorrencia(idOcorrencia) {
 async function caixaOpcoes(name, nomeBase) {
 
     let base = await recuperarDados(nomeBase)
-
-    if (nomeBase.includes('clientes') || nomeBase.includes('composicoes')) base = filtrarAtivos(base)
-
     let opcoesDiv = ''
 
     for ([cod, dado] of Object.entries(base)) {
@@ -1131,16 +1140,11 @@ function diferencaEmDias(data1, data2) {
 
 async function dashboard(dadosFiltrados) {
 
+    overlayAguarde()
+
     removerMenus()
 
-    let dados_ocorrencias = {}
-    if (dadosFiltrados) {
-        dados_ocorrencias = dadosFiltrados
-    } else {
-        const resposta = await baixarOcorrencias()
-        dados_ocorrencias = resposta.dados
-    }
-
+    const dados_ocorrencias = dadosFiltrados ? dadosFiltrados : await recuperarDados('dados_ocorrencias')
     const dados_clientes = await recuperarDados('dados_clientes')
     const correcoes = await recuperarDados('correcoes')
 
@@ -1167,7 +1171,15 @@ async function dashboard(dadosFiltrados) {
 
         for (const [idCorrecao, correcao] of Object.entries(ocorrencia?.correcoes || {})) {
             if (correcao.dataTermino !== '') dtTermino = correcao.dataTermino
-            baloes += balao(correcao?.solicitante, correcao?.executor)
+
+            const solicitante = correcao?.solicitante || 'Em Branco'
+            const executor = correcao?.executor || 'Em Branco'
+
+            baloes += balao(solicitante, executor)
+
+            if (!opcoesValidas.solicitante[solicitante]) opcoesValidas.solicitante[solicitante] = solicitante
+            if (!opcoesValidas.executor[executor]) opcoesValidas.executor[executor] = executor
+
         }
 
         if (!ocorrencia.correcoes) baloes += balao('--', '--')
@@ -1182,6 +1194,14 @@ async function dashboard(dadosFiltrados) {
             contador.abertos++
         }
 
+        const tipoCorrecao = ocorrencia?.tipoCorrecao || 'Em Branco'
+        const nomeCorrecao = correcoes?.[tipoCorrecao]?.nome || 'Em Branco'
+
+        if (!opcoesValidas.tipoCorrecao[tipoCorrecao]) opcoesValidas.tipoCorrecao[tipoCorrecao] = nomeCorrecao
+
+        const statusFinalizacao = dias == 0 ? 'Em Aberto' : dias > 0 ? 'Finalizados no Prazo' : 'Atrasados'
+        if (!opcoesValidas.finalizado[statusFinalizacao]) opcoesValidas.finalizado[statusFinalizacao] = statusFinalizacao
+
         linhas += `
             <tr>
                 <td>${idOcorrencia}</td>
@@ -1189,8 +1209,10 @@ async function dashboard(dadosFiltrados) {
                 <td>${ocorrencia.dataRegistro.split(',')[0]}</td>
                 <td>${dtAuxOcorrencia(ocorrencia.dataLimiteExecucao)}</td>
                 <td>${dtAuxOcorrencia(dtTermino)}</td>
-                <td style="text-align: center; ${dias < 0 ? 'background-color: #b12425; color: white;' : ''}">${dias}</td>
-                <td>${correcoes?.[ocorrencia.tipoCorrecao]?.nome || ''}</td>
+                <td style="text-align: center;">
+                    <label class="${dias < 0 ? 'negativo' : ''}">${dias}</label>
+                </td>
+                <td>${nomeCorrecao}</td>
                 <td>
                     <div style="${vertical}; gap: 2px;">
                         ${baloes}
@@ -1219,10 +1241,10 @@ async function dashboard(dadosFiltrados) {
         </div>
     `
 
-    const modelo = (titulo, html, name, nomeBase) => {
+    const modelo = (titulo, html, name) => {
 
         html = html ? html : `
-            <label class="campos" onclick="caixaOpcoesRelatorio('${name}', '${nomeBase}')">Selecionar</label>
+            <label class="campos" onclick="caixaOpcoesRelatorio('${name}')">Selecionar</label>
             <br>
             <div name="${name}"></div>
         `
@@ -1272,10 +1294,10 @@ async function dashboard(dadosFiltrados) {
                         ${pesquisa('lojas', 1)}
                         ${pesquisa('chamados', 0)}
                     </div>
-                    ${modelo('Solicitante', false, 'solicitante', 'dados_setores')}
-                    ${modelo('Executor', false, 'executor', 'dados_setores')}
-                    ${modelo('Status da Correção', false, 'tipoCorrecao', 'correcoes')}
-                    ${modelo('Status de Finalização', false, 'tipoCorrecao', 'correcoes')}
+                    ${modelo('Solicitante', false, 'solicitante')}
+                    ${modelo('Executor', false, 'executor')}
+                    ${modelo('Status da Correção', false, 'tipoCorrecao')}
+                    ${modelo('Status de Finalização', false, 'finalizado')}
                 </div>
                 ${tabela}
                 <div class="rodapeTabela"></div>
@@ -1296,13 +1318,13 @@ async function dashboard(dadosFiltrados) {
 
     painelCentral.innerHTML = acumulado
 
+    removerOverlay()
+
 }
 
-async function caixaOpcoesRelatorio(name, nomeBase) {
+async function caixaOpcoesRelatorio(name) {
 
-    let base = await recuperarDados(nomeBase);
-
-    if (nomeBase.includes('clientes') || nomeBase.includes('composicoes')) base = filtrarAtivos(base)
+    let base = opcoesValidas[name]
 
     const bloco = document.querySelector(`[name='${name}']`)
     const permitidos = []
@@ -1311,26 +1333,14 @@ async function caixaOpcoesRelatorio(name, nomeBase) {
         for (const label of labels) if (!permitidos.includes(label.id)) permitidos.push(label.id)
     }
 
-    let opcoesDiv = `
-        <div name="camposOpcoes" class="atalhosRelatorio">
-            <input ${permitidos.includes('Em Branco') ? 'checked' : ''} name="itensFiltro" id="Em Branco" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
-            <label id="Em Branco">Em Branco</label>
-        </div>
-    `
+    let opcoesDiv = ''
 
     for ([cod, dado] of Object.entries(base)) {
-
-        const labels = esquemaCampos[nomeBase]
-            .map(campo => `
-                <label id="${cod}">${dado[campo]}</label>
-                ${nomeBase == 'dados_setores' ? `<label style="font-size: 0.7vw;">${dado.setor}</label>` : ''}
-                `)
-            .join('')
 
         opcoesDiv += `
             <div name="camposOpcoes" class="atalhosRelatorio">
                 <input ${permitidos.includes(cod) ? 'checked' : ''} name="itensFiltro" id="${cod}" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
-                ${labels}
+                <label id="${cod}">${dado}</label>
             </div>`
     }
 
@@ -1391,7 +1401,8 @@ async function processarFiltros() {
     let permitidos = {
         solicitante: [],
         executor: [],
-        tipoCorrecao: []
+        tipoCorrecao: [],
+        finalizado: []
     }
 
     for (let [nameBloco, objeto] of Object.entries(permitidos)) {
@@ -1428,14 +1439,22 @@ async function processarFiltros() {
         let campos = {
             solicitante: new Set(),
             executor: new Set(),
-            tipoCorrecao: new Set()
+            tipoCorrecao: new Set(),
+            finalizado: new Set()
         }
 
+        let dtTermino = ''
         for (const [idCorrecao, correcao] of Object.entries(ocorrencia?.correcoes || {})) {
+            if (correcao.dataTermino !== '') dtTermino = correcao.dataTermino
+
             campos.solicitante.add(correcao?.solicitante || 'Em Branco')
             campos.executor.add(correcao?.executor || 'Em Branco')
             campos.tipoCorrecao.add(correcao?.tipoCorrecao || 'Em Branco')
         }
+
+        const dias = diferencaEmDias(ocorrencia.dataLimiteExecucao, dtTermino)
+        const statusFinalizacao = dias == 0 ? 'Em Aberto' : dias > 0 ? 'Finalizados no Prazo' : 'Atrasados'
+        campos.finalizado.add(statusFinalizacao)
 
         if (!ocorrencia.correcoes) {
             campos.solicitante.add('Em Branco')
@@ -1446,13 +1465,16 @@ async function processarFiltros() {
         let permSolicitante = filtrado(permitidos.solicitante, [...campos.solicitante])
         let permExecutor = filtrado(permitidos.executor, [...campos.executor])
         let permCorrecao = filtrado(permitidos.tipoCorrecao, [...campos.tipoCorrecao])
+        let permFinalizado = filtrado(permitidos.finalizado, [...campos.finalizado])
 
-        if ((permSolicitante && permExecutor && permCorrecao) || vazio()) {
+        if ((permSolicitante && permExecutor && permCorrecao && permFinalizado) || vazio()) {
             dadosFiltrados[idOcorrencia] = ocorrencia
         }
 
     }
 
     await dashboard(dadosFiltrados)
+
+    removerOverlay()
 
 }

@@ -148,47 +148,13 @@ async function despoluicaoGCS(resetar) {
 
 }
 
-async function limparStores(storeParaManter) {
-    const nomeBanco = 'GCS';
-
-    const versaoAtual = await new Promise((resolve, reject) => {
-        const req = indexedDB.open(nomeBanco);
-        req.onsuccess = () => {
-            const db = req.result;
-            const versao = db.version;
-            db.close();
-            resolve(versao);
-        };
-        req.onerror = (e) => reject(e.target.error);
-    });
-
-    const db = await new Promise((resolve, reject) => {
-        const novaVersao = versaoAtual + 1;
-        const req = indexedDB.open(nomeBanco, novaVersao);
-
-        req.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            const stores = Array.from(db.objectStoreNames);
-
-            for (const store of stores) {
-                if (store !== storeParaManter) {
-                    db.deleteObjectStore(store);
-                }
-            }
-        };
-
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = (e) => reject(e.target.error);
-    });
-
-    db.close();
+if (document.title !== 'Ocorrências') {
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'F5') f5()
+        if (event.key === 'F2') f2()
+        if (event.ctrlKey && event.key === 'Delete') despoluicaoGCS(true)
+    })
 }
-
-document.addEventListener('keydown', function (event) {
-    if (event.key === 'F5') f5()
-    if (event.key === 'F2') f2()
-    if (event.ctrlKey && event.key === 'Delete') despoluicaoGCS(true)
-})
 
 async function f2() {
 
@@ -270,6 +236,7 @@ function carregarIcones() {
         ${atalho('Agenda', 'agenda', `window.location.href='agenda.html'`)}
         ${atalho('Veículos', 'veiculo', `window.location.href='controle_veiculos.html'`)}
         ${autorizadosPainelNotas(acesso) ? atalho('Faturamento NFs', 'relatorio', `window.location.href='relatorio_omie.html'`) : ''}
+        ${acesso.permissao == 'adm' ? atalho('Ocorrências', 'megafone', `window.location.href='ocorrencias.html'`) : ''}
 
     `
     //        ${atalho('RH', 'gerente', `window.location.href='rh.html'`)}
@@ -331,7 +298,8 @@ async function identificacaoUser() {
 
     localStorage.setItem('acesso', JSON.stringify(acesso))
 
-    if(document.title == 'Ocorrências') return
+    if (acesso.permissao == 'ocorrencias' && document.title !== 'Ocorrências') return window.location.href = 'ocorrencias.html'
+    if (document.title == 'Ocorrências') return
 
     const usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []
     const totalUsuarios = [...new Set(usuariosOnline)]
@@ -411,7 +379,7 @@ async function configs() {
 
     let linhas = ''
     const listas = {
-        permissoes: ['', 'adm', 'user', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
+        permissoes: ['', 'adm', 'user', 'ocorrencias', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
         setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE']
     }
 
@@ -702,7 +670,7 @@ async function deletarDB(base, idInterno) {
     db.close();
 }
 
-async function inserirDados(dados, nomeBase) {
+async function inserirDados(dados, nomeBase, resetar) {
 
     const clone = JSON.parse(sessionStorage.getItem('modoClone')) || false;
 
@@ -735,13 +703,21 @@ async function inserirDados(dados, nomeBase) {
     const tx = db.transaction(nomeStore, 'readwrite');
     const store = tx.objectStore(nomeStore);
 
-    const antigo = await new Promise((resolve, reject) => {
-        const req = store.get(nomeBase);
-        req.onsuccess = () => resolve(req.result?.dados || {});
-        req.onerror = (e) => reject(e.target.error);
-    });
+    let dadosMesclados = {}
 
-    let dadosMesclados = { ...antigo, ...dados };
+    if (!resetar) {
+
+        const antigo = await new Promise((resolve, reject) => {
+            const req = store.get(nomeBase);
+            req.onsuccess = () => resolve(req.result?.dados || {});
+            req.onerror = (e) => reject(e.target.error);
+        });
+
+        dadosMesclados = { ...antigo, ...dados };
+
+    } else {
+        dadosMesclados = dados
+    }
 
     dadosMesclados = Object.fromEntries(
         Object.entries(dadosMesclados).filter(([_, valor]) => !valor?.excluido)
@@ -2634,11 +2610,26 @@ async function mobi7({ base, usuarioMobi7, dtInicial, dtFinal }) {
 }
 
 async function baixarOcorrencias() {
+
+    const timestampOcorrencia = await maiorTimestamp('dados_ocorrencias')
+    const timestampCliente = await maiorTimestamp('dados_clientes')
+
+    async function maiorTimestamp(nomeBase) {
+
+        let timestamp = 0
+        const dados = await recuperarDados(nomeBase)
+        for (const [id, objeto] of Object.entries(dados)) {
+            if (objeto.timestamp && objeto.timestamp > timestamp) timestamp = objeto.timestamp
+        }
+
+        return timestamp
+    }
+
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/ocorrencias", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ usuario: acesso.usuario })
+            body: JSON.stringify({ usuario: acesso.usuario, timestampOcorrencia, timestampCliente })
         })
             .then(response => {
                 if (!response.ok) {
