@@ -50,8 +50,8 @@ const esquemaCampos = {
 
 const modeloCampos = (valor1, elemento) => `
     <div style="${horizontal}; gap: 5px; width: 100%;">
-        <label style="width: 40%; text-align: right;"><strong>${valor1}</strong></label>
-        <div style="width: 60%; text-align: justify; padding-right: 1vw;">${elemento}</div>
+        <label style="width: 30%; text-align: right;"><strong>${valor1}</strong></label>
+        <div style="width: 70%; text-align: justify; padding-right: 1vw;">${elemento}</div>
     </div>
 `
 
@@ -109,6 +109,7 @@ async function botoesLaterais() {
     let painelLateral = document.querySelector('.painelLateral')
 
     let acumulado = `
+        ${btn('atualizar3', 'Atualizar', 'atualizarOcorrencias()')}
         ${btn('chamados', 'Nova Ocorrência', 'formularioOcorrencia()')}
         ${btn('megafone', 'Ocorrências', `carregarOcorrencias()`)}
         ${btn('relatorio', 'Dashboard', `dashboard()`)}

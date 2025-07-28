@@ -90,7 +90,7 @@ async function preencher_v2() {
 
     // LÓGICA DOS DADOS
     let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let informacoes = { 
+    let informacoes = {
         ...orcamentoBase.dados_orcam,
         ...dados_clientes?.[orcamentoBase.dados_orcam.omie_cliente] || {}
     }
@@ -174,18 +174,9 @@ async function preencher_v2() {
 
 
         // ICMS de Saída só pode ser 4, 12 ou 20.5 [Para venda dentro, fora do estado, ou quando o creditado for 4 == IMPORTADO]
-        let icms = 0
-        if (tabelaPreco) {
-            let ativo = tabelaPreco.ativo
-            let historico = tabelaPreco.historico
-            let precoAtivo = historico[ativo]
-            icms = precoAtivo?.icms_creditado == 4 ? 4 : 0 
-        }
 
-        if (icms == 0) {
-            let estado = informacoes.estado
-            icms = estado == 'BA' ? 20.5 : 12
-        }
+        let estado = informacoes.estado
+        const icms = estado == 'BA' ? 20.5 : 12
 
         if (!totais[item.tipo]) {
             totais[item.tipo] = { linhas: '', valor: 0 }
@@ -200,7 +191,7 @@ async function preencher_v2() {
         item.total = item.custo * item.qtde;
         totais[item.tipo].valor += item.total // Total isolado do item;
         totais.GERAL.valor += item.total // Total GERAL;
-        
+
         let unitarioSemIcms = item.custo - (item.custo * (icms / 100))
         let totalSemIcms = unitarioSemIcms * item.qtde
         let tds = {}
@@ -232,7 +223,7 @@ async function preencher_v2() {
             colunas.forEach(col => {
 
                 let complemento = ''
-                if(item.tipo == 'VENDA' && (col == 9 || col == 10)) complemento = 'COM ICMS'
+                if (item.tipo == 'VENDA' && (col == 9 || col == 10)) complemento = 'COM ICMS'
 
                 totais[item.tipo].ths += `<th style="color: white;">${cabecalho[col]} ${complemento}</th>`
             })
