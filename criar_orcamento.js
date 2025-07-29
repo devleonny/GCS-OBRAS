@@ -179,6 +179,9 @@ async function carregarTabelas() {
         // Caso o item não exista, traga os dados dele no orçamento;
         if (!baseComposicoes[codigo]) baseComposicoes[codigo] = orcamentoBase.dados_composicoes[codigo]
 
+        const opcoes = ['Dinheiro', 'Porcentagem', 'Venda Direta']
+            .map(op=> `<option ${produto?.tipo_desconto == op ? 'selected': ''}>${op}</option>`).join('')
+
         let linha = `
         <tr>
             <td>${codigo}</td>
@@ -196,8 +199,7 @@ async function carregarTabelas() {
                 <td>
                     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
                         <select onchange="total()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
-                            <option ${produto?.tipo_desconto == 'Porcentagem' ? 'selected' : ''}>Porcentagem</option>
-                            <option ${produto?.tipo_desconto == 'Dinheiro' ? 'selected' : ''}>Dinheiro</option>
+                            ${opcoes}
                         </select>
                         <input type="number" oninput="total()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;" value="${produto?.desconto || ''}">
                     </div>
@@ -643,8 +645,8 @@ async function total() {
             let totalLinha = valorUnitario * quantidade
 
             let desconto = 0
-            let tipoDesconto
-            let valorDesconto
+            let tipoDesconto;
+            let valorDesconto;
 
             if (!carrefour) {
                 let divDesconto = tds[5].querySelector('div')
@@ -661,6 +663,7 @@ async function total() {
                 if (valorDesconto.value != '') {
 
                     if (tipoDesconto.value == 'Porcentagem') {
+
                         if (valorDesconto.value < 0) {
                             valorDesconto.value = 0
                         } else if (valorDesconto.value > 100) {
@@ -670,6 +673,7 @@ async function total() {
                         desconto = valorDesconto.value / 100 * totalLinha
 
                     } else {
+
                         if (valorDesconto.value < 0) {
                             valorDesconto.value = 0
                         } else if (valorDesconto.value > totalLinha) {
@@ -693,7 +697,7 @@ async function total() {
                         valorDesconto.value = ''
                         avisoDesconto = 1 // Preencher os dados da empresa;
 
-                    } else if (acesso.permissao == 'adm' || acesso.permissao == 'diretoria') {
+                    } else if (acesso.permissao == 'adm' || acesso.permissao == 'diretoria' || tipoDesconto == 'Venda Direta') {
                         // Liberado;
 
                     } else if (resultado.lucroPorcentagem < 10) {

@@ -237,9 +237,9 @@ function carregarIcones() {
         ${atalho('Veículos', 'veiculo', `window.location.href='controle_veiculos.html'`)}
         ${autorizadosPainelNotas(acesso) ? atalho('Faturamento NFs', 'relatorio', `window.location.href='relatorio_omie.html'`) : ''}
         ${acesso.permissao == 'adm' ? atalho('Ocorrências', 'megafone', `window.location.href='ocorrencias.html'`) : ''}
-
+        ${atalho('RH', 'gerente', `window.location.href='rh.html'`)}
     `
-    //        ${atalho('RH', 'gerente', `window.location.href='rh.html'`)}
+
     if (modoClone) {
         icones = `
         ${atalho('Orçamentos', 'projeto', `window.location.href='orcamentos.html'`)}
@@ -1892,7 +1892,7 @@ async function verPedidoAprovacao(idOrcamento) { //29
         let desconto = 0
 
         if (composicao.tipo_desconto) {
-            desconto = composicao.tipo_desconto === 'Dinheiro'
+            desconto = composicao.tipo_desconto != 'Porcentagem'
                 ? composicao.desconto
                 : total * (composicao.desconto / 100);
         }
@@ -1917,7 +1917,12 @@ async function verPedidoAprovacao(idOrcamento) { //29
             <td>${quantidade}</td>
             <td>${labelCusto}</td>
             <td>${labelTotal}</td>
-            <td><label class="labelAprovacao" style="background-color: ${cor}">${diferenca}</label></td>
+            <td>
+                <div style="${vertical}; gap: 2px;">
+                    ${composicao?.tipo_desconto == 'Venda Direta' ? '<label>Venda Direta</label>': ''}
+                    <label class="labelAprovacao" style="background-color: ${cor}">${diferenca}</label>
+                </div>
+            </td>
             <td>${labelTotalDesconto}</td>
         </tr>
     `;

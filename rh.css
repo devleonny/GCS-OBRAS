@@ -1,0 +1,40 @@
+.painelCentral {
+    border-radius: 2px;
+    background-color: #00000038;
+    margin-top: 2vw;
+    margin-left: 7vw;
+    width: 60vw;
+    display: flex;
+    justify-content: start;
+    align-items: start;
+}
+
+.painelLateral {
+    background-color: #222222dd;
+    box-shadow: 0px 0px 10px #222222dd;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 20vw;
+    gap: 1vh;
+    padding-top: 2vh;
+    height: 100vh;
+    display: flex;
+    padding: 1vw;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    z-index: 10;
+}
+
+.painelLateral label {
+    color: white;
+}
+
+.divPessoas {
+    display: flex;
+    align-items: start;
+    flex-direction: column;
+    justify-content: start;
+    gap: 2px
+}
