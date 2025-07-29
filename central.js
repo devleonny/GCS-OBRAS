@@ -237,7 +237,7 @@ function carregarIcones() {
         ${atalho('Veículos', 'veiculo', `window.location.href='controle_veiculos.html'`)}
         ${autorizadosPainelNotas(acesso) ? atalho('Faturamento NFs', 'relatorio', `window.location.href='relatorio_omie.html'`) : ''}
         ${acesso.permissao == 'adm' ? atalho('Ocorrências', 'megafone', `window.location.href='ocorrencias.html'`) : ''}
-        ${atalho('RH', 'gerente', `window.location.href='rh.html'`)}
+        
     `
 
     if (modoClone) {
