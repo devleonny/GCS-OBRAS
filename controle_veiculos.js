@@ -163,8 +163,8 @@ async function carregarTabela() {
     }
 
     const pesquisa = (modalidade) => `
-    <div style="${horizontal}; background-color: white; border-radius: 2px;">
-        <input oninput="pesquisarBotoes(this, '${modalidade}')" placeholder="Pesquisar ${modalidade}">
+    <div style="${horizontal}; background-color: white; border-radius: 15px; margin-left: 5px;  margin-right: 5px;">
+        <input style="border: none; border-radius: 15px;" oninput="pesquisarBotoes(this, '${modalidade}')" placeholder="Pesquisar ${modalidade}">
         <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
     </div>
     `
@@ -173,27 +173,31 @@ async function carregarTabela() {
 
     <div style="padding: 1vw; border-radius: 2px; background-color: #00000038; display: flex; justify-content: center; align-items: start; gap: 10px;">
 
-        <div style="width: 20vw; border-right: dashed 1px #797979; padding-right: 1vw;">
+        <div style="${horizontal}; align-items: start; width: 40vw; border-right: dashed 1px #797979; padding-right: 1vw; gap: 10px;">
 
-            ${botaoVeiculos('Adicionar Custo', 'painelValores()', 'green')}
+            <div style="${vertical};">
+                <div class="painelBotoes" style="${vertical}; padding-bottom: 3px;">
+                    ${botaoVeiculos('Novo Motorista', 'novoMotorista()', '#04549a')}
+                    ${pesquisa('motorista')}
+                </div>
+                <div id="motorista" class="fundoPainelLateral">${botoesMotoristas}</div>
+                <div class="rodapeTabela"></div>
+            </div>
 
-            <br>
-
-            ${botaoVeiculos('Novo Motorista', 'novoMotorista()', '#04549a')}
-            ${pesquisa('motorista')}
-            <div id="motorista">${botoesMotoristas}</div>
-
-            <br>
-
-            ${botaoVeiculos('Novo Veículo', 'novoVeiculo()', '#04549a')}
-            ${pesquisa('veículo')}
-            <div id="veículo">${botoesCarros}</div>
+            <div style="${vertical};">
+                <div class="painelBotoes" style="${vertical}; padding-bottom: 3px;">
+                    ${botaoVeiculos('Novo Veículo', 'novoVeiculo()', '#04549a')}
+                    ${pesquisa('veículo')}
+                </div>
+                <div id="veículo" class="fundoPainelLateral">${botoesCarros}</div>
+                <div class="rodapeTabela"></div>
+            </div>
 
         </div>
 
         <div style="${vertical}; margin-top: 1vw;">
             <div class="painelBotoes" style="height: 5vh;"></div>
-            <div>
+            <div style="height: max-content; max-height: 50vh; overflow-y: auto;">
                 <table class="tabela" style="display: table-row;">
                     <thead>
                         <tr>${ths}</tr>

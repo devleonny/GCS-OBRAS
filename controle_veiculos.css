@@ -9,6 +9,10 @@ select {
     background-color: #ffffffc4;
 }
 
+body {
+    overflow: hidden;
+}
+
 .contornoDestaque {
     background-color: #ffffffc4;
     width: 100%;
@@ -32,6 +36,14 @@ select {
     justify-content: start;
     margin: 2px;
     gap: 10px;
+}
+
+.fundoPainelLateral {
+    width: 100%;
+    background-color: #b1b1b1;
+    height: max-content;
+    max-height: 50vh;
+    overflow-y: auto;
 }
 
 .diVeiculos label {

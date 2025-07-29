@@ -334,6 +334,15 @@ body {
     background-color: #4a4949;
 }
 
+.rodapeTabela {
+    border-top: 1px solid #666666;
+    width: 100%;
+    height: 2vh;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+    background-color: #b1b1b1;
+}
+
 .blocosCabecalho label {
     text-align: right;
     color: white;
@@ -347,6 +356,7 @@ body {
 }
 
 .painelBotoes {
+    border-bottom: 1px solid #666666;
     min-height: 4vh;
     display: flex;
     align-items: start;
