@@ -80,7 +80,9 @@ async function abrirPastas(idPessoa, idPasta) {
     const stringAnexos = Object.entries(anexos)
         .map(([idAnexo, anexo]) => `
             <div style="${vertical}; align-items: end;">
-                <span class="aba"></span>
+                <div class="aba">
+                    <img src="imagens/anexo.png" style="width: 1.5vw; padding: 3px;">
+                </div>
                 <div class="blocoRH">
                     ${modeloRH('Realizado', `<input type="date" value="${anexo?.emissao}">`)}
                     ${modeloRH('Validade', `<input type="date" value="${anexo?.validade}">`)}
