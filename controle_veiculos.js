@@ -297,20 +297,29 @@ async function painelValores(idCusto, duplicar) {
         .join('')
 
     let campos = `
-            ${modeloLabel('Data do Pagamento', `<input id="data_pagamento" type="date" value="${custo?.data_pagamento || ''}">`)}
-            ${modeloLabel('Categoria', `
-                <select id="categoria" onchange="ocultarCampos(this)">
-                    ${categorias}
-                </select>
-                `)}
-            <div id="camposAdicionais">
-                ${modeloLabel('KM', `<input value="${custo?.km || ''}" type="number" id="km" placeholder="Quilometragem atual" type="number">`)}
-                ${modeloLabel('Litros', `<input value="${custo?.litros || ''}" type="number" id="litros" placeholder="Quantidade de litros" type="number">`)}
+            <div style="${horizontal}; gap: 10px; width: 100%;">
+                ${modeloLabel('Data do Pagamento', `<input id="data_pagamento" type="date" value="${custo?.data_pagamento || ''}">`)}
+                ${modeloLabel('Categoria', `
+                    <select id="categoria">
+                        ${categorias}
+                    </select>
+                    `)}
             </div>
-
-            ${modeloLabel('Custo Total', `<input value="${custo?.custo_total || ''}" type="number" id="custo_total" placeholder="Total do lançamento" type="number">`)}
-            ${modeloLabel('Comentário', `<textarea id="comentario" placeholder="Comente algo">${custo?.comentario || ''}</textarea>`)}
+            <div style="${horizontal}; gap: 10px;">
+                <div style="${vertical};">
+                    ${modeloLabel('KM', `<input oninput="calcularValorCombustivel()" value="${custo?.km || ''}" type="number" id="km" type="number">`)}
+                    ${modeloLabel('Litros', `<input oninput="calcularValorCombustivel()" value="${custo?.litros || ''}" type="number" id="litros" type="number">`)}
+                </div>
+                <div style="${vertical};">
+                    ${modeloLabel('KM/L', `<input oninput="calcularValorCombustivel()" value="${custo?.kml || ''}" type="number" id="kml" type="number">`)}
+                    ${modeloLabel('Valor Combustível', `<input oninput="calcularValorCombustivel()" value="${custo?.combustivel || ''}" type="number" id="combustivel" type="number">`)}
+                </div>
+            </div>
             
+            <div style="${horizontal}; gap: 10px;">
+                ${modeloLabel('Custo Total', `<input value="${custo?.custo_total || ''}" type="number" id="custo_total" type="number">`)}
+                ${modeloLabel('Comentário', `<textarea id="comentario">${custo?.comentario || ''}</textarea>`)}
+            </div>
             <div id="dados_veiculos" class="contornoDestaque"></div>
             ${modeloLabel('Motorista', `
                 <select id="veiculo" onchange="dadosVeiculo()">
@@ -330,13 +339,17 @@ async function painelValores(idCusto, duplicar) {
     `
     popup(acumulado, 'Adicionar Custo')
 
-    ocultarCampos({ value: custo?.categoria || 'Combustível' })
     await dadosVeiculo()
 }
 
-function ocultarCampos(select) {
-    let camposAdicionais = document.getElementById('camposAdicionais')
-    camposAdicionais.style.display = select.value == 'Combustível' ? '' : 'none'
+function calcularValorCombustivel() {
+    const litros = obterValores('litros')
+    const combustivel = obterValores('combustivel')
+
+    const resultado = litros * combustivel
+    const proximoMultiploDe10 = Math.ceil(resultado / 10) * 10
+
+    document.getElementById('custo_total').value = proximoMultiploDe10
 }
 
 async function salvarValores(idCusto) {
@@ -363,6 +376,8 @@ async function salvarValores(idCusto) {
         veiculo: select.value,
         categoria,
         custo_total,
+        combustivel: obterValores('combustivel'),
+        kml: obterValores('kml'),
         comentario: obterValores('comentario'),
         data_pagamento,
         data: data_atual('completa'),
