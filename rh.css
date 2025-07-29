@@ -1,12 +1,32 @@
+body {
+    overflow: hidden;
+}
+
+input {
+    border-radius: 3px;
+    padding: 5px;
+}
+
 .painelCentral {
+    background-image: url('imagens/BG.png');
+    background-size: 30vw;
+    background-position: center;
+    background-repeat: no-repeat;
     border-radius: 2px;
     background-color: #00000038;
     margin-top: 2vw;
-    margin-left: 7vw;
-    width: 60vw;
-    display: flex;
-    justify-content: start;
-    align-items: start;
+    margin-left: 20vw;
+    width: 70vw;
+    height: 70vh;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-gap: 1px;
+}
+
+.tituloRH {
+    color: white;
+    font-size: 1.5vw;
+    margin-left: 20vw;
 }
 
 .painelLateral {
@@ -32,9 +52,40 @@
 }
 
 .divPessoas {
+    width: 100%;
     display: flex;
     align-items: start;
     flex-direction: column;
     justify-content: start;
     gap: 2px
+}
+
+.btnPessoas {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 10px;
+    cursor: pointer;
+    color: white;
+}
+
+.btnPessoas img {
+    cursor: pointer;
+    width: 2vw;
+}
+
+.btnPessoas:hover {
+    background-color: white;
+    color: #222;
+}
+
+.blocoRH {
+    width: 100%;
+    height: max-content;
+    flex-direction: column;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    background-color: #ffffffdb;
 }

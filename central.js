@@ -237,7 +237,6 @@ function carregarIcones() {
         ${atalho('Veículos', 'veiculo', `window.location.href='controle_veiculos.html'`)}
         ${autorizadosPainelNotas(acesso) ? atalho('Faturamento NFs', 'relatorio', `window.location.href='relatorio_omie.html'`) : ''}
         ${acesso.permissao == 'adm' ? atalho('Ocorrências', 'megafone', `window.location.href='ocorrencias.html'`) : ''}
-        
     `
 
     if (modoClone) {
@@ -245,6 +244,7 @@ function carregarIcones() {
         ${atalho('Orçamentos', 'projeto', `window.location.href='orcamentos.html'`)}
         ${atalho('Composições', 'composicoes', `window.location.href='composicoes.html'`)}
         ${acesso.permissao == 'adm' ? atalho('Ocorrências', 'megafone', `window.location.href='ocorrencias.html'`) : ''}
+        ${atalho('RH', 'gerente', `window.location.href='rh.html'`)}
         `
     }
 
@@ -874,7 +874,7 @@ function criarAnexoVisual(nome, link_anexo, funcao_excluir) {
         : nome;
 
     return `
-        <div class="contorno" style="display: flex; align-items: center; justify-content: center; gap: 2px; background-color: #222; color: white;">
+        <div class="contornoAnexos">
             <div onclick="abrirArquivo('${link_anexo}')" class="contorno_interno" style="width: 100%; display: flex; align-items: center; justify-content: start; gap: 2px;">
                 <img src="imagens/anexo2.png" style="width: 1.5vw;">
                 <label style="font-size: 0.7vw; cursor: pointer;" title="${nome}">${nomeFormatado}</label>

@@ -1803,6 +1803,19 @@ input[type=range]::-moz-range-thumb {
     z-index: 2;
 }
 
+.contornoAnexos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background-color: #222;
+    color: white;
+    border-radius: 5px;
+    height: max-content;
+    padding: 5px;
+    margin: 5px;
+}
+
 .contorno {
     border-radius: 5px;
     height: max-content;
