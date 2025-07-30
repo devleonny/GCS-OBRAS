@@ -77,14 +77,15 @@ async function abrirPastas(idPessoa, idPasta) {
 
     tituloRH.innerHTML = `
         <div style="${horizontal}; gap: 1vw;">
+
             <label>${pessoa.nome} > ${pasta.nomePasta}</label>
-            <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="adicionarPasta('${idPessoa}', '${idPasta}')">
             
+            <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="adicionarPasta('${idPessoa}', '${idPasta}')">
+
             <label for="anexo">
                 <img src="imagens/anexo2.png" style="width: 2vw; cursor: pointer;">
                 <input type="file" style="display: none;" id="anexo" onchange="adicionarAnexo(this, '${idPessoa}', '${idPasta}')">
             </label>
-            
         </div>
     `
 

@@ -15,7 +15,14 @@
 
     <div id="esquema">
         <div class="painelLateral">
-            <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; width: 100%;">
+            <div class="blocosCabecalho" style="height: max-content;">
+                <div onclick="window.location.href='inicial.html'">
+                    <img src="imagens/voltar.png">
+                    <label>Menu Inicial</label>
+                </div>
+            </div>
+            <div
+                style="display: flex; align-items: start; justify-content: start; flex-direction: column; width: 100%;">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                     <label style="font-size: 1.5vw;">Pessoas</label>
                     <img src="imagens/baixar.png" style="width: 1.5vw; cursor: pointer;" onclick="adicionarPessoa()">
@@ -24,12 +31,12 @@
                 <div class="divPessoas"></div>
             </div>
         </div>
-        
+
         <div style="display: flex; flex-direction: column; align-items: start; justify-content: start;">
             <label class="tituloRH"></label>
             <div class="painelCentral"></div>
         </div>
-        
+
     </div>
 
 </body>
