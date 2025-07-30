@@ -40,7 +40,6 @@ async function carregarEsquema() {
                 <img src="imagens/pasta.png">
                 <div style="${vertical}; gap: 3px;">
                     <span style="font-size: 0.9vw;">${dados.nome}</span>
-                    <span style="font-size: 0.7vw;">${dados.obraAtual}</span>
                 </div>
             </div>
             <div id="${idPessoa}" style="display: none; justify-content: start; flex-direction: column; align-items: start; margin-left: 2vw; width: 90%;">
@@ -303,8 +302,6 @@ async function adicionarPessoa(idPessoa) {
     const acumulado = `
     <div style="padding: 2vw; background-color: #d2d2d2;">
         ${modeloRH('Nome', `<input id="nome" value="${pessoa?.nome || ''}">`)}
-        <br>
-        ${modeloRH('Obra Atual', `<input id="obraAtual" value="${pessoa?.obraAtual || ''}">`)}
         <hr style="width: 100%;">
         ${botao('Salvar', idPessoa ? `salvarPessoa('${idPessoa}')` : 'salvarPessoa()', 'green')}
     </div>
@@ -318,16 +315,12 @@ async function salvarPessoa(idPessoa) {
 
     idPessoa = idPessoa ? idPessoa : ID5digitos()
     const nome = document.getElementById('nome').value
-    const obraAtual = document.getElementById('obraAtual').value
 
     let pessoa = await recuperarDado('pessoas', idPessoa) || {}
 
     pessoa.nome = nome
-    pessoa.obraAtual = obraAtual
 
     await enviar(`pessoas/${idPessoa}/nome`, nome)
-    await enviar(`pessoas/${idPessoa}/obraAtual`, obraAtual)
-
     await inserirDados({ [idPessoa]: pessoa }, 'pessoas')
     await carregarEsquema()
 

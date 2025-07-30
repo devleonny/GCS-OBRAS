@@ -447,3 +447,9 @@ async function baixarRelatorio() {
             });
     })
 }
+
+function exportarExcel(idTabela) {
+    const tabela = document.getElementById(idTabela)
+    const wb = XLSX.utils.table_to_book(tabela, { sheet: "Planilha" })
+    XLSX.writeFile(wb, 'dados.xlsx')
+}
