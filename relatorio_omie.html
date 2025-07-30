@@ -13,29 +13,42 @@
 
 <body>
 
-    <div class="top">
+    <div class="painelLateral">
 
-        <img src="imagens/BG.png" style="width: 150px;">
-        <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; color: white;">
-            <label class="novo_titulo">Relatório de NFs e Faturamento Omie</label>
-            <label id="atualizado"></label>
+        <div class="menuSuperior">
+            <div onclick="window.location.href='inicial.html'" style="width: 100%;">
+                <img src="imagens/LG.png">
+                <span>Menu Inicial</span>
+            </div>
+            <div onclick="atualizarRelatorio()" style="width: 100%;">
+                <img src="imagens/atualizar3.png">
+                <span>Atualizar</span>
+            </div>
         </div>
 
-        <div style="display: flex; justify-content: center; width: 30vw;">
+        <br>
+        <span id="atualizado"></span>
+        <br>
 
-            <div class="blocosCabecalho">
-                <div onclick="window.location.href='inicial.html'">
-                    <label>Voltar</label>
-                    <img src="imagens/voltar.png">
+        <div class="filtrosRelatorio">
+            <label class="titulos">Data Emissão NF</label>
+            <div class="filtros">
+                <div>
+                    <label>De</label>
+                    <input type="date" onchange="dataPesquisa(this.value, 'de')">
                 </div>
-                <div onclick="atualizarRelatorio()">
-                    <label>Atualizar</label>
-                    <img src="imagens/atualizar_2.png">
+                <div>
+                    <label>Até</label>
+                    <input type="date" onchange="dataPesquisa(this.value, 'ate')">
                 </div>
             </div>
-            
+
+            <div id="resumoValores"></div>
         </div>
+
     </div>
+
+    <div class="painelCentral"></div>
 
 </body>
 

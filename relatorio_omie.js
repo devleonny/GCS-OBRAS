@@ -184,42 +184,25 @@ async function carregarTabela(app) {
     }
 
     let acumulado = `
-        <div id="divRelatorio" class="relatorioDiv">
-
-            <div class="blocoEsquerdo">
-        
-                <label class="titulos">Data Emissão NF</label>
-                <div class="filtros">
-                    <div>
-                        <label>De</label>
-                        <input type="date" onchange="dataPesquisa(this.value, 'de')">
-                    </div>
-                    <div>
-                        <label>Até</label>
-                        <input type="date" onchange="dataPesquisa(this.value, 'ate')">
-                    </div>
-                </div>
-
-                <div id="resumoValores"></div>
-            
+        <div style="${vertical};">
+            <div class="toolbarRelatorio">
+                ${toolbarApp}
             </div>
-            <div style="flex-direction: column;">
-                <div class="toolbarRelatorio">
-                    ${toolbarApp}
-                </div>
-                <div style="height: 50vw; overflow: auto;" id="tabelas">
-                    ${stringTabelas}
-                </div>
+            <div style="height: 50vw; overflow: auto;" id="tabelas">
+                ${stringTabelas}
             </div>
         </div>
         `
 
-    let divRelatorio = document.getElementById('divRelatorio')
-    if (divRelatorio) {
-        document.querySelector('.toolbarRelatorio').innerHTML = toolbarApp
-        document.getElementById('tabelas').innerHTML = stringTabelas
+    const painelCentral = document.querySelector('.painelCentral')
+    const toolbarRelatorio = document.querySelector('.toolbarRelatorio')
+    const tabelasHTML = document.getElementById('tabelas')
+
+    if (toolbarRelatorio) {
+        toolbarRelatorio.innerHTML = toolbarApp
+        tabelasHTML.innerHTML = stringTabelas
     } else {
-        document.body.insertAdjacentHTML('beforeend', acumulado)
+        painelCentral.innerHTML = acumulado
     }
 
     mostrarTabela(app ? app : apps[0])
@@ -364,17 +347,21 @@ function carregarFiltros(app) {
         .join('')
 
     let acumulado = `
-        ${botao('Limpar Filtros', `limparFiltros('${app}')`)}
+        <div class="menuSuperior">
+            <div onclick="limparFiltros('${app}')" style="width: 100%;">
+                <img src="imagens/limpar.png">
+                <span>Limpar Filtros</span>
+            </div>
+        </div>
+
         <br>
         <div style="${vertical}; gap: 3px;">
             <label class="titulos">Status Recebimento</label>
-            <label style="font-size: 0.7vw; color: white;">[Clique para filtrar]</label>
             ${indStatus}
         </div>
         <br>
         <div style="${vertical}; gap: 3px;">
             <label class="titulos">Filtrar por Tipo</label>
-            <label style="font-size: 0.7vw; color: white;">[Clique para filtrar]</label>
             ${indCategorias}
         </div>
         `
