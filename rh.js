@@ -59,6 +59,7 @@ async function mostrarPastas(idPessoa, nome) {
             <label>${nome}</label>
             <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="adicionarPessoa('${idPessoa}')">
             <img src="imagens/pasta.png" style="width: 2vw; cursor: pointer;" onclick="adicionarPasta('${idPessoa}')">
+            <img src="imagens/lixeira.png" style="width: 2vw; cursor: pointer;" onclick="confirmarExclusaoPessoa('${idPessoa}', '${nome}')">
         </div>
     `
 
@@ -69,7 +70,38 @@ async function mostrarPastas(idPessoa, nome) {
 
 }
 
+function confirmarExclusaoPessoa(idPessoa, nome){
+
+    const acumulado = `
+        <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2; gap: 1vw;">
+            <label>Tem certeza que deseja excluir ${nome}?</label>
+            ${botao('Confirmar', `excluirPessoaRH('${idPessoa}')`, 'green')}
+        </div>
+    `
+
+    popup(acumulado, 'ALERTA')
+
+}
+
+async function excluirPessoaRH(idPessoa){
+
+    removerPopup()
+
+    overlayAguarde()
+
+    await deletarDB('pessoas', idPessoa)
+
+    deletar(`pessoas/${idPessoa}`)
+
+    await carregarEsquema()
+
+    removerOverlay()
+
+}
+
 async function abrirPastas(idPessoa, idPasta) {
+
+    pessoas = await recuperarDados('pessoas')
 
     const pessoa = pessoas[idPessoa]
     const pasta = pessoa.pastas[idPasta]
@@ -81,7 +113,7 @@ async function abrirPastas(idPessoa, idPasta) {
             <label>${pessoa.nome} > ${pasta.nomePasta}</label>
 
             <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="adicionarPasta('${idPessoa}', '${idPasta}')">
-            
+
             <label for="anexo">
                 <img src="imagens/anexo2.png" style="width: 2vw; cursor: pointer;">
                 <input type="file" style="display: none;" id="anexo" onchange="adicionarAnexo(this, '${idPessoa}', '${idPasta}')">
@@ -94,13 +126,14 @@ async function abrirPastas(idPessoa, idPasta) {
             <div class="pasta">
                 <div class="aba"></div>
                 <div class="blocoRH">
-                    ${modeloRH('Realizado', `<input id="emissao_${idAnexo}" type="date" onchange="salvarDadosDocumento('emissao', '${idPessoa}', '${idPasta}', '${idAnexo}')" value="${anexo?.emissao}">`)}
-                    ${modeloRH('Validade', `<input id="validade_${idAnexo}" type="date" onchange="salvarDadosDocumento('validade', '${idPessoa}', '${idPasta}', '${idAnexo}')" value="${anexo?.validade}">`)}
+                    ${modeloRH('Realizado', `<input id="emissao_${idAnexo}" type="date" onchange="salvarDadosDocumento('emissao', '${idPessoa}', '${idPasta}', '${idAnexo}')" value="${anexo?.emissao || ''}">`)}
+                    ${modeloRH('Validade', `<input id="validade_${idAnexo}" type="date" onchange="salvarDadosDocumento('validade', '${idPessoa}', '${idPasta}', '${idAnexo}')" value="${anexo?.validade || ''}">`)}
                     ${modeloRH('Local', `<input id="local_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Localidade" value="${anexo?.local || ''}">`, `salvarDadosDocumento('local', '${idPessoa}', '${idPasta}', '${idAnexo}')`)}
                     ${modeloRH('Clínica', `<input id="clinica_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Nome da Clínica" value="${anexo?.clinica || ''}">`, `salvarDadosDocumento('clinica', '${idPessoa}', '${idPasta}', '${idAnexo}')`)}
+                    ${modeloRH('Contato', `<input id="contato_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Tel/E-mail" value="${anexo?.contato || ''}">`, `salvarDadosDocumento('contato', '${idPessoa}', '${idPasta}', '${idAnexo}')`)}
                     <div style="${horizontal}; justify-content: space-between; width: 100%;">
                         ${criarAnexoVisual(anexo.nome, anexo.link)}
-                        ${botao('Excluir', '', '#B12425')}
+                        ${botao('Excluir', `confirmarExclusaoAnexo('${idPessoa}', '${idPasta}', '${idAnexo}')`, '#B12425')}
                     </div>
                 </div>
             </div>
@@ -119,7 +152,7 @@ function mostrarBtn(input) {
 async function salvarDadosDocumento(campo, idPessoa, idPasta, idAnexo) {
 
     const elemento = document.getElementById(`${campo}_${idAnexo}`)
-    if(campo == 'clinica' || campo == 'local') elemento.nextElementSibling.style.display = 'none'
+    if(campo == 'clinica' || campo == 'local' || campo == 'contato') elemento.nextElementSibling.style.display = 'none'
 
     const valor = elemento.value
     let pessoa = await recuperarDado('pessoas', idPessoa)
@@ -131,6 +164,39 @@ async function salvarDadosDocumento(campo, idPessoa, idPasta, idAnexo) {
     enviar(`pessoas/${idPessoa}/pastas/${idPasta}/anexos/${idAnexo}/${campo}`, valor)
     await inserirDados({[idPessoa]: pessoa}, 'pessoas')
     
+}
+
+function confirmarExclusaoAnexo(idPessoa, idPasta, idAnexo){
+
+    const acumulado = `
+        <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2; gap: 1vw;">
+            <label>Tem certeza que deseja excluir este anexo?</label>
+            ${botao('Confirmar', `excluirAnexoRH('${idPessoa}', '${idPasta}', '${idAnexo}')`, 'green')}
+        </div>
+    `
+
+    popup(acumulado, 'ALERTA')
+
+}
+
+async function excluirAnexoRH(idPessoa, idPasta, idAnexo){
+
+    removerPopup()
+
+    overlayAguarde()
+
+    let pessoa = await recuperarDado('pessoas', idPessoa)
+
+    delete pessoa.pastas[idPasta].anexos[idAnexo]
+
+    deletar(`pessoas/${idPessoa}/pastas/${idPasta}/anexos/${idAnexo}`)
+
+    await inserirDados({[idPessoa]: pessoa}, 'pessoas')
+
+    await abrirPastas(idPessoa, idPasta)
+
+    removerOverlay()
+
 }
 
 async function adicionarAnexo(input, idPessoa, idPasta) {
