@@ -94,7 +94,7 @@ async function excluirPessoaRH(idPessoa) {
 
     await deletarDB('pessoas', idPessoa)
 
-    deletar(`pessoas/${idPessoa}`)
+    await deletar(`pessoas/${idPessoa}`)
 
     await carregarEsquema()
 
@@ -173,7 +173,7 @@ async function excluirPastaRH(idPessoa, idPasta) {
 
     delete pessoa.pastas[idPasta]
 
-    deletar(`pessoas/${idPessoa}/pastas/${idPasta}`)
+    await deletar(`pessoas/${idPessoa}/pastas/${idPasta}`)
 
     await inserirDados({ [idPessoa]: pessoa }, 'pessoas')
 
@@ -227,7 +227,7 @@ async function excluirAnexoRH(idPessoa, idPasta, idAnexo) {
 
     delete pessoa.pastas[idPasta].anexos[idAnexo]
 
-    deletar(`pessoas/${idPessoa}/pastas/${idPasta}/anexos/${idAnexo}`)
+    await deletar(`pessoas/${idPessoa}/pastas/${idPasta}/anexos/${idAnexo}`)
 
     await inserirDados({ [idPessoa]: pessoa }, 'pessoas')
 
@@ -316,7 +316,7 @@ async function salvarPessoa(idPessoa) {
 
     overlayAguarde()
 
-    idPessoa ? idPessoa : ID5digitos()
+    idPessoa = idPessoa ? idPessoa : ID5digitos()
     const nome = document.getElementById('nome').value
     const obraAtual = document.getElementById('obraAtual').value
 

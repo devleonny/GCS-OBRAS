@@ -111,3 +111,34 @@ input {
 .pasta:hover {
     transform: scale(1.10);
 }
+
+.menuSuperior {
+    cursor: pointer;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    width: 100%;
+    gap: 1vh;
+}
+
+.menuSuperior div {
+    cursor: pointer;
+    padding: 3px;
+    border-radius: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    width: 100%;
+    gap: 1vw;
+}
+
+.menuSuperior div:hover {
+    background-color: white;
+    color: #222;
+}
+
+.menuSuperior img {
+    width: 2vw;
+}
