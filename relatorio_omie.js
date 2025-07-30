@@ -7,7 +7,8 @@ async function atualizarRelatorio() {
 
     overlayAguarde()
     const nuvem = await baixarRelatorio()
-    let dados_relatorio = await recuperarDados('dados_relatorio') || {}
+    await inserirDados(nuvem, 'dados_relatorios')
+    let dados_relatorio = nuvem || {}
 
     for (const [app, apps] of Object.entries(nuvem)) {
 
@@ -402,35 +403,10 @@ function mostrarTabela(app) {
 
 async function baixarRelatorio() {
 
-    const dados_relatorio = await recuperarDados('dados_relatorio') || {}
-
-    let timestamps = {}
-
-    for (const [app, apps] of Object.entries(dados_relatorio)) {
-
-        if (app == 'atualizado') continue
-
-        if (!timestamps[app]) timestamps[app] = {}
-        let timestampApp = timestamps[app]
-
-        for (const [tipo, tipos] of Object.entries(apps)) {
-
-            if (!timestampApp[tipo]) timestampApp[tipo] = 0
-
-            for (const [nf, nota] of Object.entries(tipos)) {
-                if (nota.timestamp && nota.timestamp > timestampApp[tipo]) {
-                    timestampApp[tipo] = nota.timestamp
-                }
-            }
-        }
-
-    }
-
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/relatorio", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ timestamps })
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
         })
             .then(response => {
                 if (!response.ok) {
