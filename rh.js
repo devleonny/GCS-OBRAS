@@ -82,9 +82,9 @@ async function abrirPastas(idPessoa, idPasta) {
             
             <label for="anexo">
                 <img src="imagens/anexo2.png" style="width: 2vw; cursor: pointer;">
+                <input type="file" style="display: none;" id="anexo" onchange="adicionarAnexo(this, '${idPessoa}', '${idPasta}')">
             </label>
-            <input type="file" style="display: none;" id="anexo" onchange="adicionarAnexo(this, '${idPessoa}', '${idPasta}')">
-
+            
         </div>
     `
 

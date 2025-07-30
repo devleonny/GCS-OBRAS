@@ -312,7 +312,7 @@ async function painelValores(idCusto, duplicar) {
             <div style="${horizontal}; gap: 10px;">
                 <div style="${vertical};">
                     ${modeloLabel('KM', `<input oninput="calcularValorCombustivel()" value="${custo?.km || ''}" type="number" id="km" type="number">`)}
-                    ${modeloLabel('Litros', `<input oninput="calcularValorCombustivel()" value="${custo?.litros || ''}" type="number" id="litros" type="number">`)}
+                    ${modeloLabel('Litros', `<input oninput="calcularValorCombustivel(true)" value="${custo?.litros || ''}" type="number" id="litros" type="number">`)}
                 </div>
                 <div style="${vertical};">
                     ${modeloLabel('KM/L', `<input oninput="calcularValorCombustivel()" value="${custo?.kml || ''}" type="number" id="kml" type="number">`)}
@@ -346,13 +346,16 @@ async function painelValores(idCusto, duplicar) {
     await dadosVeiculo()
 }
 
-function calcularValorCombustivel() {
-    const litros = obterValores('litros')
+function calcularValorCombustivel(valorManual) {
+    const km = obterValores('km')
+    const kml = obterValores('kml')
+    const litros = valorManual ? obterValores('litros') : Math.ceil(km / kml)
     const combustivel = obterValores('combustivel')
 
     const resultado = litros * combustivel
     const proximoMultiploDe10 = Math.ceil(resultado / 10) * 10
 
+    if(!valorManual) document.getElementById('litros').value = litros
     document.getElementById('custo_total').value = proximoMultiploDe10
 }
 
