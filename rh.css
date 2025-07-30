@@ -94,7 +94,7 @@ input {
 
 .aba {
     clip-path: polygon(50% 0%, 100% 0%, 100% 100%, 0% 100%);
-    height: 3vh;
+    height: 20px;
     background-color: #c79800;
     width: 3vw;
 }

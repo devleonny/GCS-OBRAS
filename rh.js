@@ -2,18 +2,21 @@ const painelCentral = document.querySelector('.painelCentral')
 const tituloRH = document.querySelector('.tituloRH')
 let pessoas = {}
 const modeloRH = (valor1, elemento, funcao) => {
-    
+
     return `
     <div style="${horizontal}; justify-content: space-between; width: 100%; margin-left: 5px;">
         <label>${valor1}:</label>
         ${elemento}
-        ${funcao ? `<img onclick="${funcao}" src="imagens/concluido.png" style="display: none; width: 1.5vw;">`: ''}
+        ${funcao ? `<img onclick="${funcao}" src="imagens/concluido.png" style="display: none; width: 1.5vw;">` : ''}
     </div>
 `}
 
 carregarEsquema()
 
 async function carregarEsquema() {
+
+    painelCentral.innerHTML = ''
+    tituloRH.innerHTML = ''
 
     await sincronizarDados('pessoas')
     pessoas = await recuperarDados('pessoas')
@@ -70,7 +73,7 @@ async function mostrarPastas(idPessoa, nome) {
 
 }
 
-function confirmarExclusaoPessoa(idPessoa, nome){
+function confirmarExclusaoPessoa(idPessoa, nome) {
 
     const acumulado = `
         <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2; gap: 1vw;">
@@ -83,7 +86,7 @@ function confirmarExclusaoPessoa(idPessoa, nome){
 
 }
 
-async function excluirPessoaRH(idPessoa){
+async function excluirPessoaRH(idPessoa) {
 
     removerPopup()
 
@@ -105,7 +108,7 @@ async function abrirPastas(idPessoa, idPasta) {
 
     const pessoa = pessoas[idPessoa]
     const pasta = pessoa.pastas[idPasta]
-    const anexos = pasta.anexos
+    const anexos = pasta?.anexos || {}
 
     tituloRH.innerHTML = `
         <div style="${horizontal}; gap: 1vw;">
@@ -114,10 +117,12 @@ async function abrirPastas(idPessoa, idPasta) {
 
             <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="adicionarPasta('${idPessoa}', '${idPasta}')">
 
-            <label for="anexo">
+            <label for="anexo" style="${horizontal};">
                 <img src="imagens/anexo2.png" style="width: 2vw; cursor: pointer;">
                 <input type="file" style="display: none;" id="anexo" onchange="adicionarAnexo(this, '${idPessoa}', '${idPasta}')">
             </label>
+
+            <img src="imagens/lixeira.png" style="width: 2vw; cursor: pointer;" onclick="confirmarExclusaoPasta('${idPessoa}', '${idPasta}')">
         </div>
     `
 
@@ -145,6 +150,39 @@ async function abrirPastas(idPessoa, idPasta) {
 
 }
 
+function confirmarExclusaoPasta(idPessoa, idPasta) {
+
+    const acumulado = `
+        <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2; gap: 1vw;">
+            <label>Tem certeza que deseja excluir esta pasta?</label>
+            ${botao('Confirmar', `excluirPastaRH('${idPessoa}', '${idPasta}')`, 'green')}
+        </div>
+    `
+
+    popup(acumulado, 'ALERTA')
+
+}
+
+async function excluirPastaRH(idPessoa, idPasta) {
+
+    removerPopup()
+
+    overlayAguarde()
+
+    let pessoa = await recuperarDado('pessoas', idPessoa)
+
+    delete pessoa.pastas[idPasta]
+
+    deletar(`pessoas/${idPessoa}/pastas/${idPasta}`)
+
+    await inserirDados({ [idPessoa]: pessoa }, 'pessoas')
+
+    await carregarEsquema()
+
+    removerOverlay()
+
+}
+
 function mostrarBtn(input) {
     input.nextElementSibling.style.display = 'block'
 }
@@ -152,7 +190,7 @@ function mostrarBtn(input) {
 async function salvarDadosDocumento(campo, idPessoa, idPasta, idAnexo) {
 
     const elemento = document.getElementById(`${campo}_${idAnexo}`)
-    if(campo == 'clinica' || campo == 'local' || campo == 'contato') elemento.nextElementSibling.style.display = 'none'
+    if (campo == 'clinica' || campo == 'local' || campo == 'contato') elemento.nextElementSibling.style.display = 'none'
 
     const valor = elemento.value
     let pessoa = await recuperarDado('pessoas', idPessoa)
@@ -161,12 +199,12 @@ async function salvarDadosDocumento(campo, idPessoa, idPasta, idAnexo) {
 
     anexo[campo] = valor
 
-    enviar(`pessoas/${idPessoa}/pastas/${idPasta}/anexos/${idAnexo}/${campo}`, valor)
-    await inserirDados({[idPessoa]: pessoa}, 'pessoas')
-    
+    await enviar(`pessoas/${idPessoa}/pastas/${idPasta}/anexos/${idAnexo}/${campo}`, valor)
+    await inserirDados({ [idPessoa]: pessoa }, 'pessoas')
+
 }
 
-function confirmarExclusaoAnexo(idPessoa, idPasta, idAnexo){
+function confirmarExclusaoAnexo(idPessoa, idPasta, idAnexo) {
 
     const acumulado = `
         <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2; gap: 1vw;">
@@ -179,7 +217,7 @@ function confirmarExclusaoAnexo(idPessoa, idPasta, idAnexo){
 
 }
 
-async function excluirAnexoRH(idPessoa, idPasta, idAnexo){
+async function excluirAnexoRH(idPessoa, idPasta, idAnexo) {
 
     removerPopup()
 
@@ -191,7 +229,7 @@ async function excluirAnexoRH(idPessoa, idPasta, idAnexo){
 
     deletar(`pessoas/${idPessoa}/pastas/${idPasta}/anexos/${idAnexo}`)
 
-    await inserirDados({[idPessoa]: pessoa}, 'pessoas')
+    await inserirDados({ [idPessoa]: pessoa }, 'pessoas')
 
     await abrirPastas(idPessoa, idPasta)
 
@@ -208,21 +246,22 @@ async function adicionarAnexo(input, idPessoa, idPasta) {
     let pessoa = await recuperarDado('pessoas', idPessoa)
     let pasta = pessoa.pastas[idPasta]
 
-    if(!pasta.anexos) pasta.anexos = {}
+    if (!pasta.anexos) pasta.anexos = {}
 
     const idAnexo = ID5digitos()
     pasta.anexos[idAnexo] = anexos[0]
 
-    enviar(`pessoas/${idPessoa}/pastas/${idPasta}/anexos/${idAnexo}`, anexos[0])
-    await inserirDados({[idPessoa]: pessoa}, 'pessoas')
+    await enviar(`pessoas/${idPessoa}/pastas/${idPasta}/anexos/${idAnexo}`, anexos[0])
+    await inserirDados({ [idPessoa]: pessoa }, 'pessoas')
 
     await abrirPastas(idPessoa, idPasta)
-    
+
     removerOverlay()
 }
 
 async function adicionarPasta(idPessoa, idPasta) {
 
+    const funcao = idPasta ? `salvarPasta('${idPessoa}', '${idPasta}')` : `salvarPasta('${idPessoa}')`
     const pessoa = await recuperarDado('pessoas', idPessoa)
     const pasta = pessoa?.pastas?.[idPasta] || {}
 
@@ -230,7 +269,7 @@ async function adicionarPasta(idPessoa, idPasta) {
     <div style="padding: 2vw; background-color: #d2d2d2;">
         ${modeloRH('Nome da Pasta', `<input id="nomePasta" value="${pasta?.nomePasta || ''}">`)}
         <hr style="width: 100%;">
-        ${botao('Salvar', idPasta ? `salvarPasta('${idPessoa}', '${idPasta}')` : `salvarPasta('${idPessoa}')`, 'green')}
+        ${botao('Salvar', funcao, 'green')}
     </div>
     `
     popup(acumulado, 'Gerenciar Pasta')
@@ -240,7 +279,7 @@ async function salvarPasta(idPessoa, idPasta) {
 
     overlayAguarde()
 
-    idPasta ? idPasta : ID5digitos()
+    idPasta = idPasta ? idPasta : ID5digitos()
     const nomePasta = document.getElementById('nomePasta').value
     let pessoa = await recuperarDado('pessoas', idPessoa)
 
@@ -249,8 +288,7 @@ async function salvarPasta(idPessoa, idPasta) {
 
     pessoa.pastas[idPasta].nomePasta = nomePasta
 
-    enviar(`pessoas/${idPessoa}/pastas/${idPasta}/nomePasta`, nomePasta)
-
+    await enviar(`pessoas/${idPessoa}/pastas/${idPasta}/nomePasta`, nomePasta)
     await inserirDados({ [idPessoa]: pessoa }, 'pessoas')
     await carregarEsquema()
 
@@ -287,8 +325,8 @@ async function salvarPessoa(idPessoa) {
     pessoa.nome = nome
     pessoa.obraAtual = obraAtual
 
-    enviar(`pessoas/${idPessoa}/nome`, nome)
-    enviar(`pessoas/${idPessoa}/obraAtual`, obraAtual)
+    await enviar(`pessoas/${idPessoa}/nome`, nome)
+    await enviar(`pessoas/${idPessoa}/obraAtual`, obraAtual)
 
     await inserirDados({ [idPessoa]: pessoa }, 'pessoas')
     await carregarEsquema()
