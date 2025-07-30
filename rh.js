@@ -17,6 +17,7 @@ async function carregarEsquema() {
 
     painelCentral.innerHTML = ''
     tituloRH.innerHTML = ''
+    painelCentral.style.display = 'grid'
 
     await sincronizarDados('pessoas')
     pessoas = await recuperarDados('pessoas')
@@ -125,10 +126,19 @@ async function abrirPastas(idPessoa, idPasta) {
         </div>
     `
 
-    const stringAnexos = Object.entries(anexos)
-        .map(([idAnexo, anexo]) => `
+    let stringAnexos = ''
+
+    Object.entries(anexos)
+        .map(([idAnexo, anexo]) => {
+
+            const opcoesDocs = ['', 'ASO', 'NR 06 - EPI', 'NR 10', 'NR 35', 'PTA']
+                .map(op => `<option ${anexo?.doc == op ? 'selected' : ''}>${op}</option>`).join('')
+
+            stringAnexos += `
             <div class="pasta">
-                <div class="aba"></div>
+                <div class="aba">
+                    <select id="doc_${idAnexo}" onchange="salvarDadosDocumento('doc', '${idPessoa}', '${idPasta}', '${idAnexo}')">${opcoesDocs}</select>
+                </div>
                 <div class="blocoRH">
                     ${modeloRH('Realizado', `<input id="emissao_${idAnexo}" type="date" onchange="salvarDadosDocumento('emissao', '${idPessoa}', '${idPasta}', '${idAnexo}')" value="${anexo?.emissao || ''}">`)}
                     ${modeloRH('Validade', `<input id="validade_${idAnexo}" type="date" onchange="salvarDadosDocumento('validade', '${idPessoa}', '${idPasta}', '${idAnexo}')" value="${anexo?.validade || ''}">`)}
@@ -142,8 +152,7 @@ async function abrirPastas(idPessoa, idPasta) {
                 </div>
             </div>
             `
-        ).join('')
-
+        })
 
     painelCentral.innerHTML = stringAnexos
 
@@ -306,7 +315,7 @@ async function adicionarPessoa(idPessoa) {
         ${botao('Salvar', idPessoa ? `salvarPessoa('${idPessoa}')` : 'salvarPessoa()', 'green')}
     </div>
     `
-    popup(acumulado, 'Gerenciar Pessoa')
+    popup(acumulado, 'Gerenciar Local')
 }
 
 async function salvarPessoa(idPessoa) {
@@ -325,5 +334,117 @@ async function salvarPessoa(idPessoa) {
     await carregarEsquema()
 
     removerPopup()
+
+}
+
+function expiraEm(dataString) {
+
+    let dias = '--'
+    let data = '--'
+    if (dataString !== '--') {
+
+        const [ano, mes, dia] = dataString.split('-')
+        const dataInformada = new Date(dataString)
+        const hoje = new Date()
+
+        dataInformada.setHours(0, 0, 0, 0)
+        hoje.setHours(0, 0, 0, 0)
+
+        const diferencaMs = dataInformada - hoje
+        dias = Math.floor(diferencaMs / (1000 * 60 * 60 * 24))
+        data = `${dia}/${mes}/${ano}`
+
+    } else {
+        dias = dataString
+    }
+
+    let icone = 'gifs/interrogacao.gif'
+    if (dias < 30) {
+        icone = 'imagens/offline.png'
+    } else if (dias < 60) {
+        icone = 'imagens/pendente.png'
+    } else if (dias >= 60) {
+        icone = 'imagens/online.png'
+    }
+
+    return { dias, icone, data }
+}
+
+carregarEsquemaTabela()
+
+async function carregarEsquemaTabela() {
+
+    pessoas = await recuperarDados('pessoas')
+
+    const colunas = ['Nome & Grupo', 'Estado', 'Validade', 'Expiração', 'Arquivo']
+        .map(op => `<th>${op}</th>`).join('')
+    let linhas = ''
+
+    // Pessoas nesse contexto foi mudado para cidade-estado;
+    for (const [idPessoa, pessoa] of Object.entries(pessoas)) {
+
+        const pastas = pessoa?.pastas || {}
+
+        for (const [idPasta, pasta] of Object.entries(pastas)) {
+
+            const anexos = pasta?.anexos || {}
+
+            for (const [idAnexo, anexo] of Object.entries(anexos)) {
+
+                const validade = anexo?.validade || '--'
+                const tempoExpiracao = expiraEm(validade)
+                const opcoesDocs = ['', 'ASO', 'NR 06 - EPI', 'NR 10', 'NR 35', 'PTA']
+                    .map(op => `<option ${anexo?.doc == op ? 'selected' : ''}>${op}</option>`).join('')
+
+                linhas += `
+                <tr>
+                    <td>${pasta.nomePasta}</td>
+                    <td>${pessoa.nome}</td>
+                    <td>
+                        <input type="date" value="${validade}">
+                    </td>
+                    <td>
+                        <div style="${horizontal}; justify-content: left; gap: 5px;">
+                            <img src="${tempoExpiracao.icone}" style="width: 1.5vw;">
+                            <label>${tempoExpiracao.dias}</label>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="capsula">
+                            <div class="esquerda">
+                                <select id="doc_${idAnexo}" onchange="salvarDadosDocumento('doc', '${idPessoa}', '${idPasta}', '${idAnexo}')">${opcoesDocs}</select>
+                            </div>
+                            <div class="direita" title="${anexo.nome}" onclick="abrirArquivo('${anexo.link}')">
+                                Ver
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                `
+            }
+
+        }
+
+    }
+
+    let acumulado = `
+        <div style="${vertical};">
+            <div class="painelBotoes" style="align-items: center; justify-content: center;"></div>
+            <div style="${vertical}; height: max-content; max-height: 70vh; overflow-y: auto;">
+                <table class="tabela">
+                    <thead>
+                        <tr>${colunas}</tr>
+                    </thead>
+                    <tbody>
+                        ${linhas}
+                    </tbody>
+                </table>
+            </div>
+            <div class="rodapeTabela"></div>
+        </div>
+    `
+
+    painelCentral.style.display = 'flex'
+    painelCentral.innerHTML = acumulado
 
 }
