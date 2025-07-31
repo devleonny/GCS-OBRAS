@@ -1,8 +1,8 @@
 const painelCentral = document.querySelector('.painelCentral')
 const tituloRH = document.querySelector('.tituloRH')
+let filtrosRH = {}
 let pessoas = {}
 const modeloRH = (valor1, elemento, funcao) => {
-
     return `
     <div style="${horizontal}; justify-content: space-between; width: 100%; margin-left: 5px;">
         <label>${valor1}:</label>
@@ -375,9 +375,24 @@ carregarEsquemaTabela()
 async function carregarEsquemaTabela() {
 
     pessoas = await recuperarDados('pessoas')
+    let colunas = {
+        th: '',
+        thPesquisa: ''
+    }
 
-    const colunas = ['Nome & Grupo', 'Estado', 'Validade', 'Expiração', 'Arquivo']
-        .map(op => `<th>${op}</th>`).join('')
+    const campos = ['Nome & Grupo', 'Estado', 'Emissão', 'Validade', 'Expiração', 'Arquivo']
+        .map((op, col) => {
+            colunas.thPesquisa += `
+            <th style="background-color: white; padding: 0px;">
+                <div style="${horizontal}">
+                    <input placeholder="${inicialMaiuscula(op)}" oninput="pesquisar_generico('${col}', this.value, filtrosRH, 'bodyRH')">
+                    <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                </div>
+            </th>
+            `
+            colunas.th += `<th>${op}</th>`
+        })
+
     let linhas = ''
 
     // Pessoas nesse contexto foi mudado para cidade-estado;
@@ -401,7 +416,10 @@ async function carregarEsquemaTabela() {
                     <td>${pasta.nomePasta}</td>
                     <td>${pessoa.nome}</td>
                     <td>
-                        <input type="date" value="${validade}">
+                        <input id="emissao_${idAnexo}" onchange="salvarDadosDocumento('emissao', '${idPessoa}', '${idPasta}', '${idAnexo}')" type="date" value="${anexo?.emissao || ''}">
+                    </td>
+                    <td>
+                        <input id="validade_${idAnexo}" onchange="salvarDadosDocumento('validade', '${idPessoa}', '${idPasta}', '${idAnexo}')" type="date" value="${validade}">
                     </td>
                     <td>
                         <div style="${horizontal}; justify-content: left; gap: 5px;">
@@ -410,13 +428,16 @@ async function carregarEsquemaTabela() {
                         </div>
                     </td>
                     <td>
-                        <div class="capsula">
-                            <div class="esquerda">
-                                <select id="doc_${idAnexo}" onchange="salvarDadosDocumento('doc', '${idPessoa}', '${idPasta}', '${idAnexo}')">${opcoesDocs}</select>
+                        <div style="${horizontal}; gap: 5px;">
+                            <div class="capsula">
+                                <div class="esquerda">
+                                    <select id="doc_${idAnexo}" onchange="salvarDadosDocumento('doc', '${idPessoa}', '${idPasta}', '${idAnexo}')">${opcoesDocs}</select>
+                                </div>
+                                <div class="direita" title="${anexo.nome}" onclick="abrirArquivo('${anexo.link}')">
+                                    Ver
+                                </div>
                             </div>
-                            <div class="direita" title="${anexo.nome}" onclick="abrirArquivo('${anexo.link}')">
-                                Ver
-                            </div>
+                            <input name="docs" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
                         </div>
                     </td>
                 </tr>
@@ -429,13 +450,21 @@ async function carregarEsquemaTabela() {
 
     let acumulado = `
         <div style="${vertical};">
-            <div class="painelBotoes" style="align-items: center; justify-content: center;"></div>
+            <div class="painelBotoes" style="align-items: center; justify-content: center;">
+                <label style="width: 80%; text-align: center;">Controle de Documentos</label>
+
+                <div style="${horizontal}; width: 20%; gap: 5px;">
+                    <label>Todos</label>
+                    <input type="checkbox" onclick="marcarTodos(this)" style="width: 1.5vw; height: 1.5vw;">
+                </div>
+            </div>
             <div style="${vertical}; height: max-content; max-height: 70vh; overflow-y: auto;">
                 <table class="tabela">
                     <thead>
-                        <tr>${colunas}</tr>
+                        <tr>${colunas.th}</tr>
+                        <tr>${colunas.thPesquisa}</tr>
                     </thead>
-                    <tbody>
+                    <tbody id="bodyRH">
                         ${linhas}
                     </tbody>
                 </table>
@@ -446,5 +475,16 @@ async function carregarEsquemaTabela() {
 
     painelCentral.style.display = 'flex'
     painelCentral.innerHTML = acumulado
+
+}
+
+function marcarTodos(input) {
+
+    const checks = document.querySelectorAll('[name=docs]')
+
+    for (const check of checks) {
+        const tr = check.closest('tr')
+        if (tr.style.display !== 'none') check.checked = input.checked
+    }
 
 }
