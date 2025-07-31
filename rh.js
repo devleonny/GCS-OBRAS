@@ -2,6 +2,7 @@ const painelCentral = document.querySelector('.painelCentral')
 const tituloRH = document.querySelector('.tituloRH')
 let filtrosRH = {}
 let pessoas = {}
+
 const modeloRH = (valor1, elemento, funcao) => {
     return `
     <div style="${horizontal}; justify-content: space-between; width: 100%; margin-left: 5px;">
@@ -126,36 +127,49 @@ async function abrirPastas(idPessoa, idPasta) {
     `
 
     let stringAnexos = ''
-
-    Object.entries(anexos)
-        .map(([idAnexo, anexo]) => {
-
-            const opcoesDocs = ['', 'ASO', 'NR 06 - EPI', 'NR 10', 'NR 35', 'PTA']
-                .map(op => `<option ${anexo?.doc == op ? 'selected' : ''}>${op}</option>`).join('')
-
-            stringAnexos += `
-            <div class="pasta">
-                <div class="aba">
-                    <select id="doc_${idAnexo}" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}'); salvarDadosDocumento('doc', '${idPessoa}', '${idPasta}', '${idAnexo}')">${opcoesDocs}</select>
-                </div>
-                <div class="blocoRH">
-                    ${modeloRH('Realizado', `<input id="emissao_${idAnexo}" type="date" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}');" value="${anexo?.emissao || ''}">`)}
-                    ${modeloRH('Validade', `<input id="validade_${idAnexo}" type="date" onchange="salvarDadosDocumento('validade', '${idPessoa}', '${idPasta}', '${idAnexo}')" value="${anexo?.validade || ''}">`)}
-                    ${modeloRH('Local', `<input id="local_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Localidade" value="${anexo?.local || ''}">`, `salvarDadosDocumento('local', '${idPessoa}', '${idPasta}', '${idAnexo}')`)}
-                    ${modeloRH('Clínica', `<input id="clinica_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Nome da Clínica" value="${anexo?.clinica || ''}">`, `salvarDadosDocumento('clinica', '${idPessoa}', '${idPasta}', '${idAnexo}')`)}
-                    ${modeloRH('Contato', `<input id="contato_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Tel/E-mail" value="${anexo?.contato || ''}">`, `salvarDadosDocumento('contato', '${idPessoa}', '${idPasta}', '${idAnexo}')`)}
-                    <div style="${horizontal}; justify-content: space-between; width: 100%;">
-                        ${criarAnexoVisual(anexo.nome, anexo.link)}
-                        ${botao('Excluir', `confirmarExclusaoAnexo('${idPessoa}', '${idPasta}', '${idAnexo}')`, '#B12425')}
-                    </div>
-                </div>
-            </div>
-            `
-        })
+    for(const idAnexo of Object.keys(anexos)) stringAnexos += await pastaHTML(idPessoa, idPasta, idAnexo)
 
     painelCentral.style.display = 'grid'
     painelCentral.innerHTML = stringAnexos
 
+}
+
+async function pastaHTML(idPessoa, idPasta, idAnexo, mostrarPopup) {
+
+    const pessoa = await recuperarDado('pessoas', idPessoa)
+    const anexo = pessoa.pastas[idPasta].anexos[idAnexo]
+
+    const funcao = (campo) => `salvarDadosDocumento('${campo}', '${idPessoa}', '${idPasta}', '${idAnexo}')`
+    const opcoesDocs = ['', 'ASO', 'NR 06 - EPI', 'NR 10', 'NR 35', 'PTA']
+        .map(op => `<option ${anexo?.doc == op ? 'selected' : ''}>${op}</option>`).join('')
+
+    const pasta = `
+        <div class="pasta">
+            <div class="aba">
+                <select id="doc_${idAnexo}" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}'); ${funcao('doc')}">${opcoesDocs}</select>
+            </div>
+            <div class="blocoRH">
+                ${modeloRH('Realizado', `<input id="emissao_${idAnexo}" type="date" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}');" value="${anexo?.emissao || ''}">`)}
+                ${modeloRH('Validade', `<input id="validade_${idAnexo}" type="date" onchange="${funcao('validade')}" value="${anexo?.validade || ''}">`)}
+                ${modeloRH('Local', `<input id="local_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Localidade" value="${anexo?.local || ''}">`, funcao('local'))}
+                ${modeloRH('Clínica', `<input id="clinica_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Nome da Clínica" value="${anexo?.clinica || ''}">`, funcao('clinica'))}
+                ${modeloRH('Contato', `<input id="contato_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Tel/E-mail" value="${anexo?.contato || ''}">`, funcao('contato'))}
+                <div style="${horizontal}; justify-content: space-between; width: 100%;">
+                    ${criarAnexoVisual(anexo.nome, anexo.link)}
+                    ${botao('Excluir', `confirmarExclusaoAnexo('${idPessoa}', '${idPasta}', '${idAnexo}')`, '#B12425')}
+                </div>
+            </div>
+        </div>
+    `
+
+    if(!mostrarPopup) return pasta
+
+    const acumulado = `
+        <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2;">
+            ${pasta}
+        </div>
+    `
+    popup(acumulado, pessoa.pastas[idPasta].nomePasta, true)
 }
 
 async function calcularVencimento(idPessoa, idPasta, idAnexo) {
@@ -470,7 +484,12 @@ async function carregarEsquemaTabela() {
 
                 linhas += `
                 <tr>
-                    <td>${pasta.nomePasta}</td>
+                    <td>
+                        <div style="${horizontal}; justify-content: start; gap: 5px;">
+                            <img src="imagens/pasta.png" style="width: 1.5vw; cursor: pointer;" onclick="pastaHTML('${idPessoa}', '${idPasta}', '${idAnexo}', true)">
+                            <label style="text-align: left;">${pasta.nomePasta}</label>
+                        </div>
+                    </td>
                     <td>${pessoa.nome}</td>
                     <td>
                         ${anexo?.clinica || '--'}<br>
