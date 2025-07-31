@@ -152,7 +152,7 @@ async function abrirPastas(idPessoa, idPasta) {
             </div>
             `
         })
-        
+
     painelCentral.style.display = 'grid'
     painelCentral.innerHTML = stringAnexos
 
@@ -437,7 +437,7 @@ async function carregarEsquemaTabela() {
                                     Ver
                                 </div>
                             </div>
-                            <input name="docs" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
+                            <input data-url="${anexo.link}" data-nome="${anexo.nome}" name="docs" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
                         </div>
                     </td>
                 </tr>
@@ -456,6 +456,7 @@ async function carregarEsquemaTabela() {
                 <div style="${horizontal}; width: 20%; gap: 5px;">
                     <label>Todos</label>
                     <input type="checkbox" onclick="marcarTodos(this)" style="width: 1.5vw; height: 1.5vw;">
+                    ${botao('Baixar', `baixarArquivos()`, 'green')}
                 </div>
             </div>
             <div style="${vertical}; height: max-content; max-height: 70vh; overflow-y: auto;">
@@ -487,4 +488,30 @@ function marcarTodos(input) {
         if (tr.style.display !== 'none') check.checked = input.checked
     }
 
+}
+
+async function baixarArquivos() {
+
+    overlayAguarde()
+
+    const checkboxes = document.querySelectorAll('[name=docs]:checked')
+    if (checkboxes.length === 0) return popup(mensagem('Nenhum arquivo selecionado'), 'ALERTA')
+
+    const zip = new JSZip()
+
+    for (let i = 0; i < checkboxes.length; i++) {
+        const url = `https://leonny.dev.br/uploads/${checkboxes[i].dataset.url}`
+        const nomeArquivo = checkboxes[i].dataset.nome
+
+        const response = await fetch(url)
+        const blob = await response.blob()
+
+        zip.file(nomeArquivo, blob)
+    }
+
+    const conteudoZip = await zip.generateAsync({ type: 'blob' })
+
+    removerOverlay()
+
+    saveAs(conteudoZip, 'documentos.zip')
 }
