@@ -136,10 +136,10 @@ async function abrirPastas(idPessoa, idPasta) {
             stringAnexos += `
             <div class="pasta">
                 <div class="aba">
-                    <select id="doc_${idAnexo}" onchange="salvarDadosDocumento('doc', '${idPessoa}', '${idPasta}', '${idAnexo}')">${opcoesDocs}</select>
+                    <select id="doc_${idAnexo}" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}'); salvarDadosDocumento('doc', '${idPessoa}', '${idPasta}', '${idAnexo}')">${opcoesDocs}</select>
                 </div>
                 <div class="blocoRH">
-                    ${modeloRH('Realizado', `<input id="emissao_${idAnexo}" type="date" onchange="salvarDadosDocumento('emissao', '${idPessoa}', '${idPasta}', '${idAnexo}')" value="${anexo?.emissao || ''}">`)}
+                    ${modeloRH('Realizado', `<input id="emissao_${idAnexo}" type="date" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}'); salvarDadosDocumento('emissao', '${idPessoa}', '${idPasta}', '${idAnexo}')" value="${anexo?.emissao || ''}">`)}
                     ${modeloRH('Validade', `<input id="validade_${idAnexo}" type="date" onchange="salvarDadosDocumento('validade', '${idPessoa}', '${idPasta}', '${idAnexo}')" value="${anexo?.validade || ''}">`)}
                     ${modeloRH('Local', `<input id="local_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Localidade" value="${anexo?.local || ''}">`, `salvarDadosDocumento('local', '${idPessoa}', '${idPasta}', '${idAnexo}')`)}
                     ${modeloRH('Clínica', `<input id="clinica_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Nome da Clínica" value="${anexo?.clinica || ''}">`, `salvarDadosDocumento('clinica', '${idPessoa}', '${idPasta}', '${idAnexo}')`)}
@@ -155,6 +155,25 @@ async function abrirPastas(idPessoa, idPasta) {
 
     painelCentral.style.display = 'grid'
     painelCentral.innerHTML = stringAnexos
+
+}
+
+async function calcularVencimento(idPessoa, idPasta, idAnexo) {
+
+    const emissao = document.getElementById(`emissao_${idAnexo}`)
+    const data = new Date(emissao.value)
+    const tipo = document.getElementById(`doc_${idAnexo}`).value
+    const validade = document.getElementById(`validade_${idAnexo}`)
+
+    let periodo = 365
+    if (tipo === 'NR 10' || tipo === 'NR 35') periodo = 730
+
+    const dataVencimento = new Date(data)
+    dataVencimento.setDate(dataVencimento.getDate() + periodo)
+
+    validade.value = dataVencimento.toISOString().slice(0, 10) // yyyy-mm-dd
+
+    await salvarDadosDocumento('validade', idPessoa, idPasta, idAnexo)
 
 }
 
@@ -403,7 +422,7 @@ async function carregarEsquemaTabela() {
     let linhas = ''
 
     const dt = (data) => {
-        if(!data) return '--'
+        if (!data) return '--'
         const [ano, mes, dia] = data.split('-')
         return `${dia}/${mes}/${ano}`
     }
@@ -484,26 +503,6 @@ async function carregarEsquemaTabela() {
     painelCentral.style.display = 'flex'
     painelCentral.innerHTML = acumulado
 
-}
-
-function calcularVencimento(input) {
-    const tr = input.closest('tr')
-    const data = new Date(input.value)
-
-    const tds = tr.querySelectorAll('td')
-    const doc = tds[5].querySelector('input')
-    const tipo = doc.value.trim().toUpperCase()
-
-    console.log(tipo);
-
-    let periodo = 365
-    if (tipo === 'NR 10' || tipo === 'NR 35') periodo = 730
-
-    const dataVencimento = new Date(data)
-    dataVencimento.setDate(dataVencimento.getDate() + periodo)
-
-    const vencimento = tds[3].querySelector('input')
-    vencimento.value = dataVencimento.toISOString().slice(0, 10) // yyyy-mm-dd
 }
 
 function marcarTodos(input) {
