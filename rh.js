@@ -139,7 +139,7 @@ async function abrirPastas(idPessoa, idPasta) {
                     <select id="doc_${idAnexo}" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}'); salvarDadosDocumento('doc', '${idPessoa}', '${idPasta}', '${idAnexo}')">${opcoesDocs}</select>
                 </div>
                 <div class="blocoRH">
-                    ${modeloRH('Realizado', `<input id="emissao_${idAnexo}" type="date" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}'); salvarDadosDocumento('emissao', '${idPessoa}', '${idPasta}', '${idAnexo}')" value="${anexo?.emissao || ''}">`)}
+                    ${modeloRH('Realizado', `<input id="emissao_${idAnexo}" type="date" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}');" value="${anexo?.emissao || ''}">`)}
                     ${modeloRH('Validade', `<input id="validade_${idAnexo}" type="date" onchange="salvarDadosDocumento('validade', '${idPessoa}', '${idPasta}', '${idAnexo}')" value="${anexo?.validade || ''}">`)}
                     ${modeloRH('Local', `<input id="local_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Localidade" value="${anexo?.local || ''}">`, `salvarDadosDocumento('local', '${idPessoa}', '${idPasta}', '${idAnexo}')`)}
                     ${modeloRH('Clínica', `<input id="clinica_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Nome da Clínica" value="${anexo?.clinica || ''}">`, `salvarDadosDocumento('clinica', '${idPessoa}', '${idPasta}', '${idAnexo}')`)}
@@ -173,6 +173,7 @@ async function calcularVencimento(idPessoa, idPasta, idAnexo) {
 
     validade.value = dataVencimento.toISOString().slice(0, 10) // yyyy-mm-dd
 
+    await salvarDadosDocumento('emissao', idPessoa, idPasta, idAnexo)
     await salvarDadosDocumento('validade', idPessoa, idPasta, idAnexo)
 
 }
@@ -217,6 +218,15 @@ function mostrarBtn(input) {
 async function salvarDadosDocumento(campo, idPessoa, idPasta, idAnexo) {
 
     const elemento = document.getElementById(`${campo}_${idAnexo}`)
+
+    // Apenas seguir se for campo de data e a data for válida
+    const data = new Date(elemento.value)
+    const [ano] = elemento.value.split('-')
+
+    if ((campo === 'validade' || campo === 'emissao') && Number(ano) < 2000) return
+
+    overlayAguarde()
+
     if (campo == 'clinica' || campo == 'local' || campo == 'contato') elemento.nextElementSibling.style.display = 'none'
 
     const valor = elemento.value
@@ -228,6 +238,8 @@ async function salvarDadosDocumento(campo, idPessoa, idPasta, idAnexo) {
 
     await enviar(`pessoas/${idPessoa}/pastas/${idPasta}/anexos/${idAnexo}/${campo}`, valor)
     await inserirDados({ [idPessoa]: pessoa }, 'pessoas')
+
+    removerOverlay()
 
 }
 
@@ -377,18 +389,20 @@ function expiraEm(dataString) {
     }
 
     let icone = 'gifs/interrogacao.gif'
+    let status = 'Desconhecido'
     if (dias < 30) {
         icone = 'imagens/offline.png'
+        status = 'Vencido'
     } else if (dias < 60) {
         icone = 'imagens/pendente.png'
+        status = 'Próximo'
     } else if (dias >= 60) {
         icone = 'imagens/online.png'
+        status = 'Ativo'
     }
 
-    return { dias, icone }
+    return { dias, icone, status }
 }
-
-// carregarEsquemaTabela()
 
 async function carregarEsquemaTabela() {
 
@@ -406,13 +420,24 @@ async function carregarEsquemaTabela() {
         thPesquisa: ''
     }
 
-    const campos = ['Nome & Grupo', 'Estado', 'Emissão', 'Validade', 'Expiração', 'Arquivo']
+    const campos = ['Nome & Grupo', 'Estado', 'Clínica', 'Validade', 'Expiração', 'Arquivo']
         .map((op, col) => {
+
+            let pesquisa = `
+                <input placeholder="${inicialMaiuscula(op)}" oninput="pesquisarGenerico('${col}', this.value, filtrosRH, 'bodyRH')">
+                <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+            `
+
+            if (op == 'Expiração') {
+                pesquisa = `<select style="cursor: pointer;" oninput="pesquisarGenerico('${col}', this.value, filtrosRH, 'bodyRH')">
+                    ${['', 'Desconhecido', 'Próximo', 'Vencido', 'Ativo'].map(op2 => `<option>${op2}</option>`).join('')}
+                </select>`
+            }
+
             colunas.thPesquisa += `
             <th style="background-color: white; padding: 0px;">
                 <div style="${horizontal}">
-                    <input placeholder="${inicialMaiuscula(op)}" oninput="pesquisarGenerico('${col}', this.value, filtrosRH, 'bodyRH')">
-                    <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                    ${pesquisa}
                 </div>
             </th>
             `
@@ -447,9 +472,13 @@ async function carregarEsquemaTabela() {
                 <tr>
                     <td>${pasta.nomePasta}</td>
                     <td>${pessoa.nome}</td>
-                    <td>${dt(anexo.emissao)}</td>
+                    <td>
+                        ${anexo?.clinica || '--'}<br>
+                        <strong>${anexo?.local || ''}</strong>
+                    </td>
                     <td>${dt(anexo.validade)}</td>
                     <td>
+                        <input style="display: none;" value="${tempoExpiracao.status}">
                         <div style="${horizontal}; justify-content: left; gap: 5px;">
                             <img src="${tempoExpiracao.icone}" style="width: 1.5vw;">
                             <label>${tempoExpiracao.dias}</label>

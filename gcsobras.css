@@ -1790,6 +1790,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 .tabela td {
+    text-align: center;
     padding: 3px;
     font-size: 0.8vw;
     overflow: hidden;
