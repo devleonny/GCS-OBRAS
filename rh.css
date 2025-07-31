@@ -16,7 +16,6 @@ input {
     min-width: 70vw;
     min-height: 70vh;
     max-height: max-content;
-    display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-gap: 1px;
 }

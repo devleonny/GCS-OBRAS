@@ -17,7 +17,6 @@ async function carregarEsquema() {
 
     painelCentral.innerHTML = ''
     tituloRH.innerHTML = ''
-    painelCentral.style.display = 'grid'
 
     await sincronizarDados('pessoas')
     pessoas = await recuperarDados('pessoas')
@@ -153,7 +152,8 @@ async function abrirPastas(idPessoa, idPasta) {
             </div>
             `
         })
-
+        
+    painelCentral.style.display = 'grid'
     painelCentral.innerHTML = stringAnexos
 
 }
@@ -370,7 +370,7 @@ function expiraEm(dataString) {
     return { dias, icone, data }
 }
 
-carregarEsquemaTabela()
+//carregarEsquemaTabela()
 
 async function carregarEsquemaTabela() {
 
