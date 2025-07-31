@@ -370,9 +370,17 @@ function expiraEm(dataString) {
     return { dias, icone, data }
 }
 
-//carregarEsquemaTabela()
+// carregarEsquemaTabela()
 
 async function carregarEsquemaTabela() {
+
+    const tituloRH = document.querySelector('.tituloRH')
+    tituloRH.innerHTML = `
+        <div style="${horizontal}; gap: 1vw;">
+            <img src="imagens/duplicar.png" style="width: 2vw;">
+            <span>Documentos</span>
+        </div>
+    `
 
     pessoas = await recuperarDados('pessoas')
     let colunas = {
@@ -416,7 +424,7 @@ async function carregarEsquemaTabela() {
                     <td>${pasta.nomePasta}</td>
                     <td>${pessoa.nome}</td>
                     <td>
-                        <input id="emissao_${idAnexo}" onchange="salvarDadosDocumento('emissao', '${idPessoa}', '${idPasta}', '${idAnexo}')" type="date" value="${anexo?.emissao || ''}">
+                        <input id="emissao_${idAnexo}" onchange="salvarDadosDocumento('emissao', '${idPessoa}', '${idPasta}', '${idAnexo}'); calcularVencimento(this)" type="date" value="${anexo?.emissao || ''}">
                     </td>
                     <td>
                         <input id="validade_${idAnexo}" onchange="salvarDadosDocumento('validade', '${idPessoa}', '${idPasta}', '${idAnexo}')" type="date" value="${validade}">
@@ -428,6 +436,7 @@ async function carregarEsquemaTabela() {
                         </div>
                     </td>
                     <td>
+                        <input value="${anexo.doc}" style="display: none;">
                         <div style="${horizontal}; gap: 5px;">
                             <div class="capsula">
                                 <div class="esquerda">
@@ -443,9 +452,7 @@ async function carregarEsquemaTabela() {
                 </tr>
                 `
             }
-
         }
-
     }
 
     let acumulado = `
@@ -476,6 +483,10 @@ async function carregarEsquemaTabela() {
 
     painelCentral.style.display = 'flex'
     painelCentral.innerHTML = acumulado
+
+}
+
+function calcularVencimento() {
 
 }
 
