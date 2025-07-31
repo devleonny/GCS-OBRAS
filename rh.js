@@ -127,7 +127,7 @@ async function abrirPastas(idPessoa, idPasta) {
     `
 
     let stringAnexos = ''
-    for(const idAnexo of Object.keys(anexos)) stringAnexos += await pastaHTML(idPessoa, idPasta, idAnexo)
+    for (const idAnexo of Object.keys(anexos)) stringAnexos += await pastaHTML(idPessoa, idPasta, idAnexo)
 
     painelCentral.style.display = 'grid'
     painelCentral.innerHTML = stringAnexos
@@ -162,7 +162,7 @@ async function pastaHTML(idPessoa, idPasta, idAnexo, mostrarPopup) {
         </div>
     `
 
-    if(!mostrarPopup) return pasta
+    if (!mostrarPopup) return pasta
 
     const acumulado = `
         <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2;">
