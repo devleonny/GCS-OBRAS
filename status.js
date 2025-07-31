@@ -147,7 +147,14 @@ async function buscarNFOmie(elemento) {
     if (resultado.faultstring) {
         dadosNota = {}
         removerOverlay()
-        return detalhesNF.innerHTML = `${resultado.faultstring}`
+        return detalhesNF.innerHTML = `
+        <div style="${vertical}; gap: 10;">
+            <label>${resultado.faultstring}</label>
+            
+
+
+        </div>
+        `
     }
 
     dadosNota = resultado
@@ -1570,6 +1577,9 @@ async function abrirEsquema(id) {
             `
     }
 
+    const opcoesStatus = ['', ...Object.keys(fluxograma)]
+        .map(op => `<option ${orcamento.status?.atual == op ? 'selected' : ''}>${op}</option>`).join('')
+
     let linha1 = `
         <div style="display: flex; align-items: end; justify-content: start; gap: 10px;">
 
@@ -1578,9 +1588,7 @@ async function abrirEsquema(id) {
             <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 2px;">
                 <label>Status atual</label>
                 <select onchange="alterar_status(this)" style="font-size: 1vw; border-radius: 3px; padding: 3px;">
-                    ${Object.keys(fluxograma).map(fluxo => `
-                        <option ${orcamento.status?.atual == fluxo ? 'selected' : ''}>${fluxo}</option>
-                    `).join('')}
+                    ${opcoesStatus}
                 </select>
             </div>
  

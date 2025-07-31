@@ -2651,3 +2651,16 @@ async function baixarOcorrencias() {
 
     })
 }
+
+
+const exemplo = `
+    <div style="padding: 2vw; background-color: #d2d2d2;">
+        <div style="${vertical}; gap: 5px;">
+            ${modelo('Número da Nota', '<input>')}
+            ${modelo('Tipo', '<input>')}
+            ${modelo('Valor', '<input>')}
+        </div>
+    </div>
+`
+
+//popup(exemplo)
