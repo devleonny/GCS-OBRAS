@@ -431,7 +431,7 @@ async function configs() {
         tbusca += `
         <th style="background-color: white;">
             <div style="display: flex; align-items: center; justify-content: center;">
-                <input oninput="pesquisar_generico(${i}, this.value, filtrosUsuarios, 'tbodyUsuarios')">
+                <input oninput="pesquisarGenerico(${i}, this.value, filtrosUsuarios, 'tbodyUsuarios')">
                 <img src="imagens/pesquisar2.png" style="width: 1vw;">
             </div>
         </th>
@@ -1158,7 +1158,7 @@ function ID5digitos() {
     return id;
 }
 
-function pesquisar_generico(coluna, texto, filtro, id) {
+function pesquisarGenerico(coluna, texto, filtro, id) {
 
     filtro[coluna] = String(texto).toLowerCase().replace('.', '')
 
@@ -1777,7 +1777,7 @@ async function verAprovacoes() {
             : tsh += `
             <th style="background-color: white; border-radius: 0px;">
                 <div style="display: flex; align-items: center; justify-content: center;">
-                    <input oninput="pesquisar_generico(${i}, this.value, filtrosPendencias, 'tbodyPendencias')">
+                    <input oninput="pesquisarGenerico(${i}, this.value, filtrosPendencias, 'tbodyPendencias')">
                     <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
                 </div>
             </th>

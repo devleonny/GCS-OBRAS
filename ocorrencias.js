@@ -176,7 +176,7 @@ async function usuarios() {
             <div style="${vertical};">
                 <div class="painelBotoes" style="align-items: center; justify-content: center;">
                     <div style="${horizontal}; background-color: white; border-radius: 5px; padding-left: 1vw; padding-right: 1vw;">
-                        <input oninput="pesquisar_generico('0', this.value, filtroUsuariosOcorrencias, 'bodyUsuarios')" placeholder="Pesquisar Usuário" style="width: 100%;">
+                        <input oninput="pesquisarGenerico('0', this.value, filtroUsuariosOcorrencias, 'bodyUsuarios')" placeholder="Pesquisar Usuário" style="width: 100%;">
                         <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
                     </div>
                 </div>
@@ -1267,7 +1267,7 @@ async function dashboard(dadosFiltrados) {
 
     const pesquisa = (campo, col) => `
         <div style="${horizontal}; padding-left: 1vw; padding-right: 1vw; margin: 5px; background-color: white; border-radius: 10px;">
-            <input oninput="pesquisar_generico('${col}', this.value, filtrosOcorrencias.chamados, 'bodyOcorrencias')" placeholder="Pesquisar ${campo}" style="width: 100%;">
+            <input oninput="pesquisarGenerico('${col}', this.value, filtrosOcorrencias.chamados, 'bodyOcorrencias')" placeholder="Pesquisar ${campo}" style="width: 100%;">
             <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
         </div>
     `

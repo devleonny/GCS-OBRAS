@@ -146,7 +146,7 @@ async function carregarPagamentos() {
             cabecalho2 += `
                 <th style="background-color: white; border-radius: 0px;">
                     <div style="display: flex; align-items: center; justify-content: left;">
-                        <input style="width: 100%; font-size: 0.9vw;" placeholder="..." oninput="pesquisar_generico(${i}, this.value, filtrosAtivosPagamentos, 'body')">
+                        <input style="width: 100%; font-size: 0.9vw;" placeholder="..." oninput="pesquisarGenerico(${i}, this.value, filtrosAtivosPagamentos, 'body')">
                         <img src="imagens/pesquisar2.png" style="width: 1vw;">
                     </div>
                 </th>
@@ -160,7 +160,7 @@ async function carregarPagamentos() {
 
         titulos += `
 
-            <div class="ambosLadosEtiqueta" onclick="pesquisar_generico(3, '${nomeStatus == 'TODOS' ? '' : nomeStatus}', filtrosAtivosPagamentos, 'body')">
+            <div class="ambosLadosEtiqueta" onclick="pesquisarGenerico(3, '${nomeStatus == 'TODOS' ? '' : nomeStatus}', filtrosAtivosPagamentos, 'body')">
                 
                 <div class="ladoTexto">
                     <div style="display: flex; flex-direction: column; align-items: end; justify-content: end;">
@@ -821,7 +821,7 @@ async function retomarPaginacao() {
 
     for (col in filtrosAtivosPagamentos) {
         ths[col].querySelector('input').value = filtrosAtivosPagamentos[col]
-        pesquisar_generico(col, filtrosAtivosPagamentos[col], filtrosAtivosPagamentos, 'body')
+        pesquisarGenerico(col, filtrosAtivosPagamentos[col], filtrosAtivosPagamentos, 'body')
     }
 }
 

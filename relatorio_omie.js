@@ -154,7 +154,7 @@ async function carregarTabela(app) {
                     thsPesquisa += `
                     <th style = "background-color: white;" >
                         <div style="display: flex; align-items: center; justify-content: center;">
-                            <input oninput="pesquisar_generico('${i}', this.value, filtroRelatorio['${app}'], 'bodyRelatorio_${app}'); calcularResumo('${app}')">
+                            <input oninput="pesquisarGenerico('${i}', this.value, filtroRelatorio['${app}'], 'bodyRelatorio_${app}'); calcularResumo('${app}')">
                             <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
                         </div>
                     </th>
@@ -309,7 +309,7 @@ function carregarFiltros(app) {
         .map(([st, valor]) => `
             <div class="blocoParcela">
 
-                <input ${termoST == String(st).toLowerCase() ? 'checked' : ''} style="cursor: pointer; width: 1.5vw; height: 1.5vw;" type="radio" onclick="pesquisar_generico(3, '${st}', filtroRelatorio['${app}'], 'bodyRelatorio_${app}'); calcularResumo('${app}')" name="inputStatus" style="cursor: pointer; width: 1.5vw; height: 1.5vw;">
+                <input ${termoST == String(st).toLowerCase() ? 'checked' : ''} style="cursor: pointer; width: 1.5vw; height: 1.5vw;" type="radio" onclick="pesquisarGenerico(3, '${st}', filtroRelatorio['${app}'], 'bodyRelatorio_${app}'); calcularResumo('${app}')" name="inputStatus" style="cursor: pointer; width: 1.5vw; height: 1.5vw;">
 
                 <div style="flex-direction: column;">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
@@ -330,7 +330,7 @@ function carregarFiltros(app) {
         .map(([cat, valor]) => `
             <div class="blocoParcela">
 
-                <input ${termoCAT == String(cat).toLowerCase() ? 'checked' : ''} style="cursor: pointer; width: 1.5vw; height: 1.5vw;" type="radio" name="inputCategoria" onclick="pesquisar_generico(0, '${cat}', filtroRelatorio['${app}'], 'bodyRelatorio_${app}'); calcularResumo('${app}')" style="width: 1.5vw; height: 1.5vw;">
+                <input ${termoCAT == String(cat).toLowerCase() ? 'checked' : ''} style="cursor: pointer; width: 1.5vw; height: 1.5vw;" type="radio" name="inputCategoria" onclick="pesquisarGenerico(0, '${cat}', filtroRelatorio['${app}'], 'bodyRelatorio_${app}'); calcularResumo('${app}')" style="width: 1.5vw; height: 1.5vw;">
 
                 <div style="flex-direction: column;">
                     <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">

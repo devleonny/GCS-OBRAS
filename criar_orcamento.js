@@ -377,7 +377,7 @@ function pesquisarProdutos(col, elemento) {
         filtrosPagina[pagina] = {}
     }
 
-    pesquisar_generico(col, elemento.value, filtrosPagina[pagina], `compos_${pagina}`)
+    pesquisarGenerico(col, elemento.value, filtrosPagina[pagina], `compos_${pagina}`)
 }
 
 async function recuperarComposicoes() {

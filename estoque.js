@@ -60,7 +60,7 @@ async function carregar_estoque() {
             ths += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%; font-size: 1.1vw;" style="text-align: center;" oninput="pesquisar_generico(${indice_correto}, this.value, filtrosAtivosEstoques, 'body')">
+                <input style="width: 100%; font-size: 1.1vw;" style="text-align: center;" oninput="pesquisarGenerico(${indice_correto}, this.value, filtrosAtivosEstoques, 'body')">
             </th>
             `
     })
@@ -1238,7 +1238,7 @@ async function retomar_paginacao(codigo, stq) {
         for (coluna in filtrosAtivosEstoques) {
             let texto = filtrosAtivosEstoques[coluna]
             ths[coluna - 1].querySelector('input').value = texto
-            pesquisar_generico(coluna, texto, filtrosAtivosEstoques, 'tabela_estoque')
+            pesquisarGenerico(coluna, texto, filtrosAtivosEstoques, 'tabela_estoque')
         }
     }
 
@@ -1387,7 +1387,7 @@ async function atualizar_dados_relatorio() {
             thsearch += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisar_generico(${i}, this.value, filtrosRelatorio, 'body2')">
+                <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisarGenerico(${i}, this.value, filtrosRelatorio, 'body2')">
             </th>
             `
         })

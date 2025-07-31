@@ -340,7 +340,7 @@ async function salvarPessoa(idPessoa) {
 function expiraEm(dataString) {
 
     let dias = '--'
-    let data = '--'
+
     if (dataString !== '--') {
 
         const [ano, mes, dia] = dataString.split('-')
@@ -352,7 +352,6 @@ function expiraEm(dataString) {
 
         const diferencaMs = dataInformada - hoje
         dias = Math.floor(diferencaMs / (1000 * 60 * 60 * 24))
-        data = `${dia}/${mes}/${ano}`
 
     } else {
         dias = dataString
@@ -367,7 +366,7 @@ function expiraEm(dataString) {
         icone = 'imagens/online.png'
     }
 
-    return { dias, icone, data }
+    return { dias, icone }
 }
 
 // carregarEsquemaTabela()
@@ -393,7 +392,7 @@ async function carregarEsquemaTabela() {
             colunas.thPesquisa += `
             <th style="background-color: white; padding: 0px;">
                 <div style="${horizontal}">
-                    <input placeholder="${inicialMaiuscula(op)}" oninput="pesquisar_generico('${col}', this.value, filtrosRH, 'bodyRH')">
+                    <input placeholder="${inicialMaiuscula(op)}" oninput="pesquisarGenerico('${col}', this.value, filtrosRH, 'bodyRH')">
                     <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
                 </div>
             </th>
@@ -402,6 +401,12 @@ async function carregarEsquemaTabela() {
         })
 
     let linhas = ''
+
+    const dt = (data) => {
+        if(!data) return '--'
+        const [ano, mes, dia] = data.split('-')
+        return `${dia}/${mes}/${ano}`
+    }
 
     // Pessoas nesse contexto foi mudado para cidade-estado;
     for (const [idPessoa, pessoa] of Object.entries(pessoas)) {
@@ -423,12 +428,8 @@ async function carregarEsquemaTabela() {
                 <tr>
                     <td>${pasta.nomePasta}</td>
                     <td>${pessoa.nome}</td>
-                    <td>
-                        <input id="emissao_${idAnexo}" onchange="salvarDadosDocumento('emissao', '${idPessoa}', '${idPasta}', '${idAnexo}'); calcularVencimento(this)" type="date" value="${anexo?.emissao || ''}">
-                    </td>
-                    <td>
-                        <input id="validade_${idAnexo}" onchange="salvarDadosDocumento('validade', '${idPessoa}', '${idPasta}', '${idAnexo}')" type="date" value="${validade}">
-                    </td>
+                    <td>${dt(anexo.emissao)}</td>
+                    <td>${dt(anexo.validade)}</td>
                     <td>
                         <div style="${horizontal}; justify-content: left; gap: 5px;">
                             <img src="${tempoExpiracao.icone}" style="width: 1.5vw;">
@@ -436,7 +437,6 @@ async function carregarEsquemaTabela() {
                         </div>
                     </td>
                     <td>
-                        <input value="${anexo.doc}" style="display: none;">
                         <div style="${horizontal}; gap: 5px;">
                             <div class="capsula">
                                 <div class="esquerda">
@@ -486,8 +486,24 @@ async function carregarEsquemaTabela() {
 
 }
 
-function calcularVencimento() {
+function calcularVencimento(input) {
+    const tr = input.closest('tr')
+    const data = new Date(input.value)
 
+    const tds = tr.querySelectorAll('td')
+    const doc = tds[5].querySelector('input')
+    const tipo = doc.value.trim().toUpperCase()
+
+    console.log(tipo);
+
+    let periodo = 365
+    if (tipo === 'NR 10' || tipo === 'NR 35') periodo = 730
+
+    const dataVencimento = new Date(data)
+    dataVencimento.setDate(dataVencimento.getDate() + periodo)
+
+    const vencimento = tds[3].querySelector('input')
+    vencimento.value = dataVencimento.toISOString().slice(0, 10) // yyyy-mm-dd
 }
 
 function marcarTodos(input) {

@@ -12,7 +12,7 @@ async function modalLPUParceiro(chave) {
         thSearch +=
             `<th style="background-color: white">
                 <div style="display: flex; justify-content:space-between; align-items: center">
-                    <input oninput="pesquisar_generico(${i}, this.value, filtrosTabelaParceiros, 'bodyTabela')" style="text-align: left; width: 100%">
+                    <input oninput="pesquisarGenerico(${i}, this.value, filtrosTabelaParceiros, 'bodyTabela')" style="text-align: left; width: 100%">
                     <img src="imagens/pesquisar2.png" style="width: 1vw;">
                 </div>
             </th>`;

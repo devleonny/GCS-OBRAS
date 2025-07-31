@@ -84,7 +84,7 @@ async function carregarTabela() {
             tsh += (coluna == 'Editar' || coluna == 'Anexos') ? '<th style="background-color: white;"></th>' : `
             <th style="background-color: white;">
                 <div style="display: flex; align-items: center; justify-content: center;">
-                    <input oninput="pesquisar_generico(${i}, this.value, filtroVeiculos, 'bodyVeiculos')" style="border: none;">
+                    <input oninput="pesquisarGenerico(${i}, this.value, filtroVeiculos, 'bodyVeiculos')" style="border: none;">
                     <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
                 </div>
             </th>

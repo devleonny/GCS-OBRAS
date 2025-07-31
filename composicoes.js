@@ -241,7 +241,7 @@ async function retomarPaginacao() {
 
         for (col in filtrosAtivos) {
             ths[col].querySelector('input').value = filtrosAtivos[col]
-            pesquisar_generico(col, filtrosAtivos[col], filtrosAtivos, 'linhasComposicoes')
+            pesquisarGenerico(col, filtrosAtivos[col], filtrosAtivos, 'linhasComposicoes')
         }
     } catch {
         popup(`Não foi possível retomar a paginação`)
@@ -269,7 +269,7 @@ function atribuirFuncoesCabecalho() {
 
             } else { // Segundo, com Inputs;
                 th.querySelector('input').addEventListener('input', function () {
-                    pesquisar_generico(j, this.value, filtrosAtivos, 'linhasComposicoes')
+                    pesquisarGenerico(j, this.value, filtrosAtivos, 'linhasComposicoes')
                 })
 
             }
@@ -443,7 +443,7 @@ async function abrir_agrupamentos(codigo) {
         ths += `
             <th style="background-color: white; position: relative; border-radius: 0px;">
                 <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%;" placeholder="${campo}" oninput="pesquisar_generico(${i}, this.value, filtroAgrupamentos, 'linhas_agrupamentos')">
+                <input style="width: 100%;" placeholder="${campo}" oninput="pesquisarGenerico(${i}, this.value, filtroAgrupamentos, 'linhas_agrupamentos')">
             </th>
         `
     })
