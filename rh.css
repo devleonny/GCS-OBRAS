@@ -116,10 +116,6 @@ input {
     transition: transform 0.2s ease;
 }
 
-.pasta:hover {
-    transform: scale(1.10);
-}
-
 .menuSuperior {
     cursor: pointer;
     color: white;

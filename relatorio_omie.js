@@ -231,7 +231,6 @@ async function dataPesquisa(dt, campo) {
 
 }
 
-
 function calcularResumo(app) {
 
     let resumoValores = {
@@ -389,7 +388,6 @@ function mostrarTabela(app) {
 }
 
 async function baixarRelatorio() {
-
     return new Promise((resolve, reject) => {
         fetch("https://leonny.dev.br/relatorio", {
             method: "GET",
