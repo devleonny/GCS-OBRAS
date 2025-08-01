@@ -185,7 +185,11 @@ async function calcularVencimento(idPessoa, idPasta, idAnexo) {
     const dataVencimento = new Date(data)
     dataVencimento.setDate(dataVencimento.getDate() + periodo)
 
-    validade.value = dataVencimento.toISOString().slice(0, 10) // yyyy-mm-dd
+    try {
+        validade.value = dataVencimento.toISOString().slice(0, 10) // yyyy-mm-dd
+    } catch {
+        return
+    }
 
     await salvarDadosDocumento('emissao', idPessoa, idPasta, idAnexo)
     await salvarDadosDocumento('validade', idPessoa, idPasta, idAnexo)
@@ -252,6 +256,8 @@ async function salvarDadosDocumento(campo, idPessoa, idPasta, idAnexo) {
 
     await enviar(`pessoas/${idPessoa}/pastas/${idPasta}/anexos/${idAnexo}/${campo}`, valor)
     await inserirDados({ [idPessoa]: pessoa }, 'pessoas')
+
+    carregarLinha({ idPessoa, idPasta, idAnexo, pessoa })
 
     removerOverlay()
 
@@ -460,12 +466,6 @@ async function carregarEsquemaTabela() {
 
     let linhas = ''
 
-    const dt = (data) => {
-        if (!data) return '--'
-        const [ano, mes, dia] = data.split('-')
-        return `${dia}/${mes}/${ano}`
-    }
-
     // Pessoas nesse contexto foi mudado para cidade-estado;
     for (const [idPessoa, pessoa] of Object.entries(pessoas)) {
 
@@ -476,48 +476,7 @@ async function carregarEsquemaTabela() {
             const anexos = pasta?.anexos || {}
 
             for (const [idAnexo, anexo] of Object.entries(anexos)) {
-
-                const validade = anexo?.validade || '--'
-                const tempoExpiracao = expiraEm(validade)
-                const opcoesDocs = ['', 'ASO', 'NR 06 - EPI', 'NR 10', 'NR 35', 'PTA']
-                    .map(op => `<option ${anexo?.doc == op ? 'selected' : ''}>${op}</option>`).join('')
-
-                linhas += `
-                <tr>
-                    <td>
-                        <div style="${horizontal}; justify-content: start; gap: 5px;">
-                            <img src="imagens/pasta.png" style="width: 1.5vw; cursor: pointer;" onclick="pastaHTML('${idPessoa}', '${idPasta}', '${idAnexo}', true)">
-                            <label style="text-align: left;">${pasta.nomePasta}</label>
-                        </div>
-                    </td>
-                    <td>${pessoa.nome}</td>
-                    <td>
-                        ${anexo?.clinica || '--'}<br>
-                        <strong>${anexo?.local || ''}</strong>
-                    </td>
-                    <td>${dt(anexo.validade)}</td>
-                    <td>
-                        <input style="display: none;" value="${tempoExpiracao.status}">
-                        <div style="${horizontal}; justify-content: left; gap: 5px;">
-                            <img src="${tempoExpiracao.icone}" style="width: 1.5vw;">
-                            <label>${tempoExpiracao.dias}</label>
-                        </div>
-                    </td>
-                    <td>
-                        <div style="${horizontal}; gap: 5px;">
-                            <div class="capsula">
-                                <div class="esquerda">
-                                    <select id="doc_${idAnexo}" onchange="salvarDadosDocumento('doc', '${idPessoa}', '${idPasta}', '${idAnexo}')">${opcoesDocs}</select>
-                                </div>
-                                <div class="direita" title="${anexo.nome}" onclick="abrirArquivo('${anexo.link}')">
-                                    Ver
-                                </div>
-                            </div>
-                            <input data-url="${anexo.link}" data-nome="${anexo.nome}" name="docs" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
-                        </div>
-                    </td>
-                </tr>
-                `
+                linhas += carregarLinha({ idPessoa, idPasta, idAnexo, pessoa })
             }
         }
     }
@@ -551,6 +510,64 @@ async function carregarEsquemaTabela() {
     painelCentral.style.display = 'flex'
     painelCentral.innerHTML = acumulado
 
+}
+
+function carregarLinha({ idPessoa, idPasta, idAnexo, pessoa }) {
+
+    const pasta = pessoa.pastas[idPasta]
+    const anexo = pasta.anexos[idAnexo]
+    const validade = anexo?.validade || '--'
+    const tempoExpiracao = expiraEm(validade)
+    const opcoesDocs = ['', 'ASO', 'NR 06 - EPI', 'NR 10', 'NR 35', 'PTA']
+        .map(op => `<option ${anexo?.doc == op ? 'selected' : ''}>${op}</option>`).join('')
+
+    const dt = (data) => {
+        if (!data) return '--'
+        const [ano, mes, dia] = data.split('-')
+        return `${dia}/${mes}/${ano}`
+    }
+
+    const linha = `
+        <tr id="linha_${idAnexo}">
+            <td>
+                <div style="${horizontal}; justify-content: start; gap: 5px;">
+                    <img src="imagens/pasta.png" style="width: 1.5vw; cursor: pointer;" onclick="pastaHTML('${idPessoa}', '${idPasta}', '${idAnexo}', true)">
+                    <label style="text-align: left;">${pasta.nomePasta}</label>
+                </div>
+            </td>
+            <td>${pessoa.nome}</td>
+            <td>
+                ${anexo?.clinica || '--'}<br>
+                <strong>${anexo?.local || ''}</strong>
+            </td>
+            <td>${dt(anexo.validade)}</td>
+            <td>
+                <input style="display: none;" value="${tempoExpiracao.status}">
+                <div style="${horizontal}; justify-content: left; gap: 5px;">
+                    <img src="${tempoExpiracao.icone}" style="width: 1.5vw;">
+                    <label>${tempoExpiracao.dias}</label>
+                </div>
+            </td>
+            <td>
+                <div style="${horizontal}; gap: 5px;">
+                    <div class="capsula">
+                        <div class="esquerda">
+                            <select id="doc_${idAnexo}" onchange="salvarDadosDocumento('doc', '${idPessoa}', '${idPasta}', '${idAnexo}')">${opcoesDocs}</select>
+                        </div>
+                        <div class="direita" title="${anexo.nome}" onclick="abrirArquivo('${anexo.link}')">
+                            Ver
+                        </div>
+                    </div>
+                    <input data-url="${anexo.link}" data-nome="${anexo.nome}" name="docs" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
+                </div>
+            </td>
+        </tr>`
+
+    const linhaAnexo = document.getElementById(`linha_${idAnexo}`)
+
+    if (linhaAnexo) return linhaAnexo.innerHTML = linha
+
+    return linha
 }
 
 function marcarTodos(input) {
