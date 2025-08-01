@@ -536,7 +536,7 @@ function carregarLinha({ idPessoa, idPasta, idAnexo, pessoa }) {
                 </div>
             </td>
             <td>${pessoa.nome}</td>
-            <td>
+            <td style="text-align: left; font-size: 0.7vw;">
                 ${anexo?.clinica || '--'}<br>
                 <strong>${anexo?.local || ''}</strong>
             </td>
