@@ -72,8 +72,8 @@ async function painelAdicionarPedido() {
                     </select>
                     `)}
 
-                ${modelo('',
-        `<div style="display: flex; gap: 10px; align-items: center; justify-content: start;">
+                ${modelo('',`
+                <div style="display: flex; gap: 10px; align-items: center; justify-content: start;">
                     <input type="checkbox" onchange="ocultar_pedido(this)" style="cursor: pointer; width: 30px; height: 30px;">
                     <label>Sem Pedido</label>
                 </div>`)}
@@ -101,27 +101,28 @@ async function painelAdicionarPedido() {
 async function painelAdicionarNotas() {
 
     let acumulado = `
-        <div id="painelNotas" style="background-color: #d2d2d2; display: flex; justify-content: center; flex-direction: column; align-items: start; padding: 2vw;">
+        <div id="painelNotas" style="${vertical}; background-color: #d2d2d2; padding: 2vw;">
 
-            ${modelo('Digite o número da NF',
-        `
-                <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-                    <input class="pedido">
+            <div style="width: 100%; ${horizontal}; gap: 5px;">
+                <input class="pedido" placeholder="Digite o número da NF">
 
-                    <select class="pedido">
-                        <option>Venda/Remessa</option>
-                        <option>Serviço</option>
-                    </select>
+                <select class="pedido">
+                    <option>Venda/Remessa</option>
+                    <option>Serviço</option>
+                </select>
 
-                    <select class="pedido">
-                        <option>AC</option>
-                        <option>HNW</option>
-                        <option>HNK</option>
-                    </select>
-                    <button onclick="buscarNFOmie(this)" style="background-color: #097fe6;">Buscar dados</button>
-                </div>
-                `)}
+                <select class="pedido">
+                    <option>AC</option>
+                    <option>HNW</option>
+                    <option>HNK</option>
+                </select>
+                <button onclick="buscarNFOmie(this)" style="background-color: #097fe6;">Buscar dados</button>
+                
+                <span style="width: 2vw;">ou</span>
 
+                <button onclick="htmlFormularioAvulso()" style="background-color: #B12425;">Inserir Manualmente</button>
+            </div>
+                
             <div id="detalhesNF" style="width: 100%;"></div>
 
         </div>
@@ -129,6 +130,32 @@ async function painelAdicionarNotas() {
 
     popup(acumulado, 'Vincular Nota Fiscal', true);
 
+}
+
+function htmlFormularioAvulso() {
+
+    const painelNotas = document.getElementById('painelNotas')
+
+    painelNotas.innerHTML = `
+        <hr style="width: 100%;">
+        <div style="${vertical}; gap: 5px;">
+            ${modelo('Número da Nota', '<input id="nf" class="inputParcelas">')}
+            ${modelo('Tipo', `<select id="tipo" class="inputParcelas">${['Venda', 'Serviço', 'Remessa'].map(op => `<option>${op}</option>`).join('')}</select>`)}
+            ${modelo('Valor', 'R$ <input type="number" id="valor" placeholder="0,00" class="inputParcelas">')}
+
+            <hr style="width: 100%;">
+            <label style="${horizontal}; gap: 5px;">
+                <strong>Parcelas</strong> 
+                <img src="imagens/baixar.png" style="width: 1.5vw; cursor: pointer;" onclick="maisParcela()">
+            </label>
+            
+            <div class="blocoParcelas"></div>
+
+            <hr style="width: 100%;">
+            ${botao('Salvar', `salvarNotaAvulsa()`, 'green')}
+        </div>
+    `
+    maisParcela()
 }
 
 function maisParcela() {
@@ -178,6 +205,7 @@ async function salvarNotaAvulsa() {
 
     orcamento.status.historico[idStatus] = nota
 
+    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${idStatus}`, nota)
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
     await abrirEsquema(id_orcam)
 
@@ -199,41 +227,15 @@ async function buscarNFOmie(elemento) {
     let resultado = await verificarNF(numero, tipo, app)
 
     if (resultado.faultstring) {
-        const formAvulso = `
-            <hr style="width: 100%;">
-            <br>
-            <div style="${vertical}; gap: 5px;">
-                <br>
-                ${modelo('Número da Nota', '<input id="nf" class="inputParcelas">')}
-                ${modelo('Tipo', `<select id="tipo" class="inputParcelas">${['Venda', 'Serviço', 'Remessa'].map(op => `<option>${op}</option>`).join('')}</select>`)}
-                ${modelo('Valor', 'R$ <input type="number" id="valor" placeholder="0,00" class="inputParcelas">')}
-
-                <hr style="width: 100%;">
-                <label style="${horizontal}; gap: 5px;">
-                    <strong>Parcelas</strong> 
-                    <img src="imagens/baixar.png" style="width: 1.5vw; cursor: pointer;" onclick="maisParcela()">
-                </label>
-                
-                <div class="blocoParcelas"></div>
-
-                <hr style="width: 100%;">
-                ${botao('Salvar', `salvarNotaAvulsa()`, 'green')}
-            </div>
-        `
 
         dadosNota = {}
         removerOverlay()
 
-        detalhesNF.innerHTML = `
+        return detalhesNF.innerHTML = `
             <div style="${vertical}; gap: 10;">
                 <label>${resultado.faultstring}</label>
-                ${formAvulso}
             </div>
         `
-        maisParcela()
-
-        return
-
     }
 
     dadosNota = resultado
