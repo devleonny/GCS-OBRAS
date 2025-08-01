@@ -146,7 +146,7 @@ async function pastaHTML(idPessoa, idPasta, idAnexo, mostrarPopup) {
     const pasta = `
         <div class="pasta">
             <div class="aba">
-                <select id="doc_${idAnexo}" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}'); ${funcao('doc')}">${opcoesDocs}</select>
+                <select id="doc_${idAnexo}" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}')">${opcoesDocs}</select>
             </div>
             <div class="blocoRH">
                 ${modeloRH('Realizado', `<input id="emissao_${idAnexo}" type="date" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}');" value="${anexo?.emissao || ''}">`)}
@@ -191,6 +191,7 @@ async function calcularVencimento(idPessoa, idPasta, idAnexo) {
         return
     }
 
+    await salvarDadosDocumento('doc', idPessoa, idPasta, idAnexo)
     await salvarDadosDocumento('emissao', idPessoa, idPasta, idAnexo)
     await salvarDadosDocumento('validade', idPessoa, idPasta, idAnexo)
 
