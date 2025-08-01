@@ -1526,8 +1526,6 @@ function elementosEspecificos(chave, historico) {
             `
     } else if (historico.status == 'FATURADO') {
 
-        console.log(historico);
-
         let divPacelas = ''
 
         let parcelas = (historico?.parcelas || [])
