@@ -223,12 +223,6 @@ async function buscarNFOmie(elemento) {
 
         dadosNota = {}
         removerOverlay()
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        return detalhesNF.innerHTML = `${resultado.faultstring}`
-=======
-=======
->>>>>>> Stashed changes
 
         detalhesNF.innerHTML = `
             <div style="${vertical}; gap: 10;">
@@ -239,10 +233,7 @@ async function buscarNFOmie(elemento) {
         maisParcela()
 
         return
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
+
     }
 
     dadosNota = resultado
