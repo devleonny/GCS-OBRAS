@@ -146,7 +146,7 @@ async function pastaHTML(idPessoa, idPasta, idAnexo, mostrarPopup) {
     const pasta = `
         <div class="pasta">
             <div class="aba">
-                <select id="doc_${idAnexo}" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}')">${opcoesDocs}</select>
+                <select id="doc_${idAnexo}" onchange="${funcao('doc')}; calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}')">${opcoesDocs}</select>
             </div>
             <div class="blocoRH">
                 ${modeloRH('Realizado', `<input id="emissao_${idAnexo}" type="date" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}');" value="${anexo?.emissao || ''}">`)}
@@ -179,19 +179,21 @@ async function calcularVencimento(idPessoa, idPasta, idAnexo) {
     const tipo = document.getElementById(`doc_${idAnexo}`).value
     const validade = document.getElementById(`validade_${idAnexo}`)
 
+    const [ano] = emissao.value.split('-')
+    if (Number(ano) < 2000) return
+
     let periodo = 365
     if (tipo === 'NR 10' || tipo === 'NR 35') periodo = 730
 
     const dataVencimento = new Date(data)
     dataVencimento.setDate(dataVencimento.getDate() + periodo)
-
+    
     try {
         validade.value = dataVencimento.toISOString().slice(0, 10) // yyyy-mm-dd
     } catch {
         return
     }
 
-    await salvarDadosDocumento('doc', idPessoa, idPasta, idAnexo)
     await salvarDadosDocumento('emissao', idPessoa, idPasta, idAnexo)
     await salvarDadosDocumento('validade', idPessoa, idPasta, idAnexo)
 
