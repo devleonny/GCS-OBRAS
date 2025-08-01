@@ -146,7 +146,7 @@ async function pastaHTML(idPessoa, idPasta, idAnexo, mostrarPopup) {
     const pasta = `
         <div class="pasta">
             <div class="aba">
-                <select id="doc_${idAnexo}" onchange="${funcao('doc')}; calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}')">${opcoesDocs}</select>
+                <select id="doc_${idAnexo}" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}', 'doc')">${opcoesDocs}</select>
             </div>
             <div class="blocoRH">
                 ${modeloRH('Realizado', `<input id="emissao_${idAnexo}" type="date" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}');" value="${anexo?.emissao || ''}">`)}
@@ -172,7 +172,7 @@ async function pastaHTML(idPessoa, idPasta, idAnexo, mostrarPopup) {
     popup(acumulado, pessoa.pastas[idPasta].nomePasta, true)
 }
 
-async function calcularVencimento(idPessoa, idPasta, idAnexo) {
+async function calcularVencimento(idPessoa, idPasta, idAnexo, campo) {
 
     const emissao = document.getElementById(`emissao_${idAnexo}`)
     const data = new Date(emissao.value)
@@ -187,6 +187,8 @@ async function calcularVencimento(idPessoa, idPasta, idAnexo) {
 
     const dataVencimento = new Date(data)
     dataVencimento.setDate(dataVencimento.getDate() + periodo)
+
+    if(campo == 'doc') await salvarDadosDocumento('doc', idPessoa, idPasta, idAnexo)
     
     try {
         validade.value = dataVencimento.toISOString().slice(0, 10) // yyyy-mm-dd
@@ -550,6 +552,7 @@ function carregarLinha({ idPessoa, idPasta, idAnexo, pessoa }) {
                 </div>
             </td>
             <td>
+                <input value="${anexo?.doc || '--'}" style="display: none;">
                 <div style="${horizontal}; justify-content: start; gap: 5px;">
                     <input data-url="${anexo.link}" data-nome="${anexo.nome}" name="docs" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
                     <div class="capsula">
