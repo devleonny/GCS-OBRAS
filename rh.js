@@ -518,8 +518,6 @@ function carregarLinha({ idPessoa, idPasta, idAnexo, pessoa }) {
     const anexo = pasta.anexos[idAnexo]
     const validade = anexo?.validade || '--'
     const tempoExpiracao = expiraEm(validade)
-    const opcoesDocs = ['', 'ASO', 'NR 06 - EPI', 'NR 10', 'NR 35', 'PTA']
-        .map(op => `<option ${anexo?.doc == op ? 'selected' : ''}>${op}</option>`).join('')
 
     const dt = (data) => {
         if (!data) return '--'
@@ -549,16 +547,16 @@ function carregarLinha({ idPessoa, idPasta, idAnexo, pessoa }) {
                 </div>
             </td>
             <td>
-                <div style="${horizontal}; gap: 5px;">
+                <div style="${horizontal}; justify-content: start; gap: 5px;">
+                    <input data-url="${anexo.link}" data-nome="${anexo.nome}" name="docs" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
                     <div class="capsula">
                         <div class="esquerda">
-                            <select id="doc_${idAnexo}" onchange="salvarDadosDocumento('doc', '${idPessoa}', '${idPasta}', '${idAnexo}')">${opcoesDocs}</select>
+                            ${anexo?.doc || '--'}
                         </div>
                         <div class="direita" title="${anexo.nome}" onclick="abrirArquivo('${anexo.link}')">
                             Ver
                         </div>
                     </div>
-                    <input data-url="${anexo.link}" data-nome="${anexo.nome}" name="docs" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
                 </div>
             </td>
         </tr>`

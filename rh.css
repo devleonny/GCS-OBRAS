@@ -165,8 +165,11 @@ input {
 }
 
 .esquerda {
+    text-align: center;
     padding-top: 5px;
     padding-bottom: 5px;
+    padding-left: 1vw;
+    padding-right: 1vw;
     background-color: #d2d2d2;
     border-top-left-radius: 15px;
     border-bottom-left-radius: 15px;
