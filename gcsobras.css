@@ -1762,6 +1762,26 @@ input[type=range]::-moz-range-thumb {
     cursor: pointer;
 }
 
+.inputParcelas {
+    padding: 5px;
+    border-radius: 3px;
+}
+
+.blocoParcelas {
+    padding: 5px;
+    height: max-content;
+    max-height: 15vh;
+    overflow-y: auto;
+    display: flex;
+    justify-content: start;
+    align-items: start;
+    flex-direction: column;
+    gap: 3px;
+    background-color: #aeaeae;
+    border-radius: 3px;
+    border: solid 1px #929292;
+}
+
 .detalhesValores {
     padding: 2px;
     gap: 5px;

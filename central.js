@@ -495,7 +495,7 @@ async function alterar_usuario(campo, usuario, select) {
         }
     }
 
-    if(document.title == 'Ocorrências') await usuarios()
+    if (document.title == 'Ocorrências') await usuarios()
 }
 
 function verifTimestampNome(nome) {
@@ -1920,7 +1920,7 @@ async function verPedidoAprovacao(idOrcamento) { //29
             <td>${labelTotal}</td>
             <td>
                 <div style="${vertical}; gap: 2px;">
-                    ${composicao?.tipo_desconto == 'Venda Direta' ? '<label>Venda Direta</label>': ''}
+                    ${composicao?.tipo_desconto == 'Venda Direta' ? '<label>Venda Direta</label>' : ''}
                     <label class="labelAprovacao" style="background-color: ${cor}">${diferenca}</label>
                 </div>
             </td>

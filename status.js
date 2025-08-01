@@ -131,6 +131,60 @@ async function painelAdicionarNotas() {
 
 }
 
+function maisParcela() {
+
+    const htmlParcela = `
+        <div name="parcela" style="${horizontal}; gap: 5px;">
+            <label>R$</label>
+            <input type="number" placeholder="0,00" class="inputParcelas">
+            <input type="date" class="inputParcelas">
+            <img src="imagens/cancel.png" style="width: 1.5vw; cursor: pointer;" onclick="this.parentElement.remove()">
+        </div>
+    `
+
+    document.querySelector('.blocoParcelas').insertAdjacentHTML('beforeend', htmlParcela)
+}
+
+async function salvarNotaAvulsa() {
+
+    overlayAguarde()
+
+    const valor = (id) => {
+        return document.getElementById(id).value
+    }
+
+    let nota = {
+        status: 'FATURADO',
+        executor: acesso.usuario,
+        data: new Date().toLocaleDateString('pt-BR'),
+        nf: valor('nf'),
+        tipo: valor('tipo'),
+        valor: Number(valor('valor')),
+        parcelas: []
+    }
+
+    const parcelas = document.querySelectorAll('[name="parcela"]')
+
+    parcelas.forEach((div, i) => {
+        const inputs = div.querySelectorAll('input')
+        nota.parcelas.push({ nParcela: (i + 1), nValor: Number(inputs[0].value), dDtVenc: new Date(inputs[1].value).toLocaleDateString('pt-BR') })
+    })
+
+    const idStatus = ID5digitos()
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+
+    if (!orcamento.status) orcamento.status = {}
+    if (!orcamento.status.historico) orcamento.status.historico = {}
+
+    orcamento.status.historico[idStatus] = nota
+
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    await abrirEsquema(id_orcam)
+
+    removerOverlay()
+
+}
+
 async function buscarNFOmie(elemento) {
 
     overlayAguarde()
@@ -145,9 +199,44 @@ async function buscarNFOmie(elemento) {
     let resultado = await verificarNF(numero, tipo, app)
 
     if (resultado.faultstring) {
+        const formAvulso = `
+            <hr style="width: 100%;">
+            <br>
+            <div style="${vertical}; gap: 5px;">
+                <br>
+                ${modelo('Número da Nota', '<input id="nf" class="inputParcelas">')}
+                ${modelo('Tipo', `<select id="tipo" class="inputParcelas">${['Venda', 'Serviço', 'Remessa'].map(op => `<option>${op}</option>`).join('')}</select>`)}
+                ${modelo('Valor', 'R$ <input type="number" id="valor" placeholder="0,00" class="inputParcelas">')}
+
+                <hr style="width: 100%;">
+                <label style="${horizontal}; gap: 5px;">
+                    <strong>Parcelas</strong> 
+                    <img src="imagens/baixar.png" style="width: 1.5vw; cursor: pointer;" onclick="maisParcela()">
+                </label>
+                
+                <div class="blocoParcelas"></div>
+
+                <hr style="width: 100%;">
+                ${botao('Salvar', `salvarNotaAvulsa()`, 'green')}
+            </div>
+        `
+
         dadosNota = {}
         removerOverlay()
+<<<<<<< Updated upstream
         return detalhesNF.innerHTML = `${resultado.faultstring}`
+=======
+
+        detalhesNF.innerHTML = `
+            <div style="${vertical}; gap: 10;">
+                <label>${resultado.faultstring}</label>
+                ${formAvulso}
+            </div>
+        `
+        maisParcela()
+
+        return
+>>>>>>> Stashed changes
     }
 
     dadosNota = resultado
@@ -1439,10 +1528,13 @@ function elementosEspecificos(chave, historico) {
             </div>
             `
     } else if (historico.status == 'FATURADO') {
+
+        console.log(historico);
+
         let divPacelas = ''
 
         let parcelas = (historico?.parcelas || [])
-            .map(parcela => `Parcela ${parcela.nParcela} <br> ${labelDestaque(parcela.dDtVenc, dinheiro(parcela.nValorTitulo))}`)
+            .map(parcela => `Parcela ${parcela.nParcela} <br> ${labelDestaque(parcela.dDtVenc, dinheiro(parcela.nValor))}`)
             .join('')
 
         if (parcelas !== '') divPacelas = `
@@ -1802,29 +1894,30 @@ async function mostrarHistoricoStatus() {
     }
 
     const html = `
-    <div style="width: 600px; max-width: 90vw; max-height: 70vh; overflow: auto;">
-        
-        <table class="tabela">
-            <thead>
-                <tr style="background-color: #d2d2d2;">
-                    <th style="padding: 10px; text-align: left;">Data</th>
-                    <th style="padding: 10px; text-align: left;">Status Anterior</th>
-                    <th style="padding: 10px; text-align: left;">Novo Status</th>
-                    <th style="padding: 10px; text-align: left;">Alterado por</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${orcamento.status.historicoStatus.map((registro, index) => `
-                    <tr style="border-bottom: 1px solid #eee; ${index % 2 === 0 ? 'background-color: white;' : ''}">
-                        <td style="padding: 10px;">${registro.data}</td>
-                        <td style="padding: 10px;">${registro.de}</td>
-                        <td style="padding: 10px;">${registro.para}</td>
-                        <td style="padding: 10px;">${registro.usuario}</td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    </div>
+        <div style="${horizontal}; padding: 2vw;">
+            <div style="max-height: 70vh; overflow: auto;">
+                <table class="tabela">
+                    <thead>
+                        <tr style="background-color: #d2d2d2;">
+                            <th style="padding: 10px; text-align: left;">Data</th>
+                            <th style="padding: 10px; text-align: left;">Status Anterior</th>
+                            <th style="padding: 10px; text-align: left;">Novo Status</th>
+                            <th style="padding: 10px; text-align: left;">Alterado por</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${orcamento.status.historicoStatus.map((registro, index) => `
+                            <tr style="border-bottom: 1px solid #eee; ${index % 2 === 0 ? 'background-color: white;' : ''}">
+                                <td style="padding: 10px;">${registro.data}</td>
+                                <td style="padding: 10px;">${registro.de}</td>
+                                <td style="padding: 10px;">${registro.para}</td>
+                                <td style="padding: 10px;">${registro.usuario}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     `;
 
     popup(html, 'Histórico de Alterações de Status', true);
