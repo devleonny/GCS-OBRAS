@@ -126,11 +126,48 @@ async function abrirPastas(idPessoa, idPasta) {
         </div>
     `
 
-    let stringAnexos = ''
-    for (const idAnexo of Object.keys(anexos)) stringAnexos += await pastaHTML(idPessoa, idPasta, idAnexo)
+    let arquivos = { 'Não classificados': '' }
 
+    for (const [idAnexo, anexo] of Object.entries(anexos)) {
+
+        if (!anexo.doc) return arquivos['Não classificados'] += await pastaHTML(idPessoa, idPasta, idAnexo)
+
+        if (!arquivos[anexo.doc]) arquivos[anexo.doc] = ''
+
+        arquivos[anexo.doc] += `
+            <div style="${horizontal}; gap: 5px;">
+                <img src="imagens/anexo2.png" style="width: 1.5vw;">
+                <span style="color: white;">${anexo.validade}</span>
+            </div>
+        `
+    }
+
+    let esquemaHTML = ''
+
+    for (const [nomePasta, arquivo] of Object.entries(arquivos)) {
+        esquemaHTML += `
+            <div style="${vertical};">
+                <div style="${horizontal}; gap: 5px;">
+                    <img src="imagens/pasta.png" style="width: 2vw;">
+                    <span style="color: white;">${nomePasta}</label>
+                </div>
+                <div style="${vertical}; gap: 3px; margin-left: 1vw;">
+                    ${arquivo}
+                </div>
+            </div>
+        `
+    }
+
+    /*
+    for (const idAnexo of Object.keys(anexos)) stringAnexos += await pastaHTML(idPessoa, idPasta, idAnexo)
     painelCentral.style.display = 'grid'
-    painelCentral.innerHTML = stringAnexos
+    */
+
+    painelCentral.innerHTML = `
+        <div style="${vertical}; padding: 2vw;">
+            ${esquemaHTML}
+        </div>
+    `
 
 }
 
@@ -188,8 +225,8 @@ async function calcularVencimento(idPessoa, idPasta, idAnexo, campo) {
     const dataVencimento = new Date(data)
     dataVencimento.setDate(dataVencimento.getDate() + periodo)
 
-    if(campo == 'doc') await salvarDadosDocumento('doc', idPessoa, idPasta, idAnexo)
-    
+    if (campo == 'doc') await salvarDadosDocumento('doc', idPessoa, idPasta, idAnexo)
+
     try {
         validade.value = dataVencimento.toISOString().slice(0, 10) // yyyy-mm-dd
     } catch {

@@ -1688,7 +1688,7 @@ async function abrirEsquema(id) {
                 <img src="imagens/anexo2.png" style="width: 2vw;">
                 <label style="font-size: 0.8vw; color: white;"> Anexar levantamento
                     <input type="file" id="adicionar_levantamento" style="display: none;"
-                        onchange="salvar_levantamento('${id}')">
+                        onchange="salvar_levantamento('${id}')" multiple>
                 </label>
             </div>
 

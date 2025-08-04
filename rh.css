@@ -4,6 +4,10 @@ input {
     padding: 5px;
 }
 
+body {
+    overflow: hidden;
+}
+
 .painelCentral {
     background-image: url('imagens/BG.png');
     background-size: 30vw;
