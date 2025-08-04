@@ -9,6 +9,56 @@ let opcoesStatus = [
 
 carregarPagamentos()
 
+async function recuperarPagamentos() {
+
+    overlayAguarde()
+
+    await lista_setores()
+    await sincronizarDados('dados_categorias', true)
+    await sincronizarDados('lista_pagamentos', true)
+    await sincronizarDados('dados_clientes', true)
+    await sincronizarDados('dados_orcamentos', true)
+
+    // Atualizar os do clone;
+    ativarCloneGCS(true)
+    await sincronizarDados('dados_orcamentos', true)
+    ativarCloneGCS(false)
+
+    await criarBaseCC()
+
+    await retomarPaginacao()
+
+    removerOverlay()
+
+}
+
+async function criarBaseCC() {
+
+    let dados_CC = {}
+    const dados_orcamentos = await recuperarDados('dados_orcamentos', true)
+    const dados_clientes = await recuperarDados('dados_clientes')
+    const departamentosFixos = JSON.parse(localStorage.getItem('departamentos_fixos'))
+
+    for (const dep of departamentosFixos) dados_CC[dep] = { nome: dep, analista: '--', contrato: '--', estado: '--', cnpj: '--', valor: '--'}
+
+    for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
+
+        const omie_cliente = orcamento?.dados_orcam?.omie_cliente
+        const cliente = dados_clientes?.[omie_cliente] || {}
+
+        dados_CC[idOrcamento] = {
+            analista: orcamento?.dados_orcam?.analista || '--',
+            contrato: orcamento?.dados_orcam?.contrato || '--',
+            nome: cliente?.nome || '--',
+            estado: cliente?.estado || '--',
+            cnpj: cliente?.cnpj || '--',
+            valor: orcamento.total_geral ? dinheiro(orcamento.total_geral) : '--'
+        }
+    }
+
+    await inserirDados(dados_CC, 'dados_CC', true)
+}
+
 async function filtrarPagamentos() {
 
     let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
@@ -912,28 +962,6 @@ function auxiliar(elemento) {
     }
 }
 
-async function recuperarPagamentos() {
-
-    overlayAguarde()
-
-    await lista_setores()
-    await sincronizarDados('dados_categorias', true)
-    await sincronizarDados('lista_pagamentos', true)
-    await sincronizarDados('dados_clientes', true)
-
-    await sincronizarDados('dados_orcamentos', true)
-
-    // Atualizar os do clone;
-    ativarCloneGCS(true)
-    await sincronizarDados('dados_orcamentos', true)
-    ativarCloneGCS(false)
-
-    await retomarPaginacao()
-
-    removerOverlay()
-
-}
-
 async function atualizar_feedback(resposta, id_pagamento) {
 
     overlayAguarde()
@@ -1236,9 +1264,9 @@ async function tela_pagamento() {
 
     ordem = 0
 
-    const modeloCampos = (nomeCampo, elemento) => `
+    const modeloCampos = (name, nomeCampo, elemento) => `
         <div class="ordem">
-            <label id="cc_numero" class="numero">${ordenar()}</label>
+            <label id="${name}_numero" class="numero">${ordenar()}</label>
 
             <div class="camposFinanceiro" id="departamentos">
                 <div>${nomeCampo}</div>
@@ -1250,7 +1278,7 @@ async function tela_pagamento() {
 
     const acumulado = `
 
-        <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw;">
+        <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw; heigth: 50vh; overflow-y: auto;">
 
             <div style="display: flex; flex-direction: column; align-items: baseline; justify-content: center; width: 100%;">
                 <label>• Após às <strong>11h</strong> será lançado no dia útil seguinte;</label>
@@ -1261,20 +1289,20 @@ async function tela_pagamento() {
                 <label>• Adiantamento de parceiro, o pagamento ocorre em até 8 dias.</label>
             </div>
 
-            ${modeloCampos('Centro de Custo', `
-                    <label name="cc" onclick="cxOpcoes('cc', 'dados_orcamentos', ['dados_orcam/', 'cnpj'])">Selecionar</label>
+            ${modeloCampos('cc', 'Centro de Custo', `
+                    <label name="cc" onclick="cxOpcoes('cc', 'dados_CC', ['nome', 'contrato', 'analista', 'estado', 'cnpj', 'valor'])">Selecionar</label>
                 `)}
 
-            ${modeloCampos('Recebedor', `
-                <label name="recebedor" onclick="cxOpcoes('recebedor', 'dados_clientes', ['nome', 'cnpj'])">Selecionar</label>
+            ${modeloCampos('recebedor', 'Recebedor', `
+                    <label name="recebedor" onclick="cxOpcoes('recebedor', 'dados_clientes', ['nome', 'cnpj'])">Selecionar</label>
                 `)}
 
-            ${modeloCampos('Descrição do Pagamento', `
+            ${modeloCampos('descricao_pagamento', 'Descrição do Pagamento', `
                     <textarea style="width:80%" rows="3" id="descricao_pagamento" oninput="calculadoraPagamento()"
                         placeholder="Deixe algum comentário importante. \nIsso facilitará o processo."></textarea>
                 `)}
 
-            ${modeloCampos('Forma de Pagamento', `
+            ${modeloCampos('forma_pagamento', 'Forma de Pagamento', `
                     <select id="forma_pagamento" onchange="atualizarFormaPagamento()"
                         style="border-radius: 3px; padding: 5px; cursor: pointer;">
                         <option>Chave Pix</option>
@@ -1287,7 +1315,7 @@ async function tela_pagamento() {
                     </div>
                 `)}
 
-            ${modeloCampos(`
+            ${modeloCampos('', `
                     <label style="text-decoration: underline; cursor: pointer;" onclick="maisCategoria()">
                         Clique aqui para + 1 Categoria
                     </label>`, `
@@ -1296,7 +1324,7 @@ async function tela_pagamento() {
                     </div>
                 `)}
 
-            ${modeloCampos('Anexos', `
+            ${modeloCampos('', 'Anexos', `
                     <label for="adicionar_anexo_pagamento"
                         style="text-decoration: underline; cursor: pointer; margin-left: 20px;">
                         Incluir Anexos (Multiplos)
@@ -1308,45 +1336,17 @@ async function tela_pagamento() {
 
             ${incluirCamposAdicionais()}
 
-            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;" class="time">
-    
-                <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; width: 40%;">
-                    <label style="white-space: nowrap;">Agora</label>
-                    <label id="tempo" class="camposFinanceiro" style="font-weight: lighter; padding: 5px; white-space: nowrap;"></label>
-                </div>
+        </div>
 
-                <img src="gifs/alerta.gif" style="width: 30px;">        
-
-                <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; width: 30%;">
-                    <label style="white-space: nowrap;"> Vai cair em </label>
-                    <label id="tempo_real" class="camposFinanceiro" style="font-weight: lighter; padding: 5px;"></label>
-                </div>
-            </div>
-
-            <br>
-
-            <div class="contorno_botao_liberacao">
-                <label>Total do pagamento</label>
-                <label style="font-size: 2.0em;" id="total_de_pagamento">R$ 0,00</label>
-                <label id="liberar_botao" class="contorno_botoes" style="background-color: green; display: none;"
-                    onclick="criar_pagamento_v2()">Salvar Pagamento</label>
-            </div>
-
+        <div class="contornoBotaoLiberacao">
+            <label>Total do pagamento</label>
+            <label style="font-size: 2.0em;" id="total_de_pagamento">R$ 0,00</label>
+            <label id="liberar_botao" class="contorno_botoes" style="background-color: green; display: none;"
+                onclick="criar_pagamento_v2()">Salvar Pagamento</label>
         </div>
     `;
 
     popup(acumulado, 'Solicitação de Pagamento')
-
-    intervaloCompleto = setInterval(function () {
-        if (!tempo || !tempo.textContent) {
-            clearInterval(intervaloCompleto)
-        }
-        document.getElementById('tempo').textContent = data_atual('completa')
-    }, 1000);
-
-    intervaloCurto = setInterval(function () {
-        document.getElementById('tempo_real').textContent = data_atual('curta');
-    }, 1000);
 
     await recuperarUltimoPagamento()
 
@@ -1540,7 +1540,7 @@ async function calculadoraPagamento() {
     let bloqueio = false
 
     function colorir(cor, elemento) {
-        document.getElementById(elemento).style.backgroundColor = cor
+        document.getElementById(`${elemento}_numero`).style.backgroundColor = cor
     }
 
     if (centralCategorias) {

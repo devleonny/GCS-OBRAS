@@ -1617,16 +1617,12 @@ input[type=range]::-moz-range-thumb {
     margin: 5px;
 }
 
-.contorno_botao_liberacao {
-    width: 100%;
-    border: 1px solid #097fe6;
+.contornoBotaoLiberacao {
+    margin-left: 1vw;
     border-radius: 5px;
-    padding: 5px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    gap: 1vw;
 }
 
 .status {

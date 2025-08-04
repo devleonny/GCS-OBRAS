@@ -2673,7 +2673,7 @@ async function cxOpcoes(name, nomeBase, campos) {
     const acumulado = `
         <div style="${horizontal}; justify-content: left; background-color: #b1b1b1;">
             <div style="${horizontal}; padding-left: 1vw; padding-right: 1vw; margin: 5px; background-color: white; border-radius: 10px;">
-                <input oninput="pesquisar(this)" placeholder="Pesquisar itens" style="width: 100%;">
+                <input oninput="pesquisarCX(this)" placeholder="Pesquisar itens" style="width: 100%;">
                 <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
             </div>
         </div>
@@ -2691,4 +2691,20 @@ function selecionar(name, id, termo) {
     elemento.textContent = termo
     elemento.id = id
     removerPopup()
+}
+
+function pesquisarCX(input) {
+
+    const termoPesquisa = String(input.value).toLowerCase()
+
+    const divs = document.querySelectorAll(`[name='camposOpcoes']`)
+
+    for (const div of divs) {
+
+        const termoDiv = String(div.textContent).toLocaleLowerCase()
+
+        div.style.display = (termoDiv.includes(termoPesquisa) || termoPesquisa == '') ? '' : 'none'
+
+    }
+
 }
