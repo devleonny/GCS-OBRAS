@@ -538,8 +538,6 @@ async function capturar_html_pdf(id) {
 
 async function criar_manutencao(id) {
 
-    let displayBotaoAnexos = (acesso.permissao == "adm" || acesso.setor == "LOGÍSTICA") ? "flex" : "none"
-
     if (!id) id = ID5digitos()
 
     let tela = `
@@ -623,7 +621,7 @@ async function criar_manutencao(id) {
                     <div style="display: flex; justify-content: start; align-items: center; gap: 5px; width: 100%;">
                         <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
                             <label style="font-size: 1.2vw;">Anexos</label>
-                            <label class="contorno_botoes" for="anexo_pedido" style="display: ${displayBotaoAnexos}; justify-content: center; border-radius: 50%;">
+                            <label class="contorno_botoes" for="anexo_pedido" style="display: flex; justify-content: center; border-radius: 50%;">
                                 <img src="imagens/anexo.png" style="cursor: pointer; width: 1vw;">
                                 <input type="file" id="anexo_pedido" style="display: none;" onchange="salvar_anexos_manutencao(this, '${id}')">
                             </label>
