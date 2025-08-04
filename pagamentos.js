@@ -567,11 +567,11 @@ async function abrirDetalhesPagamentos(id_pagamento) {
                 </label>
 
                 ${acesso.permissao == 'adm'
-                    ? `<div class="btn_detalhes" style="width: max-content;" onclick="reprocessarAnexos('${id_pagamento}')">
+            ? `<div class="btn_detalhes" style="width: max-content;" onclick="reprocessarAnexos('${id_pagamento}')">
                             <img src="imagens/omie.png">
                             <label style="cursor: pointer;">Reimportar Anexos no Omie</label>
                         </div>`
-                    : ''}
+            : ''}
             </div>
             
             <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 3px;">
@@ -920,6 +920,14 @@ async function recuperarPagamentos() {
     await sincronizarDados('dados_categorias', true)
     await sincronizarDados('lista_pagamentos', true)
     await sincronizarDados('dados_clientes', true)
+
+    await sincronizarDados('dados_orcamentos', true)
+
+    // Atualizar os do clone;
+    ativarCloneGCS(true)
+    await sincronizarDados('dados_orcamentos', true)
+    ativarCloneGCS(false)
+
     await retomarPaginacao()
 
     removerOverlay()
