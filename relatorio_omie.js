@@ -352,6 +352,12 @@ function carregarFiltros(app) {
                 <span>Limpar Filtros</span>
             </div>
         </div>
+        <div class="menuSuperior">
+            <div onclick="excelRecebimento('${app}')" style="width: 100%;">
+                <img src="imagens/excel.png">
+                <span>Baixar em Excel • ${app}</span>
+            </div>
+        </div>
 
         <br>
         <div style="${vertical}; gap: 3px;">
@@ -409,8 +415,72 @@ async function baixarRelatorio() {
     })
 }
 
-function exportarExcel(idTabela) {
-    const tabela = document.getElementById(idTabela)
-    const wb = XLSX.utils.table_to_book(tabela, { sheet: "Planilha" })
-    XLSX.writeFile(wb, 'dados.xlsx')
+async function excelRecebimento(app) {
+  const bases = await recuperarDados('dados_relatorios');
+  const tipos = bases[app];
+  const colunas = ['NF', 'Tipo', 'Cliente', 'CNPJ', 'Total NF', 'dt Vencimento', 'Status', 'Valor Parcela', 'Conta'];
+  let dados = [];
+
+  for (const [tipo, notas] of Object.entries(tipos)) {
+    for (const [nf, nota] of Object.entries(notas)) {
+      if (nota.parcelas) {
+        nota.parcelas.forEach(parcela => {
+          dados.push([
+            nf,
+            nota.categoria,
+            nota.cliente,
+            nota.cnpj,
+            nota.total,
+            parcela.vencimento,
+            parcela.status,
+            parcela.valor,
+            parcela.conta
+          ]);
+        });
+      } else {
+        dados.push([
+          nf,
+          nota.categoria,
+          nota.cliente,
+          nota.cnpj,
+          nota.total,
+          '', '', '', ''
+        ]);
+      }
+    }
+  }
+
+  const ws_data = [colunas, ...dados];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+  const colWidths = colunas.map((col, i) => {
+    let maxLength = col.length;
+    for (let row = 0; row < dados.length; row++) {
+      const cell = dados[row][i];
+      if (cell) {
+        const len = cell.toString().length;
+        if (len > maxLength) maxLength = len;
+      }
+    }
+    return { wch: Math.min(maxLength + 2, 30) };
+  });
+  ws['!cols'] = colWidths;
+
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let R = 1; R <= range.e.r; ++R) {
+    const cellE = ws[XLSX.utils.encode_cell({ r: R, c: 4 })];
+    if (cellE && typeof cellE.v === 'number') {
+      cellE.z = 'R$ #,##0.00';
+      cellE.t = 'n';
+    }
+    const cellH = ws[XLSX.utils.encode_cell({ r: R, c: 7 })];
+    if (cellH && typeof cellH.v === 'number') {
+      cellH.z = 'R$ #,##0.00';
+      cellH.t = 'n';
+    }
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Dados');
+  XLSX.writeFile(wb, `${app}.xlsx`);
 }
