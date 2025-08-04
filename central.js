@@ -2651,3 +2651,44 @@ async function baixarOcorrencias() {
 
     })
 }
+
+
+async function cxOpcoes(name, nomeBase, campos) {
+
+    let base = await recuperarDados(nomeBase)
+    let opcoesDiv = ''
+
+    for ([cod, dado] of Object.entries(base)) {
+
+        const labels = campos
+            .map(campo => `<label>${dado[campo]}</label>`)
+            .join('')
+
+        opcoesDiv += `
+            <div name="camposOpcoes" class="atalhos" onclick="selecionar('${name}', '${cod}', '${dado[campos[0]]}')" style="${vertical}; gap: 2px; max-width: 40vw;">
+                ${labels}
+            </div>`
+    }
+
+    const acumulado = `
+        <div style="${horizontal}; justify-content: left; background-color: #b1b1b1;">
+            <div style="${horizontal}; padding-left: 1vw; padding-right: 1vw; margin: 5px; background-color: white; border-radius: 10px;">
+                <input oninput="pesquisar(this)" placeholder="Pesquisar itens" style="width: 100%;">
+                <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+            </div>
+        </div>
+        <div style="padding: 1vw; gap: 5px; ${vertical}; background-color: #d2d2d2; width: 30vw; max-height: 40vh; height: max-content; overflow-y: auto; overflow-x: hidden;">
+            ${opcoesDiv}
+        </div>
+    `
+
+    popup(acumulado, 'Selecione o item', true)
+
+}
+
+function selecionar(name, id, termo) {
+    const elemento = document.querySelector(`[name='${name}']`)
+    elemento.textContent = termo
+    elemento.id = id
+    removerPopup()
+}

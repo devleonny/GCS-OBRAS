@@ -1044,8 +1044,8 @@ async function criar_pagamento_v2() {
         let descricao = `Solicitante: ${acesso.usuario} |`
 
         // Categorias
-        let valores = central_categorias.querySelectorAll('input[type="number"]');
-        let textareas = central_categorias.querySelectorAll('textarea');
+        let valores = centralCategorias.querySelectorAll('input[type="number"]');
+        let textareas = centralCategorias.querySelectorAll('textarea');
         let rateio_categorias = [];
         let categorias_acumuladas = {};
         let atraso_na_data = 0
@@ -1232,42 +1232,25 @@ function ordenar() {
     return ordem
 }
 
-async function tela_pagamento(tela_atual_em_orcamentos) {
+async function tela_pagamento() {
 
     ordem = 0
-    var datalist = ''
-    if (tela_atual_em_orcamentos) {
 
-        datalist += `
+    const modeloCampos = (nomeCampo, elemento) => `
         <div class="ordem">
-
             <label id="cc_numero" class="numero">${ordenar()}</label>
 
-            <div class="itens_financeiro" id="departamentos">
-                <label>Centro de Custo</label>
-
-                <div class="autocomplete-container">
-                    <label id="id_orcamento" style="display: none;"></label>
-                    <textarea style="width: 80%;" type="text" class="autocomplete-input"
-                        placeholder="Chamado D7777 ou Loja SAM'S... ou Setor LOGÍSTICA..." oninput="opcoesCC(this)" id="cc"></textarea>
-                </div>
-
-                <img src="imagens/atualizar_2.png" style="position: relative; width: 2vw; cursor: pointer; margin-right: 5px;" onclick="atualizar_departamentos()">
-
+            <div class="camposFinanceiro" id="departamentos">
+                <div>${nomeCampo}</div>
+                ${elemento}
             </div>
 
-            <div id="aguarde" style="display: none; width: 100%; align-items: center; justify-content: center; gap: 10px;">
-                <img src="gifs/loading.gif" style="width: 5vw">
-                <label>Aguarde...</label>
-            </div>
         </div>
-        `
-    }
+    `
 
-    var acumulado = `
+    const acumulado = `
 
-        <div
-            style="display: flex; flex-direction: column; align-items: center; justify-content: left; gap: 5px; font-size: 0.9vw; background-color: #ececec; color: #222; padding: 2vw; border-radius: 5px;">
+        <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw;">
 
             <div style="display: flex; flex-direction: column; align-items: baseline; justify-content: center; width: 100%;">
                 <label>• Após às <strong>11h</strong> será lançado no dia útil seguinte;</label>
@@ -1278,39 +1261,20 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
                 <label>• Adiantamento de parceiro, o pagamento ocorre em até 8 dias.</label>
             </div>
 
-            ${datalist}
+            ${modeloCampos('Centro de Custo', `
+                    <label name="cc" onclick="cxOpcoes('cc', 'dados_orcamentos', ['dados_orcam/', 'cnpj'])">Selecionar</label>
+                `)}
 
-            <div class="ordem">
-                <label id="recebedor_numero" class="numero">${ordenar()}</label>
+            ${modeloCampos('Recebedor', `
+                <label name="recebedor" onclick="cxOpcoes('recebedor', 'dados_clientes', ['nome', 'cnpj'])">Selecionar</label>
+                `)}
 
-                <div class="itens_financeiro" id="div_recebedor">
-                    <label>Recebedor</label>
-
-                    <div class="autocomplete-container">
-                        <label id="codigo_omie" style="display: none;"></label>
-                        <textarea style="width: 80%;" oninput="opcoesClientes(this)" type="text"
-                            class="autocomplete-input" placeholder="Quem receberá?" id="recebedor"></textarea>
-                    </div>
-
-                    <img src="imagens/atualizar_2.png" style="width: 2vw; cursor: pointer; margin-right: 5px;" onclick="recuperarClientes()">
-
-                </div>
-
-            </div>
-
-            <div class="ordem">
-                <label id="descricao_numero" class="numero">${ordenar()}</label>
-                <div class="itens_financeiro">
-                    <label>Descrição do pagamento</label>
+            ${modeloCampos('Descrição do Pagamento', `
                     <textarea style="width:80%" rows="3" id="descricao_pagamento" oninput="calculadoraPagamento()"
                         placeholder="Deixe algum comentário importante. \nIsso facilitará o processo."></textarea>
-                </div>
-            </div>
+                `)}
 
-            <div class="ordem">
-                <label id="pix_ou_boleto_numero" class="numero">${ordenar()}</label>
-                <div class="itens_financeiro" style="padding: 10px;">
-                    <label>Forma de Pagamento</label>
+            ${modeloCampos('Forma de Pagamento', `
                     <select id="forma_pagamento" onchange="atualizarFormaPagamento()"
                         style="border-radius: 3px; padding: 5px; cursor: pointer;">
                         <option>Chave Pix</option>
@@ -1321,39 +1285,26 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
                             placeholder="CPF ou E-MAIL ou TELEFONE ou Código de Barras..."
                             oninput="calculadoraPagamento()"></textarea>
                     </div>
-                </div>
-            </div>
+                `)}
 
-            <div class="ordem">
-                <label id="categoria_numero" class="numero">${ordenar()}</label>
-
-                <div style="width: 80%; display: flex; align-items: start; justify-content: start; flex-direction: column;">
-                    <label style="text-decoration: underline; cursor: pointer;" onclick="nova_categoria()">Clique aqui para
-                        + 1 Categoria</label>
-                    <div id="central_categorias" class="central_categorias">
-                        ${await nova_categoria()}
+            ${modeloCampos(`
+                    <label style="text-decoration: underline; cursor: pointer;" onclick="maisCategoria()">
+                        Clique aqui para + 1 Categoria
+                    </label>`, `
+                    <div class="centralCategorias">
+                        ${await maisCategoria()}
                     </div>
-                </div>
-            </div>
+                `)}
 
-            <div class="ordem">
-                <label id="anexo_numero" class="numero">${ordenar()}</label>
-
-                <div style="display: flex; flex-direction: column; justify-content: left; width: 80%;">
-                    <div style="display: flex; justify-content: left; width: 80%;">
-                        <label for="adicionar_anexo_pagamento"
-                            style="text-decoration: underline; cursor: pointer; margin-left: 20px;">
-                            Incluir Anexos (Multiplos)
-                            <input type="file" id="adicionar_anexo_pagamento" style="display: none;"
-                                onchange="salvar_anexos_pagamentos(this)" multiple>
-                        </label>
-                    </div>
-
-                    <div id="container_anexos"
-                        style="display: flex; flex-direction: column; justify-content: left; width: 100%;"></div>
-                </div>
-
-            </div>
+            ${modeloCampos('Anexos', `
+                    <label for="adicionar_anexo_pagamento"
+                        style="text-decoration: underline; cursor: pointer; margin-left: 20px;">
+                        Incluir Anexos (Multiplos)
+                        <input type="file" id="adicionar_anexo_pagamento" style="display: none;"
+                            onchange="salvar_anexos_pagamentos(this)" multiple>
+                    </label>
+                    <div id="container_anexos" style="${vertical}; gap: 2px;"></div>
+                `)}
 
             ${incluirCamposAdicionais()}
 
@@ -1361,14 +1312,14 @@ async function tela_pagamento(tela_atual_em_orcamentos) {
     
                 <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; width: 40%;">
                     <label style="white-space: nowrap;">Agora</label>
-                    <label id="tempo" class="itens_financeiro" style="font-weight: lighter; padding: 5px; white-space: nowrap;"></label>
+                    <label id="tempo" class="camposFinanceiro" style="font-weight: lighter; padding: 5px; white-space: nowrap;"></label>
                 </div>
 
                 <img src="gifs/alerta.gif" style="width: 30px;">        
 
                 <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; width: 30%;">
                     <label style="white-space: nowrap;"> Vai cair em </label>
-                    <label id="tempo_real" class="itens_financeiro" style="font-weight: lighter; padding: 5px;"></label>
+                    <label id="tempo_real" class="camposFinanceiro" style="font-weight: lighter; padding: 5px;"></label>
                 </div>
             </div>
 
@@ -1471,7 +1422,7 @@ function incluirCamposAdicionais() {
             <div class="ordem">
                 <label id="recebedor_numero" class="numero">${ordenar()}</label>
 
-                <div class="itens_financeiro" style="justify-content: space-between;">
+                <div class="camposFinanceiro" style="justify-content: space-between;">
                     <label style="width: 100%;">${conteudo.titulo}</label>
                         <label class="contorno_botoes" for="anexo_${campo}" style="justify-content: center;">
                             Anexar
@@ -1585,17 +1536,17 @@ function carregarTabelaCustoParceiro(dados = {}) {
 
 async function calculadoraPagamento() {
 
-    let central_categorias = document.getElementById('central_categorias')
+    let centralCategorias = document.querySelector('.centralCategorias')
     let bloqueio = false
 
     function colorir(cor, elemento) {
         document.getElementById(elemento).style.backgroundColor = cor
     }
 
-    if (central_categorias) {
+    if (centralCategorias) {
 
-        let textareas = central_categorias.querySelectorAll('textarea');
-        let valores = central_categorias.querySelectorAll('input[type="number"]');
+        let textareas = centralCategorias.querySelectorAll('textarea');
+        let valores = centralCategorias.querySelectorAll('input[type="number"]');
         let total = 0
         let cod_omie = document.getElementById('codigo_omie')
         let descricao = document.getElementById('descricao_pagamento')
@@ -1795,17 +1746,17 @@ async function recuperarUltimoPagamento() {
 
         if (ultimo_pagamento.categorias) {
 
-            let central_categorias = document.getElementById('central_categorias')
-            central_categorias.innerHTML = ''
+            let centralCategorias = document.querySelector('.centralCategorias')
+            centralCategorias.innerHTML = ''
             let categorias = ultimo_pagamento.categorias
             let tamanho = categorias.length
 
             for (let i = 0; i < tamanho; i++) {
-                nova_categoria()
+                maisCategoria()
             }
 
-            let textareas = central_categorias.querySelectorAll('textarea');
-            let valores = central_categorias.querySelectorAll('input[type="number"]');
+            let textareas = centralCategorias.querySelectorAll('textarea');
+            let valores = centralCategorias.querySelectorAll('input[type="number"]');
 
             textareas.forEach((textarea, i) => {
 
@@ -1865,47 +1816,39 @@ async function recuperarUltimoPagamento() {
     }
 }
 
-async function nova_categoria() {
-    var categoria = `
-        <div class="itens_financeiro" style="font-size: 0.8em; gap: 10px;">
+async function maisCategoria() {
+    const categoria = `
+        <div style="${horizontal}; width: 100%; font-size: 0.8vw; gap: 2vw;">
             
-            <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; width: 30%; padding: 5px;">
+            <div style="${vertical}; width: 30%; padding: 5px;">
                 <label>Categoria</label>
                 <label style="display: none;"></label>
                 <textarea type="text" oninput="opcoesCategorias(this)" placeholder="Categoria" style="width: 100%; font-size: 0.8vw;"></textarea>
             </div>
 
-            <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; width: 30%; padding: 5px;">
+            <div style="${vertical}; width: 30%; padding: 5px;">
                 <label>Valor</label>
                 <input type="number" style="width: 100%;" oninput="calculadoraPagamento()" placeholder="0,00">
             </div>
 
-            <label src="imagens/remover.png" style="cursor: pointer; width: 2vw; font-size: 2.5vw;" onclick="apagar_categoria(this)">&times;</label>
+            <label src="imagens/remover.png" style="cursor: pointer; width: 2vw; font-size: 2.5vw;" onclick="apagarCategoria(this)">&times;</label>
         </div>
     `;
-    var central_categorias = document.getElementById('central_categorias')
-    if (!central_categorias) {
+    const centralCategorias = document.querySelector('.centralCategorias')
+
+    if (!centralCategorias) {
         return categoria
     } else {
-        central_categorias.insertAdjacentHTML('beforeend', categoria)
+        centralCategorias.insertAdjacentHTML('beforeend', categoria)
     }
+
     await calculadoraPagamento()
 }
 
-function apagar_categoria(elemento) {
+function apagarCategoria(elemento) {
     var linha = elemento.closest('div');
     linha.parentNode.removeChild(linha);
     calculadoraPagamento()
-}
-
-function formatarCpfCnpj(numero) {
-    numero = numero.replace(/\D/g, '');
-
-    if (numero.length === 11) {
-        return numero.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-    } else if (numero.length === 14) {
-        return numero.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-    }
 }
 
 async function remover_anx(anx) {
@@ -2273,6 +2216,6 @@ async function duplicar_pagamento(id_pagamento) {
 
     localStorage.setItem('ultimo_pagamento', JSON.stringify(novo_ultimo_pagamento))
 
-    tela_pagamento(true)
+    tela_pagamento()
 
 }
