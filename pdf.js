@@ -27,14 +27,14 @@ let dadosEmpresas = {
 }
 
 var perc_parceiro = 0.35
-preencher_v2()
+preencher()
 
 function excel() {
     var orcam_ = JSON.parse(localStorage.getItem('pdf')).id
     ir_excel(orcam_)
 }
 
-function criar_bloco_html(titulo, dados) {
+function blocoHtml(titulo, dados) {
 
     var linhas = ''
 
@@ -83,7 +83,7 @@ async function atualizar_dados_pdf() {
     }
 }
 
-async function preencher_v2() {
+async function preencher() {
 
     let dados_composicoes = await recuperarDados('dados_composicoes') || {}
     let orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {};
@@ -97,7 +97,7 @@ async function preencher_v2() {
 
     let empresaEmissora = dadosEmpresas[informacoes?.emissor || 'AC SOLUÇÕES']
 
-    let dados_por_bloco = {
+    let dadosPorBloco = {
         'Dados da Proposta': {
             'Número do Chamado': informacoes.contrato,
             'Tipo de Frete': informacoes.tipo_de_frete,
@@ -273,8 +273,8 @@ async function preencher_v2() {
     let total_liquido = orcamentoBase.total_geral;
 
     if (total_bruto != 0) { // Quer dizer que existe desconto neste orçamento;
-        totais.DESCONTO = { valor: Number(total_bruto.toFixed(2)) - conversor(total_liquido) }
-        config.DESCONTO = { cor: '#b96300' }
+        totais.DIFERENÇA = { valor: conversor(total_liquido) - Number(total_bruto.toFixed(2)) }
+        config.DIFERENÇA = { cor: '#b96300' }
     }
 
     let ordemTotais = Object.entries(totais)
@@ -290,12 +290,13 @@ async function preencher_v2() {
 
         divTotais += `
             <div id="total_${tot}" class="totais" style="background-color: ${config[tot]?.cor}">
-                TOTAL ${tot} ${dinheiro(objeto.valor)}
+                ${tot == 'DIFERENÇA' ? `<label> Valor Original ${dinheiro(orcamentoBase?.total_bruto || '--')}</label>` : ''}
+                <label><strong>${tot}</strong> ${dinheiro(objeto.valor)}</label>
             </div>
         `;
     }
 
-    const totalGeral = totais.GERAL.valor - totais.DESCONTO.valor 
+    const totalGeral = orcamentoBase.total_geral
     const titulo = 'GERAL'
     divTotais += `
         <div id="total_${titulo}" class="totais" style="background-color: ${totais[titulo].cor}">
@@ -304,14 +305,14 @@ async function preencher_v2() {
     `;
 
     html_orcamento.innerHTML = `
-    <label>Salvador, Bahia, ${carimbo_data()}</label>
+    <label>Salvador, Bahia, ${carimboData()}</label>
 
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-        ${criar_bloco_html('Dados da Proposta', dados_por_bloco['Dados da Proposta'])}
-        ${criar_bloco_html('Dados do Cliente', dados_por_bloco['Dados do Cliente'])}
+        ${blocoHtml('Dados da Proposta', dadosPorBloco['Dados da Proposta'])}
+        ${blocoHtml('Dados do Cliente', dadosPorBloco['Dados do Cliente'])}
     </div>
 
-    ${criar_bloco_html('Dados da Empresa', dados_por_bloco['Dados da Empresa'])}
+    ${blocoHtml('Dados da Empresa', dadosPorBloco['Dados da Empresa'])}
 
     <div class="contorno">
         <div class="titulo">
@@ -329,16 +330,16 @@ async function preencher_v2() {
         </div>
     </div>
 
-    ${criar_bloco_html('Considerações', { Considerações: informacoes.consideracoes })}
+    ${blocoHtml('Considerações', { Considerações: informacoes.consideracoes })}
 
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-        ${criar_bloco_html('Contato Analista', dados_por_bloco['Contato Analista'])}
-        ${criar_bloco_html('Contato Vendedor', dados_por_bloco['Contato Vendedor'])}
+        ${blocoHtml('Contato Analista', dadosPorBloco['Contato Analista'])}
+        ${blocoHtml('Contato Vendedor', dadosPorBloco['Contato Vendedor'])}
     </div>`
 
 }
 
-function carimbo_data() {
+function carimboData() {
     let dataAtual = new Date();
     let opcoes = { day: 'numeric', month: 'long', year: 'numeric' };
     let dataFormatada = dataAtual.toLocaleDateString('pt-BR', opcoes);
@@ -348,7 +349,7 @@ function carimbo_data() {
 
 function ocultarElementos() {
     let ocultar = document.querySelector('.ocultar')
-    let total_desconto = document.getElementById('total_DESCONTO')
+    let total_desconto = document.getElementById('total_DIFERENÇA')
     let exibir = ocultar.style.display == 'none'
 
     ocultar.style.display = exibir ? '' : 'none'
@@ -356,7 +357,7 @@ function ocultarElementos() {
 }
 
 async function gerarPDF() {
-    preencher_v2();
+    preencher();
     ocultarElementos()
 
     let dados_clientes = await recuperarDados('dados_clientes') || {}
