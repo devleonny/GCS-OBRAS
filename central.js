@@ -2653,7 +2653,7 @@ async function baixarOcorrencias() {
 }
 
 
-async function cxOpcoes(name, nomeBase, campos) {
+async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
 
     let base = await recuperarDados(nomeBase)
     let opcoesDiv = ''
@@ -2665,7 +2665,7 @@ async function cxOpcoes(name, nomeBase, campos) {
             .join('')
 
         opcoesDiv += `
-            <div name="camposOpcoes" class="atalhos" onclick="selecionar('${name}', '${cod}', '${dado[campos[0]]}')" style="${vertical}; gap: 2px; max-width: 40vw;">
+            <div name="camposOpcoes" class="atalhos" onclick="selecionar('${name}', '${cod}', '${dado[campos[0]]}' ${funcaoAux ? `, '${funcaoAux}'` : ''})" style="${vertical}; gap: 2px; max-width: 40vw;">
                 ${labels}
             </div>`
     }
@@ -2686,11 +2686,13 @@ async function cxOpcoes(name, nomeBase, campos) {
 
 }
 
-function selecionar(name, id, termo) {
+async function selecionar(name, id, termo, funcaoAux) {
     const elemento = document.querySelector(`[name='${name}']`)
     elemento.textContent = termo
     elemento.id = id
     removerPopup()
+
+    if(funcaoAux) await eval(funcaoAux)
 }
 
 function pesquisarCX(input) {

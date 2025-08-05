@@ -1976,16 +1976,26 @@ input[type=range]::-moz-range-thumb {
 }
 
 .camposFinanceiro {
+    min-height: 5vh;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    padding-left: 1vw;
     gap: 5px;
     position: relative;
     color: white;
     background-color: #3b444c;
-    border-radius: 2px;
     display: flex;
     align-items: center;
-    justify-content: space-evenly;
+    justify-content: space-between;
     width: 100%;
-    box-shadow: 0px 0px 5px #222;
+}
+
+.camposFinanceiro span {
+    cursor: pointer;
+    margin: 5px;
+    background-color: #097fe6;
+    border-radius: 3px;
+    padding: 5px;
 }
 
 .camposFinanceiro label {
@@ -1996,11 +2006,11 @@ input[type=range]::-moz-range-thumb {
 .camposFinanceiro textarea,
 .camposFinanceiro input,
 .camposFinanceiro select {
+    margin: 3px;
     background-color: #e0e0e0;
     font-size: 0.7em;
     border: none;
     border-radius: 2px;
-    box-shadow: 2px 2px #222;
 }
 
 .camposFinanceiro input {
@@ -2011,22 +2021,23 @@ input[type=range]::-moz-range-thumb {
 
 .ordem {
     display: flex;
-    gap: 10px;
     justify-content: left;
     align-items: center;
     width: 100%;
 }
 
 .numero {
-    border-radius: 50%;
+    height: -webkit-fill-available;
+    width: 2vw;
+    border-bottom-left-radius: 5px;
+    border-top-left-radius: 5px;
     background-color: #097fe6;
     color: white;
-    width: 3vw;
-    height: 3vw;
+    padding: 10px;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.0em;
+    font-size: 1vw;
 }
 
 .pedido {
