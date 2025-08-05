@@ -90,7 +90,7 @@ async function preencher_v2() {
 
     // LÓGICA DOS DADOS
     let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let informacoes = { 
+    let informacoes = {
         ...orcamentoBase.dados_orcam,
         ...dados_clientes?.[orcamentoBase.dados_orcam.omie_cliente] || {}
     }
@@ -159,7 +159,6 @@ async function preencher_v2() {
         'VENDA': { colunas: [1, 2, 3, 4, 5, 6, 7, 9, 10], cor: '#B12425' }
     }
 
-
     let totais = {
         GERAL: { valor: 0, cor: '#151749' }
     };
@@ -179,7 +178,7 @@ async function preencher_v2() {
             let ativo = tabelaPreco.ativo
             let historico = tabelaPreco.historico
             let precoAtivo = historico[ativo]
-            icms = precoAtivo?.icms_creditado == 4 && estado !== 'BA' ? 4 : 0 
+            icms = precoAtivo?.icms_creditado == 4 && estado !== 'BA' ? 4 : 0
         }
 
         if (icms == 0) icms = estado == 'BA' ? 20.5 : 12
@@ -197,7 +196,7 @@ async function preencher_v2() {
         item.total = item.custo * item.qtde;
         totais[item.tipo].valor += item.total // Total isolado do item;
         totais.GERAL.valor += item.total // Total GERAL;
-        
+
         let unitarioSemIcms = item.custo - (item.custo * (icms / 100))
         let totalSemIcms = unitarioSemIcms * item.qtde
         let tds = {}
@@ -229,7 +228,7 @@ async function preencher_v2() {
             colunas.forEach(col => {
 
                 let complemento = ''
-                if(item.tipo == 'VENDA' && (col == 9 || col == 10)) complemento = 'COM ICMS'
+                if (item.tipo == 'VENDA' && (col == 9 || col == 10)) complemento = 'COM ICMS'
 
                 totais[item.tipo].ths += `<th style="color: white;">${cabecalho[col]} ${complemento}</th>`
             })
@@ -268,7 +267,7 @@ async function preencher_v2() {
         }
     }
 
-    let divs_totais = ''
+    let divTotais = ''
     let etiqueta_desconto = ''
     let total_bruto = orcamentoBase?.total_bruto || 0
     let total_liquido = orcamentoBase.total_geral;
@@ -284,15 +283,25 @@ async function preencher_v2() {
     ordemTotais.splice(ordemTotais, 1)
     ordemTotais.push(totalGeralBackup)
 
+    console.log(ordemTotais);
+
     for ([tot, objeto] of ordemTotais) {
-        if (objeto.valor !== 0) {
-            divs_totais += `
-                <div id="total_${tot}" class="totais" style="background-color: ${config[tot]?.cor}">
-                    TOTAL ${tot} ${dinheiro(objeto?.valor)}
-                </div>
-            `;
-        }
+        if (objeto.valor == 0 || tot == 'GERAL') continue
+
+        divTotais += `
+            <div id="total_${tot}" class="totais" style="background-color: ${config[tot]?.cor}">
+                TOTAL ${tot} ${dinheiro(objeto.valor)}
+            </div>
+        `;
     }
+
+    const totalGeral = totais.GERAL.valor - totais.DESCONTO.valor 
+    const titulo = 'GERAL'
+    divTotais += `
+        <div id="total_${titulo}" class="totais" style="background-color: ${totais[titulo].cor}">
+            TOTAL ${titulo} ${dinheiro(totalGeral)}
+        </div>
+    `;
 
     html_orcamento.innerHTML = `
     <label>Salvador, Bahia, ${carimbo_data()}</label>
@@ -313,7 +322,7 @@ async function preencher_v2() {
 
         <div style="display: flex; align-items: center; justify-content: start; gap: 10px;">
             <div style="display: flex; flex-direction: column;">
-                ${divs_totais}
+                ${divTotais}
             </div>
 
             ${etiqueta_desconto}
