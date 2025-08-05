@@ -523,8 +523,8 @@ async function abrirDetalhesPagamentos(id_pagamento) {
                             </label>
                         </div> 
                     
-                        <div id="container_${campo}" class="container">
-                        ${docsExistentes}
+                        <div id="div${campo}" class="container">
+                            ${docsExistentes}
                         </div>
 
                     </div> 
@@ -617,9 +617,9 @@ async function abrirDetalhesPagamentos(id_pagamento) {
             <div style="display: flex; align-items: center; justify-content: center; gap: 1vw;">
                 <label><strong>Anexos</strong> • </label>  
                 
-                <label for="adicionar_anexo_pagamento" style="text-decoration: underline; cursor: pointer;">
+                <label for="anexoPagamento" style="text-decoration: underline; cursor: pointer;">
                     Incluir Anexo
-                    <input type="file" id="adicionar_anexo_pagamento" style="display: none;" onchange="salvarAnexosPagamentos(this, '${id_pagamento}')" multiple>
+                    <input type="file" id="anexoPagamento" style="display: none;" onchange="salvarAnexosPagamentos(this, '${id_pagamento}')" multiple>
                 </label>
 
                 ${acesso.permissao == 'adm'
@@ -658,7 +658,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
                 let element = criarAnexoVisual(anexo.nome, anexo.link, `excluir_anexo_parceiro('${id_pagamento}', '${item}', '${anx}')`);
 
-                document.getElementById(`container_${item}`).insertAdjacentHTML('beforeend', element)
+                document.getElementById(`div${item}`).insertAdjacentHTML('beforeend', element)
 
             }
         }
@@ -893,23 +893,11 @@ async function confirmarExclusaoPagamento(id) {
 
 }
 
-function deletar_arquivo_servidor(link) {
-    fetch(`https://leonny.dev.br/uploads/${link}`, {
-        method: 'DELETE'
-    })
-        .then(response => response.json())
-        .then(data => console.log(data))
-        .catch(error => console.error('Erro:', error));
-}
-
 async function excluirAnexoPagamento(id_pagamento, anx) {
 
     let pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
 
     if (pagamento.anexos && pagamento.anexos[anx]) {
-
-        let link = pagamento.anexos[anx].link
-        deletar_arquivo_servidor(link)
 
         delete pagamento.anexos[anx]
 
@@ -1065,7 +1053,7 @@ async function salvar_comentario_pagamento(id) {
 
 }
 
-async function criar_pagamento_v2() {
+async function salvarPagamento() {
 
     overlayAguarde()
 
@@ -1270,7 +1258,7 @@ async function telaPagamento() {
             <div name="${name}Numero" class="numero">${ordenar()}</div>
 
             <div class="camposFinanceiro" id="departamentos">
-                <div style="width: 40%; text-align: left;">${nomeCampo}</div>
+                <div style="${horizontal}; width: 30%;">${nomeCampo}</div>
                 ${elemento}
             </div>
 
@@ -1279,7 +1267,7 @@ async function telaPagamento() {
 
     const acumulado = `
 
-        <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw; heigth: 50vh; overflow-y: auto;">
+        <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw; height: 60vh; overflow-y: auto;">
 
             <div style="display: flex; flex-direction: column; align-items: baseline; justify-content: center; width: 100%;">
                 <label>• Após às <strong>11h</strong> será lançado no dia útil seguinte;</label>
@@ -1318,17 +1306,15 @@ async function telaPagamento() {
 
             ${modeloCampos('categorias', `
                     <img src="imagens/baixar.png" style="width: 2vw; cursor: pointer;" onclick="maisCategoria()">`, `
-                    <div class="centralCategorias">
-                        ${await maisCategoria()}
-                    </div>
+                    <div class="centralCategorias"></div>
                 `)}
 
             ${modeloCampos('anexos', 'Anexos Diversos', `
-                    <label class="contorno_botoes" for="adicionar_anexo_pagamento" style="justify-content: center;">
+                    <label class="contorno_botoes" for="anexoPagamento" style="justify-content: center;">
                         Selecionar
-                        <input type="file" id="adicionar_anexo_pagamento" style="display: none;" onchange="salvarAnexosPagamentos(this)" multiple>
+                        <input type="file" id="anexoPagamento" style="display: none;" onchange="salvarAnexosPagamentos(this)" multiple>
                     </label>
-                    <div id="container_anexos" style="${vertical}; gap: 2px;"></div>
+                    <div id="anexosDiversos" style="${vertical}; gap: 2px;"></div>
                 `)}
 
             <div id="camposAdicionais"></div>
@@ -1339,7 +1325,7 @@ async function telaPagamento() {
             <label>Total do pagamento</label>
             <label style="font-size: 2.0em;" id="totalPagamento">R$ 0,00</label>
             <label id="liberarBotao" class="contorno_botoes" style="background-color: green; display: none;"
-                onclick="criar_pagamento_v2()">Salvar Pagamento</label>
+                onclick="salvarPagamento()">Salvar Pagamento</label>
         </div>
     `;
 
@@ -1364,12 +1350,18 @@ async function salvarAnexosPagamentos(input, id_pagamento) {
 
         await inserirDados({ [id_pagamento]: pagamento }, 'lista_pagamentos');
         await abrirDetalhesPagamentos(id_pagamento);
+
     } else {
+
         let ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {};
+        const anexosDiversos = document.getElementById('anexosDiversos')
 
         if (!ultimoPagamento.anexos) ultimoPagamento.anexos = {};
 
         anexos.forEach(anexo => {
+
+            anexosDiversos.insertAdjacentHTML('beforeend', criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoTemporario('${anexo.link}')`))
+
             ultimoPagamento.anexos[anexo.link] = {
                 nome: anexo.nome,
                 formato: anexo.formato,
@@ -1378,9 +1370,20 @@ async function salvarAnexosPagamentos(input, id_pagamento) {
         });
 
         localStorage.setItem('ultimoPagamento', JSON.stringify(ultimoPagamento));
+        await calculadoraPagamento()
+
     }
 
-    await recuperarUltimoPagamento();
+}
+
+async function removerAnexoTemporario(link) {
+
+    let ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {};
+    delete ultimoPagamento.anexos[link]
+    localStorage.setItem('ultimoPagamento', JSON.stringify(ultimoPagamento))
+    document.querySelector(`[name="${link}"]`).remove()
+    await calculadoraPagamento()
+
 }
 
 async function atualizarFormaPagamento(formato) {
@@ -1390,7 +1393,7 @@ async function atualizarFormaPagamento(formato) {
     formaPagamentoDiv.innerHTML = `
         ${formato == 'Chave Pix'
             ? `<textarea rows="3" id="pix" oninput="calculadoraPagamento()" placeholder="CPF ou E-MAIL ou TELEFONE ou Código de Barras..."></textarea>`
-            : `<input type="date" id="dtVencimento" oninput="calculadoraPagamento()" style="cursor: pointer; width: 70%; text-align: center;">`
+            : `<input type="date" id="dtVencimento" oninput="calculadoraPagamento()" >`
         }
     `;
 
@@ -1420,7 +1423,7 @@ function incluirCamposAdicionais() {
                         Selecionar
                         <input type="file" id="anexo_${campo}" style="display: none;" onchange="salvarAnexosParceiros(this, '${campo}')" multiple>
                     </label>
-                    <div id="container_${campo}" style="display: flex; flex-direction: column; justify-content: left; gap: 2px; width: 100%;"></div>
+                    <div id="div${campo}" style="display: flex; flex-direction: column; justify-content: left; gap: 2px; width: 100%;"></div>
                 </div>
             </div>    
             `
@@ -1529,12 +1532,13 @@ function carregarTabelaCustoParceiro(dados = {}) {
         `
 }
 
-async function calculadoraPagamento(pularBackup) {
+async function calculadoraPagamento() {
 
     function colorir(cor, elemento) {
         document.querySelector(`[name="${elemento}Numero"]`).style.backgroundColor = cor
     }
 
+    let ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
     const camposAdicionais = document.getElementById('camposAdicionais')
     const recebedor = document.querySelector('[name="recebedor"]')
     const descricao = document.getElementById('descricao')
@@ -1550,23 +1554,25 @@ async function calculadoraPagamento(pularBackup) {
     if (pix) colorir(pix.value !== '' ? 'green' : '#B12425', 'formaPagamento')
     if (dtVencimento) colorir(dtVencimento.value !== '' ? 'green' : '#B12425', 'formaPagamento')
     colorir(auxCategorias.completo ? 'green' : '#B12425', 'categorias')
+    colorir(Object.keys(ultimoPagamento?.anexos || {}).length > 0 ? 'green' : '#B12425', 'anexos')
 
     document.getElementById('totalPagamento').textContent = dinheiro(total)
 
-    if (camposAdicionais && auxCategorias?.atrasoRegras > 0) {
+    if (camposAdicionais && camposAdicionais.innerHTML == '' && auxCategorias?.atrasoRegras > 0) {
         incluirCamposAdicionais()
         document.getElementById('v_pago').textContent = dinheiro(auxCategorias.valorParceiro)
         calcularCusto() // Tabela básica de parceiros;
-    } else if (camposAdicionais) {
+    } else if (camposAdicionais && auxCategorias?.atrasoRegras == 0) {
         camposAdicionais.innerHTML = ''
     }
 
-    if (!pularBackup) backupPagamento()
+    backupPagamento()
 
     function backupPagamento() {
         const pagamentoSelect = document.getElementById('pagamentoSelect')
 
-        let ultimoPagamento = {
+        ultimoPagamento = {
+            ...ultimoPagamento,
             cc: cc.id,
             dtVencimento,
             recebedor: recebedor.id,
@@ -1591,8 +1597,9 @@ async function calculadoraPagamento(pularBackup) {
     function calcularCategorias() {
         let completo = false
         const centralCategorias = document.querySelector('.centralCategorias')
-        if (!centralCategorias) return completo
-        const spansCategorias = centralCategorias.querySelectorAll('span');
+        const spansCategorias = centralCategorias.querySelectorAll('span')
+        if (!centralCategorias || spansCategorias.length === 0) return completo
+
         const valores = centralCategorias.querySelectorAll('input[type="number"]');
         let atrasoRegras = 0
         let valorParceiro = 0
@@ -1649,35 +1656,50 @@ async function recuperarUltimoPagamento() {
     if (ultimoPagamento.pix) document.getElementById('pix').value = ultimoPagamento?.pix || ''
     if (ultimoPagamento.dtVencimento) document.getElementById('dtVencimento').value = ultimoPagamento?.dtVencimento || ''
 
-    console.log(ultimoPagamento);
-    
     document.getElementById('descricao').value = ultimoPagamento?.descricao || ''
 
-    await calculadoraPagamento(true)
+    if (ultimoPagamento.categorias) for (const categoria of ultimoPagamento.categorias) maisCategoria(categoria)
+
+    if (ultimoPagamento.anexos) {
+        const anexosDiversos = document.getElementById('anexosDiversos')
+        for (const [link, anexo] of Object.entries(ultimoPagamento.anexos)) {
+            anexosDiversos.insertAdjacentHTML('beforeend', criarAnexoVisual(anexo.nome, link, `removerAnexoTemporario('${link}')`))
+        }
+    }
+
+    if (ultimoPagamento.anexos_parceiros) {
+        for (const [campo, anexos] of Object.entries(ultimoPagamento.anexos_parceiros)) {
+
+            const divLocalAnexo = document.getElementById(`div${campo}`)
+            for (const [link, anexo] of Object.entries(anexos)) {
+                divLocalAnexo.insertAdjacentHTML('beforeend', criarAnexoVisual(anexo.nome, link, `removerAnexoParceiro('${campo}', '${link}')`))
+            }
+
+        }
+    }
+
+    await calculadoraPagamento()
 
     removerOverlay()
 
 }
 
-async function maisCategoria() {
+async function maisCategoria(dados = {}) {
 
     const aleatorio = ID5digitos()
     const categoria = `
         <div style="${horizontal}; width: 100%; font-size: 0.8vw; gap: 10px;">
             
-            <span name="${aleatorio}" onclick="cxOpcoes('${aleatorio}', 'dados_categorias', ['categoria'], 'calculadoraPagamento()')">Selecionar</span>
+            <span name="${aleatorio}" ${dados.codigo ? `id="${dados.codigo}"` : ''} onclick="cxOpcoes('${aleatorio}', 'dados_categorias', ['categoria'], 'calculadoraPagamento()')">${dados?.nome || 'Selecionar'}</span>
 
-            R$ <input type="number" style="width: 100%;" oninput="calculadoraPagamento()" placeholder="0,00">
+            R$ <input value="${dados?.valor || ''}" type="number" style="width: 100%;" oninput="calculadoraPagamento()" placeholder="0,00">
 
             <label src="imagens/remover.png" style="cursor: pointer; width: 2vw; font-size: 2.5vw;" onclick="apagarCategoria(this)">&times;</label>
         </div>
     `;
-    const centralCategorias = document.querySelector('.centralCategorias')
 
-    if (!centralCategorias) return categoria
-
-    centralCategorias.insertAdjacentHTML('beforeend', categoria)
-    await calculadoraPagamento()
+    document.querySelector('.centralCategorias').insertAdjacentHTML('beforeend', categoria)
+    if (!dados.id) await calculadoraPagamento()
 }
 
 function apagarCategoria(elemento) {
@@ -1693,7 +1715,6 @@ async function remover_anx(anx) {
 
     if (div && ultimoPagamento.anexos[anx]) {
         let link = ultimoPagamento.anexos[anx].link
-        deletar_arquivo_servidor(link)
         delete ultimoPagamento.anexos[anx]
 
         localStorage.setItem('ultimoPagamento', JSON.stringify(ultimoPagamento))
@@ -1709,9 +1730,9 @@ async function salvarAnexosParceiros(input, campo, id_pagamento) {
     let anexos = await importarAnexos(input)
 
     if (id_pagamento == undefined) { // O anexo do parceiro é incluído no formulário de pagamento; (Pagamento ainda não existe)
+        let ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
 
         anexos.forEach(anexo => {
-            let ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
 
             if (!ultimoPagamento.anexos_parceiros) {
                 ultimoPagamento.anexos_parceiros = {}
@@ -1723,10 +1744,11 @@ async function salvarAnexosParceiros(input, campo, id_pagamento) {
 
             ultimoPagamento.anexos_parceiros[campo][anexo.link] = anexo
 
-            localStorage.setItem('ultimoPagamento', JSON.stringify(ultimoPagamento))
+            document.getElementById(`div${campo}`).insertAdjacentHTML('beforeend', criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoParceiro('${campo}', '${link}')`))
         })
 
-        await recuperarUltimoPagamento()
+        localStorage.setItem('ultimoPagamento', JSON.stringify(ultimoPagamento))
+
 
     } else { // O anexo deve ser incluído no pagamento já existente;
 
@@ -1745,7 +1767,7 @@ async function salvarAnexosParceiros(input, campo, id_pagamento) {
             pagamento.anexos_parceiros[campo][id] = anexo
             enviar(`lista_pagamentos/${id_pagamento}/anexos_parceiros/${campo}/${id}`, anexo)
 
-            let container = document.getElementById(`container_${campo}`)
+            let container = document.getElementById(`div${campo}`)
 
             let string_anexo = criarAnexoVisual(anexo.nome, anexo.link, `excluir_anexo_parceiro('${id_pagamento}', '${campo}', '${id}')`);
 
@@ -1760,20 +1782,17 @@ async function salvarAnexosParceiros(input, campo, id_pagamento) {
 
 }
 
-async function excluirAnexoParceiro(campo, anx) {
+async function removerAnexoParceiro(campo, link) {
 
-    let local = document.getElementById(`container_${campo}`)
     let ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
 
-    if (ultimoPagamento.anexos_parceiros[campo][anx] && local) {
+    delete ultimoPagamento.anexos_parceiros[campo][link]
 
-        let link = ultimoPagamento.anexos_parceiros[campo][anx].link
-        deletar_arquivo_servidor(link)
+    localStorage.setItem('ultimoPagamento', JSON.stringify(ultimoPagamento))
 
-        delete ultimoPagamento.anexos_parceiros[campo][anx]
-        localStorage.setItem('ultimoPagamento', JSON.stringify(ultimoPagamento))
-        await recuperarUltimoPagamento()
-    }
+    document.querySelector(`[name="${link}"]`).remove()
+
+    await calculadoraPagamento()
 
 }
 

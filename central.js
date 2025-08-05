@@ -863,11 +863,11 @@ function popup(elementoHTML, titulo, nao_remover_anteriores) {
 
 }
 
-function criarAnexoVisual(nome, link_anexo, funcao_excluir) {
+function criarAnexoVisual(nome, link, funcao) {
 
     let displayExcluir = 'flex'
 
-    if (!funcao_excluir) displayExcluir = 'none'
+    if (!funcao) displayExcluir = 'none'
 
     // Formata o nome para exibição curta
     const nomeFormatado = nome.length > 15
@@ -875,12 +875,12 @@ function criarAnexoVisual(nome, link_anexo, funcao_excluir) {
         : nome;
 
     return `
-        <div class="contornoAnexos">
-            <div onclick="abrirArquivo('${link_anexo}')" class="contorno_interno" style="width: 100%; display: flex; align-items: center; justify-content: start; gap: 2px;">
+        <div class="contornoAnexos" name="${link}">
+            <div onclick="abrirArquivo('${link}')" class="contorno_interno" style="width: 100%; display: flex; align-items: center; justify-content: start; gap: 2px;">
                 <img src="imagens/anexo2.png" style="width: 1.5vw;">
                 <label style="font-size: 0.7vw; cursor: pointer;" title="${nome}">${nomeFormatado}</label>
             </div>
-            <img src="imagens/cancel.png" style="display: ${displayExcluir}; width: 1.5vw; cursor: pointer;" onclick="${funcao_excluir}">
+            <img src="imagens/cancel.png" style="display: ${displayExcluir}; width: 1.5vw; cursor: pointer;" onclick="${funcao}">
         </div>`;
 }
 
@@ -2692,7 +2692,7 @@ async function selecionar(name, id, termo, funcaoAux) {
     elemento.id = id
     removerPopup()
 
-    if(funcaoAux) await eval(funcaoAux)
+    if (funcaoAux) await eval(funcaoAux)
 }
 
 function pesquisarCX(input) {

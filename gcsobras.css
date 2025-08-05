@@ -942,6 +942,7 @@ button {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-bottom: 1px solid #d2d2d2;
 }
 
 .botao_popup {
@@ -2008,14 +2009,9 @@ input[type=range]::-moz-range-thumb {
 .camposFinanceiro select {
     margin: 3px;
     background-color: #e0e0e0;
-    font-size: 0.7em;
+    font-size: 1vw;
     border: none;
     border-radius: 2px;
-}
-
-.camposFinanceiro input {
-    width: 100%;
-    font-size: 1.0vw;
     padding: 5px;
 }
 
