@@ -1327,7 +1327,7 @@ async function telaPagamento() {
             <label>Total do pagamento</label>
             <label style="font-size: 2.0em;" id="totalPagamento">R$ 0,00</label>
             <label id="liberarBotao" class="contorno_botoes" style="background-color: green; display: none;"
-                onclick="salvarPagamento()">Salvar Pagamento</label>
+                onclick="salvarPagamento()">Solicitar Pagamento</label>
         </div>
     `;
 
@@ -1558,6 +1558,8 @@ async function calculadoraPagamento() {
     }
     // Fim das validações;
 
+    // Valores totais e de parceiros(quando existir);
+    document.getElementById('v_pago').textContent = auxCategorias.valorParceiro
     document.getElementById('totalPagamento').textContent = dinheiro(total)
 
     const painelParceiro = document.getElementById('painelParceiro')
@@ -1567,6 +1569,21 @@ async function calculadoraPagamento() {
         document.getElementById('v_pago').textContent = dinheiro(auxCategorias.valorParceiro)
         calcularCusto() // Tabela básica de parceiros;
     }
+
+    // Verificar se todos os campos obrigatórios foram preenchidos; (1 ao 5)
+    const coloridos = document.querySelectorAll('.numero')
+    let cor = ''
+
+    for (const item of coloridos) {
+
+        const numero = Number(item.textContent)
+        cor = item.style.backgroundColor
+
+        if (cor !== 'green' || numero > 5) break
+
+    }
+
+    document.getElementById('liberarBotao').style.display = cor == 'green' ? 'flex' : 'none'
 
     backupPagamento()
 
@@ -1716,10 +1733,9 @@ async function maisCategoria(dados = {}) {
 
 }
 
-function apagarCategoria(elemento) {
-    var linha = elemento.closest('div'); ical
-    linha.parentNode.removeChild(linha);
-    calculadoraPagamento()
+async function apagarCategoria(xis) {
+    xis.parentElement.remove()
+    await calculadoraPagamento()
 }
 
 async function salvarAnexosParceiros(input, campo, id_pagamento) {
