@@ -1386,7 +1386,7 @@ async function removerAnexoTemporario(link) {
 
 }
 
-async function atualizarFormaPagamento(formato) {
+async function atualizarFormaPagamento(formato, pular) {
     const formaPagamentoDiv = document.getElementById('formaPagamentoDiv');
     document.getElementById('pagamentoSelect').value = formato
 
@@ -1397,7 +1397,7 @@ async function atualizarFormaPagamento(formato) {
         }
     `;
 
-    await calculadoraPagamento('atualizarFormaPagamento')
+    if(!pular) await calculadoraPagamento()
 }
 
 function incluirCamposAdicionais() {
@@ -1532,10 +1532,8 @@ function carregarTabelaCustoParceiro(dados = {}) {
         `
 }
 
-async function calculadoraPagamento(teste) {
+async function calculadoraPagamento() {
 
-    console.log(teste);
-    
     let ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
     let total = 0
     const camposAdicionais = document.getElementById('camposAdicionais')
@@ -1669,7 +1667,7 @@ async function recuperarUltimoPagamento() {
     recebedor.id = ultimoPagamento?.recebedor || ''
     recebedor.textContent = dados_clientes?.[ultimoPagamento?.recebedor]?.nome || 'Selecionar'
 
-    atualizarFormaPagamento(ultimoPagamento.pagamentoSelect)
+    atualizarFormaPagamento(ultimoPagamento.pagamentoSelect, true)
     if (ultimoPagamento.pix) document.getElementById('pix').value = ultimoPagamento?.pix || ''
     if (ultimoPagamento.dtVencimento) document.getElementById('dtVencimento').value = ultimoPagamento?.dtVencimento || ''
 
@@ -1695,7 +1693,7 @@ async function recuperarUltimoPagamento() {
         }
     }
 
-    await calculadoraPagamento('recup')
+    await calculadoraPagamento()
 
     removerOverlay()
 
@@ -1717,12 +1715,12 @@ async function maisCategoria(dados = {}) {
     `;
 
     document.querySelector('.centralCategorias').insertAdjacentHTML('beforeend', categoria)
-    if (!dados.codigo) await calculadoraPagamento('categ')
+    if (!dados.codigo) await calculadoraPagamento()
 
 }
 
 function apagarCategoria(elemento) {
-    var linha = elemento.closest('div');
+    var linha = elemento.closest('div');ical
     linha.parentNode.removeChild(linha);
     calculadoraPagamento()
 }
