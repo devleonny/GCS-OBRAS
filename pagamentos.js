@@ -1257,7 +1257,7 @@ async function telaPagamento() {
         <div class="ordem">
             <div name="${name}Numero" class="numero">${ordenar()}</div>
 
-            <div class="camposFinanceiro" id="departamentos">
+            <div class="camposFinanceiro">
                 <div style="${horizontal}; width: 30%;">${nomeCampo}</div>
                 ${elemento}
             </div>
@@ -1397,7 +1397,7 @@ async function atualizarFormaPagamento(formato) {
         }
     `;
 
-    await calculadoraPagamento()
+    await calculadoraPagamento('atualizarFormaPagamento')
 }
 
 function incluirCamposAdicionais() {
@@ -1416,14 +1416,14 @@ function incluirCamposAdicionais() {
         let conteudo = campos[campo]
         camposHtml += `
             <div class="ordem">
-                <label class="numero">${ordenar()}</label>
+                <label name="${campo}Numero" class="numero">${ordenar()}</label>
                 <div class="camposFinanceiro" style="justify-content: space-between;">
-                    <label style="width: 100%; text-align: left;">${conteudo.titulo}</label>
+                    <div style="width: 30%; text-align: left;">${conteudo.titulo}</div>
                     <label class="contorno_botoes" for="anexo_${campo}" style="justify-content: center;">
                         Selecionar
                         <input type="file" id="anexo_${campo}" style="display: none;" onchange="salvarAnexosParceiros(this, '${campo}')" multiple>
                     </label>
-                    <div id="div${campo}" style="display: flex; flex-direction: column; justify-content: left; gap: 2px; width: 100%;"></div>
+                    <div id="div${campo}" style="${vertical}"></div>
                 </div>
             </div>    
             `
@@ -1532,37 +1532,44 @@ function carregarTabelaCustoParceiro(dados = {}) {
         `
 }
 
-async function calculadoraPagamento() {
+async function calculadoraPagamento(teste) {
 
-    function colorir(cor, elemento) {
-        document.querySelector(`[name="${elemento}Numero"]`).style.backgroundColor = cor
-    }
-
+    console.log(teste);
+    
     let ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
+    let total = 0
     const camposAdicionais = document.getElementById('camposAdicionais')
     const recebedor = document.querySelector('[name="recebedor"]')
     const descricao = document.getElementById('descricao')
     const pix = document.getElementById('pix')
     const dtVencimento = document.getElementById('dtVencimento')
     const cc = document.querySelector('[name="cc"]')
-    let total = 0
-
     const auxCategorias = calcularCategorias()
-    colorir(cc.id !== '' ? 'green' : '#B12425', 'cc')
-    colorir(recebedor.id !== '' ? 'green' : '#B12425', 'recebedor')
-    colorir(descricao.value !== '' ? 'green' : '#B12425', 'descricao')
-    if (pix) colorir(pix.value !== '' ? 'green' : '#B12425', 'formaPagamento')
-    if (dtVencimento) colorir(dtVencimento.value !== '' ? 'green' : '#B12425', 'formaPagamento')
-    colorir(auxCategorias.completo ? 'green' : '#B12425', 'categorias')
-    colorir(Object.keys(ultimoPagamento?.anexos || {}).length > 0 ? 'green' : '#B12425', 'anexos')
+
+    // Validação de cores;
+    colorir(cc.id !== '', 'cc')
+    colorir(recebedor.id !== '', 'recebedor')
+    colorir(descricao.value !== '', 'descricao')
+    colorir(auxCategorias.completo, 'categorias')
+    colorir(Object.keys(ultimoPagamento?.anexos || {}).length > 0, 'anexos')
+    if (pix) colorir(pix.value !== '', 'formaPagamento')
+    if (dtVencimento) colorir(dtVencimento.value !== '', 'formaPagamento')
+    if (ultimoPagamento.anexos_parceiros && Object.keys(ultimoPagamento.anexos_parceiros).length > 0) {
+        for (const [campo, anexos] of Object.entries(ultimoPagamento.anexos_parceiros)) {
+            colorir(Object.keys(anexos).length > 0, campo)
+        }
+    }
+    // Fim das validações;
 
     document.getElementById('totalPagamento').textContent = dinheiro(total)
 
-    if (camposAdicionais && camposAdicionais.innerHTML == '' && auxCategorias?.atrasoRegras > 0) {
+    console.log(auxCategorias)
+
+    if (camposAdicionais.innerHTML == '' && auxCategorias.atrasoRegras > 0) {
         incluirCamposAdicionais()
         document.getElementById('v_pago').textContent = dinheiro(auxCategorias.valorParceiro)
         calcularCusto() // Tabela básica de parceiros;
-    } else if (camposAdicionais && auxCategorias?.atrasoRegras == 0) {
+    } else if (auxCategorias?.atrasoRegras == 0) {
         camposAdicionais.innerHTML = ''
     }
 
@@ -1581,6 +1588,8 @@ async function calculadoraPagamento() {
             pagamentoSelect: pagamentoSelect.value
         }
 
+        if (auxCategorias.atrasoRegras == 0) delete ultimoPagamento.anexos_parceiros
+
         if (pix) {
             ultimoPagamento.pix = pix.value
             delete ultimoPagamento.dtVencimento
@@ -1595,44 +1604,52 @@ async function calculadoraPagamento() {
     }
 
     function calcularCategorias() {
-        let completo = false
+
         const centralCategorias = document.querySelector('.centralCategorias')
         const spansCategorias = centralCategorias.querySelectorAll('span')
-        if (!centralCategorias || spansCategorias.length === 0) return completo
-
         const valores = centralCategorias.querySelectorAll('input[type="number"]');
-        let atrasoRegras = 0
-        let valorParceiro = 0
-        let categorias = []
-        let i = 0
+        let resultado = {
+            completo: false,
+            atrasoRegras: 0,
+            valorParceiro: 0,
+            categorias: [],
+            i: 0
+        }
+
+        if (!centralCategorias || spansCategorias.length === 0) return resultado
 
         for (const span of spansCategorias) {
 
-            const valor = Number(valores[i].value)
+            const valor = Number(valores[resultado.i].value)
             const codigo = span.id
             const nome = span.textContent
 
             total += valor
 
-            categorias.push({ nome, valor, codigo })
+            resultado.categorias.push({ nome, valor, codigo })
 
-            if (nome.includes('Adiantamento de Parceiro') && atrasoRegras == 0) {
-                atrasoRegras = 1
+            if (nome.includes('Adiantamento de Parceiro') && resultado.atrasoRegras == 0) {
+                resultado.atrasoRegras = 1
             } else if (nome.includes('Pagamento de Parceiro')) {
-                atrasoRegras = 2
+                resultado.atrasoRegras = 2
             }
 
-            valorParceiro += valor
+            resultado.valorParceiro += valor
 
-            if (codigo == '' || valor == 0) return completo
+            if (codigo == '' || valor == 0) return resultado
 
-            i++
+            resultado.i++
 
         }
 
-        completo = true
-        return { atrasoRegras, valorParceiro, categorias, completo }
+        resultado.completo = true
+        return resultado
 
+    }
+
+    function colorir(validacao, elemento) {
+        const el = document.querySelector(`[name="${elemento}Numero"]`)
+        if (el) el.style.backgroundColor = validacao ? 'green' : '#B12425'
     }
 
 }
@@ -1678,7 +1695,7 @@ async function recuperarUltimoPagamento() {
         }
     }
 
-    await calculadoraPagamento()
+    await calculadoraPagamento('recup')
 
     removerOverlay()
 
@@ -1688,41 +1705,26 @@ async function maisCategoria(dados = {}) {
 
     const aleatorio = ID5digitos()
     const categoria = `
-        <div style="${horizontal}; width: 100%; font-size: 0.8vw; gap: 10px;">
+        <div style="${horizontal}; justify-content: start; width: 100%;">
+
+            R$ <input value="${dados?.valor || ''}" type="number" oninput="calculadoraPagamento()" placeholder="0,00">
             
             <span name="${aleatorio}" ${dados.codigo ? `id="${dados.codigo}"` : ''} onclick="cxOpcoes('${aleatorio}', 'dados_categorias', ['categoria'], 'calculadoraPagamento()')">${dados?.nome || 'Selecionar'}</span>
 
-            R$ <input value="${dados?.valor || ''}" type="number" style="width: 100%;" oninput="calculadoraPagamento()" placeholder="0,00">
-
             <label src="imagens/remover.png" style="cursor: pointer; width: 2vw; font-size: 2.5vw;" onclick="apagarCategoria(this)">&times;</label>
+
         </div>
     `;
 
     document.querySelector('.centralCategorias').insertAdjacentHTML('beforeend', categoria)
-    if (!dados.id) await calculadoraPagamento()
+    if (!dados.codigo) await calculadoraPagamento('categ')
+
 }
 
 function apagarCategoria(elemento) {
     var linha = elemento.closest('div');
     linha.parentNode.removeChild(linha);
     calculadoraPagamento()
-}
-
-async function remover_anx(anx) {
-
-    let div = document.getElementById(anx)
-    let ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
-
-    if (div && ultimoPagamento.anexos[anx]) {
-        let link = ultimoPagamento.anexos[anx].link
-        delete ultimoPagamento.anexos[anx]
-
-        localStorage.setItem('ultimoPagamento', JSON.stringify(ultimoPagamento))
-        div.remove()
-    }
-
-    await recuperarUltimoPagamento()
-
 }
 
 async function salvarAnexosParceiros(input, campo, id_pagamento) {
@@ -1749,6 +1751,7 @@ async function salvarAnexosParceiros(input, campo, id_pagamento) {
 
         localStorage.setItem('ultimoPagamento', JSON.stringify(ultimoPagamento))
 
+        await calculadoraPagamento()
 
     } else { // O anexo deve ser incluído no pagamento já existente;
 

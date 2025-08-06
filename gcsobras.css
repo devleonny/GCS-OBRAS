@@ -1976,6 +1976,13 @@ input[type=range]::-moz-range-thumb {
     overflow-x: auto;
 }
 
+.centralCategorias {
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
+}
+
 .camposFinanceiro {
     min-height: 5vh;
     border-top-right-radius: 5px;
@@ -1997,6 +2004,7 @@ input[type=range]::-moz-range-thumb {
     background-color: #097fe6;
     border-radius: 3px;
     padding: 5px;
+    width: 100%;
 }
 
 .camposFinanceiro label {
@@ -2027,7 +2035,7 @@ input[type=range]::-moz-range-thumb {
     width: 2vw;
     border-bottom-left-radius: 5px;
     border-top-left-radius: 5px;
-    background-color: #097fe6;
+    background-color: #B12425;
     color: white;
     padding: 10px;
     display: flex;
