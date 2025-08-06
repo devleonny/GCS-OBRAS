@@ -188,7 +188,7 @@ async function preencher() {
         }
 
         if (item.tipo_desconto) {
-            let desconto = item.tipo_desconto == 'Dinheiro' ? item.desconto : item.custo * (item.desconto / 100)
+            let desconto = item.tipo_desconto !== 'Porcentagem' ? item.desconto : item.custo * (item.desconto / 100)
             desconto = desconto / item.qtde
             item.custo = item.custo - desconto
         }
@@ -202,7 +202,13 @@ async function preencher() {
         let tds = {}
 
         tds[1] = `<td>${item.codigo}</td>`
-        tds[2] = `<td style="text-align: left;">${item?.descricao || 'N/A'}</td>`
+        tds[2] = `
+        <td>
+            <div style="${vertical}">
+                ${item.tipo_desconto && item.tipo_desconto == 'Venda Direta' ? `<label><strong>Venda Direta</strong></label>` : ''}
+                <label>${item?.descricao || 'N/A'}</label>
+            </div>
+        </td>`
         tds[3] = `<td style="text-align: center;"><img src="${itemComposicao?.imagem || item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 2vw;"></td>`
         tds[4] = `<td>${item?.unidade || 'UN'}</td>`
         tds[5] = `<td>${item.qtde}</td>`
