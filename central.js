@@ -35,7 +35,12 @@ const modelo = (valor1, valor2) => `
         </div>
         `
 
-const labelDestaque = (valor1, valor2) => `<label style="text-align: left;"><strong>${valor1}: </strong>${valor2}</label>`
+const labelDestaque = (valor1, valor2) => `
+    <div style="${vertical}">
+        <div><strong>${valor1}:</strong></div>
+        <div style="text-align: left;">${valor2}</div>
+    </div>
+`
 
 const botao = (valor1, funcao, cor) => `
         <div class="contorno_botoes" style="background-color: ${cor};" onclick="${funcao}">

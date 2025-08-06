@@ -1609,8 +1609,14 @@ async function abrirEsquema(id) {
                     ${labelDestaque('Chamado', orcamento.dados_orcam.contrato)}
                     ${labelDestaque('Executor', historico.executor)}
                     ${labelDestaque('Data', historico.data)}
-                    ${labelDestaque('Comentário', historico?.comentario || '')}
-                    ${labelDestaque('Executor', historico.executor)}
+                    ${labelDestaque('Comentário', 
+                        `
+                        <div>
+                            <textarea oninput="mostrarConfirmacao(this)" style="resize: vertical; width: 90%;">${historico?.comentario || ''}</textarea>
+                            <span class="btnConfirmar" onclick="atualizarPedido('k8Fo5', 'comentario', this)">Atualizar</span>
+                        </div>    
+                        `
+                    )}
 
                     ${elementosEspecificos(chave, historico)}
 

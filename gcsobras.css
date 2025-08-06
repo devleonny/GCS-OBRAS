@@ -906,6 +906,15 @@ button {
     color: white;
 }
 
+.btnConfirmar {
+    display: none;
+    background-color: green;
+    color: white;
+    border-radius: 3px;
+    width: max-content;
+    padding: 5px;
+}
+
 .contornoMensagem label {
     font-size: 0.7vw;
 }
@@ -915,6 +924,7 @@ button {
 }
 
 .janela {
+    max-width: 90vw;
     overflow: auto;
     max-height: 90vh;
 }
