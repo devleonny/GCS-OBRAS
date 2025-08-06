@@ -1317,7 +1317,9 @@ async function telaPagamento() {
                     <div id="anexosDiversos" style="${vertical}; gap: 2px;"></div>
                 `)}
 
-            <div id="camposAdicionais"></div>
+            <div id="camposAdicionais">
+                ${incluirCamposAdicionais()}
+            </div>
 
         </div>
 
@@ -1397,12 +1399,11 @@ async function atualizarFormaPagamento(formato, pular) {
         }
     `;
 
-    if(!pular) await calculadoraPagamento()
+    if (!pular) await calculadoraPagamento()
 }
 
 function incluirCamposAdicionais() {
 
-    const camposAdicionais = document.getElementById('camposAdicionais')
     const campos = {
         lpu_parceiro: { titulo: 'LPU do parceiro de serviço & material' },
         os: { titulo: 'Ordem de Serviço' },
@@ -1430,7 +1431,7 @@ function incluirCamposAdicionais() {
     }
 
     const acumulado = `
-        <div id="painelParceiro" style="${vertical}; gap: 5px; width: 100%;">
+        <div id="painelParceiro" style="${vertical}; display: none; gap: 5px; width: 100%;">
             ${camposHtml}
             <br>
             <div style="display: flex; align-items: center; justify-content: center;">
@@ -1442,8 +1443,6 @@ function incluirCamposAdicionais() {
         </div>
         <br>
     `
-
-    if (camposAdicionais) return camposAdicionais.innerHTML = acumulado
     return acumulado
 }
 
@@ -1561,14 +1560,12 @@ async function calculadoraPagamento() {
 
     document.getElementById('totalPagamento').textContent = dinheiro(total)
 
-    console.log(auxCategorias)
+    const painelParceiro = document.getElementById('painelParceiro')
+    painelParceiro.style.display = auxCategorias.atrasoRegras > 0 ? 'flex' : 'none'
 
     if (camposAdicionais.innerHTML == '' && auxCategorias.atrasoRegras > 0) {
-        incluirCamposAdicionais()
         document.getElementById('v_pago').textContent = dinheiro(auxCategorias.valorParceiro)
         calcularCusto() // Tabela básica de parceiros;
-    } else if (auxCategorias?.atrasoRegras == 0) {
-        camposAdicionais.innerHTML = ''
     }
 
     backupPagamento()
@@ -1720,7 +1717,7 @@ async function maisCategoria(dados = {}) {
 }
 
 function apagarCategoria(elemento) {
-    var linha = elemento.closest('div');ical
+    var linha = elemento.closest('div'); ical
     linha.parentNode.removeChild(linha);
     calculadoraPagamento()
 }
