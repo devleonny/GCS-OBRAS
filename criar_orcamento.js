@@ -87,7 +87,7 @@ async function manterPrecosAntigos(resposta) {
         const historico = precos.historico
         const preco = historico[ativo].valor
 
-        if(produto.custo !== preco) produto.antigo = resposta
+        if (produto.custo !== preco) produto.antigo = resposta
     }
 
     orcamentoBase.edicaoAntigos = resposta
@@ -180,7 +180,7 @@ async function carregarTabelas() {
         if (!baseComposicoes[codigo]) baseComposicoes[codigo] = orcamentoBase.dados_composicoes[codigo]
 
         const opcoes = ['Dinheiro', 'Porcentagem', 'Venda Direta']
-            .map(op=> `<option ${produto?.tipo_desconto == op ? 'selected': ''}>${op}</option>`).join('')
+            .map(op => `<option ${produto?.tipo_desconto == op ? 'selected' : ''}>${op}</option>`).join('')
 
         let linha = `
         <tr>
@@ -340,7 +340,7 @@ async function enviarDados() {
         return popup(avisoHTML('CNPJ em branco'), 'ALERTA')
     }
 
-    if (orcamentoBase.total_desconto > 0 || orcamentoBase.alterado) {
+    if (orcamentoBase.total_desconto > 0) {
         orcamentoBase.aprovacao = {
             status: 'pendente',
             usuario: acesso.usuario
