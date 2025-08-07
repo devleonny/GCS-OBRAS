@@ -1476,7 +1476,7 @@ function connectWebSocket() {
 
     socket.onopen = () => {
         if (acesso) socket.send(JSON.stringify({ tipo: 'autenticar', usuario: acesso.usuario }));
-        console.log(`🟢🟢🟢 WS ${data_atual('completa')} 🟢🟢🟢`);
+        console.log(`🟢🟢🟢 WS ${obterDatas('completa')} 🟢🟢🟢`);
     };
 
     socket.onmessage = (event) => {
@@ -1489,7 +1489,7 @@ function connectWebSocket() {
     };
 
     socket.onclose = () => {
-        console.log(`🔴🔴🔴 WS ${data_atual('completa')} 🔴🔴🔴`);
+        console.log(`🔴🔴🔴 WS ${obterDatas('completa')} 🔴🔴🔴`);
         console.log(`Tentando reconectar em ${reconnectInterval / 1000} segundos...`);
         setTimeout(connectWebSocket, reconnectInterval);
     };
@@ -1565,7 +1565,7 @@ async function gerar_pdf_online(htmlString, nome) {
 
 }
 
-async function refazer_pagamento(id_pagamento) {
+async function relancarPagamento(id_pagamento) {
 
     overlayAguarde()
 
@@ -1574,7 +1574,7 @@ async function refazer_pagamento(id_pagamento) {
     if (!lista_pagamentos[id_pagamento]) return popup(mensagem('Algo deu ruim...'), 'AVISO', true)
 
     let pagamento = lista_pagamentos[id_pagamento]
-    console.log(await lancar_pagamento(pagamento))
+    console.log(await lancarPagamento(pagamento))
     pagamento.status = 'Processando...'
     await inserirDados(lista_pagamentos, 'lista_pagamentos')
     await abrirDetalhesPagamentos(id_pagamento)
@@ -1609,10 +1609,10 @@ async function reprocessarAnexos(idPagamento) {
     })
 }
 
-async function lancar_pagamento(pagamento, call) {
+async function lancarPagamento(pagamento, call) {
     return new Promise((resolve, reject) => {
 
-        fetch("https://leonny.dev.br/lancar_pagamento", {
+        fetch("https://leonny.dev.br/lancarPagamento", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ pagamento, call })
@@ -1689,14 +1689,14 @@ function sincronizar(script) {
     })
 }
 
-function data_atual(estilo, nivel) {
-    var dataAtual = new Date();
+function obterDatas(estilo, nivel) {
+    let dataAtual = new Date();
 
     if (nivel) {
         // var dataAtual = new Date(2024, 10, 10, 10, 0, 0, 0);
-        var diaDeHoje = dataAtual.getDate();
-        var ano = dataAtual.getFullYear();
-        var mes = dataAtual.getMonth();
+        let diaDeHoje = dataAtual.getDate();
+        let ano = dataAtual.getFullYear();
+        let mes = dataAtual.getMonth();
 
         if (nivel == 2 && diaDeHoje > 5) { // Pagamento de Parceiro no dia 10 do mês seguinte;
             diaDeHoje = 10;
@@ -2037,7 +2037,7 @@ async function respostaAprovacao(botao, idOrcamento, status) {
     let justificativa = botao.parentElement.parentElement.querySelector('textarea').value
     let dados = {
         usuario: acesso.usuario,
-        data: data_atual('completa'),
+        data: obterDatas('completa'),
         status,
         justificativa
     }
@@ -2152,7 +2152,7 @@ async function lista_setores(timestamp) {
 function registrarAlteracao(base, id, comentario) {
     let novoRegistro = {
         usuario: acesso.usuario,
-        data: data_atual('completa'),
+        data: obterDatas('completa'),
         comentario: comentario,
         base,
         id
@@ -2661,7 +2661,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
     for ([cod, dado] of Object.entries(base)) {
 
         const labels = campos
-            .map(campo => `<label>${dado[campo]}</label>`)
+            .map(campo => `${(dado[campo] && dado[campo] !== '') ? `<label>${dado[campo]}</label>` : ''}`)
             .join('')
 
         opcoesDiv += `

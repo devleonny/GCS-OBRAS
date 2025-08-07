@@ -795,7 +795,7 @@ async function enviar_manutencao(id) {
 
     let NF = document.getElementById("NF");
     manutencao.nf = NF && NF.value ? NF.value : "";
-    let data = data_atual('completa')
+    let data = obterDatas('completa')
 
     // Adiciona uma nova entrada ao histórico
     let novaAtualizacao = {

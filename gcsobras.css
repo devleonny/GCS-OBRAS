@@ -1579,18 +1579,6 @@ input[type=range]::-moz-range-thumb {
     border-radius: 3px;
 }
 
-#painel_envio_de_material {
-    margin: 2vw;
-    background-color: white;
-    border-radius: 5px;
-    padding: 5px;
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    justify-content: left;
-    gap: 10px
-}
-
 .close {
     position: absolute;
     top: 10px;
@@ -1619,11 +1607,19 @@ input[type=range]::-moz-range-thumb {
 }
 
 .contornoBotaoLiberacao {
-    margin-left: 1vw;
-    border-radius: 5px;
+    color: white;
+    background-color: #3b444c;
+    border-top: 1px solid #d2d2d2;
+    padding: 1vw;
     display: flex;
+    justify-content: space-between;
     align-items: center;
     gap: 1vw;
+}
+
+.contornoBotaoLiberacao img {
+    width: 3vw;
+    cursor: pointer;
 }
 
 .status {

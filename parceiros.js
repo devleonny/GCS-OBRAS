@@ -94,7 +94,7 @@ async function modalLPUParceiro(chave) {
         <div style="background-color: #d2d2d2; padding: 5px;">
             <div style="display: flex; justify-content: space-between;" margin-top: 5px>
                 <div style=" display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px; margin-left: 10px">
-                    ${stringHtml('Data', data_atual('completa'))}
+                    ${stringHtml('Data', obterDatas('completa'))}
                     ${stringHtml('Analista', acesso.nome_completo)}
                     ${stringHtml('Cliente', dadosEmpresa.nome)}
                     ${stringHtml('CNPJ', dadosEmpresa.cnpj)}
@@ -167,7 +167,7 @@ async function gerarExcelLpuParceiro() {
 
     let dadosParaExcel = {
         status: 'LPU PARCEIRO',
-        data: data_atual('completa'),
+        data: obterDatas('completa'),
         analista: acesso.nome_completo,
         margem_percentual: margem,
         tecnicoLpu: tecnico,
@@ -328,7 +328,7 @@ async function salvarLpuParceiro(chave) {
 
     let novo_lancamento = {
         status: 'LPU PARCEIRO',
-        data: data_atual('completa'),
+        data: obterDatas('completa'),
         executor: acesso.usuario,
         margem_percentual: margem,
         omie_tecnico,
@@ -704,7 +704,7 @@ async function detalharLpuParceiro(chave) {
     let cabecalhoInfo = `
         <div style="display: flex; justify-content: space-between">
             <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
-                ${stringHtml('Data', data_atual('completa'))}
+                ${stringHtml('Data', obterDatas('completa'))}
                 ${stringHtml('Analista', acesso?.nome_completo || '')}
                 ${stringHtml('Cliente', dadosEmpresa?.nome || '')}
                 ${stringHtml('CNPJ', dadosEmpresa?.cnpj || '')}

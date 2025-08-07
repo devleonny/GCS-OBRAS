@@ -60,32 +60,40 @@
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
 
-        .btn_detalhes {
+        .selectStatus {
+            cursor: pointer;
+            border-radius: 3px;
+            padding: 5px;
+        }
+
+        .btnDetalhes {
+            min-height: 5vh;
+            width: 100%;
             display: flex;
             align-items: center;
             justify-content: left;
-            gap: 10px;
+            gap: 2vw;
             background-color: #eeeeee;
-            border-radius: 3px;
             cursor: pointer;
             padding: 3px;
         }
 
-        .btn_detalhes:hover {
+        .btnDetalhes:hover {
             background-color: #222;
             color: white;
         }
 
-        .btn_detalhes img {
+        .btnDetalhes img {
+            margin-left: 2vw;
             width: 2vw;
             cursor: pointer;
         }
 
         .divTabela {
-            width: 70%;
-            height: 60vh;
+            width: 100%;
+            height: max-content;
+            max-height: 60vh;
             overflow-y: auto;
-            border-radius: 2px;
         }
 
         .painelEsquerdo {
@@ -101,8 +109,7 @@
             margin-right: 10px;
         }
 
-        .painelEsquerdo::-webkit-scrollbar,
-        .divTabela::-webkit-scrollbar {
+        .painelEsquerdo::-webkit-scrollbar {
             display: none;
         }
 

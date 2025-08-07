@@ -387,7 +387,7 @@ async function salvarValores(idCusto) {
         kml: obterValores('kml'),
         comentario: obterValores('comentario'),
         data_pagamento,
-        data: data_atual('completa'),
+        data: obterDatas('completa'),
         usuario: acesso.usuario
     }
 
