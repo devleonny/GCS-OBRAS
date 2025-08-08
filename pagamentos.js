@@ -125,8 +125,9 @@ async function carregarPagamentos() {
     //Chamada para o endpoint que já retorna os pagamentos filtrados;
     let acumulado = ''
     const lista_pagamentos = await filtrarPagamentos() // Filtrar de acordo com o usuário atual;
-    const orcamentos = await recuperarDados('dados_orcamentos', true) || {};
     const dados_clientes = await recuperarDados('dados_clientes') || {};
+    const dadosCC = await recuperarDados('dados_CC') || {};
+
     let linhas = ''
     let contagens = { TODOS: { qtde: 0, valor: 0 } }
 
@@ -142,8 +143,7 @@ async function carregarPagamentos() {
 
         const recebedor = dados_clientes?.[pagamento?.param[0]?.codigo_cliente_fornecedor]?.nome || ''
         const setorCriador = dados_setores?.[pagamento.criado]?.setor || ''
-        const cc = orcamentos?.[pagamento.id_orcamento]?.dados_orcam?.omie_cliente || pagamento.id_orcamento
-        const nomeCC = dados_clientes?.[cc]?.nome || cc
+        const nomeCC = dadosCC?.[pagamento.id_orcamento]?.nome || '--'
 
         // criarLinha(pagamento)
 
