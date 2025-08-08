@@ -418,7 +418,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
             }
 
             infos += `
-                <div style="${horizontal}; width: 80%;">
+                <div class="balao2025">
                     <label class="numero"></label>
                     <div class="camposFinanceiro">
 
@@ -440,10 +440,10 @@ async function abrirDetalhesPagamentos(id_pagamento) {
         }
 
         formParceiros = `
-            <div style="${vertical}; gap: 5px; width: 100%;">
+            <div style="${vertical}; gap: 5px; width: 90%;">
                 ${infos}
 
-                <div style="${horizontal}; width: 80%;">
+                <div class="balao2025">
                     <span name="tabelaParceiro" class="numero"></span>
                     <div class="camposFinanceiro">
                         ${carregarTabelaCustoParceiro({ resumo: pagamento.resumo, id_pagamento: pagamento.id_pagamento })}
@@ -629,20 +629,37 @@ async function excluir_anexo_parceiro(id_pagamento, campo, anx) {
 }
 
 function colorirParceiros() {
-
+    const contornoBotaoLiberacao = document.querySelector('.contornoBotaoLiberacao')
     const numeros = document.querySelectorAll('.numero')
-    let divs = document.querySelectorAll('div.container')
+    const divs = document.querySelectorAll('div.container')
+    let i = 0
 
-    numeros.forEach((numero, i) => {
+    if (!contornoBotaoLiberacao) {
 
-        numero.textContent = i + 1
-        if (divs[i]) numero.style.backgroundColor = divs[i].children.length == 0 ? '#B12425' : 'green'
+        for (const numero of numeros) {
+            numero.textContent = i + 1
 
-    })
+            if (!divs[i]) continue
+
+            const balao = numero?.parentElement
+            if (balao) {
+                balao.style.background = `linear-gradient(to right, ${divs[i].children.length == 0 ? '#B12425' : 'green'
+                    } 10%, #3b444c 0%)`
+            }
+
+            i++
+        }
+    }
 
     const v_orcado = document.getElementById('v_orcado')
-    document.querySelector('[name="tabelaParceiro"]').style.backgroundColor = v_orcado.value == 0 ? '#B12425' : 'green'
+    const el = document.querySelector('[name="tabelaParceiro"]')
+    const balao = el?.parentElement
+    if (!contornoBotaoLiberacao) el.textContent = i + 1
 
+    if (balao) {
+        balao.style.background = `linear-gradient(to right, ${v_orcado.value == 0 ? '#B12425' : 'green'
+            } 10%, #3b444c 0%)`
+    }
 }
 
 function auxiliar(elemento) {
@@ -782,27 +799,25 @@ async function atualizar_departamentos() {
 async function telaPagamento() {
 
     const modeloCampos = (name, nomeCampo, elemento) => `
-        <div class="ordem">
-            <div name="${name}Numero" class="numero"></div>
+        <div class="balao2025">
+            <span name="${name}Numero" class="numero"></span>
 
             <div class="camposFinanceiro">
-                <div style="${horizontal}; width: 30%;">${nomeCampo}</div>
+                <div style="${horizontal}; justify-content: start; width: 30%;">${nomeCampo}</div>
                 ${elemento}
             </div>
-
-        </div>
-    `
+        </div>`
 
     const acumulado = `
 
-        <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw; height: 60vh; overflow-y: auto;">
+        <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw; height: 60vh; overflow-y: auto; overflow-x: hidden;">
 
             ${modeloCampos('cc', 'Centro de Custo', `
-                    <span name="cc" onclick="cxOpcoes('cc', 'dados_CC', ['nome', 'contrato', 'analista', 'cidade', 'cnpj', 'valor'], 'calculadoraPagamento()')">Selecionar</span>
+                    <span class="opcoes" name="cc" onclick="cxOpcoes('cc', 'dados_CC', ['nome', 'contrato', 'analista', 'cidade', 'cnpj', 'valor'], 'calculadoraPagamento()')">Selecionar</span>
                 `)}
 
             ${modeloCampos('recebedor', 'Recebedor', `
-                    <span name="recebedor" onclick="cxOpcoes('recebedor', 'dados_clientes', ['nome', 'cnpj'], 'calculadoraPagamento()')">Selecionar</span>
+                    <span class="opcoes" name="recebedor" onclick="cxOpcoes('recebedor', 'dados_clientes', ['nome', 'cnpj'], 'calculadoraPagamento()')">Selecionar</span>
                 `)}
 
             ${modeloCampos('descricao', 'Descrição', `
@@ -969,7 +984,7 @@ function incluirCamposAdicionais() {
 
         let conteudo = campos[campo]
         camposHtml += `
-            <div class="ordem">
+            <div class="balao2025">
                 <span name="${campo}Numero" class="numero"></span>
                 <div class="camposFinanceiro" style="justify-content: space-between;">
                     <div style="width: 30%; text-align: left;">${conteudo.titulo}</div>
@@ -979,14 +994,14 @@ function incluirCamposAdicionais() {
                     </label>
                     <div id="div${campo}" style="${vertical}"></div>
                 </div>
-            </div>    
+            </div>
             `
     }
 
     const acumulado = `
         ${camposHtml}
         <br>
-        <div style="display: flex; align-items: center; justify-content: center;">
+        <div class="balao2025">
             <span name="tabelaParceiro" class="numero"></span>
             <div class="camposFinanceiro">
                 ${carregarTabelaCustoParceiro()}
@@ -1250,7 +1265,8 @@ async function calculadoraPagamento() {
 
     function colorir(validacao, elemento) {
         const el = document.querySelector(`[name="${elemento}Numero"]`)
-        if (el) el.style.backgroundColor = validacao ? 'green' : '#B12425'
+        const balao = el?.parentElement
+        if (balao) balao.style.background = `linear-gradient(to right, ${validacao ? 'green' : '#B12425'} 10%, #3b444c 0%)`
     }
 
 }
@@ -1315,11 +1331,11 @@ async function maisCategoria(dados = {}) {
     const aleatorio = ID5digitos()
     const categoria = await recuperarDado('dados_categorias', dados.codigo_categoria)
     const categoriaHTML = `
-        <div style="${horizontal}; justify-content: start; width: 100%;">
+        <div style="${horizontal}; justify-content: start;">
 
             R$ <input value="${dados?.valor || ''}" type="number" oninput="calculadoraPagamento()" placeholder="0,00">
             
-            <span name="${aleatorio}" ${dados.codigo_categoria ? `id="${dados.codigo_categoria}"` : ''} onclick="cxOpcoes('${aleatorio}', 'dados_categorias', ['categoria'], 'calculadoraPagamento()')">${categoria?.categoria || 'Selecionar'}</span>
+            <span class="opcoes" name="${aleatorio}" ${dados.codigo_categoria ? `id="${dados.codigo_categoria}"` : ''} onclick="cxOpcoes('${aleatorio}', 'dados_categorias', ['categoria'], 'calculadoraPagamento()')">${categoria?.categoria || 'Selecionar'}</span>
 
             <label src="imagens/remover.png" style="cursor: pointer; width: 2vw; font-size: 2.5vw;" onclick="apagarCategoria(this)">&times;</label>
 
