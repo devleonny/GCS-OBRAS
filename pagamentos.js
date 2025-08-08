@@ -156,12 +156,14 @@ async function carregarPagamentos() {
                     <td>${pagamento.criado}</td>
                     <td>${setorCriador}</td>
                     <td>${recebedor}</td>
-                    <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrirDetalhesPagamentos('${idPagamento}')"></td>
+                    <td style="text-align: center;">
+                        <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrirDetalhesPagamentos('${idPagamento}')">
+                    </td>
                 </tr>
             `
     };
 
-    let colunas = ['Data de Previsão', 'Centro de Custo', 'Valor e Categoria', 'Status Pagamento', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
+    let colunas = ['Data de Previsão', 'Centro de Custo', 'Valor', 'Status', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
 
     let cabecalho1 = ''
     let cabecalho2 = ''
@@ -228,7 +230,7 @@ async function carregarPagamentos() {
                     <table id="pagamentos" class="tabela">
                         <thead>
                             <tr>${cabecalho1}</tr>
-                            <tr id="thead_pesquisa">${cabecalho2}</tr>
+                            <tr>${cabecalho2}</tr>
                         </thead>
                         <tbody id="body">
                             ${linhas}
@@ -358,14 +360,16 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
     })
 
-    let divValores = `
-        <div style="display: flex; flex-direction: column; width: 100%;">
-            ${valores}
-            <hr style="width: 100%;">
-            <div style="display: flex; align-items: center; justify-content: start; gap: 5vw;">
-                <label>${dinheiro(pagamento.param[0].valor_documento)}</label>
+    const divValores = `
+        <hr style="width: 100%;">
+        <div style="${vertical}">
+            <div style="${horizontal}; justify-content: start; gap: 10px;">
+                <label style="font-size: 2vw;">${dinheiro(pagamento.param[0].valor_documento)}</label>
+                <label>Total</label>
             </div>
+            ${valores}
         </div>
+        <hr style="width: 100%;">
         `
 
     let formParceiros = ''
@@ -485,10 +489,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
             ${divValores}
 
-            <hr style="width: 100%;">
-
             ${formParceiros}
-            <br>
 
             <div id="comentario" class="contorno" style="width: 90%;">
                 <div class="contorno_interno" style="background-color: #ffffffde;">
@@ -1081,20 +1082,35 @@ function carregarTabelaCustoParceiro(dados = {}) {
         `
 }
 
+function compararDatas(data1, data2) {
+    // aaaa-mm-dd
+    const partes1 = data1.split("-");
+    const date1 = new Date(partes1[0], partes1[1] - 1, partes1[2]);
+
+    // dd/mm/aaaa
+    const partes2 = data2.split("/");
+    const date2 = new Date(partes2[2], partes2[1] - 1, partes2[0]);
+
+    const dataFinal = date1.getTime() > date2.getTime() ? data1 : data2
+
+    return new Date(dataFinal).toLocaleDateString('pt-BR')
+}
+
 async function calculadoraPagamento() {
 
     let ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
     let cor = ''
     const recebedor = document.querySelector('[name="recebedor"]')
-    const descricao = document.getElementById('descricao')
     const pix = document.getElementById('pix')
     const dtVencimento = document.getElementById('dtVencimento')
     const cc = document.querySelector('[name="cc"]')
     const auxCategorias = calcularCategorias()
-    const data = obterDatas('curta', auxCategorias.atrasoRegras)
     const v_orcado = document.getElementById('v_orcado')
     const coloridos = document.querySelectorAll('.numero')
     const painelParceiro = document.getElementById('painelParceiro')
+    const data = obterDatas('curta', auxCategorias.atrasoRegras)
+    const dataFinal = dtVencimento ? compararDatas(dtVencimento.value, data) : data
+    const descricao = document.getElementById('descricao')
 
     // Validação de cores;
     colorir(v_orcado.value !== '', 'tabelaParceiro')
@@ -1114,7 +1130,7 @@ async function calculadoraPagamento() {
     // Valores totais e de parceiros(quando existir);
     document.getElementById('v_pago').textContent = auxCategorias.valorParceiro
     document.getElementById('totalPagamento').textContent = dinheiro(auxCategorias.total || 0)
-    document.getElementById('dataPagamento').textContent = `Será Pago em ${data}`
+    document.getElementById('dataPagamento').textContent = `Será Pago em ${dataFinal}`
 
     painelParceiro.style.display = auxCategorias.atrasoRegras > 0 ? 'flex' : 'none'
     if (painelParceiro.innerHTML == '' && auxCategorias.atrasoRegras > 0) {
@@ -1139,6 +1155,8 @@ async function calculadoraPagamento() {
 
     function backupPagamento() {
         const pagamentoSelect = document.getElementById('pagamentoSelect')
+        const assinatura = `Solicitante: ${acesso.usuario}`
+        const descricaoFinal = descricao.value.includes(assinatura) ? descricao.value : `${assinatura} \n ${descricao.value}`
 
         ultimoPagamento = {
             ...ultimoPagamento,
@@ -1155,10 +1173,10 @@ async function calculadoraPagamento() {
                 {
                     codigo_cliente_fornecedor: recebedor.id,
                     valor_documento: auxCategorias.total,
-                    observacao: descricao.value,
+                    observacao: descricaoFinal,
                     codigo_lancamento_integracao: '',
-                    data_vencimento: data,
-                    data_previsao: data,
+                    data_vencimento: dataFinal,
+                    data_previsao: dataFinal,
                     categorias: auxCategorias.categorias,
                     id_conta_corrente: '6054234828', // Itaú AC > Padrão;
                     distribuicao: []
@@ -1412,6 +1430,10 @@ async function editarPagamento(id_pagamento) {
 
     overlayAguarde()
     let pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
+
+    const omieStatus = ['A VENCER', 'PAGO', 'ATRASADO', 'VENCE HOJE']
+
+    if (omieStatus.includes(pagamento.status)) return popup(mensagem('Este pagamento já está no Omie e por isso não pode ser editado!'), 'AVISO', true)
 
     localStorage.setItem('ultimoPagamento', JSON.stringify(pagamento))
 
