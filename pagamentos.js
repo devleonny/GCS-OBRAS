@@ -444,7 +444,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
                 ${infos}
 
                 <div style="${horizontal}; width: 80%;">
-                    <span id="tabelaParceiro" class="numero"></span>
+                    <span name="tabelaParceiro" class="numero"></span>
                     <div class="camposFinanceiro">
                         ${carregarTabelaCustoParceiro({ resumo: pagamento.resumo, id_pagamento: pagamento.id_pagamento })}
                     </div>
