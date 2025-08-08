@@ -516,7 +516,7 @@ async function definir_campo(input_id, omie_departamento, descricao) {
     let dados = {
         departamento: omie_departamento,
         usuario: acesso.usuario,
-        data: data_atual('completa')
+        data: obterDatas('completa')
     }
 
     let input = document.getElementById(input_id)
@@ -524,7 +524,7 @@ async function definir_campo(input_id, omie_departamento, descricao) {
     input.previousElementSibling.style.display = omie_departamento != '' ? 'block' : 'none'
     input.value = descricao
     input.nextElementSibling.textContent = acesso.usuario
-    input.nextElementSibling.nextElementSibling.textContent = data_atual('completa')
+    input.nextElementSibling.nextElementSibling.textContent = obterDatas('completa')
 
     colorir_tabela()
 
@@ -1040,7 +1040,7 @@ async function atualizarDepartamentos(divMaior, codFuncionario) {
 
     pagamento.param[0].distribuicao = auxPagamFuncionario[codFuncionario].distribuicao
 
-    let resposta = await lancar_pagamento(pagamento, 'AlterarContaPagar')
+    let resposta = await lancarPagamento(pagamento, 'AlterarContaPagar')
 
     if (!resposta.faultstring) {
         await inserirDados(lista_pagamentos, 'lista_pagamentos')
@@ -1119,7 +1119,7 @@ async function enviarPagamentos() {
             id_pagamento: idPagamento,
             id_orcamento: 'AGENDA',
             departamento: 'AGENDA',
-            data_registro: data_atual('completa'),
+            data_registro: obterDatas('completa'),
             anexos: {},
             anexos_parceiros: {},
             criado: acesso.usuario,
@@ -1142,7 +1142,7 @@ async function enviarPagamentos() {
 
         carregamento.textContent = `${((i / tamanho) * 100).toFixed(0)}%`
 
-        let resposta = await lancar_pagamento(pagamento)
+        let resposta = await lancarPagamento(pagamento)
 
         if (resposta.faultstring) pagamento.status = 'Não lançado'
 

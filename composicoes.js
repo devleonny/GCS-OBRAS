@@ -1314,7 +1314,7 @@ async function salvarPreco(codigo, lpu, cotacao) {
 
     historico[id] = {
         valor: preco_venda,
-        data: data_atual('completa'),
+        data: obterDatas('completa'),
         usuario: acesso.usuario,
         nota: nota || '',
         comentario: comentario || '',

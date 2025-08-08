@@ -294,7 +294,7 @@ async function salvarNota() {
 
     let dados = {
         status: 'FATURADO',
-        data: data_atual('completa'),
+        data: obterDatas('completa'),
         executor: acesso.usuario,
         comentario
     }
@@ -979,7 +979,7 @@ async function salvarPedido() {
     }
 
     let dados = {
-        data: data_atual('completa'),
+        data: obterDatas('completa'),
         executor: acesso.usuario,
         comentario: comentario_status.value,
         valor: Number(valor.value),
@@ -1014,7 +1014,7 @@ async function salvar_requisicao(chave) {
 
     let novo_lancamento = {
         status: 'REQUISIÇÃO',
-        data: data_atual('completa'),
+        data: obterDatas('completa'),
         transportadora: document.getElementById('transportadora').value,
         volumes: document.getElementById('volumes').value,
         executor: acesso.usuario,
@@ -1138,7 +1138,7 @@ async function arquivarOrcamento(idOrcamento) {
 
         let dados = {
             usuario: acesso.usuario,
-            data: data_atual('completa')
+            data: obterDatas('completa')
         }
 
         orcamento.arquivado = dados
@@ -1864,7 +1864,7 @@ async function alterar_status(select, id) {
 
         // Adicionar registro de mudança de status
         const registroStatus = {
-            data: data_atual('completa'),
+            data: obterDatas('completa'),
             de: statusAnterior,
             para: select.value,
             usuario: acesso.usuario
@@ -1967,7 +1967,7 @@ async function registrarEnvioMaterial(chave) {
     let st = 'MATERIAL ENVIADO'
 
     status.executor = acesso.usuario
-    status.data = data_atual('completa')
+    status.data = obterDatas('completa')
     status.status = st
 
     historico[chave] = status
@@ -2046,7 +2046,7 @@ async function salvar_comentario(chave) {
     const comentario = {
         id,
         comentario: textarea.value,
-        data: data_atual('completa'),
+        data: obterDatas('completa'),
         usuario: acesso.usuario
     }
 

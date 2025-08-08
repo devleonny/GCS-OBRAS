@@ -952,6 +952,7 @@ button {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-bottom: 1px solid #d2d2d2;
 }
 
 .botao_popup {
@@ -1588,18 +1589,6 @@ input[type=range]::-moz-range-thumb {
     border-radius: 3px;
 }
 
-#painel_envio_de_material {
-    margin: 2vw;
-    background-color: white;
-    border-radius: 5px;
-    padding: 5px;
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    justify-content: left;
-    gap: 10px
-}
-
 .close {
     position: absolute;
     top: 10px;
@@ -1627,16 +1616,20 @@ input[type=range]::-moz-range-thumb {
     margin: 5px;
 }
 
-.contorno_botao_liberacao {
-    width: 100%;
-    border: 1px solid #097fe6;
-    border-radius: 5px;
-    padding: 5px;
+.contornoBotaoLiberacao {
+    color: white;
+    background-color: #3b444c;
+    border-top: 1px solid #d2d2d2;
+    padding: 1vw;
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    align-items: center;
+    gap: 1vw;
+}
+
+.contornoBotaoLiberacao img {
+    width: 3vw;
+    cursor: pointer;
 }
 
 .status {
@@ -1989,58 +1982,72 @@ input[type=range]::-moz-range-thumb {
     overflow-x: auto;
 }
 
-.itens_financeiro {
+.centralCategorias {
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
+}
+
+.camposFinanceiro {
+    min-height: 5vh;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    padding-left: 1vw;
     gap: 5px;
     position: relative;
     color: white;
     background-color: #3b444c;
-    border-radius: 2px;
     display: flex;
     align-items: center;
-    justify-content: space-evenly;
-    width: 80%;
-    box-shadow: 2px 2px #222;
+    justify-content: space-between;
+    width: 100%;
 }
 
-.itens_financeiro label {
+.camposFinanceiro span {
+    cursor: pointer;
+    margin: 5px;
+    background-color: #097fe6;
+    border-radius: 3px;
+    padding: 5px;
+    width: 100%;
+}
+
+.camposFinanceiro label {
     margin: 5px;
     border: none;
 }
 
-.itens_financeiro textarea,
-.itens_financeiro input,
-.itens_financeiro select {
+.camposFinanceiro textarea,
+.camposFinanceiro input,
+.camposFinanceiro select {
+    margin: 3px;
     background-color: #e0e0e0;
-    font-size: 0.7em;
+    font-size: 1vw;
     border: none;
     border-radius: 2px;
-    box-shadow: 2px 2px #222;
-}
-
-.itens_financeiro input {
-    width: 100%;
-    font-size: 1.0vw;
     padding: 5px;
 }
 
 .ordem {
     display: flex;
-    gap: 10px;
     justify-content: left;
     align-items: center;
     width: 100%;
 }
 
 .numero {
-    border-radius: 50%;
-    background-color: #097fe6;
+    height: -webkit-fill-available;
+    width: 2vw;
+    border-bottom-left-radius: 5px;
+    border-top-left-radius: 5px;
+    background-color: #B12425;
     color: white;
-    width: 3vw;
-    height: 3vw;
+    padding: 10px;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.0em;
+    font-size: 1vw;
 }
 
 .pedido {
