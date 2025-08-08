@@ -121,55 +121,15 @@ async function carregarPagamentos() {
 
     //Chamada para o endpoint que já retorna os pagamentos filtrados;
     let acumulado = ''
-    let lista_pagamentos = await filtrarPagamentos() // Filtrar de acordo com o usuário atual;
-    const dados_categorias = await recuperarDados('dados_categorias')
+    const lista_pagamentos = await filtrarPagamentos() // Filtrar de acordo com o usuário atual;
     const orcamentos = await recuperarDados('dados_orcamentos', true) || {};
     const dados_clientes = await recuperarDados('dados_clientes') || {};
     let linhas = ''
-
-    let pagamentosFiltrados = Object.keys(lista_pagamentos)
-        .map(idPagamento => {
-
-            let pagamento = lista_pagamentos[idPagamento];
-            let omieCliente = orcamentos?.[pagamento.id_orcamento]?.dados_orcam?.omie_cliente || ''
-            let nome_orcamento = dados_clientes?.[omieCliente]?.nome || pagamento.id_orcamento
-
-            let valor_categorias = pagamento.param[0].categorias.map(cat =>
-                `<p>${dinheiro(cat.valor)} - ${dados_categorias[cat.codigo_categoria].categoria}</p>`
-            ).join('');
-
-
-            let data_registro = pagamento.data_registro || pagamento.param[0].data_previsao;
-
-            return {
-                id: idPagamento,
-                param: pagamento.param,
-                data_registro,
-                data_previsao: pagamento.param[0].data_previsao,
-                nome_orcamento,
-                valor_categorias,
-                status: pagamento.status,
-                observacao: pagamento.param[0].observacao,
-                criado: pagamento.criado,
-                anexos: pagamento.anexos
-            };
-        })
-        .filter(Boolean);
-
-    const parseDate = (data) => {
-        const [dia, mes, ano] = data.split('/').map(Number);
-        return new Date(ano, mes - 1, dia);
-    };
-
-    pagamentosFiltrados.sort((a, b) => parseDate(b.data_previsao) - parseDate(a.data_previsao));
-
     let contagens = { TODOS: { qtde: 0, valor: 0 } }
 
-    for ([ordem, pagamento] of Object.entries(pagamentosFiltrados)) {
+    for (const [idPagamento, pagamento] of Object.entries(lista_pagamentos).reverse()) {
 
-        if (!contagens[pagamento.status]) {
-            contagens[pagamento.status] = { qtde: 0, valor: 0 }
-        }
+        if (!contagens[pagamento.status]) contagens[pagamento.status] = { qtde: 0, valor: 0 }
 
         contagens[pagamento.status].qtde++
         contagens[pagamento.status].valor += pagamento.param[0].valor_documento
@@ -177,32 +137,26 @@ async function carregarPagamentos() {
         contagens.TODOS.qtde++
         contagens.TODOS.valor += pagamento.param[0].valor_documento
 
-        let div = `
-            <div style="display: flex; gap: 10px; justify-content: left; align-items: center;">
-                <img src="${iconePagamento(pagamento.status)}" style="width: 2vw;">
-                <label>${pagamento.status}</label>
-            </div>
-            `
-        let setor_criador = ''
-        if (dados_setores[pagamento.criado]) {
-            setor_criador = dados_setores[pagamento.criado].setor
-        }
-
-        let recebedor = pagamento.param[0].codigo_cliente_fornecedor
-        if (dados_clientes[recebedor]) {
-            recebedor = dados_clientes[recebedor].nome
-        }
+        const recebedor = dados_clientes?.[pagamento?.param[0]?.codigo_cliente_fornecedor]?.nome || ''
+        const setorCriador = dados_setores?.[pagamento.criado]?.setor || ''
+        const cc = orcamentos?.[pagamento.id_orcamento]?.dados_orcam?.omie_cliente || pagamento.id_orcamento
+        const nomeCC = dados_clientes?.[cc]?.nome || cc
 
         linhas += `
                 <tr>
-                    <td>${pagamento.data_previsao}</td>
-                    <td>${pagamento.nome_orcamento}</td>
-                    <td style="text-align: left;">${pagamento.valor_categorias}</td>
-                    <td>${div}</td>
+                    <td>${pagamento.param[0].data_vencimento}</td>
+                    <td>${nomeCC}</td>
+                    <td>${dinheiro(pagamento.param[0].valor_documento)}</td>
+                    <td>
+                        <div style="${horizontal}; justify-content: start; gap: 5px;">
+                            <img src="${iconePagamento(pagamento.status)}" style="width: 2vw;">
+                            <label style="text-align: left;">${pagamento.status}</label>
+                        </div>
+                    </td>
                     <td>${pagamento.criado}</td>
-                    <td>${setor_criador}</td>
+                    <td>${setorCriador}</td>
                     <td>${recebedor}</td>
-                    <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrirDetalhesPagamentos('${pagamento.id}')"></td>
+                    <td style="text-align: center;"><img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrirDetalhesPagamentos('${idPagamento}')"></td>
                 </tr>
             `
     };
