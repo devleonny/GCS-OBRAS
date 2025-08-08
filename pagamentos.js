@@ -45,6 +45,7 @@ async function recuperarPagamentos() {
     await sincronizarDados('lista_pagamentos', true)
     await sincronizarDados('dados_clientes', true)
     await sincronizarDados('dados_orcamentos', true)
+    await sincronizarDados('departamentos_fixos', true)
 
     // Atualizar os do clone;
     ativarCloneGCS(true)
@@ -64,9 +65,11 @@ async function criarBaseCC() {
     let dados_CC = {}
     const dados_orcamentos = await recuperarDados('dados_orcamentos', true)
     const dados_clientes = await recuperarDados('dados_clientes')
-    const departamentosFixos = JSON.parse(localStorage.getItem('departamentos_fixos'))
+    const departamentosFixos = await recuperarDados('departamentos_fixos')
 
-    for (const dep of departamentosFixos) dados_CC[dep] = { nome: dep }
+    for (const [idDepartamento, dep] of Object.entries(departamentosFixos)) {
+        dados_CC[idDepartamento] = dep
+    }
 
     for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
 
@@ -141,6 +144,8 @@ async function carregarPagamentos() {
         const setorCriador = dados_setores?.[pagamento.criado]?.setor || ''
         const cc = orcamentos?.[pagamento.id_orcamento]?.dados_orcam?.omie_cliente || pagamento.id_orcamento
         const nomeCC = dados_clientes?.[cc]?.nome || cc
+
+        // criarLinha(pagamento)
 
         linhas += `
                 <tr>
