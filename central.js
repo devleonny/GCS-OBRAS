@@ -307,7 +307,7 @@ async function identificacaoUser() {
     if (acesso.permissao == 'ocorrencias' && document.title !== 'Ocorrências') return window.location.href = 'ocorrencias.html'
     if (document.title == 'Ocorrências') return
 
-    const usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []
+    const usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []    
     const totalUsuarios = [...new Set(usuariosOnline)]
 
     carregarIcones() // ícones da tela inicial;
@@ -1501,24 +1501,25 @@ function connectWebSocket() {
 
 }
 
-function painelUsuarios(elementoOrigial) {
+async function painelUsuarios(elementoOrigial) {
 
     let divUsuarios = document.getElementById('divUsuarios')
     if (divUsuarios) return divUsuarios.remove()
 
-    let usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []
-
+    const usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []
     let stringUsuarios = {
         online: { linhas: '', quantidade: 0 },
         offline: { linhas: '', quantidade: 0 },
     }
 
-    dados_setores = Object.entries(dados_setores).sort((a, b) => a[0].localeCompare(b[0]))
+    let dadosSetores = await recuperarDados('dados_setores') || {}
+    dadosSetores = Object.entries(dadosSetores).sort((a, b) => a[0].localeCompare(b[0]))
 
-    for ([usuario, objeto] of dados_setores) {
+    for (const [usuario, objeto] of dadosSetores) {
 
-        let status = usuariosOnline.includes(usuario) ? 'online' : 'offline'
-
+        if(objeto.permissao == 'novo') continue
+        const status = usuariosOnline.includes(usuario) ? 'online' : 'offline'
+        
         stringUsuarios[status].quantidade++
         stringUsuarios[status].linhas += `
         <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
