@@ -6,6 +6,9 @@ let opcoesStatus = [
     'Pagamento Excluído',
     'Processando...'
 ]
+let dadosClientes = {}
+let dadosCC = {}
+let dadosSetores = {}
 
 function imagemEspecifica(justificativa) {
 
@@ -54,7 +57,7 @@ async function recuperarPagamentos() {
 
     await criarBaseCC()
 
-    await retomarPaginacao()
+    await carregarPagamentos()
 
     removerOverlay()
 
@@ -119,64 +122,22 @@ async function filtrarPagamentos() {
 
 async function carregarPagamentos() {
 
-    let div_pagamentos = document.getElementById('div_pagamentos')
-    if (!div_pagamentos) return
+    const divPagamentos = document.getElementById('divPagamentos')
+    const painelDireito = document.querySelector('.painelDireito')
+    if (!divPagamentos) return
 
-    //Chamada para o endpoint que já retorna os pagamentos filtrados;
+    dadosClientes = await recuperarDados('dados_clientes')
+    dadosCC = await recuperarDados('dados_CC')
+    dadosSetores = await recuperarDados('dados_setores')
+
     let acumulado = ''
     const lista_pagamentos = await filtrarPagamentos() // Filtrar de acordo com o usuário atual;
-    const dados_clientes = await recuperarDados('dados_clientes') || {};
-    const dadosCC = await recuperarDados('dados_CC') || {};
-
-    let linhas = ''
-    let contagens = { TODOS: { qtde: 0, valor: 0 } }
-
-    for (const [idPagamento, pagamento] of Object.entries(lista_pagamentos).reverse()) {
-
-        if (!contagens[pagamento.status]) contagens[pagamento.status] = { qtde: 0, valor: 0 }
-
-        contagens[pagamento.status].qtde++
-        contagens[pagamento.status].valor += pagamento.param[0].valor_documento
-
-        contagens.TODOS.qtde++
-        contagens.TODOS.valor += pagamento.param[0].valor_documento
-
-        const recebedor = dados_clientes?.[pagamento?.param[0]?.codigo_cliente_fornecedor]?.nome || ''
-        const setorCriador = dados_setores?.[pagamento.criado]?.setor || ''
-        const nomeCC = dadosCC?.[pagamento.id_orcamento]?.nome || '--'
-
-        // criarLinha(pagamento)
-
-        linhas += `
-                <tr>
-                    <td>${pagamento.param[0].data_vencimento}</td>
-                    <td>${nomeCC}</td>
-                    <td>${dinheiro(pagamento.param[0].valor_documento)}</td>
-                    <td>
-                        <div style="${horizontal}; justify-content: start; gap: 5px;">
-                            <img src="${iconePagamento(pagamento.status)}" style="width: 2vw;">
-                            <label style="text-align: left;">${pagamento.status}</label>
-                        </div>
-                    </td>
-                    <td>${pagamento.criado}</td>
-                    <td>${setorCriador}</td>
-                    <td>${recebedor}</td>
-                    <td style="text-align: center;">
-                        <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrirDetalhesPagamentos('${idPagamento}')">
-                    </td>
-                </tr>
-            `
-    };
-
     let colunas = ['Data de Previsão', 'Centro de Custo', 'Valor', 'Status', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
-
     let cabecalho1 = ''
     let cabecalho2 = ''
     colunas.forEach((coluna, i) => {
 
-        cabecalho1 += `
-                <th>${coluna}</th>
-                `
+        cabecalho1 += `<th>${coluna}</th>`
 
         if (coluna == 'Detalhes') {
             cabecalho2 += `<th style="background-color: white; border-radius: 0px;"></th>`
@@ -187,16 +148,56 @@ async function carregarPagamentos() {
                         <input style="width: 100%; font-size: 0.9vw;" placeholder="..." oninput="pesquisarGenerico(${i}, this.value, filtrosAtivosPagamentos, 'body')">
                         <img src="imagens/pesquisar2.png" style="width: 1vw;">
                     </div>
-                </th>
-                `}
+                </th>`
+        }
     })
 
-    let titulos = ''
-    for ([nomeStatus, item] of Object.entries(contagens)) {
+    acumulado += `
+        <div id="divPagamentos" style="display: flex; justify-content: center; align-items: start; margin-right: 1vw;">
 
-        if (item.valor == 0) continue
+            <div class="painelEsquerdo"></div>
 
-        titulos += `
+            <div class="painelDireito" style="${vertical};">
+                <div class="painelBotoes"></div>
+                <div class="divTabela">
+                    <table id="pagamentos" class="tabela">
+                        <thead>
+                            <tr>${cabecalho1}</tr>
+                            <tr>${cabecalho2}</tr>
+                        </thead>
+                        <tbody id="body"></tbody>
+                    </table>
+                </div>
+                <div class="rodapeTabela"></div>
+            </div>
+        </div>
+        `
+
+    if (!painelDireito) divPagamentos.innerHTML = acumulado
+    preencherDados()
+
+    function preencherDados() {
+
+        let contagens = { TODOS: { qtde: 0, valor: 0 } }
+        for (const [idPagamento, pagamento] of Object.entries(lista_pagamentos).reverse()) {
+
+            if (!contagens[pagamento.status]) contagens[pagamento.status] = { qtde: 0, valor: 0 }
+
+            contagens[pagamento.status].qtde++
+            contagens[pagamento.status].valor += pagamento.param[0].valor_documento
+
+            contagens.TODOS.qtde++
+            contagens.TODOS.valor += pagamento.param[0].valor_documento
+
+            criarLinha(pagamento)
+        };
+
+        let titulos = ''
+        for ([nomeStatus, item] of Object.entries(contagens)) {
+
+            if (item.valor == 0) continue
+
+            titulos += `
 
             <div class="ambosLadosEtiqueta" onclick="pesquisarGenerico(3, '${nomeStatus == 'TODOS' ? '' : nomeStatus}', filtrosAtivosPagamentos, 'body')">
                 
@@ -214,40 +215,50 @@ async function carregarPagamentos() {
                 
             </div>
             `
+        }
+
+        const painelEsquerdo = document.querySelector('.painelEsquerdo')
+        if (painelEsquerdo) return painelEsquerdo.innerHTML = titulos
+
     }
 
-    let div_titulos = `
-        <div style="display: flex; align-items: center; justify-content: center; flex-direction: column; width: 30%;">
+}
 
-            <div class="painelEsquerdo">
-                ${titulos}
-            </div>
+function criarLinha(pagamento) {
 
-        </div>
-        `
-    acumulado += `
-        <div id="div_pagamentos" style="display: flex; justify-content: center; align-items: start; margin-right: 1vw;">
+    const cliente = dadosClientes?.[pagamento.param[0].codigo_cliente_fornecedor] || {}
+    const recebedor = cliente?.nome || ''
+    const usuario = dadosSetores?.[pagamento.criado] || {}
+    const setorCriador = usuario?.setor || ''
+    const cc = dadosCC?.[pagamento.id_orcamento] || {}
+    const nomeCC = cc?.nome || '--'
 
-            ${div_titulos}
-            <div style="${vertical};">
-                <div class="painelBotoes"></div>
-                <div class="divTabela">
-                    <table id="pagamentos" class="tabela">
-                        <thead>
-                            <tr>${cabecalho1}</tr>
-                            <tr>${cabecalho2}</tr>
-                        </thead>
-                        <tbody id="body">
-                            ${linhas}
-                        </tbody>
-                    </table>
+    const idBody = 'body'
+    const linha = `
+        <tr id="${pagamento.id_pagamento}">
+            <td>${pagamento.param[0].data_vencimento}</td>
+            <td>${nomeCC}</td>
+            <td>${dinheiro(pagamento.param[0].valor_documento)}</td>
+            <td>
+                <div style="${horizontal}; justify-content: start; gap: 5px;">
+                    <img src="${iconePagamento(pagamento.status)}" style="width: 2vw;">
+                    <label style="text-align: left;">${pagamento.status}</label>
                 </div>
-                <div class="rodapeTabela"></div>
-            </div>
-        </div>
+            </td>
+            <td>${pagamento.criado}</td>
+            <td>${setorCriador}</td>
+            <td>${recebedor}</td>
+            <td style="text-align: center;">
+                <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrirDetalhesPagamentos('${pagamento.id_pagamento}')">
+            </td>
+        </tr>
         `
-    div_pagamentos.innerHTML = acumulado
+    const idLinha = pagamento.id_pagamento
+    const tr = document.getElementById(idLinha)
+    if (tr) return tr.innerHTML = linha
 
+    const tbody = document.getElementById(idBody)
+    tbody.insertAdjacentHTML('beforeend', linha)
 }
 
 function iconePagamento(status) {
@@ -328,8 +339,6 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     const cliente_omie = pagamento.param[0].codigo_cliente_fornecedor
     const cliente = await recuperarDado('dados_clientes', cliente_omie)
     const orcamento = await recuperarDado('dados_orcamentos', pagamento.id_orcamento) || false
-    const omieClienteOrcamento = orcamento?.dados_orcam?.omie_cliente || ''
-    const clienteOrcamento = await recuperarDado('dados_clientes', omieClienteOrcamento)
     const anexos = Object.entries(pagamento?.anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexoPagamento('${id_pagamento}', '${idAnexo}')`))
         .join('')
@@ -478,17 +487,18 @@ async function abrirDetalhesPagamentos(id_pagamento) {
         ${justificativaHTML(id_pagamento)}
 
         <div class="detalhesPagamento">
-
-            ${orcamento ? btnDetalhes('pasta', 'Consultar Orçamento', `abrirAtalhos('${pagamento.id_orcamento}')`) : ''}
-            ${btnDetalhes('reembolso', 'Duplicar Pagamento', `duplicarPagamento('${id_pagamento}')`)}
-            ${(acesso.permissao == 'adm' || pagamento.usuario == acesso.usuario) ? btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id_pagamento}')`) : ''}
-            ${acesso.permissao == 'adm' ? btnDetalhes('remover', 'Excluir pagamento', `confirmarExclusaoPagamento('${id_pagamento}')`) : ''}
-            ${acesso.permissao == 'adm' ? btnDetalhes('concluido', 'Lançar pagamento', `relancarPagamento('${id_pagamento}')`) : ''}
-            ${acesso.permissao == 'adm' ? btnDetalhes('omie', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id_pagamento}')`) : ''}
+            <div style="${vertical}; gap: 1px; width: 100%;">
+                ${orcamento ? btnDetalhes('pasta', 'Consultar Orçamento', `abrirAtalhos('${pagamento.id_orcamento}')`) : ''}
+                ${btnDetalhes('reembolso', 'Duplicar Pagamento', `duplicarPagamento('${id_pagamento}')`)}
+                ${(acesso.permissao == 'adm' || pagamento.usuario == acesso.usuario) ? btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id_pagamento}')`) : ''}
+                ${acesso.permissao == 'adm' ? btnDetalhes('remover', 'Excluir pagamento', `confirmarExclusaoPagamento('${id_pagamento}')`) : ''}
+                ${acesso.permissao == 'adm' ? btnDetalhes('concluido', 'Lançar pagamento', `relancarPagamento('${id_pagamento}')`) : ''}
+                ${acesso.permissao == 'adm' ? btnDetalhes('omie', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id_pagamento}')`) : ''}
+            </div>
 
             ${modelo('Status Atual', `${divStatus}`)}
             ${modelo('Quem recebe', `${cliente.nome}`)}
-            ${modelo('Centro de Custo', `<label>${clienteOrcamento?.nome || pagamento.id_orcamento}</label>`)}
+            ${modelo('Centro de Custo', `<label>${dadosCC?.[pagamento.id_orcamento]?.nome || '--'}</label>`)}
             ${modelo('Data de Solicitação', `${pagamento.data_registro}`)}
             ${modelo('Data de Pagamento', `${pagamento.param[0].data_vencimento}`)}
 
@@ -558,48 +568,21 @@ async function alterarStatusPagamento(idPagamento, select) {
     enviar(`lista_pagamentos/${idPagamento}/status`, select.value)
 
     await inserirDados({ [idPagamento]: pagamento }, 'lista_pagamentos')
-    await retomarPaginacao()
-
-}
-
-function confirmarExclusaoPagamento(id) {
-
-    return popup(`
-        <div style="background-color: #d2d2d2; display: flex; gap: 10px; align-items: center; justify-content: center; flex-direction: column; padding: 2vw;">
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-                <img src="gifs/alerta.gif" style="width: 3vw;">
-                <label>Deseja realmente excluir o pagamento?</label>
-            </div>
-            <label onclick="confirmarExclusaoPagamento('${id}')" class="contorno_botoes" style="background-color: #B12425;">Confirmar</label>
-        </div>
-        `, 'AVISO', true)
-
-}
-
-async function retomarPaginacao() {
-
     await carregarPagamentos()
 
-    let tabela = document.getElementById('div_pagamentos')
-    let thead = tabela.querySelector('thead')
-    let tsearch = thead.querySelectorAll('tr')[1]
-    let ths = tsearch.querySelectorAll('th')
-
-    for (col in filtrosAtivosPagamentos) {
-        ths[col].querySelector('input').value = filtrosAtivosPagamentos[col]
-        pesquisarGenerico(col, filtrosAtivosPagamentos[col], filtrosAtivosPagamentos, 'body')
-    }
 }
 
 async function confirmarExclusaoPagamento(id) {
 
-    removerPopup() //PopUp
-    removerPopup() //Tela de Pagamento
+    removerPopup() // PopUp
+    removerPopup() // Tela de Pagamento
 
     await deletarDB('lista_pagamentos', id)
     await deletar(`lista_pagamentos/${id}`)
 
-    await retomarPaginacao()
+    const tr = document.getElementById(id)
+
+    if (tr) tr.remove()
 
 }
 
@@ -735,7 +718,7 @@ async function autorizarPagamentos(resposta, id_pagamento) {
     await enviar(`lista_pagamentos/${id_pagamento}/historico/${id_justificativa}`, historico)
     await enviar(`lista_pagamentos/${id_pagamento}/status`, status)
 
-    await retomarPaginacao()
+    await carregarPagamentos()
 
 }
 
@@ -768,14 +751,14 @@ async function salvarPagamento() {
 
     await inserirDados({ [id_pagamento]: ultimoPagamento }, 'lista_pagamentos')
 
-    await retomarPaginacao()
+    criarLinha(ultimoPagamento)
 
     localStorage.removeItem('ultimoPagamento')
 
     popup(`
             <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2; gap: 10px;">
                 <img src="imagens/concluido.png" style="width: 2vw;">
-                <label>Pagamento Solicitado</label>
+                <label>Pagamento Salvo</label>
             </div>                
         `, 'ALERTA')
 
@@ -816,6 +799,11 @@ async function telaPagamento() {
     const acumulado = `
 
         <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw; height: 60vh; overflow-y: auto; overflow-x: hidden;">
+
+            <div style="${horizontal}: gap: 1vw;">
+                ${botao('Atualizar GCS', 'recuperarPagamentos()', '#097fe6')}
+                ${botao('Recomeçar', 'apagarPagamento()', '#B12425')}
+            </div>
 
             ${modeloCampos('cc', 'Centro de Custo', `
                     <span class="opcoes" name="cc" onclick="cxOpcoes('cc', 'dados_CC', ['nome', 'contrato', 'analista', 'cidade', 'cnpj', 'valor'], 'calculadoraPagamento()')">Selecionar</span>
@@ -874,11 +862,7 @@ async function telaPagamento() {
 
             <label id="liberarBotao" class="contorno_botoes" style="background-color: green; display: none;"
                 onclick="salvarPagamento()">Salvar</label>
-            
-            ${botao('Atualizar', 'recuperarPagamentos()', '#097fe6')}
-
-            ${botao('Apagar', 'apagarPagamento()', '#B12425')}
-            
+                
         </div>
     `;
 
@@ -1160,16 +1144,20 @@ async function calculadoraPagamento() {
 
     // Verificar se todos os campos obrigatórios foram preenchidos (1 ao 5 == 0 ao 4);
     coloridos.forEach((numero, i) => { numero.textContent = (i + 1) })
-    for (const item of coloridos) {
+    const baloes = document.querySelectorAll('.balao2025')
+    let i = 0
+    for (const item of baloes) {
 
-        const numero = Number(item.textContent)
-        cor = item.style.backgroundColor
+        const numero = Number(coloridos[i].textContent)
+        cor = item.style.background
 
-        if (cor !== 'green' || numero > 4) break
+        if (!cor.includes('green') || numero > 4) break
+
+        i++
 
     }
 
-    document.getElementById('liberarBotao').style.display = cor == 'green' ? 'flex' : 'none'
+    document.getElementById('liberarBotao').style.display = cor.includes('green') ? 'flex' : 'none'
 
     backupPagamento()
 

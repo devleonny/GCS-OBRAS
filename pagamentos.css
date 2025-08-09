@@ -129,7 +129,7 @@
             gap: 2vw;
             background-color: #eeeeee;
             cursor: pointer;
-            padding: 3px;
+            padding: 10px;
         }
 
         .btnDetalhes:hover {
@@ -150,17 +150,20 @@
             overflow-y: auto;
         }
 
+        .painelDireito {
+            width: 70%;
+        }
+
         .painelEsquerdo {
             gap: 3px;
-            width: 100%;
-            padding: 1vw;
+            padding: 5px;
             display: flex;
             flex-direction: column;
             align-items: end;
             justify-content: start;
+            height: 60vh;
             overflow-y: auto;
-            max-height: 55vh;
-            margin-right: 10px;
+            margin: 1vw;
         }
 
         .painelEsquerdo::-webkit-scrollbar {
