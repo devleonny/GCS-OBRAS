@@ -69,7 +69,6 @@ document.getElementById('acesso_usuario').addEventListener('click', () => {
 })
 
 function acesso_login() {
-    console.log('login');
     
     overlayAguarde()
     divAcesso.style.display = 'none'
