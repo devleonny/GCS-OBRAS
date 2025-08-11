@@ -231,13 +231,11 @@ function criarLinha(pagamento) {
     const usuario = dadosSetores?.[pagamento.criado] || {}
     const setorCriador = usuario?.setor || ''
     const cc = dadosCC?.[pagamento.id_orcamento] || {}
-    const nomeCC = cc?.nome || '--'
-
     const idBody = 'body'
     const linha = `
         <tr id="${pagamento.id_pagamento}">
             <td>${pagamento.param[0].data_vencimento}</td>
-            <td>${nomeCC}</td>
+            <td>${cc?.nome} ${cc.contrato ? `- ${cc?.contrato}` : ''}</td>
             <td>${dinheiro(pagamento.param[0].valor_documento)}</td>
             <td>
                 <div style="${horizontal}; justify-content: start; gap: 5px;">
@@ -481,6 +479,8 @@ async function abrirDetalhesPagamentos(id_pagamento) {
         `
     }
 
+    const cc = dadosCC?.[pagamento.id_orcamento] || {}
+
     const acumulado = `
     <div style="${vertical}; background-color: #d2d2d2; width: 60vw; overflow-x: hidden;">
     
@@ -498,7 +498,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
             ${modelo('Status Atual', `${divStatus}`)}
             ${modelo('Quem recebe', `${cliente.nome}`)}
-            ${modelo('Centro de Custo', `<label>${dadosCC?.[pagamento.id_orcamento]?.nome || '--'}</label>`)}
+            ${modelo('Centro de Custo', `<label>${cc?.nome} ${cc.contrato ? `- ${cc?.contrato}` : ''}</label>`)}
             ${modelo('Data de Solicitação', `${pagamento.data_registro}`)}
             ${modelo('Data de Pagamento', `${pagamento.param[0].data_vencimento}`)}
 
