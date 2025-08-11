@@ -212,12 +212,14 @@ function carregarIcones() {
     const autorizadosPainelNotas = (acesso) => {
         const liberados = {
             permissao: ['adm', 'diretoria', 'fin'],
-            usuario: ['Tayna', 'Livia']
+            usuario: ['Tayna', 'Livia'],
+            setor: ['FINANCEIRO']
         }
 
         return (
             liberados.permissao.includes(acesso.permissao) ||
-            liberados.usuario.includes(acesso.usuario)
+            liberados.usuario.includes(acesso.usuario) || 
+            liberados.setor.includes(acesso.setor)
         );
     }
 
