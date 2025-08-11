@@ -249,10 +249,11 @@ function carregarIcones() {
         ${atalho('Composições', 'composicoes', `window.location.href='composicoes.html'`)}
         ${acesso.permissao == 'adm' ? atalho('Ocorrências', 'megafone', `window.location.href='ocorrencias.html'`) : ''}
         ${atalho('RH', 'gerente', `window.location.href='rh.html'`)}
-        ${atalho('Marketing', 'ads', `window.location.href='marketing.html'`)}
         ${autorizadosPainelNotas(acesso) ? atalho('Faturamento NFs', 'relatorio', `window.location.href='relatorio_omie.html'`) : ''}
         `
     }
+
+    //${atalho('Marketing', 'ads', `window.location.href='marketing.html'`)}
 
     painel_geral.innerHTML = icones
 }
