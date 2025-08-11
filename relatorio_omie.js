@@ -415,72 +415,26 @@ async function baixarRelatorio() {
     })
 }
 
-async function excelRecebimento(app) {
-  const bases = await recuperarDados('dados_relatorios');
-  const tipos = bases[app];
-  const colunas = ['NF', 'Tipo', 'Cliente', 'CNPJ', 'Total NF', 'dt Vencimento', 'Status', 'Valor Parcela', 'Conta'];
-  let dados = [];
+async function excelRecebimento(appName) {
+    const response = await fetch("https://leonny.dev.br/excelRelatorio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appName })
+    });
 
-  for (const [tipo, notas] of Object.entries(tipos)) {
-    for (const [nf, nota] of Object.entries(notas)) {
-      if (nota.parcelas) {
-        nota.parcelas.forEach(parcela => {
-          dados.push([
-            nf,
-            nota.categoria,
-            nota.cliente,
-            nota.cnpj,
-            nota.total,
-            parcela.vencimento,
-            parcela.status,
-            parcela.valor,
-            parcela.conta
-          ]);
-        });
-      } else {
-        dados.push([
-          nf,
-          nota.categoria,
-          nota.cliente,
-          nota.cnpj,
-          nota.total,
-          '', '', '', ''
-        ]);
-      }
+    if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
     }
-  }
 
-  const ws_data = [colunas, ...dados];
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    const blob = await response.blob();
 
-  const colWidths = colunas.map((col, i) => {
-    let maxLength = col.length;
-    for (let row = 0; row < dados.length; row++) {
-      const cell = dados[row][i];
-      if (cell) {
-        const len = cell.toString().length;
-        if (len > maxLength) maxLength = len;
-      }
-    }
-    return { wch: Math.min(maxLength + 2, 30) };
-  });
-  ws['!cols'] = colWidths;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${appName}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
 
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  for (let R = 1; R <= range.e.r; ++R) {
-    const cellE = ws[XLSX.utils.encode_cell({ r: R, c: 4 })];
-    if (cellE && typeof cellE.v === 'number') {
-      cellE.z = 'R$ #,##0.00';
-      cellE.t = 'n';
-    }
-    const cellH = ws[XLSX.utils.encode_cell({ r: R, c: 7 })];
-    if (cellH && typeof cellH.v === 'number') {
-      cellH.z = 'R$ #,##0.00';
-      cellH.t = 'n';
-    }
-  }
-
-  XLSX.utils.book_append_sheet(wb, ws, 'Dados');
-  XLSX.writeFile(wb, `${app}.xlsx`);
 }
