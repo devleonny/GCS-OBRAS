@@ -360,12 +360,12 @@ function carregarFiltros(app) {
         </div>
 
         <br>
-        <div style="${vertical}; gap: 3px;">
+        <div style="${vertical}; gap: 1px;">
             <label class="titulos">Status Recebimento</label>
             ${indStatus}
         </div>
         <br>
-        <div style="${vertical}; gap: 3px;">
+        <div style="${vertical}; gap: 1px;">
             <label class="titulos">Filtrar por Tipo</label>
             ${indCategorias}
         </div>
