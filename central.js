@@ -1618,7 +1618,7 @@ async function reprocessarAnexos(idPagamento) {
 async function lancarPagamento(pagamento, call) {
     return new Promise((resolve, reject) => {
 
-        fetch("https://leonny.dev.br/lancarPagamento", {
+        fetch("https://leonny.dev.br/lancar_pagamento", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ pagamento, call })
