@@ -30,8 +30,8 @@ async function carregarRegistros() {
             </div>
         </th>`
 
-
     ));
+    
     for ([id, registro] of Object.entries(registrosAlteracoes).reverse()) {
         linhas += `
             <tr>

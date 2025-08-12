@@ -28,7 +28,6 @@ async function atualizarDadosVeiculos() {
     await sincronizarDados('dados_clientes')
     await sincronizarDados('veiculos')
     await sincronizarDados('custo_veiculos')
-
     await carregarTabela()
 }
 
@@ -113,16 +112,16 @@ async function carregarTabela() {
         linhas += `
         <tr>
             <td>
-                <div style="display: flex; flex-direction: column; align-items: start;">
-                    <label><strong>${custo.usuario}</strong></label>
-                    <label>${custo.data}</label>
+                <div style="${vertical}">
+                    <label style="text-align: left;"><strong>${custo.usuario}</strong></label>
+                    <label style="text-align: left;">${custo.data}</label>
                 </div>
             </td>
 
             <td>
-                <div style="display: flex; align-items: start; justify-content: center; flex-direction: column;">
-                    <label title="${nome}">${nome.slice(0, 20)}...</label>
-                    <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
+                <div style="${vertical}">
+                    <label style="text-align: left;" title="${nome}">${nome.slice(0, 20)}...</label>
+                    <div style="${horizontal}; gap: 5px;">
                         <label style="font-size: 0.7vw;">${veiculo.placa}</label>
 
                         <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
@@ -132,6 +131,7 @@ async function carregarTabela() {
                     </div>
                 </div>
             </td>
+
             <td>${custo.categoria}</td>
 
             <td>
@@ -291,7 +291,7 @@ async function painelValores(idCusto, duplicar) {
             return nomeA.localeCompare(nomeB);
         })
         .map(([idMotorista, motorista]) =>
-            `<option data-id="${idMotorista}" value="${custo?.veiculo || motorista?.veiculo || ''}" ${custo?.motorista == idMotorista ? 'selected' : ''}>
+            `<option data-id="${idMotorista}" value="${motorista?.veiculo || ''}" ${custo?.motorista == idMotorista ? 'selected' : ''}>
             ${dados_clientes[idMotorista]?.nome || 'Sem nome'}
         </option>`)
         .join('');
