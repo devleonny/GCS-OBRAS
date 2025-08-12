@@ -67,16 +67,6 @@ async function carregarTabela() {
             `)
         .join('')
 
-    function conversorData(data) {
-
-        if (!data) return ''
-
-        let [ano, mes, dia] = data.split('-')
-        let dataFormatada = `${dia}/${mes}/${ano}`
-
-        return dataFormatada
-    }
-
     let ths = '', tsh = ''
     let colunas = ['Usuário & Data', 'Veículo', 'Tipo', 'Valor & Data Pagamento', 'Cartão', 'Comentário', 'Anexos', 'Editar']
         .map((coluna, i) => {
@@ -91,7 +81,59 @@ async function carregarTabela() {
             ths += `<th>${coluna}</th>`
         })
 
-    let linhas = ''
+
+    const pesquisa = (modalidade) => `
+    <div style="${horizontal}; background-color: white; border-radius: 15px; margin-left: 5px;  margin-right: 5px;">
+        <input style="border: none; border-radius: 15px;" oninput="pesquisarBotoes(this, '${modalidade}')" placeholder="Pesquisar ${modalidade}">
+        <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+    </div>
+    `
+
+    const acumulado = `
+
+    <div class="telaCentral">
+
+        <div style="${horizontal}; align-items: start; width: 40vw; border-right: dashed 1px #797979; padding-right: 1vw; gap: 10px;">
+
+            <div style="${vertical};">
+                <div class="painelBotoes" style="${vertical}; padding-bottom: 3px;">
+                    ${botaoVeiculos('Novo Motorista', 'novoMotorista()', '#04549a')}
+                    ${pesquisa('motorista')}
+                </div>
+                <div id="motorista" class="fundoPainelLateral">${botoesMotoristas}</div>
+                <div class="rodapeTabela"></div>
+            </div>
+
+            <div style="${vertical};">
+                <div class="painelBotoes" style="${vertical}; padding-bottom: 3px;">
+                    ${botaoVeiculos('Novo Veículo', 'novoVeiculo()', '#04549a')}
+                    ${pesquisa('veículo')}
+                </div>
+                <div id="veículo" class="fundoPainelLateral">${botoesCarros}</div>
+                <div class="rodapeTabela"></div>
+            </div>
+
+        </div>
+
+        <div style="${vertical}; margin-top: 1vw;">
+            <div class="painelBotoes" style="height: 5vh;"></div>
+            <div style="height: max-content; max-height: 50vh; overflow-y: auto;">
+                <table class="tabela" style="display: table-row;">
+                    <thead>
+                        <tr>${ths}</tr>
+                        <tr>${tsh}</tr>
+                    </thead>
+                    <tbody id="bodyVeiculos"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+    `
+
+    const telaCentral = document.querySelector('.telaCentral')
+    const tabelaRegistro = document.getElementById('tabelaRegistro')
+    if (!telaCentral) tabelaRegistro.innerHTML = acumulado
 
     custo_veiculos = Object.fromEntries(
         Object.entries(custo_veiculos).sort((a, b) => {
@@ -100,17 +142,29 @@ async function carregarTabela() {
     );
 
     for (let [idCusto, custo] of Object.entries(custo_veiculos)) {
-
-        let anexos = Object.entries(custo?.anexos || {})
-            .map(([idAnexo, anexo]) => `
-                ${criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo('${idCusto}', '${idAnexo}', this)`)}
-                `)
-            .join('')
         let nome = dados_clientes[custo.motorista].nome
         let veiculo = veiculos[custo.veiculo]
+        criarLinha({ custo, nome, veiculo, idCusto })
+    }
+}
 
-        linhas += `
-        <tr>
+function criarLinha({ custo, nome, veiculo, idCusto }) {
+
+    function conversorData(data) {
+
+        if (!data) return ''
+
+        let [ano, mes, dia] = data.split('-')
+        let dataFormatada = `${dia}/${mes}/${ano}`
+
+        return dataFormatada
+    }
+
+    const anexos = Object.entries(custo?.anexos || {})
+        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo('${idCusto}', '${idAnexo}', this)`)).join('')
+
+    const linha = `
+        <tr id="${idCusto}">
             <td>
                 <div style="${vertical}">
                     <label style="text-align: left;"><strong>${custo.usuario}</strong></label>
@@ -160,59 +214,10 @@ async function carregarTabela() {
             </td>
         </tr>
         `
-    }
 
-    const pesquisa = (modalidade) => `
-    <div style="${horizontal}; background-color: white; border-radius: 15px; margin-left: 5px;  margin-right: 5px;">
-        <input style="border: none; border-radius: 15px;" oninput="pesquisarBotoes(this, '${modalidade}')" placeholder="Pesquisar ${modalidade}">
-        <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
-    </div>
-    `
-
-    let acumulado = `
-
-    <div style="padding: 1vw; border-radius: 2px; background-color: #00000038; display: flex; justify-content: center; align-items: start; gap: 10px;">
-
-        <div style="${horizontal}; align-items: start; width: 40vw; border-right: dashed 1px #797979; padding-right: 1vw; gap: 10px;">
-
-            <div style="${vertical};">
-                <div class="painelBotoes" style="${vertical}; padding-bottom: 3px;">
-                    ${botaoVeiculos('Novo Motorista', 'novoMotorista()', '#04549a')}
-                    ${pesquisa('motorista')}
-                </div>
-                <div id="motorista" class="fundoPainelLateral">${botoesMotoristas}</div>
-                <div class="rodapeTabela"></div>
-            </div>
-
-            <div style="${vertical};">
-                <div class="painelBotoes" style="${vertical}; padding-bottom: 3px;">
-                    ${botaoVeiculos('Novo Veículo', 'novoVeiculo()', '#04549a')}
-                    ${pesquisa('veículo')}
-                </div>
-                <div id="veículo" class="fundoPainelLateral">${botoesCarros}</div>
-                <div class="rodapeTabela"></div>
-            </div>
-
-        </div>
-
-        <div style="${vertical}; margin-top: 1vw;">
-            <div class="painelBotoes" style="height: 5vh;"></div>
-            <div style="height: max-content; max-height: 50vh; overflow-y: auto;">
-                <table class="tabela" style="display: table-row;">
-                    <thead>
-                        <tr>${ths}</tr>
-                        <tr>${tsh}</tr>
-                    </thead>
-                    <tbody id="bodyVeiculos">
-                        ${linhas}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-    </div>
-    `
-    document.getElementById('tabelaRegistro').innerHTML = acumulado
+    const tr = document.getElementById(idCusto)
+    if (tr) return tr.innerHTML = linha
+    document.getElementById('bodyVeiculos').insertAdjacentHTML('beforeend', linha)
 }
 
 
@@ -355,7 +360,7 @@ function calcularValorCombustivel(valorManual) {
     const resultado = litros * combustivel
     const proximoMultiploDe10 = Math.ceil(resultado / 10) * 10
 
-    if(!valorManual) document.getElementById('litros').value = litros
+    if (!valorManual) document.getElementById('litros').value = litros
     document.getElementById('custo_total').value = proximoMultiploDe10
 }
 

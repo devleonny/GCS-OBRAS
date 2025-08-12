@@ -13,6 +13,16 @@ body {
     overflow: hidden;
 }
 
+.telaCentral {
+    padding: 1vw;
+    border-radius: 2px;
+    background-color: #00000038;
+    display: flex;
+    justify-content: center;
+    align-items: start;
+    gap: 10px;
+}
+
 .contornoDestaque {
     background-color: #ffffffc4;
     width: 100%;
