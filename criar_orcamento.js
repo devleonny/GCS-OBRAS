@@ -697,7 +697,7 @@ async function total() {
                         valorDesconto.value = ''
                         avisoDesconto = 1 // Preencher os dados da empresa;
 
-                    } else if (acesso.permissao == 'adm' || acesso.permissao == 'diretoria' || tipoDesconto == 'Venda Direta') {
+                    } else if (acesso.permissao == 'adm' || acesso.permissao == 'diretoria' || tipoDesconto.value == 'Venda Direta') {
                         // Liberado;
 
                     } else if (resultado.lucroPorcentagem < 10) {
