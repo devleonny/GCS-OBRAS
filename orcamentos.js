@@ -511,3 +511,28 @@ async function duplicar(orcam_) {
 
     window.location.href = `criar_${tipoOrcamento}.html`
 }
+
+
+async function excelOrcamentos() {
+    const response = await fetch("https://leonny.dev.br/orcamentosRelatorio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appName: verificarApp() })
+    });
+
+    if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Relatorio de Orcamentos.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+}
