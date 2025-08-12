@@ -1391,7 +1391,7 @@ async function receber(chave) {
     })
 }
 
-async function deletar(chave, app) {
+async function deletar(chave) {
     const url = `https://leonny.dev.br/deletar`;
 
     let objeto = {
