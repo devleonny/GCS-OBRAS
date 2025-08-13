@@ -2329,7 +2329,7 @@ async function painelClientes() {
 
     popup(acumulado, 'Dados do Cliente')
 
-    vendedores_analistas()
+    analista()
 }
 
 async function salvarDadosCliente() {
@@ -2375,13 +2375,10 @@ async function salvarDadosCliente() {
         consideracoes: document.getElementById('consideracoes').value,
         data: new Date(),
         email_analista: dados_analista.email,
-        email_vendedor: document.getElementById('email_vendedor').textContent,
         garantia: document.getElementById('garantia').value,
         telefone_analista: dados_analista.telefone,
         transportadora: document.getElementById('transportadora').value,
-        telefone_vendedor: document.getElementById('telefone_vendedor').textContent,
         tipo_de_frete: document.getElementById('tipo_de_frete').value,
-        vendedor: document.getElementById('vendedor').value,
         emissor: document.getElementById('emissor').value
     };
 
@@ -2477,51 +2474,11 @@ function executarLimparCampos() {
     painelClientes()
 }
 
-function vendedores_analistas() {
-    let dados_vendedores = {
-        'GRUPO COSTA SILVA': {
-            email: 'comercial@acsolucoesintegradas.com.br',
-            telefone: '(71) 3901-3655'
-        },
-        'Sérgio Bergamini': {
-            email: 'sergio.bergamini@acsolucoesintegradas.com.br',
-            telefone: '(11) 98938-2759'
-        },
-        'Fernando Queiroz': {
-            email: 'fernando.queiroz@acsolucoesintegradas.com.br',
-            telefone: '(11) 99442-8826'
-        }
-    }
+function analista() {
+    document.getElementById('analista').textContent = acesso.nome_completo
+    document.getElementById('email_analista').textContent = acesso.email
+    document.getElementById('telefone_analista').textContent = acesso.telefone
 
-    let vendedores = Object.keys(dados_vendedores)
-
-    let select = document.getElementById('vendedor')
-
-    select.addEventListener('change', function () {
-        atualizar_dados_vendedores()
-        salvarDadosCliente()
-    })
-
-    vendedores.forEach(function (vend_) {
-        var option = document.createElement('option')
-        option.textContent = vend_
-        select.appendChild(option)
-    })
-
-    let dados_acesso = JSON.parse(localStorage.getItem('acesso'))
-
-    document.getElementById('analista').textContent = dados_acesso.nome_completo
-    document.getElementById('email_analista').textContent = dados_acesso.email
-    document.getElementById('telefone_analista').textContent = dados_acesso.telefone
-
-    atualizar_dados_vendedores()
-}
-
-function atualizar_dados_vendedores() {
-    let dados_vendedores = JSON.parse(localStorage.getItem('vendedores'))
-    let vendedor = document.getElementById('vendedor').value
-    document.getElementById('email_vendedor').textContent = dados_vendedores[vendedor]['email']
-    document.getElementById('telefone_vendedor').textContent = dados_vendedores[vendedor]['telefone']
 }
 
 async function abrirDANFE(codOmieNF, tipo, app) {
