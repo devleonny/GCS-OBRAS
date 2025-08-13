@@ -74,7 +74,7 @@
     }
 
     .total_rodape {
-        font-size: 1.5em;
+        font-size: 1.2vw;
         background-color: #151749;
         color: white;
         text-align: right;
@@ -85,12 +85,12 @@
     .tabela {
         width: 100%;
         border-collapse: collapse;
-        border-radius: 3px;
         overflow: hidden;
         font-size: 0.7vw;
     }
 
     .tabela th {
+        border: none;
         color: white;
     }
 
@@ -115,7 +115,7 @@
         justify-content: center;
         background-color: #151749;
         padding: 10px;
-        font-size: 1.5em;
+        font-size: 1.2vw;
         color: white;
         height: 20px;
     }
@@ -178,11 +178,55 @@
     }
 
     .contorno {
+        height: -webkit-fill-available;
         border-radius: 5px;
         width: 100%;
         border: 1px solid #151749;
         padding: 5px;
         margin: 5px;
+    }
+
+    .painelTitulo {
+        min-height: 4vh;
+        display: flex;
+        align-items: start;
+        justify-content: start;
+        border-top-right-radius: 5px;
+        border-top-left-radius: 5px;
+        background-color: #b1b1b1;
+        gap: 2px;
+        width: 100%;
+    }
+
+    .painelTitulo label {
+        margin-left: 2vw;
+        font-size: 1.5vw;
+        color: white;
+    }
+
+    .pilula {
+        border-radius: 3px;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .pilula span {
+        background-color: #151749;
+        font-size: 1.2vw;
+        text-align: center;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 35px;
+    }
+
+    .pilula>div:first-of-type {
+        padding: 1vw;
+        background-color: #99999940;
+        flex: 1;
     }
 
     .ocultar {
@@ -204,22 +248,6 @@
         color: white;
         border-radius: 3px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    }
-
-    .numero-bonito {
-        border: none;
-        width: 10vw;
-        padding: 10px;
-        font-weight: bold;
-        color: #ffffff;
-        background-color: #4CAF50;
-        border-radius: 5px;
-        display: inline-block;
-        margin: 5px;
-        min-width: 50px;
-        max-width: 100px;
-        /* Limita o crescimento */
-        text-align: center;
     }
 
     .icone {
@@ -267,7 +295,7 @@
     </div>
 
     <div class="ocultar">
-        <div class="icone" onclick="atualizar_dados_pdf()" id="campo_atualizar">
+        <div class="icone" onclick="atualizarDadosPdf()" id="campo_atualizar">
             <img src="imagens/atualizar2.png">
             <label>Atualizar</label>
         </div>

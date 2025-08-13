@@ -2311,11 +2311,6 @@ async function painelClientes() {
             ${modelo('E-mail', dados_orcam?.email_analista, 'email_analista')}
             ${modelo('Telefone', dados_orcam?.telefone_analista, 'telefone_analista')}
 
-            <label style="font-size: 1.5vw;">Dados do Vendedor</label>
-            ${modelo('Vendedor', `<select style="text-align: center; width: 100%;" id="vendedor" oninput="salvarDadosCliente()"></select>`)}
-            ${modelo('E-mail', '', 'email_vendedor')}
-            ${modelo('Telefone', '', 'telefone_vendedor')}
-
             <label style="font-size: 1.5vw;">Quem emite essa nota?</label>
 
             ${modelo('Empresa', `<select style="text-align: center; width: 100%;" id="emissor" oninput="salvarDadosCliente()">

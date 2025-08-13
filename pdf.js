@@ -6,9 +6,9 @@ let dadosEmpresas = {
     'AC SOLUÇÕES': {
         'Razão Social': 'AC SOLUCOES INTEGRADAS DE INFORMATICA LTDA',
         'CNPJ': '13.421.071/0001-00',
-        'E-mail': 'financeiro@acsolucoesintegradas.com.br',
-        'Telefones': '(71) 3901-3655 (71) 98240-3038',
-        'Localização': 'CEP 40261-010, Rua Luís Negreiro, nº 701, Luis Anselmo - Salvador(BA)'
+        'E-mail': 'financeiro@grupocostasilva.com.br',
+        'Telefones': '(11) 996314-7545',
+        'Localização': 'CEP 42.702-420, Avenida Luiz Tarquínio Pontes, nº 132, Galpões 06, 07 e 08, CENTRO - Lauro de Freitas (BA)'
     },
     'HNK': {
         'Razão Social': 'HNK COMERCIO E SERVICOS DE EQUIPAMENTOS DE COMUNICACAO LTDA',
@@ -36,28 +36,27 @@ function excel() {
 
 function blocoHtml(titulo, dados) {
 
-    var linhas = ''
+    let linhas = ''
 
     for (item in dados) {
         if (dados[item] && dados[item] !== '') {
             linhas += `
-            <label style="margin: 5px;"><strong>${item}</strong> <br>${dados[item].replace(/\n/g, '<br>')}</label>
-        `
+            <label style="margin: 5px;"><strong>${item}</strong> <br>${dados[item].replace(/\n/g, '<br>')}</label>`
         }
     }
 
-    var acumulado = `
+    const acumulado = `
         <div class="contorno">
-            <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">${titulo}</div>
-            <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; display: flex; flex-direction: column; background-color: #99999940;">
-            ${linhas}
+            <div class="pilula">
+                <span>${titulo}</span>
+                <div style="${vertical}">${linhas}</div>
             </div>
         </div>
         `
     return acumulado
 }
 
-async function atualizar_dados_pdf() {
+async function atualizarDadosPdf() {
     let campo_atualizar = document.getElementById('campo_atualizar')
 
     if (campo_atualizar) {
@@ -124,11 +123,6 @@ async function preencher() {
             'Analista': informacoes.analista,
             'E-mail': informacoes.email_analista,
             'Telefone': informacoes.telefone_analista
-        },
-        'Contato Vendedor': {
-            'Vendedor': informacoes.vendedor,
-            'E-mail': informacoes.email_vendedor,
-            'Telefone': informacoes.telefone_vendedor
         }
     }
 
@@ -163,11 +157,10 @@ async function preencher() {
         GERAL: { valor: 0, cor: '#151749' }
     };
 
-    for (it in itens) {
-        let item = itens[it]
-        let colunas = config[item.tipo].colunas
+    for(let [codigo, item] of Object.entries(itens)) {
 
-        let itemComposicao = dados_composicoes[it]
+        let colunas = config[item.tipo].colunas
+        let itemComposicao = dados_composicoes[codigo]
         let lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
         let tabelaPreco = itemComposicao?.[lpu]
         let estado = informacoes.estado
@@ -201,15 +194,18 @@ async function preencher() {
         let totalSemIcms = unitarioSemIcms * item.qtde
         let tds = {}
 
+        const ncm = itemComposicao?.ncm || null
+
         tds[1] = `<td>${item.codigo}</td>`
         tds[2] = `
         <td>
             <div style="${vertical}">
                 ${item.tipo_desconto && item.tipo_desconto == 'Venda Direta' ? `<label><strong>Venda Direta</strong></label>` : ''}
                 <label>${item?.descricao || 'N/A'}</label>
+                ${ncm ? `<label><strong>ncm:</strong> ${ncm}</label>`: ''}
             </div>
         </td>`
-        tds[3] = `<td style="text-align: center;"><img src="${itemComposicao?.imagem || item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 2vw;"></td>`
+        tds[3] = `<td style="text-align: center;"><img src="${itemComposicao?.imagem || item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 4vw;"></td>`
         tds[4] = `<td>${item?.unidade || 'UN'}</td>`
         tds[5] = `<td>${item.qtde}</td>`
         tds[6] = `<td style="white-space: nowrap;">${dinheiro(unitarioSemIcms)} (${icms}%)</td>`
@@ -247,16 +243,16 @@ async function preencher() {
 
         if (tab == 'ICMS' || tab == 'GERAL') continue
 
-        let tabela = `
+        const tabela = `
         <div>
-            <div style="display: flex; align-items: center; justify-content: start;">
-                <label style="font-size: 1.3vw;"><strong>${tab.includes('USO') ? `${tab} - SERVIÇO` : tab}</strong></label> 
+            <div class="painelTitulo" style="background-color: ${config[tab]?.cor || '#222'}">
+                <label>${tab.includes('USO') ? `${tab} - SERVIÇO` : tab}</label> 
             </div>
-            <table class="tabela">
-                <thead style="font-size: 0.7em; color: white; background-color: ${config[tab]?.cor || '#222'}">
+            <table class="tabela" style="background-color: white;">
+                <thead style="font-size: 0.7vw; color: white; background-color: ${config[tab]?.cor || '#222'}">
                     ${totais[tab].ths}
                 </thead>
-                <tbody style="font-size: 0.7em;">
+                <tbody style="font-size: 0.7vw;">
                     ${totais[tab].linhas}
                 </tbody>
             </table>
@@ -265,7 +261,7 @@ async function preencher() {
             </div>
         </div>
         <br>
-        <hr style="width: 100%;">
+
         `
 
         if (totais[tab].linhas != '') {
@@ -289,8 +285,6 @@ async function preencher() {
     ordemTotais.splice(ordemTotais, 1)
     ordemTotais.push(totalGeralBackup)
 
-    console.log(ordemTotais);
-
     for ([tot, objeto] of ordemTotais) {
         if (objeto.valor == 0 || tot == 'GERAL') continue
 
@@ -313,35 +307,36 @@ async function preencher() {
     html_orcamento.innerHTML = `
     <label>Salvador, Bahia, ${carimboData()}</label>
 
-    <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+    <div style="${horizontal};">
         ${blocoHtml('Dados da Proposta', dadosPorBloco['Dados da Proposta'])}
         ${blocoHtml('Dados do Cliente', dadosPorBloco['Dados do Cliente'])}
     </div>
 
-    ${blocoHtml('Dados da Empresa', dadosPorBloco['Dados da Empresa'])}
+    <div style="${horizontal};">
+        ${blocoHtml('Dados da Empresa', dadosPorBloco['Dados da Empresa'])}
+        ${blocoHtml('Contato do Analista', dadosPorBloco['Contato Analista'])}
+    </div>
 
     <div class="contorno">
-        <div class="titulo">
-            Itens do Orçamento
-        </div>
+        <div class="pilula">
+            <span>Itens do Orçamento</span>
+            <div>
+                <br>
+                ${tabelas}
 
-        ${tabelas}
+                <div style="display: flex; align-items: center; justify-content: start; gap: 10px;">
+                    <div style="display: flex; flex-direction: column;">
+                        ${divTotais}
+                    </div>
 
-        <div style="display: flex; align-items: center; justify-content: start; gap: 10px;">
-            <div style="display: flex; flex-direction: column;">
-                ${divTotais}
+                    ${etiqueta_desconto}
+                </div>
             </div>
-
-            ${etiqueta_desconto}
         </div>
     </div>
 
-    ${blocoHtml('Considerações', { Considerações: informacoes.consideracoes })}
-
-    <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
-        ${blocoHtml('Contato Analista', dadosPorBloco['Contato Analista'])}
-        ${blocoHtml('Contato Vendedor', dadosPorBloco['Contato Vendedor'])}
-    </div>`
+    ${informacoes.consideracoes ? blocoHtml('Considerações', { Considerações: informacoes.consideracoes }) : ''}
+    `
 
 }
 
