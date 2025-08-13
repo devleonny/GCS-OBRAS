@@ -1698,44 +1698,8 @@ function sincronizar(script) {
     })
 }
 
-function obterDatas(estilo, nivel) {
+function obterDatas(estilo) {
     let dataAtual = new Date();
-
-    if (nivel) {
-        // var dataAtual = new Date(2024, 10, 10, 10, 0, 0, 0);
-        let diaDeHoje = dataAtual.getDate();
-        let ano = dataAtual.getFullYear();
-        let mes = dataAtual.getMonth();
-
-        if (nivel == 2 && diaDeHoje > 5) { // Pagamento de Parceiro no dia 10 do mês seguinte;
-            diaDeHoje = 10;
-            mes += 1;
-        } else if (nivel == 2) { // Pagamento de Parceiro no dia 10;
-            diaDeHoje = 10;
-        } else if (nivel == 1) { // Adiantamento de Parceiro (8 dias prévios);
-            diaDeHoje += 8;
-
-            var diasNoMes = new Date(ano, mes + 1, 0).getDate();
-            if (diaDeHoje > diasNoMes) {
-                diaDeHoje -= diasNoMes;
-                mes += 1;
-            }
-        }
-
-        if (mes > 11) {
-            mes = 0;
-            ano += 1;
-        }
-
-        dataAtual = new Date(ano, mes, diaDeHoje);
-
-        if (dataAtual.getDay() === 6) {
-            dataAtual.setDate(dataAtual.getDate() + 2);
-        } else if (dataAtual.getDay() === 0) {
-            dataAtual.setDate(dataAtual.getDate() + 1);
-        }
-
-    }
 
     if (dataAtual.getDay() === 5 && dataAtual.getHours() >= 11) {
         dataAtual.setDate(dataAtual.getDate() + 3);
@@ -1748,7 +1712,7 @@ function obterDatas(estilo, nivel) {
     }
 
     if (estilo === 'completa') {
-        var dataFormatada = new Date().toLocaleString('pt-BR', {
+        const dataFormatada = new Date().toLocaleString('pt-BR', {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
