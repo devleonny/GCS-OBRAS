@@ -372,6 +372,6 @@ async function gerarPDF() {
     let omie_cliente = orcamentoBase.dados_orcam?.omie_cliente || ''
     let cliente = dados_clientes?.[omie_cliente]?.nome || ''
 
-    await gerar_pdf_online(document.documentElement.outerHTML, `Orcamento_${cliente}_${contrato}`);
+    await gerarPdfOnline(document.documentElement.outerHTML, `Orcamento_${cliente}_${contrato}`);
     ocultarElementos()
 }

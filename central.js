@@ -1548,7 +1548,7 @@ async function painelUsuarios(elementoOrigial) {
 
 }
 
-async function gerar_pdf_online(htmlString, nome) {
+async function gerarPdfOnline(htmlString, nome) {
     return new Promise((resolve, reject) => {
         let encoded = new TextEncoder().encode(htmlString);
         let compressed = pako.gzip(encoded);

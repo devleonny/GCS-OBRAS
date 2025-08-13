@@ -94,7 +94,7 @@ async function gerarPDF() {
     const botoesSuperior = document.querySelector('.botoesSuperior')
     if (botoesSuperior) botoesSuperior.style.display = 'none'
 
-    await gerar_pdf_online(document.documentElement.outerHTML, `OS_${nomeCliente}_${chamado}`);
+    await gerarPdfOnline(document.documentElement.outerHTML, `OS_${nomeCliente}_${chamado}`);
 
     if (botoesSuperior) botoesSuperior.style.display = ''
 }

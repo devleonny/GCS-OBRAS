@@ -2146,7 +2146,7 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
     if (apenas_visualizar) {
         menu_flutuante = `
             <div class="menu_flutuante" id="menu_flutuante">
-                <div class="icone" onclick="gerarpdf('${orcamento.dados_orcam.cliente_selecionado}', '${cartao.pedido}')">
+                <div class="icone" onclick="gerarpdf('${cliente.nome || 'xx'}', '${orcamento?.dados_orcam?.contrato || 'xx'}')">
                     <img src="imagens/pdf.png">
                     <label>PDF</label>
                 </div>
@@ -2360,10 +2360,10 @@ if (typeof window !== 'undefined' && window.process && window.process.type) {
 
 async function gerarpdf(cliente, pedido) {
 
-    var janela = document.querySelectorAll('.janela')
+    let janela = document.querySelectorAll('.janela')
     janela = janela[janela.length - 1]
 
-    var htmlContent = `
+    const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -2436,13 +2436,10 @@ async function gerarpdf(cliente, pedido) {
         ${janela.innerHTML}
     </body>
     </html>`;
-
-    if (pedido.includes("?")) {
-        pedido = ""
-    }
-
-    await gerar_pdf_online(htmlContent, `REQUISICAO_${cliente}_${pedido}`);
-
+    
+    overlayAguarde()
+    await gerarPdfOnline(htmlContent, `REQUISICAO_${cliente}_${pedido}`);
+    removerOverlay()
 }
 
 async function envioMaterial(chave) {

@@ -832,7 +832,7 @@ async function gerarPdfParceiro({ tabela, cnpj }) {
         </html>`
         ;
 
-    await gerar_pdf_online(htmlContent, `LPU_PACEIRO_${cnpj}`);
+    await gerarPdfOnline(htmlContent, `LPU_PACEIRO_${cnpj}`);
 }
 
 function adicionarItemAdicional(dados = {}) {

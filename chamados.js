@@ -529,7 +529,7 @@ async function capturar_html_pdf(id) {
 
     let nome = `REQUISICAO ${manutencao.chamado}`
 
-    await gerar_pdf_online(html, nome);
+    await gerarPdfOnline(html, nome);
 
     removerPopup()
     await abrir_manutencao(id)
