@@ -1,0 +1,107 @@
+.valor_zero {
+    cursor: pointer;
+    white-space: nowrap;
+    background-color: #b36060;
+    color: white;
+    border-radius: 2px;
+    padding: 5px;
+}
+
+.valor_preenchido {
+    cursor: pointer;
+    white-space: nowrap;
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 2px;
+    padding: 5px;
+}
+
+.tabela {
+    border-collapse: collapse;
+}
+
+.tabela thead {
+    font-size: 0.8em;
+}
+
+th {
+    color: #222;
+}
+
+.modal-filtros {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    width: 320px;
+}
+
+.modal-filtros-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.modal-filtros-header button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.modal-filtros-header button.cancelar {
+    background: #B12425;
+}
+
+.pesquisa-filtros {
+    width: 95%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    font-size: 0.9em;
+}
+
+.lista-filtros {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 5px;
+    background-color: #b4b4b4;
+    width: 100%;
+}
+
+.lista-filtros label {
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    width: 90%;
+    background: white;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+}
+
+.lista-filtros label:hover {
+    background: #e3e3e3;
+}
+
+.lista-filtros input[type="checkbox"], .todos {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}

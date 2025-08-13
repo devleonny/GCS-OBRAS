@@ -1,6 +1,7 @@
 let filtrosAtivos = {}
 let filtroAgrupamentos = {}
 let divComposicoes = document.getElementById('composicoes')
+let cabecalhos = []
 const usuariosPermitidosParaEditar = ['log', 'editor', 'adm', 'gerente', 'diretoria', 'coordenacao'];
 
 const alerta = (termo) => `
@@ -21,7 +22,7 @@ function criar_lpu() {
     `, 'Nova LPU');
 }
 
-carregar_tabela_v2()
+carregarTabelaComposicoes()
 
 async function recuperar_composicoes() {
 
@@ -35,41 +36,32 @@ async function recuperar_composicoes() {
     }
 
     await inserirDados(dadosMescladosComposicoes, 'dados_composicoes')
-    await carregar_tabela_v2()
+    await carregarTabelaComposicoes()
     removerPopup()
 }
 
-async function carregar_tabela_v2() {
+async function carregarTabelaComposicoes() {
 
     if (document.title !== 'COMPOSIÇÕES') return
 
     let adicionar_item = document.getElementById('adicionar_item')
-    let btn_criar_lpu = document.getElementById('btn-criar-lpu')
-
     let permitidos = ['adm', 'editor', 'gerente', 'diretoria', 'coordenacao']
 
     adicionar_item.style.display = permitidos.includes(acesso.permissao) ? 'flex' : 'none'
-    btn_criar_lpu.style.display = permitidos.includes(acesso.permissao) ? 'flex' : 'none'
 
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    const dados_composicoes = await recuperarDados('dados_composicoes') || {};
 
-    if (Object.keys(dados_composicoes).length == 0) {
-        return await recuperar_composicoes();
-    }
+    if (Object.keys(dados_composicoes).length == 0) return await recuperar_composicoes();
 
     let thead = '';
     let tbody = '';
     let tsearch = '';
-    let cabecalhos = [
+    cabecalhos = [
         ...new Set(
-            Object.values(dados_composicoes).flatMap(obj => Object.keys(obj))
+            Object.values(dados_composicoes)
+                .flatMap(obj => Object.keys(obj).filter(k => !["timestamp", "id", "categoria de equipamento", "descricaocarrefour"].includes(k)))
         )
     ];
-
-    let lpusCriadas = JSON.parse(localStorage.getItem("lpus_criadas")) || [];
-    cabecalhos.push(...lpusCriadas);
-
-    cabecalhos.push('editar');
 
     let modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
     let colunasComposicoes = JSON.parse(localStorage.getItem('colunasComposicoes')) || {}
@@ -107,10 +99,16 @@ async function carregar_tabela_v2() {
     for (let [codigo, produto] of composicoesOrdenadas) {
         let tds = {};
 
-        colunas.forEach(chave => {
+        for (const chave of colunas) {
+
+            if (!produto[chave]) {
+                tds[chave] = `<td></td>`
+                continue
+            }
+
             let conteudo = produto[chave] || '';
             let alinhamento = 'left';
-            chave = String(chave)
+
             if (chave == 'imagem') {
                 alinhamento = 'center';
                 conteudo = `<img 
@@ -175,8 +173,7 @@ async function carregar_tabela_v2() {
                 <select 
                     class="opcoesSelect" 
                     onchange="alterarChave('${codigo}', '${chave}', this)"
-                    ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? '' : 'disabled'}
-                >
+                    ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? '' : 'disabled'}>
                     ${opcoes}
                 </select>
                 `
@@ -184,7 +181,7 @@ async function carregar_tabela_v2() {
             }
 
             tds[chave] = `<td style="text-align: ${alinhamento}; max-width: 200px;">${conteudo}</td>`;
-        });
+        }
 
         tds.editar = `<td style="width: 70px;">
                         <img 
@@ -229,7 +226,7 @@ async function retomarPaginacao() {
 
     if (document.title == 'Criar Orçamento') return await tabelaProdutos()
 
-    await carregar_tabela_v2()
+    await carregarTabelaComposicoes()
 
     if (Object.keys(filtrosAtivos).length == 0) return
 
@@ -279,12 +276,6 @@ function atribuirFuncoesCabecalho() {
 
 async function abrirFiltros() {
 
-    let dados_composicoes = await recuperarDados("dados_composicoes") || {};
-    let cabecalhos = [...new Set(Object.values(dados_composicoes).flatMap(obj => Object.keys(obj)))];
-
-    let lpusCriadas = JSON.parse(localStorage.getItem("lpus_criadas")) || [];
-    cabecalhos.push('editar', ...lpusCriadas);
-
     let acumulado = ''
     let modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
     let colunasComposicoes = JSON.parse(localStorage.getItem('colunasComposicoes')) || {}
@@ -306,22 +297,31 @@ async function abrirFiltros() {
     })
 
     acumulado = `
-        <div class="lista-filtros">
-            <input placeholder="Pesquisar" oninput="filtrarColunas(this.value)">
-        </div>
+        <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
 
-        <hr style="widht: 100%;">
+            <div style="margin-left: 1vw; ${horizontal}; background-color: white; border-radius: 5px; padding-left: 1vw; padding-right: 1vw;">
+                <input oninput="filtrarColunas(this.value)" placeholder="Pesquisar colunas" style="width: 100%;">
+                <img src="imagens/pesquisar2.png" style="width: 1.5vw; padding: 0.5vw;">
+            </div>
 
-        <div class="lista-filtros" style="margin-bottom: 5px;">
-            <label>
-                <input type="checkbox" onchange="marcarTodos(this)">Selecionar Todos
-            </label>
-        </div>
+            <br>
 
-        <div id="filtrosColunas" class="lista-filtros">
-            ${opcoes}
+            <div style="${horizontal}; gap: 10px;">
+                <input class="todos" type="checkbox" onchange="marcarTodos(this)">
+                <span>Selecionar Todos</span>
+            </div>
+
+            <br>
+
+            <div id="filtrosColunas" class="lista-filtros">
+                ${opcoes}
+            </div>
+
+            <hr style="width: 100%;">
+
+            ${botao('Salvar', 'aplicarFiltros()', '#4CAF50')}
+
         </div>
-        <button style="background-color: #4CAF50;" onclick="aplicarFiltros()">Confirmar</button>
     `
 
     popup(acumulado, 'Filtrar Itens')
@@ -378,7 +378,7 @@ async function aplicarFiltros() {
     localStorage.setItem('colunasComposicoes', JSON.stringify(colunasComposicoes))
     removerPopup()
 
-    await carregar_tabela_v2()
+    await carregarTabelaComposicoes()
 
 }
 
@@ -405,7 +405,7 @@ async function atualizar_status_material(codigo, elemento) {
 
     await enviar(`dados_composicoes/${codigo}/material infra`, resposta)
 
-    carregar_tabela_v2()
+    carregarTabelaComposicoes()
 
 }
 
