@@ -101,7 +101,7 @@ async function carregarTabelaComposicoes() {
 
         for (const chave of colunas) {
 
-            if (!produto[chave]) {
+            if (!produto[chave] && chave !== 'imagem') {
                 tds[chave] = `<td></td>`
                 continue
             }
@@ -111,12 +111,9 @@ async function carregarTabelaComposicoes() {
 
             if (chave == 'imagem') {
                 alinhamento = 'center';
-                conteudo = `<img 
-                                src="${conteudo || logo}" 
-                                style="width: 4vw; cursor: pointer;" 
-                                name="${codigo}"
-                                ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="abrirImagem('${codigo}')"` : ''}
-                            >`;
+                conteudo = `
+                <img src="${conteudo || logo}" style="width: 4vw; cursor: pointer;" name="${codigo}"
+                ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="abrirImagem('${codigo}')"` : ''}>`;
 
             } else if (chave.includes('lpu')) {
                 let preco_final = 0;
@@ -125,11 +122,10 @@ async function carregarTabelaComposicoes() {
                     preco_final = produto[chave].historico?.[ativo]?.valor || 0;
                 }
 
-                conteudo = `<label 
-                                class="labelAprovacao" 
-                                style="background-color: ${preco_final > 0 ? 'green' : '#B12425'};" 
-                                ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="abrirHistoricoPrecos('${codigo}', '${chave}')"` : ''}
-                            > ${dinheiro(conversor(preco_final))}</label>`;
+                conteudo = `
+                    <label class="labelAprovacao" style="background-color: ${preco_final > 0 ? 'green' : '#B12425'};" 
+                    ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="abrirHistoricoPrecos('${codigo}', '${chave}')"` : ''}> 
+                    ${dinheiro(conversor(preco_final))}</label>`;
 
             } else if (chave == 'agrupamentos') {
 
@@ -177,7 +173,6 @@ async function carregarTabelaComposicoes() {
                     ${opcoes}
                 </select>
                 `
-
             }
 
             tds[chave] = `<td style="text-align: ${alinhamento}; max-width: 200px;">${conteudo}</td>`;
