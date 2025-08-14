@@ -218,7 +218,7 @@ function carregarIcones() {
 
         return (
             liberados.permissao.includes(acesso.permissao) ||
-            liberados.usuario.includes(acesso.usuario) || 
+            liberados.usuario.includes(acesso.usuario) ||
             liberados.setor.includes(acesso.setor)
         );
     }
@@ -268,31 +268,8 @@ function corFundo() {
     }
 }
 
-function offline(motivo) {
-
-    const motivos = {
-        1: 'Você está offline...',
-        2: 'O servidor GCS caiu...'
-    }
-
-    let acumulado = `
-    <div class="telaOffline">
-
-        <div class="mensagemTela">
-            <img src="gifs/offline.gif">
-            <label>${motivos[motivo]}</label>
-            ${botao('Reconectar', `window.location.href = 'inicial.html'`)}
-        </div>
-    </div>
-    `
-
-    document.body.innerHTML = acumulado
-}
-
 async function identificacaoUser() {
     corFundo()
-
-    if (!navigator.onLine) return offline(1)
 
     if (document.title == 'Login') return
     if (!acesso) return window.location.href = 'login.html'
@@ -310,7 +287,7 @@ async function identificacaoUser() {
     if (acesso.permissao == 'ocorrencias' && document.title !== 'Ocorrências') return window.location.href = 'ocorrencias.html'
     if (document.title == 'Ocorrências') return
 
-    const usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []    
+    const usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []
     const totalUsuarios = [...new Set(usuariosOnline)]
 
     carregarIcones() // ícones da tela inicial;
@@ -528,7 +505,7 @@ if (typeof window !== 'undefined' && window.process && window.process.type) {
 function abrirArquivo(link) {
 
     if (verifTimestampNome(link)) { // Se for um link composto por timestamp, então vem do servidor;
-        link = `https://leonny.dev.br/uploads/${link}`
+        link = `https://leonny.dev.br/GCS/uploads/${link}`
     } else { // Antigo Google;
         link = `https://drive.google.com/file/d/${link}/view?usp=drivesdk`
     }
@@ -609,30 +586,29 @@ function overlayAguarde(desabilitar) {
 }
 
 setInterval(async function () {
-    await reprocessar_offline()
-}, 5 * 60 * 1000)
+    await reprocessarOffline()
+}, 1 * 60 * 1000)
 
-async function reprocessar_offline() {
+async function reprocessarOffline() {
     let dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {};
 
-    for (let operacao in dados_offline) {
-        let operacoes = dados_offline[operacao];
+    for (let [operacao, operacoes] of Object.entries(dados_offline)) {
 
-        for (let id in operacoes) {
-            let evento = operacoes[id];
+        for (let [idEvento, evento] of Object.entries(operacoes)) {
 
             if (operacao === 'enviar') {
-                await enviar(evento.caminho, evento.valor);
+                await enviar(evento.caminho, evento.valor, idEvento);
             } else {
-                await deletar(evento.chave);
+                await deletar(evento.chave, idEvento);
             }
 
             dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {};
-            delete dados_offline[operacao][id];
-            localStorage.setItem('dados_offline', JSON.stringify(dados_offline));
+            delete dados_offline[operacao][idEvento];
 
         }
     }
+
+    localStorage.setItem('dados_offline', JSON.stringify(dados_offline));
 }
 
 async function deletarDB(base, idInterno) {
@@ -1384,17 +1360,17 @@ async function receber(chave) {
                 resolve(data);
             })
             .catch(err => {
+                popup(mensagem(`Falha na atualização: ${chave}`))
                 console.log(err);
-                offline(2)
                 resolve({})
             });
     })
 }
 
-async function deletar(chave) {
+async function deletar(chave, offline, idEvento = null) {
     const url = `https://leonny.dev.br/deletar`;
 
-    let objeto = {
+    const objeto = {
         chave,
         usuario: acesso.usuario,
         app: verificarApp()
@@ -1413,15 +1389,15 @@ async function deletar(chave) {
                 resolve(data);
             })
             .catch(() => {
-                salvar_offline(objeto, 'deletar')
+                salvarOffline(objeto, 'deletar', idEvento)
                 resolve();
             });
     });
 }
 
-function enviar(caminho, info) {
+function enviar(caminho, info, idEvento = null) {
     return new Promise((resolve) => {
-        let objeto = {
+        const objeto = {
             caminho: caminho,
             app: verificarApp(),
             valor: info
@@ -1437,7 +1413,7 @@ function enviar(caminho, info) {
             .then(data => resolve(data))
             .catch((erro) => {
                 console.error(erro);
-                salvar_offline(objeto, 'enviar');
+                salvarOffline(objeto, 'enviar', idEvento);
                 resolve();
             });
     });
@@ -1455,21 +1431,18 @@ function ativarChaveOcorrencias(dados) {
             .then(data => resolve(data))
             .catch((erro) => {
                 console.error(erro);
-                salvar_offline(objeto, 'enviar');
+                salvarOffline(objeto, 'enviar');
                 resolve();
             });
     });
 }
 
-function salvar_offline(objeto, operacao) {
+function salvarOffline(objeto, operacao, idEvento) {
     let dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {}
-    let id = ID5digitos()
+    idEvento = idEvento || ID5digitos()
 
-    if (!dados_offline[operacao]) {
-        dados_offline[operacao] = {}
-    }
-
-    dados_offline[operacao][id] = objeto
+    if (!dados_offline[operacao]) dados_offline[operacao] = {}
+    dados_offline[operacao][idEvento] = objeto
 
     localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
 }
@@ -1520,9 +1493,9 @@ async function painelUsuarios(elementoOrigial) {
 
     for (const [usuario, objeto] of dadosSetores) {
 
-        if(objeto.permissao == 'novo') continue
+        if (objeto.permissao == 'novo') continue
         const status = usuariosOnline.includes(usuario) ? 'online' : 'offline'
-        
+
         stringUsuarios[status].quantidade++
         stringUsuarios[status].linhas += `
         <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
@@ -1664,7 +1637,7 @@ async function importarAnexos(arquivoInput) {
             formData.append('arquivos', arquivoInput.files[i]);
         }
 
-        fetch('https://leonny.dev.br/upload', {
+        fetch('https://leonny.dev.br/upload/GCS', {
             method: 'POST',
             body: formData
         })
@@ -1673,7 +1646,7 @@ async function importarAnexos(arquivoInput) {
                 resolve(data);
             })
             .catch(error => {
-                popup(mensagem('O Servidor caiu... solicite que um ADM reinicie o serviço'))
+                popup(mensagem('O Servidor caiu... solicite que um ADM reinicie o serviço'), 'Alerta', true)
                 reject();
             });
     });
