@@ -95,13 +95,13 @@ async function carregarTabelaComposicoes() {
     });
 
     let composicoesOrdenadas = Object.entries(dados_composicoes).sort((a, b) => b[1].timestamp - a[1].timestamp)
-
+    const camposFlexiveis = ['imagem', 'sistema'] // Mesmo que não existam, devem aparecer;
     for (let [codigo, produto] of composicoesOrdenadas) {
         let tds = {};
 
         for (const chave of colunas) {
 
-            if (!produto[chave] && chave !== 'imagem') {
+            if (!produto[chave] && !camposFlexiveis.includes(chave) ) {
                 tds[chave] = `<td></td>`
                 continue
             }
