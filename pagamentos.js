@@ -748,6 +748,8 @@ async function salvarPagamento() {
 
     }
 
+    ultimoPagamento.param[0].codigo_lancamento_integracao = id_pagamento
+
     await enviar(`lista_pagamentos/${id_pagamento}`, ultimoPagamento)
 
     await inserirDados({ [id_pagamento]: ultimoPagamento }, 'lista_pagamentos')
@@ -1196,9 +1198,10 @@ async function calculadoraPagamento() {
     backupPagamento()
 
     function backupPagamento() {
-        const assinatura = `Solicitante: ${acesso.usuario}`
-        const descricaoFinal = descricao.value.includes(assinatura) ? descricao.value : `${assinatura} \n ${descricao.value}`
 
+        const responsavelPagamento = ultimoPagamento?.criado || acesso.usuario
+        const assinatura = `Solicitante: ${responsavelPagamento}`
+        const descricaoFinal = descricao.value.includes(assinatura) ? descricao.value : `${assinatura} \n ${descricao.value}`
         const [ano, mes, dia] = dataFinal.split('-')
         dataFinal = `${dia}/${mes}/${ano}`
 
@@ -1207,7 +1210,7 @@ async function calculadoraPagamento() {
             id_orcamento: cc.id,
             departamento: cc.id,
             data_registro: obterDatas('completa'),
-            criado: ultimoPagamento?.usuario || acesso.usuario,
+            criado: responsavelPagamento,
             resumo: {
                 v_pago: auxCategorias.valorParceiro,
                 v_orcado: Number(v_orcado.value),
@@ -1447,11 +1450,15 @@ async function duplicarPagamento(id_pagamento) {
 
     overlayAguarde()
     let pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
+    const assinatura = `Solicitante: ${pagamento.criado}`
 
     delete pagamento.id_pagamento
+    delete pagamento.criado
     delete pagamento.param[0].codigo_lancamento_integracao
     delete pagamento.historico
     delete pagamento.status
+
+    pagamento.param[0].observacao = pagamento.param[0].observacao.replace(assinatura, '')
 
     localStorage.setItem('ultimoPagamento', JSON.stringify(pagamento))
 
