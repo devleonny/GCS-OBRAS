@@ -505,7 +505,7 @@ if (typeof window !== 'undefined' && window.process && window.process.type) {
 function abrirArquivo(link) {
 
     if (verifTimestampNome(link)) { // Se for um link composto por timestamp, então vem do servidor;
-        link = `https://leonny.dev.br/GCS/uploads/${link}`
+        link = `https://leonny.dev.br/uploads/GCS/${link}`
     } else { // Antigo Google;
         link = `https://drive.google.com/file/d/${link}/view?usp=drivesdk`
     }
