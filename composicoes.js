@@ -101,7 +101,7 @@ async function carregarTabelaComposicoes() {
 
         for (const chave of colunas) {
 
-            if (!produto[chave] && !camposFlexiveis.includes(chave) ) {
+            if (!produto[chave] && !camposFlexiveis.includes(chave) && !chave.includes('lpu')) {
                 tds[chave] = `<td></td>`
                 continue
             }
