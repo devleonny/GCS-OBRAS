@@ -587,28 +587,25 @@ function overlayAguarde(desabilitar) {
 
 setInterval(async function () {
     await reprocessarOffline()
-}, 1 * 60 * 1000)
+}, 30 * 1000)
 
 async function reprocessarOffline() {
     let dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {};
 
     for (let [operacao, operacoes] of Object.entries(dados_offline)) {
+        const ids = Object.keys(operacoes);
 
-        for (let [idEvento, evento] of Object.entries(operacoes)) {
+        for (let idEvento of ids) {
+            const evento = operacoes[idEvento];
 
             if (operacao === 'enviar') {
                 await enviar(evento.caminho, evento.valor, idEvento);
-            } else {
+            } else if (operacao === 'deletar', idEvento) {
                 await deletar(evento.chave, idEvento);
             }
 
-            dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {};
-            delete dados_offline[operacao][idEvento];
-
         }
     }
-
-    localStorage.setItem('dados_offline', JSON.stringify(dados_offline));
 }
 
 async function deletarDB(base, idInterno) {
@@ -705,9 +702,13 @@ async function inserirDados(dados, nomeBase, resetar) {
         dadosMesclados = dados
     }
 
-    dadosMesclados = Object.fromEntries(
-        Object.entries(dadosMesclados).filter(([_, valor]) => !valor?.excluido)
-    );
+    for (let [id, objeto] of Object.entries(dadosMesclados)) {
+        if (objeto.excluido) {
+            const trExistente = document.getElementById(id)
+            if (trExistente) trExistente.remove()
+            delete dadosMesclados[id]
+        }
+    }
 
     await store.put({ id: nomeBase, dados: dadosMesclados });
 
@@ -1360,63 +1361,75 @@ async function receber(chave) {
                 resolve(data);
             })
             .catch(err => {
-                popup(mensagem(`Falha na atualização: ${chave}`))
+                popup(mensagem(`Falha na atualização: ${chave}`), 'Alerta', true)
                 console.log(err);
                 resolve({})
             });
     })
 }
 
-async function deletar(chave, offline, idEvento = null) {
+async function deletar(chave, idEvento) {
+
     const url = `https://leonny.dev.br/deletar`;
 
     const objeto = {
         chave,
         usuario: acesso.usuario,
         app: verificarApp()
-    }
+    };
 
-    return new Promise((resolve) => {
-        fetch(url, {
+    try {
+        const response = await fetch(url, {
             method: "DELETE",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(objeto)
-        })
-            .then(response => response.json())
-            .then(data => {
-                resolve(data);
-            })
-            .catch(() => {
-                salvarOffline(objeto, 'deletar', idEvento)
-                resolve();
-            });
-    });
+        });
+
+        const data = await response.json();
+
+        if (idEvento) removerOffline('deletar', idEvento)
+
+        return data;
+    } catch (erro) {
+        console.error(erro);
+        salvarOffline(objeto, 'deletar', idEvento);
+        removerOverlay()
+        return null;
+    }
 }
 
-function enviar(caminho, info, idEvento = null) {
-    return new Promise((resolve) => {
-        const objeto = {
-            caminho: caminho,
-            app: verificarApp(),
-            valor: info
-        };
+function removerOffline(operacao, idEvento) {
+    let dados_offline = JSON.parse(localStorage.getItem('dados_offline'))
+    delete dados_offline?.[operacao]?.[idEvento]
+    localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
+}
 
-        fetch("https://leonny.dev.br/salvar", {
+async function enviar(caminho, info, idEvento) {
+
+    const url = `https://leonny.dev.br/salvar`
+    const objeto = {
+        caminho,
+        app: verificarApp(),
+        valor: info
+    };
+
+    try {
+        const response = await fetch(url, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(objeto)
-        })
-            .then(data => resolve(data))
-            .catch((erro) => {
-                console.error(erro);
-                salvarOffline(objeto, 'enviar', idEvento);
-                resolve();
-            });
-    });
+        });
+
+        const data = await response.json();
+
+        if (idEvento) removerOffline('enviar', idEvento)
+
+        return data;
+    } catch (erro) {
+        console.error(erro);
+        salvarOffline(objeto, 'enviar', idEvento);
+        return null;
+    }
 }
 
 function ativarChaveOcorrencias(dados) {
