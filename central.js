@@ -274,6 +274,8 @@ async function identificacaoUser() {
     if (document.title == 'Login') return
     if (!acesso) return window.location.href = 'login.html'
 
+    carregarIcones() // ícones da tela inicial;
+
     await sincronizarSetores()
     acesso = await recuperarDado('dados_setores', acesso.usuario)
 
@@ -290,7 +292,6 @@ async function identificacaoUser() {
     const usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []
     const totalUsuarios = [...new Set(usuariosOnline)]
 
-    carregarIcones() // ícones da tela inicial;
     verificarPendencias() // Pendencias de aprovação;
 
     let modelo = (imagem, funcao, idElemento) => {
@@ -303,15 +304,16 @@ async function identificacaoUser() {
     }
 
     let permitidosAprovacoes = ['adm', 'diretoria']
+    const indicadorStatus = navigator.onLine ? 'online' : 'offline'
 
     if (!paginasBloqueadas.includes(document.title) && acesso.usuario) {
 
         let texto = `
             <div class="cabecalhoUsuario">
-                <div class="botaoUsuarios" onclick="painelUsuarios(this)">
-                    <img src="imagens/online.png">
-                    <label>Online</label>
-                    <label>${totalUsuarios.length}</label>
+                <div class="botaoUsuarios" onclick="${indicadorStatus == 'online' ? 'painelUsuarios(this)' : ''}">
+                    <img src="imagens/${indicadorStatus}.png">
+                    <label>${indicadorStatus}</label>
+                    ${indicadorStatus == 'online' ? `<label>${totalUsuarios.length}</label>` : ''}
                 </div>
 
                 ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
@@ -320,7 +322,6 @@ async function identificacaoUser() {
                 <label onclick="deslogarUsuario()"
                 style="cursor: pointer; color: white;">${acesso.usuario} • ${acesso.permissao} • ${acesso.setor} • Sair</label>
             </div>
-
         `
         document.body.insertAdjacentHTML('beforebegin', texto)
     }
