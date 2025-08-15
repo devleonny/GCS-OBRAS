@@ -63,6 +63,8 @@ async function carregarTabelaComposicoes() {
         )
     ];
 
+    cabecalhos.push('editar')
+
     let modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
     let colunasComposicoes = JSON.parse(localStorage.getItem('colunasComposicoes')) || {}
     let modo = modoClone ? 'clone' : 'antigos'
@@ -95,7 +97,7 @@ async function carregarTabelaComposicoes() {
     });
 
     let composicoesOrdenadas = Object.entries(dados_composicoes).sort((a, b) => b[1].timestamp - a[1].timestamp)
-    const camposFlexiveis = ['imagem', 'sistema'] // Mesmo que não existam, devem aparecer;
+    const camposFlexiveis = ['imagem', 'sistema', 'editar'] // Mesmo que não existam, devem aparecer;
     for (let [codigo, produto] of composicoesOrdenadas) {
         let tds = {};
 
@@ -178,13 +180,11 @@ async function carregarTabelaComposicoes() {
             tds[chave] = `<td style="text-align: ${alinhamento}; max-width: 200px;">${conteudo}</td>`;
         }
 
-        tds.editar = `<td style="width: 70px;">
-                        <img 
-                            src="imagens/editar.png" 
-                            style="width: 2vw; cursor: pointer;" 
-                            ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="cadastrar_editar_item('${codigo}')"` : ''}
-                        >
-                    </td>`;
+        tds.editar = `
+        <td style="width: 70px;">
+            <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" 
+            ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="cadastrar_editar_item('${codigo}')"` : ''}>
+        </td>`;
 
         let celulas = '';
         colunas.forEach(col => {
