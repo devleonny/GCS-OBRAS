@@ -1,3 +1,4 @@
+const api = `https://api.gcs.app.br`
 let acesso = JSON.parse(localStorage.getItem('acesso'))
 let dados_setores = {}
 let filtrosUsuarios = {}
@@ -506,7 +507,7 @@ if (typeof window !== 'undefined' && window.process && window.process.type) {
 function abrirArquivo(link) {
 
     if (verifTimestampNome(link)) { // Se for um link composto por timestamp, então vem do servidor;
-        link = `https://leonny.dev.br/uploads/GCS/${link}`
+        link = `${api}/uploads/GCS/${link}`
     } else { // Antigo Google;
         link = `https://drive.google.com/file/d/${link}/view?usp=drivesdk`
     }
@@ -1351,7 +1352,7 @@ async function receber(chave) {
     };
 
     return new Promise((resolve, reject) => {
-        fetch("https://leonny.dev.br/dados", obs)
+        fetch(`${api}/dados`, obs)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
@@ -1371,7 +1372,7 @@ async function receber(chave) {
 
 async function deletar(chave, idEvento) {
 
-    const url = `https://leonny.dev.br/deletar`;
+    const url = `${api}/deletar`;
 
     const objeto = {
         chave,
@@ -1407,7 +1408,7 @@ function removerOffline(operacao, idEvento) {
 
 async function enviar(caminho, info, idEvento) {
 
-    const url = `https://leonny.dev.br/salvar`
+    const url = `${api}/salvar`
     const objeto = {
         caminho,
         app: verificarApp(),
@@ -1435,7 +1436,7 @@ async function enviar(caminho, info, idEvento) {
 
 function ativarChaveOcorrencias(dados) {
     return new Promise((resolve) => {
-        fetch("https://leonny.dev.br/chavesOcorrencias", {
+        fetch(`${api}/chavesOcorrencias`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -1461,7 +1462,7 @@ function salvarOffline(objeto, operacao, idEvento) {
     localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
 }
 
-const WS_URL = "wss://leonny.dev.br:8443";
+const WS_URL = "wss://gcs.app.br:8443";
 let socket;
 let reconnectInterval = 30000;
 connectWebSocket();
@@ -1540,7 +1541,7 @@ async function gerarPdfOnline(htmlString, nome) {
         let encoded = new TextEncoder().encode(htmlString);
         let compressed = pako.gzip(encoded);
 
-        fetch("https://leonny.dev.br/pdf", {
+        fetch(`${api}/pdf`, {
             method: "POST",
             headers: { "Content-Type": "application/octet-stream" },
             body: compressed
@@ -1581,7 +1582,7 @@ async function reprocessarAnexos(idPagamento) {
     overlayAguarde()
     return new Promise((resolve, reject) => {
 
-        fetch("https://leonny.dev.br/reprocessar_anexos", {
+        fetch(`${api}/reprocessar_anexos`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ idPagamento })
@@ -1608,7 +1609,7 @@ async function reprocessarAnexos(idPagamento) {
 async function lancarPagamento(pagamento, call) {
     return new Promise((resolve, reject) => {
 
-        fetch("https://leonny.dev.br/lancar_pagamento", {
+        fetch(`${api}/lancar_pagamento`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ pagamento, call })
@@ -1651,7 +1652,7 @@ async function importarAnexos(arquivoInput) {
             formData.append('arquivos', arquivoInput.files[i]);
         }
 
-        fetch('https://leonny.dev.br/upload/GCS', {
+        fetch(`${api}/upload/GCS`, {
             method: 'POST',
             body: formData
         })
@@ -1669,7 +1670,7 @@ async function importarAnexos(arquivoInput) {
 function sincronizar(script) {
     return new Promise((resolve, reject) => {
 
-        fetch('https://leonny.dev.br/sincronizar', {
+        fetch(`${api}/sincronizar`, {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ script })
@@ -2024,7 +2025,7 @@ async function verificar_chamado_existente(chamado, id_atual, sequencial) {
 
         let clone = JSON.parse(sessionStorage.getItem('modoClone')) || false
 
-        fetch("https://leonny.dev.br/chamado", {
+        fetch(`${api}/chamado`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chamado, id_atual, sequencial, clone })
@@ -2047,7 +2048,7 @@ async function verificar_chamado_existente(chamado, id_atual, sequencial) {
 
 async function configuracoes(usuario, campo, valor) {
     return new Promise((resolve, reject) => {
-        fetch("https://leonny.dev.br/configuracoes", {
+        fetch(`${api}/configuracoes`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ usuario, campo, valor })
@@ -2070,7 +2071,7 @@ async function configuracoes(usuario, campo, valor) {
 
 async function servicos(servico, alteracao) {
     return new Promise((resolve, reject) => {
-        fetch("https://leonny.dev.br/servicos", {
+        fetch(`${api}/servicos`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ servico, alteracao })
@@ -2093,7 +2094,7 @@ async function servicos(servico, alteracao) {
 
 async function lista_setores(timestamp) {
     try {
-        const response = await fetch("https://leonny.dev.br/setores", {
+        const response = await fetch(`${api}/setores`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ timestamp })
@@ -2169,7 +2170,7 @@ async function sincronizarDados(base, overlayOff) {
 
 async function verificarNF(numero, tipo, app) {
     return new Promise((resolve, reject) => {
-        fetch("https://leonny.dev.br/notas", {
+        fetch(`${api}/notas`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ numero, tipo, app })
@@ -2490,7 +2491,7 @@ async function abrirDANFE(codOmieNF, tipo, app) {
 
 async function buscarDANFE(codOmieNF, tipo, app) {
     return new Promise((resolve, reject) => {
-        fetch("https://leonny.dev.br/danfe", {
+        fetch(`${api}/danfe`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ codOmieNF, tipo, app })
@@ -2511,7 +2512,7 @@ async function buscarDANFE(codOmieNF, tipo, app) {
 
 async function mobi7({ base, usuarioMobi7, dtInicial, dtFinal }) {
     return new Promise((resolve, reject) => {
-        fetch("https://leonny.dev.br/mobi7", {
+        fetch(`${api}/mobi7`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ base, usuarioMobi7, dtInicial, dtFinal })
@@ -2547,7 +2548,7 @@ async function baixarOcorrencias() {
     }
 
     return new Promise((resolve, reject) => {
-        fetch("https://leonny.dev.br/ocorrencias", {
+        fetch(`${api}/ocorrencias`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ usuario: acesso.usuario, timestampOcorrencia, timestampCliente })

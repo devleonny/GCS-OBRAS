@@ -1530,7 +1530,7 @@ async function verificarCodigoExistente() {
 
         let modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
 
-        fetch("https://leonny.dev.br/codigo", {
+        fetch(`${api}/codigo`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ clone: modoClone })

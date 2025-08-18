@@ -611,7 +611,7 @@ async function baixarArquivos() {
     const zip = new JSZip()
 
     for (let i = 0; i < checkboxes.length; i++) {
-        const url = `https://leonny.dev.br/uploads/${checkboxes[i].dataset.url}`
+        const url = `${api}/uploads/${checkboxes[i].dataset.url}`
         const nomeArquivo = checkboxes[i].dataset.nome
 
         const response = await fetch(url)

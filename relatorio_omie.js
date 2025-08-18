@@ -395,7 +395,7 @@ function mostrarTabela(app) {
 
 async function baixarRelatorio() {
     return new Promise((resolve, reject) => {
-        fetch("https://leonny.dev.br/relatorio", {
+        fetch(`${api}/relatorio`, {
             method: "GET",
             headers: { "Content-Type": "application/json" }
         })
@@ -416,7 +416,7 @@ async function baixarRelatorio() {
 }
 
 async function excelRecebimento(appName) {
-    const response = await fetch("https://leonny.dev.br/excelRelatorio", {
+    const response = await fetch(`${api}/excelRelatorio`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ appName })

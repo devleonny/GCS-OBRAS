@@ -514,7 +514,7 @@ async function duplicar(orcam_) {
 
 
 async function excelOrcamentos() {
-    const response = await fetch("https://leonny.dev.br/orcamentosRelatorio", {
+    const response = await fetch(`${api}/orcamentosRelatorio`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ appName: verificarApp() })

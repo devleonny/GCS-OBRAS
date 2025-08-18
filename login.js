@@ -75,7 +75,7 @@ function acesso_login() {
 
     let inputs = divAcesso.querySelectorAll('input')
 
-    let url = 'https://leonny.dev.br/acesso'
+    let url = `${api}/acesso`
 
     if (inputs[0].value == '' || inputs[1].value == '') {
         popup(mensagem('Senha e/ou usuário não informado(s)'), 'ALERTA', true)
@@ -163,7 +163,7 @@ function salvarCadastro() {
             body: JSON.stringify(requisicao)
         }
 
-        fetch('https://leonny.dev.br/acesso', payload)
+        fetch(`${api}/acesso`, payload)
             .then(response => {
                 if (!response.ok) {
                     return response.json().then(err => { throw err; });
