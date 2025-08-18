@@ -1462,13 +1462,12 @@ function salvarOffline(objeto, operacao, idEvento) {
     localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
 }
 
-const WS_URL = "wss://gcs.app.br:8443";
 let socket;
 let reconnectInterval = 30000;
 connectWebSocket();
 
 function connectWebSocket() {
-    socket = new WebSocket(WS_URL);
+    socket = new WebSocket(`${api}:8443`);
 
     socket.onopen = () => {
         if (acesso) socket.send(JSON.stringify({ tipo: 'autenticar', usuario: acesso.usuario }));
