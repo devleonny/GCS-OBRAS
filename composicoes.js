@@ -1185,7 +1185,6 @@ function calcular(campo, dadosCalculo = null) {
             getElementById('frete_venda', freteVenda.toFixed(2))
             getElementById('porc_LP', dinheiro(lucroPresumido))
             getElementById('porc_CSLL', dinheiro(presuncaoCsll))
-            getElementById('icms_saida_select', icmsSaidaSelect == 0.12 ? '12%' : '20,5%')
             getElementById('icms_saida', dinheiro(icms.toFixed(0)))
             getElementById('frete', frete.toFixed(2))
             getElementById('difal', difal)
