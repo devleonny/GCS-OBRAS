@@ -68,14 +68,12 @@ document.getElementById('acesso_usuario').addEventListener('click', () => {
     acesso_login()
 })
 
-function acesso_login() {
-    
+async function acesso_login() {
+
     overlayAguarde()
     divAcesso.style.display = 'none'
 
     let inputs = divAcesso.querySelectorAll('input')
-
-    let url = `${api}/acesso`
 
     if (inputs[0].value == '' || inputs[1].value == '') {
         popup(mensagem('Senha e/ou usuário não informado(s)'), 'ALERTA', true)
@@ -91,43 +89,40 @@ function acesso_login() {
             }
         }
 
-        let payload = {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(requisicao)
+        try {
+            const response = await fetch(`${api}/acesso`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requisicao)
+            })
+            if (!response.ok) {
+                const err = await response.json()
+                throw err
+            }
+
+            const data = await response.json()
+
+            if (data.mensagem) {
+                divAcesso.style.display = 'flex'
+                return popup(mensagem(data.mensagem), 'Alerta', true);
+
+            } else if (data.permissao && data.permissao !== 'novo') {
+                localStorage.setItem('acesso', JSON.stringify(data));
+                window.location.href = 'inicial.html';
+            }
+
+            divAcesso.style.display = 'flex'
+
+        } catch (e) {
+            popup(mensagem(e), 'Alerta', true);
         }
-
-        fetch(url, payload)
-
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => { throw err; });
-                }
-                return response.json();
-            })
-            .then(data => {
-
-                if (data.permissao == 'novo') {
-                    popup(mensagem('Alguém do setor de SUPORTE precisa autorizar sua entrada!'), 'ALERTA', true)
-                } else if (data.permissao !== 'novo') {
-                    localStorage.setItem('acesso', JSON.stringify(data));
-                    window.location.href = 'inicial.html';
-                }
-
-                divAcesso.style.display = 'flex'
-
-            })
-            .catch(data => {
-                popup(mensagem(data.erro), 'ALERTA', true);
-                divAcesso.style.display = 'flex'
-            });
 
     }
 }
 
 // NOVO USUÁRIO ; 
 
-function salvarCadastro() {
+async function salvarCadastro() {
 
     overlayAguarde()
 
@@ -157,38 +152,25 @@ function salvarCadastro() {
             }
         }
 
-        let payload = {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(requisicao)
+        try {
+            const response = await fetch(`${api}/acesso`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requisicao)
+            })
+            if (!response.ok) {
+                const err = await response.json()
+                throw err
+            }
+
+            const data = await response.json()
+
+            divAcesso.style.display = 'flex'
+            return popup(mensagem(data.mensagem), 'Alerta');
+
+        } catch (e) {
+            popup(mensagem(e), 'Alerta', true);
         }
-
-        fetch(`${api}/acesso`, payload)
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => { throw err; });
-                }
-                return response.json();
-            })
-            .then(data => {
-
-                console.log(data)
-
-                switch (true) {
-                    case data.erro:
-                        popup(mensagem(data.erro), 'AVISO', true);
-                        break;
-                    case data.permissao == 'novo':
-                        popup(mensagem('Seu cadastro foi realizado! Alguém do setor de SUPORTE precisa autorizar sua entrada!'), 'ALERTA')
-                        break;
-                    default:
-                        popup(mensagem('Servidor Offline... fale com o Setor de Programação'), 'AVISO', true);
-                }
-
-            })
-            .catch(error => {
-                popup(mensagem(error.erro), 'AVISO', true);
-            });
 
     }
 
