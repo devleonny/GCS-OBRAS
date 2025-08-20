@@ -679,7 +679,7 @@ async function carregarOcorrencias() {
         `
     }
 
-    let acumulado = `
+    const acumulado = `
     
         <div style="${vertical};">
             <div class="painelBotoes" style="justify-content: space-between; align-items: center; height: 5vh;">

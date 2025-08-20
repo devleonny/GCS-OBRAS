@@ -1613,7 +1613,7 @@ async function abrirEsquema(id) {
                         `
                         <div>
                             <textarea oninput="mostrarConfirmacao(this)" style="resize: vertical; width: 90%;">${historico?.comentario || ''}</textarea>
-                            <span class="btnConfirmar" onclick="atualizarPedido('k8Fo5', 'comentario', this)">Atualizar</span>
+                            <span class="btnConfirmar" onclick="atualizarPedido('${chave}', 'comentario', this)">Atualizar</span>
                         </div>    
                         `
                     )}
@@ -1825,7 +1825,7 @@ async function atualizarPedido(chave, campo, imgSelect) {
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
     let elemento = campo == 'tipo' ? imgSelect : imgSelect.previousElementSibling;
-
+    
     orcamento.status.historico[chave][campo] = elemento.value
 
     enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/${campo}`, elemento.value)
