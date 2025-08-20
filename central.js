@@ -104,11 +104,7 @@ link.type = 'imagens/png';
 link.href = 'imagens/LG.png';
 document.head.appendChild(link);
 
-async function despoluicaoGCS(resetar) {
-
-    const atualizado = resetar ? !resetar : JSON.parse(localStorage.getItem('atualizado')) || false
-
-    if (atualizado) return
+async function despoluicaoGCS() {
 
     overlayAguarde(true)
 
@@ -158,6 +154,7 @@ if (document.title !== 'Ocorrências') {
     document.addEventListener('keydown', function (event) {
         if (event.key === 'F5') f5()
         if (event.key === 'F2') f2()
+        if (event.key === 'F8') despoluicaoGCS()
         if (event.ctrlKey && event.key === 'Delete') despoluicaoGCS(true)
     })
 }
@@ -1811,7 +1808,7 @@ async function verificarPendencias() {
 
     if (document.title == 'Ocorrências') return // Se carregar em ocorrências, como ele usa uma base diferente, sem "dados_orcamentos", vai dar erro;
 
-    if(!navigator.onLine) return
+    if (!navigator.onLine) return
 
     await sincronizarDados('dados_orcamentos', true)
     let dados_orcamentos = await recuperarDados('dados_orcamentos')
