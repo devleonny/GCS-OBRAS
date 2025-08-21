@@ -1063,9 +1063,7 @@ function pesquisar(input, tituloAtual) {
         const termoDiv = String(div.textContent).toLocaleLowerCase()
 
         div.style.display = (termoDiv.includes(termoPesquisa) || termoPesquisa == '') ? '' : 'none'
-
     }
-
 }
 
 async function anexosOcorrencias(input, idOcorrencia, idCorrecao) {

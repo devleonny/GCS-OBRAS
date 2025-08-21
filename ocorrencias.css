@@ -16,10 +16,6 @@
     color: white;
 }
 
-body {
-    overflow: hidden;
-}
-
 .totalBox {
     width: 100%;
     display: flex;

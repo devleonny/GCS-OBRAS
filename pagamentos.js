@@ -951,6 +951,7 @@ async function removerAnexoTemporario(link) {
 function incluirCamposAdicionais() {
 
     const campos = {
+        pedido: { titulo: 'Pedido' },
         lpu_parceiro: { titulo: 'LPU do parceiro de serviço & material' },
         os: { titulo: 'Ordem de Serviço' },
         relatorio_fotografico: { titulo: 'Relatório de Fotográfico' },
@@ -1137,7 +1138,7 @@ function compararDatas(data1, data2) {
     return maior;
 }
 
-async function calculadoraPagamento() {
+async function calculadoraPagamento(pagamentoEmEdicao) {
 
     let ultimoPagamento = JSON.parse(localStorage.getItem('ultimoPagamento')) || {}
     let cor = ''
@@ -1195,7 +1196,7 @@ async function calculadoraPagamento() {
 
     document.getElementById('liberarBotao').style.display = cor.includes('green') ? 'flex' : 'none'
 
-    backupPagamento()
+    if(!pagamentoEmEdicao) backupPagamento()
 
     function backupPagamento() {
 
@@ -1230,7 +1231,7 @@ async function calculadoraPagamento() {
             ]
 
         }
-
+        
         if (auxCategorias.atrasoRegras == 0) {
             painelParceiro.innerHTML = incluirCamposAdicionais()
             delete ultimoPagamento.anexos_parceiros
@@ -1342,7 +1343,7 @@ async function recuperarUltimoPagamento() {
         }
     }
 
-    await calculadoraPagamento()
+    await calculadoraPagamento(true)
 
     removerOverlay()
 
