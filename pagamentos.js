@@ -10,23 +10,25 @@ let dadosClientes = {}
 let dadosCC = {}
 let dadosSetores = {}
 
-function imagemEspecifica(justificativa) {
+function imagemEspecifica(justificativa) { //29
+
+    const nomeStatus = String(justificativa.status).toLowerCase()
 
     let cor = '#222'
     let imagem = "imagens/remover.png"
-    if (justificativa.status.includes('Aprovado')) {
+    if (nomeStatus.includes('aprovado')) {
         cor = '#4CAF50'
         imagem = "imagens/concluido.png"
     } else if (dados_setores[justificativa.usuario]?.permissao == 'qualidade') {
         cor = '#32a5e7'
         imagem = "imagens/qualidade.png"
-    } else if (justificativa.status.includes('Reprovado')) {
+    } else if (nomeStatus.includes('reprovado')) {
         cor = '#B12425'
         imagem = "imagens/remover.png"
-    } else if (justificativa.status.includes('Aguardando')) {
+    } else if (nomeStatus.includes('aguardando')) {
         cor = '#D97302'
         imagem = "imagens/avencer.png"
-    } else if (justificativa.status.includes('Aguardando')) {
+    } else if (nomeStatus.includes('aguardando')) {
         cor = '#D97302'
         imagem = "imagens/avencer.png"
     } else {
@@ -354,7 +356,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
                     <label><strong>Status </strong>${justificativa.status}</label>
                     <label><strong>Usuário </strong>${justificativa.usuario}</label>
                     <label><strong>Data </strong>${justificativa.data}</label>
-                    <label><strong>Justificativa </strong>${justificativa.justificativa.replace(/\n/g, "<br>")}</label>
+                    <label><strong>Justificativa</strong> ${justificativa.justificativa.replace(/\n/g, "<br>")}</label>
                 </div>
                 <img src="${imagemEspecifica(justificativa).imagem}" style="width: 3vw;">
             </div>`)
@@ -685,7 +687,6 @@ async function autorizarPagamentos(resposta, id_pagamento) {
             lancarPagamento(pagamento);
         } else if (permissao == 'fin' || (permissao == 'gerente' && setor == 'FINANCEIRO')) {
             status = `Aprovado pelo ${setor}`;
-            status = 'Processando...'
             lancarPagamento(pagamento);
         } else if (permissao !== 'qualidade' && setorUsuarioPagamento == 'INFRA' && pagamentoParceiroAtivo) {
             status = 'Aguardando aprovação da Qualidade';
