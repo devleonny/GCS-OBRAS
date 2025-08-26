@@ -95,6 +95,11 @@ body {
     border-radius: 15px;
 }
 
+.politicas {
+    color: white;
+    margin: 2vw;
+}
+
 .cabecalhoUsuario label {
     font-size: 1vw;
 }

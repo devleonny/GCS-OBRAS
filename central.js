@@ -269,7 +269,7 @@ function corFundo() {
 async function identificacaoUser() {
     corFundo()
 
-    if (document.title == 'Login') return
+    if (document.title == 'Login' || document.title == 'Política de Privacidade') return
     if (!acesso) return window.location.href = 'login.html'
 
     carregarIcones() // ícones da tela inicial;
