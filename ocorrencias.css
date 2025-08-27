@@ -67,7 +67,7 @@ body {
 }
 
 .fundo {
-    width: fit-content;
+    width: 90vw;
     display: flex;
     align-items: start;
     justify-content: start;
@@ -87,6 +87,10 @@ body {
     justify-content: center;
     gap: 1vw;
     padding-right: 5vw;
+}
+
+.blocoTabela {
+    width: 100%;
 }
 
 .titulo img {

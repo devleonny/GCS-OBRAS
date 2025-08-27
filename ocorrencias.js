@@ -123,7 +123,9 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 async function atualizarDados() {
     overlayAguarde()
 
-    await baixarOcorrencias()
+    const nuvem = await baixarOcorrencias()
+    await inserirDados(nuvem, 'dados_ocorrencias')
+
     await sincronizarDados('empresas', true)
     await sincronizarDados('dados_composicoes', true)
     await sincronizarDados('tipos', true)
