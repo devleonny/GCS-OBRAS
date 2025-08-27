@@ -90,7 +90,7 @@ const nomeStore = 'Bases'
 
 const logo = 'https://i.imgur.com/Nb8sPs0.png'
 const esquemas = {
-    'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS'],
+    'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'INFORMÁTICA', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS'],
     'categoria de equipamento': ['', 'IP', 'ANALÓGICO', 'ALARME', 'CONTROLE DE ACESSO'],
     'tipo': ['VENDA', 'SERVIÇO', 'USO E CONSUMO']
 }
