@@ -1,307 +1,93 @@
-.central {
-    position: absolute;
-    top: 10px;
-    margin-left: 15vw;
-    display: flex;
-    flex-direction: column;
+body {
+    min-height: 100vh;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.rodapeTabela {
+    border-top: 1px solid #666666;
     width: 100%;
-    justify-content: start;
-    align-items: start;
+    height: 2vh;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    background-color: #b1b1b1;
 }
 
-.negativo {
-    background-color: #b12425;
-    padding: 5px;
-    border-radius: 3px;
-    color: white;
-}
-
-.totalBox {
+.tabela {
     width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    background-color: #222;
-    color: white;
-    padding: 0.5vw;
-    text-align: center;
-    border-radius: 8px;
-}
-
-.informativo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #d2d2d2;
-    gap: 1vw;
-    padding: 1vw;
-    border-radius: 3px;
-}
-
-#empresaAtiva {
-    color: white;
-    font-size: 2vw;
-}
-
-input,
-select,
-textarea {
-    font-size: 1.0vw;
-}
-
-.blocoFiltro {
-    background-color: #e6e6e6;
-    padding: 10px;
-    border-radius: 3px;
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    justify-content: start;
-}
-
-.blocoFiltro div label {
-    font-size: 0.7vw;
-    border-radius: 2px;
-    background-color: #383838;
-    color: white;
-    padding: 3px;
-}
-
-.blocoFiltro div {
-    gap: 1px;
-    border: 1px solid #c3c3c3;
-    width: max-content;
-    max-width: 15vw;
-    background-color: #d1d1d1;
-    border-radius: 3px;
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    justify-content: start;
-    overflow-y: visible;
-    overflow-x: hidden;
-    max-height: 20vh;
-    height: max-content;
-}
-
-.atalhosRelatorio {
-    display: flex;
-    align-items: center;
-    justify-content: start;
-    background-color: #e2e2e2;
-    border-radius: 3px;
-    padding: 10px;
-    width: 100%;
-    gap: 5px;
-}
-
-.blocoMaior {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: start;
-    border-bottom: 1px solid #222;
-}
-
-.divsListagem {
-    width: 100%;
-    font-size: 1.0vw;
-    border-bottom: 1px solid #222;
-    padding: 5px;
-    display: flex;
-    justify-content: start;
-    align-items: start;
-    background-color: #e6e6e6;
-}
-
-.blocosIrmaos {
-    position: relative;
-    background-color: transparent;
-    width: 50%;
-    flex-direction: column;
-    display: flex;
-    align-items: center;
-    justify-content: start;
-}
-
-.fechar {
-    cursor: pointer;
-    color: #444444;
-    float: right;
-    font-size: 2vw;
-    font-weight: bold;
-}
-
-.fechar:hover {
-    color: red;
-}
-
-.balaoOcorrencias {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-}
-
-.balaoSolicitante {
-    font-size: 0.6vw;
-    cursor: pointer;
-    padding: 5px;
-    background-color: #222;
-    border-bottom-left-radius: 15px;
-    border-top-left-radius: 15px;
-}
-
-.balaoExecutor {
-    font-size: 0.6vw;
-    cursor: pointer;
-    padding: 5px;
-    background-color: #222222c8;
-    border-bottom-right-radius: 15px;
-    border-top-right-radius: 15px;
-}
-
-.campos {
-    font-size: 0.8vw;
-    text-align: left;
-    cursor: pointer;
-    padding: 5px;
-    max-width: 20vw;
-    background-color: #b5b5b5;
-    border-radius: 5px;
-}
-
-.fundoTec {
-    border: 1px solid #797979;
-    display: flex;
-    align-items: start;
-    justify-content: start;
-    flex-direction: column;
-    background-color: #e7e7e7;
-    border-radius: 3px;
-    width: 50%;
-    height: max-content;
-    max-height: 40vh;
-    overflow-y: auto;
-    margin: 1vw;
-    padding-left: 1vw;
-}
-
-.campos:hover {
-    background-color: #00563f;
-    color: white;
-}
-
-.tabela1 {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.tabela1 td {
-    border: solid 1px #222;
-    width: 50%;
-    text-align: center;
-}
-
-.tabelaChamado {
-    height: 100%;
     background-color: white;
+    border-collapse: collapse;
+    font-size: 1.2vw;
+}
+
+.tabela thead input {
+    width: 100%;
+}
+
+.tabela th {
+    border: solid 1px #d2d2d2;
+    color: #222;
     padding: 8px;
 }
 
-.tituloDashboard {
-    border-radius: 3px;
+.tabela td {
     text-align: center;
-    width: 100%;
-    margin: 10px;
-    padding: 1vw;
-    color: white;
-    background-color: #00563f;
-    font-size: 2.0vw;
-}
-
-.tabelaChamado td {
-    font-size: 1.0vw;
     padding: 3px;
-    text-align: center;
+    border: 1px solid #d2d2d2;
 }
 
-.painelLateral {
-    background-color: #222222dd;
-    box-shadow: 0px 0px 10px #222222dd;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 7vw;
-    gap: 1vh;
-    padding-top: 2vh;
-    height: 100vh;
+.tabela span {
+    margin-left: 10px;
+    text-align: left;
+}
+
+.tabela thead {
+    box-shadow: 0 1px 0 #ccc;
+    background-color: #d2d2d2;
+}
+
+.painelBotoes {
+    position: relative;
+    border-bottom: 1px solid #666666;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    border-top-right-radius: 10px;
+    border-top-left-radius: 10px;
+    background-color: #b1b1b1;
+    gap: 2px;
+    width: 100%;
+}
+
+.botoes {
+    display: flex;
+    align-items: start;
     justify-content: start;
     flex-direction: column;
-    z-index: 10;
-}
-
-.btnLateral {
-    color: white;
-    padding: 3px;
-    cursor: pointer;
-    border-radius: 2px;
-    width: 90%;
-    flex-direction: column;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 5px;
     gap: 5px;
 }
 
-.btnLateral:hover {
-    background-color: white;
-    color: black;
-}
-
-.btnLateral label {
-    cursor: pointer;
-    font-size: 0.7vw;
-}
-
-.painelCascata {
-    position: relative;
-    background-color: white;
-    box-shadow: 0px 0px 10px #222222dd;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: max-content;
-    margin-left: 7vw;
-    height: 100vh;
-    padding: 10vh 2vh 2vh 2vh;
+.pesquisa {
     display: flex;
-    flex-direction: column;
-    align-items: end;
-    justify-content: start;
-    gap: 1vh;
-
-    transform: translateX(-100%);
-    transition: transform 0.3s ease-in-out;
-    z-index: 9;
-    transform: translateX(0%);
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    border-radius: 50px;
+    padding-left: 5vw;
+    margin: 2vw;
 }
 
-.painelCascata label {
-    font-size: 1.0vw;
-    cursor: pointer;
+.pesquisa img {
+    width: 2vw;
 }
 
-.painelCentral {
-    border-radius: 2px;
-    background-color: #00000038;
-    margin-top: 1vw;
-    padding: 2vw;
-    width: 85vw;
-    display: flex;
-    justify-content: start;
-    align-items: start;
+.pesquisa input {
+    border: none;
+    background-color: transparent;
+    font-size: 1.2vw;
+}
+
+.atualizar {
+    margin-right: 1vw;
+    width: 5vw;
 }
