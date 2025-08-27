@@ -2,7 +2,9 @@ const telaInterna = document.querySelector('.telaInterna')
 let empresas = {}
 let tipos = {}
 let sistemas = {}
+let correcoes = {}
 let prioridades = {}
+let dados_clientes = {}
 
 ativarCloneGCS(true)
 const modeloTabela = (colunas) => {
@@ -37,15 +39,32 @@ telaOcorrencias()
 
 async function telaOcorrencias() {
 
+    dados_clientes = await recuperarDados('dados_clientes')
     empresas = await recuperarDados('empresas')
     tipos = await recuperarDados('tipos')
     sistemas = await recuperarDados('sistemas')
+    correcoes = await recuperarDados('correcoes')
     prioridades = await recuperarDados('prioridades')
     const dados_ocorrencias = await recuperarDados('dados_ocorrencias')
-    const tabela = modeloTabela(['Chamado', 'Solicitante', 'Executor', 'Unidade', 'Prioridade'])
+    const tabela = modeloTabela(
+        ['Empresa',
+            'Chamado',
+            'Status',
+            'Abertura',
+            'Data Limite',
+            'Solicitante',
+            'Executor',
+            'Tipo Correção',
+            'Loja',
+            'Sistema',
+            'Prioridade',
+            ''
+        ]
+    )
+
     telaInterna.innerHTML = tabela
 
-    for(const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) criarLinhaOcorrencia(idOcorrencia, ocorrencia)
+    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) criarLinhaOcorrencia(idOcorrencia, ocorrencia)
 
 }
 
@@ -65,7 +84,9 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
             <td>${dados_clientes?.[ocorrencia?.unidade]?.nome || '...'}</td>
             <td>${sistemas?.[ocorrencia?.sistema]?.nome || '...'}</td>
             <td>${prioridades?.[ocorrencia?.prioridade]?.nome || '...'}</td>
-            <td>${ocorrencia?.descricao || '...'}</td>
+            <td>
+                <img src="imagens/pesquisar2.png" style="width: 2vw;">
+            </td>
         </tr>
     `
 
@@ -78,6 +99,7 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 async function atualizarDados() {
     overlayAguarde()
 
+    await sincronizarDados('dados_ocorrencias', true)
     await sincronizarDados('empresas', true)
     await sincronizarDados('dados_composicoes', true)
     await sincronizarDados('tipos', true)

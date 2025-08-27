@@ -73,7 +73,7 @@ body {
     justify-content: center;
     background-color: white;
     border-radius: 50px;
-    padding-left: 5vw;
+    padding: 1vw;
     margin: 2vw;
 }
 
@@ -85,6 +85,11 @@ body {
     border: none;
     background-color: transparent;
     font-size: 1.2vw;
+}
+
+.pesquisa input:focus {
+  outline: none;
+  border: none;
 }
 
 .atualizar {

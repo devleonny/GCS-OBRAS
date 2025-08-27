@@ -150,14 +150,11 @@ async function despoluicaoGCS() {
 
 }
 
-if (document.title !== 'Ocorrências') {
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'F5') f5()
-        if (event.key === 'F2') f2()
-        if (event.key === 'F8') despoluicaoGCS()
-        if (event.ctrlKey && event.key === 'Delete') despoluicaoGCS(true)
-    })
-}
+document.addEventListener('keydown', function (event) {
+    if (event.key === 'F5') f5()
+    if (event.key === 'F2') f2()
+    if (event.key === 'F8') despoluicaoGCS()
+})
 
 async function f2() {
 
@@ -1311,8 +1308,8 @@ function capturarValorCelula(celula) {
 
 function verificarApp() {
 
-    const modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
-    return modoClone
+    const modoClone = JSON.parse(sessionStorage.getItem('modoClone'))
+    return modoClone ? 'clone' : false
 }
 
 // SERVIÇO DE ARMAZENAMENTO 
