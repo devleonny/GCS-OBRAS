@@ -123,7 +123,7 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 async function atualizarDados() {
     overlayAguarde()
 
-    await sincronizarDados('dados_ocorrencias', true)
+    await baixarOcorrencias()
     await sincronizarDados('empresas', true)
     await sincronizarDados('dados_composicoes', true)
     await sincronizarDados('tipos', true)
@@ -133,6 +133,41 @@ async function atualizarDados() {
 
     await telaOcorrencias()
     removerOverlay()
+}
+
+async function baixarOcorrencias() {
+
+    const timestampOcorrencia = await maiorTimestamp('dados_ocorrencias')
+
+    async function maiorTimestamp(nomeBase) {
+
+        let timestamp = 0
+        const dados = await recuperarDados(nomeBase)
+        for (const [id, objeto] of Object.entries(dados)) {
+            if (objeto.timestamp && objeto.timestamp > timestamp) timestamp = objeto.timestamp
+        }
+
+        return timestamp
+    }
+
+    return new Promise((resolve, reject) => {
+        fetch(`${api}/ocorrencias`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ usuario: acesso.usuario, timestampOcorrencia })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(error => reject(error));
+
+    })
 }
 
 async function abrirCorrecoes(idOcorrencia) {

@@ -279,6 +279,10 @@ async function identificacaoUser() {
         return window.location.href = 'login.html'
     }
 
+    if(acesso.permissao == 'visitante') {
+        return window.location.href = 'ocorrencias.html'
+    }
+
     localStorage.setItem('acesso', JSON.stringify(acesso))
 
     if (acesso.permissao == 'ocorrencias' && document.title !== 'Ocorrências') return window.location.href = 'ocorrencias.html'
