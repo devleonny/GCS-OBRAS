@@ -7,7 +7,7 @@ let prioridades = {}
 let dados_clientes = {}
 
 ativarCloneGCS(true)
-const modeloTabela = (colunas) => { 
+const modeloTabela = (colunas) => {
 
     const botaoVoltar = acesso.permissao !== 'visitante' ? `<img class="atualizar" src="imagens/voltar_2.png" onclick="window.location.href = 'inicial.html'">` : ''
 
@@ -59,7 +59,9 @@ async function telaOcorrencias() {
     prioridades = await recuperarDados('prioridades')
     const dados_ocorrencias = await recuperarDados('dados_ocorrencias')
     const tabela = modeloTabela(
-        ['Empresa',
+        [
+            '',
+            'Empresa',
             'Chamado',
             'Status',
             'Abertura',
@@ -69,8 +71,7 @@ async function telaOcorrencias() {
             'Tipo Correção',
             'Loja',
             'Sistema',
-            'Prioridade',
-            ''
+            'Prioridade'
         ]
     )
 
@@ -97,6 +98,9 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
     const linha = `
         <tr id="${idOcorrencia}">
+            <td>
+                <img src="imagens/pesquisar2.png" style="width: 3vw; cursor: pointer;" onclick="abrirCorrecoes('${idOcorrencia}')">
+            </td>
             <td>${empresas[ocorrencia?.empresa]?.nome || '--'}</td>
             <td>${idOcorrencia}</td>
             <td>${status}</td>
@@ -108,9 +112,6 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
             <td>${dados_clientes?.[ocorrencia?.unidade]?.nome || '...'}</td>
             <td>${sistemas?.[ocorrencia?.sistema]?.nome || '...'}</td>
             <td>${prioridades?.[ocorrencia?.prioridade]?.nome || '...'}</td>
-            <td>
-                <img src="imagens/pesquisar2.png" style="width: 2vw;" onclick="abrirCorrecoes('${idOcorrencia}')">
-            </td>
         </tr>
     `
 
@@ -182,21 +183,21 @@ async function abrirCorrecoes(idOcorrencia) {
         .join('')
 
     let linhas = ''
-    for(let [idCorrecao, correcao] of Object.entries(correcoesOC)) {
+    for (let [idCorrecao, correcao] of Object.entries(correcoesOC)) {
         const st = correcoes[correcao.tipoCorrecao].nome
         let registros = ''
 
-        for(let [dt, dado] of Object.entries(correcao.datas)) {
+        for (let [dt, dado] of Object.entries(correcao.datas)) {
 
             let rastreio = 'Processando localização...'
-            if(dado.geolocalizacao) {
+            if (dado.geolocalizacao) {
                 rastreio = `
                     <span>${dado.geolocalizacao.address.road}</span>
                     <strong><span>${dado.geolocalizacao.address.city}</span></strong>
                     <span>${dado.geolocalizacao.address.postcode}</span>
                 `
             }
-            
+
             registros += `
                 <div class="bloco">
                     <label>${new Date(Number(dt)).toLocaleString('pt-BR')}</label>
@@ -221,8 +222,18 @@ async function abrirCorrecoes(idOcorrencia) {
         `
     }
 
+    const loja = dados_clientes?.[ocorrencia?.unidade] || {}
+    console.log(loja);
+
     const acumulado = `
         <div style="padding: 2vw; background-color: #efefefff;">
+
+            <div style="${vertical}">
+                ${modelo('Loja', loja?.nome || '...')}
+                ${modelo('Endereço', loja?.bairro || '...')}
+                ${modelo('Cidade', loja?.cidade || '...')}
+                ${modelo('Cep', loja?.cep || '...')}
+            </div>
             <div class="blocoTabela">
                 <div class="painelBotoes">
                     <div class="botoes">
