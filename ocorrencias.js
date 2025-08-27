@@ -7,7 +7,9 @@ let prioridades = {}
 let dados_clientes = {}
 
 ativarCloneGCS(true)
-const modeloTabela = (colunas) => {
+const modeloTabela = (colunas) => { 
+
+    const botaoVoltar = acesso.permissao !== 'visitante' ? `<img class="atualizar" src="imagens/voltar_2.png" onclick="window.location.href = 'inicial.html'">` : ''
 
     const ths = colunas
         .map(col => `<th>${col}</th>`).join('')
@@ -15,23 +17,33 @@ const modeloTabela = (colunas) => {
     const thead = (colunas && colunas.length > 0) ? `<thead>${ths}</thead>` : ''
 
     return `
-    <div class="blocoTabela">
-        <div class="painelBotoes">
-            <div class="botoes">
-                <div class="pesquisa">
-                    <input oninput="pesquisar(this, 'body')" placeholder="Pesquisar" style="width: 100%;">
-                    <img src="imagens/pesquisar2.png">
+    <div class="fundo">
+        <div class="titulo">
+            <img src="imagens/LG.png">
+            <span>Relatório de Ocorrências</span>
+        </div>
+        <br>
+        <div class="blocoTabela">
+            <div class="painelBotoes">
+                <div class="botoes">
+                    <div class="pesquisa">
+                        <input oninput="pesquisar(this, 'body')" placeholder="Pesquisar" style="width: 100%;">
+                        <img src="imagens/pesquisar2.png">
+                    </div>
+                </div>
+                <div style="${horizontal}; gap: 5px;">
+                    ${botaoVoltar}
+                    <img class="atualizar" src="imagens/atualizar3.png" onclick="atualizarDados()">
                 </div>
             </div>
-            <img class="atualizar" src="imagens/atualizar3.png" onclick="atualizarDados()">
+            <div class="recorteTabela">
+                <table class="tabela">
+                    ${thead}
+                    <tbody id="body"></tbody>
+                </table>
+            </div>
+            <div class="rodapeTabela"></div>
         </div>
-        <div class="recorteTabela">
-            <table class="tabela">
-                ${thead}
-                <tbody id="body"></tbody>
-            </table>
-        </div>
-        <div class="rodapeTabela"></div>
     </div>
 `}
 
@@ -131,9 +143,6 @@ async function abrirCorrecoes(idOcorrencia) {
     const thead = ['Executor', 'Tipo Correção', 'Descrição', 'Localização']
         .map(op => `<th>${op}</th>`)
         .join('')
-
-    console.log(correcoesOC);
-    
 
     let linhas = ''
     for(let [idCorrecao, correcao] of Object.entries(correcoesOC)) {

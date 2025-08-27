@@ -46,7 +46,6 @@ body {
 }
 
 .painelBotoes {
-    position: relative;
     border-bottom: 1px solid #666666;
     display: flex;
     align-items: center;
@@ -65,6 +64,38 @@ body {
     flex-direction: column;
     padding: 5px;
     gap: 5px;
+}
+
+.fundo {
+    width: fit-content;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    margin-top: 2vw;
+    border-radius: 10px;
+    padding: 1vw;
+    background-color: #22222264;
+}
+
+.titulo {
+    border-radius: 10px;
+    padding: 10px;
+    background-color: #222222b1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1vw;
+    padding-right: 5vw;
+}
+
+.titulo img {
+    width: 3vw;
+}
+
+.titulo span {
+    color: white;
+    font-size: 1.5vw;
 }
 
 .pesquisa {
