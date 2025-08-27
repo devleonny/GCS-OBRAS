@@ -16,7 +16,7 @@ body {
     width: 100%;
     background-color: white;
     border-collapse: collapse;
-    font-size: 1.2vw;
+    font-size: 0.8rem;
 }
 
 .tabela thead input {
@@ -88,11 +88,85 @@ body {
 }
 
 .pesquisa input:focus {
-  outline: none;
-  border: none;
+    outline: none;
+    border: none;
+}
+
+.recorteTabela {
+    overflow-x: auto;
 }
 
 .atualizar {
+    cursor: pointer;
     margin-right: 1vw;
-    width: 5vw;
+    width: 3vw;
+}
+
+.janela {
+    max-width: 90vw;
+    overflow: auto;
+    max-height: 90vh;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.janela_fora {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: start;
+    max-width: 90vw;
+    text-align: center;
+    font-size: 1.0vw;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.topo_popup {
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    background-color: #3b444c;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #d2d2d2;
+}
+
+.botao_popup {
+    background-color: #3b444c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3vw;
+    height: 4vh;
+    cursor: pointer;
+}
+
+.botao_popup img {
+    width: 1.0vw;
+}
+
+.botao_popup label {
+    cursor: pointer;
+    color: white;
+    font-size: 1.2vw;
+}
+
+.bloco {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+    background-color: rgb(132, 255, 119);
+}
+
+.bloco label {
+    width: 30%;
+}
+
+.bloco div {
+    width: 70%;
 }

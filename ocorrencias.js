@@ -68,16 +68,28 @@ async function telaOcorrencias() {
 
 }
 
+function dtAuxOcorrencia(dt) {
+
+    if (!dt || '') return '--'
+
+    const [ano, mes, dia] = dt.split('-')
+
+    return `${dia}/${mes}/${ano}`
+}
+
+
 async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
     const status = correcoes[ocorrencia?.tipoCorrecao]?.nome || 'Não analisada'
+
+
     const linha = `
         <tr id="${idOcorrencia}">
             <td>${empresas[ocorrencia?.empresa]?.nome || '--'}</td>
             <td>${idOcorrencia}</td>
             <td>${status}</td>
             <td>${ocorrencia?.dataRegistro || ''}</td>
-            <td>${ocorrencia?.dataLimiteExecucao}</td>
+            <td>${dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao)}</td>
             <td>${ocorrencia?.solicitante || ''}</td>
             <td>${ocorrencia?.executor || ''}</td>
             <td>${tipos?.[ocorrencia?.tipo]?.nome || '...'}</td>
@@ -85,7 +97,7 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
             <td>${sistemas?.[ocorrencia?.sistema]?.nome || '...'}</td>
             <td>${prioridades?.[ocorrencia?.prioridade]?.nome || '...'}</td>
             <td>
-                <img src="imagens/pesquisar2.png" style="width: 2vw;">
+                <img src="imagens/pesquisar2.png" style="width: 2vw;" onclick="abrirCorrecoes('${idOcorrencia}')">
             </td>
         </tr>
     `
@@ -109,4 +121,111 @@ async function atualizarDados() {
 
     await telaOcorrencias()
     removerOverlay()
+}
+
+async function abrirCorrecoes(idOcorrencia) {
+
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+
+    const correcoesOC = ocorrencia?.correcoes || {}
+    const thead = ['Executor', 'Tipo Correção', 'Descrição', 'Localização']
+        .map(op => `<th>${op}</th>`)
+        .join('')
+
+    console.log(correcoesOC);
+    
+
+    let linhas = ''
+    for(let [idCorrecao, correcao] of Object.entries(correcoesOC)) {
+        const st = correcoes[correcao.tipoCorrecao].nome
+        let registros = ''
+
+        for(let [dt, dado] of Object.entries(correcao.datas)) {
+
+            let rastreio = 'Processando localização...'
+            if(dado.geolocalizacao) {
+                rastreio = `
+                    <span>${dado.geolocalizacao.address.road}</span>
+                    <strong><span>${dado.geolocalizacao.address.city}</span></strong>
+                    <span>${dado.geolocalizacao.address.postcode}</span>
+                `
+            }
+            
+            registros += `
+                <div class="bloco">
+                    <label>${new Date(Number(dt)).toLocaleString('pt-BR')}</label>
+                    <div style="${vertical};">
+                        ${rastreio}
+                    </div>
+                </div>
+            `
+        }
+
+        linhas += `
+            <tr>
+                <td>${correcao.executor}</td>
+                <td>${st}</td>
+                <td>${correcao.descricao}</td>
+                <td>
+                    <div style="${vertical}; gap: 1px;">
+                        ${registros}
+                    </div>
+                </td>
+            </tr>
+        `
+    }
+
+    const acumulado = `
+        <div style="padding: 2vw; background-color: #efefefff;">
+            <div class="blocoTabela">
+                <div class="painelBotoes">
+                    <div class="botoes">
+                        <div class="pesquisa">
+                            <input oninput="pesquisar(this, 'body')" placeholder="Pesquisar" style="width: 100%;">
+                            <img src="imagens/pesquisar2.png">
+                        </div>
+                    </div>
+                </div>
+                <div class="recorteTabela">
+                    <table class="tabela">
+                        <thead>${thead}</thead>
+                        <tbody>${linhas}</tbody>
+                    </table>
+                </div>
+                <div class="rodapeTabela"></div>
+            </div>
+        </div>
+        `
+
+    popup(acumulado, 'Correções')
+}
+
+function pesquisar(input, idTbody) {
+    const termo = input.value.trim().toLowerCase();
+    const tbody = document.getElementById(idTbody);
+    const trs = tbody.querySelectorAll('tr');
+
+    trs.forEach(tr => {
+        const tds = tr.querySelectorAll('td');
+        let encontrou = false;
+
+        tds.forEach(td => {
+            let texto = td.textContent.trim().toLowerCase();
+
+            const inputInterno = td.querySelector('input, textarea, select');
+            if (inputInterno) {
+                texto += ' ' + inputInterno.value.trim().toLowerCase();
+            }
+
+            if (termo && texto.includes(termo)) {
+                encontrou = true;
+            }
+        });
+
+        if (!termo || encontrou) {
+            tr.style.display = ''; // mostra
+        } else {
+            tr.style.display = 'none'; // oculta
+        }
+    });
 }
