@@ -1311,16 +1311,8 @@ function capturarValorCelula(celula) {
 
 function verificarApp() {
 
-    let app = ''
-
-    if (document.title == 'Ocorrências') {
-        app = 'ocorrencias'
-    } else {
-        let modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
-        if (modoClone) app = 'clone'
-    }
-
-    return app
+    const modoClone = JSON.parse(sessionStorage.getItem('modoClone')) || false
+    return modoClone
 }
 
 // SERVIÇO DE ARMAZENAMENTO 
@@ -1357,11 +1349,14 @@ async function receber(chave) {
                 return response.json();
             })
             .then(data => {
+                if(data.mensagem) {
+                    popup(mensagem(`Falha na atualização: ${data.mensagem}`), 'Alerta', true)
+                    resolve({})
+                }
                 resolve(data);
             })
             .catch(err => {
-                popup(mensagem(`Falha na atualização: ${chave}`), 'Alerta', true)
-                console.log(err);
+                popup(mensagem(`Falha na atualização: ${chave} → ${err}`), 'Alerta', true)
                 resolve({})
             });
     })

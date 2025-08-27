@@ -932,6 +932,8 @@ button {
     max-width: 90vw;
     overflow: auto;
     max-height: 90vh;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
 }
 
 .janela_fora {
@@ -944,8 +946,7 @@ button {
     max-width: 90vw;
     text-align: center;
     font-size: 1.0vw;
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
+    border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
