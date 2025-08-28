@@ -1750,19 +1750,14 @@ input[type=range]::-moz-range-thumb {
     width: max-content;
     cursor: pointer;
     border-radius: 3px;
-    font-size: 0.8vw;
+    font-size: 1vw;
+    padding: 0.5vw;
+    background-color: #d2d2d2;
 }
 
 .bot_adicionar img {
     cursor: pointer;
     width: 2vw;
-}
-
-.bot_adicionar:hover {
-    padding: 5px;
-    font-size: 1.2vw;
-    transition: ease-in-out 0.1s;
-    background-color: #d2d2d2;
 }
 
 .bot_adicionar label {

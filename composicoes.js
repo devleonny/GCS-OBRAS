@@ -943,7 +943,7 @@ function modelos(produto) {
                 { label: 'CSLL (9%)', id: 'csll' },
                 { label: 'PIS (0,65%)', id: 'pis' },
                 { label: 'COFINS (3%)', id: 'cofins' },
-                { label: 'ICMS (%)', id: 'icms_saida', opcoes: ['20,5%', '12%', '4%'] }
+                { label: 'ICMS (20,5%)', id: 'icms_saida' }
             ]
         },
         'SERVIÇO': {
@@ -1174,7 +1174,7 @@ function calcular(campo, dadosCalculo = null) {
         let pis = precoVenda * 0.0065
         let cofins = precoVenda * 0.03
 
-        let icmsSaidaSelect = conversor(getElementById('icms_saida_select')) / 100
+        let icmsSaidaSelect = 0.205 //Fixo no pior cenário; (Venda dentro do estado)
 
         let icmsSaida = dadosCalculo?.icmsSaida / 100 || icmsSaidaSelect
         let icms = precoVenda * icmsSaida
