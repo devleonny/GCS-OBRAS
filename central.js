@@ -279,7 +279,7 @@ async function identificacaoUser() {
         return window.location.href = 'login.html'
     }
 
-    if(acesso.permissao == 'visitante') {
+    if (acesso.permissao == 'visitante') {
         return window.location.href = 'ocorrencias.html'
     }
 
@@ -314,6 +314,8 @@ async function identificacaoUser() {
                     <label>${indicadorStatus}</label>
                     ${indicadorStatus == 'online' ? `<label>${totalUsuarios.length}</label>` : ''}
                 </div>
+
+                <img src="imagens/aba.png" style="width: 2vw; cursor: pointer;" onclick="maisAba()">
 
                 ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
                 ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
@@ -1107,6 +1109,10 @@ function ir_para(modulo) {
 
 }
 
+function maisAba() {
+    window.open('inicial.html', '_blank')
+}
+
 async function ir_pdf(orcam_) {
 
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
@@ -1350,7 +1356,7 @@ async function receber(chave) {
                 return response.json();
             })
             .then(data => {
-                if(data.mensagem) {
+                if (data.mensagem) {
                     popup(mensagem(`Falha na atualização: ${data.mensagem}`), 'Alerta', true)
                     resolve({})
                 }
