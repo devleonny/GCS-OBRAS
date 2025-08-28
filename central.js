@@ -90,7 +90,7 @@ const nomeStore = 'Bases'
 
 const logo = 'https://i.imgur.com/Nb8sPs0.png'
 const esquemas = {
-    'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'INFORMÁTICA', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS'],
+    'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'INFORMÁTICA', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS', 'FIBRA DE REDE'],
     'categoria de equipamento': ['', 'IP', 'ANALÓGICO', 'ALARME', 'CONTROLE DE ACESSO'],
     'tipo': ['VENDA', 'SERVIÇO', 'USO E CONSUMO']
 }
@@ -1386,7 +1386,6 @@ async function deletar(chave, idEvento) {
 
         return data;
     } catch (erro) {
-        console.error(erro);
         salvarOffline(objeto, 'deletar', idEvento);
         removerOverlay()
         return null;
