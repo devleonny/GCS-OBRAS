@@ -1110,7 +1110,7 @@ function ir_para(modulo) {
 }
 
 function maisAba() {
-    window.open('inicial.html', '_blank')
+    window.open(window.location.href, '_blank');
 }
 
 async function ir_pdf(orcam_) {
