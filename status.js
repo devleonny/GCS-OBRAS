@@ -13,7 +13,7 @@ let fluxogramaClone = {
     'FATURADO': { cor: '#ff4500' },
     'ATRASADO': { cor: '#ff4500' },
     'PAGAMENTO RECEBIDO': { cor: '#b17724' },
-    'PAGAMENTO RECEBIDO': { cor: '#b17724' },
+    'LOCAÇÃO': { cor: '#b17724' },
     'LPU PARCEIRO': { cor: '#0062d5' }
 }
 
