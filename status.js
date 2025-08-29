@@ -4,17 +4,15 @@ let fluxograma = {}
 let dadosNota = {}
 
 let fluxogramaClone = {
-    'LEVANTAMENTO': { cor: '#0062d5' },
-    'ORÇAMENTOS': { cor: '#1CAF29' },
-    'LOGÍSTICA': { cor: '#4CAF10' },
-    'NFE - VENDAS': { cor: '#B05315' },
+    'LEVANTAMENTO': { cor: '#0062d5ff' },
     'REQUISIÇÃO': { cor: '#B12425' },
     'MATERIAL ENVIADO': { cor: '#b17724' },
     'MATERIAL ENTREGUE': { cor: '#b17724' },
-    'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
+    'ATIVIDADE EM ANDAMENTO': { cor: '#0e0c0bff' },
     'CONCLUÍDO': { cor: '#ff4500' },
-    'FATURADO': { cor: '#b17724' },
+    'FATURADO': { cor: '#ff4500' },
     'ATRASADO': { cor: '#ff4500' },
+    'PAGAMENTO RECEBIDO': { cor: '#b17724' },
     'PAGAMENTO RECEBIDO': { cor: '#b17724' },
     'LPU PARCEIRO': { cor: '#0062d5' }
 }
@@ -33,7 +31,6 @@ let fluxogramaPadrao = fluxograma = {
     'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
     'RETORNO DE MATERIAIS': { cor: '#aacc14' },
     'FINALIZADO': { cor: 'blue' }
-
 }
 
 // O objeto foi mesclado com o intuito de obter as formatações de ambos os aplicativos sem precisar criar um objeto para isso;
