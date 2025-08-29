@@ -14,6 +14,7 @@ let fluxogramaClone = {
     'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
     'CONCLUÍDO': { cor: '#ff4500' },
     'FATURADO': { cor: '#b17724' },
+    'ATRASADO': { cor: '#ff4500' },
     'PAGAMENTO RECEBIDO': { cor: '#b17724' },
     'LPU PARCEIRO': { cor: '#0062d5' }
 }
