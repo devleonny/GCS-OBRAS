@@ -4,96 +4,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="stylesheet" type="text/css" href="gcsobras.css">
+    <title>GCS</title>
+    <link rel="stylesheet" type="text/css" href="css/gcsobras.css">
+    <link rel="stylesheet" type="text/css" href="css/login.css">
+    <link rel="stylesheet" type="text/css" href="css/orcamento.css">
+    <link rel="stylesheet" type="text/css" href="css/criar_orcamento.css">
+    <link rel="stylesheet" type="text/css" href="css/composicoes.css">
+    <link rel="stylesheet" type="text/css" href="css/chamados.css">
+    <link rel="stylesheet" type="text/css" href="css/ocorrencias.css">
+    <link rel="stylesheet" type="text/css" href="css/veiculos.css">
+    <link rel="stylesheet" type="text/css" href="css/pagamentos.css">
+    <link rel="stylesheet" type="text/css" href="css/rh.css">
+    <link rel="stylesheet" type="text/css" href="css/relatorio_omie.css">
+    <link rel="stylesheet" type="text/css" href="css/estoque.css">
+    <link rel="stylesheet" type="text/css" href="css/agenda.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
-    <style>
-        body,
-        html {
-            font-family: 'Poppins', sans-serif;
-            height: 100%;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .login-container {
-            position: relative;
-            z-index: 1;
-            padding: 20px;
-            background-color: white;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        input {
-            display: block;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-            border: 1px solid #888;
-        }
-
-        button {
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #45a049;
-        }
-
-        .login-container {
-            padding: 20px;
-            background-color: rgba(255, 255, 255, 0.896);
-        }
-    </style>
-
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.2.1/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 </head>
 
 <body>
-    <div style="display: flex; flex-direction: column; gap: 10px; justify-content: center; align-items: center;">
-        <img src="imagens/BG.png" style="width: 20vw;">
 
-        <div id="acesso" class="login-container" style="display: flex; gap: 5px;">
-
-            <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
-
-                <label>Usuário</label>
-                <input type="text" placeholder="Usuário">
-
-                <label>Senha</label>
-                <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-                    <input type="password" placeholder="Senha">
-                    <img src="imagens/olhoFechado.png" style="width: 2vw; cursor: pointer;" onclick="exibirSenha(this)">
-                </div>
-                <button onclick="acesso_login()">Entrar</button>
-
-            </div>
-
-            <div style="display: flex; margin-left: 50px; justify-content: center; align-items: center;">
-                <div
-                    style="display: flex; flex-direction: column; justify-content: left; align-items: center; padding: 10px;">
-                    <label>Primeiro acesso?</label>
-                    <button style="background-color:#097fe6;" onclick="cadastrar()">Cadastre-se</button>
-                </div>
-            </div>
-
-        </div>
-
+    <div class="toolbar-top">
+        <span class="menu" onclick="mostrarMenus('toggle')">☰</span>
+        <div class="interruptor"></div>
+        <div class="baloes-top"></div>
     </div>
+
+    <div class="side-menu"></div>
+
+    <div class="tela" onclick="verificarClique(event)"></div>
 
 </body>
 
-<script src="central.js"></script>
-<script src="login.js"></script>
+<script src="js/central.js"></script>
+<script src="js/inicial.js"></script>
+<script src="js/login.js"></script>
+<script src="js/status.js"></script>
+<script src="js/orcamentos.js"></script>
+<script src="js/upload_imagens.js"></script>
+<script src="js/criar_orcamento.js"></script>
+<script src="js/criar_aluguel.js"></script>
+<script src="js/composicoes.js"></script>
+<script src="js/chamados.js"></script>
+<script src="js/ocorrencias.js"></script>
+<script src="js/veiculos.js"></script>
+<script src="js/pagamentos.js"></script>
+<script src="js/rh.js"></script>
+<script src="js/relatorio_omie.js"></script>
+<script src="js/modalidade_livre.js"></script>
+<script src="js/parceiros.js"></script>
+<script src="js/estoque.js"></script>
+<script src="js/agenda.js"></script>
 
 </html>

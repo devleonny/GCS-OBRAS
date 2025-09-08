@@ -1,0 +1,441 @@
+let filtroRelatorio = {}
+let datas = { de: '', ate: '' }
+let apps = []
+let appName = '' 
+
+async function atualizarRelatorio() {
+
+    overlayAguarde()
+    const nuvem = await baixarRelatorio()
+    await inserirDados(nuvem, 'dados_relatorios')
+    let dados_relatorio = nuvem || {}
+
+    for (const [app, apps] of Object.entries(nuvem)) {
+
+        if (app == 'atualizado') continue
+
+        if (!dados_relatorio[app]) dados_relatorio[app] = {}
+
+        let relatorioApp = dados_relatorio[app]
+
+        for (let [tipo, tipos] of Object.entries(apps)) {
+
+            if (!relatorioApp[tipo]) relatorioApp[tipo] = {}
+
+            relatorioApp[tipo] = {
+                ...relatorioApp[tipo],
+                ...tipos
+            }
+        }
+    }
+
+    dados_relatorio.atualizado = nuvem.atualizado
+
+    await inserirDados(dados_relatorio, 'dados_relatorio')
+
+    await telaRelatorio()
+
+    removerOverlay()
+
+}
+
+const imagensStatus = (status) => {
+
+    const imagens = {
+        'A VENCER': 'congelado',
+        'RECEBIDO': 'aprovado',
+        'CANCELADO': 'reprovado',
+        'VENCE HOJE': 'pendente'
+    }
+
+    return imagens?.[status] || 'reprovado'
+}
+
+async function telaRelatorio(app) {
+
+    overlayAguarde()
+
+    let dados_relatorio = await recuperarDados('dados_relatorio') || {}
+    let tabelas = {}
+
+    for (const [app, relatorioApp] of Object.entries(dados_relatorio)) {
+
+        if (app == 'atualizado') continue
+
+        if (!filtroRelatorio[app]) filtroRelatorio[app] = {}
+
+        if (!tabelas[app]) {
+            tabelas[app] = {
+                linhas: ''
+            }
+        }
+
+        for (const [tipo, tipos] of Object.entries(relatorioApp)) {
+            processarDados(tipos)
+        }
+
+        function parcelas(listaParcelas) {
+
+            let stringParcelas = ''
+
+            for (const parcela of listaParcelas) {
+
+                stringParcelas += `
+                    <div class="blocoParcela">
+
+                        <div style="flex-direction: column;">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
+                                <img src="imagens/${imagensStatus(parcela.status)}.png" style="width: 1.5vw;">
+                                <label name="status" style="font-size: 0.7vw;">${parcela.status}</label>
+                            </div>
+                            <label style="font-size: 0.7vw;" title="${parcela.conta}">${parcela.conta.slice(0, 10)}...</label>
+                        </div>
+
+                        <div class="blocoValores">
+                            <label name="valorStatus" style="font-size: 1.0vw;">${dinheiro(parcela.valor)}</label>
+                            <label name="vencimento" style="font-size: 0.7vw; white-space: nowrap;">venc. <strong>${parcela.vencimento}</strong></label>
+                        </div>
+
+                    </div>
+                `
+            }
+
+            stringParcelas = stringParcelas == '' ? 'Não Localizado' : stringParcelas
+
+            return stringParcelas
+        }
+
+        function processarDados(dados) {
+            for ([nf, nota] of Object.entries(dados)) {
+
+                if (!nota.dataRegistro) continue
+
+                let timestampData = dataJS(nota.dataRegistro)
+
+                if ((datas.de !== '' && datas.ate !== '') && !(timestampData >= datas.de && timestampData <= datas.ate)) continue
+
+                const tipo = nota.categoria == 'serviço' ? 'serviço' : 'venda_remessa'
+                tabelas[app].linhas += `
+                    <tr>
+                        <td name="categoria">${nota.categoria}</td>
+                        <td>
+                            ${balaoPDF(nf, nota.dataRegistro, nota.codOmie, tipo, app)}
+                        </td>
+                        <td>${dinheiro(nota.total)}</td>
+                        <td>${parcelas(nota.parcelas)}</td>
+                        <td>
+                            <div style="display: flex; flex-direction: column; justify-content: start;">
+                                <label>${nota.cliente}</label>
+                                <label><strong>${nota.cnpj}</strong></label>
+                            </div>
+                        </td>
+                    </tr>
+                    `
+            }
+        }
+    }
+
+    let stringTabelas = ''
+    let toolbarApp = ''
+    apps = []
+    for (const [app, dados] of Object.entries(tabelas)) {
+
+        let ths = ''
+        let thsPesquisa = ''
+        let colunasOFF = ['DANFE', 'Data Registro']
+        let colunas = ['Tipo', 'NF & Data Registro', 'Total', 'Parcelas', 'Cliente & CNPJ']
+            .map((coluna, i) => {
+                ths += `<th>${coluna}</th>`
+
+                if (colunasOFF.includes(coluna)) {
+                    thsPesquisa += `<th style="background-color: white;"></th>`
+                } else {
+                    thsPesquisa += `
+                    <th style = "background-color: white;" >
+                        <div style="display: flex; align-items: center; justify-content: center;">
+                            <input oninput="pesquisarGenerico('${i}', this.value, filtroRelatorio['${app}'], 'bodyRelatorio_${app}'); calcularResumoRelatorio('${app}')">
+                            <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                        </div>
+                    </th>
+            `}
+            })
+
+        apps.push(app)
+
+        toolbarApp += `
+            <div class="itensToolbar" id="toolbar_${app}" onclick="mostrarTabelaRelatorio('${app}')">
+                <label>${app}</label>
+            </div>
+        `
+
+        stringTabelas += `
+            <div id="${app}" style="${vertical}; width: max-content; max-width: 70vw; overflow: auto;">
+                <div class="topo-tabela"></div>
+                <div class="div-tabela">
+                    <table class="tabela">
+                        <thead>
+                            <tr>${ths}</tr>
+                            <tr>${thsPesquisa}</tr>
+                        </thead>
+
+                        <tbody id="bodyRelatorio_${app}">
+                            ${dados.linhas}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="rodapeTabela"></div>
+            </div>
+        `
+    }
+
+    const acumulado = `
+        <div class="fundo-relatorio">
+            <div style="${vertical}">
+                <span id="atualizado" style="color: white; margin-top: 1vw;"></span>
+                <div class="filtros">
+                    <div>
+                        <label>De</label>
+                        <input type="date" onchange="dataPesquisa(this.value, 'de')">
+                    </div>
+                    <div>
+                        <label>Até</label>
+                        <input type="date" onchange="dataPesquisa(this.value, 'ate')">
+                    </div>
+                </div>
+                <div id="resumoValores"></div>
+            </div>
+
+            <div style="${vertical};">
+                <div class="toolbarRelatorio">
+                    ${toolbarApp}
+                </div>
+                ${stringTabelas}
+            </div>
+        </div>
+        `
+
+    tela.innerHTML = acumulado
+
+    criarMenus('relatorio')
+
+    removerOverlay()
+
+    mostrarTabelaRelatorio(app ? app : apps[0])
+    document.getElementById('atualizado').textContent = `Atualizado em: ${dados_relatorio?.atualizado || '--'}`
+
+}
+
+async function limparFiltros() {
+
+    await telaRelatorio(appName)
+    filtroRelatorio[appName] = {}
+    carregarFiltros(appName)
+}
+
+function dataJS(data) {
+    const [dia, mes, ano] = data.split('/').map(Number)
+    return new Date(ano, mes - 1, dia, 0, 0, 0).getTime()
+}
+
+async function dataPesquisa(dt, campo) {
+
+    const [ano, mes, dia] = dt.split('-').map(Number)
+
+    const timestamp = new Date(ano, mes - 1, dia, 0, 0, 0).getTime()
+    datas[campo] = isNaN(timestamp) ? '' : timestamp
+
+    await telaRelatorio()
+
+}
+
+function calcularResumoRelatorio(app) {
+
+    let resumoValores = {
+        status: {},
+        categorias: {}
+    }
+
+    const tabela = document.getElementById(app)
+    const status = tabela.querySelectorAll('[name="status"]')
+    const valorStatus = tabela.querySelectorAll('[name="valorStatus"]')
+    const categorias = tabela.querySelectorAll('[name="categoria"]')
+
+    const termoST = filtroRelatorio[app]['3'] || ''
+    const termoCAT = filtroRelatorio[app]['0'] || ''
+
+    categorias.forEach(td => {
+
+        const tr = td.closest('tr')
+
+        const statusTD = tr.querySelectorAll('td')[3].querySelectorAll('[name="status"]')
+        const valores = tr.querySelectorAll('td')[3].querySelectorAll('[name="valorStatus"]')
+        let valor = 0
+
+        valores.forEach((td, i) => {
+            if (termoST == '' || (statusTD[i].textContent == String(termoST).toUpperCase())) valor += conversor(td.textContent)
+        })
+
+        // Por Status, caso a linha esteja visível;
+        const somar = tr.style.display !== 'none'
+        const categoria = td.textContent
+
+        if (!resumoValores.categorias[categoria]) resumoValores.categorias[categoria] = 0
+        if ((somar && termoCAT == categoria) || termoCAT == '') resumoValores.categorias[categoria] += valor
+
+    })
+
+    status.forEach((st, i) => {
+
+        const valor = conversor(valorStatus[i].textContent)
+
+        // Por Status, caso a linha esteja visível;
+        const somar = st.closest('tr').style.display !== 'none'
+
+        if (!resumoValores.status[st.textContent]) resumoValores.status[st.textContent] = 0
+        if ((somar && termoST == String(st.textContent).toLowerCase()) || termoST == '') resumoValores.status[st.textContent] += valor
+
+    })
+
+    for ([st, valor] of Object.entries(resumoValores.status)) {
+
+        let localValor = document.getElementById(st)
+        if (localValor) localValor.textContent = dinheiro(valor)
+
+    }
+
+    for ([cat, valor] of Object.entries(resumoValores.categorias)) {
+
+        let localValor = document.getElementById(cat)
+        if (localValor) localValor.textContent = dinheiro(valor)
+
+    }
+
+    return resumoValores
+
+}
+
+function carregarFiltros(app) {
+
+    const resumoValores = calcularResumoRelatorio(app)
+
+    const termoST = filtroRelatorio[app]['3'] || ''
+    const termoCAT = filtroRelatorio[app]['0'] || ''
+
+    const indStatus = Object.entries(resumoValores.status)
+        .map(([st, valor]) => `
+            <div class="blocoParcela">
+
+                <input ${termoST == String(st).toLowerCase() ? 'checked' : ''} type="radio" onclick="pesquisarGenerico(3, '${st}', filtroRelatorio['${app}'], 'bodyRelatorio_${app}'); calcularResumoRelatorio('${app}')" name="inputStatus">
+
+                <div style="flex-direction: column;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
+                        <img src="imagens/${imagensStatus(st)}.png" style="width: 1.5vw;">
+                        <label name="status" style="white-space: nowrap;">${st}</label>
+                    </div>
+                </div>
+
+                <div class="blocoValores">
+                    <label name="valorStatus" style="white-space: nowrap;" id="${st}">${dinheiro(valor)}</label>
+                </div>
+
+            </div>
+        `)
+        .join('')
+
+    const indCategorias = Object.entries(resumoValores.categorias)
+        .map(([cat, valor]) => `
+            <div class="blocoParcela">
+
+                <input ${termoCAT == String(cat).toLowerCase() ? 'checked' : ''} type="radio" name="inputCategoria" onclick="pesquisarGenerico(0, '${cat}', filtroRelatorio['${app}'], 'bodyRelatorio_${app}'); calcularResumoRelatorio('${app}')">
+
+                <div style="flex-direction: column;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
+                        <label name="status" style="white-space: nowrap;">${cat}</label>
+                    </div>
+                </div>
+
+                <div class="blocoValores">
+                    <label name="valorStatus" style="white-space: nowrap;" id="${cat}">${dinheiro(valor)}</label>
+                </div>
+
+            </div>
+        `)
+        .join('')
+
+    const acumulado = `
+        <div style="${vertical}; gap: 1px;">
+            ${indStatus}
+            <br>
+            ${indCategorias}
+        </div>
+        `
+
+    if (indStatus == '') return
+
+    document.getElementById('resumoValores').innerHTML = acumulado
+
+}
+
+function mostrarTabelaRelatorio(app) {
+
+    appName = app
+    apps.forEach(appNome => {
+        document.getElementById(appNome).style.display = 'none'
+        document.getElementById(`toolbar_${appNome}`).style.opacity = '0.5'
+    })
+
+    let tabelaApp = document.getElementById(app)
+    if (!tabelaApp) return
+
+    tabelaApp.style.display = 'table-row'
+    document.getElementById(`toolbar_${app}`).style.opacity = '1'
+
+    carregarFiltros(app)
+}
+
+async function baixarRelatorio() {
+    return new Promise((resolve, reject) => {
+        fetch(`${api}/relatorio`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                resolve(data);
+            })
+            .catch(err => {
+                console.error(err)
+                reject()
+            });
+    })
+}
+
+async function excelRecebimento() {
+    overlayAguarde()
+    const response = await fetch(`${api}/excelRelatorio`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appName })
+    });
+
+    if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${appName}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    removerOverlay()
+}

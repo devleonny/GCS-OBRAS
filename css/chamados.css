@@ -1,0 +1,147 @@
+.botoesChamado {
+    width: 100%;
+    cursor: pointer;
+    padding: 5px;
+    background-color: #d2d2d2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 5vh;
+}
+
+.arquivos {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    border-radius: 3px;
+    background-color: white;
+    padding: 10px;
+    text-align: left;
+}
+
+.anexos-formulario {
+    text-decoration: underline;
+}
+
+.item-historico {
+    padding: 2vw;
+    background-color: white;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 2vw;
+    margin: 0 5vw 5px;
+    width: 80%;
+    text-align: left;
+}
+
+.manutencao-formulario input,
+.manutencao-formulario select,
+.manutencao-formulario textarea {
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.botoesChamado label {
+    font-size: 0.7vw;
+    cursor: pointer;
+}
+
+.botoesChamado:hover {
+    transition: ease-in-out 0.1s;
+    background-color: #097fe6;
+    color: white;
+}
+
+.botoesChamado img {
+    width: 2vw;
+}
+
+.formato_status {
+    cursor: pointer;
+    display: inline-block;
+    color: white;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.excluir:hover {
+    transition: 0.2s ease-in-out;
+    background-color: #222;
+    color: white;
+}
+
+.espacos {
+    border: none;
+    padding: 0px;
+    margin: 0px;
+}
+
+.quantidade_requisicao {
+    cursor: pointer;
+    height: 20px;
+    background-color: #c8fcc4;
+    border-radius: 5px;
+    color: #151749;
+    font-weight: bold;
+    box-shadow: 1px 1px #151749;
+    text-align: center;
+}
+
+.campo-verde {
+    cursor: pointer;
+    text-align: center;
+    height: 30px;
+    width: 300px;
+    background-color: #4CAF507c;
+    border-radius: 3px;
+    margin: 5px;
+}
+
+.bex {
+    border-radius: 3px;
+    padding: 5px;
+    background-color: #d2d2d2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    color: #222;
+}
+
+.bex:hover {
+    transition: 0.2s ease-in-out;
+    background-color: #222;
+    color: white;
+}
+
+.anexos {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #3a3c4e;
+    color: black;
+    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    width: 95%;
+    cursor: auto;
+}
+
+#lista-anexos {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+input[type="file"]#input-anexos:hover {
+    background: transparent;
+}
