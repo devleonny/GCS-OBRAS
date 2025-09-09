@@ -353,18 +353,17 @@ async function enviarDadosOrcamento() {
     orcamentoBase.origem = origem
 
     if (!orcamentoBase.dados_orcam) {
-        return popup(avisoHTML('Preencha os dados do Cliente'), 'Alerta')
+        return popup(mensagem('Preencha os dados do Cliente'), 'Alerta')
     }
 
-    let dados_orcam = orcamentoBase.dados_orcam;
-    let chamado = dados_orcam.contrato
+    const dados_orcam = orcamentoBase.dados_orcam;
 
     if (dados_orcam.cliente_selecionado === '') {
-        return popup(avisoHTML('Cliente em branco'), 'Alerta')
+        return popup(mensagem('Cliente em branco'), 'Alerta')
     }
 
-    if (chamado === '') {
-        return popup(avisoHTML('Chamado em branco'), 'Alerta')
+    if (dados_orcam.contrato === '') {
+        return popup(mensagem('Chamado em branco'), 'Alerta')
     }
 
     if (orcamentoBase.total_desconto > 0) {
@@ -376,18 +375,15 @@ async function enviarDadosOrcamento() {
 
     if (!orcamentoBase.id) orcamentoBase.id = 'ORCA_' + unicoID();
 
-    popup(`
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
-            <img src="imagens/concluido.png" style="width: 2vw;">
-            <label>Aguarde... redirecionando...</label>
-        </div>
-    `, 'Processando...')
+    popup(mensagem('Aguarde... redirecionando...', 'imagens/concluido.png'), 'Processando...')
 
     await inserirDados({ [orcamentoBase.id]: orcamentoBase }, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase)
 
     baseOrcamento(undefined, true)
     await telaOrcamentos(true)
+
+    removerPopup()
 }
 
 async function recuperarComposicoesOrcamento() {
@@ -559,7 +555,7 @@ function linhasComposicoesOrcamento(codigo, produto, qtdeOrcada, lpu) {
                 <input id="prod_${codigo}" value="${qtdeOrcada}" type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
             </td>
             <td>
-                <label ${moduloComposicoes ? `onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')"` : ''} class="labelAprovacao" style="background-color: ${preco > 0 ? 'green' : '#B12425'}">${dinheiro(preco)}</label>
+                <label ${moduloComposicoes ? `onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')"` : ''} class="label-estoque" style="background-color: ${preco > 0 ? '#4CAF50bf' : '#b36060bf'}">${dinheiro(preco)}</label>
             </td>
             <td>
                 <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;">
@@ -751,7 +747,7 @@ async function totalOrcamento() {
             return `
                 <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
                     <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 5px;">
-                        <label ${valor > 0 ? 'class="input_valor">' : `class="labelAprovacao" style="background-color: #B12425">`} ${dinheiro(valor)}</label>
+                        <label ${valor > 0 ? 'class="input_valor">' : `class="label-estoque" style="background-color: #b36060bf">`} ${dinheiro(valor)}</label>
                         <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
                             ${(unitario && itemSalvo.antigo !== undefined) ? `<img onclick="gerenciarPrecoAntigo('${codigo}')" src="imagens/atrasado.png" style="cursor: pointer; width: 1.5vw;">` : ''}
                             ${unitario ? `<img onclick="alterarValorUnitario('${codigo}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5vw;">` : ''}
@@ -819,7 +815,7 @@ async function totalOrcamento() {
         const id = `toolbar_${tabela}`
         const toolbar = `
             <span>${tabela}</span>
-            <span style="font-size: 1.5vw;">${dinheiro(dados.valor)}</span>
+            <span style="font-size: 0.9rem;">${dinheiro(dados.valor)}</span>
         `
         const toolbarTipo = document.getElementById(id)
         if (toolbarTipo) {
@@ -976,7 +972,7 @@ async function confirmarNovoPreco(codigo, precoOriginal, operacao) {
     if (operacao == 'incluir') {
         let valor = Number(document.getElementById('novoValor').value)
 
-        if (precoOriginal >= valor) return popup(avisoHTML('O valor precisa ser maior que o Original'), 'AVISO', true)
+        if (precoOriginal >= valor) return popup(mensagem('O valor precisa ser maior que o Original'), 'AVISO', true)
         orcamento.alterado = true
         item.custo_original = precoOriginal
         item.custo = valor

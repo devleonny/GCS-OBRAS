@@ -119,13 +119,10 @@ async function telaPagamentos() {
 
     overlayAguarde()
 
-    const painelDireito = document.querySelector('.painelDireito')
-
     dadosClientes = await recuperarDados('dados_clientes')
     dadosCC = await recuperarDados('dados_CC')
     dadosSetores = await recuperarDados('dados_setores')
 
-    let acumulado = ''
     const lista_pagamentos = await filtrarPagamentos() // Filtrar de acordo com o usuário atual;
     let colunas = ['Data de Previsão', 'Centro de Custo', 'Valor', 'Status', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
     let cabecalho1 = ''
@@ -140,14 +137,14 @@ async function telaPagamentos() {
             cabecalho2 += `
                 <th style="background-color: white; border-radius: 0px;">
                     <div style="display: flex; align-items: center; justify-content: left;">
-                        <input style="width: 100%; font-size: 0.9vw;" placeholder="..." oninput="pesquisarGenerico(${i}, this.value, filtrosAtivosPagamentos, 'body')">
+                        <input oninput="pesquisarGenerico(${i}, this.value, filtrosAtivosPagamentos, 'body')">
                         <img src="imagens/pesquisar2.png" style="width: 1vw;">
                     </div>
                 </th>`
         }
     })
 
-    acumulado += `
+    const acumulado = `
         <div id="divPagamentos" style="display: flex; justify-content: center; align-items: start; margin-right: 1vw;">
 
             <div class="painelEsquerdo"></div>
@@ -167,7 +164,7 @@ async function telaPagamentos() {
             </div>
         </div>
         `
-
+    const painelDireito = document.querySelector('.painelDireito')
     if (!painelDireito) tela.innerHTML = acumulado
     preencherDados()
 
@@ -198,8 +195,8 @@ async function telaPagamentos() {
                 
                 <div class="ladoTexto">
                     <div style="display: flex; flex-direction: column; align-items: end; justify-content: end;">
-                        <Label style="font-size: 0.8vw;"><strong>${nomeStatus}</strong></label>
-                        <label style="font-size: 0.8vw;">${dinheiro(item.valor)}</label>
+                        <Label><b>${nomeStatus}</b></label>
+                        <label>${dinheiro(item.valor)}</label>
                     </div>
                     <img src="${iconePagamento(nomeStatus)}" style="width: 2vw;">
                 </div>

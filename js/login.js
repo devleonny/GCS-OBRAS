@@ -3,38 +3,39 @@ identificacaoUser()
 function telaLogin() {
 
     const acumulado = `
-    <div style="display: flex; flex-direction: column; gap: 10px; justify-content: center; align-items: center;">
-        <img src="imagens/BG.png" style="width: 20vw;">
+        <div style="display: flex; flex-direction: column; gap: 10px; justify-content: center; align-items: center;">
+            <img src="imagens/BG.png" style="width: 20vw;">
 
-        <div id="acesso" class="login-container" style="display: flex; gap: 5px;">
+            <div id="acesso" class="login-container" style="display: flex; gap: 5px;">
 
-            <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
 
-                <label>Usuário</label>
-                <input type="text" placeholder="Usuário">
+                    <label>Usuário</label>
+                    <input type="text" placeholder="Usuário">
 
-                <label>Senha</label>
-                <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-                    <input type="password" placeholder="Senha">
-                    <img src="imagens/olhoFechado.png" style="width: 2vw; cursor: pointer;" onclick="exibirSenha(this)">
+                    <label>Senha</label>
+                    <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
+                        <input type="password" placeholder="Senha">
+                        <img src="imagens/olhoFechado.png" style="width: 2vw; cursor: pointer;" onclick="exibirSenha(this)">
+                    </div>
+                    <button onclick="acessar()">Entrar</button>
+
                 </div>
-                <button onclick="acessar()">Entrar</button>
 
-            </div>
-
-            <div style="display: flex; margin-left: 50px; justify-content: center; align-items: center;">
-                <div
-                    style="display: flex; flex-direction: column; justify-content: left; align-items: center; padding: 10px;">
-                    <label>Primeiro acesso?</label>
-                    <button style="background-color:#097fe6;" onclick="cadastrar()">Cadastre-se</button>
+                <div style="display: flex; margin-left: 50px; justify-content: center; align-items: center;">
+                    <div
+                        style="display: flex; flex-direction: column; justify-content: left; align-items: center; padding: 10px;">
+                        <label>Primeiro acesso?</label>
+                        <button style="background-color:#097fe6;" onclick="cadastrar()">Cadastre-se</button>
+                    </div>
                 </div>
+
             </div>
 
         </div>
-
-    </div>
     `
     tela.innerHTML = acumulado
+
 }
 
 function exibirSenha(img) {
@@ -120,7 +121,10 @@ async function acessar() {
 
             } else if (data.permissao && data.permissao !== 'novo') {
                 localStorage.setItem('acesso', JSON.stringify(data));
+                await identificacaoUser()
                 telaInicial()
+                removerPopup()
+                document.querySelector('.toolbar-top').classList.remove('.offline')
             }
 
             divAcesso.style.display = 'flex'

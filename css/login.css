@@ -1,4 +1,5 @@
 .login-container {
+    font-size: 0.9rem;
     position: relative;
     z-index: 1;
     padding: 20px;
@@ -9,6 +10,7 @@
 }
 
 .login-container input {
+    background-color: #efefef;
     display: block;
     padding: 10px;
     margin: 10px 0;

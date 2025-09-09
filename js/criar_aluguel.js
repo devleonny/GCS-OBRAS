@@ -204,19 +204,14 @@ async function enviarDadosAluguel() {
     orcamentoBase.origem = origem
 
     if (!orcamentoBase.dados_orcam) {
-        return popup(avisoHTML('Preencha os dados do Cliente'), 'Alerta')
+        return popup(mensagem('Preencha os dados do Cliente'), 'Alerta')
     }
 
-    let dados_orcam = orcamentoBase.dados_orcam;
-    let chamado = dados_orcam.contrato
+    const dados_orcam = orcamentoBase.dados_orcam;
 
-    if (dados_orcam.cliente_selecionado === '') {
-        return popup(avisoHTML('Cliente em branco'), 'Alerta')
-    }
+    if (dados_orcam.cliente_selecionado === '') return popup(mensagem('Cliente em branco'), 'Alerta')
 
-    if (chamado === '') {
-        return popup(avisoHTML('Chamado em branco'), 'Alerta')
-    }
+    if (dados_orcam.contrato === '') return popup(mensagem('Chamado em branco'), 'Alerta')
 
     if (orcamentoBase.total_desconto > 0) {
         orcamentoBase.aprovacao = {
@@ -227,18 +222,15 @@ async function enviarDadosAluguel() {
 
     if (!orcamentoBase.id) orcamentoBase.id = 'ORCA_' + unicoID();
 
-    popup(`
-        <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
-            <img src="imagens/concluido.png" style="width: 2vw;">
-            <label>Aguarde... redirecionando...</label>
-        </div>
-    `, 'Processando...')
+    popup(mensagem('Aguarde... redirecionando...', 'imagens/concluido.png'), 'Processando...')
 
     await inserirDados({ [orcamentoBase.id]: orcamentoBase }, 'dados_orcamentos')
     await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase)
 
     baseOrcamento(undefined, true)
     await telaOrcamentos(true)
+
+    removerPopup()
 }
 
 function pesquisarProdutosAluguel(col, elemento) {

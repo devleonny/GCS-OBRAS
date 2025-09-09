@@ -38,7 +38,7 @@
 }
 
 .input_valor {
-  font-size: 1.2vw;
+  font-size: 0.9rem;
   color: #151749;
   font-weight: bold;
   white-space: nowrap;
@@ -47,9 +47,7 @@
 .campoValor {
   width: 0.8vw;
   width: 100%;
-  font-weight: bold;
-  color: #ffffff;
-  background-color: #4CAF50;
+  background-color: #4CAF50bf;
   border-radius: 3px;
   display: inline-block;
   text-align: center;
@@ -59,7 +57,7 @@
 
 .campoValor span {
   display: block;
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: normal;
   margin-top: 10px;
   color: #d7ffdb;
@@ -128,11 +126,6 @@
 
 .filtro {
   background-color: #222;
-}
-
-input.filtro::placeholder {
-  color: white;
-  text-align: center;
 }
 
 .preenchido {
@@ -264,22 +257,11 @@ button {
 .linha input,
 .linha select,
 .linha textarea {
-  width: 100%;
   cursor: pointer;
-  background-color: #4CAF50;
+  background-color: #d1d1d1;
   border-radius: 3px;
   padding: 5px;
-  color: white;
-}
-
-input::placeholder {
-  color: white;
-  opacity: 1;
-}
-
-textarea::placeholder {
-  color: white;
-  opacity: 1;
+  border: solid 1px #bbbbbb;
 }
 
 .resumo {

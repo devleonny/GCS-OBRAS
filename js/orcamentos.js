@@ -33,8 +33,12 @@ async function atualizarOrcamentos() {
 }
 
 function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
+
     if (ultimoStatus) filtro = ultimoStatus;
-    if (col) filtrosOrcamento[col] = String(texto).toLowerCase()
+
+    if (col !== undefined && col !== null) {
+        filtrosOrcamento[col] = String(texto).toLowerCase()
+    }
 
     const trs = document.querySelectorAll('#linhas tr');
     const lucratividade = String(document.querySelector('[name="lucratividade"]').value);
@@ -64,9 +68,10 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
         let mostrarLinha = true;
 
         for (const [col, filtroTexto] of Object.entries(filtrosOrcamento)) {
+
             if (filtroTexto && col < tds.length) {
-                const el = tds[col].querySelector('input, textarea');
-                const conteudo = el ? el.value : tds[col].textContent;
+                const el = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].querySelector('select') || tds[col].textContent
+                const conteudo = el.value ? el.value : el
                 if (!String(conteudo).toLowerCase().includes(filtroTexto)) {
                     mostrarLinha = false;
                     break;
@@ -172,7 +177,6 @@ async function telaOrcamentos() {
         criarLinhaOrcamento(idOrcamento, orcamento)
     }
 
-    // Trecho para eleminar linhas incoerentes;
     const linhas = document.getElementById('linhas')
     const trs = linhas.querySelectorAll('tr')
     const idsAtuais = Array.from(trs).map(tr => tr.id).filter(id => id)
@@ -184,7 +188,6 @@ async function telaOrcamentos() {
 
     criarMenus('orcamentos')
 
-    // Recuperar termos de pesquisa;
     for (const [col, termo] of Object.entries(filtrosOrcamento)) {
         const input = document.querySelector(`[name=col${col}]`)
         input.value = termo
@@ -216,9 +219,9 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
                 label_pedidos += `
                         <div class="etiqueta_pedidos"> 
-                            <label style="font-size: 0.6vw;">${tipo}</label>
-                            <label style="font-size: 0.7vw; margin: 2px;"><strong>${num_pedido}</strong></label>
-                            <label style="font-size: 0.8vw; margin: 2px"><strong>${dinheiro(valor_pedido)}</strong></label>
+                            <label>${tipo}</label>
+                            <label><b>${num_pedido}</b></label>
+                            <label><b>${dinheiro(valor_pedido)}</b></label>
                         </div>
                         `
             }
@@ -236,9 +239,9 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
                 label_notas += `
                     <div class="etiqueta_pedidos">
-                        <label style="font-size: 0.6vw;">${historico.tipo}</label>
-                        <label style="font-size: 0.7vw; margin: 2px;"><strong>${historico.nf}</strong></label>
-                        <label style="font-size: 0.8vw; margin: 2px;"><strong>${dinheiro(historico.valor)}</strong></label>
+                        <label>${historico.tipo}</label>
+                        <label><b>${historico.nf}</b></label>
+                        <label><b>${dinheiro(historico.valor)}</b></label>
                     </div>
                     `
             }
@@ -265,12 +268,10 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
     const tds = `
         <td>
-            <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                <label style="font-size: 0.6vw;">
-                    ${new Date(dados_orcam.data).toLocaleString('pt-BR')}
-                </label>
-                <label>${orcamento.lpu_ativa}</label>
-            </div>
+            <label text-align: left;">
+                <b>${orcamento.lpu_ativa}</b><br>
+                ${new Date(dados_orcam.data).toLocaleString('pt-BR')}
+            </label>
         </td>
         <td>
             <select class="opcoesSelect" onchange="alterar_status(this, '${idOrcamento}')">
@@ -280,10 +281,10 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         <td style="text-align: left;">${label_pedidos}</td>
         <td style="text-align: left;">${label_notas}</td>
         <td>
-            <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
+            <div style="${vertical}; text-align: left;">
                 ${(acesso.permissao && dados_orcam.cliente_selecionado) ? `*<img onclick="painelAlteracaoCliente('${idOrcamento}')" src="gifs/alerta.gif" style="width: 1.5vw; cursor: pointer;">` : ''}
                 <div style="text-align: left; display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                    <label style="font-size: 0.6vw;"><strong>${dados_orcam.contrato}</strong></label>
+                    <label><b>${dados_orcam.contrato}</b></label>
                     <label>${cliente?.nome || ''}</label>
                 </div>
             </div>
@@ -499,7 +500,6 @@ async function duplicar(orcam_) {
 
     window.location.href = `criar_${tipoOrcamento}.html`
 }
-
 
 async function excelOrcamentos() {
     const response = await fetch(`${api}/orcamentosRelatorio`, {

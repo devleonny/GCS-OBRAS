@@ -1,11 +1,10 @@
 const api = `https://api.gcs.app.br`
 const tela = document.querySelector('.tela')
-const toolbarTop = document.querySelector('.toolbar-top')
 const menus = document.querySelector('.side-menu')
 let origem = 'novos'
 let telaAtiva = null
 let funcaoAtiva = null
-let acesso = JSON.parse(localStorage.getItem('acesso'))
+let acesso = null
 let dados_setores = {}
 let filtrosUsuarios = {}
 let filtrosPendencias = {}
@@ -39,9 +38,9 @@ const avisoHTML = (termo) => `
         <label>${termo}</label>
     </div>
     `
-const mensagem = (mensagem) => `
+const mensagem = (mensagem, img) => `
     <div style="background-color: #d2d2d2; display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center;">
-        <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
+        <img src="${img ? img : `gifs/alerta.gif`}" style="width: 3vw; height: 3vw;">
         <label>${mensagem}</label>
     </div>
     `
@@ -290,8 +289,20 @@ async function respostaSincronizacao(script) {
 
 async function identificacaoUser() {
 
-    if (document.title == 'Login' || document.title == 'Política de Privacidade') return
+    acesso = JSON.parse(localStorage.getItem('acesso'))
+
+    if (document.title == 'Política de Privacidade') return
     if (!acesso) return telaLogin()
+
+    const toolbar = `
+        <div class="toolbar-top">
+            <span class="menu" onclick="mostrarMenus('toggle')">☰</span>
+            <div class="interruptor"></div>
+            <div class="baloes-top"></div>
+        </div>
+    `
+
+    document.body.insertAdjacentHTML('beforeend', toolbar)
 
     telaInicial()
 
@@ -322,7 +333,8 @@ async function identificacaoUser() {
         `
     }
 
-    let permitidosAprovacoes = ['adm', 'diretoria']
+    const permitidosAprovacoes = ['adm', 'diretoria']
+    const toolbarTop = document.querySelector('.toolbar-top')
 
     if (!paginasBloqueadas.includes(document.title) && acesso.usuario) {
 
@@ -530,6 +542,16 @@ function deslogarUsuario() {
             ${botao('Sim', `sair()`, 'green')}
         </div>
         `, 'Aviso')
+}
+
+function sair() {
+    removerPopup()
+    const toolbar = document.querySelector('.toolbar-top')
+    if (toolbar) toolbar.remove()
+    mostrarMenus(false)
+
+    localStorage.removeItem('acesso')
+    telaLogin()
 }
 
 function inicialMaiuscula(string) {
@@ -1034,11 +1056,6 @@ async function removerPopup(nao_remover_anteriores) {
         aguarde.remove()
     }
 
-}
-
-function sair() {
-    localStorage.removeItem('acesso')
-    telaLogin()
 }
 
 function unicoID() {
@@ -2110,51 +2127,32 @@ async function atualizarBaseClientes() {
 }
 
 async function painelClientes() {
+
     let orcamentoBase = baseOrcamento()
     let dados_orcam = orcamentoBase?.dados_orcam || {}
     let dados_clientes = await recuperarDados('dados_clientes') || {}
     let cliente = dados_clientes?.[dados_orcam?.omie_cliente] || {}
     let levantamentos = ''
 
-    // Caso a base de clientes esteja desatualizada;
-    if (dados_orcam.omie_cliente && Object.keys(cliente).length == 0) {
-        await atualizarBaseClientes()
-        return await painelClientes()
-    }
-
-    let dados_pagamentos = ["--", "15 dias", "30 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
-    let condicoes = ''
-    dados_pagamentos.forEach(pag => {
-        condicoes += `
-            <option ${dados_orcam?.condicoes == pag ? 'selected' : ''}>${pag}</option>
-        `
-    })
+    const parcelas = ["--", "15 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
 
     for (chave in orcamentoBase?.levantamentos || {}) {
         let levantamento = orcamentoBase.levantamentos[chave]
         levantamentos += criarAnexoVisual(levantamento.nome, levantamento.link, `excluir_levantamento('${chave}')`)
     }
 
-    let modelo = (valor1, valor2, idElemento) => {
-        return `
+    const modelo = (valor1, elemento) => `
             <div class="linha">
                 <label>${valor1}</label>
-                <div style="display: flex; 
-                align-items: center; 
-                justify-content: end; 
-                gap: 5px; 
-                width: 65%; 
-                margin-right: 10px;" 
-                ${idElemento ? `id="${idElemento}"` : ''}>${valor2 ? valor2 : ''}</div>
+                <div style="${horizontal}; gap: 2px;">${elemento}</div>
             </div>
         `
-    }
 
-    let acumulado = `
+    const acumulado = `
 
-    <div style="background-color: #d2d2d2; padding: 10px;">
+    <div id="cadastroCliente" style="background-color: #d2d2d2; padding: 2vw;">
 
-        <div style="display: flex; justify-content: start; align-items: center;">
+        <div style="${horizontal}; gap: 10px;">
             <div style="display: flex; flex-direction: column; gap: 10px; align-items: left; margin: 5px;">
                 <div id="acompanhamento_dados_clientes" class="btn" onclick="atualizarBaseClientes()">
                     <img src="imagens/omie.png">
@@ -2168,28 +2166,28 @@ async function painelClientes() {
             </div>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 5px; justify-content: center; align-items: start; border-radius: 3px; margin: 5px;">
+        <div style="${vertical}; gap: 5px; align-items: start; margin: 5px;">
 
-            <label style="font-size: 1.5vw;">Dados do Cliente</label>
+            <label>Dados do Cliente</label>
 
-            ${modelo('Chamado', `<input id="contrato" style="font-size: 1.0vw; display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" onchange="salvarDadosCliente()" value="${dados_orcam?.contrato || ''}">
-                <input id="chamado_off" style="width: 2vw; height: 2vw; cursor: pointer;" type="checkbox"
-                        onchange="salvarDadosCliente()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
-                <label style="white-space: nowrap;">Sem Chamado</label>`)}
-            ${modelo('Cliente', `<textarea class="autocomplete-input" id="cliente_selecionado" style="font-size: 1.0vw; width: 100%;" oninput="carregarClientes(this)">${cliente?.nome || ''}</textarea>`)}
-            ${modelo('CNPJ/CPF', cliente?.cnpj, 'cnpj')}
-            ${modelo('Endereço', cliente?.bairro, 'bairro')}
-            ${modelo('CEP', cliente?.cep, 'cep')}
-            ${modelo('Cidade', cliente?.cidade, 'cidade')}
-            ${modelo('Estado', cliente?.estado, 'estado')}
+            ${modelo('Chamado',
+        `<input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" onchange="salvarDadosCliente()" value="${dados_orcam?.contrato || ''}">
+        <input id="chamado_off" type="checkbox" onchange="salvarDadosCliente()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
+        <label>Sem Chamado</label>`)}
+
+            ${modelo('Cliente', `<span ${dados_orcam.omie_cliente ? `id="${dados_orcam.omie_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'salvarDadosCliente()')">${cliente?.nome || 'Selecione'}</span>`)}
+            ${modelo('CNPJ/CPF', `<span id="cnpj">${cliente?.cnpj || ''}</span>`)}
+            ${modelo('Endereço', `<span id="bairro">${cliente?.bairro || ''}</span>`)}
+            ${modelo('CEP', `<span id="cep">${cliente?.cep || ''}</span>`)}
+            ${modelo('Cidade', `<span id="cidade">${cliente?.cidade || ''}</span>`)}
+            ${modelo('Estado', `<span id="estado">${cliente?.estado || ''}</span>`)}
+
             ${modelo('Tipo de Frete', `<select id="tipo_de_frete" onchange="salvarDadosCliente()">
-                    <option ${dados_orcam?.tipo_de_frete == '--' ? 'selected' : ''}>--</option>
-                    <option ${dados_orcam?.tipo_de_frete == 'CIF' ? 'selected' : ''}>CIF</option>
-                    <option ${dados_orcam?.tipo_de_frete == 'FOB' ? 'selected' : ''}>FOB</option>
-                </select>`, 'estado')}
+                    ${['--', 'CIF', 'FOB'].map(op => `<option ${dados_orcam?.tipo_de_frete == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
+                    
             ${modelo('Transportadora', `<input type="text" id="transportadora" oninput="salvarDadosCliente()" value="${dados_orcam?.transportadora || '--'}">`)}
             ${modelo('Considerações', `<div style="display: flex; flex-direction: column; align-items: start; justify-content: center; width: 100%;">
-                    <textarea id="consideracoes" oninput="salvarDadosCliente()" rows="5" style="resize: none; width: 100%; font-size: 1.0vw;"
+                    <textarea id="consideracoes" oninput="salvarDadosCliente()" rows="5"
                     placeholder="Escopo do orçamento">${dados_orcam?.consideracoes || ''}</textarea>
 
                     <div class="contorno_botoes" style="background-color: #222;">
@@ -2203,24 +2201,22 @@ async function painelClientes() {
                     ${levantamentos}
                 </div>
                 `)}
-            ${modelo('Pagamento',
-        `<select id="condicoes" oninput="salvarDadosCliente()">
-                    ${condicoes}
-                </select>`)}
+
+            ${modelo('Pagamento', `<select id="condicoes" oninput="salvarDadosCliente()">
+                ${parcelas.map(op => `<option ${dados_orcam?.condicoes == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
+
             ${modelo('Garantia', `<input id="garantia" oninput="salvarDadosCliente()" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">`)}
 
-            <label style="font-size: 1.5vw;">Dados do Analista</label>
-            ${modelo('Analista', dados_orcam?.analista, 'analista')}
-            ${modelo('E-mail', dados_orcam?.email_analista, 'email_analista')}
-            ${modelo('Telefone', dados_orcam?.telefone_analista, 'telefone_analista')}
+            <label>Dados do Analista</label>
 
-            <label style="font-size: 1.5vw;">Quem emite essa nota?</label>
+            ${modelo('Analista', `<span id="analista">${dados_orcam?.analista || ''}</span>`)}
+            ${modelo('E-mail', `<span id="email_analista">${dados_orcam?.email_analista || ''}</span>`)}
+            ${modelo('Telefone', `<span id="telefone_analista">${dados_orcam?.telefone_analista || ''}</span>`)}
 
-            ${modelo('Empresa', `<select style="text-align: center; width: 100%;" id="emissor" oninput="salvarDadosCliente()">
-                    <option ${dados_orcam?.emissor == 'AC SOLUÇÕES' ? 'selected' : ''}>AC SOLUÇÕES</option>
-                    <option ${dados_orcam?.emissor == 'HNW' ? 'selected' : ''}>HNW</option>
-                    <option ${dados_orcam?.emissor == 'HNK' ? 'selected' : ''}>HNK</option>
-                </select>`)}
+            <label>Quem emite essa nota?</label>
+
+            ${modelo('Empresa', `<select id="emissor" oninput="salvarDadosCliente()">
+                    ${['AC SOLUÇÕES', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
         </div>
 
         <div style="width: 100%; display: flex; gap: 10px; align-items: end; justify-content: right; margin-top: 5vh;">
@@ -2236,6 +2232,7 @@ async function painelClientes() {
 }
 
 async function salvarDadosCliente() {
+
     let orcamentoBase = baseOrcamento()
 
     let dados_analista = {
@@ -2244,9 +2241,7 @@ async function salvarDadosCliente() {
         telefone: document.getElementById('telefone_analista').textContent
     };
 
-    if (!orcamentoBase.dados_orcam) {
-        orcamentoBase.dados_orcam = {}
-    }
+    if (!orcamentoBase.dados_orcam) orcamentoBase.dados_orcam = {}
 
     if (orcamentoBase.id) {
         dados_analista.email = orcamentoBase.dados_orcam.email_analista;
@@ -2273,19 +2268,23 @@ async function salvarDadosCliente() {
 
     orcamentoBase.dados_orcam = {
         ...orcamentoBase.dados_orcam,
-        analista: dados_analista.nome,
+        
+        omie_cliente: document.querySelector('[name="cliente"]').id,
         condicoes: document.getElementById('condicoes').value,
         consideracoes: document.getElementById('consideracoes').value,
         data: new Date(),
-        email_analista: dados_analista.email,
         garantia: document.getElementById('garantia').value,
-        telefone_analista: dados_analista.telefone,
         transportadora: document.getElementById('transportadora').value,
         tipo_de_frete: document.getElementById('tipo_de_frete').value,
-        emissor: document.getElementById('emissor').value
+        emissor: document.getElementById('emissor').value,
+        analista: dados_analista.nome,
+        email_analista: dados_analista.email,
+        telefone_analista: dados_analista.telefone
     };
 
     baseOrcamento(orcamentoBase)
+
+    painelClientes()
 
     if (orcamentoBase.lpu_ativa === 'MODALIDADE LIVRE') {
         total_v2();
@@ -2296,81 +2295,6 @@ async function salvarDadosCliente() {
             await totalOrcamento()
         }
     }
-}
-
-async function carregarClientes(textarea) {
-    let dados_clientes = await recuperarDados('dados_clientes') || {};
-    let pesquisa = String(textarea.value).replace(/[./-]/g, '').toLowerCase()
-    let opcoes = ''
-    let div = document.getElementById('div_sugestoes')
-    if (div) div.remove()
-
-    if (pesquisa == '') return
-
-    for ([omie, cliente] of Object.entries(dados_clientes)) {
-
-        let nome = cliente.nome.toLowerCase()
-        let cnpj_sem_format = cliente.cnpj.replace(/[./-]/g, '')
-
-        if (nome.includes(pesquisa) || cnpj_sem_format.includes(pesquisa)) {
-            opcoes += `
-            <div onclick="selecionarCliente('${omie}', '${cliente.nome}')" class="autocomplete-item" style="text-align: left; padding: 0px; gap: 0px; display: flex; flex-direction: column; align-items: start; justify-content: start; padding: 2px; border-bottom: solid 1px #d2d2d2;">
-                <label style="width: 90%; font-size: 0.8vw;">${cliente.nome}</label>
-                <label style="width: 90%; font-size: 0.7vw;"><strong>${cliente.cnpj}</strong></label>
-            </div>
-        `}
-    }
-
-    if (document.title !== 'Veículos' && pesquisa == '') {
-        document.getElementById('cnpj').textContent = '...'
-        document.getElementById('cnpj').textContent = '...'
-        document.getElementById('cep').textContent = '...'
-        document.getElementById('bairro').textContent = '...'
-        document.getElementById('cidade').textContent = '...'
-        document.getElementById('estado').textContent = '...'
-        return
-    }
-
-    let posicao = textarea.getBoundingClientRect()
-    let left = posicao.left + window.scrollX
-    let top = posicao.bottom + window.scrollY
-
-    let div_sugestoes = `
-        <div id="div_sugestoes" class="autocomplete-list" style="position: absolute; top: ${top}px; left: ${left}px; border: 1px solid #ccc; width: 15vw;">
-            ${opcoes}
-        </div>
-    `
-    document.body.insertAdjacentHTML('beforeend', div_sugestoes)
-}
-
-async function selecionarCliente(omie, nome) {
-
-    if (document.title == 'Veículos') {
-        let omie_motorista = document.getElementById('omieMotorista')
-        omie_motorista.value = nome
-        omie_motorista.nextElementSibling.value = omie
-
-    } else {
-        let dados_clientes = await recuperarDados('dados_clientes') || {};
-        let cliente = dados_clientes[omie]
-
-        let orcamento = baseOrcamento()
-        if (!orcamento.dados_orcam) orcamento.dados_orcam = {}
-        orcamento.dados_orcam.omie_cliente = omie
-        baseOrcamento(orcamento)
-
-        document.getElementById('cnpj').textContent = cliente.cnpj
-        document.getElementById('cep').textContent = cliente.cep
-        document.getElementById('bairro').textContent = cliente.bairro
-        document.getElementById('cidade').textContent = cliente.cidade
-        document.getElementById('estado').textContent = cliente.estado
-
-        let textarea = document.getElementById('cliente_selecionado')
-        textarea.value = nome
-        salvarDadosCliente()
-    }
-
-    document.getElementById('div_sugestoes').remove()
 }
 
 function executarLimparCampos() {
@@ -2385,7 +2309,6 @@ function analista() {
     document.getElementById('analista').textContent = acesso.nome_completo
     document.getElementById('email_analista').textContent = acesso.email
     document.getElementById('telefone_analista').textContent = acesso.telefone
-
 }
 
 async function abrirDANFE(codOmieNF, tipo, app) {

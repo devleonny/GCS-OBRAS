@@ -3,7 +3,7 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: start;
     background-color: #e8e8e8;
     padding: 3px;
     border-radius: 2px;

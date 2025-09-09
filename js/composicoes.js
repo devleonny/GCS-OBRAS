@@ -133,7 +133,7 @@ function criarLinhaComposicao(codigo, produto) {
                 preco_final = produto[chave].historico?.[ativo]?.valor || 0;
             }
             conteudo = `
-                <label class="labelAprovacao" style="background-color: ${preco_final > 0 ? 'green' : '#B12425'};" 
+                <label class="label-estoque" style="background-color: ${preco_final > 0 ? '#4CAF50bf' : '#b36060bf'};" 
                 ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="abrirHistoricoPrecos('${codigo}', '${chave}')"` : ''}> 
                 ${dinheiro(conversor(preco_final))}</label>`;
 

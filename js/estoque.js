@@ -46,8 +46,8 @@ async function telaEstoque() {
             <div class="rodapeTabela"></div>
         </div>
     `
-
-    tela.innerHTML = acumulado
+    const bodyEstoque = document.getElementById('bodyEstoque')
+    if(!bodyEstoque) tela.innerHTML = acumulado
 
     let idsAtivos = []
     const dados_estoque = await recuperarDados('dados_estoque') || {}
@@ -107,7 +107,7 @@ function criarLinhaEstoque(codigo, item) {
         ${modelo(item.partnumber)}
         ${modelo(item.categoria)}
         ${modelo(item.marca)}
-        ${modelo(item.descricao)}
+        <td style="text-align: left;">${item.descricao}</td>
         ${modeloEst(quantidades.estoque, 'estoque')}
         ${modeloEst(quantidades.estoque_usado, 'estoque_usado')}
         ${modeloEst(quantidades.estoque_sp, 'estoque_sp')}
@@ -991,32 +991,31 @@ async function confirmarExclusaoEstoque(codigo) {
 
 function relatorioMovimento() {
 
-    let acumulado = `
+    const acumulado = `
+        <div class="painel-registro">
 
-    <div class="painel-registro">
+            <div style="${horizontal}; gap: 10px;">
+                
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <label style="color: #222;">De</label>
+                    <input class="datas_estoque" type="date" onchange="atualizarDadosRelatorio()">
+                </div>
 
-        <div style="${horizontal}; gap: 10px;">
-            
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <label style="color: #222;">De</label>
-                <input class="datas_estoque" type="date" onchange="atualizarDadosRelatorio()">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <label style="color: #222;">Até</label>
+                    <input class="datas_estoque" type="date" onchange="atualizarDadosRelatorio()">
+                </div>
+
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <label style="color: #222;">Movimentos</label>
+                    <label style="${horizontal}; background-color: #097fe6; color: white;" class="campo-verde" id="contagem">0</label>
+                </div>
+
             </div>
 
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <label style="color: #222;">Até</label>
-                <input class="datas_estoque" type="date" onchange="atualizarDadosRelatorio()">
-            </div>
-
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <label style="color: #222;">Movimentos</label>
-                <label style="${horizontal}; background-color: #097fe6; color: white;" class="campo-verde" id="contagem">0</label>
-            </div>
+            <div id="relatorio"></div>
 
         </div>
-
-        <div id="relatorio"></div>
-
-    </div>
     `
 
     popup(acumulado, 'Relatório de Movimentos')
@@ -1095,17 +1094,13 @@ async function atualizarDadosRelatorio() {
             <tr>
                 <td>${item.origem}</td>
                 <td>${item.partnumber}</td>
-                <td><textarea readonly>${item.descricao}</textarea></td>
+                <td style="text-align: left;">${item.descricao}</td>
                 <td style="padding: 5px;">${item.data}</td>
                 <td>${item.operacao}</td>
-                <td>
-                    <div>
-                        <img src="${img}" style="width: 2vw;">
-                    </div>
-                </td>
+                <td><img src="${img}" style="width: 2vw;"></td>
                 <td>${item.quantidade}</td>
                 <td>${item.usuario}</td>
-                <td><textarea readonly>${item.comentario}</textarea></td>
+                <td style="text-align: left;">${item.comentario}</td>
             </tr>
             `
         })
@@ -1116,12 +1111,7 @@ async function atualizarDadosRelatorio() {
 
         colunas.forEach((coluna, i) => {
             ths += `<th>${coluna}</th>`
-            thsearch += `
-            <th style="background-color: white; position: relative; border-radius: 0px;">
-                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%;" style="text-align: center;" placeholder="${coluna}" oninput="pesquisarGenerico(${i}, this.value, filtrosRelatorio, 'body2')">
-            </th>
-            `
+            thsearch += `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico(${i}, this.textContent, filtrosRelatorio, 'body2')"></th>`
         })
 
         if (linhas == '') {
