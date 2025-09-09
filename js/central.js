@@ -2175,7 +2175,7 @@ async function painelClientes() {
         <input id="chamado_off" type="checkbox" onchange="salvarDadosCliente()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
         <label>Sem Chamado</label>`)}
 
-            ${modelo('Cliente', `<span ${dados_orcam.omie_cliente ? `id="${dados_orcam.omie_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'salvarDadosCliente()')">${cliente?.nome || 'Selecione'}</span>`)}
+            ${modelo('Cliente', `<span ${dados_orcam.omie_cliente ? `id="${dados_orcam.omie_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'salvarDadosCliente(true)')">${cliente?.nome || 'Selecione'}</span>`)}
             ${modelo('CNPJ/CPF', `<span id="cnpj">${cliente?.cnpj || ''}</span>`)}
             ${modelo('Endereço', `<span id="bairro">${cliente?.bairro || ''}</span>`)}
             ${modelo('CEP', `<span id="cep">${cliente?.cep || ''}</span>`)}
@@ -2231,7 +2231,7 @@ async function painelClientes() {
     analista()
 }
 
-async function salvarDadosCliente() {
+async function salvarDadosCliente(recarregar) {
 
     let orcamentoBase = baseOrcamento()
 
@@ -2284,7 +2284,7 @@ async function salvarDadosCliente() {
 
     baseOrcamento(orcamentoBase)
 
-    painelClientes()
+    if(recarregar) painelClientes()
 
     if (orcamentoBase.lpu_ativa === 'MODALIDADE LIVRE') {
         total_v2();
