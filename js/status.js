@@ -1106,7 +1106,7 @@ async function abrirAtalhos(id) {
 
     if ((document.title !== 'Projetos' && analista == acesso.nome_completo) || (permitidos.includes(acesso.permissao))) {
         botoesDisponiveis += `
-        ${modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamento('${id}')`)}
+        ${modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`)}
         ${modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`)}
         `
     }
@@ -2116,19 +2116,19 @@ async function excluirAnexo(chave, id_anexo, img) {
 
 }
 
-async function confirmarExclusaoOrcamento(id) {
+async function confirmarExclusaoOrcamentoBase(id) {
     popup(`
         <div style="background-color: #d2d2d2; padding: 2vw;">
             <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
                 <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
                 <label>Deseja realmente excluir o orçamento?</label>
             </div>
-            <button style="background-color: green;" onclick="excluirOrcamento('${id}')">Confirmar</button>
+            <button style="background-color: green;" onclick="excluirOrcamentoBase('${id}')">Confirmar</button>
         </div>
         `)
 }
 
-async function excluirOrcamento(idOrcamento) {
+async function excluirOrcamentoBase(idOrcamento) {
     removerPopup()
     overlayAguarde()
 
