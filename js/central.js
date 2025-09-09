@@ -63,7 +63,7 @@ const balaoPDF = (nf, info, codOmie, tipo, app) => {
 const modeloBotoes = (imagem, nome, funcao) => {
     return `
     <div class="atalhos" onclick="${funcao}">
-        <img src="imagens/${imagem}.png" style="width: 3vw;">
+        <img src="imagens/${imagem}.png">
         <label style="cursor: pointer;">${nome}</label>
     </div>
     `

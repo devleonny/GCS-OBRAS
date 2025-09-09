@@ -1024,7 +1024,6 @@ async function salvar_requisicao(chave) {
 
     const linhas = document.querySelectorAll('.lin_req');
     let lista_partnumbers = {};
-    let temItensValidos = false;
 
     for (let linha of linhas) {
         let valores = linha.querySelectorAll('input, select');
@@ -1111,9 +1110,9 @@ async function abrirAtalhos(id) {
         `
     }
 
-    let acumulado = `
-        <div style="background-color: #d2d2d2; display: flex; flex-direction: column; justify-content: center; align-items: start; width: 30vw; padding: 1vw; gap: 5px;">
-            <label style="color: #222; font-size: 1.5vw; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
+    const acumulado = `
+        <div style="background-color: #d2d2d2; display: flex; flex-direction: column; justify-content: center; align-items: start; padding: 1vw; gap: 5px;">
+            <label style="color: #222; font-size: 1rem; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
             <hr style="width: 100%">
             ${botoesDisponiveis}
         </div>

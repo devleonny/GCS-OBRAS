@@ -508,6 +508,11 @@ body {
     background-color: white;
     padding: 3px;
     border-radius: 2px;
+    font-size: 0.8rem;
+}
+
+.atalhos img {
+    width: 2rem;
 }
 
 .atalhos:hover {
@@ -1053,6 +1058,7 @@ button {
 }
 
 .janela {
+    min-width: fit-content;
     max-width: 90vw;
     overflow: auto;
     max-height: 90vh;
@@ -1066,10 +1072,8 @@ button {
     flex-direction: column;
     align-items: center;
     justify-content: start;
-    background-color: white;
     max-width: 90vw;
     text-align: center;
-    font-size: 1.0vw;
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
@@ -1083,6 +1087,7 @@ button {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #d2d2d2;
+    font-size: 0.7rem;
 }
 
 .botao_popup {
