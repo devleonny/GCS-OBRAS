@@ -2268,7 +2268,7 @@ async function salvarDadosCliente() {
 
     orcamentoBase.dados_orcam = {
         ...orcamentoBase.dados_orcam,
-        
+
         omie_cliente: document.querySelector('[name="cliente"]').id,
         condicoes: document.getElementById('condicoes').value,
         consideracoes: document.getElementById('consideracoes').value,
@@ -2467,4 +2467,30 @@ function pesquisarCX(input) {
 
     }
 
+}
+
+async function proxORC({ chamado, idOrcamento, sequencial }) {
+    try {
+        const opcoes = {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chamado, idOrcamento, sequencial })
+        }
+
+        const resposta = await fetch(`${api}/chamado`, opcoes)
+
+        if (!resposta.ok) return { err: `Falha na busca do PDF no Omie` };
+
+        const texto = await resposta.text();
+        if (!texto) return { err: `Falha na busca do PDF no Omie` };
+
+        try {
+            return JSON.parse(texto);
+        } catch {
+            return { err: texto };
+        }
+
+    } catch (err) {
+        return { err };
+    }
 }

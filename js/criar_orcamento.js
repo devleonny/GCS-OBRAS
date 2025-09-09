@@ -342,7 +342,7 @@ async function removerItemOrcamento(codigo, img) {
     img.parentElement.parentElement.remove()
 
     const prod = document.getElementById(`prod_${codigo}`)
-    if(prod) prod.value = ''
+    if (prod) prod.value = ''
 
     await totalOrcamento()
 
@@ -358,12 +358,14 @@ async function enviarDadosOrcamento() {
 
     const dados_orcam = orcamentoBase.dados_orcam;
 
-    if (dados_orcam.cliente_selecionado === '') {
-        return popup(mensagem('Cliente em branco'), 'Alerta')
-    }
+    if (dados_orcam.cliente_selecionado === '') return popup(mensagem('Cliente em branco'), 'Alerta')
 
-    if (dados_orcam.contrato === '') {
-        return popup(mensagem('Chamado em branco'), 'Alerta')
+    if (dados_orcam.contrato === '') return popup(mensagem('Chamado em branco'), 'Alerta')
+
+    if (dados_orcam.contrato == 'sequencial') {
+        const resposta = await proxORC({ sequencial: true })
+        if(resposta.err) return popup(mensagem(resposta.err), 'Alerta', true)
+        orcamentoBase.dados_orcam.contrato = `ORC_${resposta.proximo}`
     }
 
     if (orcamentoBase.total_desconto > 0) {
