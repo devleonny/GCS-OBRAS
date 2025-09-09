@@ -43,8 +43,8 @@ function verificarFluxograma() {
 
     const origem = sessionStorage.getItem('origem') || 'novos'
     origem == 'novos'
-    ? fluxograma = fluxogramaNovos 
-    : fluxograma = fluxogramaAntigo
+        ? fluxograma = fluxogramaNovos
+        : fluxograma = fluxogramaAntigo
 
 }
 
@@ -70,7 +70,7 @@ async function painelAdicionarPedido() {
                     </select>
                     `)}
 
-                ${modelo('',`
+                ${modelo('', `
                 <div style="display: flex; gap: 10px; align-items: center; justify-content: start;">
                     <input type="checkbox" onchange="ocultar_pedido(this)" style="cursor: pointer; width: 30px; height: 30px;">
                     <label>Sem Pedido</label>
@@ -1100,6 +1100,7 @@ async function abrirAtalhos(id) {
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
         ${modeloBotoes('LG', 'OS em PDF', `irOS('${id}')`)}
         ${modeloBotoes('trocar', 'Mudar (Novos ↔ Antigos)', `migrarOrcamento('${id}')`)}
+        ${modeloBotoes('chave', 'Delegar outro analista', `usuariosAutorizados()`)}
         `
     }
 
@@ -1122,6 +1123,72 @@ async function abrirAtalhos(id) {
 
 }
 
+async function usuariosAutorizados() {
+
+    const acumulado = `
+        <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
+            
+            <div style="${horizontal}; gap: 5px;">
+                <span class="opcoes" name="usuario" onclick="cxOpcoes('usuario', 'dados_setores', ['usuario', 'setor', 'permissao'])">Selecionar</span>
+                <img src="imagens/concluido.png" style="width: 2vw;" onclick="delegarUsuario()">
+            </div>
+
+            <hr style="width: 100%;">
+
+            <div id="autorizados" style="${vertical}; gap: 3px;"></div>
+        </div>
+    `
+
+    popup(acumulado, 'Autorizados', true)
+
+    carregarAutorizados()
+
+}
+
+async function delegarUsuario() {
+
+    overlayAguarde()
+
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+
+    if (!orcamento.usuarios) orcamento.usuarios = {}
+
+    const usuario = document.querySelector('[name="usuario"]').id
+
+    if(!usuario) return popup(mensagem('Selecione um usuário antes'), 'Alerta', true)
+        
+    const dados = {
+        data: new Date().toLocaleString('pt-BR'),
+        responsavel: acesso.usuario
+    }
+
+    orcamento.usuarios[usuario] = dados
+
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    await carregarAutorizados()
+
+    enviar(`dados_orcamentos/${id_orcam}/usuarios/${usuario}`, dados)
+
+    removerOverlay()
+}
+
+async function carregarAutorizados() {
+
+    const modelo = (usuario, dados) => `
+        <span>
+            ${usuario} - liberado em <b>${dados.data}</b> por <b>${dados.responsavel}</b>
+        </span>
+    `
+
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const liberados = Object.entries(orcamento?.usuarios || {})
+        .map(([usuario, dados]) => modelo(usuario, dados))
+        .join('')
+
+    document.getElementById('autorizados').innerHTML = liberados ? liberados : 'Sem usuários autorizados por enquanto'
+
+}
+
 async function migrarOrcamento(idOrcamento) {
 
     overlayAguarde()
@@ -1131,12 +1198,12 @@ async function migrarOrcamento(idOrcamento) {
     const novaOrigem = origem == 'novos' ? 'antigos' : 'novos'
     orcamento.origem = novaOrigem
 
-    await inserirDados({[idOrcamento]: orcamento}, 'dados_orcamentos')
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
 
     enviar(`dados_orcamentos/${idOrcamento}/origem`, novaOrigem)
 
     await telaOrcamentos()
-    
+
 }
 
 async function arquivarOrcamento(idOrcamento) {
@@ -1624,14 +1691,14 @@ async function abrirEsquema(id) {
                     ${labelDestaque('Chamado', orcamento.dados_orcam.contrato)}
                     ${labelDestaque('Executor', historico.executor)}
                     ${labelDestaque('Data', historico.data)}
-                    ${labelDestaque('Comentário', 
-                        `
+                    ${labelDestaque('Comentário',
+            `
                         <div>
                             <textarea oninput="mostrarConfirmacao(this)" style="resize: vertical; width: 90%;">${historico?.comentario || ''}</textarea>
                             <span class="btnConfirmar" onclick="atualizarPedido('${chave}', 'comentario', this)">Atualizar</span>
                         </div>    
                         `
-                    )}
+        )}
 
                     ${elementosEspecificos(chave, historico)}
 
@@ -1840,7 +1907,7 @@ async function atualizarPedido(chave, campo, imgSelect) {
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
     let elemento = campo == 'tipo' ? imgSelect : imgSelect.previousElementSibling;
-    
+
     orcamento.status.historico[chave][campo] = elemento.value
 
     enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/${campo}`, elemento.value)
@@ -2463,7 +2530,7 @@ async function gerarpdf(cliente, pedido) {
         ${janela.innerHTML}
     </body>
     </html>`;
-    
+
     overlayAguarde()
     await gerarPdfOnline(htmlContent, `REQUISICAO_${cliente}_${pedido}`);
     removerOverlay()

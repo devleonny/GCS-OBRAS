@@ -843,7 +843,7 @@ function popup(elementoHTML, titulo, nao_remover_anteriores) {
 
         </div>
 
-    </div>`;
+    </div>`
 
     removerPopup(nao_remover_anteriores)
     removerOverlay()
