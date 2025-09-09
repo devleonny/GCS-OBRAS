@@ -306,9 +306,10 @@ async function criarManutencao(idManutencao) {
         <div style="${horizontal}; width: 100%; gap: 2px; border-top: solid 1px #868686ff;">
 
             ${layoutBotao('Adicionar Peça', 'criarLinhaPeca()', 'chamados')}
-            ${layoutBotao('Salvar', `enviarManutencao('${idManutencao}')`, 'estoque')}
+            ${layoutBotao('Salvar', `enviarManutencao('${idManutencao}')`, 'concluido')}
+            ${layoutBotao('Sincronizar Estoque', `sincronizarDados('dados_estoque')`, 'estoque')}
             ${layoutBotao('Sincronizar Clientes/Técnicos', `recuperarClientes()`, 'atualizar3')}
-            ${manutencao ? layoutBotao('Excluir Manutenção', `confirmarExclusao('${idManutencao}')`, 'cancel') : ''}
+            ${manutencao ? layoutBotao('Excluir Manutenção', `confirmarExclusaoManutencao('${idManutencao}')`, 'cancel') : ''}
 
         </div>
         `
@@ -366,6 +367,8 @@ function criarLinhaPeca(id, peca) {
 
     const linhasManutencao = document.getElementById('linhasManutencao')
 
+    id = id || ID5digitos()
+
     const tds = `
         <td>
             <span class="opcoes" id="${id}" name="${id}" onclick="cxOpcoes('${id}', 'dados_estoque', ['descricao', 'partnumber'])">${peca?.descricao || 'Selecione'}</span>
@@ -393,7 +396,7 @@ async function enviarManutencao() {
     const trs = tbody.querySelectorAll('tr')
     for (const tr of trs) {
         const tds = tr.querySelectorAll('td')
-        const codigo = tds[0].querySelector('span').id
+        const codigo = tds[0].querySelector('span').getAttribute('name')
         const item = dados_estoque?.[codigo] || {}
 
         pecas[codigo] = {
@@ -420,10 +423,10 @@ async function enviarManutencao() {
     }
 
     const recorte = {
-        comentario: manutencao.comentario,
-        usuario: manutencao.usuario,
-        data: manutencao.data,
-        status_manutencao: manutencao.status_manutencao
+        comentario: novaManutencao.comentario,
+        usuario: novaManutencao.usuario,
+        data: novaManutencao.data,
+        status_manutencao: novaManutencao.status_manutencao
     }
 
     if (!novaManutencao.historico) novaManutencao.historico = {}
@@ -446,27 +449,25 @@ async function enviarManutencao() {
 
 }
 
-function confirmarExclusao(id) {
+function confirmarExclusaoManutencao(id) {
 
     popup(`
-        <div style="display: flex; align-items: center; justify-content: center; gap: 2vw;">
+        <div style="background-color: #d2d2d2; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 2vw;">
             <img src="gifs/alerta.gif" style="width: 3vw;">
             <label>Confirmar exclusão?</label>
+            <button style="font-size: 1vw; background-color: green;" onclick="excluirManutencao('${id}')">Confirmar</button>
         </div>
-        <button style="font-size: 1vw; background-color: green;" onclick="excluir_manutencao('${id}')">Confirmar</button>
-    `)
+    `, 'Alerta', true)
 
 }
 
-async function excluir_manutencao(id) {
-    let dados_manutencao = await recuperarDados('dados_manutencao') || {}
+async function excluirManutencao(id) {
 
-    delete dados_manutencao[id]
-
-    await inserirDados(dados_manutencao, 'dados_manutencao')
+    await deletarDB('dados_manutencao', id)
 
     deletar(`dados_manutencao/${id}`)
 
+    removerPopup()
     removerPopup()
 
     await telaChamados()
