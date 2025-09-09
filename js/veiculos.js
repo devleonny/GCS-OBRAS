@@ -238,7 +238,9 @@ function pesquisarEmVeiculos({ coluna, texto } = {}) {
     const dtInicio = inicio ? new Date(...inicio.split('-').map((v, i) => i === 1 ? v - 1 : v)) : null
     const dtFinal  = fim ? new Date(...fim.split('-').map((v, i) => i === 1 ? v - 1 : v)) : null
 
-    if(coluna) filtroVeiculos[coluna] = String(texto).toLowerCase().replace('.', '')
+    if (coluna !== undefined && coluna !== null) {
+        filtroVeiculos[coluna] = String(texto).toLowerCase()
+    }
 
     const trs = document.querySelectorAll('#bodyVeiculos tr')
     let total = 0
