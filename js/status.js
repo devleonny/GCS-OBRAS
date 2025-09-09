@@ -1100,7 +1100,7 @@ async function abrirAtalhos(id) {
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
         ${modeloBotoes('LG', 'OS em PDF', `irOS('${id}')`)}
-        ${modeloBotoes('LG', 'Alterar usuário', `irOS('${id}')`)}
+        ${modeloBotoes('trocar', 'Mudar (Novos ↔ Antigos)', `migrarOrcamento('${id}')`)}
         `
     }
 
@@ -1121,6 +1121,23 @@ async function abrirAtalhos(id) {
 
     popup(acumulado, 'Opções do Orçamento')
 
+}
+
+async function migrarOrcamento(idOrcamento) {
+
+    overlayAguarde()
+
+    let orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
+
+    const novaOrigem = origem == 'novos' ? 'antigos' : 'novos'
+    orcamento.origem = novaOrigem
+
+    await inserirDados({[idOrcamento]: orcamento}, 'dados_orcamentos')
+
+    enviar(`dados_orcamentos/${idOrcamento}/origem`, novaOrigem)
+
+    await telaOrcamentos()
+    
 }
 
 async function arquivarOrcamento(idOrcamento) {
