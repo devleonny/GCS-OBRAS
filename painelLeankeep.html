@@ -415,31 +415,7 @@
 
             <div class="cabecalho">
                 <h1>Tempo de Atendimento em Chamados</h1>
-
-                <div style="display: flex; gap: 5px">
-                    <div style="display: flex; flex-direction: column; align-items: center;">
-                        <label>Páginas</label>
-                        <div style="display: flex; gap: 5px;">
-                            <button class="clear-btn" onclick="atualizar_dados_api()">Atualizar</button>
-                            <select id="input_qtde">
-                                <option>1</option>
-                                <option>2</option>
-                                <option>3</option>
-                                <option>4</option>
-                                <option>5</option>
-                                <option>6</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div id="container_atualizador" style="display: flex; flex-direction: column;">
-                        <label>Atualização automática 10min</label>
-                        <select id="atualizacao" style="height: 100%;">
-                            <option>Desligado</option>
-                            <option>Ligado</option>
-                        </select>
-                    </div>
-                </div>
+                <button class="clear-btn" onclick="atualizar_dados_api()">Atualizar</button>
             </div>
         </header>
 
@@ -488,11 +464,6 @@
                     <div class="bloquinho">
                         <label class="titulos">Status de Finalização</label>
                         <div id="statusTexto"></div>
-                    </div>
-
-                    <div class="bloquinho">
-                        <label class="titulos">Região</label>
-                        <div id="regiao"></div>
                     </div>
 
                     <div class="bloquinho">
@@ -545,6 +516,6 @@
 
 </body>
 
-<script src="painelLeankeep.js"></script>
+<script src="js/painelLeankeep.js"></script>
 
 </html>

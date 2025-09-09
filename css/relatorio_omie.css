@@ -1,0 +1,202 @@
+.blocoParcela {
+    width: 95%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    background-color: #e8e8e8;
+    padding: 3px;
+    border-radius: 2px;
+    gap: 5px;
+}
+
+.blocoParcela label {
+    font-size: 0.7rem;
+    cursor: pointer;
+}
+
+.fundo-relatorio {
+    padding: 1vw;
+    box-shadow: 0px 0px 10px black;
+    display: flex;
+    align-items: start;
+    justify-content: center;
+    background-color: #0000005e;
+    border-radius: 5px;
+}
+
+.botoesRelatorios {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.blocoEsquerdo {
+    margin: 1vw;
+    padding-right: 1vw;
+    height: 100vh;
+    border-right: 1px dashed #d2d2d2;
+}
+
+.relatorioDiv {
+    padding: 5px;
+    border-radius: 2px;
+    background-color: #00000038;
+    width: 100%;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    gap: 5px;
+}
+
+.blocoValores {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    background-color: #d2d2d2;
+    padding: 5px;
+    border-radius: 2px;
+}
+
+.blocoValores label {
+    text-align: center;
+}
+
+.itensToolbar {
+    background-color: #b1b1b1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-left: 3px;
+    cursor: pointer;
+    padding-left: 1vw;
+    padding-right: 1vw;
+    font-size: 0.8vw;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+.toolbarRelatorio {
+    margin-left: 5vw;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: start;
+    flex-wrap: wrap-reverse;
+}
+
+.toolbarRelatorio label {
+    font-size: 1.2vw;
+    cursor: pointer;
+}
+
+.filtros {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    border-radius: 3px;
+    background-color: #d2d2d2;
+    padding: 5px;
+    margin-bottom: 3vh;
+}
+
+.filtros div {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin: 2px;
+}
+
+.filtros input {
+    cursor: pointer;
+    width: 100%;
+    padding: 3px;
+    border-radius: 3px;
+}
+
+.titulos {
+    color: white;
+    font-size: 1.2vw;
+}
+
+.filtrosRelatorio {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    width: 100%;
+    color: #222;
+}
+
+.painelLateral {
+    background-color: #222222dd;
+    box-shadow: 0px 0px 10px #222222dd;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 18vw;
+    gap: 1vh;
+    padding-top: 2vh;
+    height: 100vh;
+    display: flex;
+    padding: 1vw;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    z-index: 10;
+    color: white;
+}
+
+.painelCentral {
+    background-image: url('imagens/BG.png');
+    background-size: 30vw;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 2px;
+    background-color: #00000038;
+    margin-top: 2vw;
+    margin-left: 20vw;
+    min-width: 70vw;
+    min-height: 70vh;
+    max-height: max-content;
+    display: flex;
+    align-items: start;
+    flex-direction: column;
+    justify-content: start;
+}
+
+.menuSuperior {
+    cursor: pointer;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    width: 100%;
+    gap: 1vh;
+}
+
+.menuSuperior div {
+    cursor: pointer;
+    padding: 3px;
+    border-radius: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    width: 100%;
+    gap: 1vw;
+}
+
+.menuSuperior div:hover {
+    background-color: white;
+    color: #222;
+}
+
+.menuSuperior img {
+    width: 2vw;
+}

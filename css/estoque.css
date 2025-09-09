@@ -1,0 +1,113 @@
+.label-estoque {
+    border-radius: 3px;
+    padding: 5px 2vw 5px 2vw;
+    width: 100%;
+    cursor: pointer;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.painel-registro {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    background-color: #d2d2d2;
+    padding: 2vw;
+}
+
+.painel-registro textarea {
+    padding: 10px;
+}
+
+.painel-registro input {
+    border: solid 1px #7d7d7d;
+    border-radius: 3px;
+    padding: 5px;
+}
+
+.campo-verde {
+    cursor: pointer;
+    text-align: center;
+    height: 30px;
+    width: 100px;
+    font-weight: bold;
+    color: #ffffff;
+    background-color: #4CAF50;
+    border-radius: 5px;
+    margin: 5px;
+    text-align: center;
+}
+
+.formulario {
+    color: #222;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: white;
+    padding: 5px;
+    border-radius: 5px;
+    gap: 5px;
+}
+
+.formulario input,
+.formulario textarea {
+    padding: 5px;
+    border-radius: 3px;
+    border: none;
+    background-color: #d2d2d2;
+}
+
+.formulario button {
+    background-color: #4CAF50;
+}
+
+.filtro {
+    z-index: 200;
+    position: relative;
+    padding: 10px;
+    width: 20vw;
+    border-radius: 3px;
+    position: absolute;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    gap: 5px;
+    flex-direction: column;
+    background-color: white;
+    box-shadow: 0px 0px 10px #222;
+}
+
+.filtro input {
+    background-color: #d2d2d2;
+    padding: 5px;
+    border: 1px solid #7d7d7d;
+}
+
+.opcao {
+    padding: 3px;
+    cursor: pointer;
+    width: 95%;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 5px;
+    transition: ease-in-out;
+}
+
+.opcao:hover {
+    background-color: #222222bf;
+    color: white;
+}
+
+#caixaOpcoes {
+    background-color: #ebe9e9;
+    width: 100%;
+    max-height: 30vh;
+    overflow: auto;
+    display: flex;
+    justify-content: start;
+    align-items: start;
+    flex-direction: column;
+    border: 1px solid #7d7d7d;
+}
