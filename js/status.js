@@ -1099,13 +1099,13 @@ async function abrirAtalhos(id) {
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
         ${modeloBotoes('LG', 'OS em PDF', `irOS('${id}')`)}
-        ${modeloBotoes('trocar', 'Mudar (Novos ↔ Antigos)', `migrarOrcamento('${id}')`)}
-        ${modeloBotoes('chave', 'Delegar outro analista', `usuariosAutorizados()`)}
         `
     }
 
-    if ((document.title !== 'Projetos' && analista == acesso.nome_completo) || (permitidos.includes(acesso.permissao))) {
+    if (analista == acesso.nome_completo || permitidos.includes(acesso.permissao) || orcamento?.usuarios[acesso.usuario]) {
         botoesDisponiveis += `
+        ${modeloBotoes('trocar', 'Mudar (Novos ↔ Antigos)', `migrarOrcamento('${id}')`)}
+        ${modeloBotoes('chave', 'Delegar outro analista', `usuariosAutorizados()`)}
         ${modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`)}
         ${modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`)}
         `
@@ -1145,7 +1145,7 @@ async function usuariosAutorizados() {
 
 }
 
-async function delegarUsuario() {
+async function delegarUsuario(usuario) {
 
     overlayAguarde()
 
@@ -1153,21 +1153,32 @@ async function delegarUsuario() {
 
     if (!orcamento.usuarios) orcamento.usuarios = {}
 
-    const usuario = document.querySelector('[name="usuario"]').id
+    let dados = {}
 
-    if(!usuario) return popup(mensagem('Selecione um usuário antes'), 'Alerta', true)
-        
-    const dados = {
-        data: new Date().toLocaleString('pt-BR'),
-        responsavel: acesso.usuario
+    if (usuario) {
+
+        delete orcamento.usuarios[usuario]
+        dados = orcamento.usuarios
+        deletar(`dados_orcamentos/${id_orcam}/usuarios/${usuario}`)
+
+    } else {
+
+        usuario = document.querySelector('[name="usuario"]').id
+
+        if (!usuario) return popup(mensagem('Selecione um usuário antes'), 'Alerta', true)
+
+        dados = {
+            data: new Date().toLocaleString('pt-BR'),
+            responsavel: acesso.usuario
+        }
+
+        orcamento.usuarios[usuario] = dados
+        enviar(`dados_orcamentos/${id_orcam}/usuarios/${usuario}`, dados)
     }
-
-    orcamento.usuarios[usuario] = dados
 
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
     await carregarAutorizados()
-
-    enviar(`dados_orcamentos/${id_orcam}/usuarios/${usuario}`, dados)
+    telaOrcamentos()
 
     removerOverlay()
 }
@@ -1175,7 +1186,8 @@ async function delegarUsuario() {
 async function carregarAutorizados() {
 
     const modelo = (usuario, dados) => `
-        <span>
+        <span style="${horizontal}; gap: 3px;">
+            <img onclick="delegarUsuario('${usuario}')" src="imagens/cancel.png" style="width: 1.2rem;">
             ${usuario} - liberado em <b>${dados.data}</b> por <b>${dados.responsavel}</b>
         </span>
     `

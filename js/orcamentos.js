@@ -122,7 +122,7 @@ async function telaOrcamentos() {
     overlayAguarde()
     verificarFluxograma()
 
-    let cabecs = ['Data & LPU', 'Status', 'Pedido', 'Notas', 'Chamado & Cliente', 'Cidade', 'Analista', 'Lc %', 'Valor', 'Ações']
+    let cabecs = ['Data & LPU', 'Status', 'Pedido', 'Notas', 'Chamado & Cliente', 'Cidade', 'Analista', 'Responsáveis', 'Lc %', 'Valor', 'Ações']
     let ths = ''
     let tsh = ''
     cabecs.forEach((cab, i) => {
@@ -266,6 +266,10 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     let lucratividade = orcamento.total_geral - impostos - custo_compra - frete_venda - pagamentos
     let lucratividadePorcentagem = Number(((lucratividade / orcamento.total_geral) * 100).toFixed(0))
 
+    const autorizados = Object.entries(orcamento?.usuarios || {})
+        .map(([usuario, dados]) => usuario)
+        .join('<br>')
+
     const tds = `
         <td>
             <label text-align: left;">
@@ -290,7 +294,8 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
             </div>
         </td>
         <td style="text-align: left;">${cliente?.cidade || ''}</td>
-        <td style="text-align: left;">${dados_orcam.analista}</td>
+        <td style="text-align: left;">${dados_orcam?.analista || ''}</td>
+        <td style="text-align: left;">${autorizados}</td>
         <td><input style="display: none;" value="${lucratividadePorcentagem}">${divPorcentagem(lucratividadePorcentagem)}</td>
         <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>
         <td style="text-align: center;" onclick="abrirAtalhos('${idOrcamento}')">
