@@ -1095,6 +1095,7 @@ async function abrirAtalhos(id) {
         ${modeloBotoes('esquema', 'Histórico', `abrirEsquema('${id}')`)}
         ${modeloBotoes('painelcustos', 'Painel de Custos', `painelCustos('${id}')`)}
         ${modeloBotoes('pdf', 'Abrir Orçamento em PDF', `ir_pdf('${id}')`)}
+        ${modeloBotoes('checklist', 'CHECKLIST', `telaChecklist()`)}
         ${modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`)}
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
@@ -1115,7 +1116,7 @@ async function abrirAtalhos(id) {
         <div style="background-color: #d2d2d2; display: flex; flex-direction: column; justify-content: center; align-items: start; padding: 1vw; gap: 5px;">
             <label style="color: #222; font-size: 1rem; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
             <hr style="width: 100%">
-            ${botoesDisponiveis}
+            <div class="opcoes-orcamento">${botoesDisponiveis}</div>
         </div>
     `
 

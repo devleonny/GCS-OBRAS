@@ -1552,12 +1552,12 @@ async function reprocessarAnexos(idPagamento) {
             })
             .then(data => {
                 console.log(JSON.parse(data))
-                popup(mensagem('Finalizado'), 'alerta', true)
+                popup(mensagem('Finalizado', 'imagens/concluido.png'), 'alerta', true)
                 resolve(data);
             })
             .catch(err => {
                 console.log(err)
-                popup(mensagem('Finalizado', 'imagens/'), 'Alerta', true)
+                popup(mensagem('Finalizado'), 'Alerta', true)
                 reject(err)
             })
     })

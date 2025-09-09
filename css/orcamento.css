@@ -6,6 +6,12 @@
     padding: 5px;
 }
 
+.opcoes-orcamento {
+    gap: 2px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+}
+
 .quantidade_requisicao {
     cursor: pointer;
     height: 20px;
