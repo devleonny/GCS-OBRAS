@@ -213,6 +213,12 @@ async function enviarDadosAluguel() {
 
     if (dados_orcam.contrato === '') return popup(mensagem('Chamado em branco'), 'Alerta')
 
+    if (dados_orcam.contrato == 'sequencial') {
+        const resposta = await proxORC({ sequencial: true })
+        if(resposta.err) return popup(mensagem(resposta.err), 'Alerta', true)
+        orcamentoBase.dados_orcam.contrato = `ORC_${resposta.proximo}`
+    }
+
     if (orcamentoBase.total_desconto > 0) {
         orcamentoBase.aprovacao = {
             status: 'pendente',
