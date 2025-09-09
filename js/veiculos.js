@@ -120,7 +120,7 @@ async function telaVeiculos() {
             </div>
 
             <div style="${vertical};">
-                <div class="painelBotoes" style="justify-content: end; height: 5vh;">
+                <div class="painelBotoes" style="justify-content: end;">
                     <span class="total-tabela">--</span>
                 </div>
                 <div class="div-tabela">
