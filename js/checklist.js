@@ -3,6 +3,8 @@
 
 async function telaChecklist() {
 
+    const id_orcam = 'ORCA_9270e7d1-751a-4cd9-ba66-42479ee167e5'
+
     const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
     let ths = ''
@@ -11,17 +13,21 @@ async function telaChecklist() {
         .forEach(op => {
             ths += `<th>${op}</th>`
         })
-    
+
     let linhas = ''
-    for(const [codigo, produto] of Object.entries(orcamento?.dados_composicoes || {})) {
-        if(produto.tipo == 'VENDA') continue
+    for (const [codigo, produto] of Object.entries(orcamento?.dados_composicoes || {})) {
+        if (produto.tipo == 'VENDA') continue
 
         linhas += `
-        <tr>
-            <td>${produto.descricao}</td>
-            <td>${produto.qtde}</td>
-
-        </tr>
+            <tr>
+                <td style="text-align: right;">${produto.descricao}</td>
+                <td>${produto.qtde}</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
         `
     }
 
@@ -36,7 +42,7 @@ async function telaChecklist() {
                             <tr>${ths}</tr>
                             <tr>${pesquisa}</tr>
                         </thead>
-                        <tbody>${linhas}</tbody>
+                        <tbody id="bodyChecklist">${linhas}</tbody>
                     </table>
                 </div>
                 <div class="rodapeTabela"></div>
@@ -45,6 +51,43 @@ async function telaChecklist() {
         </div>
     `
 
-    popup(acumulado, 'Checklist')
+    popup(acumulado, 'Checklist', true)
+
+}
+
+
+function calculadoraChecklist() {
+
+    const bodyChecklist = document.getElementById('bodyChecklist')
+    const trs = bodyChecklist.querySelectorAll('tr')
+
+    for(const tr of trs) {
+        const tds = document.querySelectorAll('td')
+
+        const qtdeOrcamento = conversor(tds[1].textContent)
+        const qtdeRealizada = conversor(tds[2].textContent)
+
+        tds[3].textContent = conversor(qtdeOrcamento - qtdeRealizada)
+
+    }
+
+}
+
+
+function criarCalendário() {
+
+    const ths = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+        .map(op => `<th>${op}</th>`)
+        .join('')
+
+    
+    const tabela = `
+        <table>
+            <thead>${ths}</thead>
+            <tbody></tbody>
+        </table>
+    `
+
+    return tabela
 
 }

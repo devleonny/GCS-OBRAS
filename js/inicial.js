@@ -16,7 +16,7 @@ function telaInicial() {
 
     const acumulado = `
         <div class="planoFundo">
-            <img class="bg-img" src="imagens/BG.png">
+            
         </div>
     `
     tela.innerHTML = acumulado

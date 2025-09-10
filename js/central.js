@@ -217,7 +217,7 @@ async function despoluicaoGCS() {
 
     overlayAguarde(true)
 
-    let divMensagem = document.getElementById('divMensagem')
+    const divMensagem = document.querySelector('.div-mensagem')
 
     divMensagem.innerHTML = `
     <div style="${vertical}; gap: 1vh;">
@@ -235,7 +235,7 @@ async function despoluicaoGCS() {
 
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
 
-    let bases = ['dados_orcamentos', 'dados_composicoes', 'dados_clientes', 'dados_estoque', 'lista_pagamentos', 'dados_manutencao']
+    const bases = ['dados_orcamentos', 'dados_composicoes', 'dados_clientes', 'dados_estoque', 'lista_pagamentos', 'dados_manutencao', 'dados_categorias', 'dados_estoque']
 
     for (const base of bases) {
         await sincronizarDados(base, true)
@@ -249,10 +249,6 @@ async function despoluicaoGCS() {
 }
 
 document.addEventListener('keydown', function (event) {
-    if (event.key === 'F5') {
-        event.preventDefault();
-        window[funcaoAtiva]()
-    }
     if (event.key === 'F2') f2()
     if (event.key === 'F8') despoluicaoGCS()
 })
