@@ -201,6 +201,9 @@ function imgManut(status) {
         case 'FINALIZADO':
             imagem = 'concluido'
             break
+        case 'EMITIR NOTA':
+            imagem = 'financeiro'
+            break
         default:
             imagem = 'cancel'
     }
@@ -219,8 +222,9 @@ function salvarPrimeiroUsuario(historico) {
 }
 
 async function criarManutencao(idManutencao) {
-
+    
     idManutencao = idManutencao || ID5digitos()
+
     const manutencao = await recuperarDado('dados_manutencao', idManutencao)
     const cliente = await recuperarDado('dados_clientes', manutencao?.codigo_cliente)
     const tecnico = await recuperarDado('dados_clientes', manutencao?.codigo_tecnico)
@@ -383,6 +387,8 @@ function criarLinhaPeca(id, peca) {
 }
 
 async function enviarManutencao() {
+
+    idManutencao = idManutencao || ID5digitos()
 
     overlayAguarde()
     const dados_estoque = await recuperarDados('dados_estoque')

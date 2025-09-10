@@ -2443,7 +2443,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
                 <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
             </div>
 
-            <div style="width: 30vw; gap: 5px; ${vertical}; background-color: #d2d2d2; width: 30vw; max-height: 40vh; height: max-content; overflow-y: auto; overflow-x: hidden;">
+            <div style="padding: 1vw; gap: 5px; ${vertical}; background-color: #d2d2d2; width: 30vw; max-height: 40vh; height: max-content; overflow-y: auto; overflow-x: hidden;">
                 ${opcoesDiv}
             </div>
 
