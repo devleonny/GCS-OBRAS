@@ -59,9 +59,11 @@ body {
 }
 
 .planoFundo span {
+    border-radius: 5px;
+    background-color: #ffffffb0;
     font-size: 1.2rem;
+    margin: 2vw;
     padding: 2vw;
-    color: white;
 }
 
 .tela {

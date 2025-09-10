@@ -556,7 +556,6 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
                 </td>
                 <td style="position: relative;">
                     <div style="position: relative; display: flex; flex-direction: column; gap: 5px; align-items: start;">
-                        ${itensImportados.includes(codigo) ? `<label style="font-size: 0.7vw; color: white; position: absolute; top: 0; right: 0; background-color: red; border-radius: 3px; padding: 2px;">Imp</label>` : ''}
                         <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong></label>
                         <label style="text-align: left;">${item?.descricao || 'N/A'}</label>
                     </div>
@@ -603,35 +602,6 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
 
 }
 
-function abrirModalTipoRequisicao(btn) {
-    const pos = btn.getBoundingClientRect();
-
-    const acumulado = `
-        <div onmouseleave="this.remove()" class="miniJanela" style="top: ${pos.bottom}px; left: ${pos.left}px;">
-            ${botao('Equipamentos', `escolherTipoRequisicao('equipamentos')`, '#4CAF50')}
-            ${botao('Infraestrutura', `escolherTipoRequisicao('infraestrutura')`, '#2196F3')}
-        </div>
-    `;
-
-    const miniJanela = document.querySelector('.miniJanela')
-
-    if (miniJanela) miniJanela.remove()
-
-    document.body.insertAdjacentHTML('beforeend', acumulado);
-}
-
-
-function escolherTipoRequisicao(tipo) {
-    fecharModalTipoRequisicao();
-    detalharRequisicao(undefined, tipo); // Passa o tipo de requisição
-}
-
-function fecharModalTipoRequisicao() {
-    const modal = document.getElementById('modalTipoRequisicao');
-    if (modal) {
-        modal.remove();
-    }
-}
 function remover_linha_materiais(element) {
     element.closest('tr').remove()
 }
@@ -1809,7 +1779,8 @@ async function abrirEsquema(id) {
                 <div style="display: flex; gap: 10px; font-size: 0.9vw;">
                     
                     ${botao('Novo Pedido', `painelAdicionarPedido()`, '#4CAF50')}
-                    ${botao('Nova Requisição', `abrirModalTipoRequisicao(this)`, '#B12425')}
+                    ${botao('Requisição Materiais', `detalharRequisicao(undefined, 'infraestrutura')`, '#B12425')}
+                    ${botao('Requisição Equipamentos', `detalharRequisicao(undefined, 'equipamentos')`, '#B12425')}
                     ${botao('Nova Nota Fiscal', `painelAdicionarNotas()`, '#ff4500')}
 
                     ${(acesso.permissao == 'adm' || acesso.setor == 'LOGÍSTICA')
@@ -2310,57 +2281,59 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
     const colunas = ['Código', 'OMIE /Partnumber', 'Informações do Item', 'Tipo', 'Quantidade', 'Valor Unitário', 'Valor Total', 'Requisição']
         .map(col => `<th>${col}</th>`).join('')
 
-    let acumulado = `
-    ${menu_flutuante}
+    const acumulado = `
+    <div style="background-color: white;">
+        ${menu_flutuante}
 
-    <div style="display: flex; align-items: center; justify-content: center; width: 100%; background-color: #151749;">
-        <img src="https://i.imgur.com/AYa4cNv.png" style="height: 100px;">
-    </div>
-
-    <div style="display: flex; align-items: center; justify-content: center; width: 100%;">
-        <h1>REQUISIÇÃO DE COMPRA DE MATERIAL</h1>
-    </div>
-
-    <div style="display: flex; justify-content: left; align-items: center; margin: 10px;">
-
-        ${campos}
-            
-        <div class="contorno">
-            <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; font-size: 1.0em;">Dados do Cliente</div>
-            <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; justify-content: start; align-items: start; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
-
-                ${modeloLabel('Cliente', cliente?.nome || '')}
-                ${modeloLabel('CNPJ', cliente?.cnpj || '')}
-                ${modeloLabel('Endereço', cliente?.bairro || '')}
-                ${modeloLabel('Cidade', cliente?.cidade || '')}
-                ${modeloLabel('Chamado', orcamento.dados_orcam.contrato)}
-                ${modeloLabel('Condições', orcamento.dados_orcam.condicoes)}
-
-            </div>
+        <div style="display: flex; align-items: center; justify-content: center; width: 100%; background-color: #151749;">
+            <img src="https://i.imgur.com/AYa4cNv.png" style="height: 100px;">
         </div>
 
-        <div class="contorno">
-            <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">Total</div>
-            <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
-                <div style="display: flex; gap: 10px;">
-                    <label id="total_requisicao"></label> 
+        <div style="display: flex; align-items: center; justify-content: center; width: 100%;">
+            <h1>REQUISIÇÃO DE COMPRA DE MATERIAL</h1>
+        </div>
+
+        <div style="display: flex; justify-content: left; align-items: center; margin: 10px;">
+
+            ${campos}
+                
+            <div class="contorno">
+                <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; font-size: 1.0em;">Dados do Cliente</div>
+                <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; justify-content: start; align-items: start; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
+
+                    ${modeloLabel('Cliente', cliente?.nome || '')}
+                    ${modeloLabel('CNPJ', cliente?.cnpj || '')}
+                    ${modeloLabel('Endereço', cliente?.bairro || '')}
+                    ${modeloLabel('Cidade', cliente?.cidade || '')}
+                    ${modeloLabel('Chamado', orcamento.dados_orcam.contrato)}
+                    ${modeloLabel('Condições', orcamento.dados_orcam.condicoes)}
+
                 </div>
             </div>
+
+            <div class="contorno">
+                <div class="titulo" style="border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">Total</div>
+                <div style="border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; display: flex; flex-direction: column; background-color: #99999940; padding: 10px;">
+                    <div style="display: flex; gap: 10px;">
+                        <label id="total_requisicao"></label> 
+                    </div>
+                </div>
+            </div>
+
         </div>
 
-    </div>
+        <div id="tabela_itens" style="width: 100%; display: flex; flex-direction: column; align-items: left;">
 
-    <div id="tabela_itens" style="width: 100%; display: flex; flex-direction: column; align-items: left;">
-
-    <div class="contorno">
-        ${toolbar}
-        <table class="tabela" id="tabela_requisicoes" style="width: 100%; font-size: 0.8em; table-layout: auto; border-radius: 0px;">
-            <thead>${colunas}</thead>
-            
-            <tbody>
-                ${await carregar_itens(apenas_visualizar, tipoRequisicao, chave)}
-            </tbody>
-        </table>
+        <div class="contorno">
+            ${toolbar}
+            <table class="tabela" id="tabela_requisicoes" style="width: 100%; font-size: 0.8em; table-layout: auto; border-radius: 0px;">
+                <thead>${colunas}</thead>
+                
+                <tbody>
+                    ${await carregar_itens(apenas_visualizar, tipoRequisicao, chave)}
+                </tbody>
+            </table>
+        <div>
     <div>
     `
     popup(acumulado, 'Requisição', true)
