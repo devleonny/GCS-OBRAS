@@ -19,7 +19,7 @@ async function telaChecklist() {
         linhas += `
         <tr>
             <td>${produto.descricao}</td>
-
+            <td>${produto.qtde}</td>
 
         </tr>
         `
