@@ -82,7 +82,7 @@ async function telaComposicoes(recriar) {
 }
 
 function esconderColunas() {
-    const visiveis = JSON.parse(localStorage.getItem('colunasComposicoes'))[origem];
+    const visiveis = JSON.parse(localStorage.getItem('colunasComposicoes'))?.[origem] || 'novos';
     if (!visiveis) return
 
     const table = document.querySelector("#linhasComposicoes").closest("table");

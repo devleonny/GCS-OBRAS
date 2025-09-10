@@ -14,7 +14,7 @@ async function telaChecklist() {
     const acumulado = `
         <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
 
-            <div style="${vertical};">
+            <div id="tabelaCheklist" style="${vertical};">
                 <div class="topo-tabela"></div>
                 <div class="div-tabela">
                     <table class="tabela" id="tabela_composicoes">
@@ -31,12 +31,13 @@ async function telaChecklist() {
         </div>
     `
 
-    popup(acumulado, 'Checklist', true)
+    const tabelaCheklist = document.getElementById('tabelaCheklist')
+    if (!tabelaCheklist) popup(acumulado, 'Checklist', true)
 
     for (const [codigo, produto] of Object.entries(orcamento?.dados_composicoes || {})) {
         if (produto.tipo == 'VENDA') continue
 
-        const check = orcamento?.checklist?.[codigo] || {}
+        const check = orcamento?.checklist?.itens?.[codigo] || {}
         carregarLinhaChecklist(codigo, produto, check)
 
     }
@@ -45,13 +46,21 @@ async function telaChecklist() {
 
 function carregarLinhaChecklist(codigo, produto, check) {
 
-    const cor = check?.qtde > 0 ? '#4CAF50bf' : '#b36060bf'
+    let quantidade = 0
+
+    for (const [id, dados] of Object.entries(check)) {
+        quantidade += dados.quantidade
+    }
+
+    const diferenca = produto.qtde - quantidade
+
+    const cor = (quantidade > 0 && quantidade < produto.qtde) ? '#f59c27bf' : quantidade == 0 ? '#b36060bf' : '#4CAF50bf'
 
     const tds = `
         <td style="text-align: right;">${produto.descricao}</td>
         <td>${produto.qtde}</td>
-        <td style="background-color: ${cor}; cursor: pointer;" onclick="registrarChecklist('${codigo}')">${check?.qtde || 0}</td>
-        <td></td>
+        <td style="background-color: ${cor}; cursor: pointer;" onclick="registrarChecklist('${codigo}')">${quantidade}</td>
+        <td>${diferenca}</td>
         <td></td>
         <td></td>
         <td></td>
@@ -75,7 +84,7 @@ async function registrarChecklist(codigo) {
             <td>${dados.data}</td>
             <td>${dados.quantidade}</td>
             <td>${dados.tecnico}</td>
-            <td><img src="imagens/cancel.png" style="width: 1.5rem;" onclick="removerChecklist('${codigo}', '${idLancamento}')"></td>
+            <td><img src="imagens/cancel.png" style="width: 1.5rem;" onclick="removerChecklist('${codigo}', '${idLancamento}', this)"></td>
         </tr>`)
         .join('')
 
@@ -118,6 +127,8 @@ async function salvarQuantidade(codigo) {
     const quantidade = Number(document.querySelector('[name="quantidade"]').value)
     const data = document.querySelector('[name="data"]').value
 
+    if(!tecnico || !quantidade || !data) return popup(mensagem('Preencha todos os campos'), 'Alerta', true)
+
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
     if (!orcamento.checklist) orcamento.checklist = {}
@@ -131,13 +142,29 @@ async function salvarQuantidade(codigo) {
 
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
 
-    removerPopup()
+    await telaChecklist()
 
+    removerPopup()
     await registrarChecklist(codigo)
 
 }
 
+async function removerChecklist(codigo, idLancamento, img) {
 
+    overlayAguarde()
+
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    delete orcamento.checklist.itens[codigo][idLancamento]
+
+    await inserirDados({[id_orcam]: orcamento}, 'dados_orcamentos')
+
+    img.closest('tr').remove()
+
+    await telaChecklist()
+
+    removerOverlay()
+
+}
 
 function calculadoraChecklist() {
 

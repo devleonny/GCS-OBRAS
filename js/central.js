@@ -235,7 +235,15 @@ async function despoluicaoGCS() {
 
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
 
-    const bases = ['dados_orcamentos', 'dados_composicoes', 'dados_clientes', 'dados_estoque', 'lista_pagamentos', 'dados_manutencao', 'dados_categorias', 'dados_estoque']
+    const bases = ['departamentos_fixos',
+        'dados_orcamentos',
+        'dados_composicoes',
+        'dados_clientes',
+        'dados_estoque',
+        'lista_pagamentos',
+        'dados_manutencao',
+        'dados_categorias',
+        'dados_estoque']
 
     for (const base of bases) {
         await sincronizarDados(base, true)
@@ -2280,7 +2288,7 @@ async function salvarDadosCliente(recarregar) {
 
     baseOrcamento(orcamentoBase)
 
-    if(recarregar) painelClientes()
+    if (recarregar) painelClientes()
 
     if (orcamentoBase.lpu_ativa === 'MODALIDADE LIVRE') {
         total_v2();
@@ -2406,7 +2414,6 @@ async function baixarOcorrencias() {
     })
 }
 
-
 async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
 
     let base = await recuperarDados(nomeBase)
@@ -2418,21 +2425,28 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
             .map(campo => `${(dado[campo] && dado[campo] !== '') ? `<label>${dado[campo]}</label>` : ''}`)
             .join('')
 
+        const descricao = String(dado[campos[0]])
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-zA-Z0-9 ]/g, '')
+
         opcoesDiv += `
-            <div name="camposOpcoes" class="atalhos" onclick="selecionar('${name}', '${cod}', '${dado[campos[0]]}' ${funcaoAux ? `, '${funcaoAux}'` : ''})" style="${vertical}; gap: 2px; max-width: 40vw;">
+            <div name="camposOpcoes" class="atalhos" onclick="selecionar('${name}', '${cod}', '${descricao}', ${funcaoAux ? funcaoAux : false})" style="${vertical}; gap: 2px; max-width: 40vw;">
                 ${labels}
             </div>`
     }
 
     const acumulado = `
-        <div style="${horizontal}; justify-content: left; background-color: #b1b1b1;">
+        <div style="${vertical}; justify-content: left; background-color: #b1b1b1;">
+
             <div style="${horizontal}; padding-left: 1vw; padding-right: 1vw; margin: 5px; background-color: white; border-radius: 10px;">
                 <input oninput="pesquisarCX(this)" placeholder="Pesquisar itens" style="width: 100%;">
                 <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
             </div>
-        </div>
-        <div style="padding: 1vw; gap: 5px; ${vertical}; background-color: #d2d2d2; width: 30vw; max-height: 40vh; height: max-content; overflow-y: auto; overflow-x: hidden;">
-            ${opcoesDiv}
+
+            <div style="width: 30vw; gap: 5px; ${vertical}; background-color: #d2d2d2; width: 30vw; max-height: 40vh; height: max-content; overflow-y: auto; overflow-x: hidden;">
+                ${opcoesDiv}
+            </div>
+
         </div>
     `
 

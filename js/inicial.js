@@ -20,9 +20,9 @@ function telaInicial() {
     const acumulado = `
         <div class="planoFundo">
             <span>${boasVindas},<br>
-            Todos os botões estão no menu do canto ☰, <br>
-            Caso precisem recarregar a tela use o F5, <br>
-            Se as tabelas estiverem estranhamente desatualizadas, use o F8.
+            Todos os botões estão no menu do canto <b>☰</b>, <br>
+            Caso precisem recarregar a tela usem o <b>F5</b>, <br>
+            Se as tabelas estiverem estranhamente desatualizadas, usem o <b>F8</b>.
             </span>
         </div>
     `

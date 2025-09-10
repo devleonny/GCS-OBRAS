@@ -10,7 +10,7 @@ let dadosClientes = {}
 let dadosCC = {}
 let dadosSetores = {}
 
-function imagemEspecifica(justificativa) { 
+function imagemEspecifica(justificativa) {
 
     const nomeStatus = String(justificativa.status).toLowerCase()
 
@@ -226,32 +226,29 @@ function criarLinhaPagamento(pagamento) {
     const usuario = dadosSetores?.[pagamento.criado] || {}
     const setorCriador = usuario?.setor || ''
     const cc = dadosCC?.[pagamento.id_orcamento] || {}
-    const idBody = 'body'
-    const linha = `
-        <tr id="${pagamento.id_pagamento}">
-            <td>${pagamento.param[0].data_vencimento}</td>
-            <td>${cc?.nome} ${cc.contrato ? `- ${cc?.contrato}` : ''}</td>
-            <td>${dinheiro(pagamento.param[0].valor_documento)}</td>
-            <td>
-                <div style="${horizontal}; justify-content: start; gap: 5px;">
-                    <img src="${iconePagamento(pagamento.status)}" style="width: 2vw;">
-                    <label style="text-align: left;">${pagamento.status}</label>
-                </div>
-            </td>
-            <td>${pagamento.criado}</td>
-            <td>${setorCriador}</td>
-            <td>${recebedor}</td>
-            <td style="text-align: center;">
-                <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrirDetalhesPagamentos('${pagamento.id_pagamento}')">
-            </td>
-        </tr>
+
+    const tds = `
+        <td>${pagamento.param[0].data_vencimento}</td>
+        <td>${cc?.nome} ${cc.contrato ? `- ${cc?.contrato}` : ''}</td>
+        <td style="white-space: nowrap;">${dinheiro(pagamento.param[0].valor_documento)}</td>
+        <td>
+            <div style="${horizontal}; justify-content: start; gap: 5px;">
+                <img src="${iconePagamento(pagamento.status)}" style="width: 2vw;">
+                <label style="text-align: left;">${pagamento.status}</label>
+            </div>
+        </td>
+        <td>${pagamento.criado}</td>
+        <td>${setorCriador}</td>
+        <td>${recebedor}</td>
+        <td style="text-align: center;">
+            <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrirDetalhesPagamentos('${pagamento.id_pagamento}')">
+        </td>
         `
     const idLinha = pagamento.id_pagamento
     const tr = document.getElementById(idLinha)
-    if (tr) return tr.innerHTML = linha
+    if (tr) return tr.innerHTML = tds
 
-    const tbody = document.getElementById(idBody)
-    tbody.insertAdjacentHTML('beforeend', linha)
+    document.getElementById('body').insertAdjacentHTML('beforeend', `<tr id="${pagamento.id_pagamento}">${tds}</tr>`)
 }
 
 function iconePagamento(status) {
@@ -744,20 +741,18 @@ async function salvarPagamento() {
 
     ultimoPagamento.param[0].codigo_lancamento_integracao = id_pagamento
 
-    await enviar(`lista_pagamentos/${id_pagamento}`, ultimoPagamento)
+    try {
+        await enviar(`lista_pagamentos/${id_pagamento}`, ultimoPagamento)
+        await inserirDados({ [id_pagamento]: ultimoPagamento }, 'lista_pagamentos')
+        criarLinhaPagamento(ultimoPagamento)
+        localStorage.removeItem('ultimoPagamento')
+        popup(mensagem('Pagemento Salvo', 'imagens/concluido.png'), 'Sucesso')
 
-    await inserirDados({ [id_pagamento]: ultimoPagamento }, 'lista_pagamentos')
+    } catch {
 
-    criarLinhaPagamento(ultimoPagamento)
+        popup(mensagem('Não foi possível salvar o pagamento, tente novamente.'), 'Alerta', true)
 
-    localStorage.removeItem('ultimoPagamento')
-
-    popup(`
-            <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2; gap: 10px;">
-                <img src="imagens/concluido.png" style="width: 2vw;">
-                <label>Pagamento Salvo</label>
-            </div>                
-        `, 'Sucesso')
+    }
 
 }
 
@@ -1167,7 +1162,7 @@ async function calculadoraPagamento(pagamentoEmEdicao) {
 
     document.getElementById('liberarBotao').style.display = cor.includes('green') ? 'flex' : 'none'
 
-    if(!pagamentoEmEdicao) backupPagamento()
+    if (!pagamentoEmEdicao) backupPagamento()
 
     function backupPagamento() {
 
@@ -1202,7 +1197,7 @@ async function calculadoraPagamento(pagamentoEmEdicao) {
             ]
 
         }
-        
+
         if (auxCategorias.atrasoRegras == 0) {
             painelParceiro.innerHTML = incluirCamposAdicionais()
             delete ultimoPagamento.anexos_parceiros
@@ -1451,7 +1446,7 @@ async function editarPagamento(id_pagamento) {
 
     localStorage.setItem('ultimoPagamento', JSON.stringify(pagamento))
 
-    await telaPagamento()
+    await criarPagamento()
 
     removerOverlay()
 
