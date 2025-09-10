@@ -50,12 +50,18 @@ body {
     background-repeat: no-repeat;
     box-shadow: 0px 0px 10px black;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: start;
+    justify-content: start;
     height: 80vh;
     width: 90vw;
     background-color: #0000005e;
     border-radius: 5px;
+}
+
+.planoFundo span {
+    font-size: 1.2rem;
+    padding: 2vw;
+    color: white;
 }
 
 .tela {

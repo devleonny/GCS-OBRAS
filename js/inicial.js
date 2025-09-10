@@ -14,9 +14,16 @@ function telaInicial() {
         );
     }
 
+    const hora = new Date().getHours()
+    const boasVindas = hora > 12 ? 'Boa tarde' : hora > 18 ? 'Boa noite' : 'Bom dia'
+
     const acumulado = `
         <div class="planoFundo">
-            
+            <span>${boasVindas},<br>
+            Todos os botões estão no menu do canto ☰, <br>
+            Caso precisem recarregar a tela use o F5, <br>
+            Se as tabelas estiverem estranhamente desatualizadas, use o F8.
+            </span>
         </div>
     `
     tela.innerHTML = acumulado
