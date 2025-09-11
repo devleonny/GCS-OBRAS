@@ -37,7 +37,7 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
     if (ultimoStatus) filtro = ultimoStatus;
 
     if (col !== undefined && col !== null) {
-        filtrosOrcamento[col] = String(texto).toLowerCase()
+        filtrosOrcamento[col] = String(texto).toLowerCase().trim();
     }
 
     const trs = document.querySelectorAll('#linhas tr');
@@ -70,9 +70,14 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
         for (const [col, filtroTexto] of Object.entries(filtrosOrcamento)) {
 
             if (filtroTexto && col < tds.length) {
-                const el = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].querySelector('select') || tds[col].textContent
-                const conteudo = el.value ? el.value : el
-                if (!String(conteudo).toLowerCase().includes(filtroTexto)) {
+                const el = tds[col].querySelector('input') 
+                        || tds[col].querySelector('textarea') 
+                        || tds[col].querySelector('select') 
+                        || tds[col].textContent;
+                const conteudo = el.value ? el.value : el;
+                const textoCampo = String(conteudo).toLowerCase().trim();
+
+                if (!textoCampo.includes(filtroTexto)) {
                     mostrarLinha = false;
                     break;
                 }
