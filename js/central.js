@@ -259,7 +259,7 @@ async function despoluicaoGCS() {
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F2') f2()
     if (event.key === 'F8') despoluicaoGCS()
-    if(event.key === 'F5') location.reload()
+    if (event.key === 'F5') location.reload()
 })
 
 async function f2() {
@@ -1160,10 +1160,10 @@ function pesquisarGenerico(coluna, texto, filtro, id) {
             let filtroTexto = filtro[col];
 
             if (filtroTexto && col < tds.length) {
-                let element = tds[col].querySelector('input') 
-                           || tds[col].querySelector('textarea') 
-                           || tds[col].querySelector('select') 
-                           || tds[col].textContent;
+                let element = tds[col].querySelector('input')
+                    || tds[col].querySelector('textarea')
+                    || tds[col].querySelector('select')
+                    || tds[col].textContent;
 
                 let conteudoCelula = element.value ? element.value : element;
                 let texto_campo = String(conteudoCelula).toLowerCase().replace('.', '').trim();
@@ -2181,7 +2181,7 @@ async function painelClientes() {
         <input id="chamado_off" type="checkbox" onchange="salvarDadosCliente()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
         <label>Sem Chamado</label>`)}
 
-            ${modelo('Cliente', `<span ${dados_orcam.omie_cliente ? `id="${dados_orcam.omie_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'salvarDadosCliente(true)')">${cliente?.nome || 'Selecione'}</span>`)}
+            ${modelo('Cliente', `<span ${dados_orcam.omie_cliente ? `id="${dados_orcam.omie_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'salvarDadosCliente()')">${cliente?.nome || 'Selecione'}</span>`)}
             ${modelo('CNPJ/CPF', `<span id="cnpj">${cliente?.cnpj || ''}</span>`)}
             ${modelo('Endereço', `<span id="bairro">${cliente?.bairro || ''}</span>`)}
             ${modelo('CEP', `<span id="cep">${cliente?.cep || ''}</span>`)}
@@ -2237,7 +2237,7 @@ async function painelClientes() {
     analista()
 }
 
-async function salvarDadosCliente(recarregar) {
+async function salvarDadosCliente() {
 
     let orcamentoBase = baseOrcamento()
 
@@ -2272,10 +2272,11 @@ async function salvarDadosCliente(recarregar) {
         contrato.style.display = 'block'
     }
 
+    const omie_cliente = document.querySelector('[name="cliente"]').id
+
     orcamentoBase.dados_orcam = {
         ...orcamentoBase.dados_orcam,
-
-        omie_cliente: document.querySelector('[name="cliente"]').id,
+        omie_cliente,
         condicoes: document.getElementById('condicoes').value,
         consideracoes: document.getElementById('consideracoes').value,
         data: new Date(),
@@ -2290,7 +2291,12 @@ async function salvarDadosCliente(recarregar) {
 
     baseOrcamento(orcamentoBase)
 
-    if (recarregar) painelClientes()
+    const cliente = await recuperarDado('dados_clientes', omie_cliente)
+    const campos = ['cnpj', 'bairro', 'cidade', 'estado', 'cep']
+    for (const campo of campos) {
+        const el = document.getElementById(campo)
+        if (el) el.textContent = cliente?.[campo] || ''
+    }
 
     if (orcamentoBase.lpu_ativa === 'MODALIDADE LIVRE') {
         total_v2();
@@ -2301,6 +2307,7 @@ async function salvarDadosCliente(recarregar) {
             await totalOrcamento()
         }
     }
+
 }
 
 function executarLimparCampos() {
@@ -2432,7 +2439,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
             .replace(/[^a-zA-Z0-9 ]/g, '')
 
         opcoesDiv += `
-            <div name="camposOpcoes" class="atalhos" onclick="selecionar('${name}', '${cod}', '${descricao}', ${funcaoAux ? funcaoAux : false})" style="${vertical}; gap: 2px; max-width: 40vw;">
+            <div name="camposOpcoes" class="atalhos" onclick="selecionar('${name}', '${cod}', '${descricao}', ${funcaoAux ? `'${funcaoAux}'` : false})" style="${vertical}; gap: 2px; max-width: 40vw;">
                 ${labels}
             </div>`
     }
@@ -2461,7 +2468,7 @@ async function selecionar(name, id, termo, funcaoAux) {
     elemento.textContent = termo
     elemento.id = id
     removerPopup()
-
+    
     if (funcaoAux) await eval(funcaoAux)
 }
 

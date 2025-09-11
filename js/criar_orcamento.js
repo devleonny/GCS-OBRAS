@@ -593,6 +593,8 @@ async function totalOrcamento() {
     if (!orcamentoBase.dados_composicoes) orcamentoBase.dados_composicoes = {}
 
     const bodyOrcamento = document.getElementById('bodyOrcamento')
+    if(!bodyOrcamento) return
+    
     const trs = bodyOrcamento.querySelectorAll('tr')
 
     let ordem = 1
