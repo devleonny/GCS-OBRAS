@@ -501,9 +501,12 @@ async function duplicar(orcam_) {
 
     baseOrcamento(novoOrcamento)
 
-    let tipoOrcamento = novoOrcamento.lpu_ativa == 'ALUGUEL' ? 'aluguel' : 'orcamento'
+    removerPopup()
+    
+    novoOrcamento.lpu_ativa == 'ALUGUEL' 
+    ? await criarOrcamentoAluguel()
+    : await criarOrcamento()
 
-    window.location.href = `criar_${tipoOrcamento}.html`
 }
 
 async function excelOrcamentos() {
