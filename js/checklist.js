@@ -2,8 +2,11 @@ let quantidadeGeral = 0
 let quantidadeRealizado = 0
 let previsao = 0
 let diasTotais = 0
+let tecnicos = {}
 
 async function telaChecklist() {
+
+    tecnicos = {}
 
     id_orcam = 'ORCA_9270e7d1-751a-4cd9-ba66-42479ee167e5'
 
@@ -91,6 +94,7 @@ function carregarLinhaChecklist(codigo, produto, check) {
     quantidadeGeral += produto.qtde
     quantidadeRealizado += quantidade
     diasTotais += diasUnicos.length
+    progressoPonderado += quantidade / produto.qtde
 
     const tds = `
         <td style="text-align: right;">${produto.descricao}</td>
@@ -110,23 +114,52 @@ function carregarLinhaChecklist(codigo, produto, check) {
 
 }
 
+function selecionarTecnico(cod, nome) {
+    const tecnico = document.querySelector(`[name="tecnico"]`)
+    tecnico.textContent = nome
+    tecnico.id = cod
+}
+
 async function registrarChecklist(codigo) {
 
     const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
     const itens = orcamento?.checklist?.itens?.[codigo] || {}
+    const dados_clientes = await recuperarDados('dados_clientes')
 
-    const linhas = Object.entries(itens)
-        .map(([idLancamento, dados]) => `
+    const data = (data) => {
+        const [ano, mes, dia] = data.split('-')
+        return `${dia}/${mes}/${ano}`
+    }
+
+    let linhas = ''
+
+    for (const [idLancamento, dados] of Object.entries(itens)) {
+
+        const tecnico = dados_clientes?.[dados.tecnico] || {}
+
+        tecnicos[dados.tecnico] = tecnico?.nome || 'Desatualizado...'
+
+        linhas += `
         <tr>
-            <td>${dados.data}</td>
+            <td>${data(dados.data)}</td>
             <td>${dados.quantidade}</td>
-            <td>${dados.tecnico}</td>
+            <td>${tecnico?.nome || 'Desatualizado...'}</td>
             <td><img src="imagens/cancel.png" style="width: 1.5rem;" onclick="removerChecklist('${codigo}', '${idLancamento}', this)"></td>
-        </tr>`)
+        </tr>`
+    }
+
+    const botoesTecnicos = Object.entries(tecnicos)
+        .map(([cod, nome]) => `<button onclick="selecionarTecnico('${cod}', '${nome}')">${nome || 'Desatualizado...'}</button>`)
         .join('')
 
     const acumulado = `
         <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
+
+            <span><b>Quantidade Orçada:</b> ${orcamento.dados_composicoes[codigo].qtde}</span>
+
+            ${botoesTecnicos}
+
+            <hr style="width: 100%;">
 
             <div class="form-checklist">
                 <span class="opcoes" name="tecnico" onclick="cxOpcoes('tecnico', 'dados_clientes', ['nome', 'cnpj', 'cidade'])">Selecione</span>
@@ -182,7 +215,6 @@ async function salvarQuantidade(codigo) {
     await telaChecklist()
 
     removerPopup()
-    await registrarChecklist(codigo)
 
 }
 

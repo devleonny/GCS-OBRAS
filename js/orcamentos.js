@@ -85,7 +85,7 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
         }
 
         if (range) {
-            const lc = Number(tds[7].querySelector('input').value);
+            const lc = Number(tds[8].querySelector('input').value);
             if (!(lc >= n1 && lc <= n2)) mostrarLinha = false;
         }
 
