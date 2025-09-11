@@ -230,13 +230,14 @@ async function despoluicaoGCS() {
 
     let logs = document.getElementById('logs')
 
-    logs.insertAdjacentHTML('beforeend', '<label>Resetando bases de dados...</label>')
-    apagarStores('GCS')
-
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
 
-    const bases = ['departamentos_fixos',
+    const bases = [
+        'departamentos_fixos',
         'dados_orcamentos',
+        'custo_veiculos',
+        'motoristas',
+        'veiculos',
         'dados_composicoes',
         'dados_clientes',
         'dados_estoque',
@@ -254,28 +255,6 @@ async function despoluicaoGCS() {
     telaInicial()
     removerOverlay()
 
-}
-
-function apagarStores(nomeDB) {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(nomeDB, Date.now()); 
-
-        request.onupgradeneeded = function (event) {
-            const db = event.target.result;
-            for (const storeName of db.objectStoreNames) {
-                db.deleteObjectStore(storeName);
-            }
-        };
-
-        request.onsuccess = function (event) {
-            event.target.result.close();
-            resolve(true);
-        };
-
-        request.onerror = function (err) {
-            reject(err);
-        };
-    });
 }
 
 document.addEventListener('keydown', function (event) {
