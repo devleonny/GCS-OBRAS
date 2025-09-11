@@ -7,15 +7,15 @@ async function atualizarManutencoes() {
     await telaChamados()
 }
 
-function filtrarManutencoes({ status, col, texto} = {}) {
+function filtrarManutencoes({ status, col, texto } = {}) {
 
     const inicio = document.querySelector('[name="inicio"]').value
     const fim = document.querySelector('[name="fim"]').value
 
     const dtInicio = inicio ? new Date(...inicio.split('-').map((v, i) => i === 1 ? v - 1 : v)) : null
-    const dtFinal  = fim ? new Date(...fim.split('-').map((v, i) => i === 1 ? v - 1 : v)) : null
+    const dtFinal = fim ? new Date(...fim.split('-').map((v, i) => i === 1 ? v - 1 : v)) : null
 
-    if(status) statusChamados = status
+    if (status) statusChamados = status
 
     const trs = document.querySelectorAll('#bodyChamados tr');
     const abas = document.querySelectorAll('.aba-toolbar');
@@ -46,8 +46,8 @@ function filtrarManutencoes({ status, col, texto} = {}) {
         // filtro de coluna
         if (mostrar && col !== null && texto) {
             if (col < tds.length) {
-                const conteudo = (tds[col].querySelector('input, textarea, select')?.value 
-                                  || tds[col].textContent || '').toLowerCase();
+                const conteudo = (tds[col].querySelector('input, textarea, select')?.value
+                    || tds[col].textContent || '').toLowerCase();
                 if (!conteudo.includes(texto.toLowerCase())) {
                     mostrar = false;
                 }
@@ -90,7 +90,7 @@ async function telaChamados() {
         if (col == 'Ações') {
             tsh += `<th style="background-color: white; border-radius: 0px;"></th>`
 
-        }else if(col == 'Previsão'){
+        } else if (col == 'Previsão') {
             tsh += `
                 <th style="${vertical}; align-items: center; gap: 5px; background-color: white;">
                     <input style="width: max-content;" onchange="filtrarManutencoes()" type="date" name="inicio">
@@ -150,7 +150,7 @@ async function telaChamados() {
 
     }
 
-    filtrarManutencoes({status: Object.keys(contadores)[0]})
+    filtrarManutencoes({ status: Object.keys(contadores)[0] })
 
     criarMenus('chamados')
 
@@ -221,9 +221,9 @@ function salvarPrimeiroUsuario(historico) {
     return historico;
 }
 
-async function criarManutencao(idManutencao) {
-    
-    idManutencao = idManutencao || ID5digitos()
+async function criarManutencao(id) {
+
+    idManutencao = id || ID5digitos()
 
     const manutencao = await recuperarDado('dados_manutencao', idManutencao)
     const cliente = await recuperarDado('dados_clientes', manutencao?.codigo_cliente)
@@ -274,10 +274,7 @@ async function criarManutencao(idManutencao) {
                 <div class="arquivos">Sem anexos para importação</div>
 
                 <div id="lista-anexos" style="${vertical}">
-                    ${Object.entries(manutencao?.anexos || {})
-            .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, ``))
-            .join('')
-        }
+                    ${Object.entries(manutencao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, ``)).join('')}
                 </div>
                 
             </div>
@@ -313,6 +310,7 @@ async function criarManutencao(idManutencao) {
             ${layoutBotao('Salvar', `enviarManutencao('${idManutencao}')`, 'concluido')}
             ${layoutBotao('Sincronizar Estoque', `sincronizarDados('dados_estoque')`, 'estoque')}
             ${layoutBotao('Sincronizar Clientes/Técnicos', `recuperarClientes()`, 'atualizar3')}
+            ${layoutBotao('PDF', `gerarPDFChamados()`, 'pdf')}
             ${manutencao ? layoutBotao('Excluir Manutenção', `confirmarExclusaoManutencao('${idManutencao}')`, 'cancel') : ''}
 
         </div>
@@ -333,7 +331,7 @@ async function criarManutencao(idManutencao) {
 
     const acumulado = `
         <div style="${vertical}; background-color: #d2d2d2;">
-            <div style="${vertical}; width: 100%; height: 60vh; overflow: auto; padding: 2vw 0 2vw 0;">
+            <div name="pdfChamado" style="${vertical}; width: 100%; height: 60vh; overflow: auto; padding: 2vw 0 2vw 0;">
                 ${formulario}
                 <div style="${horizontal}; width: 100%;">${tabela}</div>
                 <br>
@@ -351,6 +349,157 @@ async function criarManutencao(idManutencao) {
     for (const [id, peca] of Object.entries(manutencao?.pecas || {})) {
         criarLinhaPeca(id, peca)
     }
+}
+
+function salvarPrimeiroUsuario(historico) {
+
+    if (historico && dicionario(historico)) {
+        const primeiraChave = Object.keys(historico)[0];
+        return historico[primeiraChave].usuario
+    }
+
+    return historico;
+}
+
+async function gerarPDFChamados() {
+
+    overlayAguarde()
+
+    const dados_estoque = await recuperarDados('dados_estoque')
+    const manutencao = await recuperarDado('dados_manutencao', idManutencao)
+    const campos = ['nome', 'cnpj', 'bairro', 'cep', 'cidade', 'estado']
+    const pessoas = ['tecnico', 'cliente']
+    let divs = ''
+
+    console.log(manutencao);
+    
+
+    if (!manutencao) return removerOverlay()
+
+    for (const pessoa of pessoas) {
+
+        let elementos = ''
+        const codigo = manutencao[`codigo_${pessoa}`]
+
+        if (codigo == '') continue
+
+        const dados = await recuperarDado('dados_clientes', codigo) || {}
+
+        campos.forEach(campo => {
+            elementos += `<label style="text-align: left;"><strong>${campo.toUpperCase()}: </strong>${dados[campo]}</label>`
+        })
+
+        divs += `
+            <div style="display: flex; flex-direction: column; aling-items: start; justify-content: left;">
+                <label style="font-size: 1.5em;">${pessoa.toUpperCase()}</label>
+                ${elementos}
+            </div>
+        `
+    }
+
+    let cabecalho = `
+        <div style="display: flex; align-items: start; justify-content: left; gap: 10vw;">
+            ${divs}
+        </div>
+    `
+
+    let linhas = ''
+    for (const [pc, peca] of Object.entries(manutencao?.pecas || {})) {
+
+        const item = dados_estoque?.[pc] || {}
+
+        linhas += `
+        <tr>
+            <td>${item.partnumber ?? "-"}</td>
+            <td style="text-align: center;">${peca.quantidade}</td>
+            <td>${peca.comentario ?? "-"}</td>
+            <td>${peca.descricao ?? "-"}</td>
+        </tr>
+        `
+    }
+
+    const tabela = `
+        <label style="font-size: 1.5em;">REQUISIÇÃO ${manutencao.chamado}</label>
+        <table class="tabela">
+            <thead>
+                <th>Part Number</th>
+                <th>Quantidade</th>
+                <th>Comentário</th>
+                <th>Descrição</th>
+            </thead>
+            <tbody>${linhas}</tbody>
+        </table>
+    `
+
+    const html = `
+        <html>
+
+        <head>
+            <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+            <style>
+                body {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: start;
+                    align-items: start;
+                    padding: 3vw;
+                    gap: 10px;    
+                    font-family: 'Poppins', sans-serif;
+                    font-size: 1.0em;
+                }
+
+                table {
+                    font-size: 1.0em;
+                    border-collapse: collapse;
+                }
+                
+                th {
+                    background-color: #d2d2d2;
+                }
+
+                th, td {
+                    border: 1px solid #222;
+                    padding: 3px;
+                }
+
+                @media print {
+                    body {
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+
+                    header,
+                    footer {
+                        display: none !important;
+                    }
+
+                    .table-container {
+                        margin-right: 0;
+                    }
+                }                    
+            
+            </style>
+        </head>
+
+        <body>
+            <div style="width: 100%; display: flex; align-items: center; justify-content: start; gap: 20px;">
+                <img src="https://i.imgur.com/qZLbNfb.png" style="width: 20vw; border-radius: 3px;">
+                <label style="font-size: 2.0em;">Requisição de Materiais <br> Manutenção/Avulso</label>
+            </div>
+            <hr style="width: 90%;">
+            ${cabecalho}
+            <hr style="width: 90%;">
+            ${tabela}
+        </body>
+
+        </html>
+    `;
+
+    const nome = `REQUISICAO ${manutencao?.chamado || 'Sem chamado'}`
+    
+    await gerarPdfOnline(html, nome);
+
+    removerOverlay()
 }
 
 function infoAnexos(input) {
