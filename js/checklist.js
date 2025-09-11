@@ -47,23 +47,27 @@ async function telaChecklist() {
 function carregarLinhaChecklist(codigo, produto, check) {
 
     let quantidade = 0
+    let diasUnicos = []
 
     for (const [id, dados] of Object.entries(check)) {
         quantidade += dados.quantidade
+        if (!diasUnicos.includes(dados.data)) diasUnicos.push(dados.data)
     }
 
     const diferenca = produto.qtde - quantidade
-
+    const mediaDia = quantidade == 0 ? 0 : Number((quantidade / diasUnicos.length).toFixed(0))
     const cor = (quantidade > 0 && quantidade < produto.qtde) ? '#f59c27bf' : quantidade == 0 ? '#b36060bf' : '#4CAF50bf'
+    const percRendDiario = mediaDia == 0 ? 0 : ((mediaDia / produto.qtde) * 100).toFixed(0)
+    const prevFinalizacao = mediaDia == 0 ? 0 : (produto.qtde / mediaDia).toFixed(0)
 
     const tds = `
         <td style="text-align: right;">${produto.descricao}</td>
         <td>${produto.qtde}</td>
         <td style="background-color: ${cor}; cursor: pointer;" onclick="registrarChecklist('${codigo}')">${quantidade}</td>
         <td>${diferenca}</td>
-        <td></td>
-        <td></td>
-        <td></td>
+        <td>${mediaDia}</td>
+        <td>${percRendDiario}%</td>
+        <td>${prevFinalizacao} ${prevFinalizacao == 1 ? 'dia' : 'dias'}</td>
     `
 
     const trExistente = document.getElementById(`check_${codigo}`)
@@ -127,7 +131,7 @@ async function salvarQuantidade(codigo) {
     const quantidade = Number(document.querySelector('[name="quantidade"]').value)
     const data = document.querySelector('[name="data"]').value
 
-    if(!tecnico || !quantidade || !data) return popup(mensagem('Preencha todos os campos'), 'Alerta', true)
+    if (!tecnico || !quantidade || !data) return popup(mensagem('Preencha todos os campos'), 'Alerta', true)
 
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
@@ -156,7 +160,7 @@ async function removerChecklist(codigo, idLancamento, img) {
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
     delete orcamento.checklist.itens[codigo][idLancamento]
 
-    await inserirDados({[id_orcam]: orcamento}, 'dados_orcamentos')
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
 
     img.closest('tr').remove()
 

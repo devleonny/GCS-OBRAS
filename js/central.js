@@ -1146,12 +1146,11 @@ async function continuar() {
 }
 
 function pesquisarGenerico(coluna, texto, filtro, id) {
-
-    filtro[coluna] = String(texto).toLowerCase().replace('.', '')
+    filtro[coluna] = String(texto).toLowerCase().replace('.', '').trim();
 
     let tbody = document.getElementById(id);
     let trs = tbody.querySelectorAll('tr');
-    let contador = 0
+    let contador = 0;
 
     trs.forEach(function (tr) {
         let tds = tr.querySelectorAll('td');
@@ -1161,9 +1160,13 @@ function pesquisarGenerico(coluna, texto, filtro, id) {
             let filtroTexto = filtro[col];
 
             if (filtroTexto && col < tds.length) {
-                let element = tds[col].querySelector('input') || tds[col].querySelector('textarea') || tds[col].querySelector('select') || tds[col].textContent
-                let conteudoCelula = element.value ? element.value : element
-                let texto_campo = String(conteudoCelula).toLowerCase().replace('.', '')
+                let element = tds[col].querySelector('input') 
+                           || tds[col].querySelector('textarea') 
+                           || tds[col].querySelector('select') 
+                           || tds[col].textContent;
+
+                let conteudoCelula = element.value ? element.value : element;
+                let texto_campo = String(conteudoCelula).toLowerCase().replace('.', '').trim();
 
                 if (!texto_campo.includes(filtroTexto)) {
                     mostrarLinha = false;
@@ -1172,14 +1175,12 @@ function pesquisarGenerico(coluna, texto, filtro, id) {
             }
         }
 
-        mostrarLinha ? contador++ : ''
-
+        if (mostrarLinha) contador++;
         tr.style.display = mostrarLinha ? '' : 'none';
     });
 
-    const contagem = document.getElementById('contagem')
-    if (contagem) contagem.textContent = contador
-
+    const contagem = document.getElementById('contagem');
+    if (contagem) contagem.textContent = contador;
 }
 
 async function salvar_levantamento(id_orcamento) {
