@@ -259,6 +259,7 @@ async function despoluicaoGCS() {
 document.addEventListener('keydown', function (event) {
     if (event.key === 'F2') f2()
     if (event.key === 'F8') despoluicaoGCS()
+    if(event.key === 'F5') location.reload()
 })
 
 async function f2() {
