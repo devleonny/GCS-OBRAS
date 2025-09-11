@@ -144,7 +144,7 @@ async function telaOrcamentos() {
                 </th>
             `
         } else {
-            tsh += `<th oninput="filtrarOrcamentos({col: ${i}, texto: this.textContent})" style="background-color: white; text-align: left;" contentEditable="true"></th>`
+            tsh += `<th name="col_${i}" oninput="filtrarOrcamentos({col: ${i}, texto: this.textContent})" style="background-color: white; text-align: left;" contentEditable="true"></th>`
         }
     })
 
@@ -194,8 +194,8 @@ async function telaOrcamentos() {
     criarMenus('orcamentos')
 
     for (const [col, termo] of Object.entries(filtrosOrcamento)) {
-        const input = document.querySelector(`[name=col${col}]`)
-        input.value = termo
+        const th = document.querySelector(`[name=col_${col}]`)
+        if(th) th.textContent = termo
     }
 
     removerOverlay()
