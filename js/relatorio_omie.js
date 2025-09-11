@@ -209,12 +209,15 @@ async function telaRelatorio(app) {
                 <div class="toolbarRelatorio">
                     ${toolbarApp}
                 </div>
-                ${stringTabelas}
+                <div id="tabelasRelatorio"></div>
             </div>
         </div>
         `
 
-    tela.innerHTML = acumulado
+    const tabelasRelatorio = document.getElementById('tabelasRelatorio')
+    if(!tabelasRelatorio) tela.innerHTML = acumulado
+
+    document.getElementById('tabelasRelatorio').innerHTML = stringTabelas
 
     criarMenus('relatorio')
 
