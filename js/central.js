@@ -258,16 +258,12 @@ async function despoluicaoGCS() {
 
 function apagarStores(nomeDB) {
     return new Promise((resolve, reject) => {
-        // incrementa a versão pra forçar o onupgradeneeded
         const request = indexedDB.open(nomeDB, Date.now()); 
 
         request.onupgradeneeded = function (event) {
             const db = event.target.result;
-
-            // apaga todas as stores existentes
             for (const storeName of db.objectStoreNames) {
                 db.deleteObjectStore(storeName);
-                console.log(`Store removida: ${storeName}`);
             }
         };
 
