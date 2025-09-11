@@ -1396,12 +1396,12 @@ function divPorcentagem(porcentagem) {
     let valor = Math.max(0, Math.min(100, Number(porcentagem) || 0));
 
     return `
-    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-        <div style="width: 100px; height: 12px; background: #eee; border-radius: 6px; overflow: hidden;">
-        <div style="width: ${valor}%; height: 100%; background: ${valor >= 70 ? '#4caf50' : valor >= 40 ? '#ffc107' : '#f44336'};"></div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <div style="width: 100px; height: 12px; background: #eee; border-radius: 6px; overflow: hidden;">
+            <div style="width: ${valor}%; height: 100%; background: ${valor >= 70 ? '#4caf50' : valor >= 40 ? '#ffc107' : '#f44336'};"></div>
+            </div>
+            <div style="font-size: 0.8rem; text-align: center;">${valor}%</div>
         </div>
-        <div style="font-size: 1.0vw; text-align: center;">${valor}%</div>
-    </div>
   `;
 }
 

@@ -1,3 +1,8 @@
+let quantidadeGeral = 0
+let quantidadeRealizado = 0
+let previsao = 0
+let diasTotais = 0
+
 async function telaChecklist() {
 
     id_orcam = 'ORCA_9270e7d1-751a-4cd9-ba66-42479ee167e5'
@@ -6,13 +11,28 @@ async function telaChecklist() {
 
     let ths = ''
     let pesquisa = ''
-    const colunas = ['Serviços', 'Quantidade', 'Serviço Executado', 'Diferença', 'Média do Serviço <br> Soma / dia trabalhado', 'Percentual de rendimento', 'Previsão de finalização']
+    const colunas = ['Serviços', 'Quantidade', 'Serviço Executado', '% Conclusão', 'Diferença', 'Média do Serviço <br> Soma / dia trabalhado', 'Percentual de rendimento', 'Previsão de finalização']
         .forEach(op => {
             ths += `<th>${op}</th>`
         })
 
+    const modelo = (texto, elemento) => `
+        <div style="${vertical}; gap: 3px;">
+            <label>${texto}</label>
+            ${elemento}
+        </div>
+    `
+
     const acumulado = `
         <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
+
+            <div class="toolbar-checklist">
+                ${modelo('Total de Itens', `<span id="geral"></span>`)}
+                ${modelo('Realizado', `<span id="realizado"></span>`)}
+                ${modelo('Dias decorridos', `<span id="diasTotais"></span>`)}
+                ${modelo('Previsão de Conclusão', `<span id="previsao"></span>`)}
+                ${modelo('Porcentagem de Conclusão', `<div id="porcentagem"></div>`)}
+            </div>
 
             <div id="tabelaCheklist" style="${vertical};">
                 <div class="topo-tabela"></div>
@@ -42,6 +62,13 @@ async function telaChecklist() {
 
     }
 
+    // Relatório geral
+    document.getElementById('geral').textContent = quantidadeGeral
+    document.getElementById('realizado').textContent = quantidadeRealizado
+    const porcetagemFinal = Number(((quantidadeRealizado / quantidadeGeral) * 100).toFixed(1))
+    document.getElementById('porcentagem').innerHTML = divPorcentagem(porcetagemFinal)
+    document.getElementById('diasTotais').textContent = diasTotais
+
 }
 
 function carregarLinhaChecklist(codigo, produto, check) {
@@ -60,10 +87,16 @@ function carregarLinhaChecklist(codigo, produto, check) {
     const percRendDiario = mediaDia == 0 ? 0 : ((mediaDia / produto.qtde) * 100).toFixed(0)
     const prevFinalizacao = mediaDia == 0 ? 0 : (produto.qtde / mediaDia).toFixed(0)
 
+    // Relatório
+    quantidadeGeral += produto.qtde
+    quantidadeRealizado += quantidade
+    diasTotais += diasUnicos.length
+
     const tds = `
         <td style="text-align: right;">${produto.descricao}</td>
         <td>${produto.qtde}</td>
         <td style="background-color: ${cor}; cursor: pointer;" onclick="registrarChecklist('${codigo}')">${quantidade}</td>
+        <td>${divPorcentagem(((quantidade / produto.qtde) * 100).toFixed(1))}</td>
         <td>${diferenca}</td>
         <td>${mediaDia}</td>
         <td>${percRendDiario}%</td>
