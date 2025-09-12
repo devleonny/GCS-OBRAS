@@ -524,7 +524,7 @@ function criarLinhaPeca(id, peca) {
 
     const tds = `
         <td>
-            <div style="${horizontal}; gap: 5px; width: 100%;">
+            <div style="${horizontal}; justify-content: end; gap: 5px; width: 100%;">
                 <span class="opcoes" id="${id}" name="${id}" onclick="cxOpcoes('${id}', 'dados_estoque', ['descricao', 'partnumber'])">${peca?.descricao || 'Selecione'}</span>
                 <img data-modalidade="tradicional" src="imagens/ajustar.png" style="width: 1.2rem;" onclick="mudarEdicao(this)">
             </div>
