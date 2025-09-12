@@ -372,7 +372,7 @@ async function gerarPDFChamados() {
     let divs = ''
 
     console.log(manutencao);
-    
+
 
     if (!manutencao) return removerOverlay()
 
@@ -496,7 +496,7 @@ async function gerarPDFChamados() {
     `;
 
     const nome = `REQUISICAO ${manutencao?.chamado || 'Sem chamado'}`
-    
+
     await gerarPdfOnline(html, nome);
 
     removerOverlay()
@@ -524,7 +524,10 @@ function criarLinhaPeca(id, peca) {
 
     const tds = `
         <td>
-            <span class="opcoes" id="${id}" name="${id}" onclick="cxOpcoes('${id}', 'dados_estoque', ['descricao', 'partnumber'])">${peca?.descricao || 'Selecione'}</span>
+            <div style="${horizontal}; gap: 5px; width: 100%;">
+                <span class="opcoes" id="${id}" name="${id}" onclick="cxOpcoes('${id}', 'dados_estoque', ['descricao', 'partnumber'])">${peca?.descricao || 'Selecione'}</span>
+                <img data-modalidade="tradicional" src="imagens/ajustar.png" style="width: 1.2rem;" onclick="mudarEdicao(this)">
+            </div>
         </td>
         <td contentEditable="true">${peca?.quantidade || 0}</td>
         <td contentEditable="true">${peca?.comentario || ''}</td>
@@ -533,6 +536,22 @@ function criarLinhaPeca(id, peca) {
     const trExistente = document.getElementById(id)
     if (trExistente) return trExistente.innerHTML = tds
     linhasManutencao.insertAdjacentHTML('beforeend', `<tr id="${id}">${tds}</tr>`)
+}
+
+function mudarEdicao(img) {
+    const modalidade = img.dataset.modalidade
+    const cod = ID5digitos()
+    let elemento = ""
+
+    if (modalidade === "livre") {
+        elemento = `<span class="opcoes" name="${cod}" onclick="cxOpcoes('${cod}', 'dados_estoque', ['descricao', 'partnumber'])">Selecione</span>`
+    } else {
+        elemento = `<textarea class="opcoes" name="${cod}"></textarea>`
+    }
+
+    img.dataset.modalidade = modalidade == 'livre' ? 'tradicional' : 'livre'
+    img.previousElementSibling?.remove()
+    img.insertAdjacentHTML("beforebegin", elemento)
 }
 
 async function enviarManutencao() {
@@ -551,12 +570,12 @@ async function enviarManutencao() {
     const trs = tbody.querySelectorAll('tr')
     for (const tr of trs) {
         const tds = tr.querySelectorAll('td')
-        const codigo = tds[0].querySelector('span').getAttribute('name')
+        const codigo = tds[0].querySelector('.opcoes').getAttribute('name')
         const item = dados_estoque?.[codigo] || {}
 
         pecas[codigo] = {
             partnumber: item?.partnumber || '',
-            descricao: tds[0].querySelector('span').textContent,
+            descricao: tds[0].querySelector('.opcoes')?.textContent || tds[0].querySelector('.opcoes')?.value,
             quantidade: Number(tds[1].textContent),
             comentario: tds[2].textContent
         }

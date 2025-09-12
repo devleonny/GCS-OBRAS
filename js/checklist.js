@@ -25,16 +25,16 @@ async function telaChecklist() {
     for (const op of colunas) {
 
         if (op == '') {
-            ths += `<input type="checkbox" onclick="marcarItensChecklist(this)">`
+            ths += `<th><input type="checkbox" onclick="marcarItensChecklist(this)"></th>`
             pesquisa += `<th style="background-color: white;"></th>`
 
         } else {
             pesquisa += `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico('${i}', this.textContent, filtroChecklist, 'bodyChecklist')"></th>`
             ths += `
             <th>
-                <div style="${horizontal}; justify-content: space-between; width: 100%;">
+                <div style="${horizontal}; justify-content: space-between; width: 100%; gap: 10px;">
                     <span>${op}</span>
-                    <img src="imagens/aaz.png" style="width: 0.8rem;" onclick="filtrarAAZ(${i}, 'bodyChecklist')"> 
+                    <img src="imagens/aaz.png" style="width: 1rem;" onclick="filtrarAAZ(${i}, 'bodyChecklist')"> 
                 </div>
             </th>`
         }
@@ -55,8 +55,9 @@ async function telaChecklist() {
 
             <div class="toolbar-checklist">
                 <div style="${horizontal}; gap: 10px;">
-                    <button onclick="removerItensEmMassa()">Remover Itens Selecionados</button>
-                    <button style="background-color: #222;" onclick="verItensRemovidos()">Ver Itens Removidos</button>
+                    <button onclick="removerItensEmMassa()" style="background-color: #4673b3;">Remover Itens Selecionados</button>
+                    <button style="background-color: #35a8b9;" onclick="verItensRemovidos()">Ver Itens Removidos</button>
+                    <button onclick="adicionarServicoAvulso()" style="background-color: #29a3f6;">Incluir Serviço</button>
                 </div>
 
                 <div style="${horizontal}; gap: 10px;">
@@ -105,6 +106,43 @@ async function telaChecklist() {
     document.getElementById('porcentagem').innerHTML = divPorcentagem(porcetagemFinal)
     document.getElementById('diasTotais').textContent = diasTotais
     document.getElementById('previsao').textContent = `${((diasTotais * 100) / porcetagemFinal).toFixed(0)} dias`
+
+}
+
+async function adicionarServicoAvulso() {
+
+    const acumulado = `
+        <div style="${horizontal}; gap: 10px; background-color: #d2d2d2; padding: 2vw;">
+            ${modelo('Descrição', `<input name="descricao" style="padding: 5px; border-radius: 3px;">`)}
+            ${modelo('Quantidade', `<input name="quantidade" type="number" style="padding: 5px; border-radius: 3px;">`)}
+            <img src="imagens/concluido.png" style="width: 2rem;" onclick="salvarAvulso()">
+        </div>
+    `
+
+    popup(acumulado, 'Incluir Serviço', true)
+}
+
+async function salvarAvulso() {
+
+    const quantidade = Number(document.querySelector('[name="quantidade"]').value)
+    const descricao = document.querySelector('[name="descricao"]')
+
+    if (!quantidade || !descricao) return popup(mensagem('Não deixe campos em Branco'), 'Alerta', true)
+
+    overlayAguarde()
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+
+    if (!orcamento.checklist) orcamento.checklist = {}
+    if (!orcamento.checklist.avulso) orcamento.checklist.avulso = {}
+
+    const codigo = ID5digitos()
+
+    orcamento.checklist.avulso[codigo] = { quantidade, descricao }
+
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    await telaChecklist()
+
+    removerOverlay()
 
 }
 
