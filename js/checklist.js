@@ -445,6 +445,8 @@ async function removerChecklist(codigo, idLancamento) {
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
     delete orcamento.checklist.itens[codigo][idLancamento]
 
+    deletar(`dados_orcamentos/${id_orcam}/checklist/itens/${codigo}/${idLancamento}`)
+
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
 
     await telaChecklist()
