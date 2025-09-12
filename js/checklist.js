@@ -53,6 +53,7 @@ async function telaChecklist() {
 
             <div class="toolbar-checklist">
                 <div style="${horizontal}; gap: 10px;">
+                    <img onclick="atualizarChecklist()" src="imagens/atualizar3.png" style="width: 2rem;">
                     <button onclick="removerItensEmMassa()" style="background-color: #4673b3;">Remover Itens Selecionados</button>
                     <button style="background-color: #35a8b9;" onclick="verItensRemovidos()">Ver Itens Removidos</button>
                     <button onclick="adicionarServicoAvulso()" style="background-color: #29a3f6;">Serviço Avulso</button>
@@ -127,6 +128,11 @@ async function telaChecklist() {
     document.getElementById('diasTotais').textContent = diasTotais
     document.getElementById('previsao').textContent = diasTotais == 0 ? `-- dias` : `${((diasTotais * 100) / porcetagemFinal).toFixed(0)} dias`
 
+}
+
+async function atualizarChecklist() {
+    await sincronizarDados('dados_orcamentos')
+    await telaChecklist()
 }
 
 async function adicionarServicoAvulso() {
@@ -267,8 +273,10 @@ function carregarLinhaChecklist(codigo, produto, check) {
     let diasUnicos = []
 
     for (const [id, dados] of Object.entries(check)) {
-        quantidade += dados.quantidade
+
+        quantidade += isNaN(dados.quantidade) ? 0 : dados.quantidade
         if (!diasUnicos.includes(dados.data)) diasUnicos.push(dados.data)
+
     }
 
     const avulso = produto.tipo ? '' : '<span><b>[Avulso]</b></span>'
@@ -408,7 +416,7 @@ async function salvarQuantidade(codigo) {
     const blocoTecnicos = document.getElementById('blocoTecnicos')
     const spanTecnicos = blocoTecnicos.querySelectorAll('span')
 
-    for (const span of spanTecnicos) if(!tecnicos.includes(span.id)) tecnicos.push(span.id)
+    for (const span of spanTecnicos) if (!tecnicos.includes(span.id)) tecnicos.push(span.id)
 
     const quantidade = Number(document.querySelector('[name="quantidade"]').value)
     const data = document.querySelector('[name="data"]').value
@@ -430,7 +438,7 @@ async function salvarQuantidade(codigo) {
 
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
 
-    enviar(`dados_orcamentos/${id_orcam}/checklist/itens/${codigo}`, dados)
+    enviar(`dados_orcamentos/${id_orcam}/checklist/itens/${codigo}/${idLancamento}`, dados)
 
     await telaChecklist()
 
