@@ -1236,16 +1236,17 @@ async function salvar_levantamento(id_orcamento) {
     }
 }
 
-async function excluir_levantamento(id_orcamento, id_anexo) {
+async function excluirLevantamentoStatus(idAnexo) {
 
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let orcamento = dados_orcamentos[id_orcamento]
-    delete orcamento.levantamentos[id_anexo]
+    overlayAguarde()
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
-    await deletar(`dados_orcamentos/${id_orcamento}/levantamentos/${id_anexo}`)
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
+    delete orcamento.levantamentos[idAnexo]
 
-    abrirEsquema(id_orcamento)
+    await deletar(`dados_orcamentos/${id_orcam}/levantamentos/${idAnexo}`)
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+
+    await abrirEsquema(id_orcam)
 
 }
 
@@ -2145,7 +2146,7 @@ async function painelClientes() {
 
     for (chave in orcamentoBase?.levantamentos || {}) {
         let levantamento = orcamentoBase.levantamentos[chave]
-        levantamentos += criarAnexoVisual(levantamento.nome, levantamento.link, `excluir_levantamento('${chave}')`)
+        levantamentos += criarAnexoVisual(levantamento.nome, levantamento.link, `excluirLevantamentoStatus('${chave}')`)
     }
 
     const modelo = (valor1, elemento) => `
@@ -2469,7 +2470,7 @@ async function selecionar(name, id, termo, funcaoAux) {
     elemento.textContent = termo
     elemento.id = id
     removerPopup()
-    
+
     if (funcaoAux) await eval(funcaoAux)
 }
 

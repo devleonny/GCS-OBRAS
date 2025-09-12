@@ -1,8 +1,11 @@
 let quantidadeGeral = 0
-let quantidadeRealizado = 0
+let quantidadeRealizadoGeral = 0
 let previsao = 0
 let diasTotais = 0
 let tecnicos = {}
+let progressoPonderado = 0
+let quantidadeItem = 0
+let quantidadeRealizadoItem = 0
 
 async function telaChecklist() {
 
@@ -30,7 +33,7 @@ async function telaChecklist() {
         <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
 
             <div class="toolbar-checklist">
-                ${modelo('Total de Itens', `<span id="geral"></span>`)}
+                ${modelo('Total de Serviços', `<span id="geral"></span>`)}
                 ${modelo('Realizado', `<span id="realizado"></span>`)}
                 ${modelo('Dias decorridos', `<span id="diasTotais"></span>`)}
                 ${modelo('Previsão de Conclusão', `<span id="previsao"></span>`)}
@@ -62,13 +65,13 @@ async function telaChecklist() {
 
         const check = orcamento?.checklist?.itens?.[codigo] || {}
         carregarLinhaChecklist(codigo, produto, check)
-
+        quantidadeGeral++
     }
 
     // Relatório geral
     document.getElementById('geral').textContent = quantidadeGeral
-    document.getElementById('realizado').textContent = quantidadeRealizado
-    const porcetagemFinal = Number(((quantidadeRealizado / quantidadeGeral) * 100).toFixed(1))
+    document.getElementById('realizado').textContent = quantidadeRealizadoGeral
+    const porcetagemFinal = Number(((quantidadeRealizadoGeral / quantidadeGeral) * 100).toFixed(1))
     document.getElementById('porcentagem').innerHTML = divPorcentagem(porcetagemFinal)
     document.getElementById('diasTotais').textContent = diasTotais
 
@@ -91,10 +94,9 @@ function carregarLinhaChecklist(codigo, produto, check) {
     const prevFinalizacao = mediaDia == 0 ? 0 : (produto.qtde / mediaDia).toFixed(0)
 
     // Relatório
-    quantidadeGeral += produto.qtde
-    quantidadeRealizado += quantidade
     diasTotais += diasUnicos.length
     progressoPonderado += quantidade / produto.qtde
+    quantidadeRealizadoGeral += quantidade
 
     const tds = `
         <td style="text-align: right;">${produto.descricao}</td>
@@ -133,7 +135,13 @@ async function registrarChecklist(codigo) {
 
     let linhas = ''
 
+    // Bloqueio por excesso de quantidade;
+    quantidadeRealizadoItem = 0
+    quantidadeItem = orcamento.dados_composicoes[codigo].qtde
+
     for (const [idLancamento, dados] of Object.entries(itens)) {
+
+        quantidadeRealizadoItem += dados.quantidade
 
         const tecnico = dados_clientes?.[dados.tecnico] || {}
 
@@ -144,7 +152,7 @@ async function registrarChecklist(codigo) {
             <td>${data(dados.data)}</td>
             <td>${dados.quantidade}</td>
             <td>${tecnico?.nome || 'Desatualizado...'}</td>
-            <td><img src="imagens/cancel.png" style="width: 1.5rem;" onclick="removerChecklist('${codigo}', '${idLancamento}', this)"></td>
+            <td><img src="imagens/cancel.png" style="width: 1.5rem;" onclick="removerChecklist('${codigo}', '${idLancamento}')"></td>
         </tr>`
     }
 
@@ -197,6 +205,8 @@ async function salvarQuantidade(codigo) {
     const quantidade = Number(document.querySelector('[name="quantidade"]').value)
     const data = document.querySelector('[name="data"]').value
 
+    if ((quantidadeRealizadoItem + quantidade) > quantidadeItem) return popup(mensagem('Não é possível exceder a quantidade orçada'), 'Alerta', true)
+
     if (!tecnico || !quantidade || !data) return popup(mensagem('Preencha todos os campos'), 'Alerta', true)
 
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
@@ -208,6 +218,7 @@ async function salvarQuantidade(codigo) {
     const dados = { quantidade, tecnico, data }
     const idLancamento = ID5digitos()
 
+    orcamento.checklist.concluido = (quantidadeRealizadoItem + quantidade) == quantidadeItem
     orcamento.checklist.itens[codigo][idLancamento] = dados
 
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
@@ -218,7 +229,7 @@ async function salvarQuantidade(codigo) {
 
 }
 
-async function removerChecklist(codigo, idLancamento, img) {
+async function removerChecklist(codigo, idLancamento) {
 
     overlayAguarde()
 
@@ -227,9 +238,9 @@ async function removerChecklist(codigo, idLancamento, img) {
 
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
 
-    img.closest('tr').remove()
-
     await telaChecklist()
+    removerPopup()
+    await registrarChecklist(codigo)
 
     removerOverlay()
 

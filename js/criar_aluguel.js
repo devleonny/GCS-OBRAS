@@ -600,15 +600,3 @@ function itemExistente(tipo, codigo, quantidade) {
     return incluir
 
 }
-
-function excluir_levantamento(chave) {
-    var orcamentoBase = baseOrcamento()
-
-    if (orcamentoBase.levantamentos) {
-
-        delete orcamentoBase.levantamentos[chave]
-
-        baseOrcamento(orcamentoBase)
-
-    }
-}

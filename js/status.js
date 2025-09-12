@@ -49,7 +49,7 @@ function verificarFluxograma() {
 }
 
 async function sincronizarReabrir() {
-    await recuperar_orcamentos()
+    await atualizarOrcamentos()
     await abrirEsquema(id_orcam)
 }
 
@@ -1749,7 +1749,7 @@ async function abrirEsquema(id) {
         `
 
     let levantamentos = Object.entries(orcamento?.levantamentos || {})
-        .map(([iDlevantamento, levantamento]) => `${criarAnexoVisual(levantamento.nome, levantamento.link, `excluir_levantamento('${id_orcam}', '${iDlevantamento}')`)}`)
+        .map(([iDlevantamento, levantamento]) => `${criarAnexoVisual(levantamento.nome, levantamento.link, `excluirLevantamentoStatus('${iDlevantamento}')`)}`)
         .join('')
 
     let divLevantamentos = `
