@@ -843,7 +843,7 @@ async function criarPagamento() {
 async function apagarPagamento() {
     localStorage.removeItem('ultimoPagamento')
     removerPopup()
-    await telaPagamento()
+    await criarPagamento()
 }
 
 function duvidas() {
@@ -1429,7 +1429,7 @@ async function duplicarPagamento(id_pagamento) {
 
     localStorage.setItem('ultimoPagamento', JSON.stringify(pagamento))
 
-    await telaPagamento()
+    await criarPagamento()
 
     removerOverlay()
 
