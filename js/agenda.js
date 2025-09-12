@@ -148,7 +148,7 @@ async function telaAgenda(alterar) {
     removerPopup()
 
     filtrar_por_regiao()
-    filtrar_tabela('0', 'tabelaAgenda') // Script genérico que organiza a tabela com base na coluna e no ID da tabela.
+    filtrarAAZ('0', 'tabelaAgenda') // Script genérico que organiza a tabela com base na coluna e no ID da tabela.
 }
 
 function criarLinhaAgenda(omieFuncionario, funcionario) {

@@ -177,7 +177,7 @@ function filtroColunas(col, th) {
     const acumulado = `
         <div class="filtro" style="top: ${top}px; left: ${left}px;">
             <span class="close" onclick="this.parentElement.remove()">×</span>
-            <label class="opcao" style="width: 80%;" onclick="filtrar_tabela('${col}', 'tabela_estoque')">Filtrar A a Z</label>
+            <label class="opcao" style="width: 80%;" onclick="filtrarAAZ('${col}', 'tabela_estoque')">Filtrar A a Z</label>
 
             <hr style="width: 100%;">
             <label>Pesquisar</label>

@@ -1250,11 +1250,13 @@ async function excluirLevantamentoStatus(idAnexo) {
 
 }
 
-function filtrar_tabela(coluna, id) {
+function filtrarAAZ(coluna, id) {
+    let el = document.getElementById(id)
+    let tbody = el.tagName === "TBODY" ? el : el.tBodies[0]
+    if (!tbody) return
 
-    let tabela = document.getElementById(id)
-    let linhas = Array.from(tabela.tBodies[0].rows)
-    let ascendente = tabela.getAttribute("data-order") !== "asc";
+    let linhas = Array.from(tbody.rows)
+    let ascendente = (el.dataset.order ?? "desc") !== "asc"
 
     linhas.sort((a, b) => {
         let valorA = capturarValorCelula(a.cells[coluna])
@@ -1267,13 +1269,10 @@ function filtrar_tabela(coluna, id) {
         return ascendente
             ? valorA.localeCompare(valorB)
             : valorB.localeCompare(valorA)
-    });
+    })
 
-    let tbody = tabela.tBodies[0];
-    linhas.forEach((linha) => tbody.appendChild(linha))
-
-    tabela.setAttribute("data-order", ascendente ? "asc" : "desc")
-
+    linhas.forEach(linha => tbody.appendChild(linha))
+    el.dataset.order = ascendente ? "asc" : "desc"
 }
 
 function capturarValorCelula(celula) {

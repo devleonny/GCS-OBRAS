@@ -6,6 +6,8 @@ let tecnicos = {}
 let progressoPonderado = 0
 let quantidadeItem = 0
 let quantidadeRealizadoItem = 0
+let finalizados = 0
+let filtroChecklist = {}
 
 async function telaChecklist() {
 
@@ -17,10 +19,29 @@ async function telaChecklist() {
 
     let ths = ''
     let pesquisa = ''
-    const colunas = ['Serviços', 'Quantidade', 'Serviço Executado', '% Conclusão', 'Diferença', 'Média do Serviço <br> Soma / dia trabalhado', 'Percentual de rendimento', 'Previsão de finalização']
-        .forEach(op => {
-            ths += `<th>${op}</th>`
-        })
+    const colunas = ['', 'Serviços', 'Quantidade', 'Serviço Executado', '% Conclusão', 'Diferença', 'Média do Serviço <br> Soma / dia trabalhado', 'Percentual de rendimento', 'Previsão de finalização']
+
+    let i = 0
+    for (const op of colunas) {
+
+        if (op == '') {
+            ths += `<input type="checkbox" onclick="marcarItensChecklist(this)">`
+            pesquisa += `<th style="background-color: white;"></th>`
+
+        } else {
+            pesquisa += `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico('${i}', this.textContent, filtroChecklist, 'bodyChecklist')"></th>`
+            ths += `
+            <th>
+                <div style="${horizontal}; justify-content: space-between; width: 100%;">
+                    <span>${op}</span>
+                    <img src="imagens/aaz.png" style="width: 0.8rem;" onclick="filtrarAAZ(${i}, 'bodyChecklist')"> 
+                </div>
+            </th>`
+        }
+
+        i++
+
+    }
 
     const modelo = (texto, elemento) => `
         <div style="${vertical}; gap: 3px;">
@@ -33,11 +54,17 @@ async function telaChecklist() {
         <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
 
             <div class="toolbar-checklist">
-                ${modelo('Total de Serviços', `<span id="geral"></span>`)}
-                ${modelo('Realizado', `<span id="realizado"></span>`)}
-                ${modelo('Dias decorridos', `<span id="diasTotais"></span>`)}
-                ${modelo('Previsão de Conclusão', `<span id="previsao"></span>`)}
-                ${modelo('Porcentagem de Conclusão', `<div id="porcentagem"></div>`)}
+                <div style="${horizontal}; gap: 10px;">
+                    <button onclick="removerItensEmMassa()">Remover Itens Selecionados</button>
+                    <button style="background-color: #222;" onclick="verItensRemovidos()">Ver Itens Removidos</button>
+                </div>
+
+                <div style="${horizontal}; gap: 10px;">
+                    ${modelo('Total de Serviços', `<span id="geral"></span>`)}
+                    ${modelo('Dias decorridos', `<span id="diasTotais"></span>`)}
+                    ${modelo('Previsão de Conclusão', `<span id="previsao"></span>`)}
+                    ${modelo('Porcentagem de Conclusão', `<div id="porcentagem"></div>`)}
+                </div>
             </div>
 
             <div id="tabelaCheklist" style="${vertical};">
@@ -60,24 +87,114 @@ async function telaChecklist() {
     const tabelaCheklist = document.getElementById('tabelaCheklist')
     if (!tabelaCheklist) popup(acumulado, 'Checklist', true)
 
+    // Reset 
+    quantidadeGeral = 0
+    finalizados = 0
+    diasTotais = 0
+
     for (const [codigo, produto] of Object.entries(orcamento?.dados_composicoes || {})) {
         if (produto.tipo == 'VENDA') continue
 
         const check = orcamento?.checklist?.itens?.[codigo] || {}
         carregarLinhaChecklist(codigo, produto, check)
-        quantidadeGeral++
     }
 
     // Relatório geral
     document.getElementById('geral').textContent = quantidadeGeral
-    document.getElementById('realizado').textContent = quantidadeRealizadoGeral
-    const porcetagemFinal = Number(((quantidadeRealizadoGeral / quantidadeGeral) * 100).toFixed(1))
+    const porcetagemFinal = Number(((finalizados / quantidadeGeral) * 100).toFixed(1))
     document.getElementById('porcentagem').innerHTML = divPorcentagem(porcetagemFinal)
     document.getElementById('diasTotais').textContent = diasTotais
+    document.getElementById('previsao').textContent = `${((diasTotais * 100) / porcetagemFinal).toFixed(0)} dias`
+
+}
+
+async function verItensRemovidos() {
+
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+
+    const itens = Object.entries(orcamento?.checklist?.itens || {})
+        .map(([codigo, dados]) => `
+            <div style="${horizontal}; gap: 10px;">
+                <img onclick="recuperarItem('${codigo}', this)" src="imagens/atualizar3.png" style="width: 1.2rem;">
+                <span>${orcamento.dados_composicoes[codigo].descricao}</span> 
+            </div>
+        `)
+        .join('')
+
+    const acumulado = `
+        <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw;">
+
+            ${itens}
+
+        </div>
+    
+    `
+
+    popup(acumulado, 'Itens Removidos', true)
+
+}
+
+async function recuperarItem(codigo, img) {
+
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+
+    delete orcamento.checklist.itens[codigo].removido
+
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+
+    await telaChecklist()
+
+    img.closest('div').remove()
+
+}
+
+async function removerItensEmMassa() {
+
+    const itensChecklist = document.querySelectorAll('[name="itensChecklist"]:checked')
+
+    if (itensChecklist.length == 0) return
+
+    overlayAguarde()
+
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+
+    if (!orcamento.checklist) orcamento.checklist = {}
+    if (!orcamento.checklist.itens) orcamento.checklist.itens = {}
+
+    for (const check of itensChecklist) {
+
+        const tr = check.closest('tr')
+        const codigo = tr.dataset.codigo
+
+        if (!orcamento.checklist.itens[codigo]) orcamento.checklist.itens[codigo] = {}
+        orcamento.checklist.itens[codigo].removido = { usuario: acesso.usuario, data: new Date().toLocaleString() }
+
+    }
+
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+
+    removerOverlay()
+    await telaChecklist()
+}
+
+function marcarItensChecklist(input) {
+
+    const itensChecklist = document.querySelectorAll('[name="itensChecklist"]')
+
+    for (const check of itensChecklist) {
+        const tr = check.closest('tr')
+        check.checked = tr.style.display !== 'none' && input.checked
+    }
 
 }
 
 function carregarLinhaChecklist(codigo, produto, check) {
+
+    if (check.removido) {
+        const linha = document.getElementById(`check_${codigo}`)
+        if (linha) linha.remove()
+        return
+    }
 
     let quantidade = 0
     let diasUnicos = []
@@ -94,11 +211,13 @@ function carregarLinhaChecklist(codigo, produto, check) {
     const prevFinalizacao = mediaDia == 0 ? 0 : (produto.qtde / mediaDia).toFixed(0)
 
     // Relatório
+    finalizados += quantidade / produto.qtde
     diasTotais += diasUnicos.length
-    progressoPonderado += quantidade / produto.qtde
     quantidadeRealizadoGeral += quantidade
+    quantidadeGeral++
 
     const tds = `
+        <td><input name="itensChecklist" type="checkbox"></td>
         <td style="text-align: right;">${produto.descricao}</td>
         <td>${produto.qtde}</td>
         <td style="background-color: ${cor}; cursor: pointer;" onclick="registrarChecklist('${codigo}')">${quantidade}</td>
@@ -112,7 +231,7 @@ function carregarLinhaChecklist(codigo, produto, check) {
     const trExistente = document.getElementById(`check_${codigo}`)
     if (trExistente) return trExistente.innerHTML = tds
 
-    document.getElementById('bodyChecklist').insertAdjacentHTML('beforeend', `<tr id="check_${codigo}">${tds}</tr>`)
+    document.getElementById('bodyChecklist').insertAdjacentHTML('beforeend', `<tr data-codigo="${codigo}" id="check_${codigo}">${tds}</tr>`)
 
 }
 
@@ -218,7 +337,6 @@ async function salvarQuantidade(codigo) {
     const dados = { quantidade, tecnico, data }
     const idLancamento = ID5digitos()
 
-    orcamento.checklist.concluido = (quantidadeRealizadoItem + quantidade) == quantidadeItem
     orcamento.checklist.itens[codigo][idLancamento] = dados
 
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')

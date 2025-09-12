@@ -1958,33 +1958,37 @@ async function mostrarHistoricoStatus() {
     const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
     if (!orcamento?.status?.historicoStatus || orcamento.status.historicoStatus.length === 0) {
-        popup('<div style="padding:20px;text-align:center;">Nenhuma alteração de status registrada.</div>', 'Histórico de Status', true);
+        popup(`<div style="${horizontal}; padding: 2vw; background-color: #d2d2d2;">Nenhuma alteração de status registrada.</div>`, 'Histórico de Status', true);
         return;
     }
 
     const html = `
-        <div style="${horizontal}; padding: 2vw;">
-            <div style="max-height: 70vh; overflow: auto;">
-                <table class="tabela">
-                    <thead>
-                        <tr style="background-color: #d2d2d2;">
-                            <th style="padding: 10px; text-align: left;">Data</th>
-                            <th style="padding: 10px; text-align: left;">Status Anterior</th>
-                            <th style="padding: 10px; text-align: left;">Novo Status</th>
-                            <th style="padding: 10px; text-align: left;">Alterado por</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${orcamento.status.historicoStatus.map((registro, index) => `
-                            <tr style="border-bottom: 1px solid #eee; ${index % 2 === 0 ? 'background-color: white;' : ''}">
-                                <td style="padding: 10px;">${registro.data}</td>
-                                <td style="padding: 10px;">${registro.de}</td>
-                                <td style="padding: 10px;">${registro.para}</td>
-                                <td style="padding: 10px;">${registro.usuario}</td>
+        <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2;">
+            <div style="${vertical};">
+                <div class="topo-tabela"></div>
+                <div class="div-tabela">
+                    <table class="tabela">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Status Anterior</th>
+                                <th>Novo Status</th>
+                                <th>Alterado por</th>
                             </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            ${orcamento.status.historicoStatus.map(registro => `
+                                <tr>
+                                    <td>${registro.data}</td>
+                                    <td>${registro.de}</td>
+                                    <td>${registro.para}</td>
+                                    <td>${registro.usuario}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="rodapeTabela"></div>
             </div>
         </div>
     `;

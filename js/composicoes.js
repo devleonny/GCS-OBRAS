@@ -39,7 +39,7 @@ async function telaComposicoes(recriar) {
     let ths = ''
     let pesquisa = ''
     cabecalhos.forEach((cab, i) => {
-        ths += `<th name="${cab}" data-indice="${i}"  onclick="filtrar_tabela('${i}', 'tabela_composicoes', this)" style="position: relative; cursor: pointer; text-align: left;">${inicialMaiuscula(cab)}</th>`
+        ths += `<th name="${cab}" data-indice="${i}"  onclick="filtrarAAZ('${i}', 'tabela_composicoes', this)" style="position: relative; cursor: pointer; text-align: left;">${inicialMaiuscula(cab)}</th>`
         pesquisa += `<th style="text-align: left; background-color: white;" oninput="pesquisarGenerico('${i}', this.textContent, filtrosAtivos, 'linhasComposicoes')" contentEditable="true"></th>`
     });
 
