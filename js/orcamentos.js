@@ -70,10 +70,10 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
         for (const [col, filtroTexto] of Object.entries(filtrosOrcamento)) {
 
             if (filtroTexto && col < tds.length) {
-                const el = tds[col].querySelector('input') 
-                        || tds[col].querySelector('textarea') 
-                        || tds[col].querySelector('select') 
-                        || tds[col].textContent;
+                const el = tds[col].querySelector('input')
+                    || tds[col].querySelector('textarea')
+                    || tds[col].querySelector('select')
+                    || tds[col].textContent;
                 const conteudo = el.value ? el.value : el;
                 const textoCampo = String(conteudo).toLowerCase().trim();
 
@@ -127,7 +127,7 @@ async function telaOrcamentos() {
     overlayAguarde()
     verificarFluxograma()
 
-    let cabecs = ['Data & LPU', 'Status', 'Pedido', 'Notas', 'Chamado & Cliente', 'Cidade', 'Analista', 'Responsáveis', 'Lc %', 'Valor', 'Ações']
+    let cabecs = ['Data & LPU', 'Status', 'Pedido', 'Notas', 'Chamado & Cliente', 'Cidade', 'Analista', 'Responsáveis', 'Lc %', 'Checklist', 'Valor', 'Ações']
     let ths = ''
     let tsh = ''
     cabecs.forEach((cab, i) => {
@@ -195,7 +195,7 @@ async function telaOrcamentos() {
 
     for (const [col, termo] of Object.entries(filtrosOrcamento)) {
         const th = document.querySelector(`[name=col_${col}]`)
-        if(th) th.textContent = termo
+        if (th) th.textContent = termo
     }
 
     removerOverlay()
@@ -287,8 +287,8 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
                 ${opcoes}
             </select>
         </td>
-        <td style="text-align: left;">${label_pedidos}</td>
-        <td style="text-align: left;">${label_notas}</td>
+        <td>${label_pedidos}</td>
+        <td>${label_notas}</td>
         <td>
             <div style="${vertical}; text-align: left;">
                 ${(acesso.permissao && dados_orcam.cliente_selecionado) ? `*<img onclick="painelAlteracaoCliente('${idOrcamento}')" src="gifs/alerta.gif" style="width: 1.5vw; cursor: pointer;">` : ''}
@@ -298,10 +298,11 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
                 </div>
             </div>
         </td>
-        <td style="text-align: left;">${cliente?.cidade || ''}</td>
-        <td style="text-align: left;">${dados_orcam?.analista || ''}</td>
-        <td style="text-align: left;">${autorizados}</td>
+        <td>${cliente?.cidade || ''}</td>
+        <td>${dados_orcam?.analista || ''}</td>
+        <td>${autorizados}</td>
         <td><input style="display: none;" value="${lucratividadePorcentagem}">${divPorcentagem(lucratividadePorcentagem)}</td>
+        <td>${orcamento?.checklist?.andamento ? divPorcentagem(orcamento.checklist.andamento) : ''}</td>
         <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>
         <td style="text-align: center;" onclick="abrirAtalhos('${idOrcamento}')">
             <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;">
@@ -507,10 +508,10 @@ async function duplicar(orcam_) {
     baseOrcamento(novoOrcamento)
 
     removerPopup()
-    
-    novoOrcamento.lpu_ativa == 'ALUGUEL' 
-    ? await criarOrcamentoAluguel()
-    : await criarOrcamento()
+
+    novoOrcamento.lpu_ativa == 'ALUGUEL'
+        ? await criarOrcamentoAluguel()
+        : await criarOrcamento()
 
 }
 

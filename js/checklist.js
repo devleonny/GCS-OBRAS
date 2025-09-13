@@ -13,7 +13,7 @@ async function telaChecklist() {
 
     tecnicos = {}
 
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
     let ths = ''
     let pesquisa = ''
@@ -52,18 +52,23 @@ async function telaChecklist() {
         <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
 
             <div class="toolbar-checklist">
-                <div style="${horizontal}; gap: 10px;">
-                    <img onclick="atualizarChecklist()" src="imagens/atualizar3.png" style="width: 2rem;">
+
+                <img onclick="atualizarChecklist()" src="imagens/atualizar3.png" style="width: 2rem;">
+
+                <div style="${vertical}; gap: 5px;">
                     <button onclick="removerItensEmMassa()" style="background-color: #4673b3;">Remover Itens Selecionados</button>
                     <button style="background-color: #35a8b9;" onclick="verItensRemovidos()">Ver Itens Removidos</button>
                     <button onclick="adicionarServicoAvulso()" style="background-color: #29a3f6;">Serviço Avulso</button>
                 </div>
 
-                <div style="${horizontal}; gap: 10px;">
-                    ${modelo('Total de Serviços', `<span id="geral"></span>`)}
-                    ${modelo('Dias decorridos', `<span id="diasTotais"></span>`)}
-                    ${modelo('Previsão de Conclusão', `<span id="previsao"></span>`)}
+                <div style="${vertical}; gap: 5px;">
                     ${modelo('Porcentagem de Conclusão', `<div id="porcentagem"></div>`)}
+                    <hr style="width: 100%;">
+                    <div style="${horizontal}; gap: 10px;">
+                        ${modelo('Total de Serviços', `<span id="geral"></span>`)}
+                        ${modelo('Dias decorridos', `<span id="diasTotais"></span>`)}
+                        ${modelo('Previsão de Conclusão', `<span id="previsao"></span>`)}
+                    </div>
                 </div>
             </div>
 
@@ -128,6 +133,13 @@ async function telaChecklist() {
     document.getElementById('diasTotais').textContent = diasTotais
     document.getElementById('previsao').textContent = diasTotais == 0 ? `-- dias` : `${((diasTotais * 100) / porcetagemFinal).toFixed(0)} dias`
 
+
+    if (!orcamento.checklist) orcamento.checklist = {}
+    orcamento.checklist.andamento = porcetagemFinal
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id_orcam}/checklist/andamento`, porcetagemFinal)
+    await telaOrcamentos()
+
 }
 
 async function atualizarChecklist() {
@@ -162,7 +174,7 @@ async function salvarAvulso() {
     if (!orcamento.checklist.avulso) orcamento.checklist.avulso = {}
 
     const codigo = ID5digitos()
-    const dados = { qtde, descricao }
+    const dados = { qtde, descricao, usuario: acesso.usuario, data: new Date().toLocaleString() }
     orcamento.checklist.avulso[codigo] = dados
 
     enviar(`dados_orcamentos/${id_orcam}/checklist/avulso/${codigo}`, dados)
@@ -179,6 +191,8 @@ async function verItensRemovidos() {
 
     for (const [codigo, dados] of Object.entries(orcamento?.checklist?.itens || {})) {
 
+        if (!dados.removido) continue
+
         const descricao = orcamento?.dados_composicoes?.[codigo]?.descricao || orcamento?.checklist?.avulso?.[codigo]?.descricao || '...'
 
         itens += `
@@ -190,7 +204,7 @@ async function verItensRemovidos() {
     }
 
     const acumulado = `
-        <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw;">
+        <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw; min-width: 30vw;">
 
             ${itens}
 
