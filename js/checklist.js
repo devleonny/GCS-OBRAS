@@ -106,8 +106,6 @@ async function telaChecklist() {
         ...orcamento?.checklist?.avulso || {}
     }
 
-    const dados_clientes = await recuperarDados('dados_clientes')
-
     for (const [codigo, produto] of Object.entries(mesclado)) {
         if (produto?.tipo == 'VENDA') continue
 
@@ -133,12 +131,11 @@ async function telaChecklist() {
     document.getElementById('diasTotais').textContent = diasTotais
     document.getElementById('previsao').textContent = diasTotais == 0 ? `-- dias` : `${((diasTotais * 100) / porcetagemFinal).toFixed(0)} dias`
 
-
     if (!orcamento.checklist) orcamento.checklist = {}
     orcamento.checklist.andamento = porcetagemFinal
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    await telaOrcamentos(true)
     enviar(`dados_orcamentos/${id_orcam}/checklist/andamento`, porcetagemFinal)
-    await telaOrcamentos()
 
 }
 
@@ -452,11 +449,11 @@ async function salvarQuantidade(codigo) {
 
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
 
-    enviar(`dados_orcamentos/${id_orcam}/checklist/itens/${codigo}/${idLancamento}`, dados)
-
     await telaChecklist()
 
     removerPopup()
+
+    enviar(`dados_orcamentos/${id_orcam}/checklist/itens/${codigo}/${idLancamento}`, dados)
 
 }
 

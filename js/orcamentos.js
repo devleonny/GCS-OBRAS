@@ -122,9 +122,9 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
     }
 }
 
-async function telaOrcamentos() {
+async function telaOrcamentos(semOverlay) {
 
-    overlayAguarde()
+    if(!semOverlay) overlayAguarde()
     verificarFluxograma()
 
     let cabecs = ['Data & LPU', 'Status', 'Pedido', 'Notas', 'Chamado & Cliente', 'Cidade', 'Analista', 'Responsáveis', 'Lc %', 'Checklist', 'Valor', 'Ações']
@@ -198,7 +198,7 @@ async function telaOrcamentos() {
         if (th) th.textContent = termo
     }
 
-    removerOverlay()
+    if(!semOverlay) removerOverlay()
 
 }
 
