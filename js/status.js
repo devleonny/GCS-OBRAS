@@ -1396,13 +1396,15 @@ function divPorcentagem(porcentagem) {
     let valor = Math.max(0, Math.min(100, Number(porcentagem) || 0));
 
     return `
-        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-            <div style="width: 100px; height: 12px; background: #eee; border-radius: 6px; overflow: hidden;">
-            <div style="width: ${valor}%; height: 100%; background: ${valor >= 70 ? '#4caf50' : valor >= 40 ? '#ffc107' : '#f44336'};"></div>
+        <div style="display: flex; align-items: center; justify-content: center;">
+            <div style="position: relative; border: 1px solid #b4b4b4ff; width: 100px; height: 16px; background: #eee; border-radius: 8px; overflow: hidden;">
+                <div style="width: ${valor}%; height: 100%; background: ${valor >= 70 ? "#4caf50" : valor >= 40 ? "#ffc107" : "#f44336"};"></div>
+                <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7rem; color: #000;">
+                    ${valor}%
+                </span>
             </div>
-            <div style="font-size: 0.8rem; text-align: center;">${valor}%</div>
         </div>
-  `;
+    `;
 }
 
 async function pagamentosVinculados(pagamentos) {
