@@ -299,15 +299,14 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
             </div>
         </td>
         <td>${cliente?.cidade || ''}</td>
-        <td>${dados_orcam?.analista || ''}</td>
+        <td style="text-align: left;">${dados_orcam?.analista || ''}</td>
         <td>${autorizados}</td>
         <td><input style="display: none;" value="${lucratividadePorcentagem}">${divPorcentagem(lucratividadePorcentagem)}</td>
         <td>${orcamento?.checklist?.andamento ? divPorcentagem(orcamento.checklist.andamento) : ''}</td>
         <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>
         <td style="text-align: center;" onclick="abrirAtalhos('${idOrcamento}')">
             <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;">
-        </td>
-            `
+        </td>`
 
     const linhaExistente = document.getElementById(idOrcamento)
     if (linhaExistente) return linhaExistente.innerHTML = tds

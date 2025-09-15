@@ -14,7 +14,7 @@ const vertical = `display: flex; align-items: start; justify-content: start; fle
 let overlayTimeout;
 
 const modelo = (valor1, valor2) => `
-        <div style="gap: 3px; display: flex; flex-direction: column; align-items: start; margin-bottom: 5px; width: 100%;">
+        <div class="modelo">
             <label><strong>${valor1}</strong></label>
             <div style="width: 100%; text-align: left;">${valor2}</div>
         </div>

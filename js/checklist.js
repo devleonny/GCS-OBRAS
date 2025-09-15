@@ -8,6 +8,7 @@ let quantidadeItem = 0
 let quantidadeRealizadoItem = 0
 let finalizados = 0
 let filtroChecklist = {}
+let filtroRelatorioChecklist = {}
 
 async function telaChecklist() {
 
@@ -148,6 +149,103 @@ async function telaChecklist() {
     await telaOrcamentos(true)
     enviar(`dados_orcamentos/${id_orcam}/checklist/andamento`, porcetagemFinal)
 
+}
+
+async function relatorioChecklist() {
+
+    let ths = ''
+    let pesquisa = ''
+
+    const colunas = ['Data', 'Descrição', 'Quantidade', 'Técnicos']
+        .map((op, i) => { 
+
+            ths += `<th>${op}</th>`
+            pesquisa += `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico('${i}', this.textContent, filtroRelatorioChecklist, 'relatorioChecklist')"></th>`
+
+        })
+
+    const acumulado = `
+    
+        <div style="background-color: #d2d2d2; padding: 2rem;">
+
+            <div style="${horizontal}; gap: 1rem;">
+                ${modelo('De', `<input name="de" onchange="gerarRelatorioChecklist()" type="date">`)}
+                ${modelo('Até', `<input name="ate" onchange="gerarRelatorioChecklist()" type="date">`)}
+            </div>
+
+            <hr style="width: 100%;">
+
+            <div id="tabelaCheklist" style="${vertical};">
+                <div class="topo-tabela"></div>
+                <div class="div-tabela">
+                    <table class="tabela" id="tabela_composicoes">
+                        <thead>
+                            <tr>${ths}</tr>
+                            <tr>${pesquisa}</tr>
+                        </thead>
+                        <tbody id="relatorioChecklist"></tbody>
+                    </table>
+                </div>
+                <div class="rodapeTabela"></div>
+            </div>
+
+        </div>
+
+    `
+
+    popup(acumulado, 'Relatório Diário', true)
+
+}
+
+async function gerarRelatorioChecklist() {
+
+    const tbody = document.getElementById('relatorioChecklist')
+    let de = document.querySelector('[name="de"]').value
+    let ate = document.querySelector('[name="ate"]').value
+
+    if (!de || !ate) return
+
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const itens = orcamento?.checklist?.itens || {}
+    const dados_clientes = await recuperarDados('dados_clientes')
+
+    const dt = (data) => {
+        const [ano, mes, dia] = data.split('-')
+        return new Date(ano, mes - 1, dia)
+    }
+
+    de = dt(de)
+    ate = dt(ate)
+
+    tbody.innerHTML = ''
+
+    for (const [codigo, lancamentos] of Object.entries(itens)) {
+
+        const descricao = orcamento.dados_composicoes[codigo].descricao
+
+        for (const [idLancamento, dados] of Object.entries(lancamentos)) {
+            const dataLancamento = dt(dados.data)
+            if (dataLancamento >= de && dataLancamento <= ate) {
+
+                const tecnicos = (dados.tecnicos || [])
+                    .map(codTec => `<span>${dados_clientes?.[codTec]?.nome || '...'}</span>`)
+                    .join('')
+            
+                tbody.insertAdjacentHTML('beforeend', `
+                    <tr>
+                        <td>${dataLancamento.toLocaleDateString('pt-BR')}</td>
+                        <td>${descricao}</td>
+                        <td>${dados.quantidade}</td>
+                        <td>
+                            <div style="${vertical}">
+                                ${tecnicos}
+                            </div>
+                        </td>
+                    </tr>
+                `)
+            }
+        }
+    }
 }
 
 async function atualizarChecklist() {
@@ -339,7 +437,7 @@ async function duplicarLancamento(idLancamento, codigo) {
     document.querySelector('[name="quantidade"]').value = lancamento.quantidade
     document.querySelector('[name="data"]').value = lancamento.data
 
-    for(const codTec of lancamento.tecnicos) {
+    for (const codTec of lancamento.tecnicos) {
         const tecnico = await recuperarDado('dados_clientes', codTec)
         maisTecnico(codTec, tecnico.nome)
     }
