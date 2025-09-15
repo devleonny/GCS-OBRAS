@@ -146,11 +146,6 @@
   border-radius: 5px;
 }
 
-button {
-  width: max-content;
-  font-size: 1.0vw;
-}
-
 .contornoTela {
   width: 80vw;
   margin-top: 3vh;

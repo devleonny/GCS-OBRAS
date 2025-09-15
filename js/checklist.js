@@ -1,7 +1,7 @@
 let quantidadeGeral = 0
 let quantidadeRealizadoGeral = 0
 let previsao = 0
-let diasTotais = 0
+let diasUnicos = []
 let tecnicos = {}
 let progressoPonderado = 0
 let quantidadeItem = 0
@@ -48,28 +48,39 @@ async function telaChecklist() {
         </div>
     `
 
+    const btn = (texto, funcao) => `
+        <button style="background-color: #4673b3; width: 100%;" onclick="${funcao}">${texto}</button> 
+    `
+
     const acumulado = `
         <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
 
             <div class="toolbar-checklist">
 
-                <img onclick="atualizarChecklist()" src="imagens/atualizar3.png" style="width: 2rem;">
+                <div style="${horizontal}; gap: 0.5rem;">
 
-                <div style="${vertical}; gap: 5px;">
-                    <button onclick="removerItensEmMassa()" style="background-color: #4673b3;">Remover Itens Selecionados</button>
-                    <button style="background-color: #35a8b9;" onclick="verItensRemovidos()">Ver Itens Removidos</button>
-                    <button onclick="adicionarServicoAvulso()" style="background-color: #29a3f6;">Serviço Avulso</button>
-                </div>
+                    <img onclick="atualizarChecklist()" src="imagens/atualizar3.png" style="width: 2rem;">
 
-                <div style="${vertical}; gap: 5px;">
-                    ${modelo('Porcentagem de Conclusão', `<div id="porcentagem"></div>`)}
-                    <hr style="width: 100%;">
-                    <div style="${horizontal}; gap: 10px;">
-                        ${modelo('Total de Serviços', `<span id="geral"></span>`)}
-                        ${modelo('Dias decorridos', `<span id="diasTotais"></span>`)}
-                        ${modelo('Previsão de Conclusão', `<span id="previsao"></span>`)}
+                    <div style="${vertical};">
+                        ${btn('Remover Itens Selecionados', 'removerItensEmMassa()')}
+                        ${btn('Ver Itens Removidos', 'verItensRemovidos()')}
                     </div>
+
+                    <div style="${vertical};">
+                        ${btn('Serviço Avulso', 'adicionarServicoAvulso()')}
+                        ${btn('Relatório', 'relatorioChecklist()')}
+                    </div>
+
                 </div>
+
+                ${modelo('Porcentagem de Conclusão', `<div id="porcentagem"></div>`)}
+
+                <div style="${horizontal}; gap: 10px;">
+                    ${modelo('Total de Serviços', `<span id="geral"></span>`)}
+                    ${modelo('Dias decorridos', `<span id="diasTotais"></span>`)}
+                    ${modelo('Previsão de Conclusão', `<span id="previsao"></span>`)}
+                </div>
+
             </div>
 
             <div id="tabelaCheklist" style="${vertical};">
@@ -99,7 +110,7 @@ async function telaChecklist() {
     // Reset 
     quantidadeGeral = 0
     finalizados = 0
-    diasTotais = 0
+    diasUnicos = []
 
     const mesclado = {
         ...orcamento?.dados_composicoes || {},
@@ -128,8 +139,8 @@ async function telaChecklist() {
     document.getElementById('geral').textContent = quantidadeGeral
     const porcetagemFinal = Number(((finalizados / quantidadeGeral) * 100).toFixed(1))
     document.getElementById('porcentagem').innerHTML = divPorcentagem(porcetagemFinal)
-    document.getElementById('diasTotais').textContent = diasTotais
-    document.getElementById('previsao').textContent = diasTotais == 0 ? `-- dias` : `${((diasTotais * 100) / porcetagemFinal).toFixed(0)} dias`
+    document.getElementById('diasTotais').textContent = diasUnicos.length
+    document.getElementById('previsao').textContent = diasUnicos.length == 0 ? `-- dias` : `${((diasUnicos.length * 100) / porcetagemFinal).toFixed(0)} dias`
 
     if (!orcamento.checklist) orcamento.checklist = {}
     orcamento.checklist.andamento = porcetagemFinal
@@ -281,7 +292,6 @@ function carregarLinhaChecklist(codigo, produto, check) {
     }
 
     let quantidade = 0
-    let diasUnicos = []
 
     for (const [id, dados] of Object.entries(check)) {
 
@@ -299,7 +309,6 @@ function carregarLinhaChecklist(codigo, produto, check) {
 
     // Relatório
     finalizados += quantidade / produto.qtde
-    diasTotais += diasUnicos.length
     quantidadeRealizadoGeral += quantidade
     quantidadeGeral++
 
@@ -319,6 +328,21 @@ function carregarLinhaChecklist(codigo, produto, check) {
     if (trExistente) return trExistente.innerHTML = tds
 
     document.getElementById('bodyChecklist').insertAdjacentHTML('beforeend', `<tr data-codigo="${codigo}" id="check_${codigo}">${tds}</tr>`)
+
+}
+
+async function duplicarLancamento(idLancamento, codigo) {
+
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const lancamento = orcamento?.checklist?.itens?.[codigo]?.[idLancamento] || {}
+
+    document.querySelector('[name="quantidade"]').value = lancamento.quantidade
+    document.querySelector('[name="data"]').value = lancamento.data
+
+    for(const codTec of lancamento.tecnicos) {
+        const tecnico = await recuperarDado('dados_clientes', codTec)
+        maisTecnico(codTec, tecnico.nome)
+    }
 
 }
 
@@ -348,6 +372,7 @@ async function registrarChecklist(codigo) {
 
         linhas += `
         <tr>
+            <td><img onclick="duplicarLancamento('${idLancamento}', '${codigo}')" src="imagens/duplicar.png" style="width: 2rem;"></td>
             <td>${data(dados.data)}</td>
             <td>${dados.quantidade}</td>
             <td>
@@ -378,7 +403,7 @@ async function registrarChecklist(codigo) {
 
                 <input name="quantidade" type="number">
                 <input name="data" type="date">
-                <img src="imagens/concluido.png" style="width: 2vw" onclick="salvarQuantidade('${codigo}')">
+                <img src="imagens/concluido.png" style="width: 1.5rem;" onclick="salvarQuantidade('${codigo}')">
             </div>
             
             <hr style="width: 100%;">
@@ -388,7 +413,7 @@ async function registrarChecklist(codigo) {
                 <div class="div-tabela">
                     <table class="tabela" id="tabela_composicoes">
                         <thead>
-                            <tr>${['Data', 'Quantidade', 'Técnico', 'Excluir'].map(op => `<th>${op}</th>`).join('')}</tr>
+                            <tr>${['Duplicar', 'Data', 'Quantidade', 'Técnico', 'Excluir'].map(op => `<th>${op}</th>`).join('')}</tr>
                         </thead>
                         <tbody>${linhas}</tbody>
                     </table>
