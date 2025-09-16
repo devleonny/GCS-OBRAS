@@ -994,9 +994,8 @@ button {
     right: -10px;
     background-color: red;
     border-radius: 50%;
-    width: 1.5vw;
-    height: 1.5vw;
-    font-size: 0.6rem;
+    width: 1.5rem;
+    height: 1.5rem;
     display: flex;
     align-items: center;
     justify-content: center;

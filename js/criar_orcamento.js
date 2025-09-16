@@ -607,13 +607,13 @@ async function totalOrcamento() {
 
         let refProduto = dados_composicoes[codigo]
 
+        // Caso o item não exista, traga os dados dele no orçamento;
+        if (!refProduto) refProduto = orcamentoBase.dados_composicoes[codigo]
+        
         if (!totais[refProduto.tipo]) totais[refProduto.tipo] = { valor: 0 }
 
         let valorUnitario = 0
         let total = 0
-
-        // Caso o item não exista, traga os dados dele no orçamento;
-        if (!refProduto) refProduto = orcamentoBase.dados_composicoes[codigo]
 
         let icmsSaida = 0
         let itemSalvo = orcamentoBase.dados_composicoes[codigo]

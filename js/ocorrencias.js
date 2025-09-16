@@ -3,35 +3,35 @@ let tipos = {}
 let sistemas = {}
 let correcoes = {}
 let prioridades = {}
+let filtroOcorrencias = {}
 
 const modeloTabela = (colunas) => {
 
     const ths = colunas
         .map(col => `<th>${col}</th>`).join('')
 
-    const thead = (colunas && colunas.length > 0) ? `<thead>${ths}</thead>` : ''
+    const pesquisa = colunas
+        .map((col, i) => `<th oninput="pesquisarGenerico('${i}',  this.textContent, filtroOcorrencias, 'body')" style="background-color: white; text-align: left;" contentEditable="true"></th>`)
+        .join('')
 
     return `
     <div class="fundo">
         <div class="blocoTabela">
-            <div class="painelBotoes">
-                <div class="botoesRelatorios">
-                    <div class="pesquisa">
-                        <input oninput="pesquisar(this, 'body')" placeholder="Pesquisar" style="width: 100%;">
-                        <img src="imagens/pesquisar2.png">
-                    </div>
-                </div>
-            </div>
+            <div class="painelBotoes"></div>
             <div class="recorteTabela">
                 <table class="tabela">
-                    ${thead}
+                    <thead>
+                        <tr>${ths}</tr>
+                        <tr>${pesquisa}</tr>
+                    <thead>
                     <tbody id="body"></tbody>
                 </table>
             </div>
             <div class="rodapeTabela"></div>
         </div>
-    </div>
-`}
+    </div>`
+
+}
 
 async function telaOcorrencias() {
 
@@ -83,9 +83,7 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
     const status = correcoes[ocorrencia?.tipoCorrecao]?.nome || 'Não analisada'
 
-
-    const linha = `
-        <tr id="${idOcorrencia}">
+    const tds = `
             <td>
                 <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrirCorrecoes('${idOcorrencia}')">
             </td>
@@ -100,13 +98,12 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
             <td>${dados_clientes?.[ocorrencia?.unidade]?.nome || '...'}</td>
             <td>${sistemas?.[ocorrencia?.sistema]?.nome || '...'}</td>
             <td>${prioridades?.[ocorrencia?.prioridade]?.nome || '...'}</td>
-        </tr>
     `
 
     const trExistente = document.getElementById(idOcorrencia)
     if (trExistente) return trExistente.innerHTML = linha
 
-    document.getElementById('body').insertAdjacentHTML('beforeend', linha)
+    document.getElementById('body').insertAdjacentHTML('beforeend', `<tr id="${idOcorrencia}">${tds}</tr>`)
 }
 
 async function atualizarDados() {
