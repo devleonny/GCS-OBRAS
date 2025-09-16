@@ -375,6 +375,7 @@ body {
     justify-content: start;
     align-items: start;
     flex-direction: column;
+    padding: 0.5rem;
 }
 
 .gavetaTabelas {

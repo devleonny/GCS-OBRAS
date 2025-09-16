@@ -458,32 +458,33 @@ async function configs() {
     let cabecalhos = ['Usuário', 'Permissão', 'Setores']
     cabecalhos.forEach((cabecalho, i) => {
         ths += `<th>${cabecalho}</th>`
-        tbusca += `
-        <th style="background-color: white;">
-            <div style="display: flex; align-items: center; justify-content: center;">
-                <input oninput="pesquisarGenerico(${i}, this.value, filtrosUsuarios, 'tbodyUsuarios')">
-                <img src="imagens/pesquisar2.png" style="width: 1vw;">
-            </div>
-        </th>
-        `
+        tbusca += `<th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, filtrosUsuarios, 'tbodyUsuarios')"></th>`
     })
 
-    let tabela = `
-    <table class="tabela">
-        <thead>
-            <tr>${ths}</tr>
-            <tr>${tbusca}</tr>
-        </thead>
-        <tbody id="tbodyUsuarios">${linhas}</tbody>
-    </table>
+    const tabela = `
+        <div style="${vertical};">
+            <div class="topo-tabela"></div>
+            <div class="div-tabela">
+                <table class="tabela">
+                    <thead>
+                        <tr>${ths}</tr>
+                        <tr>${tbusca}</tr>
+                    </thead>
+                    <tbody id="tbodyUsuarios">${linhas}</tbody>
+                </table>
+                </div>
+            <div class="rodapeTabela"></div>
+        </div>
     `
 
-    let acumulado = `
-    <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 10px; padding: 2vw;">
-        ${botao('Registro de Logs do Sistema', `telaRegistros()`)}
-        <label>Gestão de Usuários</label>
-        ${tabela}
-    </div>
+    const acumulado = `
+        <div style="${vertical}; background-color: #d2d2d2; padding: 0.5rem;">
+            ${botao('Registro de Logs do Sistema', `telaRegistros()`)}
+            <br>
+            <label>Gestão de Usuários</label>
+            <hr style="width: 100%;">
+            ${tabela}
+        </div>
     `
     removerPopup()
     popup(acumulado, 'Configurações')
@@ -1684,7 +1685,7 @@ async function verAprovacoes() {
 
     let guia = {
         pendente: '#ff8c1b',
-        todos: '#a9a5a5'
+        todos: '#bfbfbfff'
     }
 
     let cabecalhos = ['Chamado', 'Cliente', 'Total Original <br>[s/desc ou acres]', 'Total Geral', '%', 'Localização', 'Usuário', 'Aprovação', 'Comentário', 'Detalhes']
@@ -1701,12 +1702,7 @@ async function verAprovacoes() {
         cabecalho == 'Detalhes'
             ? tsh += '<th style="background-color: white;"></th>'
             : tsh += `
-            <th style="background-color: white; border-radius: 0px;">
-                <div style="display: flex; align-items: center; justify-content: center;">
-                    <input oninput="pesquisarGenerico(${i}, this.value, filtrosPendencias, 'tbodyPendencias')">
-                    <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
-                </div>
-            </th>
+            <th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, filtrosPendencias, 'tbodyPendencias')"></th>
         `
     })
 
@@ -1752,22 +1748,30 @@ async function verAprovacoes() {
         <br>
         <hr style="width: 100%;">
         <br>
-        <table class="tabela" style="width: 100%;">
-            <thead style="background-color: ${guia[tabela]};">
-                <tr>${ths}</tr>
-                ${tabela == 'todos' ? `<tr>${tsh}</tr>` : ''}
-            </thead>
-            <tbody ${tabela == 'todos' ? 'id="tbodyPendencias"' : ''}>${objeto.linhas}</tbody>
-        </table>`
+        <div style="${vertical};">
+            <div class="topo-tabela"></div>
+            <div class="div-tabela">
+                <table class="tabela" style="width: 100%;">
+                    <thead style="background-color: ${guia[tabela]};">
+                        <tr>${ths}</tr>
+                        ${tabela == 'todos' ? `<tr>${tsh}</tr>` : ''}
+                    </thead>
+                    <tbody ${tabela == 'todos' ? 'id="tbodyPendencias"' : ''}>${objeto.linhas}</tbody>
+                </table>
+            </div>
+            <div class="rodapeTabela"></div>
+        </div>
+        `
     }
 
-    acumulado = `
-    <div style="background-color: #d2d2d2; padding: 5px;">
+    const acumulado = `
+        <div style="background-color: #d2d2d2; padding: 5px;">
 
-        <label style="font-size: 1.5vw;">Fila de Aprovação</label>
+            <label style="font-size: 1.5vw;">Fila de Aprovação</label>
 
-        ${tabelasString}
-    </div>
+            ${tabelasString}
+
+        </div>
     `
     popup(acumulado, 'Aprovações de Orçamento', true)
 }
@@ -1793,13 +1797,12 @@ async function verificarPendencias() {
     }
 }
 
-async function verPedidoAprovacao(idOrcamento) { //29
+async function verPedidoAprovacao(idOrcamento) { 
 
     let permissao = acesso.permissao
     let pessoasPermitidas = ['adm', 'diretoria']
     if (!pessoasPermitidas.includes(permissao)) return popup(mensagem('Você não tem acesso'), 'AVISO', true)
 
-    let acumulado = ''
     let tabelas = {}
     let divTabelas = ''
     let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
@@ -1892,47 +1895,48 @@ async function verPedidoAprovacao(idOrcamento) { //29
     let diferencaDinheiro = totalGeral - totalBruto
     let diferencaPorcentagem = `${(diferencaDinheiro / totalBruto * 100).toFixed(2)}%`
 
-    acumulado += `
-            <div class="painelAprovacoes">
-                
-                <div style="display: flex; align-items: center; justify-content: start; gap: 2vw;">
-                    <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
-                        ${divOrganizada(orcamento.dados_orcam.analista, 'Solicitante')}
-                        ${divOrganizada(cliente?.nome || '?', 'Cliente')}
-                        ${divOrganizada(cliente?.cidade || '?', 'Localidade')}
-                    </div>
-                    <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
-                        ${divOrganizada(dinheiro(totalGeral), 'Total Geral')}
-                        ${divOrganizada(dinheiro(totalBruto), 'Total Original (sem Acréscimo e/ou Desconto)')}
-                        ${divOrganizada(`<label class="labelAprovacao" style="background-color: ${diferencaDinheiro > 0 ? 'green' : '#B12425'}">${dinheiro(diferencaDinheiro)}</label>`, 'Diferença em Dinheiro')}
-                        ${divOrganizada(diferencaPorcentagem, 'Percentual')}
-                    </div>
+    const acumulado = `
+        <div class="painelAprovacoes">
+            
+            <div style="display: flex; align-items: center; justify-content: start; gap: 2vw;">
+                <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
+                    ${divOrganizada(orcamento.dados_orcam.analista, 'Solicitante')}
+                    ${divOrganizada(cliente?.nome || '?', 'Cliente')}
+                    ${divOrganizada(cliente?.cidade || '?', 'Localidade')}
                 </div>
-
-                <hr style="width: 100%;">
-
-                <div style="display: flex; align-items: center; justify-content: center; gap: 5px;" onclick="visibilidadeOrcamento(this)">
-                    <img src="imagens/olhoFechado.png" style="width: 2vw;">
-                    <label style="text-decoration: underline; cursor: pointer;">Ver itens do Orçamento</label>
-                    
-                </div>
-
-                <div style="display: none; align-items: start; justify-content: center; flex-direction: column; gap: 5px;">
-                    ${divTabelas}
-                </div>
-
-                <hr style="width: 100%;">
-                <div style="width: 100%; position: relative; color: #222; border-radius: 3px; padding: 5px; display: flex; justify-content: center; align-items: start; flex-direction: column;">
-                    <label>Comentar</label>
-                    <textarea rows="5" style="background-color: white; border: none; width: 90%; color: #222;"></textarea>
-
-                    <div style="display: flex; justify-content: left; gap: 5px;">
-                        <button style="background-color: green;" onclick="respostaAprovacao(this, '${idOrcamento}', 'aprovado')">Autorizar</button>
-                        <button style="background-color: #B12425;" onclick="respostaAprovacao(this, '${idOrcamento}', 'reprovado')">Reprovar</button>
-                    </div>
+                <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
+                    ${divOrganizada(dinheiro(totalGeral), 'Total Geral')}
+                    ${divOrganizada(dinheiro(totalBruto), 'Total Original (sem Acréscimo e/ou Desconto)')}
+                    ${divOrganizada(`<label class="labelAprovacao" style="background-color: ${diferencaDinheiro > 0 ? 'green' : '#B12425'}">${dinheiro(diferencaDinheiro)}</label>`, 'Diferença em Dinheiro')}
+                    ${divOrganizada(diferencaPorcentagem, 'Percentual')}
                 </div>
             </div>
-        `
+
+            <hr style="width: 100%;">
+
+            <div style="display: flex; align-items: center; justify-content: center; gap: 5px;" onclick="visibilidadeOrcamento(this)">
+                <img src="imagens/olhoFechado.png" style="width: 2vw;">
+                <label style="text-decoration: underline; cursor: pointer;">Ver itens do Orçamento</label>
+                
+            </div>
+
+            <div style="display: none; align-items: start; justify-content: center; flex-direction: column; gap: 5px;">
+                ${divTabelas}
+            </div>
+
+            <hr style="width: 100%;">
+
+            <div style="width: 80%; position: relative; color: #222; border-radius: 3px; padding: 5px; display: flex; justify-content: center; align-items: start; flex-direction: column;">
+                <label>Comentar</label>
+                <textarea rows="5" style="background-color: white; border: none; width: 90%; color: #222;"></textarea>
+
+                <div style="display: flex; justify-content: left; gap: 5px;">
+                    <button style="background-color: green;" onclick="respostaAprovacao(this, '${idOrcamento}', 'aprovado')">Autorizar</button>
+                    <button style="background-color: #B12425;" onclick="respostaAprovacao(this, '${idOrcamento}', 'reprovado')">Reprovar</button>
+                </div>
+            </div>
+        </div>
+    `
 
     popup(acumulado, 'Detalhes', true)
 
