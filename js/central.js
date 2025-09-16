@@ -333,7 +333,7 @@ async function identificacaoUser() {
     const modelo = (imagem, funcao, idElemento) => {
         return `
         <div style="position: relative; display: flex; align-items: center; justify-content: center;">
-            <img src="imagens/${imagem}.png" style="width: 2vw; cursor: pointer;" onclick="${funcao}">
+            <img src="imagens/${imagem}.png" onclick="${funcao}">
             <div id="${idElemento}" style="display: none;" class="labelQuantidade"></div>
         </div>
         `
@@ -351,7 +351,7 @@ async function identificacaoUser() {
                 ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
                 ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
 
-                <img title="Abrir mais 1 aba" src="imagens/aba.png" style="width: 2vw; cursor: pointer;" onclick="maisAba()">
+                <img title="Abrir mais 1 aba" src="imagens/aba.png" onclick="maisAba()">
 
                 <label onclick="deslogarUsuario()"
                 style="cursor: pointer; color: white;">${acesso.usuario} • ${acesso.permissao} • ${acesso.setor} • Sair</label>
@@ -1478,9 +1478,9 @@ async function painelUsuarios(elementoOrigial) {
         stringUsuarios[status].quantidade++
         stringUsuarios[status].linhas += `
         <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
-            <img src="imagens/${status}.png" style="width: 2vw;">
-            <label style="font-size: 0.8vw;">${usuario}</label>
-            <label style="font-size: 0.6vw;">${objeto.setor}</label>
+            <img src="imagens/${status}.png" style="width: 1.5rem;">
+            <label>${usuario}</label>
+            <label>${objeto.setor}</label>
         </div>
         `
     }
@@ -1488,12 +1488,12 @@ async function painelUsuarios(elementoOrigial) {
     let pos = elementoOrigial.getBoundingClientRect();
 
     let acumulado = `
-    <div id="divUsuarios" class="divOnline" style="left: ${pos.left + window.scrollX}px; top: ${pos.bottom + window.scrollY}px;">
-        <label style="font-size: 0.8vw;"><strong>ONLINE ${stringUsuarios.online.quantidade}</strong></label>
-        ${stringUsuarios.online.linhas}
-        <label style="font-size: 0.8vw;"><strong>OFFLINE ${stringUsuarios.offline.quantidade}</strong></label>
-        ${stringUsuarios.offline.linhas}
-    </div>
+        <div id="divUsuarios" class="divOnline" style="left: ${pos.left + window.scrollX}px; top: ${pos.bottom + window.scrollY}px;">
+            <label><strong>ONLINE ${stringUsuarios.online.quantidade}</strong></label>
+            ${stringUsuarios.online.linhas}
+            <label><strong>OFFLINE ${stringUsuarios.offline.quantidade}</strong></label>
+            ${stringUsuarios.offline.linhas}
+        </div>
     `
 
     document.body.insertAdjacentHTML('beforeend', acumulado)

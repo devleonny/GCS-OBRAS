@@ -1,5 +1,5 @@
 body {
-    font-size: 0.6rem;
+    font-size: 0.9rem;
     margin-bottom: 10vh;
     margin-top: 6vh;
     padding: 0;
@@ -131,7 +131,7 @@ body {
 
 .toolbar-top {
     z-index: 9999;
-    height: 6vh;
+    min-height: 6vh;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -207,13 +207,17 @@ body {
     border-radius: 15px;
 }
 
-.politicas {
-    color: white;
-    margin: 2vw;
+.cabecalhoUsuario img {
+    width: 2rem;
 }
 
 .cabecalhoUsuario label {
     font-size: 0.8rem;
+}
+
+.politicas {
+    color: white;
+    margin: 2vw;
 }
 
 .botaoUsuarios {
@@ -225,11 +229,6 @@ body {
     border-radius: 50px;
     padding-right: 0.8rem;
     gap: 5px;
-}
-
-.botaoUsuarios img {
-    cursor: pointer;
-    width: 2vw;
 }
 
 .botaoUsuarios label {
