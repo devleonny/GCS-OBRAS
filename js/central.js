@@ -247,7 +247,7 @@ async function despoluicaoGCS() {
         'dados_estoque']
 
     for (const base of bases) {
-        await sincronizarDados(base, true)
+        await sincronizarDados(base, true, true) // Nome base, overlay off e resetar bases;
         logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: ${base}</label>`)
     }
 
@@ -1295,9 +1295,9 @@ function capturarValorCelula(celula) {
 async function receber(chave) {
 
     let chavePartes = chave.split('/')
-    let timestamp = 0
     let dados = await recuperarDados(chavePartes[0]) || {}
 
+    let timestamp = 0
     for (const [id, objeto] of Object.entries(dados)) {
         if (objeto.timestamp && objeto.timestamp > timestamp) timestamp = objeto.timestamp
     }
@@ -2095,9 +2095,11 @@ function baseOrcamento(orcamento, remover) {
     }
 }
 
-async function sincronizarDados(base, overlayOff) {
+async function sincronizarDados(base, overlayOff, resetar) {
 
     if (!overlayOff) overlayAguarde()
+
+    if (resetar) await inserirDados({}, base)
 
     let nuvem = await receber(base) || {}
     await inserirDados(nuvem, base)
