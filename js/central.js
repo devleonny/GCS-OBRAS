@@ -2288,7 +2288,7 @@ async function salvarDadosCliente() {
         ...orcamentoBase.dados_orcam,
         omie_cliente,
         condicoes: document.getElementById('condicoes').value,
-        consideracoes: document.getElementById('consideracoes').value,
+        consideracoes: String(document.getElementById('consideracoes').value).toUpperCase(),
         data: new Date(),
         garantia: document.getElementById('garantia').value,
         transportadora: document.getElementById('transportadora').value,

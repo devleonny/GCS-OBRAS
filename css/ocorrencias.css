@@ -21,7 +21,6 @@
 
 .blocoTabela {
     max-width: 100%;
-    width: max-content;
 }
 
 .pesquisa {
@@ -109,4 +108,19 @@
 
 .bloco div {
     width: 70%;
+}
+
+.fotos {
+    color: white;
+    padding: 5px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-items: start;
+    gap: 2px;
+    background-color: #7f7f7f;
+    border-radius: 3px;
+}
+
+.fotos img {
+    width: 5rem;
 }

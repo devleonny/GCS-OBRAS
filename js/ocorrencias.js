@@ -33,6 +33,8 @@ const modeloTabela = (colunas) => {
 
 }
 
+telaOcorrencias()
+
 async function telaOcorrencias() {
 
     overlayAguarde()
@@ -84,20 +86,18 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
     const status = correcoes[ocorrencia?.tipoCorrecao]?.nome || 'Não analisada'
 
     const tds = `
-            <td>
-                <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrirCorrecoes('${idOcorrencia}')">
-            </td>
-            <td>${empresas[ocorrencia?.empresa]?.nome || '--'}</td>
-            <td>${idOcorrencia}</td>
-            <td>${status}</td>
-            <td>${ocorrencia?.dataRegistro || ''}</td>
-            <td>${dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao)}</td>
-            <td>${ocorrencia?.solicitante || ''}</td>
-            <td>${ocorrencia?.executor || ''}</td>
-            <td>${tipos?.[ocorrencia?.tipo]?.nome || '...'}</td>
-            <td>${dados_clientes?.[ocorrencia?.unidade]?.nome || '...'}</td>
-            <td>${sistemas?.[ocorrencia?.sistema]?.nome || '...'}</td>
-            <td>${prioridades?.[ocorrencia?.prioridade]?.nome || '...'}</td>
+        <td><img src="imagens/pesquisar2.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirCorrecoes('${idOcorrencia}')"></td>
+        <td>${empresas[ocorrencia?.empresa]?.nome || '--'}</td>
+        <td>${idOcorrencia}</td>
+        <td>${status}</td>
+        <td>${ocorrencia?.dataRegistro || ''}</td>
+        <td>${dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao)}</td>
+        <td>${ocorrencia?.solicitante || ''}</td>
+        <td>${ocorrencia?.executor || ''}</td>
+        <td>${tipos?.[ocorrencia?.tipo]?.nome || '...'}</td>
+        <td>${dados_clientes?.[ocorrencia?.unidade]?.nome || '...'}</td>
+        <td>${sistemas?.[ocorrencia?.sistema]?.nome || '...'}</td>
+        <td>${prioridades?.[ocorrencia?.prioridade]?.nome || '...'}</td>
     `
 
     const trExistente = document.getElementById(idOcorrencia)
@@ -163,7 +163,7 @@ async function abrirCorrecoes(idOcorrencia) {
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
 
     const correcoesOC = ocorrencia?.correcoes || {}
-    const thead = ['Executor', 'Tipo Correção', 'Descrição', 'Localização']
+    const thead = ['Executor', 'Tipo Correção', 'Descrição', 'Localização', 'Imagens']
         .map(op => `<th>${op}</th>`)
         .join('')
 
@@ -171,6 +171,13 @@ async function abrirCorrecoes(idOcorrencia) {
     for (let [idCorrecao, correcao] of Object.entries(correcoesOC)) {
         const st = correcoes[correcao.tipoCorrecao].nome
         let registros = ''
+
+        console.log(correcao);
+
+        const imagens = Object.entries(correcao?.fotos || {})
+            .map(([link, foto]) => `<img name="foto" id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`)
+            .join('')
+
 
         for (let [dt, dado] of Object.entries(correcao.datas)) {
 
@@ -203,22 +210,35 @@ async function abrirCorrecoes(idOcorrencia) {
                         ${registros}
                     </div>
                 </td>
+                <td>
+                    ${imagens !== '' ? `<div class="fotos">${imagens}</div>` : 'Sem Imagens'}
+                </td>
             </tr>
         `
     }
 
     const loja = dados_clientes?.[ocorrencia?.unidade] || {}
-    console.log(loja);
 
     const acumulado = `
-        <div style="padding: 2vw; background-color: #efefefff;">
+        <div style="${vertical}; padding: 1rem; background-color: #efefefff;">
 
-            <div style="${vertical}">
-                ${modelo('Loja', loja?.nome || '...')}
-                ${modelo('Endereço', loja?.bairro || '...')}
-                ${modelo('Cidade', loja?.cidade || '...')}
-                ${modelo('Cep', loja?.cep || '...')}
+            <span style="font-size: 1.2rem;"><b>Dados da Loja</b></span>
+            <hr style="width: 100%;">
+
+            <div style="${horizontal}; justify-content: left; gap: 1rem;">
+                <div style="${vertical}">
+                    ${modelo('Loja', loja?.nome || '...')}
+                    ${modelo('Endereço', loja?.bairro || '...')}
+                </div>
+
+                <div style="${vertical}">
+                    ${modelo('Cidade', loja?.cidade || '...')}
+                    ${modelo('Cep', loja?.cep || '...')}
+                </div>
             </div>
+
+            <hr style="width: 100%;">
+            <span style="font-size: 1.2rem;"><b>Correções</b></span>
             <div class="blocoTabela">
                 <div class="painelBotoes"></div>
                 <div class="recorteTabela">
@@ -233,6 +253,21 @@ async function abrirCorrecoes(idOcorrencia) {
         `
 
     popup(acumulado, 'Correções')
+}
+
+
+function ampliarImagem(img) {
+
+    const acumulado = `
+        <div style="background-color: #d2d2d2; padding: 0.5rem;">
+
+            <img src="${img.src}" style="width: 100%;">
+
+        </div>
+    `
+
+    popup(acumulado, 'Imagem', true)
+
 }
 
 function pesquisar(input, idTbody) {

@@ -1273,7 +1273,7 @@ async function salvarServidor(codigo) {
     const elementos = document.querySelector('.elementos')
     for (const campo of campos) {
         const el = elementos.querySelector(`[name="${campo}"]`);
-        novosDados[campo] = el ? el.value : '';
+        novosDados[campo] = el ? String(el.value).toUpperCase() : '';
     }
 
     const final = {
