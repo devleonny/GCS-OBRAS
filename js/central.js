@@ -231,6 +231,7 @@ async function despoluicaoGCS() {
     let logs = document.getElementById('logs')
 
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
+    indexedDB.deleteDatabase(nomeBaseCentral)
 
     const bases = [
         'departamentos_fixos',
@@ -250,6 +251,8 @@ async function despoluicaoGCS() {
         await sincronizarDados(base, true, true) // Nome base, overlay off e resetar bases;
         logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: ${base}</label>`)
     }
+
+    await criarBaseCC()
 
     localStorage.setItem('atualizado', true)
     telaInicial()

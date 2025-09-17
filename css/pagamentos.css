@@ -154,70 +154,52 @@
     overflow-y: auto;
 }
 
-.painelDireito {
-    width: 70%;
-}
-
 .painelEsquerdo {
-    gap: 3px;
-    padding: 5px;
+    width: max-content;
     display: flex;
-    flex-direction: column;
     align-items: end;
     justify-content: start;
-    height: 70vh;
-    overflow-y: auto;
-    margin: 1vw;
-}
-
-.painelEsquerdo::-webkit-scrollbar {
-    display: none;
-}
-
-.painelEsquerdo label {
-    cursor: pointer;
-}
-
-.ambosLadosEtiqueta {
-    cursor: pointer;
-    background-color: #d2d2d2;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 10px;
-}
-
-.ladoQuantidade {
-    font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    text-align: center;
-    height: 3vw;
-    width: 3vw;
-    border-radius: 1px;
-    padding-left: 1vw;
-    padding-right: 1vw;
-    background-color: #b7b7b7;
-    border-top-right-radius: 5px;
-    border-bottom-right-radius: 5px;
-}
-
-.ladoTexto {
-    cursor: pointer;
-    gap: 1vw;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
-    border-top-left-radius: 5px;
-    border-bottom-left-radius: 5px;
-    padding-left: 2vw;
-    text-align: right;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .ladoTexto img {
     cursor: pointer;
     margin-right: 1vw;
+}
+
+.balao-pagamentos {
+    width: 100%;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    overflow: hidden;
+    align-items: stretch;
+}
+
+.balao-pagamentos img {
+    width: 2rem;
+}
+
+.balao-pagamentos .dir {
+    width: 60%;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #d2d2d2;
+}
+
+.balao-pagamentos .esq {
+     width: 40%;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex: 1;  
+    background: #b7b7b7;
 }

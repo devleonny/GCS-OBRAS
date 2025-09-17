@@ -134,22 +134,16 @@ async function telaPagamentos() {
         if (coluna == 'Detalhes') {
             cabecalho2 += `<th style="background-color: white; border-radius: 0px;"></th>`
         } else {
-            cabecalho2 += `
-                <th style="background-color: white; border-radius: 0px;">
-                    <div style="display: flex; align-items: center; justify-content: left;">
-                        <input oninput="pesquisarGenerico(${i}, this.value, filtrosAtivosPagamentos, 'body')">
-                        <img src="imagens/pesquisar2.png" style="width: 1vw;">
-                    </div>
-                </th>`
+            cabecalho2 += `<th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, filtrosAtivosPagamentos, 'body')"></th>`
         }
     })
 
     const acumulado = `
-        <div id="divPagamentos" style="display: flex; justify-content: center; align-items: start; margin-right: 1vw;">
+        <div id="divPagamentos" style="display: flex; align-items: start; justify-content: start; width: 100%; gap: 1rem;">
 
             <div class="painelEsquerdo"></div>
 
-            <div class="painelDireito" style="${vertical};">
+            <div style="${vertical}">
                 <div class="painelBotoes"></div>
                 <div class="div-tabela">
                     <table id="pagamentos" class="tabela">
@@ -191,19 +185,17 @@ async function telaPagamentos() {
 
             titulos += `
 
-            <div class="ambosLadosEtiqueta" onclick="pesquisarGenerico(3, '${nomeStatus == 'TODOS' ? '' : nomeStatus}', filtrosAtivosPagamentos, 'body')">
+            <div class="balao-pagamentos" onclick="pesquisarGenerico(3, '${nomeStatus == 'TODOS' ? '' : nomeStatus}', filtrosAtivosPagamentos, 'body')">
                 
-                <div class="ladoTexto">
-                    <div style="display: flex; flex-direction: column; align-items: end; justify-content: end;">
+                <div class="dir">
+                    <div style="${vertical};">
                         <Label><b>${nomeStatus}</b></label>
                         <label>${dinheiro(item.valor)}</label>
                     </div>
-                    <img src="${iconePagamento(nomeStatus)}" style="width: 2vw;">
+                    <img src="${iconePagamento(nomeStatus)}">
                 </div>
 
-                <div class="ladoQuantidade">
-                    ${item.qtde}
-                </div>
+                <span class="esq">${item.qtde}</span>
                 
             </div>
             `
