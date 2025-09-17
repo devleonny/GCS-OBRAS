@@ -575,10 +575,9 @@ async function novoMotorista(idMotorista) {
     let motoristas = await recuperarDados('motoristas') || {}
     let veiculos = await recuperarDados('veiculos') || {}
     let idVeiculo = motoristas?.[idMotorista]?.veiculo || ''
-    let modeloVeiculo = veiculos?.[idVeiculo]?.modelo || ''
-
+    
     let opcoes = Object.entries(veiculos)
-        .map(([idVeiculo, veiculo]) => `<option value="${idVeiculo}" ${veiculo.modelo == modeloVeiculo ? 'selected' : ''}>${veiculo.modelo} ${veiculo.placa}</option>`)
+        .map(([id, veiculo]) => `<option value="${idVeiculo}" ${id == idVeiculo ? 'selected' : ''}>${veiculo.modelo} ${veiculo.placa}</option>`)
         .join('')
 
     let acumulado = `

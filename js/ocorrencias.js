@@ -16,7 +16,7 @@ const modeloTabela = (colunas) => {
 
     return `
     <div class="fundo">
-        <div class="blocoTabela">
+        <div class="blocoTabela" style="width: 100%;">
             <div class="painelBotoes"></div>
             <div class="recorteTabela">
                 <table class="tabela">
@@ -220,14 +220,7 @@ async function abrirCorrecoes(idOcorrencia) {
                 ${modelo('Cep', loja?.cep || '...')}
             </div>
             <div class="blocoTabela">
-                <div class="painelBotoes">
-                    <div class="botoes">
-                        <div class="pesquisa">
-                            <input oninput="pesquisar(this, 'body')" placeholder="Pesquisar" style="width: 100%;">
-                            <img src="imagens/pesquisar2.png">
-                        </div>
-                    </div>
-                </div>
+                <div class="painelBotoes"></div>
                 <div class="recorteTabela">
                     <table class="tabela">
                         <thead>${thead}</thead>
