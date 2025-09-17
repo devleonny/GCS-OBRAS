@@ -1,5 +1,7 @@
 function telaInicial() {
 
+    document.querySelector('[name="titulo"]').textContent = 'GCS'
+
     const autorizadosPainelNotas = (acesso) => {
         const liberados = {
             permissao: ['adm', 'diretoria', 'fin'],
