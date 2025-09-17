@@ -168,6 +168,10 @@ const esquemaBotoes = {
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Atualizar', funcao: 'atualizarDados', img: 'atualizar3' },
     ],
+    ocorrencias2: [
+        { nome: 'Atualizar', funcao: 'atualizarDados', img: 'atualizar3' },
+        { nome: 'Sair', funcao: 'sair', img: 'sair' },
+    ],
     veiculos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Atualizar', funcao: 'atualizarDadosVeiculos', img: 'atualizar3' },
@@ -305,15 +309,16 @@ async function identificacaoUser() {
 
     const toolbar = `
         <div class="toolbar-top">
-            <span class="menu" onclick="mostrarMenus('toggle')">☰</span>
+            <div style="${horizontal}; gap: 0.5rem;">
+                <span class="menu" onclick="mostrarMenus('toggle')">☰</span>
+                <span name="titulo"></span>
+            </div>
             <div class="interruptor"></div>
             <div class="baloes-top"></div>
         </div>
     `
 
     document.body.insertAdjacentHTML('beforeend', toolbar)
-
-    telaInicial()
 
     await sincronizarSetores()
     acesso = await recuperarDado('dados_setores', acesso.usuario)
@@ -323,13 +328,11 @@ async function identificacaoUser() {
         return telaLogin()
     }
 
-    if (acesso.permissao == 'visitante') {
-        return telaOcorrencias()
-    }
+    if (acesso.permissao == 'visitante') return telaOcorrencias()
+
+    await telaInicial()
 
     localStorage.setItem('acesso', JSON.stringify(acesso))
-
-    if (acesso.permissao == 'ocorrencias' && document.title !== 'Ocorrências') return telaOcorrencias()
 
     verificarPendencias() // Pendencias de aprovação;
 
@@ -422,7 +425,7 @@ async function configs() {
 
     let linhas = ''
     const listas = {
-        permissoes: ['', 'adm', 'user', 'ocorrencias', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
+        permissoes: ['', 'adm', 'user', 'visitante', 'analista', 'gerente', 'coordenacao', 'diretoria', 'editor', 'log', 'qualidade', 'novo'],
         setores: ['', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO', 'RH', 'CHAMADOS', 'SUPORTE']
     }
 
@@ -1329,13 +1332,11 @@ async function receber(chave) {
             })
             .then(data => {
                 if (data.mensagem) {
-                    popup(mensagem(`Falha na atualização: ${data.mensagem}`), 'Alerta', true)
                     resolve({})
                 }
                 resolve(data);
             })
             .catch(err => {
-                popup(mensagem(`Falha na atualização: ${chave} → ${err}`), 'Alerta', true)
                 resolve({})
             });
     })
@@ -2459,7 +2460,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
 
             <div style="${horizontal}; padding-left: 1vw; padding-right: 1vw; margin: 5px; background-color: white; border-radius: 10px;">
                 <input oninput="pesquisarCX(this)" placeholder="Pesquisar itens" style="width: 100%;">
-                <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                <img src="imagens/pesquisar2.png" style="width: 1.5vw; padding: 0.5rem;">
             </div>
 
             <div style="padding: 1vw; gap: 5px; ${vertical}; background-color: #d2d2d2; width: 30vw; max-height: 40vh; height: max-content; overflow-y: auto; overflow-x: hidden;">

@@ -92,7 +92,7 @@ async function telaVeiculos() {
     const pesquisa = (modalidade) => `
     <div style="${horizontal}; background-color: white; border-radius: 15px; margin-left: 5px;  margin-right: 5px;">
         <input style="border: none; border-radius: 15px;" oninput="pesquisarBotoes(this, '${modalidade}')" placeholder="Pesquisar ${modalidade}">
-        <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+        <img src="imagens/pesquisar2.png" style="width: 1.5vw; padding: 0.5rem;">
     </div>
     `
 

@@ -122,7 +122,6 @@ async function acessar() {
             } else if (data.permissao && data.permissao !== 'novo') {
                 localStorage.setItem('acesso', JSON.stringify(data));
                 await identificacaoUser()
-                telaInicial()
                 removerPopup()
                 document.querySelector('.toolbar-top').classList.remove('.offline')
             }

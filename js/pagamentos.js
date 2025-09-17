@@ -190,7 +190,7 @@ async function telaPagamentos() {
                 <div class="dir">
                     <div style="${vertical};">
                         <Label><b>${nomeStatus}</b></label>
-                        <label>${dinheiro(item.valor)}</label>
+                        <label style="white-space: nowrap;">${dinheiro(item.valor)}</label>
                     </div>
                     <img src="${iconePagamento(nomeStatus)}">
                 </div>

@@ -129,12 +129,17 @@ body {
     z-index: 444;
 }
 
+span[name="titulo"] {
+    color: white;
+}
+
 .toolbar-top {
     z-index: 9999;
     min-height: 6vh;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 1rem;
     background-color: #222222ec;
     width: 100%;
     position: fixed;
@@ -494,7 +499,7 @@ body {
 
 .painelBotoes {
     border-bottom: 1px solid #666666;
-    min-height: 4vh;
+    min-height: 2vh;
     display: flex;
     align-items: start;
     justify-content: start;
