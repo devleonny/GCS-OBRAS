@@ -2484,19 +2484,19 @@ async function selecionar(name, id, termo, funcaoAux) {
 }
 
 function pesquisarCX(input) {
-
-    const termoPesquisa = String(input.value).toLowerCase()
-
-    const divs = document.querySelectorAll(`[name='camposOpcoes']`)
+    const termoPesquisa = String(input.value)
+        .toLowerCase()
+        .replace(/[.-]/g, '');
+    
+    const divs = document.querySelectorAll(`[name='camposOpcoes']`);
 
     for (const div of divs) {
-
-        const termoDiv = String(div.textContent).toLocaleLowerCase()
-
-        div.style.display = (termoDiv.includes(termoPesquisa) || termoPesquisa == '') ? '' : 'none'
-
+        const termoDiv = String(div.textContent)
+            .toLowerCase()
+            .replace(/[.-]/g, '');
+        
+        div.style.display = (termoDiv.includes(termoPesquisa) || termoPesquisa === '') ? '' : 'none';
     }
-
 }
 
 async function proxORC({ chamado, idOrcamento, sequencial }) {
