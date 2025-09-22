@@ -28,7 +28,7 @@ function telaInicial() {
                 <span>Se as tabelas estiverem estranhamente desatualizadas, usem o <b>F8</b>,</span>
                 <div style="${horizontal}; gap: 5px;">
                     <img src="gifs/novo.gif" style="width: 5rem;">
-                    Cadastro de Clientes agora pelo GCS na tela de <b>Pagamentos, Orçamentos e Chamados</b>.
+                    <span>Cadastro de Clientes agora pelo GCS na tela de <b>Pagamentos, Orçamentos e Chamados.</b></span>
                 </div>
             </div>
         </div>
