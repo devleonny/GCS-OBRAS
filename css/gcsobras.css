@@ -58,7 +58,11 @@ body {
     border-radius: 5px;
 }
 
-.planoFundo span {
+.planoFundo .infos {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
     border-radius: 5px;
     background-color: #ffffffb0;
     font-size: 1.2rem;
@@ -917,12 +921,11 @@ h1 {
 button {
     cursor: pointer;
     margin: 5px;
-    background-color: #B12425;
+    background-color: #249f41;
     color: white;
     border: none;
     padding: 10px;
     border-radius: 5px;
-    font-size: 0.6rem;
 }
 
 .retangulo {
@@ -1170,6 +1173,7 @@ button {
 }
 
 .modelo input {
+    border: solid 1px #8e8e8e;
     border-radius: 3px;
     padding: 0.5rem;
 }
@@ -1276,91 +1280,6 @@ footer {
     color: #151749;
 }
 
-.popup_alerta {
-    position: fixed;
-    align-items: center;
-    bottom: 0;
-    right: 0;
-    width: 300px;
-    height: max-content;
-    background-color: #222;
-    color: white;
-    padding: 20px;
-    opacity: 0.9;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-    z-index: 9999;
-    transform: translate(100%, 100%);
-    transition: transform 0.5s ease-in-out;
-}
-
-.popup_alerta.aberto {
-    transform: translate(0, 0);
-}
-
-.novo_titulo {
-    font-size: 2vw;
-    color: white;
-}
-
-.sino {
-    width: 2vw;
-    border-radius: 50%;
-    cursor: pointer;
-}
-
-.alerta {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    top: 2vw;
-    left: 2vw;
-    opacity: 0.8;
-    background-color: white;
-    border-radius: 5px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-    cursor: pointer;
-}
-
-.alerta:hover {
-    transition: 0.2s ease-in-out;
-    opacity: 1;
-}
-
-.itemAlerta {
-    display: flex;
-    align-items: start;
-    justify-content: center;
-    flex-direction: column;
-    background-color: #d2d2d2;
-    margin: 3px;
-    border-radius: 3px;
-    padding: 3px;
-    padding-left: 2vw;
-    padding-right: 2vw;
-}
-
-.itemAlerta textarea {
-    padding: 10px;
-}
-
-.sino:hover {
-    transition: 0.1s ease-in-out;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-}
-
-.titulum {
-    padding: 10px;
-    border-radius: 10px;
-    color: white;
-    font-size: 2vw;
-    margin-bottom: 20px;
-    margin-top: 20px;
-    background-color: #B12425;
-}
-
 textarea {
     background-color: white;
     font-family: Arial, Helvetica, sans-serif;
@@ -1387,69 +1306,6 @@ textarea {
     color: white;
     padding: 10px;
     width: max-content;
-}
-
-#d_etiquetas {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-#painel_etiquetas {
-    display: none;
-    flex-direction: column;
-    align-items: flex-start;
-    color: #B6C2CF;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: #222;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-    overflow-y: auto;
-    max-height: 60%;
-}
-
-.etiqueta {
-    cursor: pointer;
-    margin-bottom: 10px;
-    padding: 5px;
-    background-color: #444;
-    color: #fff;
-    border-radius: 3px;
-    transition: box-shadow 0.3s ease-in-out;
-}
-
-.etiqueta:hover {
-    box-shadow: 0 0 20px rgba(0, 123, 255, 0.7);
-}
-
-#d_descricao_div,
-#d_descricao_chamado_div {
-    width: 100%;
-    cursor: pointer;
-    border-radius: 5px;
-    border: 1px solid #B6C2CF;
-    background-color: #22272B;
-    padding: 10px;
-}
-
-.trello_button {
-    font-size: 1.0em;
-    cursor: pointer;
-    text-align: center;
-    padding: 5px;
-    border-radius: 5px;
-    background-color: #097fe6;
-    color: white;
-}
-
-.trello_button:hover {
-    transition: 0.1s ease-in-out;
-    background-color: #45505A;
-    box-shadow: 0 0 0;
 }
 
 .caixa_anexo {

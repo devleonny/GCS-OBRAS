@@ -15,7 +15,7 @@ let overlayTimeout;
 
 const modelo = (valor1, valor2) => `
         <div class="modelo">
-            <label><strong>${valor1}</strong></label>
+            <label>${valor1}</label>
             <div style="width: 100%; text-align: left;">${valor2}</div>
         </div>
         `
@@ -40,7 +40,7 @@ const avisoHTML = (termo) => `
     `
 const mensagem = (mensagem, img) => `
     <div style="background-color: #d2d2d2; display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center;">
-        <img src="${img ? img : `gifs/alerta.gif`}" style="width: 3vw; height: 3vw;">
+        <img src="${img ? img : `gifs/alerta.gif`}" style="width: 3rem;">
         <label>${mensagem}</label>
     </div>
     `
@@ -136,6 +136,7 @@ const esquemaBotoes = {
         { nome: 'Salvar Orçamento', funcao: `enviarDadosOrcamento`, img: 'salvo' },
         { nome: 'Apagar Orçamento', funcao: `apagarOrcamento`, img: 'remover' },
         { nome: 'Voltar', funcao: `telaOrcamentos`, img: 'voltar_2' },
+        { nome: 'Cadastrar Cliente', funcao: `cadastrarCliente`, img: 'omie' }
     ],
     criarOrcamentosAluguel: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -143,6 +144,7 @@ const esquemaBotoes = {
         { nome: 'Salvar Orçamento', funcao: `enviarDadosAluguel`, img: 'salvo' },
         { nome: 'Apagar Orçamento', funcao: `apagarOrcamentoAluguel`, img: 'remover' },
         { nome: 'Voltar', funcao: `telaOrcamentos`, img: 'voltar_2' },
+        { nome: 'Cadastrar Cliente', funcao: `cadastrarCliente`, img: 'omie' }
     ],
     orcamentos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -163,6 +165,7 @@ const esquemaBotoes = {
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Atualizar', funcao: 'atualizarManutencoes', img: 'atualizar3' },
         { nome: 'Criar Manutenção', funcao: 'criarManutencao', img: 'chamados' },
+        { nome: 'Cadastrar Cliente', funcao: `cadastrarCliente`, img: 'omie' }
     ],
     ocorrencias: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -183,6 +186,7 @@ const esquemaBotoes = {
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Atualizar', funcao: 'recuperarPagamentos', img: 'atualizar3' },
         { nome: 'Solicitar Pagamento', funcao: 'criarPagamento', img: 'pagamento' },
+        { nome: 'Cadastrar Cliente', funcao: `cadastrarCliente`, img: 'omie' }
     ],
     estoque: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -1801,7 +1805,7 @@ async function verificarPendencias() {
     }
 }
 
-async function verPedidoAprovacao(idOrcamento) { 
+async function verPedidoAprovacao(idOrcamento) {
 
     let permissao = acesso.permissao
     let pessoasPermitidas = ['adm', 'diretoria']
@@ -2486,15 +2490,15 @@ async function selecionar(name, id, termo, funcaoAux) {
 function pesquisarCX(input) {
     const termoPesquisa = String(input.value)
         .toLowerCase()
-        .replace(/[.-]/g, '');
-    
+        .replace(/[./-]/g, ''); // remove ponto, traço e barra
+
     const divs = document.querySelectorAll(`[name='camposOpcoes']`);
 
     for (const div of divs) {
         const termoDiv = String(div.textContent)
             .toLowerCase()
-            .replace(/[.-]/g, '');
-        
+            .replace(/[./-]/g, ''); // mesma limpeza no conteúdo
+
         div.style.display = (termoDiv.includes(termoPesquisa) || termoPesquisa === '') ? '' : 'none';
     }
 }
@@ -2523,4 +2527,98 @@ async function proxORC({ chamado, idOrcamento, sequencial }) {
     } catch (err) {
         return { err };
     }
+}
+
+async function cadastrarCliente() {
+
+    const acumulado = `
+        <div style="padding: 1rem; ${vertical}; align-items: start; background-color: #d2d2d2; min-width: max-content;">
+
+            <div style="${horizontal}; gap: 1rem;">
+                <div style="${vertical}">
+                    ${modelo('Nome', `<textarea id="nome_fantasia" rows="5"></textarea>`)}
+                </div>
+
+                <div style="${vertical}">
+                    ${modelo('CNPJ ou CPF', `<input id="cnpj_cpf">`)}
+                    ${modelo('Nº do endereço', `<input id="endereco_numero">`)}
+                    ${modelo('CEP', `<input id="cep">`)}
+                </div>
+            </div>
+
+            <hr style="width: 100%;">
+
+            <button onclick="salvarCliente()">Salvar</button>
+        </div>`
+
+    popup(acumulado, 'Cadastro de Cliente e Empresa', true)
+
+}
+
+async function salvarCliente() {
+
+    overlayAguarde()
+
+    const campos = ['nome_fantasia', 'cnpj_cpf', 'endereco_numero', 'cep'];
+    let param = {
+        codigo_cliente_integracao: unicoID()
+    };
+
+    for (const campo of campos) {
+        const el = document.getElementById(campo);
+        if (el && el.value !== '') param[campo] = el.value;
+    }
+
+    param.nome_fantasia = param.nome_fantasia.toUpperCase()
+    param.pesquisar_cep = 'S'
+    param.razao_social = param.nome_fantasia
+
+    try {
+        const opcoes = {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ param })
+        };
+
+        const resposta = await fetch(`${api}/cadastrar-cliente`, opcoes);
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+
+            if (dados.mensagem && dados.mensagem.includes('Cliente já cadastrado')) {
+
+                const regex = /\[([^\]]+)\]/g;
+                const matches = [...dados.mensagem.matchAll(regex)].map(m => m[1]);
+                const idOmie = matches[1];
+
+                await sincronizarDados('dados_clientes')
+
+                const cliente = await recuperarDado('dados_clientes', idOmie);
+                const acumulado = `
+                    <div style="${vertical}; background-color: #d2d2d2; padding: 1rem;">
+                        <span>Cliente já cadastrado:</span>
+                        <hr style="width: 100%">
+                        <span>${cliente?.nome || ''}</span>
+                        <span>${cliente?.bairro || ''}</span>
+                        <span>${cliente?.cpf_cnpj || ''}</span>
+                        <span>${cliente?.cep || ''}</span>
+                        <span>${cliente?.cidade || ''}</span>
+                    </div>`
+
+                return popup(acumulado, 'Cliente existente', true)
+            }
+
+            return popup(mensagem(dados?.mensagem || 'Falha no cadastro, tente novamente'), 'Alerta', true);
+
+        }
+
+        removerPopup()
+        return popup(mensagem(dados.mensagem, 'imagens/concluido.png'), 'Cadastrado com sucesso', true);
+
+    } catch (err) {
+
+        return popup(mensagem(err.message || String(err)), 'Alerta', true);
+
+    }
+
 }

@@ -92,38 +92,6 @@
     width: 3vw;
 }
 
-.janela {
-    max-width: 90vw;
-    overflow: auto;
-    max-height: 90vh;
-    border-bottom-left-radius: 10px;
-    border-bottom-right-radius: 10px;
-}
-
-.janela_fora {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: start;
-    max-width: 90vw;
-    text-align: center;
-    font-size: 1.0vw;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-}
-
-.topo_popup {
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
-    background-color: #3b444c;
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #d2d2d2;
-}
-
 .bloco {
     width: 100%;
     display: flex;

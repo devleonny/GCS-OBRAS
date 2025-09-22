@@ -21,11 +21,16 @@ function telaInicial() {
 
     const acumulado = `
         <div class="planoFundo">
-            <span>${boasVindas},<br>
-            Todos os botões estão no menu do canto <b>☰</b>, <br>
-            Caso precisem recarregar a tela usem o <b>F5</b>, <br>
-            Se as tabelas estiverem estranhamente desatualizadas, usem o <b>F8</b>.
-            </span>
+            <div class="infos">
+                <span><b>${boasVindas}</b>,</span>
+                <span>Todos os botões estão no menu do canto <b>☰</b>,</span>
+                <span>Caso precisem recarregar a tela usem o <b>F5</b>,</span>
+                <span>Se as tabelas estiverem estranhamente desatualizadas, usem o <b>F8</b>,</span>
+                <div style="${horizontal}; gap: 5px;">
+                    <img src="gifs/novo.gif" style="width: 5rem;">
+                    Cadastro de Clientes agora pelo GCS na tela de <b>Pagamentos, Orçamentos e Chamados</b>.
+                </div>
+            </div>
         </div>
     `
     tela.innerHTML = acumulado
