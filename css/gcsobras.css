@@ -44,6 +44,7 @@ body {
 }
 
 .planoFundo {
+    z-index: -2;
     box-shadow: 0px 0px 10px black;
     display: flex;
     align-items: center;
@@ -56,16 +57,26 @@ body {
 }
 
 .planoFundoImg {
-  width: 50rem;
-  object-fit: contain;
-  border-radius: 5px;
-  animation: girar 13s infinite linear;
+    position: absolute;
+    z-index: -1;
+    width: 80vw;
+    object-fit: contain;
+    border-radius: 5px;
+    animation: girar 13s infinite linear;
 }
 
 @keyframes girar {
-  0%   { transform: rotateY(0deg); }
-  23%  { transform: rotateY(360deg); }
-  100% { transform: rotateY(360deg); }
+    0% {
+        transform: rotateY(0deg);
+    }
+
+    23% {
+        transform: rotateY(360deg);
+    }
+
+    100% {
+        transform: rotateY(360deg);
+    }
 }
 
 .planoFundo .infos {
