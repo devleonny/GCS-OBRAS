@@ -31,7 +31,7 @@ function telaInicial() {
                     <span>Cadastro de Clientes agora pelo GCS na tela de <b>Pagamentos, Orçamentos e Chamados.</b></span>
                 </div>
             </div>
-            <img src="imagens/bg.png" class="planoFundoImg">
+            <img src="imagens/BG.png" class="planoFundoImg">
         </div>
     `
     tela.innerHTML = acumulado
