@@ -49,14 +49,14 @@ body {
     align-items: center;
     justify-content: start;
     flex-direction: column;
-    height: 80vh;
+    min-height: 80vh;
     width: 90vw;
     background-color: #0000005e;
     border-radius: 5px;
 }
 
 .planoFundoImg {
-  width: 80vw;
+  width: 50rem;
   object-fit: contain;
   border-radius: 5px;
   animation: girar 13s infinite linear;
@@ -471,9 +471,13 @@ span[name="titulo"] {
 }
 
 .rodapeTabela {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    gap: 5px;
     border-top: 1px solid #666666;
     width: 100%;
-    height: 2vh;
+    min-height: 2vh;
     border-bottom-left-radius: 3px;
     border-bottom-right-radius: 3px;
     background-color: #b1b1b1;
