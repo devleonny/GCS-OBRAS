@@ -661,14 +661,15 @@ function gerarTabelas(objeto) {
 
     let acumulado = {}
 
-    for ([chave, campos] of Object.entries(objeto)) {
+    for (const [chave, campos] of Object.entries(objeto)) {
 
         let titulos = {
             camposIniciais: 'Campos Iniciais',
             presuncoes: 'Presunções',
             impostos: 'Impostos',
             resultados: 'Resultados',
-            complementares: 'Complemetares'
+            complementares: 'Complemetares',
+            maoObra: 'Mão de Obra'
         }
 
         let linhas = ''
@@ -690,7 +691,6 @@ function gerarTabelas(objeto) {
                     ${campo.readOnly ? 'readOnly' : ''}
                     >
                 </td>`
-
             }
 
             if (chave == 'resultados') {
@@ -742,30 +742,29 @@ function gerarTabelas(objeto) {
 
         if (chave == 'impostos') {
             linhas += `
-            <tr>
-                <td style="text-align: right;">Total</td>
-                <td id="total_impostos"></td>
-            </tr>
+                <tr>
+                    <td style="text-align: right;">Total</td>
+                    <td id="total_impostos"></td>
+                </tr>
             `}
 
-        let tabelaHtml = `
-            <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
-                <br>
-                <table class="tabela" style="width: 40vw;">
-                    <thead style="background-color: #d2d2d2; position: relative;">
-                        <th style="color: black;">${titulos[chave]}</th>
-                        <th style="color: black;">Valores</th>
-                    </thead>
-                    <tbody>
-                        ${linhas}
-                    </tbody>
-                </table>
+        const tabelaHtml = `
+            <div style="${vertical}; width: 100%;">
+                <div class="painelBotoes"></div>
+                <div class="div-tabela">
+                    <table class="tabela">
+                        <thead>
+                            <th>${titulos[chave]}</th>
+                            <th>Valores</th>
+                        </thead>
+                        <tbody>${linhas}</tbody>
+                    </table>
+                </div>
+                <div class="rodapeTabela"></div>
             </div>
         `
 
-        if (!acumulado[chave]) {
-            acumulado[chave] = ''
-        }
+        if (!acumulado[chave]) acumulado[chave] = ''
 
         acumulado[chave] += tabelaHtml
 
@@ -776,7 +775,7 @@ function gerarTabelas(objeto) {
 
 function modelos(produto) {
 
-    let blocos = {
+    const blocos = {
         'VENDA': {
             camposIniciais: [
                 { label: 'Preço Unitário (R$)', cor: '#91b7d9', id: 'custo', valor: produto?.custo || '' },
@@ -805,8 +804,10 @@ function modelos(produto) {
         },
         'SERVIÇO': {
             camposIniciais: [
-                { label: 'Preço do Serviço', cor: '#91b7d9', id: 'preco_venda', valor: produto?.valor || '' },
-                { label: 'Margem', cor: '#91b7d9', id: 'margem', valor: produto?.margem || '' }
+                { label: 'Valor do Serviço', cor: '#91b7d9', id: 'preco_venda', valor: produto?.valor || '' }
+            ],
+            maoObra: [
+                { label: 'Coeficiente de Mão de Obra (30%)', id: 'maoObra' }
             ],
             presuncoes: [
                 { label: 'Aliquota do Lucro Presumido Serviço (32%)', id: 'aliq_presumido' },
@@ -849,7 +850,7 @@ function modelos(produto) {
         }
     }
 
-    let geral = {
+    const geral = {
         complementares: [
             { label: 'NF de Compra', id: 'nota', cor: '#91b7d9', valor: produto?.nota || '' },
             { label: 'Fornecedor', id: 'fornecedor', cor: '#91b7d9', valor: produto?.fornecedor || '' },
@@ -861,12 +862,7 @@ function modelos(produto) {
         ]
     }
 
-    blocos[produto.tipo] = {
-        ...blocos[produto.tipo],
-        ...geral
-    }
-
-    return blocos[produto.tipo]
+    return { ...blocos[produto.tipo], ...geral }
 }
 
 async function adicionarCotacao(codigo, lpu, cotacao) {
@@ -882,28 +878,33 @@ async function adicionarCotacao(codigo, lpu, cotacao) {
         }
     }
 
-    let tabelas = gerarTabelas(modelos(produto))
+    const tabelas = gerarTabelas(modelos(produto))
+    const gap = `gap: 0.5rem;`
 
-    let acumulado = `
-    <div style="display: flex; flex-direction: column; align-items: center; justify-content: start; font-size: 0.7vw; background-color: #d2d2d2; padding: 5px;">
-        
-        <label style="font-size: 1.5vw;" id="modalidadeCalculo"><strong>${produto.tipo}</strong></label>
+    const acumulado = `
+        <div style="${vertical}; background-color: #d2d2d2; padding: 1rem;">
+            
+            <label style="font-size: 1.2rem;" id="modalidadeCalculo"><strong>${produto.tipo}</strong></label>
 
-        <div style="display: flex;">
-            <div id="historico_preco" class="gavetaTabelas">
-                ${tabelas.camposIniciais}
-                ${tabelas.complementares}
+            <div style="${horizontal}; border-radius: 5px; background-color: #575757; padding: 0.5rem; align-items: start; ${gap}">
+
+                <div style="${vertical}; ${gap}">
+                    ${tabelas.camposIniciais}
+                    ${tabelas.complementares}
+                    ${produto.tipo == 'SERVIÇO' ? tabelas.maoObra : ''}
+                </div>
+
+                <div style="${vertical}; ${gap}">
+                    ${tabelas.resultados}
+                    ${tabelas.presuncoes}
+                    ${tabelas.impostos}
+                </div>
+
             </div>
 
-            <div id="historico_preco" class="gavetaTabelas">
-                ${tabelas.resultados}
-                ${tabelas.presuncoes}
-                ${tabelas.impostos}
-            </div>
+            <button onclick="${funcao}">Salvar Preço</button>
+
         </div>
-        <button onclick="${funcao}" style="background-color: #4CAF50;">Salvar Preço</button>
-
-    </div>
     `
 
     popup(acumulado, 'Gestão de Preço', true)
@@ -926,10 +927,7 @@ function obValComp(id, valorRetorno) {
     }
 
     let valor = 'value' in el ? el.value : el.textContent;
-
-    if (el.type === 'number') {
-        valor = conversor(Number(valor));
-    }
+    if (el.type === 'number') valor = conversor(Number(valor));
 
     return valor;
 }
@@ -938,7 +936,7 @@ function calcular(campo, dadosCalculo = null) {
 
     const modalidadeCalculo = dadosCalculo?.modalidadeCalculo || document.getElementById('modalidadeCalculo').textContent
 
-    let tabelaIcmsSaida = {
+    const tabelaIcmsSaida = {
         'IMPORTADO': 4,
         'NACIONAL': 12,
         'BAHIA': 20.5,
@@ -947,16 +945,16 @@ function calcular(campo, dadosCalculo = null) {
 
     let lucroLiquido = 0
 
-    function atualizarLucro(valorReferencia, totalImpostos, custoFinal = 0, extras = {}) {
-        lucroLiquido = valorReferencia - (totalImpostos + custoFinal)
-        let porcentagem = lucroLiquido / valorReferencia * 100
+    function atualizarLucro({ valRef, totImp, custoFinal = 0, coeficienteMaoObra = 0, extras = {} }) {
+        lucroLiquido = valRef - (totImp + custoFinal + coeficienteMaoObra)
+        let porcentagem = lucroLiquido / valRef * 100
         if (isNaN(porcentagem)) porcentagem = 0
 
         if (dadosCalculo) {
             return {
                 lucroLiquido,
                 lucroPorcentagem: porcentagem,
-                totalImpostos,
+                totalImpostos: totImp,
                 ...extras
             }
         }
@@ -970,9 +968,8 @@ function calcular(campo, dadosCalculo = null) {
 
     if (modalidadeCalculo == 'SERVIÇO') {
 
-        const margem = obValComp('margem')
-        const precoInicial = dadosCalculo?.valor || obValComp('preco_venda')
-        const precoVenda = (margem && margem !== 0) ? precoInicial * (1 + (margem / 100)) : precoInicial
+        const precoVenda = obValComp('preco_venda')
+        const coeficienteMaoObra = precoVenda * 0.3
         const aliqLp = precoVenda * 0.32
         const presuncaoCsll = precoVenda * 0.32
         const irpj = aliqLp * 0.15
@@ -981,9 +978,10 @@ function calcular(campo, dadosCalculo = null) {
         const pis = precoVenda * 0.0065
         const cofins = precoVenda * 0.03
         const iss = precoVenda * 0.05
-        const totalImpostos = irpj + adicionalIrpj + presuncaoCsllAPagar + pis + cofins + iss
+        const totImp = irpj + adicionalIrpj + presuncaoCsllAPagar + pis + cofins + iss
 
         if (!dadosCalculo) {
+            obValComp('maoObra', dinheiro(coeficienteMaoObra))
             obValComp('aliq_presumido', dinheiro(aliqLp))
             obValComp('presuncao_csll', dinheiro(presuncaoCsll))
             obValComp('irpj', dinheiro(irpj))
@@ -992,15 +990,14 @@ function calcular(campo, dadosCalculo = null) {
             obValComp('pis', dinheiro(pis))
             obValComp('cofins', dinheiro(cofins))
             obValComp('iss', dinheiro(iss))
-            obValComp('total_impostos', dinheiro(totalImpostos))
+            obValComp('total_impostos', dinheiro(totImp))
         }
 
-        return atualizarLucro(precoVenda, totalImpostos, 0, {
-            freteCompra: 0,
-            freteVenda: 0,
-            difal: 0,
-            margem: 0
-        })
+        const extras = {
+            coeficienteMaoObra
+        }
+
+        return atualizarLucro({ valRef: precoVenda, totImp, coeficienteMaoObra, extras })
 
     } else if (modalidadeCalculo == 'VENDA') {
 
@@ -1023,22 +1020,21 @@ function calcular(campo, dadosCalculo = null) {
             obValComp('preco_venda', precoVenda.toFixed(2))
         }
 
-        let freteVenda = precoVenda * 0.05
-        let porcLP = 0.08
-        let porcCSLL = 0.12
-        let lucroPresumido = precoVenda * porcLP
-        let presuncaoCsll = precoVenda * porcCSLL
-        let irpj = lucroPresumido * 0.15
-        let adicionalIrpj = lucroPresumido * 0.1
-        let csll = presuncaoCsll * 0.09
-        let pis = precoVenda * 0.0065
-        let cofins = precoVenda * 0.03
+        const freteVenda = precoVenda * 0.05
+        const porcLP = 0.08
+        const porcCSLL = 0.12
+        const lucroPresumido = precoVenda * porcLP
+        const presuncaoCsll = precoVenda * porcCSLL
+        const irpj = lucroPresumido * 0.15
+        const adicionalIrpj = lucroPresumido * 0.1
+        const csll = presuncaoCsll * 0.09
+        const pis = precoVenda * 0.0065
+        const cofins = precoVenda * 0.03
 
-        let icmsSaidaSelect = 0.205 //Fixo no pior cenário; (Venda dentro do estado)
-
-        let icmsSaida = dadosCalculo?.icmsSaida / 100 || icmsSaidaSelect
-        let icms = precoVenda * icmsSaida
-        let totalImpostos = irpj + adicionalIrpj + csll + pis + cofins + icms
+        const icmsSaidaSelect = 0.205 //Fixo no pior cenário; (Venda dentro do estado)
+        const icmsSaida = dadosCalculo?.icmsSaida / 100 || icmsSaidaSelect
+        const icms = precoVenda * icmsSaida
+        const totImp = irpj + adicionalIrpj + csll + pis + cofins + icms
 
         if (!dadosCalculo) {
             obValComp('icms_creditado', icmsCreditado)
@@ -1055,27 +1051,29 @@ function calcular(campo, dadosCalculo = null) {
             obValComp('csll', dinheiro(csll))
             obValComp('pis', dinheiro(pis))
             obValComp('cofins', dinheiro(cofins))
-            obValComp('total_impostos', dinheiro(totalImpostos))
+            obValComp('total_impostos', dinheiro(totImp))
         }
 
-        return atualizarLucro(precoVenda, totalImpostos, valorCusto + freteVenda, {
+        const extras = {
             freteCompra: frete,
             freteVenda,
             difal,
             margem: Number(margem)
-        })
+        }
+
+        return atualizarLucro({ valRef: precoVenda, totImp, custoFinal: (valorCusto + freteVenda), extras })
 
 
     } else if (modalidadeCalculo == 'USO E CONSUMO') {
 
-        let icmsCreditadoSelect = obValComp('icms_creditado_select')
-        let icmsCreditado = dadosCalculo?.icms_creditado || tabelaIcmsSaida[icmsCreditadoSelect]
-        let precoCompra = dadosCalculo?.custo || obValComp('custo')
-        let frete = precoCompra * 0.02
-        let icmsAliquota = 20.5
-        let difal = icmsAliquota - icmsCreditado
-        let icmsEntrada = difal / 100 * precoCompra
-        let valorCusto = icmsEntrada + precoCompra + frete
+        const icmsCreditadoSelect = obValComp('icms_creditado_select')
+        const icmsCreditado = dadosCalculo?.icms_creditado || tabelaIcmsSaida[icmsCreditadoSelect]
+        const precoCompra = dadosCalculo?.custo || obValComp('custo')
+        const frete = precoCompra * 0.02
+        const icmsAliquota = 20.5
+        const difal = icmsAliquota - icmsCreditado
+        const icmsEntrada = difal / 100 * precoCompra
+        const valorCusto = icmsEntrada + precoCompra + frete
         let margem = obValComp('margem')
         let precoVenda = (1 + margem / 100) * valorCusto
 
@@ -1087,16 +1085,16 @@ function calcular(campo, dadosCalculo = null) {
             obValComp('preco_venda', precoVenda.toFixed(2))
         }
 
-        let freteVenda = precoVenda * 0.05
-        let aliqLp = precoVenda * 0.32
-        let presuncaoCsll = precoVenda * 0.32
-        let irpj = aliqLp * 0.15
-        let adicionalIrpj = aliqLp * 0.10
-        let presuncaoCsllAPagar = presuncaoCsll * 0.09
-        let pis = precoVenda * 0.0065
-        let cofins = precoVenda * 0.03
-        let iss = precoVenda * 0.05
-        let totalImpostos = irpj + adicionalIrpj + presuncaoCsllAPagar + pis + cofins + iss
+        const freteVenda = precoVenda * 0.05
+        const aliqLp = precoVenda * 0.32
+        const presuncaoCsll = precoVenda * 0.32
+        const irpj = aliqLp * 0.15
+        const adicionalIrpj = aliqLp * 0.10
+        const presuncaoCsllAPagar = presuncaoCsll * 0.09
+        const pis = precoVenda * 0.0065
+        const cofins = precoVenda * 0.03
+        const iss = precoVenda * 0.05
+        const totImp = irpj + adicionalIrpj + presuncaoCsllAPagar + pis + cofins + iss
 
         if (!dadosCalculo) {
             obValComp('icms_creditado', icmsCreditado)
@@ -1113,17 +1111,20 @@ function calcular(campo, dadosCalculo = null) {
             obValComp('pis', dinheiro(pis))
             obValComp('cofins', dinheiro(cofins))
             obValComp('iss', dinheiro(iss))
-            obValComp('total_impostos', dinheiro(totalImpostos))
+            obValComp('total_impostos', dinheiro(totImp))
         }
 
-        return atualizarLucro(precoVenda, totalImpostos, valorCusto + freteVenda, {
+        const extras = {
             freteCompra: frete,
             freteVenda,
             difal,
             margem: Number(margem)
-        })
+        }
+
+        return atualizarLucro({ precoVenda, totImp, custoFinal: (valorCusto + freteVenda), extras })
 
     }
+
 }
 
 async function salvarPreco(codigo, lpu, cotacao) {
@@ -1135,17 +1136,13 @@ async function salvarPreco(codigo, lpu, cotacao) {
 
     cotacao = cotacao || ID5digitos()
 
-    const margem = obValComp('margem')
-
-    if(margem < 65) return popup(mensagem('A margem não pode ser menor que 65%'), 'Alerta', true)
-
     historico[cotacao] = {
         valor: obValComp('preco_venda'),
         data: obterDatas('completa'),
         usuario: acesso.usuario,
         nota: obValComp('nota'),
         comentario: obValComp('comentario'),
-        margem,
+        margem: obValComp('margem'),
         fornecedor: obValComp('fornecedor'),
         custo: obValComp('custo'),
         valor_custo: obValComp('valor_custo'),
@@ -1181,7 +1178,7 @@ async function cadastrarItem(codigo) {
     if (!origem) colunas.push('descricaocarrefour')
     const produto = await recuperarDado('dados_composicoes', codigo) || {}
     const funcao = codigo ? `salvarServidor('${codigo}')` : `salvarServidor()`
-    
+
     const modelo = (texto, elemento) => `
         <div ${texto == 'Descrição' ? 'class="full"' : ''} style="display: flex; flex-direction: column; gap: 3px; align-items: start; justify-content: start;">
             <label>${texto}</label>
