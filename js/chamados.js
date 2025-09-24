@@ -55,7 +55,7 @@ function filtrarManutencoes({ status, col, texto } = {}) {
         }
 
         // filtro de data
-        const data = tds[7].querySelector('[name="datas"]').value
+        const data = tds[6].querySelector('[name="datas"]').value
         if (dtInicio && dtFinal) {
             const dataConvertida = new Date(...data.split('-').map((v, i) => i === 1 ? v - 1 : v))
 
@@ -81,7 +81,7 @@ async function telaChamados() {
 
     overlayAguarde()
 
-    const colunas = ['Última alteração', 'Status', 'Chamado', 'Loja', 'Técnico', 'Cidade', 'Analista', 'Previsão', 'Ações']
+    const colunas = ['Última alteração', 'Status', 'Chamado', 'Loja', 'Técnico', 'Analista', 'Previsão', 'Ações']
     let ths = ''
     let tsh = ''
     colunas.forEach((col, i) => {
@@ -163,9 +163,18 @@ function criarLinhaManutencao(idManutencao, manutencao) {
         <td>${manutencao?.data || '--'}</td>
         <td>${manutencao?.status_manutencao || '--'}</td>
         <td>${manutencao.chamado || 'SEM CHAMADO'}</td>
-        <td>${manutencao?.nome || '--'}</td>
-        <td>${manutencao?.nome || '--'}</td>
-        <td>${manutencao?.cidade || '--'}</td>
+        <td>
+            <div style="${vertical}">
+                <span style="text-align: left;">${manutencao?.cliente?.nome || '--'}</span>
+                <span><b>${manutencao?.cliente?.cidade || '--'}</b></span>
+            </div>
+        </td>
+        <td>
+            <div style="${vertical}">
+                <span style="text-align: left;">${manutencao?.tecnico?.nome || '--'}</span>
+                <span>${manutencao?.tecnico?.cidade || '--'}</span>
+            </div>
+        </td>
         <td>${salvarPrimeiroUsuario(manutencao?.historico || manutencao.usuario)}</td>
         <td>
             <input style="display: none;" name="datas" value="${manutencao?.previsao || ''}">

@@ -1654,36 +1654,39 @@ async function abrirEsquema(id) {
 
     if (id) id_orcam = id
 
-    let orcamento = await recuperarDado('dados_orcamentos', id)
-    let omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-    let cliente = await recuperarDado('dados_clientes', omie_cliente)
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
+    const cliente = await recuperarDado('dados_clientes', omie_cliente)
     let blocosStatus = {}
-    let chave = ''
 
-    for ([chave, historico] of Object.entries(orcamento.status?.historico || {})) {
+    console.log(orcamento);
+    
+
+    for (const [chave, historico] of Object.entries(orcamento?.status?.historico || {})) {
 
         let statusCartao = historico.status
         let cor = fluxogramaMesclado[statusCartao]?.cor || '#808080'
 
         if (!blocosStatus[statusCartao]) blocosStatus[statusCartao] = ''
 
+        const excluir = (historico.executor == acesso.usuario || acesso.permissao == 'adm')
+            ? `<span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="apagarStatusHistorico('${chave}')">&times;</span>`
+            : ''
+
         blocosStatus[statusCartao] += `
             <div class="bloko" style="gap: 0px; border: 1px solid ${cor}; background-color: white; justify-content: center;">
 
                 <div style="cursor: pointer; display: flex; align-items: start; flex-direction: column; background-color: ${cor}1f; padding: 3px; border-top-right-radius: 3px; border-top-left-radius: 3px;">
-                    <span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="apagarStatusHistorico('${chave}')">&times;</span>
-
+                    ${excluir}
                     ${labelDestaque('Chamado', orcamento.dados_orcam.contrato)}
                     ${labelDestaque('Executor', historico.executor)}
                     ${labelDestaque('Data', historico.data)}
-                    ${labelDestaque('Comentário',
-            `
+                    ${labelDestaque('Comentário', `
                         <div>
                             <textarea oninput="mostrarConfirmacao(this)" style="resize: vertical; width: 90%;">${historico?.comentario || ''}</textarea>
                             <span class="btnConfirmar" onclick="atualizarPedido('${chave}', 'comentario', this)">Atualizar</span>
                         </div>    
-                        `
-        )}
+                        `)}
 
                     ${elementosEspecificos(chave, historico)}
 
@@ -1723,16 +1726,14 @@ async function abrirEsquema(id) {
         `
     }
 
-    let blocos = ''
-    for ([statusCartao, div] of Object.entries(blocosStatus)) {
-        blocos += `
+    const blocos = Object.entries(blocosStatus)
+        .map(([statusCartao, div]) => `
             <div style="display: flex; flex-direction: column; justify-content: start; align-items: center; width: 16vw; gap: 10px;">
                 ${div}
-            </div>
-            `
-    }
+            </div>`)
+        .join('')
 
-    let linha1 = `
+    const linha1 = `
         <div style="display: flex; align-items: end; justify-content: start; gap: 10px;">
 
             ${botao('Atualizar Página', `sincronizarReabrir()`, '#222')}
@@ -1741,7 +1742,7 @@ async function abrirEsquema(id) {
                 <label>Status atual</label>
                 <select onchange="alterar_status(this)" style="font-size: 1vw; border-radius: 3px; padding: 3px;">
                     ${Object.keys(fluxograma).map(fluxo => `
-                        <option ${orcamento.status?.atual == fluxo ? 'selected' : ''}>${fluxo}</option>
+                        <option ${orcamento?.status?.atual == fluxo ? 'selected' : ''}>${fluxo}</option>
                     `).join('')}
                 </select>
             </div>
@@ -1750,11 +1751,11 @@ async function abrirEsquema(id) {
         </div>
         `
 
-    let levantamentos = Object.entries(orcamento?.levantamentos || {})
+    const levantamentos = Object.entries(orcamento?.levantamentos || {})
         .map(([iDlevantamento, levantamento]) => `${criarAnexoVisual(levantamento.nome, levantamento.link, `excluirLevantamentoStatus('${iDlevantamento}')`)}`)
         .join('')
 
-    let divLevantamentos = `
+    const divLevantamentos = `
         <div style="display: flex; justify-content: start; align-items: start; flex-direction: column; gap: 2px; margin-right: 20px; margin-top: 10px;">
 
             <div class="contorno_botoes" for="adicionar_levantamento">
@@ -1768,41 +1769,43 @@ async function abrirEsquema(id) {
             ${levantamentos}
         </div>`
 
-    let acumulado = `
+    const acumulado = `
+        <label style="font-size: 1.5rem;">${orcamento.dados_orcam.contrato} - ${cliente?.nome || '??'}</label>
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 3px;">
 
-        <div style="min-height: max-content; height: 70vh; overflow: auto; background-color: #d2d2d2; display: flex; flex-direction: column; gap: 15px; min-width: 70vw; padding: 2vw;">
+            ${linha1}
 
-            <div style="display: flex; flex-direction: column; gap: 10px; padding: 3px;">
+            <hr style="width: 100%;">
 
-                ${linha1}
+            <div style="display: flex; gap: 10px; font-size: 0.9vw;">
+                
+                ${botao('Novo Pedido', `painelAdicionarPedido()`, '#4CAF50')}
+                ${botao('Requisição Materiais', `detalharRequisicao(undefined, 'infraestrutura')`, '#B12425')}
+                ${botao('Requisição Equipamentos', `detalharRequisicao(undefined, 'equipamentos')`, '#B12425')}
+                ${botao('Nova Nota Fiscal', `painelAdicionarNotas()`, '#ff4500')}
 
-                <hr style="width: 100%;">
+                ${(acesso.permissao == 'adm' || acesso.setor == 'LOGÍSTICA')
+        ? botao('Novo Envio de Material', `envioMaterial()`, '#b17724')
+        : ''}
+                
+                ${botao('LPU Parceiro', `modalLPUParceiro()`, '#0062d5')}
 
-                <div style="display: flex; gap: 10px; font-size: 0.9vw;">
-                    
-                    ${botao('Novo Pedido', `painelAdicionarPedido()`, '#4CAF50')}
-                    ${botao('Requisição Materiais', `detalharRequisicao(undefined, 'infraestrutura')`, '#B12425')}
-                    ${botao('Requisição Equipamentos', `detalharRequisicao(undefined, 'equipamentos')`, '#B12425')}
-                    ${botao('Nova Nota Fiscal', `painelAdicionarNotas()`, '#ff4500')}
-
-                    ${(acesso.permissao == 'adm' || acesso.setor == 'LOGÍSTICA')
-            ? botao('Novo Envio de Material', `envioMaterial()`, '#b17724')
-            : ''}
-                    
-                    ${botao('LPU Parceiro', `modalLPUParceiro()`, '#0062d5')}
-
-                    ${botao('Produtos sem Requisição', `mostrarItensPendentes()`, '')}
-                </div>
+                ${botao('Produtos sem Requisição', `mostrarItensPendentes()`, '')}
             </div>
+        </div>
 
-            <div class="container-blocos">
-                ${divLevantamentos}
-                ${blocos}
-            </div>
+        <div class="container-blocos">
+            ${divLevantamentos}
+            ${blocos}
         </div>`
 
-    let titulo = `${orcamento.dados_orcam.contrato} - ${cliente?.nome || '??'}`
-    popup(acumulado, titulo)
+    const janelaAtiva = document.querySelector('.painel-historico')
+    if (janelaAtiva) {
+        removerOverlay()
+        janelaAtiva.innerHTML = acumulado
+        return 
+    }
+    popup(`<div class="painel-historico">${acumulado}</div>`, 'Histórico do Orçamento')
 
 }
 
@@ -2400,18 +2403,27 @@ async function carregar_anexos(chave) {
 
 async function apagarStatusHistorico(chave) {
 
+    const acumulado = `
+        <div style="background-color: #d2d2d2; padding: 1rem; gap: 2rem;">
+            <span>Tem certeza?</span>
+            <button onclick="confirmarExclusaoStatus('${chave}')">Confirmar</button>
+        </div>
+    `
+
+    popup(acumulado, 'Excluir Status', true)
+}
+
+
+async function confirmarExclusaoStatus(chave) {
+
     removerPopup()
-
+    overlayAguarde()
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    let criador = orcamento?.status?.historico[chave]?.executor || '';
-    let permitidos = acesso.permissao == 'adm' || acesso.usuario == criador;
-
-    if (!permitidos) return popup(mensagem(`Você não tem permissão para excluir este item`), 'ALERTA', true)
-
     delete orcamento.status.historico[chave]
     deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`)
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-    await abrirEsquema(id_orcam)
+    await abrirEsquema()
+    
 }
 
 async function atualizar_partnumber(produtos) {

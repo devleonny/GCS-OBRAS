@@ -228,12 +228,12 @@ async function despoluicaoGCS() {
     const divMensagem = document.querySelector('.div-mensagem')
 
     divMensagem.innerHTML = `
-    <div style="${vertical}; gap: 1vh;">
-        <label>GCS: Por favor, aguarde...</label>
-        <br>
-        
-        <div id="logs" style="${vertical}; gap: 1vh;"></div>
-    </div>
+        <div style="${vertical}; gap: 1vh;">
+            <label>GCS: Por favor, aguarde...</label>
+            <br>
+            
+            <div id="logs" style="${vertical}; gap: 1vh;"></div>
+        </div>
     `
 
     let logs = document.getElementById('logs')
@@ -2443,10 +2443,13 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
     let base = await recuperarDados(nomeBase)
     let opcoesDiv = ''
 
+    const style1 = `font-weight: bold;`
+    const style2 = `font-size: 0.7rem`
+
     for ([cod, dado] of Object.entries(base)) {
 
         const labels = campos
-            .map(campo => `${(dado[campo] && dado[campo] !== '') ? `<label>${dado[campo]}</label>` : ''}`)
+            .map((campo, i) => `${(dado[campo] && dado[campo] !== '') ? `<label style="${i == 0 ? style1 : style2}">${dado[campo]}</label>` : ''}`)
             .join('')
 
         const descricao = String(dado[campos[0]])
@@ -2454,7 +2457,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
             .replace(/[^a-zA-Z0-9 ]/g, '')
 
         opcoesDiv += `
-            <div name="camposOpcoes" class="atalhos" onclick="selecionar('${name}', '${cod}', '${descricao}', ${funcaoAux ? `'${funcaoAux}'` : false})" style="${vertical}; gap: 2px; max-width: 40vw;">
+            <div name="camposOpcoes" class="atalhos-opcoes" onclick="selecionar('${name}', '${cod}', '${descricao}', ${funcaoAux ? `'${funcaoAux}'` : false})" style="${vertical}; gap: 2px; max-width: 40vw;">
                 ${labels}
             </div>`
     }

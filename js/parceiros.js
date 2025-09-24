@@ -1,422 +1,394 @@
-async function modalLPUParceiro(chave) {
-    const baseOrcamentos = await recuperarDados('dados_orcamentos') || {};
+let chaveHistorico = null
+let removidos = {}
 
-    let acumulado = '';
-    let cabecalhos = ['ID', 'Descrição', 'Medida', 'Quantidade', 'Valor Orçamento', 'Valor Total Orçado', 'Impostos (20%)', 'Margem (R$)', 'Valor Parceiro', 'Total Parceiro', 'Desvio'];
+async function modalLPUParceiro(chave) {
+
+    chaveHistorico = chave || ID5digitos()
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    let cabecalhos = ['<input type="checkbox" onclick="marcarItensLPU(this)">', 'ID', 'Descrição', 'Medida', 'Quantidade', 'Valor Orçamento', 'Valor Total Orçado', 'Impostos (20%)', 'Margem (R$)', 'Valor Parceiro', 'Total Parceiro', 'Desvio'];
     let thSearch = '';
     let thHead = '';
-    let linhas = '';
-
-    cabecalhos.forEach((cabecalho, i) => {
-        thHead += `<th style="color: white;">${cabecalho}</th>`;
-        thSearch +=
-            `<th style="background-color: white">
-                <div style="display: flex; justify-content:space-between; align-items: center">
-                    <input oninput="pesquisarGenerico(${i}, this.value, filtrosTabelaParceiros, 'bodyTabela')" style="text-align: left; width: 100%">
-                    <img src="imagens/pesquisar2.png" style="width: 1vw;">
-                </div>
-            </th>`;
-    });
-
-    let orcamento = baseOrcamentos[id_orcam]
-
-    let itensOrcamento = orcamento.dados_composicoes
-
-    for ([codigo, composicao] of Object.entries(itensOrcamento)) {
-
-        if (composicao.tipo === 'SERVIÇO') {
-            let custo = composicao.custo
-            let qtde = composicao.qtde
-            let total = custo * qtde
-            let imposto = total * 0.2
-            linhas += `
-            <tr>
-                <td>${codigo}</td>
-                <td style="text-align: left;">${composicao.descricao}</td>
-                <td>${composicao.unidade}</td>
-                <td>
-                    <input class="campoRequisicao" 
-                    oninput="atualizarValorParceiro(this)"
-                    type="number"
-                    step="0.01"
-                    data-original="${qtde}"
-                    value="${qtde}">
-                </td>
-                <td>${dinheiro(custo)}</td>
-                <td>${dinheiro(total)}</td>
-                <td>${dinheiro(imposto)}</td>
-                <td></td>
-                <td style="padding: 0; white-space: nowrap; height: 100%;">
-                    <div style="display: flex; align-items: stretch; gap: 4px; width: 100%; height: 100%; box-sizing: border-box; padding: 2px 5px;">
-                        <input
-                            class="campoRequisicao"
-                            oninput="atualizarValorParceiro(this)" 
-                            type="number" 
-                            step="0.01">
-                    </div>
-                </td>
-                 <td></td>
-                <td><label class="labelAprovacao"></label></td>
-                
-            </tr>
-        `
-        }
+    const cliente = await recuperarDado('dados_clientes', orcamento.dados_orcam?.omie_cliente) || {}
+    const dadosEmpresa = {
+        ...orcamento.dados_orcam,
+        ...cliente
     }
 
-    let tabela =
-        `<table class="tabela" style="display: table-row;">
-            <thead style="background-color: #797979;">
-                <tr>${thHead}</tr>
-                <tr>${thSearch}</tr>
-            </thead>
-            <tbody id="bodyTabela">${linhas}</tbody>
-        </table>
+    console.log(orcamento);
 
-        ${botao('Adicionar Serviço', 'adicionarItemAdicional()', '#222')}
-        `;
+    const status = orcamento?.status?.historico?.[chaveHistorico] || {}
+    const idTecnico = status?.tecnico || ''
+    const tecnico = await recuperarDado('dados_clientes', idTecnico)
 
-    let stringHtml = (titulo, valor) => `
-        <div style="display: flex; justifty-content: start; align-items: center; gap: 5px;">
-        <label><strong>${titulo}</strong>:</label>
-        <label>${valor}</label>
+    cabecalhos.forEach((cabecalho, i) => {
+        thHead += `<th>${cabecalho}</th>`;
+        thSearch +=
+            `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico(${i}, this.textContent, filtrosTabelaParceiros, 'bodyTabela')"></th>`;
+    });
+
+    const tabela = `
+        <div style="${vertical};">
+            <div class="topo-tabela">
+                <button onclick="removerItensEmMassa()">Remover Itens</button>
+                <button onclick="verItensRemovidosLPU()">Ver Itens Removidos</button>
+                <button onclick="adicionarItemAdicional()">Adicionar Serviço</button>
+                <button style="background-color: green;" onclick="salvarLpuParceiro()">Salvar LPU</button>
+            </div>
+            <div class="div-tabela">
+                <table class="tabela">
+                    <thead>
+                        <tr>${thHead}</tr>
+                        <tr>${thSearch}</tr>
+                    </thead>
+                    <tbody id="bodyParceiros"></tbody>
+                </table>
+            </div>
+            <div class="rodapeTabela"></div>
         </div>
         `
 
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let dadosEmpresa = {
-        ...orcamento.dados_orcam,
-        ...dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
-    }
+    const stringHtml = (titulo, valor) => `
+        <div style="${vertical}; gap: 3px;">
+            <label><strong>${titulo}</strong>:</label>
+            <div style="font-size: 1rem;">${valor}</div>
+        </div>`
 
-    let funcaoSalvar = chave ? `salvarLpuParceiro('${chave}')` : 'salvarLpuParceiro()'
+    const acumulado = `
+        <div style="background-color: #d2d2d2; padding: 1rem; ${vertical};">
 
-    acumulado = `
-        <div style="background-color: #d2d2d2; padding: 5px;">
-            <div style="display: flex; justify-content: space-between;" margin-top: 5px>
-                <div style=" display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px; margin-left: 10px">
-                    ${stringHtml('Data', obterDatas('completa'))}
-                    ${stringHtml('Analista', acesso.nome_completo)}
+            <div style="${horizontal}; align-items: start; gap: 2rem;">
+
+                <div style="${vertical}">
                     ${stringHtml('Cliente', dadosEmpresa.nome)}
                     ${stringHtml('CNPJ', dadosEmpresa.cnpj)}
                     ${stringHtml('Endereço', dadosEmpresa.bairro)}
                     ${stringHtml('Cidade', dadosEmpresa.cidade)}
-                    ${stringHtml('Estado', dadosEmpresa.estado)}
-                    ${stringHtml('Margem para este serviço(%)', `<input id="margem_lpu" class="campoRequisicao" style="background-color: white;" value="40" oninput="calcularLpuParceiro()">`)}
-                    ${stringHtml('Técnico', `<textarea type="text" id="tecnico" oninput="sugestoesParceiro(this, 'clientes')" placeholder="Qual o nome do técnico?"></textarea><input style="display: none">`)}
-                </div>
-        
-                <div style="margin-top: 5px">
-                    ${stringHtml('Resumo', '<lalbel style="margin-bottom: 5px; padding: 10px 0 20px"></lalbel>')}
-                    ${stringHtml('Total do Valor Orçamento', '<lalbel style="margin-bottom: 5px; padding: 10px 0 20px"id="totalOrcamento"></lalbel>')}
-                    ${stringHtml('Total Margem Disponível', '<lalbel id="totalMargem"></lalbel>')}
-                    ${stringHtml('Total do Valor Parceiro', '<lalbe id="totalParceiro"l></lalbe>')}
-                    ${stringHtml('Total Desvio', '<lalbel id="totalDesvio" class="labelAprovacao"></lalbel>')}
                 </div>
 
-                <div>
-                    ${botao('Salvar', funcaoSalvar, 'green')}
-                    ${botao('Gerar Excel', `gerarExcelLpuParceiro()`, 'green')}
+                <div style="${vertical}">
+                    ${stringHtml('Técnico', `<span ${tecnico ? `id="${status.tecnico}"` : ''} class="opcoes" name="tecnico" onclick="cxOpcoes('tecnico', 'dados_clientes', ['nome', 'cnpj_cpf', 'bairro'])">${tecnico?.nome || 'Selecione'}</span>`)}
+                    ${stringHtml('Margem Geral (%)', `<input id="margem_lpu" class="campoRequisicao" style="background-color: white;" value="${status?.margem || '40'}" oninput="calcularLpuParceiro()">`)}
+                    ${stringHtml('Comentário', `<textarea id="comentario">${status?.comentario || ''}</textarea>`)}
                 </div>
-               
+        
+                <div style="${vertical}">
+                    ${stringHtml('Total do Valor Orçamento', '<label id="total_orcamento"></label>')}
+                    ${stringHtml('Total Margem Disponível', '<label id="total_margem"></label>')}
+                    ${stringHtml('Total do Valor Parceiro', '<label id="total_parceiro"l></label>')}
+                    ${stringHtml('Total Desvio', '<label id="total_desvio"></label>')}
+                </div>
+
             </div>
+
             <br>
             ${tabela}
         </div>
         `
+    const bodyParceiros = document.getElementById('bodyParceiros')
+    if (!bodyParceiros) {
+        removidos = status?.removidos || {}
+        popup(acumulado, 'LPU Parceiro', true)
+    }
 
-    popup(acumulado, 'LPU Parceiro', true)
+    const itens = status?.itens || orcamento?.dados_composicoes || {}
 
-    // Caso seja informada a CHAVE, então os dados são preenchidos;
-    const historico = baseOrcamentos[id_orcam]?.status?.historico || {};
-    const dadosSalvos = historico[chave] || {}
+    for (const [codigo, composicao] of Object.entries(itens)) {
 
-    document.getElementById('tecnico').value = dadosSalvos?.tecnicoLpu || '';
-    document.getElementById('margem_lpu').value = dadosSalvos?.margem_percentual || 40;
+        if (composicao.tipo == 'VENDA') continue
+        if (removidos[codigo]) continue
 
-    const trs = document.querySelectorAll('#bodyTabela tr');
-    for (let tr of trs) {
-        let tds = tr.querySelectorAll('td');
-        const codigo = tds[0]?.textContent.trim();
-        const itemSalvo = dadosSalvos.itens?.[codigo];
-        if (itemSalvo) {
+        await adicionarLinhaParceiro(codigo, composicao)
 
-            let inputQtde = tds[3]?.querySelector('input');
-            if (inputQtde) inputQtde.value = itemSalvo.qtde;
-
-            let inputValor = tds[8]?.querySelector('input');
-            if (inputValor) inputValor.value = itemSalvo.valor_parceiro_unitario;
-        }
     }
 
     calcularLpuParceiro();
 
 }
 
-async function gerarExcelLpuParceiro() {
+async function recuperarItemLPU(codigo, img) {
 
-    let margem = Number(document.getElementById('margem_lpu').value);
-    let tecnico = String(document.getElementById('tecnico').value) || '';
+    overlayAguarde()
 
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let orcamento = dados_orcamentos[id_orcam]
-    let dadosEmpresa = {
-        ...orcamento.dados_orcam,
-        ...dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
+    await adicionarLinhaParceiro(codigo, removidos[codigo])
+
+    delete removidos[codigo]
+
+    await modalLPUParceiro(chaveHistorico)
+
+    img.closest('div').remove()
+
+    removerOverlay()
+
+}
+
+async function verItensRemovidosLPU() {
+
+    let itens = ''
+    for (const [codigo, composicao] of Object.entries(removidos)) {
+
+        itens += `
+            <div style="${horizontal}; gap: 10px;">
+                <img onclick="recuperarItemLPU('${codigo}', this)" src="imagens/atualizar3.png" style="width: 1.2rem;">
+                <span>${composicao.descricao}</span> 
+            </div>
+        `
     }
 
-    let dadosParaExcel = {
+    const acumulado = `
+        <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw; min-width: 30vw;">
+
+            ${itens}
+
+        </div>
+    `
+
+    popup(acumulado, 'Itens Removidos', true)
+
+}
+
+function marcarItensLPU(input) {
+
+    const itensChecklist = document.querySelectorAll('[name="itensLPU"]')
+
+    for (const check of itensChecklist) {
+        const tr = check.closest('tr')
+        check.checked = tr.style.display !== 'none' && input.checked
+    }
+
+}
+
+async function adicionarLinhaParceiro(codigo, composicao) {
+
+    new Promise((resolve, reject) => {
+
+        const tds = `
+        <td>
+            <input type="checkbox" name="itensLPU">
+        </td>
+        <td>${composicao.avulso ? `<span><b>[Avulso]</b></span>` : codigo}</td>
+        <td>${composicao.descricao}</td>
+        <td>${composicao.unidade}</td>
+        <td>
+            <input class="campoRequisicao" oninput="calcularLpuParceiro()" type="number" value="${composicao.qtde}">
+        </td>
+        <td>${dinheiro(composicao?.custo || composicao?.valor_orcado || 0)}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td>
+            <input class="campoRequisicao" oninput="calcularLpuParceiro()" type="number" value="${composicao?.valor_parceiro_unitario || ''}">
+        </td>
+        <td></td>
+        <td>
+            <label class="labelAprovacao"></label>
+        </td>
+    `
+        const trExistente = document.getElementById(codigo)
+
+        if (trExistente) {
+            trExistente.innerHTML = tds
+            resolve()
+            return
+        }
+
+        document.getElementById('bodyParceiros').insertAdjacentHTML('beforeend', `<tr data-avulso="${composicao.avulso ? 'S' : 'N'}" id="${codigo}">${tds}</tr>`)
+        calcularLpuParceiro()
+        resolve()
+    })
+
+}
+
+async function adicionarItemAdicional() {
+
+    const acumulado = `
+        <div style="${horizontal}; gap: 10px; background-color: #d2d2d2; padding: 2vw;">
+            ${modelo('Descrição', `<input name="descricao" style="padding: 5px; border-radius: 3px;">`)}
+            ${modelo('Quantidade', `<input name="qtde" type="number" style="padding: 5px; border-radius: 3px;">`)}
+            ${modelo('Custo', `<input name="valor_orcado" type="number" style="padding: 5px; border-radius: 3px;">`)}
+            ${modelo('Unidade', `<input name="unidade" style="padding: 5px; border-radius: 3px;">`)}
+            <img src="imagens/concluido.png" style="width: 2rem;" onclick="salvarAdicional()">
+        </div>
+    `
+
+    popup(acumulado, 'Incluir Serviço', true)
+}
+
+async function salvarAdicional() {
+
+    const qtde = Number(document.querySelector('[name="qtde"]').value)
+    const descricao = document.querySelector('[name="descricao"]').value
+    const valor_orcado = Number(document.querySelector('[name="valor_orcado"]').value)
+    const unidade = document.querySelector('[name="unidade"]').value
+
+    if (!qtde || !descricao || !valor_orcado || !unidade) return popup(mensagem('Não deixe campos em Branco'), 'Alerta', true)
+
+    overlayAguarde()
+    const codigo = ID5digitos()
+    const composicao = {
+        descricao,
+        qtde,
+        valor_orcado,
+        unidade,
+        avulso: true
+    }
+
+    adicionarLinhaParceiro(codigo, composicao)
+
+    removerPopup()
+}
+
+async function removerItensEmMassa() {
+
+    const itens = document.querySelectorAll('[name="itensLPU"]:checked')
+
+    if (itens.length == 0) return
+
+    overlayAguarde()
+
+    for (const check of itens) {
+
+        const tr = check.closest('tr')
+        const codigo = tr.id
+
+        const tds = tr.querySelectorAll('td')
+
+        removidos[codigo] = {
+            descricao: tds[2].textContent,
+            unidade: tds[3].textContent,
+            qtde: Number(tds[4].querySelector('input').value),
+            custo: conversor(tds[5].textContent)
+        }
+
+        tr.remove()
+
+    }
+
+    removerOverlay()
+    await modalLPUParceiro(chaveHistorico)
+}
+
+async function salvarLpuParceiro() {
+
+    overlayAguarde()
+
+    const trs = document.querySelectorAll('#bodyParceiros tr')
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+
+    if (!orcamento.status) orcamento.status = {}
+    if (!orcamento.status.historico) orcamento.status.historico = {}
+    if (!orcamento.status.historico[chaveHistorico]) orcamento.status.historico[chaveHistorico] = {}
+
+    let status = {
+        ...orcamento.status.historico[chaveHistorico],
+        removidos,
         status: 'LPU PARCEIRO',
-        data: obterDatas('completa'),
-        analista: acesso.nome_completo,
-        margem_percentual: margem,
-        tecnicoLpu: tecnico,
-        cliente: dadosEmpresa.nome,
-        cnpj: dadosEmpresa.cnpj,
-        endereco: dadosEmpresa.bairro,
-        cidade: dadosEmpresa.cidade,
-        estado: dadosEmpresa.estado,
         itens: {},
-        itens_adicionais: [],
-        totais: {
-            orcamento: 0,
-            parceiro: 0,
-            desvio: 0,
-            margem: 0
-        }
-    };
+        margem: Number(document.getElementById('margem_lpu').value),
+        executor: acesso.usuario,
+        data: new Date().toLocaleString(),
+        comentario: document.getElementById('comentario').value,
+        tecnico: document.querySelector('[name="tecnico"]')?.id || null
+    }
 
-    let trs = document.querySelectorAll('#bodyTabela tr');
-    for (let tr of trs) {
-        let tds = tr.querySelectorAll('td');
-        if (tds.length < 11) continue;
+    for (const tr of trs) {
+        const codigo = tr.id
+        const tds = tr.querySelectorAll('td')
+        const avulso = tr.dataset.avulso === 'S'
 
-        let isAdicional = tr.classList.contains('item-adicional');
-        let codigo = tds[0].textContent.trim();
-        let descricao = tr.querySelector('textarea')?.value?.trim() || extrairTextoOuInput(tds[1]);
-        let unidade = extrairTextoOuInput(tds[2]);
-        let qtde = conversor(tds[3].textContent.trim());
-        let valor_orcado = conversor(tds[4].textContent.trim());
-        let total_orcado = conversor(tds[5].textContent.trim());
-        let imposto = conversor(tds[6].textContent.trim());
-
-        let valor_parceiro_unitario = Number(tds[8].querySelector('input')?.value || 0);
-        let total_parceiro = qtde * valor_parceiro_unitario;
-        let margem_reais = total_orcado * (margem / 100);
-        let desvio = margem_reais - total_parceiro;
-
-        if (isAdicional) {
-            dadosParaExcel.itens_adicionais = dadosParaExcel.itens_adicionais || [];
-            dadosParaExcel.itens_adicionais.push({
-                codigo,
-                descricao,
-                unidade,
-                qtde,
-                valor_parceiro_unitario,
-                total_parceiro
-            });
-        } else {
-            dadosParaExcel.itens[codigo] = {
-                descricao,
-                unidade,
-                qtde,
-                valor_orcado,
-                total_orcado,
-                imposto,
-                valor_parceiro_unitario,
-                total_parceiro,
-                margem_reais,
-                desvio
-            };
-
-            dadosParaExcel.totais.orcamento += total_orcado;
-            dadosParaExcel.totais.parceiro += total_parceiro;
-            dadosParaExcel.totais.margem += margem_reais;
-            dadosParaExcel.totais.desvio += desvio;
+        status.itens[codigo] = {
+            avulso,
+            qtde: conversor(tds[4].querySelector('input').value),
+            descricao: tds[2].textContent,
+            unidade: tds[3].textContent,
+            custo: conversor(tds[5].textContent),
+            valor_parceiro_unitario: Number(tds[9].querySelector('input').value)
         }
     }
 
-    exportarComoExcelHTML(dadosParaExcel);
+    orcamento.status.historico[chaveHistorico] = status
+    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chaveHistorico}`, status)
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    removerPopup()
+    await abrirEsquema()
 }
 
 function calcularLpuParceiro() {
     const margemPercentual = Number(document.getElementById('margem_lpu').value) / 100;
 
-    let calculos = {
-        principais: { orcamento: 0, parceiro: 0, margem: 0, desvio: 0 },
-        adicionais: { parceiro: 0, desvio: 0 },
-        totais: { orcamento: 0, parceiro: 0, margem: 0, desvioFinal: 0 }
+    let totais = {
+        orcamento: 0,
+        parceiro: 0,
+        desvio: 0,
+        margem: 0
     };
 
-    let trs = document.querySelectorAll('#bodyTabela tr');
+    const trs = document.querySelectorAll('#bodyParceiros tr')
+    const modelo = (texto) => `<span style="white-space: nowrap;">${texto}</span>`
 
-    for (tr of trs) {
-        let tds = tr.querySelectorAll('td');
-        if (tds.length < 11) continue;
+    for (const tr of trs) {
 
-        let inputParceiro = tds[8].querySelector('input');
-        let labelDesvio = tds[10].querySelector('label');
-        if (!inputParceiro || !labelDesvio) continue;
+        const avulso = tr.dataset.avulso == 'S'
+        const tds = tr.querySelectorAll('td')
+        const qtde = Number(tds[4].querySelector('input').value)
+        const valorOrcamento = conversor(tds[5].textContent)
+        const valParceiro = Number(tds[9].querySelector('input').value)
+        const totalLinha = qtde * valorOrcamento
+        const totalParceiro = valParceiro * qtde
+        const totalMargem = totalLinha * margemPercentual
+        const margemPorItem = qtde == 0 ? 0 : totalMargem / qtde
+        const desvio = avulso ? - totalParceiro : totalMargem - totalParceiro
+        const img = desvio < 0 ? 'offline' : 'online'
 
-        let inputQtde = tds[3].querySelector('input')
-        const qtdeOriginal = Number(inputQtde.dataset.original)
-        const qtdeDigitada = Number(inputQtde.value)
+        totais.parceiro += totalParceiro
+        totais.desvio += desvio
+        totais.orcamento += totalLinha
 
-        let quantidade = qtdeDigitada > qtdeOriginal ? qtdeOriginal : qtdeDigitada
-
-        inputQtde.value = quantidade
-
-        let valorParceiro = Number(inputParceiro.value) || 0;
-
-        let totalParceiro = quantidade * valorParceiro;
-        let unitOrcado = conversor(tds[4].textContent);
-        let totalOrcado = unitOrcado * quantidade
-        let margemLinha = totalOrcado * margemPercentual;
-        let desvioLinha = margemLinha - totalParceiro;
-
-        if (tr.classList.contains('item-adicional')) {
-            calculos.adicionais.parceiro += totalParceiro;
-            calculos.adicionais.desvio -= totalParceiro;
-
-            labelDesvio.textContent = dinheiro(totalParceiro * (-1));
-            labelDesvio.style.backgroundColor = '#B12425';
-
-            labelDesvio.className = 'labelAprovacao';
-            tds[7].textContent = dinheiro(0);
-        } else {
-            calculos.principais.orcamento += totalOrcado;
-            calculos.principais.parceiro += totalParceiro;
-            calculos.principais.margem += margemLinha;
-            calculos.principais.desvio += desvioLinha;
-            labelDesvio.style.backgroundColor = desvioLinha >= 0 ? 'green' : '#B12425';
-            labelDesvio.textContent = dinheiro(desvioLinha);
-            tds[7].innerHTML = `
-            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column;">
-                <label><strong>UN</strong> ${dinheiro((margemLinha / quantidade))}</label>
-                <hr style="width: 100%;">
-                <label><strong>T</strong> ${dinheiro(margemLinha)}</label>
-            </div>`
-        }
-
-        tds[5].textContent = dinheiro(totalOrcado)
-        tds[9].textContent = dinheiro(totalParceiro);
+        tds[6].innerHTML = modelo(dinheiro(totalLinha))
+        tds[7].innerHTML = modelo(dinheiro(totalLinha * 0.2))
+        tds[8].innerHTML = avulso
+            ? '--'
+            : `
+            <div style="${vertical}; gap: 5px;">
+                ${modelo(dinheiro(margemPorItem))}
+                ${modelo(dinheiro(totalMargem))}
+            </div>
+        `
+        tds[10].innerHTML = modelo(dinheiro(totalParceiro))
+        tds[11].innerHTML = `
+            <div style="${horizontal}; justify-content: start; gap: 3px;">
+                <img src="imagens/${img}.png" style="width: 1.5rem;">
+                ${modelo(dinheiro(desvio))}
+            </div>
+            `
     }
 
-    calculos.totais.orcamento = calculos.principais.orcamento;
-    calculos.totais.parceiro = calculos.principais.parceiro + calculos.adicionais.parceiro;
-    calculos.totais.margem = calculos.principais.margem;
-    calculos.totais.desvioFinal = calculos.principais.margem - calculos.totais.parceiro;
+    totais.margem = totais.orcamento * margemPercentual
 
-    document.getElementById('totalOrcamento').textContent = dinheiro(calculos.totais.orcamento);
-    document.getElementById('totalParceiro').textContent = dinheiro(calculos.totais.parceiro);
-    document.getElementById('totalMargem').textContent = dinheiro(calculos.totais.margem);
-
-    let totalDesvioElement = document.getElementById('totalDesvio');
-    totalDesvioElement.textContent = dinheiro(calculos.totais.desvioFinal);
-    totalDesvioElement.style.backgroundColor = calculos.totais.desvioFinal >= 0 ? 'green' : '#B12425';
-}
-
-
-async function salvarLpuParceiro(chave) {
-    overlayAguarde();
-    chave = chave ? chave : ID5digitos();
-
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    let orcamento = dados_orcamentos[id_orcam];
-    let margem = Number(document.getElementById('margem_lpu').value);
-    let omie_tecnico = document.getElementById('tecnico').nextElementSibling.value
-
-    let novo_lancamento = {
-        status: 'LPU PARCEIRO',
-        data: obterDatas('completa'),
-        executor: acesso.usuario,
-        margem_percentual: margem,
-        omie_tecnico,
-        itens: {},
-        itens_adicionais: [],
-        totais: {
-            orcamento: 0,
-            parceiro: 0,
-            desvio: 0,
-            margem: 0
-        }
-    };
-
-    let trs = document.querySelectorAll('#bodyTabela tr');
-
-    for (let tr of trs) {
-        let tds = tr.querySelectorAll('td');
-        if (tds.length < 11) {
-            console.warn('Linha ignorada por ter menos de 11 células:', tr);
-            continue;
-        }
-
-        let isAdicional = tr.classList.contains('item-adicional');
-        let codigo = tds[0].textContent.trim();
-        let descricao = tr.querySelector('textarea')?.value?.trim() || extrairTextoOuInput(tds[1]);
-        let unidade = extrairTextoOuInput(tds[2]);
-        let qtde = Number(tds[3].querySelector('input').value);
-        let valor_orcado = conversor(tds[4].textContent.trim());
-        let total_orcado = conversor(tds[5].textContent.trim());
-        let imposto = conversor(tds[6].textContent.trim());
-
-        let valor_parceiro_unitario = Number(tds[8].querySelector('input')?.value || 0);
-        let total_parceiro = qtde * valor_parceiro_unitario;
-        let margem_reais = total_orcado * (margem / 100);
-        let desvio = margem_reais - total_parceiro;
-
-        if (isAdicional) {
-            // Adicionais não precisam de todos os campos
-            novo_lancamento.itens_adicionais = novo_lancamento.itens_adicionais || [];
-            novo_lancamento.itens_adicionais.push({
-                codigo,
-                descricao,
-                unidade,
-                qtde,
-                valor_parceiro_unitario,
-                total_parceiro
-            });
-        } else {
-            // Itens principais
-            novo_lancamento.itens[codigo] = {
-                descricao,
-                unidade,
-                qtde,
-                valor_orcado,
-                total_orcado,
-                imposto,
-                valor_parceiro_unitario,
-                total_parceiro,
-                margem_reais,
-                desvio
-            };
-
-            novo_lancamento.totais.orcamento += total_orcado;
-            novo_lancamento.totais.parceiro += total_parceiro;
-            novo_lancamento.totais.margem += margem_reais;
-            novo_lancamento.totais.desvio += desvio;
-        }
+    for (const [campo, total] of Object.entries(totais)) {
+        const el = document.getElementById(`total_${campo}`)
+        if (el) el.textContent = dinheiro(total)
     }
-
-    orcamento.status = orcamento.status || {};
-    orcamento.status.historico = orcamento.status.historico || {};
-    orcamento.status.historico[chave] = novo_lancamento;
-    dados_orcamentos[id_orcam] = orcamento;
-
-    await inserirDados(dados_orcamentos, 'dados_orcamentos');
-    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`, novo_lancamento);
-
-    removerPopup();
-    await abrirEsquema(id_orcam);
 
 }
 
+async function exportarComoExcelHTML(chave) {
+    overlayAguarde()
 
-function exportarComoExcelHTML(dados) {
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const status = orcamento?.status?.historico?.[chave] || {}
+    const clienteOmie = orcamento?.dados_orcam?.omie_cliente || ''
+    const cliente = await recuperarDado('dados_clientes', clienteOmie)
+    const dados = {
+        ...status,
+        ...cliente
+    }
+
     let html = `
-    <html xmlns:x="urn:schemas-microsoft-com:office:excel">
+    <!DOCTYPE HTML>
+    <html xmlns="http://www.w3.org/TR/REC-html40"
+          xmlns:x="urn:schemas-microsoft-com:office:excel">
     <head>
-        <meta charset="UTF-8">
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <style>
             .numero {
                 mso-number-format:"0";
@@ -427,7 +399,7 @@ function exportarComoExcelHTML(dados) {
                 text-align: left;
             }
             .moeda {
-                mso-number-format:"R$ 0.00";
+                mso-number-format:"R$ #,##0.00";
                 text-align: right;
             }
             .cabecalho {
@@ -451,7 +423,7 @@ function exportarComoExcelHTML(dados) {
     </head>
     <body>
         <div style="text-align: center; margin-bottom: 20px">
-            <h2>LPU PARCEIRO - GCS SISTEMAS</h2>
+            <h2>LPU PARCEIRO</h2>
         </div>
         
         <table>
@@ -459,25 +431,19 @@ function exportarComoExcelHTML(dados) {
                 <td class="texto"><strong>Data:</strong></td>
                 <td class="texto">${dados.data}</td>
                 <td class="texto"><strong>Analista:</strong></td>
-                <td class="texto">${dados.analista}</td>
+                <td class="texto">${dados.executor}</td>
             </tr>
             <tr>
                 <td class="texto"><strong>Cliente:</strong></td>
-                <td class="texto">${dados.cliente}</td>
+                <td class="texto">${dados.nome}</td>
                 <td class="texto"><strong>CNPJ:</strong></td>
                 <td class="texto">${dados.cnpj}</td>
             </tr>
             <tr>
                 <td class="texto"><strong>Endereço:</strong></td>
-                <td class="texto">${dados.endereco}</td>
+                <td class="texto">${dados.bairro}</td>
                 <td class="texto"><strong>Cidade/Estado:</strong></td>
-                <td class="texto">${dados.cidade} - ${dados.estado}</td>
-            </tr>
-            <tr>
-                <td class="texto"><strong>Margem:</strong></td>
-                <td class="texto">${dados.margem_percentual}%</td>
-                <td class="texto"><strong>Técnico:</strong></td>
-                <td class="texto">${dados.tecnicoLpu}</td>
+                <td class="texto">${dados.cidade}</td>
             </tr>
         </table>
 
@@ -496,7 +462,7 @@ function exportarComoExcelHTML(dados) {
             </thead>
             <tbody>`;
 
-    let linha = 9; // Começa após o cabeçalho
+    let linha = 9; // começa após o cabeçalho
     for (let [codigo, item] of Object.entries(dados.itens)) {
         html += `
             <tr>
@@ -505,97 +471,34 @@ function exportarComoExcelHTML(dados) {
                 <td class="texto" style="text-align: center">${item.unidade}</td>
                 <td class="numero">${item.qtde}</td>
                 <td class="moeda">${item.valor_parceiro_unitario}</td>
-                <td class="moeda">
-                    =MULT(D${linha};E${linha})
-                </td>
+                <td class="moeda">=D${linha}*E${linha}</td>
             </tr>`;
         linha++;
-    }
-
-    if (dados.itens_adicionais?.length > 0) {
-        html += `
-            <tr>
-                <td colspan="6" style="text-align: center; font-weight: bold; background-color: #e9ecef">
-                    SERVIÇOS ADICIONAIS
-                </td>
-            </tr>`;
-
-        for (let item of dados.itens_adicionais) {
-            html += `
-                <tr>
-                    <td class="texto">${item.codigo || ''}</td>
-                    <td class="texto">${item.descricao}</td>
-                    <td class="texto" style="text-align: center">${item.unidade}</td>
-                    <td class="numero">${item.qtde}</td>
-                    <td class="moeda">${item.valor_parceiro_unitario}</td>
-                    <td class="moeda">
-                        =MULT(D${linha};E${linha})
-                    </td>
-                </tr>`;
-            linha++;
-        }
     }
 
     html += `
             <tr><td colspan="6" style="border: none; height: 20px"></td></tr>
             <tr class="total">
                 <td colspan="5" style="text-align: right"><strong>TOTAL DO ORÇAMENTO VENDIDO:</strong></td>
-                <td class="formula">
-                    =SOMA(F9:F${linha - 1})
-                </td>
+                <td class="moeda">=SOMA(F9:F${linha - 1})</td>
             </tr>
         </tbody>
     </table>
     </body>
     </html>`;
 
-    let blob = new Blob([html], { type: "application/vnd.ms-excel" });
-    let url = URL.createObjectURL(blob);
-    let a = document.createElement("a");
-    a.href = url;
-    a.download = `LPU_Parceiro_${dados.tecnicoLpu || 'tecnico'}.xls`;
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-async function salvarItensAdicionais(chave) {
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    let orcamento = dados_orcamentos[id_orcam];
-    if (!orcamento || !orcamento.status || !orcamento.status.historico || !orcamento.status.historico[chave]) {
-        console.error('Histórico não encontrado para chave:', chave);
-        return;
+    try {
+        let blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8" });
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement("a");
+        a.href = url;
+        a.download = `LPU Parceiro ${dados.nome}.xls`;
+        a.click();
+        URL.revokeObjectURL(url);
+        removerOverlay()
+    } catch (err) {
+        popup(mensagem(err), 'Alerta', true)
     }
-
-    let itens_adicionais = [];
-    const linhasAdicionais = document.querySelectorAll('.item-adicional');
-
-    linhasAdicionais.forEach(linha => {
-        const descricao = linha.querySelector('textarea')?.value || '';
-        const codigo = linha.querySelector('.codigo-item')?.textContent || '';
-        const unidade = linha.cells[2]?.textContent || '';
-        const quantidade = parseFloat(linha.querySelector('.quantidade')?.innerText.replace(',', '.') || 0);
-        const valorUnitario = parseFloat(linha.querySelector('.input-lpuparceiro')?.value || 0);
-        const total = quantidade * valorUnitario;
-
-        if (descricao) {
-            itens_adicionais.push({
-                codigo: codigo,
-                descricao: descricao,
-                unidade: unidade,
-                qtde: quantidade,
-                valor_parceiro_unitario: valorUnitario,
-                total_parceiro: total
-            });
-        }
-    });
-
-    // Salvar os itens adicionais no mesmo lançamento do histórico
-    orcamento.status.historico[chave].itens_adicionais = itens_adicionais;
-
-    // Atualizar o objeto de dados
-    dados_orcamentos[id_orcam] = orcamento;
-    await inserirDados(dados_orcamentos, 'dados_orcamentos');
-    await enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/itens_adicionais`, itens_adicionais);
 }
 
 function extrairTextoOuInput(td) {
@@ -605,136 +508,110 @@ function extrairTextoOuInput(td) {
 }
 
 async function detalharLpuParceiro(chave) {
-    let dadosOrcamentos = await recuperarDados('dados_orcamentos') || {};
-    let orcamento = dadosOrcamentos[id_orcam];
-    let dadosLpu = orcamento.status.historico[chave];
 
-    let stringHtml = (titulo, valor) => `
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const dadosLpu = orcamento.status.historico[chave];
+
+    const stringHtml = (titulo, valor) => `
         <div style="display: flex; justifty-content: start; align-items: center; gap: 5px;">
             <label><strong>${titulo}</strong>:</label>
             <label>${valor}</label>
-        </div>
-        `
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
-    let dadosEmpresa = {
+        </div>`
+
+    const clienteOmie = orcamento.dados_orcam?.omie_cliente || ''
+    const cliente = await recuperarDado('dados_clientes', clienteOmie)
+    const dadosEmpresa = {
         ...orcamento.dados_orcam,
         ...cliente
     }
-    let margemLPU = dadosLpu.margem_percentual
-    let tecnicoLPU = dados_clientes?.[dadosLpu.omie_tecnico]?.nome || 'Não informado'
 
-    let linhas = Object.values(dadosLpu.itens).map(item => `
-
-        <tr>
-            <td>${item.descricao}</td>
-            <td>${item.qtde}</td>
-            <td>${dinheiro(item.valor_parceiro_unitario)}</td>
-            <td>${dinheiro(item.total_parceiro)}</td>
-        </tr>
-    `);
-
-
-    if (dadosLpu.itens_adicionais && dadosLpu.itens_adicionais.length > 0) {
-        linhas.push(`
-            <tr>
-                <td colspan="4" style="text-align: center; font-weight: bold; padding-top: 10px;">
-                    SERVIÇOS ADICIONAIS
-                </td>
-            </tr>
-        `);
-
-        linhas.push(...dadosLpu.itens_adicionais.map(item => `
-            <tr>
-                <td>${item.descricao}</td>
-                <td>${item.qtde}</td>
-                <td>${dinheiro(item.valor_parceiro_unitario)}</td>
-                <td>${dinheiro(item.total_parceiro)}</td>
-            </tr>
-        `));
-    }
-
-    let totalOrcamento = 0;
-    let totalMargem = 0;
+    const margemLPU = dadosLpu?.margem || '?'
+    const tecnicoOmie = dadosLpu?.tecnico || ''
+    const tecnicoLPU = await recuperarDado('dados_clientes', tecnicoOmie)
+    let linhas = ''
     let totalParceiro = 0
-
-    for (const item of Object.values(dadosLpu.itens)) {
-        totalOrcamento += item.total_orcado || 0;
-        totalMargem += item.margem_reais || 0;
-        totalParceiro += item.total_parceiro
+    let totalOrcamento = 0
+    for (const [codigo, dados] of Object.entries(dadosLpu.itens)) {
+        const totalLinha = dados.qtde * dados.valor_parceiro_unitario
+        totalOrcamento += dados.qtde * dados.custo
+        totalParceiro += totalLinha
+        linhas += `
+        <tr>
+            <td>${dados.descricao}</td>
+            <td>${dados.qtde}</td>
+            <td>${dinheiro(dados.valor_parceiro_unitario)}</td>
+            <td>${dinheiro(totalLinha)}</td>
+        </tr>
+        `
     }
 
-    for (const item of dadosLpu.itens_adicionais || []) {
-        totalParceiro += item.total_parceiro || 0
-    }
-
-    linhas.push(`
+    const modeloTotal = (texto, valor) => `
+        <tr>
+            <td colspan="3" style="text-align: right; font-weight: bold; background-color: #eaeaea">${texto}:</td>
+            <td>${valor}</td>
+        </tr>
+    `
+    const totalMargemDisponivel = margemLPU ? totalOrcamento * (margemLPU / 100) : 0
+    const porcentagem = ((totalParceiro / totalOrcamento) * 100).toFixed(0)
+    linhas += `
         <tr><td colspan="4" style="padding-top: 20px;"></td></tr>
-        <tr>
-            <td colspan="3" style="text-align: right; font-weight: bold; background-color: #eaeaea">TOTAL DO ORÇAMENTO VENDIDO:</td>
-            <td>${dinheiro(totalOrcamento)}</td>
-        </tr>
-        <tr>
-            <td colspan="3" style="text-align: right; font-weight: bold; background-color: #eaeaea">TOTAL MARGEM DO ORÇAMENTO DISPONÍVEL:</td>
-            <td>${dinheiro(totalMargem)}</td>
-        </tr>
-        <tr>
-            <td colspan="3" style="text-align: right; font-weight: bold; background-color: #eaeaea"><strong>TOTAL LPU PARCEIRO:</strong></td>
-            <td>${dinheiro(totalParceiro)}</td>
-        </tr>
-    `);
+        ${modeloTotal('TOTAL DO ORÇAMENTO', dinheiro(totalOrcamento))}
+        ${modeloTotal('TOTAL MARGEM DISPONÍVEL', dinheiro(totalMargemDisponivel))}
+        ${modeloTotal('TOTAL LPU PARCEIRO', dinheiro(totalParceiro))}
+        ${modeloTotal('% PAGA AO PARCEIRO', `${porcentagem} %`)}
+    `
 
-    // Monta a tabela com as linhas finais
-    let tabela = `
-        <table class="tabela">
-            <thead>
-                <tr>
-                    <th>Item</th>
-                    <th>Quantidade</th>
-                    <th>Valor Unitário</th>
-                    <th>Total Parceiro</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${linhas.join('')}
-            </tbody>
-        </table>
-    `;
-
-    let cabecalhoInfo = `
-        <div style="display: flex; justify-content: space-between">
-            <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
-                ${stringHtml('Data', obterDatas('completa'))}
-                ${stringHtml('Analista', acesso?.nome_completo || '')}
-                ${stringHtml('Cliente', dadosEmpresa?.nome || '')}
-                ${stringHtml('CNPJ', dadosEmpresa?.cnpj || '')}
-                ${stringHtml('Endereço', dadosEmpresa?.endereco || '')}
-                ${stringHtml('Cidade', dadosEmpresa?.cidade || '')}
-                ${stringHtml('Estado', dadosEmpresa?.estado || '')}
-                ${stringHtml('Margem', margemLPU)}
-                ${stringHtml('Técnico', tecnicoLPU || '')}
-            </div>
+    const tabela = `
+        <div style="${vertical};">
+            <div class="topo-tabela"></div>
+                <div class="div-tabela">
+                <table class="tabela">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Quantidade</th>
+                            <th>Valor Unitário</th>
+                            <th>Total Parceiro</th>
+                        </tr>
+                    </thead>
+                    <tbody>${linhas}</tbody>
+                </table>
+                </div>
+            <div class="rodapeTabela"></div>
         </div>
-    `;
+    `
 
-    let botoes = `
+    const cabecalhoInfo = `
+        <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
+            ${stringHtml('Data', new Date().toLocaleString())}
+            ${stringHtml('Analista', acesso?.nome_completo || '')}
+            ${stringHtml('Cliente', dadosEmpresa?.nome || '')}
+            ${stringHtml('CNPJ', dadosEmpresa?.cnpj || '')}
+            ${stringHtml('Endereço', dadosEmpresa?.bairro || '')}
+            ${stringHtml('Cidade', dadosEmpresa?.cidade || '')}
+            ${stringHtml('Margem', margemLPU)}
+            ${stringHtml('Técnico', tecnicoLPU?.nome || '')}
+        </div>
+    `
+
+    const botoes = `
         <div class="menu_flutuante" id="menu_flutuante">
 
-            <div class="icone" id="btnGerarPdf">
+            <div class="icone" onclick="gerarPdfParceiro('${dadosEmpresa?.nome || ''}')">
                 <img src="imagens/pdf.png">
                 <label>PDF</label>
             </div>
             
-            <div class="icone" id="btnGerarPdf">
-                <img src="imagens/reembolso.png">
-                <label>Pagamento</label>
+            <div class="icone" onclick="exportarComoExcelHTML('${chave}')">
+                <img src="imagens/excel.png">
+                <label>Excel</label>
             </div>
 
         </div>
     `
 
-    let acumulado = `
-        <div style="padding: 1vw;">
+    const acumulado = `
+        <div  name="tabelaParceiro" style="padding: 1vw; background-color: #d2d2d2; padding: 1rem;">
             ${cabecalhoInfo}
             ${tabela}
         </div>
@@ -743,22 +620,15 @@ async function detalharLpuParceiro(chave) {
 
     popup(acumulado, 'Detalhamento Itens Parceiro', true);
 
-    document.getElementById('btnGerarPdf').addEventListener('click', () => {
-        gerarPdfParceiro({
-            tabela: `
-                <div class="header">
-                    <img src="https://i.imgur.com/qZLbNfb.png">
-                </div>
-                ${cabecalhoInfo}
-                ${tabela}
-            `,
-            cnpj: dadosEmpresa?.cnpj || ''
-        });
-    });
 }
 
-async function gerarPdfParceiro({ tabela, cnpj }) {
-    let htmlContent = `
+async function gerarPdfParceiro(nome) {
+
+    overlayAguarde()
+
+    const tabela = document.querySelector('[name="tabelaParceiro"]').innerHTML
+
+    const htmlContent = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -827,295 +697,15 @@ async function gerarPdfParceiro({ tabela, cnpj }) {
             </style>
         </head>
         <body>
+            <img src="https://i.imgur.com/5zohUo8.png" style="width: 10rem;">
             ${tabela}
         </body>
         </html>`
-        ;
 
-    await gerarPdfOnline(htmlContent, `LPU_PACEIRO_${cnpj}`);
-}
-
-function adicionarItemAdicional(dados = {}) {
-    const bodyTabela = document.getElementById('bodyTabela');
-    const idAleatoria = ID5digitos();
-
-    // Cálculo automático se os dados não foram salvos
-    const qtde = Number(dados.qtde || 0);
-    const valorUnit = Number(dados.valor_orcamento || dados.valor_parceiro_unitario || 0);
-    const margem = Number(document.getElementById('margem_lpu')?.value || 0) / 100;
-
-    const totalOrcado = valorUnit * qtde;
-    const impostos = totalOrcado * 0.2;
-    const valorComMargem = totalOrcado + (totalOrcado * margem);
-    const totalParceiro = Number(dados.valor_parceiro_unitario || 0) * qtde;
-    const desvio = totalParceiro - valorComMargem;
-
-    // Adiciona label "SERVIÇOS ADICIONAIS" se não existir
-    if (!document.getElementById('labelItensAdicionais')) {
-        const labelRow = document.createElement('tr');
-        labelRow.id = 'labelItensAdicionais';
-        labelRow.innerHTML = `
-            <td colspan="11" style="text-align: center; font-weight: bold; padding-top: 15px;">
-                SERVIÇOS ADICIONAIS
-            </td>
-        `;
-        bodyTabela.appendChild(labelRow);
+    try {
+        await gerarPdfOnline(htmlContent, `LPU PACEIRO ${nome}`);
+        removerOverlay()
+    } catch (err) {
+        popup(mensagem(err), 'Alerta', true)
     }
-
-    const novaLinha = document.createElement('tr');
-    novaLinha.classList.add('item-adicional');
-
-    novaLinha.innerHTML = `
-        <td style="position: relative;">
-            <div class="codigo-item" style="padding-right: 20px;">${dados.codigo || ''}</div>
-            <img src="imagens/cancel.png" 
-                onclick="removerItemAdicional(this)" 
-                style="position: absolute; top: 2px; right: 4px; cursor: pointer; width: 1.5vw;">
-        </td>
-        <td>
-            <textarea id="${idAleatoria}" style="border: none;" oninput="sugestoesParceiro(this, 'composicoes')">${dados.descricao || ''}</textarea>
-            <input style="display: none;">
-        </td>
-        <td contenteditable="true">${dados.unidade || ''}</td>
-        <td>
-            <input
-                oninput="calcularLpuParceiro()" 
-                type="number" 
-                class="campoRequisicao" 
-                step="0.01"
-                value="${dados.qtde || ''}">
-        </td>
-        <td>${dinheiro(dados.valor_orcamento ?? valorUnit)}</td>
-        <td>${dinheiro(dados.total_orcado ?? totalOrcado)}</td>
-        <td>${dinheiro(dados.impostos ?? impostos)}</td>
-        <td>${dinheiro(dados.margem ?? (valorComMargem - totalOrcado))}</td>
-        <td style="padding: 0; white-space: nowrap; height: 100%;">
-            <div style="display: flex; align-items: stretch; gap: 4px; width: 100%; height: 100%; box-sizing: border-box; padding: 2px 5px;">
-                <input
-                    oninput="calcularLpuParceiro()" 
-                    type="number" 
-                    class="campoRequisicao" 
-                    step="0.01"
-                    value="${dados.valor_parceiro_unitario || ''}">
-            </div>
-        </td>
-        <td>${dinheiro(dados.total_parceiro ?? totalParceiro)}</td>
-        <td><label class="labelAprovacao">${dinheiro(dados.desvio ?? desvio)}</label></td>
-    `;
-
-    bodyTabela.appendChild(novaLinha);
-
-    if (dados?.descricao && dados?.codigo && dados?.valor_orcamento && dados?.unidade) {
-        const textarea = novaLinha.querySelector('textarea');
-        definirCampoParceiro(
-            { textContent: dados.descricao },
-            textarea.id,
-            dados.codigo,
-            dados.unidade,
-            dados.valor_orcamento
-        );
-    }
-
-    calcularLpuParceiro();
-}
-
-function removerItemAdicional(botao) {
-
-    botao.closest('tr').remove()
-    calcularLpuParceiro()
-
-}
-
-function atualizarTotalOrcado(tdQuantidade) {
-    const margem = Number(document.getElementById('margem_lpu').value || 0) / 100
-    const tr = tdQuantidade.closest('tr')
-    const tds = tr.querySelectorAll('td')
-
-    const quantidade = conversor(tds[3].textContent)
-    const valorUnitario = conversor(tds[4].textContent)
-    const totalOrcado = isNaN(quantidade) * isNaN(valorUnitario) ? 0 : quantidade * valorUnitario
-    const imposto = totalOrcado * 0.2;
-    const margemRS = totalOrcado * margem
-
-    tds[5].textContent = dinheiro(totalOrcado)
-    tds[6].textContent = dinheiro(imposto)
-    tds[7].textContent = dinheiro(margemRS)
-
-    calcularLpuParceiro();
-}
-
-function atualizarValorParceiro(input) {
-    const tr = input.closest('tr');
-    const tds = tr.querySelectorAll('td')
-
-    const unitarioParceiro = Number(input.value);
-    const quantidade = conversor(tds[3]?.textContent);
-    const totalParceiro = isNaN(unitarioParceiro) || isNaN(quantidade) ? 0 : unitarioParceiro * quantidade
-
-    tds[9].textContent = dinheiro(totalParceiro)
-
-    const margemRS = conversor(tds[7]?.textContent);
-    const desvio = margemRS - totalParceiro
-
-    const labelDesvio = tds[10].querySelector('label')
-    labelDesvio.textContent = dinheiro(desvio)
-    labelDesvio.style.backgroundColor = desvio > 0 ? 'green' : '#B12425';
-
-    calcularLpuParceiro()
-}
-
-async function sugestoesParceiro(textarea, base) {
-
-    let baseOrcamentos = await recuperarDados('dados_orcamentos') || {}
-    let orcamento = baseOrcamentos[id_orcam]
-    let lpu = String(orcamento.lpu_ativa).toLocaleLowerCase()
-
-    let query = String(textarea.innerText || textarea.value).toUpperCase()
-
-    let div_sugestoes = document.getElementById('div_sugestoes')
-    if (div_sugestoes) {
-        div_sugestoes.remove()
-    }
-
-    if (query === '') {
-        let campo = textarea.id
-        let endereco = document.getElementById(`endereco_${campo}`)
-
-        if (endereco) {
-            document.getElementById(`codigo_${campo}`).innerHTML = ''
-            endereco.innerHTML = ''
-            return
-        }
-
-        return
-    }
-
-    let dados = await recuperarDados(`dados_${base}`) || {}
-    let opcoes = ''
-
-    for (id in dados) {
-        let item = dados[id]
-        let info = '';
-        let codBases;
-        let unidade = ''
-        let valor = ''
-
-        if (base == 'clientes') {
-            codBases = item.omie
-            info = String(item.nome)
-
-        } else if (base == 'composicoes') {
-            if (item.tipo != 'SERVIÇO') continue
-            codBases = item.codigo
-            info = String(item.descricao)
-            unidade = item.unidade
-            let historico = item?.[lpu]?.historico
-            let ativo = item?.[lpu]?.ativo
-            valor = historico?.[ativo]?.valor || 0
-        }
-
-        if (info.includes(query)) {
-            opcoes += `
-                <div onclick="definirCampoParceiro(this, '${textarea.id}', '${codBases}', '${unidade}', ${valor})" class="autocomplete-item" style="font-size: 0.8vw;">${info}</div>
-            `
-        }
-
-    }
-
-
-    let posicao = textarea.getBoundingClientRect()
-    let left = posicao.left + window.scrollX
-    let top = posicao.bottom + window.scrollY
-
-    let div = `
-    <div id="div_sugestoes" class="autocomplete-list" style="position: absolute; top: ${top}px; left: ${left}px; border: 1px solid #ccc; width: 15vw;">
-        ${opcoes}
-    </div>`
-
-    document.body.insertAdjacentHTML('beforeend', div)
-
-}
-
-async function definirCampoParceiro(elemento, idAleatoria, codBases, unidade, valor) {
-    let campo = document.getElementById(idAleatoria);
-
-    if (idAleatoria === 'tecnico') {
-        campo.nextElementSibling.value = codBases;
-    } else {
-        let linha = campo.closest('tr');
-        let celulaCodigo = campo.parentElement.previousElementSibling;
-        let celulaUnidade = campo.parentElement.nextElementSibling;
-        let celulaValorUnitario = celulaUnidade.nextElementSibling?.nextElementSibling;
-        let celulaTotal = celulaValorUnitario?.nextElementSibling;
-
-
-        let divCodigo = celulaCodigo.querySelector('.codigo-item');
-        if (divCodigo) {
-            divCodigo.textContent = codBases;
-        } else {
-            celulaCodigo.textContent = codBases; // fallback
-        }
-
-
-        celulaUnidade.textContent = unidade;
-        celulaValorUnitario.textContent = dinheiro(valor);
-
-
-        let quantidadeCelula = linha.querySelector('.quantidade');
-        let quantidade = parseFloat(quantidadeCelula?.innerText.replace(',', '.') || 0);
-        let total = quantidade * valor;
-        celulaTotal.textContent = dinheiro(total);
-    }
-
-    // Atualiza o valor do campo selecionado
-    if ('value' in campo) {
-        campo.value = elemento.textContent;
-    } else {
-        campo.innerText = elemento.textContent;
-    }
-
-
-    let div_sugestoes = document.getElementById('div_sugestoes');
-    if (div_sugestoes) div_sugestoes.remove();
-
-    // Evita que o oninput seja disparado novamente logo após clicar
-    campo.blur();
-}
-
-function preencherDadosBasicos(dados) {
-    const campos = {
-        'margem_lpu': dados.margem_percentual || 40,
-        'tecnico': dados.tecnicoLpu || ''
-    };
-
-    Object.entries(campos).forEach(([id, valor]) => {
-        const elemento = document.getElementById(id);
-        if (elemento) elemento.value = valor;
-    });
-}
-
-function preencherItensPrincipais(itens) {
-    const linhas = document.querySelectorAll('#bodyTabela tr');
-    linhas.forEach(linha => {
-        const codigo = linha.querySelector('td')?.textContent?.trim();
-        if (!codigo) return;
-
-        const item = itens[codigo];
-        if (!item) return;
-
-        const inputValor = linha.querySelector('.input-lpuparceiro');
-        if (inputValor) inputValor.value = item.valor_parceiro_unitario;
-    })
-}
-
-function preencherItensAdicionais(itens = []) {
-    itens.forEach(item => {
-        adicionarItemAdicional({
-            codigo: item.codigo,
-            descricao: item.descricao,
-            unidade: item.unidade,
-            qtde: item.qtde,
-            valor_parceiro_unitario: item.valor_parceiro_unitario,
-        });
-    });
 }
