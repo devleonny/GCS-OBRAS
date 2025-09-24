@@ -52,31 +52,33 @@ function exibirSenha(img) {
 
 function cadastrar() {
 
-    const conteudo = `
-            <div style="display: flex; column; gap: 10px; padding: 2vw;">
+    const acumulado = `
+        <div style="background-color: #d2d2d2; padding: 1rem;">
 
-                <div id="camposCadastro" style="display: flex; flex-direction: column; justify-content: left; flex; text-align: left;">
-                    <label>Nome Completo</label>
-                    <input placeholder="Nome Completo">
+            <div id="camposCadastro" class="painel-cadastro">
+                <label>Nome Completo</label>
+                <input placeholder="Nome Completo">
 
-                    <label>Usuário</label>
-                    <input type="text" placeholder="Crie um usuário">
+                <label>Usuário</label>
+                <input type="text" placeholder="Crie um usuário">
 
-                    <label>Senha</label>
-                    <input type="password" placeholder="Crie uma senha">
+                <label>Senha</label>
+                <input type="password" placeholder="Crie uma senha">
 
-                    <label>E-mail</label>
-                    <input type="email" placeholder="E-mail">
+                <label>E-mail</label>
+                <input type="email" placeholder="E-mail">
 
-                    <label>Celular</label>
-                    <input type="text" placeholder="Telefone">
+                <label>Celular</label>
+                <input type="text" placeholder="Telefone">
 
-                    <button onclick="salvarCadastro()">Criar acesso</button>
-                </div>
+                <hr style="width: 100%">
 
-            </div>`
+                <button onclick="salvarCadastro()">Criar acesso</button>
+            </div>
 
-    popup(conteudo, 'Cadastro')
+        </div>`
+
+    popup(acumulado, 'Cadastro')
 
 }
 
@@ -136,7 +138,6 @@ async function acessar() {
 }
 
 // NOVO USUÁRIO ; 
-
 async function salvarCadastro() {
 
     overlayAguarde()
@@ -179,8 +180,6 @@ async function salvarCadastro() {
             }
 
             const data = await response.json()
-
-            divAcesso.style.display = 'flex'
             return popup(mensagem(data.mensagem), 'Alerta');
 
         } catch (e) {

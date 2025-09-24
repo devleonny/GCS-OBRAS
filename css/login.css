@@ -30,3 +30,17 @@
 .login-container button:hover {
     background-color: #45a049;
 }
+
+.painel-cadastro {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.painel-cadastro input {
+    min-width: 30vw;
+    padding: 5px;
+    border-radius: 5px;
+}
