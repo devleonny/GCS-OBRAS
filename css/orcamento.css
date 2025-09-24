@@ -138,3 +138,57 @@
     background-color: #151749;
     color: white;
 }
+
+.calendarios {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.modelo-relatorio {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.modelo-relatorio input {
+    border-radius: 3px;
+    padding: 5px;
+}
+
+.toolbar-relatorio {
+    margin-left: 2rem;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    gap: 1rem;
+}
+
+.toolbar-relatorio span {
+    padding: 10px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    background-color: #151749;
+    color: white;
+}
+
+.relatorio {
+    display: flex;
+    align-items: start;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.graficos {
+    background-color: white;
+    border-radius: 3px;
+}
+
+.graficos canvas {
+  width: 100% !important;
+  height: 400px !important;
+}

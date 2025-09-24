@@ -50,9 +50,9 @@ const balaoPDF = (nf, info, codOmie, tipo, app) => {
 
     return `
     <div class="balaoNF" onclick="abrirDANFE('${codOmie}', '${tipo}', '${app}')">
-        <div class="balao1" style="background-color: ${bg};">
-            <label style="font-size: auto;">${nf}</label>
-            <label style="font-size: auto;"><strong>${info}</strong></label>
+        <div class="balao1">
+            <label>${nf}</label>
+            <label><b>${info}</b></label>
         </div>
         <div class="balao2">
             PDF

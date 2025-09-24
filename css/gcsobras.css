@@ -2239,6 +2239,8 @@ input[type="file"]#input-anexos:hover {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    background-color: #222;
+    color: white;
 }
 
 .balao2 {

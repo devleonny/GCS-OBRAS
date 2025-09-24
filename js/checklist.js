@@ -9,6 +9,7 @@ let quantidadeRealizadoItem = 0
 let finalizados = 0
 let filtroChecklist = {}
 let filtroRelatorioChecklist = {}
+let primeiroDia = null
 
 async function telaChecklist() {
 
@@ -16,9 +17,11 @@ async function telaChecklist() {
 
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
+    console.log(orcamento);
+
     let ths = ''
     let pesquisa = ''
-    const colunas = ['', 'Serviços', 'Quantidade', 'Serviço Executado', '% Conclusão', 'Diferença', 'Média do Serviço <br> Soma / dia trabalhado', 'Percentual de rendimento', 'Previsão de finalização']
+    const colunas = ['', 'Serviços', 'Quantidade', 'Serviço Executado', '% Conclusão', 'Diferença', 'Média do Serviço <br> Soma / dia trabalhado', 'Rendimento Diário', 'Previsão de finalização']
 
     let i = 0
     for (const op of colunas) {
@@ -43,7 +46,7 @@ async function telaChecklist() {
     }
 
     const modelo = (texto, elemento) => `
-        <div style="${vertical}; gap: 3px;">
+        <div style="${vertical}; align-items: center; gap: 3px;">
             <label>${texto}</label>
             ${elemento}
         </div>
@@ -78,7 +81,8 @@ async function telaChecklist() {
 
                 <div style="${horizontal}; gap: 10px;">
                     ${modelo('Total de Serviços', `<span id="geral"></span>`)}
-                    ${modelo('Dias decorridos', `<span id="diasTotais"></span>`)}
+                    ${modelo('Dias Corridos', `<span id="diasCorridos"></span>`)}
+                    ${modelo('Dias Trabalhados', `<span id="diasTotais"></span>`)}
                     ${modelo('Previsão de Conclusão', `<span id="previsao"></span>`)}
                 </div>
 
@@ -112,6 +116,7 @@ async function telaChecklist() {
     quantidadeGeral = 0
     finalizados = 0
     diasUnicos = []
+    primeiroDia = null
 
     const mesclado = {
         ...orcamento?.dados_composicoes || {},
@@ -128,6 +133,12 @@ async function telaChecklist() {
 
             if (id == 'removido') continue
 
+            // Registro do primeiro dia;
+            const [ano, mes, dia] = dados.data.split('-')
+            const dt = new Date(ano, Number(mes) - 1, dia).getTime()
+            if (primeiroDia == null || primeiroDia > dt) primeiroDia = dt
+            // Fim
+
             for (const idTec of dados?.tecnicos || []) {
                 const tecnico = dados_clientes?.[idTec] || {}
                 tecnicos[idTec] = tecnico?.nome || 'Desatualizado...'
@@ -137,9 +148,14 @@ async function telaChecklist() {
     }
 
     // Relatório geral
+
+    const diffMs = new Date().getTime() - primeiroDia
+    const diasCorridos = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
     document.getElementById('geral').textContent = quantidadeGeral
     const porcetagemFinal = Number(((finalizados / quantidadeGeral) * 100).toFixed(1))
     document.getElementById('porcentagem').innerHTML = divPorcentagem(porcetagemFinal)
+    document.getElementById('diasCorridos').textContent = diasCorridos
     document.getElementById('diasTotais').textContent = diasUnicos.length
     document.getElementById('previsao').textContent = diasUnicos.length == 0 ? `-- dias` : `${((diasUnicos.length * 100) / porcetagemFinal).toFixed(0)} dias`
 
@@ -157,37 +173,57 @@ async function relatorioChecklist() {
     let pesquisa = ''
 
     const colunas = ['Data', 'Descrição', 'Quantidade', 'Técnicos']
-        .map((op, i) => { 
+        .map((op, i) => {
 
             ths += `<th>${op}</th>`
             pesquisa += `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico('${i}', this.textContent, filtroRelatorioChecklist, 'relatorioChecklist')"></th>`
 
         })
 
+    const modelo = (valor1, valor2) => `
+        <div class="modelo-relatorio" style="${vertical}; gap: 3px;">
+            <label>${valor1}</label>
+            <div>${valor2}</div>
+        </div>
+    `
+    const ano = new Date().getFullYear()
+
     const acumulado = `
     
         <div style="background-color: #d2d2d2; padding: 2rem;">
 
             <div style="${horizontal}; gap: 1rem;">
-                ${modelo('De', `<input name="de" onchange="gerarRelatorioChecklist()" type="date">`)}
-                ${modelo('Até', `<input name="ate" onchange="gerarRelatorioChecklist()" type="date">`)}
+                ${modelo('De', `<input name="de" onchange="gerarRelatorioChecklist()" type="date" value="${ano}-01-01">`)}
+                ${modelo('Até', `<input name="ate" onchange="gerarRelatorioChecklist()" type="date" value="${ano}-12-31">`)}
             </div>
 
             <hr style="width: 100%;">
 
-            <div id="tabelaCheklist" style="${vertical};">
-                <div class="topo-tabela"></div>
-                <div class="div-tabela">
-                    <table class="tabela" id="tabela_composicoes">
-                        <thead>
-                            <tr>${ths}</tr>
-                            <tr>${pesquisa}</tr>
-                        </thead>
-                        <tbody id="relatorioChecklist"></tbody>
-                    </table>
-                </div>
-                <div class="rodapeTabela"></div>
+            <div class="toolbar-relatorio">
+                <span id="toolbar-relatorio" onclick="mostrarPagina('relatorio')">Relatório</span>
+                <span id="toolbar-graficos" onclick="mostrarPagina('graficos')">Gráficos</span>
             </div>
+
+            <div class="relatorio">
+                <div id="tabelaCheklist" style="${vertical};">
+                    <div class="topo-tabela"></div>
+                    <div class="div-tabela">
+                        <table class="tabela" id="tabela_composicoes">
+                            <thead>
+                                <tr>${ths}</tr>
+                                <tr>${pesquisa}</tr>
+                            </thead>
+                            <tbody id="relatorioChecklist"></tbody>
+                        </table>
+                    </div>
+                    <div class="rodapeTabela"></div>
+                </div>
+
+                <div class="calendarios"></div>
+
+            </div>
+
+            <div class="graficos"></div>
 
         </div>
 
@@ -195,13 +231,105 @@ async function relatorioChecklist() {
 
     popup(acumulado, 'Relatório Diário', true)
 
+    mostrarPagina('relatorio')
+    gerarRelatorioChecklist()
+
+}
+
+function mostrarPagina(pagina) {
+
+    const paginas = ['relatorio', 'graficos']
+    for (const pg of paginas) {
+        const el = document.querySelector(`.${pg}`)
+        if (el) {
+            el.style.display = 'none'
+            document.getElementById(`toolbar-${pg}`).style.opacity = 0.5
+        }
+    }
+
+    document.querySelector(`.${pagina}`).style.display = ''
+    document.getElementById(`toolbar-${pagina}`).style.opacity = 1
+
+}
+
+function criarCalendario(datas) {
+    const ths = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+        .map(sem => `<th>${sem}</th>`)
+        .join('')
+
+    const marcado = `style="background-color: green; color: white;"`
+
+    // transformar em objetos Date e agrupar por ano-mês
+    const grupos = {}
+    datas.forEach(ts => {
+        const d = new Date(ts)
+        const ano = d.getFullYear()
+        const mes = d.getMonth() + 1 // 1–12
+        const chave = `${ano}-${mes}`
+        if (!grupos[chave]) grupos[chave] = { ano, mes, dias: new Set() }
+        grupos[chave].dias.add(d.getDate())
+    })
+
+    let calendarios = ''
+
+    for (const chave in grupos) {
+        const { ano, mes, dias } = grupos[chave]
+        const diasMes = new Date(ano, mes, 0).getDate()
+
+        let trs = ''
+        let tds = ''
+        let primeiroDia = new Date(ano, mes - 1, 1).getDay()
+
+        // espaços antes do primeiro dia
+        for (let v = 0; v < primeiroDia; v++) {
+            tds += `<td></td>`
+        }
+
+        for (let i = 1; i <= diasMes; i++) {
+            const dt = new Date(ano, mes - 1, i)
+            const sem = dt.getDay()
+
+            tds += `<td ${dias.has(i) ? marcado : ''}>${i}</td>`
+
+            if (sem === 6) {
+                trs += `<tr>${tds}</tr>`
+                tds = ''
+            }
+        }
+
+        // completar última linha
+        if (tds) {
+            for (let v = new Date(ano, mes - 1, diasMes).getDay() + 1; v <= 6; v++) {
+                tds += `<td></td>`
+            }
+            trs += `<tr>${tds}</tr>`
+        }
+
+        calendarios += `
+            <div style="${vertical};">
+                <div class="topo-tabela">
+                    <span style="padding: 5px;">${mes}/${ano}</span>
+                </div>
+                <div class="div-tabela">
+                    <table class="tabela">
+                        <thead><tr>${ths}</tr></thead>
+                        <tbody>${trs}</tbody>
+                    </table>
+                </div>
+                <div class="rodapeTabela"></div>
+            </div>
+        `
+    }
+
+    document.querySelector('.calendarios').innerHTML = calendarios
 }
 
 async function gerarRelatorioChecklist() {
-
     const tbody = document.getElementById('relatorioChecklist')
+    const graficos = document.querySelector('.graficos')
     let de = document.querySelector('[name="de"]').value
     let ate = document.querySelector('[name="ate"]').value
+    let datas = []
 
     if (!de || !ate) return
 
@@ -218,33 +346,154 @@ async function gerarRelatorioChecklist() {
     ate = dt(ate)
 
     tbody.innerHTML = ''
+    graficos.innerHTML = ''
+
+    // total do orçamento (somando todos os itens)
+    let totalOrcamento = 0
+    for (const [codigo, comp] of Object.entries({
+        ...orcamento?.dados_composicoes,
+        ...orcamento?.checklist?.avulso
+    })) {
+        totalOrcamento += comp?.qtde || 0
+    }
+
+    // estrutura: { equipe: { data: somaPercentual } }
+    let desempenhoEquipes = {}
 
     for (const [codigo, lancamentos] of Object.entries(itens)) {
-
-        const descricao = orcamento.dados_composicoes[codigo].descricao
+        const comp = orcamento?.dados_composicoes?.[codigo] || orcamento?.checklist?.avulso?.[codigo]
+        const descricao = comp?.descricao || '...'
+        const qtdeTotal = comp?.qtde || 0
 
         for (const [idLancamento, dados] of Object.entries(lancamentos)) {
             const dataLancamento = dt(dados.data)
             if (dataLancamento >= de && dataLancamento <= ate) {
+                datas.push(dataLancamento.getTime())
 
-                const tecnicos = (dados.tecnicos || [])
-                    .map(codTec => `<span>${dados_clientes?.[codTec]?.nome || '...'}</span>`)
-                    .join('')
-            
+                // padroniza equipe
+                const nomes = (dados.tecnicos || [])
+                    .map(codTec => dados_clientes?.[codTec]?.nome || '...')
+                    .sort((a, b) => a.localeCompare(b))
+
+                const equipeKey = nomes.join(', ') || 'Sem equipe'
+                const dataStr = dataLancamento.toISOString().slice(0, 10)
+
+                // calcula percentual proporcional ao total do orçamento
+                const percentual = totalOrcamento > 0
+                    ? (dados.quantidade / totalOrcamento) * 100
+                    : 0
+
+                if (!desempenhoEquipes[equipeKey]) desempenhoEquipes[equipeKey] = {}
+                if (!desempenhoEquipes[equipeKey][dataStr]) desempenhoEquipes[equipeKey][dataStr] = 0
+                desempenhoEquipes[equipeKey][dataStr] += percentual
+
                 tbody.insertAdjacentHTML('beforeend', `
                     <tr>
                         <td>${dataLancamento.toLocaleDateString('pt-BR')}</td>
                         <td>${descricao}</td>
                         <td>${dados.quantidade}</td>
                         <td>
-                            <div style="${vertical}">
-                                ${tecnicos}
-                            </div>
+                            <div>${nomes.map(n => `<span>${n}</span>`).join('')}</div>
                         </td>
                     </tr>
                 `)
             }
         }
+    }
+
+    criarCalendario(datas)
+
+    // container flex (gráfico + indicadores)
+    const container = document.createElement('div')
+    container.style.display = 'flex'
+    container.style.gap = '20px'
+    graficos.appendChild(container)
+
+    // canvas
+    const canvas = document.createElement('canvas')
+    canvas.width = 800
+    canvas.height = 400
+    container.appendChild(canvas)
+    const ctx = canvas.getContext('2d')
+
+    // indicadores
+    const indicadoresDiv = document.createElement('div')
+    indicadoresDiv.style.display = 'flex'
+    indicadoresDiv.style.flexDirection = 'column'
+    indicadoresDiv.style.gap = '5px'
+    container.appendChild(indicadoresDiv)
+
+    // datas únicas e ordenadas
+    const todasDatas = [...new Set(datas.map(ts => {
+        const d = new Date(ts)
+        return d.toISOString().slice(0, 10)
+    }))].sort()
+
+    // datasets
+    const datasets = Object.entries(desempenhoEquipes).map(([equipe, registros]) => {
+        const soma = todasDatas.reduce((acc, d) => acc + (registros[d] || 0), 0)
+
+        // só dias com valores > 0
+        const diasComRegistro = todasDatas.filter(d => (registros[d] || 0) > 0).length || 1
+        const mediaDiaria = soma / diasComRegistro
+
+        // semanal simples (média a cada 7 dias, só pelos dias com valores)
+        const semanas = Math.ceil(diasComRegistro / 7) || 1
+        const mediaSemanal = soma / semanas
+
+        indicadoresDiv.insertAdjacentHTML('beforeend', `
+        <span style="text-align: left;">
+            <b>${equipe}</b> <br>
+            Diário: ${mediaDiaria.toFixed(0)}% <br>
+            Semanal: ${mediaSemanal.toFixed(0)}% <br>
+        </span>
+        <br>`)
+
+        return {
+            label: equipe,
+            data: todasDatas.map(d => registros[d] || 0),
+            borderWidth: 2,
+            fill: false,
+            tension: 0.2,
+            borderColor: getRandomColor()
+        }
+    })
+
+    // escala dinâmica (teto baseado no maior valor observado)
+    const maxPercent = Math.max(
+        ...Object.values(desempenhoEquipes).flatMap(registros => Object.values(registros))
+    ) || 0
+    const escalaMax = Math.ceil(maxPercent * 1.1)
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: todasDatas.map(d => {
+                const [ano, mes, dia] = d.split('-')
+                return `${dia}/${mes}`
+            }),
+            datasets
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Desempenho por equipe (em % do total do orçamento)'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: escalaMax,
+                    ticks: { callback: v => v + "%" }
+                }
+            }
+        }
+    })
+
+    function getRandomColor() {
+        return `hsl(${Math.floor(Math.random() * 360)},70%,50%)`
     }
 }
 
@@ -390,20 +639,21 @@ function carregarLinhaChecklist(codigo, produto, check) {
     }
 
     let quantidade = 0
-
+    let diasUnicosLinha = []
     for (const [id, dados] of Object.entries(check)) {
 
         quantidade += isNaN(dados.quantidade) ? 0 : dados.quantidade
         if (!diasUnicos.includes(dados.data)) diasUnicos.push(dados.data)
+        if (!diasUnicosLinha.includes(dados.data)) diasUnicosLinha.push(dados.data)
 
     }
 
     const avulso = produto.tipo ? '' : '<span><b>[Avulso]</b></span>'
     const diferenca = produto.qtde - quantidade
-    const mediaDia = quantidade == 0 ? 0 : Number((quantidade / diasUnicos.length).toFixed(0))
+    const mediaDia = quantidade == 0 ? 0 : Number((quantidade / diasUnicosLinha.length).toFixed(0))
     const cor = (quantidade > 0 && quantidade < produto.qtde) ? '#f59c27bf' : quantidade == 0 ? '#b36060bf' : '#4CAF50bf'
     const percRendDiario = mediaDia == 0 ? 0 : ((mediaDia / produto.qtde) * 100).toFixed(0)
-    const prevFinalizacao = mediaDia == 0 ? 0 : (produto.qtde / mediaDia).toFixed(0)
+    const prevFinalizacao = mediaDia == 0 ? 0 : Math.ceil(diferenca / mediaDia)
 
     // Relatório
     finalizados += quantidade / produto.qtde
@@ -613,23 +863,5 @@ function calculadoraChecklist() {
         tds[3].textContent = conversor(qtdeOrcamento - qtdeRealizada)
 
     }
-
-}
-
-function criarCalendário() {
-
-    const ths = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-        .map(op => `<th>${op}</th>`)
-        .join('')
-
-
-    const tabela = `
-        <table>
-            <thead>${ths}</thead>
-            <tbody></tbody>
-        </table>
-    `
-
-    return tabela
 
 }

@@ -1659,9 +1659,6 @@ async function abrirEsquema(id) {
     const cliente = await recuperarDado('dados_clientes', omie_cliente)
     let blocosStatus = {}
 
-    console.log(orcamento);
-    
-
     for (const [chave, historico] of Object.entries(orcamento?.status?.historico || {})) {
 
         let statusCartao = historico.status
