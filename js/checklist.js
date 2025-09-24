@@ -17,8 +17,6 @@ async function telaChecklist() {
 
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
-    console.log(orcamento);
-
     let ths = ''
     let pesquisa = ''
     const colunas = ['', 'Serviços', 'Quantidade', 'Serviço Executado', '% Conclusão', 'Diferença', 'Média do Serviço <br> Soma / dia trabalhado', 'Rendimento Diário', 'Previsão de finalização']
