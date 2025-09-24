@@ -149,13 +149,15 @@ async function telaChecklist() {
 
     const diffMs = new Date().getTime() - primeiroDia
     const diasCorridos = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-    document.getElementById('geral').textContent = quantidadeGeral
     const porcetagemFinal = Number(((finalizados / quantidadeGeral) * 100).toFixed(1))
+    const totalPrevisao = Number((diasCorridos * 100) / porcetagemFinal).toFixed(0)
+    const previsao = totalPrevisao - diasCorridos
+    
+    document.getElementById('geral').textContent = quantidadeGeral
     document.getElementById('porcentagem').innerHTML = divPorcentagem(porcetagemFinal)
     document.getElementById('diasCorridos').textContent = diasCorridos
     document.getElementById('diasTotais').textContent = diasUnicos.length
-    document.getElementById('previsao').textContent = diasUnicos.length == 0 ? `-- dias` : `${((diasUnicos.length * 100) / porcetagemFinal).toFixed(0)} dias`
+    document.getElementById('previsao').textContent = previsao == 0 ? `-- dias` : `${previsao} dias`
 
     if (!orcamento.checklist) orcamento.checklist = {}
     orcamento.checklist.andamento = porcetagemFinal
