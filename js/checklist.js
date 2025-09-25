@@ -13,8 +13,6 @@ let primeiroDia = null
 
 async function telaChecklist() {
 
-    id_orcam = 'ORCA_4a4407d8-86dc-461c-a71e-de09338de522'
-
     tecnicos = {}
 
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
