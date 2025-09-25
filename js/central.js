@@ -213,6 +213,8 @@ link.type = 'imagens/png';
 link.href = 'imagens/LG.png';
 document.head.appendChild(link);
 
+identificacaoUser()
+
 async function despoluicaoGCS() {
 
     overlayAguarde(true)
@@ -300,12 +302,16 @@ function redirecionarChamados() {
     window.location.href = 'chamados/index.html'
 }
 
+function retornar() {
+    window.location.href = 'chamados/index.html'
+}
+
 async function identificacaoUser() {
 
     acesso = JSON.parse(localStorage.getItem('acesso'))
 
     if (document.title == 'Política de Privacidade') return
-    if (!acesso) return telaLogin()
+    if (!acesso) return retornar()
 
     const toolbar = `
         <div class="toolbar-top">
@@ -325,12 +331,12 @@ async function identificacaoUser() {
 
     if (acesso.permissao == 'novo') {
         localStorage.removeItem('acesso')
-        return telaLogin()
+        return retornar()
     }
 
     if (acesso.permissao == 'visitante') return redirecionarChamados()
 
-    await telaInicial()
+    telaInicial()
 
     localStorage.setItem('acesso', JSON.stringify(acesso))
 
@@ -564,7 +570,7 @@ function sair() {
     mostrarMenus(false)
 
     localStorage.removeItem('acesso')
-    telaLogin()
+    retornar()
 }
 
 function inicialMaiuscula(string) {

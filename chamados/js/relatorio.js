@@ -1,39 +1,6 @@
-let empresas = {}
-let tipos = {}
-let sistemas = {}
-let correcoes = {}
-let prioridades = {}
 let filtroOcorrencias = {}
 
-const modeloTabela = (colunas) => {
-
-    const ths = colunas
-        .map(col => `<th>${col}</th>`).join('')
-
-    const pesquisa = colunas
-        .map((col, i) => `<th oninput="pesquisarOcorrencias('${i}',  this.textContent, 'body'); calularResumo()" style="background-color: white; text-align: left;" contentEditable="true"></th>`)
-        .join('')
-
-    return `
-    <div class="fundo">
-        <div class="blocoTabela" style="width: 100%;">
-            <div class="painelBotoes"></div>
-            <div class="recorteTabela">
-                <table class="tabela">
-                    <thead>
-                        <tr>${ths}</tr>
-                        <tr>${pesquisa}</tr>
-                    <thead>
-                    <tbody id="body"></tbody>
-                </table>
-            </div>
-            <div class="rodapeTabela"></div>
-        </div>
-    </div>`
-
-}
-
-async function telaOcorrencias() {
+async function telaRelatorio() {
 
     overlayAguarde()
 
@@ -43,9 +10,9 @@ async function telaOcorrencias() {
     sistemas = await recuperarDados('sistemas')
     correcoes = await recuperarDados('correcoes')
     prioridades = await recuperarDados('prioridades')
-    const dados_ocorrencias = await recuperarDados('dados_ocorrencias')
-    const tabela = modeloTabela(
-        [
+    dados_ocorrencias = await recuperarDados('dados_ocorrencias')
+    const tabela = modeloTabela({
+        colunas: [
             '',
             'Empresa',
             'Chamado',
@@ -60,15 +27,15 @@ async function telaOcorrencias() {
             'Loja',
             'Sistema',
             'Prioridade'
-        ]
-    )
+        ], funcao: `atualizarRelatorio()`
+    })
 
     const modelo = (texto, name, cor) => `
         <div style="background-color: ${cor};" class="balao-totais">
             <label>${texto}</label>
 
             <div style="${horizontal}; gap: 1rem;">
-                <span name="${name}"></span>
+                <label name="${name}" style="font-size: 2rem;"></label>
                 ${name !== 'totalChamados' ? `<label name="porc_${name}"></label>` : ''}
             </div>
 
@@ -77,36 +44,43 @@ async function telaOcorrencias() {
 
     const acumulado = `
         <div style="${vertical}">
-            <div style="${horizontal}; gap: 0.5rem;">
+            <div class="toolbar-relatorio">
+
+                <img src="imagens/BG.png" style="width: 15rem;">
+
                 ${modelo('Total de Chamados', 'totalChamados', '#222')}
                 ${modelo('Finalizados', 'finalizados', '#1d7e45')}
                 ${modelo('Em Aberto', 'emAberto', '#a28409')}
                 ${modelo('Em Atraso', 'emAtraso', '#b12425')}
 
                 <div class="pesquisa-chamados">
-                    <span>Filtrar por data de abertura</span>
+                    <span style="color: white;">Filtrar por data de abertura</span>
                     <input id="de" type="date" onchange="pesquisarDatas()">
                     <input id="ate" type="date" onchange="pesquisarDatas()">
                 </div>
 
-                <img src="imagens/BG.png" style="width: 15rem; margin-left: 5rem;">
             </div>
             ${tabela}
         </div>
     `
 
-    tela.innerHTML = acumulado
-    const atalhos = acesso.permissao == 'visitante' ? 'ocorrencias2' : 'ocorrencias'
-    criarMenus(atalhos)
+    const telaInterna = document.querySelector('.telaInterna')
+    telaInterna.innerHTML = acumulado
 
     removerOverlay()
 
-    document.querySelector('[name="titulo"]').textContent = 'Acompanhamento de Chamados'
+    titulo.textContent = 'Acompanhamento de Chamados'
 
-    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) criarLinhaOcorrencia(idOcorrencia, ocorrencia)
+    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) criarLinhaRelatorio(idOcorrencia, ocorrencia)
 
     calularResumo()
+    mostrarMenus(false)
 
+}
+
+async function atualizarRelatorio() {
+    await atualizarOcorrencias()
+    await telaRelatorio()
 }
 
 function dtAuxOcorrencia(dt) {
@@ -119,7 +93,7 @@ function dtAuxOcorrencia(dt) {
 }
 
 
-async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
+async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
 
     const status = correcoes[ocorrencia?.tipoCorrecao]?.nome || 'Não analisada'
 
@@ -128,7 +102,7 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
     const tds = `
         <td>
             <div style="${horizontal}">
-                <img src="imagens/pesquisar2.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirCorrecoes('${idOcorrencia}')">
+                <img src="imagens/pesquisar.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirCorrecaoRelatorio('${idOcorrencia}')">
             </div>
         </td>
         <td>${empresas[ocorrencia?.empresa]?.nome || '--'}</td>
@@ -228,62 +202,9 @@ function calularResumo() {
 
 }
 
-async function atualizarDados() {
-    overlayAguarde()
-
-    const nuvem = await baixarOcorrencias()
-    await inserirDados(nuvem, 'dados_ocorrencias')
-
-    await sincronizarDados('empresas', true)
-    await sincronizarDados('dados_composicoes', true)
-    await sincronizarDados('tipos', true)
-    await sincronizarDados('correcoes', true)
-    await sincronizarDados('prioridades', true)
-    await sincronizarDados('sistemas', true)
-
-    await telaOcorrencias()
-    removerOverlay()
-}
-
-async function baixarOcorrencias() {
-
-    const timestampOcorrencia = await maiorTimestamp('dados_ocorrencias')
-
-    async function maiorTimestamp(nomeBase) {
-
-        let timestamp = 0
-        const dados = await recuperarDados(nomeBase)
-        for (const [id, objeto] of Object.entries(dados)) {
-            if (objeto.timestamp && objeto.timestamp > timestamp) timestamp = objeto.timestamp
-        }
-
-        return timestamp
-    }
-
-    return new Promise((resolve, reject) => {
-        fetch(`${api}/ocorrencias`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ usuario: acesso.usuario, timestampOcorrencia })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                resolve(data);
-            })
-            .catch(error => reject(error));
-
-    })
-}
-
-async function abrirCorrecoes(idOcorrencia) {
+async function abrirCorrecaoRelatorio(idOcorrencia) {
 
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
-
     const correcoesOC = ocorrencia?.correcoes || {}
     const thead = ['Executor', 'Tipo Correção', 'Descrição', 'Localização', 'Imagens']
         .map(op => `<th>${op}</th>`)
@@ -293,8 +214,6 @@ async function abrirCorrecoes(idOcorrencia) {
     for (let [idCorrecao, correcao] of Object.entries(correcoesOC)) {
         const st = correcoes[correcao.tipoCorrecao].nome
         let registros = ''
-
-        console.log(correcao);
 
         const imagens = Object.entries(correcao?.fotos || {})
             .map(([link, foto]) => `<img name="foto" id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`)
@@ -313,7 +232,7 @@ async function abrirCorrecoes(idOcorrencia) {
             }
 
             registros += `
-                <div class="bloco">
+                <div class="bloco-localizacao">
                     <label>${new Date(Number(dt)).toLocaleString('pt-BR')}</label>
                     <div style="${vertical};">
                         ${rastreio}
@@ -326,23 +245,22 @@ async function abrirCorrecoes(idOcorrencia) {
             <tr>
                 <td>${correcao.executor}</td>
                 <td>${st}</td>
-                <td>${correcao.descricao}</td>
+                <td style="width: 20vw; text-align: justify;">${correcao.descricao}</td>
                 <td>
                     <div style="${vertical}; gap: 1px;">
                         ${registros}
                     </div>
                 </td>
                 <td>
-                    ${imagens !== '' ? `<div class="fotos">${imagens}</div>` : 'Sem Imagens'}
+                    ${imagens !== '' ? `<div class="fotos" style="display: grid;">${imagens}</div>` : 'Sem Imagens'}
                 </td>
-            </tr>
-        `
+            </tr>`
     }
 
     const loja = dados_clientes?.[ocorrencia?.unidade] || {}
 
     const acumulado = `
-        <div style="${vertical}; padding: 1rem; background-color: #efefefff;">
+        <div class="detalhes-correcao">
 
             <span style="font-size: 1.2rem;"><b>Dados da Loja</b></span>
             <hr style="width: 100%;">
@@ -359,18 +277,20 @@ async function abrirCorrecoes(idOcorrencia) {
                 </div>
             </div>
 
-            <hr style="width: 100%;">
             <span style="font-size: 1.2rem;"><b>Correções</b></span>
-            <div class="blocoTabela">
+            <hr style="width: 100%;">
+
+            <div class="blocoTabela" style="width: 100%;">
                 <div class="painelBotoes"></div>
                 <div class="recorteTabela">
-                    <table class="tabela">
+                    <table class="tabela" style="width: 100%;">
                         <thead>${thead}</thead>
                         <tbody>${linhas}</tbody>
                     </table>
                 </div>
                 <div class="rodapeTabela"></div>
             </div>
+
         </div>
         `
 
@@ -442,7 +362,7 @@ function pesquisarDatas() {
 
     if (!deInput || !ateInput) {
         for (const tr of trs) {
-            tr.dataset.data = 's'; 
+            tr.dataset.data = 's';
             tr.style.display = '';
         }
         return;

@@ -3,7 +3,7 @@
 }
 
 .div-linha {
-    padding: 0.5rem;
+    padding: 1rem;
     border: 1px solid #949494;
     background-color: white;
     display: flex;
@@ -15,11 +15,11 @@
 }
 
 .tela-ocorrencias {
+    min-width: 95vw;
     display: flex;
     align-items: start;
     justify-content: start;
     flex-direction: column;
-    width: 90vw;
 }
 
 .rodape-formulario {
@@ -280,11 +280,63 @@
     justify-content: start;
 }
 
+.linha-ocorrencias {
+    max-width: 100%;
+    width: max-content;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.linha-parte-1 {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.linha-parte-2 {
+    width: 100%;
+    justify-content: start;
+    display: flex;
+    flex-direction: column;
+}
+
+.detalhes-correcoes-1 {
+    width: 100%;
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    flex-direction: column;
+    gap: 1rem;
+}
+
 @media screen and (orientation: landscape),
 screen and (min-aspect-ratio: 13/9) {
 
-    .rodape-formulario button {
-        padding: 2vw;
+    .tela-ocorrencias {
+        min-width: 100%;
+    }
+
+    .detalhes-correcoes-1 {
+        flex-direction: row;
+    }
+
+    .linha-parte-1 {
+        width: 40%;
+    }
+
+    .linha-parte-2 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .linha-ocorrencias {
+        flex-direction: row;
     }
 
     .painel-superior-cadastros {

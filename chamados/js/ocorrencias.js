@@ -33,7 +33,7 @@ async function carregarElementosPagina(nomeBase, colunas, tela) {
     overlayAguarde()
     const dados = await recuperarDados(nomeBase)
     const telaInterna = document.querySelector(`.${tela ? tela : 'telaInterna'}`)
-    telaInterna.innerHTML = modeloTabela(colunas, nomeBase)
+    telaInterna.innerHTML = modeloTabela({ colunas, base: nomeBase })
 
     if (nomeBase !== 'dados_composicoes' && nomeBase !== 'dados_clientes') {
         const adicionar = `<button onclick="editarBaseAuxiliar('${nomeBase}')">Adicionar</button>`
@@ -319,39 +319,46 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
     const status = correcoes[ocorrencia?.tipoCorrecao]?.nome || 'Não analisada'
     const linha = `
 
-        <div style="${horizontal}; justify-content: start; width: 90%; gap: 5px; padding: 5px;">
-            ${botaoImg('lapis', `formularioOcorrencia('${idOcorrencia}')`)}
-            ${btnExclusao}
-            <div class="contador" onclick="abrirCorrecoes('${idOcorrencia}')">
-                <img src="imagens/configuracoes.png" style="width: 2.5rem;">
-                <span>${qtdeCorrecoes}</span>
+        <div class="linha-ocorrencias">
+
+            <div class="linha-parte-1">
+                <div style="${horizontal}; justify-content: start; gap: 1px; padding: 5px;">
+                    ${botaoImg('lapis', `formularioOcorrencia('${idOcorrencia}')`)}
+                    ${btnExclusao}
+                    <div class="contador" onclick="abrirCorrecoes('${idOcorrencia}')">
+                        <img src="imagens/configuracoes.png" style="width: 2.5rem;">
+                        <span>${qtdeCorrecoes}</span>
+                    </div>
+                    <img src="imagens/pdf.png" style="width: 2.5rem;" onclick="telaOS('${idOcorrencia}')">
+                    <div style="position: relative;" onclick="coletarAssinatura('${idOcorrencia}')">
+                        <img src="imagens/assinatura.png" style="width: 2.5rem;">
+                        <img src="imagens/${ocorrencia.assinatura ? 'concluido' : 'cancel'}.png" style="width: 2rem; position: absolute; top: -10px; right: -20px;">
+                    </div>
+                </div>
+
+                ${botao('Incluir Correção', `formularioCorrecao('${idOcorrencia}')`, '#e47a00')}
+
+                <div style="${vertical};">
+                    <span><b>Descrição</b></span>
+                    <span style="text-align: justify;">${ocorrencia?.descricao || '...'}</span>
+                </div>
             </div>
-            <img src="imagens/pdf.png" style="width: 2.5rem;" onclick="telaOS('${idOcorrencia}')">
-            <div style="position: relative;" onclick="coletarAssinatura('${idOcorrencia}')">
-                <img src="imagens/assinatura.png" style="width: 2.5rem;">
-                <img src="imagens/${ocorrencia.assinatura ? 'concluido' : 'cancel'}.png" style="width: 2rem; position: absolute; top: -10px; right: -20px;">
+
+            <div class="linha-parte-2">
+                ${modeloCampos('Empresa', empresas[ocorrencia?.empresa]?.nome || '--')}
+                ${modeloCampos('Número', idOcorrencia)}
+                ${modeloCampos('Última Correção', status)}
+                ${modeloCampos('Data Registro', ocorrencia?.dataRegistro || '')}
+                ${modeloCampos('Data Limite', dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao))}
+                ${modeloCampos('Solicitante', ocorrencia?.solicitante || '')}
+                ${modeloCampos('Executor', ocorrencia?.executor || '')}
+                ${modeloCampos('Tipo', tipos?.[ocorrencia?.tipo]?.nome || '...')}
+                ${modeloCampos('Unidade', dados_clientes?.[ocorrencia?.unidade]?.nome || '...')}
+                ${modeloCampos('Sistema', sistemas?.[ocorrencia?.sistema]?.nome || '...')}
+                ${modeloCampos('Prioridade', prioridades?.[ocorrencia?.prioridade]?.nome || '...')}
             </div>
+
         </div>
-
-        <br>
-
-        ${botao('Incluir Correção', `formularioCorrecao('${idOcorrencia}')`, '#e47a00')}
-
-        <br>
-
-        ${modeloCampos('Empresa', empresas[ocorrencia?.empresa]?.nome || '--')}
-        ${modeloCampos('Número', idOcorrencia)}
-        ${modeloCampos('Última Correção', status)}
-        ${modeloCampos('Data Registro', ocorrencia?.dataRegistro || '')}
-        ${modeloCampos('Data Limite', dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao))}
-        ${modeloCampos('Solicitante', ocorrencia?.solicitante || '')}
-        ${modeloCampos('Executor', ocorrencia?.executor || '')}
-        ${modeloCampos('Tipo', tipos?.[ocorrencia?.tipo]?.nome || '...')}
-        ${modeloCampos('Unidade', dados_clientes?.[ocorrencia?.unidade]?.nome || '...')}
-        ${modeloCampos('Sistema', sistemas?.[ocorrencia?.sistema]?.nome || '...')}
-        ${modeloCampos('Prioridade', prioridades?.[ocorrencia?.prioridade]?.nome || '...')}
-        ${modeloCampos('Descrição ', ocorrencia?.descricao || '...')}
-
     `
 
     const divExistente = document.getElementById(idOcorrencia)
@@ -405,7 +412,7 @@ async function carregarLinhaCorrecao(idCorrecao, correcao, idOcorrencia) {
         : ''
 
     const divLinha = `
-    <div style="display: flex; align-items: start; justify-content: space-between; width: 100%; gap: 10px;">
+    <div class="detalhes-correcoes-1">
 
         <div style="${horizontal}; gap: 10px;">
             ${edicao}
@@ -480,36 +487,41 @@ async function telaOcorrencias(abertos) {
     const telaInterna = document.querySelector('.telaInterna')
     telaInterna.innerHTML = acumulado
 
-    let contador = {
-        abertos: 0,
-        solucionados: 0
-    }
-
     for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) {
-        if (abertos && ocorrencia.tipoCorrecao !== 'WRuo2') {
-            await criarLinhaOcorrencia(idOcorrencia, ocorrencia)
-        } else if (!abertos && ocorrencia.tipoCorrecao == 'WRuo2') {
+
+        if (abertos && ocorrencia.tipoCorrecao !== 'WRuo2' || !abertos && ocorrencia.tipoCorrecao == 'WRuo2') {
             await criarLinhaOcorrencia(idOcorrencia, ocorrencia)
         }
 
-        contador[ocorrencia.tipoCorrecao == 'WRuo2' ? 'solucionados' : 'abertos']++
-
     }
-
-    criarBadge(contador.abertos, 'abertos', 'red')
-    criarBadge(contador.solucionados, 'solucionados', 'green')
 
     removerOverlay()
 
 }
 
-function criarBadge(numero, idPai, bg) {
+function mostrarQuantidades() {
+    let contador = {
+        abertos: 0,
+        solucionados: 0
+    }
+
+    for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) {
+
+        contador[ocorrencia.tipoCorrecao == 'WRuo2' ? 'solucionados' : 'abertos']++
+
+    }
+
+    criarBadge(contador.abertos, 'abertos')
+    criarBadge(contador.solucionados, 'solucionados')
+}
+
+function criarBadge(numero, idPai) {
 
     const idBadge = `badge_${idPai}`
     const badgeExistente = document.getElementById(idBadge)
     if (badgeExistente) badgeExistente.remove()
 
-    const badge = `<span id="${idBadge}" class="badge" style="background-color: ${bg};">${numero}</span>`
+    const badge = `<span id="${idBadge}" class="pill alert-${idPai}">${numero}</span>`
     const elementoPai = document.getElementById(idPai)
     if (elementoPai) elementoPai.insertAdjacentHTML('beforeend', badge)
 
@@ -517,42 +529,50 @@ function criarBadge(numero, idPai, bg) {
 
 async function atualizarOcorrencias() {
 
-    if (emAtualizacao) return
+    new Promise(async (resolve, reject) => {
 
-    emAtualizacao = true
+        if (emAtualizacao) return
 
-    mostrarMenus(true)
-    sincronizarApp()
-    let status = { total: 9, atual: 1 }
+        emAtualizacao = true
 
-    sincronizarApp(status)
-    await sincronizarSetores(true)
-    status.atual++
+        mostrarMenus(true)
+        sincronizarApp()
+        let status = { total: 9, atual: 1 }
 
-    sincronizarApp(status)
-    const nuvem = await baixarOcorrencias()
-    await inserirDados(nuvem, 'dados_ocorrencias')
-    status.atual++
-
-    const basesAuxiliares = [
-        'empresas',
-        'dados_composicoes',
-        'dados_clientes',
-        'sistemas',
-        'prioridades',
-        'correcoes',
-        'tipos'
-    ];
-
-    for (const base of basesAuxiliares) {
         sincronizarApp(status)
-        await sincronizarDados(base, true)
+        await sincronizarSetores(true)
         status.atual++
-    }
 
-    sincronizarApp({ remover: true })
+        sincronizarApp(status)
+        const nuvem = await baixarOcorrencias()
+        await inserirDados(nuvem, 'dados_ocorrencias')
+        status.atual++
 
-    emAtualizacao = false
+        const basesAuxiliares = [
+            'empresas',
+            'dados_composicoes',
+            'dados_clientes',
+            'sistemas',
+            'prioridades',
+            'correcoes',
+            'tipos'
+        ];
+
+        for (const base of basesAuxiliares) {
+            sincronizarApp(status)
+            await sincronizarDados(base, true)
+            status.atual++
+        }
+
+        sincronizarApp({ remover: true })
+
+        emAtualizacao = false
+
+        dados_ocorrencias = await recuperarDados('dados_ocorrencias')
+        mostrarQuantidades()
+        resolve()
+    })
+
 }
 
 function sincronizarApp({ atual, total, remover } = {}) {
@@ -562,7 +582,7 @@ function sincronizarApp({ atual, total, remover } = {}) {
         setTimeout(async () => {
             const loader = document.querySelector('.circular-loader')
             if (loader) loader.remove()
-            if(ocorrenciasAbertas !== null) await telaOcorrencias()
+            if (ocorrenciasAbertas !== null) await telaOcorrencias()
             mostrarMenus(false)
             return
         }, 1000)

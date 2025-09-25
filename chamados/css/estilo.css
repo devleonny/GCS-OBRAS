@@ -142,7 +142,6 @@ span {
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    font-size: 1.2rem;
 }
 
 .botaoSuperiorLogin {
@@ -236,7 +235,6 @@ button {
 }
 
 .janela {
-    min-width: 90vw;
     overflow: auto;
     max-height: 80vh;
     border-bottom-left-radius: 10px;
@@ -249,7 +247,6 @@ button {
     flex-direction: column;
     align-items: center;
     justify-content: start;
-    max-width: 90vw;
     text-align: center;
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
@@ -362,7 +359,7 @@ button {
 }
 
 .blocoTabela {
-    width: 90vw;
+    width: 100%;
     display: flex;
     align-items: start;
     justify-content: start;
@@ -377,7 +374,7 @@ button {
 }
 
 .tabela {
-    width: 100%;
+    min-width: max-content;
     background-color: white;
     border-collapse: collapse;
 }
@@ -394,7 +391,7 @@ button {
 
 .tabela td {
     text-align: center;
-    padding: 3px;
+    padding: 8px;
     border: 1px solid #d2d2d2;
 }
 
@@ -430,16 +427,6 @@ button {
     overflow: hidden;
 }
 
-.badge {
-    color: white;
-    border-radius: 3px;
-    display: flex;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-    justify-content: center;
-    align-items: center;
-}
-
 .especial-chamados {
     display: flex;
     align-items: start;
@@ -447,7 +434,6 @@ button {
     flex-direction: column;
 }
 
-/* Menu lateral */
 .side-menu {
     position: fixed;
     top: 0;
@@ -608,7 +594,7 @@ input[type="file"] {
 }
 
 .fotos img {
-    width: 20vw;
+    width: 5rem;
 }
 
 .capturar {
@@ -663,6 +649,7 @@ input[type="file"] {
 }
 
 .telaInterna {
+    max-width: 95vw;
     padding: 2vw 1vw;
 }
 
@@ -737,7 +724,7 @@ input[type="file"] {
 
 .atualizar {
     margin-right: 1vw;
-    width: 3rem;
+    width: 2.5rem;
 }
 
 .painel-superior-cadastros {
@@ -745,7 +732,7 @@ input[type="file"] {
     align-items: center;
     justify-content: center;
     flex-direction: row;
-    gap: 1vw;
+    gap: 2px;
 }
 
 .notificacao {
@@ -810,13 +797,49 @@ input[type="file"] {
     width: 10vw;
 }
 
+.pill {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #333;
+    color: #fff;
+    font-weight: 600
+}
+
+.pill svg {
+    width: 14px;
+    height: 14px;
+    opacity: .9
+}
+
+.pill.alert-abertos {
+    background: linear-gradient(90deg, #d7a6a6, #f50404);
+    animation: ping 1.6s infinite
+}
+
+.pill.alert-solucionados {
+    background: linear-gradient(90deg, #c4ef91, #3c9f15);
+    animation: ping 1.6s infinite
+}
+
+@keyframes ping {
+    0% {
+        box-shadow: 0 0 0 0 #d63447e6
+    }
+
+    70% {
+        box-shadow: 0 0 0 12px #d6344700
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 #d6344700
+    }
+}
+
 @media screen and (orientation: landscape),
 screen and (min-aspect-ratio: 13/9) {
-
-    .badge {
-        padding-left: 1vw;
-        padding-right: 1vw;
-    }
 
     .rodape-login button {
         padding: 1vw;
@@ -847,15 +870,6 @@ screen and (min-aspect-ratio: 13/9) {
 
     .baixoLogin {
         flex-direction: row;
-    }
-
-    .janela {
-        min-width: 70vw;
-        max-height: 80vh;
-    }
-
-    .janela_fora {
-        max-width: 80vw;
     }
 
     .btnRodape {
