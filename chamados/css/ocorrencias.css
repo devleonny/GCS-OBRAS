@@ -1,0 +1,326 @@
+.img-logo-td {
+    width: 50vw;
+}
+
+.div-linha {
+    padding: 0.5rem;
+    border: 1px solid #949494;
+    background-color: white;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.8rem;
+}
+
+.tela-ocorrencias {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    width: 90vw;
+}
+
+.rodape-formulario {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    background-color: #a0a0a0ff;
+    gap: 0.5rem;
+}
+
+.rodape-formulario button {
+    padding: 0.5rem;
+}
+
+.itemFiltro {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 5px;
+    width: 100%;
+}
+
+.itemFiltro span {
+    color: white;
+}
+
+.itemFiltro img {
+    width: 5vw;
+}
+
+.atalhosRelatorio {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    background-color: #e2e2e2;
+    border-radius: 3px;
+    padding: 10px;
+    width: 100%;
+    gap: 15px;
+}
+
+.atalhosRelatorio input {
+    width: 25px;
+    height: 25px;
+}
+
+.blocoFiltro {
+    height: -webkit-fill-available;
+    width: -webkit-fill-available;
+    color: #222;
+    background-color: #e6e6e6;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+}
+
+.blocoFiltro div label {
+    border-radius: 2px;
+    background-color: #383838;
+    padding: 3px;
+}
+
+.blocoFiltro div {
+    gap: 1px;
+    border: 1px solid #c3c3c3;
+    background-color: #d1d1d1;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    overflow-y: visible;
+    overflow-x: hidden;
+    max-height: 20vh;
+    height: max-content;
+}
+
+.cabecalho-pesquisa {
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    background-color: #b1b1b1;
+    gap: 1vw;
+    padding: 1vw;
+}
+
+.negativo {
+    background-color: #b12425;
+    padding: 5px;
+    border-radius: 3px;
+    color: white;
+}
+
+.totalBox {
+    min-height: -webkit-fill-available;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background-color: #222;
+    color: white;
+    text-align: center;
+}
+
+.tabelaRelatorio {
+    height: max-content;
+    max-height: 40vh;
+    width: 100%;
+    overflow: auto;
+}
+
+.tabelaRelatorio img {
+    padding: 2vw;
+    width: 10vw;
+}
+
+.balaoOcorrencias {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.balaoSolicitante {
+    justify-content: center;
+    display: flex;
+    align-items: center;
+    height: -webkit-fill-available;
+    cursor: pointer;
+    padding: 5px 10px;
+    background-color: #222;
+    border-right: 1px solid #444;
+}
+
+.balaoExecutor {
+    justify-content: center;
+    display: flex;
+    align-items: center;
+    height: -webkit-fill-available;
+    cursor: pointer;
+    padding: 5px 10px;
+    background-color: #222222c8;
+}
+
+.tabela1 {
+    width: 100%;
+    height: max-content;
+    max-height: 70vh;
+    overflow: auto;
+}
+
+.tabela1 table {
+    width: max-content;
+    border-collapse: collapse;
+    color: #222;
+}
+
+.tabela1 td {
+    width: 100vw;
+    border: solid 1px #222;
+    text-align: center;
+}
+
+.fechar {
+    cursor: pointer;
+    color: #444444;
+    float: right;
+    font-size: 10vw;
+    font-weight: bold;
+}
+
+.fechar:hover {
+    color: red;
+}
+
+.tabelaCorrecoes {
+    width: 100%;
+}
+
+.campos {
+    border: solid 1px #7d7d7d;
+    text-align: center;
+    cursor: pointer;
+    padding: 5px;
+    background-color: #b5b5b5;
+    border-radius: 20px;
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.campos:hover {
+    background-color: #249f41;
+    color: white;
+}
+
+.atalhos {
+    text-align: left;
+    width: 100%;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 1px;
+    cursor: pointer;
+    background-color: #c7c7c7ff;
+    padding: 0.5rem;
+}
+
+.atalhos label {
+    margin-left: 2vw;
+}
+
+.atalhos:hover {
+    color: white;
+    background-color: #323940;
+}
+
+.gavetaOpcoes {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    gap: 1px;
+    background-color: #d2d2d2;
+    width: 100%;
+    max-height: 40vh;
+    height: max-content;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.paginacao {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin-bottom: 1vh;
+    margin-top: 1vh;
+}
+
+.paginacao img {
+    width: 6vw;
+}
+
+.telaInferior {
+    width: 100%;
+}
+
+.painel-superior-cadastros {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-items: end;
+    justify-content: start;
+}
+
+@media screen and (orientation: landscape),
+screen and (min-aspect-ratio: 13/9) {
+
+    .rodape-formulario button {
+        padding: 2vw;
+    }
+
+    .painel-superior-cadastros {
+        display: flex;
+    }
+
+    .paginacao img {
+        width: 2vw;
+    }
+
+    .tabelaRelatorio img {
+        padding: 1vw;
+        width: 3vw;
+    }
+
+    .tabela1 {
+        max-height: 60vh;
+    }
+
+    .tabela1 table {
+        width: 100%;
+    }
+
+    .tabela1 td {
+        width: 40vw;
+    }
+
+    .totalBox label {
+        font-size: 2vw;
+    }
+
+    .itemFiltro img {
+        width: 2vw;
+    }
+
+    .img-logo-td {
+        width: 20vw;
+    }
+}

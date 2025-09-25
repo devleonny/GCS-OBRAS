@@ -1,0 +1,905 @@
+body,
+html {
+    background: linear-gradient(45deg, #151749, #249f41);
+    font-family: 'Poppins', sans-serif;
+    min-height: 100vh;
+    width: 100vw;
+    margin: 0;
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    flex-direction: column;
+    font-size: 0.9rem;
+}
+
+#tela {
+    margin-top: 7vh;
+}
+
+.contador {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 3px;
+    background: linear-gradient(to left, #e47a00 50%, #e5e5e5 0%);
+}
+
+.contador span {
+    text-align: center;
+    width: 3rem;
+    color: white;
+}
+
+.contornoAnexos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background-color: #222;
+    color: white;
+    border-radius: 5px;
+    height: max-content;
+    padding: 5px;
+    margin: 5px;
+}
+
+.contornoAnexos img {
+    width: 2rem;
+}
+
+.planoFundo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 80vh;
+    width: 90vw;
+    background-color: #0000005e;
+    border-radius: 5px;
+}
+
+.planoFundo img {
+    width: 60vw;
+}
+
+.contornoInterno {
+    width: 100%;
+    justify-content: start;
+    gap: 2px;
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    border-radius: 3px;
+    background-color: #99999940;
+}
+
+.contornoInterno img {
+    width: 5vw
+}
+
+span {
+    color: black;
+}
+
+.nomeUsuario {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    width: 100%;
+    margin-bottom: 5vw;
+}
+
+.nomeUsuario span {
+    padding: 5px;
+    width: 80%;
+    background-color: #249f41;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    color: white;
+}
+
+.invalido {
+    padding: 1vw;
+    border: solid 1px red;
+    border-radius: 5px;
+    background-color: #f7c5c5;
+}
+
+.mensagemTela {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 1vw;
+    background-color: white;
+    padding: 2vw;
+    border-radius: 3px;
+}
+
+.botoes {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    padding: 5px;
+    gap: 5px;
+}
+
+.botoesMenu {
+    margin-top: 15vw;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    flex-direction: column;
+    width: 100%;
+    gap: 1px;
+}
+
+.loginBloco {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: auto;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    font-size: 1.2rem;
+}
+
+.botaoSuperiorLogin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #B12425;
+    padding: 1vw;
+    gap: 3vw;
+}
+
+.botaoSuperiorLogin span {
+    color: white;
+}
+
+.botaoSuperiorLogin img {
+    width: 10vw;
+}
+
+.baixoLogin {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: space-evenly;
+    background-color: white;
+    padding: 1rem;
+}
+
+.credenciais {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+}
+
+.cadeado {
+    padding: 0.5rem;
+    width: 15rem;
+}
+
+.overlay {
+    position: fixed;
+    z-index: 9998;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.olho {
+    width: 2rem;
+}
+
+select {
+    padding: 5px;
+    border-radius: 3px;
+}
+
+input,
+textarea {
+    background-color: #f0efef;
+    display: block;
+    padding: 1vw;
+    margin: 1vw 0;
+    border-radius: 5px;
+    border: 1px solid #888;
+}
+
+textarea {
+    width: 100%;
+}
+
+input:focus {
+    outline: none;
+}
+
+button {
+    padding: 5px;
+    color: #f5f5f5;
+    cursor: pointer;
+    background-color: #249f41;
+    border-radius: 3px;
+    border: none;
+    white-space: nowrap;
+    font-size: 1.2rem;
+}
+
+.janela {
+    min-width: 90vw;
+    overflow: auto;
+    max-height: 80vh;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.janela_fora {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: start;
+    max-width: 90vw;
+    text-align: center;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.painel-cadastro {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 5px;
+    background-color: #d2d2d2;
+    max-height: 40vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 2rem;
+}
+
+.painel-cadastro table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.painel-cadastro td {
+    background-color: white;
+    border: solid 1px #676767;
+    padding: 8px;
+}
+
+.rodape-login {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rodape-login button {
+    border-radius: 0px;
+    width: 100%;
+    padding: 1rem;
+}
+
+.painel-cadastro th {
+    background-color: #676767;
+    color: white;
+    padding: 8px;
+}
+
+.rodapeAlerta {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 10px;
+}
+
+.rodapeAlerta img {
+    width: 3vw;
+}
+
+.camposTd {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 5px;
+}
+
+.camposTd img {
+    width: 7vw;
+}
+
+.megaInput {
+    width: 25px;
+    height: 25px;
+}
+
+.toolbarPopup {
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    justify-content: space-between;
+    border-bottom: 1px solid #d2d2d2;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    color: white;
+    background: linear-gradient(to left, #B12425 10%, #3b444c 0%);
+    min-height: 35px;
+}
+
+.toolbarPopup span {
+    color: white;
+}
+
+.botaoPopup {
+    background-color: #3b444c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 10vw;
+    height: 5vh;
+    cursor: pointer;
+}
+
+.botaoPopup img {
+    width: 5vw;
+}
+
+.botaoPopup label {
+    cursor: pointer;
+    color: white;
+}
+
+.blocoTabela {
+    width: 90vw;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+}
+
+.recorteTabela {
+    width: 100%;
+    height: max-content;
+    max-height: 65vh;
+    overflow: auto;
+}
+
+.tabela {
+    width: 100%;
+    background-color: white;
+    border-collapse: collapse;
+}
+
+.tabela thead input {
+    width: 100%;
+}
+
+.tabela th {
+    border: solid 1px #d2d2d2;
+    color: #222;
+    padding: 8px;
+}
+
+.tabela td {
+    text-align: center;
+    padding: 3px;
+    border: 1px solid #d2d2d2;
+}
+
+.tabela span {
+    margin-left: 10px;
+    text-align: left;
+}
+
+.tabela thead {
+    box-shadow: 0 1px 0 #ccc;
+    background-color: #d2d2d2;
+}
+
+.btnLateral {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    width: 100%;
+    background-color: #f3f3f3;
+}
+
+.btnLateral img {
+    width: 2rem;
+    margin-left: 10px
+}
+
+.menu-container {
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+}
+
+.badge {
+    color: white;
+    border-radius: 3px;
+    display: flex;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    justify-content: center;
+    align-items: center;
+}
+
+.especial-chamados {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+}
+
+/* Menu lateral */
+.side-menu {
+    position: fixed;
+    top: 0;
+    left: -250px;
+    width: 250px;
+    height: 100%;
+    background: #222222ec;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+    transition: 0.3s;
+    z-index: 200;
+    overflow: auto;
+}
+
+.side-menu.active {
+    left: 0;
+}
+
+.painelBotoes {
+    min-height: 2rem;
+    position: relative;
+    border-bottom: 1px solid #666666;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top-right-radius: 10px;
+    border-top-left-radius: 10px;
+    background-color: #b1b1b1;
+    gap: 2px;
+    width: 100%;
+}
+
+.rodapeTabela {
+    border-top: 1px solid #666666;
+    width: 100%;
+    height: 2vh;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    background-color: #b1b1b1;
+}
+
+.btnRodape {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    width: 90%;
+    border-radius: 3px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 0;
+    gap: 2vw;
+}
+
+.opcaoStatus {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 5px;
+}
+
+input[type="file"] {
+    width: 70%;
+}
+
+.btnPadrao {
+    width: 100%;
+    background-color: #249f41;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border-radius: 3px;
+    color: white;
+}
+
+.aguarde {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10005;
+}
+
+.aguarde img {
+    width: 35vw;
+}
+
+.mensagem {
+    background-color: #d2d2d2;
+    display: flex;
+    gap: 10px;
+    padding: 2vw;
+    align-items: center;
+    justify-content: center;
+}
+
+.mensagem img {
+    width: 2rem;
+}
+
+.pesquisa {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    border-radius: 50px;
+    padding-left: 2rem;
+    margin: 0.5rem;
+}
+
+.pesquisa img {
+    width: 2rem;
+}
+
+.pesquisa input {
+    border: none;
+    background-color: transparent;
+}
+
+.barra {
+    width: 15vw;
+    flex: 1;
+    background: #eee;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.btnAcmp {
+    border-radius: 5px;
+    padding: 3px;
+    background-color: #dbdbdb;
+}
+
+.cameraDiv {
+    display: none;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.cameraDiv video {
+    width: 100%;
+}
+
+.fotos {
+    padding: 5px;
+    display: none;
+    grid-template-columns: repeat(3, 1fr);
+    align-items: start;
+    gap: 2px;
+    background-color: #7f7f7f;
+    border-radius: 3px;
+}
+
+.fotos img {
+    width: 20vw;
+}
+
+.capturar {
+    border-radius: 3px;
+    background-color: #b8b8b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 2vw;
+    margin: 2vw;
+}
+
+.aviso {
+    background-color: #d2d2d2;
+    padding: 2vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1vw;
+}
+
+.bloco {
+    border: solid 1px #c9c9c9;
+    border-radius: 2px;
+    background-color: #F5F5F5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding-left: 5vw;
+    padding-right: 5vw;
+}
+
+.bloco label {
+    color: #222;
+    white-space: nowrap;
+}
+
+.bloco span {
+    color: #fd6828;
+}
+
+.linha {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.detalhes img {
+    width: 2rem;
+}
+
+.telaInterna {
+    padding: 2vw 1vw;
+}
+
+.camposCadastro {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    gap: 5px;
+    background-color: #d2d2d2;
+    padding: 5vw;
+}
+
+.botoes-flutuantes {
+    border-radius: 5px;
+    background-color: #222222de;
+    z-index: 2222;
+    position: fixed;
+    bottom: 5%;
+    right: 5%;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 1rem;
+    padding: 0.5rem;
+}
+
+.toolbar {
+    min-height: 6vh;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    background-color: #222222ec;
+    width: 100%;
+    position: fixed;
+    left: 0;
+    z-index: 333;
+}
+
+.toolbar span {
+    color: white;
+}
+
+.botaoImg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e5e5e5;
+    padding: 3px;
+    border-radius: 5px;
+}
+
+.botaoImg img {
+    width: 2.2rem;
+}
+
+.menu-btn {
+    margin-left: 10px;
+    margin-right: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.menu-btn div {
+    width: 25px;
+    height: 2px;
+    background: white;
+    margin: 5px 0;
+    transition: 0.4s;
+}
+
+.atualizar {
+    margin-right: 1vw;
+    width: 3rem;
+}
+
+.painel-superior-cadastros {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    gap: 1vw;
+}
+
+.notificacao {
+    position: fixed;
+    right: 10px;
+    bottom: 10px;
+    background: #333;
+    color: #fff;
+    padding: 15px 25px;
+    border-radius: 5px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.circular-loader {
+    position: relative;
+    width: 120px;
+    height: 120px;
+}
+
+.circular-loader svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+}
+
+.circular-loader circle {
+    fill: none;
+    stroke-width: 10;
+    stroke-linecap: round;
+}
+
+.circular-loader .bg {
+    stroke: #333;
+}
+
+.circular-loader .progress {
+    stroke: #4caf50;
+    stroke-dasharray: 314;
+    stroke-dashoffset: 314;
+    transition: stroke-dashoffset 0.3s linear;
+}
+
+.circular-loader .percentage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    font-size: 24px;
+}
+
+.div-atualizar {
+    width: 100%;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    gap: 1vw;
+    background-color: #249f41;
+}
+
+.div-atualizar img {
+    width: 10vw;
+}
+
+@media screen and (orientation: landscape),
+screen and (min-aspect-ratio: 13/9) {
+
+    .badge {
+        padding-left: 1vw;
+        padding-right: 1vw;
+    }
+
+    .rodape-login button {
+        padding: 1vw;
+    }
+
+    .planoFundo img {
+        width: 30vw;
+    }
+
+    .tabTarefas table {
+        width: -webkit-fill-available;
+        table-layout: fixed;
+        border-collapse: collapse;
+        display: table;
+    }
+
+    .painel-1-tarefas {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        gap: 2vw;
+    }
+
+    input {
+        padding: 0.2rem;
+        margin: 0.2rem 0;
+    }
+
+    .baixoLogin {
+        flex-direction: row;
+    }
+
+    .janela {
+        min-width: 70vw;
+        max-height: 80vh;
+    }
+
+    .janela_fora {
+        max-width: 80vw;
+    }
+
+    .btnRodape {
+        width: auto;
+        right: 3vw;
+        bottom: 3vh;
+    }
+
+    .btnExcel {
+        gap: 10vw;
+        display: flex;
+    }
+
+    .botoesMenu {
+        margin-top: 10vw;
+    }
+
+    .recorteTabela {
+        max-height: 50vh;
+    }
+
+    .aguarde img {
+        width: 10vw;
+    }
+
+    .camposCadastro {
+        padding: 2vw;
+    }
+
+    .contornoInterno img {
+        width: 2vw
+    }
+
+    .botoes {
+        align-items: center;
+        flex-direction: row;
+    }
+
+    .painelPin {
+        flex-direction: row;
+    }
+
+    .camposTd img {
+        width: 3vw;
+    }
+
+}
