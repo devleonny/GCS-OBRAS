@@ -13,6 +13,8 @@ let primeiroDia = null
 
 async function telaChecklist() {
 
+    id_orcam = 'ORCA_4a4407d8-86dc-461c-a71e-de09338de522'
+
     tecnicos = {}
 
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
@@ -348,20 +350,19 @@ async function gerarRelatorioChecklist() {
     tbody.innerHTML = ''
     graficos.innerHTML = ''
 
-    // total do orçamento (somando todos os itens)
-    let totalOrcamento = 0
-    for (const [codigo, comp] of Object.entries({
+    // total de atividades
+    const atividades = {
         ...orcamento?.dados_composicoes,
         ...orcamento?.checklist?.avulso
-    })) {
-        totalOrcamento += comp?.qtde || 0
     }
+    const totalAtividades = Object.keys(atividades).length || 1
+    const pesoAtividade = 100 / totalAtividades
 
     // estrutura: { equipe: { data: somaPercentual } }
     let desempenhoEquipes = {}
 
     for (const [codigo, lancamentos] of Object.entries(itens)) {
-        const comp = orcamento?.dados_composicoes?.[codigo] || orcamento?.checklist?.avulso?.[codigo]
+        const comp = atividades[codigo]
         const descricao = comp?.descricao || '...'
         const qtdeTotal = comp?.qtde || 0
 
@@ -378,20 +379,20 @@ async function gerarRelatorioChecklist() {
                 const equipeKey = nomes.join(', ') || 'Sem equipe'
                 const dataStr = dataLancamento.toISOString().slice(0, 10)
 
-                // calcula percentual proporcional ao total do orçamento
-                const percentual = totalOrcamento > 0
-                    ? (dados.quantidade / totalOrcamento) * 100
+                // percentual proporcional ao peso da atividade
+                const percentualAtividade = qtdeTotal > 0
+                    ? (dados.quantidade / qtdeTotal) * pesoAtividade
                     : 0
 
                 if (!desempenhoEquipes[equipeKey]) desempenhoEquipes[equipeKey] = {}
                 if (!desempenhoEquipes[equipeKey][dataStr]) desempenhoEquipes[equipeKey][dataStr] = 0
-                desempenhoEquipes[equipeKey][dataStr] += percentual
+                desempenhoEquipes[equipeKey][dataStr] += percentualAtividade
 
                 tbody.insertAdjacentHTML('beforeend', `
                     <tr>
                         <td>${dataLancamento.toLocaleDateString('pt-BR')}</td>
                         <td>${descricao}</td>
-                        <td>${dados.quantidade}</td>
+                        <td>${dados.quantidade} / ${qtdeTotal}</td>
                         <td>
                             <div>${nomes.map(n => `<span>${n}</span>`).join('')}</div>
                         </td>
@@ -444,8 +445,8 @@ async function gerarRelatorioChecklist() {
         indicadoresDiv.insertAdjacentHTML('beforeend', `
         <span style="text-align: left;">
             <b>${equipe}</b> <br>
-            Diário: ${mediaDiaria.toFixed(0)}% <br>
-            Semanal: ${mediaSemanal.toFixed(0)}% <br>
+            Diário: ${mediaDiaria.toFixed(2)}% <br>
+            Semanal: ${mediaSemanal.toFixed(2)}% <br>
         </span>
         <br>`)
 
@@ -479,7 +480,7 @@ async function gerarRelatorioChecklist() {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Desempenho por equipe (em % do total do orçamento)'
+                    text: 'Desempenho por equipe (ponderado por atividade)'
                 }
             },
             scales: {
