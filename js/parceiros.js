@@ -553,8 +553,7 @@ async function detalharLpuParceiro(chave) {
     `
     const totalMargemDisponivel = margemLPU ? totalOrcamento * (margemLPU / 100) : 0
     const porcentagem = ((totalParceiro / totalOrcamento) * 100).toFixed(0)
-    linhas += `
-        <tr><td colspan="4" style="padding-top: 20px;"></td></tr>
+    const linhasTotais = `
         ${modeloTotal('TOTAL DO ORÇAMENTO', dinheiro(totalOrcamento))}
         ${modeloTotal('TOTAL MARGEM DISPONÍVEL', dinheiro(totalMargemDisponivel))}
         ${modeloTotal('TOTAL LPU PARCEIRO', dinheiro(totalParceiro))}
@@ -565,7 +564,7 @@ async function detalharLpuParceiro(chave) {
         <div style="${vertical};">
             <div class="topo-tabela"></div>
                 <div class="div-tabela">
-                <table class="tabela">
+                <table class="tabela" name="tabelaParceiro" data-total="${totalParceiro}">
                     <thead>
                         <tr>
                             <th>Item</th>
@@ -576,13 +575,17 @@ async function detalharLpuParceiro(chave) {
                     </thead>
                     <tbody>${linhas}</tbody>
                 </table>
+                <br>
+                <table class="tabela">
+                    <tbody>${linhasTotais}</tbody>
+                </table>
                 </div>
             <div class="rodapeTabela"></div>
         </div>
     `
 
     const cabecalhoInfo = `
-        <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
+        <div name="cabecalhoParceiro" style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px;">
             ${stringHtml('Data', new Date().toLocaleString())}
             ${stringHtml('Analista', acesso?.nome_completo || '')}
             ${stringHtml('Cliente', dadosEmpresa?.nome || '')}
@@ -611,7 +614,7 @@ async function detalharLpuParceiro(chave) {
     `
 
     const acumulado = `
-        <div  name="tabelaParceiro" style="padding: 1vw; background-color: #d2d2d2; padding: 1rem;">
+        <div style="padding: 1vw; background-color: #d2d2d2; padding: 1rem;">
             ${cabecalhoInfo}
             ${tabela}
         </div>
@@ -626,7 +629,10 @@ async function gerarPdfParceiro(nome) {
 
     overlayAguarde()
 
-    const tabela = document.querySelector('[name="tabelaParceiro"]').innerHTML
+    const cabecalhoParceiro = document.querySelector('[name="cabecalhoParceiro"]').innerHTML
+    const elTabela = document.querySelector('[name="tabelaParceiro"]')
+    const tabela = elTabela.innerHTML
+    const totalParceiro = dinheiro(elTabela.dataset.total)
 
     const htmlContent = `
         <!DOCTYPE html>
@@ -698,7 +704,17 @@ async function gerarPdfParceiro(nome) {
         </head>
         <body>
             <img src="https://i.imgur.com/5zohUo8.png" style="width: 10rem;">
-            ${tabela}
+            ${cabecalhoParceiro}
+            <br>
+            <table class="tabela">
+                ${tabela}
+                <tbody>
+                    <tr>
+                        <td colspan="3" style="background-color: #eaeaea; text-align: right;">TOTAL</td>
+                        <td>${totalParceiro}</td>
+                    </tr>
+                </tbody>
+            </table>
         </body>
         </html>`
 

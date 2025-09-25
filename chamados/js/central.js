@@ -410,11 +410,15 @@ const msgteste = (msg) => `
     </div>
 `
 
+function irGCS() {
+    window.location.href = '../index.html'
+}
+
 async function telaPrincipal() {
     acesso = JSON.parse(localStorage.getItem('acesso'));
     toolbar.style.display = 'flex';
 
-    const menus = {
+    let menus = {
         'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
         'Abertos': { id: 'abertos', img: 'configuracoes', funcao: 'telaOcorrencias(true)', proibidos: [] },
         'Solucionados': { id: 'solucionados', img: 'configuracoes', funcao: 'telaOcorrencias(false)', proibidos: [] },
@@ -424,6 +428,10 @@ async function telaPrincipal() {
         'Cadastros': { img: 'ajustar', funcao: 'telaCadastros()', proibidos: ['user', 'técnico', 'visitante'] },
         'Desconectar': { img: 'sair', funcao: 'deslogar()', proibidos: [] },
     };
+
+    if (!isAndroid) {
+        menus.GCS = { img: 'LG', funcao: 'irGCS()', proibidos: ['técnico', 'visitante'] }
+    }
 
     const stringMenus = Object.entries(menus)
         .filter(([_, dados]) => !dados.proibidos.includes(acesso.permissao))

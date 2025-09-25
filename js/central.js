@@ -128,7 +128,7 @@ const esquemaBotoes = {
         { nome: 'Estoque', funcao: `telaEstoque`, img: 'estoque' },
         { nome: 'Faturamento NFs', funcao: `telaRelatorio`, img: 'relatorio' },
         { nome: 'RH', funcao: `telaRH`, img: 'gerente' },
-        { nome: 'Ocorrências', funcao: `telaOcorrencias`, img: 'megafone' }
+        { nome: 'Ocorrências', funcao: `redirecionarChamados`, img: 'LG' }
     ],
     criarOrcamentos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -166,14 +166,6 @@ const esquemaBotoes = {
         { nome: 'Atualizar', funcao: 'atualizarManutencoes', img: 'atualizar3' },
         { nome: 'Criar Manutenção', funcao: 'criarManutencao', img: 'chamados' },
         { nome: 'Cadastrar Cliente', funcao: `cadastrarCliente`, img: 'omie' }
-    ],
-    ocorrencias: [
-        { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-        { nome: 'Atualizar', funcao: 'atualizarDados', img: 'atualizar3' },
-    ],
-    ocorrencias2: [
-        { nome: 'Atualizar', funcao: 'atualizarDados', img: 'atualizar3' },
-        { nome: 'Sair', funcao: 'sair', img: 'sair' },
     ],
     veiculos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -304,6 +296,10 @@ async function respostaSincronizacao(script) {
 
 }
 
+function redirecionarChamados() {
+    window.location.href = 'chamados/index.html'
+}
+
 async function identificacaoUser() {
 
     acesso = JSON.parse(localStorage.getItem('acesso'))
@@ -332,7 +328,7 @@ async function identificacaoUser() {
         return telaLogin()
     }
 
-    if (acesso.permissao == 'visitante') return telaOcorrencias()
+    if (acesso.permissao == 'visitante') return redirecionarChamados()
 
     await telaInicial()
 
