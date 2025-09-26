@@ -28,7 +28,7 @@ const modelo = (valor1, valor2) => `
         </div>
         `
 const modeloCampos = (valor1, elemento) => `
-    <div style="${horizontal}; justify-content: start; gap: 5px; width: 100%;">
+    <div style="${horizontal}; justify-content: start; gap: 5px;">
         <label><b>${valor1}</b></label>
         <div style="text-align: justify; padding-right: 1vw;">${elemento}</div>
     </div>`
@@ -371,13 +371,13 @@ async function telaUsuarios() {
 
     empresas = await recuperarDados('empresas')
     const colunas = ['Nome', 'Empresa', 'Setor', 'Permissão', '']
-    const nomeBase = 'dados_setores'
-    const dados = await recuperarDados(nomeBase)
+    const base = 'dados_setores'
+    const dados = await recuperarDados(base)
     const telaInterna = document.querySelector('.telaInterna')
-    telaInterna.innerHTML = modeloTabela(colunas, nomeBase)
+    telaInterna.innerHTML = modeloTabela({colunas, base})
 
     for (let [id, objeto] of Object.entries(dados)) {
-        criarLinha(objeto, id, nomeBase)
+        criarLinha(objeto, id, base)
     }
 
     removerOverlay()

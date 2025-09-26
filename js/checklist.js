@@ -64,7 +64,7 @@ async function telaChecklist() {
                     <img onclick="atualizarChecklist()" src="imagens/atualizar3.png" style="width: 2rem;">
 
                     <div style="${vertical};">
-                        ${btn('Remover Itens Selecionados', 'removerItensEmMassa()')}
+                        ${btn('Remover Itens Selecionados', 'removerItensEmMassaChecklist()')}
                         ${btn('Ver Itens Removidos', 'verItensRemovidos()')}
                     </div>
 
@@ -152,12 +152,12 @@ async function telaChecklist() {
     const porcetagemFinal = Number(((finalizados / quantidadeGeral) * 100).toFixed(1))
     const totalPrevisao = Number((diasCorridos * 100) / porcetagemFinal).toFixed(0)
     const previsao = totalPrevisao - diasCorridos
-    
+
     document.getElementById('geral').textContent = quantidadeGeral
     document.getElementById('porcentagem').innerHTML = divPorcentagem(porcetagemFinal)
     document.getElementById('diasCorridos').textContent = diasCorridos
     document.getElementById('diasTotais').textContent = diasUnicos.length
-    document.getElementById('previsao').textContent = previsao == 0 ? `-- dias` : `${previsao} dias`
+    document.getElementById('previsao').textContent = previsao ? `-- dias` : `${previsao} dias`
 
     if (!orcamento.checklist) orcamento.checklist = {}
     orcamento.checklist.andamento = porcetagemFinal
@@ -586,7 +586,7 @@ async function recuperarItem(codigo, img) {
 
 }
 
-async function removerItensEmMassa() {
+async function removerItensEmMassaChecklist() {
 
     const itensChecklist = document.querySelectorAll('[name="itensChecklist"]:checked')
 
