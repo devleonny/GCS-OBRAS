@@ -604,7 +604,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
         </div>
     `
 
-    popup(acumulado, 'Valores de Venda')
+    popup(acumulado, 'Valores de Venda', true)
 
 }
 

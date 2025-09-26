@@ -1812,27 +1812,28 @@ async function verificarPendencias() {
 
 async function verPedidoAprovacao(idOrcamento) {
 
-    let permissao = acesso.permissao
-    let pessoasPermitidas = ['adm', 'diretoria']
+    const permissao = acesso.permissao
+    const pessoasPermitidas = ['adm', 'diretoria']
     if (!pessoasPermitidas.includes(permissao)) return popup(mensagem('Você não tem acesso'), 'AVISO', true)
 
     let tabelas = {}
     let divTabelas = ''
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let orcamento = dados_orcamentos[idOrcamento]
-    let cliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente] || {}
 
-    for ([codigo, composicao] of Object.entries(orcamento.dados_composicoes)) {
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
+    const omieCliente = orcamento?.dados_orcam?.omie_cliente || ''
+    const cliente = await recuperarDado('dados_clientes', omieCliente)
+    const lpu = orcamento.lpu_ativa ? String(orcamento.lpu_ativa).toLowerCase() : null
 
-        let quantidade = composicao.qtde
-        let custo = composicao.custo
-        let custoOriginal = composicao?.custo_original || false;
-        let tipo = composicao.tipo
+    for (const [codigo, composicao] of Object.entries(orcamento?.dados_composicoes || {})) {
+
+        const quantidade = composicao.qtde
+        const custo = composicao.custo
+        const custoOriginal = composicao?.custo_original || false;
+        const tipo = composicao.tipo
 
         if (!tabelas[tipo]) tabelas[tipo] = { linhas: '' }
 
-        let total = quantidade * custo;
+        const total = quantidade * custo;
         let desconto = 0
 
         if (composicao.tipo_desconto) {
@@ -1840,10 +1841,10 @@ async function verPedidoAprovacao(idOrcamento) {
                 ? composicao.desconto
                 : total * (composicao.desconto / 100);
         }
-        let totalOriginal = custoOriginal * quantidade
-        let labelCusto = dinheiro(custoOriginal ? custoOriginal : custo)
-        let labelTotal = dinheiro(custoOriginal ? totalOriginal : total)
-        let labelTotalDesconto = dinheiro(total - desconto)
+        const totalOriginal = custoOriginal * quantidade
+        const labelCusto = dinheiro(custoOriginal ? custoOriginal : custo)
+        const labelTotal = dinheiro(custoOriginal ? totalOriginal : total)
+        const labelTotalDesconto = dinheiro(total - desconto)
 
         let diferenca = '--', cor = '';
         if (custoOriginal && custo !== custoOriginal) {
@@ -1859,7 +1860,12 @@ async function verPedidoAprovacao(idOrcamento) {
         <tr>
             <td>${composicao.descricao}</td>
             <td>${quantidade}</td>
-            <td>${labelCusto}</td>
+            <td>
+                <div style="${horizontal}; gap: 2rem;">
+                    <span>${labelCusto}</span>
+                    <img src="imagens/preco.png" onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" style="width: 2rem; cursor: pointer;">
+                </div>
+            </td>
             <td>${labelTotal}</td>
             <td>
                 <div style="${vertical}; gap: 2px;">
@@ -1872,35 +1878,40 @@ async function verPedidoAprovacao(idOrcamento) {
     `;
     }
 
-    for (let [tabela, objeto] of Object.entries(tabelas)) {
+    for (const [tabela, objeto] of Object.entries(tabelas)) {
 
         divTabelas += `
-            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column;">
-                <label style="font-size: 1.2vw;"><strong>${tabela}</strong></label>
-                <table class="tabela" style="width: 100%;">
-                    <thead style="background-color: #a9a5a5;">
-                        <tr>
-                            <th>Descrição</th>
-                            <th>Quantidade</th>
-                            <th>Unitário</th>
-                            <th>Total</th>
-                            <th>Diferença</th>
-                            <th>Total Geral</th>
-                        </tr>
-                    </thead>
-                    <tbody>${objeto.linhas}</tbody>
-                </table>
+            <div style="${vertical};">
+                <div class="topo-tabela">
+                    <label style="font-size: 1rem; padding: 0.5rem;"><b>${tabela}</b></label>
+                </div>
+                <div class="div-tabela">
+                    <table class="tabela" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Quantidade</th>
+                                <th>Unitário</th>
+                                <th>Total</th>
+                                <th>Diferença</th>
+                                <th>Total Geral</th>
+                            </tr>
+                        </thead>
+                        <tbody>${objeto.linhas}</tbody>
+                    </table>
+                </div>
+                <div class="rodapeTabela"></div>
             </div>
             `
     }
 
-    let divOrganizada = (valor, termo) => {
+    const divOrganizada = (valor, termo) => {
         return `
-                <div style="display: flex; justify-content: center; flex-direction: column; align-items: start; width: 100%; margin-bottom: 5px;">
-                    <label style="font-size: 0.9vw;">${termo}</label>
-                    <label style="font-size: 1.2vw;"><strong>${valor}</strong></label>
-                </div>
-            `
+            <div style="${vertical}; width: 100%; margin-bottom: 5px;">
+                <label>${termo}</label>
+                <label style="font-size: 1rem;"><b>${valor}</b></label>
+            </div>
+        `
     }
 
     let totalBruto = orcamento?.total_bruto
