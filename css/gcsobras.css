@@ -1832,16 +1832,15 @@ input[type=range]::-moz-range-thumb {
 }
 
 .div-mensagem {
-    margin: 1vw;
+    margin: 0.5rem;
     background-color: #ffffffe4;
     border-radius: 3px;
-    padding: 5px 2vw 5px 1vw;
+    padding: 5px 1rem 5px 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 2vw;
+    gap: 1rem;
     color: #222;
-    font-size: 1.2vw;
     position: fixed;
     top: 1rem;
     left: 1rem;
