@@ -14,8 +14,6 @@ async function modalLPUParceiro(chave) {
         ...cliente
     }
 
-    console.log(orcamento);
-
     const status = orcamento?.status?.historico?.[chaveHistorico] || {}
     const idTecnico = status?.tecnico || ''
     const tecnico = await recuperarDado('dados_clientes', idTecnico)

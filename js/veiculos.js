@@ -69,7 +69,7 @@ async function telaVeiculos() {
         .join('')
 
     let ths = '', tsh = ''
-    let colunas = ['Usuário & Data', 'Veículo', 'Tipo', 'Valor & Data Pagamento', 'Cartão', 'Comentário', 'Anexos', 'Editar']
+    let colunas = ['Usuário & Data', 'Veículo', 'Valor & Data Pagamento', 'Realizado', 'Cartão', 'Comentário', 'Anexos', 'Editar']
         .map((coluna, i) => {
 
 
@@ -90,10 +90,10 @@ async function telaVeiculos() {
         })
 
     const pesquisa = (modalidade) => `
-    <div style="${horizontal}; background-color: white; border-radius: 15px; margin-left: 5px;  margin-right: 5px;">
-        <input style="border: none; border-radius: 15px;" oninput="pesquisarBotoes(this, '${modalidade}')" placeholder="Pesquisar ${modalidade}">
-        <img src="imagens/pesquisar2.png" style="width: 1.5vw; padding: 0.5rem;">
-    </div>
+        <div style="${horizontal}; background-color: white; border-radius: 3px; margin-left: 5px;  margin-right: 5px;">
+            <input style="border: none; border-radius: 15px;" oninput="pesquisarBotoes(this, '${modalidade}')" placeholder="Pesquisar ${modalidade}">
+            <img src="imagens/pesquisar2.png" style="width: 1.5vw; padding: 0.5rem;">
+        </div>
     `
 
     const acumulado = `
@@ -170,64 +170,78 @@ function criarLinhaVeiculo({ custo, nome, veiculo, idCusto }) {
     const anexos = Object.entries(custo?.anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo('${idCusto}', '${idAnexo}', this)`)).join('')
 
-    const linha = `
-        <tr id="${idCusto}">
-            <td style="text-align: left;">
-                <div style="${vertical}">
-                    <label><strong>${custo.usuario}</strong></label>
-                    <label>${custo.data}</label>
+    const editavel = acesso.permissao == 'adm' || acesso.setor == 'FINANCEIRO'
+
+    const tds = `
+        <td style="text-align: left;">
+            <div style="${vertical}">
+                <label><strong>${custo.usuario}</strong></label>
+                <label>${custo.data}</label>
+            </div>
+        </td>
+
+        <td>
+            <div style="${horizontal}; gap: 0.5rem;">
+                <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1rem;">
+                <div style="${vertical}; text-align: left;">
+                    <label title="${nome}">${nome.slice(0, 20)}...</label>
+                    <label>${veiculo.placa}</label>
+                    <label>${veiculo.modelo}</label>
                 </div>
-            </td>
+            </div>
+        </td>
 
-            <td>
-                <div style="${vertical}">
-                    <label style="text-align: left;" title="${nome}">${nome.slice(0, 20)}...</label>
-                    <div style="${horizontal}; gap: 5px;">
-                        <label style="font-size: 0.7vw;">${veiculo.placa}</label>
+        <td>
+            <input type="number" name="valores" style="display: none" value="${custo.custo_total}">
+            <input name="datas" style="display: none" value="${custo.data_pagamento}">
 
-                        <div style="display: flex; justify-content: center; align-items: center; gap: 5px;">
-                            <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1vw;">
-                            <label style="font-size: 0.7vw;">${veiculo.status}</label>
-                        </div>
-                    </div>
+            <div style="display: flex; align-items: start; justify-content: start; flex-direction: column;">
+                <label><strong>${dinheiro(custo.custo_total)}</strong></label>
+                <label>${conversorData(custo.data_pagamento)}</label>
+            </div>
+        </td>
+
+        <td>
+            <div style="${horizontal}; gap: 2px;">
+                <span>R$</span>
+                <input oninput="atualizarRealizado(this)" class="campoRequisicao" type="number" value="${custo?.realizado || ''}" ${editavel ? '' : 'readOnly'}>
+            </div>
+        </td>
+
+        <td>${veiculo?.cartao || 'Não informado'}</td>
+        <td style="text-align: justify;">${custo.comentario}</td>
+
+        <td>
+            <div style="display: flex; align-items: center;">
+                <img onclick="document.getElementById('${idCusto}').click()" src="imagens/baixar.png" style="cursor: pointer; width: 1.5vw;">
+                <input id="${idCusto}" type="file" style="display: none;" onchange="salvarAnexoCusto(this)" multiple>
+                <div style="display: flex; flex-direction: column;">
+                    ${anexos}
                 </div>
-            </td>
-
-            <td>${custo.categoria}</td>
-
-            <td>
-                <input type="number" name="valores" style="display: none" value="${custo.custo_total}">
-                <input name="datas" style="display: none" value="${custo.data_pagamento}">
-
-                <div style="display: flex; align-items: start; justify-content: start; flex-direction: column;">
-                    <label><strong>${dinheiro(custo.custo_total)}</strong></label>
-                    <label style="font-size: 0.7vw;">${conversorData(custo.data_pagamento)}</label>
-                </div>
-            </td>
-
-            <td>${veiculo?.cartao || 'Não informado'}</td>
-            <td style="text-align: left;">${custo.comentario}</td>
-
-            <td>
-                <div style="display: flex; align-items: center;">
-                    <img onclick="document.getElementById('${idCusto}').click()" src="imagens/baixar.png" style="cursor: pointer; width: 1.5vw;">
-                    <input id="${idCusto}" type="file" style="display: none;" onchange="salvarAnexoCusto(this)" multiple>
-                    <div style="display: flex; flex-direction: column;">
-                        ${anexos}
-                    </div>
-                </div>
-            </td>
-            <td>
-                <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-                    <img src="imagens/pesquisar2.png" style="width: 1.5vw; cursor: pointer;" onclick="painelAtalhos('${idCusto}')">
-                </div>
-            </td>
-        </tr>
-        `
+            </div>
+        </td>
+        <td>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
+                <img src="imagens/pesquisar2.png" style="width: 1.5vw; cursor: pointer;" onclick="painelAtalhos('${idCusto}')">
+            </div>
+        </td>`
 
     const tr = document.getElementById(idCusto)
-    if (tr) return tr.innerHTML = linha
-    document.getElementById('bodyVeiculos').insertAdjacentHTML('beforeend', linha)
+    if (tr) return tr.innerHTML = tds
+    document.getElementById('bodyVeiculos').insertAdjacentHTML('beforeend', `<tr id="${idCusto}">${tds}</tr>`)
+}
+
+async function atualizarRealizado(input) {
+
+    const realizado = Number(input.value)
+    const tr = input.closest('tr')
+    const idCusto = tr.id
+    let custo = await recuperarDado('custo_veiculos', idCusto)
+    custo.realizado = realizado
+
+    enviar(`custo_veiculos/${idCusto}/realizado`, realizado)
+    await inserirDados({ [idCusto]: custo }, 'custo_veiculos')
+
 }
 
 function pesquisarEmVeiculos({ coluna, texto } = {}) {
@@ -264,7 +278,7 @@ function pesquisarEmVeiculos({ coluna, texto } = {}) {
         }
 
         // filtro de data
-        const dataPagamento = tds[3].querySelector('[name="datas"]').value
+        const dataPagamento = tds[2].querySelector('[name="datas"]').value
         if (dataPagamento && dtInicio && dtFinal) {
             const dataConvertida = new Date(...dataPagamento.split('-').map((v, i) => i === 1 ? v - 1 : v))
 
@@ -282,7 +296,6 @@ function pesquisarEmVeiculos({ coluna, texto } = {}) {
 
     document.querySelector('.total-tabela').textContent = dinheiro(total)
 }
-
 
 async function painelAtalhos(idCusto) {
 
@@ -364,45 +377,33 @@ async function painelValores(idCusto, duplicar) {
         </option>`)
         .join('');
 
-    let categorias = ['Combustível']
-        .map(categoria => `<option ${custo?.categoria == categoria ? 'selected' : ''}>${categoria}</option>`)
-        .join('')
+    const campos = `
+        <div style="${horizontal}; gap: 10px; width: 100%;">
+            ${modeloLabel('Data do Pagamento', `<input id="data_pagamento" type="date" value="${custo?.data_pagamento || ''}">`)}
+        </div>
 
-    let campos = `
-            <div style="${horizontal}; gap: 10px; width: 100%;">
-                ${modeloLabel('Data do Pagamento', `<input id="data_pagamento" type="date" value="${custo?.data_pagamento || ''}">`)}
-                ${modeloLabel('Categoria', `
-                    <select id="categoria">
-                        ${categorias}
-                    </select>
-                    `)}
+        <div style="${horizontal}; gap: 10px;">
+            <div style="${vertical};">
+                ${modeloLabel('KM', `<input oninput="calcularValorCombustivel()" value="${custo?.km || ''}" type="number" id="km" type="number">`)}
+                ${modeloLabel('Litros', `<input oninput="calcularValorCombustivel(true)" value="${custo?.litros || ''}" type="number" id="litros" type="number">`)}
             </div>
-            <div style="${horizontal}; gap: 10px;">
-                <div style="${vertical};">
-                    ${modeloLabel('KM', `<input oninput="calcularValorCombustivel()" value="${custo?.km || ''}" type="number" id="km" type="number">`)}
-                    ${modeloLabel('Litros', `<input oninput="calcularValorCombustivel(true)" value="${custo?.litros || ''}" type="number" id="litros" type="number">`)}
-                </div>
-                <div style="${vertical};">
-                    ${modeloLabel('KM/L', `<input oninput="calcularValorCombustivel()" value="${custo?.kml || ''}" type="number" id="kml" type="number">`)}
-                    ${modeloLabel('Valor Combustível', `<input oninput="calcularValorCombustivel()" value="${custo?.combustivel || ''}" type="number" id="combustivel" type="number">`)}
-                </div>
+            <div style="${vertical};">
+                ${modeloLabel('KM/L', `<input oninput="calcularValorCombustivel()" value="${custo?.kml || ''}" type="number" id="kml" type="number">`)}
+                ${modeloLabel('Valor Combustível', `<input oninput="calcularValorCombustivel()" value="${custo?.combustivel || ''}" type="number" id="combustivel" type="number">`)}
             </div>
-            
-            <div style="${horizontal}; gap: 10px;">
-                ${modeloLabel('Custo Total', `<input value="${custo?.custo_total || ''}" type="number" id="custo_total" type="number">`)}
-                ${modeloLabel('Comentário', `<textarea id="comentario">${custo?.comentario || ''}</textarea>`)}
-            </div>
-            <div id="dados_veiculos" class="contornoDestaque"></div>
-            ${modeloLabel('Motorista', `
-                <select id="veiculo" onchange="dadosVeiculo()">
-                    ${opcoesMotoristas}
-                </select>
-                `)}
-            
+        </div>
+        
+        <div style="${horizontal}; gap: 10px;">
+            ${modeloLabel('Custo Total', `<input value="${custo?.custo_total || ''}" type="number" id="custo_total" type="number">`)}
+            ${modeloLabel('Comentário', `<textarea id="comentario">${custo?.comentario || ''}</textarea>`)}
+        </div>
+
+        <div id="dados_veiculos" class="contornoDestaque"></div>
+        ${modeloLabel('Motorista', `<select id="veiculo" onchange="dadosVeiculo()">${opcoesMotoristas}</select>`)}
     `
-    let funcao = !idCusto ? `salvarValores()` : duplicar ? `salvarValores(false)` : `salvarValores('${idCusto}')`
+    const funcao = !idCusto ? `salvarValores()` : duplicar ? `salvarValores(false)` : `salvarValores('${idCusto}')`
 
-    let acumulado = `
+    const acumulado = `
         <div class="paineis">
             ${campos}
             <hr style="width: 100%;">
@@ -430,15 +431,11 @@ function calcularValorCombustivel(valorManual) {
 async function salvarValores(idCusto) {
 
     overlayAguarde()
-    let custo_veiculos = await recuperarDados('custo_veiculos') || {}
-    let select = document.getElementById('veiculo')
-    let idMotorista = select.options[select.selectedIndex].dataset.id
-    let categoria = obterValores('categoria')
+    const select = document.getElementById('veiculo')
+    const idMotorista = select.options[select.selectedIndex].dataset.id
     idCusto = idCusto || ID5digitos()
 
     if (select.value == '') return popup(mensagem('O condutor está sem veículo'), 'ALERTA', true)
-
-    if (!custo_veiculos[idCusto]) custo_veiculos[idCusto] = {}
 
     const custo_total = obterValores('custo_total')
     const data_pagamento = obterValores('data_pagamento')
@@ -446,31 +443,23 @@ async function salvarValores(idCusto) {
     if (custo_total == '') return popup(mensagem(`Preencha o valor do pagamento`), 'ALERTA', true)
     if (data_pagamento == '') return popup(mensagem(`Preencha a data de pagamento`), 'ALERTA', true)
 
-    let dados = {
+    const dados = {
         motorista: idMotorista,
         veiculo: select.value,
-        categoria,
+        categoria: 'Combustível',
         custo_total,
         combustivel: obterValores('combustivel'),
         kml: obterValores('kml'),
         comentario: obterValores('comentario'),
         data_pagamento,
         data: obterDatas('completa'),
-        usuario: acesso.usuario
+        usuario: acesso.usuario,
+        km: obterValores('km'),
+        listros: obterValores('litros')
     }
 
-    if (categoria == 'Combustível') {
-        dados.km = obterValores('km')
-        dados.litros = obterValores('litros')
-    }
-
-    custo_veiculos[idCusto] = {
-        ...custo_veiculos[idCusto],
-        ...dados
-    }
-
-    enviar(`custo_veiculos/${idCusto}`, custo_veiculos[idCusto])
-    await inserirDados(custo_veiculos, 'custo_veiculos')
+    enviar(`custo_veiculos/${idCusto}`, dados)
+    await inserirDados({ [idCusto]: dados }, 'custo_veiculos')
     await telaVeiculos()
 
     removerPopup()
