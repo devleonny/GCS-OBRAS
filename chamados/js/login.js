@@ -1,19 +1,18 @@
 function telaLogin() {
 
+    const app = localStorage.getItem('app')
     acesso = JSON.parse(localStorage.getItem('acesso'))
 
-    if (acesso && !isAndroid) {
-        return window.location.href = '../index.html'
-    }
+    if (acesso) {
 
-    if (acesso && isAndroid) {
+        if (app == 'GCS') return window.location.href = '../index.html'
         return telaPrincipal()
+
     }
 
     toolbar.style.display = 'none'
 
     const acumulado = `
-        
         <div id="acesso" class="loginBloco">
 
             <div class="botaoSuperiorLogin">

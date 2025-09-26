@@ -236,7 +236,7 @@ function pesquisarEmVeiculos({ coluna, texto } = {}) {
     const fim = document.querySelector('[name="fim"]').value
 
     const dtInicio = inicio ? new Date(...inicio.split('-').map((v, i) => i === 1 ? v - 1 : v)) : null
-    const dtFinal  = fim ? new Date(...fim.split('-').map((v, i) => i === 1 ? v - 1 : v)) : null
+    const dtFinal = fim ? new Date(...fim.split('-').map((v, i) => i === 1 ? v - 1 : v)) : null
 
     if (coluna !== undefined && coluna !== null) {
         filtroVeiculos[coluna] = String(texto).toLowerCase()
@@ -571,16 +571,16 @@ async function dadosVeiculo(input) {
 
 async function novoMotorista(idMotorista) {
 
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
+    dados_clientes = await recuperarDados('dados_clientes') || {}
     let motoristas = await recuperarDados('motoristas') || {}
     let veiculos = await recuperarDados('veiculos') || {}
     let idVeiculo = motoristas?.[idMotorista]?.veiculo || ''
-    
-    let opcoes = Object.entries(veiculos)
-        .map(([id, veiculo]) => `<option value="${idVeiculo}" ${id == idVeiculo ? 'selected' : ''}>${veiculo.modelo} ${veiculo.placa}</option>`)
+
+    const opcoes = Object.entries(veiculos)
+        .map(([id, veiculo]) => `<option id="${id}" value="${idVeiculo}" ${id == idVeiculo ? 'selected' : ''}>${veiculo.modelo} ${veiculo.placa}</option>`)
         .join('')
 
-    let acumulado = `
+    const acumulado = `
         <div class="paineis">
 
             ${modeloLabel('Motorista', `
@@ -613,22 +613,18 @@ async function novoMotorista(idMotorista) {
 async function salvarMotorista() {
 
     overlayAguarde()
-    let motoristas = await recuperarDados('motoristas') || {}
-    let idMotorista = obterValores('omie')
+    const idMotorista = obterValores('omie')
 
     if (idMotorista == '') return popup(mensagem('Escolha um motorista'), 'AVISO', true)
 
+    const selectVeiculo = document.getElementById('veiculo')
+    const idVeiculo = selectVeiculo.options[selectVeiculo.selectedIndex]?.id || false
     let motorista = {}
-    let veiculo = document.getElementById('veiculo')
 
-    if (veiculo.style.display !== 'none') {
-        motorista.veiculo = veiculo.value
-    }
-
-    motoristas[idMotorista] = motorista
+    if (idVeiculo) motorista.veiculo = idVeiculo
 
     enviar(`motoristas/${idMotorista}`, motorista)
-    await inserirDados(motoristas, 'motoristas')
+    await inserirDados({ [idMotorista]: motorista }, 'motoristas')
 
     await telaVeiculos()
     removerPopup()

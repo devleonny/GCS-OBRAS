@@ -304,6 +304,7 @@ async function respostaSincronizacao(script) {
 }
 
 function redirecionarChamados() {
+    localStorage.setItem('app', '')
     window.location.href = 'chamados/index.html'
 }
 

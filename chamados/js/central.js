@@ -311,6 +311,7 @@ const msgteste = (msg) => `
 `
 
 function irGCS() {
+    localStorage.setItem('app', 'GCS')
     window.location.href = '../index.html'
 }
 
