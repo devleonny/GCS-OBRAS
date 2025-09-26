@@ -1366,7 +1366,7 @@ async function deletar(chave, idEvento) {
 
     try {
         const response = await fetch(url, {
-            method: "DELETE",
+            method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(objeto)
         });
