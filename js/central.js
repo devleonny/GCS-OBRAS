@@ -111,7 +111,11 @@ function criarMenus(chave) {
     interruptorCliente(chaves.includes(chave))
 
     const atalhos = esquemaBotoes[chave]
-    let atalhosString = `<div style="height: 10vh;"></div>`
+    let atalhosString = `
+        <div class="nomeUsuario">
+            <span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>
+        </div>
+    `
 
     for (const atalho of atalhos) atalhosString += criarAtalhoMenu(atalho)
 
@@ -128,7 +132,8 @@ const esquemaBotoes = {
         { nome: 'Estoque', funcao: `telaEstoque`, img: 'estoque' },
         { nome: 'Faturamento NFs', funcao: `telaRelatorio`, img: 'relatorio' },
         { nome: 'RH', funcao: `telaRH`, img: 'gerente' },
-        { nome: 'Ocorrências', funcao: `redirecionarChamados`, img: 'LG' }
+        { nome: 'Ocorrências', funcao: `redirecionarChamados`, img: 'LG' },
+        { nome: 'Desconectar', funcao: `deslogarUsuario`, img: 'sair' }
     ],
     criarOrcamentos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -365,8 +370,6 @@ async function identificacaoUser() {
 
                 <img title="Abrir mais 1 aba" src="imagens/aba.png" onclick="maisAba()">
 
-                <label onclick="deslogarUsuario()"
-                style="cursor: pointer; color: white;">${acesso.usuario} • ${acesso.permissao} • ${acesso.setor} • Sair</label>
             </div>
         `
         const cabecalhoUsuario = document.querySelector('.cabecalhoUsuario')

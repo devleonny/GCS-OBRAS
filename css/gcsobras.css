@@ -96,6 +96,7 @@ body {
 }
 
 .side-menu {
+    padding-top: 4rem;
     position: fixed;
     top: 0;
     left: -250px;
@@ -2224,6 +2225,24 @@ input[type="file"]#input-anexos:hover {
     display: flex;
     flex-direction: row;
     justify-content: space-evenly;
+}
+
+.nomeUsuario {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    width: 100%;
+    margin-bottom: 5px;
+    margin-top: 5px;
+}
+
+.nomeUsuario span {
+    padding: 5px;
+    width: 80%;
+    background-color: #249f41;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    color: white;
 }
 
 .balaoNF label {

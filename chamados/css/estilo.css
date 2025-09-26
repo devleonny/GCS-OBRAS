@@ -73,11 +73,7 @@ html {
 }
 
 .contornoInterno img {
-    width: 5vw
-}
-
-span {
-    color: black;
+    width: 2rem
 }
 
 .nomeUsuario {
@@ -85,7 +81,8 @@ span {
     align-items: center;
     justify-content: start;
     width: 100%;
-    margin-bottom: 5vw;
+    margin-bottom: 5px;
+    margin-top: 5px;
 }
 
 .nomeUsuario span {
@@ -125,7 +122,7 @@ span {
 }
 
 .botoesMenu {
-    margin-top: 15vw;
+    margin-top: 5rem;
     display: flex;
     align-items: center;
     justify-content: start;
@@ -445,6 +442,10 @@ button {
     transition: 0.3s;
     z-index: 200;
     overflow: auto;
+}
+
+.side-menu::-webkit-scrollbar {
+    display: none;
 }
 
 .side-menu.active {
@@ -881,10 +882,6 @@ screen and (min-aspect-ratio: 13/9) {
     .btnExcel {
         gap: 10vw;
         display: flex;
-    }
-
-    .botoesMenu {
-        margin-top: 10vw;
     }
 
     .recorteTabela {

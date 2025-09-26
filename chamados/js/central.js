@@ -322,17 +322,16 @@ async function telaPrincipal() {
         'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
         'Abertos': { id: 'abertos', img: 'configuracoes', funcao: 'telaOcorrencias(true)', proibidos: [] },
         'Solucionados': { id: 'solucionados', img: 'configuracoes', funcao: 'telaOcorrencias(false)', proibidos: [] },
-        'Unidades': { img: 'empresa', funcao: 'telaUnidades()', proibidos: ['user', 'técnico', 'analista', 'visitante'] },
-        'Equipamentos': { img: 'composicoes', funcao: 'telaEquipamentos()', proibidos: ['user', 'técnico', 'visitante'] },
         'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'técnico', 'analista', 'visitante'] },
         'Cadastros': { img: 'ajustar', funcao: 'telaCadastros()', proibidos: ['user', 'técnico', 'visitante'] },
-        'Relatório': { img: 'kanban', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
-        'Desconectar': { img: 'sair', funcao: 'deslogar()', proibidos: [] },
+        'Relatório': { img: 'kanban', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] }
     };
 
     if (!isAndroid) {
         menus.GCS = { img: 'LG', funcao: 'irGCS()', proibidos: ['técnico', 'visitante'] }
     }
+
+    menus.Desconectar = { img: 'sair', funcao: 'deslogar()', proibidos: [] }
 
     const stringMenus = Object.entries(menus)
         .filter(([_, dados]) => !dados.proibidos.includes(acesso.permissao))
@@ -343,7 +342,6 @@ async function telaPrincipal() {
         <div class="menu-container">
             <div class="side-menu" id="sideMenu">
                 <div class="botoesMenu">
-                    <br>
                     <div class="nomeUsuario">
                         <span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>
                     </div>

@@ -1,7 +1,9 @@
 function telaLogin() {
 
     acesso = JSON.parse(localStorage.getItem('acesso'))
-    if (acesso) return telaPrincipal()
+    if (acesso && !isAndroid) {
+        return window.location.href = '../index.html'
+    }
 
     toolbar.style.display = 'none'
 
