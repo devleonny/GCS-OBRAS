@@ -584,6 +584,15 @@ input[type="file"] {
     width: 100%;
 }
 
+.msg-queda-conexao {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    padding: 2rem;
+    background-color: #d2d2d2;
+}
+
 .fotos {
     padding: 5px;
     display: none;

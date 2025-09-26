@@ -39,6 +39,7 @@ async function telaOS(idOcorrencia) {
             </div>
 
             <div class="horizontal-2">
+
                 <div class="fotos-os">
                     ${imagens}
                 </div>
@@ -63,6 +64,7 @@ async function telaOS(idOcorrencia) {
                     ${modelo('Solicitante', ocorrencia.solicitante)}
                     ${modelo('Executor', ocorrencia.usuario)}
                 </div>
+
             </div>
 
         </div>
@@ -88,19 +90,20 @@ async function telaOS(idOcorrencia) {
         linhasCorrecoes += `
             <div class="painel-2">
 
-                <div class="fotos-os">
+                <div class="fotos-os" style="width: 30%;">
                     ${imagens}
                 </div>
 
                 <div class="vertical">
 
-                    <div class="campo-descricao">
-                        ${modelo('Correção', correcao.descricao)}
+                    <span><b>Correção</b></span>
+                    <div class="campo-descricao" style="width: 70%;">
+                        <p>${correcao.descricao}</p>
                     </div>
                     
                     <br>
 
-                    <div class="horizontal" style="width: 70%;">
+                    <div class="horizontal" style="gap: 1rem;">
                         ${modelo('Status da Correção', correcoes?.[correcao.tipoCorrecao]?.nome || '')}
                         ${modelo('Registrado em', dataRegistro)}
                         ${modelo('Executor', ocorrencia.usuario)}
@@ -123,12 +126,10 @@ async function telaOS(idOcorrencia) {
             <style>
         
                 .relatorio {
-                    width: 95vw;
                     overflow: auto;
                 }
 
                 .campo-descricao {
-                    width: 98%;
                     background-color: #dfdfdf;
                     padding: 3px;
                     border-radius: 3px;
@@ -143,11 +144,10 @@ async function telaOS(idOcorrencia) {
                 }
 
                 .horizontal-2 {
-                    width: 100%;
                     display: flex;
                     justify-contet: center;
                     align-items: center;
-                    gap: 2px;
+                    gap: 2rem;
                 }
 
                 .horizontal-1 span {
@@ -155,7 +155,6 @@ async function telaOS(idOcorrencia) {
                 }
                 
                 .fotos-os {
-                    width: 30%;
                     grid-template-columns: repeat(2, 1fr);
                 }
 
@@ -165,7 +164,7 @@ async function telaOS(idOcorrencia) {
                 }
 
                 .corpo {
-                    min-width: max-content;
+                    width: fit-content;
                     font-size: 0.8rem;
                     font-family: 'Poppins', sans-serif;
                     border-radius: 5px;
@@ -181,7 +180,6 @@ async function telaOS(idOcorrencia) {
                 }
 
                 .vertical {
-                    width: 100%;
                     display: flex;
                     align-items: start;
                     justify-content: start;
@@ -197,26 +195,26 @@ async function telaOS(idOcorrencia) {
                 }
 
                 .painel-1 {
-                    padding: 0.5rem;
                     width: 100%;
+                    padding: 0.5rem;
                     background-color: #22874454;
                     border-radius: 5px;
                     border: solid 1px #228743;
                     display: flex;
                     align-items: start;
-                    justify-content: center;
+                    justify-content: start;
                     flex-direction: column;
                 }
 
                 .painel-2 {
+                    width: 100%;
                     gap: 0.5rem;
                     padding: 0.5rem;
-                    width: 100%;
                     border-radius: 5px;
                     border: solid 1px #757575ff;
                     display: flex;
                     align-items: center;
-                    justify-content: center;
+                    justify-content: start;
                 }
 
                 .titulo-os {
@@ -281,11 +279,10 @@ async function gerarPdfOnline(htmlString, nome) {
         })
         .then(response => response.blob())
         .then(async blob => {
-            if (/Android/i.test(navigator.userAgent)) {
+            if (isAndroid) {
+
                 const data = await blob.arrayBuffer();
                 const bytes = new Uint8Array(data);
-
-                const caminho = cordova.file.externalRootDirectory + "Download/" + nome + ".pdf";
 
                 window.resolveLocalFileSystemURL(
                     cordova.file.externalRootDirectory + "Download/",

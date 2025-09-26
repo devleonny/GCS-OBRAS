@@ -374,7 +374,7 @@ async function telaUsuarios() {
     const base = 'dados_setores'
     const dados = await recuperarDados(base)
     const telaInterna = document.querySelector('.telaInterna')
-    telaInterna.innerHTML = modeloTabela({colunas, base})
+    telaInterna.innerHTML = modeloTabela({ colunas, base })
 
     for (let [id, objeto] of Object.entries(dados)) {
         criarLinha(objeto, id, base)
@@ -595,6 +595,10 @@ function enviar(caminho, info, idEvento) {
             body: JSON.stringify(objeto)
         })
             .then(data => {
+                if(data.mensagem) {
+                    msgQuedaConexao()
+                    resolve()
+                }
                 resolve(data)
             })
             .catch((erro) => {
@@ -602,6 +606,19 @@ function enviar(caminho, info, idEvento) {
                 resolve();
             });
     });
+}
+
+function msgQuedaConexao() {
+
+    const acumulado = `
+        <div class="msg-queda-conexao">
+            <img src="gifs/alerta.gif" style="width: 2rem;">
+            <span><b>Falha na atualização:</b> tente novamente em alguns minutos.</span>
+        </div>
+    `
+    const msgAtiva = document.querySelector('.msg-queda-conexao')
+    if (msgAtiva) return
+    popup(acumulado, 'Alerta', true)
 }
 
 async function receber(chave) {
@@ -636,13 +653,17 @@ async function receber(chave) {
             })
             .then(data => {
                 if (data.mensagem) {
-                    popup(mensagem(`Falha na atualização: ${data.mensagem}`), 'Alerta', true)
+                    msgQuedaConexao()
                     resolve({})
                 }
                 resolve(data);
             })
             .catch(err => {
-                popup(mensagem(`Erro de conexão: ${err}`))
+                msgQuedaConexao()
+
+                sincronizarApp({ remover: true })
+                emAtualizacao = false
+
                 resolve({})
             });
     })
@@ -657,7 +678,7 @@ async function deletar(chave, idEvento) {
 
     return new Promise((resolve) => {
         fetch(url, {
-            method: "DELETE",
+            method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
