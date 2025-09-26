@@ -194,20 +194,26 @@ span[name="titulo"] {
     cursor: pointer;
 }
 
-.divOnline {
-    position: absolute;
-    border-radius: 3px;
-    height: max-content;
-    max-height: 70vh;
-    overflow: auto;
-    padding: 10px;
+.usuarioOnline {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 0.5rem;
     background-color: white;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    padding: 5px;
+    border-radius: 3px;
+}
+
+.divOnline {
+    gap: 2px;
+    width: max-content;
+    padding: 1rem;
+    background-color: #d2d2d2;
     display: flex;
     align-items: start;
     justify-content: start;
     flex-direction: column;
-    z-index: 9999;
 }
 
 .cabecalhoUsuario {
@@ -534,11 +540,13 @@ span[name="titulo"] {
     font-size: 0.8rem;
 }
 
-.atalhos img, .atalhos-opcoes img {
+.atalhos img,
+.atalhos-opcoes img {
     width: 2rem;
 }
 
-.atalhos:hover, .atalhos-opcoes:hover {
+.atalhos:hover,
+.atalhos-opcoes:hover {
     color: white;
     background-color: #323940;
 }

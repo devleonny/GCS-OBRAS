@@ -391,7 +391,7 @@ function usuariosToolbar() {
     const totalUsuarios = [...new Set(usuariosOnline)]
     const indicadorStatus = navigator.onLine ? 'online' : 'offline'
     const usuariosToolbarString = `
-        <div class="botaoUsuarios" onclick="${indicadorStatus == 'online' ? 'painelUsuarios(this)' : ''}">
+        <div class="botaoUsuarios" onclick="${indicadorStatus == 'online' ? 'painelUsuarios()' : ''}">
             <img src="imagens/${indicadorStatus}.png">
             <label>${indicadorStatus}</label>
             ${indicadorStatus == 'online' ? `<label>${totalUsuarios.length}</label>` : ''}
@@ -400,6 +400,9 @@ function usuariosToolbar() {
 
     const usuariosToolbarDiv = document.getElementById('usuarios')
     if (usuariosToolbarDiv) return usuariosToolbarDiv.innerHTML = usuariosToolbarString
+
+    const divOnline = document.querySelector('.divOnline')
+    if(divOnline) painelUsuarios()
 }
 
 async function sincronizarSetores() {
@@ -1471,10 +1474,7 @@ function connectWebSocket() {
 
 }
 
-async function painelUsuarios(elementoOrigial) {
-
-    let divUsuarios = document.getElementById('divUsuarios')
-    if (divUsuarios) return divUsuarios.remove()
+async function painelUsuarios() {
 
     const usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []
     let stringUsuarios = {
@@ -1492,26 +1492,25 @@ async function painelUsuarios(elementoOrigial) {
 
         stringUsuarios[status].quantidade++
         stringUsuarios[status].linhas += `
-        <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
-            <img src="imagens/${status}.png" style="width: 1.5rem;">
-            <label>${usuario}</label>
-            <label>${objeto.setor}</label>
-        </div>
+            <div class="usuarioOnline">
+                <img src="imagens/${status}.png" style="width: 1.5rem;">
+                <label>${usuario}</label>
+                <label style="font-size: 0.6rem;"><b>${objeto?.setor || '??'}</b></label>
+            </div>
         `
     }
 
-    let pos = elementoOrigial.getBoundingClientRect();
-
-    let acumulado = `
-        <div id="divUsuarios" class="divOnline" style="left: ${pos.left + window.scrollX}px; top: ${pos.bottom + window.scrollY}px;">
-            <label><strong>ONLINE ${stringUsuarios.online.quantidade}</strong></label>
-            ${stringUsuarios.online.linhas}
-            <label><strong>OFFLINE ${stringUsuarios.offline.quantidade}</strong></label>
-            ${stringUsuarios.offline.linhas}
-        </div>
+    const info = `
+        <label><strong>ONLINE ${stringUsuarios.online.quantidade}</strong></label>
+        ${stringUsuarios.online.linhas}
+        <label><strong>OFFLINE ${stringUsuarios.offline.quantidade}</strong></label>
+        ${stringUsuarios.offline.linhas}
     `
 
-    document.body.insertAdjacentHTML('beforeend', acumulado)
+    const divOnline = document.querySelector('.divOnline')
+    if(divOnline) return divOnline.innerHTML = info
+
+    popup(`<div class="divOnline">${info}</div>`, 'Usuários', true)
 
 }
 

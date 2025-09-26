@@ -202,7 +202,7 @@ async function adicionarItemAdicional() {
 
     const acumulado = `
         <div style="${horizontal}; gap: 10px; background-color: #d2d2d2; padding: 2vw;">
-            ${modelo('Descrição', `<input name="descricao" style="padding: 5px; border-radius: 3px;">`)}
+            ${modelo('Descrição', `<span name="descricao" class="opcoes" onclick="cxOpcoes('descricao', 'dados_composicoes', ['descricao'])">Selecione</span>`)}
             ${modelo('Quantidade', `<input name="qtde" type="number" style="padding: 5px; border-radius: 3px;">`)}
             ${modelo('Custo', `<input name="valor_orcado" type="number" style="padding: 5px; border-radius: 3px;">`)}
             ${modelo('Unidade', `<input name="unidade" style="padding: 5px; border-radius: 3px;">`)}
@@ -216,7 +216,7 @@ async function adicionarItemAdicional() {
 async function salvarAdicional() {
 
     const qtde = Number(document.querySelector('[name="qtde"]').value)
-    const descricao = document.querySelector('[name="descricao"]').value
+    const descricao = document.querySelector('[name="descricao"]').textContent
     const valor_orcado = Number(document.querySelector('[name="valor_orcado"]').value)
     const unidade = document.querySelector('[name="unidade"]').value
 
