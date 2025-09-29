@@ -2641,3 +2641,31 @@ async function salvarCliente() {
     }
 
 }
+
+async function painelVendedores() {
+    
+    let linhas = ''
+
+    const acumulado = `
+        <div style="background-color: #d2d2d2; padding: 0.5rem;">
+
+        <span style="font-size: 1.2rem;">Vendedores</span>
+        <hr style="width: 100%;">
+
+        <div style="${vertical};">
+            <div class="topo-tabela"></div>
+            <div class="div-tabela">
+                <table class="tabela" id="tabela_composicoes">
+                    <thead>
+                        <tr>${ths}</tr>
+                    </thead>
+                    <tbody>${linhas}</tbody>
+                </table>
+            </div>
+            <div class="rodapeTabela"></div>
+        </div>
+
+
+        </div>
+    `
+}

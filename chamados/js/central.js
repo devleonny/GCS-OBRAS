@@ -359,7 +359,8 @@ async function telaPrincipal() {
 
     tela.innerHTML = acumulado;
 
-    await atualizarOcorrencias();
+    await atualizarOcorrencias()
+    if (acesso?.empresa == '') popup(mensagem('<b>Usuário sem empresa vinculada:</b> O relatório sairá sem dados.'), 'Sem empresa vinculada', true)
 }
 
 async function telaUsuarios() {
@@ -595,7 +596,7 @@ function enviar(caminho, info, idEvento) {
             body: JSON.stringify(objeto)
         })
             .then(data => {
-                if(data.mensagem) {
+                if (data.mensagem) {
                     msgQuedaConexao()
                     resolve()
                 }
@@ -698,13 +699,13 @@ async function deletar(chave, idEvento) {
 
 async function configuracoes(usuario, campo, valor) {
 
-    let dados_usuario = await recuperarDado('dados_setores', usuario)
-    dados_usuario[campo] = valor
+    let dadosUsuario = await recuperarDado('dados_setores', usuario)
+    dadosUsuario[campo] = valor
 
-    await inserirDados({ [usuario]: dados_usuario }, 'dados_setores')
+    await inserirDados({ [usuario]: dadosUsuario }, 'dados_setores')
 
     if (campo == 'empresa') {
-        dados_usuario[campo] = empresas[valor].nome
+        dadosUsuario[campo] = empresas?.[valor]?.nome || ''
     }
 
     if (campo == 'permissao' && valor == 'desativado') {
@@ -712,7 +713,7 @@ async function configuracoes(usuario, campo, valor) {
         if (tr) tr.remove()
 
     } else {
-        criarLinha(dados_usuario, usuario, 'dados_setores')
+        criarLinha(dadosUsuario, usuario, 'dados_setores')
     }
 
     return new Promise((resolve, reject) => {
