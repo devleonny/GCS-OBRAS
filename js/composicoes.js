@@ -557,54 +557,53 @@ async function abrirHistoricoPrecos(codigo, tabela) {
     }
 
     const acumulado = `
-
-        <div id="historico_preco" style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 1vw; min-width: 80vw;">
-            
-            <div style="${horizontal}; align-items: start; width: 100%; justify-content: space-between; gap 1vw;">
-                <div style="${horizontal}; gap: 5px;">
-                    <img style="width: 7vw; border-radius: 5px;" src="${produto?.imagem || logo}">
-                    <div style="${vertical}">
-                        <label><b>Descrição</b></label>
-                        <label>${produto?.descricao || ''}</label>
-                    </div>
-                </div>
-            
-                <div onclick="adicionarCotacao('${codigo}', '${tabela}')" class="bot_adicionar">
-                    <img src="imagens/preco.png">
-                    <label>Adicionar Preço</label>
+        <div style="${horizontal}; align-items: start; width: 100%; justify-content: space-between; gap 1vw;">
+            <div style="${horizontal}; gap: 5px;">
+                <img style="width: 7vw; border-radius: 5px;" src="${produto?.imagem || logo}">
+                <div style="${vertical}">
+                    <label><b>Descrição</b></label>
+                    <label>${produto?.descricao || ''}</label>
                 </div>
             </div>
-
-            <label>Histórico de Preços</label>
-
-            <hr style="width: 100%;">
-            
-            <div style="${vertical}; width: 100%;">
-                <div class="topo-tabela"></div>
-                    <div class="div-tabela">
-                        <table class="tabela">
-                            <thead>
-                                <th>Preço Unitário</th>
-                                <th>Valor de Custo</th>
-                                <th>Margem %</th>
-                                <th>Pr. Venda</th>
-                                <th>Data</th>
-                                <th>Usuário</th>
-                                <th>Fornecedor</th>
-                                <th>Ativo</th>
-                                <th>Comentário</th>
-                                <th>Excluir</th>
-                                <th>Detalhes</th>
-                            </thead>
-                            <tbody>${linhas}</tbody>
-                        </table>
-                    </div>
-                <div class="rodapeTabela"></div>
+        
+            <div onclick="adicionarCotacao('${codigo}', '${tabela}')" class="bot_adicionar">
+                <img src="imagens/preco.png">
+                <label>Adicionar Preço</label>
             </div>
+        </div>
+
+        <label>Histórico de Preços</label>
+
+        <hr style="width: 100%;">
+        
+        <div style="${vertical}; width: 100%;">
+            <div class="topo-tabela"></div>
+                <div class="div-tabela">
+                    <table class="tabela">
+                        <thead>
+                            <th>Preço Unitário</th>
+                            <th>Valor de Custo</th>
+                            <th>Margem %</th>
+                            <th>Pr. Venda</th>
+                            <th>Data</th>
+                            <th>Usuário</th>
+                            <th>Fornecedor</th>
+                            <th>Ativo</th>
+                            <th>Comentário</th>
+                            <th>Excluir</th>
+                            <th>Detalhes</th>
+                        </thead>
+                        <tbody>${linhas}</tbody>
+                    </table>
+                </div>
+            <div class="rodapeTabela"></div>
         </div>
     `
 
-    popup(acumulado, 'Valores de Venda', true)
+    const historicoPreco = document.querySelector('.historico-preco')
+    if (historicoPreco) return historicoPreco.innerHTML = acumulado
+
+    popup(`<div class="historico-preco">${acumulado}</div>`, 'Valores de Venda', true)
 
 }
 
@@ -629,32 +628,29 @@ async function excluirCotacao(codigo, lpu, cotacao) {
 
     overlayAguarde()
 
-    let historico_preco = document.getElementById('historico_preco');
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {};
+    const historicoPreco = document.querySelector('.historico-preco')
+    if (!historicoPreco) return
 
-    if (historico_preco) {
+    let produto = await recuperarDado('dados_composicoes', codigo) || {}
+    let cotacoes = produto?.[lpu] || {}
 
-        if (dados_composicoes[codigo] && dados_composicoes[codigo][lpu]) {
-            let cotacoes = dados_composicoes[codigo][lpu];
-
-            if (cotacoes.ativo == cotacao) {
-                cotacoes.ativo = "";
-                await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, "");
-            }
-
-            let precoExcluido = cotacoes.historico?.[cotacao]?.valor
-            let comentario = `O usuário ${acesso.usuario} excluiu o preço de ID: ${cotacao} e valor: ${parseFloat(precoExcluido).toFixed(2)}`
-            delete cotacoes.historico[cotacao];
-
-            await inserirDados(dados_composicoes, 'dados_composicoes')
-            deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`)
-            registrarAlteracao('dados_composicoes', codigo, comentario)
-        }
-
-        removerPopup()
-        await abrirHistoricoPrecos(codigo, lpu);
-
+    if (cotacoes?.ativo == cotacao) {
+        cotacoes.ativo = ''
+        await enviar(`dados_composicoes/${codigo}/${lpu}/ativo`, '')
     }
+
+    const precoExcluido = cotacoes?.historico?.[cotacao]?.valor || '??'
+    const comentario = `O usuário ${acesso.usuario} excluiu o preço de ID: ${cotacao} e valor: ${parseFloat(precoExcluido).toFixed(2)}`
+
+    delete cotacoes?.historico?.[cotacao]
+    deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`)
+    await inserirDados({ [codigo]: produto }, 'dados_composicoes')
+
+    registrarAlteracao('dados_composicoes', codigo, comentario)
+
+    removerPopup()
+    await abrirHistoricoPrecos(codigo, lpu);
+    await continuar()
 }
 
 function gerarTabelas(objeto) {
@@ -882,32 +878,34 @@ async function adicionarCotacao(codigo, lpu, cotacao) {
     const gap = `gap: 0.5rem;`
 
     const acumulado = `
-        <div style="${vertical}; background-color: #d2d2d2; padding: 1rem;">
-            
-            <label style="font-size: 1.2rem;" id="modalidadeCalculo"><strong>${produto.tipo}</strong></label>
+        <label style="font-size: 1.2rem;" id="modalidadeCalculo"><strong>${produto.tipo}</strong></label>
 
-            <div style="${horizontal}; border-radius: 5px; background-color: #575757; padding: 0.5rem; align-items: start; ${gap}">
+        <div style="${horizontal}; border-radius: 5px; background-color: #575757; padding: 0.5rem; align-items: start; ${gap}">
 
-                <div style="${vertical}; ${gap}">
-                    ${tabelas.camposIniciais}
-                    ${tabelas.complementares}
-                    ${produto.tipo == 'SERVIÇO' ? tabelas.maoObra : ''}
-                </div>
-
-                <div style="${vertical}; ${gap}">
-                    ${tabelas.resultados}
-                    ${tabelas.presuncoes}
-                    ${tabelas.impostos}
-                </div>
-
+            <div style="${vertical}; ${gap}">
+                ${tabelas.camposIniciais}
+                ${tabelas.complementares}
+                ${produto.tipo == 'SERVIÇO' ? tabelas.maoObra : ''}
             </div>
 
-            <button onclick="${funcao}">Salvar Preço</button>
+            <div style="${vertical}; ${gap}">
+                ${tabelas.resultados}
+                ${tabelas.presuncoes}
+                ${tabelas.impostos}
+            </div>
 
         </div>
+
+        <button onclick="${funcao}">Salvar Preço</button>
     `
 
-    popup(acumulado, 'Gestão de Preço', true)
+    const painelPrecos = document.querySelector('.painel-precos')
+    if (painelPrecos) {
+        painelPrecos.innerHTML = acumulado
+    } else {
+        popup(`<div class="painel-precos">${acumulado}</div>`, 'Gestão de Preço', true)
+    }
+
     calcular()
 
 }
@@ -1153,8 +1151,9 @@ async function salvarPreco(codigo, lpu, cotacao) {
     };
 
     // Verificar antes se a porcentagem é aceitável;
+    const permitidos = ['adm', 'diretoria']
     const resultado = calcular(undefined, historico[cotacao])
-    if (resultado.lucroPorcentagem < 10 && acesso.permissao !== 'diretoria') return popup(mensagem('Percentual de lucro não pode ser menor que 10%'), 'Alerta', true)
+    if (resultado.lucroPorcentagem < 10 && !permitidos.includes(acesso.permissao)) return popup(mensagem('Percentual de lucro não pode ser menor que 10%'), 'Alerta', true)
 
     produto[lpu] = produto[lpu] || { historico: {} };
     produto[lpu].historico = historico;
