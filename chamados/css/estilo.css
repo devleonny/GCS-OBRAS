@@ -834,6 +834,11 @@ input[type="file"] {
     animation: ping 1.6s infinite
 }
 
+.timer {
+    margin-left: 2rem;
+    margin-right: 2rem;
+}
+
 @keyframes ping {
     0% {
         box-shadow: 0 0 0 0 #d63447e6

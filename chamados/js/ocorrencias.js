@@ -460,12 +460,11 @@ async function telaOcorrencias(abertos) {
     titulo.innerHTML = `${abertos ? 'ABERTOS' : 'SOLUCIONADOS'} • ${empresaAtiva}`
 
     const acumulado = `
-    
         <div class="tela-ocorrencias">
             <div class="painelBotoes">
                 <div class="botoes">
                     <div class="pesquisa">
-                        <input oninput="pesquisar(this, 'body')" placeholder="Pesquisar" style="width: 100%;">
+                        <input oninput="pesquisarOcorrencias(this.value)" placeholder="Pesquisar" style="width: 100%;">
                         <img src="imagens/pesquisar2.png">
                     </div>
                     <div style="${horizontal}; gap: 5px;">
@@ -493,6 +492,20 @@ async function telaOcorrencias(abertos) {
 
     removerOverlay()
 
+}
+
+function pesquisarOcorrencias(termo) {
+    const linhas = document.querySelectorAll('.div-linha');
+    const pesquisa = termo.trim().toLowerCase();
+
+    for (const linha of linhas) {
+        const texto = linha.textContent.toLowerCase();
+        if (pesquisa === '' || texto.includes(pesquisa)) {
+            linha.style.display = ''; 
+        } else {
+            linha.style.display = 'none';
+        }
+    }
 }
 
 function mostrarQuantidades() {
@@ -702,7 +715,7 @@ async function formularioOcorrencia(idOcorrencia) {
 
         <div class="rodape-formulario">
             ${botao('Salvar', funcao)}
-            <span style="margin-left: 5vw;" name="timer"></span>
+            <span class="timer"></span>
         </div>
    `
 
@@ -756,7 +769,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
         </div>
         <div class="rodape-formulario">
             ${botao('Salvar', funcao)}
-            <span style="margin-left: 5vw;" name="timer"></span>
+            <span class="timer"></span>
         </div>
    `
 
@@ -768,7 +781,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
 }
 
 function dispararTimer() {
-    const timer = document.querySelector('[name="timer"]')
+    const timer = document.querySelector('.timer')
 
     if (timer) {
         setInterval(() => {
