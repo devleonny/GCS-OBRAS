@@ -12,11 +12,22 @@
 }
 
 .total-tabela {
-    font-size: 1.5rem;
-    margin-right: 2vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin-left: 2vw;
     background-color: #097fe6;
     color: white;
     padding: 5px;
+}
+
+.total-tabela label {
+    font-size: 1rem;
+}
+
+.total-tabela span {
+    font-size: 1.5rem;
 }
 
 .diVeiculos {
@@ -76,7 +87,7 @@
     background-color: #d2d2d2;
 }
 
-.paineis input, 
+.paineis input,
 .paineis select,
 .paineis textarea {
     border-radius: 5px;

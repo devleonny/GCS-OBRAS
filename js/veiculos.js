@@ -120,8 +120,11 @@ async function telaVeiculos() {
             </div>
 
             <div style="${vertical};">
-                <div class="painelBotoes" style="justify-content: end;">
-                    <span class="total-tabela">--</span>
+                <div class="painelBotoes" style="justify-content: start;">
+                    <div class="total-tabela">
+                        <label>Total de pagamento <b>Realizado</b></label>
+                        <span name="total">--</span>
+                    </div>
                 </div>
                 <div class="div-tabela">
                     <table class="tabela" style="display: table-row;">
@@ -153,6 +156,8 @@ async function telaVeiculos() {
         let veiculo = veiculos[custo.veiculo]
         criarLinhaVeiculo({ custo, nome, veiculo, idCusto })
     }
+
+    pesquisarEmVeiculos()
 }
 
 function criarLinhaVeiculo({ custo, nome, veiculo, idCusto }) {
@@ -192,7 +197,6 @@ function criarLinhaVeiculo({ custo, nome, veiculo, idCusto }) {
         </td>
 
         <td>
-            <input type="number" name="valores" style="display: none" value="${custo.custo_total}">
             <input name="datas" style="display: none" value="${custo.data_pagamento}">
 
             <div style="display: flex; align-items: start; justify-content: start; flex-direction: column;">
@@ -202,6 +206,7 @@ function criarLinhaVeiculo({ custo, nome, veiculo, idCusto }) {
         </td>
 
         <td>
+            <input type="number" name="valores" style="display: none" value="${custo?.realizado || 0}">
             <div style="${horizontal}; gap: 2px;">
                 <span>R$</span>
                 <input oninput="atualizarRealizado(this)" class="campoRequisicao" type="number" value="${custo?.realizado || ''}" ${editavel ? '' : 'readOnly'}>
@@ -294,7 +299,7 @@ function pesquisarEmVeiculos({ coluna, texto } = {}) {
         }
     }
 
-    document.querySelector('.total-tabela').textContent = dinheiro(total)
+    document.querySelector('[name="total"]').textContent = dinheiro(total)
 }
 
 async function painelAtalhos(idCusto) {
