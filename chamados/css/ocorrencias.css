@@ -268,6 +268,12 @@
     justify-content: start;
 }
 
+.detalhamento-correcoes {
+    background-color: #d2d2d2;
+    padding: 1vw;
+    min-width: 80vw;
+}
+
 
 .div-linha {
     padding: 1rem;
@@ -307,6 +313,10 @@
 
 @media screen and (orientation: landscape),
 screen and (min-aspect-ratio: 13/9) {
+
+    .detalhamento-correcoes {
+        min-width: auto;
+    }
 
     .tela-ocorrencias {
         min-width: 100%;

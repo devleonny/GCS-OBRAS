@@ -368,7 +368,7 @@ async function abrirCorrecoes(idOcorrencia) {
     let ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
 
     const acumulado = `
-    <div style="background-color: #d2d2d2; padding: 1vw;">
+    <div class="detalhamento-correcoes">
 
         <div style="${vertical}">
             <div class="painelBotoes"></div>
