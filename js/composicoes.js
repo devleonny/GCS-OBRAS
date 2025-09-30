@@ -795,7 +795,7 @@ function modelos(produto) {
                 { label: 'CSLL (9%)', id: 'csll' },
                 { label: 'PIS (0,65%)', id: 'pis' },
                 { label: 'COFINS (3%)', id: 'cofins' },
-                { label: 'ICMS (20,5%)', id: 'icms_saida' }
+                { label: 'ICMS de Saída', opcoes: ['20,5%', '12%', '4%'], id: 'icms_saida' }
             ]
         },
         'SERVIÇO': {
@@ -1003,7 +1003,7 @@ function calcular(campo, dadosCalculo = null) {
         const icmsCreditado = dadosCalculo?.icms_creditado || tabelaIcmsSaida[icmsCreditadoSelect]
         const precoCompra = dadosCalculo?.custo || obValComp('custo')
         const frete = precoCompra * 0.02
-        const icmsAliquota = 20.5
+        const icmsAliquota = conversor(obValComp('icms_saida_select'))
         const difal = icmsAliquota - icmsCreditado
         const icmsEntrada = difal / 100 * precoCompra
         const valorCusto = icmsEntrada + precoCompra + frete
@@ -1029,7 +1029,7 @@ function calcular(campo, dadosCalculo = null) {
         const pis = precoVenda * 0.0065
         const cofins = precoVenda * 0.03
 
-        const icmsSaidaSelect = 0.205 //Fixo no pior cenário; (Venda dentro do estado)
+        const icmsSaidaSelect = icmsAliquota / 100
         const icmsSaida = dadosCalculo?.icmsSaida / 100 || icmsSaidaSelect
         const icms = precoVenda * icmsSaida
         const totImp = irpj + adicionalIrpj + csll + pis + cofins + icms
@@ -1068,7 +1068,7 @@ function calcular(campo, dadosCalculo = null) {
         const icmsCreditado = dadosCalculo?.icms_creditado || tabelaIcmsSaida[icmsCreditadoSelect]
         const precoCompra = dadosCalculo?.custo || obValComp('custo')
         const frete = precoCompra * 0.02
-        const icmsAliquota = 20.5
+        const icmsAliquota = 20.5 //Para uso e consumo mantive 20,5%;
         const difal = icmsAliquota - icmsCreditado
         const icmsEntrada = difal / 100 * precoCompra
         const valorCusto = icmsEntrada + precoCompra + frete
@@ -1128,6 +1128,10 @@ function calcular(campo, dadosCalculo = null) {
 async function salvarPreco(codigo, lpu, cotacao) {
 
     overlayAguarde()
+
+    const icmsSaida = obValComp('icms_saida_select')
+
+    if (icmsSaida !== '20,5%') return popup(mensagem('ICMS de saída por segurança não pode ser menor que <b>20,5%</b>.'), 'ICMS de Saída bloqueado', true)
 
     let produto = await recuperarDado('dados_composicoes', codigo)
     let historico = produto[lpu]?.historico || {}

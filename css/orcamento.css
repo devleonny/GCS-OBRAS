@@ -65,13 +65,13 @@
 }
 
 #toolbar {
-    margin-left: 5vw;
+    margin-right: 5%;
     display: flex;
-    width: 100%;
+    width: 95%;
     align-items: center;
-    justify-content: start;
+    justify-content: end;
     flex-wrap: wrap-reverse;
-    gap: 3px;
+    gap: 1px;
 }
 
 #toolbar label {

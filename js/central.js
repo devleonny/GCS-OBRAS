@@ -2211,7 +2211,7 @@ async function painelClientes() {
             <label>Dados do Cliente</label>
 
             ${modelo('Chamado',
-        `<input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" onchange="salvarDadosCliente()" value="${dados_orcam?.contrato || ''}">
+        `<input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" oninput="salvarDadosCliente()" value="${dados_orcam?.contrato || ''}">
         <input id="chamado_off" type="checkbox" onchange="salvarDadosCliente()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
         <label>Sem Chamado</label>`)}
 
