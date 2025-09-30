@@ -653,24 +653,28 @@ function salvarAdicionais(codigo) {
     const tabela = document.getElementById('linhasManutencao')
     const trs = tabela.querySelectorAll('tr')
 
-    if (trs.length == 0) return removerPopup()
-
     itensAdicionais[codigo] = {}
+
+    if (trs.length == 0) {
+        mostrarItensAdicionais()
+        removerPopup()
+        return
+    }
 
     let adicionais = itensAdicionais[codigo]
 
     for (const tr of trs) {
 
         const tds = tr.querySelectorAll('td')
-        const item = tds[0].querySelector('span')
-        const cod = item.id
+        const item = tds[0]?.querySelector('span') || tds[0]?.querySelector('textarea') || {}
+        const cod = tds[0].querySelector('.opcoes').getAttribute('name')
 
         if (item.textContent == 'Selecione') continue
         const estoque = dados_estoque?.[cod] || {}
 
         adicionais[cod] = {
             partnumber: estoque?.partnumber || '',
-            descricao: item?.textContent || '',
+            descricao: item?.textContent || item?.value || '',
             qtde: conversor(tds[1].textContent),
             unidade: tds[2].textContent
         }
