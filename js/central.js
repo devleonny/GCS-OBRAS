@@ -69,6 +69,14 @@ const modeloBotoes = (imagem, nome, funcao) => {
     `
 }
 
+const layoutBotao = (nome, funcao, img) => `
+    <div onclick="${funcao}" class="botoesChamado">
+        <img src="imagens/${img}.png" style="cursor: pointer; width: 2vw;">
+        <label>${nome}</label>
+    </div>
+`
+
+
 const nomeBaseCentral = 'GCS'
 const nomeStore = 'Bases'
 
@@ -402,7 +410,7 @@ function usuariosToolbar() {
     if (usuariosToolbarDiv) return usuariosToolbarDiv.innerHTML = usuariosToolbarString
 
     const divOnline = document.querySelector('.divOnline')
-    if(divOnline) painelUsuarios()
+    if (divOnline) painelUsuarios()
 }
 
 async function sincronizarSetores() {
@@ -451,11 +459,11 @@ async function configs() {
 
     const tdPreenchida = (coluna, opcoes) => `
         <td>
-            <select class="opcoesSelect" onchange="alterarUsuario('${coluna}', '${usuario}', this)" style="cursor: pointer;">${opcoes}</select>
+            <select class="opcoesSelect" onchange="alterarUsuario({campo: '${coluna}', usuario: '${usuario}', select: this})" style="cursor: pointer;">${opcoes}</select>
         </td>
     `
 
-    for ([usuario, dados] of Object.entries(dados_setores)) {
+    for (const [usuario, dados] of Object.entries(dados_setores)) {
 
         const opcoesPermissao = listas.permissoes
             .map(permissao => `<option value="${permissao}" ${dados?.permissao == permissao ? 'selected' : ''}>${permissao}</option>`).join('')
@@ -468,13 +476,14 @@ async function configs() {
             <td style="text-align: left;">${usuario}</td>
             ${tdPreenchida('permissao', opcoesPermissao)}
             ${tdPreenchida('setor', opcoesSetores)}
+            <td><input onchange="alterarUsuario({campo: 'vendedor', usuario: '${usuario}', valor: this.checked})" type="checkbox" ${dados?.vendedor ? 'checked' : ''}></td>
         </tr>
         `
     }
 
     let ths = ''
     let tbusca = ''
-    let cabecalhos = ['Usuário', 'Permissão', 'Setores']
+    let cabecalhos = ['Usuário', 'Permissão', 'Setores', 'Vendedor']
     cabecalhos.forEach((cabecalho, i) => {
         ths += `<th>${cabecalho}</th>`
         tbusca += `<th contentEditable="true" style="background-color: white; text-align: left;" oninput="pesquisarGenerico(${i}, this.textContent, filtrosUsuarios, 'tbodyUsuarios')"></th>`
@@ -498,9 +507,7 @@ async function configs() {
 
     const acumulado = `
         <div style="${vertical}; background-color: #d2d2d2; padding: 0.5rem;">
-            ${botao('Registro de Logs do Sistema', `telaRegistros()`)}
-            <br>
-            <label>Gestão de Usuários</label>
+            <label style="font-size: 1.2rem;">Gestão de Usuários</label>
             <hr style="width: 100%;">
             ${tabela}
         </div>
@@ -510,21 +517,17 @@ async function configs() {
 
 }
 
-async function alterarUsuario(campo, usuario, select) {
+async function alterarUsuario({ campo, usuario, select, valor }) {
 
-    if (dados_setores[usuario]) {
+    const alteracao = await configuracoes(usuario, campo, valor) // Se alterar no servidor, altera localmente;
 
-        let alteracao = await configuracoes(usuario, campo, select.value) // Se alterar no servidor, altera localmente;
-
-        if (alteracao?.status) {
-            dados_setores[usuario][campo] = select.value
-        } else {
-            popup(mensagem(`Não foi possível alterar: ${alteracao?.erro || 'Tente novamente mais tarde'}`), 'ALERTA', true)
-            select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
-        }
+    if (alteracao?.status) {
+        dados_setores[usuario][campo] = select ? select.value : valor
+    } else {
+        popup(mensagem(`Não foi possível alterar: ${alteracao?.erro || 'Tente novamente mais tarde'}`), 'ALERTA', true)
+        if (select) select.value = dados_setores[usuario][campo] // Devolve a informação anterior pro elemento;
     }
 
-    if (document.title == 'Ocorrências') await usuarios()
 }
 
 function verifTimestampNome(nome) {
@@ -1508,7 +1511,7 @@ async function painelUsuarios() {
     `
 
     const divOnline = document.querySelector('.divOnline')
-    if(divOnline) return divOnline.innerHTML = info
+    if (divOnline) return divOnline.innerHTML = info
 
     popup(`<div class="divOnline">${info}</div>`, 'Usuários', true)
 
@@ -2640,32 +2643,4 @@ async function salvarCliente() {
 
     }
 
-}
-
-async function painelVendedores() {
-    
-    let linhas = ''
-
-    const acumulado = `
-        <div style="background-color: #d2d2d2; padding: 0.5rem;">
-
-        <span style="font-size: 1.2rem;">Vendedores</span>
-        <hr style="width: 100%;">
-
-        <div style="${vertical};">
-            <div class="topo-tabela"></div>
-            <div class="div-tabela">
-                <table class="tabela" id="tabela_composicoes">
-                    <thead>
-                        <tr>${ths}</tr>
-                    </thead>
-                    <tbody>${linhas}</tbody>
-                </table>
-            </div>
-            <div class="rodapeTabela"></div>
-        </div>
-
-
-        </div>
-    `
 }

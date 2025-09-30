@@ -1,7 +1,8 @@
-let itens_adicionais = {}
+let itensAdicionais = {}
 let id_orcam = ''
 let fluxograma = {}
 let dadosNota = {}
+let dados_estoque = {}
 
 let fluxogramaNovos = {
     'LEVANTAMENTO': { cor: '#0062d5ff' },
@@ -310,7 +311,7 @@ async function salvarNota() {
     removerPopup()
     await abrirEsquema(id_orcam)
 
-    itens_adicionais = {}
+    itensAdicionais = {}
 }
 
 function removerPagamento(botao) {
@@ -559,7 +560,7 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
                         <label style="font-size: 0.8vw;"><strong>DESCRIÇÃO</strong></label>
                         <label style="text-align: left;">${item?.descricao || 'N/A'}</label>
                     </div>
-                    ${apenas_visualizar ? '' : `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrir_adicionais('${codigo}')">`}
+                    ${apenas_visualizar ? '' : `<img src="imagens/construcao.png" style="position: absolute; top: 5px; right: 5px; width: 20px; cursor: pointer;" onclick="abrirAdicionais('${codigo}')">`}
                 </td>
                 <td style="text-align: center; font-size: 0.8em;">
                     ${apenas_visualizar ? `<label style="font-size: 1.2em; margin: 10px;">${item?.tipo || ''}</label>` : `
@@ -602,266 +603,79 @@ async function carregar_itens(apenas_visualizar, tipoRequisicao, chave) {
 
 }
 
-function remover_linha_materiais(element) {
-    element.closest('tr').remove()
-}
+async function abrirAdicionais(codigo) {
 
-async function abrir_adicionais(codigo) {
+    dados_estoque = await recuperarDados('dados_estoque')
 
-    var acumulado = `
-        <div id="tela" style="display: flex; flex-direction: column; align-items: start; justify-content: center; background-color: white; border-radius: 3px; padding: 5px;">
-            <div class="tabela_manutencao">
-                <div class="linha"
-                    style="background-color: #151749; color: white; border-top-left-radius: 3px; border-top-right-radius: 3px;">
-                    <div style="width: 8vw;">
-                        <label>Part Number</label>
-                    </div>
-                    <div style="width: 25vw;">
-                        <label>Descrição</label>
-                    </div>
-                    <div style="width: 10vw;">
-                        <label>Quantidade</label>
-                    </div>
-                    <div style="width: 20vw;">
-                        <label>Unidade</label>
-                    </div>
-                    <div style="width: 10vw;">
-                        <label>Estoque</label>
-                    </div>
-                    <div style="width: 10vw;">
-                        <label>Estoque Usado</label>
-                    </div>
-                    <div style="width: 5vw;">
-                        <label>Remover</label>
-                    </div>
-                </div>
+    const ths = ['Descrição', 'Quantidade', 'Comentário', '']
+        .map(op => `<th>${op}</th>`)
+        .join('')
 
-                <div id="linhas_manutencao">
-                    <div id="excluir_inicial" class="linha" style="width: 70vw;">
-                        <label>Lista Vazia</label>
+    const acumulado = `
+        <div class="formulario-adicional">
+
+            <div style="${vertical}; width: 100%;">
+                <div class="topo-tabela"></div>
+                    <div class="div-tabela">
+                        <table class="tabela">
+                            <thead><tr>${ths}</tr></thead>
+                            <tbody id="linhasManutencao"></tbody>
+                        </table>
                     </div>
-                </div>
+                <div class="rodapeTabela"></div>
             </div>
 
-            <br>
+        </div>
+        <div style="${horizontal}; background-color: #868686ff; width: 100%; gap: 1px; border-top: solid 1px #868686ff;">
 
-            <div style="display: flex; align-items: center; width: 100% ">
-                <div style="display: flex; align-items: center; gap: 5px;">
-                    <div onclick="adicionar_linha_manut()" class="contorno_botoes"
-                        style="background-color: #151749; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        <img src="imagens/chamados.png" style="cursor: pointer; width: 2vw;">
-                        <label>Adicionar Peça</label>
-                    </div>
-                    <div onclick="recuperar_estoque()" class="contorno_botoes" style="background-color: #151749; color: white;">
-                        <img src="imagens/sync.png" style="cursor: pointer; width: 2vw;">
-                        <label>Sincronizar Estoque</label>
-                    </div>
-                </div>
+            ${layoutBotao('Adicionar Peça', 'criarLinhaPeca()', 'chamados')}
+            ${layoutBotao('Sincronizar Estoque', `sincronizarDados('dados_estoque')`, 'estoque')}
+            ${layoutBotao('Salvar', `salvarAdicionais('${codigo}')`, 'concluido')}
 
-                <div onclick="salvar_itens_adicionais('${codigo}')" class="contorno_botoes"
-                    style="background-color: green; display: flex; align-items: center; justify-content: center; gap: 10px; margin-left: auto;">
-                    <img src="imagens/estoque.png" style="cursor: pointer; width: 2vw">
-                    <label>Salvar</label>
-                </div>
-            </div>
         </div>
     `
 
     popup(acumulado, 'Itens Adicionais', true)
 
-    for (cd in itens_adicionais) {
+    for (const [cd, dados] of Object.entries(itensAdicionais)) {
 
-        if (cd == codigo) {
-            var adicionais = itens_adicionais[cd]
+        if (cd !== codigo) continue
 
-            for (ad in adicionais) {
-                var dados = adicionais[ad]
-                adicionar_linha_manut(ad, dados)
-            }
-
-        }
-    }
-
-}
-
-function adicionar_linha_manut(ad, dados) {
-    let tbody = document.getElementById('linhas_manutencao')
-    let aleatorio = ad ? ad : ID5digitos()
-
-    let excluir_inicial = document.getElementById('excluir_inicial')
-    if (excluir_inicial) {
-        excluir_inicial.remove()
-    }
-
-    if (tbody) {
-        let linha = `
-        <div class="linha_completa">
-            <div class="linha">
-                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="text" value="${dados?.partnumber || ''}">
-                </div>
-                <div style="position: relative; width: 25vw; height: 30px; background-color: #b5b5b5;">
-                    <textarea style="background-color: transparent; height: 100%; resize: none; border: none; outline: none;" type="text" id="${aleatorio}" oninput="sugestoes(this, 'estoque')">${dados?.descricao || ''}</textarea>
-                    <input id="input_${aleatorio}" style="display: none;">
-                </div>
-
-                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" type="number" value="${dados?.qtde || ''}">
-                </div>
-
-                <div style="width: 20vw; height: 30px; background-color: #b5b5b5;">
-                    <select style="width: 100%; background-color: transparent;">
-                        <option ${dados?.unidade == 'UND' ? 'checked' : ''}>UND</option>
-                        <option ${dados?.unidade == 'METRO' ? 'checked' : ''}>METRO</option>
-                        <option ${dados?.unidade == 'CX' ? 'checked' : ''}>CX</option>
-                        <option ${dados?.unidade == 'PCT' ? 'checked' : ''}>PCT</option>
-                    </select>
-                </div>
-
-                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" readOnly>
-                </div>
-
-                <div style="width: 10vw; height: 30px; background-color: #b5b5b5;">
-                    <input style="background-color: transparent; font-size: 1.0vw; width: 10vw; height: 30px;" readOnly>
-                </div>
-
-                <div style="width: 5vw; display: flex; align-items: center; justify-content: center;">
-                    <img src="imagens/remover.png" onclick="removerLinhaAdicional(this)" style="width: 30px; cursor: pointer;">
-                </div>
-            </div>
-            <hr style="width: 100%; margin: 0px;">
-        </div>
-        `
-        tbody.insertAdjacentHTML('beforeend', linha)
-    }
-}
-
-function removerLinhaAdicional(div_menor) {
-    let linha_completa = div_menor.parentElement.parentElement.parentElement
-    if (linha_completa) {
-        linha_completa.remove()
-    }
-}
-
-async function sugestoes(textarea, base) {
-
-    let query = String(textarea.value).toLowerCase()
-    let div_sugestoes = document.getElementById('div_sugestoes')
-    if (div_sugestoes) div_sugestoes.remove()
-
-    if (query === '') {
-        let campo = textarea.id
-        let endereco = document.getElementById(`endereco_${campo}`)
-
-        if (endereco) {
-            document.getElementById(`codigo_${campo}`).innerHTML = ''
-            endereco.innerHTML = ''
-            return
+        for (const [ad, dadosAD] of Object.entries(dados)) {
+            criarLinhaPeca(ad, dadosAD)
         }
 
-        return
     }
-
-    let dados = await recuperarDados(`dados_${base}`, true) || {}
-    let opcoes = ''
-
-    for (id in dados) {
-        let item = dados[id]
-        let conteudoOpcao;
-        let descricao = String(item.descricao).toLocaleLowerCase()
-
-        if (!descricao.includes(query)) continue
-
-        conteudoOpcao = String(item.descricao)
-
-        opcoes += `
-            <div onclick="definir_campo(this, '${textarea.id}', '${id}')" class="autocomplete-item" style="font-size: 0.8vw;">${conteudoOpcao}</div>
-        `
-    }
-
-    let posicao = textarea.getBoundingClientRect()
-    let left = posicao.left + window.scrollX
-    let top = posicao.bottom + window.scrollY
-
-    let div = `
-    <div id="div_sugestoes" class="autocomplete-list" style="position: absolute; top: ${top}px; left: ${left}px; border: 1px solid #ccc; width: 15vw;">
-        ${opcoes}
-    </div>`
-
-    document.body.insertAdjacentHTML('beforeend', div)
 
 }
 
-async function definir_campo(elemento, textareaID, id) {
+function salvarAdicionais(codigo) {
+    const tabela = document.getElementById('linhasManutencao')
+    const trs = tabela.querySelectorAll('tr')
 
-    let input_aleatorio = document.getElementById(`input_${textareaID}`)
+    if (trs.length == 0) return removerPopup()
 
-    input_aleatorio.value = id
+    itensAdicionais[codigo] = {}
 
-    let dados_estoque = await recuperarDados('dados_estoque', true) || {}
-    let estoques = ['estoque', 'estoque_usado']
+    let adicionais = itensAdicionais[codigo]
 
-    let dic_quantidades = {}
+    for (const tr of trs) {
 
-    estoques.forEach(estoque => {
+        const tds = tr.querySelectorAll('td')
+        const item = tds[0].querySelector('span')
+        const cod = item.id
 
-        let estoque_do_objeto = dados_estoque[id][estoque]
-        let historicos = estoque_do_objeto.historico
-        dic_quantidades[estoque] = estoque_do_objeto.quantidade
+        if (item.textContent == 'Selecione') continue
+        const estoque = dados_estoque?.[cod] || {}
 
-
-        for (his in historicos) {
-            let historico = historicos[his]
-
-            if (historico.operacao == 'entrada') {
-                dic_quantidades[estoque] += historico.quantidade
-            }
-
-            if (historico.operacao == 'saida') {
-                dic_quantidades[estoque] -= historico.quantidade
-            }
+        adicionais[cod] = {
+            partnumber: estoque?.partnumber || '',
+            descricao: item?.textContent || '',
+            qtde: conversor(tds[1].textContent),
+            unidade: tds[2].textContent
         }
 
-        let div_linha = input_aleatorio.parentElement.parentElement
-
-        let inputs = div_linha.querySelectorAll('input, textarea, select')
-
-        inputs[0].value = dados_estoque[id].partnumber
-        inputs[5].value = dic_quantidades.estoque
-        inputs[6].value = dic_quantidades.estoque_usado
-
-    })
-
-    document.getElementById(textareaID).value = elemento.textContent
-
-    let divSugestoes = document.getElementById('div_sugestoes')
-    if (divSugestoes) divSugestoes.remove()
-}
-
-function salvar_itens_adicionais(codigo) {
-    let tabela = document.getElementById('linhas_manutencao')
-    let linhas = tabela.querySelectorAll('.linha')
-
-    itens_adicionais[codigo] = {}
-
-    let adicionais = itens_adicionais[codigo]
-
-    linhas.forEach(linha => {
-        let valores = linha.querySelectorAll('input, textarea, select')
-        let cod = valores[1].id
-
-        if (cod !== '') {
-            if (!adicionais[cod]) {
-                adicionais[cod] = {}
-            }
-
-            adicionais[cod].partnumber = valores[0].value
-            adicionais[cod].descricao = valores[1].value
-            adicionais[cod].qtde = valores[3].value
-            adicionais[cod].unidade = valores[4].value
-        }
-    })
+    }
 
     mostrarItensAdicionais()
     removerPopup()
@@ -888,9 +702,9 @@ function mostrarItensAdicionais() {
                 local.remove()
             }
 
-            if (itens_adicionais[codigo]) {
+            if (itensAdicionais[codigo]) {
 
-                let adicionais = itens_adicionais[codigo]
+                let adicionais = itensAdicionais[codigo]
                 for (ad in adicionais) {
 
                     let adicional = adicionais[ad]
@@ -988,7 +802,7 @@ async function salvar_requisicao(chave) {
         executor: acesso.usuario,
         comentario: document.getElementById("comentario_status").value,
         requisicoes: [],
-        adicionais: itens_adicionais,
+        adicionais: itensAdicionais,
         total_requisicao: document.getElementById("total_requisicao").textContent
     };
 
@@ -1011,7 +825,7 @@ async function salvar_requisicao(chave) {
             return popup(mensagem('Preencha os Códigos do Omie pendentes'), 'Aviso', true);
         }
 
-        if (qtde > 0 || itens_adicionais[codigo]) {
+        if (qtde > 0 || itensAdicionais[codigo]) {
             novo_lancamento.requisicoes.push({
                 codigo: codigo,
                 partnumber: partnumber,
@@ -1033,7 +847,7 @@ async function salvar_requisicao(chave) {
 
     if (orcamento.lpu_ativa !== 'MODALIDADE LIVRE') atualizar_partnumber(lista_partnumbers)
 
-    itens_adicionais = {}
+    itensAdicionais = {}
     removerPopup()
     await abrirEsquema(id_orcam)
 }
@@ -1782,8 +1596,8 @@ async function abrirEsquema(id) {
                 ${botao('Nova Nota Fiscal', `painelAdicionarNotas()`, '#ff4500')}
 
                 ${(acesso.permissao == 'adm' || acesso.setor == 'LOGÍSTICA')
-        ? botao('Novo Envio de Material', `envioMaterial()`, '#b17724')
-        : ''}
+            ? botao('Novo Envio de Material', `envioMaterial()`, '#b17724')
+            : ''}
                 
                 ${botao('LPU Parceiro', `modalLPUParceiro()`, '#0062d5')}
 
@@ -1800,7 +1614,7 @@ async function abrirEsquema(id) {
     if (janelaAtiva) {
         removerOverlay()
         janelaAtiva.innerHTML = acumulado
-        return 
+        return
     }
     popup(`<div class="painel-historico">${acumulado}</div>`, 'Histórico do Orçamento')
 
@@ -2224,7 +2038,7 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
     let menu_flutuante = ''
 
     // Carrega os itens adicionais se existirem
-    itens_adicionais = {}
+    itensAdicionais = {}
     let comentarioExistente = ''
 
     if (apenas_visualizar) {
@@ -2238,7 +2052,7 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
             `
     }
 
-    if (cartao.adicionais) itens_adicionais = cartao.adicionais
+    if (cartao.adicionais) itensAdicionais = cartao.adicionais
     if (cartao.comentario) comentarioExistente = cartao.comentario
     if (cartao.requisicoes) requisicoesExistente = cartao.requisicoes
 
@@ -2420,7 +2234,7 @@ async function confirmarExclusaoStatus(chave) {
     deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}`)
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
     await abrirEsquema()
-    
+
 }
 
 async function atualizar_partnumber(produtos) {

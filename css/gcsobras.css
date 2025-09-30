@@ -205,6 +205,15 @@ span[name="titulo"] {
     border-radius: 3px;
 }
 
+.formulario-adicional {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+    background-color: #d2d2d2;
+    padding: 1rem;;
+}
+
 .divOnline {
     gap: 2px;
     width: max-content;
@@ -535,13 +544,16 @@ span[name="titulo"] {
     cursor: pointer;
     gap: 10px;
     background-color: white;
-    padding: 3px;
-    border-radius: 2px;
     font-size: 0.8rem;
+}
+
+.atalhos label {
+    padding-right: 0.5rem;
 }
 
 .atalhos img,
 .atalhos-opcoes img {
+    padding: 0.2rem;
     width: 2rem;
 }
 

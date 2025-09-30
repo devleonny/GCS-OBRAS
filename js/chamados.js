@@ -305,15 +305,8 @@ async function criarManutencao(id) {
         </div>
         `
 
-    const layoutBotao = (nome, funcao, img) => `
-        <div onclick="${funcao}" class="botoesChamado">
-            <img src="imagens/${img}.png" style="cursor: pointer; width: 2vw;">
-            <label>${nome}</label>
-        </div>
-    `
-
     const botoes = `
-        <div style="${horizontal}; width: 100%; gap: 2px; border-top: solid 1px #868686ff;">
+        <div style="${horizontal}; background-color: #868686ff; width: 100%; gap: 1px; border-top: solid 1px #868686ff;">
 
             ${layoutBotao('Adicionar Peça', 'criarLinhaPeca()', 'chamados')}
             ${layoutBotao('Salvar', `enviarManutencao('${idManutencao}')`, 'concluido')}
@@ -538,7 +531,7 @@ function criarLinhaPeca(id, peca) {
                 <img data-modalidade="tradicional" src="imagens/ajustar.png" style="width: 1.2rem;" onclick="mudarEdicao(this)">
             </div>
         </td>
-        <td contentEditable="true">${peca?.quantidade || 0}</td>
+        <td contentEditable="true">${peca?.quantidade || peca?.qtde || 0}</td>
         <td contentEditable="true">${peca?.comentario || ''}</td>
         <td><img src="imagens/cancel.png" style="width: 2vw;" onclick="this.parentElement.parentElement.remove()"></td>
     `
