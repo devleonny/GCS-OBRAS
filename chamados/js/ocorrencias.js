@@ -348,7 +348,6 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
             ${modeloCampos('Última Correção', status)}
             ${modeloCampos('Data Registro', ocorrencia?.dataRegistro || '')}
             ${modeloCampos('Data Limite', dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao))}
-            ${modeloCampos('Solicitante', ocorrencia?.solicitante || '')}
             ${modeloCampos('Executor', ocorrencia?.executor || '')}
             ${modeloCampos('Tipo', tipos?.[ocorrencia?.tipo]?.nome || '...')}
             ${modeloCampos('Unidade', dados_clientes?.[ocorrencia?.unidade]?.nome || '...')}
@@ -501,18 +500,20 @@ function pesquisarOcorrencias(termo) {
     for (const linha of linhas) {
         const texto = linha.textContent.toLowerCase();
         if (pesquisa === '' || texto.includes(pesquisa)) {
-            linha.style.display = ''; 
+            linha.style.display = '';
         } else {
             linha.style.display = 'none';
         }
     }
 }
 
-function mostrarQuantidades() {
+async function mostrarQuantidades() {
     let contador = {
         abertos: 0,
         solucionados: 0
     }
+
+    dados_ocorrencias = await recuperarDados('dados_ocorrencias')
 
     for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias)) {
 
@@ -537,6 +538,8 @@ function criarBadge(numero, idPai) {
 }
 
 async function atualizarOcorrencias() {
+
+    await mostrarQuantidades()
 
     new Promise(async (resolve, reject) => {
 
@@ -578,7 +581,7 @@ async function atualizarOcorrencias() {
         emAtualizacao = false
 
         dados_ocorrencias = await recuperarDados('dados_ocorrencias')
-        mostrarQuantidades()
+        await mostrarQuantidades()
         resolve()
     })
 
@@ -692,9 +695,7 @@ async function formularioOcorrencia(idOcorrencia) {
             ${modelo('Sistema', labelBotao('sistema', 'sistemas', oc?.sistema, sistemas[oc?.sistema]?.nome))}
             ${modelo('Prioridade', labelBotao('prioridade', 'prioridades', oc?.prioridade, prioridades[oc?.prioridade]?.nome))}
             ${modelo('Tipo', labelBotao('tipo', 'tipos', oc?.tipo, tipos[oc?.tipo]?.nome))}
-            ${modelo('Solicitante', labelBotao('solicitante', 'dados_setores', oc?.solicitante, dados_setores[oc?.solicitante]?.nome_completo))}
             ${modelo('Descrição', `<textarea rows="7" style="width: 100%;" name="descricao" class="campos">${oc?.descricao || ''}</textarea>`)}
-            ${modelo('Executor / Responsável', labelBotao('executor', 'dados_setores', oc?.executor, dados_setores[oc?.executor]?.nome_completo))}
             ${modelo('Data Limite para a Execução', `<input name="dataLimiteExecucao" class="campos" type="date" value="${oc?.dataLimiteExecucao || ''}">`)}
             
             <br>
@@ -763,7 +764,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
                 `)}
 
             <div id="anexos" style="${vertical};">
-                ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual({nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}', '${idCorrecao}')`})).join('')}
+                ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual({ nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}', '${idCorrecao}')` })).join('')}
             </div>
 
         </div>
@@ -911,7 +912,7 @@ async function salvarOcorrencia(idOcorrencia) {
 
     try {
 
-        const campos = ['empresa', 'unidade', 'sistema', 'prioridade', 'tipo', 'solicitante', 'executor']
+        const campos = ['empresa', 'unidade', 'sistema', 'prioridade', 'tipo']
         let ocorrencia = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : {}
 
         for (const campo of campos) {
@@ -952,8 +953,17 @@ async function salvarOcorrencia(idOcorrencia) {
             enviar(`dados_ocorrencias/${idOcorrencia}`, ocorrencia)
 
         } else {
-            await enviar('dados_ocorrencias/0000', ocorrencia)
-            await atualizarOcorrencias()
+
+            try {
+                const resposta = await enviar('dados_ocorrencias/0000', ocorrencia)
+                console.log(resposta);
+                
+                await inserirDados({ [resposta.idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
+                await telaOcorrencias()
+            } catch {
+                return popup(mensagem('Não foi possível mostrar o seu chamado agora, tente atualizar o app mais tarde.'), 'Alerta', true)
+            }
+
         }
 
     } catch (err) {

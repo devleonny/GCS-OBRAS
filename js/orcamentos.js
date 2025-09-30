@@ -124,7 +124,7 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
 
 async function telaOrcamentos(semOverlay) {
 
-    if(!semOverlay) overlayAguarde()
+    if (!semOverlay) overlayAguarde()
     verificarFluxograma()
 
     let cabecs = ['Data & LPU', 'Status', 'Pedido', 'Notas', 'Chamado & Cliente', 'Cidade', 'Analista', 'Responsáveis', 'Lc %', 'Checklist', 'Valor', 'Ações']
@@ -198,7 +198,7 @@ async function telaOrcamentos(semOverlay) {
         if (th) th.textContent = termo
     }
 
-    if(!semOverlay) removerOverlay()
+    if (!semOverlay) removerOverlay()
 
 }
 
@@ -515,25 +515,35 @@ async function duplicar(orcam_) {
 }
 
 async function excelOrcamentos() {
-    const response = await fetch(`${api}/orcamentosRelatorio`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ appName: verificarApp() })
-    });
 
-    if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+    overlayAguarde()
+
+    try {
+
+        const response = await fetch(`${api}/orcamentosRelatorio`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+        }
+
+        const blob = await response.blob();
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Relatorio de Orcamentos.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+
+    } catch (err) {
+        popup(mensagem(err), 'Erro ao baixar Excel', true)
     }
 
-    const blob = await response.blob();
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Relatorio de Orcamentos.xlsx`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    removerOverlay()
 
 }
