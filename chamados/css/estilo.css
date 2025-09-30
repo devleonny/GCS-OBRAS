@@ -856,6 +856,10 @@ input[type="file"] {
 @media screen and (orientation: landscape),
 screen and (min-aspect-ratio: 13/9) {
 
+    .painel-cadastro {
+        min-width: 40vw;
+    }
+
     .rodape-login button {
         padding: 1vw;
     }
