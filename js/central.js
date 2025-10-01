@@ -1576,7 +1576,7 @@ async function importarAnexos(arquivoInput) {
             formData.append('arquivos', arquivoInput.files[i]);
         }
 
-        fetch(`${api}/upload/GCS`, {
+        fetch(`${api}/upload`, {
             method: 'POST',
             body: formData
         })

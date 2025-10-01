@@ -1131,10 +1131,10 @@ async function salvarPreco(codigo, lpu, cotacao) {
 
     const icmsSaida = obValComp('icms_saida_select')
 
-    if (icmsSaida !== '20,5%') return popup(mensagem('ICMS de saída por segurança não pode ser menor que <b>20,5%</b>.'), 'ICMS de Saída bloqueado', true)
-
     let produto = await recuperarDado('dados_composicoes', codigo)
     let historico = produto[lpu]?.historico || {}
+
+    if (produto.tipo == 'VENDA' && icmsSaida !== '20,5%') return popup(mensagem('ICMS de saída por segurança não pode ser menor que <b>20,5%</b>.'), 'ICMS de Saída bloqueado', true)
 
     cotacao = cotacao || ID5digitos()
 

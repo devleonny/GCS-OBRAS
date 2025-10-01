@@ -641,9 +641,12 @@ async function receber(chave) {
         },
         body: JSON.stringify({
             chave: chave,
-            timestamp: timestamp
+            timestamp
         })
     };
+
+    console.log(chave, timestamp);
+    
 
     return new Promise((resolve, reject) => {
         fetch(`${api}/${rota}`, obs)
@@ -878,7 +881,7 @@ async function importarAnexos({ input, foto }) {
     }
 
     try {
-        const response = await fetch(`${api}/upload/GCS`, {
+        const response = await fetch(`${api}/upload`, {
             method: 'POST',
             body: formData
         });
