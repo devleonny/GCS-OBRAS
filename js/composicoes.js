@@ -1345,7 +1345,7 @@ function salvarNovaLPU() {
     removerPopup();
 }
 
-async function para_excel() {
+async function paraExcel() {
     const tabela = document.getElementById('tabela_composicoes');
     if (!tabela) return;
 
@@ -1363,39 +1363,19 @@ async function para_excel() {
             const td = tds[colIndex];
             const img = td.querySelector('img');
 
-            if (img) {
-                try {
-                    const response = await fetch(img.src);
-                    const blob = await response.blob();
-                    const arrayBuffer = await blob.arrayBuffer();
+            if (img) continue
 
-                    const extension = img.src.includes('.png') ? 'png' : 'jpeg';
-                    const imageId = workbook.addImage({
-                        buffer: arrayBuffer,
-                        extension: extension
-                    });
+            const select = td.querySelector('select');
+            const input = td.querySelector('input');
 
-                    worksheet.addImage(imageId, {
-                        tl: { col: colIndex, row: rowIndex },
-                        ext: { width: img.width || 100, height: img.height || 100 }
-                    });
-
-                    row.push(null);
-                } catch (e) {
-                    row.push(''); // imagem ignorada silenciosamente
-                }
+            if (select) {
+                row.push(select.value);
+            } else if (input) {
+                row.push(input.value);
             } else {
-                const select = td.querySelector('select');
-                const input = td.querySelector('input');
-
-                if (select) {
-                    row.push(select.value);
-                } else if (input) {
-                    row.push(input.value);
-                } else {
-                    row.push(td.textContent.trim());
-                }
+                row.push(td.textContent.trim());
             }
+
         }
 
         worksheet.addRow(row);

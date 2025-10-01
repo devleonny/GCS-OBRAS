@@ -648,6 +648,9 @@ async function receber(chave) {
     return new Promise((resolve, reject) => {
         fetch(`${api}/${rota}`, obs)
             .then(response => {
+
+                console.log(response, chave);
+                
                 if (!response.ok) {
                     throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
                 }

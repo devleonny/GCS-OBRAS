@@ -172,7 +172,8 @@ const esquemaBotoes = {
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Atualizar', funcao: 'atualizarCmposicoes', img: 'atualizar3' },
         { nome: 'Cadastrar Item', funcao: 'cadastrarItem', img: 'baixar' },
-        { nome: 'Filtrar Campos', funcao: 'abrirFiltros', img: 'pesquisar2' },
+        { nome: 'Baixar em Excel', funcao: 'exportarParaExcel', img: 'excel' },
+        { nome: 'Filtrar Campos', funcao: 'abrirFiltros', img: 'pesquisar2' }
     ],
     chamados: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -198,7 +199,7 @@ const esquemaBotoes = {
         { nome: 'Atualizar', funcao: 'atualizarEstoque', img: 'atualizar3' },
         { nome: 'Cadastrar Item', funcao: 'incluirItemEstoque', img: 'baixar' },
         { nome: 'Relatório de Movimentos', funcao: 'relatorioMovimento', img: 'projeto' },
-        { nome: 'Baixar em Excel', funcao: 'exportarParaExcel', img: 'excel' },
+        { nome: 'Baixar em Excel', funcao: `exportarParaExcel`, img: 'excel' },
     ],
     relatorio: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -457,7 +458,7 @@ async function configs() {
             return obj;
         }, {});
 
-    const tdPreenchida = (coluna, opcoes) => `
+    const tdPreenchida = (coluna, opcoes, usuario) => `
         <td>
             <select class="opcoesSelect" onchange="alterarUsuario({campo: '${coluna}', usuario: '${usuario}', select: this})" style="cursor: pointer;">${opcoes}</select>
         </td>
@@ -474,8 +475,8 @@ async function configs() {
         linhas += `
         <tr>
             <td style="text-align: left;">${usuario}</td>
-            ${tdPreenchida('permissao', opcoesPermissao)}
-            ${tdPreenchida('setor', opcoesSetores)}
+            ${tdPreenchida('permissao', opcoesPermissao, usuario)}
+            ${tdPreenchida('setor', opcoesSetores, usuario)}
             <td><input onchange="alterarUsuario({campo: 'vendedor', usuario: '${usuario}', valor: this.checked})" type="checkbox" ${dados?.vendedor ? 'checked' : ''}></td>
         </tr>
         `
@@ -935,81 +936,20 @@ async function carregarXLSX() {
     });
 }
 
-async function para_excel(tabela_id, nome_personalizado) {
-    try {
-        if (typeof XLSX === 'undefined') {
-            await carregarXLSX();
-        }
-
-        const tabela = document.getElementById(tabela_id);
-        if (!tabela) {
-            throw new Error(`Tabela com ID '${tabela_id}' não encontrada`);
-        }
-
-        const tabelaClone = tabela.cloneNode(true);
-
-        tabelaClone.querySelectorAll('input, textarea, select').forEach(elemento => {
-            const celula = elemento.closest('td, th');
-            if (celula) {
-                if (elemento.type === 'checkbox') {
-                    celula.textContent = elemento.checked ? 'Sim' : 'Não';
-                } else if (elemento.tagName === 'SELECT') {
-                    celula.textContent = elemento.options[elemento.selectedIndex]?.text || '';
-                } else {
-                    celula.textContent = elemento.value;
-                }
-            }
-        });
-
-        tabelaClone.querySelectorAll('[data-no-export], .no-export').forEach(el => el.remove());
-
-        const worksheet = XLSX.utils.table_to_sheet(tabelaClone);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Dados");
-
-        const data = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        const nomeArquivo = nome_personalizado
-            ? `${nome_personalizado}_${data}.xlsx`
-            : `exportacao_${data}.xlsx`;
-
-        XLSX.writeFile(workbook, nomeArquivo, {
-            compression: true
-        });
-
-    } catch (erro) {
-        console.error("Erro detalhado:", erro);
-
-        let mensagem = erro.message;
-        if (erro.message.includes('XLSX is not defined')) {
-            mensagem = "Biblioteca de exportação não carregada. Recarregue a página e tente novamente.";
-        }
-
-        popup(`
-            <div style="color: #b71c1c; padding: 20px; text-align: center;">
-                <h3>⚠️ Erro na Exportação</h3>
-                <p>${mensagem}</p>
-                <div style="margin-top: 20px;">
-                    <button onclick="removerPopup()" style="padding: 8px 16px; background: #b71c1c; color: white; border: none; border-radius: 4px;">
-                        Fechar
-                    </button>
-                </div>
-            </div>
-        `, 'Erro na Exportação');
-    }
-}
-
 async function exportarParaExcel() {
     try {
         overlayAguarde();
+
+        const idTabela = telaAtiva == 'estoque' ? 'tabela_estoque' : 'tabela_composicoes'
 
         if (typeof ExcelJS === 'undefined') {
             throw new Error('Biblioteca ExcelJS não está carregada');
         }
 
         const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Estoque');
+        const worksheet = workbook.addWorksheet('Dados');
 
-        const tabela = document.getElementById('tabela_estoque');
+        const tabela = document.getElementById(idTabela);
         if (!tabela) throw new Error('Tabela de estoque não encontrada');
 
         const headers = [];
@@ -1024,9 +964,18 @@ async function exportarParaExcel() {
         tabela.querySelectorAll('tbody tr').forEach(tr => {
             const rowData = [];
             tr.querySelectorAll('td').forEach((td, index) => {
+
                 if (index > 0) {
                     const input = td.querySelector('input');
-                    rowData.push(input ? input.value : td.textContent.trim());
+                    const select = td.querySelector('select');
+
+                    if (input) {
+                        rowData.push(input.value);
+                    } else if (select) {
+                        rowData.push(select.value);
+                    } else {
+                        rowData.push(td.textContent.trim());
+                    }
                 }
             });
             if (rowData.length > 0) {
@@ -1045,7 +994,7 @@ async function exportarParaExcel() {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `estoque_${data}.xlsx`;
+        link.download = `${telaAtiva}_${data}.xlsx`;
         link.click();
         window.URL.revokeObjectURL(url);
 
@@ -1053,13 +1002,7 @@ async function exportarParaExcel() {
     } catch (erro) {
         console.error("Erro ao exportar:", erro);
         removerOverlay();
-        popup(`
-            <div style="display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center; flex-direction: column;">
-                <img src="gifs/alerta.gif" style="width: 3vw; height: 3vw;">
-                <label>Erro ao exportar para Excel:</label>
-                <label style="font-size: 0.8em;">${erro.message}</label>
-                <button onclick="removerPopup()" style="background-color: #B12425;">Fechar</button>
-            </div>`, 'ERRO');
+        popup(mensagem(erro), 'Alerta', true);
     }
 }
 

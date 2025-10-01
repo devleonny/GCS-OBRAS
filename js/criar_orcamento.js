@@ -6,6 +6,7 @@ let moduloComposicoes = {}
 let tabelaAtiva;
 let tipoAtivo = 'TODOS'
 let draggedRow = null;
+let titulo = null
 
 const metaforas = [
     "Um monitor sem imagens para exibir",
@@ -116,6 +117,24 @@ async function criarOrcamento() {
     tela.innerHTML = acumulado
     criarMenus('criarOrcamentos')
     await atualizarPrecos()
+}
+function atualizarToolbar(remover) {
+
+    titulo = document.querySelector('[name="titulo"]')
+
+    if(remover) return titulo.textContent = 'GCS'
+
+    const orcamentoBase = baseOrcamento()
+    const edicao = orcamentoBase?.dados_orcam?.contrato == 'sequencial' || (orcamentoBase && orcamentoBase?.dados_orcam?.contrato)
+    const contrato = orcamentoBase?.dados_orcam?.contrato == 'sequencial' ? 'Código a definir...' : orcamentoBase?.dados_orcam?.contrato
+
+    titulo.innerHTML = `
+        <div style="${horizontal}; gap: 0.5rem;">
+            <img src="${edicao ? 'gifs/atencao.gif' : 'imagens/concluido.png'}" style="width: 2rem;">
+            <span>${edicao ? `Editando: <b>${contrato}</b>` : 'Novo Orçamento'}</span>
+        </div>
+    `
+
 }
 
 async function atualizarPrecos() {
@@ -269,7 +288,7 @@ async function carregarTabelasOrcameneto() {
 
 function carregarLinhaOrcamento(codigo, produto) {
 
-    const opcoes = ['Dinheiro', 'Porcentagem', 'Venda Direta']
+    const opcoes = ['Dinheiro', 'Porcentagem', 'Venda Direta'] //Comissão //29
         .map(op => `<option ${produto?.tipo_desconto == op ? 'selected' : ''}>${op}</option>`).join('')
 
     const tds = `
@@ -364,7 +383,7 @@ async function enviarDadosOrcamento() {
 
     if (dados_orcam.contrato == 'sequencial') {
         const resposta = await proxORC({ sequencial: true })
-        if(resposta.err) return popup(mensagem(resposta.err), 'Alerta', true)
+        if (resposta.err) return popup(mensagem(resposta.err), 'Alerta', true)
         orcamentoBase.dados_orcam.contrato = `ORC_${resposta.proximo}`
     }
 
@@ -380,12 +399,15 @@ async function enviarDadosOrcamento() {
     popup(mensagem('Aguarde... redirecionando...', 'imagens/concluido.png'), 'Processando...')
 
     await inserirDados({ [orcamentoBase.id]: orcamentoBase }, 'dados_orcamentos')
-    await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase)
 
     baseOrcamento(undefined, true)
     await telaOrcamentos(true)
 
     removerPopup()
+
+    enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase)
+
+    atualizarToolbar(true) // GCS no título
 }
 
 async function recuperarComposicoesOrcamento() {
@@ -579,6 +601,8 @@ function linhasComposicoesOrcamento(codigo, produto, qtdeOrcada, lpu) {
 
 async function totalOrcamento() {
 
+    atualizarToolbar()
+
     let orcamentoBase = baseOrcamento()
     let lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
     const carrefour = orcamentoBase.lpu_ativa == 'LPU CARREFOUR'
@@ -593,8 +617,8 @@ async function totalOrcamento() {
     if (!orcamentoBase.dados_composicoes) orcamentoBase.dados_composicoes = {}
 
     const bodyOrcamento = document.getElementById('bodyOrcamento')
-    if(!bodyOrcamento) return
-    
+    if (!bodyOrcamento) return
+
     const trs = bodyOrcamento.querySelectorAll('tr')
 
     let ordem = 1
@@ -609,7 +633,7 @@ async function totalOrcamento() {
 
         // Caso o item não exista, traga os dados dele no orçamento;
         if (!refProduto) refProduto = orcamentoBase.dados_composicoes[codigo]
-        
+
         if (!totais[refProduto.tipo]) totais[refProduto.tipo] = { valor: 0 }
 
         let valorUnitario = 0
@@ -619,11 +643,11 @@ async function totalOrcamento() {
         let itemSalvo = orcamentoBase.dados_composicoes[codigo]
         itemSalvo.codigo = codigo
 
-        // Ordem
+        // Ordem;
         itemSalvo.ordem = ordem
         ordem++
 
-        // ATUALIZAÇÃO DE INFORMAÇÕES DA COLUNA 4 EM DIANTE
+        // ATUALIZAÇÃO DE INFORMAÇÕES DA COLUNA 4 EM DIANTE;
         if (carrefour) {
             if (refProduto.substituto && refProduto.substituto !== '') {
                 codigo = refProduto.substituto == '' ? codigo : refProduto.substituto
@@ -658,7 +682,7 @@ async function totalOrcamento() {
         let tipoDesconto;
         let valorDesconto;
 
-        let divDesconto = tds[5].querySelector('div')
+        const divDesconto = tds[5].querySelector('div')
         tipoDesconto = divDesconto.querySelector('select')
         valorDesconto = divDesconto.querySelector('input')
 
@@ -671,7 +695,11 @@ async function totalOrcamento() {
 
         if (valorDesconto.value != '') {
 
-            if (tipoDesconto.value == 'Porcentagem') {
+            if (tipoDesconto.value == 'Comissão') {
+
+                desconto = Number(valorDesconto.value) * (-1)
+
+            } else if (tipoDesconto.value == 'Porcentagem') {
 
                 if (valorDesconto.value < 0) {
                     valorDesconto.value = 0
@@ -1021,16 +1049,7 @@ async function incluirItem(codigo, novaQuantidade) {
             </td>
             <td style="position: relative;"></td>
 
-            ${!carrefour ?
-            `<td>
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
-                    <select onchange="totalOrcamento()" class="desconto-cima">
-                        <option>Porcentagem</option>
-                        <option>Dinheiro</option>
-                    </select>
-                    <input type="number" oninput="totalOrcamento()" class="desconto-baixo" value="${produto?.desconto || ''}">
-                </div>
-            </td>` : ''}
+            ${!carrefour ? `<td></td>` : ''}
 
             <td></td>
             <td style="text-align: center;">
