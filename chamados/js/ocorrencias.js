@@ -250,21 +250,20 @@ function confirmarExclusao(idOcorrencia, idCorrecao) {
 async function excluirInformacao(idOcorrencia, idCorrecao) {
 
     overlayAguarde()
-    let ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+    let ocorrencia = dados_ocorrencias[idOcorrencia]
 
     if (idCorrecao) {
         delete ocorrencia.correcoes[idCorrecao]
-        await deletar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`)
+        deletar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`)
         await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
-        await criarLinhaOcorrencia(idOcorrencia, ocorrencia)
+        await telaOcorrencias()
         removerPopup()
         return
     }
 
-    await deletar(`dados_ocorrencias/${idOcorrencia}`)
+    deletar(`dados_ocorrencias/${idOcorrencia}`)
     await deletarDB('dados_ocorrencias', idOcorrencia)
-    const tr = document.getElementById(idOcorrencia)
-    if (tr) tr.remove()
+    await telaOcorrencias()
     removerPopup()
 
 }
@@ -348,7 +347,6 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
             ${modeloCampos('Última Correção', status)}
             ${modeloCampos('Data Registro', ocorrencia?.dataRegistro || '')}
             ${modeloCampos('Data Limite', dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao))}
-            ${modeloCampos('Executor', ocorrencia?.executor || '')}
             ${modeloCampos('Tipo', tipos?.[ocorrencia?.tipo]?.nome || '...')}
             ${modeloCampos('Unidade', dados_clientes?.[ocorrencia?.unidade]?.nome || '...')}
             ${modeloCampos('Sistema', sistemas?.[ocorrencia?.sistema]?.nome || '...')}
@@ -445,8 +443,9 @@ async function telaOcorrencias(abertos) {
 
     mostrarMenus(false)
 
+    await mostrarQuantidades()
+
     overlayAguarde()
-    dados_ocorrencias = await recuperarDados('dados_ocorrencias')
     empresas = await recuperarDados('empresas')
     sistemas = await recuperarDados('sistemas')
     tipos = await recuperarDados('tipos')
@@ -729,9 +728,7 @@ async function formularioOcorrencia(idOcorrencia) {
 
 async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
-    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
-    const correcoes = await recuperarDados('correcoes')
-    const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
+    const correcao = dados_ocorrencias?.[idOcorrencia].correcoes?.[idCorrecao] || {}
     const funcao = idCorrecao ? `salvarCorrecao('${idOcorrencia}', '${idCorrecao}')` : `salvarCorrecao('${idOcorrencia}')`
 
     let equipamentos = ''
@@ -740,7 +737,8 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
     const acumulado = `
         <div class="painel-cadastro">
 
-            ${modelo('Status da Correção', labelBotao('tipoCorrecao', 'correcoes', correcao?.tipoCorrecao, correcoes[correcao?.tipoCorrecao]?.nome))}        
+            ${modelo('Status da Correção', labelBotao('tipoCorrecao', 'correcoes', correcao?.tipoCorrecao, correcoes[correcao?.tipoCorrecao]?.nome))}
+            ${modelo('Executor', labelBotao('executor', 'dados_setores', correcao?.executor, correcao?.executor))}
             ${modelo('Descrição', `<textarea name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>`)}
 
             <div style="${horizontal}; gap: 5px;">
@@ -956,8 +954,6 @@ async function salvarOcorrencia(idOcorrencia) {
 
             try {
                 const resposta = await enviar('dados_ocorrencias/0000', ocorrencia)
-                console.log(resposta);
-                
                 await inserirDados({ [resposta.idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
                 await telaOcorrencias()
             } catch {

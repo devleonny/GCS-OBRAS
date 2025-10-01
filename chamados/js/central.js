@@ -595,6 +595,7 @@ function enviar(caminho, info, idEvento) {
             },
             body: JSON.stringify(objeto)
         })
+            .then(res => res.json())
             .then(data => {
                 if (data.mensagem) {
                     msgQuedaConexao()

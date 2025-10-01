@@ -2591,8 +2591,10 @@ async function salvarCliente() {
         if (el && el.value !== '') param[campo] = el.value;
     }
 
+    if (!param.nome_fantasia) return popup(mensagem('Escreva o nome do Cliente'), 'Alerta', true)
+
     param.nome_fantasia = param.nome_fantasia.toUpperCase()
-    param.pesquisar_cep = 'S'
+    if (param.cep) param.pesquisar_cep = 'S'
     param.razao_social = param.nome_fantasia
 
     try {

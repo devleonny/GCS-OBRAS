@@ -809,6 +809,7 @@ input[type="file"] {
 }
 
 .pill {
+    z-index: 222;
     display: inline-flex;
     gap: 6px;
     align-items: center;
@@ -827,7 +828,7 @@ input[type="file"] {
 
 .pill.alert-abertos {
     background: linear-gradient(90deg, #d7a6a6, #f50404);
-    animation: ping 1.6s infinite
+    animation: ping 1.6s infinite;
 }
 
 .pill.alert-solucionados {

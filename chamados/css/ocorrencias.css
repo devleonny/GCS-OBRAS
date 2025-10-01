@@ -319,7 +319,7 @@ screen and (min-aspect-ratio: 13/9) {
     }
 
     .tela-ocorrencias {
-        min-width: 100%;
+        min-width: 70vw;
     }
 
     .detalhes-correcoes-1 {
