@@ -43,13 +43,17 @@ async function recuperarPagamentos() {
 
     overlayAguarde()
 
-    await lista_setores()
-    await sincronizarDados('dados_categorias', true)
-    await sincronizarDados('lista_pagamentos', true)
-    await sincronizarDados('dados_clientes', true)
-    await sincronizarDados('dados_orcamentos', true)
-    await sincronizarDados('departamentos_fixos', true)
-    await sincronizarDados('dados_orcamentos', true)
+    const tabelas = [
+        'dados_categorias',
+        'lista_pagamentos',
+        'dados_setores',
+        'dados_cliente',
+        'departamentos_fixos',
+        'dados_orcamentos'
+    ]
+
+    for (const tabela of tabelas) await sincronizarDados(tabela)
+
     await criarBaseCC()
 
     await telaPagamentos()
