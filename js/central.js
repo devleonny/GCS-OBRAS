@@ -257,7 +257,6 @@ async function despoluicaoGCS() {
         'veiculos',
         'dados_composicoes',
         'dados_clientes',
-        'dados_estoque',
         'lista_pagamentos',
         'dados_manutencao',
         'dados_categorias',
@@ -341,8 +340,9 @@ async function identificacaoUser() {
 
     document.body.insertAdjacentHTML('beforeend', toolbar)
 
-    await sincronizarSetores()
-    acesso = await recuperarDado('dados_setores', acesso.usuario)
+    await sincronizarDados('dados_setores')
+    dados_setores = await recuperarDados('dados_setores')
+    acesso = dados_setores[acesso.usuario]
 
     if (acesso.permissao == 'novo') {
         localStorage.removeItem('acesso')
@@ -414,36 +414,12 @@ function usuariosToolbar() {
     if (divOnline) painelUsuarios()
 }
 
-async function sincronizarSetores() {
-
-    dados_setores = await recuperarDados('dados_setores')
-    let timestamps = []
-    for ([usuario, objeto] of Object.entries(dados_setores)) {
-        if (objeto.timestamp) {
-            timestamps.push(objeto.timestamp)
-        }
-    }
-
-    const maiorTimestamp = timestamps.length ? Math.max(...timestamps) : 0
-    let nuvem = await lista_setores(maiorTimestamp)
-
-    await inserirDados(nuvem, 'dados_setores')
-    dados_setores = await recuperarDados('dados_setores')
-
-}
-
 async function configs() {
 
     overlayAguarde()
 
-    await sincronizarSetores()
-
-    // Especial para ocorrências;
-    const title = document.title
-    document.title = 'Ocorrências'
-    await sincronizarDados('empresas')
-    document.title = title
-    // Fim
+    await sincronizarDados('dados_setores')
+    dados_setores = await recuperarDados('dados_setores')
 
     let linhas = ''
     const listas = {
@@ -519,6 +495,8 @@ async function configs() {
 }
 
 async function alterarUsuario({ campo, usuario, select, valor }) {
+
+    valor = select ? select.value : valor
 
     const alteracao = await configuracoes(usuario, campo, valor) // Se alterar no servidor, altera localmente;
 
@@ -1282,7 +1260,7 @@ async function receber(chave) {
     };
 
     return new Promise((resolve, reject) => {
-        fetch(`${api}/obter-dados`, obs)
+        fetch(`${api}/dados`, obs)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
@@ -1301,12 +1279,12 @@ async function receber(chave) {
     })
 }
 
-async function deletar(chave, idEvento) {
+async function deletar(caminho, idEvento) {
 
-    const url = `${api}/deletar-dados`;
+    const url = `${api}/deletar`;
 
     const objeto = {
-        chave,
+        caminho,
         usuario: acesso.usuario
     };
 
@@ -1337,7 +1315,7 @@ function removerOffline(operacao, idEvento) {
 
 async function enviar(caminho, info, idEvento) {
 
-    const url = `${api}/salvar-dados`
+    const url = `${api}/salvar`
     const objeto = {
         caminho,
         valor: info
@@ -1360,24 +1338,6 @@ async function enviar(caminho, info, idEvento) {
         salvarOffline(objeto, 'enviar', idEvento);
         return null;
     }
-}
-
-function ativarChaveOcorrencias(dados) {
-    return new Promise((resolve) => {
-        fetch(`${api}/chavesOcorrencias`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(dados)
-        })
-            .then(data => resolve(data))
-            .catch((erro) => {
-                console.error(erro);
-                salvarOffline(objeto, 'enviar');
-                resolve();
-            });
-    });
 }
 
 function salvarOffline(objeto, operacao, idEvento) {
@@ -1981,49 +1941,6 @@ async function configuracoes(usuario, campo, valor) {
     })
 }
 
-async function servicos(servico, alteracao) {
-    return new Promise((resolve, reject) => {
-        fetch(`${api}/servicos`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ servico, alteracao })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                resolve(data);
-            })
-            .catch(err => {
-                console.error(err)
-                reject()
-            });
-    })
-}
-
-async function lista_setores(timestamp) {
-    try {
-        const response = await fetch(`${api}/setores`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ timestamp })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        return data;
-
-    } catch {
-        return {}
-    }
-}
-
 function registrarAlteracao(base, id, comentario) {
     let novoRegistro = {
         usuario: acesso.usuario,
@@ -2476,12 +2393,12 @@ async function proxORC({ chamado, idOrcamento, sequencial }) {
             body: JSON.stringify({ chamado, idOrcamento, sequencial })
         }
 
-        const resposta = await fetch(`${api}/chamado`, opcoes)
+        const resposta = await fetch(`${api}/proxORC`, opcoes)
 
-        if (!resposta.ok) return { err: `Falha na busca do PDF no Omie` };
+        if (!resposta.ok) return { err: `Falha no processo...` };
 
         const texto = await resposta.text();
-        if (!texto) return { err: `Falha na busca do PDF no Omie` };
+        if (!texto) return { err: `Falha no processo...` };
 
         try {
             return JSON.parse(texto);

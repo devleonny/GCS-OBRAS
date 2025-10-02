@@ -1765,13 +1765,7 @@ async function alterar_status(select, id) {
         enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus`, orcamento.status.historicoStatus);
     }
 
-    if (tela_orcamentos) {
-        filtrarOrcamentos(undefined, undefined, undefined, true);
-        select.parentElement.parentElement.style.display = 'none';
-    } else {
-        await telaOrcamentos();
-    }
-
+    filtrarOrcamentos({ ultimoStatus: filtro })
 }
 
 async function mostrarHistoricoStatus() {

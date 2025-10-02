@@ -439,11 +439,6 @@ async function sincronizarDados(base, overlayOff) {
 async function atualizarDados(base) {
 
     overlayAguarde()
-    if (base == 'dados_setores') {
-        await sincronizarSetores()
-    } else {
-        await sincronizarDados(base)
-    }
 
     // Mecânica para atualização/inclusão de linhas;
     const dados = await recuperarDados(base)
@@ -633,7 +628,7 @@ async function receber(chave) {
         if (objeto.timestamp && objeto.timestamp > timestamp) timestamp = objeto.timestamp
     }
 
-    const rota = chavePartes[0] == 'dados_clientes' ? 'clientes-validos' : 'obter-dados'
+    const rota = chavePartes[0] == 'dados_clientes' ? 'clientes-validos' : 'dados'
     const obs = {
         method: "POST",
         headers: {
@@ -645,15 +640,10 @@ async function receber(chave) {
         })
     };
 
-    console.log(chave, timestamp);
-    
-
     return new Promise((resolve, reject) => {
         fetch(`${api}/${rota}`, obs)
             .then(response => {
 
-                console.log(response, chave);
-                
                 if (!response.ok) {
                     throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
                 }
@@ -743,58 +733,6 @@ async function configuracoes(usuario, campo, valor) {
                 reject()
             });
     })
-}
-
-async function sincronizarSetores(overflow) {
-
-    if (!overflow) overlayAguarde()
-
-    dados_setores = await recuperarDados('dados_setores')
-
-    let timestamp = 0
-    for (const [usuario, objeto] of Object.entries(dados_setores)) {
-
-        if (objeto.permissao == 'desativado') {
-            timestamp = 0
-            break
-        }
-
-        if (objeto.timestamp && objeto.timestamp > timestamp) timestamp = objeto.timestamp
-    }
-
-    let nuvem = await listaSetores(timestamp)
-
-    if (nuvem[acesso.usuario]) {
-        await inserirDados({}, 'dados_ocorrencias')
-        acesso = nuvem[acesso.usuario]
-        localStorage.setItem('acesso', JSON.stringify(nuvem[acesso.usuario]))
-    }
-
-    await inserirDados(nuvem, 'dados_setores', timestamp == 0)
-    dados_setores = await recuperarDados('dados_setores')
-
-    removerOverlay()
-
-}
-
-async function listaSetores(timestamp) {
-    try {
-        const response = await fetch(`${api}/setores`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ timestamp })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        return data;
-
-    } catch {
-        return {}
-    }
 }
 
 function pesquisar(input, idTbody) {

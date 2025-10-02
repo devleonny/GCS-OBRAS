@@ -551,15 +551,12 @@ async function atualizarOcorrencias() {
         let status = { total: 9, atual: 1 }
 
         sincronizarApp(status)
-        await sincronizarSetores(true)
-        status.atual++
-
-        sincronizarApp(status)
         const nuvem = await baixarOcorrencias()
         await inserirDados(nuvem, 'dados_ocorrencias')
         status.atual++
 
         const basesAuxiliares = [
+            'dados_setores',
             'empresas',
             'dados_composicoes',
             'dados_clientes',
