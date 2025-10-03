@@ -13,11 +13,11 @@ async function confirmarExclusaoAluguel() {
 
     removerPopup()
     baseOrcamento(undefined, true)
-    await criarOrcamentoAluguel()
+    await telaCriarOrcamentoAluguel()
 
 }
 
-async function criarOrcamentoAluguel() {
+async function telaCriarOrcamentoAluguel() {
 
     modo = 'ALUGUEL'
 
@@ -67,7 +67,9 @@ async function criarOrcamentoAluguel() {
 
     </div>
     `
-    tela.innerHTML = acumulado
+    const orcamentoPadrao = document.getElementById('orcamento_padrao')
+    if(!orcamentoPadrao) tela.innerHTML = acumulado
+    
     criarMenus('criarOrcamentosAluguel')
     await carregarTabelasAluguel()
     await tabelaProdutosAluguel()

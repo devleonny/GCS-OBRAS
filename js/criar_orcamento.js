@@ -61,10 +61,10 @@ function apagarOrcamento() {
 async function confirmarExclusaoOrcamento() {
     removerPopup()
     baseOrcamento(undefined, true)
-    await criarOrcamento()
+    await telaCriarOrcamento()
 }
 
-async function criarOrcamento() {
+async function telaCriarOrcamento() {
 
     modo = ''
     const acumulado = `
@@ -114,7 +114,10 @@ async function criarOrcamento() {
     `
 
     dados_clientes = await recuperarDados('dados_clientes') || {}
-    tela.innerHTML = acumulado
+
+    const orcamentoPadrao = document.getElementById('orcamento_padrao')
+    if(!orcamentoPadrao) tela.innerHTML = acumulado
+    
     criarMenus('criarOrcamentos')
     await atualizarPrecos()
 }

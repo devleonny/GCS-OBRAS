@@ -110,19 +110,21 @@ function criarAtalhoMenu({ nome, img, funcao }) {
 }
 
 async function executar(nomeFuncao) {
+    // É a função que carrega a tela atual;
+    if (nomeFuncao.includes('tela')) funcaoTela = nomeFuncao;
 
-    // É a função que carega a tela atual;
-    if (nomeFuncao.includes('tela') || nomeFuncao.includes('criar')) {
-        funcaoTela = nomeFuncao
+    funcaoAtiva = nomeFuncao;
+
+    if (typeof window[nomeFuncao] === "function") {
+        return await window[nomeFuncao]();
+    } else {
+        popup(mensagem(`<b>Função não encontrada:</b> ${nomeFuncao}`), 'Alerta', true)
     }
-
-    funcaoAtiva = nomeFuncao
-    window[nomeFuncao]()
 }
 
 function criarMenus(chave) {
     telaAtiva = chave
-    const chaves = ['orcamentos', 'composicoes', 'criarOrcamentos', 'criarOrcamentosAluguel']
+    const chaves = ['orcamentos', 'composicoes', 'telaCriarOrcamentos', 'telaCriarOrcamentosAluguel']
     interruptorCliente(chaves.includes(chave))
 
     const atalhos = esquemaBotoes[chave]
@@ -170,8 +172,8 @@ const esquemaBotoes = {
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Atualizar', funcao: 'atualizarOrcamentos', img: 'atualizar3' },
         { nome: 'Baixar em Excel', funcao: 'excelOrcamentos', img: 'excel' },
-        { nome: 'Criar Orçamento', funcao: 'criarOrcamento', img: 'projeto' },
-        { nome: 'Orçamento de Aluguel', funcao: 'criarOrcamentoAluguel', img: 'projeto' },
+        { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'projeto' },
+        { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' },
         { nome: 'Orçamentos Aquivados', funcao: 'filtrarArquivados', img: 'desarquivar' },
         { nome: 'Meus Orçamentos', funcao: 'filtrarMeus', img: 'painelcustos' },
     ],
@@ -1092,11 +1094,11 @@ async function continuar() {
     if (telaAtiva == 'composicoes') {
         await telaComposicoes()
 
-    } else if (telaAtiva == 'criarOrcamentos') {
+    } else if (telaAtiva == 'telaCriarOrcamentos') {
         await tabelaProdutosOrcamentos()
         await totalOrcamento()
 
-    } else if (telaAtiva == 'criarOrcamentoAluguel') {
+    } else if (telaAtiva == 'telaCriarOrcamentoAluguel') {
         await criarOrcamentoAluguel()
 
     }
@@ -1326,12 +1328,8 @@ function removerOffline(operacao, idEvento) {
 }
 
 async function enviar(caminho, info, idEvento) {
-
     const url = `${api}/salvar`
-    const objeto = {
-        caminho,
-        valor: info
-    };
+    const objeto = { caminho, valor: info };
 
     try {
         const response = await fetch(url, {
@@ -1340,13 +1338,28 @@ async function enviar(caminho, info, idEvento) {
             body: JSON.stringify(objeto)
         });
 
-        const data = await response.json();
+        let data;
+        try {
+            data = await response.json();
+        } catch (parseError) {
+            // Erro ao tentar interpretar como JSON;
+            console.error("Resposta não é JSON válido:", parseError);
+            salvarOffline(objeto, 'enviar', idEvento);
+            return null;
+        }
 
-        if (idEvento) removerOffline('enviar', idEvento)
+        if (!response.ok) {
+            // Se a API respondeu erro (ex: 400, 500);
+            console.error("Erro HTTP:", response.status, data);
+            salvarOffline(objeto, 'enviar', idEvento);
+            return null;
+        }
+
+        if (idEvento) removerOffline('enviar', idEvento);
 
         return data;
     } catch (erro) {
-        console.error(erro);
+        console.error("Erro na requisição:", erro);
         salvarOffline(objeto, 'enviar', idEvento);
         return null;
     }
@@ -1379,10 +1392,10 @@ function connectWebSocket() {
 
         if (data.tipo == 'exclusao') {
             await deletarDB(data.tabela, data.id)
-            //await refletir()
+            await refletir()
         } else if (data.tipo == 'atualizacao') { //29
             await inserirDados({ [data.id]: data.dados }, data.tabela)
-            //await refletir()
+            await refletir()
         }
 
         if (data.tipo == 'usuarios_online') {
@@ -1400,11 +1413,7 @@ function connectWebSocket() {
 
     async function refletir() {
         semOverlay = true
-        if (funcaoTela == 'criarOrcamento') { // Ainda não resolve bem...
-            await totalOrcamento()
-        } else {
-            executar(funcaoTela)
-        }
+        await executar(funcaoTela)
         semOverlay = false
     }
 

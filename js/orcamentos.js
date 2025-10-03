@@ -124,6 +124,8 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
 
 async function telaOrcamentos(semOverlay) {
 
+    funcaoTela = 'telaOrcamentos'
+
     if (!semOverlay) overlayAguarde()
     verificarFluxograma()
 
@@ -486,8 +488,8 @@ async function editar(orcam_) {
     removerPopup()
 
     orcamentoBase.lpu_ativa == 'ALUGUEL'
-        ? await criarOrcamentoAluguel()
-        : await criarOrcamento()
+        ? await telaCriarOrcamentoAluguel()
+        : await telaCriarOrcamento()
 
 }
 
