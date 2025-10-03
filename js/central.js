@@ -1393,7 +1393,7 @@ function connectWebSocket() {
         if (data.tipo == 'exclusao') {
             await deletarDB(data.tabela, data.id)
             await refletir()
-        } else if (data.tipo == 'atualizacao') { //29
+        } else if (data.tipo == 'atualizacao') { 
             await inserirDados({ [data.id]: data.dados }, data.tabela)
             await refletir()
         }
