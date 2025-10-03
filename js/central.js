@@ -47,9 +47,6 @@ const mensagem = (mensagem, img) => `
     </div>
     `
 const balaoPDF = (nf, info, codOmie, tipo, app) => {
-
-    const bg = document.title == 'ORÇAMENTOS' ? 'white' : '#e8e8e8'
-
     return `
     <div class="balaoNF" onclick="abrirDANFE('${codOmie}', '${tipo}', '${app}')">
         <div class="balao1">
@@ -60,7 +57,8 @@ const balaoPDF = (nf, info, codOmie, tipo, app) => {
             PDF
         </div>
     </div>
-`}
+    `
+}
 
 const modeloBotoes = (imagem, nome, funcao) => {
     return `

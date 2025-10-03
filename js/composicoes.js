@@ -289,7 +289,8 @@ async function alterarChave(codigo, chave, select) {
 
     await inserirDados(dados_composicoes, 'dados_composicoes')
 
-    if (document.title == 'Criar Orçamento') await carregarTabelas()
+    await continuar()
+
 }
 
 async function abrir_agrupamentos(codigo) {
