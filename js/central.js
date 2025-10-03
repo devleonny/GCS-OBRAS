@@ -1379,10 +1379,10 @@ function connectWebSocket() {
 
         if (data.tipo == 'exclusao') {
             await deletarDB(data.tabela, data.id)
-            await refletir()
+            //await refletir()
         } else if (data.tipo == 'atualizacao') { //29
             await inserirDados({ [data.id]: data.dados }, data.tabela)
-            await refletir()
+            //await refletir()
         }
 
         if (data.tipo == 'usuarios_online') {
