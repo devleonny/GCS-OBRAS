@@ -122,7 +122,7 @@ function atualizarToolbar(remover) {
 
     titulo = document.querySelector('[name="titulo"]')
 
-    if(remover) return titulo.textContent = 'GCS'
+    if (remover) return titulo.textContent = 'GCS'
 
     const orcamentoBase = baseOrcamento()
     const edicao = orcamentoBase?.dados_orcam?.contrato == 'sequencial' || (orcamentoBase && orcamentoBase?.dados_orcam?.contrato)
@@ -790,7 +790,32 @@ async function totalOrcamento() {
                 `
         }
 
-        tds[1].textContent = refProduto.descricao
+        let detalhesVendaDireta = ''
+        if (tipoDesconto.value == 'Venda Direta') {
+            detalhesVendaDireta = `
+                <div style="${horizontal}; gap: 2px; margin-top: 5px;">
+                    <div style="${vertical};">
+                        <span><b>Razão Social</b></span>
+                        <textarea name="razaoSocial" oninput="salvarDetalhes(this)">${itemSalvo?.razaoSocial || ''}</textarea>
+                    </div>
+                    <div style="${vertical};">
+                        <span><b>CNPJ</b></span>
+                        <textarea name="cnpj" oninput="salvarDetalhes(this)">${itemSalvo?.cnpj || ''}</textarea>
+                    </div>
+                </div>
+            `
+        } else {
+            delete itemSalvo.cnpj
+            delete itemSalvo.razaoSocial
+        }
+
+        tds[1].innerHTML = `
+            <div style="${vertical};">
+                <span>${refProduto.descricao}</span>
+                ${detalhesVendaDireta}
+            </div>
+        `
+
         tds[2].textContent = refProduto?.unidade || 'UN'
         tds[4].innerHTML = labelValores(valorUnitario, valorLiqSemICMS, icmsSaida, true)
         tds[6].innerHTML = labelValores(totalLinha, valorTotSemICMS, icmsSaida)
@@ -899,6 +924,20 @@ async function totalOrcamento() {
 
         popup(mensagem(avisos[avisoDesconto]), 'Alerta')
     }
+
+}
+
+function salvarDetalhes(textarea) {
+
+    const tr = textarea.closest('tr')
+    const codigo = tr.dataset.codigo
+    const name = textarea.getAttribute("name")
+
+    let orcamento = baseOrcamento()
+
+    orcamento.dados_composicoes[codigo][name] = textarea.value
+
+    baseOrcamento(orcamento)
 
 }
 

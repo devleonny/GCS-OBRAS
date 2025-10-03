@@ -200,7 +200,13 @@ async function preencher() {
         tds[2] = `
         <td>
             <div style="${vertical}">
-                ${item.tipo_desconto && item.tipo_desconto == 'Venda Direta' ? `<label><strong>Venda Direta</strong></label>` : ''}
+                ${item.tipo_desconto && item.tipo_desconto == 'Venda Direta' ? `
+                    <div style="${vertical}; gap: 2px; text-align: left;">
+                        <label><b>Venda Direta</b></label>
+                        <label><b>Razão Social</b> ${item?.razaoSocial || '--'}</label>
+                        <label><b>CNPJ</b> ${item?.cnpj || '--'}</label>
+                    </div>
+                    ` : ''}
                 <label>${item?.descricao || 'N/A'}</label>
                 ${ncm ? `<label><strong>ncm:</strong> ${ncm}</label>`: ''}
             </div>
