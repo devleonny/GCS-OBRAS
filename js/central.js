@@ -90,6 +90,7 @@ const esquemas = {
 }
 
 function mostrarMenus(operacao) {
+    if (document.title !== 'GCS') return
     const menu = document.querySelector('.side-menu').classList
     if (operacao == 'toggle') return menu.toggle('active')
     operacao ? menu.add('active') : menu.remove('active')
@@ -329,6 +330,8 @@ function retornar() {
 }
 
 async function identificacaoUser() {
+
+    if (document.title !== 'GCS') return
 
     acesso = JSON.parse(localStorage.getItem('acesso'))
 

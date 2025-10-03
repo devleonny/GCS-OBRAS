@@ -34,15 +34,15 @@ function excel() {
     ir_excel(orcam_)
 }
 
-function blocoHtml(titulo, dados) {
+function blocoHtml(titulo, dados = {}) {
 
     let linhas = ''
 
-    for (item in dados) {
-        if (dados[item] && dados[item] !== '') {
-            linhas += `
-            <label style="margin: 5px;"><strong>${item}</strong> <br>${dados[item].replace(/\n/g, '<br>')}</label>`
-        }
+    for ( const [chave, dado] of Object.entries(dados)) {
+        if (dado == '') continue
+
+        linhas += `<label style="margin: 5px;"><strong>${chave}</strong> <br>${String(dado).replace(/\n/g, '<br>')}</label>`
+
     }
 
     const acumulado = `
