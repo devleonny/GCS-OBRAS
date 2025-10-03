@@ -4,6 +4,7 @@ const menus = document.querySelector('.side-menu')
 let origem = 'novos'
 let telaAtiva = null
 let funcaoAtiva = null
+let funcaoTela = null
 let acesso = null
 let dados_setores = {}
 let filtrosUsuarios = {}
@@ -12,6 +13,7 @@ const paginasBloqueadas = ['PDF', 'OS']
 const horizontal = `display: flex; align-items: center; justify-content: center;`
 const vertical = `display: flex; align-items: start; justify-content: start; flex-direction: column;`
 let overlayTimeout;
+let semOverlay = false
 
 const modelo = (valor1, valor2) => `
         <div class="modelo">
@@ -108,7 +110,13 @@ function criarAtalhoMenu({ nome, img, funcao }) {
     return atalho
 }
 
-function executar(nomeFuncao) {
+async function executar(nomeFuncao) {
+
+    // É a função que carega a tela atual;
+    if (nomeFuncao.includes('tela') || nomeFuncao.includes('criar')) {
+        funcaoTela = nomeFuncao
+    }
+
     funcaoAtiva = nomeFuncao
     window[nomeFuncao]()
 }
@@ -578,6 +586,9 @@ function removerOverlay() {
 }
 
 function overlayAguarde() {
+
+    if (semOverlay) return
+
     mostrarMenus(false);
 
     let aguarde = document.getElementById('aguarde');
@@ -596,7 +607,7 @@ function overlayAguarde() {
                 width: 100%;
                 z-index: 10005;">
             <div class="div-mensagem">
-                <img src="gifs/loading.gif" style="width: 4vw;">
+                <img src="gifs/loading.gif" style="width: 4rem;">
                 <label>Por favor, aguarde...</label>
             </div>
     </div>
@@ -1362,8 +1373,16 @@ function connectWebSocket() {
         console.log(`🟢🟢🟢 WS ${obterDatas('completa')} 🟢🟢🟢`);
     };
 
-    socket.onmessage = (event) => {
-        let data = JSON.parse(event.data);
+    socket.onmessage = async (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.tipo == 'exclusao') {
+            await deletarDB(data.tabela, data.id)
+            await refletir()
+        } else if (data.tipo == 'atualizacao') { //29
+            await inserirDados({ [data.id]: data.dados }, data.tabela)
+            await refletir()
+        }
 
         if (data.tipo == 'usuarios_online') {
             localStorage.setItem('usuariosOnline', JSON.stringify(data.usuarios))
@@ -1377,6 +1396,16 @@ function connectWebSocket() {
         console.log(`Tentando reconectar em ${reconnectInterval / 1000} segundos...`);
         setTimeout(connectWebSocket, reconnectInterval);
     };
+
+    async function refletir() {
+        semOverlay = true
+        if (funcaoTela == 'criarOrcamento') { // Ainda não resolve bem...
+            await totalOrcamento()
+        } else {
+            executar(funcaoTela)
+        }
+        semOverlay = false
+    }
 
 }
 
