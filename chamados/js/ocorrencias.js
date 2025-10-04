@@ -382,7 +382,8 @@ async function abrirCorrecoes(idOcorrencia) {
         return popup(mensagem('Ainda sem correções'), 'Alerta')
     }
 
-    popup(acumulado, 'Correções', true)
+    const detalhamento = document.querySelector('.detalhamento-correcoes')
+    if (!detalhamento) popup(acumulado, 'Correções', true)
 
     for (const [idCorrecao, correcao] of Object.entries(ocorrencia?.correcoes || {})) {
         await carregarLinhaCorrecao(idCorrecao, correcao, idOcorrencia)
@@ -540,46 +541,46 @@ async function atualizarOcorrencias() {
 
     await mostrarQuantidades()
 
-    new Promise(async (resolve, reject) => {
+    if (emAtualizacao) return
 
-        if (emAtualizacao) return
+    emAtualizacao = true
 
-        emAtualizacao = true
+    mostrarMenus(true)
+    sincronizarApp()
+    let status = { total: 9, atual: 1 }
 
-        mostrarMenus(true)
-        sincronizarApp()
-        let status = { total: 9, atual: 1 }
+    sincronizarApp(status)
+    const nuvem = await baixarOcorrencias()
+    if (nuvem.dados && nuvem.resetar) {
+        const base = 'dados_ocorrencias'
+        if (nuvem.resetar == 1) await inserirDados({}, base, true)
+        await inserirDados(nuvem.dados, base)
+    }
+    status.atual++
 
+    const basesAuxiliares = [
+        'dados_setores',
+        'empresas',
+        'dados_composicoes',
+        'dados_clientes',
+        'sistemas',
+        'prioridades',
+        'correcoes',
+        'tipos'
+    ];
+
+    for (const base of basesAuxiliares) {
         sincronizarApp(status)
-        const nuvem = await baixarOcorrencias()
-        await inserirDados(nuvem, 'dados_ocorrencias')
+        await sincronizarDados(base, true)
         status.atual++
+    }
 
-        const basesAuxiliares = [
-            'dados_setores',
-            'empresas',
-            'dados_composicoes',
-            'dados_clientes',
-            'sistemas',
-            'prioridades',
-            'correcoes',
-            'tipos'
-        ];
+    sincronizarApp({ remover: true })
 
-        for (const base of basesAuxiliares) {
-            sincronizarApp(status)
-            await sincronizarDados(base, true)
-            status.atual++
-        }
+    emAtualizacao = false
 
-        sincronizarApp({ remover: true })
-
-        emAtualizacao = false
-
-        dados_ocorrencias = await recuperarDados('dados_ocorrencias')
-        await mostrarQuantidades()
-        resolve()
-    })
+    dados_ocorrencias = await recuperarDados('dados_ocorrencias')
+    await mostrarQuantidades()
 
 }
 
@@ -611,16 +612,16 @@ function sincronizarApp({ atual, total, remover } = {}) {
     } else {
 
         const carregamentoHTML = `
-        <div class="circular-loader">
-            <svg>
-                <circle class="bg" cx="60" cy="60" r="50"></circle>
-                <circle class="progress" cx="60" cy="60" r="50"></circle>
-            </svg>
-            <div class="percentage">0%</div>
-        </div>
+            <div class="circular-loader">
+                <svg>
+                    <circle class="bg" cx="60" cy="60" r="50"></circle>
+                    <circle class="progress" cx="60" cy="60" r="50"></circle>
+                </svg>
+                <div class="percentage">0%</div>
+            </div>
         `
-        const botoesMenu = document.querySelector('.botoesMenu')
-        botoesMenu.insertAdjacentHTML('afterbegin', carregamentoHTML)
+        const progresso = document.querySelector('.progresso')
+        progresso.innerHTML = carregamentoHTML
 
         progressCircle = document.querySelector('.circular-loader .progress');
         percentageText = document.querySelector('.circular-loader .percentage');
@@ -725,7 +726,8 @@ async function formularioOcorrencia(idOcorrencia) {
 
 async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
-    const correcao = dados_ocorrencias?.[idOcorrencia].correcoes?.[idCorrecao] || {}
+    const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
+    const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
     const funcao = idCorrecao ? `salvarCorrecao('${idOcorrencia}', '${idCorrecao}')` : `salvarCorrecao('${idOcorrencia}')`
 
     let equipamentos = ''
@@ -735,7 +737,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
         <div class="painel-cadastro">
 
             ${modelo('Status da Correção', labelBotao('tipoCorrecao', 'correcoes', correcao?.tipoCorrecao, correcoes[correcao?.tipoCorrecao]?.nome))}
-            ${modelo('Executor', labelBotao('executor', 'dados_setores', correcao?.executor, correcao?.executor))}
+            ${modelo('Executor', labelBotao('executor', 'dados_setores', correcao?.executor || acesso.usuario, correcao?.executor || acesso.usuario))}
             ${modelo('Descrição', `<textarea name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>`)}
 
             <div style="${horizontal}; gap: 5px;">
@@ -830,9 +832,8 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
     const tipoCorrecao = obter('tipoCorrecao').id
 
     Object.assign(correcao, {
-        executor: acesso.usuario,
+        executor: obter('executor').id,
         tipoCorrecao,
-        usuario: acesso.usuario,
         descricao: obter('descricao').value
     })
 
@@ -840,14 +841,16 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
         return coletarAssinatura(idOcorrencia)
     }
 
-    const local = await capturarLocalizacao()
-    if (isAndroid && !local) return popup(mensagem(`É necessário autorizar o uso do GPS`), 'Alerta', true)
+    if (isAndroid) {
+        const local = await capturarLocalizacao()
+        if (!local) return popup(mensagem(`É necessário autorizar o uso do GPS`), 'Alerta', true)
 
-    if (!correcao.datas) correcao.datas = {}
-    const data = new Date().getTime()
-    correcao.datas[data] = {
-        latitude: local.latitude,
-        longitude: local.longitude
+        if (!correcao.datas) correcao.datas = {}
+        const data = new Date().getTime()
+        correcao.datas[data] = {
+            latitude: local.latitude,
+            longitude: local.longitude
+        }
     }
 
     correcao.anexos = {
@@ -893,6 +896,8 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
 
     anexosProvisorios = {}
     removerPopup()
+
+    await abrirCorrecoes(idOcorrencia)
 
 }
 

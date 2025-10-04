@@ -10,6 +10,40 @@ const api = `https://api.gcs.app.br`
 let progressCircle = null
 let percentageText = null
 
+document.addEventListener('keydown', function (event) {
+    if (event.key === 'F8') despoluicaoGCS()
+    if (event.key === 'F5') location.reload()
+})
+
+async function despoluicaoGCS() {
+
+    mostrarMenus(true)
+
+    sincronizarApp()
+    let total = 8
+    let atual = 1
+    const bases = [
+        'dados_clientes',
+        'prioridades',
+        'tipos',
+        'correcoes',
+        'sistemas',
+        'empresas',
+        'dados_setores'
+    ]
+
+    for (const base of bases) {
+        await sincronizarDados(base, true, true)
+        sincronizarApp({ atual, total })
+        atual++
+    }
+
+    sincronizarApp({ remover: true })
+
+    mostrarQuantidades()
+
+}
+
 function esquemaLinhas(base, id) {
 
     const esquema = {
@@ -315,9 +349,29 @@ function irGCS() {
     window.location.href = '../index.html'
 }
 
-async function telaPrincipal() {
-    acesso = JSON.parse(localStorage.getItem('acesso'));
+async function telaPrincipal(reset) {
+
     toolbar.style.display = 'flex';
+
+    const acumulado = `
+        <div class="menu-container">
+            <div class="side-menu" id="sideMenu">
+                <div class="progresso"></div>
+                <div class="botoesMenu"></div>
+            </div>
+            <div class="telaInterna">
+                <div class="planoFundo">
+                    <img src="imagens/BG.png">
+                </div>
+            </div>
+        </div>
+    `
+
+    tela.innerHTML = acumulado;
+    await atualizarOcorrencias(reset)
+
+    // Após atualização;
+    acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
 
     let menus = {
         'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
@@ -339,28 +393,18 @@ async function telaPrincipal() {
         .map(([nome, dados]) => btn({ ...dados, nome }))
         .join('');
 
-    const acumulado = `
-        <div class="menu-container">
-            <div class="side-menu" id="sideMenu">
-                <div class="botoesMenu">
-                    <div class="nomeUsuario">
-                        <span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>
-                    </div>
-                    ${stringMenus}
-                </div>
-            </div>
-            <div class="telaInterna">
-                <div class="planoFundo">
-                    <img src="imagens/BG.png">
-                </div>
-            </div>
+    const botoes = `
+        <div class="nomeUsuario">
+            <span><strong>${inicialMaiuscula(acesso.permissao)}</strong> ${acesso.usuario}</span>
         </div>
-    `;
+        ${stringMenus}
+    `
+    document.querySelector('.botoesMenu').innerHTML = botoes
 
-    tela.innerHTML = acumulado;
-
-    await atualizarOcorrencias()
     if (acesso?.empresa == '') popup(mensagem('<b>Usuário sem empresa vinculada:</b> O relatório sairá sem dados.'), 'Sem empresa vinculada', true)
+
+    mostrarQuantidades() // De novo, porque os elementos são incluídos após o mostrarQuantidades do atualizar;
+
 }
 
 async function telaUsuarios() {
@@ -426,11 +470,12 @@ function verificarClique(event) {
     if (menu && menu.classList.contains('active') && !menu.contains(event.target)) menu.classList.remove('active')
 }
 
-async function sincronizarDados(base, overlayOff) {
+async function sincronizarDados(base, overlayOff, reset) {
 
     if (!overlayOff) overlayAguarde()
 
-    let nuvem = await receber(base) || {}
+    if(reset) await inserirDados({}, true, true)
+    const nuvem = await receber(base) || {}
     await inserirDados(nuvem, base)
 
     if (!overlayOff) removerOverlay()
@@ -517,7 +562,7 @@ async function gerenciarUsuario(id) {
         .map(op => `<option ${usuario?.setor == op ? 'selected' : ''}>${op}</option>`).join('')
 
     const acumulado = `
-        <div style="${vertical}; gap: 5px; padding: 2vw; background-color: #d2d2d2;">
+        <div style="${vertical}; gap: 5px; padding: 5vw; background-color: #d2d2d2;">
             ${modelo('Nome', usuario?.nome_completo || '--')}
             ${modelo('E-mail', usuario?.email || '--')}
             ${modelo('Permissão', `<select onchange="configuracoes('${id}', 'permissao', this.value)">${permissoes}</select>`)}
@@ -566,6 +611,12 @@ async function reprocessarOffline() {
     }
 }
 
+function removerOffline(operacao, idEvento) {
+    let dados_offline = JSON.parse(localStorage.getItem('dados_offline'))
+    delete dados_offline?.[operacao]?.[idEvento]
+    localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
+}
+
 function salvarOffline(objeto, operacao, idEvento) {
     let dados_offline = JSON.parse(localStorage.getItem('dados_offline')) || {}
     idEvento = idEvento || ID5digitos()
@@ -583,7 +634,7 @@ function enviar(caminho, info, idEvento) {
             valor: info
         };
 
-        fetch(`${api}/salvar-dados`, {
+        fetch(`${api}/salvar`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -618,14 +669,16 @@ function msgQuedaConexao() {
     popup(acumulado, 'Alerta', true)
 }
 
-async function receber(chave) {
+async function receber(chave, reset = false) {
 
     const chavePartes = chave.split('/')
     const dados = await recuperarDados(chavePartes[0]) || {}
     let timestamp = 0
 
-    for (const [id, objeto] of Object.entries(dados)) {
-        if (objeto.timestamp && objeto.timestamp > timestamp) timestamp = objeto.timestamp
+    if (!reset) {
+        for (const [, objeto] of Object.entries(dados)) {
+            if (objeto.timestamp && objeto.timestamp > timestamp) timestamp = objeto.timestamp
+        }
     }
 
     const rota = chavePartes[0] == 'dados_clientes' ? 'clientes-validos' : 'dados'
@@ -667,31 +720,39 @@ async function receber(chave) {
     })
 }
 
-async function deletar(chave, idEvento) {
-    const url = `${api}/deletar-dados`;
-    const objeto = {
-        chave,
-        usuario: acesso.usuario
-    }
+async function deletar(caminho, idEvento) {
+    const url = `${api}/deletar`
 
-    return new Promise((resolve) => {
-        fetch(url, {
+    try {
+        const response = await fetch(url, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(objeto)
-        })
-            .then(response => response.json())
-            .then(data => {
-                resolve(data);
-            })
-            .catch((err) => {
-                salvarOffline(objeto, 'deletar', idEvento);
-                popup(mensagem(err), 'Aviso', true)
-                resolve();
-            });
-    });
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ caminho, usuario: acesso.usuario })
+        });
+
+        let data;
+        try {
+            data = await response.json();
+        } catch (parseError) {
+            console.error("Resposta não é JSON válido:", parseError);
+            salvarOffline(objeto, 'deletar', idEvento);
+            return null;
+        }
+
+        if (!response.ok) {
+            console.error("Erro HTTP:", response.status, data);
+            salvarOffline(objeto, 'deletar', idEvento);
+            return null;
+        }
+
+        if (idEvento) removerOffline('deletar', idEvento);
+
+        return data;
+    } catch (erro) {
+        console.error("Erro na requisição:", erro);
+        salvarOffline(objeto, 'deletar', idEvento);
+        return null;
+    }
 }
 
 async function configuracoes(usuario, campo, valor) {
@@ -848,7 +909,7 @@ function criarAnexoVisual({ nome, link, funcao }) {
 }
 
 function abrirArquivo(link, nome) {
-    link = `${api}/uploads/GCS/${link}`;
+    link = `${api}/uploads/${link}`;
     const imagens = ['png', 'jpg', 'jpeg'];
 
     const extensao = nome.split('.').pop().toLowerCase(); // pega sem o ponto

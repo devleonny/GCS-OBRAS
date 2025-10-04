@@ -256,7 +256,6 @@ async function despoluicaoGCS() {
     let logs = document.getElementById('logs')
 
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
-    indexedDB.deleteDatabase(nomeBaseCentral)
 
     const bases = [
         'departamentos_fixos',
@@ -297,7 +296,7 @@ async function f2() {
 
             ${botao('Sincronizar Pagamentos com o Omie', `respostaSincronizacao('pagamentos')`)}
 
-            ${botao('Sincronizar Departamentos com o Omie', `respostaSincronizacao('departamentos')`)}
+            ${botao('Sincronizar Clientes', `respostaSincronizacao('clientes')`)}
 
             <div id="localResposta"></div>
 
@@ -2029,7 +2028,7 @@ async function sincronizarDados(base, overlayOff, resetar) {
 
     if (!overlayOff) overlayAguarde()
 
-    if (resetar) await inserirDados({}, base)
+    if (resetar) await inserirDados({}, base, resetar)
 
     let nuvem = await receber(base) || {}
     await inserirDados(nuvem, base)

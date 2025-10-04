@@ -12,6 +12,13 @@ html {
     font-size: 0.9rem;
 }
 
+.progresso {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 5rem;
+}
+
 #tela {
     margin-top: 7vh;
 }
@@ -828,12 +835,12 @@ input[type="file"] {
 
 .pill.alert-abertos {
     background: linear-gradient(90deg, #d7a6a6, #f50404);
-    animation: ping 1.6s infinite;
+    animation: ping-1 1.6s infinite;
 }
 
 .pill.alert-solucionados {
     background: linear-gradient(90deg, #c4ef91, #3c9f15);
-    animation: ping 1.6s infinite
+    animation: ping-2 1.6s infinite
 }
 
 .timer {
@@ -841,9 +848,23 @@ input[type="file"] {
     margin-right: 2rem;
 }
 
-@keyframes ping {
+@keyframes ping-1 {
     0% {
-        box-shadow: 0 0 0 0 #d63447e6
+        box-shadow: 0 0 0 0 #f50404
+    }
+
+    70% {
+        box-shadow: 0 0 0 12px #d6344700
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 #d6344700
+    }
+}
+
+@keyframes ping-2 {
+    0% {
+        box-shadow: 0 0 0 0 #3c9f15
     }
 
     70% {

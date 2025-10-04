@@ -1726,11 +1726,6 @@ function mostrarConfirmacao(elemento) {
 }
 
 async function alterar_status(select, id) {
-    let tela_orcamentos = false;
-    if (id !== undefined) {
-        id_orcam = id;
-        tela_orcamentos = true;
-    }
 
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
@@ -1761,8 +1756,7 @@ async function alterar_status(select, id) {
 
         // Atualizar dados
         await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos');
-        enviar(`dados_orcamentos/${id_orcam}/status/atual`, select.value);
-        enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus`, orcamento.status.historicoStatus);
+        enviar(`dados_orcamentos/${id_orcam}/status`, orcamento.status);
     }
 
     filtrarOrcamentos({ ultimoStatus: filtro })
