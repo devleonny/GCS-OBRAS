@@ -176,6 +176,7 @@ const esquemaBotoes = {
         { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' },
         { nome: 'Orçamentos Aquivados', funcao: 'filtrarArquivados', img: 'desarquivar' },
         { nome: 'Meus Orçamentos', funcao: 'filtrarMeus', img: 'painelcustos' },
+        { nome: 'Layout PDA', funcao: 'PDATime', img: 'planilha' }
     ],
     composicoes: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },

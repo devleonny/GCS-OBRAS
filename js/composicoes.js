@@ -56,7 +56,8 @@ async function telaComposicoes(recriar) {
                 </table>
             </div>
             <div class="rodapeTabela"></div>
-        </div>`
+        </div>
+        `
 
     const tabela_composicoes = document.getElementById('tabela_composicoes')
     if (recriar || !tabela_composicoes) tela.innerHTML = acumulado;

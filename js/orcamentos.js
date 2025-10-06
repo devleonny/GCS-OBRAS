@@ -549,3 +549,79 @@ async function excelOrcamentos() {
     removerOverlay()
 
 }
+
+async function PDATime() {
+
+    const colunas = [
+        'DATA',
+        'CHAMADO',
+        'LOJA',
+        'STATUS',
+        'RESPONSÁVEL',
+        'OBSERVAÇÃO',
+        'DATA DA SAÍDA',
+        'PREVISÃO DE ENTREGA',
+        'DATA DE ENTREGA',
+        'TRANSPORTE'
+    ]
+
+    let ths = '', pesquisa = ''
+
+    for (const coluna of colunas) {
+        ths += `<th>${coluna}</th>`
+        pesquisa += `<th style="background-color: white;" contentEditable="true"></th>`
+    }
+
+    const acumulado = `
+        <div style="${vertical};">
+            <div class="topo-tabela"></div>
+            <div class="div-tabela">
+                <table class="tabela">
+                    <thead>
+                        <tr>${ths}</tr>
+                        <tr>${pesquisa}</tr>
+                    </thead>
+                    <tbody id="bodyPDA"></tbody>
+                </table>
+            </div>
+            <div class="rodapeTabela"></div>
+        </div>
+    `
+
+    const tela = document.querySelector('.tela')
+    if (tela) tela.innerHTML = acumulado
+
+    const dados_orcamentos = await recuperarDados('dados_orcamentos')
+
+    for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos || {})) {
+
+        criarLinhaPDA(idOrcamento, orcamento)
+
+    }
+
+}
+
+
+function criarLinhaPDA(idOrcamento, orcamento) {
+
+    const tds = `
+        <td></td>
+        <td></td>
+        <td></td>
+        <td>${orcamento?.status?.atual || '--'}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+    `
+
+    const trExistente = document.getElementById(idOrcamento)
+
+    if(trExistente) return trExistente.innerHTML = tds
+
+    document.getElementById('bodyPDA').insertAdjacentHTML('beforeend', `<tr id="${idOrcamento}">${tds}</tr>`)
+
+    
+}

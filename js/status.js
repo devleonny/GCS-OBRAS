@@ -6,6 +6,8 @@ let dados_estoque = {}
 
 let fluxogramaNovos = {
     'LEVANTAMENTO': { cor: '#0062d5ff' },
+    'ORÇAMENTO ENVIADO': {},
+    'ORÇAMENTO APROVADO': {},
     'REQUISIÇÃO': { cor: '#B12425' },
     'MATERIAL ENVIADO': { cor: '#b17724' },
     'MATERIAL ENTREGUE': { cor: '#b17724' },
