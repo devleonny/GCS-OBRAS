@@ -131,6 +131,10 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
     document.getElementById('body').insertAdjacentHTML('beforeend', `<tr id="${idOcorrencia}">${tds}</tr>`)
 
     function verificarDtSolucao() {
+        if (!ocorrencia.dataLimiteExecucao) {
+            return { dtSolucao: '--', dias: -999, img: 'pendente' }
+        }
+
         const [ano, mes, dia] = ocorrencia.dataLimiteExecucao.split('-').map(Number);
         const dataLimite = new Date(ano, mes - 1, dia);
         dataLimite.setHours(0, 0, 0, 0);
@@ -216,7 +220,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
         let registros = ''
 
         const imagens = Object.entries(correcao?.fotos || {})
-            .map(([link, foto]) => `<img name="foto" id="${link}" src="${api}/uploads/${link}" onclick="ampliarImagem(this, '${link}')">`)
+            .map(([link, foto]) => `<img name="foto" id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`)
             .join('')
 
 

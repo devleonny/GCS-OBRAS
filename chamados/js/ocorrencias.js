@@ -592,7 +592,6 @@ function sincronizarApp({ atual, total, remover } = {}) {
             const loader = document.querySelector('.circular-loader')
             if (loader) loader.remove()
             if (ocorrenciasAbertas !== null) await telaOcorrencias()
-            mostrarMenus(false)
             return
         }, 1000)
 
