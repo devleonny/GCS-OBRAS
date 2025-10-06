@@ -474,7 +474,7 @@ async function sincronizarDados(base, overlayOff, reset) {
 
     if (!overlayOff) overlayAguarde()
 
-    if(reset) await inserirDados({}, true, true)
+    if(reset) await inserirDados({}, base, true)
     const nuvem = await receber(base) || {}
     await inserirDados(nuvem, base)
 
