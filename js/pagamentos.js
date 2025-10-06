@@ -47,7 +47,7 @@ async function recuperarPagamentos() {
         'dados_categorias',
         'lista_pagamentos',
         'dados_setores',
-        'dados_cliente',
+        'dados_clientes',
         'departamentos_fixos',
         'dados_orcamentos'
     ]
@@ -162,8 +162,8 @@ async function telaPagamentos() {
             </div>
         </div>
         `
-    const painelDireito = document.querySelector('.painelDireito')
-    if (!painelDireito) tela.innerHTML = acumulado
+    const painelEsquerdo = document.querySelector('.painelEsquerdo')
+    if (!painelEsquerdo) tela.innerHTML = acumulado
     preencherDados()
 
     function preencherDados() {
