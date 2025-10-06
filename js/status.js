@@ -1729,14 +1729,15 @@ function mostrarConfirmacao(elemento) {
 
 async function alterar_status(select, id) {
 
+    if(id) id_orcam = id
+
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+
+    if (!orcamento.status) orcamento.status = {};
 
     // Só prosseguir se o status realmente mudou
     if (orcamento.status?.atual !== select.value) {
         // Inicializar estrutura se não existir
-        if (!orcamento.status) {
-            orcamento.status = {};
-        }
 
         if (!orcamento.status.historicoStatus) {
             orcamento.status.historicoStatus = []
