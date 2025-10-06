@@ -550,7 +550,7 @@ async function excelOrcamentos() {
 
 }
 
-async function PDATime() {
+async function telaPDA() {
 
     const colunas = [
         'DATA',
@@ -589,6 +589,7 @@ async function PDATime() {
     `
 
     const tela = document.querySelector('.tela')
+    const body = document.getElementById('body')
     if (tela) tela.innerHTML = acumulado
 
     const dados_orcamentos = await recuperarDados('dados_orcamentos')
@@ -601,13 +602,15 @@ async function PDATime() {
 
 }
 
-
 function criarLinhaPDA(idOrcamento, orcamento) {
 
+    const clienteOmie = orcamento?.dados_orcam?.omie_cliente || ''
+    const cliente = dados_clientes?.[clienteOmie] || {}
+
     const tds = `
-        <td></td>
-        <td></td>
-        <td></td>
+        <td>${orcamento?.dados_orcam?.data || '--'}</td>
+        <td>${orcamento?.dados_orcam?.contrato || '--'}</td>
+        <td>${cliente?.nome || '--'}</td>
         <td>${orcamento?.status?.atual || '--'}</td>
         <td></td>
         <td></td>

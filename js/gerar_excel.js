@@ -8,7 +8,7 @@ async function ir_excel(orcam_) {
     var ws_orcamento = wb.addWorksheet('Orçamento');
     var ws_total = wb.addWorksheet('TOTAL');
 
-    const response = await fetch('https://i.postimg.cc/dQHpVMK6/IMG-Nb8s-Ps0.png');
+    const response = await fetch('https://i.imgur.com/5zohUo8.png');
     const imageBlob = await response.blob();
     const reader = new FileReader();
     reader.readAsDataURL(imageBlob);
