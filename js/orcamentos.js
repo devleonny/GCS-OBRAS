@@ -170,7 +170,7 @@ async function telaOrcamentos(semOverlay) {
         `
 
     const tabelaExistente = document.querySelector('.div-tabela')
-    if (!tabelaExistente || layout !== 'tradicional') tela.innerHTML = acumulado
+    if (!tabelaExistente || layout == 'pda') tela.innerHTML = acumulado
     layout = 'tradicional'
 
     dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
@@ -213,49 +213,27 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     if (!dados_orcam) return
 
     const cliente = dados_clientes?.[dados_orcam.omie_cliente] || {}
+    let labels = {
+        PEDIDO: '',
+        FATURADO: ''
+    }
 
-    let label_pedidos = ''
-    let label_notas = ''
+    for (const [, historico] of Object.entries(orcamento?.status?.historico || {})) {
 
-    if (orcamento.status && orcamento.status.historico) {
+        if (labels[historico.status] == undefined) continue
+        if (historico.tipo == 'Remessa') continue
 
-        for ([chave, historico] of Object.entries(orcamento.status.historico)) {
+        const valor1 = historico.tipo
+        const valor2 = historico.status == 'FATURADO' ? historico.nf : historico.pedido
+        const valor3 = historico.valor
 
-            if (historico.status == 'PEDIDO') {
-
-                let num_pedido = historico.pedido
-                let tipo = historico.tipo
-                let valor_pedido = conversor(historico.valor)
-
-                label_pedidos += `
-                        <div class="etiqueta_pedidos"> 
-                            <label>${tipo}</label>
-                            <label><b>${num_pedido}</b></label>
-                            <label><b>${dinheiro(valor_pedido)}</b></label>
-                        </div>
-                        `
-            }
-
-            if (historico.status == 'FATURADO') {
-
-                if (historico.parcelas && historico.parcelas.length > 0) {
-
-                    if (!auxiliarFaturamento[idOrcamento]) {
-                        auxiliarFaturamento[idOrcamento] = []
-                    }
-
-                    auxiliarFaturamento[idOrcamento].push(historico)
-                }
-
-                label_notas += `
-                    <div class="etiqueta_pedidos">
-                        <label>${historico.tipo}</label>
-                        <label><b>${historico.nf}</b></label>
-                        <label><b>${dinheiro(historico.valor)}</b></label>
-                    </div>
-                    `
-            }
-        }
+        labels[historico.status] += `
+            <div class="etiqueta_pedidos"> 
+                <label>${valor1}</label>
+                <label><b>${valor2}</b></label>
+                <label><b>${dinheiro(valor3)}</b></label>
+            </div>
+            `
     }
 
     const st = orcamento?.status?.atual || ''
@@ -287,8 +265,8 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
                 ${opcoes}
             </select>
         </td>
-        <td>${label_pedidos}</td>
-        <td>${label_notas}</td>
+        <td>${labels.PEDIDO}</td>
+        <td>${labels.FATURADO}</td>
         <td>
             <div style="${vertical}; text-align: left;">
                 ${(acesso.permissao && dados_orcam.cliente_selecionado) ? `*<img onclick="painelAlteracaoCliente('${idOrcamento}')" src="gifs/alerta.gif" style="width: 1.5vw; cursor: pointer;">` : ''}
@@ -377,103 +355,6 @@ async function associarClienteOrcamento(idOrcamento) {
     filtrarOrcamentos()
 
     removerPopup()
-
-}
-
-async function verificarParcelas() {
-
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let valores = {}
-
-    for (let [idOrcamento, notas] of Object.entries(auxiliarFaturamento)) {
-        let orcamento = dados_orcamentos[idOrcamento]
-        let nomeCliente = dados_clientes?.[orcamento.dados_orcam.omie_cliente]?.nome || '??'
-
-        notas.forEach(nota => {
-
-            nota.parcelas.forEach(parcela => {
-
-                let [dia, mes, ano] = parcela.dDtVenc.split('/')
-
-                if (!valores[ano]) {
-                    valores[ano] = { total: 0, meses: {} }
-                }
-
-                if (!valores[ano].meses[mes]) {
-                    valores[ano].meses[mes] = { parcelas: [], total: 0 }
-                }
-
-                valores[ano].total += parcela.nValorTitulo
-                valores[ano].meses[mes].total += parcela.nValorTitulo
-
-                valores[ano].meses[mes].parcelas.push({
-                    orcamento: nomeCliente,
-                    parcela: parcela.nParcela,
-                    vencimento: parcela.dDtVenc,
-                    valor: parcela.nValorTitulo,
-                    idOrcamento
-                })
-
-            })
-        })
-    }
-
-    let elementos = ''
-    for ([ano, objeto] of Object.entries(valores)) {
-
-        elementos += `
-        <label style="font-size: 1.5vw;">[<strong>${ano}</strong>] ${dinheiro(objeto.total)}</label>
-        <hr style="width: 100%;">
-        `
-        let linhas = ''
-        for (mes in objeto.meses) {
-
-            let divParcelas = ''
-            objeto.meses[mes].parcelas.forEach(fragPacela => {
-
-                divParcelas += `
-                <div class="parcela">
-                    <label><strong>Vencimento</strong> ${fragPacela.vencimento}</label>
-                    <label><strong>Parcela ${fragPacela.parcela}</strong> ${dinheiro(fragPacela.valor)}</label>
-                    <div style="display: flex; justify-content: start; align-items: center; gap: 5px;">
-                        <img src="imagens/projeto.png" style="cursor: pointer; width: 2vw;" onclick="abrirEsquema('${fragPacela.idOrcamento}')">
-                        <label>${fragPacela.orcamento}</label>
-                    </div>
-                </div>
-                `
-            })
-            linhas += `
-            <div style="display: flex; justify-content: center; align-items: center; gap: 5px;" onclick="mostrarParcelas(this)">
-                <img src="imagens/pasta.png" style="width: 2vw; cursor: pointer;">
-                <label><strong>${meses[mes]}</strong> ${dinheiro(objeto.meses[mes].total)}</label>
-            </div>
-
-            <div style="display: none; flex-direction: column; align-items: start; justify-content: start; gap: 2px;">
-                ${divParcelas}
-            </div>
-            `
-        }
-
-        elementos += linhas
-
-    }
-
-    let acumulado = `
-        <div style="display: flex; justify-content: start; align-items: start; flex-direction: column; background-color: #d2d2d2; padding: 5px; width: 40vw;">
-            ${elementos}
-        </div>
-    `
-    popup(acumulado, 'Faturamento Parcelas')
-
-}
-
-function mostrarParcelas(divSuperior) {
-
-    let divSeguinte = divSuperior.nextElementSibling
-    let visibilidade = divSeguinte.style.display
-
-    divSeguinte.style.display = visibilidade == 'none' ? 'flex' : 'none'
 
 }
 
@@ -603,7 +484,7 @@ async function telaPDA() {
     `
 
     const tabelaExistente = document.querySelector('.div-tabela')
-    if (!tabelaExistente || layout !== 'pda') tela.innerHTML = acumulado
+    if (!tabelaExistente || layout == 'tradicional') tela.innerHTML = acumulado
     layout = 'pda'
 
     dados_orcamentos = await recuperarDados('dados_orcamentos')
@@ -650,7 +531,7 @@ function criarLinhaPDA(idOrcamento, orcamento) {
         .join(', ')
 
     const opcoesStatus = ['', ...fluxograma]
-        .map(([st,]) => `<option ${orcamento?.status?.atual == st ? 'selected' : ''}>${st}</option>`)
+        .map(st => `<option ${orcamento?.status?.atual == st ? 'selected' : ''}>${st}</option>`)
         .join('')
 
     const tds = `
