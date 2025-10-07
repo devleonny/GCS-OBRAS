@@ -62,29 +62,13 @@ async function origemDados(toggle, inicial) {
         thumb.style.transform = "translateX(26px)"
     }
 
-    if (!inicial) {
-        if (telaAtiva == 'orcamentos') {
-            await telaOrcamentos()
-        }
-
-        if (telaAtiva == 'composicoes') {
-            await telaComposicoes(true)
-        }
-
-        if (telaAtiva == 'criarOrcamentos') {
-            await criarOrcamento()
-        }
-
-        if (telaAtiva == 'criarOrcamentosAluguel') {
-            await criarOrcamentoAluguel()
-        }
-    }
+    if (!inicial) await executar(funcaoTela)
 
     removerOverlay()
 
 }
 
-function interruptorCliente(mostrar) {
+function interruptorCliente(mostrar, inicial) {
 
     origem = sessionStorage.getItem('origem') || 'novos'
     const interruptor = document.querySelector('.interruptor')
@@ -110,7 +94,7 @@ function interruptorCliente(mostrar) {
     const gatilhos = document.getElementById('interruptorOrigem')
     if (!gatilhos) interruptor.innerHTML = acumulado
 
-    origemDados({ checked: origem == 'novos' }, inicial = true)
+    origemDados({ checked: origem == 'novos' }, inicial)
 
 }
 

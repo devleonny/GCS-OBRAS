@@ -124,8 +124,8 @@ async function executar(nomeFuncao) {
 
 function criarMenus(chave) {
     telaAtiva = chave
-    const chaves = ['orcamentos', 'composicoes', 'telaCriarOrcamentos', 'telaCriarOrcamentosAluguel']
-    interruptorCliente(chaves.includes(chave))
+    const chaves = ['orcamentos', 'composicoes', 'pda', 'telaCriarOrcamentos', 'telaCriarOrcamentosAluguel']
+    interruptorCliente(chaves.includes(chave), true)
 
     const atalhos = esquemaBotoes[chave]
     let atalhosString = `
@@ -152,6 +152,13 @@ const esquemaBotoes = {
         { nome: 'Ocorrências', funcao: `redirecionarChamados`, img: 'LG' },
         { nome: 'Desconectar', funcao: `deslogarUsuario`, img: 'sair' }
     ],
+    pda: [
+        { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
+        { nome: 'Atualizar', funcao: 'atualizarOrcamentos', img: 'atualizar3' },
+        { nome: 'Layout Tradicional', funcao: 'telaOrcamentos', img: 'trocar' },
+        { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'projeto' },
+        { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' },
+    ],
     criarOrcamentos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
@@ -176,7 +183,7 @@ const esquemaBotoes = {
         { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' },
         { nome: 'Orçamentos Aquivados', funcao: 'filtrarArquivados', img: 'desarquivar' },
         { nome: 'Meus Orçamentos', funcao: 'filtrarMeus', img: 'painelcustos' },
-        { nome: 'Layout PDA', funcao: 'telaPDA', img: 'planilha' }
+        { nome: 'Layout PDA', funcao: `telaPDA`, img: 'planilha' }
     ],
     composicoes: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -1209,6 +1216,7 @@ async function excluirLevantamentoStatus(idAnexo) {
 }
 
 function filtrarAAZ(coluna, id) {
+
     let el = document.getElementById(id)
     let tbody = el.tagName === "TBODY" ? el : el.tBodies[0]
     if (!tbody) return
@@ -1234,7 +1242,7 @@ function filtrarAAZ(coluna, id) {
 }
 
 function capturarValorCelula(celula) {
-    let entrada = celula.querySelector('input') || celula.querySelector('textarea');
+    let entrada = celula.querySelector('input') || celula.querySelector('textarea') || celula.querySelector('select')
     if (entrada) {
         return entrada.value.toLowerCase();
     }
@@ -1393,7 +1401,7 @@ function connectWebSocket() {
         if (data.tipo == 'exclusao') {
             await deletarDB(data.tabela, data.id)
             await refletir()
-        } else if (data.tipo == 'atualizacao') { 
+        } else if (data.tipo == 'atualizacao') {
             await inserirDados({ [data.id]: data.dados }, data.tabela)
             await refletir()
         }

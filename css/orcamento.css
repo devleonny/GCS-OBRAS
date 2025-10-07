@@ -6,6 +6,11 @@
     padding: 5px;
 }
 
+.datas-pda {
+    padding: 5px;
+    border-radius: 3px;
+}
+
 .opcoes-orcamento {
     gap: 1px;
     display: grid;

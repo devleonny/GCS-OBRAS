@@ -37,7 +37,7 @@ let fluxogramaAntigo = fluxograma = {
 }
 
 // O objeto foi mesclado com o intuito de obter as formatações de ambos os aplicativos sem precisar criar um objeto para isso;
-let fluxogramaMesclado = {
+const fluxogramaMesclado = {
     ...fluxogramaNovos,
     ...fluxogramaAntigo
 }
@@ -863,7 +863,7 @@ async function abrirAtalhos(id) {
     let permitidos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
     id_orcam = id
 
-    let orcamento = await recuperarDado('dados_orcamentos', id)
+    let orcamento = dados_orcamentos[id_orcam]
     let omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
     let cliente = await recuperarDado('dados_clientes', omie_cliente)
     let analista = orcamento.dados_orcam.analista
