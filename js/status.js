@@ -1557,7 +1557,7 @@ async function abrirEsquema(id) {
 
             <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 2px;">
                 <label>Status atual</label>
-                <select onchange="alterar_status(this)" style="font-size: 1vw; border-radius: 3px; padding: 3px;">
+                <select onchange="alterar_status(this, '${idOrcamento}')" style="font-size: 1vw; border-radius: 3px; padding: 3px;">
                     ${Object.keys(fluxograma).map(fluxo => `
                         <option ${orcamento?.status?.atual == fluxo ? 'selected' : ''}>${fluxo}</option>
                     `).join('')}
