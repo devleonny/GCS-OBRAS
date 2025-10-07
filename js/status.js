@@ -1461,7 +1461,7 @@ async function abrirEsquema(id) {
     for (const [chave, historico] of Object.entries(orcamento?.status?.historico || {})) {
 
         const statusCartao = historico.status
-        const cor = fluxograma?.[statusCartao]?.cor || '#808080'
+        const cor = coresST?.[statusCartao]?.cor || '#808080'
 
         if (!blocosStatus[statusCartao]) blocosStatus[statusCartao] = ''
 
