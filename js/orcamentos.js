@@ -108,8 +108,9 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
     const toolbar = document.getElementById('toolbar');
     toolbar.innerHTML = '';
 
-    let tempFluxograma = { 'TODOS': {}, ...fluxograma };
-    for (const st in tempFluxograma) {
+    const tempFluxograma = ['TODOS', ...fluxograma]
+
+    for (const st of tempFluxograma) {
         if (!listaStatus.has(st)) continue;
         const ativo = filtro ? filtro === st : st === 'TODOS';
         const opacity = ativo ? 1 : 0.5;
@@ -129,7 +130,6 @@ async function telaOrcamentos(semOverlay) {
     funcaoTela = 'telaOrcamentos'
 
     if (!semOverlay) overlayAguarde()
-    verificarFluxograma()
 
     let cabecs = ['Data & LPU', 'Status', 'Pedido', 'Notas', 'Chamado & Cliente', 'Cidade', 'Analista', 'Responsáveis', 'Lc %', 'Checklist', 'Valor', 'Ações']
     let ths = ''
@@ -258,12 +258,8 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         }
     }
 
-    let st = orcamento?.status?.atual || ''
-
-    let opcoes = '<option></option>'
-    for (fluxo in fluxograma) {
-        opcoes += `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`
-    }
+    const st = orcamento?.status?.atual || ''
+    const opcoes = ['', ...fluxograma].map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`).join('')
 
     let {
         impostos = 0,
@@ -653,7 +649,7 @@ function criarLinhaPDA(idOrcamento, orcamento) {
         .map(([user,]) => user)
         .join(', ')
 
-    const opcoesStatus = Object.entries({ '': '', ...fluxogramaMesclado })
+    const opcoesStatus = ['', ...fluxograma]
         .map(([st,]) => `<option ${orcamento?.status?.atual == st ? 'selected' : ''}>${st}</option>`)
         .join('')
 

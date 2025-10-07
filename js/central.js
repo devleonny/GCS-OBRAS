@@ -110,13 +110,14 @@ function criarAtalhoMenu({ nome, img, funcao }) {
 }
 
 async function executar(nomeFuncao) {
+    
     // É a função que carrega a tela atual;
-    if (nomeFuncao.includes('tela')) funcaoTela = nomeFuncao;
+    if (nomeFuncao.includes('tela')) funcaoTela = nomeFuncao
 
-    funcaoAtiva = nomeFuncao;
+    funcaoAtiva = nomeFuncao
 
     if (typeof window[nomeFuncao] === "function") {
-        return await window[nomeFuncao]();
+        return await window[nomeFuncao]()
     } else {
         popup(mensagem(`<b>Função não encontrada:</b> ${nomeFuncao}`), 'Alerta', true)
     }
@@ -305,6 +306,8 @@ async function f2() {
             ${botao('Sincronizar Pagamentos com o Omie', `respostaSincronizacao('pagamentos')`)}
 
             ${botao('Sincronizar Clientes', `respostaSincronizacao('clientes')`)}
+
+            ${botao('Sincronizar Categorias', `respostaSincronizacao('categorias')`)}
 
             <div id="localResposta"></div>
 

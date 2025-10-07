@@ -1,54 +1,33 @@
 let itensAdicionais = {}
 let id_orcam = ''
-let fluxograma = {}
 let dadosNota = {}
 let dados_estoque = {}
 
-let fluxogramaNovos = {
-    'LEVANTAMENTO': { cor: '#0062d5ff' },
-    'ORÇAMENTO ENVIADO': {},
-    'ORÇAMENTO APROVADO': {},
-    'REQUISIÇÃO': { cor: '#B12425' },
-    'MATERIAL ENVIADO': { cor: '#b17724' },
-    'MATERIAL ENTREGUE': { cor: '#b17724' },
-    'ATIVIDADE EM ANDAMENTO': { cor: '#0e0c0bff' },
-    'CONCLUÍDO': { cor: '#ff4500' },
-    'FATURADO': { cor: '#ff4500' },
-    'ATRASADO': { cor: '#ff4500' },
-    'PAGAMENTO RECEBIDO': { cor: '#b17724' },
-    'LOCAÇÃO': { cor: '#b17724' },
-    'LPU PARCEIRO': { cor: '#0062d5' }
-}
+const fluxograma = [
+    'LEVANTAMENTO',
+    'ORC ENVIADO',
+    'ORC APROVADO',
+    'REQUISIÇÃO',
+    'NFE VENDA',
+    'ENVIADO',
+    'ENTREGUE',
+    'EM ANDAMENTO',
+    'CONCLUÍDO',
+    'FATURADO',
+    'ATRASADO',
+    'PAG RECEBIDO',
+    'LOCAÇÃO',
+    'LPU PARCEIRO'
+]
 
-let fluxogramaAntigo = fluxograma = {
-    'LEVANTAMENTO': { cor: '#0062d5' },
+const coresST = {
     'PEDIDO': { cor: '#4CAF50' },
     'LPU PARCEIRO': { cor: '#0062d5' },
     'REQUISIÇÃO': { cor: '#B12425' },
     'MATERIAL SEPARADO': { cor: '#b17724' },
     'FATURADO': { cor: '#ff4500' },
     'MATERIAL ENVIADO': { cor: '#b17724' },
-    'MATERIAL ENTREGUE': { cor: '#b17724' },
-    'ATIVIDADE EM ANDAMENTO': { cor: '#b17724' },
-    'COTAÇÃO PENDENTE': { cor: '#0a989f' },
-    'COTAÇÃO FINALIZADA': { cor: '#0a989f' },
-    'RETORNO DE MATERIAIS': { cor: '#aacc14' },
-    'FINALIZADO': { cor: 'blue' }
-}
-
-// O objeto foi mesclado com o intuito de obter as formatações de ambos os aplicativos sem precisar criar um objeto para isso;
-const fluxogramaMesclado = {
-    ...fluxogramaNovos,
-    ...fluxogramaAntigo
-}
-
-function verificarFluxograma() {
-
-    const origem = sessionStorage.getItem('origem') || 'novos'
-    origem == 'novos'
-        ? fluxograma = fluxogramaNovos
-        : fluxograma = fluxogramaAntigo
-
+    'MATERIAL ENTREGUE': { cor: '#b17724' }
 }
 
 async function sincronizarReabrir() {
@@ -1457,7 +1436,7 @@ function elementosEspecificos(chave, historico) {
 
     if (funcaoEditar !== '') {
         acumulado += `
-        <div style="background-color: ${fluxogramaMesclado?.[historico.status]?.cor || '#808080'}" class="contorno_botoes" onclick="${funcaoEditar}">
+        <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" class="contorno_botoes" onclick="${funcaoEditar}">
             <img src="imagens/editar4.png">
             <label>Editar</label>
         </div>
@@ -1481,8 +1460,8 @@ async function abrirEsquema(id) {
 
     for (const [chave, historico] of Object.entries(orcamento?.status?.historico || {})) {
 
-        let statusCartao = historico.status
-        let cor = fluxogramaMesclado[statusCartao]?.cor || '#808080'
+        const statusCartao = historico.status
+        const cor = fluxograma?.[statusCartao]?.cor || '#808080'
 
         if (!blocosStatus[statusCartao]) blocosStatus[statusCartao] = ''
 
@@ -1544,7 +1523,7 @@ async function abrirEsquema(id) {
     }
 
     const blocos = Object.entries(blocosStatus)
-        .map(([statusCartao, div]) => `
+        .map(([, div]) => `
             <div style="display: flex; flex-direction: column; justify-content: start; align-items: center; width: 16vw; gap: 10px;">
                 ${div}
             </div>`)
@@ -1557,8 +1536,8 @@ async function abrirEsquema(id) {
 
             <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 2px;">
                 <label>Status atual</label>
-                <select onchange="alterar_status(this, '${idOrcamento}')" style="font-size: 1vw; border-radius: 3px; padding: 3px;">
-                    ${Object.keys(fluxograma).map(fluxo => `
+                <select onchange="alterar_status(this, '${id_orcam}')" style="font-size: 1vw; border-radius: 3px; padding: 3px;">
+                    ${['', ...fluxograma].map(fluxo => `
                         <option ${orcamento?.status?.atual == fluxo ? 'selected' : ''}>${fluxo}</option>
                     `).join('')}
                 </select>
