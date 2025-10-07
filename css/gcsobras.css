@@ -1752,10 +1752,10 @@ input[type=range]::-moz-range-thumb {
 }
 
 .opcoesSelect {
-    width: 100%;
+    width: max-content;
     font-size: 0.6rem;
     cursor: pointer;
-    background-color: #d2d2d2;
+    background-color: #e7e7e7;
     padding: 3px;
     border-radius: 3px;
 }

@@ -1729,9 +1729,9 @@ function mostrarConfirmacao(elemento) {
 
 async function alterar_status(select, id) {
 
-    if(id) id_orcam = id
+    if (id) id_orcam = id
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    let orcamento = dados_orcamentos[id]
 
     if (!orcamento.status) orcamento.status = {};
 
@@ -1762,7 +1762,7 @@ async function alterar_status(select, id) {
         enviar(`dados_orcamentos/${id_orcam}/status`, orcamento.status);
     }
 
-    filtrarOrcamentos({ ultimoStatus: filtro })
+    if (funcaoAtiva == 'telaOrcamentos') filtrarOrcamentos({ ultimoStatus: filtro })
 }
 
 async function mostrarHistoricoStatus() {

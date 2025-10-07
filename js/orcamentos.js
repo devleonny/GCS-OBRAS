@@ -662,7 +662,7 @@ function criarLinhaPDA(idOrcamento, orcamento) {
         <td>${orcamento?.dados_orcam?.contrato || '--'}</td>
         <td>${cliente?.nome || '--'}</td>
         <td>
-            <select>${opcoesStatus}</select>
+            <select class="opcoesSelect" onchange="alterar_status(this, '${idOrcamento}')">${opcoesStatus}</select>
         </td>
         <td>${responsaveis}</td>
         <td>

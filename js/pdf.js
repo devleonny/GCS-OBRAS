@@ -2,7 +2,7 @@ function voltar() {
     window.history.back();
 }
 
-let dadosEmpresas = {
+const dadosEmpresas = {
     'AC SOLUÇÕES': {
         'Razão Social': 'AC SOLUCOES INTEGRADAS DE INFORMATICA LTDA',
         'CNPJ': '13.421.071/0001-00',
