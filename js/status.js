@@ -1733,7 +1733,7 @@ async function alterar_status(select, id) {
 
     let orcamento = dados_orcamentos[id]
 
-    if (!orcamento.status) orcamento.status = {};
+    if (!orcamento.status) orcamento.status = {}
 
     // Só prosseguir se o status realmente mudou
     if (orcamento.status?.atual !== select.value) {

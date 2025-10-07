@@ -66,6 +66,8 @@ async function confirmarExclusaoOrcamento() {
 
 async function telaCriarOrcamento() {
 
+    funcaoTela = 'telaCriarOrcamento'
+
     modo = ''
     const acumulado = `
     <div class="contornoTela">
