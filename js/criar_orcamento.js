@@ -780,7 +780,7 @@ async function totalOrcamento() {
 
         const labelValores = (valor, semIcms, percentual, unitario) => {
             let labelICMS = ''
-            if (refProduto.tipo == 'VENDA' && estado) labelICMS = `<label style="white-space: nowrap;">SEM ICMS ${dinheiro(semIcms)} [ ${percentual}% ]</label>`
+            if (refProduto.tipo == 'VENDA' && estado) labelICMS = `<label style="white-space: nowrap;">SEM ICMS</br> <b>${dinheiro(semIcms)}</b> [ ${percentual}% ]</label>`
             return `
                 <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
                     <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 5px;">

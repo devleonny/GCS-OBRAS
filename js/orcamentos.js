@@ -391,8 +391,8 @@ async function duplicar(orcam_) {
     removerPopup()
 
     novoOrcamento.lpu_ativa == 'ALUGUEL'
-        ? await criarOrcamentoAluguel()
-        : await criarOrcamento()
+        ? await telaCriarOrcamentoAluguel()
+        : await telaCriarOrcamento()
 
 }
 
