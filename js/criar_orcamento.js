@@ -431,7 +431,14 @@ async function tabelaProdutosOrcamentos() {
     let tsh = ''
 
     colunas.forEach((col, i) => {
-        ths += `<th style="color: white;">${col}</th>`
+        ths += `
+        <th style="padding: 0.5rem; color: white;">
+            <div style="${horizontal}; justify-content: space-between; width: 100%; gap: 1rem;">
+                <span>${col}</span>
+                <img onclick="filtrarAAZ('${i}', 'bodyComposicoes')" src="imagens/down.png" style="width: 1rem;">
+            </div>
+        </th>
+        `
         tsh += `<th style="text-align: left; color: #222; padding: 8px; background-color: #dedede;" oninput="pesquisarProdutos(${i}, this.textContent)" contentEditable="true"></th>`
     })
 
@@ -555,40 +562,40 @@ function linhasComposicoesOrcamento(codigo, produto, qtdeOrcada, lpu) {
         .join('')
 
     const tds = `
-            <td>
-                <div style="${horizontal}; gap: 5px;">
-                    <label>${codigo}</label>
-                    <div style="${horizontal}">
-                        ${moduloComposicoes ? `<img src="imagens/editar.png" style="width: 1.5vw; cursor: pointer;" onclick="cadastrarItem('${codigo}')">` : ''}
-                        ${moduloComposicoes ? `<img src="imagens/excluir.png" style="width: 1.5vw; cursor: pointer;" onclick="confirmarExclusao_item('${codigo}')">` : ''}
-                    </div>
+        <td>
+            <div style="${horizontal}; gap: 5px;">
+                <label>${codigo}</label>
+                <div style="${horizontal}">
+                    ${moduloComposicoes ? `<img src="imagens/editar.png" style="width: 1.5vw; cursor: pointer;" onclick="cadastrarItem('${codigo}')">` : ''}
+                    ${moduloComposicoes ? `<img src="imagens/excluir.png" style="width: 1.5vw; cursor: pointer;" onclick="confirmarExclusao_item('${codigo}')">` : ''}
                 </div>
-            </td>
-            <td>
-                <div style="${vertical}; text-align: left;">
-                    <b>Descrição</b>
-                    ${produto.descricao}<br>
-                    <b>Fabricante</b>
-                    ${produto.fabricante}<br>
-                    <b>Modelo</b>
-                    ${produto.modelo}<br>
-                </div>
-            </td>
-            <td>
-                <select class="opcoesSelect" onchange="alterarChave('${codigo}', 'sistema', this)">
-                    ${opcoes}
-                </select>
-            </td>
-            <td>${produto.unidade}</td>
-            <td>
-                <input id="prod_${codigo}" value="${qtdeOrcada}" type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
-            </td>
-            <td>
-                <label ${moduloComposicoes ? `onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')"` : ''} class="label-estoque" style="background-color: ${preco > 0 ? '#4CAF50bf' : '#b36060bf'}">${dinheiro(preco)}</label>
-            </td>
-            <td>
-                <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;">
-            </td>
+            </div>
+        </td>
+        <td>
+            <div style="${vertical}; text-align: left;">
+                <b>Descrição</b>
+                ${produto.descricao}<br>
+                <b>Fabricante</b>
+                ${produto.fabricante}<br>
+                <b>Modelo</b>
+                ${produto.modelo}<br>
+            </div>
+        </td>
+        <td>
+            <select class="opcoesSelect" onchange="alterarChave('${codigo}', 'sistema', this)">
+                ${opcoes}
+            </select>
+        </td>
+        <td>${produto.unidade}</td>
+        <td>
+            <input id="prod_${codigo}" value="${qtdeOrcada}" type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
+        </td>
+        <td>
+            <label ${moduloComposicoes ? `onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')"` : ''} class="label-estoque" style="background-color: ${preco > 0 ? '#4CAF50bf' : '#b36060bf'}">${dinheiro(preco)}</label>
+        </td>
+        <td>
+            <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;">
+        </td>
         `
 
     const trExistente = document.getElementById(codigo)
