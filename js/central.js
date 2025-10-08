@@ -110,7 +110,7 @@ function criarAtalhoMenu({ nome, img, funcao }) {
 }
 
 async function executar(nomeFuncao) {
-    
+
     // É a função que carrega a tela atual;
     if (nomeFuncao.includes('tela')) funcaoTela = nomeFuncao
 
@@ -1231,8 +1231,20 @@ function filtrarAAZ(coluna, id) {
         let valorA = capturarValorCelula(a.cells[coluna])
         let valorB = capturarValorCelula(b.cells[coluna])
 
-        if (!isNaN(valorA) && !isNaN(valorB)) {
-            return ascendente ? valorA - valorB : valorB - valorA
+        // Normaliza números com "R$", vírgula etc.
+        const parseValor = v => {
+            if (typeof v !== 'string') return v
+            return parseFloat(
+                v.replace(/[^\d,-]/g, '')
+                    .replace(',', '.')
+            )
+        }
+
+        const numA = parseValor(valorA)
+        const numB = parseValor(valorB)
+
+        if (!isNaN(numA) && !isNaN(numB)) {
+            return ascendente ? numA - numB : numB - numA
         }
 
         return ascendente

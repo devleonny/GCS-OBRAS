@@ -118,8 +118,8 @@ async function telaCriarOrcamento() {
     dados_clientes = await recuperarDados('dados_clientes') || {}
 
     const orcamentoPadrao = document.getElementById('orcamento_padrao')
-    if(!orcamentoPadrao) tela.innerHTML = acumulado
-    
+    if (!orcamentoPadrao) tela.innerHTML = acumulado
+
     criarMenus('criarOrcamentos')
     await atualizarPrecos()
 }
@@ -508,6 +508,10 @@ function filtrarTabelaComposicao(tipo) {
 
     for (const tr of trs) {
         tr.style.display = (tipo == 'TODOS' || tr.dataset.tipo == tipo) ? 'table-row' : 'none'
+    }
+
+    for (const [col, termo] of Object.entries(filtrosPagina)) {
+        pesquisarProdutos(col, termo)
     }
 
 }
