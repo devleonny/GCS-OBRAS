@@ -642,13 +642,10 @@ async function excluirCotacao(codigo, lpu, cotacao) {
     }
 
     const precoExcluido = cotacoes?.historico?.[cotacao]?.valor || '??'
-    const comentario = `O usuário ${acesso.usuario} excluiu o preço de ID: ${cotacao} e valor: ${parseFloat(precoExcluido).toFixed(2)}`
 
     delete cotacoes?.historico?.[cotacao]
     deletar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`)
     await inserirDados({ [codigo]: produto }, 'dados_composicoes')
-
-    registrarAlteracao('dados_composicoes', codigo, comentario)
 
     removerPopup()
     await abrirHistoricoPrecos(codigo, lpu);

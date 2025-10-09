@@ -111,8 +111,10 @@ function criarAtalhoMenu({ nome, img, funcao }) {
 
 async function executar(nomeFuncao) {
 
+    if (!nomeFuncao) return
+
     // É a função que carrega a tela atual;
-    if (nomeFuncao && nomeFuncao.includes('tela')) funcaoTela = nomeFuncao
+    if (nomeFuncao.includes('tela')) funcaoTela = nomeFuncao
 
     funcaoAtiva = nomeFuncao
 
@@ -1519,7 +1521,6 @@ async function relancarPagamento(idPagamento) {
                     ${['AC', 'IAC'].map(op => `<option>${op}</option>`).join('')}
                 </select>
             </div>
-            <br>
             <hr style="width: 100%;">
             <button onclick="confirmarRelancamento('${idPagamento}')">Confirmar</button>
         </div>
@@ -1547,9 +1548,16 @@ async function confirmarRelancamento(idPagamento) {
     await inserirDados({ [idPagamento]: pagamento }, 'lista_pagamentos')
     await abrirDetalhesPagamentos(idPagamento)
 
-    const texto = resposta?.mensagem?.descricao_status ? resposta?.mensagem?.descricao_status : JSON.stringify(resposta?.mensagem || 'Sem resposta')
+    const textoPrincipal = resposta?.mensagem?.descricao_status || JSON.stringify(resposta)
+    const infoAdicional = resposta?.mensagem?.exclusaoPagamento || ''
+    const texto = `
+        <div style="${vertical}; gap: 5px; text-align: left;">
+            <span>${textoPrincipal}</span>
+            <span>${infoAdicional}</span>
+        </div>
+    `
     popup(mensagem(texto, 'imagens/atualizar3.png'), 'Resposta', true)
-    
+
     telaPagamentos()
 
 }
@@ -2024,20 +2032,6 @@ async function configuracoes(usuario, campo, valor) {
                 reject()
             });
     })
-}
-
-function registrarAlteracao(base, id, comentario) {
-    let novoRegistro = {
-        usuario: acesso.usuario,
-        data: obterDatas('completa'),
-        comentario: comentario,
-        base,
-        id
-    }
-
-    let idRegistro = ID5digitos()
-
-    enviar(`registrosAlteracoes/${idRegistro}`, novoRegistro)
 }
 
 function baseOrcamento(orcamento, remover) {

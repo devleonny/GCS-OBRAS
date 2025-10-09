@@ -160,7 +160,7 @@ async function telaPagamentos() {
                 </div>
                 <div class="rodapeTabela"></div>
             </div>
-            
+
         </div>
         `
     const painelEsquerdo = document.querySelector('.painelEsquerdo')
@@ -227,7 +227,7 @@ function criarLinhaPagamento(pagamento) {
     const tds = `
         <td>${pagamento.param[0].data_vencimento}</td>
         <td>${cc?.nome} ${cc.contrato ? `- ${cc?.contrato}` : ''}</td>
-        <td style="white-space: nowrap;">${dinheiro(pagamento.param[0].valor_documento)}</td>
+        <td style="white-space: nowrap; text-align: left;"><b>${pagamento?.app || '2AC'}</b> ${dinheiro(pagamento.param[0].valor_documento)}</td>
         <td>
             <div style="${horizontal}; justify-content: start; gap: 5px;">
                 <img src="${iconePagamento(pagamento.status)}" style="width: 2vw;">
