@@ -112,7 +112,7 @@ function criarAtalhoMenu({ nome, img, funcao }) {
 async function executar(nomeFuncao) {
 
     // É a função que carrega a tela atual;
-    if (nomeFuncao.includes('tela')) funcaoTela = nomeFuncao
+    if (nomeFuncao && nomeFuncao.includes('tela')) funcaoTela = nomeFuncao
 
     funcaoAtiva = nomeFuncao
 
@@ -1508,19 +1508,49 @@ async function gerarPdfOnline(htmlString, nome) {
 
 }
 
-async function relancarPagamento(id_pagamento) {
+async function relancarPagamento(idPagamento) {
 
+    const acumulado = `
+        <div style="${vertical}; background-color: #d2d2d2; padding: 1rem;">
+
+            <div style="${horizontal}; gap: 1rem;">
+                <span>Qual APP deve ser relançado?</span>
+                <select class="opcoesSelect" id="app">
+                    ${['AC', 'IAC'].map(op => `<option>${op}</option>`).join('')}
+                </select>
+            </div>
+            <br>
+            <hr style="width: 100%;">
+            <button onclick="confirmarRelancamento('${idPagamento}')">Confirmar</button>
+        </div>
+    `
+    popup(acumulado, 'Escolha o APP', true)
+}
+
+async function confirmarRelancamento(idPagamento) {
+
+    const app = document.getElementById('app').value
+
+    removerPopup()
     overlayAguarde()
 
-    let lista_pagamentos = await recuperarDados('lista_pagamentos') || {}
+    let pagamento = await recuperarDado('lista_pagamentos', idPagamento)
 
-    if (!lista_pagamentos[id_pagamento]) return popup(mensagem('Algo deu ruim...'), 'AVISO', true)
+    pagamento.app = app
 
-    let pagamento = lista_pagamentos[id_pagamento]
-    console.log(await lancarPagamento(pagamento))
+    await enviar(`lista_pagamentos/${idPagamento}/app`, app)
+
+    const resposta = await lancarPagamento({ pagamento, dataFixa: true })
+
     pagamento.status = 'Processando...'
-    await inserirDados(lista_pagamentos, 'lista_pagamentos')
-    await abrirDetalhesPagamentos(id_pagamento)
+
+    await inserirDados({ [idPagamento]: pagamento }, 'lista_pagamentos')
+    await abrirDetalhesPagamentos(idPagamento)
+
+    const texto = resposta?.mensagem?.descricao_status ? resposta?.mensagem?.descricao_status : JSON.stringify(resposta?.mensagem || 'Sem resposta')
+    popup(mensagem(texto, 'imagens/atualizar3.png'), 'Resposta', true)
+    
+    telaPagamentos()
 
 }
 
@@ -1552,13 +1582,12 @@ async function reprocessarAnexos(idPagamento) {
     })
 }
 
-async function lancarPagamento(pagamento, call) {
+async function lancarPagamento({ pagamento, call, dataFixa }) {
     return new Promise((resolve, reject) => {
-
         fetch(`${api}/lancar_pagamento`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pagamento, call })
+            body: JSON.stringify({ pagamento, call, dataFixa })
         })
             .then(response => {
                 if (!response.ok) {
@@ -1568,12 +1597,6 @@ async function lancarPagamento(pagamento, call) {
             })
             .then(data => {
                 data = JSON.parse(data)
-
-                if (data.faultstring) {
-                    let comentario = `Erro na API ao enviar o pagamento para o Omie! ${data.faultstring}`
-                    registrarAlteracao('lista_pagamentos', pagamento.id_pagamento, comentario)
-                }
-
                 resolve(data);
             })
             .catch(err => reject(err))

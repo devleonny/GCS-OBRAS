@@ -5,7 +5,6 @@ let dados_composicoes = {}
 let moduloComposicoes = {}
 let tabelaAtiva;
 let tipoAtivo = 'TODOS'
-let draggedRow = null;
 let titulo = null
 
 const metaforas = [
@@ -325,7 +324,7 @@ function carregarLinhaOrcamento(codigo, produto) {
     if (trExistente) return trExistente.innerHTML = tds
 
     const linha = `
-        <tr draggable="true" 
+        <tr
             ondragstart="iniciarArraste(event)"
             ondragover="permitirSoltar(event)"
             ondrop="soltar(event)"

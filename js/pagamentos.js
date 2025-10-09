@@ -143,7 +143,7 @@ async function telaPagamentos() {
     })
 
     const acumulado = `
-        <div id="divPagamentos" style="display: flex; align-items: start; justify-content: start; width: 100%; gap: 1rem;">
+        <div class="divPagamentos">
 
             <div class="painelEsquerdo"></div>
 
@@ -160,6 +160,7 @@ async function telaPagamentos() {
                 </div>
                 <div class="rodapeTabela"></div>
             </div>
+            
         </div>
         `
     const painelEsquerdo = document.querySelector('.painelEsquerdo')
@@ -169,7 +170,7 @@ async function telaPagamentos() {
     function preencherDados() {
 
         let contagens = { TODOS: { qtde: 0, valor: 0 } }
-        for (const [idPagamento, pagamento] of Object.entries(lista_pagamentos).reverse()) {
+        for (const [, pagamento] of Object.entries(lista_pagamentos).reverse()) {
 
             if (!contagens[pagamento.status]) contagens[pagamento.status] = { qtde: 0, valor: 0 }
 
@@ -323,7 +324,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     const permissao = acesso.permissao
     const pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
     const cliente_omie = pagamento.param[0].codigo_cliente_fornecedor
-    const cliente = await recuperarDado('dados_clientes', cliente_omie)
+    const cliente = await recuperarDado('dados_clientes', cliente_omie) || await recuperarDado('dados_clientes_IAC', cliente_omie)
     const orcamento = await recuperarDado('dados_orcamentos', pagamento.id_orcamento) || false
     const anexos = Object.entries(pagamento?.anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexoPagamento('${id_pagamento}', '${idAnexo}')`))
@@ -336,7 +337,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     `
 
     let historico = Object.entries(pagamento?.historico || {})
-        .map(([his, justificativa]) => `
+        .map(([, justificativa]) => `
             <div class="vitrificado" style="border: 1px solid ${imagemEspecifica(justificativa).cor}">
                 <div style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;">
                     <label><strong>Status </strong>${justificativa.status}</label>
@@ -350,7 +351,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
     pagamento.param[0].categorias.forEach(item => {
 
-        const nomeCategoria = dados_categorias[item.codigo_categoria].categoria
+        const nomeCategoria = dados_categorias?.[item.codigo_categoria]?.categoria || 'Categoria Desativada'
         valores += `
             <div style="display: flex; align-items: center; justify-content: start; gap: 5px;">
                 <label><strong>${dinheiro(item.valor)}</strong> - ${nomeCategoria}</label>
@@ -470,8 +471,6 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     const cc = dadosCC?.[pagamento.id_orcamento] || {}
 
     const acumulado = `
-    <div style="${vertical}; background-color: #d2d2d2; width: 60vw; overflow-x: hidden;">
-    
         ${justificativaHTML(id_pagamento)}
 
         <div class="detalhesPagamento">
@@ -481,7 +480,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
                 ${(acesso.permissao == 'adm' || pagamento.usuario == acesso.criado) ? btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id_pagamento}')`) : ''}
                 ${acesso.permissao == 'adm' ? btnDetalhes('remover', 'Excluir pagamento', `confirmarExclusaoPagamento('${id_pagamento}')`) : ''}
                 ${acesso.permissao == 'adm' ? btnDetalhes('concluido', 'Lançar pagamento', `relancarPagamento('${id_pagamento}')`) : ''}
-                ${acesso.permissao == 'adm' ? btnDetalhes('omie', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id_pagamento}')`) : ''}
+                ${acesso.permissao == 'adm' ? btnDetalhes('anexo', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id_pagamento}')`) : ''}
             </div>
 
             ${modelo('Status Atual', `${divStatus}`)}
@@ -519,10 +518,11 @@ async function abrirDetalhesPagamentos(id_pagamento) {
             ${historico}
 
         </div>
-    </div>
     `
 
-    popup(acumulado, 'Detalhes do Pagamento')
+    const telaDetalhes = document.querySelector('.tela-detalhes')
+    if (telaDetalhes) return telaDetalhes.innerHTML = acumulado
+    popup(`<div class="tela-detalhes">${acumulado}</div>`, 'Detalhes do Pagamento')
 
     // Depois que se abre o pagamento, percorra os anexos e preencha cada item;
     if (pagamento.anexos_parceiros) {
@@ -619,8 +619,7 @@ function colorirParceiros() {
 
             const balao = numero?.parentElement
             if (balao) {
-                balao.style.background = `linear-gradient(to right, ${divs[i].children.length == 0 ? '#B12425' : 'green'
-                    } 10%, #b7b7b7 0%)`
+                balao.style.background = `linear-gradient(to right, ${divs[i].children.length == 0 ? '#B12425' : 'green'} 10%, #f0f0f0 10%)`
             }
 
             i++
@@ -633,8 +632,7 @@ function colorirParceiros() {
     if (!contornoBotaoLiberacao) el.textContent = i + 1
 
     if (balao) {
-        balao.style.background = `linear-gradient(to right, ${v_orcado.value == 0 ? '#B12425' : 'green'
-            } 10%, #b7b7b7 0%)`
+        balao.style.background = `linear-gradient(to right, ${v_orcado.value == 0 ? '#B12425' : 'green'} 10%, #f0f0f0 10%)`
     }
 }
 
@@ -670,10 +668,10 @@ async function autorizarPagamentos(resposta, id_pagamento) {
     if (resposta) {
         if (permissao == 'diretoria') {
             status = 'Aprovado pela Diretoria';
-            lancarPagamento(pagamento);
+            lancarPagamento({ pagamento });
         } else if (permissao == 'fin' || (permissao == 'gerente' && setor == 'FINANCEIRO')) {
             status = `Aprovado pelo ${setor}`;
-            lancarPagamento(pagamento);
+            lancarPagamento({ pagamento });
         } else if (permissao !== 'qualidade' && setorUsuarioPagamento == 'INFRA' && pagamentoParceiroAtivo) {
             status = 'Aguardando aprovação da Qualidade';
         } else if (permissao == 'gerente' || permissao == 'qualidade') {
@@ -726,7 +724,7 @@ async function salvarPagamento() {
 
         if (ultimoPagamento.param[0].valor_documento <= 500) {
             ultimoPagamento.status = 'Processando...'
-            lancarPagamento(ultimoPagamento)
+            lancarPagamento({ pagamento: ultimoPagamento })
         } else if (permissao == 'gerente') {
             ultimoPagamento.status = 'Aguardando aprovação da Diretoria'
         } else {
@@ -766,12 +764,14 @@ async function criarPagamento() {
 
     const acumulado = `
 
-        <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw; height: 60vh; overflow-y: auto; overflow-x: hidden;">
+        <div class="formulario-pagamento">
 
             <div style="${horizontal}: gap: 1vw;">
                 ${botao('Atualizar GCS', 'recuperarPagamentos()', '#097fe6')}
                 ${botao('Recomeçar', 'apagarPagamento()', '#B12425')}
             </div>
+
+            <hr style="width: 100%;">
 
             ${modeloCampos('cc', 'Centro de Custo', `
                     <span class="opcoes" name="cc" onclick="cxOpcoes('cc', 'dados_CC', ['nome', 'contrato', 'analista', 'cidade', 'cnpj', 'valor'], 'calculadoraPagamento()')">Selecionar</span>
@@ -802,6 +802,16 @@ async function criarPagamento() {
                     <div id="anexosDiversos" style="${vertical}; gap: 2px;"></div>
                 `)}
 
+            ${modeloCampos('app',
+        `<div style="${horizontal}; gap: 5px; margin-right: 3rem;">
+                    <select id="app" onchange="calculadoraPagamento()">
+                        ${['AC', 'IAC'].map(op => `<option>${op}</option>`).join('')}
+                    </select>
+                </div>
+                `,
+        '<span style="padding-right: 2rem;"><b>IAC</b> Apenas reembolso para funcionário</span>'
+    )}
+
             <div id="painelParceiro" style="${vertical}; gap: 5px; width: 100%;">
                 ${incluirCamposAdicionais()}
             </div>
@@ -820,8 +830,8 @@ async function criarPagamento() {
             </div>
             
             <div style="${vertical}; align-items: center;" onclick="duvidas()">
-                <img src="gifs/interrogacao.gif" >
-                <span>Na dúvida?</span>
+                <img src="gifs/interrogacao.gif">
+                <span><b>REGRAS</b></span>
             </div>
 
             <label id="liberarBotao" class="contorno_botoes" style="background-color: green; display: none;"
@@ -1014,10 +1024,10 @@ function carregarTabelaCustoParceiro(dados = {}) {
         : ''
 
     return `
-            <div style="${vertical}">
+            <div style="${vertical}; padding: 5px;">
                 ${botaoAtualizar}
-                <table class="tabela" style="margin: 5px; color: black;">
-                    <thead style="background-color:#c4c4c4;">
+                <table class="tabela">
+                    <thead>
                         <th>Valor Orçado</th>
                         <th>LPU do Parceiro</th>
                         <th>% LPU x VO</th>
@@ -1111,12 +1121,14 @@ async function calculadoraPagamento(pagamentoEmEdicao) {
     const coloridos = document.querySelectorAll('.numero')
     const painelParceiro = document.getElementById('painelParceiro')
     const descricao = document.getElementById('descricao')
+    const app = document.getElementById('app').value
 
     const dataPagamento = document.getElementById('dataPagamento')
     const data = calcularDataPagamento(auxCategorias.atrasoRegras)
     let dataFinal = compararDatas(dataPagamento.value, data)
 
     // Validação de cores;
+    colorir(app, 'app')
     colorir(v_orcado.value !== '', 'tabelaParceiro')
     colorir(cc.id !== '', 'cc')
     colorir(recebedor.id !== '', 'recebedor')
@@ -1170,6 +1182,7 @@ async function calculadoraPagamento(pagamentoEmEdicao) {
 
         ultimoPagamento = {
             ...ultimoPagamento,
+            app,
             id_orcamento: cc.id,
             departamento: cc.id,
             data_registro: obterDatas('completa'),
@@ -1250,7 +1263,7 @@ async function calculadoraPagamento(pagamentoEmEdicao) {
     function colorir(validacao, elemento) {
         const el = document.querySelector(`[name="${elemento}Numero"]`)
         const balao = el?.parentElement
-        if (balao) balao.style.background = `linear-gradient(to right, ${validacao ? 'green' : '#B12425'} 10%, #b7b7b7 0%)`
+        if (balao) balao.style.background = `linear-gradient(to right, ${validacao ? 'green' : '#B12425'} 10%, #f0f0f0 10%)`
     }
 
 }
@@ -1275,6 +1288,8 @@ async function recuperarUltimoPagamento() {
     recebedor.textContent = dados_clientes?.[ultimoPagamento?.param[0]?.codigo_cliente_fornecedor]?.nome || 'Selecionar'
 
     document.getElementById('descricao').value = ultimoPagamento?.param[0]?.observacao || ''
+
+    document.getElementById('app').value = ultimoPagamento?.app || 'AC'
 
     let dataSalva = ''
     if (ultimoPagamento?.param[0]?.data_vencimento) {

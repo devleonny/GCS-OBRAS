@@ -93,6 +93,7 @@ async function acessoLogin() {
 
             } else if (data.usuario) {
                 localStorage.setItem('acesso', JSON.stringify(data));
+                acesso = data
                 telaPrincipal()
                 removerOverlay()
             }
