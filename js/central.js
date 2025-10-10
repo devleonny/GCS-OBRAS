@@ -1413,13 +1413,14 @@ function connectWebSocket() {
     }
 
     socket.onmessage = async (event) => {
+
         const data = JSON.parse(event.data)
 
         if (data.tabela == 'dados_orcamentos') {
             verificarPendencias()
         }
 
-        if (data.tipo == 'exclusao') {
+        if (data.tipo == 'exclusao') { // Só se for no nível
             await deletarDB(data.tabela, data.id)
             await refletir()
         } else if (data.tipo == 'atualizacao') {
