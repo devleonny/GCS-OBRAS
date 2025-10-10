@@ -1348,9 +1348,6 @@ function elementosEspecificos(chave, historico) {
 
     } else if (historico.status == 'PEDIDO') {
 
-        console.log(historico);
-        
-
         const modeloCampos = (valor1, campo, titulo) => {
             let opcoes = ['Serviço', 'Venda', 'Venda + Serviço']
                 .map(op => `<option ${valor1 == op ? 'selected' : ''}>${op}</option>`)
@@ -1362,7 +1359,7 @@ function elementosEspecificos(chave, historico) {
                     <div style="${horizontal}; gap: 2px;">
                         ${campo == 'tipo'
                         ? `<select style="${estilo}" onchange="atualizarPedido('${chave}', '${campo}', this)">${opcoes}</select>`
-                        : `<input style="${estilo}" value="${valor1}" oninput="mostrarConfirmacao(this)">`}
+                        : `<input style="${estilo}" type="number" value="${valor1}" oninput="mostrarConfirmacao(this)">`}
                         <img src="imagens/concluido.png" style="display: none; width: 1vw;" onclick="atualizarPedido('${chave}', '${campo}', this)">
                     </div>
                 </div>
