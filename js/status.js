@@ -1672,11 +1672,13 @@ async function atualizarPedido(chave, campo, imgSelect) {
 
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
-    let elemento = campo == 'tipo' ? imgSelect : imgSelect.previousElementSibling;
+    const elemento = campo == 'tipo' ? imgSelect : imgSelect.previousElementSibling;
 
-    orcamento.status.historico[chave][campo] = elemento.value
+    const valor = campo == 'valor' ? Number(elemento.value) : elemento.value
 
-    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/${campo}`, elemento.value)
+    orcamento.status.historico[chave][campo] = valor
+
+    enviar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/${campo}`, valor)
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
 
     campo !== 'tipo' ? imgSelect.style.display = 'none' : ''
