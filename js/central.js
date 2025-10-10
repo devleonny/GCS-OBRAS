@@ -1405,15 +1405,19 @@ let reconnectInterval = 30000;
 connectWebSocket();
 
 function connectWebSocket() {
-    socket = new WebSocket(`${api}:8443`);
+    socket = new WebSocket(`${api}:8443`)
 
     socket.onopen = () => {
-        if (acesso) socket.send(JSON.stringify({ tipo: 'autenticar', usuario: acesso.usuario }));
-        console.log(`🟢🟢🟢 WS ${obterDatas('completa')} 🟢🟢🟢`);
-    };
+        if (acesso) socket.send(JSON.stringify({ tipo: 'autenticar', usuario: acesso.usuario }))
+        console.log(`🟢🟢🟢 WS ${obterDatas('completa')} 🟢🟢🟢`)
+    }
 
     socket.onmessage = async (event) => {
-        const data = JSON.parse(event.data);
+        const data = JSON.parse(event.data)
+
+        if (data.tabela == 'dados_orcamentos') {
+            verificarPendencias()
+        }
 
         if (data.tipo == 'exclusao') {
             await deletarDB(data.tabela, data.id)
@@ -1428,13 +1432,13 @@ function connectWebSocket() {
             usuariosToolbar()
         }
 
-    };
+    }
 
     socket.onclose = () => {
         console.log(`🔴🔴🔴 WS ${obterDatas('completa')} 🔴🔴🔴`);
-        console.log(`Tentando reconectar em ${reconnectInterval / 1000} segundos...`);
+        console.log(`Tentando reconectar em ${reconnectInterval / 1000} segundos...`)
         setTimeout(connectWebSocket, reconnectInterval);
-    };
+    }
 
     async function refletir() {
         semOverlay = true

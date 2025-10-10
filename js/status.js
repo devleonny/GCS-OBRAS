@@ -44,24 +44,21 @@ async function painelAdicionarPedido() {
 
                 ${modelo('Tipo de Pedido', `
                     <select id="tipo" class="pedido">
-                        <option>Selecione</option>
-                        <option>Locação</option>
-                        <option>Serviço</option>
-                        <option>Venda</option>
-                        <option>Venda + Serviço</option>
+                        ${['Selecione', 'Locação', 'Serviço', 'Venda', 'Venda + Serviço'].map(op => `<option>${op}</option>`).join('')}
                     </select>
                     `)}
 
                 ${modelo('', `
                 <div style="display: flex; gap: 10px; align-items: center; justify-content: start;">
-                    <input type="checkbox" onchange="ocultar_pedido(this)" style="cursor: pointer; width: 30px; height: 30px;">
-                    <label>Sem Pedido</label>
+                    <input type="checkbox" onchange="aprovadoEmail(this)" style="cursor: pointer; width: 30px; height: 30px;">
+                    <label>Aprovado Via E-mail</label>
                 </div>`)}
 
-                <div id="div_pedidos">
+                <div id="divPedido">
                     ${modelo('Número do Pedido', '<input type="text" class="pedido" id="pedido">')}
-                    ${modelo('Valor do Pedido', '<input type="number" class="pedido" id="valor">')}
                 </div>
+
+                ${modelo('Valor do Pedido', '<input type="number" class="pedido" id="valor">')}
                 
                 ${modelo('Comentário', '<textarea rows="5" id="comentario_status"></textarea>')}
 
@@ -74,7 +71,7 @@ async function painelAdicionarPedido() {
         </div>
     `
 
-    popup(acumulado, "Novo Pedido", true)
+    popup(acumulado, 'Novo Pedido', true)
 
 }
 
@@ -311,24 +308,14 @@ function maisPagamentos(botao) {
     divAnterior.insertAdjacentHTML('afterend', divAnterior.outerHTML);
 }
 
-function ocultar_pedido(elemento) {
+function aprovadoEmail(input) {
 
-    let pedido = document.getElementById('pedido')
-    let valor = document.getElementById('valor')
-    let div_pedidos = document.getElementById('div_pedidos')
+    const pedido = document.getElementById('pedido')
+    const divPedido = document.getElementById('divPedido')
 
-    if (pedido && valor && div_pedidos) {
+    divPedido.style.display = input.checked ? 'none' : 'flex'
+    pedido.value = input.checked ? 'Aprovado Via E-mail' : ''
 
-        if (elemento.checked) {
-            div_pedidos.style.display = 'none'
-            pedido.value = '???'
-            valor.value = 0
-        } else {
-            div_pedidos.style.display = 'block'
-            pedido.value = ''
-            valor.value = 0
-        }
-    }
 }
 
 async function calcularRequisicao(sincronizar) {
@@ -719,33 +706,25 @@ function mostrarItensAdicionais() {
 }
 
 async function salvarPedido() {
-    let comentario_status = document.getElementById('comentario_status')
-    let valor = document.getElementById('valor')
-    let tipo = document.getElementById('tipo')
-    let pedido = document.getElementById('pedido')
-    let chave = ID5digitos()
+    const comentario_status = document.getElementById('comentario_status')
+    const valor = document.getElementById('valor')
+    const tipo = document.getElementById('tipo')
+    const pedido = document.getElementById('pedido')
+    const chave = ID5digitos()
 
     if (valor.value == '' || tipo.value == 'Selecione' || pedido.value == '') {
 
-        return popup(mensagem(`Existem campos em Branco`, 'ALERTA', true))
+        return popup(mensagem(`Existem campos em Branco`), 'ALERTA', true)
 
     }
 
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
-    if (!orcamento.status) {
-        orcamento.status = { historico: {} };
-    }
+    if (!orcamento.status) orcamento.status = { historico: {} }
+    if (!orcamento.status.historico) orcamento.status.historico = {}
+    if (!orcamento.status.historico[chave]) orcamento.status.historico[chave] = {}
 
-    if (!orcamento.status.historico) {
-        orcamento.status.historico = {}
-    }
-
-    if (!orcamento.status.historico[chave]) {
-        orcamento.status.historico[chave] = {}
-    }
-
-    let dados = {
+    const dados = {
         data: obterDatas('completa'),
         executor: acesso.usuario,
         comentario: comentario_status.value,
@@ -1013,7 +992,9 @@ async function arquivarOrcamento(idOrcamento) {
     await telaOrcamentos()
     removerOverlay()
 
-    popup(mensagem(`${orcamento.arquivado ? 'Arquivado' : 'Desarquivado'} com sucesso!`, 'ARQUIVAMENTO'))
+    const img = orcamento.arquivado ? 'desarquivar' : 'pasta'
+
+    popup(mensagem(`${orcamento.arquivado ? 'Arquivado' : 'Desarquivado'} com sucesso!`, `imagens/${img}.png`), 'Arquivamento', true)
 
 }
 
@@ -1367,21 +1348,24 @@ function elementosEspecificos(chave, historico) {
 
     } else if (historico.status == 'PEDIDO') {
 
-        let modeloCampos = (valor1, campo, titulo) => {
+        console.log(historico);
+        
+
+        const modeloCampos = (valor1, campo, titulo) => {
             let opcoes = ['Serviço', 'Venda', 'Venda + Serviço']
                 .map(op => `<option ${valor1 == op ? 'selected' : ''}>${op}</option>`)
                 .join('');
             let estilo = `border-radius: 2px; font-size: 0.7vw; padding: 5px; cursor: pointer;`
             return `
-            <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 5px;">
-                <label><strong>${titulo}:</strong></label>
-                <div style="${horizontal}; gap: 2px;">
-                    ${campo == 'tipo'
-                    ? `<select style="${estilo}" onchange="atualizarPedido('${chave}', '${campo}', this)">${opcoes}</select>`
-                    : `<input style="${estilo}" value="${valor1}" oninput="mostrarConfirmacao(this)">`}
-                    <img src="imagens/concluido.png" style="display: none; width: 1vw;" onclick="atualizarPedido('${chave}', '${campo}', this)">
+                <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; gap: 5px;">
+                    <label><strong>${titulo}:</strong></label>
+                    <div style="${horizontal}; gap: 2px;">
+                        ${campo == 'tipo'
+                        ? `<select style="${estilo}" onchange="atualizarPedido('${chave}', '${campo}', this)">${opcoes}</select>`
+                        : `<input style="${estilo}" value="${valor1}" oninput="mostrarConfirmacao(this)">`}
+                        <img src="imagens/concluido.png" style="display: none; width: 1vw;" onclick="atualizarPedido('${chave}', '${campo}', this)">
+                    </div>
                 </div>
-            </div>
             `
         }
 

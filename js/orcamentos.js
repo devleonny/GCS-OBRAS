@@ -194,7 +194,7 @@ async function telaOrcamentos(semOverlay) {
         if (!idsAtivos.includes(idAtual)) document.getElementById(idAtual).remove()
     }
 
-    filtrarOrcamentos({ ultimoStatus: 'TODOS' })
+    filtrarOrcamentos()
 
     criarMenus('orcamentos')
 
