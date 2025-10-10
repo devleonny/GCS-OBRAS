@@ -225,13 +225,13 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
         const valor1 = historico.tipo
         const valor2 = historico.status == 'FATURADO' ? historico.nf : historico.pedido
-        const valor3 = historico.valor
+        const valor3 = conversor(historico.valor)
 
         labels[historico.status] += `
             <div class="etiqueta_pedidos"> 
                 <label>${valor1}</label>
                 <label><b>${valor2}</b></label>
-                <label><b>${dinheiro(valor3)}</b></label>
+                ${historico.valor ? `<label><b>${dinheiro(valor3)}</b></label>` : ''}
             </div>
             `
     }
