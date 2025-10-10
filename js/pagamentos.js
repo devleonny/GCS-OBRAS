@@ -365,7 +365,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
         <hr style="width: 100%;">
         <div style="${vertical}">
             <div style="${horizontal}; justify-content: start; gap: 10px;">
-                <label style="font-size: 2vw;">${dinheiro(pagamento.param[0].valor_documento)}</label>
+                <label style="font-size: 1.5rem;">${dinheiro(pagamento.param[0].valor_documento)}</label>
                 <label>Total</label>
             </div>
             ${valores}
