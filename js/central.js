@@ -2250,7 +2250,7 @@ async function salvarDadosCliente() {
         contrato.style.display = 'block'
     }
 
-    const omie_cliente = document.querySelector('[name="cliente"]').id
+    const omie_cliente = Number(document.querySelector('[name="cliente"]').id)
 
     orcamentoBase.dados_orcam = {
         ...orcamentoBase.dados_orcam,
