@@ -522,7 +522,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
     const telaDetalhes = document.querySelector('.tela-detalhes')
     if (telaDetalhes) return telaDetalhes.innerHTML = acumulado
-    popup(`<div class="tela-detalhes">${acumulado}</div>`, 'Detalhes do Pagamento')
+    popup(`<div class="tela-detalhes">${acumulado}</div>`, 'Detalhes do Pagamento', true)
 
     // Depois que se abre o pagamento, percorra os anexos e preencha cada item;
     if (pagamento.anexos_parceiros) {

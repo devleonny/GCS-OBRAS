@@ -122,6 +122,7 @@ async function telaCriarOrcamento() {
     criarMenus('criarOrcamentos')
     await atualizarPrecos()
 }
+
 function atualizarToolbar(remover) {
 
     titulo = document.querySelector('[name="titulo"]')

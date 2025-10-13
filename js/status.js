@@ -1001,6 +1001,8 @@ async function arquivarOrcamento(idOrcamento) {
 
 async function painelCustos() { //29
 
+    id_orcam = 'ORCA_fea1d02f-3879-4ecb-bf67-86dc13b9e1a9'
+
     overlayAguarde()
 
     const dados = await receberCustos(id_orcam)
@@ -1008,9 +1010,12 @@ async function painelCustos() { //29
     const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
     const omieCliente = orcamento?.dados_orcam?.omie_cliente || ''
     const cliente = await recuperarDado('dados_clientes', omieCliente)
+    const totalCustos = Object.values(dadosCustos).reduce((acc, val) => acc + val, 0)
+    const lucroReal = orcamento.total_geral - totalCustos
+    const lucratividade = ((lucroReal / orcamento.total_geral) * 100).toFixed(0)
 
     const spans1 = (texto, valor) => `<span>${texto}: <b>${dinheiro(valor)}</b></span>`
-    const colunas = ['Código', 'Descrição', 'Tipo', 'Valor no Orçamento', 'Custo Compra', 'Impostos', 'Frete Saída', 'Lucratividade Individual']
+    const colunas = ['Código', 'Descrição', 'Tipo', 'Valor no Orçamento', 'Custo Compra', 'Impostos', 'Frete Saída', 'Lucro Real', 'Lucratividade Individual']
     const ths = colunas.map(op => `<th>${op}</th>`).join('')
     const pesquisa = colunas.map((op, i) => `
         <th contentEditable="true" 
@@ -1020,12 +1025,17 @@ async function painelCustos() { //29
     `)
         .join('')
 
-    const linhasPagamentos = Object.entries(dadosCustos?.detalhes || {})
-        .map(([, dados]) => `
+    const linhasPagamentos = Object.entries(dados?.detalhes || {})
+        .map(([idPagamento, dados]) => `
             <tr>
                 <td>${dados.recebedor}</td>
                 <td>${dados.cidade}</td>
-                <td>${dados.valor}</td>
+                <td>${dinheiro(dados.valor)}</td>
+                <td>
+                    <div style="${horizontal}">
+                        <img src="imagens/pesquisar2.png" onclick="abrirDetalhesPagamentos('${idPagamento}')" style="width: 2rem;">
+                    </div>
+                </td>
             <tr>
         `).join('')
 
@@ -1038,9 +1048,21 @@ async function painelCustos() { //29
 
             <hr style="width: 100%;">
 
-            ${spans1('Custo com compra de material', dadosCustos.custoCompra)}
-            ${spans1('Custo com Frete de saída (5%)', dadosCustos.freteVenda)}
-            ${spans1('Custo com Impostos', dadosCustos.impostos)}
+            <div style="${horizontal}; justify-content: start; gap: 2rem;">
+                <div style="${vertical}">
+                    ${spans1('Custo com compra de material', dadosCustos.custoCompra)}
+                    ${spans1('Custo com Frete de saída (5%)', dadosCustos.freteVenda)}
+                    ${spans1('Custo com Impostos', dadosCustos.impostos)}
+                    ${spans1('Pagamentos feitos', dadosCustos.pagamentos)}
+                </div>
+
+                <div style="${vertical}">
+                    ${divPorcentagem(lucratividade)}
+                    <span>Lucratividade (<b>R$</b>) <span style="font-size: 1.5rem;">${dinheiro(lucroReal)}</span></span>
+                </div>
+
+            </div>
+
 
             <hr style="width: 100%;">
 
@@ -1062,12 +1084,12 @@ async function painelCustos() { //29
                 <div class="rodapeTabela"></div>
             </div>
 
-            <div class="pagamentos">
+            <div class="pagamentos" style="display: none;">
                 <div class="topo-tabela"></div>
                 <div class="div-tabela">
                     <table class="tabela" id="tabela_composicoes">
                         <thead>
-                            <tr>${['Recebedor', 'Cidade', 'Valor']}</tr>
+                            <tr>${['Recebedor', 'Cidade', 'Valor', ''].map(op => `<th>${op}</th>`).join('')}</tr>
                         </thead>
                         <tbody>${linhasPagamentos}</tbody>
                     </table>
@@ -1079,7 +1101,7 @@ async function painelCustos() { //29
     `
 
     const painelCustos = document.querySelector('.painel-custos')
-    if(!painelCustos) popup(acumulado, 'Painel de Custos')
+    if (!painelCustos) popup(acumulado, 'Painel de Custos')
 
     for (const [codigo, item] of Object.entries(dados?.itens || {})) {
         criarLinhaCusto(codigo, item)
@@ -1108,6 +1130,7 @@ function criarLinhaCusto(codigo, item) {
                 ${td(item.custoCompra)}
                 ${td(item.impostoLinha)}
                 ${td(item.freteLinha)}
+                ${td(lucroLinha)}
                 <td>
                     ${divPorcentagem(porcentagemLL)}
                 </td>
