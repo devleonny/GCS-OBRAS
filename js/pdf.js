@@ -26,7 +26,6 @@ const dadosEmpresas = {
     }
 }
 
-var perc_parceiro = 0.35
 preencher()
 
 function excel() {
@@ -84,19 +83,19 @@ async function atualizarDadosPdf() {
 
 async function preencher() {
 
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    let orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {};
+    const dados_composicoes = await recuperarDados('dados_composicoes') || {}
+    const orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {};
 
     // LÓGICA DOS DADOS
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let informacoes = {
+    const dados_clientes = await recuperarDados('dados_clientes') || {}
+    const informacoes = {
         ...orcamentoBase.dados_orcam,
         ...dados_clientes?.[orcamentoBase.dados_orcam.omie_cliente] || {}
     }
 
-    let empresaEmissora = dadosEmpresas[informacoes?.emissor || 'AC SOLUÇÕES']
+    const empresaEmissora = dadosEmpresas[informacoes?.emissor || 'AC SOLUÇÕES']
 
-    let dadosPorBloco = {
+    const dadosPorBloco = {
         'Dados da Proposta': {
             'Número do Chamado': informacoes.contrato,
             'Tipo de Frete': informacoes.tipo_de_frete,
@@ -127,13 +126,13 @@ async function preencher() {
     }
 
     // LÓGICA DOS ITENS
-    let html_orcamento = document.getElementById('html_orcamento')
+    const html_orcamento = document.getElementById('html_orcamento')
     html_orcamento.innerHTML = ''
 
     let tabelas = ''
     let itens = orcamentoBase.dados_composicoes
 
-    let cabecalho = {
+    const cabecalho = {
         1: 'Código',
         2: 'Descrição',
         3: 'Imagem *Ilustrativa',
@@ -146,7 +145,7 @@ async function preencher() {
         10: 'TOTAL'
     }
 
-    let config = {
+    const config = {
         'ALUGUEL': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: 'green' },
         'USO E CONSUMO': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: '#24729d' },
         'SERVIÇO': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: 'green' },
@@ -159,11 +158,11 @@ async function preencher() {
 
     for(let [codigo, item] of Object.entries(itens)) {
 
-        let colunas = config[item.tipo].colunas
-        let itemComposicao = dados_composicoes[codigo]
-        let lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
-        let tabelaPreco = itemComposicao?.[lpu]
-        let estado = informacoes.estado
+        const colunas = config[item.tipo].colunas
+        const itemComposicao = dados_composicoes[codigo] || {}
+        const lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
+        const tabelaPreco = itemComposicao?.[lpu]
+        const estado = informacoes.estado
 
         // Se o ICMS Creditado for 4% e a venda for para fora do estado: ao invés de 12% vai ser apenas 4%;
         let icms = 0
@@ -196,10 +195,16 @@ async function preencher() {
 
         const ncm = itemComposicao?.ncm || null
 
+        const descricao = `
+            ${item?.descricao || 'N/A'}
+            <b>${itemComposicao?.fabricante || ''}</b>
+            ${itemComposicao?.modelo || ''}
+        `
+
         tds[1] = `<td>${item.codigo}</td>`
         tds[2] = `
         <td>
-            <div style="${vertical}">
+            <div style="${vertical}; text-align: left;">
                 ${item.tipo_desconto && item.tipo_desconto == 'Venda Direta' ? `
                     <div style="${vertical}; gap: 2px; text-align: left;">
                         <label><b>Venda Direta</b></label>
@@ -207,7 +212,7 @@ async function preencher() {
                         <label><b>CNPJ</b> ${item?.cnpj || '--'}</label>
                     </div>
                     ` : ''}
-                <label>${item?.descricao || 'N/A'}</label>
+                <label>${descricao}</label>
                 ${ncm ? `<label><strong>ncm:</strong> ${ncm}</label>`: ''}
             </div>
         </td>`

@@ -2,6 +2,7 @@ let itensAdicionais = {}
 let id_orcam = ''
 let dadosNota = {}
 let dados_estoque = {}
+let filtroCustos = {}
 
 const fluxograma = [
     'LEVANTAMENTO',
@@ -1000,9 +1001,122 @@ async function arquivarOrcamento(idOrcamento) {
 
 async function painelCustos() { //29
 
-    console.log(await receberCustos(id_orcam))
+    overlayAguarde()
 
-    popup('', 'Painel de Custos')
+    const dados = await receberCustos(id_orcam)
+    const dadosCustos = dados.dadosCustos || {}
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const omieCliente = orcamento?.dados_orcam?.omie_cliente || ''
+    const cliente = await recuperarDado('dados_clientes', omieCliente)
+
+    const spans1 = (texto, valor) => `<span>${texto}: <b>${dinheiro(valor)}</b></span>`
+    const colunas = ['Código', 'Descrição', 'Tipo', 'Valor no Orçamento', 'Custo Compra', 'Impostos', 'Frete Saída', 'Lucratividade Individual']
+    const ths = colunas.map(op => `<th>${op}</th>`).join('')
+    const pesquisa = colunas.map((op, i) => `
+        <th contentEditable="true" 
+        style="text-align: left; background-color: white;" 
+        oninput="pesquisarGenerico('${i}', this.textContent, filtroCustos, 'bodyCustos')">
+        </th>
+    `)
+        .join('')
+
+    const linhasPagamentos = Object.entries(dadosCustos?.detalhes || {})
+        .map(([, dados]) => `
+            <tr>
+                <td>${dados.recebedor}</td>
+                <td>${dados.cidade}</td>
+                <td>${dados.valor}</td>
+            <tr>
+        `).join('')
+
+    const acumulado = `
+        <div class="painel-custos">
+
+            <span>${cliente.nome}</span>
+            <span><b>${orcamento.dados_orcam.contrato}</b></span>
+            <span>${cliente.cidade}</span>
+
+            <hr style="width: 100%;">
+
+            ${spans1('Custo com compra de material', dadosCustos.custoCompra)}
+            ${spans1('Custo com Frete de saída (5%)', dadosCustos.freteVenda)}
+            ${spans1('Custo com Impostos', dadosCustos.impostos)}
+
+            <hr style="width: 100%;">
+
+            <div class="toolbar-relatorio">
+                <span id="toolbar-orcamento" onclick="mostrarPagina('orcamento')" style="opacity: 1;">Orçamento</span>
+                <span id="toolbar-pagamentos" onclick="mostrarPagina('pagamentos')" style="opacity: 0.5;">Pagamentos</span>
+            </div>
+            <div class="orcamento">
+                <div class="topo-tabela"></div>
+                <div class="div-tabela">
+                    <table class="tabela" id="tabela_composicoes">
+                        <thead>
+                            <tr>${ths}</tr>
+                            <tr>${pesquisa}</tr>
+                        </thead>
+                        <tbody id="bodyCustos"></tbody>
+                    </table>
+                </div>
+                <div class="rodapeTabela"></div>
+            </div>
+
+            <div class="pagamentos">
+                <div class="topo-tabela"></div>
+                <div class="div-tabela">
+                    <table class="tabela" id="tabela_composicoes">
+                        <thead>
+                            <tr>${['Recebedor', 'Cidade', 'Valor']}</tr>
+                        </thead>
+                        <tbody>${linhasPagamentos}</tbody>
+                    </table>
+                </div>
+                <div class="rodapeTabela"></div>
+            </div>
+
+        </div>
+    `
+
+    const painelCustos = document.querySelector('.painel-custos')
+    if(!painelCustos) popup(acumulado, 'Painel de Custos')
+
+    for (const [codigo, item] of Object.entries(dados?.itens || {})) {
+        criarLinhaCusto(codigo, item)
+    }
+
+    console.log(dados)
+
+}
+
+function criarLinhaCusto(codigo, item) {
+
+    const custosLinha = item.custoCompra + item.impostoLinha + item.freteLinha
+    const totalLinha = item.quantidade * item.valor
+    const lucroLinha = totalLinha - custosLinha
+    const porcentagemLL = ((lucroLinha / totalLinha) * 100).toFixed(0)
+
+    const td = (valor) => `<td style="white-space: nowrap;">${dinheiro(valor)}</td>`
+
+    const tds = `
+            <tr>
+                <td>${codigo}</td>
+                <td>${item.descricao}</td>
+                <td>${item.tipo}</td>
+
+                ${td(totalLinha)}
+                ${td(item.custoCompra)}
+                ${td(item.impostoLinha)}
+                ${td(item.freteLinha)}
+                <td>
+                    ${divPorcentagem(porcentagemLL)}
+                </td>
+            </tr>
+        `
+
+    const trExistente = document.getElementById(codigo)
+    if (trExistente) return trExistente.innerHTML = tds
+    document.getElementById('bodyCustos').insertAdjacentHTML('beforeend', `<tr id="${codigo}">${tds}</tr>`)
 
 }
 
@@ -1022,13 +1136,11 @@ async function receberCustos(idOrcamento) {
                 return response.json();
             })
             .then(data => {
-                if (data.mensagem) {
-                    resolve({})
-                }
+                if (data.mensagem) resolve(data.mensagem)
                 resolve(data);
             })
             .catch(err => {
-                resolve({})
+                resolve(err)
             });
     })
 }
@@ -1046,39 +1158,6 @@ function divPorcentagem(porcentagem) {
             </div>
         </div>
     `;
-}
-
-function mostrarDetalhes(td, mostrar, freteVenda, compraLinha, totalImpostos) {
-
-    let detalhesPreco = document.getElementById('detalhesPreco')
-    if (detalhesPreco) detalhesPreco.remove()
-    if (!mostrar) return
-
-    let posicao = td.getBoundingClientRect()
-    let left = posicao.left + window.scrollX
-    let top = posicao.bottom + window.scrollY
-
-    let acumulado = `
-    <div id="detalhesPreco" class="detalhesValores" style="position: absolute; top: ${top}px; left: ${left}px;">
-        <table class="tabela">
-            <thead>
-                <th>Frete Saída</th>
-                <th>Custo Compra</th>
-                <th>Impostos</th>
-            <thead>
-            <tbody>
-                <tr>
-                    <td style="white-space: nowrap;">${dinheiro(freteVenda)}</td>
-                    <td style="white-space: nowrap;">${dinheiro(compraLinha)}</td>
-                    <td style="white-space: nowrap;">${dinheiro(totalImpostos)}</td>
-                <tr>
-            </tbody>
-        </table>
-    </div>
-    `
-
-    document.body.insertAdjacentHTML('beforeend', acumulado)
-
 }
 
 function exibirTabela(div) {

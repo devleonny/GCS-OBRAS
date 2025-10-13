@@ -238,7 +238,7 @@ async function relatorioChecklist() {
 
 function mostrarPagina(pagina) {
 
-    const paginas = ['relatorio', 'graficos']
+    const paginas = ['relatorio', 'graficos', 'pagamentos', 'orcamento']
     for (const pg of paginas) {
         const el = document.querySelector(`.${pg}`)
         if (el) {
