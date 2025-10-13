@@ -1004,7 +1004,7 @@ async function painelCustos() {
     let omieCliente = orcamento?.dados_orcam?.omie_cliente || ''
     let cliente = await recuperarDado('dados_clientes', omieCliente)
 
-    let guiaCores = {
+    const guiaCores = {
         'USO E CONSUMO': '#097fe6',
         'VENDA': '#B12425',
         'SERVIÇO': 'green',
@@ -1185,83 +1185,6 @@ function divPorcentagem(porcentagem) {
             </div>
         </div>
     `;
-}
-
-async function pagamentosVinculados(pagamentos) {
-
-    if (!pagamentos) return ''
-
-    let total = 0
-    let tabelas = ''
-    let dados_categorias = await recuperarDados('dados_categorias') || {}
-    let clientesOmie = await recuperarDados('dados_clientes') || {}
-
-    let modeloTabela = (categoria, linhas, valor) => `
-        <div class="contornoTabela">
-            <div style="display: flex; justify-content: start; align-items: center; gap: 5px; width: 100%;">
-                <img src="imagens/pasta.png" style="width: 2vw;" onclick="exibirTabela(this)">
-                <label style="font-size: 1.0vw; text-align: left;">${categoria} - ${dinheiro(valor)}</label>
-            </div>
-            <table class="tabela" style="display: none;">
-                <thead style="background-color: #797979;">
-                    <th style="color: white;">Recebedor</th>
-                    <th style="color: white;">Vencimento</th>
-                    <th style="color: white;">Valor</th>
-                </thead>
-                <tbody>${linhas}</tbody>
-            </table>
-        </div>
-    `
-
-    let pagamentosCategorias = {}
-
-    for (let idPagamento of pagamentos) {
-
-        let pagamento = await recuperarDado('lista_pagamentos', idPagamento)
-
-        if (!pagamento) continue
-
-        let categorias = pagamento.param[0].categorias
-
-        categorias.forEach(item => {
-
-            if (!pagamentosCategorias[item.codigo_categoria]) pagamentosCategorias[item.codigo_categoria] = []
-
-            let recorte = {
-                valor: item.valor,
-                recebedor: pagamento.param[0].codigo_cliente_fornecedor,
-                vencimento: pagamento.param[0].data_vencimento,
-                observacao: pagamento.param[0].observacao
-            }
-
-            pagamentosCategorias[item.codigo_categoria].push(recorte)
-
-        })
-
-    }
-
-    for (const [codCategoria, lista] of Object.entries(pagamentosCategorias)) {
-
-        let nomeCategoria = dados_categorias?.[codCategoria].categoria || codCategoria
-        let linhas = ''
-        let totalCategoria = 0
-        lista.forEach(item => {
-            totalCategoria += item.valor
-            total += item.valor
-            linhas += `
-            <tr>
-                <td>${clientesOmie?.[item.recebedor].nome || item.recebedor}</td>
-                <td>${item.vencimento}</td>
-                <td style="white-space: nowrap;">${dinheiro(item.valor)}</td>
-            </tr>
-            `
-        })
-
-        tabelas += modeloTabela(nomeCategoria, linhas, totalCategoria)
-
-    }
-
-    return { tabelas, total }
 }
 
 function mostrarDetalhes(td, mostrar, freteVenda, compraLinha, totalImpostos) {

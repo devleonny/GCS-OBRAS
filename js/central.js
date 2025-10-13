@@ -2469,12 +2469,11 @@ function pesquisarCX(input) {
     }
 }
 
-async function proxORC({ chamado, idOrcamento, sequencial }) {
+async function proxORC() {
     try {
         const opcoes = {
-            method: "POST",
+            method: "GET",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chamado, idOrcamento, sequencial })
         }
 
         const resposta = await fetch(`${api}/proxORC`, opcoes)

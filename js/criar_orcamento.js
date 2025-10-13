@@ -386,7 +386,7 @@ async function enviarDadosOrcamento() {
     if (dados_orcam.contrato === '') return popup(mensagem('Chamado em branco'), 'Alerta')
 
     if (dados_orcam.contrato == 'sequencial') {
-        const resposta = await proxORC({ sequencial: true })
+        const resposta = await proxORC()
         if (resposta.err) return popup(mensagem(resposta.err), 'Alerta', true)
         orcamentoBase.dados_orcam.contrato = `ORC_${resposta.proximo}`
     }

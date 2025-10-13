@@ -177,7 +177,7 @@ async function telaOrcamentos(semOverlay) {
     dados_clientes = await recuperarDados('dados_clientes') || {}
 
     let idsAtivos = []
-    for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos).reverse()) {
+    for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
         if (orcamento.origem !== origem) continue
         if (naoArquivados && orcamento.arquivado) continue
         if (!naoArquivados && !orcamento.arquivado) continue
@@ -239,15 +239,9 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
     const st = orcamento?.status?.atual || ''
     const opcoes = ['', ...fluxograma].map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`).join('')
 
-    let {
-        impostos = 0,
-        custo_compra = 0,
-        frete_venda = 0,
-        pagamentos = 0
-    } = orcamento?.dados_custos || {}
-
-    let lucratividade = orcamento.total_geral - impostos - custo_compra - frete_venda - pagamentos
-    let lucratividadePorcentagem = Number(((lucratividade / orcamento.total_geral) * 100).toFixed(0))
+    const totalCustos = Object.values(orcamento?.dados_custos || {}).reduce((acc, val) => acc + val, 0)
+    const lucratividade = orcamento.total_geral - totalCustos
+    const lucratividadePorcentagem = Number(((lucratividade / orcamento.total_geral) * 100).toFixed(0))
 
     const responsaveis = Object.entries(orcamento.usuarios || {})
         .map(([user,]) => user)

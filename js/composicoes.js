@@ -121,6 +121,10 @@ function criarLinhaComposicao(codigo, produto) {
             <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" 
             ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="cadastrarItem('${codigo}')"` : ''}>
             `
+        } else if (chave === 'codigo') {
+
+            conteudo = codigo
+
         } else if (chave === 'imagem') {
             alinhamento = 'center';
             conteudo = `
