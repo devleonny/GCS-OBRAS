@@ -998,178 +998,39 @@ async function arquivarOrcamento(idOrcamento) {
 
 }
 
-async function painelCustos() {
+async function painelCustos() { //29
 
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    let omieCliente = orcamento?.dados_orcam?.omie_cliente || ''
-    let cliente = await recuperarDado('dados_clientes', omieCliente)
+    console.log(await receberCustos(id_orcam))
 
-    const guiaCores = {
-        'USO E CONSUMO': '#097fe6',
-        'VENDA': '#B12425',
-        'SERVIÇO': 'green',
-        'ALUGUEL': '#e96300'
-    }
+    popup('', 'Painel de Custos')
 
-    let tabelasPorTipo = {}
-    let colunas = ['Código', 'Descrição', 'Quantidade', 'Margem (%)', 'Unitário Venda', 'Total Venda', 'Desconto', 'Lucro Total']
-    let ths = colunas.map(coluna => `<th>${coluna}</th>`).join('')
+}
 
-    for (const [codigo, composicao] of Object.entries(orcamento.dados_composicoes)) {
-
-        const tipo = composicao.tipo || 'OUTRO';
-
-        if (!tabelasPorTipo[tipo]) {
-            tabelasPorTipo[tipo] = { linhas: '', totais: { compra: 0, venda: 0, bruto: 0, imposto: 0, lucro: 0, desconto: 0 } }
-        }
-
-        let quantidade = composicao.qtde
-        let dadosCustosLinha = composicao?.dados_custos || {};
-        let {
-            margem = '--',
-            frete_venda = 0,
-            compra_linha = 0,
-            impostos = 0,
-            lucro_linha = 0,
-            lucro_porcentagem = 0,
-            desconto = 0
-        } = dadosCustosLinha;
-
-        let vendaLinha = composicao.custo * quantidade;
-        let descricao = composicao.descricao || '';
-
-
-        tabelasPorTipo[tipo].linhas += `
-            <tr>
-                <td>${codigo}</td>
-                <td style="text-align: left; width: 20vw;">${descricao}</td>
-                <td>${quantidade}</td>
-                <td>${margem}</td>
-                <td>${dinheiro(composicao.custo)}</td>
-                <td>${dinheiro(vendaLinha)}</td>
-                <td>${dinheiro(desconto)}</td>
-                <td style="position: relative; white-space: nowrap;" 
-                    onmouseover="mostrarDetalhes(this, true, ${frete_venda}, ${compra_linha}, ${impostos})"
-                    onmouseout="mostrarDetalhes(this, false)">
-                    (${lucro_porcentagem}%) ${dinheiro(lucro_linha)}
-                </td>
-            </tr>
-            `
-
-        // A nível totais por tabela;
-        let totais = tabelasPorTipo[tipo].totais;
-        totais.compra += compra_linha;
-        totais.venda += vendaLinha - desconto;
-        totais.bruto += vendaLinha;
-        totais.desconto += desconto;
-        totais.imposto += frete_venda;
-        totais.lucro += lucro_linha;
-
-    }
-
-    let modelo = (valor1, valor2) => {
-        return `
-            <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px; width: 100%;">
-                <label style="font-size: 0.9vw;">${valor1}</label>
-                <label style="font-size: 1.2vw;"><strong>${valor2}</strong></label>
-            </div>
-        `
-    }
-
-    let stringTabelas = ''
-    let linhasTotais = ''
-
-    for (let [tipo, tabela] of Object.entries(tabelasPorTipo)) {
-
-        let lucroPorcentagem = ((tabela.totais.lucro / tabela.totais.venda) * 100).toFixed(0)
-
-        linhasTotais += `
-        <tr>
-            <td>${tipo}</td>
-            <td>${dinheiro(tabela.totais.bruto)}</td>
-            <td>${dinheiro(tabela.totais.desconto)}</td>
-            <td>${dinheiro(tabela.totais.venda)}</td>
-            <td style="white-space: nowrap;">(${lucroPorcentagem}%) ${dinheiro(tabela.totais.lucro)}</td>
-        </tr>
-        `
-        tabela.linhas += `
-        <tr>
-            <td style="text-align: right;" colspan="5"><strong>TOTAIS</strong></td>
-            <td>${dinheiro(tabela.totais.bruto)}</td>
-            <td>${dinheiro(tabela.totais.desconto)}</td>
-            <td style="white-space: nowrap;">(${lucroPorcentagem}%) ${dinheiro(tabela.totais.lucro)}</td>
-        </tr>
-        `
-        stringTabelas += `
-        <div class="contornoTabela" style="background-color: ${guiaCores[tipo]}; margin-bottom: 2px;">
-            <div style="display: flex; justify-content: start; align-items: center; gap: 10px; width: 100%;">
-                <img src="imagens/pasta.png" style="width: 2vw;" onclick="exibirTabela(this)">
-                <label style="font-size: 1.0vw; color: white;">${tipo}</label>
-                <label style="font-size: 1.5vw; color: white; text-align: right;">${dinheiro(tabela.totais.venda)}</label>
-            </div>
-            <table class="tabela" style="width: 100%; display: none;">
-                <thead>
-                    <tr>${ths}</tr>
-                </thead>
-                <tbody>
-                    ${tabela.linhas}
-                </tbody>
-            </table>
-        </div>
-        `
-    }
-
-    let elementosPagamentos = orcamento.pagamentos ? await pagamentosVinculados(orcamento.pagamentos) : {}
-    let stringPagamentos = elementosPagamentos?.tabelas ? elementosPagamentos.tabelas : `Sem Pagamentos`
-
-    let modeloLabel = (valor1, valor2) => `
-    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-        <label style="font-size: 0.9vw;">${valor1}</label>
-        <label style="font-size: 0.9vw;"><strong>${valor2}</strong></label>
-    </div>
-    `
-
-    let custoCompraGeral = orcamento?.dados_custos?.custo_compra || 0
-    let freteVendaGeral = orcamento?.dados_custos?.frete_venda || 0
-    let impostosGeral = orcamento?.dados_custos?.impostos || 0
-    let totalPagamentos = orcamento?.dados_custos?.pagamentos || 0
-    let lucratividade = orcamento.total_geral - custoCompraGeral - impostosGeral - freteVendaGeral - totalPagamentos
-    let porcentagem = Number(((lucratividade / orcamento.total_geral) * 100).toFixed(0))
-
-    let acumulado = `
-        <div style="background-color: #d2d2d2; display: flex; flex-direction: column; align-items: start; justify-content: center; padding: 2vw;">
-
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                ${modelo('Cliente', cliente?.nome || 'Indispoível')}
-                ${modelo('Localização', cliente?.cidade || 'Indisponível')}
-            </div>
-            
-            <hr style="width: 100%;">
-            ${modeloLabel('[Lucratividade]', dinheiro(lucratividade))}
-            ${divPorcentagem(porcentagem)}
-
-            <hr style="width: 100%;">
-            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column;">
-                ${modeloLabel('[Impostos]', dinheiro(impostosGeral))}
-                ${modeloLabel('[Compra de Materiais]', dinheiro(custoCompraGeral))}
-                ${modeloLabel('[Frete de Materiais]', dinheiro(freteVendaGeral))}
-            </div>
-
-            <hr style="width: 100%;">
-            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column;">
-                ${modeloLabel('[Pagamentos]', dinheiro(totalPagamentos))}
-                ${stringPagamentos}
-            </div>
-
-            <hr style="width: 100%;">
-            <div style="display: flex; align-items: start; justify-content: center; flex-direction: column;">
-                ${modeloLabel('[Orçamento]', dinheiro(orcamento.total_geral))}
-                ${stringTabelas}
-            </div>
-        </div>
-    `
-    popup(acumulado, 'Painel de Custos')
-
+async function receberCustos(idOrcamento) {
+    return new Promise((resolve, reject) => {
+        fetch(`${api}/custos`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ idOrcamento })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.mensagem) {
+                    resolve({})
+                }
+                resolve(data);
+            })
+            .catch(err => {
+                resolve({})
+            });
+    })
 }
 
 function divPorcentagem(porcentagem) {

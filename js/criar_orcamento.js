@@ -847,7 +847,7 @@ async function totalOrcamento() {
         const inputProduto = document.getElementById(`prod_${codigo}`)
         if (inputProduto) inputProduto.value = quantidade
 
-        if (!carrefour && Number(valorDesconto.value) !== 0) {
+        if (!carrefour) {
             itemSalvo.tipo_desconto = tipoDesconto.value
             itemSalvo.desconto = Number(valorDesconto.value)
         } else {
