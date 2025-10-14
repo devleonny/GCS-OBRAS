@@ -1002,8 +1002,6 @@ async function arquivarOrcamento(idOrcamento) {
 
 async function painelCustos() { //29
 
-    id_orcam = 'ORCA_fea1d02f-3879-4ecb-bf67-86dc13b9e1a9'
-
     overlayAguarde()
 
     const dados = await receberCustos(id_orcam)
@@ -1016,7 +1014,7 @@ async function painelCustos() { //29
     const lucratividade = ((lucroReal / orcamento.total_geral) * 100).toFixed(0)
 
     const spans1 = (texto, valor) => `<span>${texto}: <b>${dinheiro(valor)}</b></span>`
-    const colunas = ['Código', 'Descrição', 'Tipo', 'Valor no Orçamento', 'Custo Compra', 'Impostos', 'Frete Saída', 'Lucro Real', 'Lucratividade Individual']
+    const colunas = ['Código', 'Descrição', 'Tipo', 'Valor no Orçamento', 'Custo Compra', 'Impostos', 'Frete Saída', 'Lucro Líquido', 'Lucratividade Individual']
     const ths = colunas.map(op => `<th>${op}</th>`).join('')
     const pesquisa = colunas.map((op, i) => `
         <th contentEditable="true" 
@@ -1057,9 +1055,12 @@ async function painelCustos() { //29
                     ${spans1('Pagamentos feitos', dadosCustos.pagamentos)}
                 </div>
 
+                <img src="imagens/painelcustos.png" style="width: 3rem">
+
                 <div style="${vertical}">
+                    <span><span style="font-size: 1.5rem;">${dinheiro(orcamento.total_geral)}</span> Total do Orçamento</span>
+                    <span><span style="font-size: 1.5rem;">${dinheiro(lucroReal)}</span> Lucratividade</span>
                     ${divPorcentagem(lucratividade)}
-                    <span>Lucratividade (<b>R$</b>) <span style="font-size: 1.5rem;">${dinheiro(lucroReal)}</span></span>
                 </div>
 
             </div>
