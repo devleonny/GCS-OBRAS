@@ -2,7 +2,8 @@ let filtrosPagina = {}
 let pagina;
 let modo;
 let dados_composicoes = {}
-let moduloComposicoes = {}
+const permissoes = ['adm', 'log', 'editor', 'gerente', 'diretoria', 'coordenacao']
+const moduloComposicoes = permissoes.includes(acesso.permissao)
 let tabelaAtiva;
 let tipoAtivo = 'TODOS'
 let titulo = null
@@ -424,9 +425,7 @@ async function recuperarComposicoesOrcamento() {
 
 async function tabelaProdutosOrcamentos() {
 
-    let permissoes = ['adm', 'log', 'editor', 'gerente', 'diretoria', 'coordenacao']
-    moduloComposicoes = permissoes.includes(acesso.permissao)
-    let colunas = ['Código', 'Descrição', 'Sistema', 'Unidade', 'Quantidade', 'Valor', 'Imagem']
+    const colunas = ['Código', 'Descrição', 'Unidade', 'Quantidade', 'Valor', 'Imagem']
     let ths = ''
     let tsh = ''
 
@@ -544,26 +543,32 @@ function pesquisarProdutos(colunaPesq, pesquisa) {
     }
 }
 
+function verificarData(data) {
+    if (!data) return ''
+
+    const [dt] = String(data).split(', ')
+    const [dia, mes, ano] = dt.split('/').map(Number)
+    const dataRef = new Date(ano, mes - 1, dia)
+
+    const hoje = new Date()
+    const diffDias = Math.floor((hoje - dataRef) / (1000 * 60 * 60 * 24))
+
+    const elemento = `<img src="imagens/${diffDias > 30 ? 'reprovado' : 'aprovado'}.png" style="width: 1.5rem;">`
+
+    return elemento
+}
+
 function linhasComposicoesOrcamento(codigo, produto, qtdeOrcada, lpu) {
 
     if (origem !== produto.origem) return
     if (!produto.tipo) return
 
-    let preco = 0
-    let ativo = 0
-    let historico = 0
+    const ativo = produto?.[lpu]?.ativo || ''
+    const historico = produto?.[lpu]?.historico || {}
+    const detalhes = historico?.[ativo] || {}
+    const preco = detalhes?.valor || 0
 
-    if (produto[lpu] && produto[lpu].ativo && produto[lpu].historico) {
-        ativo = produto[lpu].ativo
-        historico = produto[lpu].historico
-        preco = historico[ativo]?.valor || 0
-    }
-
-    if (produto.status == "INATIVO") return
-
-    const opcoes = esquemas.sistema
-        .map(op => `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`)
-        .join('')
+    const sinalizacao = verificarData(detalhes?.data)
 
     const tds = `
         <td>
@@ -585,17 +590,17 @@ function linhasComposicoesOrcamento(codigo, produto, qtdeOrcada, lpu) {
                 ${produto.modelo}<br>
             </div>
         </td>
-        <td>
-            <select class="opcoesSelect" onchange="alterarChave('${codigo}', 'sistema', this)">
-                ${opcoes}
-            </select>
-        </td>
         <td>${produto.unidade}</td>
         <td>
             <input id="prod_${codigo}" value="${qtdeOrcada}" type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
         </td>
         <td>
-            <label ${moduloComposicoes ? `onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')"` : ''} class="label-estoque" style="background-color: ${preco > 0 ? '#4CAF50bf' : '#b36060bf'}">${dinheiro(preco)}</label>
+            <div style="${horizontal}; gap: 1px;">
+                ${sinalizacao}
+                <label ${moduloComposicoes ? `onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')"` : ''} class="label-estoque" style="width: max-content; background-color: ${preco > 0 ? '#4CAF50bf' : '#b36060bf'}">
+                    ${dinheiro(preco)}
+                </label>
+            </div>
         </td>
         <td>
             <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;">
@@ -620,7 +625,7 @@ async function totalOrcamento() {
     atualizarToolbar()
 
     let orcamentoBase = baseOrcamento()
-    let lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
+    const lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
     const carrefour = orcamentoBase.lpu_ativa == 'LPU CARREFOUR'
     let totais = { GERAL: { valor: 0, bruto: 0 } }
     let avisoDesconto = 0
@@ -663,25 +668,13 @@ async function totalOrcamento() {
         itemSalvo.ordem = ordem
         ordem++
 
-        // ATUALIZAÇÃO DE INFORMAÇÕES DA COLUNA 4 EM DIANTE;
-        if (carrefour) {
-            if (refProduto.substituto && refProduto.substituto !== '') {
-                codigo = refProduto.substituto == '' ? codigo : refProduto.substituto
-            }
-
-            tds[1].textContent = `
-            <td>
-                <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
-                    <img src="imagens/carrefour.png" style="width: 3vw;">
-                    <label>${refProduto.descricaocarrefour}</label>
-                </div>
-            </td>`
-        }
-
-        let precos = { custo: 0, lucro: 0 }
         const ativo = refProduto?.[lpu]?.ativo || 0
         const historico = refProduto?.[lpu]?.historico || {}
-        precos = historico[ativo]
+        const precos = {
+            custo: 0,
+            lucro: 0,
+            ...historico[ativo]
+        }
 
         // Caso o itemSalvo.antigo exista, então não se deve mexer no valor dele;
         valorUnitario = itemSalvo.antigo ? itemSalvo.custo : historico?.[ativo]?.valor || 0
@@ -793,9 +786,15 @@ async function totalOrcamento() {
             let labelICMS = ''
             if (refProduto.tipo == 'VENDA' && estado) labelICMS = `<label style="white-space: nowrap;">SEM ICMS</br> <b>${dinheiro(semIcms)}</b> [ ${percentual}% ]</label>`
             return `
-                <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
+                <div style="${vertical}">
+                    
                     <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 5px;">
-                        <label ${valor > 0 ? 'class="input_valor">' : `class="label-estoque" style="background-color: #b36060bf">`} ${dinheiro(valor)}</label>
+
+                        <div style="${horizontal}; gap: 2px;">
+                            ${unitario ? verificarData(precos?.data) : ''}
+                            <label ${moduloComposicoes ? `onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')"` : ''} ${valor > 0 ? 'class="input_valor">' : `class="label-estoque" style="background-color: #b36060bf">`} ${dinheiro(valor)}</label>
+                        </div>
+
                         <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
                             ${(unitario && itemSalvo.antigo !== undefined) ? `<img onclick="gerenciarPrecoAntigo('${codigo}')" src="imagens/atrasado.png" style="cursor: pointer; width: 1.5vw;">` : ''}
                             ${unitario ? `<img onclick="alterarValorUnitario('${codigo}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5vw;">` : ''}

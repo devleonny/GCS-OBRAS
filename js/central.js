@@ -2118,7 +2118,7 @@ async function painelClientes() {
     let cliente = dados_clientes?.[dados_orcam?.omie_cliente] || {}
     let levantamentos = ''
 
-    const parcelas = ["--", "15 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
+    const parcelas = ["--", "15 dias", "20 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
 
     for (chave in orcamentoBase?.levantamentos || {}) {
         let levantamento = orcamentoBase.levantamentos[chave]
