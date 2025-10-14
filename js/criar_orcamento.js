@@ -273,19 +273,20 @@ async function carregarTabelasOrcameneto() {
         <div class="toolbarSuperior"></div>
         ${tabela}`
 
-    Object.entries(dadosComposicoes)
-        .sort(([, a], [, b]) => (a.ordem ?? Infinity) - (b.ordem ?? Infinity))
-        .forEach(([codigo, produto]) => {
-            carregarLinhaOrcamento(codigo, produto);
-        });
+    for (const [codigo, produto] of Object.entries(dadosComposicoes)) {
+        carregarLinhaOrcamento(codigo, produto, 'master')
+        for(const [id, qtde] of Object.entries(produto?.agrupamento || {})) {
+            carregarLinhaOrcamento(id, qtde, 'slave')
+        }
+    }
 
     await totalOrcamento()
 
 }
 
-function carregarLinhaOrcamento(codigo, produto) {
+function carregarLinhaOrcamento(codigo, produto, hierarquia) {
 
-    const opcoes = ['Dinheiro', 'Porcentagem', 'Venda Direta'] //Comissão //29
+    const opcoes = ['Dinheiro', 'Porcentagem', 'Venda Direta']
         .map(op => `<option ${produto?.tipo_desconto == op ? 'selected' : ''}>${op}</option>`).join('')
 
     const celulas = `
