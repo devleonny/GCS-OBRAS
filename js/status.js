@@ -1000,7 +1000,7 @@ async function arquivarOrcamento(idOrcamento) {
 
 }
 
-async function painelCustos() { //29
+async function painelCustos() {
 
     overlayAguarde()
 
