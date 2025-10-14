@@ -393,8 +393,10 @@ async function abrirCorrecoes(idOcorrencia) {
 
 async function carregarLinhaCorrecao(idCorrecao, correcao, idOcorrencia) {
 
+    console.log(correcao)
+
     const imagens = Object.entries(correcao?.fotos || {})
-        .map(([link, foto]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/GCS/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
+        .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/GCS/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
         .join('')
 
     const edicao = (correcao.executor == acesso.usuario || acesso.permissao == 'adm')
@@ -411,6 +413,7 @@ async function carregarLinhaCorrecao(idCorrecao, correcao, idOcorrencia) {
         <div style="${horizontal}; gap: 10px;">
             ${edicao}
             <div style="${vertical}">
+                ${modelo('Data e Hora', `<span>${correcao?.data || 'S/D'}</span>`)}
                 ${modelo('Executor', `<span>${correcao.executor}</span>`)}
                 ${modelo('Correção', `<span>${correcoes?.[correcao.tipoCorrecao]?.nome || '...'}</span>`)}
                 ${modelo('Descrição', `<div style="text-align: justify;">${correcao.descricao}</div>`)}
@@ -832,6 +835,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
 
     Object.assign(correcao, {
         executor: obter('executor').id,
+        data: new Date().toLocaleString(),
         tipoCorrecao,
         descricao: obter('descricao').value
     })
