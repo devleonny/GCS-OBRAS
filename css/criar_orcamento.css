@@ -24,6 +24,10 @@
   justify-content: center;
 }
 
+.linha-bloco {
+  margin-left: 3rem;
+}
+
 .desconto-baixo {
   padding-bottom: 5px;
   padding-top: 5px;

@@ -273,10 +273,11 @@ async function carregarTabelasOrcameneto() {
         <div class="toolbarSuperior"></div>
         ${tabela}`
 
-    for (const [codigo, produto] of Object.entries(dadosComposicoes)) {
-        carregarLinhaOrcamento(codigo, produto, 'master')
-        for(const [id, qtde] of Object.entries(produto?.agrupamento || {})) {
-            carregarLinhaOrcamento(id, qtde, 'slave')
+    for (const [codigoMaster, produto] of Object.entries(dadosComposicoes)) {
+        carregarLinhaOrcamento(codigoMaster, produto)
+
+        for (const [codigoSlave, qtde] of Object.entries(produto?.agrupamento || {})) {
+            carregarLinhaOrcamento(codigoSlave, qtde, codigoMaster)
         }
     }
 
@@ -284,7 +285,7 @@ async function carregarTabelasOrcameneto() {
 
 }
 
-function carregarLinhaOrcamento(codigo, produto, hierarquia) {
+function carregarLinhaOrcamento(codigo, produto, codigoMaster) {
 
     const opcoes = ['Dinheiro', 'Porcentagem', 'Venda Direta']
         .map(op => `<option ${produto?.tipo_desconto == op ? 'selected' : ''}>${op}</option>`).join('')
@@ -312,14 +313,28 @@ function carregarLinhaOrcamento(codigo, produto, hierarquia) {
             <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 3rem; cursor: pointer;">
         </div>
         <div>
-            <img src="imagens/cancel.png" onclick="removerItemOrcamento('${codigo}', this)" style="cursor: pointer; width: 1.5rem;">
+            <img src="imagens/cancel.png" onclick="removerItemOrcamento('${codigo}')" style="cursor: pointer; width: 1.5rem;">
         </div>
     `
+
+    if (codigoMaster) {
+
+        const linhaSlave = document.getElementById(`${codigoMaster}_${codigo}`)
+        if (linhaSlave) return linhaSlave.innerHTML = celulas
+
+        const master = document.getElementById(`ORCA_${codigoMaster}`)
+        const bloco = master.querySelector(`[name="${codigoMaster}_associado"]`)
+
+        return bloco.insertAdjacentHTML('beforeend', `
+            <div class="linha-orcamento" id="${codigoMaster}_${codigo}">
+                ${celulas}
+            </div>`)
+    }
 
     const blocoLinha = `
         <div style="${vertical}">
             <div class="linha-orcamento" data-tipo="${produto.tipo}" data-codigo="${codigo}">${celulas}</div>
-            <div name="${codigo}_associado"></div>
+            <div class="linha-bloco" name="${codigo}_associado"></div>
         </div>
     `
 
@@ -327,20 +342,20 @@ function carregarLinhaOrcamento(codigo, produto, hierarquia) {
     if (divExistente) return divExistente.innerHTML = blocoLinha
 
     const linha = `
-        <div id="ORCA_${codigo}">
+        <div id="ORCA_${codigo}" style="margin-bottom: 0.5rem;">
             ${blocoLinha}
         </div>
     `
     document.getElementById('bodyOrcamento').insertAdjacentHTML('beforeend', linha)
 }
 
-async function removerItemOrcamento(codigo, img) {
+async function removerItemOrcamento(codigo) {
 
     let orcamentoBase = baseOrcamento()
     delete orcamentoBase.dados_composicoes[codigo]
     baseOrcamento(orcamentoBase)
 
-    img.parentElement.parentElement.remove()
+    document.getElementById(`ORCA_${codigo}`).remove()
 
     const prod = document.getElementById(`prod_${codigo}`)
     if (prod) prod.value = ''
@@ -613,6 +628,8 @@ async function totalOrcamento() {
 
     const linhas = bodyOrcamento.querySelectorAll('.linha-orcamento')
 
+    console.log(linhas);
+    
     let ordem = 1
     for (const linha of linhas) {
 
@@ -1043,10 +1060,14 @@ async function confirmarNovoPreco(codigo, precoOriginal, operacao) {
 
 async function incluirItem(codigo, novaQuantidade) {
     let orcamentoBase = baseOrcamento()
+    const produto = dados_composicoes[codigo]
 
     if (!orcamentoBase.dados_composicoes) orcamentoBase.dados_composicoes = {}
 
-    orcamentoBase.dados_composicoes[codigo] = { qtde: novaQuantidade }
+    orcamentoBase.dados_composicoes[codigo] = {
+        agrupamento: produto.agrupamento || {},
+        qtde: novaQuantidade 
+    }
 
     baseOrcamento(orcamentoBase)
 

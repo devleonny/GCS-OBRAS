@@ -442,14 +442,11 @@ function expiraEm(dataString) {
 }
 
 async function telaRHTabela() {
-    
-    pessoas = await recuperarDados('pessoas')
+
     let colunas = {
         th: '',
         thPesquisa: ''
     }
-
-
 
     const campos = ['Nome & Grupo', 'Estado', 'Clínica', 'Validade', 'Expiração', 'Arquivo']
         .map((op, col) => {
@@ -474,30 +471,14 @@ async function telaRHTabela() {
             colunas.th += `<th>${op}</th>`
         })
 
-    let linhas = ''
 
-    // Pessoas nesse contexto foi mudado para cidade-estado;
-    for (const [idPessoa, pessoa] of Object.entries(pessoas)) {
-
-        const pastas = pessoa?.pastas || {}
-
-        for (const [idPasta, pasta] of Object.entries(pastas)) {
-
-            const anexos = pasta?.anexos || {}
-
-            for (const [idAnexo, anexo] of Object.entries(anexos)) {
-                linhas += carregarLinha({ idPessoa, idPasta, idAnexo, pessoa })
-            }
-        }
-    }
-
-    let acumulado = `
+    const acumulado = `
         <div style="${vertical};">
             <div class="painelBotoes" style="align-items: center; justify-content: end;">
 
                 <div style="${horizontal}; width: 20%; gap: 5px;">
                     <label>Todos</label>
-                    <input type="checkbox" onclick="marcarTodos(this)" style="width: 1.5vw; height: 1.5vw;">
+                    <input type="checkbox" onclick="marcarTodosRH(this)" style="width: 1.5vw; height: 1.5vw;">
                     ${botao('Baixar', `baixarArquivos()`, 'green')}
                 </div>
             </div>
@@ -507,9 +488,7 @@ async function telaRHTabela() {
                         <tr>${colunas.th}</tr>
                         <tr>${colunas.thPesquisa}</tr>
                     </thead>
-                    <tbody id="bodyRH">
-                        ${linhas}
-                    </tbody>
+                    <tbody id="bodyRH"></tbody>
                 </table>
             </div>
             <div class="rodapeTabela"></div>
@@ -517,7 +496,24 @@ async function telaRHTabela() {
     `
 
     tela.style.display = 'flex'
-    tela.innerHTML = acumulado
+    const bodyRH = document.getElementById('bodyRH')
+    if (!bodyRH) tela.innerHTML = acumulado
+
+    pessoas = await recuperarDados('pessoas')
+    // Pessoas nesse contexto foi mudado para cidade-estado;
+    for (const [idPessoa, pessoa] of Object.entries(pessoas)) {
+
+        const pastas = pessoa?.pastas || {}
+
+        for (const [idPasta, pasta] of Object.entries(pastas)) {
+
+            const anexos = pasta?.anexos || {}
+
+            for (const [idAnexo,] of Object.entries(anexos)) {
+                carregarLinha({ idPessoa, idPasta, idAnexo, pessoa })
+            }
+        }
+    }
 
 }
 
@@ -535,50 +531,52 @@ function carregarLinha({ idPessoa, idPasta, idAnexo, pessoa }) {
     }
 
     const linha = `
-        <tr id="linha_${idAnexo}">
-            <td>
-                <div style="${horizontal}; justify-content: start; gap: 5px;">
-                    <img src="imagens/pasta.png" style="width: 1.5vw; cursor: pointer;" onclick="pastaHTML('${idPessoa}', '${idPasta}', '${idAnexo}', true)">
-                    <label style="text-align: left;">${pasta.nomePasta}</label>
-                </div>
-            </td>
-            <td>${pessoa.nome}</td>
-            <td style="text-align: left; font-size: 0.7vw;">
-                ${anexo?.clinica || '--'}<br>
-                <strong>${anexo?.local || ''}</strong>
-            </td>
-            <td>${dt(anexo.validade)}</td>
-            <td>
-                <input style="display: none;" value="${tempoExpiracao.status}">
-                <div style="${horizontal}; justify-content: left; gap: 5px;">
-                    <img src="${tempoExpiracao.icone}" style="width: 1.5vw;">
-                    <label>${tempoExpiracao.dias}</label>
-                </div>
-            </td>
-            <td>
-                <input value="${anexo?.doc || '--'}" style="display: none;">
-                <div style="${horizontal}; justify-content: start; gap: 5px;">
-                    <input data-url="${anexo.link}" data-nome="${anexo.nome}" name="docs" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
-                    <div class="capsula">
-                        <div class="esquerda">
-                            ${anexo?.doc || '--'}
-                        </div>
-                        <div class="direita" title="${anexo.nome}" onclick="abrirArquivo('${anexo.link}')">
-                            Ver
-                        </div>
+        <td>
+            <div style="${horizontal}; justify-content: start; gap: 5px;">
+                <img src="imagens/pasta.png" style="width: 1.5vw; cursor: pointer;" onclick="pastaHTML('${idPessoa}', '${idPasta}', '${idAnexo}', true)">
+                <label style="text-align: left;">${pasta.nomePasta}</label>
+            </div>
+        </td>
+        <td>${pessoa.nome}</td>
+        <td style="text-align: left; font-size: 0.7vw;">
+            ${anexo?.clinica || '--'}<br>
+            <strong>${anexo?.local || ''}</strong>
+        </td>
+        <td>${dt(anexo.validade)}</td>
+        <td>
+            <input style="display: none;" value="${tempoExpiracao.status}">
+            <div style="${horizontal}; justify-content: left; gap: 5px;">
+                <img src="${tempoExpiracao.icone}" style="width: 1.5vw;">
+                <label>${tempoExpiracao.dias}</label>
+            </div>
+        </td>
+        <td>
+            <input value="${anexo?.doc || '--'}" style="display: none;">
+            <div style="${horizontal}; justify-content: start; gap: 5px;">
+                <input data-url="${anexo.link}" data-nome="${anexo.nome}" name="docs" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
+                <div class="capsula">
+                    <div class="esquerda">
+                        ${anexo?.doc || '--'}
+                    </div>
+                    <div class="direita" title="${anexo.nome}" onclick="abrirArquivo('${anexo.link}')">
+                        Ver
                     </div>
                 </div>
-            </td>
-        </tr>`
+            </div>
+        </td>`
 
-    const linhaAnexo = document.getElementById(`linha_${idAnexo}`)
+    const linhaAnexo = document.getElementById(idAnexo)
 
     if (linhaAnexo) return linhaAnexo.innerHTML = linha
 
-    return linha
+    const bodyRH = document.getElementById('bodyRH')
+    bodyRH.insertAdjacentHTML('beforeend', `
+        <tr id="${idAnexo}">
+            ${linha}
+        </tr>`)
 }
 
-function marcarTodos(input) {
+function marcarTodosRH(input) {
 
     const checks = document.querySelectorAll('[name=docs]')
 
@@ -599,7 +597,7 @@ async function baixarArquivos() {
     const zip = new JSZip()
 
     for (let i = 0; i < checkboxes.length; i++) {
-        const url = `${api}/uploads/${checkboxes[i].dataset.url}`
+        const url = `${api}/uploads/GCS/${checkboxes[i].dataset.url}`
         const nomeArquivo = checkboxes[i].dataset.nome
 
         const response = await fetch(url)
@@ -612,5 +610,5 @@ async function baixarArquivos() {
 
     removerOverlay()
 
-    saveAs(conteudoZip, 'documentos.zip')
+    saveAs(conteudoZip, 'documentos.tar')
 }
