@@ -1,7 +1,6 @@
 let filtrosRH = {}
 let pessoas = {}
 let tituloRH = null
-let planoFundo = null
 
 const modeloRH = (valor1, elemento, funcao) => {
     return `
@@ -57,29 +56,11 @@ async function telaRH() {
     const divPessoas = document.querySelector('.divPessoas')
     divPessoas.innerHTML = stringPessoas
 
-    tela.innerHTML = `
-        <div style="${vertical}">
-            <div class="tituloRH"></div>
-            <div class="planoFundo"></div>
-        </div>
-    `
-
-    tituloRH = document.querySelector('.tituloRH')
-    planoFundo = document.querySelector('.planoFundo')
-
-    planoFundo.style = `grid-template-columns: repeat(4, 1fr)`
+    await telaRHTabela()
+    mostrarMenus(false)
 }
 
-async function mostrarPastas(idPessoa, nome) {
-
-    document.querySelector('.tituloRH').innerHTML = `
-        <div style="${horizontal}; gap: 1vw;">
-            <label>${nome}</label>
-            <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="adicionarPessoa('${idPessoa}')">
-            <img src="imagens/pasta.png" style="width: 2vw; cursor: pointer;" onclick="adicionarPasta('${idPessoa}')">
-            <img src="imagens/lixeira.png" style="width: 2vw; cursor: pointer;" onclick="confirmarExclusaoPessoa('${idPessoa}', '${nome}')">
-        </div>
-    `
+async function mostrarPastas(idPessoa) {
 
     const elemento = document.getElementById(`${idPessoa}`)
     elemento.style.display = elemento.style.display == 'none' ? 'flex' : 'none'
@@ -123,22 +104,6 @@ async function abrirPastas(idPessoa, idPasta) {
     const pasta = pessoa.pastas[idPasta]
     const anexos = pasta?.anexos || {}
 
-    tituloRH.innerHTML = `
-        <div style="${horizontal}; gap: 1vw;">
-
-            <label>${pessoa.nome} > ${pasta.nomePasta}</label>
-
-            <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="adicionarPasta('${idPessoa}', '${idPasta}')">
-
-            <label for="anexo" style="${horizontal};">
-                <img src="imagens/anexo2.png" style="width: 2vw; cursor: pointer;">
-                <input type="file" style="display: none;" id="anexo" onchange="adicionarAnexo(this, '${idPessoa}', '${idPasta}')">
-            </label>
-
-            <img src="imagens/lixeira.png" style="width: 2vw; cursor: pointer;" onclick="confirmarExclusaoPasta('${idPessoa}', '${idPasta}')">
-        </div>
-    `
-
     let arquivos = { 'Não classificados': '' }
 
     for (const [idAnexo, anexo] of Object.entries(anexos)) {
@@ -157,9 +122,27 @@ async function abrirPastas(idPessoa, idPasta) {
 
     let esquemaHTML = ''
     for (const idAnexo of Object.keys(anexos)) esquemaHTML += await pastaHTML(idPessoa, idPasta, idAnexo)
-    planoFundo.style.display = 'grid'
 
-    planoFundo.innerHTML = esquemaHTML
+    tela.innerHTML = `
+        <div style="${horizontal}; gap: 5px;">
+
+            <label style="color: white;">${pessoa.nome} > ${pasta.nomePasta}</label>
+
+            <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="adicionarPasta('${idPessoa}', '${idPasta}')">
+
+            <label for="anexo" style="${horizontal};">
+                <img src="imagens/anexo2.png" style="width: 2vw; cursor: pointer;">
+                <input type="file" style="display: none;" id="anexo" onchange="adicionarAnexo(this, '${idPessoa}', '${idPasta}')">
+            </label>
+
+            <img src="imagens/lixeira.png" style="width: 2vw; cursor: pointer;" onclick="confirmarExclusaoPasta('${idPessoa}', '${idPasta}')">
+        </div>
+        <div class="pessoas">
+            ${esquemaHTML}
+        </div>
+    `
+
+    mostrarMenus(false)
 
 }
 
@@ -466,12 +449,13 @@ async function telaRHTabela() {
         thPesquisa: ''
     }
 
+
+
     const campos = ['Nome & Grupo', 'Estado', 'Clínica', 'Validade', 'Expiração', 'Arquivo']
         .map((op, col) => {
 
             let pesquisa = `
-                <input placeholder="${inicialMaiuscula(op)}" oninput="pesquisarGenerico('${col}', this.value, filtrosRH, 'bodyRH')">
-                <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                <input style="padding: 5px;" placeholder="${inicialMaiuscula(op)}" oninput="pesquisarGenerico('${col}', this.value, filtrosRH, 'bodyRH')">
             `
 
             if (op == 'Expiração') {
@@ -532,8 +516,8 @@ async function telaRHTabela() {
         </div>
     `
 
-    planoFundo.style.display = 'flex'
-    planoFundo.innerHTML = acumulado
+    tela.style.display = 'flex'
+    tela.innerHTML = acumulado
 
 }
 

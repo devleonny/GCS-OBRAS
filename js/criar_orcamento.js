@@ -1042,70 +1042,14 @@ async function confirmarNovoPreco(codigo, precoOriginal, operacao) {
 
 async function incluirItem(codigo, novaQuantidade) {
     let orcamentoBase = baseOrcamento()
-    let carrefour = orcamentoBase.lpu_ativa == 'LPU CARREFOUR'
-    let produto = dados_composicoes[codigo]
 
-    let linha = `
-        <tr>
-            <td>${codigo}</td>
-            <td style="position: relative;">
-                ${produto.agrupamentos && Object.keys(produto.agrupamentos).length > 0 ?
-            `<div style="display: flex; align-items: center; gap: 5px;">
-                        <img src="gifs/lampada.gif" style="width: 15px;" title="Item com agrupamentos">
-                        <span>${produto?.descricao || 'N/A'}</span>
-                    </div>
-                    <div style="font-size: 0.8em; color: #4CAF50; font-style: italic;">
-                        Kit com ${Object.keys(produto.agrupamentos).length} itens
-                    </div>`
-            :
-            `${produto?.descricao || 'N/A'}`
-        }
-            </td>
-            ${carrefour ? `<td></td>` : ''}
-            <td style="text-align: center;">${produto?.unidade}</td>
-            <td style="text-align: center;">
-                <input oninput="totalOrcamento()" type="number" class="campoValor" value="${novaQuantidade}">
-            </td>
-            <td style="position: relative;"></td>
+    if (!orcamentoBase.dados_composicoes) orcamentoBase.dados_composicoes = {}
 
-            ${!carrefour ? `<td></td>` : ''}
+    orcamentoBase.dados_composicoes[codigo] = { qtde: novaQuantidade }
 
-            <td></td>
-            <td style="text-align: center;">
-                <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
-            </td>
-            <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItemOrcamento('${codigo}', this)" style="cursor: pointer; width: 2vw;"></td>
-        </tr>
-    `
+    baseOrcamento(orcamentoBase)
 
-    if (itemExistente(produto.tipo, codigo, novaQuantidade)) {
-
-        let tbody = document.getElementById(`linhas_${produto.tipo}`)
-
-        if (!tbody) { // Lançamento do 1º Item de cada tipo;
-
-            if (!orcamentoBase.dados_composicoes) {
-                orcamentoBase.dados_composicoes = {}
-            }
-
-            orcamentoBase.dados_composicoes[codigo] = {
-                codigo: codigo,
-                qtde: parseFloat(novaQuantidade),
-                tipo: produto?.tipo,
-                unidade: produto?.unidade || 'UN',
-                custo: 0,
-                descricao: produto?.descricao
-            }
-
-            baseOrcamento(orcamentoBase)
-            return carregarTabelasOrcameneto()
-
-        } else {
-            tbody.insertAdjacentHTML('beforeend', linha)
-        }
-    }
-
-    await totalOrcamento()
+    carregarTabelasOrcameneto()
 }
 
 function itemExistente(tipo, codigo, quantidade) {

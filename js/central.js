@@ -279,7 +279,9 @@ async function despoluicaoGCS() {
         'lista_pagamentos',
         'dados_manutencao',
         'dados_categorias',
-        'dados_estoque']
+        'dados_estoque',
+        'pessoas'
+    ]
 
     for (const base of bases) {
         await sincronizarDados(base, true, true) // Nome base, overlay off e resetar bases;

@@ -12,10 +12,16 @@
     0.5fr;  /* Remover */
   align-items: center;
   background: white;
-  border: 1px solid #a4a4a4;
+  border-bottom: 1px solid #a4a4a4;
   width: 100%;
   gap: .5rem;
-  padding: 3px;
+  padding: 3px 0 3px 0;
+}
+
+.linha-orcamento div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .desconto-baixo {
