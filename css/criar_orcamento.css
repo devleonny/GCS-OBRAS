@@ -1,20 +1,21 @@
-#agrupamentos-body tr {
-  background: #fff;
-  transition: 0.2s;
-}
-
-#agrupamentos-body tr:nth-child(even) {
-  background: #f4f7fa;
-}
-
-#agrupamentos-body tr:hover {
-  background: #e3f1ff;
-}
-
-#agrupamentos-body td {
-  padding: 10px 8px;
-  border-bottom: 1px solid #e3e8ee;
-  font-size: 1em;
+.linha-orcamento {
+  display: grid;
+  grid-template-columns: 
+    0.5fr   /* Código */
+    2fr     /* Descrição */
+    0.5fr   /* Medida */
+    1fr     /* Quantidade */
+    1fr     /* Custo Unit */
+    1fr     /* Desconto */
+    1fr     /* Total */
+    0.5fr   /* Imagem */
+    0.5fr;  /* Remover */
+  align-items: center;
+  background: white;
+  border: 1px solid #a4a4a4;
+  width: 100%;
+  gap: .5rem;
+  padding: 3px;
 }
 
 .desconto-baixo {

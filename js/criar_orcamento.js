@@ -257,23 +257,15 @@ async function carregarTabelasOrcameneto() {
     const orcamentoBase = baseOrcamento()
     const dadosComposicoes = orcamentoBase?.dados_composicoes || {}
     const divTabelas = document.getElementById('tabelas')
+    const colunas = ['Código', 'Descrição', 'Medida', 'Quantidade', 'Custo Unitário', 'Desconto', 'Valor total', 'Imagem', 'Remover']
 
     const tabela = `
-        <div>
-            <table class="tabela-orcamento">
-                <thead id="theadOrcamento" style="background-color: ${coresTabelas()};">
-                    <th>Código</th>
-                    <th>Descrição</th>
-                    <th>Medida</th>
-                    <th>Quantidade</th>
-                    <th>Custo Unitário</th>
-                    <th>Desconto</th>
-                    <th>Valor total</th>
-                    <th>Imagem</th>
-                    <th>Remover</th>
-                </thead>
-                <tbody id="bodyOrcamento"></tbody>
-            </table>
+        <div class="tabela-orcamento">
+
+            <div style="background-color: ${coresTabelas()}; color: white;" id="theadOrcamento" class="linha-orcamento">${colunas.map(op => `<span>${op}</span>`).join('')}</div>
+
+            <div id="bodyOrcamento"></div>
+
         </div>
         `
 
@@ -296,65 +288,49 @@ function carregarLinhaOrcamento(codigo, produto) {
     const opcoes = ['Dinheiro', 'Porcentagem', 'Venda Direta'] //Comissão //29
         .map(op => `<option ${produto?.tipo_desconto == op ? 'selected' : ''}>${op}</option>`).join('')
 
-    const tds = `
-        <td>${codigo}</td>
-        <td>${produto?.descricao || 'N/A'}</td>
-        <td>${produto?.unidade || 'UN'}</td>
-        <td>
-            <input oninput="totalOrcamento()" type="number" class="campoValor" value="${produto.qtde}">
-        </td>
-        <td></td>
-        <td>
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;">
-                <select onchange="totalOrcamento()" style="padding: 5px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px;">
+    const celulas = `
+        <div>${codigo}</div>
+        <div name="descricao">${produto?.descricao || 'N/A'}</div>
+        <div name="medida">${produto?.unidade || 'UN'}</div>
+        <div>
+            <input name="quantidade" oninput="totalOrcamento()" type="number" class="campoValor" value="${produto.qtde}">
+        </div>
+        <div name="unitario"></div>
+
+        <div>
+            <div style="${vertical}; gap: 1px;" name="divDesconto">
+                <select onchange="totalOrcamento()" style="padding: 5px; border-top-left-radius: 5px; border-top-right-radius: 5px;">
                     ${opcoes}
                 </select>
-                <input type="number" oninput="totalOrcamento()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px;" value="${produto?.desconto || ''}">
+                <input type="number" oninput="totalOrcamento()" style="padding-bottom: 5px; padding-top: 5px; border-bottom-left-radius: 5px; border-bottom-right-radius: 5px;" value="${produto?.desconto || ''}">
             </div>
-        </td>
-        <td></td>
-        <td>
-            <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
-        </td>
-        <td>
-            <img src="imagens/excluir.png" onclick="removerItemOrcamento('${codigo}', this)" style="cursor: pointer; width: 2vw;">
-        </td>
+        </div>
+
+        <div name="total"></div>
+        <div>
+            <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 3rem; cursor: pointer;">
+        </div>
+        <div>
+            <img src="imagens/cancel.png" onclick="removerItemOrcamento('${codigo}', this)" style="cursor: pointer; width: 1.5rem;">
+        </div>
     `
 
-    const trExistente = document.getElementById(`ORCA_${codigo}`)
-    if (trExistente) return trExistente.innerHTML = tds
+    const blocoLinha = `
+        <div style="${vertical}">
+            <div class="linha-orcamento" data-tipo="${produto.tipo}" data-codigo="${codigo}">${celulas}</div>
+            <div name="${codigo}_associado"></div>
+        </div>
+    `
+
+    const divExistente = document.getElementById(`ORCA_${codigo}`)
+    if (divExistente) return divExistente.innerHTML = blocoLinha
 
     const linha = `
-        <tr
-            ondragstart="iniciarArraste(event)"
-            ondragover="permitirSoltar(event)"
-            ondrop="soltar(event)"
-            id="ORCA_${codigo}"
-            data-tipo="${produto.tipo}"
-            data-codigo="${codigo}">
-            ${tds}
-        </tr>
+        <div id="ORCA_${codigo}">
+            ${blocoLinha}
+        </div>
     `
     document.getElementById('bodyOrcamento').insertAdjacentHTML('beforeend', linha)
-}
-
-function iniciarArraste(e) {
-    e.dataTransfer.setData("text/plain", e.target.id);
-}
-
-function soltar(e) {
-    e.preventDefault();
-    const linhaId = e.dataTransfer.getData("text/plain");
-    const linhaArrastada = document.getElementById(linhaId);
-    const linhaDestino = e.currentTarget;
-
-    const tbody = document.getElementById('bodyOrcamento');
-    tbody.insertBefore(linhaArrastada, linhaDestino);
-    totalOrcamento()
-}
-
-function permitirSoltar(e) {
-    e.preventDefault();
 }
 
 async function removerItemOrcamento(codigo, img) {
@@ -605,8 +581,7 @@ function linhasComposicoesOrcamento(codigo, produto, qtdeOrcada, lpu) {
     const trExistente = document.getElementById(codigo)
     if (trExistente) return trExistente.innerHTML = tds
     const linha = `
-        <tr 
-        data-tipo="${produto.tipo}"
+        <tr data-tipo="${produto.tipo}"
         id="${codigo}">
             ${tds}
         </tr>
@@ -635,13 +610,12 @@ async function totalOrcamento() {
     const bodyOrcamento = document.getElementById('bodyOrcamento')
     if (!bodyOrcamento) return
 
-    const trs = bodyOrcamento.querySelectorAll('tr')
+    const linhas = bodyOrcamento.querySelectorAll('.linha-orcamento')
 
     let ordem = 1
-    for (const tr of trs) {
+    for (const linha of linhas) {
 
-        const tds = tr.querySelectorAll('td')
-        let codigo = tr.dataset.codigo
+        let codigo = linha.dataset.codigo
 
         if (!orcamentoBase.dados_composicoes[codigo]) orcamentoBase.dados_composicoes[codigo] = {}
 
@@ -663,21 +637,6 @@ async function totalOrcamento() {
         itemSalvo.ordem = ordem
         ordem++
 
-        // ATUALIZAÇÃO DE INFORMAÇÕES DA COLUNA 4 EM DIANTE;
-        if (carrefour) {
-            if (refProduto.substituto && refProduto.substituto !== '') {
-                codigo = refProduto.substituto == '' ? codigo : refProduto.substituto
-            }
-
-            tds[1].textContent = `
-            <td>
-                <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
-                    <img src="imagens/carrefour.png" style="width: 3vw;">
-                    <label>${refProduto.descricaocarrefour}</label>
-                </div>
-            </td>`
-        }
-
         let precos = { custo: 0, lucro: 0 }
         const ativo = refProduto?.[lpu]?.ativo || 0
         const historico = refProduto?.[lpu]?.historico || {}
@@ -690,7 +649,7 @@ async function totalOrcamento() {
 
         if (itemSalvo.alterado) valorUnitario = itemSalvo.custo
 
-        const quantidade = Number(tds[3].querySelector('input').value)
+        const quantidade = Number(linha.querySelector('[name="quantidade"]').value)
 
         valorUnitario += total
         let totalLinha = valorUnitario * quantidade
@@ -698,7 +657,7 @@ async function totalOrcamento() {
         let tipoDesconto;
         let valorDesconto;
 
-        const divDesconto = tds[5].querySelector('div')
+        const divDesconto = linha.querySelector('[name="divDesconto"]')
         tipoDesconto = divDesconto.querySelector('select')
         valorDesconto = divDesconto.querySelector('input')
 
@@ -825,16 +784,21 @@ async function totalOrcamento() {
             delete itemSalvo.razaoSocial
         }
 
-        tds[1].innerHTML = `
+        const el = (id) => {
+            const elemento = linha.querySelector(`[name="${id}"]`)
+            return elemento
+        }
+
+        el('descricao').innerHTML = `
             <div style="${vertical};">
                 <span>${refProduto.descricao}</span>
                 ${detalhesVendaDireta}
             </div>
         `
 
-        tds[2].textContent = refProduto?.unidade || 'UN'
-        tds[4].innerHTML = labelValores(valorUnitario, valorLiqSemICMS, icmsSaida, true)
-        tds[6].innerHTML = labelValores(totalLinha, valorTotSemICMS, icmsSaida)
+        el('medida').textContent = refProduto?.unidade || 'UN'
+        el('unitario').innerHTML = labelValores(valorUnitario, valorLiqSemICMS, icmsSaida, true)
+        el('total').innerHTML = labelValores(totalLinha, valorTotSemICMS, icmsSaida)
 
         itemSalvo.descricao = refProduto.descricao
         itemSalvo.unidade = refProduto?.unidade || 'UN'
