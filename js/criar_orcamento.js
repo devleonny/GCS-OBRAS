@@ -374,6 +374,9 @@ async function removerItemOrcamento(codigo, img) {
 }
 
 async function enviarDadosOrcamento() {
+
+    overlayAguarde()
+    
     let orcamentoBase = baseOrcamento()
     orcamentoBase.origem = origem
 
@@ -631,9 +634,10 @@ async function totalOrcamento() {
     let avisoDesconto = 0
     let totalAcrescido = 0
     let descontoAcumulado = 0
+    let statusCotacao = false
+    const cliente = dados_clientes?.[orcamentoBase.dados_orcam?.omie_cliente] || ''
+    const estado = cliente.estado || false
 
-    let cliente = dados_clientes?.[orcamentoBase.dados_orcam?.omie_cliente] || ''
-    let estado = cliente.estado || false
 
     if (!orcamentoBase.dados_composicoes) orcamentoBase.dados_composicoes = {}
 
@@ -831,6 +835,8 @@ async function totalOrcamento() {
             </div>
         `
 
+        if (verificarData(precos?.data).includes('reprovado')) statusCotacao = true
+
         tds[2].textContent = refProduto?.unidade || 'UN'
         tds[4].innerHTML = labelValores(valorUnitario, valorLiqSemICMS, icmsSaida, true)
         tds[6].innerHTML = labelValores(totalLinha, valorTotSemICMS, icmsSaida)
@@ -854,6 +860,14 @@ async function totalOrcamento() {
             delete itemSalvo.tipo_desconto
             delete itemSalvo.desconto
         }
+    }
+
+    // Caso tenha algum item com preço desatualizado;
+    if (!orcamentoBase.status) orcamentoBase.status = {}
+    if (statusCotacao) {
+        orcamentoBase.status.atual = 'COTAÇÃO'
+    } else {
+        delete orcamentoBase.status.atual
     }
 
     const painel_desconto = document.getElementById('desconto_total')

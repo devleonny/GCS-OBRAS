@@ -5,6 +5,7 @@ let dados_estoque = {}
 let filtroCustos = {}
 
 const fluxograma = [
+    'COTAÇÃO',
     'LEVANTAMENTO',
     'ORC ENVIADO',
     'ORC APROVADO',
