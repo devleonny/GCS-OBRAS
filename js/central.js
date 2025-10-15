@@ -1010,27 +1010,23 @@ async function exportarParaExcel() {
     }
 }
 
-async function removerPopup(nao_remover_anteriores) {
+async function removerPopup(naoRemoverAnteriores) {
 
-    let pop_ups = document.querySelectorAll('#temp_pop')
+    const popUps = document.querySelectorAll('#temp_pop')
 
-    if (nao_remover_anteriores) {
-        return
-    }
+    if (naoRemoverAnteriores) return
 
-    if (pop_ups.length > 1) {
-        pop_ups[pop_ups.length - 1].remove()
+    if (popUps.length > 1) {
+        popUps[popUps.length - 1].remove()
 
     } else {
-        pop_ups.forEach(pop => {
+        popUps.forEach(pop => {
             pop.remove()
         })
     }
 
-    let aguarde = document.getElementById('aguarde')
-    if (aguarde) {
-        aguarde.remove()
-    }
+    const aguarde = document.getElementById('aguarde')
+    if (aguarde) aguarde.remove()
 
 }
 
