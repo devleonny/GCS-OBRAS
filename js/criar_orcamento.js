@@ -247,7 +247,7 @@ async function carregarTabelasOrcameneto() {
 
     dados_composicoes = await recuperarDados('dados_composicoes')
     const orcamentoBase = baseOrcamento()
-    const esquemaComposicoes = orcamentoBase?.esquema_omposicoes || {}
+    const esquemaComposicoes = orcamentoBase?.esquema_composicoes || {}
     const divTabelas = document.getElementById('tabelas')
     const colunas = ['Código', 'Descrição', 'Medida', 'Quantidade', 'Custo Unitário', 'Desconto', 'Valor total', 'Imagem', 'Remover']
 
@@ -331,7 +331,7 @@ function carregarLinhaOrcamento(codigo, produto, codigoMaster) {
     `
 
     const divExistente = document.getElementById(`ORCA_${codigo}`)
-    if (divExistente) return divExistente.innerHTML = blocoLinha //29
+    if (divExistente) return divExistente.innerHTML = blocoLinha 
 
     const linha = `
         <div id="ORCA_${codigo}" style="margin-bottom: 0.5rem;">
@@ -623,11 +623,16 @@ async function totalOrcamento() {
 
         const codigo = linha.dataset.codigo
         const hierarquia = linha.dataset.hierarquia
-        let 
+        let itemSalvo = {}
 
-        if (!orcamentoBase.esquema_composicoes[codigo]) orcamentoBase.esquema_composicoes[codigo] = {}
-
-        let itemSalvo = orcamentoBase.esquema_composicoes[codigo]
+        if (hierarquia == 'master') {
+            if (!orcamentoBase.esquema_composicoes[codigo]) orcamentoBase.esquema_composicoes[codigo] = {}
+            itemSalvo = orcamentoBase.esquema_composicoes[codigo]
+        } else {
+            const master = linha.dataset.master
+            if (!orcamentoBase.esquema_composicoes[master].agrupamento) orcamentoBase.esquema_composicoes[master].agrupamento = {}
+            itemSalvo = orcamentoBase.esquema_composicoes[master].agrupamento[codigo] = {}
+        }
 
         itemSalvo.codigo = codigo
 
@@ -816,13 +821,6 @@ async function totalOrcamento() {
         const inputProduto = document.getElementById(`prod_${codigo}`)
         if (inputProduto) inputProduto.value = quantidade
 
-        if (!carrefour) {
-            itemSalvo.tipo_desconto = tipoDesconto.value
-            itemSalvo.desconto = Number(valorDesconto.value)
-        } else {
-            delete itemSalvo.tipo_desconto
-            delete itemSalvo.desconto
-        }
     }
 
     const painel_desconto = document.getElementById('desconto_total')
