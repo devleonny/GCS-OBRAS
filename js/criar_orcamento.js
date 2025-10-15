@@ -188,7 +188,7 @@ async function manterPrecosAntigos(resposta) {
     dados_composicoes = await recuperarDados('dados_composicoes')
     const lpu = String(orcamentoBase.lpu_ativa).toLocaleLowerCase()
 
-    for ([codigo, produto] of Object.entries(orcamentoBase.dados_composicoes)) {
+    for (const [codigo, produto] of Object.entries(orcamentoBase.dados_composicoes)) {
 
         const precos = dados_composicoes?.[codigo]?.[lpu] || { ativo: 0, historico: { 0: { valor: 0 } } }
         const ativo = precos.ativo
@@ -204,14 +204,6 @@ async function manterPrecosAntigos(resposta) {
 
     await atualizarOpcoesLPU()
 
-}
-
-function reabrirOrcamento() {
-    let orcamentoBase = baseOrcamento()
-
-    if (orcamentoBase.id) {
-        localStorage.setItem('reabrirOrcamento', JSON.stringify(orcamentoBase.id))
-    }
 }
 
 async function atualizarOpcoesLPU() {
@@ -231,7 +223,7 @@ async function atualizarOpcoesLPU() {
         )
     ];
 
-    let lpu = document.getElementById('lpu')
+    const lpu = document.getElementById('lpu')
     if (lpu) lpu.innerHTML = LPUS.map(lpu => `<option ${orcamentoBase?.lpu_ativa == lpu ? 'selected' : ''}>${lpu}</option>`).join('')
 
     orcamentoBase.lpu_ativa = lpu.value
@@ -255,7 +247,7 @@ async function carregarTabelasOrcameneto() {
 
     dados_composicoes = await recuperarDados('dados_composicoes')
     const orcamentoBase = baseOrcamento()
-    const dadosComposicoes = orcamentoBase?.dados_composicoes || {}
+    const esquemaComposicoes = orcamentoBase?.esquema_omposicoes || {}
     const divTabelas = document.getElementById('tabelas')
     const colunas = ['Código', 'Descrição', 'Medida', 'Quantidade', 'Custo Unitário', 'Desconto', 'Valor total', 'Imagem', 'Remover']
 
@@ -273,11 +265,11 @@ async function carregarTabelasOrcameneto() {
         <div class="toolbarSuperior"></div>
         ${tabela}`
 
-    for (const [codigoMaster, produto] of Object.entries(dadosComposicoes)) {
+    for (const [codigoMaster, produto] of Object.entries(esquemaComposicoes)) {
         carregarLinhaOrcamento(codigoMaster, produto)
 
-        for (const [codigoSlave, qtde] of Object.entries(produto?.agrupamento || {})) {
-            carregarLinhaOrcamento(codigoSlave, qtde, codigoMaster)
+        for (const [codigoSlave, produtoSlave] of Object.entries(produto?.agrupamento || {})) {
+            carregarLinhaOrcamento(codigoSlave, produtoSlave, codigoMaster)
         }
     }
 
@@ -326,20 +318,20 @@ function carregarLinhaOrcamento(codigo, produto, codigoMaster) {
         const bloco = master.querySelector(`[name="${codigoMaster}_associado"]`)
 
         return bloco.insertAdjacentHTML('beforeend', `
-            <div class="linha-orcamento" id="${codigoMaster}_${codigo}">
+            <div data-hierarquia="slave" class="linha-orcamento" id="${codigoMaster}_${codigo}">
                 ${celulas}
             </div>`)
     }
 
     const blocoLinha = `
         <div style="${vertical}">
-            <div class="linha-orcamento" data-tipo="${produto.tipo}" data-codigo="${codigo}">${celulas}</div>
+            <div data-hierarquia="master" class="linha-orcamento" data-tipo="${produto.tipo}" data-codigo="${codigo}">${celulas}</div>
             <div class="linha-bloco" name="${codigo}_associado"></div>
         </div>
     `
 
     const divExistente = document.getElementById(`ORCA_${codigo}`)
-    if (divExistente) return divExistente.innerHTML = blocoLinha
+    if (divExistente) return divExistente.innerHTML = blocoLinha //29
 
     const linha = `
         <div id="ORCA_${codigo}" style="margin-bottom: 0.5rem;">
@@ -612,7 +604,6 @@ async function totalOrcamento() {
 
     let orcamentoBase = baseOrcamento()
     let lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
-    const carrefour = orcamentoBase.lpu_ativa == 'LPU CARREFOUR'
     let totais = { GERAL: { valor: 0, bruto: 0 } }
     let avisoDesconto = 0
     let totalAcrescido = 0
@@ -621,23 +612,26 @@ async function totalOrcamento() {
     let cliente = dados_clientes?.[orcamentoBase.dados_orcam?.omie_cliente] || ''
     let estado = cliente.estado || false
 
-    if (!orcamentoBase.dados_composicoes) orcamentoBase.dados_composicoes = {}
+    if (!orcamentoBase.esquema_composicoes) orcamentoBase.esquema_composicoes = {}
 
     const bodyOrcamento = document.getElementById('bodyOrcamento')
     if (!bodyOrcamento) return
 
     const linhas = bodyOrcamento.querySelectorAll('.linha-orcamento')
 
-    console.log(linhas);
-    
-    let ordem = 1
     for (const linha of linhas) {
 
-        let codigo = linha.dataset.codigo
+        const codigo = linha.dataset.codigo
+        const hierarquia = linha.dataset.hierarquia
+        let 
 
-        if (!orcamentoBase.dados_composicoes[codigo]) orcamentoBase.dados_composicoes[codigo] = {}
+        if (!orcamentoBase.esquema_composicoes[codigo]) orcamentoBase.esquema_composicoes[codigo] = {}
 
-        let refProduto = dados_composicoes[codigo]
+        let itemSalvo = orcamentoBase.esquema_composicoes[codigo]
+
+        itemSalvo.codigo = codigo
+
+        const refProduto = dados_composicoes[codigo]
 
         // Caso o item não exista, traga os dados dele no orçamento;
         if (!refProduto) refProduto = orcamentoBase.dados_composicoes[codigo]
@@ -646,14 +640,7 @@ async function totalOrcamento() {
 
         let valorUnitario = 0
         let total = 0
-
         let icmsSaida = 0
-        let itemSalvo = orcamentoBase.dados_composicoes[codigo]
-        itemSalvo.codigo = codigo
-
-        // Ordem;
-        itemSalvo.ordem = ordem
-        ordem++
 
         let precos = { custo: 0, lucro: 0 }
         const ativo = refProduto?.[lpu]?.ativo || 0
@@ -820,7 +807,6 @@ async function totalOrcamento() {
 
         itemSalvo.descricao = refProduto.descricao
         itemSalvo.unidade = refProduto?.unidade || 'UN'
-        if (carrefour) itemSalvo.descricaocarrefour = refProduto.descricaocarrefour
         itemSalvo.qtde = quantidade
         itemSalvo.custo = valorUnitario
         itemSalvo.tipo = refProduto.tipo
@@ -900,7 +886,7 @@ async function totalOrcamento() {
     const quieto = document.querySelector('.quieto')
     if (quieto) quieto.remove()
 
-    if (Object.keys(orcamentoBase.dados_composicoes).length == 0) {
+    if (Object.keys(orcamentoBase.esquema_composicoes).length == 0) {
         // Mensagem aleatório de boas vindas;
         const aleatorio = Math.floor(Math.random() * metaforas.length)
         tabelas.insertAdjacentHTML(
@@ -1062,11 +1048,11 @@ async function incluirItem(codigo, novaQuantidade) {
     let orcamentoBase = baseOrcamento()
     const produto = dados_composicoes[codigo]
 
-    if (!orcamentoBase.dados_composicoes) orcamentoBase.dados_composicoes = {}
+    if (!orcamentoBase.esquema_composicoes) orcamentoBase.esquema_composicoes = {}
 
-    orcamentoBase.dados_composicoes[codigo] = {
+    orcamentoBase.esquema_composicoes[codigo] = {
         agrupamento: produto.agrupamento || {},
-        qtde: novaQuantidade 
+        qtde: novaQuantidade
     }
 
     baseOrcamento(orcamentoBase)
