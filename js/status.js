@@ -1048,6 +1048,7 @@ async function painelCustos() {
             <hr style="width: 100%;">
 
             <div style="${horizontal}; justify-content: start; gap: 2rem;">
+            
                 <div style="${vertical}">
                     ${spans1('Custo com compra de material', dadosCustos.custoCompra)}
                     ${spans1('Custo com Frete de saída (5%)', dadosCustos.freteVenda)}
