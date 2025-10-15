@@ -254,7 +254,7 @@ async function carregarTabelasOrcameneto() {
     const tabela = `
         <div class="tabela-orcamento">
 
-            <div style="background-color: ${coresTabelas()}; color: white;" id="theadOrcamento" class="linha-orcamento">${colunas.map(op => `<span>${op}</span>`).join('')}</div>
+            <div style="border-bottom-left-radius: 0px; background-color: ${coresTabelas()}; color: white;" id="theadOrcamento" class="linha-orcamento">${colunas.map(op => `<span>${op}</span>`).join('')}</div>
 
             <div id="bodyOrcamento"></div>
 
@@ -305,12 +305,11 @@ function carregarLinhaOrcamento(codigo, produto, codigoMaster) {
             <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 3rem; cursor: pointer;">
         </div>
         <div>
-            <img src="imagens/cancel.png" onclick="removerItemOrcamento('${codigo}')" style="cursor: pointer; width: 1.5rem;">
+            <img src="imagens/cancel.png" onclick="removerItemOrcamento({ codigo: '${codigo}', codigoMaster: ${codigoMaster}})" style="cursor: pointer; width: 1.5rem; border-radius: 3px;">
         </div>
     `
 
     if (codigoMaster) {
-
         const linhaSlave = document.getElementById(`${codigoMaster}_${codigo}`)
         if (linhaSlave) return linhaSlave.innerHTML = celulas
 
@@ -318,20 +317,20 @@ function carregarLinhaOrcamento(codigo, produto, codigoMaster) {
         const bloco = master.querySelector(`[name="${codigoMaster}_associado"]`)
 
         return bloco.insertAdjacentHTML('beforeend', `
-            <div data-hierarquia="slave" class="linha-orcamento" id="${codigoMaster}_${codigo}">
+            <div data-hierarquia="slave" data-codigo="${codigo}" class="linha-orcamento" id="${codigoMaster}_${codigo}">
                 ${celulas}
             </div>`)
     }
 
     const blocoLinha = `
         <div style="${vertical}">
-            <div data-hierarquia="master" class="linha-orcamento" data-tipo="${produto.tipo}" data-codigo="${codigo}">${celulas}</div>
+            <div data-hierarquia="master" class="linha-orcamento" data-tipo="${produto.tipo}" data-codigo="${codigo}" style="background-color: #f5f5f5;">${celulas}</div>
             <div class="linha-bloco" name="${codigo}_associado"></div>
         </div>
     `
 
     const divExistente = document.getElementById(`ORCA_${codigo}`)
-    if (divExistente) return divExistente.innerHTML = blocoLinha 
+    if (divExistente) return divExistente.innerHTML = blocoLinha
 
     const linha = `
         <div id="ORCA_${codigo}" style="margin-bottom: 0.5rem;">
@@ -341,16 +340,21 @@ function carregarLinhaOrcamento(codigo, produto, codigoMaster) {
     document.getElementById('bodyOrcamento').insertAdjacentHTML('beforeend', linha)
 }
 
-async function removerItemOrcamento(codigo) {
+async function removerItemOrcamento({ codigo, codigoMaster }) {
 
     let orcamentoBase = baseOrcamento()
-    delete orcamentoBase.dados_composicoes[codigo]
+    let id = `ORCA_${codigo}`
+
+    if (codigoMaster) {
+        delete orcamentoBase.esquema_composicoes[codigoMaster].agrupamento[codigo]
+        id = `${codigoMaster}_${codigo}`
+    } else {
+        delete orcamentoBase.esquema_composicoes[codigo]
+    }
+
+    document.getElementById(id).remove()
+
     baseOrcamento(orcamentoBase)
-
-    document.getElementById(`ORCA_${codigo}`).remove()
-
-    const prod = document.getElementById(`prod_${codigo}`)
-    if (prod) prod.value = ''
 
     await totalOrcamento()
 
@@ -629,17 +633,14 @@ async function totalOrcamento() {
             if (!orcamentoBase.esquema_composicoes[codigo]) orcamentoBase.esquema_composicoes[codigo] = {}
             itemSalvo = orcamentoBase.esquema_composicoes[codigo]
         } else {
-            const master = linha.dataset.master
+            const cods = String(linha.id).split('_')
+            const master = cods[0]
             if (!orcamentoBase.esquema_composicoes[master].agrupamento) orcamentoBase.esquema_composicoes[master].agrupamento = {}
             itemSalvo = orcamentoBase.esquema_composicoes[master].agrupamento[codigo] = {}
         }
 
         itemSalvo.codigo = codigo
-
-        const refProduto = dados_composicoes[codigo]
-
-        // Caso o item não exista, traga os dados dele no orçamento;
-        if (!refProduto) refProduto = orcamentoBase.dados_composicoes[codigo]
+        const refProduto = dados_composicoes?.[codigo] || itemSalvo
 
         if (!totais[refProduto.tipo]) totais[refProduto.tipo] = { valor: 0 }
 

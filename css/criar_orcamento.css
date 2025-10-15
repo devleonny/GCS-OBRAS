@@ -16,6 +16,7 @@
   width: 100%;
   gap: .5rem;
   padding: 3px 0 3px 0;
+  border-bottom-left-radius: 8px;
 }
 
 .linha-orcamento div {
