@@ -189,14 +189,14 @@ async function manterPrecosAntigos(resposta) {
     dados_composicoes = await recuperarDados('dados_composicoes')
     const lpu = String(orcamentoBase.lpu_ativa).toLocaleLowerCase()
 
-    for ([codigo, produto] of Object.entries(orcamentoBase.dados_composicoes)) {
+    for (let [codigo, produto] of Object.entries(orcamentoBase.dados_composicoes)) {
 
         const precos = dados_composicoes?.[codigo]?.[lpu] || { ativo: 0, historico: { 0: { valor: 0 } } }
-        const ativo = precos.ativo
-        const historico = precos.historico
-        const preco = historico[ativo].valor
+        const ativo = precos?.ativo || ''
+        const historico = precos?.historico || {}
+        const preco = historico?.[ativo]?.valor || {}
 
-        if (produto.custo !== preco) produto.antigo = resposta
+        if (produto?.custo !== preco) produto.antigo = resposta
     }
 
     orcamentoBase.edicaoAntigos = resposta

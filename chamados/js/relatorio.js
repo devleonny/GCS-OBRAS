@@ -143,22 +143,28 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
         let dias = 0;
 
         // pegar a última correção válida
-        const correcao = Object.values(ocorrencia?.correcoes || {}).find(c => c.tipoCorrecao === 'WRuo2');
+        const correcao = Object.values(ocorrencia?.correcoes || {}).find(c => c.tipoCorrecao === 'WRuo2') || {}
 
-        let dtReferencia;
+        let dtReferencia
 
-        if (correcao) {
-            const dtSolucaoTimestamp = Number(Object.keys(correcao.datas)[0]);
-            const dtSolucao = new Date(dtSolucaoTimestamp);
-            dtSolucao.setHours(0, 0, 0, 0);
-            dtSolucaoStr = dtSolucao.toLocaleDateString('pt-BR');
-            dtReferencia = dtSolucao;
+        if (correcao.data) {
+            const [dataStr, horaStr] = correcao.data.split(', ')
+            const [dia, mes, ano] = dataStr.split('/').map(Number)
+            const [hora, minuto] = horaStr.split(':').map(Number)
+
+            const dtSolucao = new Date(ano, mes - 1, dia, hora, minuto)
+            dtSolucao.setHours(0, 0, 0, 0)
+
+            dtSolucaoStr = dtSolucao.toLocaleDateString('pt-BR')
+            dtReferencia = dtSolucao
         } else {
-            dtReferencia = new Date(); // hoje
-            dtReferencia.setHours(0, 0, 0, 0);
+            dtReferencia = new Date()
+            dtReferencia.setHours(0, 0, 0, 0)
         }
 
         dias = Math.round((dataLimite - dtReferencia) / (1000 * 60 * 60 * 24));
+
+        if (isNaN(dias)) dias = -999
 
         const img = dias < 0 ? 'offline' : dtSolucaoStr !== '' ? 'online' : 'pendente'
 
@@ -224,7 +230,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
             .join('')
 
 
-        for (let [dt, dado] of Object.entries(correcao.datas)) {
+        for (let [dt, dado] of Object.entries(correcao?.datas || {})) {
 
             let rastreio = 'Processando localização...'
             if (dado.geolocalizacao) {
@@ -249,7 +255,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
             <tr>
                 <td>${correcao.executor}</td>
                 <td>${st}</td>
-                <td style="width: 20vw; text-align: justify;">${correcao.descricao}</td>
+                <td style="width: 20vw; text-align: left;">${correcao.descricao}</td>
                 <td>
                     <div style="${vertical}; gap: 1px;">
                         ${registros}

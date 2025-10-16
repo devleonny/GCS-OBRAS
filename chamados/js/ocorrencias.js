@@ -395,8 +395,6 @@ async function abrirCorrecoes(idOcorrencia) {
 
 async function carregarLinhaCorrecao(idCorrecao, correcao, idOcorrencia) {
 
-    console.log(correcao)
-
     const imagens = Object.entries(correcao?.fotos || {})
         .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/GCS/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
         .join('')
