@@ -110,7 +110,7 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
         <td>${status}</td>
         <td>${ocorrencia?.dataRegistro || ''}</td>
         <td>${dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao)}</td>
-        <td>${calculos.dtSolucao}</td>
+        <td>${calculos.dtSolucaoStr}</td>
         <td>
             <div style="${horizontal}; gap: 5px;">
                 <img src="imagens/${calculos.img}.png" style="width: 1.5rem;">
@@ -132,20 +132,20 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
 
     function verificarDtSolucao() {
         if (!ocorrencia.dataLimiteExecucao) {
-            return { dtSolucao: '--', dias: -999, img: 'pendente' }
+            return { dtSolucaoStr: '--', dias: -999, img: 'pendente' }
         }
 
         const [ano, mes, dia] = ocorrencia.dataLimiteExecucao.split('-').map(Number);
         const dataLimite = new Date(ano, mes - 1, dia);
         dataLimite.setHours(0, 0, 0, 0);
 
-        let dtSolucaoStr = '';
+        let dtSolucaoStr = '--';
         let dias = 0;
 
         // pegar a última correção válida
         const correcao = Object.values(ocorrencia?.correcoes || {}).find(c => c.tipoCorrecao === 'WRuo2') || {}
 
-        let dtReferencia
+        let dtReferencia = null
 
         if (correcao.data) {
             const [dataStr, horaStr] = correcao.data.split(', ')
@@ -168,7 +168,7 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
 
         const img = dias < 0 ? 'offline' : dtSolucaoStr !== '' ? 'online' : 'pendente'
 
-        return { dtSolucao: dtSolucaoStr, dias, img };
+        return { dtSolucaoStr, dias, img };
     }
 }
 
