@@ -474,7 +474,7 @@ async function sincronizarDados(base, overlayOff, reset) {
 
     if (!overlayOff) overlayAguarde()
 
-    if(reset) await inserirDados({}, base, true)
+    if (reset) await inserirDados({}, base, true)
     const nuvem = await receber(base) || {}
     await inserirDados(nuvem, base)
 
@@ -627,33 +627,31 @@ function salvarOffline(objeto, operacao, idEvento) {
     localStorage.setItem('dados_offline', JSON.stringify(dados_offline))
 }
 
-function enviar(caminho, info, idEvento) {
-    return new Promise((resolve) => {
-        let objeto = {
-            caminho: caminho,
-            valor: info
-        };
+async function enviar(caminho, info, idEvento) {
+    return new Promise((resolve, reject) => {
+        const objeto = { caminho, valor: info }
 
         fetch(`${api}/salvar`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(objeto)
         })
-            .then(res => res.json())
-            .then(data => {
-                if (data.mensagem) {
-                    msgQuedaConexao()
-                    resolve()
-                }
-                resolve(data)
-            })
-            .catch((erro) => {
-                salvarOffline(objeto, 'enviar', idEvento);
-                resolve();
-            });
-    });
+        .then(res => res.json())
+        .then(data => {
+            if (data.mensagem) {
+                msgQuedaConexao()
+                return resolve(data) // só um resolve, com retorno
+            }
+            resolve(data)
+        })
+        .catch(err => {
+            if (caminho.includes('0000')) {
+                return reject({ mensagem: 'Sem conexão rede/servidor, tente novamente em alguns minutos' })
+            }
+            salvarOffline(objeto, 'enviar', idEvento)
+            resolve({ mensagem: 'Offline' }) // retorna algo definido
+        })
+    })
 }
 
 function msgQuedaConexao() {
