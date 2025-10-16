@@ -254,7 +254,7 @@ async function carregarTabelasOrcameneto() {
     const tabela = `
         <div class="tabela-orcamento">
 
-            <div style="background-color: ${coresTabelas()}; color: white;" id="theadOrcamento" class="linha-orcamento">${colunas.map(op => `<span>${op}</span>`).join('')}</div>
+            <div style="border-top-left-radius: 8px; background-color: ${coresTabelas()}; color: white;" id="theadOrcamento" class="linha-orcamento">${colunas.map(op => `<span>${op}</span>`).join('')}</div>
 
             <div id="bodyOrcamento"></div>
 
@@ -277,14 +277,17 @@ async function carregarTabelasOrcameneto() {
 
 }
 
-function carregarLinhaOrcamento(codigo, produto, codigoMaster) {
+function carregarLinhaOrcamento(codigo, produto, codigoMaster) { //29
 
     const opcoes = ['Dinheiro', 'Porcentagem', 'Venda Direta']
         .map(op => `<option ${produto?.tipo_desconto == op ? 'selected' : ''}>${op}</option>`).join('')
 
     const celulas = `
-        <div>${codigo}</div>
-        <div name="descricao">${produto?.descricao || 'N/A'}</div>
+        <div style="${horizontal}; gap: 3px;">
+            <div name="elo"></div>
+            <span>${codigo}</span>
+        </div>
+        <div name="descricao" style="justify-content: start;">${produto?.descricao || 'N/A'}</div>
         <div name="medida">${produto?.unidade || 'UN'}</div>
         <div>
             <input name="quantidade" oninput="totalOrcamento()" type="number" class="campoValor" value="${produto.qtde}">
@@ -324,7 +327,7 @@ function carregarLinhaOrcamento(codigo, produto, codigoMaster) {
 
     const blocoLinha = `
         <div style="${vertical}">
-            <div data-hierarquia="master" class="linha-orcamento" data-tipo="${produto.tipo}" data-codigo="${codigo}" style="background-color: #f5f5f5;">${celulas}</div>
+            <div data-hierarquia="master" class="linha-orcamento" data-tipo="${produto.tipo}" data-codigo="${codigo}" style="background-color: #dfdfdf;">${celulas}</div>
             <div class="linha-bloco" name="${codigo}_associado"></div>
         </div>
     `
@@ -602,7 +605,70 @@ function linhasComposicoesOrcamento(codigo, produto, qtdeOrcada, lpu) {
 
 }
 
-async function totalOrcamento() {
+async function moverItem({ codigoAmover, codigoMaster }) {
+
+    let orcamento = baseOrcamento()
+    let tempComposicoes = {}
+    for (const [codigo, produto] of Object.entries(orcamento?.esquema_composicoes || {})) {
+        if (codigoAmover == codigo) continue
+        tempComposicoes[codigo] = produto
+    }
+
+    await inserirDados(tempComposicoes, 'tempComposicoes', true)
+
+    const acumulado = `
+        <div style="${horizontal}; background-color: #d2d2d2; padding: 2rem; gap: 2rem;">
+            <span class="opcoes" name="produto" onclick="cxOpcoes('produto', 'tempComposicoes', ['descricao', 'codigo'])">Selecione</span>
+            <img onclick="confirmarMoverItem({codigoAmover: ${codigoAmover}, codigoMaster: ${codigoMaster}})" src="imagens/concluido.png" style="width: 2rem; cursor: pointer;">
+        </div>
+    `
+
+    popup(acumulado, 'Mover Item', true)
+
+}
+
+async function confirmarMoverItem({ codigoAmover, codigoMaster }) {
+
+    overlayAguarde()
+
+    let orcamento = baseOrcamento()
+
+    if (codigoMaster) { // Item atualmente em outro master;
+
+        const produtoAmover = orcamento.esquema_composicoes[codigoMaster].agrupamento[codigoAmover]
+        const codigoDestino = document.querySelector('[name="produto"]')
+
+        if (!codigoDestino) return
+
+        orcamento.esquema_composicoes[codigoDestino.id].agrupamento[codigoAmover] = produtoAmover
+        delete orcamento.esquema_composicoes[codigoMaster].agrupamento[codigoAmover]
+
+        removerItemOrcamento({ codigo: codigoAmover, codigoMaster })
+
+
+    } else { // Item master que vai se tornar slave;
+
+        const produtoAmover = orcamento.esquema_composicoes[codigoAmover]
+        const codigoDestino = document.querySelector('[name="produto"]')
+
+        if (!codigoDestino) return
+
+        orcamento.esquema_composicoes[codigoDestino.id].agrupamento[codigoAmover] = produtoAmover
+        delete orcamento.esquema_composicoes[codigoAmover]
+
+        removerItemOrcamento({ codigo: codigoAmover })
+
+    }
+
+    baseOrcamento(orcamento)
+
+    await carregarTabelasOrcameneto()
+
+    removerPopup()
+
+}
+
+async function totalOrcamento() { //29
 
     atualizarToolbar()
 
@@ -623,27 +689,33 @@ async function totalOrcamento() {
 
     const linhas = bodyOrcamento.querySelectorAll('.linha-orcamento')
 
+    let primeiro = true
     for (const linha of linhas) {
 
         const codigo = linha.dataset.codigo
         const hierarquia = linha.dataset.hierarquia
         let itemSalvo = {}
 
+        linha.style.borderTopLeftRadius = '0px'
         linha.style.borderBottomLeftRadius = '0px'
+        let codigoMaster = null
 
         if (hierarquia == 'master') {
             if (!orcamentoBase.esquema_composicoes[codigo]) orcamentoBase.esquema_composicoes[codigo] = {}
             itemSalvo = orcamentoBase.esquema_composicoes[codigo]
-            linha.style.borderBottomLeftRadius = '8px'
+            const qtdeFilhos = Object.keys(itemSalvo?.agrupamento || {}).length
+            if (qtdeFilhos == 0) linha.style.borderBottomLeftRadius = '8px'
+            if (!primeiro) linha.style.borderTopLeftRadius = '8px'
+            primeiro = false
         } else {
             const cods = String(linha.id).split('_')
-            const master = cods[0]
-            if (!orcamentoBase.esquema_composicoes[master].agrupamento) orcamentoBase.esquema_composicoes[master].agrupamento = {}
-            const agrupamento = orcamentoBase.esquema_composicoes[master].agrupamento
-            console.log(Object.keys(agrupamento).length)
-            itemSalvo = orcamentoBase.esquema_composicoes[master].agrupamento[codigo] = {}
-            // Ultimo recebe o estilo;
+            codigoMaster = cods[0]
+            if (!orcamentoBase.esquema_composicoes[codigoMaster].agrupamento) orcamentoBase.esquema_composicoes[codigoMaster].agrupamento = {}
+            itemSalvo = orcamentoBase.esquema_composicoes[codigoMaster].agrupamento[codigo] = {}
         }
+
+        const elo = linha.querySelector('[name="elo"]')
+        elo.innerHTML = `<img onclick="moverItem({codigoAmover: ${codigo}, codigoMaster: ${codigoMaster}})" src="imagens/elo.png" style="cursor: pointer; width: 1.5rem;">`
 
         itemSalvo.codigo = codigo
         const refProduto = dados_composicoes?.[codigo] || itemSalvo
@@ -766,18 +838,13 @@ async function totalOrcamento() {
         const valorTotSemICMS = totalLinha - (totalLinha * icmsSaidaDecimal)
 
         const labelValores = (valor, semIcms, percentual, unitario) => {
-            let labelICMS = ''
-            if (refProduto.tipo == 'VENDA' && estado) labelICMS = `<label style="white-space: nowrap;">SEM ICMS</br> <b>${dinheiro(semIcms)}</b> [ ${percentual}% ]</label>`
             return `
-                <div style="display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 5px;">
-                        <label ${valor > 0 ? 'class="input_valor">' : `class="label-estoque" style="background-color: #b36060bf">`} ${dinheiro(valor)}</label>
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
-                            ${(unitario && itemSalvo.antigo !== undefined) ? `<img onclick="gerenciarPrecoAntigo('${codigo}')" src="imagens/atrasado.png" style="cursor: pointer; width: 1.5vw;">` : ''}
-                            ${unitario ? `<img onclick="alterarValorUnitario('${codigo}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5vw;">` : ''}
-                        </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 5px;">
+                    <label ${valor > 0 ? 'class="input_valor">' : `class="label-estoque" style="background-color: #b36060bf">`} ${dinheiro(valor)}</label>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
+                        ${(unitario && itemSalvo.antigo !== undefined) ? `<img onclick="gerenciarPrecoAntigo('${codigo}')" src="imagens/atrasado.png" style="cursor: pointer; width: 1.5vw;">` : ''}
+                        ${unitario ? `<img onclick="alterarValorUnitario('${codigo}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5vw;">` : ''}
                     </div>
-                    ${labelICMS}
                 </div>
                 `
         }
