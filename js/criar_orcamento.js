@@ -254,7 +254,7 @@ async function carregarTabelasOrcameneto() {
     const tabela = `
         <div class="tabela-orcamento">
 
-            <div style="border-bottom-left-radius: 0px; background-color: ${coresTabelas()}; color: white;" id="theadOrcamento" class="linha-orcamento">${colunas.map(op => `<span>${op}</span>`).join('')}</div>
+            <div style="background-color: ${coresTabelas()}; color: white;" id="theadOrcamento" class="linha-orcamento">${colunas.map(op => `<span>${op}</span>`).join('')}</div>
 
             <div id="bodyOrcamento"></div>
 
@@ -629,14 +629,20 @@ async function totalOrcamento() {
         const hierarquia = linha.dataset.hierarquia
         let itemSalvo = {}
 
+        linha.style.borderBottomLeftRadius = '0px'
+
         if (hierarquia == 'master') {
             if (!orcamentoBase.esquema_composicoes[codigo]) orcamentoBase.esquema_composicoes[codigo] = {}
             itemSalvo = orcamentoBase.esquema_composicoes[codigo]
+            linha.style.borderBottomLeftRadius = '8px'
         } else {
             const cods = String(linha.id).split('_')
             const master = cods[0]
             if (!orcamentoBase.esquema_composicoes[master].agrupamento) orcamentoBase.esquema_composicoes[master].agrupamento = {}
+            const agrupamento = orcamentoBase.esquema_composicoes[master].agrupamento
+            console.log(Object.keys(agrupamento).length)
             itemSalvo = orcamentoBase.esquema_composicoes[master].agrupamento[codigo] = {}
+            // Ultimo recebe o estilo;
         }
 
         itemSalvo.codigo = codigo
