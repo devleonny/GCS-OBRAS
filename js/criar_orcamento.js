@@ -305,7 +305,7 @@ function carregarLinhaOrcamento(codigo, produto, codigoMaster) { //29
 
         <div name="total"></div>
         <div>
-            <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 3rem; cursor: pointer;">
+            <img class="imagem-orc" name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 3rem; cursor: pointer;">
         </div>
         <div>
             <img src="imagens/cancel.png" onclick="removerItemOrcamento({ codigo: '${codigo}', codigoMaster: ${codigoMaster}})" style="cursor: pointer; width: 1.5rem; border-radius: 3px;">
@@ -326,9 +326,10 @@ function carregarLinhaOrcamento(codigo, produto, codigoMaster) { //29
     }
 
     const blocoLinha = `
-        <div style="${vertical}">
-            <div data-hierarquia="master" class="linha-orcamento" data-tipo="${produto.tipo}" data-codigo="${codigo}" style="background-color: #dfdfdf;">${celulas}</div>
-            <div class="linha-bloco" name="${codigo}_associado"></div>
+        <div data-hierarquia="master" class="linha-orcamento" data-tipo="${produto.tipo}" data-codigo="${codigo}" style="background-color: #dfdfdf;">${celulas}</div>
+        <div class="linha-bloco" name="${codigo}_associado"></div>
+        <div class="total-linha">
+            <span name="totalBloco"></span>
         </div>
     `
 
@@ -336,7 +337,7 @@ function carregarLinhaOrcamento(codigo, produto, codigoMaster) { //29
     if (divExistente) return divExistente.innerHTML = blocoLinha
 
     const linha = `
-        <div id="ORCA_${codigo}" style="margin-bottom: 0.5rem;">
+        <div id="ORCA_${codigo}" style="${vertical}; margin-bottom: 0.5rem;">
             ${blocoLinha}
         </div>
     `
@@ -697,15 +698,26 @@ async function totalOrcamento() { //29
         let itemSalvo = {}
 
         linha.style.borderTopLeftRadius = '0px'
+        linha.style.borderTopRightRadius = '0px'
         linha.style.borderBottomLeftRadius = '0px'
+        linha.style.borderBottomRightRadius = '0px'
+        let qtdeFilhos = 0
         let codigoMaster = null
 
         if (hierarquia == 'master') {
             if (!orcamentoBase.esquema_composicoes[codigo]) orcamentoBase.esquema_composicoes[codigo] = {}
             itemSalvo = orcamentoBase.esquema_composicoes[codigo]
-            const qtdeFilhos = Object.keys(itemSalvo?.agrupamento || {}).length
-            if (qtdeFilhos == 0) linha.style.borderBottomLeftRadius = '8px'
-            if (!primeiro) linha.style.borderTopLeftRadius = '8px'
+            qtdeFilhos = Object.keys(itemSalvo?.agrupamento || {}).length
+
+            if (qtdeFilhos == 0) {
+                linha.style.borderBottomLeftRadius = '8px'
+                linha.style.borderBottomRightRadius = '8px'
+            }
+
+            if (!primeiro) {
+                linha.style.borderTopLeftRadius = '8px'
+                linha.style.borderTopRightRadius = '8px'
+            }
             primeiro = false
         } else {
             const cods = String(linha.id).split('_')
@@ -833,17 +845,15 @@ async function totalOrcamento() { //29
         totais[refProduto.tipo].valor += totalLinha
 
         const imagem = refProduto?.imagem || logo
-        const icmsSaidaDecimal = icmsSaida / 100
-        const valorLiqSemICMS = valorUnitario - (valorUnitario * icmsSaidaDecimal)
-        const valorTotSemICMS = totalLinha - (totalLinha * icmsSaidaDecimal)
+        linha.querySelector('.imagem-orc').src = imagem
 
-        const labelValores = (valor, semIcms, percentual, unitario) => {
+        const labelValores = (valor, unitario) => {
             return `
                 <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 5px;">
                     <label ${valor > 0 ? 'class="input_valor">' : `class="label-estoque" style="background-color: #b36060bf">`} ${dinheiro(valor)}</label>
                     <div style="display: flex; align-items: center; justify-content: center; gap: 3px;">
                         ${(unitario && itemSalvo.antigo !== undefined) ? `<img onclick="gerenciarPrecoAntigo('${codigo}')" src="imagens/atrasado.png" style="cursor: pointer; width: 1.5vw;">` : ''}
-                        ${unitario ? `<img onclick="alterarValorUnitario('${codigo}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5vw;">` : ''}
+                        ${unitario ? `<img onclick="alterarValorUnitario('${codigo}')" src="imagens/ajustar.png" style="cursor: pointer; width: 1.5rem;">` : ''}
                     </div>
                 </div>
                 `
@@ -881,8 +891,14 @@ async function totalOrcamento() { //29
         `
 
         el('medida').textContent = refProduto?.unidade || 'UN'
-        el('unitario').innerHTML = labelValores(valorUnitario, valorLiqSemICMS, icmsSaida, true)
-        el('total').innerHTML = labelValores(totalLinha, valorTotSemICMS, icmsSaida)
+        el('unitario').innerHTML = labelValores(valorUnitario, true)
+        el('total').innerHTML = labelValores(totalLinha)
+
+        const linhaMaster = document.getElementById(`ORCA_${codigoMaster || codigo}`)
+        const totalBlocoDiv = linhaMaster.querySelector('.total-linha')
+        if (hierarquia == 'master') totalBlocoDiv.style.display = qtdeFilhos == 0 ? 'none' : 'flex'
+        const totalBloco = totalBlocoDiv.querySelector('span')
+        totalBloco.innerHTML = dinheiro(conversor(totalBloco.textContent) + totalLinha)
 
         itemSalvo.descricao = refProduto.descricao
         itemSalvo.unidade = refProduto?.unidade || 'UN'
