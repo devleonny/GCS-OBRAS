@@ -12,9 +12,9 @@ async function telaOS(idOcorrencia) {
             <img style="width: 15rem;" src="${api}/uploads/GCS/${ocorrencia.assinatura}">
         `
     }
-
+    
     let imagens = Object.entries(ocorrencia?.fotos || {})
-        .map(([link, foto]) => `<img id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`)
+        .map(([link,]) => `<img id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`)
         .join('')
 
     if (imagens == '') imagens = `
@@ -72,10 +72,10 @@ async function telaOS(idOcorrencia) {
 
     let linhasCorrecoes = ''
 
-    for (const [idCorrecao, correcao] of Object.entries(ocorrencia?.correcoes || {})) {
+    for (const [, correcao] of Object.entries(ocorrencia?.correcoes || {})) {
 
         let imagens = Object.entries(correcao?.fotos || {})
-            .map(([link, foto]) => `<img id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`)
+            .map(([link,]) => `<img id="${link}" src="${api}/uploads/GCS/${link}" onclick="ampliarImagem(this, '${link}')">`)
             .join('')
 
         if (imagens == '') imagens = `
@@ -84,8 +84,6 @@ async function telaOS(idOcorrencia) {
                 <span>Sem Imagens</span>
             </div>
         `
-
-        const dataRegistro = new Date(Number(Object.keys(correcao.datas)[0])).toLocaleString('pt-BR')
 
         linhasCorrecoes += `
             <div class="painel-2">
@@ -105,7 +103,7 @@ async function telaOS(idOcorrencia) {
 
                     <div class="horizontal" style="gap: 1rem;">
                         ${modelo('Status da Correção', correcoes?.[correcao.tipoCorrecao]?.nome || '')}
-                        ${modelo('Registrado em', dataRegistro)}
+                        ${modelo('Registrado em', correcao?.data || '--')}
                         ${modelo('Executor', ocorrencia.usuario)}
                     </div>
                 </div>

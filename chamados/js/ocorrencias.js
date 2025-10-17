@@ -317,6 +317,8 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
     const status = correcoes[ocorrencia?.tipoCorrecao]?.nome || 'Não analisada'
 
+    console.log(ocorrencia)
+
     const corAssinatura = ocorrencia.assinatura ? '#008000' : '#d30000'
 
     const partes = `
@@ -367,17 +369,17 @@ async function abrirCorrecoes(idOcorrencia) {
     let ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
 
     const acumulado = `
-    <div class="detalhamento-correcoes">
+        <div class="detalhamento-correcoes">
 
-        <div style="${vertical}">
-            <div class="painelBotoes"></div>
+            <div style="${vertical}">
+                <div class="painelBotoes"></div>
 
-            <div class="tabelaCorrecoes"></div>
+                <div class="tabelaCorrecoes"></div>
 
-            <div class="rodapeTabela"></div>
+                <div class="rodapeTabela"></div>
+            </div>
+
         </div>
-
-    </div>
     `
 
     if (Object.keys(ocorrencia?.correcoes || {}).length == 0) {
