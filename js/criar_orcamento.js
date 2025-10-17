@@ -87,11 +87,10 @@ async function telaCriarOrcamento() {
 
                         <img src="imagens/direita.png">
 
-                        <div
-                            style="cursor: pointer; display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 10px; border-radius: 3px; padding: 5px;">
+                        <div style="${vertical} cursor: pointer; gap: 10px; border-radius: 3px; padding: 5px;">
                             <label style="font-size: 1em;">Tabela de preço</label>
                             <select id="lpu" onchange="alterarTabelaLPU(this.value)"
-                                style="width: 15vw; background-color: white; border-radius: 3px; padding: 5px; color: #222;">
+                                style="width: 15vw; background-color: white; border-radius: 3px; padding: 5px;">
                             </select>
                         </div>
                     </div>
@@ -144,11 +143,7 @@ function atualizarToolbar(remover) {
 
 async function atualizarPrecos() {
 
-    overlayAguarde()
-
     await sincronizarDados('dados_composicoes')
-
-    removerOverlay()
 
     const orcamentoBase = baseOrcamento()
 
@@ -320,7 +315,7 @@ function carregarLinhaOrcamento(codigo, produto, codigoMaster) { //29
         const bloco = master.querySelector(`[name="${codigoMaster}_associado"]`)
 
         return bloco.insertAdjacentHTML('beforeend', `
-            <div data-hierarquia="slave" data-codigo="${codigo}" class="linha-orcamento" id="${codigoMaster}_${codigo}">
+            <div data-hierarquia="slave" data-tipo="${produto.tipo}" data-codigo="${codigo}" class="linha-orcamento" id="${codigoMaster}_${codigo}">
                 ${celulas}
             </div>`)
     }
@@ -612,15 +607,24 @@ async function moverItem({ codigoAmover, codigoMaster }) {
     let tempComposicoes = {}
     for (const [codigo, produto] of Object.entries(orcamento?.esquema_composicoes || {})) {
         if (codigoAmover == codigo) continue
+        if (codigoMaster == codigo) continue
+
         tempComposicoes[codigo] = produto
     }
 
     await inserirDados(tempComposicoes, 'tempComposicoes', true)
 
     const acumulado = `
-        <div style="${horizontal}; background-color: #d2d2d2; padding: 2rem; gap: 2rem;">
-            <span class="opcoes" name="produto" onclick="cxOpcoes('produto', 'tempComposicoes', ['descricao', 'codigo'])">Selecione</span>
-            <img onclick="confirmarMoverItem({codigoAmover: ${codigoAmover}, codigoMaster: ${codigoMaster}})" src="imagens/concluido.png" style="width: 2rem; cursor: pointer;">
+        <div style="${vertical}; background-color: #d2d2d2; padding: 2rem;">
+
+            <span>Escolha um item <b>PAI</b> que receberá este item:</span>
+
+            <hr style="width: 100%;">
+
+            <div style="${horizontal}; gap: 2rem;">
+                <span class="opcoes" name="produto" onclick="cxOpcoes('produto', 'tempComposicoes', ['descricao', 'codigo'])">Selecione</span>
+                <img onclick="confirmarMoverItem({codigoAmover: ${codigoAmover}, codigoMaster: ${codigoMaster}})" src="imagens/concluido.png" style="width: 2rem; cursor: pointer;">
+            </div>
         </div>
     `
 
@@ -645,7 +649,6 @@ async function confirmarMoverItem({ codigoAmover, codigoMaster }) {
         delete orcamento.esquema_composicoes[codigoMaster].agrupamento[codigoAmover]
 
         removerItemOrcamento({ codigo: codigoAmover, codigoMaster })
-
 
     } else { // Item master que vai se tornar slave;
 
@@ -687,6 +690,11 @@ async function totalOrcamento() { //29
 
     const bodyOrcamento = document.getElementById('bodyOrcamento')
     if (!bodyOrcamento) return
+
+    const subTotais = document.querySelectorAll('.total-linha')
+    subTotais.forEach(divTotal => {
+        divTotal.querySelector('span').textContent = ''
+    })
 
     const linhas = bodyOrcamento.querySelectorAll('.linha-orcamento')
 
@@ -909,7 +917,7 @@ async function totalOrcamento() { //29
 
         // Refletir a quantidade na tabela de baixo;
         const inputProduto = document.getElementById(`prod_${codigo}`)
-        if (inputProduto) inputProduto.value = quantidade
+        if (inputProduto && hierarquia == 'master') inputProduto.value = quantidade
 
     }
 
@@ -953,7 +961,7 @@ async function totalOrcamento() { //29
         }
 
         toolbarSuperior.insertAdjacentHTML('beforeend',
-            `<div onclick="filtrarOrcamento(this)" id="${id}" data-tipo="${tabela}" style="background-color: ${coresTabelas(tabela)}" class="menu_top">
+            `<div onclick="filtrarPorTipo(this)" id="${id}" data-tipo="${tabela}" style="background-color: ${coresTabelas(tabela)}" class="menu_top">
                 ${toolbar}
             </div>`
         )
@@ -965,7 +973,7 @@ async function totalOrcamento() { //29
         const tipo = div.dataset.tipo
         if (!totais[tipo]) {
             div.remove()
-            filtrarOrcamento({ dataset: { tipo: 'GERAL' } })
+            filtrarPorTipo({ dataset: { tipo: 'GERAL' } })
         }
     }
 
@@ -1013,15 +1021,22 @@ function salvarDetalhes(textarea) {
 
 }
 
-function filtrarOrcamento(div) {
+async function filtrarPorTipo(div) { //29
     const tipo = div.dataset.tipo
-    const tbody = document.getElementById('bodyOrcamento')
-    const trs = tbody.querySelectorAll('tr')
+    const divOrcamento = document.getElementById('bodyOrcamento')
+    const linhas = divOrcamento.querySelectorAll('.linha-orcamento')
     document.getElementById('theadOrcamento').style.backgroundColor = coresTabelas(tipo)
+    document.querySelectorAll('.total-linha').forEach(el => el.style.display = 'none')
 
-    for (const tr of trs) {
-        tr.style.display = (tipo == 'GERAL' || tr.dataset.tipo == tipo) ? 'table-row' : 'none'
+    for (const linha of linhas) {
+
+        linha.style.display = (tipo == 'GERAL' || linha.dataset.tipo == tipo) ? '' : 'none'
+
+        if (tipo !== 'GERAL') linha.style.borderRadius = '0px'
+
     }
+
+    if (tipo == 'GERAL') await totalOrcamento()
 
 }
 
@@ -1135,11 +1150,18 @@ async function confirmarNovoPreco(codigo, precoOriginal, operacao) {
 async function incluirItem(codigo, novaQuantidade) {
     let orcamentoBase = baseOrcamento()
     const produto = dados_composicoes[codigo]
+    let agrupamento = {}
+
+    for (const [cod, dados] of Object.entries(produto?.agrupamento || {})) {
+        agrupamento[cod] = {
+            qtde: dados.qtde * novaQuantidade
+        }
+    }
 
     if (!orcamentoBase.esquema_composicoes) orcamentoBase.esquema_composicoes = {}
 
     orcamentoBase.esquema_composicoes[codigo] = {
-        agrupamento: produto.agrupamento || {},
+        agrupamento,
         qtde: novaQuantidade
     }
 
