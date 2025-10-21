@@ -1426,8 +1426,6 @@ function connectWebSocket() {
 
         const data = JSON.parse(event.data)
 
-        console.log(data)
-
         if (data.tabela == 'dados_orcamentos') {
             verificarPendencias()
         }

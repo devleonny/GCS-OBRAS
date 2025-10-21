@@ -7,6 +7,9 @@ let tipoAtivo = 'TODOS'
 let titulo = null
 let memoriaFiltro = null
 let lpuATIVA = null
+let paginaComposicoes = 1
+let totalPaginas = null
+const porPagina = 100
 
 const metaforas = [
     "Um monitor sem imagens para exibir",
@@ -430,15 +433,13 @@ async function recuperarComposicoesOrcamento() {
 
 }
 
-let paginaComposicoes = 1
-const porPagina = 100
-
 async function tabelaProdutosOrcamentos(dadosFiltrados) {
 
     const cor = coresTabelas(null)
     let permissoes = ['adm', 'log', 'editor', 'gerente', 'diretoria', 'coordenacao']
     moduloComposicoes = permissoes.includes(acesso.permissao)
-    let colunas = ['Código', 'Descrição', 'Unidade', 'Quantidade', 'Valor', 'Imagem']
+    const colunas = ['Código', 'Descrição', 'Unidade', 'Quantidade', 'Valor', 'Imagem']
+    const colLiberadas = ['Código', 'Descrição', 'Unidade']
     let ths = ''
     let tsh = ''
 
@@ -454,13 +455,13 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
         `
         tsh += `
         <th style="color: black; text-align: left; padding: 8px; background-color: white; ${borda};" 
-            onkeydown="if (event.key === 'Enter') { event.preventDefault(); pesquisarProdutos(${i}, this.textContent.trim()) }"
-            contentEditable="true">
+            onkeydown="if (event.key === 'Enter') { event.preventDefault(); pesquisarProdutos('${col}', this.textContent.trim()) }"
+            contentEditable="${colLiberadas.includes(col)}">
         </th>`
     })
 
     const toolbar = ['TODOS', ...esquemas.tipo]
-        .map(op => `<label class="menu-top" style="background-color: ${coresTabelas(op)};" onclick="filtrarTabelaComposicao('${op}')">${op}</label>`)
+        .map(op => `<label class="menu-top" style="background-color: ${coresTabelas(op)};" onclick="pesquisarProdutos('tipo', '${op}')">${op}</label>`)
         .join('')
 
     const botoes = `
@@ -506,17 +507,21 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
         </div>
         `
     const bodyComposicoes = document.getElementById('bodyComposicoes')
-    if (!bodyComposicoes) document.getElementById('tabelaItens').innerHTML = acumulado
+    if (!bodyComposicoes) {
+        dados_composicoes = await recuperarDados('dados_composicoes') || {}
+        document.getElementById('tabelaItens').innerHTML = acumulado
+    }
+
+    dadosFiltrados = dadosFiltrados || dados_composicoes
 
     // Carregamentos dos itens && filtragem inicial;
-    dados_composicoes = dadosFiltrados || await recuperarDados('dados_composicoes') || {}
-    for (const [codigo, produto] of Object.entries(dados_composicoes)) {
-        if (origem !== produto.origem || !produto.tipo) delete dados_composicoes[codigo]
+    for (const [codigo, produto] of Object.entries(dadosFiltrados)) {
+        if (origem !== produto.origem || !produto.tipo) delete dadosFiltrados[codigo]
     }
 
     const orcamentoBase = baseOrcamento()
     const composicoesOrcamento = orcamentoBase.dados_composicoes || {}
-    const chaves = Object.keys(dados_composicoes)
+    const chaves = Object.keys(dadosFiltrados)
 
     const inicio = (paginaComposicoes - 1) * porPagina
     const fim = inicio + porPagina
@@ -527,7 +532,7 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     document.getElementById('bodyComposicoes').innerHTML = '' // limpa antes de renderizar
 
     for (const codigo of grupo) {
-        const produto = dados_composicoes[codigo]
+        const produto = dadosFiltrados[codigo]
         const qtdeOrcada = composicoesOrcamento?.[codigo]?.qtde || ''
         linhasComposicoesOrcamento(codigo, produto, qtdeOrcada, lpu)
     }
@@ -537,8 +542,10 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
 }
 
 function proximaPagina() {
-    paginaComposicoes++
-    tabelaProdutosOrcamentos()
+    if (paginaComposicoes < totalPaginas) {
+        paginaComposicoes++
+        tabelaProdutosOrcamentos()
+    }
 }
 
 function paginaAnterior() {
@@ -549,7 +556,7 @@ function paginaAnterior() {
 }
 
 function atualizarControlesPaginacao(total) {
-    const totalPaginas = Math.ceil(total / porPagina)
+    totalPaginas = Math.ceil(total / porPagina)
     const info = document.getElementById('paginacaoInfo')
     const btnAnt = document.getElementById('btnAnterior')
     const btnProx = document.getElementById('btnProxima')
@@ -559,57 +566,60 @@ function atualizarControlesPaginacao(total) {
     btnProx.disabled = paginaComposicoes >= totalPaginas
 }
 
-function filtrarTabelaComposicao(tipo) {
+async function pesquisarProdutos(chave, pesquisa) {
 
-    tipoAtivo = tipo
-    const tbody = document.getElementById('bodyComposicoes')
-    const trs = tbody.querySelectorAll('tr')
-    const topoTabela = document.querySelector('.topo-tabela')
-    const tabelaComposicoes = document.getElementById('tabela_composicoes')
-    const theadComposicoes = tabelaComposicoes.querySelector('thead')
+    paginaComposicoes = 1
+    
+    if (chave === 'tipo') {
+        pesquisa = pesquisa === 'TODOS' ? '' : pesquisa
+        tipoAtivo = pesquisa
+        const cor = coresTabelas(pesquisa)
+        const topoTabela = document.querySelector('.topo-tabela')
+        const tabelaComposicoes = document.getElementById('tabela_composicoes')
+        const theadComposicoes = tabelaComposicoes.querySelector('thead')
+        theadComposicoes.style.backgroundColor = cor
+        topoTabela.style.backgroundColor = cor
 
-    const cor = coresTabelas(tipo)
-    theadComposicoes.style.backgroundColor = cor
-    topoTabela.style.backgroundColor = cor
-
-    const ths = theadComposicoes.querySelectorAll('th')
-    ths.forEach(th => th.style.border = `1px solid ${cor}db`)
-
-    for (const tr of trs) {
-        tr.style.display = (tipo == 'TODOS' || tr.dataset.tipo == tipo) ? 'table-row' : 'none'
+        const ths = theadComposicoes.querySelectorAll('th')
+        ths.forEach(th => th.style.border = `1px solid ${cor}db`)
     }
 
-    for (const [col, termo] of Object.entries(filtrosPagina)) {
-        pesquisarProdutos(col, termo)
+    // Só atualiza filtros se chave e pesquisa forem informados
+    if (chave && pesquisa != null) {
+        chave = chave
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/ç/g, 'c')
+            .toLowerCase()
+
+        const pesquisaNormalizada = pesquisa
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/ç/g, 'c')
+            .toLowerCase()
+            .trim()
+
+        filtrosPagina[chave] = pesquisaNormalizada
     }
 
-}
-
-async function pesquisarProdutos(colunaPesq, pesquisa) {
-
-    filtrosPagina[colunaPesq] = pesquisa.toLowerCase()
-
-    const colunas = {
-        0: 'codigo',
-        1: 'descricao',
-        2: 'unidade',
-        3: '',
-        4: '',
-        5: ''
-    }
-
-    const pesquisaLower = pesquisa.toLowerCase()
-    const chave = colunas[colunaPesq]
-    if (!chave || !pesquisaLower) return await tabelaProdutosOrcamentos()
+    // Aplica os filtros existentes
+    const filtrosAtivos = Object.entries(filtrosPagina).filter(([_, termo]) => termo)
+    if (filtrosAtivos.length === 0)
+        return await tabelaProdutosOrcamentos()
 
     const dadosFiltrados = {}
 
     for (const [codigo, produto] of Object.entries(dados_composicoes)) {
+        const corresponde = filtrosAtivos.every(([coluna, termo]) => {
+            const valor = String(produto[coluna] || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/ç/g, 'c')
+                .toLowerCase()
+            return valor.includes(termo)
+        })
 
-        const info = String(produto[chave] || '').toLowerCase()
-
-        if (info.includes(pesquisaLower)) dadosFiltrados[codigo] = produto
-
+        if (corresponde) dadosFiltrados[codigo] = produto
     }
 
     await tabelaProdutosOrcamentos(dadosFiltrados)
