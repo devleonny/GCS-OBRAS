@@ -189,7 +189,7 @@ async function manterPrecosAntigos(resposta) {
     dados_composicoes = await recuperarDados('dados_composicoes')
     const lpu = String(orcamentoBase.lpu_ativa).toLocaleLowerCase()
 
-    for (let [codigo, produto] of Object.entries(orcamentoBase.dados_composicoes)) {
+    for (let [codigo, produto] of Object.entries(orcamentoBase?.dados_composicoes || {})) {
 
         const precos = dados_composicoes?.[codigo]?.[lpu] || { ativo: 0, historico: { 0: { valor: 0 } } }
         const ativo = precos?.ativo || ''
@@ -389,12 +389,6 @@ async function enviarDadosOrcamento() {
     if (dados_orcam.cliente_selecionado === '') return popup(mensagem('Cliente em branco'), 'Alerta')
 
     if (dados_orcam.contrato === '') return popup(mensagem('Chamado em branco'), 'Alerta')
-
-    if (dados_orcam.contrato == 'sequencial') {
-        const resposta = await proxORC()
-        if (resposta.err) return popup(mensagem(resposta.err), 'Alerta', true)
-        orcamentoBase.dados_orcam.contrato = `ORC_${resposta.proximo}`
-    }
 
     if (orcamentoBase.total_desconto > 0) {
         orcamentoBase.aprovacao = {

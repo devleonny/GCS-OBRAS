@@ -3,6 +3,13 @@ function voltar() {
 }
 
 const dadosEmpresas = {
+    'IAC': {
+        'Razão Social': 'IAC',
+        'CNPJ': '61.807.993/0001-00',
+        'E-mail': 'financeiroiac@outlook.com.br',
+        'Telefones': '(11) 996314-7545',
+        'Localização': 'CEP 42.702-901, Avenida Luiz Tarquínio Pontes, nº 132, Galpões 06, 07 e 08, CENTRO - Lauro de Freitas (BA)'
+    },
     'AC SOLUÇÕES': {
         'Razão Social': 'AC SOLUCOES INTEGRADAS DE INFORMATICA LTDA',
         'CNPJ': '13.421.071/0001-00',
@@ -37,7 +44,7 @@ function blocoHtml(titulo, dados = {}) {
 
     let linhas = ''
 
-    for ( const [chave, dado] of Object.entries(dados)) {
+    for (const [chave, dado] of Object.entries(dados)) {
         if (dado == '') continue
 
         linhas += `<label style="margin: 5px;"><strong>${chave}</strong> <br>${String(dado).replace(/\n/g, '<br>')}</label>`
@@ -130,7 +137,7 @@ async function preencher() {
     html_orcamento.innerHTML = ''
 
     let tabelas = ''
-    let itens = orcamentoBase.dados_composicoes
+    let itens = orcamentoBase.dados_composicoes || {}
 
     const cabecalho = {
         1: 'Código',
@@ -156,7 +163,7 @@ async function preencher() {
         GERAL: { valor: 0, cor: '#151749' }
     };
 
-    for(let [codigo, item] of Object.entries(itens)) {
+    for (let [codigo, item] of Object.entries(itens)) {
 
         const colunas = config[item.tipo].colunas
         const itemComposicao = dados_composicoes[codigo] || {}
@@ -213,7 +220,7 @@ async function preencher() {
                     </div>
                     ` : ''}
                 <label>${descricao}</label>
-                ${ncm ? `<label><strong>ncm:</strong> ${ncm}</label>`: ''}
+                ${ncm ? `<label><strong>ncm:</strong> ${ncm}</label>` : ''}
             </div>
         </td>`
         tds[3] = `<td style="text-align: center;"><img src="${itemComposicao?.imagem || item?.imagem || 'https://i.imgur.com/Nb8sPs0.png'}" style="width: 4vw;"></td>`
