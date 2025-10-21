@@ -127,7 +127,7 @@ async function executar(nomeFuncao) {
 
 function criarMenus(chave) {
     telaAtiva = chave
-    const chaves = ['orcamentos', 'composicoes', 'pda', 'telaCriarOrcamentos', 'telaCriarOrcamentosAluguel']
+    const chaves = ['orcamentos', 'composicoes', 'pda', 'telaCriarOrcamento', 'telaCriarOrcamentosAluguel']
     interruptorCliente(chaves.includes(chave), true)
 
     const atalhos = esquemaBotoes[chave]
@@ -190,7 +190,7 @@ const esquemaBotoes = {
     ],
     composicoes: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-        { nome: 'Atualizar', funcao: 'atualizarCmposicoes', img: 'atualizar3' },
+        { nome: 'Atualizar', funcao: 'atualizarComposicoes', img: 'atualizar3' },
         { nome: 'Cadastrar Item', funcao: 'cadastrarItem', img: 'baixar' },
         { nome: 'Baixar em Excel', funcao: 'exportarParaExcel', img: 'excel' },
         { nome: 'Filtrar Campos', funcao: 'abrirFiltros', img: 'pesquisar2' }
@@ -1322,29 +1322,37 @@ async function receber(chave) {
 
 async function deletar(caminho, idEvento) {
 
-    const url = `${api}/deletar`;
+    const url = `${api}/deletar`
 
     const objeto = {
         caminho,
         usuario: acesso.usuario
-    };
+    }
 
     try {
         const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(objeto)
-        });
+        })
 
-        const data = await response.json();
+        if (!response.ok) {
+            console.error(`Falha ao deletar: ${response.status} ${response.statusText}`)
+            const erroServidor = await response.text()
+            console.error(`Resposta do servidor:`, erroServidor)
+            throw new Error(`Erro HTTP ${response.status}`)
+        }
+
+        const data = await response.json()
 
         if (idEvento) removerOffline('deletar', idEvento)
 
-        return data;
+        return data
     } catch (erro) {
-        salvarOffline(objeto, 'deletar', idEvento);
+        console.error(`Erro ao tentar deletar '${caminho}':`, erro.message || erro)
+        salvarOffline(objeto, 'deletar', idEvento)
         removerOverlay()
-        return null;
+        return null
     }
 }
 
@@ -1417,6 +1425,8 @@ function connectWebSocket() {
     socket.onmessage = async (event) => {
 
         const data = JSON.parse(event.data)
+
+        console.log(data)
 
         if (data.tabela == 'dados_orcamentos') {
             verificarPendencias()
@@ -2408,13 +2418,10 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
     let base = await recuperarDados(nomeBase)
     let opcoesDiv = ''
 
-    const style1 = `font-weight: bold;`
-    const style2 = `font-size: 0.7rem`
-
-    for ([cod, dado] of Object.entries(base)) {
+    for (const [cod, dado] of Object.entries(base)) {
 
         const labels = campos
-            .map((campo, i) => `${(dado[campo] && dado[campo] !== '') ? `<label style="${i == 0 ? style1 : style2}">${dado[campo]}</label>` : ''}`)
+            .map(campo => `${(dado[campo] && dado[campo] !== '') ? `<label>${dado[campo]}</label>` : ''}`)
             .join('')
 
         const descricao = String(dado[campos[0]])
@@ -2422,20 +2429,26 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
             .replace(/[^a-zA-Z0-9 ]/g, '')
 
         opcoesDiv += `
-            <div name="camposOpcoes" class="atalhos-opcoes" onclick="selecionar('${name}', '${cod}', '${descricao}', ${funcaoAux ? `'${funcaoAux}'` : false})" style="${vertical}; gap: 2px; max-width: 40vw;">
-                ${labels}
+            <div 
+                name="camposOpcoes" 
+                class="atalhos-opcoes" 
+                onclick="selecionar('${name}', '${cod}', '${descricao}', ${funcaoAux ? `'${funcaoAux}'` : false})">
+                <img src="${dado.imagem || 'imagens/LG.png'}" style="width: 3rem;">
+                <div style="${vertical}; gap: 2px;">
+                    ${labels}
+                </div>
             </div>`
     }
 
     const acumulado = `
         <div style="${vertical}; justify-content: left; background-color: #b1b1b1;">
 
-            <div style="${horizontal}; padding-left: 1vw; padding-right: 1vw; margin: 5px; background-color: white; border-radius: 10px;">
+            <div style="${horizontal}; padding-left: 0.5rem; padding-right: 0.5rem; margin: 5px; background-color: white; border-radius: 10px;">
                 <input oninput="pesquisarCX(this)" placeholder="Pesquisar itens" style="width: 100%;">
-                <img src="imagens/pesquisar2.png" style="width: 1.5vw; padding: 0.5rem;">
+                <img src="imagens/pesquisar4.png" style="width: 2rem; padding: 0.5rem;"> 
             </div>
 
-            <div style="padding: 1vw; gap: 5px; ${vertical}; background-color: #d2d2d2; width: 30vw; max-height: 40vh; height: max-content; overflow-y: auto; overflow-x: hidden;">
+            <div style="padding: 1rem; gap: 5px; ${vertical}; background-color: #d2d2d2; width: 30vw; max-height: 40vh; height: max-content; overflow-y: auto; overflow-x: hidden;">
                 ${opcoesDiv}
             </div>
 

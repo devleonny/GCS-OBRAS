@@ -1,10 +1,12 @@
 let filtrosAtivos = {}
 let filtroAgrupamentos = {}
+let dados_composicoes = null
 let divComposicoes = document.getElementById('composicoes')
 let cabecalhos = []
 let colunas = []
 const camposFlexiveis = ['imagem', 'sistema', 'editar']
 const usuariosPermitidosParaEditar = ['log', 'editor', 'adm', 'gerente', 'diretoria', 'coordenacao']
+let codigoMaster = null
 
 const alerta = (termo) => `
     <div style="display: flex; gap: 10px; align-items: center; justify-content: center; padding: 2vw;">
@@ -13,7 +15,7 @@ const alerta = (termo) => `
     </div>
     `
 
-async function atualizarCmposicoes() {
+async function atualizarComposicoes() {
     await sincronizarDados('dados_composicoes')
     await telaComposicoes(true)
 }
@@ -21,7 +23,7 @@ async function atualizarCmposicoes() {
 async function telaComposicoes(recriar) {
 
     overlayAguarde()
-    const dados_composicoes = await recuperarDados('dados_composicoes')
+    dados_composicoes = await recuperarDados('dados_composicoes')
 
     cabecalhos = [
         'editar',
@@ -142,25 +144,25 @@ function criarLinhaComposicao(codigo, produto) {
                 ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="abrirHistoricoPrecos('${codigo}', '${chave}')"` : ''}> 
                 ${dinheiro(conversor(preco_final))}</label>`;
 
-        } else if (chave === 'agrupamentos') {
+        } else if (chave === 'agrupamento') {
 
-            let info_agrupamentos = '';
-            if (produto[chave]) {
-                let agrupamentos = produto[chave];
-                for (const item of Object.keys(agrupamentos)) {
-                    let tipo = dados_composicoes[item]?.tipo || '??';
-                    info_agrupamentos += `
-                        <div style="display: flex; gap: 3px; align-items: center; justify-content: left;">
-                            <label class="numero" style="width: 20px; height: 20px; padding: 3px; background-color: ${tipo === 'VENDA' ? 'green' : '#B12425'}">${agrupamentos[item]}</label>
-                            <label style="font-size: 0.6em; text-align: left;">${String(dados_composicoes[item]?.descricao || '??').slice(0, 10)}...</label>
-                        </div>`;
-                }
+            let info = ''
+
+            for (const [cod, dados] of Object.entries(conteudo || {})) {
+                const tipo = dados_composicoes[cod]?.tipo || '??'
+                info += `
+                    <div style="${horizontal}; gap: 2px;">
+                        <span class="balao-redondo-agrupamento" style="background-color: ${tipo == 'VENDA' ? '#B12425' : tipo == 'SERVIÇO' ? 'green' : '#24729d'}">${cod}</span>
+                        <span class="balao-redondo-agrupamento">${dados.qtde}</span>
+                        <span>${String(dados_composicoes?.[cod]?.descricao || '??').slice(0, 10)}...</span>
+                    </div>`
             }
+
             conteudo = `
                 <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-                    <img src="imagens/construcao.png" style="width: 2vw; cursor: pointer;" onclick="abrir_agrupamentos('${codigo}')">
+                    <img src="imagens/construcao.png" style="width: 1.5rem; cursor: pointer;" onclick="verAgrupamento('${codigo}')">
                     <div style="display: flex; flex-direction: column; align-items: start; justify-content: left; gap: 2px;">
-                        ${info_agrupamentos}
+                        ${info}
                     </div>
                 </div>`;
             alinhamento = 'center';
@@ -298,133 +300,6 @@ async function alterarChave(codigo, chave, select) {
 
 }
 
-async function abrir_agrupamentos(codigo) {
-
-    let acumulado = ''
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    let produto = dados_composicoes[codigo]
-    let linhas = ''
-
-    for (item in dados_composicoes) {
-        let checked = ''
-
-        if (produto.agrupamentos && produto.agrupamentos[item]) {
-            checked = 'checked'
-        }
-        let tr = `
-        <tr>
-            <td style="white-space: normal; text-align: center;"><input type="checkbox" style="width: 4vw;" onclick="incluirAgrupamento(this)" ${checked}></td>
-            <td style="white-space: normal;">${item}</td>
-            <td style="white-space: normal;">${dados_composicoes[item].descricao}</td>
-            <td style="white-space: normal;">${dados_composicoes[item].modelo}</td>
-            <td style="white-space: normal;">${dados_composicoes[item].unidade}</td>
-            <td style="white-space: normal;">${dados_composicoes[item].tipo}</td>
-        </tr>
-        `
-        linhas += tr
-    }
-
-    let ths = ''
-    let campos = ['Código', 'Descrição', 'Modelo', 'Unidade', 'Tipo']
-
-    campos.forEach((campo, i) => {
-        i++
-        ths += `
-            <th style="background-color: white; position: relative; border-radius: 0px;">
-                <img src="imagens/pesquisar2.png" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 15px;">
-                <input style="width: 100%;" placeholder="${campo}" oninput="pesquisarGenerico(${i}, this.value, filtroAgrupamentos, 'linhas_agrupamentos')">
-            </th>
-        `
-    })
-
-    acumulado += `
-
-        <div class="agrupamentos">
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: left;">
-                <img src="${produto?.imagem || logo}" style="width: 100px">
-                <h2>${produto.descricao}</h2>
-            </div>
-
-            <div style="display: flex; align-items: center; justify-content: space-evenly; gap: 10px;">
-                <div id="div_agrupamentos" style="display: flex; flex-direction: column; align-items: start; justify-content: left;">
-                </div>
-                <label class="contorno_botoes" style="background-color: #026CED;" onclick="salvarAgrupamentos('${codigo}')">Salvar Agrupamentos</label>
-            </div>
-
-            <hr style="width: 100%; margin: 10px;">
-
-                <table class="tabela" style="border-collapse: collapse;">
-                    <thead>
-                        <tr>
-                            <th>Marcação</th>
-                            <th>Código</th>
-                            <th>Descrição</th>
-                            <th>Modelo</th>
-                            <th>Unidade</th>
-                            <th>Tipo</th>
-                        <tr>
-                    </thead>
-                    <thead>
-                        <tr>
-                            <th style="background-color: white; position: relative; border-radius: 0px;">
-                                <select onchange="checkedInputs(this)">
-                                    <option>Todos</todos>
-                                    <option>Marcados</todos>
-                                    <option>Não Marcados</todos>
-                                </select>
-                            </th>
-                            ${ths}
-                        <tr>
-                    </thead>
-                    <tbody id="linhas_agrupamentos">
-                        ${linhas}
-                    </tbody>
-                </table>
-
-
-        </div>    
-    `
-    popup(acumulado, 'Agrupamentos')
-
-    if (produto.agrupamentos) {
-        var div_agrupamentos = document.getElementById('div_agrupamentos')
-        if (div_agrupamentos) {
-            for (item in produto.agrupamentos) {
-                incluirAgrupamento(undefined, item, produto.agrupamentos[item])
-            }
-        }
-    }
-
-}
-
-async function salvarAgrupamentos(codigo) {
-
-    const div_agrupamentos = document.getElementById('div_agrupamentos')
-    const agrupamentos = div_agrupamentos.querySelectorAll('.agrupado')
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-
-    if (dados_composicoes[codigo]) {
-
-        let produto = dados_composicoes[codigo]
-        produto.agrupamentos = {}
-
-        agrupamentos.forEach(agrupamento => {
-            var codigo_agrupamento = agrupamento.querySelectorAll('label')[0].textContent
-            produto.agrupamentos[codigo_agrupamento] = Number(agrupamento.querySelector('input').value)
-
-        })
-
-        await inserirDados(dados_composicoes, 'dados_composicoes')
-
-        await enviar(`dados_composicoes/${codigo}/agrupamentos`, produto.agrupamentos)
-
-        removerPopup()
-
-        await telaComposicoes()
-    }
-
-}
-
 function checkedInputs(filtro) {
     const linhas = document.getElementById('linhas_agrupamentos')
     let filtrar = filtro.value
@@ -465,67 +340,6 @@ function checkedInputs(filtro) {
         tr.style.display = mostrar_linha ? 'table-row' : 'none'
 
     })
-}
-
-async function incluirAgrupamento(elemento, cod, qtde) {
-
-    var codigo = ''
-    var descricao = ''
-    var modelo = ''
-    var unidade = ''
-    var tipo = ''
-    var quantidade = 0
-
-    if (cod !== undefined) {
-        var dados_composicoes = await recuperarDados('dados_composicoes') || {}
-        var produto = dados_composicoes[cod]
-        codigo = cod
-        descricao = produto.descricao
-        modelo = produto.modelo
-        unidade = produto.unidade
-        tipo = produto.tipo
-        quantidade = qtde
-    }
-
-    var div_agrupamentos = document.getElementById('div_agrupamentos')
-
-    if (div_agrupamentos) {
-
-        if ((elemento !== undefined && elemento.checked) || cod !== undefined) {
-
-            if (elemento !== undefined && elemento.checked) {
-                var tr = elemento.parentElement.parentElement
-                codigo = tr.querySelectorAll('td')[1].textContent
-                descricao = tr.querySelectorAll('td')[2].textContent
-                modelo = tr.querySelectorAll('td')[3].textContent
-                unidade = tr.querySelectorAll('td')[4].textContent
-                tipo = tr.querySelectorAll('td')[5].textContent
-            }
-
-            var cor = 'green'
-            if (tipo == 'VENDA') {
-                cor = '#B12425'
-            }
-
-            var item = `
-            <div class="agrupado" style="border: solid 1px ${cor};">
-                <img src="imagens/excluir.png" style="width: 4vw; cursor: pointer;" onclick="remover_item(this)">
-                <label>${codigo}</label>
-                <label>${descricao} - ${modelo} - ${unidade}</label>
-
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                    <label>Quantidade</label>
-                    <input style="padding: 5px; background-color: green; color: white; border-radius: 3px; width: 100px; text-align: center;" type="number" value="${quantidade}">
-                </div>
-            </div>
-            `
-            div_agrupamentos.insertAdjacentHTML('beforeend', item)
-        }
-    }
-}
-
-function remover_item(elemento) {
-    elemento.parentElement.remove()
 }
 
 async function abrirHistoricoPrecos(codigo, tabela) {
@@ -1395,4 +1209,113 @@ async function paraExcel() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+async function verAgrupamento(codigo) {
+
+    codigoMaster = codigo
+
+    const produto = await recuperarDado('dados_composicoes', codigo)
+    const acumulado = `
+        <div class="tela-agrupamento">
+            <div style="${horizontal}; text-align: left; gap: 0.5rem;">
+
+                <img src="${produto.imagem || logo}" style="width: 6rem;">
+
+                <div style="${vertical}">
+                    <span>Agrupamento do item:</span>
+                    <span><b>${produto.descricao}</b></span>
+                    <span>Explicação: <br>Para cada 1 <b>${String(produto.descricao).slice(0, 10)}</b><br> Será lançada a quantidade abaixo de cada item</span>
+                </div>
+                
+            </div>
+            <hr style="width: 100%;">
+
+            <div style="${vertical}; width: 100%">
+                <div class="topo-tabela">
+                    <button onclick="criarLinhaAgrupamento('${codigo}')">Adicionar Item</button>
+                </div>
+                <div class="div-tabela">
+                    <table class="tabela" id="tabela_composicoes">
+                        <thead>
+                            <tr>${['Código', 'Descrição', 'Tipo', 'Quantidade'].map(op => `<th>${op}</th>`).join('')}</tr>
+                        </thead>
+                        <tbody id="linhasAgrupamento"></tbody>
+                    </table>
+                </div>
+                <div class="rodapeTabela"></div>
+            </div>
+
+        </div>
+    `
+    const telaAgrupamento = document.querySelector('.tela-agrupamento')
+    if (!telaAgrupamento) popup(acumulado, 'Agrupamento', true)
+
+    const agrupamento = produto.agrupamento || {}
+    for (const [cod, dados] of Object.entries(agrupamento)) {
+        await criarLinhaAgrupamento(cod, dados)
+    }
+
+}
+
+async function criarLinhaAgrupamento(cod, dados) {
+
+    if (!dados_composicoes) dados_composicoes = await recuperarDados('dados_composicoes')
+
+    const produto = await recuperarDado('dados_composicoes', cod)
+    const chaveUnica = ID5digitos()
+
+    const tds = `
+        <td>${cod || '??'}</td>
+        <td>
+            <span 
+            class="opcoes"
+            ${cod ? `id="${cod}"` : ''}
+            name="${chaveUnica}" 
+            onclick="cxOpcoes('${chaveUnica}', 'dados_composicoes', ['descricao', 'codigo', 'tipo', 'modelo', 'fabricante'], 'salvarAgrupamentosAutomatico()')">
+                ${produto?.descricao || 'Selecione'}
+            </span>
+        </td>
+        <td>${produto?.tipo || '??'}
+        <td><input type="number" oninput="salvarAgrupamentosAutomatico()" value="${dados?.qtde || ''}"></td>
+    `
+
+    const trExistente = document.getElementById(`AGRUP_${cod}`)
+    if (trExistente) return trExistente.innerHTML = tds
+
+    document.getElementById('linhasAgrupamento').insertAdjacentHTML('beforeend', `<tr id="AGRUP_${cod}">${tds}</tr>`)
+}
+
+async function salvarAgrupamentosAutomatico() {
+
+    const linhasAgrupamento = document.getElementById('linhasAgrupamento')
+
+    const trs = linhasAgrupamento.querySelectorAll('tr')
+
+    const agrupamento = {}
+
+    for (const tr of trs) {
+
+        const tds = tr.querySelectorAll('td')
+        const spanDesc = tds[1].querySelector('span')
+        const codigo = spanDesc.id
+        const qtde = Number(tds[3].querySelector('input').value)
+
+        tr.id = `AGRUP_${codigo}`
+        tds[0].textContent = codigo
+        tds[2].textContent = dados_composicoes[codigo].tipo
+
+        if (qtde == 0) continue
+        agrupamento[codigo] = { qtde }
+
+    }
+
+    // codigoMaster é uma variável global;
+    const produto = dados_composicoes[codigoMaster].agrupamento
+    produto.agrupamento = agrupamento
+
+    await inserirDados({ [codigoMaster]: produto }, 'dados_composicoes')
+
+    enviar(`dados_composicoes/${codigoMaster}/agrupamento`, agrupamento)
+
 }

@@ -38,15 +38,56 @@
   align-items: center;
   justify-content: right;
   display: flex;
-  background-color: #f5f5f5;
+  background-color: #c5c5c5;
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
+  margin-bottom: 0.5rem;
 }
 
 .total-linha span {
   color: #151749;
+  font-weight: bold;
   font-size: 1.2rem;
   margin-right: 2rem;
+}
+
+.campo-codigo-composicao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 50px;
+}
+
+.campo-codigo-composicao .composicao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.paginacao {
+  padding: 0.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  color: white;
+}
+
+.paginacao img {
+  cursor: pointer;
+  width: 1.7rem;
+}
+
+.campo-codigo-composicao img {
+  padding: 3px;
+  width: 1.5rem;
+  cursor: pointer;
+}
+
+.campo-codigo-composicao span {
+  font-size: 1rem;
 }
 
 .desconto-baixo {
@@ -75,8 +116,7 @@
   z-index: 2;
 }
 
-.input_valor {
-  font-size: 0.9rem;
+.valor-orcamento {
   color: #151749;
   font-weight: bold;
   white-space: nowrap;
@@ -200,13 +240,26 @@
   word-break: break-all;
 }
 
-.menu_top {
+.pesquisa-orcamento {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1vw;
-  font-size: 1.2vw;
-  color: white;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  background-color: white;
+  border-radius: 10px;
+}
+
+.pesquisa-orcamento input {
+  text-align: left;
+}
+
+.menu-top {
+  display: flex;
+  align-items: start;
+  justify-content: start;
+  flex-direction: column;
+  color: #e1e1e1;
   padding: 5px;
   cursor: pointer;
   border-top-left-radius: 10px;
@@ -300,9 +353,7 @@
 }
 
 .resumo {
-  width: 20vw;
   padding: 5px;
-  color: white;
   display: flex;
   flex-direction: column;
   align-items: start;
@@ -321,18 +372,14 @@
   padding: 0px;
 }
 
-#menu_superior {
-  position: relative;
+.menu-superior {
+  gap: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-radius: 3px;
   background-color: #f0f0f0;
   width: 100%;
-}
-
-#menu_superior label {
-  color: #222;
 }
 
 .fundo-toolbar-1 {

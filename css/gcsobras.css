@@ -67,7 +67,6 @@ body {
     flex-direction: column;
     border-radius: 5px;
     background-color: #ffffffb0;
-    font-size: 1.2rem;
     margin: 2vw;
     padding: 2vw;
 }
@@ -568,10 +567,9 @@ span[name="titulo"] {
     display: flex;
     align-items: center;
     justify-content: start;
-    flex-direction: column;
     cursor: pointer;
     gap: 10px;
-    background-color: white;
+    background-color: #efefef;
     padding: 3px;
     border-radius: 2px;
     font-size: 0.8rem;

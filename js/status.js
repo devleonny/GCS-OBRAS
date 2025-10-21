@@ -976,7 +976,7 @@ async function arquivarOrcamento(idOrcamento) {
 
     if (orcamento.arquivado) {
         delete orcamento.arquivado
-        deletar(`dados_orcamentos/${idOrcamento}/arquivado`)
+        enviar(`dados_orcamentos/${idOrcamento}/arquivado`, null)
 
     } else {
 
