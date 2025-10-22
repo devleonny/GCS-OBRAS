@@ -1231,9 +1231,9 @@ async function verAgrupamento(codigo) {
             </div>
             <hr style="width: 100%;">
 
-            <div style="${vertical}; width: 100%">
+            <div class="borda-tabela">
                 <div class="topo-tabela">
-                    <button onclick="criarLinhaAgrupamento('${codigo}')">Adicionar Item</button>
+                    <button onclick="criarLinhaAgrupamento()">Adicionar Item</button>
                 </div>
                 <div class="div-tabela">
                     <table class="tabela" id="tabela_composicoes">
@@ -1311,11 +1311,12 @@ async function salvarAgrupamentosAutomatico() {
     }
 
     // codigoMaster é uma variável global;
-    const produto = dados_composicoes[codigoMaster].agrupamento
+    const produto = dados_composicoes[codigoMaster].agrupamento || {}
     produto.agrupamento = agrupamento
 
-    await inserirDados({ [codigoMaster]: produto }, 'dados_composicoes')
-
-    enviar(`dados_composicoes/${codigoMaster}/agrupamento`, agrupamento)
+    if (Object.keys(agrupamento).length > 0) {
+        await inserirDados({ [codigoMaster]: produto }, 'dados_composicoes')
+        enviar(`dados_composicoes/${codigoMaster}/agrupamento`, agrupamento)
+    }
 
 }

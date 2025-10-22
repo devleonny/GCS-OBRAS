@@ -255,7 +255,7 @@ async function carregarTabelasOrcamento() {
 async function pesquisarNoOrcamento(input) {
     const termo = input.value.trim().toLowerCase()
     const bodyOrcamento = document.getElementById('bodyOrcamento')
-    const linhas = bodyOrcamento.querySelectorAll('[id^="ORCA_"]')
+    const linhas = bodyOrcamento.querySelectorAll('.linha-orcamento')
 
     linhas.forEach(linha => {
         const texto = linha.textContent.toLowerCase()
@@ -263,7 +263,6 @@ async function pesquisarNoOrcamento(input) {
         linha.style.display = (!termo || corresponde) ? '' : 'none'
     })
 
-    if (termo === '') await totalOrcamento()
 }
 
 function carregarLinhaOrcamento(codigo, produto, codigoMaster) { //29
@@ -381,7 +380,7 @@ async function enviarDadosOrcamento() {
     overlayAguarde()
 
     // esquema → dados_composicoes
-    converterEsquema()
+    await converterEsquema()
 
     let orcamentoBase = baseOrcamento()
     orcamentoBase.origem = origem
@@ -435,11 +434,13 @@ async function recuperarComposicoesOrcamento() {
 
 async function tabelaProdutosOrcamentos(dadosFiltrados) {
 
+    if (!dadosFiltrados && Object.keys(filtrosPagina).length > 0) return pesquisarProdutos()
+
     const cor = coresTabelas(null)
     let permissoes = ['adm', 'log', 'editor', 'gerente', 'diretoria', 'coordenacao']
     moduloComposicoes = permissoes.includes(acesso.permissao)
-    const colunas = ['Código', 'Descrição', 'Unidade', 'Quantidade', 'Valor', 'Imagem']
-    const colLiberadas = ['Código', 'Descrição', 'Unidade']
+    const colunas = ['codigo', 'descricao', 'unidade', 'quantidade', 'valor', 'imagem']
+    const colLiberadas = ['codigo', 'descricao', 'unidade']
     let ths = ''
     let tsh = ''
 
@@ -454,7 +455,7 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
         </th>
         `
         tsh += `
-        <th style="color: black; text-align: left; padding: 8px; background-color: white; ${borda};" 
+        <th name="th_${col}" style="color: black; text-align: left; padding: 8px; background-color: white; ${borda};" 
             onkeydown="if (event.key === 'Enter') { event.preventDefault(); pesquisarProdutos('${col}', this.textContent.trim()) }"
             contentEditable="${colLiberadas.includes(col)}">
         </th>`
@@ -467,16 +468,18 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     const botoes = `
         <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
             onclick="recuperarComposicoesOrcamento()">
-            <img src="imagens/atualizar_2.png" style="width: 2vw; cursor: pointer;">
-            <label style="color: white; cursor: pointer; font-size: 1.0vw;">Atualizar</label>
+            <img src="imagens/atualizar_2.png" style="width: 1.7rem; cursor: pointer;">
+            <label style="color: white; cursor: pointer;">Atualizar</label>
         </div>
 
         ${moduloComposicoes
-            ? `<div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
-            onclick="cadastrarItem()">
-            <img src="imagens/add.png" style="width: 2vw; cursor: pointer;">
-            <label style="color: white; cursor: pointer; font-size: 1.0vw;">Criar Item</label>
-        </div>`
+            ? `
+            <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
+                onclick="cadastrarItem()">
+                <img src="imagens/add.png" style="width: 1.7rem; cursor: pointer;">
+                <label style="color: white; cursor: pointer;">Criar Item</label>
+            </div>
+        `
             : ''}
         `
 
@@ -544,14 +547,14 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
 function proximaPagina() {
     if (paginaComposicoes < totalPaginas) {
         paginaComposicoes++
-        tabelaProdutosOrcamentos()
+        pesquisarProdutos()
     }
 }
 
 function paginaAnterior() {
     if (paginaComposicoes > 1) {
         paginaComposicoes--
-        tabelaProdutosOrcamentos()
+        pesquisarProdutos()
     }
 }
 
@@ -568,8 +571,6 @@ function atualizarControlesPaginacao(total) {
 
 async function pesquisarProdutos(chave, pesquisa) {
 
-    paginaComposicoes = 1
-    
     if (chave === 'tipo') {
         pesquisa = pesquisa === 'TODOS' ? '' : pesquisa
         tipoAtivo = pesquisa
@@ -586,11 +587,7 @@ async function pesquisarProdutos(chave, pesquisa) {
 
     // Só atualiza filtros se chave e pesquisa forem informados
     if (chave && pesquisa != null) {
-        chave = chave
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/ç/g, 'c')
-            .toLowerCase()
+        paginaComposicoes = 1
 
         const pesquisaNormalizada = pesquisa
             .normalize('NFD')
@@ -599,13 +596,23 @@ async function pesquisarProdutos(chave, pesquisa) {
             .toLowerCase()
             .trim()
 
-        filtrosPagina[chave] = pesquisaNormalizada
+        if (pesquisaNormalizada) {
+            filtrosPagina[chave] = pesquisaNormalizada
+        } else {
+            delete filtrosPagina[chave]
+        }
     }
 
     // Aplica os filtros existentes
     const filtrosAtivos = Object.entries(filtrosPagina).filter(([_, termo]) => termo)
     if (filtrosAtivos.length === 0)
         return await tabelaProdutosOrcamentos()
+
+    // Atualiza os campos visuais com os filtros ativos
+    for (const [coluna, termo] of filtrosAtivos) {
+        const th = document.querySelector(`[name="th_${coluna}"]`)
+        if (th) th.textContent = termo
+    }
 
     const dadosFiltrados = {}
 
@@ -625,47 +632,60 @@ async function pesquisarProdutos(chave, pesquisa) {
     await tabelaProdutosOrcamentos(dadosFiltrados)
 }
 
-function converterEsquema() {
+async function converterEsquema() {
 
-    let orcamento = baseOrcamento()
+    new Promise(resolve => {
 
-    let totaisSlaves = {}
-    let composicoes = {}
+        let orcamento = baseOrcamento()
 
-    for (const [codigo, dados] of Object.entries(orcamento.esquema_composicoes || {})) {
+        // Fiz uma cópia do esquema pois as linhas abaixo estavam refletindo as mudanças em ambos os objetos;
+        const copiaEsquema = JSON.parse(JSON.stringify(orcamento.esquema_composicoes || {}))
+        let totaisSlaves = {}
+        let composicoes = {}
 
-        for (const [codigo, dadosSlave] of Object.entries(dados.agrupamento || {})) {
+        for (const [codigo, dados] of Object.entries(copiaEsquema)) {
 
-            if (!totaisSlaves[codigo]) totaisSlaves[codigo] = { total: 0, qtde: 0, desconto: 0 }
+            for (const [codigoSlave, dadosSlave] of Object.entries(dados.agrupamento || {})) {
 
-            const item = totaisSlaves[codigo]
+                if (!totaisSlaves[codigoSlave]) totaisSlaves[codigoSlave] = { total: 0, qtde: 0, desconto: 0 }
 
-            if (dadosSlave.tipo_desconto) {
-                const desconto = dadosSlave.tipo_desconto == 'Dinheiro'
-                    ? dadosSlave.desconto
-                    : ((dadosSlave.desconto / 100) * dadosSlave.custo) * dadosSlave.qtde
-                item.desconto += desconto
+                const item = totaisSlaves[codigoSlave]
+
+                if (dadosSlave.tipo_desconto) {
+                    const desconto = dadosSlave.tipo_desconto == 'Dinheiro'
+                        ? dadosSlave.desconto
+                        : ((dadosSlave.desconto / 100) * dadosSlave.custo) * dadosSlave.qtde
+                    item.desconto += desconto
+                }
+
+                item.qtde += dadosSlave.qtde
+                item.total += (dadosSlave.custo * dadosSlave.qtde)
+
+                composicoes[codigoSlave] = dadosSlave
             }
 
-            item.qtde += dadosSlave.qtde
-            item.total += (dadosSlave.custo * dadosSlave.qtde)
-
-            composicoes[codigo] = dadosSlave
+            composicoes[codigo] = { ...dados }
+            delete composicoes[codigo].agrupamento
         }
 
-        composicoes[codigo] = { ...dados }
-        delete composicoes[codigo].agrupamento
-    }
+        // Unificação dos slaves: (total deles / qtde), total do desconto em R$ e tipo de desconto em Dinheiro;
+        for (const [codigo, dados] of Object.entries(totaisSlaves)) {
+            const item = composicoes[codigo]
+            item.custo = dados.total / dados.qtde
+            item.qtde = dados.qtde
 
-    for (const [codigo, dados] of Object.entries(totaisSlaves)) {
-        const item = composicoes[codigo]
-        item.custo = dados.total / dados.qtde
-        item.qtde = dados.qtde
-        if (item.tipo_desconto) item.desconto = dados.desconto
-    }
+            if (item.tipo_desconto) {
+                item.tipo_desconto = 'Dinheiro'
+                item.desconto = dados.desconto
+            }
+        }
 
-    orcamento.dados_composicoes = composicoes
-    baseOrcamento(orcamento)
+        orcamento.dados_composicoes = composicoes
+
+        baseOrcamento(orcamento)
+
+        resolve()
+    })
 
 }
 

@@ -1775,7 +1775,7 @@ async function verAprovacoes() {
         <br>
         <hr style="width: 100%;">
         <br>
-        <div style="${vertical};">
+        <div class="borda-tabela">
             <div class="topo-tabela"></div>
             <div class="div-tabela">
                 <table class="tabela" style="width: 100%;">
