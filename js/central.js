@@ -2260,9 +2260,9 @@ async function salvarDadosCliente() {
         transportadora: el('transportadora').value,
         tipo_de_frete: el('tipo_de_frete').value,
         emissor: el('emissor').value,
-        email: el('email_analista').textContent,
-        nome: el('analista').textContent,
-        telefone: el('telefone_analista').textContent
+        email_analista: el('email_analista').textContent,
+        analista: el('analista').textContent,
+        telefone_analista: el('telefone_analista').textContent
     }
 
     baseOrcamento(orcamentoBase)
@@ -2292,12 +2292,6 @@ function executarLimparCampos() {
     if (orcamento.dados_orcam) delete orcamento.dados_orcam
     baseOrcamento(orcamento)
     painelClientes()
-}
-
-function analista() {
-    document.getElementById('analista').textContent = acesso.nome_completo
-    document.getElementById('email_analista').textContent = acesso.email
-    document.getElementById('telefone_analista').textContent = acesso.telefone
 }
 
 async function abrirDANFE(codOmieNF, tipo, app) {
