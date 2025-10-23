@@ -154,7 +154,7 @@ async function telaOrcamentos(semOverlay) {
 
     const acumulado = `
         <div id="toolbar"></div>
-        <div style="${vertical}; width: 95vw;">
+        <div id="tabelaOrcamento" style="${vertical}; width: 95vw;">
             <div class="topo-tabela"></div>
             <div class="div-tabela">
                 <table class="tabela">
@@ -169,8 +169,8 @@ async function telaOrcamentos(semOverlay) {
         </div>
         `
 
-    const tabelaExistente = document.querySelector('.div-tabela')
-    if (!tabelaExistente || layout == 'pda') tela.innerHTML = acumulado
+    const tabelaOrcamento = document.getElementById('tabelaOrcamento')
+    if (!tabelaOrcamento || layout == 'pda') tela.innerHTML = acumulado
     layout = 'tradicional'
 
     dados_orcamentos = await recuperarDados('dados_orcamentos') || {}

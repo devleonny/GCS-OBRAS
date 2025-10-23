@@ -50,7 +50,7 @@ async function telaCriarOrcamentoAluguel() {
                             <option>ANUAL</option>
                         </select>
                         <label style="font-size: 1em;">Quantidade</label>
-                        <input id="quantidadePeriodo" oninput="total()"
+                        <input id="quantidade_periodo" oninput="total()"
                             style="width: 15vw; background-color: white; border-radius: 3px; padding: 5px; color: #222; cursor: pointer;">
                     </div>
                 </div>
@@ -87,7 +87,7 @@ async function carregarTabelasAluguel() {
     const dadosComposicoes = orcamentoBase?.dados_composicoes || {}
 
     document.getElementById('lpu').value = orcamentoBase?.periodo || 'DIA'
-    document.getElementById('quantidadePeriodo').value = orcamentoBase?.quantidadePeriodo || ''
+    document.getElementById('quantidade_periodo').value = orcamentoBase?.quantidade_periodo || ''
 
     for (const [codigo, produto] of Object.entries(dadosComposicoes)) {
 
@@ -420,10 +420,10 @@ async function total() {
     let totais = { GERAL: { valor: 0, exibir: 'none', bruto: 0 } }
     let divTabelas = document.getElementById('tabelas')
     let tables = divTabelas.querySelectorAll('table')
-    let quantidadePeriodo = document.getElementById('quantidadePeriodo').value
+    let quantidade_periodo = document.getElementById('quantidade_periodo').value
 
     orcamentoBase.lpu_ativa = modo // Salvando no mesmo local que as LPUs, para mostrar na tabela geral;
-    orcamentoBase.quantidadePeriodo = quantidadePeriodo
+    orcamentoBase.quantidade_periodo = quantidade_periodo
 
     if (!orcamentoBase.dados_composicoes) orcamentoBase.dados_composicoes = {}
 

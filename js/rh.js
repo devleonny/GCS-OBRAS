@@ -1,7 +1,6 @@
 let filtrosRH = {}
 let pessoas = {}
 let tituloRH = null
-let planoFundo = null
 
 const modeloRH = (valor1, elemento, funcao) => {
     return `
@@ -57,29 +56,11 @@ async function telaRH() {
     const divPessoas = document.querySelector('.divPessoas')
     divPessoas.innerHTML = stringPessoas
 
-    tela.innerHTML = `
-        <div style="${vertical}">
-            <div class="tituloRH"></div>
-            <div class="planoFundo"></div>
-        </div>
-    `
-
-    tituloRH = document.querySelector('.tituloRH')
-    planoFundo = document.querySelector('.planoFundo')
-
-    planoFundo.style = `grid-template-columns: repeat(4, 1fr)`
+    await telaRHTabela()
+    mostrarMenus(false)
 }
 
-async function mostrarPastas(idPessoa, nome) {
-
-    document.querySelector('.tituloRH').innerHTML = `
-        <div style="${horizontal}; gap: 1vw;">
-            <label>${nome}</label>
-            <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="adicionarPessoa('${idPessoa}')">
-            <img src="imagens/pasta.png" style="width: 2vw; cursor: pointer;" onclick="adicionarPasta('${idPessoa}')">
-            <img src="imagens/lixeira.png" style="width: 2vw; cursor: pointer;" onclick="confirmarExclusaoPessoa('${idPessoa}', '${nome}')">
-        </div>
-    `
+async function mostrarPastas(idPessoa) {
 
     const elemento = document.getElementById(`${idPessoa}`)
     elemento.style.display = elemento.style.display == 'none' ? 'flex' : 'none'
@@ -123,22 +104,6 @@ async function abrirPastas(idPessoa, idPasta) {
     const pasta = pessoa.pastas[idPasta]
     const anexos = pasta?.anexos || {}
 
-    tituloRH.innerHTML = `
-        <div style="${horizontal}; gap: 1vw;">
-
-            <label>${pessoa.nome} > ${pasta.nomePasta}</label>
-
-            <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="adicionarPasta('${idPessoa}', '${idPasta}')">
-
-            <label for="anexo" style="${horizontal};">
-                <img src="imagens/anexo2.png" style="width: 2vw; cursor: pointer;">
-                <input type="file" style="display: none;" id="anexo" onchange="adicionarAnexo(this, '${idPessoa}', '${idPasta}')">
-            </label>
-
-            <img src="imagens/lixeira.png" style="width: 2vw; cursor: pointer;" onclick="confirmarExclusaoPasta('${idPessoa}', '${idPasta}')">
-        </div>
-    `
-
     let arquivos = { 'Não classificados': '' }
 
     for (const [idAnexo, anexo] of Object.entries(anexos)) {
@@ -157,9 +122,27 @@ async function abrirPastas(idPessoa, idPasta) {
 
     let esquemaHTML = ''
     for (const idAnexo of Object.keys(anexos)) esquemaHTML += await pastaHTML(idPessoa, idPasta, idAnexo)
-    planoFundo.style.display = 'grid'
 
-    planoFundo.innerHTML = esquemaHTML
+    tela.innerHTML = `
+        <div style="${horizontal}; gap: 5px;">
+
+            <label style="color: white;">${pessoa.nome} > ${pasta.nomePasta}</label>
+
+            <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="adicionarPasta('${idPessoa}', '${idPasta}')">
+
+            <label for="anexo" style="${horizontal};">
+                <img src="imagens/anexo2.png" style="width: 2vw; cursor: pointer;">
+                <input type="file" style="display: none;" id="anexo" onchange="adicionarAnexo(this, '${idPessoa}', '${idPasta}')">
+            </label>
+
+            <img src="imagens/lixeira.png" style="width: 2vw; cursor: pointer;" onclick="confirmarExclusaoPasta('${idPessoa}', '${idPasta}')">
+        </div>
+        <div class="pessoas">
+            ${esquemaHTML}
+        </div>
+    `
+
+    mostrarMenus(false)
 
 }
 
@@ -459,8 +442,7 @@ function expiraEm(dataString) {
 }
 
 async function telaRHTabela() {
-    
-    pessoas = await recuperarDados('pessoas')
+
     let colunas = {
         th: '',
         thPesquisa: ''
@@ -470,8 +452,7 @@ async function telaRHTabela() {
         .map((op, col) => {
 
             let pesquisa = `
-                <input placeholder="${inicialMaiuscula(op)}" oninput="pesquisarGenerico('${col}', this.value, filtrosRH, 'bodyRH')">
-                <img src="imagens/pesquisar2.png" style="width: 1.5vw;">
+                <input style="padding: 5px;" placeholder="${inicialMaiuscula(op)}" oninput="pesquisarGenerico('${col}', this.value, filtrosRH, 'bodyRH')">
             `
 
             if (op == 'Expiração') {
@@ -490,30 +471,14 @@ async function telaRHTabela() {
             colunas.th += `<th>${op}</th>`
         })
 
-    let linhas = ''
 
-    // Pessoas nesse contexto foi mudado para cidade-estado;
-    for (const [idPessoa, pessoa] of Object.entries(pessoas)) {
-
-        const pastas = pessoa?.pastas || {}
-
-        for (const [idPasta, pasta] of Object.entries(pastas)) {
-
-            const anexos = pasta?.anexos || {}
-
-            for (const [idAnexo, anexo] of Object.entries(anexos)) {
-                linhas += carregarLinha({ idPessoa, idPasta, idAnexo, pessoa })
-            }
-        }
-    }
-
-    let acumulado = `
+    const acumulado = `
         <div style="${vertical};">
             <div class="painelBotoes" style="align-items: center; justify-content: end;">
 
                 <div style="${horizontal}; width: 20%; gap: 5px;">
                     <label>Todos</label>
-                    <input type="checkbox" onclick="marcarTodos(this)" style="width: 1.5vw; height: 1.5vw;">
+                    <input type="checkbox" onclick="marcarTodosRH(this)" style="width: 1.5vw; height: 1.5vw;">
                     ${botao('Baixar', `baixarArquivos()`, 'green')}
                 </div>
             </div>
@@ -523,17 +488,32 @@ async function telaRHTabela() {
                         <tr>${colunas.th}</tr>
                         <tr>${colunas.thPesquisa}</tr>
                     </thead>
-                    <tbody id="bodyRH">
-                        ${linhas}
-                    </tbody>
+                    <tbody id="bodyRH"></tbody>
                 </table>
             </div>
             <div class="rodapeTabela"></div>
         </div>
     `
 
-    planoFundo.style.display = 'flex'
-    planoFundo.innerHTML = acumulado
+    tela.style.display = 'flex'
+    const bodyRH = document.getElementById('bodyRH')
+    if (!bodyRH) tela.innerHTML = acumulado
+
+    pessoas = await recuperarDados('pessoas')
+    // Pessoas nesse contexto foi mudado para cidade-estado;
+    for (const [idPessoa, pessoa] of Object.entries(pessoas)) {
+
+        const pastas = pessoa?.pastas || {}
+
+        for (const [idPasta, pasta] of Object.entries(pastas)) {
+
+            const anexos = pasta?.anexos || {}
+
+            for (const [idAnexo,] of Object.entries(anexos)) {
+                carregarLinha({ idPessoa, idPasta, idAnexo, pessoa })
+            }
+        }
+    }
 
 }
 
@@ -551,50 +531,52 @@ function carregarLinha({ idPessoa, idPasta, idAnexo, pessoa }) {
     }
 
     const linha = `
-        <tr id="linha_${idAnexo}">
-            <td>
-                <div style="${horizontal}; justify-content: start; gap: 5px;">
-                    <img src="imagens/pasta.png" style="width: 1.5vw; cursor: pointer;" onclick="pastaHTML('${idPessoa}', '${idPasta}', '${idAnexo}', true)">
-                    <label style="text-align: left;">${pasta.nomePasta}</label>
-                </div>
-            </td>
-            <td>${pessoa.nome}</td>
-            <td style="text-align: left; font-size: 0.7vw;">
-                ${anexo?.clinica || '--'}<br>
-                <strong>${anexo?.local || ''}</strong>
-            </td>
-            <td>${dt(anexo.validade)}</td>
-            <td>
-                <input style="display: none;" value="${tempoExpiracao.status}">
-                <div style="${horizontal}; justify-content: left; gap: 5px;">
-                    <img src="${tempoExpiracao.icone}" style="width: 1.5vw;">
-                    <label>${tempoExpiracao.dias}</label>
-                </div>
-            </td>
-            <td>
-                <input value="${anexo?.doc || '--'}" style="display: none;">
-                <div style="${horizontal}; justify-content: start; gap: 5px;">
-                    <input data-url="${anexo.link}" data-nome="${anexo.nome}" name="docs" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
-                    <div class="capsula">
-                        <div class="esquerda">
-                            ${anexo?.doc || '--'}
-                        </div>
-                        <div class="direita" title="${anexo.nome}" onclick="abrirArquivo('${anexo.link}')">
-                            Ver
-                        </div>
+        <td>
+            <div style="${horizontal}; justify-content: start; gap: 5px;">
+                <img src="imagens/pasta.png" style="width: 1.5vw; cursor: pointer;" onclick="pastaHTML('${idPessoa}', '${idPasta}', '${idAnexo}', true)">
+                <label style="text-align: left;">${pasta.nomePasta}</label>
+            </div>
+        </td>
+        <td>${pessoa.nome}</td>
+        <td style="text-align: left; font-size: 0.7vw;">
+            ${anexo?.clinica || '--'}<br>
+            <strong>${anexo?.local || ''}</strong>
+        </td>
+        <td>${dt(anexo.validade)}</td>
+        <td>
+            <input style="display: none;" value="${tempoExpiracao.status}">
+            <div style="${horizontal}; justify-content: left; gap: 5px;">
+                <img src="${tempoExpiracao.icone}" style="width: 1.5vw;">
+                <label>${tempoExpiracao.dias}</label>
+            </div>
+        </td>
+        <td>
+            <input value="${anexo?.doc || '--'}" style="display: none;">
+            <div style="${horizontal}; justify-content: start; gap: 5px;">
+                <input data-url="${anexo.link}" data-nome="${anexo.nome}" name="docs" type="checkbox" style="width: 1.5vw; height: 1.5vw;">
+                <div class="capsula">
+                    <div class="esquerda">
+                        ${anexo?.doc || '--'}
+                    </div>
+                    <div class="direita" title="${anexo.nome}" onclick="abrirArquivo('${anexo.link}')">
+                        Ver
                     </div>
                 </div>
-            </td>
-        </tr>`
+            </div>
+        </td>`
 
-    const linhaAnexo = document.getElementById(`linha_${idAnexo}`)
+    const linhaAnexo = document.getElementById(idAnexo)
 
     if (linhaAnexo) return linhaAnexo.innerHTML = linha
 
-    return linha
+    const bodyRH = document.getElementById('bodyRH')
+    bodyRH.insertAdjacentHTML('beforeend', `
+        <tr id="${idAnexo}">
+            ${linha}
+        </tr>`)
 }
 
-function marcarTodos(input) {
+function marcarTodosRH(input) {
 
     const checks = document.querySelectorAll('[name=docs]')
 
@@ -615,7 +597,7 @@ async function baixarArquivos() {
     const zip = new JSZip()
 
     for (let i = 0; i < checkboxes.length; i++) {
-        const url = `${api}/uploads/${checkboxes[i].dataset.url}`
+        const url = `${api}/uploads/GCS/${checkboxes[i].dataset.url}`
         const nomeArquivo = checkboxes[i].dataset.nome
 
         const response = await fetch(url)
@@ -628,5 +610,5 @@ async function baixarArquivos() {
 
     removerOverlay()
 
-    saveAs(conteudoZip, 'documentos.zip')
+    saveAs(conteudoZip, 'documentos.tar')
 }
