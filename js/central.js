@@ -229,7 +229,7 @@ const esquemaBotoes = {
     ],
     rh: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-        { nome: 'Atualizar', funcao: 'carregarEsquema', img: 'atualizar3' },
+        { nome: 'Atualizar', funcao: 'telaRH', img: 'atualizar3' },
         { nome: 'Tabela', funcao: 'telaRHTabela', img: 'todos' },
         { nome: 'Adicionar Local', funcao: 'adicionarPessoa', img: 'baixar' },
     ],
