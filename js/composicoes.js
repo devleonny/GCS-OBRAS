@@ -1263,7 +1263,7 @@ async function criarLinhaAgrupamento(cod, dados) {
 
     if (!dados_composicoes) dados_composicoes = await recuperarDados('dados_composicoes')
 
-    const produto = await recuperarDado('dados_composicoes', cod)
+    const produto = dados_composicoes[cod]
     const chaveUnica = ID5digitos()
 
     const tds = `

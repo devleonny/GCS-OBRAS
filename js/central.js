@@ -2120,7 +2120,7 @@ async function painelClientes() {
 
     const orcamentoBase = baseOrcamento()
     console.log(orcamentoBase.dados_orcam);
-    
+
     const dados_orcam = orcamentoBase?.dados_orcam || {}
     dados_clientes = await recuperarDados('dados_clientes') || {}
     const cliente = dados_clientes?.[dados_orcam?.omie_cliente] || {}
@@ -2409,6 +2409,8 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
     let opcoesDiv = ''
 
     for (const [cod, dado] of Object.entries(base)) {
+
+        if (dado.origem && origem !== dado?.origem) continue
 
         const labels = campos
             .map(campo => `${(dado[campo] && dado[campo] !== '') ? `<label>${dado[campo]}</label>` : ''}`)
