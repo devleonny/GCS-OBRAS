@@ -1,18 +1,9 @@
-.painelCentral {
-    background-size: 30vw;
-    border-radius: 2px;
-    background-color: #00000038;
-    margin-top: 2vw;
-    min-width: 70vw;
-    min-height: 70vh;
-    max-height: max-content;
-    grid-gap: 1px;
-}
-
-.tituloRH {
-    color: white;
-    font-size: 1.5vw;
-    margin-left: 3vw;
+.pessoas {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    width: 100%;
+    align-items: center;
 }
 
 .painelLateral {

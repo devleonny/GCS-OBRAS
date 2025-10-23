@@ -1,20 +1,92 @@
-#agrupamentos-body tr {
-  background: #fff;
-  transition: 0.2s;
+.linha-orcamento {
+  display: grid;
+  grid-template-columns:
+    0.5fr
+    /* Código */
+    2fr
+    /* Descrição */
+    0.5fr
+    /* Medida */
+    1fr
+    /* Quantidade */
+    1fr
+    /* Custo Unit */
+    1fr
+    /* Desconto */
+    1fr
+    /* Total */
+    0.5fr
+    /* Imagem */
+    0.5fr;
+  /* Remover */
+  align-items: center;
+  background: white;
+  border-bottom: 1px solid #a4a4a4;
+  width: 100%;
+  gap: .5rem;
+  padding: 3px 0 3px 0;
 }
 
-#agrupamentos-body tr:nth-child(even) {
-  background: #f4f7fa;
+.linha-orcamento div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-#agrupamentos-body tr:hover {
-  background: #e3f1ff;
+.total-linha {
+  width: 100%;
+  align-items: center;
+  justify-content: right;
+  display: flex;
+  background-color: #ffe497;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  margin-bottom: 0.5rem;
 }
 
-#agrupamentos-body td {
-  padding: 10px 8px;
-  border-bottom: 1px solid #e3e8ee;
-  font-size: 1em;
+.total-linha span {
+  color: #151749;
+  font-size: 1.4rem;
+  margin-right: 2rem;
+}
+
+.campo-codigo-composicao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 50px;
+}
+
+.campo-codigo-composicao .composicao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.paginacao {
+  padding: 0.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  color: white;
+}
+
+.paginacao img {
+  cursor: pointer;
+  width: 1.7rem;
+}
+
+.campo-codigo-composicao img {
+  padding: 3px;
+  width: 1.5rem;
+  cursor: pointer;
+}
+
+.campo-codigo-composicao span {
+  font-size: 1rem;
 }
 
 .desconto-baixo {
@@ -30,6 +102,12 @@
   border-top-right-radius: 10px;
 }
 
+.imagem-orc {
+  padding: 3px;
+  border-radius: 3px;
+  background-color: white;
+}
+
 .agrupamentos-thead th {
   position: sticky;
   top: 0;
@@ -37,8 +115,7 @@
   z-index: 2;
 }
 
-.input_valor {
-  font-size: 0.9rem;
+.valor-orcamento {
   color: #151749;
   font-weight: bold;
   white-space: nowrap;
@@ -162,13 +239,26 @@
   word-break: break-all;
 }
 
-.menu_top {
+.pesquisa-orcamento {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1vw;
-  font-size: 1.2vw;
-  color: white;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  background-color: white;
+  border-radius: 10px;
+}
+
+.pesquisa-orcamento input {
+  text-align: left;
+}
+
+.menu-top {
+  display: flex;
+  align-items: start;
+  justify-content: start;
+  flex-direction: column;
+  color: #ededed;
   padding: 5px;
   cursor: pointer;
   border-top-left-radius: 10px;
@@ -262,9 +352,7 @@
 }
 
 .resumo {
-  width: 20vw;
   padding: 5px;
-  color: white;
   display: flex;
   flex-direction: column;
   align-items: start;
@@ -278,24 +366,20 @@
 }
 
 .desconto_off {
+  color: #797979;
   width: 100%;
-  background-color: #d2d2d2;
-  color: #656565;
+  background-color: #cbcbcb;
   padding: 0px;
 }
 
-#menu_superior {
-  position: relative;
+.menu-superior {
+  gap: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-radius: 3px;
   background-color: #f0f0f0;
   width: 100%;
-}
-
-#menu_superior label {
-  color: #222;
 }
 
 .fundo-toolbar-1 {
