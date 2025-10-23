@@ -38,7 +38,7 @@
   align-items: center;
   justify-content: right;
   display: flex;
-  background-color: #c5c5c5;
+  background-color: #ffe497;
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
   margin-bottom: 0.5rem;
@@ -46,8 +46,7 @@
 
 .total-linha span {
   color: #151749;
-  font-weight: bold;
-  font-size: 1.2rem;
+  font-size: 1.4rem;
   margin-right: 2rem;
 }
 
@@ -259,7 +258,7 @@
   align-items: start;
   justify-content: start;
   flex-direction: column;
-  color: #e1e1e1;
+  color: #ededed;
   padding: 5px;
   cursor: pointer;
   border-top-left-radius: 10px;
@@ -367,8 +366,9 @@
 }
 
 .desconto_off {
+  color: #797979;
   width: 100%;
-  background-color: #a7a7a7;
+  background-color: #cbcbcb;
   padding: 0px;
 }
 

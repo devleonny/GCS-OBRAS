@@ -205,7 +205,7 @@ async function carregarTabelasOrcamento() {
     if (!bodyOrcamento) divTabelas.innerHTML = `
         <div style="${horizontal}; margin-left; 1rem;">
             <div class="pesquisa-orcamento">
-                <input oninput="pesquisarNoOrcamento(this)" placeholder="Pesquisar">
+                <input id="termoPesquisa" oninput="pesquisarNoOrcamento()" placeholder="Pesquisar">
                 <img src="imagens/pesquisar4.png" style="width: 1.5rem; padding: 0.5rem;"> 
             </div>
             <div class="toolbarSuperior"></div> 
@@ -248,20 +248,29 @@ async function carregarTabelasOrcamento() {
     }
 
     await totalOrcamento()
-    filtrarPorTipo()
+    filtrarPorTipo(memoriaFiltro)
+    pesquisarNoOrcamento()
 
 }
 
-async function pesquisarNoOrcamento(input) {
-    const termo = input.value.trim().toLowerCase()
+async function pesquisarNoOrcamento() {
+
+    const termoPesquisa = document.getElementById('termoPesquisa')
+    const termo = termoPesquisa.value.trim().toLowerCase()
     const bodyOrcamento = document.getElementById('bodyOrcamento')
     const linhas = bodyOrcamento.querySelectorAll('.linha-orcamento')
+    filtrarPorTipo()
+    document.querySelectorAll('.total-linha').forEach(el => el.style.display = 'none')
 
     linhas.forEach(linha => {
         const texto = linha.textContent.toLowerCase()
         const corresponde = termo && texto.includes(termo)
         linha.style.display = (!termo || corresponde) ? '' : 'none'
+        linha.style.backgroundColor = 'white'
+        linha.style.borderRadius = '8px'
     })
+
+    if (termoPesquisa.value == '') await totalOrcamento()
 
 }
 
@@ -342,7 +351,11 @@ function carregarLinhaOrcamento(codigo, produto, codigoMaster) { //29
     `
 
     const divExistente = document.getElementById(`ORCA_${codigo}`)
-    if (divExistente) return divExistente.innerHTML = blocoLinha
+    if (divExistente) {
+        const linha = divExistente.querySelector('.linha-orcamento')
+        linha.innerHTML = celulas
+        return
+    }
 
     const linha = `
         <div id="ORCA_${codigo}" style="${vertical};">
@@ -367,7 +380,9 @@ async function removerItemOrcamento({ codigo, codigoMaster }) {
     const prod = document.getElementById(`prod_${codigo}`)
     if (prod) prod.value = ''
 
-    document.getElementById(id).remove()
+    const idLinha = codigoMaster ? `${codigoMaster}_${codigo}` : `ORCA_${codigo}`
+    const linha = document.getElementById(idLinha)
+    if (linha) linha.remove()
 
     baseOrcamento(orcamentoBase)
 
@@ -491,10 +506,14 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
 
         <div style="${vertical};" id="tabela_composicoes">
             <div class="topo-tabela" style="border: none; background-color: ${cor};">
-                <div class="paginacao">
-                    <img src="imagens/seta.png" id="btnAnterior" onclick="paginaAnterior()">
-                    <span id="paginacaoInfo"></span>
-                    <img src="imagens/seta.png" style="transform: rotate(180deg);" id="btnProxima" onclick="proximaPagina()">
+                <div style="${horizontal}; justify-content: start; gap: 2rem; color: white;">
+                    <div class="paginacao">
+                        <img src="imagens/seta.png" id="btnAnterior" onclick="paginaAnterior()">
+                        <span id="paginacaoInfo"></span>
+                        <img src="imagens/seta.png" style="transform: rotate(180deg);" id="btnProxima" onclick="proximaPagina()">
+                    </div>
+
+                    <span>Dê um <b>ENTER</b> para pesquisar</span>
                 </div>
             </div>
             <div class="div-tabela" style="max-height: max-content;">
@@ -523,7 +542,7 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     }
 
     const orcamentoBase = baseOrcamento()
-    const composicoesOrcamento = orcamentoBase.dados_composicoes || {}
+    const composicoesOrcamento = orcamentoBase?.esquema_composicoes || {}
     const chaves = Object.keys(dadosFiltrados)
 
     const inicio = (paginaComposicoes - 1) * porPagina
@@ -697,13 +716,14 @@ function linhasComposicoesOrcamento(codigo, produto, qtdeOrcada, lpu) {
     const preco = detalhes?.valor || 0
 
     const sinalizacao = verificarData(detalhes?.data)
+    const agrupamentoON = Object.keys(produto?.agrupamento || {}).length > 0 ? 'pos' : 'neg'
 
     const tds = `
         <td>
             <div class="campo-codigo-composicao">
                 <span>${codigo}</span>
                 <div class="composicao">
-                    <img src="imagens/elo_${produto.agrupamento ? 'pos' : 'neg'}.png" onclick="verAgrupamento('${codigo}')">
+                    <img src="imagens/elo_${agrupamentoON}.png" onclick="verAgrupamento('${codigo}')">
                     ${moduloComposicoes ? `<img src="imagens/editar.png" onclick="cadastrarItem('${codigo}')">` : ''}
                 </div>
             </div>
@@ -735,11 +755,11 @@ function linhasComposicoesOrcamento(codigo, produto, qtdeOrcada, lpu) {
         </td>
         `
 
-    const trExistente = document.getElementById(codigo)
+    const trExistente = document.getElementById(`COMP_${codigo}`)
     if (trExistente) return trExistente.innerHTML = tds
     const linha = `
         <tr data-tipo="${produto.tipo}"
-        id="${codigo}">
+        id="COMP_${codigo}">
             ${tds}
         </tr>
     `
@@ -877,7 +897,7 @@ async function totalOrcamento() { //29
         const hierarquia = linha.dataset.hierarquia
         let itemSalvo = {}
 
-        linha.style.backgroundColor = hierarquia == 'master' ? 'white' : '#dfdfdf'
+        linha.style.backgroundColor = hierarquia == 'master' ? 'white' : '#fff8d3'
         linha.style.borderTopLeftRadius = '0px'
         linha.style.borderTopRightRadius = '0px'
         linha.style.borderBottomLeftRadius = '0px'
@@ -1136,7 +1156,7 @@ async function totalOrcamento() { //29
         }
 
         toolbarSuperior.insertAdjacentHTML('beforeend',
-            `<div onclick="filtrarPorTipo(this)" id="${id}" data-tipo="${tabela}" style="background-color: ${coresTabelas(tabela)}" class="menu-top">
+            `<div onclick="filtrarPorTipo('${tabela}')" id="${id}" data-tipo="${tabela}" style="background-color: ${coresTabelas(tabela)}" class="menu-top">
                 ${toolbar}
             </div>`
         )
@@ -1148,7 +1168,7 @@ async function totalOrcamento() { //29
         const tipo = div.dataset.tipo
         if (!totais[tipo]) {
             div.remove()
-            filtrarPorTipo({ dataset: { tipo: 'GERAL' } })
+            filtrarPorTipo()
         }
     }
 
@@ -1196,10 +1216,11 @@ function salvarDetalhes(textarea) {
 
 }
 
-async function filtrarPorTipo(div) { //29
+async function filtrarPorTipo(tipo) { //29
 
-    const tipo = div ? div.dataset.tipo : memoriaFiltro || 'GERAL'
+    tipo = tipo || 'GERAL'
     memoriaFiltro = tipo
+
     const divOrcamento = document.getElementById('bodyOrcamento')
     const linhas = divOrcamento.querySelectorAll('.linha-orcamento')
     document.getElementById('theadOrcamento').style.backgroundColor = coresTabelas(tipo)
@@ -1303,7 +1324,7 @@ async function confirmarNovoPreco({ codigo, codigoMaster, precoOriginal, operaca
 async function incluirItem(codigo, novaQuantidade) {
     let orcamentoBase = baseOrcamento()
     const produto = dados_composicoes[codigo]
-    let agrupamento = {}
+    let agrupamento = orcamentoBase?.esquema_composicoes?.[codigo]?.agrupamento || {}
 
     // Ajustes dos agrupamentos;
     for (const [cod, dados] of Object.entries(produto?.agrupamento || {})) {

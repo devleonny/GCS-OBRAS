@@ -1238,7 +1238,7 @@ async function verAgrupamento(codigo) {
                 <div class="div-tabela">
                     <table class="tabela" id="tabela_composicoes">
                         <thead>
-                            <tr>${['Código', 'Descrição', 'Tipo', 'Quantidade'].map(op => `<th>${op}</th>`).join('')}</tr>
+                            <tr>${['Código', 'Descrição', 'Tipo', 'Quantidade', 'Remover'].map(op => `<th>${op}</th>`).join('')}</tr>
                         </thead>
                         <tbody id="linhasAgrupamento"></tbody>
                     </table>
@@ -1278,12 +1278,43 @@ async function criarLinhaAgrupamento(cod, dados) {
         </td>
         <td>${produto?.tipo || '??'}
         <td><input type="number" oninput="salvarAgrupamentosAutomatico()" value="${dados?.qtde || ''}"></td>
+        <td>
+            <img src="imagens/cancel.png" style="width: 1.7rem;" onclick="confirmarRemoverAgrupamento('${cod}')">
+        </td>
     `
 
     const trExistente = document.getElementById(`AGRUP_${cod}`)
     if (trExistente) return trExistente.innerHTML = tds
 
     document.getElementById('linhasAgrupamento').insertAdjacentHTML('beforeend', `<tr id="AGRUP_${cod}">${tds}</tr>`)
+}
+
+async function confirmarRemoverAgrupamento(codSlave) {
+
+    const acumulado = `
+        <div style="${horizontal}; gap: 1rem; padding: 2rem; background-color: #d2d2d2;">
+            <span> Tem certeza que deseja remover este item adicional?</span>
+            <button onclick="removerAgrupamento('${codSlave}')">Confirmar</button>
+        </div>
+    `
+
+    popup(acumulado, 'Tem certeza?', true)
+
+}
+
+async function removerAgrupamento(codSlave) {
+
+    let produto = dados_composicoes[codigoMaster]
+    delete produto.agrupamento[codSlave]
+    await inserirDados({ [codigoMaster]: produto }, 'dados_composicoes')
+    deletar(`dados_composicoes/${codigoMaster}/agrupamento/${codSlave}`)
+
+    const linha = document.getElementById(`AGRUP_${codSlave}`)
+
+    if (linha) linha.remove()
+
+    removerPopup()
+
 }
 
 async function salvarAgrupamentosAutomatico() {
