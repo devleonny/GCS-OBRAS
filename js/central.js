@@ -1012,27 +1012,23 @@ async function exportarParaExcel() {
     }
 }
 
-async function removerPopup(nao_remover_anteriores) {
+async function removerPopup(naoRemoverAnteriores) {
 
-    let pop_ups = document.querySelectorAll('#temp_pop')
+    const popUps = document.querySelectorAll('#temp_pop')
 
-    if (nao_remover_anteriores) {
-        return
-    }
+    if (naoRemoverAnteriores) return
 
-    if (pop_ups.length > 1) {
-        pop_ups[pop_ups.length - 1].remove()
+    if (popUps.length > 1) {
+        popUps[popUps.length - 1].remove()
 
     } else {
-        pop_ups.forEach(pop => {
+        popUps.forEach(pop => {
             pop.remove()
         })
     }
 
-    let aguarde = document.getElementById('aguarde')
-    if (aguarde) {
-        aguarde.remove()
-    }
+    const aguarde = document.getElementById('aguarde')
+    if (aguarde) aguarde.remove()
 
 }
 
@@ -2122,13 +2118,15 @@ async function atualizarBaseClientes() {
 
 async function painelClientes() {
 
-    let orcamentoBase = baseOrcamento()
-    let dados_orcam = orcamentoBase?.dados_orcam || {}
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let cliente = dados_clientes?.[dados_orcam?.omie_cliente] || {}
+    const orcamentoBase = baseOrcamento()
+    console.log(orcamentoBase.dados_orcam);
+    
+    const dados_orcam = orcamentoBase?.dados_orcam || {}
+    dados_clientes = await recuperarDados('dados_clientes') || {}
+    const cliente = dados_clientes?.[dados_orcam?.omie_cliente] || {}
     let levantamentos = ''
 
-    const parcelas = ["--", "15 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
+    const parcelas = ["--", "15 dias", "20 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
 
     for (chave in orcamentoBase?.levantamentos || {}) {
         let levantamento = orcamentoBase.levantamentos[chave]
@@ -2203,14 +2201,14 @@ async function painelClientes() {
 
             <label>Dados do Analista</label>
 
-            ${modelo('Analista', `<span id="analista">${dados_orcam?.analista || ''}</span>`)}
-            ${modelo('E-mail', `<span id="email_analista">${dados_orcam?.email_analista || ''}</span>`)}
-            ${modelo('Telefone', `<span id="telefone_analista">${dados_orcam?.telefone_analista || ''}</span>`)}
+            ${modelo('Analista', `<span id="analista">${dados_orcam?.analista || acesso.nome_completo}</span>`)}
+            ${modelo('E-mail', `<span id="email_analista" oninput="salvarContatos(this)" contentEditable="true">${dados_orcam?.email_analista || acesso.email}</span>`)}
+            ${modelo('Telefone', `<span id="telefone_analista" oninput="salvarContatos(this)" contentEditable="true">${dados_orcam?.telefone_analista || acesso.telefone}</span>`)}
 
             <label>Quem emite essa nota?</label>
 
             ${modelo('Empresa', `<select id="emissor" oninput="salvarDadosCliente()">
-                    ${['AC SOLUÇÕES', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
+                    ${['IAC', 'AC SOLUÇÕES', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
         </div>
 
         <div style="width: 100%; display: flex; gap: 10px; align-items: end; justify-content: right; margin-top: 5vh;">
@@ -2221,30 +2219,30 @@ async function painelClientes() {
     `
 
     popup(acumulado, 'Dados do Cliente')
+}
 
-    analista()
+function salvarContatos(span) {
+
+    let orcamento = baseOrcamento()
+    if (!orcamento.dados_orcam) orcamento.dados_orcam = {}
+    orcamento.dados_orcam[span.id] = span.textContent
+    baseOrcamento(orcamento)
+
 }
 
 async function salvarDadosCliente() {
 
     let orcamentoBase = baseOrcamento()
 
-    let dados_analista = {
-        email: document.getElementById('email_analista').textContent,
-        nome: document.getElementById('analista').textContent,
-        telefone: document.getElementById('telefone_analista').textContent
-    };
+    const el = (id) => {
+        const elemento = document.getElementById(id)
+        return elemento || null
+    }
 
     if (!orcamentoBase.dados_orcam) orcamentoBase.dados_orcam = {}
 
-    if (orcamentoBase.id) {
-        dados_analista.email = orcamentoBase.dados_orcam.email_analista;
-        dados_analista.telefone = orcamentoBase.dados_orcam.telefone_analista;
-        dados_analista.nome = orcamentoBase.dados_orcam.analista;
-    }
-
-    let contrato = document.getElementById('contrato')
-    let checkbox = document.getElementById('chamado_off')
+    const contrato = el('contrato')
+    const checkbox = el('chamado_off')
 
     if (checkbox.checked) {
         orcamentoBase.dados_orcam.contrato = 'sequencial'
@@ -2265,17 +2263,17 @@ async function salvarDadosCliente() {
     orcamentoBase.dados_orcam = {
         ...orcamentoBase.dados_orcam,
         omie_cliente,
-        condicoes: document.getElementById('condicoes').value,
-        consideracoes: String(document.getElementById('consideracoes').value).toUpperCase(),
+        condicoes: el('condicoes').value,
+        consideracoes: String(el('consideracoes').value).toUpperCase(),
         data: new Date(),
-        garantia: document.getElementById('garantia').value,
-        transportadora: document.getElementById('transportadora').value,
-        tipo_de_frete: document.getElementById('tipo_de_frete').value,
-        emissor: document.getElementById('emissor').value,
-        analista: dados_analista.nome,
-        email_analista: dados_analista.email,
-        telefone_analista: dados_analista.telefone
-    };
+        garantia: el('garantia').value,
+        transportadora: el('transportadora').value,
+        tipo_de_frete: el('tipo_de_frete').value,
+        emissor: el('emissor').value,
+        email_analista: el('email_analista').textContent,
+        analista: el('analista').textContent,
+        telefone_analista: el('telefone_analista').textContent
+    }
 
     baseOrcamento(orcamentoBase)
 
@@ -2287,10 +2285,10 @@ async function salvarDadosCliente() {
     }
 
     if (orcamentoBase.lpu_ativa === 'MODALIDADE LIVRE') {
-        total_v2();
+        total_v2()
     } else {
         if (String(telaAtiva).includes('Aluguel')) {
-            await total();
+            await total()
         } else {
             await totalOrcamento()
         }
@@ -2304,12 +2302,6 @@ function executarLimparCampos() {
     if (orcamento.dados_orcam) delete orcamento.dados_orcam
     baseOrcamento(orcamento)
     painelClientes()
-}
-
-function analista() {
-    document.getElementById('analista').textContent = acesso.nome_completo
-    document.getElementById('email_analista').textContent = acesso.email
-    document.getElementById('telefone_analista').textContent = acesso.telefone
 }
 
 async function abrirDANFE(codOmieNF, tipo, app) {

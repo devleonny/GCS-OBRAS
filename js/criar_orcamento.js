@@ -708,6 +708,21 @@ async function converterEsquema() {
 
 }
 
+function verificarData(data) {
+    if (!data) return ''
+
+    const [dt] = String(data).split(', ')
+    const [dia, mes, ano] = dt.split('/').map(Number)
+    const dataRef = new Date(ano, mes - 1, dia)
+
+    const hoje = new Date()
+    const diffDias = Math.floor((hoje - dataRef) / (1000 * 60 * 60 * 24))
+
+    const elemento = `<img src="imagens/${diffDias > 30 ? 'reprovado' : 'aprovado'}.png" style="width: 1.5rem;">`
+
+    return elemento
+}
+
 function linhasComposicoesOrcamento(codigo, produto, qtdeOrcada, lpu) {
 
     const ativo = produto?.[lpu]?.ativo || ''
@@ -1106,6 +1121,14 @@ async function totalOrcamento() { //29
         const inputProduto = document.getElementById(`prod_${codigo}`)
         if (inputProduto && hierarquia == 'master') inputProduto.value = quantidade
 
+    }
+
+    // Caso tenha algum item com preço desatualizado;
+    if (!orcamentoBase.status) orcamentoBase.status = {}
+    if (statusCotacao) {
+        orcamentoBase.status.atual = 'COTAÇÃO'
+    } else {
+        delete orcamentoBase.status.atual
     }
 
     // Caso tenha algum item com preço desatualizado;

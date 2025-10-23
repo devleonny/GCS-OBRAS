@@ -36,25 +36,42 @@ async function telaVeiculos() {
 
     overlayAguarde()
 
-    let veiculos = await recuperarDados('veiculos') || {}
-    let motoristas = await recuperarDados('motoristas') || {}
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let custo_veiculos = await recuperarDados('custo_veiculos') || {}
+    dados_clientes = await recuperarDados('dados_clientes') || {}
+    const veiculos = await recuperarDados('veiculos') || {}
+    const motoristas = await recuperarDados('motoristas') || {}
+    const custo_veiculos = await recuperarDados('custo_veiculos') || {}
 
-    let botoesMotoristas = Object.entries(motoristas)
+    // Objeto genérico auxiliar para o form de custos;
+    let tempMotoristas = {}
+    for (const omie of Object.keys(motoristas)) {
+        const cliente = dados_clientes[omie] || {}
+        tempMotoristas[omie] = {
+            nome: cliente.nome || '???',
+            cidade: cliente.cidade || '???'
+        }
+    }
+
+    await inserirDados(tempMotoristas, 'tempMotoristas')
+
+    const listagens = {
+        motorista: '',
+        veículo: ''
+    }
+
+    listagens.motorista = Object.entries(motoristas)
         .map(([idMotorista, motorista]) =>
             `<div class="diVeiculos" onclick="novoMotorista('${idMotorista}')">
                 <img src="imagens/${veiculos?.[motorista.veiculo]?.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
 
                 <div style="${vertical}">
-                    <label name="motorista">${String(dados_clientes?.[idMotorista]?.nome || '').slice(0, 10)}...</label>
+                    <label name="motorista">${dados_clientes?.[idMotorista]?.nome || ''}</label>
                     <label><strong>${veiculos?.[motorista.veiculo]?.modelo || ''}</strong> ${veiculos?.[motorista.veiculo]?.placa || 'Sem veículo'}</label>
                 </div>
             </div>
             `)
         .join('')
 
-    let botoesCarros = Object.entries(veiculos)
+    listagens.veículo = Object.entries(veiculos)
         .map(([idVeiculo, veiculo]) => `
             <div class="diVeiculos" onclick="novoVeiculo('${idVeiculo}')">
                 <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1.5vw;">
@@ -69,7 +86,7 @@ async function telaVeiculos() {
         .join('')
 
     let ths = '', tsh = ''
-    let colunas = ['Usuário & Data', 'Veículo', 'Valor & Data Pagamento', 'Realizado', 'Cartão', 'Comentário', 'Anexos', 'Editar']
+    const colunas = ['Usuário & Data', 'Veículo', 'Valor & Data Pagamento', 'Realizado', 'Cartão', 'Comentário', 'Editar']
         .map((coluna, i) => {
 
 
@@ -96,31 +113,25 @@ async function telaVeiculos() {
         </div>
     `
 
-    const acumulado = `
-        <div style="display: flex; justify-content: start; align-items: start; gap: 5px; width: 100%;">
-
-            <div style="${horizontal}; align-items: start; padding-right: 1vw; gap: 10px;">
-
-                <div style="${vertical};">
-                    <div class="painelBotoes" style="${vertical}; padding-bottom: 3px; padding-top: 5px;">
-                        ${pesquisa('motorista')}
-                    </div>
-                    <div id="motorista" class="fundoPainelLateral">${botoesMotoristas}</div>
-                    <div class="rodapeTabela"></div>
-                </div>
-
-                <div style="${vertical};">
-                    <div class="painelBotoes" style="${vertical}; padding-bottom: 3px; padding-top: 5px;">
-                        ${pesquisa('veículo')}
-                    </div>
-                    <div id="veículo" class="fundoPainelLateral">${botoesCarros}</div>
-                    <div class="rodapeTabela"></div>
-                </div>
-
+    const tabelaAux = (nomeTabela) => `
+        <div class="tabela-auxiliar">
+            <div class="painelBotoes" style="${horizontal}; padding-bottom: 3px; padding-top: 5px;">
+                ${pesquisa(nomeTabela)}
+                <img src="imagens/pasta.png" onclick="mostrarTabelaAux(this)" style="width: 2rem; padding: 0.5rem;">
             </div>
+            <div id="${nomeTabela}" class="fundoPainelLateral">${listagens[nomeTabela]}</div>
+            <div class="rodapeTabela"></div>
+        </div>
+    `
 
-            <div style="${vertical};">
-                <div class="painelBotoes" style="justify-content: start;">
+    const acumulado = `
+        <div class="tela-veiculos">
+            <div style="position: relative; z-index: 10;">
+                <div style="position: absolute; left: 0;">${tabelaAux('motorista')}</div>
+                <div style="position: absolute; transform: translateX(300px);">${tabelaAux('veículo')}</div>
+            </div>
+            <div style="${vertical}; margin-top: 5rem;">
+                <div class="painelBotoes" style="justify-content: end; margin-right: 2rem;">
                     <div class="total-tabela">
                         <label>Total de pagamento <b>Realizado</b></label>
                         <span name="total">--</span>
@@ -140,24 +151,27 @@ async function telaVeiculos() {
 
         </div>
     `
-    tela.innerHTML = acumulado
+    const telaVeiculos = document.querySelector('.tela-veiculos')
+    if (!telaVeiculos) tela.innerHTML = acumulado
+
     criarMenus('veiculos')
 
     removerOverlay()
 
-    custo_veiculos = Object.fromEntries(
-        Object.entries(custo_veiculos).sort((a, b) => {
-            return new Date(b[1].data_pagamento) - new Date(a[1].data_pagamento);
-        })
-    );
-
-    for (let [idCusto, custo] of Object.entries(custo_veiculos)) {
-        let nome = dados_clientes[custo.motorista].nome
-        let veiculo = veiculos[custo.veiculo]
+    for (const [idCusto, custo] of Object.entries(custo_veiculos)) {
+        const nome = dados_clientes[custo.motorista].nome
+        const veiculo = veiculos[custo.veiculo]
         criarLinhaVeiculo({ custo, nome, veiculo, idCusto })
     }
 
     pesquisarEmVeiculos()
+}
+
+function mostrarTabelaAux(img) {
+  const listagem = img.parentElement.nextElementSibling
+  const alturaAtual = listagem.style.height
+
+  listagem.style.height = alturaAtual === '0px' || !alturaAtual ? 'max-content' : '0px'
 }
 
 function criarLinhaVeiculo({ custo, nome, veiculo, idCusto }) {
@@ -186,7 +200,7 @@ function criarLinhaVeiculo({ custo, nome, veiculo, idCusto }) {
         </td>
 
         <td>
-            <div style="${horizontal}; gap: 0.5rem;">
+            <div style="${horizontal};justify-content: start; gap: 0.5rem; width: 300px;">
                 <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1rem;">
                 <div style="${vertical}; text-align: left;">
                     <label title="${nome}">${nome.slice(0, 20)}...</label>
@@ -214,17 +228,8 @@ function criarLinhaVeiculo({ custo, nome, veiculo, idCusto }) {
         </td>
 
         <td>${veiculo?.cartao || 'Não informado'}</td>
-        <td style="text-align: justify;">${custo.comentario}</td>
+        <td style="text-align: start; width: 400px;">${custo.comentario}</td>
 
-        <td>
-            <div style="display: flex; align-items: center;">
-                <img onclick="document.getElementById('${idCusto}').click()" src="imagens/baixar.png" style="cursor: pointer; width: 1.5vw;">
-                <input id="${idCusto}" type="file" style="display: none;" onchange="salvarAnexoCusto(this)" multiple>
-                <div style="display: flex; flex-direction: column;">
-                    ${anexos}
-                </div>
-            </div>
-        </td>
         <td>
             <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
                 <img src="imagens/pesquisar2.png" style="width: 1.5vw; cursor: pointer;" onclick="painelAtalhos('${idCusto}')">
@@ -362,49 +367,30 @@ async function excluirCusto(idCusto) {
 
 async function painelValores(idCusto, duplicar) {
 
-    await sincronizarDados('veiculos')
-    await sincronizarDados('motoristas')
-
-    let custo_veiculos = await recuperarDados('custo_veiculos') || {}
-    let motoristas = await recuperarDados('motoristas') || {};
-    let dados_clientes = await recuperarDados('dados_clientes') || {};
-    let custo = custo_veiculos[idCusto];
-
-    let opcoesMotoristas = Object.entries(motoristas)
-        .sort((a, b) => {
-            const nomeA = (dados_clientes[a[0]]?.nome || '').toLowerCase();
-            const nomeB = (dados_clientes[b[0]]?.nome || '').toLowerCase();
-            return nomeA.localeCompare(nomeB);
-        })
-        .map(([idMotorista, motorista]) =>
-            `<option data-id="${idMotorista}" value="${motorista?.veiculo || ''}" ${custo?.motorista == idMotorista ? 'selected' : ''}>
-            ${dados_clientes[idMotorista]?.nome || 'Sem nome'}
-        </option>`)
-        .join('');
+    const custo = await recuperarDado('custo_veiculos', idCusto) || {}
+    const motorista = await recuperarDado('dados_clientes', custo?.motorista)
 
     const campos = `
-        <div style="${horizontal}; gap: 10px; width: 100%;">
+        <div class="campos-form-custos">
+            ${modeloLabel('KM', `<input oninput="calcularValorCombustivel()" value="${custo?.km || ''}" type="number" id="km" type="number">`)}
+            ${modeloLabel('Litros', `<input oninput="calcularValorCombustivel(true)" value="${custo?.litros || ''}" type="number" id="litros" type="number">`)}
+            ${modeloLabel('KM/L', `<input oninput="calcularValorCombustivel()" value="${custo?.kml || ''}" type="number" id="kml" type="number">`)}
+            ${modeloLabel('Valor Combustível', `<input oninput="calcularValorCombustivel()" value="${custo?.combustivel || ''}" type="number" id="combustivel" type="number">`)}
+            ${modeloLabel('Custo Total', `<input value="${custo?.custo_total || ''}" type="number" id="custo_total" type="number">`)}
             ${modeloLabel('Data do Pagamento', `<input id="data_pagamento" type="date" value="${custo?.data_pagamento || ''}">`)}
         </div>
 
-        <div style="${horizontal}; gap: 10px;">
-            <div style="${vertical};">
-                ${modeloLabel('KM', `<input oninput="calcularValorCombustivel()" value="${custo?.km || ''}" type="number" id="km" type="number">`)}
-                ${modeloLabel('Litros', `<input oninput="calcularValorCombustivel(true)" value="${custo?.litros || ''}" type="number" id="litros" type="number">`)}
-            </div>
-            <div style="${vertical};">
-                ${modeloLabel('KM/L', `<input oninput="calcularValorCombustivel()" value="${custo?.kml || ''}" type="number" id="kml" type="number">`)}
-                ${modeloLabel('Valor Combustível', `<input oninput="calcularValorCombustivel()" value="${custo?.combustivel || ''}" type="number" id="combustivel" type="number">`)}
-            </div>
-        </div>
-        
-        <div style="${horizontal}; gap: 10px;">
-            ${modeloLabel('Custo Total', `<input value="${custo?.custo_total || ''}" type="number" id="custo_total" type="number">`)}
-            ${modeloLabel('Comentário', `<textarea id="comentario">${custo?.comentario || ''}</textarea>`)}
-        </div>
+            ${modeloLabel('Comentário', `<textarea rows="10" style="padding: 0.5rem;" id="comentario">${custo?.comentario || ''}</textarea>`)}
 
-        <div id="dados_veiculos" class="contornoDestaque"></div>
-        ${modeloLabel('Motorista', `<select id="veiculo" onchange="dadosVeiculo()">${opcoesMotoristas}</select>`)}
+        <div id="dados_veiculos"></div>
+
+        <br>
+
+        ${modeloLabel('Motorista', `
+            <span ${custo?.motorista ? `id="${custo?.motorista}"` : ''} name="nameMotorista" class="opcoes" onclick="cxOpcoes('nameMotorista', 'tempMotoristas', ['nome', 'cidade'])">
+                ${motorista?.nome || 'Selecione'}
+            </span>
+        `)}
     `
     const funcao = !idCusto ? `salvarValores()` : duplicar ? `salvarValores(false)` : `salvarValores('${idCusto}')`
 
@@ -412,12 +398,12 @@ async function painelValores(idCusto, duplicar) {
         <div class="paineis">
             ${campos}
             <hr style="width: 100%;">
-            ${botaoVeiculos('Adicionar', funcao, 'green')}
+            <button onclick="${funcao}">Adicionar Custo</button>
         </div>
     `
     popup(acumulado, 'Adicionar Custo')
 
-    await dadosVeiculo()
+    dadosVeiculo()
 }
 
 function calcularValorCombustivel(valorManual) {
@@ -436,11 +422,10 @@ function calcularValorCombustivel(valorManual) {
 async function salvarValores(idCusto) {
 
     overlayAguarde()
-    const select = document.getElementById('veiculo')
-    const idMotorista = select.options[select.selectedIndex].dataset.id
-    idCusto = idCusto || ID5digitos()
 
-    if (select.value == '') return popup(mensagem('O condutor está sem veículo'), 'ALERTA', true)
+    const idMotorista = document.querySelector('[name="nameMotorista"]').id
+    const motorista = await recuperarDado('motoristas', idMotorista)
+    idCusto = idCusto || ID5digitos()
 
     const custo_total = obterValores('custo_total')
     const data_pagamento = obterValores('data_pagamento')
@@ -450,14 +435,14 @@ async function salvarValores(idCusto) {
 
     const dados = {
         motorista: idMotorista,
-        veiculo: select.value,
+        veiculo: motorista.veiculo,
         categoria: 'Combustível',
         custo_total,
         combustivel: obterValores('combustivel'),
         kml: obterValores('kml'),
         comentario: obterValores('comentario'),
         data_pagamento,
-        data: obterDatas('completa'),
+        data: new Date().toLocaleString(),
         usuario: acesso.usuario,
         km: obterValores('km'),
         listros: obterValores('litros')
@@ -479,7 +464,7 @@ async function novoVeiculo(idVeiculo) {
         .join('')
     let funcao = idVeiculo ? `salvarVeiculo('${idVeiculo}')` : 'salvarVeiculo()'
 
-    let acumulado = `
+    const acumulado = `
     <div class="paineis">
         ${modeloLabel('Placa', `<input value="${veiculo?.placa || ''}" id="placa" placeholder="Placa">`)}
         ${modeloLabel('Modelo', `<input value="${veiculo?.modelo || ''}" id="modelo" placeholder="Modelo">`)}
@@ -490,9 +475,9 @@ async function novoVeiculo(idVeiculo) {
             </select>
             `)}
         <hr style="width: 100%;">
-        ${botaoVeiculos('Salvar', funcao, 'green')}
-    </div>
-`
+        <button onclick="${funcao}">Salvar</button>
+    </div>`
+
     popup(acumulado, 'Novo Veículo')
 }
 
@@ -527,95 +512,114 @@ async function salvarVeiculo(idVeiculo) {
     removerOverlay()
 }
 
-async function dadosVeiculo(input) {
+async function dadosVeiculo() {
 
-    let veiculos = await recuperarDados('veiculos') || {}
-    let select = document.getElementById('veiculo')
-    let idVeiculo = select.value
-    let veiculo = veiculos[idVeiculo]
-    let acumulado = `<label>Sem Veículo</label>`
+    const idVeiculo = document.querySelector('[name="nameVeiculo"]')
+    if (!idVeiculo) return
+    const veiculo = await recuperarDado('veiculos', idVeiculo.id)
 
-    if (veiculo) {
-        acumulado = `
-        <div style="display: flex; justify-content: space-evenly; align-items: center; width: 100%;">
-            <img src="imagens/veiculo.png" style="width: 5vw;">
+    const acumulado = `
+        <div class="contorno-destaque">
+            <img src="imagens/veiculo.png" style="width: 3rem;">
             <div style="display: flex; justify-content: start; align-items: start; flex-direction: column;">
                 ${labelDupla('Final do Cartão', veiculo?.cartao || 'Não informado')}
-                ${labelDupla('Modelo', veiculo.modelo)}
-                ${labelDupla('Placa', veiculo.placa)}
-                ${labelDupla('Status', veiculo.status)}
+                ${labelDupla('Modelo', veiculo?.modelo)}
+                ${labelDupla('Placa', veiculo?.placa)}
+                ${labelDupla('Status', veiculo?.status)}
             </div>
-        </div>    
-    `}
+        </div>
+    `
 
-    let div = document.getElementById('dados_veiculos')
+    const div = document.getElementById('dados_veiculos')
+    div.innerHTML = veiculo ? acumulado : ''
 
-    if (input && input.checked) {
-        select.style.display = 'none'
-        select.previousElementSibling.style.display = 'none'
-        div.innerHTML = ''
-        return
-    }
-
-    select.style.display = ''
-    select.previousElementSibling.style.display = ''
-
-    div.innerHTML = acumulado
 }
 
 async function novoMotorista(idMotorista) {
 
-    dados_clientes = await recuperarDados('dados_clientes') || {}
-    let motoristas = await recuperarDados('motoristas') || {}
-    let veiculos = await recuperarDados('veiculos') || {}
-    let idVeiculo = motoristas?.[idMotorista]?.veiculo || ''
-
-    const opcoes = Object.entries(veiculos)
-        .map(([id, veiculo]) => `<option id="${id}" value="${idVeiculo}" ${id == idVeiculo ? 'selected' : ''}>${veiculo.modelo} ${veiculo.placa}</option>`)
-        .join('')
+    const cliente = await recuperarDado('dados_clientes', idMotorista)
+    const motorista = await recuperarDado('motoristas', idMotorista) || {}
+    const idVeiculo = motorista?.veiculo || ''
+    const veiculo = await recuperarDado('veiculos', idVeiculo)
 
     const acumulado = `
         <div class="paineis">
 
             ${modeloLabel('Motorista', `
-            <textarea id="omieMotorista" oninput="carregarClientes(this)">${dados_clientes?.[idMotorista]?.nome || idMotorista || ''}</textarea> 
-            <input id="omie" value="${idMotorista || ''}" style="display: none;">
+                <span ${idMotorista ? `id="${idMotorista}"` : ''} name="nameMotorista" class="opcoes" onclick="cxOpcoes('nameMotorista', 'dados_clientes', ['nome', 'cidade'])">
+                    ${cliente?.nome || 'Selecione'}
+                </span>
             `)}
 
-            <div class="contornoDestaque">
-                <input style="width: 1.5vw; height: 1.5vw;" type="checkbox" onchange="dadosVeiculo(this)">
-                <label>Sem veículo no momento</label>
-            </div>
-            
-            <div id="dados_veiculos" class="contornoDestaque"></div>
-            ${modeloLabel('Selecione o veículo', `
-                <select id="veiculo" onchange="dadosVeiculo()">
-                    ${opcoes}
-                </select>
-                `)}
+            ${modeloLabel('Veículo', `
+                <div style="${horizontal}; gap: 5px;">
+                    <span ${idVeiculo ? `id="${idVeiculo}"` : ''} name="nameVeiculo" class="opcoes" onclick="cxOpcoes('nameVeiculo', 'veiculos', ['placa', 'modelo'], 'dadosVeiculo()')">
+                        ${veiculo?.placa || 'Selecione'}
+                    </span>
+                    <img src="imagens/cancel.png" style="width: 1.5rem;" onclick="removerVeiculo()">
+                </div>
+            `)}
+
+            <div id="dados_veiculos"></div>
 
             <hr style="width: 100%;">
-            ${botaoVeiculos('Salvar', 'salvarMotorista()', 'green')}
-        <div>
+
+            <div style="${horizontal}; width: 100%; justify-content: space-between;">
+                <button onclick="salvarMotorista()">Salvar</button>
+                ${idMotorista ? `<button onclick="confirmarExcluirItem()" style="background-color: #B12425;">Excluir</button>` : ''}
+            </div>
    
+        </div>
     `
     popup(acumulado, 'Novo Motorista')
 
-    await dadosVeiculo()
+    dadosVeiculo()
+}
+
+function removerVeiculo() {
+    const idVeiculo = document.querySelector('[name="nameVeiculo"]')
+    idVeiculo.textContent = 'Selecione'
+    idVeiculo.removeAttribute('id')
+    dadosVeiculo()
+}
+
+function confirmarExcluirItem() {
+
+    const acumulado = `
+        <div style="${horizontal}; background-color: #d2d2d2; padding: 2rem;">
+            <span>Tem certeza que deseja remover o item?</span>
+            <button onclick="excluirItem()">Confirmar</button>
+        </div>
+    `
+
+    popup(acumulado, 'Pense bem... não é tarde demais... ainda...', true)
+}
+
+async function excluirItem() {
+
+    const idMotorista = document.querySelector('[name="nameMotorista"]').id
+    if (!idMotorista) return
+
+    removerPopup()
+    overlayAguarde()
+
+    deletarDB('motoristas', idMotorista)
+    deletar(`motoristas/${idMotorista}`)
+
+    await telaVeiculos()
+
 }
 
 async function salvarMotorista() {
 
     overlayAguarde()
-    const idMotorista = obterValores('omie')
+    const idMotorista = document.querySelector('[name="nameMotorista"]').id
+    if (!idMotorista) return popup(mensagem('Escolha um motorista'), 'AVISO', true)
 
-    if (idMotorista == '') return popup(mensagem('Escolha um motorista'), 'AVISO', true)
-
-    const selectVeiculo = document.getElementById('veiculo')
-    const idVeiculo = selectVeiculo.options[selectVeiculo.selectedIndex]?.id || false
-    let motorista = {}
-
-    if (idVeiculo) motorista.veiculo = idVeiculo
+    const idVeiculo = document.querySelector('[name="nameVeiculo"]').id || null
+    const motorista = {
+        veiculo: idVeiculo
+    }
 
     enviar(`motoristas/${idMotorista}`, motorista)
     await inserirDados({ [idMotorista]: motorista }, 'motoristas')

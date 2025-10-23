@@ -1,4 +1,8 @@
-.contornoDestaque {
+#dados_veiculos {
+    width: 100%;
+}
+
+.contorno-destaque {
     background-color: #ffffffc4;
     width: 100%;
     border: solid 1px #797979;
@@ -7,11 +11,12 @@
     padding: 5px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-evenly;
     gap: 5px;
 }
 
 .total-tabela {
+    border-top-right-radius: 2px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -42,6 +47,13 @@
     gap: 10px;
 }
 
+.tabela-auxiliar {
+    left: 0;
+    margin: 3px;
+    box-shadow: 0px 0px 3px;
+    border-radius: 3px;
+}
+
 .diVeiculos label {
     font-size: 0.7rem;
     cursor: pointer;
@@ -53,11 +65,22 @@
 }
 
 .fundoPainelLateral {
+    transition: height 0.3s ease;
+    overflow: hidden;
+    height: 0;
     width: 100%;
     background-color: #b1b1b1;
-    height: max-content;
     max-height: 70vh;
     overflow-y: auto;
+}
+
+.tela-veiculos {
+    display: flex;
+    justify-content: start;
+    align-items: start;
+    flex-direction: column;
+    gap: 5px;
+    width: 90vw;
 }
 
 .botoes {
@@ -76,22 +99,33 @@
     cursor: pointer;
 }
 
+.campos-form-custos {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-gap: 10px;
+}
+
 .paineis {
-    width: max-content;
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    justify-content: center;
-    gap: 10px;
-    padding: 2vw;
+    min-width: 20vw;
     background-color: #d2d2d2;
+    padding: 2rem;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+}
+
+.paineis input,
+.paineis select {
+    text-align: center;
 }
 
 .paineis input,
 .paineis select,
 .paineis textarea {
-    border-radius: 5px;
-    padding: 3px;
+    width: 90%;
+    border-radius: 3px;
+    padding: 0.5rem 0 0.5rem 0;
     border: solid 1px #c3c3c3;
 }
 

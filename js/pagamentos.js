@@ -1,3 +1,4 @@
+let idP = null
 let filtrosAtivosPagamentos = {}
 let opcoesStatus = [
     '',
@@ -223,14 +224,16 @@ function criarLinhaPagamento(pagamento) {
     const usuario = dadosSetores?.[pagamento.criado] || {}
     const setorCriador = usuario?.setor || ''
     const cc = dadosCC?.[pagamento.id_orcamento] || {}
+ 
+    const nomeDepartamento = (!cc?.nome && !cc?.contrato) ? 'Sem Departamento' : `${cc?.nome || ''} ${cc?.contrato || ''}`
 
     const tds = `
         <td>${pagamento.param[0].data_vencimento}</td>
-        <td>${cc?.nome} ${cc.contrato ? `- ${cc?.contrato}` : ''}</td>
+        <td>${nomeDepartamento}</td>
         <td style="white-space: nowrap; text-align: left;"><b>${pagamento?.app || '2AC'}</b> ${dinheiro(pagamento.param[0].valor_documento)}</td>
         <td>
             <div style="${horizontal}; justify-content: start; gap: 5px;">
-                <img src="${iconePagamento(pagamento.status)}" style="width: 2vw;">
+                <img src="${iconePagamento(pagamento.status)}" style="width: 1.5rem;">
                 <label style="text-align: left;">${pagamento.status}</label>
             </div>
         </td>
@@ -238,7 +241,7 @@ function criarLinhaPagamento(pagamento) {
         <td>${setorCriador}</td>
         <td>${recebedor}</td>
         <td style="text-align: center;">
-            <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="abrirDetalhesPagamentos('${pagamento.id_pagamento}')">
+            <img src="imagens/pesquisar2.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirDetalhesPagamentos('${pagamento.id_pagamento}')">
         </td>
         `
     const idLinha = pagamento.id_pagamento
@@ -315,6 +318,8 @@ function justificativaHTML(idPagamento) {
 }
 
 async function abrirDetalhesPagamentos(id_pagamento) {
+
+    idP = id_pagamento
 
     overlayAguarde()
 
@@ -483,9 +488,20 @@ async function abrirDetalhesPagamentos(id_pagamento) {
                 ${acesso.permissao == 'adm' ? btnDetalhes('anexo', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id_pagamento}')`) : ''}
             </div>
 
+            <hr style="width: 100%;">
+
+            <div style="${vertical}; width: 100%;">
+                <span><b>Departamento/Loja/Chamado ou Centro de Custo</b></span>
+                <span 
+                class="opcoes" 
+                name="cc" 
+                onclick="cxOpcoes('cc', 'dados_CC', ['nome', 'contrato', 'analista', 'cidade', 'cnpj', 'valor'], 'salvarCC()')">
+                    ${cc?.nome || 'Selecione'}
+                </span>
+            </div>
+
             ${modelo('Status Atual', `${divStatus}`)}
             ${modelo('Quem recebe', `${cliente.nome}`)}
-            ${modelo('Centro de Custo', `<label>${cc?.nome} ${cc.contrato ? `- ${cc?.contrato}` : ''}</label>`)}
             ${modelo('Data de Solicitação', `${pagamento.data_registro}`)}
             ${modelo('Data de Pagamento', `${pagamento.param[0].data_vencimento}`)}
 
@@ -545,6 +561,19 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     }
 
     calcularCusto()
+
+}
+
+async function salvarCC() {
+
+    const nameCC = document.querySelector('[name="cc"]')
+
+    let pagamento = await recuperarDado('lista_pagamentos', idP)
+    pagamento.id_orcamento = nameCC.id
+
+    await inserirDados({ [idP]: pagamento }, 'lista_pagamentos')
+
+    enviar(`lista_pagamentos/${idP}/id_orcamento`, nameCC.id)
 
 }
 
@@ -790,7 +819,7 @@ async function criarPagamento() {
                 `, `<textarea style="width:80%" rows="3" id="descricao" oninput="calculadoraPagamento()"></textarea>`)}
 
             ${modeloCampos('categorias', 'Categorias', `
-                    <img src="imagens/baixar.png" style="width: 2vw; cursor: pointer;" onclick="maisCategoria()">
+                    <img src="imagens/baixar.png" style="width: 1.5rem; cursor: pointer;" onclick="maisCategoria()">
                     <div class="centralCategorias"></div>
                 `)}
 
@@ -802,15 +831,13 @@ async function criarPagamento() {
                     <div id="anexosDiversos" style="${vertical}; gap: 2px;"></div>
                 `)}
 
-            ${modeloCampos('app',
-        `<div style="${horizontal}; gap: 5px; margin-right: 3rem;">
+            ${modeloCampos('app', `
+                <div style="${horizontal}; gap: 5px; margin-right: 3rem;">
                     <select id="app" onchange="calculadoraPagamento()">
                         ${['AC', 'IAC'].map(op => `<option>${op}</option>`).join('')}
                     </select>
                 </div>
-                `,
-        '<span style="padding-right: 2rem;"><b>IAC</b> Apenas reembolso para funcionário</span>'
-    )}
+                `, '<span style="padding-right: 2rem;"><b>IAC</b> Apenas reembolso para funcionário</span>')}
 
             <div id="painelParceiro" style="${vertical}; gap: 5px; width: 100%;">
                 ${incluirCamposAdicionais()}
@@ -822,7 +849,7 @@ async function criarPagamento() {
 
             <div style="${vertical}">
                 <label>Total</label>
-                <label style="font-size: 2vw;" id="totalPagamento"></label>
+                <label style="font-size: 1.5rem;" id="totalPagamento"></label>
                 <div style="${horizontal}; gap: 10px;">
                     <span>Será pago em</span>
                     <input type="date" id="dataPagamento" oninput="calculadoraPagamento()">
@@ -967,7 +994,7 @@ async function atualizarResumo(id_pagamento) {
 
     const divAtualizar = document.getElementById('atualizarResumo')
 
-    divAtualizar.innerHTML = `<img src="gifs/loading.gif" style="width: 2vw;">`
+    divAtualizar.innerHTML = `<img src="gifs/loading.gif" style="width: 1.5rem;">`
 
     const v_pago = conversor(document.getElementById('v_pago').textContent)
     const v_orcado = Number(document.getElementById('v_orcado').value)
@@ -1337,7 +1364,7 @@ async function maisCategoria(dados = {}) {
             
             <span class="opcoes" name="${aleatorio}" ${dados.codigo_categoria ? `id="${dados.codigo_categoria}"` : ''} onclick="cxOpcoes('${aleatorio}', 'dados_categorias', ['categoria'], 'calculadoraPagamento()')">${categoria?.categoria || 'Selecionar'}</span>
 
-            <label src="imagens/remover.png" style="cursor: pointer; width: 2vw; font-size: 2.5vw;" onclick="apagarCategoria(this)">&times;</label>
+            <label src="imagens/remover.png" style="cursor: pointer; width: 1.5rem; font-size: 2.5vw;" onclick="apagarCategoria(this)">&times;</label>
 
         </div>
     `;

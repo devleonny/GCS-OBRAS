@@ -102,6 +102,8 @@ async function telaCadastros() {
 
     telaInterna.innerHTML = acumulado
 
+    await carregarBasesAuxiliares('empresas')
+
 }
 
 function pararCam() {
@@ -315,6 +317,8 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
     const status = correcoes[ocorrencia?.tipoCorrecao]?.nome || 'Não analisada'
 
+    console.log(ocorrencia)
+
     const corAssinatura = ocorrencia.assinatura ? '#008000' : '#d30000'
 
     const partes = `
@@ -365,17 +369,17 @@ async function abrirCorrecoes(idOcorrencia) {
     let ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
 
     const acumulado = `
-    <div class="detalhamento-correcoes">
+        <div class="detalhamento-correcoes">
 
-        <div style="${vertical}">
-            <div class="painelBotoes"></div>
+            <div style="${vertical}">
+                <div class="painelBotoes"></div>
 
-            <div class="tabelaCorrecoes"></div>
+                <div class="tabelaCorrecoes"></div>
 
-            <div class="rodapeTabela"></div>
+                <div class="rodapeTabela"></div>
+            </div>
+
         </div>
-
-    </div>
     `
 
     if (Object.keys(ocorrencia?.correcoes || {}).length == 0) {
@@ -394,7 +398,7 @@ async function abrirCorrecoes(idOcorrencia) {
 async function carregarLinhaCorrecao(idCorrecao, correcao, idOcorrencia) {
 
     const imagens = Object.entries(correcao?.fotos || {})
-        .map(([link, foto]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/GCS/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
+        .map(([link,]) => `<img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/GCS/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">`)
         .join('')
 
     const edicao = (correcao.executor == acesso.usuario || acesso.permissao == 'adm')
@@ -411,6 +415,7 @@ async function carregarLinhaCorrecao(idCorrecao, correcao, idOcorrencia) {
         <div style="${horizontal}; gap: 10px;">
             ${edicao}
             <div style="${vertical}">
+                ${modelo('Data e Hora', `<span>${correcao?.data || 'S/D'}</span>`)}
                 ${modelo('Executor', `<span>${correcao.executor}</span>`)}
                 ${modelo('Correção', `<span>${correcoes?.[correcao.tipoCorrecao]?.nome || '...'}</span>`)}
                 ${modelo('Descrição', `<div style="text-align: justify;">${correcao.descricao}</div>`)}
@@ -691,7 +696,7 @@ async function formularioOcorrencia(idOcorrencia) {
             ${modelo('Sistema', labelBotao('sistema', 'sistemas', oc?.sistema, sistemas[oc?.sistema]?.nome))}
             ${modelo('Prioridade', labelBotao('prioridade', 'prioridades', oc?.prioridade, prioridades[oc?.prioridade]?.nome))}
             ${modelo('Tipo', labelBotao('tipo', 'tipos', oc?.tipo, tipos[oc?.tipo]?.nome))}
-            ${modelo('Descrição', `<textarea rows="7" style="width: 100%;" name="descricao" class="campos">${oc?.descricao || ''}</textarea>`)}
+            ${modelo('Descrição', `<textarea rows="7" style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" class="campos">${oc?.descricao || ''}</textarea>`)}
             ${modelo('Data Limite para a Execução', `<input name="dataLimiteExecucao" class="campos" type="date" value="${oc?.dataLimiteExecucao || ''}">`)}
             
             <br>
@@ -730,14 +735,14 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
     const funcao = idCorrecao ? `salvarCorrecao('${idOcorrencia}', '${idCorrecao}')` : `salvarCorrecao('${idOcorrencia}')`
 
     let equipamentos = ''
-    for (const [id, equip] of Object.entries(correcao?.equipamentos || {})) equipamentos += await maisLabel(equip)
+    for (const [, equip] of Object.entries(correcao?.equipamentos || {})) equipamentos += await maisLabel(equip)
 
     const acumulado = `
         <div class="painel-cadastro">
 
             ${modelo('Status da Correção', labelBotao('tipoCorrecao', 'correcoes', correcao?.tipoCorrecao, correcoes[correcao?.tipoCorrecao]?.nome))}
             ${modelo('Executor', labelBotao('executor', 'dados_setores', correcao?.executor || acesso.usuario, correcao?.executor || acesso.usuario))}
-            ${modelo('Descrição', `<textarea name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>`)}
+            ${modelo('Descrição', `<textarea style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>`)}
 
             <div style="${horizontal}; gap: 5px;">
                 <label>Equipamentos usados</label>
@@ -832,6 +837,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
 
     Object.assign(correcao, {
         executor: obter('executor').id,
+        data: new Date().toLocaleString(),
         tipoCorrecao,
         descricao: obter('descricao').value
     })
@@ -909,62 +915,59 @@ async function salvarOcorrencia(idOcorrencia) {
 
     overlayAguarde()
 
-    try {
+    const campos = ['empresa', 'unidade', 'sistema', 'prioridade', 'tipo']
+    let ocorrencia = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : {}
 
-        const campos = ['empresa', 'unidade', 'sistema', 'prioridade', 'tipo']
-        let ocorrencia = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : {}
+    for (const campo of campos) {
+        const resultado = obter(campo).id
 
-        for (const campo of campos) {
-            const resultado = obter(campo).id
+        if (resultado == '') return popup(mensagem(`Preencha o campo ${inicialMaiuscula(campo)}`), 'Alerta', true)
 
-            if (resultado == '') return popup(mensagem(`Preencha o campo ${inicialMaiuscula(campo)}`), 'Alerta', true)
+        ocorrencia[campo] = resultado
+    }
 
-            ocorrencia[campo] = resultado
+    ocorrencia.anexos = {
+        ...ocorrencia.anexos,
+        ...anexosProvisorios
+    }
+
+    ocorrencia.usuario = acesso.usuario
+    ocorrencia.dataRegistro = new Date().toLocaleString('pt-BR')
+    ocorrencia.dataLimiteExecucao = obter('dataLimiteExecucao').value
+    ocorrencia.descricao = obter('descricao').value
+
+    if (!ocorrencia.fotos) ocorrencia.fotos = {}
+
+    const fotos = document.querySelector('.fotos')
+    const imgs = fotos.querySelectorAll('img')
+    if (imgs.length > 0) {
+        for (const img of imgs) {
+            if (img.dataset && img.dataset.salvo == 'sim') continue
+            const foto = await importarAnexos({ foto: img.src })
+            ocorrencia.fotos[foto[0].link] = foto[0]
         }
+    }
 
-        ocorrencia.anexos = {
-            ...ocorrencia.anexos,
-            ...anexosProvisorios
-        }
-
-        ocorrencia.usuario = acesso.usuario
-        ocorrencia.dataRegistro = new Date().toLocaleString('pt-BR')
-        ocorrencia.dataLimiteExecucao = obter('dataLimiteExecucao').value
-        ocorrencia.descricao = obter('descricao').value
-
-        if (!ocorrencia.fotos) ocorrencia.fotos = {}
-
-        const fotos = document.querySelector('.fotos')
-        const imgs = fotos.querySelectorAll('img')
-        if (imgs.length > 0) {
-            for (const img of imgs) {
-                if (img.dataset && img.dataset.salvo == 'sim') continue
-                const foto = await importarAnexos({ foto: img.src })
-                ocorrencia.fotos[foto[0].link] = foto[0]
-            }
-        }
-
+    if (idOcorrencia) {
+        await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
+        await criarLinhaOcorrencia(idOcorrencia, ocorrencia)
+        enviar(`dados_ocorrencias/${idOcorrencia}`, ocorrencia)
         removerPopup()
 
-        if (idOcorrencia) {
-            await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
-            await criarLinhaOcorrencia(idOcorrencia, ocorrencia)
-            enviar(`dados_ocorrencias/${idOcorrencia}`, ocorrencia)
+    } else {
 
-        } else {
-
-            try {
-                const resposta = await enviar('dados_ocorrencias/0000', ocorrencia)
+        try {
+            const resposta = await enviar('dados_ocorrencias/0000', ocorrencia)
+            if (resposta.mensagem) {
+                popup(mensagem(resposta.mensagem), 'Alerta', true)
+            } else {
                 await inserirDados({ [resposta.idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
                 await telaOcorrencias()
-            } catch {
-                return popup(mensagem('Não foi possível mostrar o seu chamado agora, tente atualizar o app mais tarde.'), 'Alerta', true)
             }
-
+        } catch (err) {
+            popup(mensagem(err.mensagem), 'Alerta', true)
         }
 
-    } catch (err) {
-        popup(mensagem(err), 'Alerta', true)
     }
 
     anexosProvisorios = {}
