@@ -443,6 +443,7 @@ async function enviarDadosOrcamento() {
 async function recuperarComposicoesOrcamento() {
 
     await sincronizarDados('dados_composicoes')
+    dados_composicoes = await recuperarDados('dados_composicoes')
     await tabelaProdutosOrcamentos()
 
 }

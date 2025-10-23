@@ -1096,6 +1096,7 @@ async function salvarServidor(codigo) {
     const final = {
         ...item,
         ...novosDados,
+        codigo: String(codigo),
         origem
     }
 
