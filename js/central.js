@@ -14,6 +14,7 @@ const horizontal = `display: flex; align-items: center; justify-content: center;
 const vertical = `display: flex; align-items: start; justify-content: start; flex-direction: column;`
 let overlayTimeout;
 let semOverlay = false
+let usuariosOnline = []
 
 const modelo = (valor1, valor2) => `
         <div class="modelo">
@@ -76,13 +77,12 @@ const layoutBotao = (nome, funcao, img) => `
     </div>
 `
 
-
 const nomeBaseCentral = 'GCS'
 const nomeStore = 'Bases'
 
 const logo = 'https://i.imgur.com/Nb8sPs0.png'
 const esquemas = {
-    'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'INFORMÁTICA', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS', 'FIBRA DE REDE'],
+    'sistema': ['', 'ALARME', 'CFTV', 'EAS', 'INFORMÁTICA', 'LICENÇA', 'CONTROLE DE ACESSO', 'INFRAESTRUTURA E CABEAMENTO', 'CUSTOS INDIRETOS', 'FIBRA DE REDE'],
     'categoria de equipamento': ['', 'IP', 'ANALÓGICO', 'ALARME', 'CONTROLE DE ACESSO'],
     'tipo': ['VENDA', 'SERVIÇO', 'USO E CONSUMO']
 }
@@ -398,7 +398,7 @@ async function identificacaoUser() {
 
         const barraStatus = `
             <div class="cabecalhoUsuario">
-                <div id="usuarios"></div>
+                <div id="divUsuarios"></div>
 
                 ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
                 ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
@@ -420,20 +420,37 @@ function maisAba() {
     window.open(window.location.href, '_blank', 'toolbar=no, menubar=no');
 }
 
+async function mudarStatus(select) {
+
+    const st = select.value
+
+    const img = document.querySelector('[name="imgStatus"]')
+
+    img.src = `imagens/${st}.png`
+
+    acesso.status = st
+    localStorage.setItem('acesso', JSON.stringify(acesso))
+
+    alterarUsuario({ campo: 'status', valor: st, usuario: acesso.usuario })
+
+}
+
 function usuariosToolbar() {
-    const usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []
-    const totalUsuarios = [...new Set(usuariosOnline)]
-    const indicadorStatus = navigator.onLine ? 'online' : 'offline'
+
+    const indicadorStatus = !navigator.onLine ? 'offline' : acesso.status
+    const statusOpcoes = ['Online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
     const usuariosToolbarString = `
-        <div class="botaoUsuarios" onclick="${indicadorStatus == 'online' ? 'painelUsuarios()' : ''}">
-            <img src="imagens/${indicadorStatus}.png">
-            <label>${indicadorStatus}</label>
-            ${indicadorStatus == 'online' ? `<label>${totalUsuarios.length}</label>` : ''}
+        <div class="botaoUsuarios">
+            <img name="imgStatus" onclick="painelUsuarios()" src="imagens/${indicadorStatus}.png">
+            <select onchange="mudarStatus(this)">
+                ${statusOpcoes.map(op => `<option ${indicadorStatus == op ? 'selected' : ''}>${op}</option>`).join('')}
+            </select>
+            <label style="font-size: 1.2rem;">${Object.keys(usuariosOnline).length}</label>
         </div>
     `
 
-    const usuariosToolbarDiv = document.getElementById('usuarios')
-    if (usuariosToolbarDiv) return usuariosToolbarDiv.innerHTML = usuariosToolbarString
+    const divUsuarios = document.getElementById('divUsuarios')
+    if (divUsuarios) divUsuarios.innerHTML = usuariosToolbarString
 
     const divOnline = document.querySelector('.divOnline')
     if (divOnline) painelUsuarios()
@@ -1434,8 +1451,15 @@ function connectWebSocket() {
             await refletir()
         }
 
+        if (data.tipo == 'setores') {
+            usuariosOnline[data.usuario] = {
+                status: data.status
+            }
+            usuariosToolbar()
+        }
+
         if (data.tipo == 'usuarios_online') {
-            localStorage.setItem('usuariosOnline', JSON.stringify(data.usuarios))
+            usuariosOnline = data.usuarios
             usuariosToolbar()
         }
 
@@ -1457,11 +1481,7 @@ function connectWebSocket() {
 
 async function painelUsuarios() {
 
-    const usuariosOnline = JSON.parse(localStorage.getItem('usuariosOnline')) || []
-    let stringUsuarios = {
-        online: { linhas: '', quantidade: 0 },
-        offline: { linhas: '', quantidade: 0 },
-    }
+    const stringUsuarios = {}
 
     let dadosSetores = await recuperarDados('dados_setores') || {}
     dadosSetores = Object.entries(dadosSetores).sort((a, b) => a[0].localeCompare(b[0]))
@@ -1469,7 +1489,9 @@ async function painelUsuarios() {
     for (const [usuario, objeto] of dadosSetores) {
 
         if (objeto.permissao == 'novo') continue
-        const status = usuariosOnline.includes(usuario) ? 'online' : 'offline'
+
+        const status = usuariosOnline?.[usuario]?.status || 'offline'
+        if (!stringUsuarios[status]) stringUsuarios[status] = { quantidade: 0, linhas: '' }
 
         stringUsuarios[status].quantidade++
         stringUsuarios[status].linhas += `
@@ -1481,18 +1503,27 @@ async function painelUsuarios() {
         `
     }
 
-    const info = `
-        <label><strong>ONLINE ${stringUsuarios.online.quantidade}</strong></label>
-        ${stringUsuarios.online.linhas}
-        <label><strong>OFFLINE ${stringUsuarios.offline.quantidade}</strong></label>
-        ${stringUsuarios.offline.linhas}
-    `
+    let info = ''
+
+    // ordena as chaves colocando "offline" no final
+    const chavesOrdenadas = Object.keys(stringUsuarios).sort((a, b) => {
+        if (a === 'offline') return 1
+        if (b === 'offline') return -1
+        return a.localeCompare(b)
+    })
+
+    for (const st of chavesOrdenadas) {
+        const dados = stringUsuarios[st]
+        info += `
+            <label><strong>${st}</strong> ${dados.quantidade}</label>
+            ${dados.linhas}
+        `
+    }
 
     const divOnline = document.querySelector('.divOnline')
     if (divOnline) return divOnline.innerHTML = info
 
     popup(`<div class="divOnline">${info}</div>`, 'Usuários', true)
-
 }
 
 async function gerarPdfOnline(htmlString, nome) {
