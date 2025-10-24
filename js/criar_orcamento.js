@@ -1,8 +1,8 @@
 let filtrosPagina = {}
-let pagina;
-let modo;
+let pagina
+let modo
 let moduloComposicoes = {}
-let tabelaAtiva;
+let tabelaAtiva
 let tipoAtivo = 'TODOS'
 let titulo = null
 let memoriaFiltro = null
@@ -10,6 +10,7 @@ let lpuATIVA = null
 let paginaComposicoes = 1
 let totalPaginas = null
 const porPagina = 100
+let ocultarZerados = false
 
 const metaforas = [
     "Um monitor sem imagens para exibir",
@@ -488,21 +489,20 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
         .map(op => `<label class="menu-top" style="background-color: ${coresTabelas(op)};" onclick="pesquisarProdutos('tipo', '${op}')">${op}</label>`)
         .join('')
 
-    const botoes = `
+    const btn = (img, funcao, texto) => `
         <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
-            onclick="recuperarComposicoesOrcamento()">
-            <img src="imagens/atualizar_2.png" style="width: 1.7rem; cursor: pointer;">
-            <label style="color: white; cursor: pointer;">Atualizar</label>
+            onclick="${funcao}">
+            <img src="imagens/${img}.png" style="width: 1.7rem; cursor: pointer;">
+            <label style="color: white; cursor: pointer;">${texto}</label>
         </div>
+    `
+
+    const botoes = `
+
+        ${btn('atualizar_2', 'recuperarComposicoesOrcamento()', 'Atualizar')}
 
         ${moduloComposicoes
-            ? `
-            <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
-                onclick="cadastrarItem()">
-                <img src="imagens/add.png" style="width: 1.7rem; cursor: pointer;">
-                <label style="color: white; cursor: pointer;">Criar Item</label>
-            </div>
-        `
+            ? btn('add', 'cadastrarItem()', 'Criar Item')
             : ''}
         `
 
@@ -522,6 +522,7 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
                     </div>
 
                     <span>Dê um <b>ENTER</b> para pesquisar</span>
+
                 </div>
             </div>
             <div class="div-tabela" style="max-height: max-content;">
@@ -544,20 +545,25 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
 
     dadosFiltrados = dadosFiltrados || dados_composicoes
 
-    // Carregamentos dos itens && filtragem inicial;
-    for (const [codigo, produto] of Object.entries(dadosFiltrados)) {
-        if (origem !== produto.origem || !produto.tipo) delete dadosFiltrados[codigo]
-    }
-
     const orcamentoBase = baseOrcamento()
     const composicoesOrcamento = orcamentoBase?.esquema_composicoes || {}
-    const chaves = Object.keys(dadosFiltrados)
+    const lpu = String(orcamentoBase.lpu_ativa).toLocaleLowerCase()
 
+    // Carregamentos dos itens && filtragem inicial;
+    for (const [codigo, produto] of Object.entries(dadosFiltrados)) {
+
+        const ativo = produto?.[lpu]?.ativo || ''
+        const historico = produto?.[lpu]?.historico || {}
+        const detalhes = historico?.[ativo] || {}
+        const preco = detalhes?.valor || 0
+
+        if (origem !== produto.origem || !produto.tipo || (ocultarZerados && preco == 0)) delete dadosFiltrados[codigo]
+    }
+
+    const chaves = Object.keys(dadosFiltrados)
     const inicio = (paginaComposicoes - 1) * porPagina
     const fim = inicio + porPagina
     const grupo = chaves.slice(inicio, fim)
-
-    const lpu = String(orcamentoBase.lpu_ativa).toLocaleLowerCase()
 
     document.getElementById('bodyComposicoes').innerHTML = '' // limpa antes de renderizar
 
@@ -568,6 +574,65 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     }
 
     atualizarControlesPaginacao(chaves.length)
+
+}
+
+function linhasComposicoesOrcamento(codigo, produto, qtdeOrcada, lpu) {
+
+    const ativo = produto?.[lpu]?.ativo || ''
+    const historico = produto?.[lpu]?.historico || {}
+    const detalhes = historico?.[ativo] || {}
+    const preco = detalhes?.valor || 0
+
+    const sinalizacao = verificarData(detalhes?.data)
+    const agrupamentoON = Object.keys(produto?.agrupamento || {}).length > 0 ? 'pos' : 'neg'
+
+    const tds = `
+        <td>
+            <div class="campo-codigo-composicao">
+                <span>${codigo}</span>
+                <div class="composicao">
+                    <img src="imagens/elo_${agrupamentoON}.png" onclick="verAgrupamento('${codigo}')">
+                    ${moduloComposicoes ? `<img src="imagens/editar.png" onclick="cadastrarItem('${codigo}')">` : ''}
+                </div>
+            </div>
+        </td>
+        <td>
+            <div style="${vertical}; text-align: left;">
+                <b>Descrição</b>
+                ${produto?.descricao || '--'}<br>
+                <b>Fabricante</b>
+                ${produto?.fabricante || '--'}<br>
+                <b>Modelo</b>
+                ${produto?.modelo || '--'}<br>
+            </div>
+        </td>
+        <td>${produto.unidade}</td>
+        <td>
+            <input id="prod_${codigo}" value="${qtdeOrcada}" type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
+        </td>
+        <td>
+            <div style="${horizontal}; gap: 1px;">
+                ${sinalizacao}
+                <label ${moduloComposicoes ? `onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')"` : ''} class="label-estoque" style="width: max-content; background-color: ${preco > 0 ? '#4CAF50bf' : '#b36060bf'}">
+                    ${dinheiro(preco)}
+                </label>
+            </div>
+        </td>
+        <td>
+            <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;">
+        </td>
+        `
+
+    const trExistente = document.getElementById(`COMP_${codigo}`)
+    if (trExistente) return trExistente.innerHTML = tds
+    const linha = `
+        <tr data-tipo="${produto.tipo}"
+        id="COMP_${codigo}">
+            ${tds}
+        </tr>
+    `
+    document.getElementById('bodyComposicoes').insertAdjacentHTML('beforeend', linha)
 
 }
 
@@ -731,65 +796,6 @@ function verificarData(data) {
     return elemento
 }
 
-function linhasComposicoesOrcamento(codigo, produto, qtdeOrcada, lpu) {
-
-    const ativo = produto?.[lpu]?.ativo || ''
-    const historico = produto?.[lpu]?.historico || {}
-    const detalhes = historico?.[ativo] || {}
-    const preco = detalhes?.valor || 0
-
-    const sinalizacao = verificarData(detalhes?.data)
-    const agrupamentoON = Object.keys(produto?.agrupamento || {}).length > 0 ? 'pos' : 'neg'
-
-    const tds = `
-        <td>
-            <div class="campo-codigo-composicao">
-                <span>${codigo}</span>
-                <div class="composicao">
-                    <img src="imagens/elo_${agrupamentoON}.png" onclick="verAgrupamento('${codigo}')">
-                    ${moduloComposicoes ? `<img src="imagens/editar.png" onclick="cadastrarItem('${codigo}')">` : ''}
-                </div>
-            </div>
-        </td>
-        <td>
-            <div style="${vertical}; text-align: left;">
-                <b>Descrição</b>
-                ${produto.descricao}<br>
-                <b>Fabricante</b>
-                ${produto.fabricante}<br>
-                <b>Modelo</b>
-                ${produto.modelo}<br>
-            </div>
-        </td>
-        <td>${produto.unidade}</td>
-        <td>
-            <input id="prod_${codigo}" value="${qtdeOrcada}" type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
-        </td>
-        <td>
-            <div style="${horizontal}; gap: 1px;">
-                ${sinalizacao}
-                <label ${moduloComposicoes ? `onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')"` : ''} class="label-estoque" style="width: max-content; background-color: ${preco > 0 ? '#4CAF50bf' : '#b36060bf'}">
-                    ${dinheiro(preco)}
-                </label>
-            </div>
-        </td>
-        <td>
-            <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;">
-        </td>
-        `
-
-    const trExistente = document.getElementById(`COMP_${codigo}`)
-    if (trExistente) return trExistente.innerHTML = tds
-    const linha = `
-        <tr data-tipo="${produto.tipo}"
-        id="COMP_${codigo}">
-            ${tds}
-        </tr>
-    `
-    document.getElementById('bodyComposicoes').insertAdjacentHTML('beforeend', linha)
-
-}
-
 async function moverItem({ codigoAmover, codigoMaster }) {
 
     const orcamento = baseOrcamento()
@@ -893,14 +899,14 @@ async function totalOrcamento() { //29
     atualizarToolbar()
 
     let orcamentoBase = baseOrcamento()
-    let lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
+    const lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
     let totais = { GERAL: { valor: 0, bruto: 0 } }
     let avisoDesconto = 0
     let totalAcrescido = 0
     let descontoAcumulado = 0
     let statusCotacao = false
-    let cliente = dados_clientes?.[orcamentoBase.dados_orcam?.omie_cliente] || ''
-    let estado = cliente.estado || false
+    const cliente = dados_clientes?.[orcamentoBase.dados_orcam?.omie_cliente] || ''
+    const estado = cliente.estado || false
 
     if (!orcamentoBase.esquema_composicoes) orcamentoBase.esquema_composicoes = {}
 
@@ -953,29 +959,35 @@ async function totalOrcamento() { //29
 
         itemSalvo.codigo = codigo
         const refProduto = dados_composicoes?.[codigo] || itemSalvo
+        const boticario = refProduto.preco_estado && lpu.includes('boticario')
+
         linha.dataset.tipo = refProduto.tipo
 
         if (!totais[refProduto.tipo]) totais[refProduto.tipo] = { valor: 0 }
-
-        let valorUnitario = 0
-        let total = 0
-        let icmsSaida = 0
 
         const ativo = refProduto?.[lpu]?.ativo || 0
         const historico = refProduto?.[lpu]?.historico || {}
         const precos = historico[ativo] || { custo: 0, lucro: 0 }
 
-        if (verificarData(precos?.data).includes('reprovado')) statusCotacao = true
+        let valorUnitario = 0
 
-        valorUnitario = historico?.[ativo]?.valor || 0
+        // Caso esse item tenha preços por estado;
+        if (boticario) {
 
-        icmsSaida = precos?.icms_creditado == 4 ? 4 : estado == 'BA' ? 20.5 : 12
+            valorUnitario = refProduto.preco_estado[estado] || 0
+
+        } else {
+
+            if (verificarData(precos?.data).includes('reprovado')) statusCotacao = true
+
+            valorUnitario = historico?.[ativo]?.valor || 0
+
+        }
 
         if (itemSalvo.alterado) valorUnitario = itemSalvo.custo
 
         const quantidade = Number(linha.querySelector('[name="quantidade"]').value)
 
-        valorUnitario += total
         let totalLinha = valorUnitario * quantidade
         let desconto = 0
         let tipoDesconto;
@@ -990,7 +1002,8 @@ async function totalOrcamento() { //29
             desconto = 0
         }
 
-        divDesconto.style.display = itemSalvo.custo_original ? 'none' : 'flex'
+        // Aqui a possibilidade de desconto é tirada do usuário nas situações:
+        divDesconto.style.display = (itemSalvo.custo_original || boticario) ? 'none' : 'flex'
 
         if (valorDesconto.value != '') {
 
@@ -1022,6 +1035,7 @@ async function totalOrcamento() { //29
                 desconto = Number(valorDesconto.value)
             }
 
+            const icmsSaida = precos?.icms_creditado == 4 ? 4 : estado == 'BA' ? 20.5 : 12
             const dadosCalculo = {
                 custo: precos.custo,
                 valor: precos.valor - desconto / quantidade,
@@ -1376,43 +1390,4 @@ async function incluirItem(codigo, novaQuantidade) {
     baseOrcamento(orcamentoBase)
 
     await carregarTabelasOrcamento()
-}
-
-function itemExistente(tipo, codigo, quantidade) {
-    let incluir = true
-    let orcamentoBase = baseOrcamento()
-    let linhas = document.getElementById(`linhas_${tipo}`)
-    if (!linhas) return incluir
-    let trs = linhas.querySelectorAll('tr')
-
-    trs.forEach(tr => {
-        let tds = tr.querySelectorAll('td')
-        let acrescimo = orcamentoBase.lpu_ativa !== 'LPU CARREFOUR' ? 0 : 1
-
-        if (tds[0].textContent == codigo) {
-            incluir = false
-
-            let inputQuantidade = tds[3 + acrescimo].querySelector('input')
-            let novaQuantidadetotal = parseFloat(quantidade)
-
-            inputQuantidade.value = novaQuantidadetotal
-
-            if (orcamentoBase.dados_composicoes[codigo]) {
-                orcamentoBase.dados_composicoes[codigo].qtde = novaQuantidadetotal
-                baseOrcamento(orcamentoBase)
-            }
-        }
-    })
-
-    return incluir
-}
-
-function excluir_levantamento(chave) {
-    let orcamentoBase = baseOrcamento()
-
-    if (orcamentoBase.levantamentos) {
-        delete orcamentoBase.levantamentos[chave]
-
-        baseOrcamento(orcamentoBase)
-    }
 }

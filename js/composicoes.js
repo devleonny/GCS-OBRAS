@@ -367,16 +367,30 @@ async function abrirHistoricoPrecos(codigo, tabela) {
             
             <td><textarea style="border: none;" readOnly>${cotacao?.comentario || ''}</textarea></td>
             <td style="text-align: center;">
-                <img src="imagens/cancel.png" style="width: 2vw; cursor: pointer;" onclick="excluirCotacao('${codigo}', '${tabela}', '${id}')">
+                <img src="imagens/cancel.png" style="width: 1.7rem; cursor: pointer;" onclick="excluirCotacao('${codigo}', '${tabela}', '${id}')">
             </td>
             <td style="text-align: center;">
-                <img src="imagens/pesquisar2.png" style="width: 2vw; cursor: pointer;" onclick="adicionarCotacao('${codigo}', '${tabela}', '${id}')">
+                <img src="imagens/pesquisar2.png" style="width: 1.7rem; cursor: pointer;" onclick="adicionarCotacao('${codigo}', '${tabela}', '${id}')">
             </td>
         </tr>
         `
     }
 
-    const acumulado = `
+    const colunas = [
+        'Preço Unitário',
+        'Preço Unitário',
+        'Margem %',
+        'Pr. Venda',
+        'Data',
+        'Usuário',
+        'Fornecedor',
+        'Ativo',
+        'Comentário',
+        'Excluir',
+        'Detalhes'
+    ]
+
+    let acumulado = `
         <div style="${horizontal}; align-items: start; width: 100%; justify-content: space-between; gap 1vw;">
             <div style="${horizontal}; gap: 5px;">
                 <img style="width: 7vw; border-radius: 5px;" src="${produto?.imagem || logo}">
@@ -392,26 +406,16 @@ async function abrirHistoricoPrecos(codigo, tabela) {
             </div>
         </div>
 
-        <label>Histórico de Preços</label>
-
         <hr style="width: 100%;">
         
-        <div style="${vertical}; width: 100%;">
-            <div class="topo-tabela"></div>
+        <div class="borda-tabela">
+            <div class="topo-tabela">
+                <span>Histórico de Preços</span>
+            </div>
                 <div class="div-tabela">
                     <table class="tabela">
                         <thead>
-                            <th>Preço Unitário</th>
-                            <th>Valor de Custo</th>
-                            <th>Margem %</th>
-                            <th>Pr. Venda</th>
-                            <th>Data</th>
-                            <th>Usuário</th>
-                            <th>Fornecedor</th>
-                            <th>Ativo</th>
-                            <th>Comentário</th>
-                            <th>Excluir</th>
-                            <th>Detalhes</th>
+                            ${colunas.map(op => `<th>${op}</th>`).join('')} 
                         </thead>
                         <tbody>${linhas}</tbody>
                     </table>
@@ -419,6 +423,36 @@ async function abrirHistoricoPrecos(codigo, tabela) {
             <div class="rodapeTabela"></div>
         </div>
     `
+
+    if (produto.preco_estado) {
+
+        const linhas = Object.entries(produto?.preco_estado || {})
+            .map(([estado, preco]) => `
+                <tr>
+                    <td>${estado}</td>
+                    <td>${dinheiro(preco)}</td>
+                </tr>
+            `).join('')
+
+        acumulado += `
+            <hr style="width: 100%;">
+            
+            <div class="borda-tabela">
+                <div class="topo-tabela">
+                    <span>Preços por Estado</span>
+                </div>
+                    <div class="div-tabela">
+                        <table class="tabela">
+                            <thead>
+                                ${['Estado', 'Preço'].map(op => `<th>${op}</th>`).join('')}
+                            </thead>
+                            <tbody>${linhas}</tbody>
+                        </table>
+                    </div>
+                <div class="rodapeTabela"></div>
+            </div>
+        `
+    }
 
     const historicoPreco = document.querySelector('.historico-preco')
     if (historicoPreco) return historicoPreco.innerHTML = acumulado
