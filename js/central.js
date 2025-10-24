@@ -435,10 +435,39 @@ async function mudarStatus(select) {
 
 }
 
+function balaoUsuario(st, texto) {
+
+    let msg = document.querySelector('.popup-mensagem')
+    if (msg) msg.remove()
+
+    const mensagemPop = `
+        <div class="popup-mensagem">
+            <img src="imagens/${st}.png">
+            <span>${st}</span>
+            <span>${texto}</span>
+        </div>
+    `
+    document.body.insertAdjacentHTML('beforeend', mensagemPop)
+
+    msg = document.querySelector('.popup-mensagem')
+
+    requestAnimationFrame(() => {
+        msg.style.opacity = '1'
+        msg.style.transform = 'translateY(0)'
+    })
+
+    setTimeout(() => {
+        msg.style.opacity = '0'
+        msg.style.transform = 'translateY(20px)'
+        setTimeout(() => msg.remove(), 400)
+    }, 5000)
+}
+
+
 function usuariosToolbar() {
 
-    const indicadorStatus = !navigator.onLine ? 'offline' : acesso.status
-    const statusOpcoes = ['Online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
+    const indicadorStatus = !navigator.onLine ? 'offline' : usuariosOnline?.[acesso?.usuario]?.status || 'online'
+    const statusOpcoes = ['online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
     const usuariosToolbarString = `
         <div class="botaoUsuarios">
             <img name="imgStatus" onclick="painelUsuarios()" src="imagens/${indicadorStatus}.png">
@@ -1456,6 +1485,7 @@ function connectWebSocket() {
                 status: data.status
             }
             usuariosToolbar()
+            balaoUsuario(data.status, data.usuario)
         }
 
         if (data.tipo == 'usuarios_online') {

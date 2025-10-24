@@ -246,6 +246,30 @@ span[name="titulo"] {
     margin: 2vw;
 }
 
+.popup-mensagem {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #333;
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.4s, transform 0.4s;
+    z-index: 9999;
+}
+
+.popup-mensagem img {
+    width: 3rem;
+}
+
 .botaoUsuarios {
     padding-left: 1rem;
     display: flex;
