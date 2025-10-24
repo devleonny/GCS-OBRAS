@@ -248,8 +248,15 @@ async function carregarTabelasOrcamento() {
     }
 
     await totalOrcamento()
-    filtrarPorTipo(memoriaFiltro)
-    pesquisarNoOrcamento()
+
+    // Recuperar filtros ou pesquisas;
+    const termoPesquisa = document.getElementById('termoPesquisa')
+
+    if (termoPesquisa.value != '') {
+        pesquisarNoOrcamento()
+    } else {
+        filtrarPorTipo(memoriaFiltro)
+    }
 
 }
 

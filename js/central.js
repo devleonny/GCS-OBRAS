@@ -1995,7 +1995,7 @@ async function verPedidoAprovacao(idOrcamento) {
             
             <div style="display: flex; align-items: center; justify-content: start; gap: 2vw;">
                 <div style="display: flex; justify-content: center; flex-direction: column; align-items: start;">
-                    ${divOrganizada(orcamento.dados_orcam.analista, 'Solicitante')}
+                    ${divOrganizada(orcamento?.dados_orcam?.analista || '--', 'Solicitante')}
                     ${divOrganizada(cliente?.nome || '?', 'Cliente')}
                     ${divOrganizada(cliente?.cidade || '?', 'Localidade')}
                 </div>
