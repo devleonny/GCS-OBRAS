@@ -102,6 +102,10 @@ async function preencher() {
 
     const empresaEmissora = dadosEmpresas[informacoes?.emissor || 'AC SOLUÇÕES']
 
+    const imgLogo = document.getElementById('logo')
+    imgLogo.src = informacoes?.emissor == 'IAC' ? 'https://i.imgur.com/6FWwz7l.png' : 'https://i.imgur.com/qZLbNfb.png'
+    imgLogo.style.width = informacoes?.emissor == 'IAC' ? '100px' : '10rem'
+
     const dadosPorBloco = {
         'Dados da Proposta': {
             'Número do Chamado': informacoes.contrato,
