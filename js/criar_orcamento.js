@@ -10,7 +10,6 @@ let lpuATIVA = null
 let paginaComposicoes = 1
 let totalPaginas = null
 const porPagina = 100
-let ocultarZerados = false
 
 const metaforas = [
     "Um monitor sem imagens para exibir",
@@ -546,18 +545,26 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     dadosFiltrados = dadosFiltrados || dados_composicoes
 
     const orcamentoBase = baseOrcamento()
+    const omie_cliente = orcamentoBase.dados_orcam.omie_cliente || ''
+    const cliente = dados_clientes[omie_cliente] || {}
+    const estado = cliente?.estado || null
     const composicoesOrcamento = orcamentoBase?.esquema_composicoes || {}
     const lpu = String(orcamentoBase.lpu_ativa).toLocaleLowerCase()
 
     // Carregamentos dos itens && filtragem inicial;
     for (const [codigo, produto] of Object.entries(dadosFiltrados)) {
-
         const ativo = produto?.[lpu]?.ativo || ''
         const historico = produto?.[lpu]?.historico || {}
         const detalhes = historico?.[ativo] || {}
         const preco = detalhes?.valor || 0
+        const itemValidoBoticario = preco !== 0 || produto.preco_estado
 
-        if (origem !== produto.origem || !produto.tipo || (ocultarZerados && preco == 0)) delete dadosFiltrados[codigo]
+        const remover =
+            origem !== produto.origem ||
+            !produto.tipo ||
+            (lpu.includes('boticario') && !itemValidoBoticario)
+
+        if (remover) delete dadosFiltrados[codigo]
     }
 
     const chaves = Object.keys(dadosFiltrados)
@@ -570,19 +577,19 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     for (const codigo of grupo) {
         const produto = dadosFiltrados[codigo]
         const qtdeOrcada = composicoesOrcamento?.[codigo]?.qtde || ''
-        linhasComposicoesOrcamento(codigo, produto, qtdeOrcada, lpu)
+        linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, lpu, estado })
     }
 
     atualizarControlesPaginacao(chaves.length)
 
 }
 
-function linhasComposicoesOrcamento(codigo, produto, qtdeOrcada, lpu) {
+function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, lpu, estado }) {
 
     const ativo = produto?.[lpu]?.ativo || ''
     const historico = produto?.[lpu]?.historico || {}
     const detalhes = historico?.[ativo] || {}
-    const preco = detalhes?.valor || 0
+    const preco = detalhes?.valor || produto?.preco_estado?.[estado] || 0
 
     const sinalizacao = verificarData(detalhes?.data)
     const agrupamentoON = Object.keys(produto?.agrupamento || {}).length > 0 ? 'pos' : 'neg'
@@ -1244,7 +1251,8 @@ async function totalOrcamento() { //29
 
         popup(mensagem(avisos[avisoDesconto]), 'Alerta')
     }
-
+    
+    await tabelaProdutosOrcamentos()
 }
 
 function salvarDetalhes(textarea) {
