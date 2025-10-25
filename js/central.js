@@ -1862,8 +1862,6 @@ async function verAprovacoes() {
 
 async function verificarPendencias() {
 
-    if (document.title == 'Ocorrências') return // Se carregar em ocorrências, como ele usa uma base diferente, sem "dados_orcamentos", vai dar erro;
-
     if (!navigator.onLine) return
 
     await sincronizarDados('dados_orcamentos', true)
