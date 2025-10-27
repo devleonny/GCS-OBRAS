@@ -63,10 +63,10 @@ const balaoPDF = (nf, info, codOmie, tipo, app) => {
 
 const modeloBotoes = (imagem, nome, funcao) => {
     return `
-    <div class="atalhos" style="width: 100%;" onclick="${funcao}">
-        <img src="imagens/${imagem}.png">
-        <label style="cursor: pointer;">${nome}</label>
-    </div>
+        <div class="atalhos" style="width: 100%;" onclick="${funcao}">
+            <img src="imagens/${imagem}.png">
+            <label style="cursor: pointer;">${nome}</label>
+        </div>
     `
 }
 
@@ -264,7 +264,7 @@ async function despoluicaoGCS() {
         </div>
     `
 
-    let logs = document.getElementById('logs')
+    const logs = document.getElementById('logs')
 
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
 
@@ -2008,7 +2008,7 @@ async function verPedidoAprovacao(idOrcamento) {
             <hr style="width: 100%;">
 
             <div style="display: flex; align-items: center; justify-content: center; gap: 5px;" onclick="visibilidadeOrcamento(this)">
-                <img src="imagens/olhoFechado.png" style="width: 2vw;">
+                <img src="imagens/olhoFechado.png" style="width: 1.2rem;">
                 <label style="text-decoration: underline; cursor: pointer;">Ver itens do Orçamento</label>
                 
             </div>
@@ -2028,6 +2028,7 @@ async function verPedidoAprovacao(idOrcamento) {
                     <button style="background-color: #B12425;" onclick="respostaAprovacao(this, '${idOrcamento}', 'reprovado')">Reprovar</button>
                 </div>
             </div>
+
         </div>
     `
 
@@ -2403,27 +2404,6 @@ async function buscarDANFE(codOmieNF, tipo, app) {
     } catch (err) {
         return { err };
     }
-}
-
-async function mobi7({ base, usuarioMobi7, dtInicial, dtFinal }) {
-    return new Promise((resolve, reject) => {
-        fetch(`${api}/mobi7`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ base, usuarioMobi7, dtInicial, dtFinal })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                resolve(data);
-            })
-            .catch(error => reject(error));
-
-    })
 }
 
 async function baixarOcorrencias() {
