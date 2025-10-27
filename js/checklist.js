@@ -86,7 +86,7 @@ async function telaChecklist() {
 
             </div>
 
-            <div id="tabelaCheklist" style="${vertical};">
+            <div id="tabelaCheklist" class="borda-tabela">
                 <div class="topo-tabela"></div>
                 <div class="div-tabela">
                     <table class="tabela" id="tabela_composicoes">
@@ -205,7 +205,7 @@ async function relatorioChecklist() {
             </div>
 
             <div class="relatorio">
-                <div id="tabelaCheklist" style="${vertical};">
+                <div id="tabelaCheklist" class="borda-tabela">
                     <div class="topo-tabela"></div>
                     <div class="div-tabela">
                         <table class="tabela" id="tabela_composicoes">
@@ -306,7 +306,7 @@ function criarCalendario(datas) {
         }
 
         calendarios += `
-            <div style="${vertical};">
+            <div class="borda-tabela">
                 <div class="topo-tabela">
                     <span style="padding: 5px;">${mes}/${ano}</span>
                 </div>
@@ -755,7 +755,7 @@ async function registrarChecklist(codigo) {
             
             <hr style="width: 100%;">
 
-            <div style="${vertical}; width: 100%;">
+            <div class="borda-tabela">
                 <div class="topo-tabela"></div>
                 <div class="div-tabela">
                     <table class="tabela" id="tabela_composicoes">

@@ -201,11 +201,11 @@ function criarLinhaVeiculo({ custo, nome, veiculo, idCusto }) {
 
         <td>
             <div style="${horizontal};justify-content: start; gap: 0.5rem; width: 300px;">
-                <img src="imagens/${veiculo.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1rem;">
+                <img src="imagens/${veiculo?.status == 'Locado' ? 'aprovado' : 'reprovado'}.png" style="width: 1rem;">
                 <div style="${vertical}; text-align: left;">
                     <label title="${nome}">${nome.slice(0, 20)}...</label>
-                    <label>${veiculo.placa}</label>
-                    <label>${veiculo.modelo}</label>
+                    <label>${veiculo?.placa}</label>
+                    <label>${veiculo?.modelo}</label>
                 </div>
             </div>
         </td>
@@ -359,8 +359,9 @@ async function excluirCusto(idCusto) {
     removerPopup()
     overlayAguarde()
     await deletarDB('custo_veiculos', idCusto)
-    await deletar(`custo_veiculos/${idCusto}`)
-    await telaVeiculos()
+    deletar(`custo_veiculos/${idCusto}`)
+    const linha = document.getElementById(idCusto)
+    if(linha) linha.remove()
     removerOverlay()
 
 }
