@@ -94,10 +94,10 @@ async function preencher() {
     const orcamentoBase = JSON.parse(localStorage.getItem('pdf')) || {};
 
     // LÓGICA DOS DADOS
-    const dados_clientes = await recuperarDados('dados_clientes') || {}
+    const cliente = await recuperarDado('dados_clientes', orcamentoBase?.dados_orcam?.omie_cliente) || {}
     const informacoes = {
         ...orcamentoBase.dados_orcam,
-        ...dados_clientes?.[orcamentoBase.dados_orcam.omie_cliente] || {}
+        ...cliente
     }
 
     const empresaEmissora = dadosEmpresas[informacoes?.emissor || 'AC SOLUÇÕES']
@@ -162,6 +162,9 @@ async function preencher() {
         'SERVIÇO': { colunas: [1, 2, 3, 4, 5, 9, 10], cor: 'green' },
         'VENDA': { colunas: [1, 2, 3, 4, 5, 6, 7, 9, 10], cor: '#B12425' }
     }
+
+    // Se for IAC por não ser Lucro Presumido, então não deve mostrar os campos de ICMS;
+    if (informacoes.emissor == 'IAC') config.VENDA.colunas = [1, 2, 3, 4, 5, 9, 10]
 
     let totais = {
         GERAL: { valor: 0, cor: '#151749' }
@@ -236,28 +239,21 @@ async function preencher() {
         tds[9] = `<td style="white-space: nowrap;">${dinheiro(item.custo)}</td>`
         tds[10] = `<td style="white-space: nowrap;">${dinheiro(item.total)}</td>`
 
-        let celulas = ''
+        // Inclusão das linhas na tabela específica;
+        totais[item.tipo].linhas += `<tr>${colunas.map(col => tds[col]).join('')}</tr>`
+
+        // Inclusão das THS;
+        totais[item.tipo].ths = ''
         colunas.forEach(col => {
-            celulas += tds[col]
+
+            const complemento = (informacoes.emissor !== 'IAC' && item.tipo == 'VENDA' && (col == 9 || col == 10) && empresaEmissora)
+                ? 'COM ICMS'
+                : ''
+
+            totais[item.tipo].ths += `<th style="color: white;">${cabecalho[col]} ${complemento}</th>`
+
         })
 
-        totais[item.tipo].linhas += `
-            <tr>
-                ${celulas}
-            </tr>
-            `
-
-        if (!totais[item.tipo].ths) {
-            totais[item.tipo].ths = ''
-            colunas.forEach(col => {
-
-                let complemento = ''
-                if (item.tipo == 'VENDA' && (col == 9 || col == 10)) complemento = 'COM ICMS'
-
-                totais[item.tipo].ths += `<th style="color: white;">${cabecalho[col]} ${complemento}</th>`
-            })
-
-        }
 
     }
 
