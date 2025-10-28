@@ -758,29 +758,24 @@ function calcular(campo, dadosCalculo = null) {
         '7%': 7
     }
 
-    let lucroLiquido = 0
-
-    function atualizarLucro({ valRef, totImp, custoFinal = 0, coeficienteMaoObra = 0, extras = {} }) {
-        lucroLiquido = valRef - (totImp + custoFinal + coeficienteMaoObra)
-        let porcentagem = lucroLiquido / valRef * 100
-        if (isNaN(porcentagem)) porcentagem = 0
+    function atualizarLucro({ valRef = 0, totImp = 0, custoFinal = 0, coeficienteMaoObra = 0, extras = {} }) {
+        const base = Number(valRef) || 0
+        const totalCusto = (Number(totImp) || 0) + (Number(custoFinal) || 0) + (Number(coeficienteMaoObra) || 0)
+        const lucroLiquido = base - totalCusto
+        let porcentagem = base ? (lucroLiquido / base * 100) : 0
 
         if (dadosCalculo) {
-            return {
-                lucroLiquido,
-                lucroPorcentagem: porcentagem,
-                totalImpostos: totImp,
-                ...extras
-            }
+            return { lucroLiquido, lucroPorcentagem: porcentagem, totalImpostos: totImp, ...extras }
         }
 
         obValComp('lucro_liquido', dinheiro(lucroLiquido))
         obValComp('lucro_porcentagem', `${porcentagem.toFixed(2)}%`)
-        let estilo = lucroLiquido > 0 ? 'lucroPositivo' : 'lucroNegativo'
+        const estilo = lucroLiquido > 0 ? 'lucroPositivo' : 'lucroNegativo'
         document.getElementById('lucro_liquido').classList = estilo
         document.getElementById('lucro_porcentagem').classList = estilo
     }
 
+    
     if (modalidadeCalculo == 'SERVIÇO') {
 
         const precoVenda = obValComp('preco_venda')
@@ -878,23 +873,26 @@ function calcular(campo, dadosCalculo = null) {
 
         return atualizarLucro({ valRef: precoVenda, totImp, custoFinal: (valorCusto + freteVenda), extras })
 
+    }
 
-    } else if (modalidadeCalculo == 'USO E CONSUMO') {
+
+    if (modalidadeCalculo == 'USO E CONSUMO') {
 
         const icmsCreditadoSelect = obValComp('icms_creditado_select')
         const icmsCreditado = dadosCalculo?.icms_creditado || tabelaIcmsSaida[icmsCreditadoSelect]
-        const precoCompra = dadosCalculo?.custo || obValComp('custo')
+        const precoCompra = Number(dadosCalculo?.custo || obValComp('custo') || 0)
         const frete = precoCompra * 0.02
-        const icmsAliquota = 20.5 //Para uso e consumo mantive 20,5%;
+        const icmsAliquota = 20.5
         const difal = icmsAliquota - icmsCreditado
-        const icmsEntrada = difal / 100 * precoCompra
+        const icmsEntrada = (difal / 100) * precoCompra
         const valorCusto = icmsEntrada + precoCompra + frete
-        let margem = obValComp('margem')
+
+        let margem = Number(obValComp('margem') || 0)
         let precoVenda = (1 + margem / 100) * valorCusto
 
         if (campo == 'preco_venda' || dadosCalculo) {
-            precoVenda = dadosCalculo?.valor || obValComp('preco_venda')
-            margem = ((precoVenda / valorCusto - 1) * 100).toFixed(2)
+            precoVenda = Number(dadosCalculo?.valor || obValComp('preco_venda') || 0)
+            margem = valorCusto ? ((precoVenda / valorCusto - 1) * 100).toFixed(2) : 0
             obValComp('margem', margem)
         } else {
             obValComp('preco_venda', precoVenda.toFixed(2))
@@ -911,33 +909,9 @@ function calcular(campo, dadosCalculo = null) {
         const iss = precoVenda * 0.05
         const totImp = irpj + adicionalIrpj + presuncaoCsllAPagar + pis + cofins + iss
 
-        if (!dadosCalculo) {
-            obValComp('icms_creditado', icmsCreditado)
-            obValComp('frete_venda', freteVenda.toFixed(2))
-            obValComp('aliq_presumido', dinheiro(aliqLp))
-            obValComp('presuncao_csll', dinheiro(presuncaoCsll))
-            obValComp('frete', frete.toFixed(2))
-            obValComp('difal', difal)
-            obValComp('icms_entrada', icmsEntrada.toFixed(2))
-            obValComp('valor_custo', valorCusto.toFixed(2))
-            obValComp('irpj', dinheiro(irpj))
-            obValComp('adicional_irpj', dinheiro(adicionalIrpj))
-            obValComp('presuncao_csll_pagar', dinheiro(presuncaoCsllAPagar))
-            obValComp('pis', dinheiro(pis))
-            obValComp('cofins', dinheiro(cofins))
-            obValComp('iss', dinheiro(iss))
-            obValComp('total_impostos', dinheiro(totImp))
-        }
+        const extras = { freteCompra: frete, freteVenda, difal, margem: Number(margem) }
 
-        const extras = {
-            freteCompra: frete,
-            freteVenda,
-            difal,
-            margem: Number(margem)
-        }
-
-        return atualizarLucro({ precoVenda, totImp, custoFinal: (valorCusto + freteVenda), extras })
-
+        return atualizarLucro({ valRef: precoVenda, totImp, custoFinal: valorCusto + freteVenda, extras })
     }
 
 }
