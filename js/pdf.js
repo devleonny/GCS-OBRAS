@@ -264,7 +264,7 @@ async function preencher() {
         const tabela = `
         <div>
             <div class="painelTitulo" style="background-color: ${config[tab]?.cor || '#222'}">
-                <label>${tab.includes('USO') ? `${tab} - SERVIÇO` : tab}</label> 
+                <label>${tab.includes('USO') ? 'MATERIAL PARA APLICAR NO SERVIÇO' : tab}</label> 
             </div>
             <table class="tabela" style="background-color: white;">
                 <thead style="font-size: 0.7vw; color: white; background-color: ${config[tab]?.cor || '#222'}">
