@@ -250,15 +250,12 @@ function atualizarResumo() {
         for (const p of parcelas) {
             const status = (p.status || 'Sem status').toUpperCase()
             const valor = parseFloat(p.valor) || 0
-
-            // Se há filtro, só soma parcelas do status filtrado
             if (filtroStatus && status !== filtroStatus) continue
 
             totaisPorStatus[status] = (totaisPorStatus[status] || 0) + valor
             valorNota += valor
         }
 
-        // Se houver filtro de status, só soma notas que tiveram parcelas válidas
         if (valorNota > 0 || !filtroStatus) {
             totalGeral += valorNota > 0 ? valorNota : (parseFloat(dados.total) || 0)
             const cat = dados.categoria || 'Sem categoria'
@@ -266,16 +263,15 @@ function atualizarResumo() {
         }
     }
 
-    // Zera os valores antigos
     divResumo.querySelectorAll('.valor').forEach(v => v.textContent = dinheiro(0))
+    divResumo.querySelectorAll('.bloco').forEach(v => v.style.opacity = 0.5)
 
-    // Atualiza total geral
+    // Total geral
     let blocoTotal = divResumo.querySelector('.bloco[data-tipo="geral"]')
     if (!blocoTotal) {
         blocoTotal = document.createElement('div')
         blocoTotal.className = 'bloco'
         blocoTotal.dataset.tipo = 'geral'
-        blocoTotal.onclick = () => renderizarPagina()
         blocoTotal.innerHTML = `
             <div style="${vertical}">
                 <span style="font-size: 0.7rem;">Total geral</span> 
@@ -286,14 +282,16 @@ function atualizarResumo() {
     } else {
         blocoTotal.querySelector('.valor').textContent = dinheiro(totalGeral)
     }
+    blocoTotal.style.opacity = 1
 
-    // Atualiza categorias
+    // Categorias
     for (const [cat, valor] of Object.entries(totaisPorCategoria)) {
         let bloco = divResumo.querySelector(`.bloco[data-cat="${cat}"]`)
         if (!bloco) {
             bloco = document.createElement('div')
             bloco.className = 'bloco'
             bloco.dataset.cat = cat
+            bloco.onclick = () => renderizarPagina('categoria', cat)
             bloco.innerHTML = `
                 <div style="${vertical}">
                     <span style="font-size: 0.7rem;">${cat}</span> 
@@ -303,9 +301,10 @@ function atualizarResumo() {
             divResumo.appendChild(bloco)
         }
         bloco.querySelector('.valor').textContent = dinheiro(valor)
+        bloco.style.opacity = 1
     }
 
-    // Atualiza status
+    // Status
     for (const [status, valor] of Object.entries(totaisPorStatus)) {
         let bloco = divResumo.querySelector(`.bloco[data-status="${status}"]`)
         if (!bloco) {
@@ -323,6 +322,7 @@ function atualizarResumo() {
             divResumo.appendChild(bloco)
         }
         bloco.querySelector('.valor').textContent = dinheiro(valor)
+        bloco.style.opacity = valor === 0 ? 0.5 : 1
     }
 }
 
