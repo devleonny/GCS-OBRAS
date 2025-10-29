@@ -1074,30 +1074,34 @@ async function painelCustos() {
                 <span id="toolbar-pagamentos" onclick="mostrarPagina('pagamentos')" style="opacity: 0.5;">Pagamentos</span>
             </div>
             <div class="orcamento">
-                <div class="topo-tabela"></div>
-                <div class="div-tabela">
-                    <table class="tabela" id="tabela_composicoes">
-                        <thead>
-                            <tr>${ths}</tr>
-                            <tr>${pesquisa}</tr>
-                        </thead>
-                        <tbody id="bodyCustos"></tbody>
-                    </table>
+                <div class="borda-tabela">
+                    <div class="topo-tabela"></div>
+                    <div class="div-tabela">
+                        <table class="tabela" id="tabela_composicoes">
+                            <thead>
+                                <tr>${ths}</tr>
+                                <tr>${pesquisa}</tr>
+                            </thead>
+                            <tbody id="bodyCustos"></tbody>
+                        </table>
+                    </div>
+                    <div class="rodapeTabela"></div>
                 </div>
-                <div class="rodapeTabela"></div>
             </div>
 
             <div class="pagamentos" style="display: none;">
-                <div class="topo-tabela"></div>
-                <div class="div-tabela">
-                    <table class="tabela" id="tabela_composicoes">
-                        <thead>
-                            <tr>${['Recebedor', 'Cidade', 'Valor', ''].map(op => `<th>${op}</th>`).join('')}</tr>
-                        </thead>
-                        <tbody>${linhasPagamentos}</tbody>
-                    </table>
+                <div class="borda-tabela">
+                    <div class="topo-tabela"></div>
+                    <div class="div-tabela">
+                        <table class="tabela" id="tabela_composicoes">
+                            <thead>
+                                <tr>${['Recebedor', 'Cidade', 'Valor', ''].map(op => `<th>${op}</th>`).join('')}</tr>
+                            </thead>
+                            <tbody>${linhasPagamentos}</tbody>
+                        </table>
+                    </div>
+                    <div class="rodapeTabela"></div>
                 </div>
-                <div class="rodapeTabela"></div>
             </div>
 
         </div>

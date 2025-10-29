@@ -2300,6 +2300,7 @@ input[type="file"]#input-anexos:hover {
     align-items: center;
     background-color: #222;
     color: white;
+    padding: 5px;
 }
 
 .balao2 {
@@ -2312,6 +2313,7 @@ input[type="file"]#input-anexos:hover {
     width: 20%;
     background-color: #B12425;
     color: white;
+    padding: 5px;
 }
 
 .painel-historico {

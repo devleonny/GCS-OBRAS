@@ -2635,3 +2635,13 @@ async function salvarCliente() {
     }
 
 }
+
+
+const prod = []
+
+async function att () {
+    for(const i of prod) {
+        const resposta = await enviar(`dados_composicoes/${i}/agrupamento/136`, {qtde: 2})
+        console.log(resposta)
+    }
+}
