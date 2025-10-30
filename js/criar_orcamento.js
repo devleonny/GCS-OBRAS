@@ -213,6 +213,7 @@ async function carregarTabelasOrcamento() {
         <div class="tabela-orcamento">
 
             <div style="
+            text-align: center;
             border-bottom-left-radius: 8px; 
             border-bottom-right-radius: 8px; 
             border-top-left-radius: 8px; 
@@ -545,8 +546,8 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     dadosFiltrados = dadosFiltrados || dados_composicoes
 
     const orcamentoBase = baseOrcamento()
-    const omie_cliente = orcamentoBase.dados_orcam.omie_cliente || ''
-    const cliente = dados_clientes[omie_cliente] || {}
+    const omie_cliente = orcamentoBase?.dados_orcam?.omie_cliente || ''
+    const cliente = dados_clientes?.[omie_cliente] || {}
     const estado = cliente?.estado || null
     const composicoesOrcamento = orcamentoBase?.esquema_composicoes || {}
     const lpu = String(orcamentoBase.lpu_ativa).toLocaleLowerCase()
