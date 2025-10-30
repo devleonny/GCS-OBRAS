@@ -557,6 +557,10 @@ span[name="titulo"] {
     width: 100%;
 }
 
+.topo-tabela span {
+    padding: 5px;
+}
+
 .painelBotoes {
     border-bottom: 1px solid #666666;
     min-height: 2vh;

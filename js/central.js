@@ -2179,8 +2179,6 @@ async function atualizarBaseClientes() {
 async function painelClientes() {
 
     const orcamentoBase = baseOrcamento()
-    console.log(orcamentoBase.dados_orcam);
-
     const dados_orcam = orcamentoBase?.dados_orcam || {}
     dados_clientes = await recuperarDados('dados_clientes') || {}
     const cliente = dados_clientes?.[dados_orcam?.omie_cliente] || {}
