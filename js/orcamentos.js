@@ -264,16 +264,21 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         <td>
             <div style="${vertical}; text-align: left;">
                 ${(acesso.permissao && dados_orcam.cliente_selecionado) ? `*<img onclick="painelAlteracaoCliente('${idOrcamento}')" src="gifs/alerta.gif" style="width: 1.5vw; cursor: pointer;">` : ''}
-                <div style="text-align: left; display: flex; flex-direction: column; align-items: start; justify-content: center;">
-                    <label><b>${dados_orcam.contrato}</b></label>
-                    <label>${cliente?.nome || ''}</label>
+                <div style="${vertical};">
+                    <span><b>${dados_orcam.contrato}</b></span>
+                    <span>${cliente?.nome || ''}</span>
                 </div>
             </div>
         </td>
         <td>${cliente?.cidade || ''}</td>
         <td style="text-align: left;">${dados_orcam?.analista || ''}</td>
         <td>${responsaveis}</td>
-        <td><input style="display: none;" value="${lucratividadePorcentagem}">${divPorcentagem(lucratividadePorcentagem)}</td>
+        <td>
+        ${orcamento.dados_custos
+            ? `<input style="display: none;" value="${lucratividadePorcentagem}">
+            ${divPorcentagem(lucratividadePorcentagem)}`
+            : ''}
+        </td>
         <td>${orcamento?.checklist?.andamento ? divPorcentagem(orcamento.checklist.andamento) : ''}</td>
         <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>
         <td style="text-align: center;" onclick="abrirAtalhos('${idOrcamento}')">
@@ -281,15 +286,18 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         </td>
         `
 
-    const linhaExistente = document.getElementById(idOrcamento)
-    if (linhaExistente) return linhaExistente.innerHTML = tds
+    const trExistente = document.getElementById(idOrcamento)
+    if (trExistente) {
+        if (trExistente.dataset.timestamp == orcamento.timestamp) return
+        return trExistente.innerHTML = tds
+    }
 
     const novaLinha = `
-        <tr id="${idOrcamento}">
+        <tr id="${idOrcamento}" data-timestamp="${orcamento?.timestamp}">
             ${tds}
         </tr>
     `
-    document.getElementById('linhas').insertAdjacentHTML('beforeend', novaLinha)
+    document.getElementById('linhas').insertAdjacentHTML('afterbegin', novaLinha)
 
 }
 

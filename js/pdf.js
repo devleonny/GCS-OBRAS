@@ -115,12 +115,12 @@ async function preencher() {
             'REF': ''
         },
         'Dados do Cliente': {
-            'Razão Social ou Nome Fantasia': informacoes.nome,
-            'CNPJ': informacoes.cnpj,
-            'CEP': informacoes.cep,
-            'Endereço': informacoes.bairro,
-            'Cidade': informacoes.cidade,
-            'Estado': informacoes.estado
+            'Razão Social ou Nome Fantasia': informacoes?.nome || '--',
+            'CNPJ': informacoes?.cnpj || '--',
+            'CEP': informacoes?.cep || '--',
+            'Endereço': informacoes?.bairro || '--',
+            'Cidade': informacoes?.cidade || '--',
+            'Estado': informacoes?.estado || '--'
         },
         'Dados da Empresa': {
             'Razão Social': empresaEmissora['Razão Social'],

@@ -80,14 +80,6 @@
     border-collapse: collapse;
 }
 
-.tabela thead {
-    font-size: 0.8em;
-}
-
-th {
-    color: #222;
-}
-
 .modal-filtros {
     display: none;
     position: fixed;

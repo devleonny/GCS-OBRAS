@@ -14,7 +14,6 @@ const horizontal = `display: flex; align-items: center; justify-content: center;
 const vertical = `display: flex; align-items: start; justify-content: start; flex-direction: column;`
 let overlayTimeout;
 let semOverlay = false
-let usuariosOnline = []
 
 const modelo = (valor1, valor2) => `
         <div class="modelo">
@@ -365,7 +364,7 @@ async function identificacaoUser() {
 
     document.body.insertAdjacentHTML('beforeend', toolbar)
 
-    await sincronizarDados('dados_setores')
+    await sincronizarDados('dados_setores', null, true)
     dados_setores = await recuperarDados('dados_setores')
     acesso = dados_setores[acesso.usuario]
 
@@ -428,9 +427,6 @@ async function mudarStatus(select) {
 
     img.src = `imagens/${st}.png`
 
-    acesso.status = st
-    localStorage.setItem('acesso', JSON.stringify(acesso))
-
     alterarUsuario({ campo: 'status', valor: st, usuario: acesso.usuario })
 
 }
@@ -463,18 +459,26 @@ function balaoUsuario(st, texto) {
     }, 5000)
 }
 
+async function usuariosToolbar() {
 
-function usuariosToolbar() {
+    const user = await recuperarDado('dados_setores', acesso.usuario)
+    const dadosSetores = await recuperarDados('dados_setores') || {}
 
-    const indicadorStatus = !navigator.onLine ? 'offline' : usuariosOnline?.[acesso?.usuario]?.status || 'online'
+    // Conta quantos usuários estão online (status !== 'offline')
+    const usuariosOnline = Object.values(dadosSetores)
+        .filter(u => u.status && u.status !== 'offline')
+        .length
+
+    const indicadorStatus = user?.status || 'offline'
     const statusOpcoes = ['online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
+
     const usuariosToolbarString = `
         <div class="botaoUsuarios">
             <img name="imgStatus" onclick="painelUsuarios()" src="imagens/${indicadorStatus}.png">
             <select onchange="mudarStatus(this)">
                 ${statusOpcoes.map(op => `<option ${indicadorStatus == op ? 'selected' : ''}>${op}</option>`).join('')}
             </select>
-            <label style="font-size: 1.2rem;">${Object.keys(usuariosOnline).length}</label>
+            <label style="font-size: 1.2rem;">${usuariosOnline}</label>
         </div>
     `
 
@@ -1352,7 +1356,8 @@ async function receber(chave) {
             })
             .then(data => {
                 if (data.mensagem) {
-                    resolve({})
+                    console.log(data.mensagem)
+                    reject({})
                 }
                 resolve(data);
             })
@@ -1480,17 +1485,17 @@ function connectWebSocket() {
             await refletir()
         }
 
-        if (data.tipo == 'setores') {
-            usuariosOnline[data.usuario] = {
-                status: data.status
+        if (data.tipo == 'status') {
+            console.log(data);
+
+            const user = await recuperarDado('dados_setores', data.usuario)
+            if (user) {
+                user.status = data.status
+                await inserirDados({ [data.usuario]: user }, 'dados_setores')
             }
+
             usuariosToolbar()
             balaoUsuario(data.status, data.usuario)
-        }
-
-        if (data.tipo == 'usuarios_online') {
-            usuariosOnline = data.usuarios
-            usuariosToolbar()
         }
 
     }
@@ -1520,7 +1525,7 @@ async function painelUsuarios() {
 
         if (objeto.permissao == 'novo') continue
 
-        const status = usuariosOnline?.[usuario]?.status || 'offline'
+        const status = objeto?.status || 'offline'
         if (!stringUsuarios[status]) stringUsuarios[status] = { quantidade: 0, linhas: '' }
 
         stringUsuarios[status].quantidade++
@@ -2220,12 +2225,14 @@ async function painelClientes() {
 
             <label>Dados do Cliente</label>
 
-            ${modelo('Chamado',
-        `<input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" oninput="salvarDadosCliente()" value="${dados_orcam?.contrato || ''}">
-        <input id="chamado_off" type="checkbox" onchange="salvarDadosCliente()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
-        <label>Sem Chamado</label>`)}
+            ${modelo('Chamado', `
+                <input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" oninput="salvarDadosCliente()" value="${dados_orcam?.contrato || ''}">
+                <input id="chamado_off" type="checkbox" onchange="salvarDadosCliente()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
+                <label>Sem Chamado</label>
+                `)}
 
             ${modelo('Cliente', `<span ${dados_orcam.omie_cliente ? `id="${dados_orcam.omie_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'salvarDadosCliente()')">${cliente?.nome || 'Selecione'}</span>`)}
+            
             ${modelo('CNPJ/CPF', `<span id="cnpj">${cliente?.cnpj || ''}</span>`)}
             ${modelo('Endereço', `<span id="bairro">${cliente?.bairro || ''}</span>`)}
             ${modelo('CEP', `<span id="cep">${cliente?.cep || ''}</span>`)}
@@ -2632,14 +2639,4 @@ async function salvarCliente() {
 
     }
 
-}
-
-
-const prod = []
-
-async function att () {
-    for(const i of prod) {
-        const resposta = await enviar(`dados_composicoes/${i}/agrupamento/136`, {qtde: 2})
-        console.log(resposta)
-    }
 }
