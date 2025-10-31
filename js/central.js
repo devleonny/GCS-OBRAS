@@ -1486,8 +1486,6 @@ function connectWebSocket() {
         }
 
         if (data.tipo == 'status') {
-            console.log(data);
-
             const user = await recuperarDado('dados_setores', data.usuario)
             if (user) {
                 user.status = data.status
