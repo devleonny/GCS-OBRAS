@@ -471,6 +471,7 @@ async function usuariosToolbar() {
 
     const indicadorStatus = user?.status || 'offline'
     const statusOpcoes = ['online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
+    if (user.permissao == 'adm') statusOpcoes.push('Invisível')
 
     const usuariosToolbarString = `
         <div class="botaoUsuarios">
