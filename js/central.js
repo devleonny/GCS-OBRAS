@@ -368,7 +368,7 @@ async function identificacaoUser() {
     dados_setores = await recuperarDados('dados_setores')
     acesso = dados_setores[acesso.usuario]
 
-    if (acesso.permissao == 'novo') {
+    if (!acesso.permissao || acesso.permissao == 'novo') {
         localStorage.removeItem('acesso')
         return retornar()
     }
