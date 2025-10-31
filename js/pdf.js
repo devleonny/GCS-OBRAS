@@ -7,14 +7,14 @@ const dadosEmpresas = {
         'Razão Social': 'IAC',
         'CNPJ': '61.807.993/0001-00',
         'E-mail': 'financeiroiac@outlook.com.br',
-        'Telefones': '(11) 996314-7545',
+        'Telefones': '(11) 96300-7299',
         'Localização': 'CEP 42.702-901, Avenida Luiz Tarquínio Pontes, nº 132, Galpões 06, 07 e 08, CENTRO - Lauro de Freitas (BA)'
     },
     'AC SOLUÇÕES': {
         'Razão Social': 'AC SOLUCOES INTEGRADAS DE INFORMATICA LTDA',
         'CNPJ': '13.421.071/0001-00',
         'E-mail': 'financeiro@grupocostasilva.com.br',
-        'Telefones': '(11) 996314-7545',
+        'Telefones': '(11) 96300-7299',
         'Localização': 'CEP 42.702-420, Avenida Luiz Tarquínio Pontes, nº 132, Galpões 06, 07 e 08, CENTRO - Lauro de Freitas (BA)'
     },
     'HNK': {
