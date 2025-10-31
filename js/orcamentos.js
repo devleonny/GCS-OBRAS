@@ -381,6 +381,7 @@ async function duplicar(orcam_) {
     let novoOrcamento = {}
 
     novoOrcamento.dados_orcam = orcamentoBase.dados_orcam
+    novoOrcamento.esquema_composicoes = orcamentoBase.esquema_composicoes
     novoOrcamento.dados_composicoes = orcamentoBase.dados_composicoes
     novoOrcamento.lpu_ativa = orcamentoBase.lpu_ativa
     novoOrcamento.dados_orcam.contrato = ''
