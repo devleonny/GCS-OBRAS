@@ -271,7 +271,7 @@ span[name="titulo"] {
 }
 
 .botaoUsuarios {
-    padding-left: 1rem;
+    padding: 4px;
     display: flex;
     align-items: center;
     justify-content: left;

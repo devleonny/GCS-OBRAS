@@ -251,7 +251,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         <td>
             <label text-align: left;">
                 <b>${orcamento.lpu_ativa}</b><br>
-                ${new Date(dados_orcam.data).toLocaleString('pt-BR')}
+                ${dados_orcam?.data || ''}
             </label>
         </td>
         <td>

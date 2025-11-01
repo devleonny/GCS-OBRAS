@@ -2329,7 +2329,7 @@ async function salvarDadosCliente() {
         omie_cliente,
         condicoes: el('condicoes').value,
         consideracoes: String(el('consideracoes').value).toUpperCase(),
-        data: new Date(),
+        data: new Date().toLocaleString('pt-BR'),
         garantia: el('garantia').value,
         transportadora: el('transportadora').value,
         tipo_de_frete: el('tipo_de_frete').value,
