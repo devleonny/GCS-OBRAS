@@ -5,7 +5,9 @@ let dados_estoque = {}
 let filtroCustos = {}
 
 const fluxograma = [
+    'SEM STATUS',
     'COTAÇÃO',
+    'CHAMADO',
     'LEVANTAMENTO',
     'ORC ENVIADO',
     'ORC APROVADO',
@@ -849,7 +851,9 @@ async function abrirAtalhos(id) {
         ${modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`)}
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
-        ${modeloBotoes('LG', 'OS em PDF', `irOS('${id}')`)}
+        ${modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`)}
+        ${modeloBotoes('LG', 'OS em PDF', ``)}
+        ${modeloBotoes('projeto', 'Criar Orçamento Vinculado', `irOS('${id}')`)}
         `
     }
 
@@ -874,6 +878,56 @@ async function abrirAtalhos(id) {
 
 }
 
+async function vincularOrcamento(idOrcamento) {
+
+    const acumulado = `
+        <div style="background-color: #d2d2d2; padding: 2rem;">
+            <span>Escolha o <b>Orçamento</b> para vincular</span>
+
+            <hr>
+
+            <div style="${horizontal}; gap: 1rem;">
+                <span class="opcoes"
+                name="orcamento"
+                onclick="cxOpcoes('orcamento', 'dados_orcamentos', ['dados_orcam/contrato', 'dados_orcam/analista', 'total_geral[dinheiro]'])">
+                    Selecione
+                </span>
+                <img src="imagens/concluido.png" style="width: 2rem;" onclick="confirmarVinculo('${idOrcamento}')">
+            </div>
+        </div>
+    `
+
+    popup(acumulado, 'Vincular orçamentos', true)
+
+}
+
+async function confirmarVinculo(idOrcamento) {
+
+    overlayAguarde()
+
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
+
+    const orcamentoMaster = document.querySelector('[name="orcamento"]')
+
+    if (!orcamentoMaster.id) return popup(mensagem('Escolha um orçamento'), 'Alerta', true)
+
+    orcamento.hierarquia = orcamentoMaster.id
+    
+    // Remover a linha, caso exista;
+    const existente = document.getElementById(idOrcamento)
+    if (existente) existente.remove()
+
+    enviar(`dados_orcamentos/${idOrcamento}/hierarquia`, orcamentoMaster.id)
+
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
+
+    await telaOrcamentos()
+
+    removerPopup()
+    removerPopup()
+
+}
+
 async function usuariosAutorizados() {
 
     const acumulado = `
@@ -881,7 +935,7 @@ async function usuariosAutorizados() {
             
             <div style="${horizontal}; gap: 5px;">
                 <span class="opcoes" name="usuario" onclick="cxOpcoes('usuario', 'dados_setores', ['usuario', 'setor', 'permissao'])">Selecionar</span>
-                <img src="imagens/concluido.png" style="width: 2vw;" onclick="delegarUsuario()">
+                <img src="imagens/concluido.png" style="width: 2rem;" onclick="delegarUsuario()">
             </div>
 
             <hr style="width: 100%;">

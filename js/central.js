@@ -2448,6 +2448,29 @@ async function baixarOcorrencias() {
 
 async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
 
+    function getValorPorCaminho(obj, caminho) {
+        const partes = caminho.split('/')
+        const ultima = partes[partes.length - 1]
+        let func = null
+
+        // Se o último pedaço tiver [funcao]
+        if (/\[.*\]$/.test(ultima)) {
+            const [chave, nomeFunc] = ultima.match(/^([^\[]+)\[(.+)\]$/).slice(1)
+            partes[partes.length - 1] = chave
+            func = nomeFunc
+        }
+
+        // percorre o caminho
+        let valor = partes.reduce((acc, chave) => acc?.[chave], obj)
+
+        // aplica a função se existir
+        if (valor != null && func && typeof window[func] === 'function') {
+            valor = window[func](valor)
+        }
+
+        return valor
+    }
+
     let base = await recuperarDados(nomeBase)
     let opcoesDiv = ''
 
@@ -2456,23 +2479,26 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
         if (dado.origem && origem !== dado?.origem) continue
 
         const labels = campos
-            .map(campo => `${(dado[campo] && dado[campo] !== '') ? `<label>${dado[campo]}</label>` : ''}`)
+            .map(campo => {
+                const valor = getValorPorCaminho(dado, campo)
+                return valor ? `<label>${valor}</label>` : ''
+            })
             .join('')
 
-        const descricao = String(dado[campos[0]])
+        const descricao = String(getValorPorCaminho(dado, campos[0]))
             .replace(/[\u0300-\u036f]/g, '')
             .replace(/[^a-zA-Z0-9 ]/g, '')
 
         opcoesDiv += `
-            <div 
-                name="camposOpcoes" 
-                class="atalhos-opcoes" 
-                onclick="selecionar('${name}', '${cod}', '${descricao}', ${funcaoAux ? `'${funcaoAux}'` : false})">
-                <img src="${dado.imagem || 'imagens/LG.png'}" style="width: 3rem;">
-                <div style="${vertical}; gap: 2px;">
-                    ${labels}
-                </div>
-            </div>`
+        <div 
+            name="camposOpcoes" 
+            class="atalhos-opcoes" 
+            onclick="selecionar('${name}', '${cod}', '${descricao}', ${funcaoAux ? `'${funcaoAux}'` : false})">
+            <img src="${dado.imagem || 'imagens/LG.png'}" style="width: 3rem;">
+            <div style="${vertical}; gap: 2px;">
+                ${labels}
+            </div>
+        </div>`
     }
 
     const acumulado = `
@@ -2491,7 +2517,6 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
     `
 
     popup(acumulado, 'Selecione o item', true)
-
 }
 
 async function selecionar(name, id, termo, funcaoAux) {

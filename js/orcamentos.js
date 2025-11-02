@@ -36,94 +36,91 @@ async function atualizarOrcamentos() {
 
 function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
 
-    if (ultimoStatus) filtro = ultimoStatus;
+    if (ultimoStatus) filtro = ultimoStatus
 
     if (col !== undefined && col !== null) {
-        filtrosOrcamento[col] = String(texto).toLowerCase().trim();
+        filtrosOrcamento[col] = String(texto).toLowerCase().trim()
     }
 
-    const trs = document.querySelectorAll('#linhas tr');
-    const lucratividade = String(document.querySelector('[name="lucratividade"]').value);
-    const range = lucratividade !== '--' ? lucratividade.match(/\d+/g).map(Number) : null;
-    const [n1, n2] = range || [];
+    const body = document.getElementById('linhas')
+    const linhas = body.querySelectorAll('.linha-orcamento-tabela')
 
-    let totais = { TODOS: 0 };
-    let visiveis = { TODOS: 0 };
-    let listaStatus = new Set(['TODOS']);
+    let totais = { TODOS: 0, 'SEM STATUS': 0 }
+    let visiveis = { TODOS: 0, 'SEM STATUS': 0 }
+    let listaStatus = new Set(['TODOS'])
 
-    for (const tr of trs) {
-        const tds = tr.querySelectorAll('td');
-        const status = tds[1].querySelector('select').value;
+    for (const linha of linhas) {
 
-        // inicializa contadores
-        if (!(status in totais)) {
-            totais[status] = 0;
-            visiveis[status] = 0;
-        }
+        const status = linha.querySelector('[name="status"]')?.value || ''
 
-        // conta sempre no total
-        totais[status]++;
-        totais['TODOS']++;
-        listaStatus.add(status);
+        const statusKey = status === '' ? 'SEM STATUS' : status
 
-        // verifica filtros
-        let mostrarLinha = true;
+        totais[statusKey] = (totais[statusKey] || 0) + 1
+        totais['TODOS']++
+        listaStatus.add(statusKey)
 
-        for (const [col, filtroTexto] of Object.entries(filtrosOrcamento)) {
+        // --- aplica filtros compostos ---
+        let visivel = true
+        const celulas = linha.querySelectorAll('.celula')
 
-            if (filtroTexto && col < tds.length) {
-                const el = tds[col].querySelector('input')
-                    || tds[col].querySelector('textarea')
-                    || tds[col].querySelector('select')
-                    || tds[col].textContent;
-                const conteudo = el.value ? el.value : el;
-                const textoCampo = String(conteudo).toLowerCase().trim();
+        for (const chave in filtrosOrcamento) {
+            const termo = filtrosOrcamento[chave]
+            if (!termo) continue
 
-                if (!textoCampo.includes(filtroTexto)) {
-                    mostrarLinha = false;
-                    break;
-                }
+            const celula = celulas[chave]
+            if (!celula) continue
+
+            const valor =
+                celula.querySelector('input, select')?.value?.toLowerCase().trim() ||
+                celula.textContent.toLowerCase().trim()
+
+            if (!valor.includes(termo)) {
+                visivel = false
+                break
             }
         }
 
-        if (range) {
-            const lc = Number(tds[8].querySelector('input').value);
-            if (!(lc >= n1 && lc <= n2)) mostrarLinha = false;
+        // --- aplica filtro de status ---
+        if (filtro && filtro !== 'TODOS') {
+            if (filtro === 'SEM STATUS' && statusKey !== 'SEM STATUS') visivel = false
+            else if (filtro !== 'SEM STATUS' && statusKey === 'SEM STATUS') visivel = false
+            else if (statusKey !== filtro) visivel = false
         }
 
-        if (filtro) {
-            mostrarLinha = mostrarLinha && (status === filtro || filtro === 'TODOS');
-        }
+        linha.style.display = visivel ? '' : 'none'
 
-        // se passou no filtro → incrementa visíveis
-        if (mostrarLinha) {
-            visiveis[status]++;
-            visiveis['TODOS']++;
+        if (visivel) {
+            visiveis[statusKey] = (visiveis[statusKey] || 0) + 1
+            visiveis['TODOS'] = (visiveis['TODOS'] || 0) + 1
         }
-
-        tr.style.display = mostrarLinha ? 'table-row' : 'none';
     }
 
-    // renderiza toolbar
-    const toolbar = document.getElementById('toolbar');
-    toolbar.innerHTML = '';
+    // --- renderiza toolbar ---
+    const toolbar = document.getElementById('toolbar')
+    toolbar.innerHTML = ''
 
     const tempFluxograma = ['TODOS', ...fluxograma]
 
+    // adiciona aba "SEM STATUS" se houver
+    if (listaStatus.has('SEM STATUS') && !tempFluxograma.includes('SEM STATUS')) {
+        tempFluxograma.push('SEM STATUS')
+    }
+
     for (const st of tempFluxograma) {
-        if (!listaStatus.has(st)) continue;
-        const ativo = filtro ? filtro === st : st === 'TODOS';
-        const opacity = ativo ? 1 : 0.5;
+        if (!listaStatus.has(st)) continue
+        const ativo = filtro ? filtro === st : st === 'TODOS'
+        const opacity = ativo ? 1 : 0.5
 
         toolbar.insertAdjacentHTML('beforeend', `
             <div style="opacity:${opacity}" class="aba-toolbar"
                  onclick="filtrarOrcamentos({ultimoStatus:'${st}'})">
                 <label>${inicialMaiuscula(st)}</label>
-                <span>${filtro == st ? visiveis[st] : totais[st]}</span>
+                <span>${ativo ? visiveis[st] ?? 0 : totais[st] ?? 0}</span>
             </div>
-        `);
+        `)
     }
 }
+
 
 async function telaOrcamentos(semOverlay) {
 
@@ -131,39 +128,37 @@ async function telaOrcamentos(semOverlay) {
 
     if (!semOverlay) overlayAguarde()
 
-    let cabecs = ['Data & LPU', 'Status', 'Pedido', 'Notas', 'Chamado & Cliente', 'Cidade', 'Analista', 'Responsáveis', 'Lc %', 'Checklist', 'Valor', 'Ações']
+    const cabecs = ['Data/LPU', 'Status', 'Pedido', 'Notas', 'Chamado', 'Cidade', 'Responsáveis', 'Checklist', 'Valor', 'Ações']
     let ths = ''
     let tsh = ''
     cabecs.forEach((cab, i) => {
 
-        ths += `<th style="text-align: center;">${cab}</th>`
+        ths += `<div class="ths-orcamento">${cab}</div>`
+        tsh += `<div
+            class="ths-orcamento">
+                ${(cab !== 'Ações' && cab !== 'Status' && cab !== 'Checklist')
+                ? `<input placeholder="Pesquisar" name="col_${i}"  oninput="filtrarOrcamentos({col: ${i}, texto: this.value})" >`
+                : ''}
+            </div>`
 
-        if (cab == 'Lc %') {
-            tsh += `
-                <th style="background-color: white;">
-                    <select name="lucratividade" onchange="filtrarOrcamentos()">${['--', '0% a 35%', '36% a 50%', '51% a 70%', '71% a 100%']
-                    .map(op => `<option>${op}</option>`)
-                    .join('')
-                }</select>
-                </th>
-            `
-        } else {
-            tsh += `<th name="col_${i}" oninput="filtrarOrcamentos({col: ${i}, texto: this.textContent})" style="background-color: white; text-align: left;" contentEditable="true"></th>`
-        }
     })
 
     const acumulado = `
-        <div id="toolbar"></div>
+
+        <div style="${horizontal}; width: 95vw;">
+            <img src="imagens/seta.png" style="width: 2rem;" onclick="scrollar('prev')">
+            <div id="toolbar"></div>
+            <img src="imagens/seta.png" style="width: 2rem; transform: rotate(180deg);" onclick="scrollar('next')">
+        </div>
+
         <div id="tabelaOrcamento" style="${vertical}; width: 95vw;">
             <div class="topo-tabela"></div>
+            <div class="cabecalho">
+                <div class="linha-orcamento-tabela" style="padding: 0px; background-color: #d2d2d2;">${ths}</div>
+                <div class="linha-orcamento-tabela" style="padding: 0px;">${tsh}</div>
+            </div>
             <div class="div-tabela">
-                <table class="tabela">
-                    <thead>
-                        <tr>${ths}</tr>
-                        <tr>${tsh}</tr>
-                    </thead>
-                    <tbody id="linhas"></tbody>
-                </table>
+                <div id="linhas"></div>
             </div>
             <div class="rodapeTabela"></div>
         </div>
@@ -176,8 +171,17 @@ async function telaOrcamentos(semOverlay) {
     dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     dados_clientes = await recuperarDados('dados_clientes') || {}
 
+    // orçamentos slaves por último, eles serão incluídos nas linhas master;
+    const hierarquizado = Object.fromEntries(
+        Object.entries(dados_orcamentos).sort(([, a], [, b]) => {
+            const temA = a?.hierarquia ? 1 : 0
+            const temB = b?.hierarquia ? 1 : 0
+            return temA - temB
+        })
+    )
+
     let idsAtivos = []
-    for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
+    for (const [idOrcamento, orcamento] of Object.entries(hierarquizado)) {
         if (orcamento.origem !== origem) continue
         if (naoArquivados && orcamento.arquivado) continue
         if (!naoArquivados && !orcamento.arquivado) continue
@@ -198,12 +202,19 @@ async function telaOrcamentos(semOverlay) {
 
     criarMenus('orcamentos')
 
-    for (const [col, termo] of Object.entries(filtrosOrcamento)) {
-        const th = document.querySelector(`[name=col_${col}]`)
-        if (th) th.textContent = termo
-    }
-
     if (!semOverlay) removerOverlay()
+
+}
+
+function scrollar(direcao) {
+
+    direcao = direcao == 'next' ? 1 : -1
+    const movimento = 1000 * direcao
+    const toolbar = document.getElementById('toolbar')
+
+    if (toolbar) {
+        toolbar.scrollBy({ left: movimento, behavior: 'smooth' })
+    }
 
 }
 
@@ -230,8 +241,8 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         labels[historico.status] += `
             <div class="etiqueta_pedidos"> 
                 <label>${valor1}</label>
-                <label><b>${valor2}</b></label>
-                ${historico.valor ? `<label><b>${dinheiro(valor3)}</b></label>` : ''}
+                <label>${valor2}</label>
+                ${historico.valor ? `<label>${dinheiro(valor3)}</label>` : ''}
             </div>
             `
     }
@@ -247,57 +258,107 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         .map(([user,]) => user)
         .join(', ')
 
-    const tds = `
-        <td>
-            <label text-align: left;">
-                <b>${orcamento.lpu_ativa}</b><br>
-                ${dados_orcam?.data || ''}
-            </label>
-        </td>
-        <td>
-            <select class="opcoesSelect" onchange="alterar_status(this, '${idOrcamento}')">
+    const cel = (elementos) => `<div class="celula">${elementos}</div>`
+
+    const numOrcamento = `<span><b>${dados_orcam.contrato}</b></span>`
+    const orcamentoMaster = dados_orcamentos?.[orcamento?.hierarquia] || {}
+    const orcamentosVinculados = orcamento.hierarquia
+        ? `
+        <div style="${horizontal}; gap: 5px;">
+            <span><b>${orcamentoMaster?.dados_orcam?.contrato || '--'}</b></span>
+            <img src="imagens/link2.png" style="width: 1.5rem;">
+            ${numOrcamento}
+        </div>
+        `
+        : numOrcamento
+
+    const celulas = `
+        ${cel(`
+            <div style="${vertical}; padding-left: 5px;">
+                <span><b>${orcamento.lpu_ativa}</b></span>
+                <span>${dados_orcam?.data || ''}</span>
+            </div>
+        `)}
+        ${cel(`
+            <select name="status" class="opcoesSelect" onchange="alterar_status(this, '${idOrcamento}')">
                 ${opcoes}
             </select>
-        </td>
-        <td>${labels.PEDIDO}</td>
-        <td>${labels.FATURADO}</td>
-        <td>
-            <div style="${vertical}; text-align: left;">
-                ${(acesso.permissao && dados_orcam.cliente_selecionado) ? `*<img onclick="painelAlteracaoCliente('${idOrcamento}')" src="gifs/alerta.gif" style="width: 1.5vw; cursor: pointer;">` : ''}
-                <div style="${vertical};">
-                    <span><b>${dados_orcam.contrato}</b></span>
-                    <span>${cliente?.nome || ''}</span>
-                </div>
-            </div>
-        </td>
-        <td>${cliente?.cidade || ''}</td>
-        <td style="text-align: left;">${dados_orcam?.analista || ''}</td>
-        <td>${responsaveis}</td>
-        <td>
-        ${orcamento.dados_custos
-            ? `<input style="display: none;" value="${lucratividadePorcentagem}">
-            ${divPorcentagem(lucratividadePorcentagem)}`
+        `)}
+        ${cel(`<div style="${vertical}">${labels.PEDIDO}</div>`)}
+        ${cel(`<div style="${vertical}">${labels.FATURADO}</div>`)}
+        ${cel(`
+        <div style="${vertical};">
+            ${(acesso.permissao && dados_orcam.cliente_selecionado)
+            ? `*<img onclick="painelAlteracaoCliente('${idOrcamento}')" src="gifs/alerta.gif" style="width: 1.5vw; cursor: pointer;">`
             : ''}
-        </td>
-        <td>${orcamento?.checklist?.andamento ? divPorcentagem(orcamento.checklist.andamento) : ''}</td>
-        <td style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</td>
-        <td style="text-align: center;" onclick="abrirAtalhos('${idOrcamento}')">
-            <img src="imagens/pesquisar2.png" style="width: 1.5rem; cursor: pointer;">
-        </td>
+            ${orcamentosVinculados}
+            <span>${cliente?.nome || ''}</span>
+        </div>`)}
+        ${cel(`${cliente?.cidade || ''}`)}
+        ${cel(`
+            <div style="${vertical}">
+                <span>${dados_orcam?.analista || ''}</span>
+                <span>${responsaveis}</span>
+            </div>
+        `)}
+        ${cel(`${orcamento?.checklist?.andamento ? divPorcentagem(orcamento.checklist.andamento) : ''}`)}
+        ${cel(`
+            <div style="${vertical}">
+                <input style="display: none;" type="number" value="${orcamento.total_geral}">
+                <span style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</span>
+                ${orcamento.dados_custos
+                    ? `<input style="display: none;" value="${lucratividadePorcentagem}">
+                    ${divPorcentagem(lucratividadePorcentagem)}`
+                    : ''}
+            </div>
+            `)}
+        ${cel(`<div style="${horizontal}; width: 100%;"><img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;"></div>`)}
         `
 
-    const trExistente = document.getElementById(idOrcamento)
-    if (trExistente) {
-        if (trExistente.dataset.timestamp == orcamento.timestamp) return
-        return trExistente.innerHTML = tds
-    }
+    if (orcamento.hierarquia) { // slaves
 
-    const novaLinha = `
-        <tr id="${idOrcamento}" data-timestamp="${orcamento?.timestamp}">
-            ${tds}
-        </tr>
-    `
-    document.getElementById('linhas').insertAdjacentHTML('afterbegin', novaLinha)
+        const existente = document.getElementById(orcamento.hierarquia)
+
+        const linhaSlave = existente.nextElementSibling
+
+        const slaveExistente = linhaSlave.querySelector(`#${idOrcamento}`)
+
+        if (slaveExistente) return slaveExistente.innerHTML = celulas
+
+        const novaLinhaSlave = `
+        <div 
+            style="background-color: #fff8d3;" 
+            class="linha-orcamento-tabela" 
+            data-hierarquia="slave"
+            data-timestamp="${orcamento?.timestamp}" 
+            id="${idOrcamento}">
+                ${celulas}
+        </div>`
+
+        linhaSlave.insertAdjacentHTML('beforeend', novaLinhaSlave)
+
+    } else { // masters
+
+        const existente = document.getElementById(idOrcamento)
+        if (existente) {
+            if (existente.dataset.timestamp == orcamento.timestamp) return
+            return existente.innerHTML = celulas
+        }
+
+        const novaLinha = `
+        <div style="${vertical}; width: 95vw;">
+            <div 
+                class="linha-orcamento-tabela" 
+                data-hierarquia="master"
+                data-timestamp="${orcamento?.timestamp}" 
+                id="${idOrcamento}">
+                    ${celulas}
+            </div>
+            <div class="linha-slaves"></div>
+        </div>`
+
+        document.getElementById('linhas').insertAdjacentHTML('afterbegin', novaLinha)
+    }
 
 }
 

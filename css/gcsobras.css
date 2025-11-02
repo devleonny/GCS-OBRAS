@@ -11,6 +11,14 @@ body {
     min-height: 100vh;
 }
 
+hr {
+    width: 100%;
+}
+
+img {
+    cursor: pointer;
+}
+
 .gatilhos-interruptor {
     display: flex;
     align-items: center;
@@ -540,7 +548,7 @@ span[name="titulo"] {
 .div-tabela {
     height: max-content;
     width: 100%;
-    max-height: 70vh;
+    max-height: 65vh;
     overflow: auto;
 }
 
@@ -697,16 +705,15 @@ span[name="titulo"] {
 }
 
 .etiqueta_pedidos {
+    box-shadow: 0px 0px 2px #222;
+    background-color: #b9dbf9;
     display: flex;
     align-items: start;
     flex-direction: column;
     justify-content: left;
-    border-radius: 1px;
-    min-width: 100%;
     margin: 2px;
     padding: 2px;
-    color: #222;
-    width: max-content;
+    border-radius: 3px;
 }
 
 .titulo_paginas {
