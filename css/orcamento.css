@@ -18,9 +18,9 @@
         /* Checklist */
         1fr
         /* Valor */
-        1.5fr
+        1fr
         /* Ações */
-        0.5fr;
+        1fr;
     align-items: center;
     background: white;
     border-bottom: 1px solid #a4a4a4;
@@ -51,7 +51,7 @@
     justify-content: start;
     position: sticky;
     top: 0;
-    box-shadow: 0px 0px 2px #222;
+    box-shadow: 0px 0px 5px #222;
 }
 
 .celula {

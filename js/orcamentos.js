@@ -239,7 +239,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         const valor3 = conversor(historico.valor)
 
         labels[historico.status] += `
-            <div class="etiqueta_pedidos"> 
+            <div class="etiquetas"> 
                 <label>${valor1}</label>
                 <label>${valor2}</label>
                 ${historico.valor ? `<label>${dinheiro(valor3)}</label>` : ''}
@@ -297,13 +297,13 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         ${cel(`${cliente?.cidade || ''}`)}
         ${cel(`
             <div style="${vertical}">
-                <span>${dados_orcam?.analista || ''}</span>
+                <span><b>${dados_orcam?.analista || ''}</b></span>
                 <span>${responsaveis}</span>
             </div>
         `)}
         ${cel(`${orcamento?.checklist?.andamento ? divPorcentagem(orcamento.checklist.andamento) : ''}`)}
         ${cel(`
-            <div style="${vertical}">
+            <div style="${vertical}; width: 100%;">
                 <input style="display: none;" type="number" value="${orcamento.total_geral}">
                 <span style="white-space: nowrap;">${dinheiro(orcamento.total_geral)}</span>
                 ${orcamento.dados_custos
@@ -327,7 +327,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
         const novaLinhaSlave = `
         <div 
-            style="background-color: #fff8d3;" 
+            style="background-color: #fff5c5ff;" 
             class="linha-orcamento-tabela" 
             data-hierarquia="slave"
             data-timestamp="${orcamento?.timestamp}" 

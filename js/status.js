@@ -905,23 +905,12 @@ async function confirmarVinculo(idOrcamento) {
 
     overlayAguarde()
 
-    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
-
     const orcamentoMaster = document.querySelector('[name="orcamento"]')
 
     if (!orcamentoMaster.id) return popup(mensagem('Escolha um orçamento'), 'Alerta', true)
 
-    orcamento.hierarquia = orcamentoMaster.id
-    
-    // Remover a linha, caso exista;
-    const existente = document.getElementById(idOrcamento)
-    if (existente) existente.remove()
-
-    enviar(`dados_orcamentos/${idOrcamento}/hierarquia`, orcamentoMaster.id)
-
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-
-    await telaOrcamentos()
+    const resposta = vincularAPI(orcamentoMaster.id, idOrcamento)
+    if (resposta.mensagem) return popup(mensagem(resposta.mensagem), 'Alerta', true)
 
     removerPopup()
     removerPopup()
@@ -1233,8 +1222,8 @@ function divPorcentagem(porcentagem) {
     let valor = Math.max(0, Math.min(100, Number(porcentagem) || 0));
 
     return `
-        <div style="display: flex; align-items: center; justify-content: center;">
-            <div style="position: relative; border: 1px solid #b4b4b4ff; width: 100px; height: 16px; background: #eee; border-radius: 8px; overflow: hidden;">
+        <div style="${horizontal}; width: 100%;">
+            <div style="position: relative; border: 1px solid #b4b4b4ff; width: 100%; height: 16px; background: #eee; border-radius: 8px; overflow: hidden;">
                 <div style="width: ${valor}%; height: 100%; background: ${valor >= 70 ? "#4caf50" : valor >= 40 ? "#ffc107" : "#f44336"};"></div>
                 <label style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7rem; color: #000;">
                     ${valor}%
@@ -1242,15 +1231,6 @@ function divPorcentagem(porcentagem) {
             </div>
         </div>
     `;
-}
-
-function exibirTabela(div) {
-
-    let tabela = div.parentElement.nextElementSibling
-    let visibilidadeAtual = tabela.style.display
-
-    tabela.style.display = visibilidadeAtual == 'none' ? 'table-row' : 'none'
-
 }
 
 function auxiliarDatas(data) {

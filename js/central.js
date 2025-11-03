@@ -2410,42 +2410,6 @@ async function buscarDANFE(codOmieNF, tipo, app) {
     }
 }
 
-async function baixarOcorrencias() {
-
-    const timestampOcorrencia = await maiorTimestamp('dados_ocorrencias')
-    const timestampCliente = await maiorTimestamp('dados_clientes')
-
-    async function maiorTimestamp(nomeBase) {
-
-        let timestamp = 0
-        const dados = await recuperarDados(nomeBase)
-        for (const [id, objeto] of Object.entries(dados)) {
-            if (objeto.timestamp && objeto.timestamp > timestamp) timestamp = objeto.timestamp
-        }
-
-        return timestamp
-    }
-
-    return new Promise((resolve, reject) => {
-        fetch(`${api}/ocorrencias`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ usuario: acesso.usuario, timestampOcorrencia, timestampCliente })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                resolve(data);
-            })
-            .catch(error => reject(error));
-
-    })
-}
-
 async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
 
     function getValorPorCaminho(obj, caminho) {
@@ -2663,4 +2627,26 @@ async function salvarCliente() {
 
     }
 
+}
+
+async function vincularAPI(idMaster, idSlave) {
+
+    return new Promise((resolve, reject) => {
+        fetch(`${api}/vincular`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idMaster, idSlave })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                }
+                return response.json()
+            })
+            .then(data => {
+                resolve(data)
+            })
+            .catch(error => reject({ mensagem: error }))
+
+    })
 }
