@@ -181,6 +181,8 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
 
 async function telaOrcamentos(semOverlay) {
 
+    atualizarToolbar(true) // GCS no título
+
     funcaoTela = 'telaOrcamentos'
 
     if (!semOverlay) overlayAguarde()
