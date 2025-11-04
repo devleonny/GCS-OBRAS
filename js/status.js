@@ -5,6 +5,7 @@ let dados_estoque = {}
 let filtroCustos = {}
 
 const fluxograma = [
+    'SEM STATUS',
     'COTAÇÃO',
     'LEVANTAMENTO',
     'ORC ENVIADO',
@@ -39,7 +40,7 @@ async function sincronizarReabrir() {
 
 async function painelAdicionarPedido() {
 
-    let acumulado = `
+    const acumulado = `
         <div style="background-color: #d2d2d2; padding: 2vw;">
 
             <div style="display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 5px; padding: 10px">
@@ -79,7 +80,7 @@ async function painelAdicionarPedido() {
 
 async function painelAdicionarNotas() {
 
-    let acumulado = `
+    const acumulado = `
         <div id="painelNotas" style="${vertical}; background-color: #d2d2d2; padding: 2vw;">
 
             <div style="width: 100%; ${horizontal}; gap: 5px;">
@@ -849,7 +850,9 @@ async function abrirAtalhos(id) {
         ${modeloBotoes('excel', 'Baixar Orçamento em Excel', `ir_excel('${id}')`)}
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
-        ${modeloBotoes('LG', 'OS em PDF', `irOS('${id}')`)}
+        ${modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`)}
+        ${modeloBotoes('LG', 'OS em PDF', ``)}
+        ${modeloBotoes('projeto', 'Criar Orçamento Vinculado', `criarOrcamentoVinculado('${id}')`)}
         `
     }
 
@@ -865,12 +868,97 @@ async function abrirAtalhos(id) {
     const acumulado = `
         <div style="background-color: #d2d2d2; display: flex; flex-direction: column; justify-content: center; align-items: start; padding: 1vw; gap: 5px;">
             <label style="color: #222; font-size: 1rem; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
-            <hr style="width: 100%">
+            <hr>
+            <div style="${horizontal}; gap: 5px;">
+                <span>Classificar como <b>CHAMADO</b></span>
+                <input ${orcamento?.chamado ? 'checked' : ''} onclick="ativarChamado(this, '${id}')" ${styChek} type="checkbox">
+            </div>
+            <hr>
             <div class="opcoes-orcamento">${botoesDisponiveis}</div>
         </div>
     `
 
     popup(acumulado, 'Opções do Orçamento')
+
+}
+
+async function vincularOrcamento(idOrcamento) {
+
+    const acumulado = `
+        <div style="background-color: #d2d2d2; padding: 2rem;">
+            <span>Escolha o <b>Orçamento</b> para vincular</span>
+
+            <hr>
+
+            <div style="${horizontal}; gap: 1rem;">
+                <span class="opcoes"
+                name="orcamento"
+                onclick="cxOpcoes('orcamento', 'dados_orcamentos', ['dados_orcam/contrato', 'dados_orcam/analista', 'total_geral[dinheiro]'])">
+                    Selecione
+                </span>
+                <img src="imagens/concluido.png" style="width: 2rem;" onclick="confirmarVinculo('${idOrcamento}')">
+            </div>
+        </div>
+    `
+
+    popup(acumulado, 'Vincular orçamentos', true)
+
+}
+
+async function criarOrcamentoVinculado(idOrcamento) {
+
+    const orcamento = {
+        hierarquia: idOrcamento
+    }
+
+    baseOrcamento(orcamento)
+    removerPopup()
+
+    await telaCriarOrcamento()
+}
+
+async function confirmarVinculo(idOrcamento) {
+
+    overlayAguarde()
+
+    const orcamentoMaster = document.querySelector('[name="orcamento"]')
+
+    if (!orcamentoMaster.id) return popup(mensagem('Escolha um orçamento'), 'Alerta', true)
+
+    const resposta = vincularAPI({ idMaster: orcamentoMaster.id, idSlave: idOrcamento })
+    if (resposta.mensagem) return popup(mensagem(resposta.mensagem), 'Alerta', true)
+
+    removerPopup()
+    removerPopup()
+
+}
+
+async function confirmarRemoverVinculo(idOrcamento) {
+
+    const acumulado = `
+    <div style="${horizontal}; gap: 1rem; background-color: #d2d2d2; padding: 2rem;">
+        <span>Deseja desfazer vínculo?</span>
+        <button onclick="desfazerVinculo('${idOrcamento}')">Confirmar</button> 
+    </div>
+    `
+
+    popup(acumulado, 'Tem certeza?', true)
+
+}
+
+async function desfazerVinculo(idOrcamento) {
+
+    overlayAguarde()
+    const linha = document.getElementById(idOrcamento)
+    if (linha) linha.remove()
+
+    const resposta = vincularAPI({ idSlave: idOrcamento })
+    if (resposta.mensagem) {
+        await telaOrcamentos()
+        return popup(mensagem(resposta.mensagem), 'Alerta', true)
+    }
+
+    removerPopup()
 
 }
 
@@ -881,7 +969,7 @@ async function usuariosAutorizados() {
             
             <div style="${horizontal}; gap: 5px;">
                 <span class="opcoes" name="usuario" onclick="cxOpcoes('usuario', 'dados_setores', ['usuario', 'setor', 'permissao'])">Selecionar</span>
-                <img src="imagens/concluido.png" style="width: 2vw;" onclick="delegarUsuario()">
+                <img src="imagens/concluido.png" style="width: 2rem;" onclick="delegarUsuario()">
             </div>
 
             <hr style="width: 100%;">
@@ -1176,27 +1264,18 @@ async function receberCustos(idOrcamento) {
 }
 
 function divPorcentagem(porcentagem) {
-    let valor = Math.max(0, Math.min(100, Number(porcentagem) || 0));
+    const valor = Math.max(0, Math.min(100, Number(porcentagem) || 0))
 
     return `
-        <div style="display: flex; align-items: center; justify-content: center;">
-            <div style="position: relative; border: 1px solid #b4b4b4ff; width: 100px; height: 16px; background: #eee; border-radius: 8px; overflow: hidden;">
+        <div style="${horizontal}; width: 95%;">
+            <div style="position: relative; border: 1px solid #666666; width: 100%; height: 16px; background: #eee; border-radius: 8px; overflow: hidden;">
                 <div style="width: ${valor}%; height: 100%; background: ${valor >= 70 ? "#4caf50" : valor >= 40 ? "#ffc107" : "#f44336"};"></div>
                 <label style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7rem; color: #000;">
                     ${valor}%
                 </label>
             </div>
         </div>
-    `;
-}
-
-function exibirTabela(div) {
-
-    let tabela = div.parentElement.nextElementSibling
-    let visibilidadeAtual = tabela.style.display
-
-    tabela.style.display = visibilidadeAtual == 'none' ? 'table-row' : 'none'
-
+    `
 }
 
 function auxiliarDatas(data) {

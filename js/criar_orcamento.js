@@ -135,7 +135,7 @@ async function telaCriarOrcamento() {
     await atualizarOpcoesLPU()
 }
 
-function atualizarToolbar(remover) {
+async function atualizarToolbar(remover) {
 
     titulo = document.querySelector('[name="titulo"]')
 
@@ -145,12 +145,49 @@ function atualizarToolbar(remover) {
     const edicao = orcamentoBase?.dados_orcam?.contrato == 'sequencial' || (orcamentoBase && orcamentoBase?.dados_orcam?.contrato)
     const contrato = orcamentoBase?.dados_orcam?.contrato == 'sequencial' ? 'Código a definir...' : orcamentoBase?.dados_orcam?.contrato
 
+    const idMaster = orcamentoBase?.hierarquia
+    const orcamentoMaster = await recuperarDado('dados_orcamentos', idMaster)
+
     titulo.innerHTML = `
         <div style="${horizontal}; gap: 0.5rem;">
             <img src="${edicao ? 'gifs/atencao.gif' : 'imagens/concluido.png'}" style="width: 2rem;">
             <span>${edicao ? `Editando: <b>${contrato}</b>` : 'Novo Orçamento'}</span>
+            <img src="imagens/avanco.png" style="width: 1.5rem;">
+            <span class="opcoes"
+            name="orcamento"
+            ${idMaster ? `id="${idMaster}"` : ''}
+            onclick="cxOpcoes('orcamento', 'dados_orcamentos', ['dados_orcam/contrato', 'dados_orcam/analista', 'total_geral[dinheiro]'], 'incluirMaster()')">
+                ${orcamentoMaster?.dados_orcam?.contrato || 'Selecione'}
+            </span>
+            <img src="imagens/cancel.png" style="width: 1.5rem;" onclick="removerMaster()">
         </div>
     `
+
+}
+
+function incluirMaster() {
+
+    const spanOrcamento = document.querySelector('[name="orcamento"]')
+
+    const orcamento = baseOrcamento()
+
+    orcamento.hierarquia = spanOrcamento.id
+
+    baseOrcamento(orcamento)
+
+}
+
+function removerMaster() {
+
+    const spanOrcamento = document.querySelector('[name="orcamento"]')
+    spanOrcamento.textContent = 'Selecione'
+    spanOrcamento.removeAttribute('id')
+
+    const orcamento = baseOrcamento()
+
+    delete orcamento.hierarquia
+
+    baseOrcamento(orcamento)
 
 }
 
@@ -438,6 +475,10 @@ async function enviarDadosOrcamento() {
         baseOrcamento(undefined, true)
         await telaOrcamentos(true)
 
+        if (orcamentoBase.hierarquia) {
+            await vincularAPI({ idMaster: orcamentoBase.hierarquia, idSlave: orcamentoBase.id })
+        }
+
         removerPopup()
 
         atualizarToolbar(true) // GCS no título
@@ -445,6 +486,24 @@ async function enviarDadosOrcamento() {
     } else {
         popup(mensagem('Falha no salvamento, tente de novo em alguns minutos'), 'Alerta', true)
     }
+
+}
+
+async function ativarChamado(input, idOrcamento) {
+
+    if (idOrcamento) {
+        const resposta = await enviar(`dados_orcamentos/${idOrcamento}/chamado`, input.checked)
+        if (resposta.mensagem) popup(mensagem(resposta.mensagem), 'Alerta', true)
+
+        const linha = document.getElementById(idOrcamento)
+        if(linha) linha.dataset.chamado = input.checked ? 'S' : 'N'
+        filtrarOrcamentos()
+        return
+    }
+
+    const orcamento = baseOrcamento()
+    orcamento.chamado = input.checked
+    baseOrcamento(orcamento)
 
 }
 
@@ -1252,7 +1311,7 @@ async function totalOrcamento() { //29
 
         popup(mensagem(avisos[avisoDesconto]), 'Alerta')
     }
-    
+
     await tabelaProdutosOrcamentos()
 }
 

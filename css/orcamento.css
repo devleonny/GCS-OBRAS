@@ -1,3 +1,88 @@
+.linha-orcamento-tabela {
+    display: grid;
+    grid-template-columns:
+        /* Data */
+        1fr
+        /* Status */
+        1fr
+        /* Pedido */
+        1fr
+        /* Notas */
+        1fr
+        /* Chamado */
+        2fr
+        /* Cidade */
+        1fr
+        /* Analista & Resp*/
+        1fr
+        /* Checklist */
+        1fr
+        /* Valor */
+        1fr
+        /* Ações */
+        0.5fr;
+    align-items: center;
+    background: #ffffff;
+    border-bottom: 1px solid #b3b3b3;
+    width: 100%;
+    font-size: 0.7rem;
+}
+
+.celula {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    border-right: 1px solid #b3b3b3;
+    padding: 4px;
+}
+
+/* remove a borda da última célula pra não duplicar */
+.celula:last-child {
+    border-right: none;
+}
+
+.linha-slaves {
+    width: 100%;
+}
+
+.ths-orcamento input {
+    padding: 5px 0 5px 0;
+    width: 100%;
+}
+
+.ths-orcamento {
+    width: 90%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    padding: 5px;
+    text-align: left;
+}
+
+.ths-orcamento img {
+    width: 1rem;
+}
+
+.linha-master {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+}
+
+.cabecalho {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    position: sticky;
+    top: 0;
+    box-shadow: 0px 0px 2px #222;
+}
+
 .formato_status {
     cursor: pointer;
     display: inline-block;
@@ -114,11 +199,23 @@
     margin-left: 5%;
     margin-right: 5%;
     display: flex;
-    width: 95%;
+    width: 100%;
     align-items: center;
-    justify-content: end;
-    flex-wrap: wrap-reverse;
-    gap: 1px;
+    justify-content: start;
+    overflow: hidden;
+    gap: 5px;
+    position: relative;
+}
+
+#toolbar .aba-toolbar {
+    flex: 0 0 auto;
+    /* impede de encolher */
+    cursor: pointer;
+    padding: 3px 8px;
+    background: #b1b1b1;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    white-space: nowrap;
 }
 
 #toolbar label {
@@ -236,6 +333,6 @@
 }
 
 .graficos canvas {
-  width: 100% !important;
-  height: 400px !important;
+    width: 100% !important;
+    height: 400px !important;
 }

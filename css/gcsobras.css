@@ -11,6 +11,14 @@ body {
     min-height: 100vh;
 }
 
+hr {
+    width: 100%;
+}
+
+img {
+    cursor: pointer;
+}
+
 .gatilhos-interruptor {
     display: flex;
     align-items: center;
@@ -538,9 +546,10 @@ span[name="titulo"] {
 }
 
 .div-tabela {
+    background-color: white;
     height: max-content;
     width: 100%;
-    max-height: 70vh;
+    max-height: 65vh;
     overflow: auto;
 }
 
@@ -624,6 +633,11 @@ span[name="titulo"] {
     cursor: pointer;
 }
 
+.inp-check {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
 .datas_estoque {
     color: white;
     background-color: #097fe6;
@@ -696,17 +710,29 @@ span[name="titulo"] {
     cursor: pointer;
 }
 
-.etiqueta_pedidos {
+.bloco-etiquetas {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 100px;
+    overflow: auto;
+}
+
+.bloco-etiquetas::-webkit-scrollbar {
+    display: none;
+}
+
+.etiquetas {
+    background-color: #b9dbf9;
     display: flex;
     align-items: start;
     flex-direction: column;
     justify-content: left;
-    border-radius: 1px;
-    min-width: 100%;
-    margin: 2px;
-    padding: 2px;
-    color: #222;
-    width: max-content;
+    padding: 3px;
+    border-radius: 3px;
+    border: 1px solid #41a6ff;
 }
 
 .titulo_paginas {
@@ -1774,12 +1800,12 @@ input[type=range]::-moz-range-thumb {
 }
 
 .opcoesSelect {
-    width: max-content;
-    font-size: 0.6rem;
+    width: 100%;
     cursor: pointer;
-    background-color: #e7e7e7;
+    background-color: #f2f2f2;
     padding: 3px;
     border-radius: 3px;
+    border: solid 1px #b8b8b8;
 }
 
 .icone {

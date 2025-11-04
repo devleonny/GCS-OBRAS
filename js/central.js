@@ -15,6 +15,7 @@ const vertical = `display: flex; align-items: start; justify-content: start; fle
 let overlayTimeout;
 let semOverlay = false
 
+const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
 const modelo = (valor1, valor2) => `
         <div class="modelo">
             <label>${valor1}</label>
@@ -2226,9 +2227,10 @@ async function painelClientes() {
 
             ${modelo('Chamado', `
                 <input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" oninput="salvarDadosCliente()" value="${dados_orcam?.contrato || ''}">
-                <input id="chamado_off" type="checkbox" onchange="salvarDadosCliente()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
-                <label>Sem Chamado</label>
-                `)}
+                <input ${styChek} id="chamado_off" type="checkbox" onchange="salvarDadosCliente()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
+                <label>Sem Chamado</label>`)}
+
+            ${modelo('Classificar orçamento na aba de <b>CHAMADO</b>', `<input ${orcamentoBase?.chamado ? 'checked' : ''} onclick="ativarChamado(this)" ${styChek} type="checkbox">`)}
 
             ${modelo('Cliente', `<span ${dados_orcam.omie_cliente ? `id="${dados_orcam.omie_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'salvarDadosCliente()')">${cliente?.nome || 'Selecione'}</span>`)}
             
@@ -2410,43 +2412,30 @@ async function buscarDANFE(codOmieNF, tipo, app) {
     }
 }
 
-async function baixarOcorrencias() {
+async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
 
-    const timestampOcorrencia = await maiorTimestamp('dados_ocorrencias')
-    const timestampCliente = await maiorTimestamp('dados_clientes')
+    function getValorPorCaminho(obj, caminho) {
+        const partes = caminho.split('/')
+        const ultima = partes[partes.length - 1]
+        let func = null
 
-    async function maiorTimestamp(nomeBase) {
-
-        let timestamp = 0
-        const dados = await recuperarDados(nomeBase)
-        for (const [id, objeto] of Object.entries(dados)) {
-            if (objeto.timestamp && objeto.timestamp > timestamp) timestamp = objeto.timestamp
+        // Se o último pedaço tiver [funcao]
+        if (/\[.*\]$/.test(ultima)) {
+            const [chave, nomeFunc] = ultima.match(/^([^\[]+)\[(.+)\]$/).slice(1)
+            partes[partes.length - 1] = chave
+            func = nomeFunc
         }
 
-        return timestamp
+        // percorre o caminho
+        let valor = partes.reduce((acc, chave) => acc?.[chave], obj)
+
+        // aplica a função se existir
+        if (valor != null && func && typeof window[func] === 'function') {
+            valor = window[func](valor)
+        }
+
+        return valor
     }
-
-    return new Promise((resolve, reject) => {
-        fetch(`${api}/ocorrencias`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ usuario: acesso.usuario, timestampOcorrencia, timestampCliente })
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                resolve(data);
-            })
-            .catch(error => reject(error));
-
-    })
-}
-
-async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
 
     let base = await recuperarDados(nomeBase)
     let opcoesDiv = ''
@@ -2456,23 +2445,26 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
         if (dado.origem && origem !== dado?.origem) continue
 
         const labels = campos
-            .map(campo => `${(dado[campo] && dado[campo] !== '') ? `<label>${dado[campo]}</label>` : ''}`)
+            .map(campo => {
+                const valor = getValorPorCaminho(dado, campo)
+                return valor ? `<label>${valor}</label>` : ''
+            })
             .join('')
 
-        const descricao = String(dado[campos[0]])
+        const descricao = String(getValorPorCaminho(dado, campos[0]))
             .replace(/[\u0300-\u036f]/g, '')
             .replace(/[^a-zA-Z0-9 ]/g, '')
 
         opcoesDiv += `
-            <div 
-                name="camposOpcoes" 
-                class="atalhos-opcoes" 
-                onclick="selecionar('${name}', '${cod}', '${descricao}', ${funcaoAux ? `'${funcaoAux}'` : false})">
-                <img src="${dado.imagem || 'imagens/LG.png'}" style="width: 3rem;">
-                <div style="${vertical}; gap: 2px;">
-                    ${labels}
-                </div>
-            </div>`
+        <div 
+            name="camposOpcoes" 
+            class="atalhos-opcoes" 
+            onclick="selecionar('${name}', '${cod}', '${descricao}', ${funcaoAux ? `'${funcaoAux}'` : false})">
+            <img src="${dado.imagem || 'imagens/LG.png'}" style="width: 3rem;">
+            <div style="${vertical}; gap: 2px;">
+                ${labels}
+            </div>
+        </div>`
     }
 
     const acumulado = `
@@ -2491,7 +2483,6 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
     `
 
     popup(acumulado, 'Selecione o item', true)
-
 }
 
 async function selecionar(name, id, termo, funcaoAux) {
@@ -2638,4 +2629,21 @@ async function salvarCliente() {
 
     }
 
+}
+
+async function vincularAPI({ idMaster, idSlave }) {
+    try {
+        const response = await fetch(`${api}/vincular`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idMaster, idSlave })
+        })
+
+        if (!response.ok)
+            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
+
+        return await response.json()
+    } catch (error) {
+        return { mensagem: error.messagem || error.mensage || error }
+    }
 }
