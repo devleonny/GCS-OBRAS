@@ -81,7 +81,6 @@ function ordenarOrcamentos(colunaIndex) {
 }
 
 function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
-
     if (ultimoStatus) filtro = ultimoStatus
 
     if (col !== undefined && col !== null)
@@ -93,28 +92,36 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
     const totais = { CHAMADO: 0, TODOS: 0, 'SEM STATUS': 0 }
     const visiveis = { CHAMADO: 0, TODOS: 0, 'SEM STATUS': 0 }
     const listaStatus = new Set(['TODOS', 'CHAMADO'])
+    const containersInfo = new Map()
 
+    // primeiro loop: processa todas as linhas
     for (const linha of linhas) {
         const status = linha.querySelector('[name="status"]')?.value || ''
         const statusKey = status || 'SEM STATUS'
         const chamado = linha.dataset.chamado || 'N'
         const isChamado = chamado === 'S'
+        const container = linha.closest('.linha-master')
 
-        // --- totaliza ---
         totais[statusKey] = (totais[statusKey] || 0) + 1
         totais.TODOS++
         if (isChamado) totais.CHAMADO = (totais.CHAMADO || 0) + 1
         listaStatus.add(statusKey)
         if (isChamado) listaStatus.add('CHAMADO')
 
-        // --- filtros compostos ---
+        // armazena info de container
+        if (container) {
+            if (!containersInfo.has(container))
+                containersInfo.set(container, { linhas: [], temChamado: false })
+            containersInfo.get(container).linhas.push(linha)
+            if (isChamado) containersInfo.get(container).temChamado = true
+        }
+
+        // filtro de texto normal (ainda não aplica display)
         let visivel = true
         const celulas = linha.querySelectorAll('.celula')
-
         for (const chave in filtrosOrcamento) {
             const termo = filtrosOrcamento[chave]
             if (!termo) continue
-
             const celula = celulas[chave]
             if (!celula) continue
 
@@ -134,32 +141,47 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
             }
         }
 
-        // --- filtro de status ---
-        if (filtro && filtro !== 'TODOS') {
-            if (filtro === 'CHAMADO') {
-                visivel = chamado === 'S'
-            } else if (filtro === 'SEM STATUS') {
-                visivel = statusKey === 'SEM STATUS'
-            } else {
-                visivel = statusKey === filtro
+        linha.dataset._visivel = visivel ? 'S' : 'N' // marca provisoriamente
+    }
+
+    // segundo loop: aplica visibilidade considerando o filtro
+    for (const [container, info] of containersInfo) {
+        const { linhas, temChamado } = info
+        let mostrarContainer = false
+
+        for (const linha of linhas) {
+            const status = linha.querySelector('[name="status"]')?.value || ''
+            const statusKey = status || 'SEM STATUS'
+            const chamado = linha.dataset.chamado || 'N'
+            const isChamado = chamado === 'S'
+            let visivel = linha.dataset._visivel === 'S'
+
+            if (filtro && filtro !== 'TODOS') {
+                if (filtro === 'CHAMADO') {
+                    // mantém todas as linhas visíveis se o container tiver algum chamado
+                    visivel = temChamado
+                } else if (filtro === 'SEM STATUS') {
+                    visivel = visivel && statusKey === 'SEM STATUS'
+                } else {
+                    visivel = visivel && statusKey === filtro
+                }
+            }
+
+            linha.style.display = visivel ? '' : 'none'
+            if (visivel) {
+                mostrarContainer = true
+                visiveis[statusKey] = (visiveis[statusKey] || 0) + 1
+                visiveis.TODOS = (visiveis.TODOS || 0) + 1
+                if (isChamado) visiveis.CHAMADO = (visiveis.CHAMADO || 0) + 1
             }
         }
 
-        const container = linha.closest('.linha-master')
-        if (container) container.style.display = visivel ? '' : 'none'
-
-        // --- contagem dos visíveis ---
-        if (visivel) {
-            visiveis[statusKey] = (visiveis[statusKey] || 0) + 1
-            visiveis.TODOS = (visiveis.TODOS || 0) + 1
-            if (isChamado) visiveis.CHAMADO = (visiveis.CHAMADO || 0) + 1
-        }
+        container.style.display = mostrarContainer ? '' : 'none'
     }
 
-    // --- renderiza toolbar ---
+    // --- toolbar ---
     const toolbar = document.getElementById('toolbar')
     toolbar.innerHTML = ''
-
     const tempFluxograma = ['CHAMADO', 'TODOS', ...fluxograma]
     if (listaStatus.has('SEM STATUS') && !tempFluxograma.includes('SEM STATUS'))
         tempFluxograma.push('SEM STATUS')
