@@ -388,15 +388,46 @@ span[name="titulo"] {
     justify-content: center;
 }
 
-.linha {
-    text-align: center;
-    background-color: #d2d2d2;
-    color: #222;
+
+.painel-clientes {
+    min-width: 300px;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    max-height: 70vh;
+    overflow: auto;
+    gap: 5px;
+    margin: 5px;
+}
+
+.painel-clientes::-webkit-scrollbar {
+    display: none;
+}
+
+.linha-clientes {
+    width: 98%;
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 70vw;
-    gap: 1px;
+    justify-content: space-between;
+    border-radius: 3px;
+    padding: 5px;
+    background-color: white;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.linha-clientes label {
+    text-align: left;
+}
+
+.linha-clientes input,
+.linha-clientes select,
+.linha-clientes textarea {
+    cursor: pointer;
+    background-color: #bbbbbb;
+    border-radius: 3px;
+    padding: 5px;
+    border: solid 1px #bbbbbb;
 }
 
 .contornoTabela {

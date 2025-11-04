@@ -272,7 +272,7 @@ async function telaOrcamentos(semOverlay) {
         if (orcamento.origem !== origem) continue
         if (naoArquivados && orcamento.arquivado) continue
         if (!naoArquivados && !orcamento.arquivado) continue
-        if (!meusOrcamentos && orcamento.dados_orcam.analista !== acesso.nome_completo) continue
+        if (!meusOrcamentos && orcamento?.dados_orcam?.analista !== acesso?.nome_completo) continue
 
         idsAtivos.push(idOrcamento)
         criarLinhaOrcamento(idOrcamento, orcamento)

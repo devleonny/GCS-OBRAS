@@ -660,10 +660,10 @@ function overlayAguarde() {
 
     mostrarMenus(false);
 
-    let aguarde = document.getElementById('aguarde');
+    const aguarde = document.getElementById('aguarde');
     if (aguarde) aguarde.remove();
 
-    let elemento = `
+    const elemento = `
     <div id="aguarde" style="
                 display: flex; 
                 align-items: start; 
@@ -2185,10 +2185,11 @@ async function painelClientes() {
 
     const orcamentoBase = baseOrcamento()
     const dados_orcam = orcamentoBase?.dados_orcam || {}
-    dados_clientes = await recuperarDados('dados_clientes') || {}
-    const cliente = dados_clientes?.[dados_orcam?.omie_cliente] || {}
-    let levantamentos = ''
+    let idCliente = dados_orcam?.omie_cliente
+    const overlayBloqueio = orcamentoBase.hierarquia ? true : false
 
+    const cliente = await recuperarDado('dados_clientes', idCliente)
+    let levantamentos = ''
     const parcelas = ["--", "15 dias", "20 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
 
     for (chave in orcamentoBase?.levantamentos || {}) {
@@ -2197,33 +2198,29 @@ async function painelClientes() {
     }
 
     const modelo = (valor1, elemento) => `
-            <div class="linha">
+            <div class="linha-clientes">
                 <label>${valor1}</label>
                 <div style="${horizontal}; gap: 2px;">${elemento}</div>
             </div>
         `
 
     const acumulado = `
+    <div id="cadastroCliente" style="background-color: #d2d2d2; padding: 1rem;">
 
-    <div id="cadastroCliente" style="background-color: #d2d2d2; padding: 2vw;">
+        <div style="${horizontal}; gap: 1px;">
 
-        <div style="${horizontal}; gap: 10px;">
-            <div style="display: flex; flex-direction: column; gap: 10px; align-items: left; margin: 5px;">
-                <div id="acompanhamento_dados_clientes" class="btn" onclick="atualizarBaseClientes()">
-                    <img src="imagens/omie.png">
-                    <label style="cursor: pointer;">Atualizar OMIE Clientes</label>
-                </div>
+            <div id="acompanhamento_dados_clientes" class="btn" onclick="atualizarBaseClientes()">
+                <img src="imagens/omie.png" style="width: 3rem;">
+                <label style="cursor: pointer;">Atualizar OMIE Clientes</label>
             </div>
 
             <div onclick="executarLimparCampos()" class="btn">
-                <img src="imagens/limpar.png" style="width: 2vw;">
+                <img src="imagens/limpar.png" style="width: 2rem;">
                 <label style="cursor: pointer;">Limpar Campos</label>
             </div>
         </div>
 
-        <div style="${vertical}; gap: 5px; align-items: start; margin: 5px;">
-
-            <label>Dados do Cliente</label>
+        <div class="painel-clientes">
 
             ${modelo('Chamado', `
                 <input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" oninput="salvarDadosCliente()" value="${dados_orcam?.contrato || ''}">
@@ -2232,13 +2229,15 @@ async function painelClientes() {
 
             ${modelo('Classificar orçamento na aba de <b>CHAMADO</b>', `<input ${orcamentoBase?.chamado ? 'checked' : ''} onclick="ativarChamado(this)" ${styChek} type="checkbox">`)}
 
-            ${modelo('Cliente', `<span ${dados_orcam.omie_cliente ? `id="${dados_orcam.omie_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'salvarDadosCliente()')">${cliente?.nome || 'Selecione'}</span>`)}
-            
-            ${modelo('CNPJ/CPF', `<span id="cnpj">${cliente?.cnpj || ''}</span>`)}
-            ${modelo('Endereço', `<span id="bairro">${cliente?.bairro || ''}</span>`)}
-            ${modelo('CEP', `<span id="cep">${cliente?.cep || ''}</span>`)}
-            ${modelo('Cidade', `<span id="cidade">${cliente?.cidade || ''}</span>`)}
-            ${modelo('Estado', `<span id="estado">${cliente?.estado || ''}</span>`)}
+            <div style="${vertical}; gap: 5px; width: 100%; position: relative;">
+                ${modelo('Cliente', `<span ${dados_orcam.omie_cliente ? `id="${dados_orcam.omie_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'salvarDadosCliente()')">${cliente?.nome || 'Selecione'}</span>`)}
+                ${modelo('CNPJ/CPF', `<span id="cnpj">${cliente?.cnpj || ''}</span>`)}
+                ${modelo('Endereço', `<span id="bairro">${cliente?.bairro || ''}</span>`)}
+                ${modelo('CEP', `<span id="cep">${cliente?.cep || ''}</span>`)}
+                ${modelo('Cidade', `<span id="cidade">${cliente?.cidade || ''}</span>`)}
+                ${modelo('Estado', `<span id="estado">${cliente?.estado || ''}</span>`)}
+                ${overlayBloqueio ? `<div class="overlay-clientes"></div>` : ''}
+            </div>
 
             ${modelo('Tipo de Frete', `<select id="tipo_de_frete" onchange="salvarDadosCliente()">
                     ${['--', 'CIF', 'FOB'].map(op => `<option ${dados_orcam?.tipo_de_frete == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
@@ -2274,13 +2273,9 @@ async function painelClientes() {
             <label>Quem emite essa nota?</label>
 
             ${modelo('Empresa', `<select id="emissor" oninput="salvarDadosCliente()">
-                    ${['IAC', 'AC SOLUÇÕES', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
+                ${['IAC', 'AC SOLUÇÕES', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
         </div>
 
-        <div style="width: 100%; display: flex; gap: 10px; align-items: end; justify-content: right; margin-top: 5vh;">
-            <label><strong>Data de criação</strong> ou <strong>Alteração</strong></label>
-            <label id="data">${new Date(dados_orcam?.data || new Date()).toLocaleDateString('pt-BR')}</label>
-        </div>
     </div>
     `
 

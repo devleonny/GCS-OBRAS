@@ -54,6 +54,17 @@
   margin-right: 2rem;
 }
 
+.overlay-clientes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 10;
+  border-radius: 3px;
+}
+
 .campo-codigo-composicao {
   display: flex;
   align-items: center;
@@ -327,32 +338,6 @@
   border-radius: 5px;
   padding: 5px;
   margin: 10px;
-}
-
-.linha {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-radius: 3px;
-  padding: 5px;
-  background-color: white;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-}
-
-.linha label {
-  text-align: left;
-
-}
-
-.linha input,
-.linha select,
-.linha textarea {
-  cursor: pointer;
-  background-color: #bbbbbb;
-  border-radius: 3px;
-  padding: 5px;
-  border: solid 1px #bbbbbb;
 }
 
 .resumo {

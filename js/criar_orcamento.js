@@ -165,12 +165,15 @@ async function atualizarToolbar(remover) {
 
 }
 
-function incluirMaster() {
+async function incluirMaster() {
 
     const spanOrcamento = document.querySelector('[name="orcamento"]')
-
+    const orcamentoREF = await recuperarDado('dados_orcamentos', spanOrcamento.id)
     const orcamento = baseOrcamento()
 
+    orcamento.dados_orcam ??= {}
+    orcamento.dados_orcam.omie_cliente = orcamentoREF.dados_orcam.omie_cliente
+    orcamento.dados_orcam.contrato = 'sequencial'
     orcamento.hierarquia = spanOrcamento.id
 
     baseOrcamento(orcamento)
@@ -184,7 +187,9 @@ function removerMaster() {
     spanOrcamento.removeAttribute('id')
 
     const orcamento = baseOrcamento()
-
+    
+    delete orcamento.dados_orcam.contrato
+    delete orcamento.dados_orcam.omie_cliente
     delete orcamento.hierarquia
 
     baseOrcamento(orcamento)
@@ -319,7 +324,7 @@ async function pesquisarNoOrcamento() {
 
 }
 
-function carregarLinhaOrcamento(codigo, produto, codigoMaster) { //29
+function carregarLinhaOrcamento(codigo, produto, codigoMaster) {
 
     const opcoes = ['Dinheiro', 'Porcentagem', 'Venda Direta']
         .map(op => `<option ${produto?.tipo_desconto == op ? 'selected' : ''}>${op}</option>`).join('')
@@ -333,6 +338,10 @@ function carregarLinhaOrcamento(codigo, produto, codigoMaster) { //29
         <div style="${vertical}">
             <span name="descricao">${produto?.descricao || 'N/A'}</span>
             <b><span name="tipo" style="font-size: 0.7rem"></span></b>
+            <div name="descVD" style="${horizontal}; display: none; gap: 2px;">
+                <textarea placeholder="CNPJ" oninput="totalOrcamento()" name="cnpj">${produto?.cnpj || ''}</textarea>
+                <textarea placeholder="RAZÃO SOCIAL" oninput="totalOrcamento()" name="razaoSocial">${produto?.razaoSocial || ''}</textarea>
+            </div>
             <div name="master"></div>
         </div>
 
@@ -496,7 +505,7 @@ async function ativarChamado(input, idOrcamento) {
         if (resposta.mensagem) popup(mensagem(resposta.mensagem), 'Alerta', true)
 
         const linha = document.getElementById(idOrcamento)
-        if(linha) linha.dataset.chamado = input.checked ? 'S' : 'N'
+        if (linha) linha.dataset.chamado = input.checked ? 'S' : 'N'
         filtrarOrcamentos()
         return
     }
@@ -961,7 +970,7 @@ function verificarData(data) {
     return elemento
 }
 
-async function totalOrcamento() { //29
+async function totalOrcamento() {
 
     atualizarToolbar()
 
@@ -1072,7 +1081,7 @@ async function totalOrcamento() { //29
         // Aqui a possibilidade de desconto é tirada do usuário nas situações:
         divDesconto.style.display = (itemSalvo.custo_original || boticario) ? 'none' : 'flex'
 
-        if (valorDesconto.value != '') {
+        if (tipoDesconto.value == 'Venda Direta' || valorDesconto.value != '') {
 
             itemSalvo.desconto = Number(valorDesconto.value)
             itemSalvo.tipo_desconto = tipoDesconto.value
@@ -1154,36 +1163,24 @@ async function totalOrcamento() { //29
         // Soma por Tipo
         totais[refProduto.tipo].valor += totalLinha
 
-        let detalhesVendaDireta = ''
-        if (tipoDesconto.value == 'Venda Direta') {
-            detalhesVendaDireta = `
-                <div style="${horizontal}; gap: 2px; margin-top: 5px;">
-                    <div style="${vertical};">
-                        <span><b>Razão Social</b></span>
-                        <textarea name="razaoSocial" oninput="salvarDetalhes(this)">${itemSalvo?.razaoSocial || ''}</textarea>
-                    </div>
-                    <div style="${vertical};">
-                        <span><b>CNPJ</b></span>
-                        <textarea name="cnpj" oninput="salvarDetalhes(this)">${itemSalvo?.cnpj || ''}</textarea>
-                    </div>
-                </div>
-            `
-        } else {
-            delete itemSalvo.cnpj
-            delete itemSalvo.razaoSocial
-        }
-
         const el = (id) => {
             const elemento = linha.querySelector(`[name="${id}"]`)
             return elemento
         }
 
-        el('descricao').innerHTML = `
-            <div style="${vertical};">
-                <span>${refProduto.descricao}</span>
-                ${detalhesVendaDireta}
-            </div>
-        `
+        const vendaDiretaAtiva = tipoDesconto.value == 'Venda Direta'
+        el('descVD').style.display = vendaDiretaAtiva ? 'flex' : 'none'
+        if (vendaDiretaAtiva) {
+            itemSalvo.cnpj = el('cnpj').value
+            itemSalvo.razaoSocial = el('razaoSocial').value
+        } else {
+            el('cnpj').value = ''
+            el('razaoSocial').value = ''
+            delete itemSalvo.cnpj
+            delete itemSalvo.razaoSocial
+        }
+
+        el('descricao').innerHTML = `<span>${refProduto.descricao}</span>`
         el('medida').textContent = refProduto?.unidade || 'UN'
         el('status').innerHTML = verificarData(precos?.data)
         el('unitario').textContent = dinheiro(valorUnitario)
@@ -1315,21 +1312,7 @@ async function totalOrcamento() { //29
     await tabelaProdutosOrcamentos()
 }
 
-function salvarDetalhes(textarea) {
-
-    const tr = textarea.closest('tr')
-    const codigo = tr.dataset.codigo
-    const name = textarea.getAttribute("name")
-
-    let orcamento = baseOrcamento()
-
-    orcamento.dados_composicoes[codigo][name] = textarea.value
-
-    baseOrcamento(orcamento)
-
-}
-
-async function filtrarPorTipo(tipo) { //29
+async function filtrarPorTipo(tipo) {
 
     tipo = tipo || 'GERAL'
     memoriaFiltro = tipo
