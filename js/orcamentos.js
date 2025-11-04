@@ -144,7 +144,6 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
         linha.dataset._visivel = visivel ? 'S' : 'N' // marca provisoriamente
     }
 
-    // segundo loop: aplica visibilidade considerando o filtro
     for (const [container, info] of containersInfo) {
         const { linhas, temChamado } = info
         let mostrarContainer = false
@@ -154,12 +153,12 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
             const statusKey = status || 'SEM STATUS'
             const chamado = linha.dataset.chamado || 'N'
             const isChamado = chamado === 'S'
-            let visivel = linha.dataset._visivel === 'S'
+            let visivel = linha.dataset._visivel === 'S' // resultado do filtro de texto
 
             if (filtro && filtro !== 'TODOS') {
                 if (filtro === 'CHAMADO') {
-                    // mantém todas as linhas visíveis se o container tiver algum chamado
-                    visivel = temChamado
+                    // mantém as linhas do container do chamado, mas respeita busca textual
+                    visivel = temChamado && visivel
                 } else if (filtro === 'SEM STATUS') {
                     visivel = visivel && statusKey === 'SEM STATUS'
                 } else {
@@ -176,6 +175,7 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
             }
         }
 
+        // container só aparece se alguma linha dentro dele estiver visível
         container.style.display = mostrarContainer ? '' : 'none'
     }
 
