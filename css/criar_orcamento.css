@@ -349,7 +349,7 @@
 .linha select,
 .linha textarea {
   cursor: pointer;
-  background-color: #d1d1d1;
+  background-color: #bbbbbb;
   border-radius: 3px;
   padding: 5px;
   border: solid 1px #bbbbbb;

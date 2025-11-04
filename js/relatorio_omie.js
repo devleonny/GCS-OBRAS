@@ -234,7 +234,7 @@ function atualizarResumo() {
 
     const base = dadosFiltrados?.length ? dadosFiltrados : Object.entries(dados_relatorio)
     if (!base.length) {
-        divResumo.innerHTML = '<em>Nenhum dado filtrado</em>'
+        divResumo.innerHTML = ''
         return
     }
 

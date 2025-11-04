@@ -86,13 +86,12 @@ async function telaVeiculos() {
         .join('')
 
     let ths = '', tsh = ''
-    const colunas = ['Usuário & Data', 'Veículo', 'Valor & Data Pagamento', 'Realizado', 'Cartão', 'Comentário', 'Editar']
+    const colunas = ['Usuário & Data', 'Veículo', 'Data Pagamento', 'Valor', 'Realizado', 'Cartão', 'Comentário', 'Editar']
         .map((coluna, i) => {
-
 
             if (coluna == 'Editar' || coluna == 'Anexos') {
                 tsh += '<th style="background-color: white;"></th>'
-            } else if (coluna == 'Valor & Data Pagamento') {
+            } else if (coluna == 'Data Pagamento') {
                 tsh += `
                     <th style="background-color: white;">
                         <input onchange="pesquisarEmVeiculos()" type="date" name="inicio">
@@ -130,7 +129,7 @@ async function telaVeiculos() {
                 <div style="position: absolute; left: 0;">${tabelaAux('motorista')}</div>
                 <div style="position: absolute; transform: translateX(300px);">${tabelaAux('veículo')}</div>
             </div>
-            <div style="${vertical}; margin-top: 5rem;">
+            <div style="${vertical}; margin-top: 5rem; width: 100%;">
                 <div class="painelBotoes" style="justify-content: end; margin-right: 2rem;">
                     <div class="total-tabela">
                         <label>Total de pagamento <b>Realizado</b></label>
@@ -138,7 +137,7 @@ async function telaVeiculos() {
                     </div>
                 </div>
                 <div class="div-tabela">
-                    <table class="tabela" style="display: table-row;">
+                    <table class="tabela" style="width: 100%;">
                         <thead>
                             <tr>${ths}</tr>
                             <tr>${tsh}</tr>
@@ -168,10 +167,10 @@ async function telaVeiculos() {
 }
 
 function mostrarTabelaAux(img) {
-  const listagem = img.parentElement.nextElementSibling
-  const alturaAtual = listagem.style.height
+    const listagem = img.parentElement.nextElementSibling
+    const alturaAtual = listagem.style.height
 
-  listagem.style.height = alturaAtual === '0px' || !alturaAtual ? 'max-content' : '0px'
+    listagem.style.height = alturaAtual === '0px' || !alturaAtual ? 'max-content' : '0px'
 }
 
 function criarLinhaVeiculo({ custo, nome, veiculo, idCusto }) {
@@ -212,11 +211,11 @@ function criarLinhaVeiculo({ custo, nome, veiculo, idCusto }) {
 
         <td>
             <input name="datas" style="display: none" value="${custo.data_pagamento}">
+            <label>${conversorData(custo.data_pagamento)}</label>
+        </td>
 
-            <div style="display: flex; align-items: start; justify-content: start; flex-direction: column;">
-                <label><strong>${dinheiro(custo.custo_total)}</strong></label>
-                <label>${conversorData(custo.data_pagamento)}</label>
-            </div>
+        <td>
+            <label style="white-space: nowrap;">${dinheiro(custo.custo_total)}</label>
         </td>
 
         <td>
@@ -361,7 +360,7 @@ async function excluirCusto(idCusto) {
     await deletarDB('custo_veiculos', idCusto)
     deletar(`custo_veiculos/${idCusto}`)
     const linha = document.getElementById(idCusto)
-    if(linha) linha.remove()
+    if (linha) linha.remove()
     removerOverlay()
 
 }
@@ -660,5 +659,35 @@ async function salvarAnexoCusto(input) {
     })
 
     await inserirDados(custo_veiculos, 'custo_veiculos')
+
+}
+
+async function veiculosExcel() {
+
+    const tabela = document.querySelector('.tabela')
+    if (!tabela) return popup(mensagem('Tabela não encontrada'), 'Alerta', true)
+
+    const workbook = new ExcelJS.Workbook()
+    const planilha = workbook.addWorksheet('Dados')
+
+    // Captura cabeçalho
+    const cabecalhos = [...tabela.querySelectorAll('thead th')].map(th => th.innerText.trim())
+    planilha.addRow(cabecalhos)
+
+    // Captura linhas
+    const linhas = tabela.querySelectorAll('tbody tr')
+    linhas.forEach(tr => {
+        const dados = [...tr.querySelectorAll('td')].map(td => td.innerText.trim())
+        planilha.addRow(dados)
+    })
+
+    // Gera o arquivo Excel
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `veiculos.xlsx`
+    link.click()
 
 }

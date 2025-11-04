@@ -15,6 +15,7 @@ const vertical = `display: flex; align-items: start; justify-content: start; fle
 let overlayTimeout;
 let semOverlay = false
 
+const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
 const modelo = (valor1, valor2) => `
         <div class="modelo">
             <label>${valor1}</label>
@@ -2226,9 +2227,10 @@ async function painelClientes() {
 
             ${modelo('Chamado', `
                 <input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" oninput="salvarDadosCliente()" value="${dados_orcam?.contrato || ''}">
-                <input id="chamado_off" type="checkbox" onchange="salvarDadosCliente()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
-                <label>Sem Chamado</label>
-                `)}
+                <input ${styChek} id="chamado_off" type="checkbox" onchange="salvarDadosCliente()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
+                <label>Sem Chamado</label>`)}
+
+            ${modelo('Classificar orçamento na aba de <b>CHAMADO</b>', `<input ${orcamentoBase?.chamado ? 'checked' : ''} onclick="ativarChamado(this)" ${styChek} type="checkbox">`)}
 
             ${modelo('Cliente', `<span ${dados_orcam.omie_cliente ? `id="${dados_orcam.omie_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'salvarDadosCliente()')">${cliente?.nome || 'Selecione'}</span>`)}
             
@@ -2629,24 +2631,19 @@ async function salvarCliente() {
 
 }
 
-async function vincularAPI(idMaster, idSlave) {
-
-    return new Promise((resolve, reject) => {
-        fetch(`${api}/vincular`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+async function vincularAPI({ idMaster, idSlave }) {
+    try {
+        const response = await fetch(`${api}/vincular`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ idMaster, idSlave })
         })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-                }
-                return response.json()
-            })
-            .then(data => {
-                resolve(data)
-            })
-            .catch(error => reject({ mensagem: error }))
 
-    })
+        if (!response.ok)
+            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
+
+        return await response.json()
+    } catch (error) {
+        return { mensagem: error.messagem || error.mensage || error }
+    }
 }
