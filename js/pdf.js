@@ -219,7 +219,7 @@ async function preencher() {
         tds[2] = `
         <td>
             <div style="${vertical}; text-align: left;">
-                ${item?.razaoSocial ? `
+                ${item?.tipo_desconto == 'Venda Direta' ? `
                     <div style="${vertical}; gap: 2px; text-align: left;">
                         <label><b>Venda Direta</b></label>
                         <label><b>Razão Social</b> ${item?.razaoSocial || '--'}</label>
