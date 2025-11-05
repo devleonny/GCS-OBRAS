@@ -180,7 +180,7 @@ async function atualizarToolbar(remover) {
             <img src="imagens/avanco.png" style="width: 1.5rem;">
 
             ${modelo('Revisões', `
-                ${revisoes.length !== 0 ? `<select onchange="alterarRevisao()" name="revisao" class="opcoes">${revisoes}</select>`: ''}
+                ${revisoes.length !== 0 ? `<select onchange="alterarRevisao()" name="revisao" class="opcoes">${revisoes}</select>` : ''}
                 <img src="imagens/baixar.png" onclick="salvarRevisao()" style="width: 1.5rem;">
                 ${revisoes.length !== 0 ? `<img src="imagens/cancel.png" onclick="excluirRevisao()" style="width: 1.5rem;">` : ''}
             `)}
@@ -564,6 +564,9 @@ async function enviarDadosOrcamento() {
 
     let orcamentoBase = baseOrcamento()
     orcamentoBase.origem = origem
+
+    // Salvar o usuário na primeira vez apenas;
+    if (!orcamentoBase.usuario) orcamentoBase.usuario = acesso.usuario
 
     if (!orcamentoBase.dados_orcam) {
         return popup(mensagem('Preencha os dados do Cliente'), 'Alerta')

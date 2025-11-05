@@ -2276,7 +2276,7 @@ async function painelClientes() {
 
             <label>Dados do Analista</label>
 
-            ${modelo('Analista', `<span id="analista">${dados_orcam?.analista || acesso.nome_completo}</span>`)}
+            ${modelo('Analista', `<span id="analista" oninput="salvarContatos(this)" contentEditable="true">${dados_orcam?.analista || acesso.nome_completo}</span>`)}
             ${modelo('E-mail', `<span id="email_analista" oninput="salvarContatos(this)" contentEditable="true">${dados_orcam?.email_analista || acesso.email}</span>`)}
             ${modelo('Telefone', `<span id="telefone_analista" oninput="salvarContatos(this)" contentEditable="true">${dados_orcam?.telefone_analista || acesso.telefone}</span>`)}
 

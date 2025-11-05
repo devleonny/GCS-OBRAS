@@ -407,7 +407,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         ${cel(`${cliente?.cidade || ''}`)}
         ${cel(`
             <div style="${vertical}">
-                <span>${dados_orcam?.analista || '--'}</span>
+                <span>${orcamento?.usuario || '--'}</span>
                 <span>${responsaveis}</span>
             </div>
         `)}
