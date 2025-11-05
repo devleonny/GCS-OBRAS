@@ -71,7 +71,6 @@ async function confirmarExclusaoOrcamento() {
 async function telaCriarOrcamento() {
 
     funcaoTela = 'telaCriarOrcamento'
-    mostrarMenus(false)
     modo = ''
 
     const modelo = (texto, img) => `
@@ -148,20 +147,132 @@ async function atualizarToolbar(remover) {
     const idMaster = orcamentoBase?.hierarquia
     const orcamentoMaster = await recuperarDado('dados_orcamentos', idMaster)
 
+    const modelo = (titulo, elemento) => `
+        <div style="${vertical};">
+            <span style="font-size: 0.7rem; color: white;">${titulo}</span>
+            <div style="${horizontal}; gap: 5px;">
+                ${elemento}
+            </div>
+        </div>
+    `
+
+    const revisoes = Object.keys(orcamentoBase?.revisoes?.historico || {})
+        .map(R => `<option ${orcamentoBase?.revisoes?.atual == R ? 'selected' : ''}>${R}</option>`)
+        .join('')
+
     titulo.innerHTML = `
         <div style="${horizontal}; gap: 0.5rem;">
             <img src="${edicao ? 'gifs/atencao.gif' : 'imagens/concluido.png'}" style="width: 2rem;">
             <span>${edicao ? `Editando: <b>${contrato}</b>` : 'Novo Orçamento'}</span>
+
             <img src="imagens/avanco.png" style="width: 1.5rem;">
+
+            ${modelo('Chamado Original', `
             <span class="opcoes"
-            name="orcamento"
-            ${idMaster ? `id="${idMaster}"` : ''}
-            onclick="cxOpcoes('orcamento', 'dados_orcamentos', ['dados_orcam/contrato', 'dados_orcam/analista', 'total_geral[dinheiro]'], 'incluirMaster()')">
-                ${orcamentoMaster?.dados_orcam?.contrato || 'Selecione'}
+                name="orcamento"
+                ${idMaster ? `id="${idMaster}"` : ''}
+                onclick="cxOpcoes('orcamento', 'dados_orcamentos', ['dados_orcam/contrato', 'dados_orcam/analista', 'total_geral[dinheiro]'], 'incluirMaster()')">
+                    ${orcamentoMaster?.dados_orcam?.contrato || 'Selecione'}
             </span>
             <img src="imagens/cancel.png" style="width: 1.5rem;" onclick="removerMaster()">
+            `)}
+
+            <img src="imagens/avanco.png" style="width: 1.5rem;">
+
+            ${modelo('Revisões', `
+                ${revisoes.length !== 0 ? `<select onchange="alterarRevisao()" name="revisao" class="opcoes">${revisoes}</select>`: ''}
+                <img src="imagens/baixar.png" onclick="salvarRevisao()" style="width: 1.5rem;">
+                ${revisoes.length !== 0 ? `<img src="imagens/cancel.png" onclick="excluirRevisao()" style="width: 1.5rem;">` : ''}
+            `)}
+
         </div>
     `
+}
+
+function excluirRevisao() {
+    const revisao = document.querySelector('[name="revisao"]').value
+
+    const acumulado = `
+        <div style="${horizontal}; background-color: #d2d2d2; padding: 2rem;">
+            <span>Deseja excluir a <b>${revisao}</b>?
+            <button onclick="confirmarExclusaoRevisao()">Confirmar</button>
+        </div>
+    `
+    popup(acumulado, 'Tem certeza?', true)
+}
+
+function confirmarExclusaoRevisao() {
+    const revisao = document.querySelector('[name="revisao"]').value
+    const orcamento = baseOrcamento()
+
+    delete orcamento.revisoes.historico[revisao]
+
+    const revisoes = Object.keys(orcamento.revisoes?.historico || {})
+        .map(r => Number(r.replace('R', '')))
+        .sort((a, b) => a - b)
+
+    // determina a nova revisão ativa
+    const numAtual = Number(revisao.replace('R', ''))
+    let anterior = revisoes
+        .filter(n => n < numAtual)
+        .pop()
+
+    // se não houver anterior, tenta próxima; se não houver nenhuma, zera
+    if (!anterior) anterior = revisoes.find(n => n > numAtual)
+    orcamento.revisoes.atual = anterior ? `R${anterior}` : null
+
+    baseOrcamento(orcamento)
+
+    atualizarToolbar()
+    reiniciarLinhas()
+
+    removerPopup()
+}
+
+async function alterarRevisao() {
+    const revisao = document.querySelector('[name="revisao"]').value
+
+    const orcamento = baseOrcamento()
+    orcamento.revisoes.atual = revisao
+    orcamento.esquema_composicoes = orcamento.revisoes.historico[revisao]
+
+    baseOrcamento(orcamento)
+
+    await reiniciarLinhas()
+}
+
+async function salvarRevisao() {
+    const orcamento = baseOrcamento()
+
+    orcamento.revisoes ??= {}
+    orcamento.revisoes.historico ??= {}
+
+    const codsRevisoes = Object.keys(orcamento.revisoes.historico)
+        .map(r => Number(r.replace('R', '')))
+        .sort((a, b) => a - b)
+
+    let proximoNumero = 1
+    for (const n of codsRevisoes) {
+        if (n !== proximoNumero) break
+        proximoNumero++
+    }
+
+    const numeroRevisao = `R${proximoNumero}`
+
+    orcamento.revisoes.atual = numeroRevisao
+    orcamento.revisoes.historico[numeroRevisao] = orcamento.esquema_composicoes
+
+    baseOrcamento(orcamento)
+    await atualizarToolbar()
+}
+
+async function reiniciarLinhas() {
+
+    // Resetar as linhas;
+    const bodyOrcamento = document.getElementById('bodyOrcamento')
+    if (bodyOrcamento) bodyOrcamento.innerHTML = ''
+
+    await carregarTabelasOrcamento()
 
 }
 
@@ -187,7 +298,7 @@ function removerMaster() {
     spanOrcamento.removeAttribute('id')
 
     const orcamento = baseOrcamento()
-    
+
     delete orcamento.dados_orcam.contrato
     delete orcamento.dados_orcam.omie_cliente
     delete orcamento.hierarquia
@@ -1247,6 +1358,13 @@ async function totalOrcamento() {
     descontoAcumulado > 0 ? orcamentoBase.total_desconto = descontoAcumulado : delete orcamentoBase.total_desconto
     orcamentoBase.total_geral = totais.GERAL.valor
     orcamentoBase.total_bruto = totais.GERAL.bruto
+
+    // Salvar a revisão, se existirem;
+    const selectRevisao = document.querySelector('[name="revisao"]')
+    if (selectRevisao && selectRevisao.value !== '' && orcamentoBase.revisoes) {
+        const revisao = selectRevisao.value
+        orcamentoBase.revisoes.historico[revisao] = orcamentoBase.esquema_composicoes
+    }
 
     baseOrcamento(orcamentoBase)
 

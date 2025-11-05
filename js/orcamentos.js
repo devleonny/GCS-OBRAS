@@ -361,10 +361,14 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
     const cel = (elementos) => `<div class="celula">${elementos}</div>`
 
+    const revisao = orcamento?.revisoes?.atual || null
+    const labelRevisao = revisao ? `<label class="etiqueta-revisao">${revisao}</label>` : ''
+
     const numOrcamento = `
         <div style="${horizontal}; gap: 5px;">
             <span><b>${dados_orcam.contrato}</b></span>
             <div name="icone"></div>
+            ${labelRevisao}
         </div>
     `
     const orcamentoMaster = dados_orcamentos?.[orcamento?.hierarquia] || {}
@@ -493,7 +497,6 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
         document.getElementById('linhas').insertAdjacentHTML('afterbegin', novaLinha)
     }
-
 }
 
 async function painelAlteracaoCliente(idOrcamento) {

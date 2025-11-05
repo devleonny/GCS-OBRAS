@@ -1560,7 +1560,15 @@ async function painelUsuarios() {
     const divOnline = document.querySelector('.divOnline')
     if (divOnline) return divOnline.innerHTML = info
 
-    popup(`<div class="divOnline">${info}</div>`, 'Usuários', true)
+    const acumulado = `
+        <div class="conteinerOnline">
+            <div class="divOnline">
+                ${info}
+            </div>
+        </div>
+    `
+
+    popup(acumulado, 'Usuários', true)
 }
 
 async function gerarPdfOnline(htmlString, nome) {

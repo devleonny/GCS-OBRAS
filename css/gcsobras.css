@@ -221,11 +221,18 @@ span[name="titulo"] {
     ;
 }
 
+.conteinerOnline {
+    background-color: #d2d2d2;
+    max-height: 70vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
 .divOnline {
+    margin-bottom: 1rem;
     gap: 2px;
     width: max-content;
     padding: 1rem;
-    background-color: #d2d2d2;
     display: flex;
     align-items: start;
     justify-content: start;
@@ -424,10 +431,19 @@ span[name="titulo"] {
 .linha-clientes select,
 .linha-clientes textarea {
     cursor: pointer;
-    background-color: #bbbbbb;
+    background-color: #e1e1e1;
     border-radius: 3px;
     padding: 5px;
     border: solid 1px #bbbbbb;
+}
+
+.etiqueta-revisao {
+    cursor: pointer;
+    color: white;
+    border-radius: 3px;
+    border: solid 1px #ff0000;
+    background-color: #ff0000b0;
+    padding: 0 3px 0 3px;
 }
 
 .contornoTabela {
