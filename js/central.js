@@ -434,6 +434,8 @@ async function mudarStatus(select) {
 
 function balaoUsuario(st, texto) {
 
+    if (document.title == 'PDF') return
+
     let msg = document.querySelector('.popup-mensagem')
     if (msg) msg.remove()
 
