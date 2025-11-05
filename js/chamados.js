@@ -103,7 +103,7 @@ async function telaChamados() {
     })
 
     const acumulado = `
-        <div id="toolbar"></div>
+        <div style="margin-left: 10vw;" id="toolbar"></div>
         <div style="${vertical}; width: 95vw;">
             <div class="topo-tabela"></div>
             <div class="div-tabela">
