@@ -11,10 +11,11 @@
 }
 
 .rodape-formulario {
+    color: white;
     display: flex;
     align-items: center;
     justify-content: start;
-    background-color: #a0a0a0ff;
+    background-color: #3b444c;
     gap: 0.5rem;
 }
 

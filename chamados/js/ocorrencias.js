@@ -317,8 +317,6 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
     const status = correcoes[ocorrencia?.tipoCorrecao]?.nome || 'Não analisada'
 
-    console.log(ocorrencia)
-
     const corAssinatura = ocorrencia.assinatura ? '#008000' : '#d30000'
 
     const partes = `
@@ -661,6 +659,10 @@ async function baixarOcorrencias() {
                 return response.json();
             })
             .then(data => {
+                if (data.mensagem) {
+                    popup(mensagem(data.mensagem), 'Alerta', true)
+                    reject()
+                }
                 resolve(data);
             })
             .catch(error => reject(error));
@@ -728,7 +730,7 @@ async function formularioOcorrencia(idOcorrencia) {
 
 }
 
-async function formularioCorrecao(idOcorrencia, idCorrecao) {
+async function formularioCorrecao(idOcorrencia, idCorrecao) {//29
 
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
@@ -739,9 +741,10 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
     const acumulado = `
         <div class="painel-cadastro">
-
+            
+            ${modelo('Data', `<input type="date" value="${correcao?.dtInformada || ''}">`)}
             ${modelo('Status da Correção', labelBotao('tipoCorrecao', 'correcoes', correcao?.tipoCorrecao, correcoes[correcao?.tipoCorrecao]?.nome))}
-            ${modelo('Executor', labelBotao('executor', 'dados_setores', correcao?.executor || acesso.usuario, correcao?.executor || acesso.usuario))}
+            ${modelo('Quem fará a atividade?', labelBotao('executor', 'dados_setores', correcao?.executor || acesso.usuario, correcao?.executor || acesso.usuario))}
             ${modelo('Descrição', `<textarea style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>`)}
 
             <div style="${horizontal}; gap: 5px;">
@@ -787,7 +790,7 @@ function dispararTimer() {
 
     if (timer) {
         setInterval(() => {
-            timer.textContent = new Date().toLocaleString('pt-BR')
+            timer.textContent = new Date().toLocaleTimeString('pt-BR')
         }, 1000)
     }
 }
@@ -846,16 +849,14 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
         return coletarAssinatura(idOcorrencia)
     }
 
-    if (isAndroid) {
-        const local = await capturarLocalizacao()
-        if (!local) return popup(mensagem(`É necessário autorizar o uso do GPS`), 'Alerta', true)
+    const local = await capturarLocalizacao()
+    if (!local) return popup(mensagem(`É necessário autorizar o uso do GPS`), 'Alerta', true)
 
-        if (!correcao.datas) correcao.datas = {}
-        const data = new Date().getTime()
-        correcao.datas[data] = {
-            latitude: local.latitude,
-            longitude: local.longitude
-        }
+    if (!correcao.datas) correcao.datas = {}
+    const data = new Date().getTime()
+    correcao.datas[data] = {
+        latitude: local.latitude,
+        longitude: local.longitude
     }
 
     correcao.anexos = {
@@ -915,7 +916,7 @@ async function salvarOcorrencia(idOcorrencia) {
 
     overlayAguarde()
 
-    const campos = ['empresa', 'unidade', 'sistema', 'prioridade', 'tipo']
+    const campos = ['empresa', 'unidade', 'sistema', 'prioridade', 'tipo', 'dtInformada']
     let ocorrencia = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : {}
 
     for (const campo of campos) {

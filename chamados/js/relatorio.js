@@ -73,7 +73,7 @@ async function telaRelatorio() {
 
     for (const [idOcorrencia, ocorrencia] of Object.entries(dados_ocorrencias).reverse()) criarLinhaRelatorio(idOcorrencia, ocorrencia)
 
-    calularResumo()
+    calcularResumo()
     mostrarMenus(false)
 
 }
@@ -172,9 +172,8 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
     }
 }
 
-function calularResumo() {
-
-    let totais = {
+function calcularResumo() {
+    const totais = {
         totalChamados: 0,
         finalizados: 0,
         emAberto: 0,
@@ -185,20 +184,19 @@ function calularResumo() {
     const trs = body.querySelectorAll('tr')
 
     for (const tr of trs) {
-
         if (tr.style.display == 'none') continue
 
         const tds = tr.querySelectorAll('td')
         const dias = Number(tds[7].textContent)
-        const dtCorrecao = tds[6].textContent
+        const solucionado = tds[3].textContent == 'Solucionada'
 
         totais.totalChamados++
 
-        if (dias < 0) {
-            totais.emAtraso++
-        } else if (dtCorrecao !== '') {
+        if (solucionado) {
             totais.finalizados++
-        } else if (dtCorrecao == '') {
+        } else if (dias < 0) {
+            totais.emAtraso++
+        } else {
             totais.emAberto++
         }
     }
@@ -209,7 +207,6 @@ function calularResumo() {
         if (el) el.textContent = quantidade
         if (elPor) elPor.textContent = quantidade == 0 ? '0%' : `${((quantidade / totais.totalChamados) * 100).toFixed(0)}%`
     }
-
 }
 
 async function abrirCorrecaoRelatorio(idOcorrencia) {

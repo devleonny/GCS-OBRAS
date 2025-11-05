@@ -55,23 +55,26 @@ function esquemaLinhas(base, id) {
 
     return esquema?.[base] || esquema.default
 }
+
 const modelo = (valor1, valor2) => `
-        <div style="gap: 3px; display: flex; flex-direction: column; align-items: start; margin-bottom: 5px; width: 100%;">
-            <label><strong>${valor1}</strong></label>
-            <div style="width: 100%; text-align: left;">${valor2}</div>
-        </div>
-        `
+    <div style="${horizontal}; gap: 1rem; margin-bottom: 5px; width: 100%;">
+        <label style="width: 30%; text-align: right;"><b>${valor1}</b></label>
+        <div style="width: 70%; text-align: left;">${valor2}</div>
+    </div>`
+
 const modeloCampos = (valor1, elemento) => `
     <div style="${horizontal}; justify-content: start; gap: 5px;">
         <label><b>${valor1}</b></label>
         <div style="text-align: justify; padding-right: 1vw;">${elemento}</div>
     </div>`
+
 const botao = (texto, funcao, bgColor) => `<button style="background-color: ${bgColor}" onclick="${funcao}">${texto}</button>`
+
 const botaoImg = (img, funcao) => `
     <div class="botaoImg">
         <img src="imagens/${img}.png" onclick="${funcao}">
-    </div>
-`
+    </div>`
+
 const dtFormatada = (data) => {
     if (!data) return '--'
     const [ano, mes, dia] = data.split('-')
@@ -191,10 +194,9 @@ function solicitarPermissoes() {
     });
 }
 
-
 function exibirSenha(img) {
 
-    let inputSenha = img.previousElementSibling
+    const inputSenha = img.previousElementSibling
     const atual = inputSenha.type == 'password'
     inputSenha.type = atual ? 'text' : 'password'
     img.src = `imagens/${atual ? 'olhoAberto' : 'olhoFechado'}.png`
@@ -260,7 +262,7 @@ function popup(elementoHTML, titulo, naoRemoverAnteriores) {
                 <div class="toolbarPopup">
 
                     <span style="width: 90%;">${titulo || 'Popup'}</span>
-                    <label style="width: 10%" onclick="removerPopup()">×</label>
+                    <label style="width: 10%; font-size: 1.8rem;" onclick="removerPopup()">×</label>
 
                 </div>
                 
@@ -373,7 +375,7 @@ async function telaPrincipal(reset) {
     // Após atualização;
     acesso = await recuperarDado('dados_setores', acesso.usuario) || {}
 
-    let menus = {
+    const menus = {
         'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
         'Abertos': { id: 'abertos', img: 'configuracoes', funcao: 'telaOcorrencias(true)', proibidos: [] },
         'Solucionados': { id: 'solucionados', img: 'configuracoes', funcao: 'telaOcorrencias(false)', proibidos: [] },
