@@ -916,11 +916,10 @@ async function pesquisarProdutos(chave, pesquisa) {
 
 async function converterEsquema() {
 
-    new Promise(resolve => {
+    return new Promise(resolve => {
 
         let orcamento = baseOrcamento()
 
-        // Fiz uma cópia do esquema pois as linhas abaixo estavam refletindo as mudanças em ambos os objetos;
         const copiaEsquema = JSON.parse(JSON.stringify(orcamento.esquema_composicoes || {}))
         let totaisSlaves = {}
         let composicoes = {}
@@ -934,10 +933,10 @@ async function converterEsquema() {
                 const item = totaisSlaves[codigoSlave]
 
                 if (dadosSlave.tipo_desconto) {
-                    const desconto = dadosSlave.tipo_desconto == 'Dinheiro'
+                    const desconto = dadosSlave.tipo_desconto.toLowerCase() === 'dinheiro'
                         ? dadosSlave.desconto
                         : ((dadosSlave.desconto / 100) * dadosSlave.custo) * dadosSlave.qtde
-                    item.desconto += desconto
+                    item.desconto += desconto || 0
                 }
 
                 item.qtde += dadosSlave.qtde
@@ -950,25 +949,21 @@ async function converterEsquema() {
             delete composicoes[codigo].agrupamento
         }
 
-        // Unificação dos slaves: (total deles / qtde), total do desconto em R$ e tipo de desconto em Dinheiro;
+        // aplica o desconto acumulado em dinheiro nos itens principais
         for (const [codigo, dados] of Object.entries(totaisSlaves)) {
             const item = composicoes[codigo]
+            if (!item) continue
+
             item.custo = dados.total / dados.qtde
             item.qtde = dados.qtde
-
-            if (item.tipo_desconto) {
-                item.tipo_desconto = 'Dinheiro'
-                item.desconto = dados.desconto
-            }
+            item.tipo_desconto = 'Dinheiro'
+            item.desconto = dados.desconto
         }
 
         orcamento.dados_composicoes = composicoes
-
         baseOrcamento(orcamento)
-
         resolve()
     })
-
 }
 
 function verificarData(data) {
