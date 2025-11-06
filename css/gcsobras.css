@@ -1054,20 +1054,16 @@ select {
     justify-content: center;
 }
 
-.divToolbar label {
-    padding: 10px;
-
+.contador {
+    background-color: #097fe6;
+    color: white;
+    border-radius: 3px;
+    font-size: 1.2rem;
+    padding: 5px 2rem 5px 2rem;
 }
 
-h1 {
-    background-color: white;
-    font-size: 2.4em;
-    text-align: center;
-    width: max-content;
+.divToolbar label {
     padding: 10px;
-    color: #151749;
-    border: 1px solid white;
-    border-radius: 5px;
 }
 
 button {
@@ -1972,6 +1968,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 .tabela th {
+    font-weight: lighter;
     border: solid 1px #d2d2d2;
     color: #222;
     padding: 8px;

@@ -994,6 +994,10 @@ async function salvarPreco(codigo, lpu, cotacao) {
     await abrirHistoricoPrecos(codigo, lpu);
     enviar(`dados_composicoes/${codigo}/${lpu}/historico/${cotacao}`, historico[cotacao])
 
+    // Caso a tela de preços desatualizados esteja aberta;
+    const tabelaPrecosDesatualizados = document.getElementById('tabelaPrecosDesatualizados')
+    if(tabelaPrecosDesatualizados) precosDesatualizados()
+
 }
 
 function remover_esta_linha(elemento) {
@@ -1384,51 +1388,80 @@ function passou60Dias(dataTexto) {
 async function precosDesatualizados() {
 
     const tabela = 'lpu hope'
-
+    let contador = 0
     const dados_composicoes = await recuperarDados('dados_composicoes')
-    const colunas = ['Código', 'Descrição', 'Data', 'Fornecedor', 'Preço', 'Ver']
+    const colunas = ['Código', 'Descrição', 'Data', 'Fornecedor', 'tipo', 'Preço', 'Ver']
     const acumulado = `
-        <div id="precosDesatualizados" class="borda-tabela">
-            <div class="topo-tabela"></div>
-            <div class="div-tabela">
-                <table class="tabela" id="tabela_composicoes">
-                    <thead>
-                        <tr>${colunas.map(th => `<th>${th}</th>`).join('')}</tr>
-                    </thead>
-                    <tbody id="linhasPrecos"></tbody>
-                </table>
+        <div style="${vertical}; background-color: #d2d2d2; padding: 2rem;">
+
+            <div style="${horizontal}; gap: 1rem;">
+                <span class="contador" id="totalItens"></span>
+                <span style="font-size: 1.5rem;">Produtos com mais de <b>60 dias</b> sem atualização</span>
             </div>
-            <div class="rodapeTabela"></div>
+
+            <hr>
+
+            <span style="${horizontal}">Clique no ícone <img src="imagens/atualizar3.png" style="padding: 5px; width: 1.5rem"> para manter o preço por mais 60 dias</span>
+
+            <hr>
+
+            <div id="tabelaPrecosDesatualizados" class="borda-tabela">
+                <div class="topo-tabela"></div>
+                <div class="div-tabela">
+                    <table class="tabela" id="tabela_composicoes">
+                        <thead>
+                            <tr>${colunas.map(th => `<th>${th}</th>`).join('')}</tr>
+                        </thead>
+                        <tbody id="linhasPrecos"></tbody>
+                    </table>
+                </div>
+                <div class="rodapeTabela"></div>
+            </div>
         </div>
     `
 
-    const precosDesatualizados = document.getElementById('precosDesatualizados')
-    if (!precosDesatualizados) popup(acumulado, 'Preços Desatualizados', true)
+    const tabelaPrecosDesatualizados = document.getElementById('tabelaPrecosDesatualizados')
+    if (!tabelaPrecosDesatualizados) popup(acumulado, 'Preços Desatualizados', true)
 
-    
     const linhasPrecos = document.getElementById('linhasPrecos')
 
     for (const [codigo, produto] of Object.entries(dados_composicoes)) {
 
+        const trExistente = document.getElementById(`des_${codigo}`)
         const historico = produto?.[tabela]?.historico || {}
         const ativo = produto?.[tabela]?.ativo || ''
         const preco = historico?.[ativo] || null
-        if (!preco) continue
+        if (!preco) {
+            if (trExistente) trExistente.remove()
+            continue
+        }
 
         const resposta = passou60Dias(preco?.data)
-        if (!resposta) continue
+        if (!resposta) {
+            if (trExistente) trExistente.remove()
+            continue
+        }
 
         const tds = `
             <td>${codigo}</td>
-            <td>${1}</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
+            <td style="text-align: left; max-width: 200px;">${produto.descricao}</td>
+            <td>
+                <div style="${horizontal}; justify-content: space-between; width: 100%; gap: 5px;">
+                    <span>${preco?.data.split(',')[0]}</span>
+                    <img onclick="confirmarAtualizarData('${tabela}', '${codigo}')" src="imagens/atualizar3.png" style="width: 1.5rem;">
+                </div>
+            </td>
+            <td>${preco?.fornecedor || '--'}</td>
+            <td>${produto.tipo}</td>
+            <td>${dinheiro(preco.valor)}</td>
+            <td>
+                <img onclick="abrirHistoricoPrecos('${codigo}', '${tabela}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">
+            </td>
         `
 
-        const trExistente = document.getElementById(`des_${codigo}`)
-        if(trExistente) {
+        contador++
+
+        if (trExistente) {
             trExistente.innerHTML = tds
             continue
         }
@@ -1437,5 +1470,46 @@ async function precosDesatualizados() {
 
     }
 
+    const totalItens = document.getElementById('totalItens')
+    if (totalItens) totalItens.textContent = contador
+
+}
+
+async function confirmarAtualizarData(tabela, codigo) {
+
+    const produto = await recuperarDado('dados_composicoes', codigo)
+
+    const acumulado = `
+        <div style="${vertical}; padding: 2rem; background-color: #d2d2d2;">
+            <span>${produto.descricao}</span>
+            <hr>
+            <div style="${horizontal}; gap: 1rem;">
+                <span>Manter o preço por mais 60 dias?</span>
+                <button onclick="manterPreco('${tabela}', '${codigo}')">Confirmar</button>
+            </div>
+        </div>
+    `
+
+    popup(acumulado, 'Manter preço', true)
+
+}
+
+async function manterPreco(tabela, codigo) {
+
+    removerPopup()
+    overlayAguarde()
+
+    const produto = await recuperarDado('dados_composicoes', codigo)
+    const ativo = produto[tabela].ativo
+    const agora = new Date().toLocaleString('pt-BR')
+    produto[tabela].historico[ativo].data = agora
+    produto[tabela].historico[ativo].usuario = acesso.usuario
+
+    enviar(`dados_composicoes/${codigo}/${tabela}/historico/${ativo}/data`, agora)
+    enviar(`dados_composicoes/${codigo}/${tabela}/historico/${ativo}/usuario`, acesso.usuario)
+
+    await inserirDados({ [codigo]: produto }, 'dados_composicoes')
+    await precosDesatualizados()
+    removerOverlay()
 
 }

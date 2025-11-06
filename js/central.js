@@ -392,6 +392,7 @@ async function identificacaoUser() {
     }
 
     const permitidosAprovacoes = ['adm', 'diretoria']
+    const permitidosProdutos = ['adm', 'log', 'diretoria']
     const toolbarTop = document.querySelector('.toolbar-top')
 
     if (!paginasBloqueadas.includes(document.title) && acesso.usuario) {
@@ -402,6 +403,7 @@ async function identificacaoUser() {
 
                 ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
                 ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
+                ${permitidosProdutos.includes(acesso.permissao) ? modelo('preco', 'precosDesatualizados()', 'contadorProdutos') : ''}
 
                 <img title="Abrir mais 1 aba" src="imagens/aba.png" onclick="maisAba()">
 
