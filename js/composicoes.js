@@ -809,7 +809,7 @@ function calcular(campo, dadosCalculo = null) {
         document.getElementById('lucro_porcentagem').classList = estilo
     }
 
-    
+
     if (modalidadeCalculo == 'SERVIÇO') {
 
         const precoVenda = obValComp('preco_venda')
@@ -1358,5 +1358,84 @@ async function salvarAgrupamentosAutomatico() {
         await inserirDados({ [codigoMaster]: produto }, 'dados_composicoes')
         enviar(`dados_composicoes/${codigoMaster}/agrupamento`, agrupamento)
     }
+
+}
+
+function passou60Dias(dataTexto) {
+    if (!dataTexto || typeof dataTexto !== 'string') return false
+
+    const partes = dataTexto.split(', ')
+    if (partes.length < 2) return false
+
+    const [data, hora] = partes
+    const [dia, mes, ano] = data.split('/').map(Number)
+    const [hh, mm, ss] = hora.split(':').map(Number)
+
+    const dataCompleta = new Date(ano, mes - 1, dia, hh, mm, ss)
+    if (isNaN(dataCompleta.getTime())) return false
+
+    const hoje = new Date()
+    const diff = hoje - dataCompleta
+    const dias = diff / (1000 * 60 * 60 * 24)
+
+    return dias > 60
+}
+
+async function precosDesatualizados() {
+
+    const tabela = 'lpu hope'
+
+    const dados_composicoes = await recuperarDados('dados_composicoes')
+    const colunas = ['Código', 'Descrição', 'Data', 'Fornecedor', 'Preço', 'Ver']
+    const acumulado = `
+        <div id="precosDesatualizados" class="borda-tabela">
+            <div class="topo-tabela"></div>
+            <div class="div-tabela">
+                <table class="tabela" id="tabela_composicoes">
+                    <thead>
+                        <tr>${colunas.map(th => `<th>${th}</th>`).join('')}</tr>
+                    </thead>
+                    <tbody id="linhasPrecos"></tbody>
+                </table>
+            </div>
+            <div class="rodapeTabela"></div>
+        </div>
+    `
+
+    const precosDesatualizados = document.getElementById('precosDesatualizados')
+    if (!precosDesatualizados) popup(acumulado, 'Preços Desatualizados', true)
+
+    
+    const linhasPrecos = document.getElementById('linhasPrecos')
+
+    for (const [codigo, produto] of Object.entries(dados_composicoes)) {
+
+        const historico = produto?.[tabela]?.historico || {}
+        const ativo = produto?.[tabela]?.ativo || ''
+        const preco = historico?.[ativo] || null
+        if (!preco) continue
+
+        const resposta = passou60Dias(preco?.data)
+        if (!resposta) continue
+
+        const tds = `
+            <td>${codigo}</td>
+            <td>${1}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        `
+
+        const trExistente = document.getElementById(`des_${codigo}`)
+        if(trExistente) {
+            trExistente.innerHTML = tds
+            continue
+        }
+
+        linhasPrecos.insertAdjacentHTML('beforeend', `<tr id="des_${codigo}">${tds}</tr>`)
+
+    }
+
 
 }
