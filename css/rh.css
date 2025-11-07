@@ -38,6 +38,7 @@
 }
 
 .btnPessoas {
+    padding-right: 10px;
     width: 100%;
     display: flex;
     align-items: center;
@@ -49,7 +50,7 @@
 
 .btnPessoas img {
     cursor: pointer;
-    width: 2vw;
+    width: 2rem;
 }
 
 .btnPessoas:hover {

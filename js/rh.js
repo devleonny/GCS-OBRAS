@@ -26,16 +26,15 @@ async function telaRH() {
             .map(([idPasta, pasta]) => `
                 <div class="btnPessoas" onclick="abrirPastas('${idPessoa}', '${idPasta}')">
                     <img src="imagens/pasta.png">
-                    ${pasta.nomePasta}
+                    <span>${pasta.nomePasta.slice(0, 15)}...</span>
                 </div>`).join('')
 
         stringPessoas += `
         <div style="${vertical}; width: 100%;">
             <div class="btnPessoas" onclick="mostrarPastas('${idPessoa}', '${dados.nome}')">
                 <img src="imagens/pasta.png">
-                <div style="${vertical}; gap: 3px;">
-                    <span style="font-size: 0.9vw;">${dados.nome}</span>
-                </div>
+                <span>${dados.nome}</span>
+                <img src="imagens/baixar.png" onclick="adicionarPasta('${idPessoa}')" style="width: 1.2rem;">
             </div>
             <div id="${idPessoa}" style="display: none; justify-content: start; flex-direction: column; align-items: start; margin-left: 2vw; width: 90%;">
                 ${stringPastas}
@@ -44,7 +43,9 @@ async function telaRH() {
         `
     }
 
-    criarMenus('rh')
+    let divPessoas = document.querySelector('.divPessoas')
+    if(!divPessoas) criarMenus('rh')
+
     menus.innerHTML += `
         <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; width: 100%;">
 
@@ -53,11 +54,11 @@ async function telaRH() {
             <div class="divPessoas"></div>
         </div>
     `
-    const divPessoas = document.querySelector('.divPessoas')
+
+    divPessoas = document.querySelector('.divPessoas')
     divPessoas.innerHTML = stringPessoas
 
     await telaRHTabela()
-    mostrarMenus(false)
 }
 
 async function mostrarPastas(idPessoa) {
@@ -72,7 +73,7 @@ function confirmarExclusaoPessoa(idPessoa, nome) {
     const acumulado = `
         <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2; gap: 1vw;">
             <label>Tem certeza que deseja excluir ${nome}?</label>
-            ${botao('Confirmar', `excluirPessoaRH('${idPessoa}')`, 'green')}
+            <button onclick="excluirPessoaRH('${idPessoa}')">Confirmar</button>
         </div>
     `
 
@@ -128,21 +129,19 @@ async function abrirPastas(idPessoa, idPasta) {
 
             <label style="color: white;">${pessoa.nome} > ${pasta.nomePasta}</label>
 
-            <img src="imagens/editar.png" style="width: 2vw; cursor: pointer;" onclick="adicionarPasta('${idPessoa}', '${idPasta}')">
+            <img src="imagens/editar.png" style="width: 1.8rem;" onclick="adicionarPasta('${idPessoa}', '${idPasta}')">
 
             <label for="anexo" style="${horizontal};">
-                <img src="imagens/anexo2.png" style="width: 2vw; cursor: pointer;">
+                <img src="imagens/anexo2.png" style="width: 1.8rem;">
                 <input type="file" style="display: none;" id="anexo" onchange="adicionarAnexo(this, '${idPessoa}', '${idPasta}')">
             </label>
 
-            <img src="imagens/lixeira.png" style="width: 2vw; cursor: pointer;" onclick="confirmarExclusaoPasta('${idPessoa}', '${idPasta}')">
+            <img src="imagens/lixeira.png" style="width: 1.8rem;" onclick="confirmarExclusaoPasta('${idPessoa}', '${idPasta}')">
         </div>
         <div class="pessoas">
             ${esquemaHTML}
         </div>
     `
-
-    mostrarMenus(false)
 
 }
 
@@ -218,7 +217,7 @@ function confirmarExclusaoPasta(idPessoa, idPasta) {
     const acumulado = `
         <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2; gap: 1vw;">
             <label>Tem certeza que deseja excluir esta pasta?</label>
-            ${botao('Confirmar', `excluirPastaRH('${idPessoa}', '${idPasta}')`, 'green')}
+            <button onclick="excluirPastaRH('${idPessoa}', '${idPasta}')">Confirmgar</button>
         </div>
     `
 
@@ -342,11 +341,12 @@ async function adicionarPasta(idPessoa, idPasta) {
     const pasta = pessoa?.pastas?.[idPasta] || {}
 
     const acumulado = `
-    <div style="padding: 2vw; background-color: #d2d2d2;">
-        ${modeloRH('Nome da Pasta', `<input id="nomePasta" value="${pasta?.nomePasta || ''}">`)}
-        <hr style="width: 100%;">
-        ${botao('Salvar', funcao, 'green')}
-    </div>
+        <div style="${horizontal}; padding: 1rem; background-color: #d2d2d2;">
+
+            <input style="padding: 5px; border-radius: 3px;" id="nomePasta" placeholder="Nome" value="${pasta?.nomePasta || ''}">
+            <button onclick="${funcao}">Salvar</button>
+
+        </div>
     `
     popup(acumulado, 'Gerenciar Pasta')
 }
@@ -411,7 +411,6 @@ function expiraEm(dataString) {
 
     if (dataString !== '--') {
 
-        const [ano, mes, dia] = dataString.split('-')
         const dataInformada = new Date(dataString)
         const hoje = new Date()
 
@@ -533,12 +532,12 @@ function carregarLinha({ idPessoa, idPasta, idAnexo, pessoa }) {
     const linha = `
         <td>
             <div style="${horizontal}; justify-content: start; gap: 5px;">
-                <img src="imagens/pasta.png" style="width: 1.5vw; cursor: pointer;" onclick="pastaHTML('${idPessoa}', '${idPasta}', '${idAnexo}', true)">
+                <img src="imagens/pasta.png" style="width: 1.8rem; cursor: pointer;" onclick="pastaHTML('${idPessoa}', '${idPasta}', '${idAnexo}', true)">
                 <label style="text-align: left;">${pasta.nomePasta}</label>
             </div>
         </td>
         <td>${pessoa.nome}</td>
-        <td style="text-align: left; font-size: 0.7vw;">
+        <td style="text-align: left;">
             ${anexo?.clinica || '--'}<br>
             <strong>${anexo?.local || ''}</strong>
         </td>
@@ -546,7 +545,7 @@ function carregarLinha({ idPessoa, idPasta, idAnexo, pessoa }) {
         <td>
             <input style="display: none;" value="${tempoExpiracao.status}">
             <div style="${horizontal}; justify-content: left; gap: 5px;">
-                <img src="${tempoExpiracao.icone}" style="width: 1.5vw;">
+                <img src="${tempoExpiracao.icone}" style="width: 1.2rem;">
                 <label>${tempoExpiracao.dias}</label>
             </div>
         </td>
