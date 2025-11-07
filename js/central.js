@@ -384,14 +384,15 @@ async function identificacaoUser() {
 
     const modelo = (imagem, funcao, idElemento) => {
         return `
-        <div style="position: relative; display: flex; align-items: center; justify-content: center;">
-            <img src="imagens/${imagem}.png" onclick="${funcao}">
+        <div onclick="${funcao}" style="${vertical};">
+            <img src="imagens/${imagem}.png">
             <div id="${idElemento}" style="display: none;" class="labelQuantidade"></div>
         </div>
         `
     }
 
     const permitidosAprovacoes = ['adm', 'diretoria']
+    const permitidosProdutos = ['adm', 'log', 'diretoria']
     const toolbarTop = document.querySelector('.toolbar-top')
 
     if (!paginasBloqueadas.includes(document.title) && acesso.usuario) {
@@ -402,6 +403,7 @@ async function identificacaoUser() {
 
                 ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
                 ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
+                ${permitidosProdutos.includes(acesso.permissao) ? modelo('preco', 'precosDesatualizados()', 'contadorProdutos') : ''}
 
                 <img title="Abrir mais 1 aba" src="imagens/aba.png" onclick="maisAba()">
 
@@ -413,6 +415,7 @@ async function identificacaoUser() {
     }
 
     usuariosToolbar()
+    precosDesatualizados(true) //Atualiza apenas a quantidade;
 
 }
 
