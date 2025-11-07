@@ -28,7 +28,7 @@ async function telaCriarOrcamentoAluguel() {
 
         <div id="orcamento_padrao">
 
-            <div id="menu_superior">
+            <div class="menu-superior">
 
                 <div style="${horizontal} justify-content: space-evenly; width: 100%;">
                     <div
@@ -39,20 +39,18 @@ async function telaCriarOrcamentoAluguel() {
 
                     <img src="imagens/direita.png">
 
-                    <div
-                        style="cursor: pointer; display: flex; flex-direction: column; align-items: start; justify-content: center; gap: 10px; border-radius: 3px; padding: 5px;">
-                        <label style="font-size: 1em;">Período de Locação</label>
-                        <select id="lpu" onchange="atualizarPeriodo(this.value)"
-                            style="width: 15vw; background-color: white; border-radius: 3px; padding: 5px; color: #222; cursor: pointer;">
-                            <option>DIA</option>
-                            <option>SEMANAL</option>
-                            <option>MENSAL</option>
-                            <option>ANUAL</option>
-                        </select>
-                        <label style="font-size: 1em;">Quantidade</label>
-                        <input id="quantidade_periodo" oninput="total()"
-                            style="width: 15vw; background-color: white; border-radius: 3px; padding: 5px; color: #222; cursor: pointer;">
+                    <div style="${vertical}">
+                        <label>Quantidade</label>
+                        <input id="quantidade_periodo" oninput="total()" class="opcoes">
                     </div>
+
+                    <div style="${vertical}">
+                        <label>Período de Locação</label>
+                        <select id="lpu" onchange="atualizarPeriodo(this.value)" class="opcoes">
+                            ${['DIAS', 'SEMANAS', 'MESES', 'ANOS'].map(op => `<option>${op}</option>`).join('')}
+                        </select>
+                    </div>
+
                 </div>
 
                 <div id="desconto_total"></div>
@@ -63,15 +61,15 @@ async function telaCriarOrcamentoAluguel() {
 
             <div id="tabelas"></div>
 
-            <div id="tabela_itens"></div>
+            <div id="tabelaItens"></div>
 
         </div>
 
     </div>
     `
     const orcamentoPadrao = document.getElementById('orcamento_padrao')
-    if(!orcamentoPadrao) tela.innerHTML = acumulado
-    
+    if (!orcamentoPadrao) tela.innerHTML = acumulado
+
     criarMenus('criarOrcamentosAluguel')
     await carregarTabelasAluguel()
     await tabelaProdutosAluguel()
@@ -80,79 +78,71 @@ async function telaCriarOrcamentoAluguel() {
 async function carregarTabelasAluguel() {
 
     let orcamentoBase = baseOrcamento()
-    let divTabelas = document.getElementById('tabelas')
-    let tabelas = {}
-    let toolbarSuperior = ''
-    let stringsTabelas = ''
-    const dadosComposicoes = orcamentoBase?.dados_composicoes || {}
+    const linhas = document.getElementById('linhas_ALUGUEL')
+    const divTabelas = document.getElementById('tabelas')
+    const tabela = 'ALUGUEL'
+
+    if(linhas) return total()
 
     document.getElementById('lpu').value = orcamentoBase?.periodo || 'DIA'
     document.getElementById('quantidade_periodo').value = orcamentoBase?.quantidade_periodo || ''
+    const colunas = ['Código', 'Descrição', 'Unidade', 'Quantidade', 'Custo Unit', 'Valor Total', 'Imagem', 'Remover']
+    if(!linhas) divTabelas.innerHTML = `
+        <div id="toolbarSuperior" style="display: none; justify-content: right; width: 100%;">
+            <div class="menu-top" style="background-color: ${coresTabelas(tabela)};">
+                <span>${tabela}</span>
+                <label id="total_ALUGUEL">R$ -- </label>
+            </div>
+        </div>
+
+        <div id="${tabela}">
+            <table id="cabecalho_${tabela}" class="tabela-orcamento">
+                <thead style="background-color: ${coresTabelas(tabela)};">
+                    ${colunas.map(op => `<th>${op}</th>`).join('')}
+                </thead>
+                <tbody id="linhas_ALUGUEL"></tbody>
+            </table>
+        </div>
+        `
+
+    const dadosComposicoes = orcamentoBase?.dados_composicoes || {}
 
     for (const [codigo, produto] of Object.entries(dadosComposicoes)) {
 
-        const linha = `
-            <tr>
-                <td>${codigo}</td>
-                <td>${produto?.descricao || 'N/A'}</td>
-                <td style="text-align: center;">${produto?.unidade || 'UN'}</td>
-                <td>
-                    <input oninput="total()" type="number" class="campoValor" value="${produto?.qtde || ''}">
-                </td>
-                <td>
-                    <input oninput="total()" type="number" class="campoValor" value="${produto?.custo || ''}">
-                </td>
-                <td><label></label></td>
-                <td style="text-align: center;">
-                    <img onclick="abrirImagem(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 3vw; cursor: pointer;">
-                </td>
-                <td style="text-align: center;"><img src="imagens/excluir.png" onclick="removerItem('${codigo}', this)" style="cursor: pointer; width: 2vw;"></td>
-            </tr>
-        `
-        if (!tabelas[modo]) tabelas[modo] = { linhas: '' }
-        tabelas[modo].linhas += linha
+        criarLinhaOrcAluguel(codigo, produto)
+
     }
-
-    for (let tabela in tabelas) {
-
-        toolbarSuperior += `
-            <div id="toolbar_${tabela}" onclick="mostrarTabelaAluguel('${tabela}')" class="toolbar" style="background-color: ${coresTabelas(tabela)};">
-                <label style="position: absolute; top: 0; margin-right: 5px; font-size: 0.8vw;">${tabela}</label>
-                <label id="total_${tabela}" style="font-size: 1.5vw; padding-top: 2vh;">R$ -- </label>
-            </div>
-        `
-
-        stringsTabelas += `
-            <div id="${tabela}" style="display: none; width: 100%;">
-                <table id="cabecalho_${tabela}" class="tabela-orcamento">
-                    <thead id="thead_${tabela}" style="background-color: ${coresTabelas(tabela)};">
-                        <th>Código</th>
-                        <th>${orcamentoBase.lpu_ativa}</th>
-                        <th>Medida</th>
-                        <th>Quantidade</th>
-                        <th>Custo Unitário Locação</th>
-                        <th>Valor Total</th>
-                        <th>Imagem</th>
-                        <th>Remover</th>
-                    </thead>
-                    <tbody id="linhas_${tabela}">
-                        ${tabelas[tabela].linhas}
-                    </tbody>
-                </table>
-            </div>
-        `
-    }
-
-    divTabelas.innerHTML = `
-        <div id="toolbarSuperior" style="display: none; justify-content: right; width: 100%;">
-            ${toolbarSuperior}
-        </div>
-        ${stringsTabelas}
-        `
 
     await total()
 
-    mostrarTabelaAluguel(Object.keys(tabelas)[0])
+}
+
+function criarLinhaOrcAluguel(codigo, produto) {
+    const idLinha = `orc_${codigo}`
+    const tds = `
+        <td>${codigo}</td>
+        <td>${produto?.descricao || 'N/A'}</td>
+        <td>${produto?.unidade || 'UN'}</td>
+        <td>
+            <input oninput="total()" type="number" class="campoValor" value="${produto?.qtde || ''}">
+        </td>
+        <td>
+            <input oninput="total()" type="number" class="campoValor" value="${produto?.custo || ''}">
+        </td>
+        <td><label></label></td>
+        <td>
+            <img onclick="abrirImagem(this, '${codigo}')" src="${produto?.imagem || logo}" style="width: 4rem;">
+        </td>
+        <td>
+            <img src="imagens/cancel.png" onclick="removerItem('${codigo}', this)" style="width: 1.5rem;">
+        </td>
+    `
+
+    const trExistente = document.getElementById(idLinha)
+    if (trExistente) return trExistente.innerHTML = tds
+
+    const linhas = document.getElementById(`linhas_ALUGUEL`)
+    linhas.insertAdjacentHTML('beforeend', `<tr id="${idLinha}">${tds}</tr>`)
 }
 
 function atualizarPeriodo(periodo) {
@@ -219,7 +209,7 @@ async function enviarDadosAluguel() {
 
     if (dados_orcam.contrato == 'sequencial') {
         const resposta = await proxORC()
-        if(resposta.err) return popup(mensagem(resposta.err), 'Alerta', true)
+        if (resposta.err) return popup(mensagem(resposta.err), 'Alerta', true)
         orcamentoBase.dados_orcam.contrato = `ORC_${resposta.proximo}`
     }
 
@@ -243,13 +233,13 @@ async function enviarDadosAluguel() {
     removerPopup()
 }
 
-function pesquisarProdutosAluguel(col, elemento) {
+function pesquisarProdutosAluguel(col, texto) {
 
     if (!filtrosPagina[pagina]) {
         filtrosPagina[pagina] = {}
     }
 
-    pesquisarGenerico(col, elemento.value, filtrosPagina[pagina], `compos_${pagina}`)
+    pesquisarGenerico(col, texto, filtrosPagina[pagina], `compos_${pagina}`)
 }
 
 async function recuperarComposicoesAluguel() {
@@ -274,97 +264,13 @@ async function tabelaProdutosAluguel() {
         acesso.permissao == 'diretor'
     )
 
-    let tabelas = {}
-    const tabela_itens = document.getElementById('tabela_itens')
-
-    if (!tabela_itens) return
-
-    const dados_composicoes = await recuperarDados('dados_composicoes') || {}
-
-    for (const [codigo, produto] of Object.entries(dados_composicoes)) {
-
-        if (!tabelas[modo]) tabelas[modo] = { linhas: '' }
-
-        if (origem !== produto.origem) continue
-
-        if (produto.status == "INATIVO") continue
-
-        const opcoes = esquemas.sistema
-            .map(op => `<option ${produto?.sistema == op ? 'selected' : ''}>${op}</option>`)
-            .join('')
-
-        const linha = `
-            <tr>
-                <td>
-                    <div style="${horizontal}; gap: 5px;">
-                        <label>${codigo}</label>
-                        <div style="${horizontal}">
-                            ${moduloComposicoes ? `<img src="imagens/editar.png" style="width: 1.5vw; cursor: pointer;" onclick="cadastrarItem('${codigo}')">` : ''}
-                            ${moduloComposicoes ? `<img src="imagens/excluir.png" style="width: 1.5vw; cursor: pointer;" onclick="confirmarExclusao_item('${codigo}')">` : ''}
-                        </div>
-                    </div>
-                </td>
-                <td>
-                    <div style="${vertical}; text-align: left;">
-                        <b>Descrição</b>
-                        ${produto.descricao}<br>
-                        <b>Fabricante</b>
-                        ${produto.fabricante}<br>
-                        <b>Modelo</b>
-                        ${produto.modelo}<br>
-                    </div>
-                </td>
-                <td>
-                    <select class="opcoesSelect" onchange="alterarChave('${codigo}', 'sistema', this)">
-                        ${opcoes}
-                    </select>
-                </td>
-                <td style="text-align: center;">
-                    <input type="number" class="campoValor" oninput="incluirItemAluguel('${codigo}', this.value)">
-                </td>
-                <td style="text-align: center;">
-                    <img src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;" onclick="abrirImagem(this, '${codigo}')">
-                </td>
-            </tr>
-        `
-        tabelas[modo].linhas += linha
-
-    }
-
-    const colunas = ['Código', 'Descrição', 'Sistema', 'Quantidade', 'Imagem']
+    const colunas = ['Código', 'Descrição', 'tipo', 'Quantidade', 'Imagem']
     let ths = ''
-    let tsh = ''
+    let pesquisa = ''
     colunas.forEach((col, i) => {
-        ths += `<th style="color: white;">${col}</th>`
-        tsh += `
-            <th style="background-color: white; border-radius: 0px;">
-                <div style="position: relative;">
-                    <input style="text-align: left;" oninput="pesquisarProdutosAluguel(${i}, this)">
-                    <img src="imagens/pesquisar2.png" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 15px;">
-                </div>
-            </th>
-            `
+        ths += `<th>${col}</th>`
+        pesquisa += `<th contentEditable="true" style="text-align: left; background-color: white;" oninput="pesquisarProdutosAluguel(${i}, this.textContent)"></th>`
     })
-
-    let tabelasHTML = ''
-    let toolbar = ''
-
-    for (let tabela in tabelas) {
-
-        toolbar += `<label class="menu_top" style="background-color: ${coresTabelas(tabela)};" onclick="alterarTabela('${tabela}')">${tabela}</label>`
-
-        tabelasHTML += `
-            <table id="compos_${tabela}" class="tabela-orcamento">
-                <thead style="background-color: ${coresTabelas(tabela)};">
-                    <tr>${ths}</tr>
-                    <tr>${tsh}</tr>
-                </thead>
-                <tbody>
-                    ${tabelas[tabela].linhas}
-                </tbody>
-            </table>
-            `
-    }
 
     let botoes = `
             <div style="display: flex; gap: 10px; justify-content: center; align-items: center;"
@@ -382,35 +288,83 @@ async function tabelaProdutosAluguel() {
             </div>`
     }
 
-    let acumulado = `
+    const cor = `background-color: ${coresTabelas('ALUGUEL')}`
+
+    const acumulado = `
         <div style="position: relative; display: flex; justify-content: center; width: 100%; margin-top: 30px; gap: 10px;">
-            ${toolbar}
+            <label class="menu-top" style="${cor};" onclick="alterarTabela('ALUGUEL')">ALUGUEL</label>
             ${botoes}
         </div>
 
-        <div style="height: 700px; overflow: auto;">
-            ${tabelasHTML}
+        <div class="borda-tabela"">
+            <div class="topo-tabela" style="${cor}"></div>
+            <div class="div-tabela">
+                <table class="tabela">
+                    <thead>
+                        <tr>${ths}</tr>
+                        <tr>${pesquisa}</tr>
+                    </thead>
+                    <tbody id="linhasProdAluguel"></tbody>
+                </table>
+            </div>
+            <div class="rodape-tabela"></div>
         </div>
         `
 
-    tabela_itens.innerHTML = acumulado
+    const linhasProdAluguel = document.getElementById('linhasProdAluguel')
+    const tabelaItens = document.getElementById('tabelaItens')
+    if (!linhasProdAluguel) tabelaItens.innerHTML = acumulado
 
-    alterarTabela(modo)
+    dados_composicoes = await recuperarDados('dados_composicoes') || {}
+
+    for (const [codigo, produto] of Object.entries(dados_composicoes)) {
+
+        if (origem !== produto.origem) continue
+
+        criarLinhaProdAluguel(codigo, produto)
+    }
 
 }
 
-function alterarTabela(tabela) {
+function criarLinhaProdAluguel(codigo, produto) {
 
-    let tabela_itens = document.getElementById('tabela_itens')
-    let tables = tabela_itens.querySelectorAll('table')
+    const linhasProdAluguel = document.getElementById('linhasProdAluguel')
 
-    pagina = tabela
+    const tds = `
+        <td>
+            <div style="${horizontal}; gap: 5px;">
+                <label>${codigo}</label>
+                <div style="${horizontal}">
+                    ${moduloComposicoes ? `<img src="imagens/editar.png" style="width: 1.5vw; cursor: pointer;" onclick="cadastrarItem('${codigo}')">` : ''}
+                    ${moduloComposicoes ? `<img src="imagens/excluir.png" style="width: 1.5vw; cursor: pointer;" onclick="confirmarExclusao_item('${codigo}')">` : ''}
+                </div>
+            </div>
+        </td>
+        <td>
+            <div style="${vertical}; text-align: left;">
+                <b>Descrição</b>
+                ${produto.descricao}<br>
+                <b>Fabricante</b>
+                ${produto.fabricante}<br>
+                <b>Modelo</b>
+                ${produto.modelo}<br>
+            </div>
+        </td>
+        <td>${produto.tipo}</td>
+        <td style="text-align: center;">
+            <input type="number" class="campoValor" oninput="incluirItemAluguel('${codigo}', this.value)">
+        </td>
+        <td style="text-align: center;">
+            <img src="${produto?.imagem || logo}" style="width: 4rem; cursor: pointer;" onclick="abrirImagem(this, '${codigo}')">
+        </td>
+    `
 
-    tables.forEach(tab => {
-        tab.style.display = 'none'
-    })
+    const idElem = `prod_${codigo}`
+    const trExistente = document.getElementById(idElem)
+    if (trExistente) return trExistente.innerHTML = tds
 
-    document.getElementById(`compos_${tabela}`).style.display = ''
+    linhasProdAluguel.insertAdjacentHTML('beforeend', `<tr id="${idElem}">${tds}</tr>`)
+
 }
 
 async function total() {
