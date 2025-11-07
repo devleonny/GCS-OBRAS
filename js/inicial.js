@@ -68,7 +68,7 @@ async function origemDados(toggle, inicial) {
     if (!inicial) await executar(funcaoTela)
 
     removerOverlay()
-
+    precosDesatualizados(true)
 }
 
 function interruptorCliente(mostrar, inicial) {
