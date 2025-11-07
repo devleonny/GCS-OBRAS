@@ -47,7 +47,11 @@ function blocoHtml(titulo, dados = {}) {
     for (const [chave, dado] of Object.entries(dados)) {
         if (dado == '') continue
 
-        linhas += `<label style="margin: 5px;"><strong>${chave}</strong> <br>${String(dado).replace(/\n/g, '<br>')}</label>`
+        linhas += `
+        <div style="${vertical}; gap: 5px;">
+            <label><b>${chave}</b></label> 
+            <div>${dado}</div>
+        </div>`
 
     }
 
@@ -106,9 +110,23 @@ async function preencher() {
     imgLogo.src = informacoes?.emissor == 'IAC' ? 'https://i.imgur.com/6FWwz7l.png' : 'https://i.imgur.com/qZLbNfb.png'
     imgLogo.style.width = informacoes?.emissor == 'IAC' ? '100px' : '10rem'
 
+    // Nome orçamento atual;
+    let nomeChamado = orcamentoBase?.dados_orcam?.contrato ? `<label>${orcamentoBase?.dados_orcam?.contrato}</label>` : ''
+
+    // Chamado Master;
+    if (orcamentoBase.hierarquia) {
+        const orcamentoRef = await recuperarDado('dados_orcamentos', orcamentoBase.hierarquia)
+        if (orcamentoRef?.dados_orcam?.contrato) nomeChamado += `<label class="etiqueta-chamado"><b>cham.</b> ${orcamentoRef.dados_orcam.contrato}</label>`
+    }
+
+    // Revisão atual, se existir;
+    if (orcamentoBase.revisoes && orcamentoBase.revisoes.atual) {
+        nomeChamado += `<label class="etiqueta-revisao">${orcamentoBase.revisoes.atual}</label>`
+    }
+
     const dadosPorBloco = {
         'Dados da Proposta': {
-            'Número do Chamado': informacoes.contrato,
+            'Número do Chamado': `<div class="nome-chamado">${nomeChamado}</div>`,
             'Tipo de Frete': informacoes.tipo_de_frete,
             'Condições de Pagamento': informacoes.condicoes,
             'Garantia': informacoes.garantia == '' ? 'Conforme tratativa Comercial' : informacoes.garantia,
