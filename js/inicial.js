@@ -27,11 +27,7 @@ function telaInicial() {
                 <span>Caso precisem recarregar a tela usem o <b>F5</b>,</span>
                 <span>Se as tabelas estiverem estranhamente desatualizadas, usem o <b>F8</b>,</span>
                 <br>
-                <span>Está lendo isso? Parabéns, sua percepção aos detalhes é muito boa.</span>
-                <div style="${horizontal}; gap: 5px;">
-                    <img src="gifs/novo.gif" style="width: 5rem;">
-                    <span>Cadastro de Clientes agora pelo GCS na tela de <b>Pagamentos, Orçamentos e Chamados.</b></span>
-                </div>
+
                 <div style="${horizontal}; gap: 5px;">
                     <img src="gifs/novo.gif" style="width: 5rem;">
                     <span><b>Agrupamento de itens:</b> toda vez que você lançar um item agrupado <br>

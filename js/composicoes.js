@@ -476,6 +476,8 @@ async function salvarPrecoAtivo(codigo, id_preco, lpu) {
 
     await continuar()
 
+    precosDesatualizados(true) //Atualiza apenas a quantidade;
+
 }
 
 async function excluirCotacao(codigo, lpu, cotacao) {
@@ -996,7 +998,7 @@ async function salvarPreco(codigo, lpu, cotacao) {
 
     // Caso a tela de preços desatualizados esteja aberta;
     const tabelaPrecosDesatualizados = document.getElementById('tabelaPrecosDesatualizados')
-    if(tabelaPrecosDesatualizados) precosDesatualizados()
+    if (tabelaPrecosDesatualizados) precosDesatualizados()
 
 }
 
@@ -1385,7 +1387,7 @@ function passou60Dias(dataTexto) {
     return dias > 60
 }
 
-async function precosDesatualizados() {
+async function precosDesatualizados(calculo) {
 
     const tabela = 'lpu hope'
     let contador = 0
@@ -1420,8 +1422,10 @@ async function precosDesatualizados() {
         </div>
     `
 
-    const tabelaPrecosDesatualizados = document.getElementById('tabelaPrecosDesatualizados')
-    if (!tabelaPrecosDesatualizados) popup(acumulado, 'Preços Desatualizados', true)
+    if (!calculo) {
+        const tabelaPrecosDesatualizados = document.getElementById('tabelaPrecosDesatualizados')
+        if (!tabelaPrecosDesatualizados) popup(acumulado, 'Preços Desatualizados', true)
+    }
 
     const linhasPrecos = document.getElementById('linhasPrecos')
 
@@ -1461,6 +1465,9 @@ async function precosDesatualizados() {
 
         contador++
 
+        //Se for apenas cálculo, não precisa incluir linhas
+        if (calculo) continue
+
         if (trExistente) {
             trExistente.innerHTML = tds
             continue
@@ -1470,8 +1477,18 @@ async function precosDesatualizados() {
 
     }
 
-    const totalItens = document.getElementById('totalItens')
-    if (totalItens) totalItens.textContent = contador
+    if (calculo) {
+
+        const contadorProdutos = document.getElementById('contadorProdutos')
+        if (contadorProdutos) {
+            contadorProdutos.style.display = contador == 0 ? 'none' : 'flex'
+            contadorProdutos.textContent = contador
+        }
+
+    } else {
+        const totalItens = document.getElementById('totalItens')
+        if (totalItens) totalItens.textContent = contador
+    }
 
 }
 
@@ -1511,5 +1528,7 @@ async function manterPreco(tabela, codigo) {
     await inserirDados({ [codigo]: produto }, 'dados_composicoes')
     await precosDesatualizados()
     removerOverlay()
+
+    precosDesatualizados(true) //Atualiza apenas a quantidade;
 
 }

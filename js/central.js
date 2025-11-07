@@ -384,8 +384,8 @@ async function identificacaoUser() {
 
     const modelo = (imagem, funcao, idElemento) => {
         return `
-        <div style="position: relative; display: flex; align-items: center; justify-content: center;">
-            <img src="imagens/${imagem}.png" onclick="${funcao}">
+        <div onclick="${funcao}" style="${vertical};">
+            <img src="imagens/${imagem}.png">
             <div id="${idElemento}" style="display: none;" class="labelQuantidade"></div>
         </div>
         `
@@ -415,6 +415,7 @@ async function identificacaoUser() {
     }
 
     usuariosToolbar()
+    precosDesatualizados(true) //Atualiza apenas a quantidade;
 
 }
 
