@@ -9,6 +9,7 @@ const fluxograma = [
     'COTAÇÃO',
     'LEVANTAMENTO',
     'ORC ENVIADO',
+    'ORC REPROVADO',
     'ORC APROVADO',
     'REQUISIÇÃO',
     'NFE VENDA',

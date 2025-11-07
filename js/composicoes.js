@@ -130,8 +130,7 @@ function criarLinhaComposicao(codigo, produto) {
         } else if (chave === 'imagem') {
             alinhamento = 'center';
             conteudo = `
-                <img src="${conteudo || logo}" style="width: 4vw; cursor: pointer;" name="${codigo}"
-                ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `onclick="abrirImagem('${codigo}')"` : ''}>`;
+                <img src="${conteudo || logo}" style="width: 4rem; cursor: pointer;" name="${codigo}" onclick="abrirImagem('${codigo}')">`
 
         } else if (chave.includes('lpu')) {
             let preco_final = 0;
@@ -362,15 +361,19 @@ async function abrirHistoricoPrecos(codigo, tabela) {
             <td>${cotacao?.fornecedor}</td>
 
             <td>
-                <input type="radio" name="preco" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvarPrecoAtivo('${codigo}', '${id}', '${tabela}')" ${marcado ? 'checked' : ''}>
+                ${usuariosPermitidosParaEditar.includes(acesso.permissao)
+                ? `<input type="radio" name="preco" style="width: 35px; height: 35px; cursor: pointer;" onclick="salvarPrecoAtivo('${codigo}', '${id}', '${tabela}')" ${marcado ? 'checked' : ''}>`
+                : ''}
             </td>
             
             <td><textarea style="border: none;" readOnly>${cotacao?.comentario || ''}</textarea></td>
             <td style="text-align: center;">
-                <img src="imagens/cancel.png" style="width: 1.7rem; cursor: pointer;" onclick="excluirCotacao('${codigo}', '${tabela}', '${id}')">
+                ${usuariosPermitidosParaEditar.includes(acesso.permissao)
+                ? `<img src="imagens/cancel.png" style="width: 1.7rem; cursor: pointer;" onclick="excluirCotacao('${codigo}', '${tabela}', '${id}')">`
+                : ''}
             </td>
             <td style="text-align: center;">
-                <img src="imagens/pesquisar2.png" style="width: 1.7rem; cursor: pointer;" onclick="adicionarCotacao('${codigo}', '${tabela}', '${id}')">
+               <img src="imagens/pesquisar2.png" style="width: 1.7rem; cursor: pointer;" onclick="adicionarCotacao('${codigo}', '${tabela}', '${id}')">
             </td>
         </tr>
         `
@@ -406,7 +409,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
             </div>
         </div>
 
-        <hr style="width: 100%;">
+        <hr>
         
         <div class="borda-tabela">
             <div class="topo-tabela">
@@ -716,9 +719,8 @@ function modelos(produto) {
 
 async function adicionarCotacao(codigo, lpu, cotacao) {
 
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    let produto = dados_composicoes[codigo]
-    let funcao = cotacao ? `salvarPreco('${codigo}', '${lpu}', '${cotacao}')` : `salvarPreco('${codigo}', '${lpu}')`
+    let produto = await recuperarDado('dados_composicoes', codigo)
+    const funcao = cotacao ? `salvarPreco('${codigo}', '${lpu}', '${cotacao}')` : `salvarPreco('${codigo}', '${lpu}')`
 
     if (lpu && cotacao) {
         produto = {
@@ -749,7 +751,7 @@ async function adicionarCotacao(codigo, lpu, cotacao) {
 
         </div>
 
-        <button onclick="${funcao}">Salvar Preço</button>
+        ${usuariosPermitidosParaEditar.includes(acesso.permissao) ? `<button onclick="${funcao}">Salvar Preço</button>` : ''}
     `
 
     const painelPrecos = document.querySelector('.painel-precos')

@@ -760,21 +760,15 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     for (const codigo of grupo) {
         const produto = dadosFiltrados[codigo]
         const qtdeOrcada = composicoesOrcamento?.[codigo]?.qtde || ''
-        linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, lpu, estado })
+        linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada })
     }
 
     atualizarControlesPaginacao(chaves.length)
 
 }
 
-function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, lpu, estado }) {
+function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada }) {
 
-    const ativo = produto?.[lpu]?.ativo || ''
-    const historico = produto?.[lpu]?.historico || {}
-    const detalhes = historico?.[ativo] || {}
-    const preco = detalhes?.valor || produto?.preco_estado?.[estado] || 0
-
-    const sinalizacao = verificarData(detalhes?.data)
     const agrupamentoON = Object.keys(produto?.agrupamento || {}).length > 0 ? 'pos' : 'neg'
 
     const tds = `
@@ -801,14 +795,7 @@ function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, lpu, estado }
         <td>
             <input id="prod_${codigo}" value="${qtdeOrcada}" type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
         </td>
-        <td>
-            <div style="${horizontal}; gap: 1px;">
-                ${sinalizacao}
-                <label ${moduloComposicoes ? `onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')"` : ''} class="label-estoque" style="width: max-content; background-color: ${preco > 0 ? '#4CAF50bf' : '#b36060bf'}">
-                    ${dinheiro(preco)}
-                </label>
-            </div>
-        </td>
+        <td></td>
         <td>
             <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;">
         </td>
@@ -966,7 +953,7 @@ async function converterEsquema() {
     })
 }
 
-function verificarData(data) {
+function verificarData(data, codigo) {
     if (!data) return ''
 
     const [dt] = String(data).split(', ')
@@ -976,7 +963,7 @@ function verificarData(data) {
     const hoje = new Date()
     const diffDias = Math.floor((hoje - dataRef) / (1000 * 60 * 60 * 24))
 
-    const elemento = `<img src="imagens/${diffDias > 30 ? 'reprovado' : 'aprovado'}.png" style="width: 1.5rem;">`
+    const elemento = `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpuATIVA}')" src="imagens/${diffDias > 30 ? 'preco_neg' : 'preco'}.png" style="width: 1.5rem;">`
 
     return elemento
 }
@@ -1064,21 +1051,6 @@ async function confirmarMoverItem({ codigoAmover, codigoMaster }) {
 
 }
 
-function verificarData(data) {
-    if (!data) return ''
-
-    const [dt] = String(data).split(', ')
-    const [dia, mes, ano] = dt.split('/').map(Number)
-    const dataRef = new Date(ano, mes - 1, dia)
-
-    const hoje = new Date()
-    const diffDias = Math.floor((hoje - dataRef) / (1000 * 60 * 60 * 24))
-
-    const elemento = `<img src="imagens/${diffDias > 60 ? 'preco_neg' : 'preco'}.png" style="width: 1.5rem;">`
-
-    return elemento
-}
-
 async function totalOrcamento() {
 
     atualizarToolbar()
@@ -1162,8 +1134,6 @@ async function totalOrcamento() {
             valorUnitario = refProduto.preco_estado[estado] || 0
 
         } else {
-
-            if (verificarData(precos?.data).includes('reprovado')) statusCotacao = true
 
             valorUnitario = historico?.[ativo]?.valor || 0
 
@@ -1291,7 +1261,7 @@ async function totalOrcamento() {
 
         el('descricao').innerHTML = `<span>${refProduto.descricao}</span>`
         el('medida').textContent = refProduto?.unidade || 'UN'
-        el('status').innerHTML = verificarData(precos?.data)
+        el('status').innerHTML = verificarData(precos?.data, codigo)
         el('unitario').textContent = dinheiro(valorUnitario)
         el('total').style.color = totalLinha <= 0 ? 'red' : '#151749'
         el('total').textContent = dinheiro(totalLinha)
