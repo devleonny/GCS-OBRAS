@@ -1,7 +1,7 @@
 .pessoas {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.3rem;
     width: 100%;
     align-items: center;
 }
@@ -70,6 +70,18 @@
     background-color: #d8b645;
     cursor: pointer;
     padding-right: 5px;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-top-left-radius: 5px;
+}
+
+.painel-pessoa {
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+    background-color: #f7f7f7;
+    padding: 1rem;
 }
 
 .aba {
@@ -78,6 +90,7 @@
     clip-path: polygon(10% 0%, 100% 0%, 100% 100%, 0% 100%);
     background-color: #c79800;
     width: 80%;
+    border-top-right-radius: 5px;
 }
 
 .aba select {

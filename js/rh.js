@@ -1,6 +1,7 @@
 let filtrosRH = {}
 let pessoas = {}
 let tituloRH = null
+let pastaAberta = null
 
 const modeloRH = (valor1, elemento, funcao) => {
     return `
@@ -44,7 +45,7 @@ async function telaRH() {
     }
 
     let divPessoas = document.querySelector('.divPessoas')
-    if(!divPessoas) criarMenus('rh')
+    if (!divPessoas) criarMenus('rh')
 
     menus.innerHTML += `
         <div style="display: flex; align-items: start; justify-content: start; flex-direction: column; width: 100%;">
@@ -58,11 +59,14 @@ async function telaRH() {
     divPessoas = document.querySelector('.divPessoas')
     divPessoas.innerHTML = stringPessoas
 
+    if(pastaAberta) mostrarPastas(pastaAberta)
+
     await telaRHTabela()
 }
 
 async function mostrarPastas(idPessoa) {
 
+    pastaAberta = idPessoa
     const elemento = document.getElementById(`${idPessoa}`)
     elemento.style.display = elemento.style.display == 'none' ? 'flex' : 'none'
 
@@ -109,7 +113,10 @@ async function abrirPastas(idPessoa, idPasta) {
 
     for (const [idAnexo, anexo] of Object.entries(anexos)) {
 
-        if (!anexo.doc) return arquivos['Não classificados'] += await pastaHTML(idPessoa, idPasta, idAnexo)
+        if (!anexo.doc) {
+            arquivos['Não classificados'] += await pastaHTML(idPessoa, idPasta, idAnexo)
+            continue
+        }
 
         if (!arquivos[anexo.doc]) arquivos[anexo.doc] = ''
 
@@ -124,24 +131,31 @@ async function abrirPastas(idPessoa, idPasta) {
     let esquemaHTML = ''
     for (const idAnexo of Object.keys(anexos)) esquemaHTML += await pastaHTML(idPessoa, idPasta, idAnexo)
 
-    tela.innerHTML = `
-        <div style="${horizontal}; gap: 5px;">
+    const acumulado = `
+        <div class="painel-pessoa">
+            <div style="${horizontal}; gap: 5px;">
 
-            <label style="color: white;">${pessoa.nome} > ${pasta.nomePasta}</label>
+                <label>${pessoa.nome} > ${pasta.nomePasta}</label>
 
-            <img src="imagens/editar.png" style="width: 1.8rem;" onclick="adicionarPasta('${idPessoa}', '${idPasta}')">
+                <img src="imagens/editar.png" style="width: 1.8rem;" onclick="adicionarPasta('${idPessoa}', '${idPasta}')">
 
-            <label for="anexo" style="${horizontal};">
-                <img src="imagens/anexo2.png" style="width: 1.8rem;">
-                <input type="file" style="display: none;" id="anexo" onchange="adicionarAnexo(this, '${idPessoa}', '${idPasta}')">
-            </label>
+                <label for="anexo" style="${horizontal};">
+                    <img src="imagens/anexo.png" style="width: 1.8rem;">
+                    <input type="file" style="display: none;" id="anexo" onchange="adicionarAnexo(this, '${idPessoa}', '${idPasta}')">
+                </label>
 
-            <img src="imagens/lixeira.png" style="width: 1.8rem;" onclick="confirmarExclusaoPasta('${idPessoa}', '${idPasta}')">
-        </div>
-        <div class="pessoas">
-            ${esquemaHTML}
+                <img src="imagens/cancel.png" style="width: 1.8rem;" onclick="confirmarExclusaoPasta('${idPessoa}', '${idPasta}')">
+            </div>
+            <div class="pessoas">
+                ${esquemaHTML}
+            </div>
         </div>
     `
+
+    const painel = document.querySelector('.painel-pessoa')
+    if(painel) return painel.innerHTML = acumulado
+
+    popup(acumulado, pessoa.nome, true)
 
 }
 
@@ -216,12 +230,12 @@ function confirmarExclusaoPasta(idPessoa, idPasta) {
 
     const acumulado = `
         <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2; gap: 1vw;">
-            <label>Tem certeza que deseja excluir esta pasta?</label>
-            <button onclick="excluirPastaRH('${idPessoa}', '${idPasta}')">Confirmgar</button>
+            <label>Deseja excluir esta pasta?</label>
+            <button onclick="excluirPastaRH('${idPessoa}', '${idPasta}')">Confirmar</button>
         </div>
     `
 
-    popup(acumulado, 'ALERTA')
+    popup(acumulado, 'Tem certeza?', true)
 
 }
 
@@ -241,7 +255,7 @@ async function excluirPastaRH(idPessoa, idPasta) {
 
     await telaRH()
 
-    removerOverlay()
+    removerPopup()
 
 }
 
@@ -283,12 +297,12 @@ function confirmarExclusaoAnexo(idPessoa, idPasta, idAnexo) {
 
     const acumulado = `
         <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2; gap: 1vw;">
-            <label>Tem certeza que deseja excluir este anexo?</label>
+            <label>Deseja excluir este anexo?</label>
             ${botao('Confirmar', `excluirAnexoRH('${idPessoa}', '${idPasta}', '${idAnexo}')`, 'green')}
         </div>
     `
 
-    popup(acumulado, 'ALERTA')
+    popup(acumulado, 'Tem certeza?', true)
 
 }
 
