@@ -515,7 +515,7 @@ function gerarTabelas(objeto) {
 
     for (const [chave, campos] of Object.entries(objeto)) {
 
-        let titulos = {
+        const titulos = {
             camposIniciais: 'Campos Iniciais',
             presuncoes: 'Presunções',
             impostos: 'Impostos',
@@ -913,7 +913,6 @@ function calcular(campo, dadosCalculo = null) {
 
     }
 
-
     if (modalidadeCalculo == 'USO E CONSUMO') {
 
         const icmsCreditadoSelect = obValComp('icms_creditado_select')
@@ -946,6 +945,18 @@ function calcular(campo, dadosCalculo = null) {
         const cofins = precoVenda * 0.03
         const iss = precoVenda * 0.05
         const totImp = irpj + adicionalIrpj + presuncaoCsllAPagar + pis + cofins + iss
+
+        if (!dadosCalculo) {
+            obValComp('frete_venda', dinheiro(freteVenda))
+            obValComp('difal', dinheiro(difal))
+            obValComp('irpj', dinheiro(irpj))
+            obValComp('adicional_irpj', dinheiro(adicionalIrpj))
+            obValComp('presuncao_csll_pagar', dinheiro(presuncaoCsllAPagar))
+            obValComp('pis', dinheiro(pis))
+            obValComp('cofins', dinheiro(cofins))
+            obValComp('iss', dinheiro(iss))
+            obValComp('total_impostos', dinheiro(totImp))
+        }
 
         const extras = { freteCompra: frete, freteVenda, difal, margem: Number(margem) }
 

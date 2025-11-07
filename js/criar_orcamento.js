@@ -1055,7 +1055,7 @@ async function totalOrcamento() {
 
     atualizarToolbar()
 
-    let orcamentoBase = baseOrcamento()
+    const orcamentoBase = baseOrcamento()
     const lpu = String(orcamentoBase.lpu_ativa).toLowerCase()
     let totais = { GERAL: { valor: 0, bruto: 0 } }
     let avisoDesconto = 0
@@ -1110,6 +1110,8 @@ async function totalOrcamento() {
             if (!orcamentoBase.esquema_composicoes[codigoMaster].agrupamento) orcamentoBase.esquema_composicoes[codigoMaster].agrupamento = {}
             itemSalvo = orcamentoBase.esquema_composicoes[codigoMaster].agrupamento[codigo]
         }
+
+        if (memoriaFiltro !== 'GERAL') filtrarPorTipo(memoriaFiltro)
 
         const elo = linha.querySelector('[name="elo"]')
         elo.innerHTML = `<img onclick="moverItem({codigoAmover: ${codigo}, codigoMaster: ${codigoMaster}})" src="imagens/elo.png" style="cursor: pointer; width: 1.5rem;">`
@@ -1286,14 +1288,6 @@ async function totalOrcamento() {
         const inputProduto = document.getElementById(`prod_${codigo}`)
         if (inputProduto && hierarquia == 'master') inputProduto.value = quantidade
 
-    }
-
-    // Caso tenha algum item com preço desatualizado;
-    if (!orcamentoBase.status) orcamentoBase.status = {}
-    if (statusCotacao) {
-        orcamentoBase.status.atual = 'COTAÇÃO'
-    } else {
-        delete orcamentoBase.status.atual
     }
 
     // Caso tenha algum item com preço desatualizado;
