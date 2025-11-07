@@ -760,17 +760,22 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     for (const codigo of grupo) {
         const produto = dadosFiltrados[codigo]
         const qtdeOrcada = composicoesOrcamento?.[codigo]?.qtde || ''
-        linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada })
+        linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu })
     }
 
     atualizarControlesPaginacao(chaves.length)
 
 }
 
-function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada }) {
+function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }) {
 
     const agrupamentoON = Object.keys(produto?.agrupamento || {}).length > 0 ? 'pos' : 'neg'
+    const ativo = produto?.[lpu]?.ativo || ''
+    const historico = produto?.[lpu]?.historico || {}
+    const detalhes = historico?.[ativo] || {}
+    const preco = detalhes?.valor || produto?.preco_estado?.[estado] || 0
 
+    const sinalizacao = verificarData(detalhes?.data)
     const tds = `
         <td>
             <div class="campo-codigo-composicao">
@@ -795,9 +800,16 @@ function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada }) {
         <td>
             <input id="prod_${codigo}" value="${qtdeOrcada}" type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
         </td>
-        <td></td>
         <td>
-            <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 5vw; cursor: pointer;">
+            <div style="${horizontal}; gap: 1px;">
+                ${sinalizacao}
+                <label class="label-estoque" style="width: max-content; background-color: ${preco > 0 ? '#4CAF50bf' : '#b36060bf'}">
+                    ${dinheiro(preco)}
+                </label>
+            </div>
+        </td>
+        <td>
+            <img name="${codigo}" onclick="abrirImagem('${codigo}')" src="${produto?.imagem || logo}" style="width: 4rem;">
         </td>
         `
 
