@@ -552,6 +552,7 @@ function carregarLinha({ idPessoa, idPasta, idAnexo, pessoa }) {
         </td>
         <td>${pessoa.nome}</td>
         <td style="text-align: left;">
+            <input style="display: none;" value="${pessoa.nome}">
             ${anexo?.clinica || '--'}<br>
             <strong>${anexo?.local || ''}</strong>
         </td>
@@ -624,4 +625,36 @@ async function baixarArquivos() {
     removerOverlay()
 
     saveAs(conteudoZip, 'documentos.tar')
+}
+
+async function rhExcel() {
+
+    const tabela = document.querySelector('.tabela')
+    if (!tabela) return popup(mensagem('Tabela não encontrada'), 'Alerta', true)
+
+    const workbook = new ExcelJS.Workbook()
+    const planilha = workbook.addWorksheet('Dados')
+
+    // Cabeçalhos
+    const cabecalhos = [...tabela.querySelectorAll('thead th')].map(th => th.innerText.trim())
+    planilha.addRow(cabecalhos)
+
+    // Linhas
+    const linhas = tabela.querySelectorAll('tbody tr')
+    linhas.forEach(tr => {
+        const dados = [...tr.querySelectorAll('td')].map(td => {
+            const input = td.querySelector('input')
+            return input ? input.value.trim() : td.innerText.trim()
+        })
+        planilha.addRow(dados)
+    })
+
+    // Gera o Excel
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `RH.xlsx`
+    link.click()
 }

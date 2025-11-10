@@ -229,7 +229,8 @@ const esquemaBotoes = {
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Atualizar', funcao: 'telaRH', img: 'atualizar3' },
         { nome: 'Tabela', funcao: 'telaRHTabela', img: 'todos' },
-        { nome: 'Adicionar Local', funcao: 'adicionarPessoa', img: 'baixar' },
+        { nome: 'Baixar em Excel', funcao: 'rhExcel', img: 'excel' },
+        { nome: 'Adicionar Local', funcao: 'adicionarPessoa', img: 'baixar' }
     ],
     agenda: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },

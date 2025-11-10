@@ -755,15 +755,26 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     const fim = inicio + porPagina
     const grupo = chaves.slice(inicio, fim)
 
-    document.getElementById('bodyComposicoes').innerHTML = '' // limpa antes de renderizar
+    const body = document.getElementById('bodyComposicoes')
+    const linhas = [...body.querySelectorAll('[data-codigo]')]
 
+    // Remove apenas as linhas fora do grupo
+    for (const linha of linhas) {
+        const codigo = linha.getAttribute('data-codigo')
+        if (!grupo.includes(codigo)) linha.remove()
+    }
+
+    // Adiciona as que ainda não existem
     for (const codigo of grupo) {
+        const existe = body.querySelector(`[data-codigo="${codigo}"]`)
+        if (existe) continue
+
         const produto = dadosFiltrados[codigo]
         const qtdeOrcada = composicoesOrcamento?.[codigo]?.qtde || ''
         linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu })
     }
 
-    atualizarControlesPaginacao(chaves.length)
+    atualizarControlesPaginacao(grupo.length)
 
 }
 
@@ -814,9 +825,14 @@ function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }
         `
 
     const trExistente = document.getElementById(`COMP_${codigo}`)
-    if (trExistente) return trExistente.innerHTML = tds
+    if (trExistente) {
+        if (Number(trExistente.dataset.timestamp) !== produto.timestamp) trExistente.innerHTML = tds
+        return
+    }
+
     const linha = `
         <tr data-tipo="${produto.tipo}"
+        data-timestamp="${produto?.timestamp}"
         id="COMP_${codigo}">
             ${tds}
         </tr>
