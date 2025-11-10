@@ -427,7 +427,7 @@ async function abrirHistoricoPrecos(codigo, tabela) {
         </div>
     `
 
-    if (produto.preco_estado) {
+    if (produto?.preco_estado) {
 
         const linhas = Object.entries(produto?.preco_estado || {})
             .map(([estado, preco]) => `

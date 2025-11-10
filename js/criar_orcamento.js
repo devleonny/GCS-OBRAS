@@ -755,26 +755,15 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     const fim = inicio + porPagina
     const grupo = chaves.slice(inicio, fim)
 
-    const body = document.getElementById('bodyComposicoes')
-    const linhas = [...body.querySelectorAll('[data-codigo]')]
+    document.getElementById('bodyComposicoes').innerHTML = '' // limpa antes de renderizar
 
-    // Remove apenas as linhas fora do grupo
-    for (const linha of linhas) {
-        const codigo = linha.getAttribute('data-codigo')
-        if (!grupo.includes(codigo)) linha.remove()
-    }
-
-    // Adiciona as que ainda não existem
     for (const codigo of grupo) {
-        const existe = body.querySelector(`[data-codigo="${codigo}"]`)
-        if (existe) continue
-
         const produto = dadosFiltrados[codigo]
         const qtdeOrcada = composicoesOrcamento?.[codigo]?.qtde || ''
         linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu })
     }
 
-    atualizarControlesPaginacao(grupo.length)
+    atualizarControlesPaginacao(chaves.length)
 
 }
 
@@ -786,7 +775,7 @@ function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }
     const detalhes = historico?.[ativo] || {}
     const preco = detalhes?.valor || produto?.preco_estado?.[estado] || 0
 
-    const sinalizacao = verificarData(detalhes?.data)
+    const sinalizacao = verificarData(detalhes?.data, codigo)
     const tds = `
         <td>
             <div class="campo-codigo-composicao">
@@ -807,7 +796,7 @@ function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }
                 ${produto?.modelo || '--'}<br>
             </div>
         </td>
-        <td>${produto.unidade}</td>
+        <td>${produto?.unidade || ''}</td>
         <td>
             <input id="prod_${codigo}" value="${qtdeOrcada}" type="number" class="campoValor" oninput="incluirItem('${codigo}', this.value)">
         </td>
@@ -826,6 +815,8 @@ function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }
 
     const trExistente = document.getElementById(`COMP_${codigo}`)
     if (trExistente) {
+
+        console.log(trExistente.dataset.timestamp, produto.timestamp)
         if (Number(trExistente.dataset.timestamp) !== produto.timestamp) trExistente.innerHTML = tds
         return
     }
@@ -982,18 +973,25 @@ async function converterEsquema() {
 }
 
 function verificarData(data, codigo) {
-    if (!data) return ''
+    if (!data) {
+        return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpuATIVA}')" src="imagens/preco_neg.png" style="width: 1.5rem;">`
+    }
 
     const [dt] = String(data).split(', ')
-    const [dia, mes, ano] = dt.split('/').map(Number)
+    const [dia, mes, ano] = (dt || '').split('/').map(Number)
     const dataRef = new Date(ano, mes - 1, dia)
+
+    if (isNaN(dataRef)) {
+        return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpuATIVA}')" src="imagens/preco_neg.png" style="width: 1.5rem;">`
+    }
 
     const hoje = new Date()
     const diffDias = Math.floor((hoje - dataRef) / (1000 * 60 * 60 * 24))
 
-    const elemento = `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpuATIVA}')" src="imagens/${diffDias > 30 ? 'preco_neg' : 'preco'}.png" style="width: 1.5rem;">`
+    const imagem = diffDias > 30 ? 'preco_neg' : 'preco'
+    const title = diffDias > 30 ? 'Desatualizado' : `Atualizado há ${diffDias} dia(s)`
 
-    return elemento
+    return `<img onclick="abrirHistoricoPrecos('${codigo}', '${lpuATIVA}')" src="imagens/${imagem}.png" style="width: 1.5rem;">`
 }
 
 async function moverItem({ codigoAmover, codigoMaster }) {
