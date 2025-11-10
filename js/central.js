@@ -2286,7 +2286,7 @@ async function painelClientes() {
             <label>Quem emite essa nota?</label>
 
             ${modelo('Empresa', `<select id="emissor" oninput="salvarDadosCliente()">
-                ${['IAC', 'AC SOLUÇÕES', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
+                ${['AC SOLUÇÕES', 'IAC', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
         </div>
 
     </div>
