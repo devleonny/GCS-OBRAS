@@ -908,7 +908,11 @@ async function vincularOrcamento(idOrcamento) {
 
 async function criarOrcamentoVinculado(idOrcamento) {
 
+    const orcamentoRef = await recuperarDado('dados_orcamentos', idOrcamento)
     const orcamento = {
+        dados_orcam: {
+            omie_cliente: orcamentoRef.dados_orcam.omie_cliente
+        },
         hierarquia: idOrcamento
     }
 
