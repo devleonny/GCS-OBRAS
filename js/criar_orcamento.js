@@ -55,7 +55,7 @@ function apagarOrcamento() {
     popup(`
         <div style="display: flex; gap: 1vw; align-items: center; padding: 2vw; background-color: #d2d2d2;">
             <label>Tem certeza que deseja apagar o Orçamento?</label>
-            ${botao('Confirmar', `confirmarExclusaoOrcamento()`, 'green')}
+            <button onclick="confirmarExclusaoOrcamento()">Confirmar</button>
         </div>
         `, 'Alerta')
 
