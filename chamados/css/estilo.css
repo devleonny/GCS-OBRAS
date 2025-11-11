@@ -12,6 +12,10 @@ html {
     font-size: 0.9rem;
 }
 
+hr {
+    width: 100%;
+}
+
 .progresso {
     display: flex;
     align-items: center;
@@ -219,6 +223,22 @@ textarea {
     border: 1px solid #888;
 }
 
+.painel-recuperacao {
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
+    padding: 2rem;
+    background-color: #d2d2d2;
+}
+
+.camp-1 {
+    width: 10rem;
+    border-radius: 5px;
+    padding: 1rem;
+    border: solid 1px #797979;
+}
+
 textarea {
     width: 100%;
 }
@@ -232,6 +252,7 @@ button {
     color: #f5f5f5;
     cursor: pointer;
     background-color: #249f41;
+    border-radius: 5px;
     border: none;
     white-space: nowrap;
 }

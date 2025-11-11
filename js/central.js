@@ -628,9 +628,9 @@ function deslogarUsuario() {
     popup(`
         <div style="background-color: #d2d2d2; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 2vw;">
             <label>Deseja Sair?</label>
-            ${botao('Sim', `sair()`, 'green')}
+            <button onclick="sair()">Sim</button>
         </div>
-        `, 'Aviso')
+        `, 'Tem certeza?')
 }
 
 function sair() {
