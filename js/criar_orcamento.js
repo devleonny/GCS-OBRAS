@@ -569,7 +569,7 @@ async function enviarDadosOrcamento() {
     if (!orcamentoBase.usuario) orcamentoBase.usuario = acesso.usuario
 
     if (!orcamentoBase.dados_orcam) {
-        return popup(mensagem('Preencha os dados do Cliente'), 'Alerta')
+        return painelClientes()
     }
 
     const dados_orcam = orcamentoBase.dados_orcam;
@@ -614,19 +614,14 @@ async function enviarDadosOrcamento() {
 
 async function ativarChamado(input, idOrcamento) {
 
-    if (idOrcamento) {
-        const resposta = await enviar(`dados_orcamentos/${idOrcamento}/chamado`, input.checked)
-        if (resposta.mensagem) popup(mensagem(resposta.mensagem), 'Alerta', true)
+    if (idOrcamento) return
 
-        const linha = document.getElementById(idOrcamento)
-        if (linha) linha.dataset.chamado = input.checked ? 'S' : 'N'
-        filtrarOrcamentos()
-        return
-    }
+    const resposta = await enviar(`dados_orcamentos/${idOrcamento}/chamado`, input.checked)
+    if (resposta.mensagem) popup(mensagem(resposta.mensagem), 'Alerta', true)
 
-    const orcamento = baseOrcamento()
-    orcamento.chamado = input.checked
-    baseOrcamento(orcamento)
+    const linha = document.getElementById(idOrcamento)
+    if (linha) linha.dataset.chamado = input.checked ? 'S' : 'N'
+    filtrarOrcamentos()
 
 }
 
@@ -719,7 +714,7 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
             <div class="rodapeTabela"></div>
         </div>
         `
-    const bodyComposicoes = document.getElementById('bodyComposicoes')
+    let bodyComposicoes = document.getElementById('bodyComposicoes')
     if (!bodyComposicoes) {
         dados_composicoes = await recuperarDados('dados_composicoes') || {}
         document.getElementById('tabelaItens').innerHTML = acumulado
@@ -755,12 +750,19 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
     const fim = inicio + porPagina
     const grupo = chaves.slice(inicio, fim)
 
-    document.getElementById('bodyComposicoes').innerHTML = '' // limpa antes de renderizar
+    bodyComposicoes = document.getElementById('bodyComposicoes')
+    const linhasAtuais = [...bodyComposicoes.querySelectorAll('tr[id^="COMP_"]')]
+    const idsGrupo = new Set(grupo.map(codigo => `COMP_${codigo}`))
 
     for (const codigo of grupo) {
         const produto = dadosFiltrados[codigo]
         const qtdeOrcada = composicoesOrcamento?.[codigo]?.qtde || ''
         linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu })
+    }
+
+    // Remove as que não estão mais no grupo
+    for (const linha of linhasAtuais) {
+        if (!idsGrupo.has(linha.id)) linha.remove()
     }
 
     atualizarControlesPaginacao(chaves.length)
@@ -815,8 +817,6 @@ function linhasComposicoesOrcamento({ codigo, produto, qtdeOrcada, estado, lpu }
 
     const trExistente = document.getElementById(`COMP_${codigo}`)
     if (trExistente) {
-
-        console.log(trExistente.dataset.timestamp, produto.timestamp)
         if (Number(trExistente.dataset.timestamp) !== produto.timestamp) trExistente.innerHTML = tds
         return
     }
@@ -1407,12 +1407,15 @@ async function totalOrcamento() {
 
     if (avisoDesconto != 0) {
         const avisos = {
-            1: 'Preencha os dados do Cliente antes de aplicar descontos',
             2: 'Desconto ultrapassa o permitido',
             3: 'Atualize os valores no ITEM [ICMS Creditado, Custo de Compra...]'
         }
 
-        popup(mensagem(avisos[avisoDesconto]), 'Alerta')
+        if (avisoDesconto == 1) {
+            painelClientes()
+        } else {
+            popup(mensagem(avisos[avisoDesconto]), 'Alerta', true)
+        }
     }
 
     await tabelaProdutosOrcamentos()

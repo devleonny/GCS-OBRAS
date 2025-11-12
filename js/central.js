@@ -476,7 +476,7 @@ async function usuariosToolbar() {
 
     const indicadorStatus = user?.status || 'offline'
     const statusOpcoes = ['online', 'Em almoço', 'Não perturbe', 'Em reunião', 'Apenas Whatsapp']
-    if (user.permissao == 'adm') statusOpcoes.push('Invisível')
+    if (user?.permissao == 'adm') statusOpcoes.push('Invisível')
 
     const usuariosToolbarString = `
         <div class="botaoUsuarios">
@@ -1208,7 +1208,10 @@ function pesquisarGenerico(coluna, texto, filtro, id) {
     if (contagem) contagem.textContent = contador;
 }
 
-async function salvar_levantamento(id_orcamento) {
+async function salvarLevantamento(idOrcamento) {
+
+    overlayAguarde()
+
     let elemento = document.getElementById("adicionar_levantamento");
 
     if (!elemento || !elemento.files || elemento.files.length === 0) {
@@ -1224,9 +1227,9 @@ async function salvar_levantamento(id_orcamento) {
             anexo_dados[id_anexo] = anexo;
         });
 
-        if (id_orcamento) {
+        if (idOrcamento) {
             let dados_orcamentos = await recuperarDados("dados_orcamentos") || {};
-            let orcamentoBase = dados_orcamentos[id_orcamento] || {};
+            let orcamentoBase = dados_orcamentos[idOrcamento] || {};
 
             if (!orcamentoBase.levantamentos) {
                 orcamentoBase.levantamentos = {};
@@ -1237,10 +1240,10 @@ async function salvar_levantamento(id_orcamento) {
             await inserirDados(dados_orcamentos, "dados_orcamentos");
 
             for (let id_anexo in anexo_dados) {
-                await enviar(`dados_orcamentos/${id_orcamento}/levantamentos/${id_anexo}`, anexo_dados[id_anexo]);
+                await enviar(`dados_orcamentos/${idOrcamento}/levantamentos/${id_anexo}`, anexo_dados[id_anexo]);
             }
 
-            abrirEsquema(id_orcamento);
+
         } else {
 
             let orcamentoBase = baseOrcamento()
@@ -1250,27 +1253,47 @@ async function salvar_levantamento(id_orcamento) {
             }
 
             Object.assign(orcamentoBase.levantamentos, anexo_dados);
-
             baseOrcamento(orcamentoBase)
-            painelClientes()
         }
+
+        // Retornar as telas específicas;
+        const painelC = document.querySelector('.painel-clientes')
+        if (painelC) return await painelClientes(idOrcamento)
+
+        const painelH = document.querySelector('.painel-historico')
+        if (painelH) return await abrirEsquema(idOrcamento)
+
+        if (idOrcamento) return await abrirEsquema(idOrcamento)
+
     } catch (error) {
         popup(mensagem(`Erro ao fazer upload: ${error.message}`), 'ALERTA', true);
         console.error(error);
     }
 }
 
-async function excluirLevantamentoStatus(idAnexo) {
+async function excluirLevantamentoStatus(idAnexo, idOrcamento) {
 
     overlayAguarde()
-    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+
+    const orcamento = idOrcamento ? await recuperarDado('dados_orcamentos', id_orcam) : baseOrcamento()
 
     delete orcamento.levantamentos[idAnexo]
 
-    await deletar(`dados_orcamentos/${id_orcam}/levantamentos/${idAnexo}`)
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    if (idOrcamento) {
+        deletar(`dados_orcamentos/${id_orcam}/levantamentos/${idAnexo}`)
+        await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    } else {
+        baseOrcamento(orcamento)
+    }
 
-    await abrirEsquema(id_orcam)
+    // Retornar as telas específicas;
+    const painelC = document.querySelector('.painel-clientes')
+    if (painelC) return await painelClientes(idOrcamento)
+
+    const painelH = document.querySelector('.painel-historico')
+    if (painelH) return await abrirEsquema(idOrcamento)
+
+    if (idOrcamento) return await abrirEsquema(idOrcamento)
 
 }
 
@@ -2193,56 +2216,58 @@ async function atualizarBaseClientes() {
     await painelClientes()
 }
 
-async function painelClientes() {
+async function painelClientes(idOrcamento) {
 
-    const orcamentoBase = baseOrcamento()
+    overlayAguarde()
+
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
+    const orcamentoBase = orcamento || baseOrcamento()
+
     const dados_orcam = orcamentoBase?.dados_orcam || {}
-    let idCliente = dados_orcam?.omie_cliente
+    const idCliente = dados_orcam?.omie_cliente
     const overlayBloqueio = orcamentoBase.hierarquia ? true : false
 
     const cliente = await recuperarDado('dados_clientes', idCliente)
-    let levantamentos = ''
     const parcelas = ["--", "15 dias", "20 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
 
-    for (chave in orcamentoBase?.levantamentos || {}) {
-        let levantamento = orcamentoBase.levantamentos[chave]
-        levantamentos += criarAnexoVisual(levantamento.nome, levantamento.link, `excluirLevantamentoStatus('${chave}')`)
-    }
+    const levantamentos = Object.entries(orcamentoBase?.levantamentos || {})
+        .map(([idAnexo, anexo]) =>
+            criarAnexoVisual(
+                anexo.nome,
+                anexo.link,
+                idOrcamento
+                    ? `excluirLevantamentoStatus('${idAnexo}', '${idOrcamento}')`
+                    : `excluirLevantamentoStatus('${idAnexo}')`))
+        .join('')
 
     const modelo = (valor1, elemento) => `
             <div class="linha-clientes">
-                <label>${valor1}</label>
+                ${valor1 ? `<label><b>${valor1}</b></label>` : ''}
                 <div style="${horizontal}; gap: 2px;">${elemento}</div>
             </div>
         `
 
-    const acumulado = `
-    <div id="cadastroCliente" style="background-color: #d2d2d2; padding: 1rem;">
-
-        <div style="${horizontal}; gap: 1px;">
-
-            <div id="acompanhamento_dados_clientes" class="btn" onclick="atualizarBaseClientes()">
-                <img src="imagens/omie.png" style="width: 3rem;">
-                <label style="cursor: pointer;">Atualizar OMIE Clientes</label>
-            </div>
-
-            <div onclick="executarLimparCampos()" class="btn">
-                <img src="imagens/limpar.png" style="width: 2rem;">
-                <label style="cursor: pointer;">Limpar Campos</label>
-            </div>
+    const botao = (funcao, texto, img) => `
+        <div class="botoesChamado" onclick="${funcao}">
+            <img src="imagens/${img}.png">
+            <span>${texto}</span>
         </div>
+    `
+
+    const acumulado = `
+        ${idOrcamento ? `<span id="edicaoClienteOrcamento" style="display: none;">${idOrcamento}</span>` : ''}
 
         <div class="painel-clientes">
 
             ${modelo('Chamado', `
-                <input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" oninput="salvarDadosCliente()" value="${dados_orcam?.contrato || ''}">
-                <input ${styChek} id="chamado_off" type="checkbox" onchange="salvarDadosCliente()" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
+                <input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" value="${dados_orcam?.contrato || ''}">
+                <input ${styChek} id="chamado_off" onchange="chamadoSequencial(this)" type="checkbox" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
                 <label>Sem Chamado</label>`)}
 
-            ${modelo('Classificar orçamento na aba de <b>CHAMADO</b>', `<input ${orcamentoBase?.chamado ? 'checked' : ''} onclick="ativarChamado(this)" ${styChek} type="checkbox">`)}
+            ${modelo(null, `<span>Classificar orçamento na aba de <b>CHAMADO</b></span><input id="filtroChamado" ${orcamentoBase?.chamado ? 'checked' : ''} ${styChek} type="checkbox">`)}
 
             <div style="${vertical}; gap: 5px; width: 100%; position: relative;">
-                ${modelo('Cliente', `<span ${dados_orcam.omie_cliente ? `id="${dados_orcam.omie_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'salvarDadosCliente()')">${cliente?.nome || 'Selecione'}</span>`)}
+                ${modelo('Cliente', `<span ${dados_orcam.omie_cliente ? `id="${dados_orcam.omie_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'buscarDadosCliente()')">${cliente?.nome || 'Selecione'}</span>`)}
                 ${modelo('CNPJ/CPF', `<span id="cnpj">${cliente?.cnpj || ''}</span>`)}
                 ${modelo('Endereço', `<span id="bairro">${cliente?.bairro || ''}</span>`)}
                 ${modelo('CEP', `<span id="cep">${cliente?.cep || ''}</span>`)}
@@ -2251,47 +2276,60 @@ async function painelClientes() {
                 ${overlayBloqueio ? `<div class="overlay-clientes"></div>` : ''}
             </div>
 
-            ${modelo('Tipo de Frete', `<select id="tipo_de_frete" onchange="salvarDadosCliente()">
+            ${modelo('Tipo de Frete', `<select id="tipo_de_frete">
                     ${['--', 'CIF', 'FOB'].map(op => `<option ${dados_orcam?.tipo_de_frete == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
                     
-            ${modelo('Transportadora', `<input type="text" id="transportadora" oninput="salvarDadosCliente()" value="${dados_orcam?.transportadora || '--'}">`)}
-            ${modelo('Considerações', `<div style="display: flex; flex-direction: column; align-items: start; justify-content: center; width: 100%;">
-                    <textarea id="consideracoes" oninput="salvarDadosCliente()" rows="5"
-                    placeholder="Escopo do orçamento">${dados_orcam?.consideracoes || ''}</textarea>
-
-                    <div class="contorno_botoes" style="background-color: #222;">
-                        <img src="imagens/anexo2.png" style="width: 1.5vw;">
-                        <label style="width: 100%;" for="adicionar_levantamento">Anexar levantamento
-                            <input type="file" id="adicionar_levantamento" style="display: none;"
-                                onchange="salvar_levantamento()">
-                        </label>
-                    </div>
-
-                    ${levantamentos}
+            ${modelo('Transportadora', `<input type="text" id="transportadora" value="${dados_orcam?.transportadora || '--'}">`)}
+            
+            <div class="linha-clientes" style="${vertical}; gap: 5px;">
+                <span><b>Escopo / Considerações</b></span>
+                <div class="escopo" 
+                    id="consideracoes" 
+                    contentEditable="true"
+                    style="resize: vertical; overflow: auto; text-align: left; text-transform: uppercase;">
+                    ${dados_orcam?.consideracoes || 'ESCOPO: '}
                 </div>
-                `)}
 
-            ${modelo('Pagamento', `<select id="condicoes" oninput="salvarDadosCliente()">
+                <div class="contorno_botoes" style="background-color: #222;">
+                    <img src="imagens/anexo2.png" style="width: 1.2rem;">
+                    <label style="width: 100%;" for="adicionar_levantamento">Anexar levantamento
+                        <input type="file" id="adicionar_levantamento" style="display: none;"
+                            onchange="${idOrcamento ? `salvarLevantamento('${idOrcamento}')` : 'salvarLevantamento()'}">
+                    </label>
+                </div>
+    
+                ${levantamentos}
+            </div>           
+
+            ${modelo('Pagamento', `<select id="condicoes">
                 ${parcelas.map(op => `<option ${dados_orcam?.condicoes == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
 
-            ${modelo('Garantia', `<input id="garantia" oninput="salvarDadosCliente()" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">`)}
+            ${modelo('Garantia', `<input id="garantia" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">`)}
 
-            <label>Dados do Analista</label>
+            <label class="info">Dados do Analista</label>
 
             ${modelo('Analista', `<span id="analista" oninput="salvarContatos(this)" contentEditable="true">${dados_orcam?.analista || acesso.nome_completo}</span>`)}
             ${modelo('E-mail', `<span id="email_analista" oninput="salvarContatos(this)" contentEditable="true">${dados_orcam?.email_analista || acesso.email}</span>`)}
             ${modelo('Telefone', `<span id="telefone_analista" oninput="salvarContatos(this)" contentEditable="true">${dados_orcam?.telefone_analista || acesso.telefone}</span>`)}
 
-            <label>Quem emite essa nota?</label>
+            <label class="info">Quem emite essa nota?</label>
 
-            ${modelo('Empresa', `<select id="emissor" oninput="salvarDadosCliente()">
+            ${modelo('Empresa', `<select id="emissor">
                 ${['AC SOLUÇÕES', 'IAC', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
         </div>
-
-    </div>
+                
+        <div class="rodape-painel-clientes">
+            ${botao('salvarDadosCliente()', 'Salvar Dados', 'concluido')}
+            ${botao('atualizarBaseClientes()', 'Atualizar Clientes', 'atualizar3')}
+            ${idOrcamento ? '' : botao('executarLimparCampos()', 'Limpar Campos', 'limpar')}
+        </div>
     `
 
-    popup(acumulado, 'Dados do Cliente')
+    removerOverlay()
+    const painel = document.querySelector('.cadastro-cliente')
+    if (painel) return painel.innerHTML = acumulado
+
+    popup(`<div class="cadastro-cliente">${acumulado}</div>`, 'Dados do Cliente', true)
 }
 
 function salvarContatos(span) {
@@ -2303,41 +2341,55 @@ function salvarContatos(span) {
 
 }
 
+function chamadoSequencial(input) {
+
+    const contrato = document.getElementById('contrato')
+    if (contrato) contrato.style.display = input.checked ? 'none' : 'flex'
+    if (contrato) contrato.value = input.checked ? 'sequencial' : ''
+
+}
+
+async function buscarDadosCliente() {
+
+    const clienteName = document.querySelector('[name="cliente"]')
+    if (!clienteName) return
+
+    const omie_cliente = clienteName.id
+
+    const cliente = await recuperarDado('dados_clientes', omie_cliente)
+    const campos = ['cnpj', 'bairro', 'cidade', 'estado', 'cep']
+    for (const campo of campos) {
+        const el = document.getElementById(campo)
+        if (el) el.textContent = cliente?.[campo] || ''
+    }
+
+}
+
 async function salvarDadosCliente() {
 
-    let orcamentoBase = baseOrcamento()
+    overlayAguarde()
+
+    const edicaoClienteOrcamento = document.getElementById('edicaoClienteOrcamento')
+    const idOrcamento = edicaoClienteOrcamento?.textContent || null
+    let orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
+
+    let orcamentoBase = orcamento || baseOrcamento()
 
     const el = (id) => {
         const elemento = document.getElementById(id)
         return elemento || null
     }
 
-    if (!orcamentoBase.dados_orcam) orcamentoBase.dados_orcam = {}
-
-    const contrato = el('contrato')
-    const checkbox = el('chamado_off')
-
-    if (checkbox.checked) {
-        orcamentoBase.dados_orcam.contrato = 'sequencial'
-        contrato.style.display = 'none'
-
-    } else if (contrato.value == 'sequencial' || orcamentoBase.dados_orcam?.contrato == 'sequencial') {
-        orcamentoBase.dados_orcam.contrato = ''
-        contrato.value = ''
-        contrato.style.display = 'block'
-
-    } else {
-        orcamentoBase.dados_orcam.contrato = contrato.value
-        contrato.style.display = 'block'
-    }
+    orcamentoBase.dados_orcam ??= {}
 
     const omie_cliente = Number(document.querySelector('[name="cliente"]').id)
 
     orcamentoBase.dados_orcam = {
         ...orcamentoBase.dados_orcam,
         omie_cliente,
+        contrato: el('contrato').value,
         condicoes: el('condicoes').value,
-        consideracoes: String(el('consideracoes').value).toUpperCase(),
+        consideracoes: String(el('consideracoes').textContent).toUpperCase(),
         data: new Date().toLocaleString('pt-BR'),
         garantia: el('garantia').value,
         transportadora: el('transportadora').value,
@@ -2348,14 +2400,21 @@ async function salvarDadosCliente() {
         telefone_analista: el('telefone_analista').textContent
     }
 
-    baseOrcamento(orcamentoBase)
+    const filtroChamado = el('filtroChamado')
+    orcamentoBase.chamado = filtroChamado.checked
 
-    const cliente = await recuperarDado('dados_clientes', omie_cliente)
-    const campos = ['cnpj', 'bairro', 'cidade', 'estado', 'cep']
-    for (const campo of campos) {
-        const el = document.getElementById(campo)
-        if (el) el.textContent = cliente?.[campo] || ''
+    if (idOrcamento) {
+        enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam)
+        enviar(`dados_orcamentos/${idOrcamento}/chamado`, filtroChamado.checked)
+        await inserirDados({ [idOrcamento]: orcamentoBase }, 'dados_orcamentos')
+        await telaOrcamentos()
+        removerPopup()
+        abrirAtalhos(idOrcamento)
+        return
     }
+
+    baseOrcamento(orcamentoBase)
+    removerPopup()
 
     if (orcamentoBase.lpu_ativa === 'MODALIDADE LIVRE') {
         total_v2()
@@ -2514,31 +2573,6 @@ function pesquisarCX(input) {
             .replace(/[./-]/g, ''); // mesma limpeza no conteúdo
 
         div.style.display = (termoDiv.includes(termoPesquisa) || termoPesquisa === '') ? '' : 'none';
-    }
-}
-
-async function proxORC() {
-    try {
-        const opcoes = {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-        }
-
-        const resposta = await fetch(`${api}/proxORC`, opcoes)
-
-        if (!resposta.ok) return { err: `Falha no processo...` };
-
-        const texto = await resposta.text();
-        if (!texto) return { err: `Falha no processo...` };
-
-        try {
-            return JSON.parse(texto);
-        } catch {
-            return { err: texto };
-        }
-
-    } catch (err) {
-        return { err };
     }
 }
 

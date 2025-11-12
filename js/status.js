@@ -822,14 +822,14 @@ async function salvar_requisicao(chave) {
 
 async function abrirAtalhos(id) {
 
-    let permitidos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
+    const permitidos = ['adm', 'fin', 'diretoria', 'coordenacao', 'gerente']
     id_orcam = id
 
-    let orcamento = dados_orcamentos[id_orcam]
-    let omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-    let cliente = await recuperarDado('dados_clientes', omie_cliente)
-    let analista = orcamento.dados_orcam.analista
-    let emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
+    const orcamento = dados_orcamentos[id_orcam]
+    const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
+    const cliente = await recuperarDado('dados_clientes', omie_cliente)
+    const analista = orcamento.dados_orcam.analista
+    const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     let botoesDisponiveis = ''
     let termoArquivar = 'Arquivar Orçamento'
     let iconeArquivar = 'pasta'
@@ -863,23 +863,27 @@ async function abrirAtalhos(id) {
         ${modeloBotoes('chave', 'Delegar outro analista', `usuariosAutorizados()`)}
         ${modeloBotoes('apagar', 'Excluir Orçamento', `confirmarExclusaoOrcamentoBase('${id}')`)}
         ${modeloBotoes('editar', 'Editar Orçamento', `editar('${id}')`)}
+        <div></div>
+        ${modeloBotoes('gerente', 'Editar Dados do Cliente', `painelClientes('${id}')`)}
         `
     }
 
     const acumulado = `
-        <div style="background-color: #d2d2d2; display: flex; flex-direction: column; justify-content: center; align-items: start; padding: 1vw; gap: 5px;">
-            <label style="color: #222; font-size: 1rem; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
-            <hr>
-            <div style="${horizontal}; gap: 5px;">
-                <span>Classificar como <b>CHAMADO</b></span>
-                <input ${orcamento?.chamado ? 'checked' : ''} onclick="ativarChamado(this, '${id}')" ${styChek} type="checkbox">
-            </div>
-            <hr>
-            <div class="opcoes-orcamento">${botoesDisponiveis}</div>
+        <label style="color: #222; font-size: 1rem; text-align: left;" id="cliente_status">${cliente?.nome || '??'}</label>
+        <hr>
+        <div style="${horizontal}; gap: 5px;">
+            <span>Classificar como <b>CHAMADO</b></span>
+            <input ${orcamento?.chamado ? 'checked' : ''} onclick="ativarChamado(this, '${id}')" ${styChek} type="checkbox">
         </div>
+        <hr>
+        <div class="opcoes-orcamento">${botoesDisponiveis}</div>
     `
 
-    popup(acumulado, 'Opções do Orçamento')
+    const menuOpcoesOrcamento = document.querySelector('.menu-opcoes-orcamento')
+
+    if (menuOpcoesOrcamento) return menuOpcoesOrcamento.innerHTML = acumulado
+
+    popup(`<div class="menu-opcoes-orcamento">${acumulado}</div>`, 'Opções do Orçamento')
 
 }
 
@@ -1506,7 +1510,7 @@ async function abrirEsquema(id) {
         `
 
     const levantamentos = Object.entries(orcamento?.levantamentos || {})
-        .map(([iDlevantamento, levantamento]) => `${criarAnexoVisual(levantamento.nome, levantamento.link, `excluirLevantamentoStatus('${iDlevantamento}')`)}`)
+        .map(([idAnexo, anexo]) => `${criarAnexoVisual(anexo.nome, anexo.link, `excluirLevantamentoStatus('${idAnexo}', '${id}')`)}`)
         .join('')
 
     const divLevantamentos = `
@@ -1516,7 +1520,7 @@ async function abrirEsquema(id) {
                 <img src="imagens/anexo2.png" style="width: 2vw;">
                 <label style="font-size: 0.8vw; color: white;"> Anexar levantamento
                     <input type="file" id="adicionar_levantamento" style="display: none;"
-                        onchange="salvar_levantamento('${id}')" multiple>
+                        onchange="salvarLevantamento('${id}')" multiple>
                 </label>
             </div>
 

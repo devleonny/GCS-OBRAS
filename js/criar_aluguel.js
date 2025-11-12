@@ -82,12 +82,12 @@ async function carregarTabelasAluguel() {
     const divTabelas = document.getElementById('tabelas')
     const tabela = 'ALUGUEL'
 
-    if(linhas) return total()
+    if (linhas) return total()
 
     document.getElementById('lpu').value = orcamentoBase?.periodo || 'DIA'
     document.getElementById('quantidade_periodo').value = orcamentoBase?.quantidade_periodo || ''
     const colunas = ['Código', 'Descrição', 'Unidade', 'Quantidade', 'Custo Unit', 'Valor Total', 'Imagem', 'Remover']
-    if(!linhas) divTabelas.innerHTML = `
+    if (!linhas) divTabelas.innerHTML = `
         <div id="toolbarSuperior" style="display: none; justify-content: right; width: 100%;">
             <div class="menu-top" style="background-color: ${coresTabelas(tabela)};">
                 <span>${tabela}</span>
@@ -197,21 +197,7 @@ async function enviarDadosAluguel() {
     let orcamentoBase = baseOrcamento()
     orcamentoBase.origem = origem
 
-    if (!orcamentoBase.dados_orcam) {
-        return popup(mensagem('Preencha os dados do Cliente'), 'Alerta')
-    }
-
-    const dados_orcam = orcamentoBase.dados_orcam;
-
-    if (dados_orcam.cliente_selecionado === '') return popup(mensagem('Cliente em branco'), 'Alerta')
-
-    if (dados_orcam.contrato === '') return popup(mensagem('Chamado em branco'), 'Alerta')
-
-    if (dados_orcam.contrato == 'sequencial') {
-        const resposta = await proxORC()
-        if (resposta.err) return popup(mensagem(resposta.err), 'Alerta', true)
-        orcamentoBase.dados_orcam.contrato = `ORC_${resposta.proximo}`
-    }
+    if (!orcamentoBase.dados_orcam) return painelClientes()
 
     if (orcamentoBase.total_desconto > 0) {
         orcamentoBase.aprovacao = {
@@ -228,7 +214,7 @@ async function enviarDadosAluguel() {
     await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase)
 
     baseOrcamento(undefined, true)
-    await telaOrcamentos(true)
+    await telaOrcamentos()
 
     removerPopup()
 }
