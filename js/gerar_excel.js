@@ -115,6 +115,9 @@ async function ir_excel(orcam_) {
             col.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
         })
 
+        // Coluna H é o total;
+        ws_orcamento.getColumn('H').width = 35
+
         // Logo
         ws_orcamento.addImage(imageId, {
             tl: { col: 0, row: 0 },
