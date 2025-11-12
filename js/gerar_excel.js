@@ -1,410 +1,160 @@
 async function ir_excel(orcam_) {
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
-    let dados_composicoes = await recuperarDados('dados_composicoes') || {}
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
-    let orcamento = dados_orcamentos[orcam_]
+    const orcamento = await recuperarDado('dados_orcamentos', orcam_) || {}
 
-    var wb = new ExcelJS.Workbook();
-    var ws_orcamento = wb.addWorksheet('Orçamento');
-    var ws_total = wb.addWorksheet('TOTAL');
+    const wb = new ExcelJS.Workbook()
+    const ws_orcamento = wb.addWorksheet('Orçamento')
+    const ws_total = wb.addWorksheet('TOTAL')
 
-    const response = await fetch('https://i.imgur.com/5zohUo8.png');
-    const imageBlob = await response.blob();
-    const reader = new FileReader();
-    reader.readAsDataURL(imageBlob);
+    const response = await fetch('https://i.imgur.com/5zohUo8.png')
+    const imageBlob = await response.blob()
+    const reader = new FileReader()
+    reader.readAsDataURL(imageBlob)
 
-    reader.onloadend = () => {
-        const base64data = reader.result.replace(/^data:image\/(png|jpg);base64,/, '');
+    reader.onloadend = async () => {
+        const base64data = reader.result.replace(/^data:image\/(png|jpg);base64,/, '')
+        const imageId = wb.addImage({ base64: base64data, extension: 'png' })
 
-        const imageId = wb.addImage({
-            base64: base64data,
-            extension: 'png',
-        });
+        const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
+        const cliente = await recuperarDado('dados_clientes', omie_cliente)
+        const nomeArquivo = `${cliente?.nome || '--'} ${orcamento.dados_orcam.contrato}`
 
-        let omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-        let cliente = dados_clientes?.[omie_cliente] || {}
-        let estado = cliente?.estado || ''
-        let nome_arquivo = `${cliente?.nome || '--'} ${orcamento.dados_orcam.contrato}`
-        let carrefour = orcamento.lpu_ativa == 'LPU CARREFOUR' ? true : false
-        var venda_headers;
-        var servico_headers;
+        const cabecalho = ['Item', 'Descrição', 'Quantidade', 'Valor Unitário', 'Valor Total']
 
-        if (carrefour) {
-            venda_headers = [
-                ['Item', 'SAP ID', 'REF ID', "NCM", 'Descrição Real', "Descrição Carrefour", "Quantidade", "Valor Unit Liq", "Valor Total Liq", "%ICMS", "Valor UNIT", "Valor Total"]
-            ];
-            servico_headers = [
-                ['Item', 'SAP ID', 'REF ID', "NCM", 'Descrição Real', "Descrição Carrefour", "Quantidade", "Valor UNIT", "Valor Total"]
-            ];
-        } else {
-            venda_headers = [
-                ['Item', "NCM", "Descrição", "Quantidade", "Valor Unit Liq", "Valor Total Liq", "%ICMS", "Valor UNIT", "Valor Total"]
-            ];
-            servico_headers = [
-                ['Item', "NCM", "Descrição", "Quantidade", "Valor UNIT", "Valor Total"]
-            ];
-        }
+        const listagem = {}
+        for (const [codigo, item] of Object.entries(orcamento?.dados_composicoes || {})) {
 
-        let listagem = {
-            VENDA: [],
-            SERVIÇO: []
-        }
+            const tipo = item?.tipo || 'OUTROS'
+            if (!listagem[tipo]) listagem[tipo] = []
 
-        for (tabela in listagem) {
+            const qtde = conversor(item.qtde)
+            const vl_unit = conversor(item.custo)
+            const desconto = conversor(item.desconto) || 0
+            const tipoDesconto = (item.tipo_desconto || '').toUpperCase()
 
-            for (it in orcamento.dados_composicoes) {
-
-                let item = orcamento.dados_composicoes[it]
-                item.tipo = item.tipo ? item.tipo : dados_composicoes[item.codigo].tipo
-
-                if (item.tipo == 'USO E CONSUMO') item.tipo = 'SERVIÇO'
-
-                if (item.tipo !== tabela) {
-                    continue
-                }
-
-                item.qtde = conversor(item.qtde)
-                var vl_unitario = conversor(item.custo)
-                let porcent_icms = 0
-
-                if (carrefour) {
-
-                    let descricao_real = dados_composicoes[item.codigo].descricao // REAL
-
-                    if (dados_composicoes[item.codigo] && dados_composicoes[item.codigo].substituto) {
-                        item.codigo = dados_composicoes[item.codigo].substituto
-                    }
-
-                    item.descricao = dados_composicoes[item.codigo].descricaocarrefour
-                    item.ncm = dados_composicoes[item.codigo].ncm
-                    var sapId = dados_composicoes[item.codigo].sapid
-                    var refId = dados_composicoes[item.codigo].refid
-
-                    if (item.tipo == 'VENDA') {
-                        porcent_icms = estado == 'BA' ? 0.205 : 0.12
-
-                        listagem[tabela].push([
-                            item.codigo,
-                            sapId,
-                            refId,
-                            item.ncm,
-                            descricao_real,
-                            item.descricao,
-                            item.qtde,
-                            { formula: `K@*(1-J@)` },
-                            { formula: `G@*H@` },
-                            porcent_icms,
-                            vl_unitario,
-                            { formula: `G@*K@` }
-                        ]);
-                    } else if (item.tipo == 'SERVIÇO') {
-                        listagem[tabela].push([
-                            item.codigo,
-                            sapId,
-                            refId,
-                            item.ncm,
-                            descricao_real,
-                            item.descricao,
-                            item.qtde,
-                            vl_unitario,
-                            { formula: `G@*H@` }
-                        ]);
-                    }
-
-                } else { // No caso de serem outras tabelas;
-
-                    if (dados_composicoes[item.codigo]) {
-                        item.ncm = dados_composicoes[item.codigo].ncm
-                        item.descricao = dados_composicoes[item.codigo].descricao
-                    }
-
-                    if (item.tipo == 'VENDA') {
-                        porcent_icms = estado == 'BA' ? 0.205 : 0.12
-                        listagem[tabela].push([
-                            item.codigo,
-                            item.ncm,
-                            item.descricao,
-                            item.qtde,
-                            { formula: `H@*(1-G@)` },
-                            { formula: `D@*E@` },
-                            porcent_icms,
-                            vl_unitario,
-                            { formula: `D@*H@` }
-                        ]);
-                    } else if (item.tipo == 'SERVIÇO') {
-                        listagem[tabela].push([
-                            item.codigo,
-                            item.ncm,
-                            item.descricao,
-                            item.qtde,
-                            vl_unitario,
-                            { formula: `D@*E@` }
-                        ]);
-                    }
-                }
-
+            let total
+            if (tipoDesconto === 'PORCENTAGEM') {
+                total = qtde * vl_unit * (1 - desconto / 100)
+            } else {
+                total = (qtde * vl_unit) - desconto
             }
 
+            const vlUnitFinal = qtde ? total / qtde : 0
+
+            listagem[tipo].push([
+                codigo,
+                item.descricao || 'N/A',
+                qtde,
+                vlUnitFinal,
+                total
+            ])
         }
 
-        let headerRow = ws_orcamento.addRow(['', `Orçamento: ${nome_arquivo}`]);
-        ws_orcamento.mergeCells(`B${headerRow.number}:G${headerRow.number}`)
-        ws_orcamento.mergeCells(`H${headerRow.number}:J${headerRow.number}`)
+        // Cabeçalho principal
+        const headerRow = ws_orcamento.addRow(['', `Orçamento: ${nomeArquivo}`])
+        ws_orcamento.mergeCells(`B${headerRow.number}:F${headerRow.number}`)
+        ws_orcamento.getCell('B1').font = { size: 18, bold: true, color: { argb: '1155CC' } }
+        ws_orcamento.getCell('B1').alignment = { horizontal: 'left', vertical: 'middle' }
 
-        if (listagem.SERVIÇO.length !== 0) {
+        ws_orcamento.getCell('G1').value = 'Total:'
+        ws_orcamento.getCell('G1').font = { size: 12, bold: true, color: { argb: '1155CC' } }
+        ws_orcamento.getCell('G1').alignment = { horizontal: 'right', vertical: 'middle' }
 
-            ws_orcamento.addRows(servico_headers);
+        const intervalosItens = []
 
-            listagem.SERVIÇO.forEach(linha => {
-                linha.forEach(celula => {
-                    if (dicionario(celula) && celula.formula) {
-                        celula.formula = celula.formula.replace(/@/g, 1 + ws_orcamento.lastRow.number);
-                    }
-                })
-                ws_orcamento.addRow(linha);
+        for (const tipo in listagem) {
+            ws_orcamento.addRow([])
+
+            const titulo = ws_orcamento.addRow([`${tipo}`])
+            titulo.eachCell(c => {
+                c.font = { bold: true, color: { argb: 'FFFFFF' }, size: 13 }
+                c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1155CC' } }
+                c.alignment = { horizontal: 'center', vertical: 'middle' }
             })
 
-            if (carrefour) {
-                ws_orcamento.addRow(['', '', '', '', '', '', '', 'Total Serviço', { formula: `SUM(I${1 + ws_orcamento.lastRow.number - listagem.SERVIÇO.length}:I${ws_orcamento.lastRow.number})` }]);
-            } else {
-                ws_orcamento.addRow(['', '', '', '', 'Total Serviço', { formula: `SUM(F${1 + ws_orcamento.lastRow.number - listagem.SERVIÇO.length}:F${ws_orcamento.lastRow.number})` }]);
-            }
-
-            ws_orcamento.getRow(ws_orcamento.lastRow.number).eachCell((cell) => {
-                cell.font = {
-                    bold: true,
-                    color: { argb: 'FFFFFF' }
-                };
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FF008000' }
-                };
-            });
-
-            ws_orcamento.getRow(ws_orcamento.lastRow.number - listagem.SERVIÇO.length - 1).eachCell((cell) => {
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FF008000' }
-                };
-                cell.font = {
-                    bold: true,
-                    color: { argb: 'FFFFFF' }
-                };
-            });
-        }
-
-        if (listagem.VENDA.length !== 0) {
-            if (listagem.SERVIÇO.length !== 0) {
-                ws_orcamento.addRow([]);
-            }
-
-            ws_orcamento.addRows(venda_headers);
-
-            listagem.VENDA.forEach(linha => {
-                linha.forEach(celula => {
-                    if (dicionario(celula) && celula.formula) {
-                        celula.formula = celula.formula.replace(/@/g, 1 + ws_orcamento.lastRow.number);
-                    }
-                })
-                ws_orcamento.addRow(linha);
+            const head = ws_orcamento.addRow(cabecalho)
+            head.eachCell(c => {
+                c.font = { bold: true, color: { argb: 'FFFFFF' } }
+                c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '4472C4' } }
+                c.alignment = { horizontal: 'center', vertical: 'middle' }
             })
 
-            if (carrefour) {
-                ws_orcamento.addRow(['', '', '', '', '', '', '', '', '', '', 'Total Venda', { formula: `SUM(L${1 + ws_orcamento.lastRow.number - listagem.VENDA.length}:L${ws_orcamento.lastRow.number})` }]);
-            } else {
-                ws_orcamento.addRow(['', '', '', '', '', '', '', 'Total Venda', { formula: `SUM(I${1 + ws_orcamento.lastRow.number - listagem.VENDA.length}:I${ws_orcamento.lastRow.number})` }]);
-            }
+            const start = ws_orcamento.lastRow.number + 1
 
-            ws_orcamento.getRow(ws_orcamento.lastRow.number).eachCell((cell) => {
-                cell.font = {
-                    bold: true,
-                    color: { argb: 'FFFFFF' }
-                };
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFB12425' }
-                };
-            });
+            listagem[tipo].forEach(l => {
+                const r = ws_orcamento.addRow(l)
+                r.getCell(4).numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-'
+                r.getCell(5).numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-'
+            })
 
-            ws_orcamento.getRow(ws_orcamento.lastRow.number - listagem.VENDA.length - 1).eachCell((cell) => {
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFB12425' }
-                };
-                cell.font = {
-                    bold: true,
-                    color: { argb: 'FFFFFF' }
-                };
-            });
+            const end = ws_orcamento.lastRow.number
+            intervalosItens.push(`E${start}:E${end}`)
+
+            const totalRow = ws_orcamento.addRow([
+                '', '', '', `Total ${tipo}`,
+                { formula: `SUM(E${start}:E${end})` }
+            ])
+            totalRow.eachCell(c => {
+                c.font = { bold: true, color: { argb: 'FFFFFF' } }
+                c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1155CC' } }
+                c.alignment = { horizontal: 'center', vertical: 'middle' }
+            })
+            totalRow.getCell(5).numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-'
         }
 
-        // Formatação das colunas
-        if (carrefour) {
-            ['H', 'I', 'K', 'L'].forEach(col => {
-                ws_orcamento.getColumn(col).numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-';
-            });
-            ws_orcamento.getColumn('J').numFmt = '0.00%';
-        } else {
-            ['E', 'F', 'G', 'H', 'I'].forEach(col => {
-                ws_orcamento.getColumn(col).numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-';
-            });
-            ws_orcamento.getColumn('G').numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-';
-            ws_orcamento.getColumn(4).eachCell({ includeEmpty: true }, function (cell) {
-                cell.alignment = { horizontal: 'center' };
-            });
+        // total geral (somando só as linhas de itens, não os subtotais)
+        if (intervalosItens.length) {
+            ws_orcamento.getCell('H1').value = { formula: `SUM(${intervalosItens.join(',')})` }
+            ws_orcamento.getCell('H1').numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-'
+            ws_orcamento.getCell('H1').font = { size: 14, bold: true, color: { argb: '1155CC' } }
+            ws_orcamento.getCell('H1').alignment = { horizontal: 'left', vertical: 'middle' }
         }
 
-        ws_orcamento.columns.forEach(column => {
-            if ((column._number == 5 || column._number == 6) && carrefour) {
-                column.width = 40;
-            } else if (column._number == 3 && !carrefour) {
-                column.width = 40;
-            } else {
-                column.width = 14;
-                ws_orcamento.getColumn(column._number).eachCell({ includeEmpty: true }, (cell) => {
-                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                });
-            }
-        });
+        // Largura das colunas
+        ws_orcamento.columns.forEach((col, i) => {
+            col.width = [18, 40, 12, 18, 18][i] || 14
+            col.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
+        })
 
+        // Logo
         ws_orcamento.addImage(imageId, {
             tl: { col: 0, row: 0 },
             ext: { width: 3.25 * 28.35, height: 3.25 * 28.35 }
-        });
+        })
+        ws_orcamento.getRow(1).height = 3 * 28.35
 
-        ws_orcamento.getRow(1).height = 3 * 28.35;
-
-        let estiloHeader = {
-            font: {
-                size: 20,
-                color: { argb: '1155CC' },
-                bold: true
-            },
-            alignment: {
-                horizontal: 'left',
-                vertical: 'middle'
-            }
-        };
-
-        ws_orcamento.getCell('B1').font = estiloHeader.font;
-        ws_orcamento.getCell('B1').alignment = estiloHeader.alignment;
-
-        ws_orcamento.getCell('H1').font = estiloHeader.font;
-        ws_orcamento.getCell('H1').alignment = estiloHeader.alignment;
-        ws_orcamento.getCell('H1').numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-';
-
-        let escopo = orcamento.dados_orcam.consideracoes;
-        let col_serviço = carrefour ? 'I' : 'F'
-        let col_venda = carrefour ? 'L' : 'I'
-
-        ws_total.addRows([['', 'Grupo Costa Silva']])
-
-        ws_total.addRows([[],
-        ['Orçamento: ' + nome_arquivo]])
-
-        let manter_total = 0
-        let fct = 4 // limite da até onde a célula receberá formatação (A4 a A6)
-
-        let refsTotais = [];
-
-        if (listagem.SERVIÇO.length !== 0) {
-            const rowServiço = ws_total.lastRow.number + 1;
-            ws_total.addRows([
-                ["TOTAL DE SERVIÇO", { formula: `SUM(Orçamento!${col_serviço}3:${col_serviço}${3 + listagem.SERVIÇO.length - 1})` }]
-            ]);
-            refsTotais.push(`TOTAL!B${rowServiço}`);
-            manter_total++;
-        }
-
-        if (listagem.VENDA.length !== 0) {
-            const rowVenda = ws_total.lastRow.number + 1;
-            ws_total.addRows([
-                ["TOTAL DE VENDA", { formula: `SUM(Orçamento!${col_venda}${ws_orcamento.lastRow.number - listagem.VENDA.length}:${col_venda}${ws_orcamento.lastRow.number - 1})` }]
-            ]);
-            refsTotais.push(`TOTAL!B${rowVenda}`);
-            manter_total++;
-        }
-
-        if (refsTotais.length) {
-            ws_orcamento.getCell(`H1`).value = { formula: `SUM(${refsTotais.join(",")})` };
-        }
-
-        if (manter_total == 2) {
-            ws_total.addRow(["TOTAL", { formula: `SUM(B4:B5)` }])
-            fct = 6
-        } else {
-            ws_total.addRows([[], []])
-        }
-
+        // --- ABA TOTAL ---
+        const escopo = orcamento.dados_orcam.consideracoes || ''
         ws_total.addRows([
+            ['', 'Grupo Costa Silva'],
             [],
-            [escopo]])
+            ['Orçamento: ' + nomeArquivo]
+        ])
 
-        const gcs_nome = ws_total.getCell('B1');
-        gcs_nome.font = {
-            size: 15,
-            color: { argb: '1155CC' },
-            bold: true
-        };
+        const refs = []
+        for (const tipo in listagem) {
+            const ultima = ws_orcamento.lastRow.number
+            ws_total.addRow([`TOTAL ${tipo}`, { formula: `Orçamento!E${ultima}` }])
+            refs.push(`TOTAL!B${ws_total.lastRow.number}`)
+        }
 
-        gcs_nome.alignment = {
-            horizontal: 'left',
-            vertical: 'middle'
-        };
+        if (refs.length > 1)
+            ws_total.addRow(['TOTAL GERAL', { formula: `SUM(${refs.join(',')})` }])
 
-        const headerCell2 = ws_total.getCell('A3');
-        headerCell2.font = {
-            size: 15,
-            color: { argb: '1155CC' },
-            bold: true
-        };
-        headerCell2.alignment = {
-            horizontal: 'left',
-            vertical: 'middle'
-        };
-
-        ws_total.getColumn(1).width = 20;
-        ws_total.getColumn(2).width = 20;
-        ws_total.getColumn(2).numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-';
+        ws_total.addRows([[], [escopo]])
+        ws_total.getColumn(1).width = 25
+        ws_total.getColumn(2).width = 25
+        ws_total.getColumn(2).numFmt = '_-R$* #,##0.00_-;-R$* #,##0.00_-;_-R$* "-"??_-;_-@_-'
+        ws_total.getCell('B1').font = { size: 15, bold: true, color: { argb: '1155CC' } }
 
         ws_total.addImage(imageId, {
             tl: { col: 0, row: 0 },
             ext: { width: 3.25 * 28.35, height: 3.25 * 28.35 }
-        });
+        })
+        ws_total.getRow(1).height = 3 * 28.35
 
-        ws_total.getRow(1).height = 3 * 28.35;
+        ws_total.eachRow(r => r.eachCell(c => c.alignment = { vertical: 'middle', wrapText: true }))
 
-        for (let i = 4; i <= fct; i++) {
-            let cell = ws_total.getCell('A' + i);
-            cell.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: '1155CC' }
-            };
-            cell.font = {
-                bold: true,
-                color: { argb: 'FFFFFF' }
-            };
-        }
-
-        ws_total.mergeCells('A8:H100');
-        ws_total.getCell('A8').alignment = {
-            vertical: 'top',
-            wrapText: true
-        };
-
-        ws_orcamento.eachRow((row) => {
-            row.eachCell((cell) => {
-                cell.alignment = { vertical: 'middle', wrapText: true };
-            });
-        });
-
-        wb.xlsx.writeBuffer().then(function (buffer) {
-            saveAs(new Blob([buffer], { type: 'application/octet-stream' }), nome_arquivo + '.xlsx');
-        });
-    };
+        const buffer = await wb.xlsx.writeBuffer()
+        saveAs(new Blob([buffer], { type: 'application/octet-stream' }), nomeArquivo + '.xlsx')
+    }
 }
