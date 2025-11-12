@@ -13,6 +13,8 @@ let primeiroDia = null
 
 async function telaChecklist() {
 
+    id_orcam = 'ORCA_4f3845ef-62b7-4ab3-9175-8f0b294f2488'
+
     tecnicos = {}
 
     let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
@@ -75,7 +77,7 @@ async function telaChecklist() {
 
                 </div>
 
-                ${modelo('Porcentagem de Conclusão', `<div id="porcentagem"></div>`)}
+                ${modelo('Porcentagem de Conclusão', `<div style="width: 100%;" id="porcentagem"></div>`)}
 
                 <div style="${horizontal}; gap: 10px;">
                     ${modelo('Total de Serviços', `<span id="geral"></span>`)}

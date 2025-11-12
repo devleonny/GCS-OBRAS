@@ -852,7 +852,7 @@ async function abrirAtalhos(id) {
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
         ${modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`)}
-        ${modeloBotoes('LG', 'OS em PDF', ``)}
+        ${modeloBotoes('LG', 'OS em PDF', `window.open('os.html', '_blank')`)}
         ${modeloBotoes('projeto', 'Criar Orçamento Vinculado', `criarOrcamentoVinculado('${id}')`)}
         `
     }
