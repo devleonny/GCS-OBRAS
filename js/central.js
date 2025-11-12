@@ -2213,7 +2213,6 @@ async function verificarNF(numero, tipo, app) {
 
 async function atualizarBaseClientes() {
     await sincronizarDados('dados_clientes')
-    await painelClientes()
 }
 
 async function painelClientes(idOrcamento) {
