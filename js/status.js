@@ -852,7 +852,7 @@ async function abrirAtalhos(id) {
         ${modeloBotoes('duplicar', 'Duplicar Orçamento', `duplicar('${id}')`)}
         ${modeloBotoes(iconeArquivar, termoArquivar, `arquivarOrcamento('${id}')`)}
         ${modeloBotoes('link', 'Vincular Orçamento', `vincularOrcamento('${id}')`)}
-        ${modeloBotoes('LG', 'OS em PDF', `window.open('os.html', '_blank')`)}
+        ${modeloBotoes('LG', 'OS em PDF', `abrirOS('${id}')`)}
         ${modeloBotoes('projeto', 'Criar Orçamento Vinculado', `criarOrcamentoVinculado('${id}')`)}
         `
     }
@@ -884,6 +884,14 @@ async function abrirAtalhos(id) {
     if (menuOpcoesOrcamento) return menuOpcoesOrcamento.innerHTML = acumulado
 
     popup(`<div class="menu-opcoes-orcamento">${acumulado}</div>`, 'Opções do Orçamento')
+
+}
+
+async function abrirOS(idOrcamento) {
+
+    const orcamento = await recuperarDado('dados_orcamentos', idOrcamento)
+    localStorage.setItem('pdf', JSON.stringify(orcamento))
+    window.open('os.html', '_blank')
 
 }
 
