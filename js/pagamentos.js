@@ -769,7 +769,7 @@ async function salvarPagamento() {
         await inserirDados({ [id_pagamento]: ultimoPagamento }, 'lista_pagamentos')
         criarLinhaPagamento(ultimoPagamento)
         localStorage.removeItem('ultimoPagamento')
-        popup(mensagem('Pagemento Salvo', 'imagens/concluido.png'), 'Sucesso')
+        popup(mensagem('Pagamento Salvo', 'imagens/concluido.png'), 'Sucesso')
 
     } catch {
 
