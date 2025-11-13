@@ -658,34 +658,34 @@ function removerOverlay() {
     if (aguarde) aguarde.remove()
 }
 
-function overlayAguarde() {
+function overlayAguarde(semMSG) {
 
     if (semOverlay) return
 
-    mostrarMenus(false);
+    mostrarMenus(false)
 
-    const aguarde = document.getElementById('aguarde');
-    if (aguarde) aguarde.remove();
+    const aguarde = document.getElementById('aguarde')
+    if (aguarde) return
 
     const elemento = `
-    <div id="aguarde" style="
-                display: flex; 
-                align-items: start; 
-                justify-content: start;
-                background-color: rgba(0, 0, 0, 0.7);
-                color: white;
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                z-index: 10005;">
-            <div class="div-mensagem">
-                <img src="gifs/loading.gif" style="width: 4rem;">
-                <label>Por favor, aguarde...</label>
-            </div>
-    </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', elemento);
+        <div id="aguarde" style="
+                    display: flex; 
+                    align-items: start; 
+                    justify-content: start;
+                    background-color: rgba(0, 0, 0, 0.7);
+                    color: white;
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    z-index: 10005;">
+                <div class="div-mensagem">
+                    <img src="gifs/loading.gif" style="width: 4rem;">
+                    ${semMSG ? '' : `<label>Por favor, aguarde...</label>`}
+                </div>
+        </div>`
+
+    document.body.insertAdjacentHTML('beforeend', elemento)
 
     let pageHeight = Math.max(
         document.body.scrollHeight,
@@ -693,6 +693,8 @@ function overlayAguarde() {
     );
 
     document.getElementById('aguarde').style.height = `${pageHeight}px`;
+
+    if(semMSG) return
 
     if (overlayTimeout) clearTimeout(overlayTimeout);
 
@@ -702,7 +704,7 @@ function overlayAguarde() {
             mensagem.innerHTML = `
                 <img src="gifs/atencao.gif" style="width: 2vw;">
                 <label onclick="this.parentElement.parentElement.remove()">Cancelar?</label>
-            `;
+            `
         }
     }, 60 * 1000);
 }

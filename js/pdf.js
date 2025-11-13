@@ -67,29 +67,28 @@ function blocoHtml(titulo, dados = {}) {
 }
 
 async function atualizarDadosPdf() {
-    let campo_atualizar = document.getElementById('campo_atualizar')
 
-    if (campo_atualizar) {
-        campo_atualizar.innerHTML = `
-        <img src="gifs/loading.gif" style="width: 5vw;">
-        `
+    try {
 
-        try {
-            await inserirDados(await receber('dados_composicoes'), 'dados_composicoes')
+        overlayAguarde(true)
 
-            let dados_orcamentos = await receber('dados_orcamentos')
-            await inserirDados(dados_orcamentos, 'dados_orcamentos')
-            let pdf = JSON.parse(localStorage.getItem('pdf'))
-            let orcamentoBase = dados_orcamentos[pdf.id]
-            localStorage.setItem('pdf', JSON.stringify(orcamentoBase))
-        } catch (error) {
-            const ERROR_MESSAGE = 'Erro ao atualizar os itens da composição:'
-            console.log(ERROR_MESSAGE, error)
-            alert(ERROR_MESSAGE, error)
-        } finally {
-            location.reload(true)
-        }
+        semOverlay = true
+
+        await sincronizarDados('dados_orcamentos')
+        await sincronizarDados('dados_composicoes')
+
+        const pdf = JSON.parse(localStorage.getItem('pdf'))
+        const orcamentoBase = await recuperarDado('dados_orcamentos', pdf.id)
+        localStorage.setItem('pdf', JSON.stringify(orcamentoBase))
+        location.reload(true)
+
+        semOverlay = false
+
+    } catch (error) {
+        console.log(error)
     }
+
+    removerOverlay()
 }
 
 async function preencher() {
@@ -377,24 +376,24 @@ async function preencher() {
 }
 
 function carimboData() {
-    let dataAtual = new Date();
-    let opcoes = { day: 'numeric', month: 'long', year: 'numeric' };
-    let dataFormatada = dataAtual.toLocaleDateString('pt-BR', opcoes);
+    const dataAtual = new Date();
+    const opcoes = { day: 'numeric', month: 'long', year: 'numeric' };
+    const dataFormatada = dataAtual.toLocaleDateString('pt-BR', opcoes);
 
     return dataFormatada
 }
 
 function ocultarElementos() {
-    let ocultar = document.querySelector('.ocultar')
-    let total_desconto = document.getElementById('total_DIFERENÇA')
-    let exibir = ocultar.style.display == 'none'
+    const ocultar = document.querySelector('.ocultar')
+    const total_desconto = document.getElementById('total_DIFERENÇA')
+    const exibir = ocultar.style.display == 'none'
 
     ocultar.style.display = exibir ? '' : 'none'
     if (total_desconto) total_desconto.style.display = exibir ? '' : 'none'
 }
 
 async function gerarPDF() {
-    preencher();
+    preencher()
     ocultarElementos()
 
     let dados_clientes = await recuperarDados('dados_clientes') || {}
@@ -403,6 +402,6 @@ async function gerarPDF() {
     let omie_cliente = orcamentoBase.dados_orcam?.omie_cliente || ''
     let cliente = dados_clientes?.[omie_cliente]?.nome || ''
 
-    await gerarPdfOnline(document.documentElement.outerHTML, `Orcamento_${cliente}_${contrato}`);
+    await gerarPdfOnline(document.documentElement.outerHTML, `Orcamento_${cliente}_${contrato}`)
     ocultarElementos()
 }
