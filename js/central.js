@@ -14,8 +14,16 @@ const horizontal = `display: flex; align-items: center; justify-content: center;
 const vertical = `display: flex; align-items: start; justify-content: start; flex-direction: column;`
 let overlayTimeout;
 let semOverlay = false
+let dados_clientes = {}
+let dados_orcamentos = {}
 
 const styChek = 'style="width: 1.5rem; height: 1.5rem;"'
+const botaoRodape = (funcao, texto, img) => `
+        <div class="botoesRodape" onclick="${funcao}">
+            <img src="imagens/${img}.png">
+            <span>${texto}</span>
+        </div>
+    `
 const modelo = (valor1, valor2) => `
         <div class="modelo">
             <label>${valor1}</label>
@@ -71,7 +79,7 @@ const modeloBotoes = (imagem, nome, funcao) => {
 }
 
 const layoutBotao = (nome, funcao, img) => `
-    <div onclick="${funcao}" class="botoesChamado">
+    <div onclick="${funcao}" class="botoesRodape">
         <img src="imagens/${img}.png" style="cursor: pointer; width: 2vw;">
         <label>${nome}</label>
     </div>
@@ -665,7 +673,7 @@ function overlayAguarde(semMSG) {
     mostrarMenus(false)
 
     const aguarde = document.getElementById('aguarde')
-    if (aguarde) return
+    if (aguarde) aguarde.remove()
 
     const elemento = `
         <div id="aguarde" style="
@@ -694,7 +702,7 @@ function overlayAguarde(semMSG) {
 
     document.getElementById('aguarde').style.height = `${pageHeight}px`;
 
-    if(semMSG) return
+    if (semMSG) return
 
     if (overlayTimeout) clearTimeout(overlayTimeout);
 
@@ -1135,7 +1143,7 @@ function maisAba() {
 
 async function ir_pdf(orcam_) {
 
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
+    dados_orcamentos = await recuperarDados('dados_orcamentos') || {};
     localStorage.setItem('pdf', JSON.stringify(dados_orcamentos[orcam_]));
 
     window.open('pdf.html', '_blank')
@@ -1230,19 +1238,17 @@ async function salvarLevantamento(idOrcamento) {
         });
 
         if (idOrcamento) {
-            let dados_orcamentos = await recuperarDados("dados_orcamentos") || {};
-            let orcamentoBase = dados_orcamentos[idOrcamento] || {};
 
-            if (!orcamentoBase.levantamentos) {
-                orcamentoBase.levantamentos = {};
-            }
+            const orcamentoBase = await recuperarDado('dados_orcamentos', idOrcamento) || {}
 
-            Object.assign(orcamentoBase.levantamentos, anexo_dados);
+            orcamentoBase.levantamentos ??= {}
 
-            await inserirDados(dados_orcamentos, "dados_orcamentos");
+            Object.assign(orcamentoBase.levantamentos, anexo_dados)
 
-            for (let id_anexo in anexo_dados) {
-                await enviar(`dados_orcamentos/${idOrcamento}/levantamentos/${id_anexo}`, anexo_dados[id_anexo]);
+            await inserirDados({ [idOrcamento]: orcamentoBase }, 'dados_orcamentos')
+
+            for (const [idAnexo, anexo] of Object.entries(anexos)) {
+                await enviar(`dados_orcamentos/${idOrcamento}/levantamentos/${idAnexo}`, anexo)
             }
 
 
@@ -1250,11 +1256,9 @@ async function salvarLevantamento(idOrcamento) {
 
             let orcamentoBase = baseOrcamento()
 
-            if (!orcamentoBase.levantamentos) {
-                orcamentoBase.levantamentos = {};
-            }
+            orcamentoBase.levantamentos ??= {}
 
-            Object.assign(orcamentoBase.levantamentos, anexo_dados);
+            Object.assign(orcamentoBase.levantamentos, anexo_dados)
             baseOrcamento(orcamentoBase)
         }
 
@@ -1806,8 +1810,8 @@ function obterDatas(estilo) {
 }
 
 async function verAprovacoes() {
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    let dados_clientes = await recuperarDados('dados_clientes') || {}
+    dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
+    dados_clientes = await recuperarDados('dados_clientes') || {}
 
     let guia = {
         pendente: '#ff8c1b',
@@ -1907,7 +1911,7 @@ async function verificarPendencias() {
     if (!navigator.onLine) return
 
     await sincronizarDados('dados_orcamentos', true)
-    let dados_orcamentos = await recuperarDados('dados_orcamentos')
+    dados_orcamentos = await recuperarDados('dados_orcamentos')
     let contador = 0
 
     for ([idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
@@ -2110,14 +2114,14 @@ async function respostaAprovacao(botao, idOrcamento, status) {
     }
 
     await sincronizarDados('dados_orcamentos')
-    let dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
-    dados_orcamentos[idOrcamento].aprovacao = {
+    let orcamento = await recuperarDado('dados_orcamentos', idOrcamento) || {}
+    orcamento.aprovacao = {
         ...dados_orcamentos[idOrcamento].aprovacao,
         ...dados
     }
 
-    await inserirDados(dados_orcamentos, 'dados_orcamentos')
-    enviar(`dados_orcamentos/${idOrcamento}/aprovacao`, dados_orcamentos[idOrcamento].aprovacao)
+    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${idOrcamento}/aprovacao`, orcamento.aprovacao)
 
     await verAprovacoes()
     verificarPendencias()
@@ -2248,13 +2252,6 @@ async function painelClientes(idOrcamento) {
             </div>
         `
 
-    const botao = (funcao, texto, img) => `
-        <div class="botoesChamado" onclick="${funcao}">
-            <img src="imagens/${img}.png">
-            <span>${texto}</span>
-        </div>
-    `
-
     const acumulado = `
         ${idOrcamento ? `<span id="edicaoClienteOrcamento" style="display: none;">${idOrcamento}</span>` : ''}
 
@@ -2320,9 +2317,9 @@ async function painelClientes(idOrcamento) {
         </div>
                 
         <div class="rodape-painel-clientes">
-            ${botao('salvarDadosCliente()', 'Salvar Dados', 'concluido')}
-            ${botao('atualizarBaseClientes()', 'Atualizar Clientes', 'atualizar3')}
-            ${idOrcamento ? '' : botao('executarLimparCampos()', 'Limpar Campos', 'limpar')}
+            ${botaoRodape('salvarDadosCliente()', 'Salvar Dados', 'concluido')}
+            ${botaoRodape('atualizarBaseClientes()', 'Atualizar Clientes', 'atualizar3')}
+            ${idOrcamento ? '' : botaoRodape('executarLimparCampos()', 'Limpar Campos', 'limpar')}
         </div>
     `
 

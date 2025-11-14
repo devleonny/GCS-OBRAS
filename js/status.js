@@ -1931,6 +1931,7 @@ function pesquisar_pagamentos(input) {
     }
 }
 
+
 async function excluirAnexo(chave, id_anexo, img) {
 
     removerPopup()
@@ -1943,7 +1944,7 @@ async function excluirAnexo(chave, id_anexo, img) {
 
     await abrirEsquema(id_orcam)
 
-    deletar(`dados_orcamentos/${id_orcam}/status/historico/anexos/${id_anexo}`)
+    deletar(`dados_orcamentos/${id_orcam}/status/historico/${chave}/anexos/${id_anexo}`)
 
     img.parentElement.remove()
 

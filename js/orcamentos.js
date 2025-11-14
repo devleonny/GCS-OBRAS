@@ -1,6 +1,5 @@
 let filtrosOrcamento = {}
 let filtroPDA = {}
-let dados_clientes = {}
 let intervaloCompleto
 let intervaloCurto
 let filtro;
@@ -210,7 +209,7 @@ async function telaOrcamentos(semOverlay) {
     if (!semOverlay) overlayAguarde()
 
     const colunasCFiltro = ['Status', 'Chamado', 'Cidade', 'Valor']
-    const cabecs = ['Data/LPU', 'Status', 'Pedido', 'Notas', 'Chamado', 'Cidade', 'Responsáveis', 'Indicadores', 'Valor', 'Ações']
+    const cabecs = ['Data/LPU', 'Status', 'Pedido', 'Notas', 'Tags', 'Chamado', 'Cidade', 'Responsáveis', 'Indicadores', 'Valor', 'Ações']
     let ths = ''
     let tsh = ''
     cabecs.forEach((cab, i) => {
@@ -319,7 +318,7 @@ function scrollar(direcao) {
 
 }
 
-function criarLinhaOrcamento(idOrcamento, orcamento) {
+async function criarLinhaOrcamento(idOrcamento, orcamento) {
 
     const dados_orcam = orcamento.dados_orcam
     if (!dados_orcam) return
@@ -396,6 +395,17 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         `)}
         ${cel(`<div class="bloco-etiquetas">${labels.PEDIDO}</div>`)}
         ${cel(`<div class="bloco-etiquetas">${labels.FATURADO}</div>`)}
+        ${cel(`
+            <div style="${horizontal}; justify-content: space-between; width: 100%; align-items: start; gap: 2px;">
+                <div name="tags" style="${vertical}; gap: 1px;">
+                    
+                </div>
+                <img 
+                    src="imagens/etiqueta.png" 
+                    style="width: 1.2rem;" 
+                    onclick="tagsPainel = new TagsPainel({funcao: 'telaOrcamento' , baseTags: 'tags_orcamentos', idRef: '${idOrcamento}', baseRef: 'dados_orcamentos'}); tagsPainel.painelTags()">
+            </div>
+            `)}
         ${cel(`
         <div style="${vertical};">
             ${(acesso.permissao && dados_orcam.cliente_selecionado)

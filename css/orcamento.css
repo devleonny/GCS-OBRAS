@@ -9,6 +9,8 @@
         1fr
         /* Notas */
         1fr
+        /* Etiquetas */
+        1fr
         /* Chamado */
         2fr
         /* Cidade */
@@ -272,24 +274,6 @@
     width: max-content;
     padding: 5px;
     border-radius: 5px;
-}
-
-.toolbar-checklist {
-    width: 100%;
-    display: flex;
-    align-items: start;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 5px;
-}
-
-.toolbar-checklist span {
-    width: 80%;
-    padding: 10px;
-    border-radius: 5px;
-    font-size: 1.2rem;
-    background-color: #151749;
-    color: white;
 }
 
 .calendarios {

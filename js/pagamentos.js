@@ -66,7 +66,7 @@ async function recuperarPagamentos() {
 async function criarBaseCC() {
 
     let dados_CC = {}
-    const dados_orcamentos = await recuperarDados('dados_orcamentos', true)
+    dados_orcamentos = await recuperarDados('dados_orcamentos', true)
     const dados_clientes = await recuperarDados('dados_clientes')
     const departamentosFixos = await recuperarDados('departamentos_fixos')
 

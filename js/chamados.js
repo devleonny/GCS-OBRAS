@@ -243,7 +243,7 @@ async function criarManutencao(id) {
         .join('')
 
     const tabela = ` 
-        <div style="${vertical}; width: 90%;">
+        <div class="borda-tabela" style="width: 90%;">
             <div class="topo-tabela"></div>
                 <div class="div-tabela">
                     <table class="tabela">
