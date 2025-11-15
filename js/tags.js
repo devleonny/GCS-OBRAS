@@ -1,3 +1,4 @@
+let tagsTemporarias = {}
 class TagsPainel {
 
     constructor({ baseTags, idRef, baseRef, funcao }) {
@@ -5,18 +6,18 @@ class TagsPainel {
         this.idRef = idRef
         this.baseRef = baseRef
         this.funcao = funcao
+        this.tags = null
     }
 
-    isDark(cor) {
-        const c = (cor || '#999').replace('#', '')
-        const r = parseInt(c.substring(0, 2), 16)
-        const g = parseInt(c.substring(2, 4), 16)
-        const b = parseInt(c.substring(4, 6), 16)
-        const luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-        return luminancia < 0.5
+    async init() {
+        this.tags = await recuperarDados(this.baseTags)
+        return this
     }
 
     async vincularTag(idTag) {
+
+        overlayAguarde()
+
         const item = await recuperarDado(this.baseRef, this.idRef)
         item.tags ??= {}
 
@@ -35,28 +36,26 @@ class TagsPainel {
     }
 
     async gerarLabelsAtivas() {
-        const tags = await recuperarDados(this.baseTags)
         const item = await recuperarDado(this.baseRef, this.idRef)
         const tagsAtivas = item?.tags || {}
 
         return Object.entries(tagsAtivas)
             .map(([idTagItem, dados]) => {
-                const tag = tags?.[idTagItem] || {}
+                const tag = this.tags?.[idTagItem] || {}
                 const cor = tag.cor || '#999'
-                const branco = this.isDark(cor) ? 'color:#fff;' : ''
-                return `<span name="${idTagItem}" onclick="tagsPainel = new TagsPainel({ idRef: '${this.idRef}', baseRef: '${this.baseRef}'}); tagsPainel.confirmarRemoverTag('${idTagItem}')" title="${dados.usuario} - ${dados.data}" style="background-color: ${cor}; ${branco}" class="span-estiqueta">${tag.nome}</span>`
+                const branco = isDark(cor) ? 'color:#fff;' : ''
+                return `<span name="${idTagItem}" onclick="tagsPainel.confirmarRemoverTag('${idTagItem}')" title="${dados.usuario} - ${dados.data}" style="background-color: ${cor}; ${branco}" class="span-estiqueta">${tag.nome}</span>`
             })
             .join('')
     }
 
     async painelTags() {
-        const tags = await recuperarDados(this.baseTags)
         const labelsAtivas = await this.gerarLabelsAtivas()
 
-        const labels = Object.entries(tags)
+        const labels = Object.entries(this.tags)
             .map(([id, tag]) => {
                 const cor = tag.cor || '#999'
-                const branco = this.isDark(cor) ? 'color:#fff;' : ''
+                const branco = isDark(cor) ? 'color:#fff;' : ''
                 return `<span onclick="tagsPainel.vincularTag('${id}')" style="background-color: ${cor}; ${branco}" class="span-estiqueta">${tag.nome}</span>`
             })
             .join('')
@@ -109,9 +108,9 @@ class TagsPainel {
         await inserirDados({ [this.idRef]: item }, this.baseRef)
 
         removerPopup()
-
-        const labels = document.querySelectorAll(`[name="${idTagItem}"]`)
-        for (const label of labels) label.remove()
+        const painel = document.querySelector('.painel-etiquetas')
+        if (painel) this.painelTags()
+        if (this.funcao) executar(this.funcao)
     }
 
     async adicionarTag(idTag = ID5digitos()) {
@@ -145,4 +144,28 @@ class TagsPainel {
         removerPopup()
         await this.painelTags()
     }
+}
+
+// Função clone sem lag;
+function gerarLabelsAtivas(tagsAtivas) {
+
+    let str = ''
+    for (const [idTagItem, dados] of Object.entries(tagsAtivas)) {
+        const tag = tagsTemporarias[idTagItem]
+        const cor = tag.cor || '#999'
+        const branco = isDark(cor) ? 'color:#fff;' : ''
+        str += `<span name="${idTagItem}" title="${dados.usuario} - ${dados.data}" style="background-color: ${cor}; ${branco}" class="span-estiqueta">${tag.nome}</span>`
+    }
+
+    return str
+
+}
+
+function isDark(cor) {
+    const c = (cor || '#999').replace('#', '')
+    const r = parseInt(c.substring(0, 2), 16)
+    const g = parseInt(c.substring(2, 4), 16)
+    const b = parseInt(c.substring(4, 6), 16)
+    const luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    return luminancia < 0.5
 }

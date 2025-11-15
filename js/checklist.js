@@ -90,6 +90,8 @@ async function telaChecklist() {
         </div>
     `
 
+    tagsTemporarias = await recuperarDados('tags')
+    const dados_composicoes = await recuperarDados('dados_composicoes')
     const omieCliente = orcamento?.dados_orcam?.omie_cliente || false
     const cliente = await recuperarDado('dados_clientes', omieCliente)
     const titulo = `Checklist - ${orcamento?.dados_orcam?.contrato || '--'} - ${cliente?.nome || '--'}`
@@ -111,7 +113,7 @@ async function telaChecklist() {
     for (const [codigo, produto] of Object.entries(mesclado)) {
 
         const check = orcamento?.checklist?.itens?.[codigo] || {}
-        const ref = await recuperarDado('dados_composicoes', codigo)
+        const ref = dados_composicoes?.[codigo] || {}
         carregarLinhaChecklist({ codigo, produto, check, ref })
 
         for (const [id, dados] of Object.entries(check)) {
@@ -138,7 +140,7 @@ async function telaChecklist() {
 
     document.getElementById('inicio').textContent = dataInicio
 
-    if(!orcamento) return
+    if (!orcamento) return
 
     orcamento.checklist ??= {}
     orcamento.checklist.inicio = dataInicio
@@ -151,7 +153,7 @@ async function telaChecklist() {
 
 }
 
-async function carregarLinhaChecklist({ codigo, produto, check, ref }) {
+function carregarLinhaChecklist({ codigo, produto, check, ref }) {
 
     if (check.removido) {
         const linha = document.getElementById(`check_${codigo}`)
@@ -178,20 +180,18 @@ async function carregarLinhaChecklist({ codigo, produto, check, ref }) {
 
     const fontMaior = 'class="fonte-maior"'
 
-    tagsPainel = new TagsPainel({ baseTags: 'tags', idRef: codigo, baseRef: 'dados_composicoes' })
-
     const tds = `
         <td><input name="itensChecklist" type="checkbox"></td>
         <td>${codigo}</td>
         <td>
             <div style="${horizontal}; justify-content: space-between; width: 100%; align-items: start; gap: 2px;">
                 <div name="tags" style="${vertical}; gap: 1px;">
-                    ${await tagsPainel.gerarLabelsAtivas()}
+                    ${gerarLabelsAtivas(produto?.tags || {})}
                 </div>
                 <img 
                     src="imagens/etiqueta.png" 
                     style="width: 1.2rem;" 
-                    onclick="tagsPainel = new TagsPainel({funcao: 'telaChecklist' , baseTags: 'tags', idRef: '${codigo}', baseRef: 'dados_composicoes'}); tagsPainel.painelTags()">
+                    onclick="tagsChecklist('${codigo}')">
             </div>
         </td>
         <td style="text-align: right;">${produto.descricao} ${avulso}</td>
@@ -224,6 +224,17 @@ async function carregarLinhaChecklist({ codigo, produto, check, ref }) {
 
     document.getElementById('bodyChecklist').insertAdjacentHTML('beforeend', `<tr data-codigo="${codigo}" id="check_${codigo}">${tds}</tr>`)
 
+}
+
+async function tagsChecklist(codigo) {
+    tagsPainel = await new TagsPainel({
+        funcao: 'telaChecklist',
+        baseTags: 'tags',
+        idRef: codigo,
+        baseRef: 'dados_composicoes'
+    }).init()
+
+    tagsPainel.painelTags()
 }
 
 async function tecnicosAtivos() {

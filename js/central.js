@@ -276,6 +276,8 @@ async function despoluicaoGCS() {
     logs.insertAdjacentHTML('beforeend', '<label>Criando uma nova Base, 0km, novíssima...</label>')
 
     const bases = [
+        'tags',
+        'tags_orcamentos',
         'departamentos_fixos',
         'dados_orcamentos',
         'custo_veiculos',

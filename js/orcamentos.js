@@ -256,6 +256,7 @@ async function telaOrcamentos(semOverlay) {
 
     dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     dados_clientes = await recuperarDados('dados_clientes') || {}
+    tagsTemporarias = await recuperarDados('tags_orcamentos')
 
     // orçamentos slaves por último, eles serão incluídos nas linhas master;
     const hierarquizado = Object.fromEntries(
@@ -318,7 +319,7 @@ function scrollar(direcao) {
 
 }
 
-async function criarLinhaOrcamento(idOrcamento, orcamento) {
+function criarLinhaOrcamento(idOrcamento, orcamento) {
 
     const dados_orcam = orcamento.dados_orcam
     if (!dados_orcam) return
@@ -398,12 +399,12 @@ async function criarLinhaOrcamento(idOrcamento, orcamento) {
         ${cel(`
             <div style="${horizontal}; justify-content: space-between; width: 100%; align-items: start; gap: 2px;">
                 <div name="tags" style="${vertical}; gap: 1px;">
-                    
+                    ${gerarLabelsAtivas(orcamento?.tags || {})}
                 </div>
                 <img 
                     src="imagens/etiqueta.png" 
                     style="width: 1.2rem;" 
-                    onclick="tagsPainel = new TagsPainel({funcao: 'telaOrcamento' , baseTags: 'tags_orcamentos', idRef: '${idOrcamento}', baseRef: 'dados_orcamentos'}); tagsPainel.painelTags()">
+                    onclick="tagsOrcamento('${idOrcamento}')">
             </div>
             `)}
         ${cel(`
@@ -507,6 +508,17 @@ async function criarLinhaOrcamento(idOrcamento, orcamento) {
 
         document.getElementById('linhas').insertAdjacentHTML('afterbegin', novaLinha)
     }
+}
+
+async function tagsOrcamento(idOrcamento) {
+
+    tagsPainel = await new TagsPainel({
+        baseTags: 'tags_orcamentos',
+        idRef: idOrcamento,
+        baseRef: 'dados_orcamentos'
+    }).init()
+
+    tagsPainel.painelTags()
 }
 
 async function painelAlteracaoCliente(idOrcamento) {
