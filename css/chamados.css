@@ -1,4 +1,4 @@
-.botoesChamado {
+.botoesRodape {
     width: 100%;
     cursor: pointer;
     padding: 5px;
@@ -45,18 +45,18 @@
     padding: 5px;
 }
 
-.botoesChamado label {
+.botoesRodape label {
     font-size: 0.7vw;
     cursor: pointer;
 }
 
-.botoesChamado:hover {
+.botoesRodape:hover {
     transition: ease-in-out 0.1s;
     background-color: #097fe6;
     color: white;
 }
 
-.botoesChamado img {
+.botoesRodape img {
     width: 2vw;
 }
 

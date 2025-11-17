@@ -1,6 +1,5 @@
 let filtrosOrcamento = {}
 let filtroPDA = {}
-let dados_clientes = {}
 let intervaloCompleto
 let intervaloCurto
 let filtro;
@@ -210,7 +209,7 @@ async function telaOrcamentos(semOverlay) {
     if (!semOverlay) overlayAguarde()
 
     const colunasCFiltro = ['Status', 'Chamado', 'Cidade', 'Valor']
-    const cabecs = ['Data/LPU', 'Status', 'Pedido', 'Notas', 'Chamado', 'Cidade', 'Responsáveis', 'Indicadores', 'Valor', 'Ações']
+    const cabecs = ['Data/LPU', 'Status', 'Pedido', 'Notas', 'Tags', 'Chamado', 'Cidade', 'Responsáveis', 'Indicadores', 'Valor', 'Ações']
     let ths = ''
     let tsh = ''
     cabecs.forEach((cab, i) => {
@@ -257,6 +256,7 @@ async function telaOrcamentos(semOverlay) {
 
     dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     dados_clientes = await recuperarDados('dados_clientes') || {}
+    tagsTemporarias = await recuperarDados('tags_orcamentos')
 
     // orçamentos slaves por último, eles serão incluídos nas linhas master;
     const hierarquizado = Object.fromEntries(
@@ -397,6 +397,17 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
         ${cel(`<div class="bloco-etiquetas">${labels.PEDIDO}</div>`)}
         ${cel(`<div class="bloco-etiquetas">${labels.FATURADO}</div>`)}
         ${cel(`
+            <div style="${horizontal}; justify-content: space-between; width: 100%; align-items: start; gap: 2px;">
+                <div name="tags" style="${vertical}; gap: 1px;">
+                    ${gerarLabelsAtivas(orcamento?.tags || {})}
+                </div>
+                <img 
+                    src="imagens/etiqueta.png" 
+                    style="width: 1.2rem;" 
+                    onclick="tagsOrcamento('${idOrcamento}')">
+            </div>
+            `)}
+        ${cel(`
         <div style="${vertical};">
             ${(acesso.permissao && dados_orcam.cliente_selecionado)
             ? `*<img onclick="painelAlteracaoCliente('${idOrcamento}')" src="gifs/alerta.gif" style="width: 1.5vw; cursor: pointer;">`
@@ -497,6 +508,18 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
 
         document.getElementById('linhas').insertAdjacentHTML('afterbegin', novaLinha)
     }
+}
+
+async function tagsOrcamento(idOrcamento) {
+
+    tagsPainel = await new TagsPainel({
+        baseTags: 'tags_orcamentos',
+        idRef: idOrcamento,
+        baseRef: 'dados_orcamentos',
+        funcao: 'telaOrcamentos'
+    }).init()
+
+    tagsPainel.painelTags()
 }
 
 async function painelAlteracaoCliente(idOrcamento) {

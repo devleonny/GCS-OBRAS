@@ -125,7 +125,7 @@ async function telaCriarOrcamento() {
     <div id="orcamento_livre"></div>
     `
 
-    dados_clientes = await recuperarDados('dados_clientes') || {}
+    bases.dados_clientes = await recuperarDados('dados_clientes') || {}
 
     const orcamentoPadrao = document.getElementById('orcamento_padrao')
     if (!orcamentoPadrao) tela.innerHTML = acumulado
@@ -724,7 +724,7 @@ async function tabelaProdutosOrcamentos(dadosFiltrados) {
 
     const orcamentoBase = baseOrcamento()
     const omie_cliente = orcamentoBase?.dados_orcam?.omie_cliente || ''
-    const cliente = dados_clientes?.[omie_cliente] || {}
+    const cliente = bases.dados_clientes?.[omie_cliente] || {}
     const estado = cliente?.estado || null
     const composicoesOrcamento = orcamentoBase?.esquema_composicoes || {}
     const lpu = String(orcamentoBase.lpu_ativa).toLocaleLowerCase()
@@ -1088,7 +1088,7 @@ async function totalOrcamento() {
     let totalAcrescido = 0
     let descontoAcumulado = 0
     let statusCotacao = false
-    const cliente = dados_clientes?.[orcamentoBase.dados_orcam?.omie_cliente] || ''
+    const cliente = bases.dados_clientes?.[orcamentoBase.dados_orcam?.omie_cliente] || ''
     const estado = cliente.estado || false
 
     if (!orcamentoBase.esquema_composicoes) orcamentoBase.esquema_composicoes = {}

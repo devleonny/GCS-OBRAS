@@ -3,27 +3,25 @@ let quantidadeRealizadoGeral = 0
 let previsao = 0
 let diasUnicos = []
 let tecnicos = {}
+let progressoPonderado = 0
 let quantidadeItem = 0
 let quantidadeRealizadoItem = 0
 let finalizados = 0
 let filtroChecklist = {}
 let filtroRelatorioChecklist = {}
 let primeiroDia = null
-let tagsPainel = null
-
-const estT = (tempo) => {
-    return !tempo ? 'off' : tempo == '00:00' ? 'zero' : 'on'
-}
 
 async function telaChecklist() {
 
+    id_orcam = 'ORCA_4f3845ef-62b7-4ab3-9175-8f0b294f2488'
+
     tecnicos = {}
 
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
     let ths = ''
     let pesquisa = ''
-    const colunas = ['', 'Código', 'Tags', 'Itens do Orçamento', 'Quantidade', 'Tempo/Atividade', 'Tempo/Total', 'Serviço Executado', 'Tempo/Realizado', '% Conclusão']
+    const colunas = ['', 'Serviços', 'Quantidade', 'Serviço Executado', '% Conclusão', 'Diferença', 'Média do Serviço <br> Soma / dia trabalhado', 'Rendimento Diário', 'Previsão de finalização']
 
     let i = 0
     for (const op of colunas) {
@@ -33,12 +31,12 @@ async function telaChecklist() {
             pesquisa += `<th style="background-color: white;"></th>`
 
         } else {
-            pesquisa += `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico('${i}', this.textContent, filtroChecklist, 'bodyChecklist'); calcularTempos()"></th>`
+            pesquisa += `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico('${i}', this.textContent, filtroChecklist, 'bodyChecklist')"></th>`
             ths += `
             <th>
                 <div style="${horizontal}; justify-content: space-between; width: 100%; gap: 10px;">
                     <span>${op}</span>
-                    <img src="imagens/filtro.png" style="width: 1rem;" onclick="filtrarAAZ(${i}, 'bodyChecklist')"> 
+                    <img src="imagens/aaz.png" style="width: 1rem;" onclick="filtrarAAZ(${i}, 'bodyChecklist')"> 
                 </div>
             </th>`
         }
@@ -47,29 +45,46 @@ async function telaChecklist() {
 
     }
 
+    const modelo = (texto, elemento) => `
+        <div style="${vertical}; align-items: center; gap: 3px;">
+            <label>${texto}</label>
+            ${elemento}
+        </div>
+    `
+
+    const btn = (texto, funcao) => `
+        <button style="background-color: #4673b3; width: 100%;" onclick="${funcao}">${texto}</button> 
+    `
+
     const acumulado = `
-        <div style="${vertical}; padding: 1rem; background-color: #d2d2d2;">
+        <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
 
             <div class="toolbar-checklist">
 
-                <div style="${vertical}; align-items: center; width: 50%;">
+                <div style="${horizontal}; gap: 0.5rem;">
 
-                    <div style="${horizontal}; justify-content: space-evenly; width: 100%;">
-                        <div id="porcentagem" style="padding: 0.5rem;"></div>
-                        <span>Obra iniciada em: <b><span id="inicio"></span></b> </span>
+                    <img onclick="atualizarChecklist()" src="imagens/atualizar3.png" style="width: 2rem;">
+
+                    <div style="${vertical};">
+                        ${btn('Remover Itens Selecionados', 'removerItensEmMassaChecklist()')}
+                        ${btn('Ver Itens Removidos', 'verItensRemovidos()')}
                     </div>
 
-                    <div class="opcoes-orcamento">
-                        ${modeloBotoes('gerente', 'Técnicos na Obra', `tecnicosAtivos()`)}
-                        ${modeloBotoes('cancel', 'Remover Itens Selecionados', `removerItensEmMassaChecklist()`)}
-                        ${modeloBotoes('checklist', 'Ver Itens Removidos', `verItensRemovidos()`)}
-                        ${modeloBotoes('baixar', 'Serviço Avulso', `adicionarServicoAvulso()`)}
-                        ${modeloBotoes('relatorio', 'Relatório', `relatorioChecklist()`)}
-                        ${modeloBotoes('atualizar3', 'Atualizar', `atualizarChecklist()`)}
+                    <div style="${vertical};">
+                        ${btn('Serviço Avulso', 'adicionarServicoAvulso()')}
+                        ${btn('Relatório', 'relatorioChecklist()')}
                     </div>
+
                 </div>
 
-                <div class="resultados"></div>
+                ${modelo('Porcentagem de Conclusão', `<div style="width: 100%;" id="porcentagem"></div>`)}
+
+                <div style="${horizontal}; gap: 10px;">
+                    ${modelo('Total de Serviços', `<span id="geral"></span>`)}
+                    ${modelo('Dias Corridos', `<span id="diasCorridos"></span>`)}
+                    ${modelo('Dias Trabalhados', `<span id="diasTotais"></span>`)}
+                    ${modelo('Previsão de Conclusão', `<span id="previsao"></span>`)}
+                </div>
 
             </div>
 
@@ -90,8 +105,6 @@ async function telaChecklist() {
         </div>
     `
 
-    tagsTemporarias = await recuperarDados('tags')
-    const dados_composicoes = await recuperarDados('dados_composicoes')
     const omieCliente = orcamento?.dados_orcam?.omie_cliente || false
     const cliente = await recuperarDado('dados_clientes', omieCliente)
     const titulo = `Checklist - ${orcamento?.dados_orcam?.contrato || '--'} - ${cliente?.nome || '--'}`
@@ -111,10 +124,10 @@ async function telaChecklist() {
     }
 
     for (const [codigo, produto] of Object.entries(mesclado)) {
+        if (produto?.tipo == 'VENDA') continue
 
         const check = orcamento?.checklist?.itens?.[codigo] || {}
-        const ref = dados_composicoes?.[codigo] || {}
-        carregarLinhaChecklist({ codigo, produto, check, ref })
+        carregarLinhaChecklist(codigo, produto, check)
 
         for (const [id, dados] of Object.entries(check)) {
 
@@ -134,156 +147,25 @@ async function telaChecklist() {
         }
     }
 
-    calcularTempos()
+    // Relatório geral
 
-    const dataInicio = primeiroDia ? new Date(primeiroDia).toLocaleDateString() : 'Sem data'
+    const diffMs = new Date().getTime() - primeiroDia
+    const diasCorridos = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    const porcetagemFinal = Number(((finalizados / quantidadeGeral) * 100).toFixed(1))
+    const totalPrevisao = porcetagemFinal == 0 ? 0 : Number(((diasCorridos * 100) / porcetagemFinal).toFixed(0))
+    const previsao = totalPrevisao - diasCorridos
 
-    document.getElementById('inicio').textContent = dataInicio
+    document.getElementById('geral').textContent = quantidadeGeral
+    document.getElementById('porcentagem').innerHTML = divPorcentagem(porcetagemFinal)
+    document.getElementById('diasCorridos').textContent = diasCorridos
+    document.getElementById('diasTotais').textContent = diasUnicos.length
+    document.getElementById('previsao').textContent = !previsao ? `-- dias` : `${previsao} dias`
 
-    if (!orcamento) return
-
-    orcamento.checklist ??= {}
-    orcamento.checklist.inicio = dataInicio
+    if (!orcamento.checklist) orcamento.checklist = {}
     orcamento.checklist.andamento = porcetagemFinal
-
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
     await telaOrcamentos(true)
-    enviar(`dados_orcamentos/${id_orcam}/checklist/inicio`, dataInicio)
     enviar(`dados_orcamentos/${id_orcam}/checklist/andamento`, porcetagemFinal)
-
-}
-
-function carregarLinhaChecklist({ codigo, produto, check, ref }) {
-
-    if (check.removido) {
-        const linha = document.getElementById(`check_${codigo}`)
-        if (linha) linha.remove()
-        return
-    }
-
-    let quantidade = 0
-    let diasUnicosLinha = []
-    for (const [, dados] of Object.entries(check)) {
-
-        quantidade += isNaN(dados.quantidade) ? 0 : dados.quantidade
-        if (!diasUnicos.includes(dados.data)) diasUnicos.push(dados.data)
-        if (!diasUnicosLinha.includes(dados.data)) diasUnicosLinha.push(dados.data)
-
-    }
-
-    const avulso = produto.tipo ? '' : '<span><b>[Avulso]</b></span>'
-
-    // Relatório
-    finalizados += quantidade / produto.qtde
-    quantidadeRealizadoGeral += quantidade
-    quantidadeGeral++
-
-    const fontMaior = 'class="fonte-maior"'
-
-    const tds = `
-        <td><input name="itensChecklist" type="checkbox"></td>
-        <td>${codigo}</td>
-        <td>
-            <div style="${horizontal}; justify-content: space-between; width: 100%; align-items: start; gap: 2px;">
-                <div name="tags" style="${vertical}; gap: 1px;">
-                    ${gerarLabelsAtivas(produto?.tags || {})}
-                </div>
-                <img 
-                    src="imagens/etiqueta.png" 
-                    style="width: 1.2rem;" 
-                    onclick="tagsChecklist('${codigo}')">
-            </div>
-        </td>
-        <td style="text-align: right;">${produto.descricao} ${avulso}</td>
-        <td ${fontMaior} name="quantidade">${produto.qtde}</td>
-        <td>
-            <div style="${vertical};">
-                <input 
-                    name="tempoUnitario" 
-                    oninput="atualizarTempo(this, '${codigo}', ${produto.tipo ? false : true})" 
-                    type="time" 
-                    class="${estT(ref?.tempo || produto?.tempo)}"
-                    value="${ref?.tempo || produto?.tempo || ''}">
-                <span>por <b>${produto?.unidade || 'UND'}</b></span>
-            </div>
-        </td>
-        <td ${fontMaior} name="totalLinha"></td>
-        <td>
-            <div style="${horizontal}; gap: 10px;">
-                <span ${fontMaior} name="quantidadeExecutada">${quantidade}</span>
-                <img onclick="registrarChecklist('${codigo}')" src="imagens/baixar.png" style="width: 1.2rem;">
-            </div>
-        </td>
-        <td ${fontMaior} name="totalLinhaExecutado"></td>
-        <td>${divPorcentagem(((quantidade / produto.qtde) * 100).toFixed(1))}</td>
-
-    `
-
-    const trExistente = document.getElementById(`check_${codigo}`)
-    if (trExistente) return trExistente.innerHTML = tds
-
-    document.getElementById('bodyChecklist').insertAdjacentHTML('beforeend', `<tr data-codigo="${codigo}" id="check_${codigo}">${tds}</tr>`)
-
-}
-
-async function tagsChecklist(codigo) {
-    tagsPainel = await new TagsPainel({
-        funcao: 'telaChecklist',
-        baseTags: 'tags',
-        idRef: codigo,
-        baseRef: 'dados_composicoes'
-    }).init()
-
-    tagsPainel.painelTags()
-}
-
-async function tecnicosAtivos() {
-
-    const acumulado = `
-        <div style="${vertical}; padding: 1rem; background-color: #d2d2d2;">
-            <span>Gerencie abaixo os envolvidos na Obra</span>
-            <hr>
-            <div class="painel-clientes">
-                <div id="blocoTecnicos" style="${vertical};"></div>
-            </div>
-        </div>
-
-        <div class="rodape-painel-clientes">
-            ${botaoRodape('maisTecnico()', 'Adicionar', 'baixar')}
-            ${botaoRodape('salvarTecnicos()', 'Salvar', 'concluido')}
-        </div>
-    `
-    popup(acumulado, 'Técnicos na Obra', true)
-
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-
-    for (const codTec of orcamento?.checklist?.tecnicos || []) {
-        const dados = await recuperarDado('dados_clientes', codTec)
-        maisTecnico(codTec, dados?.nome || 'N/A')
-    }
-}
-
-async function salvarTecnicos() {
-
-    overlayAguarde()
-
-    const tecnicos = []
-    const spans = document.querySelectorAll('#blocoTecnicos span')
-
-    for (const span of spans) {
-        if (!span.id) continue
-        if (tecnicos.includes[span.id]) continue
-        tecnicos.push(span.id)
-    }
-
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-    orcamento.checklist ??= {}
-    orcamento.checklist.tecnicos = tecnicos
-
-    enviar(`dados_orcamentos/${id_orcam}/checklist/tecnicos`, tecnicos)
-    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-
-    removerPopup()
 
 }
 
@@ -749,124 +631,74 @@ function marcarItensChecklist(input) {
 
 }
 
-async function atualizarTempo(input, codigo, avulso) {
+function carregarLinhaChecklist(codigo, produto, check) {
 
-    if (avulso) {
-        const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-        orcamento.checklist.avulso[codigo].tempo = input.value
-        await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
-
-    } else {
-        const produto = await recuperarDado('dados_composicoes', codigo)
-        produto.tempo = input.value
-        enviar(`dados_composicoes/${codigo}/tempo`, input.value)
-        await inserirDados({ [codigo]: produto }, 'dados_composicoes')
+    if (check.removido) {
+        const linha = document.getElementById(`check_${codigo}`)
+        if (linha) linha.remove()
+        return
     }
 
-    input.classList = input.value !== '' ? 'on' : 'off'
-    calcularTempos()
+    let quantidade = 0
+    let diasUnicosLinha = []
+    for (const [id, dados] of Object.entries(check)) {
+
+        quantidade += isNaN(dados.quantidade) ? 0 : dados.quantidade
+        if (!diasUnicos.includes(dados.data)) diasUnicos.push(dados.data)
+        if (!diasUnicosLinha.includes(dados.data)) diasUnicosLinha.push(dados.data)
+
+    }
+
+    const avulso = produto.tipo ? '' : '<span><b>[Avulso]</b></span>'
+    const diferenca = produto.qtde - quantidade
+    const mediaDia = quantidade == 0 ? 0 : Number((quantidade / diasUnicosLinha.length).toFixed(0))
+    const cor = (quantidade > 0 && quantidade < produto.qtde) ? '#f59c27bf' : quantidade == 0 ? '#b36060bf' : '#4CAF50bf'
+    const percRendDiario = mediaDia == 0 ? 0 : ((mediaDia / produto.qtde) * 100).toFixed(0)
+    const prevFinalizacao = mediaDia == 0 ? 0 : Math.ceil(diferenca / mediaDia)
+
+    // Relatório
+    finalizados += quantidade / produto.qtde
+    quantidadeRealizadoGeral += quantidade
+    quantidadeGeral++
+
+    const tds = `
+        <td><input name="itensChecklist" type="checkbox"></td>
+        <td style="text-align: right;">${produto.descricao} ${avulso}</td>
+        <td>${produto.qtde}</td>
+        <td style="background-color: ${cor}; cursor: pointer;" onclick="registrarChecklist('${codigo}')">${quantidade}</td>
+        <td>${divPorcentagem(((quantidade / produto.qtde) * 100).toFixed(1))}</td>
+        <td>${diferenca}</td>
+        <td>${mediaDia}</td>
+        <td>${percRendDiario}%</td>
+        <td>${prevFinalizacao} ${prevFinalizacao == 1 ? 'dia' : 'dias'}</td>
+    `
+
+    const trExistente = document.getElementById(`check_${codigo}`)
+    if (trExistente) return trExistente.innerHTML = tds
+
+    document.getElementById('bodyChecklist').insertAdjacentHTML('beforeend', `<tr data-codigo="${codigo}" id="check_${codigo}">${tds}</tr>`)
 
 }
 
-function calcularTempos() {
-    const linhas = document.querySelectorAll('#bodyChecklist tr')
+async function duplicarLancamento(idLancamento, codigo) {
 
-    const strHHMM = (minutosTotais, str) => {
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const lancamento = orcamento?.checklist?.itens?.[codigo]?.[idLancamento] || {}
 
-        const horas = Math.floor(minutosTotais / 60)
-        const minutos = minutosTotais % 60
-        const calculado = `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`
+    document.querySelector('[name="quantidade"]').value = lancamento.quantidade
+    document.querySelector('[name="data"]').value = lancamento.data
 
-        return str ? `${calculado}${str}` : calculado
+    for (const codTec of lancamento.tecnicos) {
+        const tecnico = await recuperarDado('dados_clientes', codTec)
+        maisTecnico(codTec, tecnico.nome)
     }
 
-    let minutosObra = 0
-    let minutosExecutado = 0
-    for (const linha of linhas) {
-
-        if (linha.style.display == 'none') continue
-
-        const qtde = Number(linha.querySelector('[name="quantidade"]').textContent)
-        const qtdeExecutada = Number(linha.querySelector('[name="quantidadeExecutada"]').textContent)
-
-        const tdTotal = linha.querySelector('[name="totalLinha"]')
-        const totalExecutado = linha.querySelector('[name="totalLinhaExecutado"]')
-
-        const inputTempoUnitario = linha.querySelector('[name="tempoUnitario"]')
-        const tempoUnitario = inputTempoUnitario.value
-
-        if (!tempoUnitario) {
-            tdTotal.textContent = ''
-            totalExecutado.textContent = ''
-            continue
-        }
-
-        const [h, m] = tempoUnitario.split(':').map(Number)
-        const minutosUnit = h * 60 + m
-
-        // total da linha
-        const minutosTotais = minutosUnit * qtde
-        minutosObra += minutosTotais
-
-        const calculado = strHHMM(minutosTotais)
-        tdTotal.textContent = calculado
-        inputTempoUnitario.classList = estT(calculado)
-
-        // total executado da linha
-        const minutosExecutados = minutosUnit * qtdeExecutada
-        totalExecutado.textContent = strHHMM(minutosExecutados)
-        minutosExecutado += minutosExecutados
-    }
-
-    const modelo = (texto, valor) => `
-        <div class="balao-checklist">
-            <label>${texto}</label>
-            <span>${valor}</span>
-        </div>
-    `
-
-    const divResultados = document.querySelector('.resultados')
-
-    let resultados = ''
-    const minutosPendentes = minutosObra - minutosExecutado
-    const totalDiasPrevisto = Math.ceil(minutosObra / 480)
-    const diasCorridos = diasUnicos.length
-    const previsao = Math.ceil(minutosPendentes / 480) // 480min -- 8h -- 1dia
-    const analise = (diasCorridos + previsao) <= totalDiasPrevisto
-    const strAnalise = analise
-        ? 'Entrega no Prazo'
-        : 'Possível Atraso'
-
-    resultados += modelo('Total de Atividades', linhas?.length || 0)
-    resultados += modelo('Dias Corridos', diasCorridos)
-    resultados += modelo('Conclusão <br>em Dias', previsao)
-    resultados += modelo('Análise', strAnalise)
-
-    resultados += modelo('Horas Totais', `${strHHMM(minutosObra, 'h')} <br> ${totalDiasPrevisto} dias`)
-    resultados += modelo('Horas Realizadas', strHHMM(minutosExecutado, 'h'))
-    resultados += modelo('Horas Pendentes', strHHMM(minutosPendentes, 'h'))
-    resultados += `<div style="${horizontal}"><img src="imagens/${analise ? 'joinha' : 'atrasado'}.png" style="width: 4rem;"></div>`
-
-
-    divResultados.innerHTML = resultados
-
-    porcetagemFinal = ((minutosExecutado / minutosObra) * 100).toFixed(1)
-
-    document.getElementById('porcentagem').innerHTML = `
-        <div style="${vertical}">
-            <span>Porcentagem de conclusão</span>
-            ${divPorcentagem(porcetagemFinal)}
-        </div>
-    `
 }
 
 async function registrarChecklist(codigo) {
 
-    overlayAguarde()
-
     const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
     const itens = orcamento?.checklist?.itens?.[codigo] || {}
-    const dadosClientes = await recuperarDados('dados_clientes')
 
     const data = (data) => {
         const [ano, mes, dia] = data.split('-')
@@ -884,11 +716,12 @@ async function registrarChecklist(codigo) {
         quantidadeRealizadoItem += dados.quantidade
 
         const nomesTecnicos = (dados?.tecnicos || [])
-            .map(idTec => `<span>${dadosClientes?.[idTec]?.nome || '--'}</span>`)
+            .map(idTec => `<span>${tecnicos[idTec]}</span>`)
             .join('')
 
         linhas += `
         <tr>
+            <td><img onclick="duplicarLancamento('${idLancamento}', '${codigo}')" src="imagens/duplicar.png" style="width: 2rem;"></td>
             <td>${data(dados.data)}</td>
             <td>${dados.quantidade}</td>
             <td>
@@ -900,44 +733,47 @@ async function registrarChecklist(codigo) {
         </tr>`
     }
 
+    const botoesTecnicos = Object.entries(tecnicos)
+        .map(([cod, nome]) => `<button onclick="maisTecnico('${cod}', '${nome}')">${nome || 'Desatualizado...'}</button>`)
+        .join('')
 
     const acumulado = `
-        <div id="blocoTecnicos"></div>
+        <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
 
-        <hr style="width: 100%;">
+            <span><b>Quantidade Orçada:</b> ${quantidadeItem}</span>
 
-        <span>Quantidade Orçada: ${quantidadeItem}</span>
+            ${botoesTecnicos}
 
-        <div class="form-checklist">
-            <input name="quantidadeForm" type="number">
-            <input name="data" type="date">
-            <img src="imagens/concluido.png" style="width: 1.5rem;" onclick="salvarQuantidade('${codigo}')">
-        </div>
-        
-        <hr style="width: 100%;">
+            <hr style="width: 100%;">
 
-        <div class="borda-tabela">
-            <div class="topo-tabela"></div>
-            <div class="div-tabela">
-                <table class="tabela" id="tabela_composicoes">
-                    <thead>
-                        <tr>${['Data', 'Quantidade', 'Técnico(s)', 'Excluir'].map(op => `<th>${op}</th>`).join('')}</tr>
-                    </thead>
-                    <tbody>${linhas}</tbody>
-                </table>
+            <div class="form-checklist">
+                <img src="imagens/baixar.png" style="width: 1.5rem;" onclick="maisTecnico()">
+                <div id="blocoTecnicos" style="${vertical};"></div>
+
+                <input name="quantidade" type="number">
+                <input name="data" type="date">
+                <img src="imagens/concluido.png" style="width: 1.5rem;" onclick="salvarQuantidade('${codigo}')">
             </div>
-            <div class="rodapeTabela"></div>
+            
+            <hr style="width: 100%;">
+
+            <div class="borda-tabela">
+                <div class="topo-tabela"></div>
+                <div class="div-tabela">
+                    <table class="tabela" id="tabela_composicoes">
+                        <thead>
+                            <tr>${['Duplicar', 'Data', 'Quantidade', 'Técnico', 'Excluir'].map(op => `<th>${op}</th>`).join('')}</tr>
+                        </thead>
+                        <tbody>${linhas}</tbody>
+                    </table>
+                </div>
+                <div class="rodapeTabela"></div>
+            </div>
+            
         </div>
     `
 
-    const formChecklist = document.querySelector('.painel-registro-checklist')
-    if (!formChecklist) popup(`<div class="painel-registro-checklist">${acumulado}</div>`, 'Registrar', true)
-    else formChecklist.innerHTML = acumulado
-
-    for (const codTec of orcamento?.checklist?.tecnicos || []) {
-        const dados = await recuperarDado('dados_clientes', codTec)
-        maisTecnico(codTec, dados?.nome || 'N/A')
-    }
+    popup(acumulado, 'Registrar', true)
 }
 
 function maisTecnico(cod, nome) {
@@ -962,28 +798,23 @@ async function salvarQuantidade(codigo) {
     overlayAguarde()
 
     const tecnicos = []
-    const spanTecnicos = document.querySelectorAll('#blocoTecnicos span')
+    const blocoTecnicos = document.getElementById('blocoTecnicos')
+    const spanTecnicos = blocoTecnicos.querySelectorAll('span')
 
     for (const span of spanTecnicos) if (!tecnicos.includes(span.id)) tecnicos.push(span.id)
 
-    const quantidade = Number(document.querySelector('[name="quantidadeForm"]').value)
+    const quantidade = Number(document.querySelector('[name="quantidade"]').value)
     const data = document.querySelector('[name="data"]').value
 
-    // Bloqueios;
     if ((quantidadeRealizadoItem + quantidade) > quantidadeItem) return popup(mensagem('Não é possível exceder a quantidade orçada'), 'Alerta', true)
 
-    if (!tecnicos.length) {
-        await registrarChecklist(codigo)
-        return popup(mensagem('É necessário ter pelo menos 1 técnico realizando a atividade...'), 'Ninguém fez?', true)
-    }
+    if (!tecnicos.length || !quantidade || !data) return popup(mensagem('Preencha todos os campos'), 'Alerta', true)
 
-    if (!quantidade || !data) return popup(mensagem('Preencha todos os campos'), 'Alerta', true)
+    let orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
-
-    orcamento.checklist ??= {}
-    orcamento.checklist.itens ??= {}
-    orcamento.checklist.itens[codigo] ??= {}
+    if (!orcamento.checklist) orcamento.checklist = {}
+    if (!orcamento.checklist.itens) orcamento.checklist.itens = {}
+    if (!orcamento.checklist.itens[codigo]) orcamento.checklist.itens[codigo] = {}
 
     const dados = { quantidade, tecnicos, data }
     const idLancamento = ID5digitos()

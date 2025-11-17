@@ -32,7 +32,7 @@ async function telaComposicoes(recriar) {
                 .filter(produto => produto.origem == origem)
                 .flatMap(obj =>
                     Object.keys(obj).filter(k =>
-                        !['timestamp', 'status', 'grupo', 'refid', 'sapid', 'subgrupo', 'locacao', 'parceiro', 'partnumber', 'id', 'material infra', 'setor', 'origem', 'agrupamentos', 'categoria de equipamento', 'descricaocarrefour'].includes(k)
+                        !['excluido', 'preco_estado', 'timestamp', 'status', 'grupo', 'refid', 'sapid', 'subgrupo', 'locacao', 'parceiro', 'partnumber', 'id', 'material infra', 'setor', 'origem', 'agrupamentos', 'categoria de equipamento', 'descricaocarrefour'].includes(k)
                     )
                 )
         )
@@ -206,28 +206,27 @@ async function abrirFiltros() {
     const acumulado = `
         <div style="${vertical}; padding: 2vw; background-color: #d2d2d2;">
 
-            <div style="margin-left: 1vw; ${horizontal}; background-color: white; border-radius: 5px; padding-left: 1vw; padding-right: 1vw;">
+            <div style="${horizontal}; background-color: white; border-radius: 5px; padding-left: 1rem; border: solid 1px #797979;">
                 <input oninput="filtrarCamposComposicoes(this.value)" placeholder="Pesquisar colunas" style="width: 100%;">
-                <img src="imagens/pesquisar2.png" style="width: 1.5vw; padding: 0.5vw;">
+                <img src="imagens/pesquisar4.png" style="width: 1.5rem; padding: 0.5vw;">
             </div>
 
-            <br>
+            <hr>
 
             <div style="${horizontal}; gap: 10px;">
                 <input class="todos" type="checkbox" onchange="marcarTodosComposicoes(this)">
                 <span>Selecionar Todos</span>
             </div>
 
-            <br>
+            <hr>
 
             <div id="filtrosColunas" class="lista-filtros">
                 ${opcoes}
             </div>
 
-            <hr style="width: 100%;">
-
-            ${botao('Salvar', 'aplicarFiltros()', '#4CAF50')}
-
+            <hr>
+            
+            <button onclick="aplicarFiltros()">Salvar</button>
         </div>
     `
 

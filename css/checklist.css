@@ -1,0 +1,110 @@
+.off {
+    font-family: Arial, Helvetica, sans-serif;
+    width: max-content;
+    border-radius: 3px;
+    padding: 5px;
+    border: solid 1px #ff0000;
+    background-color: #ff00005c;
+}
+
+.on {
+    font-family: Arial, Helvetica, sans-serif;
+    width: max-content;
+    border-radius: 3px;
+    padding: 5px;
+    border: solid 1px #008000;
+    background-color: #0080005c;
+}
+
+.zero {
+    font-family: Arial, Helvetica, sans-serif;
+    width: max-content;
+    border-radius: 3px;
+    padding: 5px;
+    border: solid 1px #0069ff;
+    background-color: #0069ff5c;
+}
+
+.painel-registro-checklist {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    justify-content: start;
+    padding: 1rem;
+    background-color: #d2d2d2;
+}
+
+.fonte-maior {
+    font-size: 0.9rem;
+}
+
+.toolbar-checklist {
+    padding: 0.5rem;
+    width: 100%;
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.toolbar-checklist .balao-checklist {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 5px;
+    border-radius: 5px;
+    background: linear-gradient(85deg, #151749, #249f41);
+    color: white;
+}
+
+.toolbar-checklist .balao-checklist span {
+    font-size: 1.2rem;
+}
+
+.resultados {
+    width: 50%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-gap: 10px;
+}
+
+.etiquetas-organizadas {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 3px;
+}
+
+.span-estiqueta {
+    border: solid 1px #5d5d5d;
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 5px;
+}
+
+.painel-adicionar-etiqueta {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    background-color: #d2d2d2;
+    padding: 1rem;
+}
+
+.painel-adicionar-etiqueta input {
+    border-radius: 3px;
+    padding: 5px;
+}
+
+.painel-etiquetas {
+    min-width: 300px;
+    display: flex;
+    justify-content: start;
+    align-items: start;
+    flex-direction: column;
+    gap: 3px;
+    background-color: #d2d2d2;
+    padding: 1rem;
+}
