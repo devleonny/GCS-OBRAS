@@ -515,7 +515,8 @@ async function tagsOrcamento(idOrcamento) {
     tagsPainel = await new TagsPainel({
         baseTags: 'tags_orcamentos',
         idRef: idOrcamento,
-        baseRef: 'dados_orcamentos'
+        baseRef: 'dados_orcamentos',
+        funcao: 'telaOrcamentos'
     }).init()
 
     tagsPainel.painelTags()
