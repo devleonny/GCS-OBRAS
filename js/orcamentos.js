@@ -261,11 +261,21 @@ async function telaOrcamentos(semOverlay) {
     tagsTemporarias = await recuperarDados('tags_orcamentos')
 
     const parseData = data => {
-        if (!data) return 0
-        const [d, t] = data.split(', ')
+        if (!data || typeof data !== 'string') return 0
+
+        const partes = data.split(',').map(p => p.trim())
+        const d = partes[0]
+        const t = partes[1] || '00:00'
+
         const [dia, mes, ano] = d.split('/').map(Number)
+        if (!dia || !mes || !ano) return 0
+
         const [hora, minuto] = t.split(':').map(Number)
-        return new Date(ano, mes - 1, dia, hora, minuto).getTime()
+        const h = isNaN(hora) ? 0 : hora
+        const m = isNaN(minuto) ? 0 : minuto
+
+        const date = new Date(ano, mes - 1, dia, h, m)
+        return isNaN(date.getTime()) ? 0 : date.getTime()
     }
 
     const hierarquizado = Object.fromEntries(
