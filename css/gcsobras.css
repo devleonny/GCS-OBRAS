@@ -1670,7 +1670,6 @@ input[type=range]::-moz-range-thumb {
     width: 100%;
 }
 
-
 .containerX {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
