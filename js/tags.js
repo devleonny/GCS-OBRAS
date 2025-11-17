@@ -54,9 +54,9 @@ class TagsPainel {
 
         const labels = Object.entries(this.tags)
             .map(([id, tag]) => {
-                const cor = tag.cor || '#999'
+                const cor = tag?.cor || '#999'
                 const branco = isDark(cor) ? 'color:#fff;' : ''
-                return `<span onclick="tagsPainel.vincularTag('${id}')" style="background-color: ${cor}; ${branco}" class="span-estiqueta">${tag.nome}</span>`
+                return `<span onclick="tagsPainel.vincularTag('${id}')" style="background-color: ${cor}; ${branco}" class="span-estiqueta">${tag?.nome || '--'}</span>`
             })
             .join('')
 
@@ -152,9 +152,9 @@ function gerarLabelsAtivas(tagsAtivas) {
     let str = ''
     for (const [idTagItem, dados] of Object.entries(tagsAtivas)) {
         const tag = tagsTemporarias[idTagItem]
-        const cor = tag.cor || '#999'
+        const cor = tag?.cor || '#999'
         const branco = isDark(cor) ? 'color:#fff;' : ''
-        str += `<span name="${idTagItem}" title="${dados.usuario} - ${dados.data}" style="background-color: ${cor}; ${branco}" class="span-estiqueta">${tag.nome}</span>`
+        str += `<span name="${idTagItem}" title="${dados.usuario} - ${dados.data}" style="background-color: ${cor}; ${branco}" class="span-estiqueta">${tag?.nome || '--'}</span>`
     }
 
     return str

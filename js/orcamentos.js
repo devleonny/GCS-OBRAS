@@ -29,6 +29,8 @@ async function atualizarOrcamentos() {
     await sincronizarDados('dados_orcamentos')
     await sincronizarDados('dados_composicoes')
     await sincronizarDados('dados_clientes')
+    await sincronizarDados('tags_orcamentos')
+    await sincronizarDados('tags')
     await telaOrcamentos()
 
 }
