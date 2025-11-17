@@ -260,16 +260,29 @@ async function telaOrcamentos(semOverlay) {
     dados_clientes = await recuperarDados('dados_clientes') || {}
     tagsTemporarias = await recuperarDados('tags_orcamentos')
 
-    // orçamentos slaves por último, eles serão incluídos nas linhas master;
+    const parseData = data => {
+        if (!data) return 0
+        const [d, t] = data.split(', ')
+        const [dia, mes, ano] = d.split('/').map(Number)
+        const [hora, minuto] = t.split(':').map(Number)
+        return new Date(ano, mes - 1, dia, hora, minuto).getTime()
+    }
+
     const hierarquizado = Object.fromEntries(
         Object.entries(dados_orcamentos).sort(([, a], [, b]) => {
-            const temA = a?.hierarquia ? 1 : 0
-            const temB = b?.hierarquia ? 1 : 0
-            return temA - temB
+            const hA = a?.hierarquia ? 1 : 0
+            const hB = b?.hierarquia ? 1 : 0
+            if (hA !== hB) return hA - hB
+
+            const tA = parseData(a?.dados_orcam?.data)
+            const tB = parseData(b?.dados_orcam?.data)
+
+            return tA - tB
         })
     )
 
     let idsAtivos = []
+
     for (const [idOrcamento, orcamento] of Object.entries(hierarquizado)) {
         if (orcamento.origem !== origem) continue
         if (naoArquivados && orcamento.arquivado) continue
