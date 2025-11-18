@@ -558,7 +558,7 @@ async function configs() {
     })
 
     const tabela = `
-        <div style="${vertical};">
+        <div class="borda-tabela">
             <div class="topo-tabela"></div>
             <div class="div-tabela">
                 <table class="tabela">
@@ -1838,19 +1838,17 @@ async function verAprovacoes() {
         `
     })
 
-    let desordenado = Object.entries(dados_orcamentos)
-    desordenado.sort((a, b) => new Date(b[1]?.dados_orcam?.data || '') - new Date(a[1]?.dados_orcam?.data || ''))
-
-    for (let [idOrcamento, orcamento] of desordenado) {
+    for (let [idOrcamento, orcamento] of Object.entries(dados_orcamentos).reverse()) {
 
         if (!orcamento.aprovacao) continue
+        if (!orcamento.dados_orcam) continue
 
-        let dados_orcam = orcamento.dados_orcam || {}
-        let aprovacao = orcamento.aprovacao
-        let status = aprovacao?.status || 'desconhecido'
-        let porcentagemDiferenca = (((orcamento.total_geral - orcamento.total_bruto) / orcamento.total_bruto) * 100).toFixed(2)
-        let omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
-        let cliente = dados_clientes?.[omie_cliente] || {}
+        const dados_orcam = orcamento.dados_orcam || {}
+        const aprovacao = orcamento.aprovacao
+        const status = aprovacao?.status || 'desconhecido'
+        const porcentagemDiferenca = (((orcamento.total_geral - orcamento.total_bruto) / orcamento.total_bruto) * 100).toFixed(2)
+        const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
+        const cliente = dados_clientes?.[omie_cliente] || {}
 
         tabelas[status == 'pendente' ? 'pendente' : 'todos'].linhas += `
         <tr>
