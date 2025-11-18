@@ -16,6 +16,7 @@ hr {
 }
 
 img {
+    width: 2rem;
     cursor: pointer;
 }
 

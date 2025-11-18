@@ -56,7 +56,12 @@ class TagsPainel {
             .map(([id, tag]) => {
                 const cor = tag?.cor || '#999'
                 const branco = isDark(cor) ? 'color:#fff;' : ''
-                return `<span onclick="tagsPainel.vincularTag('${id}')" style="background-color: ${cor}; ${branco}" class="span-estiqueta">${tag?.nome || '--'}</span>`
+                return `
+                    <div style="${horizontal}; gap: 2px;">
+                        <img onclick="tagsPainel.adicionarTag('${id}')" src="imagens/ajustar.png" style="width: 1.5rem;">
+                        <span onclick="tagsPainel.vincularTag('${id}')" style="width: 100%; background-color: ${cor}; ${branco}" class="span-estiqueta">${tag?.nome || '--'}</span>
+                    </div>
+                `
             })
             .join('')
 
@@ -114,10 +119,12 @@ class TagsPainel {
     }
 
     async adicionarTag(idTag = ID5digitos()) {
+
+        const tag = await recuperarDado(this.baseTags, idTag)
         const acumulado = `
             <div class="painel-adicionar-etiqueta">
-                <input name="nome" placeholder="Nome tag">
-                <input name="cor" type="color">
+                <input name="nome" placeholder="Nome tag" value="${tag?.nome || ''}">
+                <input name="cor" type="color" value="${tag?.cor || ''}">
             </div>
 
             <div class="rodape-painel-clientes">
@@ -137,6 +144,8 @@ class TagsPainel {
         if (!nome) return removerPopup()
 
         const etiqueta = { nome, cor }
+
+        this.tags[idTag] = etiqueta
 
         enviar(`${this.baseTags}/${idTag}`, etiqueta)
         await inserirDados({ [idTag]: etiqueta }, this.baseTags)
