@@ -119,10 +119,13 @@ async function telaChamados() {
         </div>
     `
 
-    tela.innerHTML = acumulado
+    const bodyChamados = document.getElementById('bodyChamados')
+    if(!bodyChamados) tela.innerHTML = acumulado
+
     let contadores = {}
     const dados_manutencao = await recuperarDados('dados_manutencao') || {}
-    const dados_clientes = await recuperarDados('dados_clientes') || {}
+    dados_clientes = await recuperarDados('dados_clientes') || {}
+    
     for (let [idManutencao, manutencao] of Object.entries(dados_manutencao).reverse()) {
         const cliente = dados_clientes[manutencao.codigo_cliente] || {};
         const tecnico = dados_clientes[manutencao.codigo_tecnico] || {};

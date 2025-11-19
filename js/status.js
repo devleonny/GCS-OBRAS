@@ -2053,7 +2053,7 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
         ${menu_flutuante}
 
         <div style="display: flex; align-items: center; justify-content: center; width: 100%; background-color: #151749;">
-            <img src="https://i.imgur.com/AYa4cNv.png" style="height: 100px;">
+            <img src="https://i.imgur.com/AYa4cNv.png" style="width: 10rem;">
         </div>
 
         <div style="display: flex; align-items: center; justify-content: center; width: 100%;">
