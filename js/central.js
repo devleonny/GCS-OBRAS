@@ -1218,13 +1218,12 @@ function pesquisarGenerico(coluna, texto, filtro, id) {
     if (contagem) contagem.textContent = contador;
 }
 
-async function salvarLevantamento(idOrcamento, marcador) {
-
-    console.log(marcador)
+async function salvarLevantamento(idOrcamento, idElemento) {
 
     overlayAguarde()
 
-    const elemento = document.getElementById("adicionar_levantamento");
+    const elemento = document.getElementById(idElemento || 'adicionar_levantamento')
+    const marcador = elemento?.dataset?.finalizado == 'S' 
 
     if (!elemento || !elemento.files || elemento.files.length === 0) return
 

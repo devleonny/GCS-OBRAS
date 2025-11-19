@@ -1535,20 +1535,20 @@ async function abrirEsquema(id) {
     const divLevantamentos = (finalizado) => {
 
         const local = finalizado ? 'finalizado' : 'levantamentos'
-        const funcao = finalizado ? `salvarLevantamento('${id}', '${local}')` : `salvarLevantamento('${id}')`
 
         return `
             <div style="${vertical}; gap: 2px; margin-right: 20px; margin-top: 10px;">
 
-                <div class="contorno-botoes" onclick="document.getElementById('adicionar_levantamento').click()">
+                <div class="contorno-botoes" onclick="document.getElementById('${local}').click()">
                     <img src="imagens/anexo2.png">
                     <label>Anexar ${local}</label>
 
                     <input
                         type="file" 
-                        id="adicionar_levantamento" 
+                        id="${local}"
                         style="display:none" 
-                        onchange="${funcao}" 
+                        data-finalizado="${finalizado ? 'S' : 'N'}"
+                        onchange="salvarLevantamento('${id}', '${local}')" 
                         multiple>
                 </div>
 
@@ -1561,9 +1561,9 @@ async function abrirEsquema(id) {
 
             ${linha1}
 
-            <hr style="width: 100%;">
+            <hr>
 
-            <div style="display: flex; gap: 10px; font-size: 0.9vw;">
+            <div style="${horizontal}; gap: 5px;">
                 
                 ${botao('Novo Pedido', `painelAdicionarPedido()`, '#4CAF50')}
                 ${botao('Requisição Materiais', `detalharRequisicao(undefined, 'infraestrutura')`, '#B12425')}
