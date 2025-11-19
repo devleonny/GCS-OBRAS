@@ -193,19 +193,15 @@
 }
 
 .campos {
-    border: solid 1px #7d7d7d;
+    border: solid 1px #249f41;
     text-align: center;
     cursor: pointer;
     padding: 5px;
-    background-color: #b5b5b5;
+    background-color: #249f41a1;
     border-radius: 20px;
     display: block;
     width: 100%;
     box-sizing: border-box;
-}
-
-.campos:hover {
-    background-color: #a9a9a9;
 }
 
 .atalhos {

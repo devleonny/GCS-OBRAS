@@ -990,7 +990,7 @@ async function salvarPreco(codigo, lpu, cotacao) {
         icms_creditado: obValComp('icms_creditado'),
         icms_creditado_select: obValComp('icms_creditado_select'),
         modalidade_icms: obValComp('modalidade_icms_select'),
-        icms_saida: obValComp('icms_saida')
+        icms_saida: conversor(obValComp('icms_saida'))
     };
 
     // Verificar antes se a porcentagem é aceitável;

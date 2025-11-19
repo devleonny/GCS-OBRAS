@@ -691,46 +691,39 @@ async function formularioOcorrencia(idOcorrencia) {
     const oc = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : {}
     const funcao = idOcorrencia ? `salvarOcorrencia('${idOcorrencia}')` : 'salvarOcorrencia()'
 
-    const acumulado = `
-        <div class="painel-cadastro">
-            ${modelo('Empresa', labelBotao('empresa', 'empresas', oc?.empresa, empresas[oc?.empresa]?.nome))}
-            ${modelo('Unidade de Manutenção', labelBotao('unidade', 'dados_clientes', oc?.unidade, dados_clientes[oc?.unidade]?.nome))}
-            ${modelo('Sistema', labelBotao('sistema', 'sistemas', oc?.sistema, sistemas[oc?.sistema]?.nome))}
-            ${modelo('Prioridade', labelBotao('prioridade', 'prioridades', oc?.prioridade, prioridades[oc?.prioridade]?.nome))}
-            ${modelo('Tipo', labelBotao('tipo', 'tipos', oc?.tipo, tipos[oc?.tipo]?.nome))}
-            ${modelo('Descrição', `<textarea rows="7" style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" class="campos">${oc?.descricao || ''}</textarea>`)}
-            ${modelo('Data Limite para a Execução', `<input name="dataLimiteExecucao" class="campos" type="date" value="${oc?.dataLimiteExecucao || ''}">`)}
-            
-            <br>
-            ${await blocoAuxiliarFotos(oc?.fotos || {}, true)}
-            <br>
-
-            ${modelo('Anexos', `
-                    <label class="campos">
-                        Clique aqui
-                        <input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia ? idOcorrencia : 'novo'}')">
-                    </label>
-                `)}
+    const linhas = [
+        { texto: 'Empresa', elemento: labelBotao('empresa', 'empresas', oc?.empresa, empresas[oc?.empresa]?.nome) },
+        { texto: 'Unidade de Manutenção', elemento: labelBotao('unidade', 'dados_clientes', oc?.unidade, dados_clientes[oc?.unidade]?.nome) },
+        { texto: 'Sistema', elemento: labelBotao('sistema', 'sistemas', oc?.sistema, sistemas[oc?.sistema]?.nome) },
+        { texto: 'Prioridade', elemento: labelBotao('prioridade', 'prioridades', oc?.prioridade, prioridades[oc?.prioridade]?.nome) },
+        { texto: 'Tipo', elemento: labelBotao('tipo', 'tipos', oc?.tipo, tipos[oc?.tipo]?.nome) },
+        { texto: 'Descrição', elemento: `<textarea rows="7" style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" class="campos">${oc?.descricao || ''}</textarea>` },
+        { texto: 'Data Limite para a Execução', elemento: `<input name="dtInformada" class="campos" type="date" value="${oc?.dataLimiteExecucao || ''}">` },
+        {
+            texto: 'Anexos', elemento: `
+                <label class="campos">
+                    Clique aqui
+                    <input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia ? idOcorrencia : 'novo'}')">
+                </label>
+            ` },
+        {
+            elemento: `
             <div id="anexos" style="${vertical};">
                 ${Object.entries(oc?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual({ nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')` })).join('')}
-            </div>
+            </div>`},
+        { elemento: await blocoAuxiliarFotos(oc?.fotos || {}, true) }
+    ]
 
-        </div>
+    const botoes = [{ img: 'concluido', texto: 'Salvar', funcao }]
 
-        <div class="rodape-formulario">
-            ${botao('Salvar', funcao)}
-            <span class="timer"></span>
-        </div>
-   `
+    const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Ocorrência' })
+    form.abrirFormulario()
 
-    popup(acumulado, 'Gerenciar ocorrência')
-
-    dispararTimer()
     visibilidadeFotos()
 
 }
 
-async function formularioCorrecao(idOcorrencia, idCorrecao) {//29
+async function formularioCorrecao(idOcorrencia, idCorrecao) {
 
     const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia)
     const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
@@ -739,60 +732,29 @@ async function formularioCorrecao(idOcorrencia, idCorrecao) {//29
     let equipamentos = ''
     for (const [, equip] of Object.entries(correcao?.equipamentos || {})) equipamentos += await maisLabel(equip)
 
-    const acumulado = `
-        <div class="painel-cadastro">
-            
-            ${modelo('Data', `<input type="date" value="${correcao?.dtInformada || ''}">`)}
-            ${modelo('Status da Correção', labelBotao('tipoCorrecao', 'correcoes', correcao?.tipoCorrecao, correcoes[correcao?.tipoCorrecao]?.nome))}
-            ${modelo('Quem fará a atividade?', labelBotao('executor', 'dados_setores', correcao?.executor || acesso.usuario, correcao?.executor || acesso.usuario))}
-            ${modelo('Descrição', `<textarea style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>`)}
-
-            <div style="${horizontal}; gap: 5px;">
-                <label>Equipamentos usados</label>
-                <img src="imagens/baixar.png" class="olho" onclick="maisLabel()">
-            </div>
-            
-            <div style="${vertical}; gap: 2px;" id="equipamentos">
+    const linhas = [
+        { texto: 'Data', elemento: `<input type="date" value="${correcao?.dtInformada || ''}">` },
+        { texto: 'Status da Correção', elemento: labelBotao('tipoCorrecao', 'correcoes', correcao?.tipoCorrecao, correcoes[correcao?.tipoCorrecao]?.nome) },
+        { texto: 'Quem fará a atividade?', elemento: labelBotao('executor', 'dados_setores', correcao?.executor || acesso.usuario, correcao?.executor || acesso.usuario) },
+        { texto: 'Descrição', elemento: `<textarea style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" rows="7" class="campos">${correcao?.descricao || ''}</textarea>` },
+        { texto: 'Equipamentos usados', elemento: `<img src="imagens/baixar.png" class="olho" onclick="maisLabel()">` },
+        {
+            elemento: `<div style="${vertical}; gap: 2px;" id="equipamentos">
                 ${equipamentos}
-            </div>
-
-            <br>
-            ${await blocoAuxiliarFotos(correcao?.fotos || {}, true)}
-            <br>
-
-            ${modelo('Anexos', `
-                    <label class="campos">
-                        Clique aqui
-                        <input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia}', '${idCorrecao ? idCorrecao : 'novo'}')">
-                    </label>
-                `)}
-
-            <div id="anexos" style="${vertical};">
+            </div>`},
+        { elemento: `${await blocoAuxiliarFotos(correcao?.fotos || {}, true)}` },
+        { texto: 'Anexos', elemento: `<input type="file" style="display: none;" onchange="anexosOcorrencias(this, '${idOcorrencia}', '${idCorrecao ? idCorrecao : 'novo'}')">` },
+        {
+            elemento: `<div id="anexos" style="${vertical};">
                 ${Object.entries(correcao?.anexos || {}).map(([idAnexo, anexo]) => criarAnexoVisual({ nome: anexo.nome, link: anexo.link, funcao: `removerAnexo(this, '${idAnexo}', '${idOcorrencia}', '${idCorrecao}')` })).join('')}
-            </div>
+            </div>`}
+    ]
+    const botoes = [{ img: 'concluido', texto: 'Salvar', funcao }]
+    const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Correção' })
+    form.abrirFormulario()
 
-        </div>
-        <div class="rodape-formulario">
-            ${botao('Salvar', funcao)}
-            <span class="timer"></span>
-        </div>
-   `
-
-    popup(acumulado, 'Gerenciar Correção', true)
-
-    dispararTimer()
     visibilidadeFotos()
 
-}
-
-function dispararTimer() {
-    const timer = document.querySelector('.timer')
-
-    if (timer) {
-        setInterval(() => {
-            timer.textContent = new Date().toLocaleTimeString('pt-BR')
-        }, 1000)
-    }
 }
 
 async function maisLabel({ codigo, quantidade, unidade } = {}) {
@@ -920,6 +882,7 @@ async function salvarOcorrencia(idOcorrencia) {
     let ocorrencia = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : {}
 
     for (const campo of campos) {
+        console.log(campo)
         const resultado = obter(campo).id
 
         if (resultado == '') return popup(mensagem(`Preencha o campo ${inicialMaiuscula(campo)}`), 'Alerta', true)
