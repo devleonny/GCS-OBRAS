@@ -261,8 +261,8 @@ function popup(elementoHTML, titulo, naoRemoverAnteriores) {
                 
                 <div class="toolbarPopup">
 
-                    <span style="width: 90%;">${titulo || 'Popup'}</span>
-                    <label style="width: 10%; font-size: 1.8rem;" onclick="removerPopup()">×</label>
+                    <div class="title">${titulo || 'Popup'}</div>
+                    <span class="close" onclick="removerPopup()">×</span>
 
                 </div>
                 
@@ -423,6 +423,9 @@ async function telaUsuarios() {
     const telaInterna = document.querySelector('.telaInterna')
     telaInterna.innerHTML = modeloTabela({ colunas, base })
 
+    console.log(dados);
+    
+
     for (let [id, objeto] of Object.entries(dados)) {
         criarLinha(objeto, id, base)
     }
@@ -452,18 +455,16 @@ async function criarLinha(dados, id, nomeBase) {
     for (const linha of esquema.colunas) tds += modelo(dados?.[linha] || '--')
 
     const linha = `
-        <tr id="${id}">
-            ${tds}
-            <td class="detalhes">
-                <img onclick="${esquema.funcao}" src="imagens/pesquisar.png">
-            </td>
-        </tr>
+        ${tds}
+        <td class="detalhes">
+            <img onclick="${esquema.funcao}" src="imagens/pesquisar.png">
+        </td>
     `
 
     const tr = document.getElementById(id)
     if (tr) return tr.innerHTML = linha
     const body = document.getElementById('body')
-    body.insertAdjacentHTML('beforeend', linha)
+    body.insertAdjacentHTML('beforeend', `<tr id="${id}">${linha}</tr>`)
 
 }
 
@@ -564,7 +565,7 @@ async function gerenciarUsuario(id) {
         .map(op => `<option ${usuario?.setor == op ? 'selected' : ''}>${op}</option>`).join('')
 
     const acumulado = `
-        <div style="${vertical}; gap: 5px; padding: 5vw; background-color: #d2d2d2;">
+        <div style="${vertical}; gap: 5px; padding: 1rem; background-color: #d2d2d2;">
             ${modelo('Nome', usuario?.nome_completo || '--')}
             ${modelo('E-mail', usuario?.email || '--')}
             ${modelo('Permissão', `<select onchange="configuracoes('${id}', 'permissao', this.value)">${permissoes}</select>`)}
@@ -638,21 +639,21 @@ async function enviar(caminho, info, idEvento) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(objeto)
         })
-        .then(res => res.json())
-        .then(data => {
-            if (data.mensagem) {
-                msgQuedaConexao()
-                return resolve(data) // só um resolve, com retorno
-            }
-            resolve(data)
-        })
-        .catch(err => {
-            if (caminho.includes('0000')) {
-                return reject({ mensagem: 'Sem conexão rede/servidor, tente novamente em alguns minutos' })
-            }
-            salvarOffline(objeto, 'enviar', idEvento)
-            resolve({ mensagem: 'Offline' }) // retorna algo definido
-        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.mensagem) {
+                    msgQuedaConexao()
+                    return resolve(data) // só um resolve, com retorno
+                }
+                resolve(data)
+            })
+            .catch(err => {
+                if (caminho.includes('0000')) {
+                    return reject({ mensagem: 'Sem conexão rede/servidor, tente novamente em alguns minutos' })
+                }
+                salvarOffline(objeto, 'enviar', idEvento)
+                resolve({ mensagem: 'Offline' }) // retorna algo definido
+            })
     })
 }
 
