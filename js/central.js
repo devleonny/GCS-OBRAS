@@ -204,8 +204,7 @@ const esquemaBotoes = {
     chamados: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Atualizar', funcao: 'atualizarManutencoes', img: 'atualizar3' },
-        { nome: 'Criar Manutenção', funcao: 'criarManutencao', img: 'chamados' },
-        { nome: 'Cadastrar Cliente', funcao: `cadastrarCliente`, img: 'omie' }
+        { nome: 'Criar Manutenção', funcao: 'criarManutencao', img: 'chamados' }
     ],
     veiculos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -217,8 +216,7 @@ const esquemaBotoes = {
     pagamentos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Atualizar', funcao: 'recuperarPagamentos', img: 'atualizar3' },
-        { nome: 'Solicitar Pagamento', funcao: 'criarPagamento', img: 'pagamento' },
-        { nome: 'Cadastrar Cliente', funcao: `cadastrarCliente`, img: 'omie' }
+        { nome: 'Solicitar Pagamento', funcao: 'criarPagamento', img: 'pagamento' }
     ],
     estoque: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },

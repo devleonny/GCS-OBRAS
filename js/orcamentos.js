@@ -210,7 +210,7 @@ async function telaOrcamentos(semOverlay) {
 
     if (!semOverlay) overlayAguarde()
 
-    const colunasCFiltro = ['Status', 'Chamado', 'Cidade', 'Valor']
+    const colunasCFiltro = ['Status', 'Tags', 'Chamado', 'Cidade', 'Valor']
     const cabecs = ['Data/LPU', 'Status', 'Pedido', 'Notas', 'Tags', 'Chamado', 'Cidade', 'Responsáveis', 'Indicadores', 'Valor', 'Ações']
     let ths = ''
     let tsh = ''
