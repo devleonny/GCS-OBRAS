@@ -429,7 +429,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
                     <div class="camposFinanceiro">
 
                         <div style="display: flex; gap: 5px; align-items: center; justify-content: left; width: 100%;">
-                            <label class="contorno_botoes" for="anexo_${campo}" style="justify-content: start; border-radius: 50%;">
+                            <label class="contorno-botoes" for="anexo_${campo}" style="justify-content: start; border-radius: 50%;">
                                 <img src="imagens/anexo.png" style="cursor: pointer; width: 20px; height: 20px;">
                                 <input type="file" id="anexo_${campo}" style="display: none;" onchange="salvarAnexosParceiros(this, '${campo}','${pagamento.id_pagamento}')">
                             </label>
@@ -824,7 +824,7 @@ async function criarPagamento() {
                 `)}
 
             ${modeloCampos('anexos', 'Anexos Diversos', `
-                    <label class="contorno_botoes" for="anexoPagamento" style="justify-content: center;">
+                    <label class="contorno-botoes" for="anexoPagamento" style="justify-content: center;">
                         Selecionar
                         <input type="file" id="anexoPagamento" style="display: none;" onchange="salvarAnexosPagamentos(this)" multiple>
                     </label>
@@ -861,7 +861,7 @@ async function criarPagamento() {
                 <span><b>REGRAS</b></span>
             </div>
 
-            <label id="liberarBotao" class="contorno_botoes" style="background-color: green; display: none;"
+            <label id="liberarBotao" class="contorno-botoes" style="background-color: green; display: none;"
                 onclick="salvarPagamento()">Salvar</label>
                 
         </div>
@@ -966,7 +966,7 @@ function incluirCamposAdicionais() {
                 <span name="${campo}Numero" class="numero"></span>
                 <div class="camposFinanceiro" style="justify-content: space-between;">
                     <div style="width: 30%; text-align: left;">${conteudo.titulo}</div>
-                    <label class="contorno_botoes" for="anexo_${campo}" style="justify-content: center;">
+                    <label class="contorno-botoes" for="anexo_${campo}" style="justify-content: center;">
                         Selecionar
                         <input type="file" id="anexo_${campo}" style="display: none;" onchange="salvarAnexosParceiros(this, '${campo}')" multiple>
                     </label>

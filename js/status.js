@@ -1406,7 +1406,7 @@ function elementosEspecificos(chave, historico) {
 
     if (funcaoEditar !== '') {
         acumulado += `
-        <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" class="contorno_botoes" onclick="${funcaoEditar}">
+        <div style="background-color: ${coresST?.[historico.status]?.cor || '#808080'}" class="contorno-botoes" onclick="${funcaoEditar}">
             <img src="imagens/editar4.png">
             <label>Editar</label>
         </div>
@@ -1436,7 +1436,7 @@ async function abrirEsquema(id) {
         if (!blocosStatus[statusCartao]) blocosStatus[statusCartao] = ''
 
         const excluir = (historico.executor == acesso.usuario || acesso.permissao == 'adm')
-            ? `<span class="close" style="font-size: 2vw; position: absolute; top: 5px; right: 15px;" onclick="apagarStatusHistorico('${chave}')">&times;</span>`
+            ? `<span class="close" style="font-size: 1.2rem; position: absolute; top: 5px; right: 15px;" onclick="apagarStatusHistorico('${chave}')">&times;</span>`
             : ''
 
         blocosStatus[statusCartao] += `
@@ -1457,7 +1457,7 @@ async function abrirEsquema(id) {
                     ${elementosEspecificos(chave, historico)}
 
                     <div class="escondido" style="display: none;">
-                        <div class="contorno_botoes" style="background-color: ${cor}">
+                        <div class="contorno-botoes" style="background-color: ${cor}">
                             <img src="imagens/anexo2.png">
                             <label>Anexo
                                 <input type="file" style="display: none;" onchange="salvar_anexo('${chave}', this)" multiple>  
@@ -1468,14 +1468,14 @@ async function abrirEsquema(id) {
                             ${await carregar_anexos(chave)}
                         </div>
 
-                        <div class="contorno_botoes" onclick="toggle_comentario('comentario_${chave}')" style="background-color: ${cor};">
+                        <div class="contorno-botoes" onclick="toggle_comentario('comentario_${chave}')" style="background-color: ${cor};">
                             <img src="imagens/comentario.png">
                             <label>Comentário</label>
                         </div>
 
                         <div id="comentario_${chave}" style="display: none; justify-content: space-evenly; align-items: center;">
                             <textarea placeholder="Comente algo aqui..."></textarea>
-                            <label class="contorno_botoes" style="background-color: green;" onclick="salvar_comentario('${chave}')">Salvar</label>
+                            <label class="contorno-botoes" style="background-color: green;" onclick="salvar_comentario('${chave}')">Salvar</label>
                         </div>
                         <div id="caixa_comentarios_${chave}" style="display: flex; flex-direction: column;">
                             ${await carregar_comentarios(chave)}
@@ -1500,43 +1500,63 @@ async function abrirEsquema(id) {
         .join('')
 
     const linha1 = `
-        <div style="display: flex; align-items: end; justify-content: start; gap: 10px;">
+        <div style="${horizontal}; gap: 2rem;">
 
-            ${botao('Atualizar Página', `sincronizarReabrir()`, '#222')}
+            <img onclick="sincronizarReabrir()" src="imagens/atualizar3.png">
 
             <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 2px;">
                 <label>Status atual</label>
-                <select onchange="alterar_status(this, '${id_orcam}')" style="font-size: 1vw; border-radius: 3px; padding: 3px;">
+                <select onchange="alterar_status(this, '${id_orcam}')" style="border-radius: 3px; padding: 3px;">
                     ${['', ...fluxograma].map(fluxo => `
                         <option ${orcamento?.status?.atual == fluxo ? 'selected' : ''}>${fluxo}</option>
                     `).join('')}
                 </select>
             </div>
  
-            <label class="botaoAlterarStatusOrcam" onclick="mostrarHistoricoStatus()">HISTÓRICO STATUS</label>
+            <img onclick="mostrarHistoricoStatus()" src="imagens/historico.png">
+
+            <label style="font-size: 1.5rem;">${orcamento.dados_orcam.contrato} - ${cliente?.nome || '??'}</label>
+
         </div>
         `
 
-    const levantamentos = Object.entries(orcamento?.levantamentos || {})
-        .map(([idAnexo, anexo]) => `${criarAnexoVisual(anexo.nome, anexo.link, `excluirLevantamentoStatus('${idAnexo}', '${id}')`)}`)
-        .join('')
+    const strAnexos = {
+        levantamentos: '',
+        finalizado: ''
+    }
 
-    const divLevantamentos = `
-        <div style="display: flex; justify-content: start; align-items: start; flex-direction: column; gap: 2px; margin-right: 20px; margin-top: 10px;">
+    console.log(orcamento)
 
-            <div class="contorno_botoes" for="adicionar_levantamento">
-                <img src="imagens/anexo2.png" style="width: 2vw;">
-                <label style="font-size: 0.8vw; color: white;"> Anexar levantamento
-                    <input type="file" id="adicionar_levantamento" style="display: none;"
-                        onchange="salvarLevantamento('${id}')" multiple>
-                </label>
-            </div>
+    for (const [idAnexo, anexo] of Object.entries(orcamento?.levantamentos || {})) {
+        const local = anexo?.finalizado == 'S' ? 'finalizado' : 'levantamentos'
+        strAnexos[local] += criarAnexoVisual(anexo.nome, anexo.link, `excluirLevantamentoStatus('${idAnexo}', '${id}')`)
+    }
 
-            ${levantamentos}
-        </div>`
+    const divLevantamentos = (finalizado) => {
+
+        const local = finalizado ? 'finalizado' : 'levantamentos'
+        const funcao = finalizado ? `salvarLevantamento('${id}', '${local}')` : `salvarLevantamento('${id}')`
+
+        return `
+            <div style="${vertical}; gap: 2px; margin-right: 20px; margin-top: 10px;">
+
+                <div class="contorno-botoes" onclick="document.getElementById('adicionar_levantamento').click()">
+                    <img src="imagens/anexo2.png">
+                    <label>Anexar ${local}</label>
+
+                    <input
+                        type="file" 
+                        id="adicionar_levantamento" 
+                        style="display:none" 
+                        onchange="${funcao}" 
+                        multiple>
+                </div>
+
+                ${strAnexos[local]}
+            </div>`
+    }
 
     const acumulado = `
-        <label style="font-size: 1.5rem;">${orcamento.dados_orcam.contrato} - ${cliente?.nome || '??'}</label>
         <div style="display: flex; flex-direction: column; gap: 10px; padding: 3px;">
 
             ${linha1}
@@ -1561,7 +1581,11 @@ async function abrirEsquema(id) {
         </div>
 
         <div class="container-blocos">
-            ${divLevantamentos}
+            <div style="${vertical}; witdth: 100%; gap: 0.5rem;">
+                ${divLevantamentos()}
+                <hr>
+                ${divLevantamentos(true)}
+            </div>
             ${blocos}
         </div>`
 
@@ -1725,8 +1749,8 @@ async function mostrarHistoricoStatus() {
     }
 
     const html = `
-        <div style="${horizontal}; padding: 2vw; background-color: #d2d2d2;">
-            <div style="${vertical};">
+        <div style="${horizontal}; padding: 1rem; background-color: #d2d2d2;">
+            <div class="borda-tabela">
                 <div class="topo-tabela"></div>
                 <div class="div-tabela">
                     <table class="tabela">
@@ -2035,7 +2059,7 @@ async function detalharRequisicao(chave, tipoRequisicao, apenas_visualizar) {
                     <textarea rows="3" id="comentario_status" style="width: 80%;">${comentarioExistente}</textarea>
                 </div>
 
-                <label class="contorno_botoes" style="background-color: #4CAF50; " onclick="salvar_requisicao('${chave}')">Salvar Requisição</label>
+                <label class="contorno-botoes" style="background-color: #4CAF50; " onclick="salvar_requisicao('${chave}')">Salvar Requisição</label>
             </div>
         </div>
         `

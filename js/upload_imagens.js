@@ -10,7 +10,7 @@ function abrirImagem(codigo) {
             <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
                 <input id="fileInput" type="file" accept="image/*" style="display: none;" onchange="imagemSelecionada()">
 
-                <label for="fileInput" class="contorno_botoes" style="padding: 10px 20px; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer; text-align: center;">
+                <label for="fileInput" class="contorno-botoes" style="padding: 10px 20px; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer; text-align: center;">
                     Selecione uma Imagem
                 </label>
 

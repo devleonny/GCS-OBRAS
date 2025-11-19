@@ -2136,29 +2136,26 @@ input[type=range]::-moz-range-thumb {
     color: #000
 }
 
-.contorno_botoes {
-    background-color: #222;
+.contorno-botoes {
+    border: solid 1px #222;
+    background-color: #222222e3;
     display: flex;
     width: 100%;
     justify-content: space-between;
     margin: 2px;
     cursor: pointer;
-    color: white;
     width: max-content;
-    padding: 5px;
+    padding: 5px 1rem 5px 1rem;
     display: flex;
     gap: 5px;
     align-items: center;
     border-radius: 3px;
 }
 
-.contorno_botoes img {
-    width: 0.8rem;
-}
-
-.contorno_botoes label {
+.contorno-botoes label {
+    color: white;
     cursor: pointer;
-    font-size: 0.6rem;
+    font-size: 0.8rem;
 }
 
 .titulo_pagamento {

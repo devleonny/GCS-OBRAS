@@ -112,6 +112,8 @@ async function telaChecklist() {
 
     for (const [codigo, produto] of Object.entries(mesclado)) {
 
+        if (produto.tipo == 'VENDA') continue
+
         const check = orcamento?.checklist?.itens?.[codigo] || {}
         const ref = dados_composicoes?.[codigo] || {}
         carregarLinhaChecklist({ codigo, produto, check, ref })
@@ -809,12 +811,12 @@ function calcularTempos() {
         minutosObra += minutosTotais
 
         const calculado = strHHMM(minutosTotais)
-        tdTotal.textContent = calculado
+        tdTotal.textContent = minutosTotais > 480 ? `${strHHMM(minutosTotais)} / ${Math.floor((minutosTotais / 60) / 8)} D` : strHHMM(minutosTotais)
         inputTempoUnitario.classList = estT(calculado)
 
         // total executado da linha
         const minutosExecutados = minutosUnit * qtdeExecutada
-        totalExecutado.textContent = strHHMM(minutosExecutados)
+        totalExecutado.textContent = minutosExecutados > 480 ? `${strHHMM(minutosExecutados)} / ${Math.floor((minutosExecutados / 60) / 8)} D` : strHHMM(minutosExecutados)
         minutosExecutado += minutosExecutados
     }
 
@@ -954,7 +956,7 @@ function maisTecnico(cod, nome) {
         </div>
     `
 
-    blocoTecnicos.insertAdjacentHTML('beforeend', modelo)
+    if (blocoTecnicos) blocoTecnicos.insertAdjacentHTML('beforeend', modelo)
 }
 
 async function salvarQuantidade(codigo) {

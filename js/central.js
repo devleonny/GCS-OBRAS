@@ -39,7 +39,7 @@ const labelDestaque = (valor1, valor2) => `
 `
 
 const botao = (valor1, funcao, cor) => `
-        <div class="contorno_botoes" style="background-color: ${cor};" onclick="${funcao}">
+        <div class="contorno-botoes" style="background-color: ${cor}e3; border: solid 1px ${cor};" onclick="${funcao}">
             <label style="white-space: nowrap;">${valor1}</label>
         </div>
         `
@@ -967,8 +967,8 @@ function criarAnexoVisual(nome, link, funcao) {
     return `
         <div class="contornoAnexos" name="${link}">
             <div onclick="abrirArquivo('${link}')" class="contorno_interno" style="width: 100%; display: flex; align-items: center; justify-content: start; gap: 2px;">
-                <img src="imagens/anexo2.png" style="width: 1.5vw;">
-                <label style="font-size: 0.7vw; cursor: pointer;" title="${nome}">${nomeFormatado}</label>
+                <img src="imagens/anexo2.png">
+                <label style="font-size: 0.7rem; cursor: pointer;" title="${nome}">${nomeFormatado}</label>
             </div>
             <img src="imagens/cancel.png" style="display: ${displayExcluir}; width: 1.5vw; cursor: pointer;" onclick="${funcao}">
         </div>`;
@@ -1218,24 +1218,25 @@ function pesquisarGenerico(coluna, texto, filtro, id) {
     if (contagem) contagem.textContent = contador;
 }
 
-async function salvarLevantamento(idOrcamento) {
+async function salvarLevantamento(idOrcamento, marcador) {
+
+    console.log(marcador)
 
     overlayAguarde()
 
-    let elemento = document.getElementById("adicionar_levantamento");
+    const elemento = document.getElementById("adicionar_levantamento");
 
-    if (!elemento || !elemento.files || elemento.files.length === 0) {
-        return;
-    }
+    if (!elemento || !elemento.files || elemento.files.length === 0) return
 
     try {
-        let anexos = await importarAnexos(elemento); // Nova função de upload
+        const anexos = await importarAnexos(elemento) // Nova função de upload
 
-        let anexo_dados = {};
+        const anexoDados = {}
         anexos.forEach(anexo => {
-            let id_anexo = ID5digitos();
-            anexo_dados[id_anexo] = anexo;
-        });
+            if (marcador) anexo.finalizado = 'S'
+            const idAnexo = ID5digitos()
+            anexoDados[idAnexo] = anexo
+        })
 
         if (idOrcamento) {
 
@@ -1243,22 +1244,21 @@ async function salvarLevantamento(idOrcamento) {
 
             orcamentoBase.levantamentos ??= {}
 
-            Object.assign(orcamentoBase.levantamentos, anexo_dados)
+            Object.assign(orcamentoBase.levantamentos, anexoDados)
 
             await inserirDados({ [idOrcamento]: orcamentoBase }, 'dados_orcamentos')
 
-            for (const [idAnexo, anexo] of Object.entries(anexos)) {
+            for (const [idAnexo, anexo] of Object.entries(anexoDados)) {
                 await enviar(`dados_orcamentos/${idOrcamento}/levantamentos/${idAnexo}`, anexo)
             }
 
-
         } else {
 
-            let orcamentoBase = baseOrcamento()
+            const orcamentoBase = baseOrcamento()
 
             orcamentoBase.levantamentos ??= {}
 
-            Object.assign(orcamentoBase.levantamentos, anexo_dados)
+            Object.assign(orcamentoBase.levantamentos, anexoDados)
             baseOrcamento(orcamentoBase)
         }
 
@@ -1272,8 +1272,7 @@ async function salvarLevantamento(idOrcamento) {
         if (idOrcamento) return await abrirEsquema(idOrcamento)
 
     } catch (error) {
-        popup(mensagem(`Erro ao fazer upload: ${error.message}`), 'ALERTA', true);
-        console.error(error);
+        popup(mensagem(`Erro ao fazer upload: ${error.message}`), 'ALERTA', true)
     }
 }
 
@@ -2286,8 +2285,8 @@ async function painelClientes(idOrcamento) {
                     ${dados_orcam?.consideracoes || 'ESCOPO: '}
                 </div>
 
-                <div class="contorno_botoes" style="background-color: #222;">
-                    <img src="imagens/anexo2.png" style="width: 1.2rem;">
+                <div class="contorno-botoes" style="background-color: #222;">
+                    <img src="imagens/anexo.png" style="width: 1.2rem;">
                     <label style="width: 100%;" for="adicionar_levantamento">Anexar levantamento
                         <input type="file" id="adicionar_levantamento" style="display: none;"
                             onchange="${idOrcamento ? `salvarLevantamento('${idOrcamento}')` : 'salvarLevantamento()'}">
