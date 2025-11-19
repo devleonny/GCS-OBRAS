@@ -698,7 +698,7 @@ async function formularioOcorrencia(idOcorrencia) {
         { texto: 'Prioridade', elemento: labelBotao('prioridade', 'prioridades', oc?.prioridade, prioridades[oc?.prioridade]?.nome) },
         { texto: 'Tipo', elemento: labelBotao('tipo', 'tipos', oc?.tipo, tipos[oc?.tipo]?.nome) },
         { texto: 'Descrição', elemento: `<textarea rows="7" style="background-color: white; width: 100%; border-radius: 2px; text-align: left;" name="descricao" class="campos">${oc?.descricao || ''}</textarea>` },
-        { texto: 'Data Limite para a Execução', elemento: `<input name="dtInformada" class="campos" type="date" value="${oc?.dataLimiteExecucao || ''}">` },
+        { texto: 'Data Limite para a Execução', elemento: `<input name="dataLimiteExecucao" class="campos" type="date" value="${oc?.dataLimiteExecucao || ''}">` },
         {
             texto: 'Anexos', elemento: `
                 <label class="campos">
@@ -878,42 +878,47 @@ async function salvarOcorrencia(idOcorrencia) {
 
     overlayAguarde()
 
-    const campos = ['empresa', 'unidade', 'sistema', 'prioridade', 'tipo', 'dtInformada']
-    let ocorrencia = idOcorrencia ? await recuperarDado('dados_ocorrencias', idOcorrencia) : {}
+    const ocorrencia = idOcorrencia 
+        ? await recuperarDado('dados_ocorrencias', idOcorrencia) 
+        : {}
 
-    for (const campo of campos) {
-        console.log(campo)
-        const resultado = obter(campo).id
-
-        if (resultado == '') return popup(mensagem(`Preencha o campo ${inicialMaiuscula(campo)}`), 'Alerta', true)
-
-        ocorrencia[campo] = resultado
-    }
-
-    ocorrencia.anexos = {
-        ...ocorrencia.anexos,
-        ...anexosProvisorios
-    }
-
-    ocorrencia.usuario = acesso.usuario
-    ocorrencia.dataRegistro = new Date().toLocaleString('pt-BR')
-    ocorrencia.dataLimiteExecucao = obter('dataLimiteExecucao').value
-    ocorrencia.descricao = obter('descricao').value
-
-    if (!ocorrencia.fotos) ocorrencia.fotos = {}
-
-    const fotos = document.querySelector('.fotos')
-    const imgs = fotos.querySelectorAll('img')
-    if (imgs.length > 0) {
-        for (const img of imgs) {
-            if (img.dataset && img.dataset.salvo == 'sim') continue
-            const foto = await importarAnexos({ foto: img.src })
-            ocorrencia.fotos[foto[0].link] = foto[0]
+    const novo = {
+        empresa: obter('empresa')?.id || '',
+        unidade: obter('unidade')?.id || '',
+        sistema: obter('sistema')?.id || '',
+        prioridade: obter('prioridade')?.id || '',
+        tipo: obter('tipo')?.id || '',
+        dataLimiteExecucao: obter('dataLimiteExecucao')?.value || '',
+        descricao: obter('descricao')?.value || '',
+        dataRegistro: new Date().toLocaleString('pt-BR'),
+        usuario: acesso.usuario,
+        anexos: {
+            ...ocorrencia.anexos,
+            ...anexosProvisorios
         }
     }
 
+    if (!ocorrencia.fotos) ocorrencia.fotos = {}
+
+    const imgs = document.querySelectorAll('.fotos img')
+
+    if (imgs.length > 0) {
+        for (const img of imgs) {
+            if (img.dataset?.salvo === 'sim') continue
+            const foto = await importarAnexos({ foto: img.src })
+            const dados = foto[0]
+            ocorrencia.fotos[dados.link] = dados
+        }
+    }
+
+    const salvarLocal = async (id, dados) => {
+        await inserirDados({ [id]: dados }, 'dados_ocorrencias')
+    }
+
     if (idOcorrencia) {
-        await inserirDados({ [idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
+        Object.assign(ocorrencia, novo)
+
+        await salvarLocal(idOcorrencia, ocorrencia)
         await criarLinhaOcorrencia(idOcorrencia, ocorrencia)
         enviar(`dados_ocorrencias/${idOcorrencia}`, ocorrencia)
         removerPopup()
@@ -921,21 +926,23 @@ async function salvarOcorrencia(idOcorrencia) {
     } else {
 
         try {
-            const resposta = await enviar('dados_ocorrencias/0000', ocorrencia)
+            const resposta = await enviar('dados_ocorrencias/0000', novo)
+
             if (resposta.mensagem) {
                 popup(mensagem(resposta.mensagem), 'Alerta', true)
             } else {
-                await inserirDados({ [resposta.idOcorrencia]: ocorrencia }, 'dados_ocorrencias')
+                await salvarLocal(resposta.idOcorrencia, novo)
                 await telaOcorrencias()
             }
+
+            removerPopup()
+
         } catch (err) {
             popup(mensagem(err.mensagem), 'Alerta', true)
         }
-
     }
 
     anexosProvisorios = {}
-
 }
 
 async function anexosOcorrencias(input, idOcorrencia, idCorrecao) {
