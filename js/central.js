@@ -1939,7 +1939,7 @@ async function verPedidoAprovacao(idOrcamento) {
 
         const quantidade = composicao.qtde
         const custo = composicao.custo
-        const custoOriginal = composicao?.custo_original || false;
+        const custoOriginal = composicao?.custo_original || false
         const tipo = composicao.tipo
 
         if (!tabelas[tipo]) tabelas[tipo] = { linhas: '' }
@@ -1952,6 +1952,7 @@ async function verPedidoAprovacao(idOrcamento) {
                 ? composicao.desconto
                 : total * (composicao.desconto / 100);
         }
+
         const totalOriginal = custoOriginal * quantidade
         const labelCusto = dinheiro(custoOriginal ? custoOriginal : custo)
         const labelTotal = dinheiro(custoOriginal ? totalOriginal : total)
@@ -1968,31 +1969,31 @@ async function verPedidoAprovacao(idOrcamento) {
         }
 
         tabelas[tipo].linhas += `
-        <tr>
-            <td>${composicao.descricao}</td>
-            <td>${quantidade}</td>
-            <td>
-                <div style="${horizontal}; gap: 2rem;">
-                    <span>${labelCusto}</span>
-                    <img src="imagens/preco.png" onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" style="width: 2rem; cursor: pointer;">
-                </div>
-            </td>
-            <td>${labelTotal}</td>
-            <td>
-                <div style="${vertical}; gap: 2px;">
-                    ${composicao?.tipo_desconto == 'Venda Direta' ? '<label>Venda Direta</label>' : ''}
-                    <label class="labelAprovacao" style="background-color: ${cor}">${diferenca}</label>
-                </div>
-            </td>
-            <td>${labelTotalDesconto}</td>
-        </tr>
-    `;
+            <tr>
+                <td>${composicao.descricao}</td>
+                <td>${quantidade}</td>
+                <td>
+                    <div style="${horizontal}; gap: 2rem;">
+                        <span>${labelCusto}</span>
+                        <img src="imagens/preco.png" onclick="abrirHistoricoPrecos('${codigo}', '${lpu}')" style="width: 2rem; cursor: pointer;">
+                    </div>
+                </td>
+                <td>${labelTotal}</td>
+                <td>
+                    <div style="${vertical}; gap: 2px;">
+                        ${composicao?.tipo_desconto == 'Venda Direta' ? '<label>Venda Direta</label>' : ''}
+                        <label class="labelAprovacao" style="background-color: ${cor}">${diferenca}</label>
+                    </div>
+                </td>
+                <td>${labelTotalDesconto}</td>
+            </tr>
+        `
     }
 
     for (const [tabela, objeto] of Object.entries(tabelas)) {
 
         divTabelas += `
-            <div style="${vertical};">
+            <div class="borda-tabela">
                 <div class="topo-tabela">
                     <label style="font-size: 1rem; padding: 0.5rem;"><b>${tabela}</b></label>
                 </div>
@@ -2445,7 +2446,6 @@ async function abrirDANFE(codOmieNF, tipo, app) {
     } catch {
         window.open(resposta, '_blank');
     }
-
 }
 
 async function buscarDANFE(codOmieNF, tipo, app) {
