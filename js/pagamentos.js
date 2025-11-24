@@ -824,7 +824,7 @@ async function criarPagamento() {
                 `)}
 
             ${modeloCampos('anexos', 'Anexos Diversos', `
-                    <label class="contorno-botoes" for="anexoPagamento" style="justify-content: center;">
+                    <label class="opcoes" for="anexoPagamento" style="justify-content: center;">
                         Selecionar
                         <input type="file" id="anexoPagamento" style="display: none;" onchange="salvarAnexosPagamentos(this)" multiple>
                     </label>
@@ -861,8 +861,7 @@ async function criarPagamento() {
                 <span><b>REGRAS</b></span>
             </div>
 
-            <label id="liberarBotao" class="contorno-botoes" style="background-color: green; display: none;"
-                onclick="salvarPagamento()">Salvar</label>
+            <button id="liberarBotao" onclick="salvarPagamento()">Salvar</button>
                 
         </div>
     `;
@@ -966,7 +965,7 @@ function incluirCamposAdicionais() {
                 <span name="${campo}Numero" class="numero"></span>
                 <div class="camposFinanceiro" style="justify-content: space-between;">
                     <div style="width: 30%; text-align: left;">${conteudo.titulo}</div>
-                    <label class="contorno-botoes" for="anexo_${campo}" style="justify-content: center;">
+                    <label class="opcoes" for="anexo_${campo}" style="justify-content: center;">
                         Selecionar
                         <input type="file" id="anexo_${campo}" style="display: none;" onchange="salvarAnexosParceiros(this, '${campo}')" multiple>
                     </label>
