@@ -9,6 +9,7 @@ let memoriaFiltro = null
 let lpuATIVA = null
 let paginaComposicoes = 1
 let totalPaginas = null
+let precosAntigos = null
 const porPagina = 100
 
 const metaforas = [
@@ -131,7 +132,45 @@ async function telaCriarOrcamento() {
     if (!orcamentoPadrao) tela.innerHTML = acumulado
 
     criarMenus('criarOrcamentos')
+
+    await manterPrecos()
+
+}
+
+async function manterPrecos() {
+
+    if (precosAntigos !== null) return await atualizarOpcoesLPU()
+
+    const modelo = (img, acao, texto, cor) => `
+        <div style="${horizontal}; gap: 0.5rem;">
+            <img src="imagens/${img}.png">
+            <button style="background-color: ${cor || ''}" onclick="removerPopup(); manterPrecosAntigos(${acao})">${texto}</button>
+        </div>
+    `
+
+    return popup(`
+        <div style="${vertical}; background-color: #d2d2d2; padding: 1rem; gap: 5px;">
+
+            <p style="text-align: left;">
+                Decida se quer editar este orçamento considerando <br>
+                os preços de <strong>quando o orçamento foi feito</strong>, <br>
+                ou se prefere atualizar tudo: <br>
+            </p>
+            
+            ${modelo('atualizados', false, 'Atualizar os Preços')}
+            ${modelo('atrasado', true, 'Manter os preços antigos', '#e74642')}
+
+        </div>
+        `, 'Marter Preços')
+
+}
+
+async function manterPrecosAntigos(resposta) {
+
+    precosAntigos = resposta
+
     await atualizarOpcoesLPU()
+
 }
 
 async function atualizarToolbar(remover) {
@@ -1154,20 +1193,12 @@ async function totalOrcamento() {
         const historico = refProduto?.[lpu]?.historico || {}
         const precos = historico[ativo] || { custo: 0, lucro: 0 }
 
-        let valorUnitario = 0
-
-        // Caso esse item tenha preços por estado;
-        if (boticario) {
-
-            valorUnitario = refProduto.preco_estado[estado] || 0
-
-        } else {
-
-            valorUnitario = historico?.[ativo]?.valor || 0
-
-        }
-
-        if (itemSalvo.alterado) valorUnitario = itemSalvo.custo
+        // ORDEM: SE BOTICÁRIO > SE PREÇO ALTERADO > SE MANTER ANTIGOS;
+        const valorUnitario = boticario
+            ? refProduto.preco_estado[estado] || 0
+            : (itemSalvo.alterado || (precosAntigos && itemSalvo.custo))
+                ? itemSalvo.custo
+                : historico?.[ativo]?.valor || 0
 
         const quantidade = Number(linha.querySelector('[name="quantidade"]').value)
 
