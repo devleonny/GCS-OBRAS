@@ -25,14 +25,7 @@ function telaInicial() {
                 <span><b>${boasVindas}</b>,</span>
                 <span>Todos os botões estão no menu do canto <b>☰</b>,</span>
                 <span>Caso precisem recarregar a tela usem o <b>F5</b>,</span>
-                <span>Se as tabelas estiverem estranhamente desatualizadas, usem o <b>F8</b>,</span>
-                <br>
-
-                <div style="${horizontal}; gap: 5px;">
-                    <img src="gifs/novo.gif" style="width: 5rem;">
-                    <span><b>Agrupamento de itens:</b> toda vez que você lançar um item agrupado <br>
-                    no orçamento, os demais vinculados serão incluídos automaticamente.</span>
-                </div>
+                <span>Se as tabelas estiverem estranhamente desatualizadas, usem o <b>F8</b>.</span>
             </div>
         </div>
     `
@@ -112,9 +105,9 @@ async function filtrarArquivados(remover) {
     if (!naoArquivados) {
         const balao = `
         <div name="tagArquivado" class="tag">
-            <img style="width: 2vw;" src="imagens/desarquivar.png">
+            <img style="width: 1.5rem;" src="imagens/desarquivar.png">
             <span>Arquivados</span>
-            <img style="width: 1.5vw;" src="imagens/cancel.png" onclick="filtrarArquivados(true)">
+            <img style="width: 1.2rem;" src="imagens/cancel.png" onclick="filtrarArquivados(true)">
         </div>
         `
         baloes.insertAdjacentHTML('beforeend', balao)
@@ -136,9 +129,9 @@ async function filtrarMeus(remover) {
     if (!meusOrcamentos) {
         const balao = `
         <div name="tagMeus" class="tag">
-            <img style="width: 2vw;" src="imagens/painelcustos.png">
+            <img style="width: 1.5rem;" src="imagens/painelcustos.png">
             <span>Meus orcaçamentos</span>
-            <img style="width: 1.5vw;" src="imagens/cancel.png" onclick="filtrarMeus(true)">
+            <img style="width: 1.2rem;" src="imagens/cancel.png" onclick="filtrarMeus(true)">
         </div>
         `
         baloes.insertAdjacentHTML('beforeend', balao)

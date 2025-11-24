@@ -1893,7 +1893,7 @@ async function verAprovacoes() {
     const acumulado = `
         <div style="background-color: #d2d2d2; padding: 5px;">
 
-            <label style="font-size: 1.5vw;">Fila de Aprovação</label>
+            <label style="font-size: 1.2rem;">Fila de Aprovação</label>
 
             ${tabelasString}
 
