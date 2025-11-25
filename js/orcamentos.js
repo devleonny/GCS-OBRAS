@@ -615,6 +615,8 @@ async function editar(orcam_) {
 
     removerPopup()
 
+    precosAntigos = null
+
     orcamentoBase.lpu_ativa == 'ALUGUEL'
         ? await telaCriarOrcamentoAluguel()
         : await telaCriarOrcamento()
@@ -638,6 +640,8 @@ async function duplicar(orcam_) {
     baseOrcamento(novoOrcamento)
 
     removerPopup()
+
+    precosAntigos = null
 
     novoOrcamento.lpu_ativa == 'ALUGUEL'
         ? await telaCriarOrcamentoAluguel()
