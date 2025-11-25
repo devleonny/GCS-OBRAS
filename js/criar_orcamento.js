@@ -139,7 +139,8 @@ async function telaCriarOrcamento() {
 
 async function manterPrecos() {
 
-    if (precosAntigos !== null) return await atualizarOpcoesLPU()
+    const orcamento = baseOrcamento()
+    if (precosAntigos !== null || Object.entries(orcamento?.esquema_composicoes || {}).length == 0) return await atualizarOpcoesLPU()
 
     const modelo = (img, acao, texto, cor) => `
         <div style="${horizontal}; gap: 0.5rem;">

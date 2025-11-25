@@ -1506,7 +1506,7 @@ async function abrirEsquema(id) {
 
             <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; gap: 2px;">
                 <label>Status atual</label>
-                <select onchange="alterar_status(this, '${id_orcam}')" style="border-radius: 3px; padding: 3px;">
+                <select onchange="alterarStatus(this, '${id_orcam}')" style="border-radius: 3px; padding: 3px;">
                     ${['', ...fluxograma].map(fluxo => `
                         <option ${orcamento?.status?.atual == fluxo ? 'selected' : ''}>${fluxo}</option>
                     `).join('')}
@@ -1524,8 +1524,6 @@ async function abrirEsquema(id) {
         levantamentos: '',
         finalizado: ''
     }
-
-    console.log(orcamento)
 
     for (const [idAnexo, anexo] of Object.entries(orcamento?.levantamentos || {})) {
         const local = anexo?.finalizado == 'S' ? 'finalizado' : 'levantamentos'
@@ -1702,40 +1700,32 @@ function mostrarConfirmacao(elemento) {
     img.style.display = 'block'
 }
 
-async function alterar_status(select, id) {
+async function alterarStatus(select, id) {
 
     if (id) id_orcam = id
 
-    let orcamento = dados_orcamentos[id]
+    const orcamento = dados_orcamentos[id_orcam]
+    orcamento.status ??= {}
+    orcamento.status.historicoStatus ??= {}
 
-    if (!orcamento.status) orcamento.status = {}
+    if (orcamento.status?.atual == select.value) return
 
-    // Só prosseguir se o status realmente mudou
-    if (orcamento.status?.atual !== select.value) {
-        // Inicializar estrutura se não existir
+    const statusAnterior = orcamento.status?.atual || '--'
+    const idStatus = ID5digitos()
 
-        if (!orcamento.status.historicoStatus) {
-            orcamento.status.historicoStatus = []
-        }
-
-        let statusAnterior = orcamento.status?.atual || '--'
-        orcamento.status.atual = select.value
-
-        // Adicionar registro de mudança de status
-        const registroStatus = {
-            data: obterDatas('completa'),
-            de: statusAnterior,
-            para: select.value,
-            usuario: acesso.usuario
-        };
-
-        orcamento.status.historicoStatus.unshift(registroStatus);
-        orcamento.status.atual = select.value;
-
-        // Atualizar dados
-        await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos');
-        enviar(`dados_orcamentos/${id_orcam}/status`, orcamento.status);
+    const registroStatus = {
+        data: new Date().toLocaleString(),
+        de: statusAnterior,
+        para: select.value,
+        usuario: acesso.usuario
     }
+
+    orcamento.status.atual = select.value
+    orcamento.status.historicoStatus[idStatus] = select.value
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+
+    enviar(`dados_orcamentos/${id_orcam}/status/atual`, select.value)
+    enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}`, registroStatus)
 
     if (funcaoAtiva == 'telaOrcamentos') filtrarOrcamentos({ ultimoStatus: filtro })
 }
@@ -1743,9 +1733,9 @@ async function alterar_status(select, id) {
 async function mostrarHistoricoStatus() {
     const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
 
-    if (!orcamento?.status?.historicoStatus || orcamento.status.historicoStatus.length === 0) {
-        popup(`<div style="${horizontal}; padding: 2vw; background-color: #d2d2d2;">Nenhuma alteração de status registrada.</div>`, 'Histórico de Status', true);
-        return;
+    if (!orcamento?.status?.historicoStatus || Object.entries(orcamento.status.historicoStatus).length === 0) {
+        popup(`<div style="${horizontal}; padding: 2vw; background-color: #d2d2d2;">Nenhuma alteração de status registrada.</div>`, 'Histórico de Status', true)
+        return
     }
 
     const html = `
@@ -1760,15 +1750,19 @@ async function mostrarHistoricoStatus() {
                                 <th>Status Anterior</th>
                                 <th>Novo Status</th>
                                 <th>Alterado por</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${orcamento.status.historicoStatus.map(registro => `
-                                <tr>
+                            ${Object.entries(orcamento.status.historicoStatus).map(([id, registro]) => `
+                                <tr id="ST_${id}">
                                     <td>${registro.data}</td>
                                     <td>${registro.de}</td>
                                     <td>${registro.para}</td>
                                     <td>${registro.usuario}</td>
+                                    <td>
+                                        ${acesso.permissao == 'adm' ? `<img onclick="excluirHiStatus('${id}')" src="imagens/cancel.png">` : ''}
+                                    </td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -1777,9 +1771,28 @@ async function mostrarHistoricoStatus() {
                 <div class="rodapeTabela"></div>
             </div>
         </div>
-    `;
+    `
 
-    popup(html, 'Histórico de Alterações de Status', true);
+    popup(html, 'Histórico de Alterações de Status', true)
+}
+
+async function excluirHiStatus(idStatus) {
+
+    overlayAguarde()
+
+    const orcamento = dados_orcamentos[id_orcam]
+
+    delete orcamento.status.historicoStatus[idStatus]
+
+    const trExistente = document.getElementById(`ST_${idStatus}`)
+
+    if (trExistente) trExistente.remove()
+
+    deletar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}`)
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+
+    removerOverlay()
+
 }
 
 function exibirItens(div) {

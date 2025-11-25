@@ -415,7 +415,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
             </div>
         `)}
         ${cel(`
-            <select name="status" class="opcoesSelect" onchange="alterar_status(this, '${idOrcamento}')">
+            <select name="status" class="opcoesSelect" onchange="alterarStatus(this, '${idOrcamento}')">
                 ${opcoes}
             </select>
         `)}
@@ -788,7 +788,7 @@ function criarLinhaPDA(idOrcamento, orcamento) {
         <td>${orcamento?.dados_orcam?.contrato || '--'}</td>
         <td>${cliente?.nome || '--'}</td>
         <td>
-            <select class="opcoesSelect" onchange="alterar_status(this, '${idOrcamento}')">${opcoesStatus}</select>
+            <select class="opcoesSelect" onchange="alterarStatus(this, '${idOrcamento}')">${opcoesStatus}</select>
         </td>
         <td>${responsaveis}</td>
         <td>
