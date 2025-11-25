@@ -28,7 +28,7 @@ async function telaChecklist() {
 
     tecnicos = {}
 
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = dados_orcamentos[id_orcam]
 
     let ths = ''
     let pesquisa = ''
@@ -306,14 +306,19 @@ async function relatorioChecklist() {
         .map((op, i) => {
 
             ths += `<th>${op}</th>`
-            pesquisa += `<th style="background-color: white; text-align: left;" contentEditable="true" oninput="pesquisarGenerico('${i}', this.textContent, filtroRelatorioChecklist, 'relatorioChecklist')"></th>`
+            pesquisa += `
+            <th 
+                style="background-color: white; text-align: left;" 
+                contentEditable="true" 
+                oninput="pesquisarGenerico('${i}', this.textContent, filtroRelatorioChecklist, 'relatorioChecklist'); auxiliarTotaisRelatorio();">
+            </th>`
 
         })
 
-    const modelo = (valor1, valor2) => `
-        <div class="modelo-relatorio" style="${vertical}; gap: 3px;">
-            <label>${valor1}</label>
-            <div>${valor2}</div>
+    const modelo = (texto, elemento) => `
+        <div class="balao-checklist">
+            <label>${texto}</label>
+            ${elemento}
         </div>
     `
     const ano = new Date().getFullYear()
@@ -322,9 +327,11 @@ async function relatorioChecklist() {
     
         <div style="background-color: #d2d2d2; padding: 2rem;">
 
-            <div style="${horizontal}; gap: 1rem;">
+            <div class="toolbar-checklist" style="width: max-content; gap: 1rem;">
                 ${modelo('De', `<input name="de" onchange="gerarRelatorioChecklist()" type="date" value="${ano}-01-01">`)}
                 ${modelo('Até', `<input name="ate" onchange="gerarRelatorioChecklist()" type="date" value="${ano}-12-31">`)}
+                ${modelo('Horas Executadas', `<span id="he"></span>`)}
+                ${modelo('Horas Totais', `<span id="ht"></span>`)}
             </div>
 
             <hr style="width: 100%;">
@@ -362,7 +369,8 @@ async function relatorioChecklist() {
     popup(acumulado, 'Relatório Diário', true)
 
     mostrarPagina('relatorio')
-    gerarRelatorioChecklist()
+    await gerarRelatorioChecklist()
+    auxiliarTotaisRelatorio()
 
 }
 
@@ -454,6 +462,35 @@ function criarCalendario(datas) {
     document.querySelector('.calendarios').innerHTML = calendarios
 }
 
+function auxiliarTotaisRelatorio() {
+    const linhas = document.querySelectorAll('#relatorioChecklist tr')
+
+    const totais = {
+        executado: 0,
+        total: {}
+    }
+
+    for (const linha of linhas) {
+
+        if (linha.style.display == 'none') continue
+
+        const codigo = linha.dataset.codigo
+        const executado = Number(linha.querySelector('[name="executado"]').value)
+        const total = Number(linha.querySelector('[name="total"]').value)
+
+        totais.executado += executado
+        if (!totais.total[codigo]) totais.total[codigo] = total
+
+    }
+
+    let ht = 0
+    for (const [, total] of Object.entries(totais.total)) ht += total
+
+    document.getElementById('he').textContent = strHHMM(totais.executado)
+    document.getElementById('ht').textContent = strHHMM(ht)
+
+}
+
 async function gerarRelatorioChecklist() {
 
     const tbody = document.getElementById('relatorioChecklist')
@@ -487,8 +524,6 @@ async function gerarRelatorioChecklist() {
         ...orcamento?.dados_composicoes,
         ...orcamento?.checklist?.avulso
     }
-    const totalAtividades = Object.keys(atividades).length || 1
-    const pesoAtividade = 100 / totalAtividades
 
     // estrutura: { equipe: { data: somaPercentual } }
     let desempenhoEquipes = {}
@@ -510,16 +545,6 @@ async function gerarRelatorioChecklist() {
                     .sort((a, b) => a.localeCompare(b))
 
                 const equipeKey = nomes.join(', ') || 'Sem equipe'
-                const dataStr = dataLancamento.toISOString().slice(0, 10)
-
-                // percentual proporcional ao peso da atividade
-                const percentualAtividade = qtdeTotal > 0
-                    ? (dados.quantidade / qtdeTotal) * pesoAtividade
-                    : 0
-
-                if (!desempenhoEquipes[equipeKey]) desempenhoEquipes[equipeKey] = {}
-                if (!desempenhoEquipes[equipeKey][dataStr]) desempenhoEquipes[equipeKey][dataStr] = 0
-                desempenhoEquipes[equipeKey][dataStr] += percentualAtividade
 
                 // Tempos
                 const tempo = produto?.tempo || '00:00'
@@ -530,11 +555,22 @@ async function gerarRelatorioChecklist() {
                 const minutosExecutados = minutosUnit * dados.quantidade
                 const minutosTotais = minutosUnit * qtdeTotal
 
+                const chaveData = dados.data
+
+                desempenhoEquipes[equipeKey] ??= {}
+                desempenhoEquipes[equipeKey][chaveData] ??= 0
+                desempenhoEquipes[equipeKey][chaveData] += minutosExecutados
+
                 tbody.insertAdjacentHTML('beforeend', `
-                    <tr>
+                    <tr data-codigo="${codigo}">
                         <td>${dataLancamento.toLocaleDateString('pt-BR')}</td>
                         <td>${descricao}</td>
                         <td style="white-space: nowrap;">
+
+                            <input style="display: none;" name="executado" type="number" value="${minutosExecutados}">
+                            <input style="display: none;" name="total" type="number" value="${minutosTotais}">
+
+                            <input>
                             ${strHHMM(minutosExecutados)} 
                             ${minutosExecutados > 480 ? `[ ${Math.ceil((minutosExecutados / 60 / 8))} D ]` : ''}
                             / 
@@ -581,23 +617,24 @@ async function gerarRelatorioChecklist() {
 
     // datasets
     const datasets = Object.entries(desempenhoEquipes).map(([equipe, registros]) => {
-        const soma = todasDatas.reduce((acc, d) => acc + (registros[d] || 0), 0)
 
-        // só dias com valores > 0
-        const diasComRegistro = todasDatas.filter(d => (registros[d] || 0) > 0).length || 1
+        console.log(registros)
+        const soma = Object.values(registros).reduce((acc, v) => acc + v, 0)
+
+        const diasComRegistro = Object.values(registros).filter(v => v > 0).length || 1
         const mediaDiaria = soma / diasComRegistro
 
-        // semanal simples (média a cada 7 dias, só pelos dias com valores)
+        // semanal simples
         const semanas = Math.ceil(diasComRegistro / 7) || 1
         const mediaSemanal = soma / semanas
 
         indicadoresDiv.insertAdjacentHTML('beforeend', `
-        <span style="text-align: left;">
-            <b>${equipe}</b> <br>
-            Diário: ${mediaDiaria.toFixed(2)}% <br>
-            Semanal: ${mediaSemanal.toFixed(2)}% <br>
-        </span>
-        <br>`)
+            <span style="text-align: left;">
+                <b>${equipe}</b> <br>
+                Diário: ${mediaDiaria.toFixed(0)} min <br>
+                Semanal: ${mediaSemanal.toFixed(0)} min <br>
+            </span>
+            <br>`)
 
         return {
             label: equipe,
@@ -629,14 +666,14 @@ async function gerarRelatorioChecklist() {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Desempenho por equipe (ponderado por atividade)'
+                    text: 'Desempenho diário (minutos executados)'
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
                     max: escalaMax,
-                    ticks: { callback: v => v + "%" }
+                    ticks: { callback: v => v + " min" }
                 }
             }
         }
@@ -893,9 +930,8 @@ async function registrarChecklist(codigo) {
 
     overlayAguarde()
 
-    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const orcamento = dados_orcamentos[id_orcam]
     const itens = orcamento?.checklist?.itens?.[codigo] || {}
-    const dadosClientes = await recuperarDados('dados_clientes')
 
     const data = (data) => {
         const [ano, mes, dia] = data.split('-')
@@ -913,13 +949,18 @@ async function registrarChecklist(codigo) {
         quantidadeRealizadoItem += dados.quantidade
 
         const nomesTecnicos = (dados?.tecnicos || [])
-            .map(idTec => `<span>${dadosClientes?.[idTec]?.nome || '--'}</span>`)
+            .map(idTec => `<span>${dados_clientes?.[idTec]?.nome || '--'}</span>`)
             .join('')
 
         linhas += `
         <tr>
             <td>${data(dados.data)}</td>
-            <td>${dados.quantidade}</td>
+            <td>
+                <div style="${horizontal}; gap: 0.5rem;">
+                    <input style="width: 5rem; text-align: center;" class="opcoes"  oninput="mostrarBtn(this)" type="number" value="${dados.quantidade}">
+                    <img src="imagens/concluido.png" style="display: none; width: 1.5rem;" onclick="alterarQuantidadeChecklist(this, '${idLancamento}', '${codigo}', ${dados.quantidade})">
+                </div>
+            </td>
             <td>
                 <div style="${vertical}">
                     ${nomesTecnicos}
@@ -964,9 +1005,34 @@ async function registrarChecklist(codigo) {
     else formChecklist.innerHTML = acumulado
 
     for (const codTec of orcamento?.checklist?.tecnicos || []) {
-        const dados = await recuperarDado('dados_clientes', codTec)
+        const dados = dados_clientes[codTec]
         maisTecnico(codTec, dados?.nome || 'N/A')
     }
+}
+
+function mostrarBtn(input) {
+    const img = input.nextElementSibling
+    img.style.display = ''
+}
+
+async function alterarQuantidadeChecklist(img, idLancamento, codigo, qtdeAnterior) {
+
+    const input = img.previousElementSibling
+    const quantidade = Number(input.value)
+
+    img.style.display = 'none'
+
+    if (((quantidadeRealizadoItem - qtdeAnterior) + quantidade) > quantidadeItem) return input.value = qtdeAnterior
+
+    const orcamento = dados_orcamentos[id_orcam]
+
+    orcamento.checklist.itens[codigo][idLancamento].quantidade = quantidade
+
+    await telaChecklist()
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+
+    enviar(`dados_orcamentos/${id_orcam}/checklist/itens/${codigo}/${idLancamento}/quantidade`, quantidade)
+
 }
 
 function maisTecnico(cod, nome) {

@@ -59,6 +59,12 @@
     color: white;
 }
 
+.toolbar-checklist .balao-checklist input {
+    padding: 5px;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+}
+
 .toolbar-checklist .balao-checklist span {
     font-size: 1.2rem;
 }
