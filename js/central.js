@@ -314,11 +314,13 @@ async function f2() {
     const acumulado = `
         <div style="padding: 2vw; background-color: #d2d2d2; display: flex; flex-direction: column; justify-content: start; align-items: start; gap: 5px;">
 
-            ${botao('Sincronizar Pagamentos com o Omie', `respostaSincronizacao('pagamentos')`)}
-
             ${botao('Sincronizar Clientes', `respostaSincronizacao('clientes')`)}
 
             ${botao('Sincronizar Categorias', `respostaSincronizacao('categorias')`)}
+
+            ${botao('Sincronizar Departamentos', `respostaSincronizacao('departamentos')`)}
+
+            ${botao('Sincronizar Pagamentos', `respostaSincronizacao('pagamentos')`)}
 
             <div id="localResposta"></div>
 

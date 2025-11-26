@@ -424,7 +424,7 @@ async function telaUsuarios() {
     telaInterna.innerHTML = modeloTabela({ colunas, base })
 
     console.log(dados);
-    
+
 
     for (let [id, objeto] of Object.entries(dados)) {
         criarLinha(objeto, id, base)
@@ -548,12 +548,6 @@ async function gerenciarUsuario(id) {
 
     const usuario = await recuperarDado('dados_setores', id)
 
-    const modelo = (texto, elemento) => `
-        <div style="${vertical}; gap: 3px;">
-            <span style="text-align: left;"><strong>${texto}</strong></span>
-            <div>${elemento}</div>
-        </div>
-    `
     const empresasOpcoes = Object.entries({ '': { nome: '' }, ...empresas }).sort()
         .map(([id, empresa]) => `<option value="${id}" ${usuario?.empresa == id ? 'selected' : ''}>${empresa.nome}</option>`)
         .join('')
@@ -564,17 +558,17 @@ async function gerenciarUsuario(id) {
     const setores = ['', 'CHAMADOS', 'MATRIZ BA', 'INFRA', 'CHAMADO/INFRA', 'LOGÍSTICA']
         .map(op => `<option ${usuario?.setor == op ? 'selected' : ''}>${op}</option>`).join('')
 
-    const acumulado = `
-        <div style="${vertical}; gap: 5px; padding: 1rem; background-color: #d2d2d2;">
-            ${modelo('Nome', usuario?.nome_completo || '--')}
-            ${modelo('E-mail', usuario?.email || '--')}
-            ${modelo('Permissão', `<select onchange="configuracoes('${id}', 'permissao', this.value)">${permissoes}</select>`)}
-            ${modelo('Setor', `<select onchange="configuracoes('${id}', 'setor', this.value)">${setores}</select>`)}
-            ${modelo('Empresa', `<select onchange="configuracoes('${id}', 'empresa', this.value)">${empresasOpcoes}</select>`)}
-        </div>
-    `
+    const linhas = [
+        { texto: 'Nome', elemento: `<span>${usuario?.nome_completo || '--'}</span>` },
+        { texto: 'E-mail', elemento: `<span>${usuario?.email || '--'}</span>` },
+        { texto: 'Permissão', elemento: `<select onchange="configuracoes('${id}', 'permissao', this.value)">${permissoes}</select>` },
+        { texto: 'Setor', elemento: `<select onchange="configuracoes('${id}', 'setor', this.value)">${setores}</select>` },
+        { texto: 'Empresa', elemento: `<select onchange="configuracoes('${id}', 'empresa', this.value)">${empresasOpcoes}</select>` }
+    ]
 
-    popup(acumulado, 'Gerenciar Usuário')
+    const form = new formulario({ linhas, titulo: 'Gerenciar Usuário' })
+    form.abrirFormulario()
+
 }
 
 function unicoID() {

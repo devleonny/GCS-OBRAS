@@ -1,9 +1,9 @@
 class formulario {
 
     constructor({ linhas, botoes, titulo }) {
-        this.titulo = titulo
-        this.linhas = linhas
-        this.botoes = botoes
+        this.titulo = titulo || 'Formulário'
+        this.linhas = linhas || []
+        this.botoes = botoes || []
     }
 
     abrirFormulario() {
