@@ -858,7 +858,7 @@ async function abrirAtalhos(id) {
         `
     }
 
-    if (analista == acesso.nome_completo || permitidos.includes(acesso.permissao) || orcamento?.usuarios?.[acesso.usuario]) {
+    if (orcamento?.usuario == acesso.usuario || permitidos.includes(acesso.permissao) || orcamento?.usuarios?.[acesso.usuario]) {
         botoesDisponiveis += `
         ${modeloBotoes('trocar', 'Mudar (Novos ↔ Antigos)', `migrarOrcamento('${id}')`)}
         ${modeloBotoes('chave', 'Delegar outro analista', `usuariosAutorizados()`)}
