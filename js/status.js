@@ -8,8 +8,8 @@ const fluxograma = [
     'SEM STATUS',
     'COTAÇÃO',
     'LEVANTAMENTO',
+    'ORC PENDENTE',
     'ORC ENVIADO',
-    'ORC REPROVADO',
     'ORC APROVADO',
     'REQUISIÇÃO',
     'NFE VENDA',
@@ -21,7 +21,8 @@ const fluxograma = [
     'ATRASADO',
     'PAG RECEBIDO',
     'LOCAÇÃO',
-    'LPU PARCEIRO'
+    'LPU PARCEIRO',
+    'ORC REPROVADO'
 ]
 
 const coresST = {
