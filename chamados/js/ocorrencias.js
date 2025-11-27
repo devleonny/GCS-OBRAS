@@ -811,8 +811,7 @@ async function salvarCorrecao(idOcorrencia, idCorrecao) {
         return coletarAssinatura(idOcorrencia)
     }
 
-    const local = await capturarLocalizacao()
-    if (!local) return popup(mensagem(`É necessário autorizar o uso do GPS`), 'Alerta', true)
+    const local = await capturarLocalizacao() || { latitude: null, longitude: null }
 
     if (!correcao.datas) correcao.datas = {}
     const data = new Date().getTime()
@@ -878,8 +877,8 @@ async function salvarOcorrencia(idOcorrencia) {
 
     overlayAguarde()
 
-    const ocorrencia = idOcorrencia 
-        ? await recuperarDado('dados_ocorrencias', idOcorrencia) 
+    const ocorrencia = idOcorrencia
+        ? await recuperarDado('dados_ocorrencias', idOcorrencia)
         : {}
 
     const novo = {
