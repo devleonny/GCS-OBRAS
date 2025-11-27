@@ -1225,7 +1225,7 @@ async function salvarLevantamento(idOrcamento, idElemento) {
     overlayAguarde()
 
     const elemento = document.getElementById(idElemento || 'adicionar_levantamento')
-    const marcador = elemento?.dataset?.finalizado == 'S' 
+    const marcador = elemento?.dataset?.finalizado == 'S'
 
     if (!elemento || !elemento.files || elemento.files.length === 0) return
 
@@ -2674,6 +2674,23 @@ async function vincularAPI({ idMaster, idSlave }) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ idMaster, idSlave })
+        })
+
+        if (!response.ok)
+            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
+
+        return await response.json()
+    } catch (error) {
+        return { mensagem: error.messagem || error.mensage || error }
+    }
+}
+
+async function criarDepartamento(idOrcamento) {
+    try {
+        const response = await fetch(`${api}/criar-departamento`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idOrcamento })
         })
 
         if (!response.ok)

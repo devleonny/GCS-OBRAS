@@ -1709,7 +1709,8 @@ async function alterarStatus(select, id) {
     orcamento.status ??= {}
     orcamento.status.historicoStatus ??= {}
 
-    if (orcamento.status?.atual == select.value) return
+    const novoSt = select.value
+    if (orcamento.status?.atual == novoSt) return
 
     const statusAnterior = orcamento.status?.atual || '--'
     const idStatus = ID5digitos()
@@ -1717,16 +1718,18 @@ async function alterarStatus(select, id) {
     const registroStatus = {
         data: new Date().toLocaleString(),
         de: statusAnterior,
-        para: select.value,
+        para: novoSt,
         usuario: acesso.usuario
     }
 
-    orcamento.status.atual = select.value
-    orcamento.status.historicoStatus[idStatus] = select.value
+    orcamento.status.atual = novoSt
+    orcamento.status.historicoStatus[idStatus] = novoSt
     await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
 
-    enviar(`dados_orcamentos/${id_orcam}/status/atual`, select.value)
+    enviar(`dados_orcamentos/${id_orcam}/status/atual`, novoSt)
     enviar(`dados_orcamentos/${id_orcam}/status/historicoStatus/${idStatus}`, registroStatus)
+
+    if (novoSt == 'ORC APROVADO') criarDepartamento(id_orcam)
 
     if (funcaoAtiva == 'telaOrcamentos') filtrarOrcamentos({ ultimoStatus: filtro })
 }

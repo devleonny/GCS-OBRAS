@@ -415,9 +415,12 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
             </div>
         `)}
         ${cel(`
-            <select name="status" class="opcoesSelect" onchange="alterarStatus(this, '${idOrcamento}')">
-                ${opcoes}
-            </select>
+            <div style="${horizontal}; gap: 5px;">
+                ${orcamento.departamento ? `<img src="imagens/esquema.png">` : ''}
+                <select name="status" class="opcoesSelect" onchange="alterarStatus(this, '${idOrcamento}')">
+                    ${opcoes}
+                </select>
+            </div>
         `)}
         ${cel(`<div class="bloco-etiquetas">${labels.PEDIDO}</div>`)}
         ${cel(`<div class="bloco-etiquetas">${labels.FATURADO}</div>`)}
