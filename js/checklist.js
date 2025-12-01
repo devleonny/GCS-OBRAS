@@ -225,7 +225,9 @@ function carregarLinhaChecklist({ codigo, produto, check, qReal, ref }) {
             </div>
         </td>
         <td ${fontMaior} name="totalLinhaExecutado"></td>
-        <td>${divPorcentagem(((quantidade / produto.qtde) * 100).toFixed(1))}</td>
+        <td>
+            <div name="porcentagem"></div>
+        </td>
 
     `
 
@@ -1034,6 +1036,10 @@ function calcularTempos() {
         const calculado = strHHMM(minutosTotais)
         tdTotal.textContent = minutosTotais > 480 ? `${strHHMM(minutosTotais)} / ${Math.ceil((minutosTotais / 60) / 8)} D` : strHHMM(minutosTotais)
         inputTempoUnitario.classList = estT(calculado)
+
+        // Porcentagem
+        const porcentagemDiv = linha.querySelector('[name="porcentagem"]')
+        porcentagemDiv.innerHTML = divPorcentagem(((qtdeExecutada / (qReal || qtde)) * 100).toFixed(1))
 
         // total executado da linha
         const minutosExecutados = minutosUnit * qtdeExecutada
