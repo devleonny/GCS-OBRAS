@@ -775,11 +775,11 @@ async function salvar_requisicao(chave) {
         total_requisicao: document.getElementById("total_requisicao").textContent
     };
 
-    const linhas = document.querySelectorAll('.lin_req');
-    let lista_partnumbers = {};
+    const linhas = document.querySelectorAll('.lin_req')
+    let lista_partnumbers = {}
 
     for (let linha of linhas) {
-        let valores = linha.querySelectorAll('input, select');
+        let valores = linha.querySelectorAll('input, select')
         if (valores.length == 0) { continue }
 
         let tds = linha.querySelectorAll('td')
@@ -829,7 +829,6 @@ async function abrirAtalhos(id) {
     const orcamento = dados_orcamentos[id_orcam]
     const omie_cliente = orcamento?.dados_orcam?.omie_cliente || ''
     const cliente = await recuperarDado('dados_clientes', omie_cliente)
-    const analista = orcamento.dados_orcam.analista
     const emAnalise = orcamento.aprovacao && orcamento.aprovacao.status !== 'aprovado'
     let botoesDisponiveis = ''
     let termoArquivar = 'Arquivar Orçamento'

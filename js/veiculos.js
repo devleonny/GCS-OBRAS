@@ -370,54 +370,95 @@ async function painelValores(idCusto, duplicar) {
     const custo = await recuperarDado('custo_veiculos', idCusto) || {}
     const motorista = await recuperarDado('dados_clientes', custo?.motorista)
 
-    const campos = `
-        <div class="campos-form-custos">
-            ${modeloLabel('KM', `<input oninput="calcularValorCombustivel()" value="${custo?.km || ''}" type="number" id="km" type="number">`)}
-            ${modeloLabel('Litros', `<input oninput="calcularValorCombustivel(true)" value="${custo?.litros || ''}" type="number" id="litros" type="number">`)}
-            ${modeloLabel('KM/L', `<input oninput="calcularValorCombustivel()" value="${custo?.kml || ''}" type="number" id="kml" type="number">`)}
-            ${modeloLabel('Valor Combustível', `<input oninput="calcularValorCombustivel()" value="${custo?.combustivel || ''}" type="number" id="combustivel" type="number">`)}
-            ${modeloLabel('Custo Total', `<input value="${custo?.custo_total || ''}" type="number" id="custo_total" type="number">`)}
-            ${modeloLabel('Data do Pagamento', `<input id="data_pagamento" type="date" value="${custo?.data_pagamento || ''}">`)}
+    const tabela = `
+        <div class="borda-tabela">
+            <div class="topo-tabela">
+                <button onclick="linDist()">Incluir</button>
+            </div>
+            <div class="div-tabela">
+                <table class="tabela" id="tabela_composicoes">
+                    <thead>
+                        <th>Departamento</th>
+                        <th>KM</th>
+                        <th>%</th>
+                        <th></th>
+                    </thead>
+                    <tbody id="distribuicao"></tbody>
+                </table>
+            </div>
+            <div class="rodapeTabela"></div>
         </div>
+    `
 
-            ${modeloLabel('Comentário', `<textarea rows="10" style="padding: 0.5rem;" id="comentario">${custo?.comentario || ''}</textarea>`)}
-
-        <div id="dados_veiculos"></div>
-
-        <br>
-
-        ${modeloLabel('Motorista', `
-            <span ${custo?.motorista ? `id="${custo?.motorista}"` : ''} name="nameMotorista" class="opcoes" onclick="cxOpcoes('nameMotorista', 'tempMotoristas', ['nome', 'cidade'])">
+    const linhas = [
+        { texto: 'Comentário', elemento: `<textarea rows="5" style="padding: 0.5rem;" id="comentario">${custo?.comentario || ''}</textarea>` },
+        { texto: 'Data Pagamento', elemento: `<input id="data_pagamento" type="date" value="${custo?.data_pagamento || ''}">` },
+        { texto: 'KM/L', elemento: `<input oninput="calcularValorCombustivel()" value="${custo?.kml || ''}" type="number" id="kml" type="number">` },
+        { texto: 'Valor Combustível', elemento: `R$ <input  oninput="calcularValorCombustivel()" value="${custo?.combustivel || ''}" type="number" id="combustivel" type="number">` },
+        { texto: 'Distribuição', elemento: tabela },
+        { texto: 'Total KM', elemento: `<input style="width: 5rem;" id="km" readOnly> km` },
+        { texto: 'Litros', elemento: `<input style="width: 5rem;" id="litros" readOnly>` },
+        { texto: 'Custo Total', elemento: `R$ <input value="${custo?.custo_total || ''}" type="number" id="custo_total" type="number">` },
+        {
+            texto: 'Motorista', elemento: `
+            <span ${custo?.motorista ? `id="${custo?.motorista}"` : ''} class="opcoes" name="nameMotorista" onclick="cxOpcoes('nameMotorista', 'tempMotoristas', ['nome', 'cidade'])">
                 ${motorista?.nome || 'Selecione'}
             </span>
-        `)}
-    `
-    const funcao = !idCusto ? `salvarValores()` : duplicar ? `salvarValores(false)` : `salvarValores('${idCusto}')`
+            `}
+    ]
 
-    const acumulado = `
-        <div class="paineis">
-            ${campos}
-            <hr style="width: 100%;">
-            <button onclick="${funcao}">Adicionar Custo</button>
-        </div>
-    `
-    popup(acumulado, 'Adicionar Custo')
+    const botoes = [
+        { texto: 'Salvar', img: 'concluido', funcao: !idCusto ? `salvarValores()` : duplicar ? `salvarValores(false)` : `salvarValores('${idCusto}')` }
+    ]
+
+    const form = new formulario({ linhas, botoes, titulo: 'Gerenciar Custo' })
+    form.abrirFormulario()
 
     dadosVeiculo()
 }
 
-function calcularValorCombustivel(valorManual) {
-    const km = obterValores('km')
-    const kml = obterValores('kml')
-    const litros = valorManual ? obterValores('litros') : Math.ceil(km / kml)
-    const combustivel = obterValores('combustivel')
+function linDist() {
+    const tbody = document.getElementById('distribuicao')
 
-    const resultado = litros * combustivel
-    const proximoMultiploDe10 = Math.ceil(resultado / 10) * 10
+    const chave = ID5digitos()
 
-    if (!valorManual) document.getElementById('litros').value = litros
-    document.getElementById('custo_total').value = proximoMultiploDe10
+    tbody.insertAdjacentHTML('beforeend', `
+        <tr>
+            <td>
+                <span class="opcoes" name="${chave}" onclick="cxOpcoes('${chave}', 'departamentos_AC', ['descricao'])">Selecione</span>
+            </td>
+            <td>
+                <input style="width: 5rem;" oninput="calcularValorCombustivel()" name="km" type="number">
+            </td>
+            <td>
+                <img onclick="this.closest('tr').remove(); calcularValorCombustivel()" src="imagens/cancel.png" style="width: 1.5rem;">
+            </td>
+        </tr>`
+    )
 }
+
+function calcularValorCombustivel() {
+    const linhas = document.querySelectorAll('#distribuicao tr')
+    const kml = Number(document.getElementById('kml').value)
+    const combustivel = Number(document.getElementById('combustivel').value)
+
+    let totalKM = 0
+
+    for (const linha of linhas) {
+        const km = Number(linha.querySelector('[name="km"]').value)
+        totalKM += km
+    }
+
+    const valor = (totalKM / kml) * combustivel
+
+    document.getElementById('km').value = totalKM
+    document.getElementById('litros').value = Math.ceil(totalKM / kml)
+
+    const ct = document.getElementById('custo_total')
+
+    ct.value = Math.ceil(valor / 10) * 10
+}
+
 
 async function salvarValores(idCusto) {
 
@@ -430,10 +471,26 @@ async function salvarValores(idCusto) {
     const custo_total = obterValores('custo_total')
     const data_pagamento = obterValores('data_pagamento')
 
-    if (custo_total == '') return popup(mensagem(`Preencha o valor do pagamento`), 'ALERTA', true)
-    if (data_pagamento == '') return popup(mensagem(`Preencha a data de pagamento`), 'ALERTA', true)
+    if (custo_total == '') return popup(mensagem(`Preencha o valor do pagamento`), 'Alerta', true)
+    if (data_pagamento == '') return popup(mensagem(`Preencha a data de pagamento`), 'Alerta', true)
+
+    let distribuicao = {}
+    const linhas = document.querySelectorAll('#distribuicao tr')
+
+    for (const linha of linhas) {
+        const tds = linha.querySelectorAll('td')
+        const span = tds[0].querySelector('span')
+
+        if (!span.id) return popup(mensagem('Departamento em branco'), 'Alerta', true)
+
+        const dep = span.id
+        const km = Number(linha.querySelector('[name="km"]').value)
+        if (!distribuicao[dep]) distribuicao[dep] = 0
+        distribuicao[dep] += km
+    }
 
     const dados = {
+        distribuicao,
         motorista: idMotorista,
         veiculo: motorista.veiculo,
         categoria: 'Combustível',

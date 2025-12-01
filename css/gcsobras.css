@@ -1988,11 +1988,6 @@ input[type=range]::-moz-range-thumb {
     left: 1rem;
 }
 
-.div-mensagem:hover {
-    background-color: #097fe6;
-    color: white;
-}
-
 .tabela {
     box-shadow: 0px 0px 5px #222;
     min-width: 100%;

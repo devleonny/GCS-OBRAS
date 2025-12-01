@@ -39,6 +39,10 @@
     padding: 4px;
 }
 
+.celula select {
+    font-size: 0.7rem;
+}
+
 /* remove a borda da última célula pra não duplicar */
 .celula:last-child {
     border-right: none;

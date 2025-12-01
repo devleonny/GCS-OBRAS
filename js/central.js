@@ -276,7 +276,7 @@ async function despoluicaoGCS() {
     const bases = [
         'tags',
         'tags_orcamentos',
-        'departamentos_fixos',
+        'departamentos_AC',
         'dados_orcamentos',
         'custo_veiculos',
         'motoristas',
@@ -294,8 +294,6 @@ async function despoluicaoGCS() {
         await sincronizarDados(base, true, true) // Nome base, overlay off e resetar bases;
         logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: ${base}</label>`)
     }
-
-    await criarBaseCC()
 
     localStorage.setItem('atualizado', true)
     telaInicial()
@@ -401,7 +399,7 @@ async function identificacaoUser() {
     }
 
     const permitidosAprovacoes = ['adm', 'diretoria']
-    const permitidosProdutos = ['adm', 'log', 'diretoria']
+    const permitidosProdutos = ['LOGÍSTICA', 'SUPORTE', 'FINANCEIRO']
     const toolbarTop = document.querySelector('.toolbar-top')
 
     if (!paginasBloqueadas.includes(document.title) && acesso.usuario) {
@@ -412,7 +410,7 @@ async function identificacaoUser() {
 
                 ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
                 ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
-                ${permitidosProdutos.includes(acesso.permissao) ? modelo('preco', 'precosDesatualizados()', 'contadorProdutos') : ''}
+                ${permitidosProdutos.includes(acesso.setor) ? modelo('preco', 'precosDesatualizados()', 'contadorProdutos') : ''}
 
                 <img title="Abrir mais 1 aba" src="imagens/aba.png" onclick="maisAba()">
 
@@ -2439,6 +2437,8 @@ async function abrirDANFE(codOmieNF, tipo, app) {
 
     const resposta = await buscarDANFE(codOmieNF, tipo, app)
 
+    console.log(resposta)
+
     if (resposta.err) return popup(mensagem(`Provavelmente esta nota foi importada via XML e por enquanto não está disponível`), 'Alerta', true)
 
     removerOverlay()
@@ -2514,8 +2514,6 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
             .join('')
 
         const descricao = String(getValorPorCaminho(dado, campos[0]))
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-zA-Z0-9 ]/g, '')
 
         opcoesDiv += `
         <div 

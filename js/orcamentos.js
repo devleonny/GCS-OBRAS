@@ -241,11 +241,11 @@ async function telaOrcamentos(semOverlay) {
 
         <div id="tabelaOrcamento" data-ordem="asc" style="${vertical}; width: 95vw;">
             <div class="topo-tabela"></div>
-            <div class="cabecalho">
-                <div class="linha-orcamento-tabela" style="padding: 0px; background-color: #d2d2d2;">${ths}</div>
-                <div class="linha-orcamento-tabela" style="padding: 0px;">${tsh}</div>
-            </div>
             <div class="div-tabela">
+                <div class="cabecalho">
+                    <div class="linha-orcamento-tabela" style="padding: 0px; background-color: #d2d2d2;">${ths}</div>
+                    <div class="linha-orcamento-tabela" style="padding: 0px;">${tsh}</div>
+                </div>
                 <div id="linhas"></div>
             </div>
             <div class="rodapeTabela"></div>
