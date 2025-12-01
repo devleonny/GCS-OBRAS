@@ -26,7 +26,6 @@ const estT = (tempo) => {
 
 async function telaChecklist() {
 
-    id_orcam = 'ORCA_01da2519-72f0-4674-b789-4f020d200296'
     tecnicos = {}
 
     const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
