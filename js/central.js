@@ -335,7 +335,7 @@ async function respostaSincronizacao(script) {
 
     let localResposta = document.getElementById('localResposta')
 
-    localResposta.innerHTML = `<img src="gifs/loading.gif" style="width: 3vw;">`
+    localResposta.innerHTML = `<img src="gifs/loading.gif" style="width: 5rem;">`
 
     const resposta = await sincronizar(script)
 

@@ -32,7 +32,7 @@ async function telaChecklist() {
     const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
     let ths = ''
     let pesquisa = ''
-    const colunas = ['', 'Código', 'Tags', 'Itens do Orçamento', 'Qtd. Orçada', 'Qtd. Real', 'Tempo/Atividade', 'Tempo/Total', 'Serviço Executado', 'Tempo/Realizado', '% Conclusão']
+    const colunas = ['', 'Código', 'Itens do Orçamento', 'Qtd. Orçada', 'Qtd. Real', 'Tempo/Atividade', 'Tempo/Total', 'Serviço Executado', 'Tempo/Realizado', '% Conclusão']
 
     let i = 0
     for (const op of colunas) {
@@ -196,17 +196,6 @@ function carregarLinhaChecklist({ codigo, produto, check, qReal, ref }) {
     const tds = `
         <td><input name="itensChecklist" type="checkbox"></td>
         <td>${codigo}</td>
-        <td>
-            <div style="${horizontal}; justify-content: space-between; width: 100%; align-items: start; gap: 2px;">
-                <div name="tags" style="${vertical}; gap: 1px;">
-                    ${gerarLabelsAtivas(produto?.tags || {})}
-                </div>
-                <img 
-                    src="imagens/etiqueta.png" 
-                    style="width: 1.2rem;" 
-                    onclick="tagsChecklist('${codigo}')">
-            </div>
-        </td>
         <td style="text-align: right;">${produto.descricao} ${avulso}</td>
         <td ${fontMaior} name="quantidade">
             ${avulso
@@ -353,7 +342,7 @@ async function relatorioChecklist() {
     let ths = ''
     let pesquisa = ''
 
-    const colunas = ['Data', 'Descrição', 'Duração', 'Quantidade', 'Técnicos']
+    const colunas = ['Data', 'Descrição', 'Duração', 'Quantidade', 'Comentário', 'Técnicos']
         .map((op, i) => {
 
             ths += `<th>${op}</th>`
@@ -420,8 +409,8 @@ async function relatorioChecklist() {
     popup(acumulado, 'Relatório Diário', true)
 
     mostrarPagina('relatorio')
-    await gerarRelatorioChecklist()
     auxiliarTotaisRelatorio()
+    await gerarRelatorioChecklist()
 
 }
 
@@ -547,169 +536,178 @@ function auxiliarTotaisRelatorio() {
 async function gerarRelatorioChecklist() {
 
     const tbody = document.getElementById('relatorioChecklist')
-    const graficos = document.querySelector('.graficos')
     let de = document.querySelector('[name="de"]').value
     let ate = document.querySelector('[name="ate"]').value
-    let datas = []
+
+    const datas = []
+    const quantidades = {}
 
     if (!de || !ate) return
 
     overlayAguarde()
 
+    const coresPadrao = [
+        'hsl(0, 70%, 50%)',
+        'hsl(30, 70%, 50%)',
+        'hsl(60, 70%, 45%)',
+        'hsl(120, 60%, 45%)',
+        'hsl(180, 60%, 45%)',
+        'hsl(210, 70%, 55%)',
+        'hsl(260, 60%, 60%)',
+        'hsl(300, 65%, 55%)',
+        'hsl(330, 65%, 55%)',
+        'hsl(20, 70%, 45%)'
+    ]
     const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
     const itens = orcamento?.checklist?.itens || {}
     const dados_clientes = await recuperarDados('dados_clientes')
     const dados_composicoes = await recuperarDados('dados_composicoes')
 
-    const dt = (data) => {
-        const [ano, mes, dia] = data.split('-')
-        return new Date(ano, mes - 1, dia)
+    const dt = (iso) => {
+        const [a, m, d] = iso.split('-')
+        return new Date(a, m - 1, d)
     }
 
     de = dt(de)
     ate = dt(ate)
 
     tbody.innerHTML = ''
-    graficos.innerHTML = ''
 
-    // total de atividades
     const atividades = {
         ...orcamento?.dados_composicoes,
         ...orcamento?.checklist?.avulso
     }
 
-    // estrutura: { equipe: { data: somaPercentual } }
     const desempenhoEquipes = {}
 
     for (const [codigo, lancamentos] of Object.entries(itens)) {
+
         const comp = atividades[codigo]
         const produto = dados_composicoes?.[codigo] || {}
         const descricao = comp?.descricao || '...'
         const qtdeTotal = comp?.qtde || 0
 
-        for (const [, dados] of Object.entries(lancamentos)) {
-            const dataLancamento = dt(dados.data)
-            if (dataLancamento >= de && dataLancamento <= ate) {
-                datas.push(dataLancamento.getTime())
+        for (const [_, dados] of Object.entries(lancamentos)) {
 
-                // padroniza equipe
-                const nomes = (dados.tecnicos || [])
-                    .map(codTec => dados_clientes?.[codTec]?.nome || '...')
-                    .sort((a, b) => a.localeCompare(b))
+            if (_ == 'removido') continue
 
-                const equipeKey = nomes.join(', ') || 'Sem equipe'
+            quantidades[codigo] ??= 0
+            quantidades[codigo] += dados.quantidade || 0
 
-                // Tempos
-                const tempo = produto?.tempo || '00:00'
-                const [h, m] = tempo.split(':').map(Number)
-                const minutosUnit = h * 60 + m
+            const dLanc = dt(dados.data)
+            if (dLanc < de || dLanc > ate) continue
 
-                // total da linha
-                const minutosExecutados = minutosUnit * dados.quantidade
-                const minutosTotais = minutosUnit * qtdeTotal
+            datas.push(dLanc.getTime())
 
-                const chaveData = dados.data
+            const nomes = (dados.tecnicos || [])
+                .map(c => dados_clientes?.[c]?.nome || '...')
+                .sort((a, b) => a.localeCompare(b))
 
-                desempenhoEquipes[equipeKey] ??= {}
-                desempenhoEquipes[equipeKey][chaveData] ??= 0
-                desempenhoEquipes[equipeKey][chaveData] += minutosExecutados
+            const equipeKey = nomes.join(', ') || 'Sem equipe'
 
-                tbody.insertAdjacentHTML('beforeend', `
-                    <tr data-data="${dataLancamento.getTime()}" data-codigo="${codigo}">
-                        <td>${dataLancamento.toLocaleDateString('pt-BR')}</td>
-                        <td>${descricao}</td>
-                        <td style="white-space: nowrap;">
+            const tempo = produto?.tempo || '00:00'
+            const [h, m] = tempo.split(':').map(Number)
+            const minUnit = h * 60 + m
+            const executado = minUnit * dados.quantidade
+            const total = minUnit * qtdeTotal
 
-                            <input style="display: none;" name="executado" type="number" value="${minutosExecutados}">
-                            <input style="display: none;" name="total" type="number" value="${minutosTotais}">
+            const chaveData = dados.data
 
-                            <input>
-                            ${strHHMM(minutosExecutados)} 
-                            ${minutosExecutados > 480 ? `[ ${Math.ceil((minutosExecutados / 60 / 8))} D ]` : ''}
-                            / 
-                            ${strHHMM(minutosTotais)}
-                            ${minutosTotais > 480 ? `[ ${Math.ceil((minutosTotais / 60 / 8))} D ]` : ''}
-                        </td>
-                        <td>${dados.quantidade} / ${qtdeTotal}</td>
-                        <td style="text-align: left;">
-                            ${nomes.map(n => `<span>• ${n}</span>`).join('<br>')}
-                        </td>
-                    </tr>
-                `)
-            }
+            desempenhoEquipes[equipeKey] ??= {}
+            desempenhoEquipes[equipeKey][chaveData] ??= 0
+            desempenhoEquipes[equipeKey][chaveData] += executado
+
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr data-data="${dLanc.getTime()}" data-codigo="${codigo}">
+                    <td>${dLanc.toLocaleDateString('pt-BR')}</td>
+                    <td>${descricao}</td>
+                    <td style="white-space: nowrap;">
+                        <input style="display:none;" name="executado" value="${executado}">
+                        <input style="display:none;" name="total" value="${total}">
+                        <input>
+                        ${strHHMM(executado)}
+                        /
+                        ${strHHMM(total)}
+                    </td>
+                    <td>${dados.quantidade} / ${qtdeTotal}</td>
+                    <td>${dados.comentario || ''}</td>
+                    <td style="text-align:left;">
+                        ${nomes.map(n => `• ${n}`).join('<br>')}
+                    </td>
+                </tr>
+            `)
         }
     }
 
     criarCalendario(datas)
 
-    // container flex (gráfico + indicadores)
-    const container = document.createElement('div')
-    container.style.display = 'flex'
-    container.style.gap = '20px'
-    graficos.appendChild(container)
+    // ===========================================================
+    // 1) MONTAR TODO O HTML DOS GRÁFICOS PRIMEIRO
+    // ===========================================================
+    const htmlGraficos = `
+        <div style="${vertical}; gap: 0.5rem;">
+            <div id="indicadores" style="${vertical}; gap: 4px;"></div>
+            <canvas id="graficoLinha"></canvas>
+            <hr>
+            <canvas id="graficoBarraPequenos"></canvas>
+            <hr>
+            <canvas id="graficoBarraGrandes"></canvas>
+        </div>
+    `
+    const graficos = document.querySelector('.graficos')
+    graficos.innerHTML = htmlGraficos
 
-    // canvas
-    const canvas = document.createElement('canvas')
-    canvas.width = 800
-    canvas.height = 400
-    container.appendChild(canvas)
-    const ctx = canvas.getContext('2d')
+    // obtém os elementos
+    const canvasLinha = document.getElementById('graficoLinha')
+    const ctx = canvasLinha.getContext('2d')
+    const indicadoresDiv = document.getElementById('indicadores')
 
-    // indicadores
-    const indicadoresDiv = document.createElement('div')
-    indicadoresDiv.style.display = 'flex'
-    indicadoresDiv.style.flexDirection = 'column'
-    indicadoresDiv.style.gap = '5px'
-    container.appendChild(indicadoresDiv)
+    // ===========================================================
+    // 2) GRÁFICO DE LINHA (DESEMPENHO DIÁRIO)
+    // ===========================================================
 
-    // datas únicas e ordenadas
     const todasDatas = [...new Set(datas.map(ts => {
         const d = new Date(ts)
         return d.toISOString().slice(0, 10)
     }))].sort()
 
-    // datasets
-    const datasets = Object.entries(desempenhoEquipes).map(([equipe, registros]) => {
+    const datasets = Object.entries(desempenhoEquipes).map(([equipe, reg], idx) => {
 
-        const soma = Object.values(registros).reduce((acc, v) => acc + v, 0)
+        const soma = Object.values(reg).reduce((a, b) => a + b, 0)
+        const dias = Object.values(reg).filter(v => v > 0).length || 1
 
-        const diasComRegistro = Object.values(registros).filter(v => v > 0).length || 1
-        const mediaDiaria = soma / diasComRegistro
-
-        // semanal simples
-        const semanas = Math.ceil(diasComRegistro / 7) || 1
-        const mediaSemanal = soma / semanas
+        const mediaDia = soma / dias
+        const semanas = Math.ceil(dias / 7) || 1
+        const mediaSem = soma / semanas
 
         indicadoresDiv.insertAdjacentHTML('beforeend', `
-            <span style="text-align: left;">
-                <b>${equipe}</b> <br>
-                Diário: ${mediaDiaria.toFixed(0)} min <br>
-                Semanal: ${mediaSemanal.toFixed(0)} min <br>
-            </span>
-            <br>`)
+        <div style="${vertical}; gap: 2px;">
+            <span><b>${equipe}</b></span>
+            <span>Diário: ${mediaDia.toFixed(0)} min</span>
+            <span>Semanal: ${mediaSem.toFixed(0)} min</span>
+        </div>
+    `)
 
         return {
             label: equipe,
-            data: todasDatas.map(d => registros[d] || 0),
-            borderWidth: 2,
+            data: todasDatas.map(d => reg[d] || 0),
             fill: false,
+            borderWidth: 2,
             tension: 0.2,
-            borderColor: getRandomColor()
+            borderColor: coresPadrao[idx % coresPadrao.length]
         }
     })
 
-    // escala dinâmica (teto baseado no maior valor observado)
-    const maxPercent = Math.max(
-        ...Object.values(desempenhoEquipes).flatMap(registros => Object.values(registros))
+    const maxVal = Math.max(
+        ...Object.values(desempenhoEquipes).flatMap(r => Object.values(r))
     ) || 0
-    const escalaMax = Math.ceil(maxPercent * 1.1)
 
     new Chart(ctx, {
         type: 'line',
         data: {
             labels: todasDatas.map(d => {
-                const [ano, mes, dia] = d.split('-')
-                return `${dia}/${mes}`
+                const [a, m, dd] = d.split('-')
+                return `${dd}/${m}`
             }),
             datasets
         },
@@ -724,16 +722,114 @@ async function gerarRelatorioChecklist() {
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: escalaMax,
-                    ticks: { callback: v => v + " min" }
+                    max: Math.ceil(maxVal * 1.1),
+                    ticks: { callback: v => v + ' min' }
                 }
             }
         }
     })
 
-    function getRandomColor() {
-        return `hsl(${Math.floor(Math.random() * 360)},70%,50%)`
+    // ===========================================================
+    // 3) GRÁFICOS DE BARRAS HORIZONTAIS (ORÇADO x REALIZADO)
+    // ===========================================================
+
+    const labelsPequenos = []
+    const orcadoPequenos = []
+    const realizadoPequenos = []
+
+    const labelsGrandes = []
+    const orcadoGrandes = []
+    const realizadoGrandes = []
+
+    for (const [cod, real] of Object.entries(quantidades)) {
+
+        const ref = dados_composicoes?.[cod] || {}
+        const qtOrc = orcamento?.dados_composicoes?.[cod]?.qtde || 0
+        const label = ref.descricao || 'N/A'
+
+        if (qtOrc > 20) {
+            labelsGrandes.push(label)
+            orcadoGrandes.push(qtOrc)
+            realizadoGrandes.push(real)
+        } else {
+            labelsPequenos.push(label)
+            orcadoPequenos.push(qtOrc)
+            realizadoPequenos.push(real)
+        }
     }
+
+    // inserir dois canvases
+
+    const ctxPequenos = document.getElementById('graficoBarraPequenos').getContext('2d')
+    const ctxGrandes = document.getElementById('graficoBarraGrandes').getContext('2d')
+
+    // --- gráfico pequenos ---
+    new Chart(ctxPequenos, {
+        type: 'bar',
+        data: {
+            labels: labelsPequenos,
+            datasets: [
+                {
+                    label: 'Orçado',
+                    data: orcadoPequenos,
+                    backgroundColor: '#6464ff99'
+                },
+                {
+                    label: 'Realizado',
+                    data: realizadoPequenos,
+                    backgroundColor: '#64c86499'
+                }
+            ]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Comparativo Orçado x Executado (≤ 20 unidades)'
+                }
+            },
+            scales: {
+                x: { beginAtZero: true },
+                y: { ticks: { autoSkip: false } }
+            }
+        }
+    })
+
+    // --- gráfico grandes ---
+    new Chart(ctxGrandes, {
+        type: 'bar',
+        data: {
+            labels: labelsGrandes,
+            datasets: [
+                {
+                    label: 'Orçado',
+                    data: orcadoGrandes,
+                    backgroundColor: '#6464ffff'
+                },
+                {
+                    label: 'Realizado',
+                    data: realizadoGrandes,
+                    backgroundColor: '#64c86499'
+                }
+            ]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Comparativo Orçado x Executado (> 20 unidades)'
+                }
+            },
+            scales: {
+                x: { beginAtZero: true },
+                y: { ticks: { autoSkip: false } }
+            }
+        }
+    })
 
     ordenarLinhasPorData()
     removerOverlay()
@@ -1036,6 +1132,12 @@ async function registrarChecklist(codigo) {
                     ${nomesTecnicos}
                 </div>
             </td>
+            <td>
+                <div style="${horizontal}; gap: 0.5rem;">
+                    <textarea oninput="mostrarBtn(this)">${dados?.comentario || ''}</textarea>
+                    <img src="imagens/concluido.png" style="display: none; width: 1.5rem;" onclick="alterarComentario(this, '${idLancamento}', '${codigo}')">
+                </div>
+            </td>
             <td><img src="imagens/cancel.png" style="width: 1.5rem;" onclick="removerChecklist('${codigo}', '${idLancamento}')"></td>
         </tr>`
     }
@@ -1051,6 +1153,7 @@ async function registrarChecklist(codigo) {
         <div class="form-checklist">
             <input name="quantidadeForm" type="number">
             <input name="data" type="date">
+            <textarea name="comentario" placeholder="Comentário"></textarea>
             <img src="imagens/concluido.png" style="width: 1.5rem;" onclick="salvarQuantidade('${codigo}')">
         </div>
         
@@ -1061,7 +1164,7 @@ async function registrarChecklist(codigo) {
             <div class="div-tabela">
                 <table class="tabela" id="tabela_composicoes">
                     <thead>
-                        <tr>${['Data', 'Quantidade', 'Técnico(s)', 'Excluir'].map(op => `<th>${op}</th>`).join('')}</tr>
+                        <tr>${['Data', 'Quantidade', 'Técnico(s)', 'Comentário', 'Excluir'].map(op => `<th>${op}</th>`).join('')}</tr>
                     </thead>
                     <tbody>${linhas}</tbody>
                 </table>
@@ -1078,6 +1181,19 @@ async function registrarChecklist(codigo) {
         const dados = dados_clientes[codTec]
         maisTecnico(codTec, dados?.nome || 'N/A')
     }
+}
+
+async function alterarComentario(img, idLancamento, codigo) {
+
+    const textarea = img.previousElementSibling
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+    const comentario = textarea.value
+    orcamento.checklist.itens[codigo][idLancamento].comentario = comentario
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id_orcam}/checklist/itens/${codigo}/${idLancamento}/comentario`, comentario)
+
+    img.style.display = 'none'
+
 }
 
 function mostrarBtn(input) {
@@ -1133,6 +1249,7 @@ async function salvarQuantidade(codigo) {
 
     const quantidade = Number(document.querySelector('[name="quantidadeForm"]').value)
     const data = document.querySelector('[name="data"]').value
+    const comentario = document.querySelector('[name="comentario"]').value
 
     // Bloqueios;
     if ((quantidadeRealizadoItem + quantidade) > quantidadeItem) return popup(mensagem('Não é possível exceder a quantidade orçada'), 'Alerta', true)
@@ -1150,7 +1267,7 @@ async function salvarQuantidade(codigo) {
     orcamento.checklist.itens ??= {}
     orcamento.checklist.itens[codigo] ??= {}
 
-    const dados = { quantidade, tecnicos, data }
+    const dados = { quantidade, tecnicos, data, comentario }
     const idLancamento = ID5digitos()
 
     orcamento.checklist.itens[codigo][idLancamento] = dados
