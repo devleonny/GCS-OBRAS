@@ -26,13 +26,13 @@ const estT = (tempo) => {
 
 async function telaChecklist() {
 
+    id_orcam = 'ORCA_01da2519-72f0-4674-b789-4f020d200296'
     tecnicos = {}
 
-    const orcamento = dados_orcamentos[id_orcam]
-
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
     let ths = ''
     let pesquisa = ''
-    const colunas = ['', 'Código', 'Tags', 'Itens do Orçamento', 'Quantidade', 'Tempo/Atividade', 'Tempo/Total', 'Serviço Executado', 'Tempo/Realizado', '% Conclusão']
+    const colunas = ['', 'Código', 'Tags', 'Itens do Orçamento', 'Qtd. Orçada', 'Qtd. Real', 'Tempo/Atividade', 'Tempo/Total', 'Serviço Executado', 'Tempo/Realizado', '% Conclusão']
 
     let i = 0
     for (const op of colunas) {
@@ -113,6 +113,8 @@ async function telaChecklist() {
     diasTrabalhados = []
     primeiroDia = null
 
+    console.log(orcamento)
+
     const mesclado = {
         ...orcamento?.dados_composicoes || {},
         ...orcamento?.checklist?.avulso || {}
@@ -122,9 +124,10 @@ async function telaChecklist() {
 
         if (produto.tipo == 'VENDA') continue
 
+        const qReal = orcamento?.checklist?.qReal?.[codigo] || {}
         const check = orcamento?.checklist?.itens?.[codigo] || {}
         const ref = dados_composicoes?.[codigo] || {}
-        carregarLinhaChecklist({ codigo, produto, check, ref })
+        carregarLinhaChecklist({ codigo, produto, check, ref, qReal })
 
         for (const [id, dados] of Object.entries(check)) {
 
@@ -163,7 +166,7 @@ async function telaChecklist() {
 
 }
 
-function carregarLinhaChecklist({ codigo, produto, check, ref }) {
+function carregarLinhaChecklist({ codigo, produto, check, qReal, ref }) {
 
     if (check.removido) {
         const linha = document.getElementById(`check_${codigo}`)
@@ -172,7 +175,7 @@ function carregarLinhaChecklist({ codigo, produto, check, ref }) {
     }
 
     let quantidade = 0
-    let diasTrabalhadosLinha = []
+    const diasTrabalhadosLinha = []
     for (const [, dados] of Object.entries(check)) {
 
         quantidade += isNaN(dados.quantidade) ? 0 : dados.quantidade
@@ -205,7 +208,18 @@ function carregarLinhaChecklist({ codigo, produto, check, ref }) {
             </div>
         </td>
         <td style="text-align: right;">${produto.descricao} ${avulso}</td>
-        <td ${fontMaior} name="quantidade">${produto.qtde}</td>
+        <td ${fontMaior} name="quantidade">
+            ${avulso
+            ? `<input type="number" name="real" oninput="salvarQtdAvulso(this, '${codigo}')" class="qtd" value="${produto.qtde || ''}">`
+            : produto.qtde
+        }
+        </td>
+        <td>
+            ${avulso
+            ? '<img src="imagens/cancel.png">'
+            : `<input type="number" name="real" oninput="salvarQtdReal(this, '${codigo}')" class="qtd" value="${qReal?.qtde || ''}">`
+        }
+        </td>
         <td>
             <div style="${vertical};">
                 <input 
@@ -232,7 +246,44 @@ function carregarLinhaChecklist({ codigo, produto, check, ref }) {
     const trExistente = document.getElementById(`check_${codigo}`)
     if (trExistente) return trExistente.innerHTML = tds
 
-    document.getElementById('bodyChecklist').insertAdjacentHTML('beforeend', `<tr data-codigo="${codigo}" id="check_${codigo}">${tds}</tr>`)
+    document.getElementById('bodyChecklist').insertAdjacentHTML('beforeend', `
+        <tr 
+        data-avulso="${avulso ? 'S' : 'N'}"
+        data-codigo="${codigo}" 
+        id="check_${codigo}">
+            ${tds}
+        </tr>
+        `)
+
+}
+
+async function salvarQtdAvulso(input, codigo) {
+
+    const qtde = Number(input.value)
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+
+    orcamento.checklist.avulso[codigo].qtde = qtde
+
+    calcularTempos()
+
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id_orcam}/checklist/avulso/${codigo}/qtde`, qtde)
+
+}
+
+async function salvarQtdReal(input, codigo) {
+
+    const qtde = Number(input.value)
+    const orcamento = await recuperarDado('dados_orcamentos', id_orcam)
+
+    orcamento.checklist.qReal ??= {}
+    orcamento.checklist.qReal[codigo] ??= {}
+    orcamento.checklist.qReal[codigo].qtde = qtde
+
+    calcularTempos()
+
+    await inserirDados({ [id_orcam]: orcamento }, 'dados_orcamentos')
+    enviar(`dados_orcamentos/${id_orcam}/checklist/qReal/${codigo}/qtde`, qtde)
 
 }
 
@@ -410,6 +461,8 @@ function criarCalendario(datas) {
 
     let calendarios = ''
 
+    const pesqAuto = (texto) => `pesquisarGenerico('0', '${texto}', filtroRelatorioChecklist, 'relatorioChecklist'); auxiliarTotaisRelatorio()`
+
     for (const chave in grupos) {
         const { ano, mes, dias } = grupos[chave]
         const diasMes = new Date(ano, mes, 0).getDate()
@@ -427,7 +480,7 @@ function criarCalendario(datas) {
             const dt = new Date(ano, mes - 1, i)
             const sem = dt.getDay()
 
-            tds += `<td ${dias.has(i) ? marcado : ''}>${i}</td>`
+            tds += `<td onclick="${pesqAuto(dt.toLocaleDateString())}" ${dias.has(i) ? marcado : ''}>${i}</td>`
 
             if (sem === 6) {
                 trs += `<tr>${tds}</tr>`
@@ -526,7 +579,7 @@ async function gerarRelatorioChecklist() {
     }
 
     // estrutura: { equipe: { data: somaPercentual } }
-    let desempenhoEquipes = {}
+    const desempenhoEquipes = {}
 
     for (const [codigo, lancamentos] of Object.entries(itens)) {
         const comp = atividades[codigo]
@@ -562,7 +615,7 @@ async function gerarRelatorioChecklist() {
                 desempenhoEquipes[equipeKey][chaveData] += minutosExecutados
 
                 tbody.insertAdjacentHTML('beforeend', `
-                    <tr data-codigo="${codigo}">
+                    <tr data-data="${dataLancamento.getTime()}" data-codigo="${codigo}">
                         <td>${dataLancamento.toLocaleDateString('pt-BR')}</td>
                         <td>${descricao}</td>
                         <td style="white-space: nowrap;">
@@ -578,8 +631,8 @@ async function gerarRelatorioChecklist() {
                             ${minutosTotais > 480 ? `[ ${Math.ceil((minutosTotais / 60 / 8))} D ]` : ''}
                         </td>
                         <td>${dados.quantidade} / ${qtdeTotal}</td>
-                        <td>
-                            <div>${nomes.map(n => `<span>${n}</span>`).join(' / ')}</div>
+                        <td style="text-align: left;">
+                            ${nomes.map(n => `<span>• ${n}</span>`).join('<br>')}
                         </td>
                     </tr>
                 `)
@@ -618,7 +671,6 @@ async function gerarRelatorioChecklist() {
     // datasets
     const datasets = Object.entries(desempenhoEquipes).map(([equipe, registros]) => {
 
-        console.log(registros)
         const soma = Object.values(registros).reduce((acc, v) => acc + v, 0)
 
         const diasComRegistro = Object.values(registros).filter(v => v > 0).length || 1
@@ -683,7 +735,19 @@ async function gerarRelatorioChecklist() {
         return `hsl(${Math.floor(Math.random() * 360)},70%,50%)`
     }
 
+    ordenarLinhasPorData()
     removerOverlay()
+}
+
+function ordenarLinhasPorData() {
+    const tbody = document.querySelector('#relatorioChecklist')
+    if (!tbody) return
+
+    const linhas = [...tbody.querySelectorAll('tr')]
+
+    linhas.sort((a, b) => Number(b.dataset.data) - Number(a.dataset.data))
+
+    linhas.forEach(tr => tbody.appendChild(tr))
 }
 
 async function atualizarChecklist() {
@@ -846,8 +910,14 @@ function calcularTempos() {
 
         if (linha.style.display == 'none') continue
 
+        const avulso = linha.dataset.avulso == 'S'
+        const elemQtReal = linha.querySelector('[name="real"]')
+        const qReal = Number(elemQtReal.value)
         const qtde = Number(linha.querySelector('[name="quantidade"]').textContent)
         const qtdeExecutada = Number(linha.querySelector('[name="quantidadeExecutada"]').textContent)
+
+        // Alerta para real > orçado;
+        elemQtReal.classList = (qReal > qtde && !avulso) ? 'off' : 'qtd'
 
         const tdTotal = linha.querySelector('[name="totalLinha"]')
         const totalExecutado = linha.querySelector('[name="totalLinhaExecutado"]')
@@ -865,7 +935,7 @@ function calcularTempos() {
         const minutosUnit = h * 60 + m
 
         // total da linha
-        const minutosTotais = minutosUnit * qtde
+        const minutosTotais = minutosUnit * (qReal || qtde)
         minutosObra += minutosTotais
 
         const calculado = strHHMM(minutosTotais)
