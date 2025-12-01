@@ -1,9 +1,9 @@
 function apagarOrcamentoAluguel() {
 
     popup(`
-        <div style="display: flex; gap: 1vw; align-items: center; padding: 2vw; background-color: #d2d2d2;">
+        <div style="display: flex; gap: 0.5rem; align-items: center; padding: 1rem; background-color: #d2d2d2;">
             <label>Tem certeza que deseja apagar o Orçamento?</label>
-            ${botao('Confirmar', `confirmarExclusaoAluguel()`, 'green')}
+            <button onclick="confirmarExclusaoAluguel()">Confirmar</button>
         </div>
         `, 'Alerta')
 
@@ -221,11 +221,10 @@ async function enviarDadosAluguel() {
 
 function pesquisarProdutosAluguel(col, texto) {
 
-    if (!filtrosPagina[pagina]) {
-        filtrosPagina[pagina] = {}
-    }
+    const pagina = 'aluguel'
+    filtrosPagina[pagina] ??= {}
+    pesquisarGenerico(col, texto, filtrosPagina[pagina], `linhasProdAluguel`)
 
-    pesquisarGenerico(col, texto, filtrosPagina[pagina], `compos_${pagina}`)
 }
 
 async function recuperarComposicoesAluguel() {
@@ -445,19 +444,25 @@ async function total() {
     baseOrcamento(orcamentoBase)
 
     // Mensagem aleatório de boas vindas;
-    let aleatorio = Math.floor(Math.random() * metaforas.length)
+    const aleatorio = Math.floor(Math.random() * metaforas.length)
     const quieto = `
         <div class="quieto">
             <label class="novo_titulo">${metaforas[aleatorio]}</label>
         </div>
     `
-    let tabelas = document.getElementById('tabelas')
-    let divQuieto = document.querySelector('.quieto')
+    const tabelas = document.getElementById('tabelas')
+    const divQuieto = document.querySelector('.quieto')
+    const tab = document.getElementById('ALUGUEL')
+    const toolbarSuperior = document.getElementById('toolbarSuperior')
     if (divQuieto) divQuieto.remove()
 
     if (orcamentoBase.dados_composicoes && Object.keys(orcamentoBase.dados_composicoes).length > 0) {
         document.getElementById('toolbarSuperior').style.display = 'flex'
+        tab.style.display = ''
+        toolbarSuperior.style.display = 'flex'
     } else {
+        tab.style.display = 'none'
+        toolbarSuperior.style.display = 'none'
         tabelas.insertAdjacentHTML('afterbegin', quieto)
     }
 
