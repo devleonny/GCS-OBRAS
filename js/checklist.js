@@ -106,13 +106,11 @@ async function telaChecklist() {
     const tabelaCheklist = document.getElementById('tabelaCheklist')
     if (!tabelaCheklist) popup(acumulado, titulo, true)
 
-    // Reset 
+    // Reset;
     quantidadeGeral = 0
     finalizados = 0
     diasTrabalhados = []
     primeiroDia = null
-
-    console.log(orcamento)
 
     const mesclado = {
         ...orcamento?.dados_composicoes || {},
