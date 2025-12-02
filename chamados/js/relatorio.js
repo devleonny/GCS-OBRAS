@@ -262,7 +262,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
             <tr>
                 <td>${correcao.executor}</td>
                 <td>${st}</td>
-                <td style="width: 20vw; text-align: left;">${correcao.descricao}</td>
+                <td style="width: 200px; text-align: left;">${correcao.descricao}</td>
                 <td>
                     <div style="${vertical}; gap: 1px;">
                         ${registros}
@@ -300,7 +300,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
             <div class="blocoTabela" style="width: 100%;">
                 <div class="painelBotoes"></div>
                 <div class="recorteTabela">
-                    <table class="tabela" style="width: 100%;">
+                    <table class="tabela" style="width: max-content;">
                         <thead>${thead}</thead>
                         <tbody>${linhas}</tbody>
                     </table>
