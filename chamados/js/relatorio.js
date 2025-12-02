@@ -300,7 +300,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
             <div class="blocoTabela" style="width: 100%;">
                 <div class="painelBotoes"></div>
                 <div class="recorteTabela">
-                    <table class="tabela" style="width: max-content;">
+                    <table class="tabela" style="width: max-content; min-width: 100%;">
                         <thead>${thead}</thead>
                         <tbody>${linhas}</tbody>
                     </table>
