@@ -12,6 +12,11 @@ function connectWebSocket() {
     socket.onmessage = async (event) => {
         const data = JSON.parse(event.data);
 
+        if (data.tipo == 'dados_setores' && data.usuario == acesso.usuario) {
+            popup(mensagem('Seu acesso foi atualizado', 'imagens/concluido.png'), 'Configurações')
+            await telaPrincipal(true) // Reset na base de Ocorrências;
+        }
+
         if (data.base == 'dados_ocorrencias' && acesso.usuario) {          
             const ocorrencia = dados_ocorrencias?.[data.id] || {}
             const idEmpresa = (data.objeto && data.objeto.empresa) ? data.objeto.empresa : ocorrencia?.empresa || ''
@@ -24,14 +29,7 @@ function connectWebSocket() {
 
         }
 
-        if (data.tipo == 'setores' && data.id == acesso.usuario) {
-            popup(mensagem('Seu acesso foi atualizado', 'imagens/concluido.png'), 'Alerta')
-            await telaPrincipal(true) // Reset na base de Ocorrências;
-        }
-
-        if (data.tipo == 'usuarios_online') localStorage.setItem('usuariosOnline', JSON.stringify(data.usuarios))
-
-    };
+    }
 
     socket.onclose = () => {
         console.log(`🔴🔴🔴 WS ${new Date().toLocaleString('pt-BR')} 🔴🔴🔴`);

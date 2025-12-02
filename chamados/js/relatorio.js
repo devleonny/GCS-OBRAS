@@ -58,6 +58,8 @@ async function telaRelatorio() {
                     </div>
                 </div>
 
+                <span onclick="paraExcel()"><u>Baixar em Excel</u></span>
+
                 <img src="imagens/GrupoCostaSilva.png" style="width: 10rem;">
 
             </div>
@@ -405,4 +407,78 @@ function pesquisarDatas() {
             tr.style.display = 'none';
         }
     }
+}
+
+async function paraExcel() {
+    const tabela = document.querySelector('.tabela')
+    if (!tabela) return
+
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet('Ocorrências')
+    const trs = tabela.querySelectorAll('tr')
+
+    for (let rowIndex = 0; rowIndex < trs.length; rowIndex++) {
+        const tr = trs[rowIndex]
+        const tds = tr.querySelectorAll('td, th')
+        let row = []
+
+        for (let colIndex = 1; colIndex < tds.length; colIndex++) {
+            const td = tds[colIndex]
+
+            const select = td.querySelector('select')
+            const input = td.querySelector('input')
+
+            if (select) row.push(select.value)
+            else if (input) row.push(input.value)
+            else row.push(td.textContent.trim())
+        }
+
+        worksheet.addRow(row)
+    }
+
+    // ====== ESTILOS ======
+    worksheet.eachRow((row, rowNumber) => {
+        row.eachCell((cell, colNumber) => {
+            cell.alignment = { vertical: 'middle', horizontal: 'center' }
+
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            }
+
+            if (rowNumber === 1) {
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFD9D9D9' }
+                }
+
+                cell.font = { bold: true }
+            }
+        })
+    })
+
+    // LARGURAS AUTOMÁTICAS
+    worksheet.columns.forEach(col => {
+        let max = 10
+        col.eachCell(cell => {
+            const len = String(cell.value || '').length
+            if (len > max) max = len
+        })
+        col.width = max + 2
+    })
+
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    })
+
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `relatorio-${Date.now()}.xlsx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
 }

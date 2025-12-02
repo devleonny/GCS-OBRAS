@@ -17,6 +17,7 @@ hr {
 }
 
 img {
+    width: 2rem;
     cursor: pointer;
 }
 
@@ -470,6 +471,7 @@ button {
 }
 
 .btnLateral {
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: start;
