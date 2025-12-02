@@ -2227,7 +2227,7 @@ async function painelClientes(idOrcamento) {
 
     const dados_orcam = orcamentoBase?.dados_orcam || {}
     const idCliente = dados_orcam?.omie_cliente
-    const overlayBloqueio = orcamentoBase.hierarquia ? true : false
+    const bloq = orcamentoBase.hierarquia ? true : false
 
     const cliente = await recuperarDado('dados_clientes', idCliente)
     const parcelas = ["--", "15 dias", "20 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
@@ -2242,41 +2242,77 @@ async function painelClientes(idOrcamento) {
                     : `excluirLevantamentoStatus('${idAnexo}')`))
         .join('')
 
-    const modelo = (valor1, elemento) => `
-            <div class="linha-clientes">
-                ${valor1 ? `<label><b>${valor1}</b></label>` : ''}
-                <div style="${horizontal}; gap: 2px;">${elemento}</div>
+    const botoes = [
+        { texto: 'Salvar Dados', img: 'concluido', funcao: `salvarDadosCliente()` },
+        { texto: 'Atualizar Clientes', img: 'atualizar3', funcao: `atualizarBaseClientes()` },
+    ]
+
+    if (idOrcamento) botoes.push({ texto: 'Limpar Campos', img: 'limpar', funcao: 'executarLimparCampos()' })
+
+    const linhas = [
+        {
+            texto: 'Chamado', elemento: `
+                <div style="${horizontal}; gap: 3px;">
+                    <input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" value="${dados_orcam?.contrato || ''}">
+                    <input ${styChek} id="chamado_off" onchange="chamadoSequencial(this)" type="checkbox" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
+                    <label>Sem Chamado</label>
+                </div>
+            ` },
+        {
+            elemento: `
+            <div style="${horizontal}; gap: 3px;">
+                <span>Classificar orçamento na aba de <b>CHAMADO</b></span>
+                <input id="filtroChamado" ${orcamentoBase?.chamado ? 'checked' : ''} ${styChek} type="checkbox">
             </div>
-        `
-
-    const acumulado = `
-        ${idOrcamento ? `<span id="edicaoClienteOrcamento" style="display: none;">${idOrcamento}</span>` : ''}
-
-        <div class="painel-clientes">
-
-            ${modelo('Chamado', `
-                <input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" value="${dados_orcam?.contrato || ''}">
-                <input ${styChek} id="chamado_off" onchange="chamadoSequencial(this)" type="checkbox" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
-                <label>Sem Chamado</label>`)}
-
-            ${modelo(null, `<span>Classificar orçamento na aba de <b>CHAMADO</b></span><input id="filtroChamado" ${orcamentoBase?.chamado ? 'checked' : ''} ${styChek} type="checkbox">`)}
-
-            <div style="${vertical}; gap: 5px; width: 100%; position: relative;">
-                ${modelo('Cliente', `<span ${dados_orcam.omie_cliente ? `id="${dados_orcam.omie_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'buscarDadosCliente()')">${cliente?.nome || 'Selecione'}</span>`)}
-                ${modelo('CNPJ/CPF', `<span id="cnpj">${cliente?.cnpj || ''}</span>`)}
-                ${modelo('Endereço', `<span id="bairro">${cliente?.bairro || ''}</span>`)}
-                ${modelo('CEP', `<span id="cep">${cliente?.cep || ''}</span>`)}
-                ${modelo('Cidade', `<span id="cidade">${cliente?.cidade || ''}</span>`)}
-                ${modelo('Estado', `<span id="estado">${cliente?.estado || ''}</span>`)}
-                ${overlayBloqueio ? `<div class="overlay-clientes"></div>` : ''}
+            `
+        },
+        {
+            texto: 'Cliente', elemento: `
+            <div style="${horizontal}; gap: 3px">
+                ${bloq ? `<img src="imagens/proibido.png">` : ''}
+                <span ${dados_orcam.omie_cliente
+                    ? `id="${dados_orcam.omie_cliente}"`
+                    : ''} 
+                    class="opcoes" 
+                    name="cliente" 
+                    ${bloq ? '' : `onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'buscarDadosCliente()')"`}>
+                        ${cliente?.nome || 'Selecione'}
+                    </span>
             </div>
-
-            ${modelo('Tipo de Frete', `<select id="tipo_de_frete">
-                    ${['--', 'CIF', 'FOB'].map(op => `<option ${dados_orcam?.tipo_de_frete == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
-                    
-            ${modelo('Transportadora', `<input type="text" id="transportadora" value="${dados_orcam?.transportadora || '--'}">`)}
-            
-            <div class="linha-clientes" style="${vertical}; gap: 5px;">
+            ` },
+        {
+            texto: 'CNPJ/CPF', elemento: `
+            <span id="cnpj">${cliente?.cnpj || ''}</span>
+            ` },
+        {
+            texto: 'Endereço', elemento: `
+            <span id="bairro">${cliente?.bairro || ''}</span>
+            ` },
+        {
+            texto: 'CEP', elemento: `
+            <span id="cep">${cliente?.cep || ''}</span>
+            ` },
+        {
+            texto: 'Cidade', elemento: `
+            <span id="cidade">${cliente?.cidade || ''}</span>
+            ` },
+        {
+            texto: 'Estado', elemento: `
+            <span id="estado">${cliente?.estado || ''}</span>
+            ` },
+        {
+            texto: 'Tipo de Frete', elemento: `
+            <select id="tipo_de_frete">
+                ${['--', 'CIF', 'FOB'].map(op => `<option ${dados_orcam?.tipo_de_frete == op ? 'selected' : ''}>${op}</option>`).join('')}
+            </select>
+            ` },
+        {
+            texto: 'Transportadora', elemento: `
+            <input type="text" id="transportadora" value="${dados_orcam?.transportadora || '--'}">
+            ` },
+        {
+            elemento: `
+            <div class="linha-clientes" style="${vertical}; gap: 5px; width: 100%;">
                 <span><b>Escopo / Considerações</b></span>
                 <div class="escopo" 
                     id="consideracoes" 
@@ -2294,37 +2330,40 @@ async function painelClientes(idOrcamento) {
                 </div>
     
                 ${levantamentos}
-            </div>           
+            </div>`},
+        {
+            texto: 'Pagamento', elemento: `
+            <select id="condicoes">
+                ${parcelas.map(op => `<option ${dados_orcam?.condicoes == op ? 'selected' : ''}>${op}</option>`).join('')}
+            </select>
+            ` },
+        {
+            texto: 'Garantia', elemento: `
+            <input id="garantia" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">
+            ` },
+        {
+            texto: 'Analista', elemento: `
+            <input id="analista" oninput="salvarContatos(this)" value="${dados_orcam?.analista || acesso.nome_completo}">
+            ` },
+        {
+            texto: 'E-mail', elemento: `
+            <input id="email_analista" oninput="salvarContatos(this)" value="${dados_orcam?.email_analista || acesso.email}">
+            ` },
+        {
+            texto: 'Telefone', elemento: `
+            <input id="telefone_analista" oninput="salvarContatos(this)" value="${dados_orcam?.telefone_analista || acesso.telefone}">
+            ` },
+        {
+            texto: 'Empresa', elemento: `
+                <select id="emissor">
+                    ${['AC SOLUÇÕES', 'IAC', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}
+                </select>
+            ` }
+    ]
 
-            ${modelo('Pagamento', `<select id="condicoes">
-                ${parcelas.map(op => `<option ${dados_orcam?.condicoes == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
+    const form = new formulario({ linhas, botoes, titulo: 'Dados do Cliente' })
+    form.abrirFormulario()
 
-            ${modelo('Garantia', `<input id="garantia" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">`)}
-
-            <label class="info">Dados do Analista</label>
-
-            ${modelo('Analista', `<span id="analista" oninput="salvarContatos(this)" contentEditable="true">${dados_orcam?.analista || acesso.nome_completo}</span>`)}
-            ${modelo('E-mail', `<span id="email_analista" oninput="salvarContatos(this)" contentEditable="true">${dados_orcam?.email_analista || acesso.email}</span>`)}
-            ${modelo('Telefone', `<span id="telefone_analista" oninput="salvarContatos(this)" contentEditable="true">${dados_orcam?.telefone_analista || acesso.telefone}</span>`)}
-
-            <label class="info">Quem emite essa nota?</label>
-
-            ${modelo('Empresa', `<select id="emissor">
-                ${['AC SOLUÇÕES', 'IAC', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
-        </div>
-                
-        <div class="rodape-painel-clientes">
-            ${botaoRodape('salvarDadosCliente()', 'Salvar Dados', 'concluido')}
-            ${botaoRodape('atualizarBaseClientes()', 'Atualizar Clientes', 'atualizar3')}
-            ${idOrcamento ? '' : botaoRodape('executarLimparCampos()', 'Limpar Campos', 'limpar')}
-        </div>
-    `
-
-    removerOverlay()
-    const painel = document.querySelector('.cadastro-cliente')
-    if (painel) return painel.innerHTML = acumulado
-
-    popup(`<div class="cadastro-cliente">${acumulado}</div>`, 'Dados do Cliente', true)
 }
 
 function salvarContatos(span) {
@@ -2390,9 +2429,9 @@ async function salvarDadosCliente() {
         transportadora: el('transportadora').value,
         tipo_de_frete: el('tipo_de_frete').value,
         emissor: el('emissor').value,
-        email_analista: el('email_analista').textContent,
-        analista: el('analista').textContent,
-        telefone_analista: el('telefone_analista').textContent
+        email_analista: el('email_analista').value,
+        analista: el('analista').value,
+        telefone_analista: el('telefone_analista').value
     }
 
     const filtroChamado = el('filtroChamado')

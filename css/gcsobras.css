@@ -598,7 +598,7 @@ span[name="titulo"] {
     align-items: start;
     justify-content: start;
     gap: 5px;
-    border-top: 1px solid #666666;
+    border: 1px solid #666666;
     width: 100%;
     min-height: 2vh;
     border-bottom-left-radius: 3px;
@@ -637,7 +637,7 @@ span[name="titulo"] {
 }
 
 .topo-tabela {
-    border-bottom: 1px solid #666666;
+    border: 1px solid #666666;
     min-height: 2vh;
     display: flex;
     align-items: start;
@@ -654,7 +654,7 @@ span[name="titulo"] {
 }
 
 .painelBotoes {
-    border-bottom: 1px solid #666666;
+    border: 1px solid #666666;
     min-height: 2vh;
     display: flex;
     align-items: start;

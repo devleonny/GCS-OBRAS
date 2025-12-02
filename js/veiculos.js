@@ -311,7 +311,7 @@ async function painelAtalhos(idCusto) {
     const custo = await recuperarDado('custo_veiculos', idCusto)
 
     const acumulado = `
-    <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 2vw;">
+    <div style="${vertical}; gap: 5px; background-color: #d2d2d2; padding: 1rem;">
         ${modeloBotoes('duplicar', 'Duplicar Pagamento', `painelValores('${idCusto}', true)`)}
         ${modeloBotoes('editar', 'Editar Pagamento', `painelValores('${idCusto}')`)}
         ${(acesso.permissao == 'adm' || acesso.usuario == custo.usuario) ? modeloBotoes('excluir', 'Excluir Pagamento', `painelExcluir('${idCusto}')`) : ''}
@@ -340,13 +340,10 @@ function pesquisarBotoes(input, modalidade) {
 
 function painelExcluir(idCusto) {
 
-    let acumulado = `
-    <div style="display: flex; align-items: center; gap: 2vw; justify-content: center; padding: 2vw; background-color: #d2d2d2;">
-
+    const acumulado = `
+    <div style="${horizontal}; gap: 1rem; padding: 1rem; background-color: #d2d2d2;">
         <label>Deseja excluir este lançamento?</label>
-        
-        ${botao('Confirmar', `excluirCusto('${idCusto}')`, `green`)}
-    
+        <button onclick="excluirCusto('${idCusto}')">Confirmar</button>
     </div>
     `
 
@@ -371,7 +368,7 @@ async function painelValores(idCusto, duplicar) {
     const motorista = await recuperarDado('dados_clientes', custo?.motorista)
 
     const tabela = `
-        <div class="borda-tabela">
+        <div style="${vertical}">
             <div class="topo-tabela">
                 <button onclick="linDist()">Incluir</button>
             </div>
@@ -380,7 +377,6 @@ async function painelValores(idCusto, duplicar) {
                     <thead>
                         <th>Departamento</th>
                         <th>KM</th>
-                        <th>%</th>
                         <th></th>
                     </thead>
                     <tbody id="distribuicao"></tbody>
