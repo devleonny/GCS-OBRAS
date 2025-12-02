@@ -46,21 +46,22 @@ async function telaRelatorio() {
         <div class="pagina-relatorio">
             <div class="toolbar-relatorio">
 
-                <div style="${horizontal}; gap: 0.5rem;">
-                    ${modelo('Total de Chamados', 'totalChamados', '#222')}
-                    ${modelo('Finalizados', 'finalizados', '#1d7e45')}
-                    ${modelo('Em Aberto', 'emAberto', '#b12425')}
+                <img src="imagens/GrupoCostaSilva.png" style="width: 10rem;">
 
-                    <div class="pesquisa-chamados">
-                        <span>Filtrar por data de abertura</span>
+                <div class="toolbar-itens">
+                    <div style="${vertical}; gap: 0.5rem;">
+                        <span>Data de abertura</span>
                         <input id="de" type="date" onchange="pesquisarDatas()">
                         <input id="ate" type="date" onchange="pesquisarDatas()">
+                        <span onclick="paraExcel()"><u>Baixar em Excel</u></span>
+                    </div>
+
+                    <div style="${horizontal}; gap: 0.5rem;">
+                        ${modelo('Total', 'totalChamados', '#222')}
+                        ${modelo('Finalizados', 'finalizados', '#1d7e45')}
+                        ${modelo('Em Aberto', 'emAberto', '#b12425')}
                     </div>
                 </div>
-
-                <span onclick="paraExcel()"><u>Baixar em Excel</u></span>
-
-                <img src="imagens/GrupoCostaSilva.png" style="width: 10rem;">
 
             </div>
             ${tabela}

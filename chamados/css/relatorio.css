@@ -18,15 +18,6 @@
     width: 70%;
 }
 
-.toolbar-relatorio {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.5rem;
-}
-
 .balao-totais {
     width: 80%;
     display: flex;
@@ -97,6 +88,24 @@
     background-color: #ffeacf;
 }
 
+.toolbar-relatorio {
+    width: 100%;
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+}
+
+.toolbar-itens {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 @media screen and (orientation: landscape),
 screen and (min-aspect-ratio: 13/9) {
 
@@ -104,7 +113,8 @@ screen and (min-aspect-ratio: 13/9) {
         width: max-content;
     }
 
-    .toolbar-relatorio {
+    .toolbar-relatorio,
+    .toolbar-itens {
         flex-direction: row;
     }
 
