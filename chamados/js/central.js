@@ -379,9 +379,9 @@ async function telaPrincipal(reset) {
         'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
         'Abertos': { id: 'abertos', img: 'configuracoes', funcao: 'telaOcorrencias(true)', proibidos: [] },
         'Solucionados': { id: 'solucionados', img: 'configuracoes', funcao: 'telaOcorrencias(false)', proibidos: [] },
+        'Relatório': { img: 'kanban', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
         'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'técnico', 'analista', 'visitante'] },
         'Cadastros': { img: 'ajustar', funcao: 'telaCadastros()', proibidos: ['user', 'técnico', 'visitante'] },
-        'Relatório': { img: 'kanban', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] }
     };
 
     if (!isAndroid) {

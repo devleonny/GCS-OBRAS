@@ -43,21 +43,22 @@ async function telaRelatorio() {
     `
 
     const acumulado = `
-        <div style="${vertical}">
+        <div class="pagina-relatorio">
             <div class="toolbar-relatorio">
 
-                <img src="imagens/BG.png" style="width: 15rem;">
+                <div style="${horizontal}; gap: 0.5rem;">
+                    ${modelo('Total de Chamados', 'totalChamados', '#222')}
+                    ${modelo('Finalizados', 'finalizados', '#1d7e45')}
+                    ${modelo('Em Aberto', 'emAberto', '#b12425')}
 
-                ${modelo('Total de Chamados', 'totalChamados', '#222')}
-                ${modelo('Finalizados', 'finalizados', '#1d7e45')}
-                ${modelo('Em Aberto', 'emAberto', '#a28409')}
-                ${modelo('Em Atraso', 'emAtraso', '#b12425')}
-
-                <div class="pesquisa-chamados">
-                    <span style="color: white;">Filtrar por data de abertura</span>
-                    <input id="de" type="date" onchange="pesquisarDatas()">
-                    <input id="ate" type="date" onchange="pesquisarDatas()">
+                    <div class="pesquisa-chamados">
+                        <span>Filtrar por data de abertura</span>
+                        <input id="de" type="date" onchange="pesquisarDatas()">
+                        <input id="ate" type="date" onchange="pesquisarDatas()">
+                    </div>
                 </div>
+
+                <img src="imagens/GrupoCostaSilva.png" style="width: 10rem;">
 
             </div>
             ${tabela}
@@ -85,37 +86,47 @@ async function atualizarRelatorio() {
 
 function dtAuxOcorrencia(dt) {
 
-    if (!dt || '') return '--'
+    if (!dt || '') return '-'
 
     const [ano, mes, dia] = dt.split('-')
 
     return `${dia}/${mes}/${ano}`
 }
 
-
 async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
 
     const status = correcoes[ocorrencia?.tipoCorrecao]?.nome || 'Não analisada'
+    const estilo = status == 'Solucionada'
+        ? 'fin'
+        : status == 'Não analisada'
+            ? 'na' 
+            : 'and'
 
     const calculos = verificarDtSolucao()
 
     const tds = `
         <td>
             <div style="${horizontal}">
-                <img src="imagens/pesquisar.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirCorrecaoRelatorio('${idOcorrencia}')">
+                <img src="imagens/pesquisar.png" style="width: 2rem; cursor: pointer;" onclick="abrirCorrecaoRelatorio('${idOcorrencia}')">
             </div>
         </td>
-        <td>${empresas[ocorrencia?.empresa]?.nome || '--'}</td>
+        <td>${empresas[ocorrencia?.empresa]?.nome || '-'}</td>
         <td>${idOcorrencia}</td>
-        <td>${status}</td>
+        <td>
+            <span class="${estilo}">${status}</span>
+        </td>
         <td>${ocorrencia?.dataRegistro || ''}</td>
         <td>${dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao)}</td>
         <td>${calculos.dtSolucaoStr}</td>
-        <td>
-            <div style="${horizontal}; gap: 5px;">
-                <img src="imagens/${calculos.img}.png" style="width: 1.5rem;">
-                <span>${calculos.dias}</span>
-            </div>
+        <td> 
+            ${calculos.dias
+            ? `
+                <div style="${horizontal}; justify-content: start; gap: 5px;">
+                    <img src="imagens/${calculos.img}.png" style="width: 1.5rem;">
+                    <span>${calculos.dias || 'Sem Previsão'}</span>
+                </div>`
+            : 'Sem Previsão'
+        }
         </td>
         <td>${ocorrencia?.solicitante || ''}</td>
         <td>${ocorrencia?.executor || ''}</td>
@@ -132,14 +143,14 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
 
     function verificarDtSolucao() {
         if (!ocorrencia.dataLimiteExecucao) {
-            return { dtSolucaoStr: '--', dias: -999, img: 'pendente' }
+            return { dtSolucaoStr: '-', dias: false, img: 'pendente' }
         }
 
         const [ano, mes, dia] = ocorrencia.dataLimiteExecucao.split('-').map(Number);
         const dataLimite = new Date(ano, mes - 1, dia);
         dataLimite.setHours(0, 0, 0, 0);
 
-        let dtSolucaoStr = '--';
+        let dtSolucaoStr = '-';
         let dias = 0;
 
         // pegar a última correção válida
@@ -164,7 +175,7 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
 
         dias = Math.round((dataLimite - dtReferencia) / (1000 * 60 * 60 * 24));
 
-        if (isNaN(dias)) dias = -999
+        if (isNaN(dias)) dias = false
 
         const img = dias < 0 ? 'offline' : dtSolucaoStr !== '' ? 'online' : 'pendente'
 
@@ -176,8 +187,7 @@ function calcularResumo() {
     const totais = {
         totalChamados: 0,
         finalizados: 0,
-        emAberto: 0,
-        emAtraso: 0
+        emAberto: 0
     }
 
     const body = document.getElementById('body')
@@ -187,15 +197,12 @@ function calcularResumo() {
         if (tr.style.display == 'none') continue
 
         const tds = tr.querySelectorAll('td')
-        const dias = Number(tds[7].textContent)
         const solucionado = tds[3].textContent == 'Solucionada'
 
         totais.totalChamados++
 
         if (solucionado) {
             totais.finalizados++
-        } else if (dias < 0) {
-            totais.emAtraso++
         } else {
             totais.emAberto++
         }
