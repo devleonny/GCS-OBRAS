@@ -473,7 +473,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
                 <span 
                 class="opcoes" 
                 name="cc" 
-                onclick="cxOpcoes('cc', 'departamentos_AC', ['descricao'], 'salvarCC()')">
+                onclick="cxOpcoes('cc', 'departamentos_AC', ['cliente/nome', 'cliente/cidade', 'cliente/cnpj', 'descricao'], 'salvarCC()')">
                     ${cc?.descricao || 'Selecione'}
                 </span>
             </div>

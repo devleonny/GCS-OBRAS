@@ -12,9 +12,12 @@ const fluxograma = [
     'ORC ENVIADO',
     'ORC APROVADO',
     'REQUISIÇÃO',
+    'PEND INFRA',
+    'PEND ASSISTÊNCIA TÉCNICA',
     'NFE VENDA',
     'ENVIADO',
     'ENTREGUE',
+    'AGENDAMENTO',
     'EM ANDAMENTO',
     'CONCLUÍDO',
     'FATURADO',
@@ -1284,13 +1287,11 @@ function divPorcentagem(porcentagem) {
     const valor = Math.max(0, Math.min(100, Number(porcentagem) || 0))
 
     return `
-        <div style="${horizontal}; width: 95%;">
-            <div style="position: relative; border: 1px solid #666666; width: 100%; height: 16px; background: #eee; border-radius: 8px; overflow: hidden;">
-                <div style="width: ${valor}%; height: 100%; background: ${valor >= 70 ? "#4caf50" : valor >= 40 ? "#ffc107" : "#f44336"};"></div>
-                <label style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7rem; color: #000;">
-                    ${valor}%
-                </label>
-            </div>
+        <div style="z-index: 0; position: relative; border: 1px solid #666666; width: 100%; height: 16px; background: #eee; border-radius: 8px; overflow: hidden;">
+            <div style="width: ${valor}%; height: 100%; background: ${valor >= 70 ? "#4caf50" : valor >= 40 ? "#ffc107" : "#f44336"};"></div>
+            <label style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7rem; color: #000;">
+                ${valor}%
+            </label>
         </div>
     `
 }
