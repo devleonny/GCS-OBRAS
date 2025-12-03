@@ -43,20 +43,24 @@ async function telaRelatorio() {
     `
 
     const acumulado = `
-        <div style="${vertical}">
+        <div class="pagina-relatorio">
             <div class="toolbar-relatorio">
 
-                <img src="imagens/BG.png" style="width: 15rem;">
+                <img src="imagens/GrupoCostaSilva.png" style="width: 10rem;">
 
-                ${modelo('Total de Chamados', 'totalChamados', '#222')}
-                ${modelo('Finalizados', 'finalizados', '#1d7e45')}
-                ${modelo('Em Aberto', 'emAberto', '#a28409')}
-                ${modelo('Em Atraso', 'emAtraso', '#b12425')}
+                <div class="toolbar-itens">
+                    <div style="${vertical}; gap: 0.5rem;">
+                        <span>Data de abertura</span>
+                        <input id="de" type="date" onchange="pesquisarDatas()">
+                        <input id="ate" type="date" onchange="pesquisarDatas()">
+                        <span onclick="paraExcel()"><u>Baixar em Excel</u></span>
+                    </div>
 
-                <div class="pesquisa-chamados">
-                    <span style="color: white;">Filtrar por data de abertura</span>
-                    <input id="de" type="date" onchange="pesquisarDatas()">
-                    <input id="ate" type="date" onchange="pesquisarDatas()">
+                    <div style="${horizontal}; gap: 0.5rem;">
+                        ${modelo('Total', 'totalChamados', '#222')}
+                        ${modelo('Finalizados', 'finalizados', '#1d7e45')}
+                        ${modelo('Em Aberto', 'emAberto', '#b12425')}
+                    </div>
                 </div>
 
             </div>
@@ -85,37 +89,47 @@ async function atualizarRelatorio() {
 
 function dtAuxOcorrencia(dt) {
 
-    if (!dt || '') return '--'
+    if (!dt || '') return '-'
 
     const [ano, mes, dia] = dt.split('-')
 
     return `${dia}/${mes}/${ano}`
 }
 
-
 async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
 
     const status = correcoes[ocorrencia?.tipoCorrecao]?.nome || 'Não analisada'
+    const estilo = status == 'Solucionada'
+        ? 'fin'
+        : status == 'Não analisada'
+            ? 'na' 
+            : 'and'
 
     const calculos = verificarDtSolucao()
 
     const tds = `
         <td>
             <div style="${horizontal}">
-                <img src="imagens/pesquisar.png" style="width: 1.5rem; cursor: pointer;" onclick="abrirCorrecaoRelatorio('${idOcorrencia}')">
+                <img src="imagens/pesquisar.png" style="width: 2rem; cursor: pointer;" onclick="abrirCorrecaoRelatorio('${idOcorrencia}')">
             </div>
         </td>
-        <td>${empresas[ocorrencia?.empresa]?.nome || '--'}</td>
+        <td>${empresas[ocorrencia?.empresa]?.nome || '-'}</td>
         <td>${idOcorrencia}</td>
-        <td>${status}</td>
+        <td>
+            <span class="${estilo}">${status}</span>
+        </td>
         <td>${ocorrencia?.dataRegistro || ''}</td>
         <td>${dtAuxOcorrencia(ocorrencia?.dataLimiteExecucao)}</td>
         <td>${calculos.dtSolucaoStr}</td>
-        <td>
-            <div style="${horizontal}; gap: 5px;">
-                <img src="imagens/${calculos.img}.png" style="width: 1.5rem;">
-                <span>${calculos.dias}</span>
-            </div>
+        <td> 
+            ${calculos.dias
+            ? `
+                <div style="${horizontal}; justify-content: start; gap: 5px;">
+                    <img src="imagens/${calculos.img}.png" style="width: 1.5rem;">
+                    <span>${calculos.dias || 'Sem Previsão'}</span>
+                </div>`
+            : 'Sem Previsão'
+        }
         </td>
         <td>${ocorrencia?.solicitante || ''}</td>
         <td>${ocorrencia?.executor || ''}</td>
@@ -132,14 +146,14 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
 
     function verificarDtSolucao() {
         if (!ocorrencia.dataLimiteExecucao) {
-            return { dtSolucaoStr: '--', dias: -999, img: 'pendente' }
+            return { dtSolucaoStr: '-', dias: false, img: 'pendente' }
         }
 
         const [ano, mes, dia] = ocorrencia.dataLimiteExecucao.split('-').map(Number);
         const dataLimite = new Date(ano, mes - 1, dia);
         dataLimite.setHours(0, 0, 0, 0);
 
-        let dtSolucaoStr = '--';
+        let dtSolucaoStr = '-';
         let dias = 0;
 
         // pegar a última correção válida
@@ -164,7 +178,7 @@ async function criarLinhaRelatorio(idOcorrencia, ocorrencia) {
 
         dias = Math.round((dataLimite - dtReferencia) / (1000 * 60 * 60 * 24));
 
-        if (isNaN(dias)) dias = -999
+        if (isNaN(dias)) dias = false
 
         const img = dias < 0 ? 'offline' : dtSolucaoStr !== '' ? 'online' : 'pendente'
 
@@ -176,8 +190,7 @@ function calcularResumo() {
     const totais = {
         totalChamados: 0,
         finalizados: 0,
-        emAberto: 0,
-        emAtraso: 0
+        emAberto: 0
     }
 
     const body = document.getElementById('body')
@@ -187,15 +200,12 @@ function calcularResumo() {
         if (tr.style.display == 'none') continue
 
         const tds = tr.querySelectorAll('td')
-        const dias = Number(tds[7].textContent)
         const solucionado = tds[3].textContent == 'Solucionada'
 
         totais.totalChamados++
 
         if (solucionado) {
             totais.finalizados++
-        } else if (dias < 0) {
-            totais.emAtraso++
         } else {
             totais.emAberto++
         }
@@ -252,7 +262,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
             <tr>
                 <td>${correcao.executor}</td>
                 <td>${st}</td>
-                <td style="width: 20vw; text-align: left;">${correcao.descricao}</td>
+                <td style="width: 200px; text-align: left;">${correcao.descricao}</td>
                 <td>
                     <div style="${vertical}; gap: 1px;">
                         ${registros}
@@ -290,7 +300,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
             <div class="blocoTabela" style="width: 100%;">
                 <div class="painelBotoes"></div>
                 <div class="recorteTabela">
-                    <table class="tabela" style="width: 100%;">
+                    <table class="tabela" style="width: max-content; min-width: 100%;">
                         <thead>${thead}</thead>
                         <tbody>${linhas}</tbody>
                     </table>
@@ -398,4 +408,78 @@ function pesquisarDatas() {
             tr.style.display = 'none';
         }
     }
+}
+
+async function paraExcel() {
+    const tabela = document.querySelector('.tabela')
+    if (!tabela) return
+
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet('Ocorrências')
+    const trs = tabela.querySelectorAll('tr')
+
+    for (let rowIndex = 0; rowIndex < trs.length; rowIndex++) {
+        const tr = trs[rowIndex]
+        const tds = tr.querySelectorAll('td, th')
+        let row = []
+
+        for (let colIndex = 1; colIndex < tds.length; colIndex++) {
+            const td = tds[colIndex]
+
+            const select = td.querySelector('select')
+            const input = td.querySelector('input')
+
+            if (select) row.push(select.value)
+            else if (input) row.push(input.value)
+            else row.push(td.textContent.trim())
+        }
+
+        worksheet.addRow(row)
+    }
+
+    // ====== ESTILOS ======
+    worksheet.eachRow((row, rowNumber) => {
+        row.eachCell((cell, colNumber) => {
+            cell.alignment = { vertical: 'middle', horizontal: 'center' }
+
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            }
+
+            if (rowNumber === 1) {
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFD9D9D9' }
+                }
+
+                cell.font = { bold: true }
+            }
+        })
+    })
+
+    // LARGURAS AUTOMÁTICAS
+    worksheet.columns.forEach(col => {
+        let max = 10
+        col.eachCell(cell => {
+            const len = String(cell.value || '').length
+            if (len > max) max = len
+        })
+        col.width = max + 2
+    })
+
+    const buffer = await workbook.xlsx.writeBuffer()
+    const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    })
+
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `relatorio-${Date.now()}.xlsx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
 }

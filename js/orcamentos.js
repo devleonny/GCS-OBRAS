@@ -652,40 +652,6 @@ async function duplicar(orcam_) {
 
 }
 
-async function excelOrcamentos() {
-
-    overlayAguarde()
-
-    try {
-
-        const response = await fetch(`${api}/orcamentosRelatorio`, {
-            method: "GET",
-            headers: { "Content-Type": "application/json" }
-        });
-
-        if (!response.ok) {
-            throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
-        }
-
-        const blob = await response.blob();
-
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Relatorio de Orcamentos.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-
-    } catch (err) {
-        popup(mensagem(err), 'Erro ao baixar Excel', true)
-    }
-
-    removerOverlay()
-
-}
-
 async function telaPDA() {
 
     mostrarMenus(false)

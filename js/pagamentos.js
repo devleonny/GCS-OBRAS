@@ -446,6 +446,14 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     const codDep = pagamento?.param?.[0]?.distribuicao?.[0]?.cCodDep
     const cc = departamentos[codDep] || {}
 
+    const bEspeciais = acesso.permissao == 'adm'
+        ? `
+        ${btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id_pagamento}')`)}
+        ${btnDetalhes('remover', 'Excluir pagamento', `confirmarExclusaoPagamento('${id_pagamento}')`)}
+        ${btnDetalhes('concluido', 'Lançar pagamento', `relancarPagamento('${id_pagamento}')`)}
+        ${btnDetalhes('anexo', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id_pagamento}')`)}`
+        : ''
+
     const acumulado = `
         ${justificativaHTML(id_pagamento)}
 
@@ -453,10 +461,9 @@ async function abrirDetalhesPagamentos(id_pagamento) {
             <div style="${vertical}; gap: 1px; width: 100%;">
                 ${cc?.id_orcamento ? btnDetalhes('pasta', 'Consultar Orçamento', `abrirAtalhos('${cc?.id_orcamento}')`) : ''}
                 ${btnDetalhes('reembolso', 'Duplicar Pagamento', `duplicarPagamento('${id_pagamento}')`)}
-                ${(acesso.permissao == 'adm' || pagamento.usuario == acesso.criado) ? btnDetalhes('editar', 'Editar Pagamento', `editarPagamento('${id_pagamento}')`) : ''}
-                ${acesso.permissao == 'adm' ? btnDetalhes('remover', 'Excluir pagamento', `confirmarExclusaoPagamento('${id_pagamento}')`) : ''}
-                ${acesso.permissao == 'adm' ? btnDetalhes('concluido', 'Lançar pagamento', `relancarPagamento('${id_pagamento}')`) : ''}
-                ${acesso.permissao == 'adm' ? btnDetalhes('anexo', 'Reimportar Anexos no Omie', `reprocessarAnexos('${id_pagamento}')`) : ''}
+
+                ${bEspeciais}
+
             </div>
 
             <hr style="width: 100%;">

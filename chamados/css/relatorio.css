@@ -11,20 +11,12 @@
 }
 
 .bloco-localizacao label {
+    padding: 0.5rem;
     width: 30%;
 }
 
 .bloco-localizacao div {
     width: 70%;
-}
-
-.toolbar-relatorio {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: start;
-    flex-direction: column;
-    gap: 0.5rem;
 }
 
 .balao-totais {
@@ -54,6 +46,67 @@
     padding: 0.5rem;
 }
 
+.pagina-relatorio {
+    background-color: #ebebeb;
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+}
+
+.logo {
+    width: 12rem;
+    background-color: #151749;
+    border-radius: 3px;
+}
+
+.na {
+    display: inline-block;
+    padding-left: 1vw;
+    padding-right: 1vw;
+    border: solid 1px red;
+    border-radius: 5px;
+    background-color: #f7c5c5;
+}
+
+.fin {
+    display: inline-block;
+    padding-left: 1vw;
+    padding-right: 1vw;
+    border: solid 1px green;
+    border-radius: 5px;
+    background-color: #ade9ad;
+}
+
+.and {
+    display: inline-block;
+    padding-left: 1vw;
+    padding-right: 1vw;
+    border: solid 1px #ff9100;
+    border-radius: 5px;
+    background-color: #ffeacf;
+}
+
+.toolbar-relatorio {
+    width: 100%;
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+}
+
+.toolbar-itens {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 @media screen and (orientation: landscape),
 screen and (min-aspect-ratio: 13/9) {
 
@@ -61,7 +114,8 @@ screen and (min-aspect-ratio: 13/9) {
         width: max-content;
     }
 
-    .toolbar-relatorio {
+    .toolbar-relatorio,
+    .toolbar-itens {
         flex-direction: row;
     }
 

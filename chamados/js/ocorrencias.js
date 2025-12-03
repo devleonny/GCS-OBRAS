@@ -313,16 +313,19 @@ async function criarLinhaOcorrencia(idOcorrencia, ocorrencia) {
 
     const qtdeCorrecoes = Object.keys(ocorrencia?.correcoes || {}).length
 
-    const btnExclusao = (acesso.permissao == 'adm' || ocorrencia.usuario == acesso.usuario) ? botaoImg('fechar', `confirmarExclusao('${idOcorrencia}')`) : ''
-
+    const btnExclusao = (acesso.permissao == 'adm' || ocorrencia.usuario == acesso.usuario)
+        ? botaoImg('fechar', `confirmarExclusao('${idOcorrencia}')`)
+        : ''
+    const btnEditar = (acesso.permissao == 'adm' || ocorrencia.usuario == acesso.usuario)
+        ? botaoImg('lapis', `formularioOcorrencia('${idOcorrencia}')`)
+        : ''
     const status = correcoes[ocorrencia?.tipoCorrecao]?.nome || 'Não analisada'
-
     const corAssinatura = ocorrencia.assinatura ? '#008000' : '#d30000'
 
     const partes = `
         <div class="linha-parte-1">
             <div style="${horizontal}; justify-content: start; gap: 1px; padding: 5px;">
-                ${botaoImg('lapis', `formularioOcorrencia('${idOcorrencia}')`)}
+                ${btnEditar}
                 ${btnExclusao}
                 <div class="contador" onclick="abrirCorrecoes('${idOcorrencia}')">
                     <img src="imagens/configuracoes.png" style="width: 2.5rem;">
@@ -400,24 +403,19 @@ async function carregarLinhaCorrecao(idCorrecao, correcao, idOcorrencia) {
         .join('')
 
     const edicao = (correcao.executor == acesso.usuario || acesso.permissao == 'adm')
-        ? `
-            <div class="botaoImg">
-                <img src="imagens/lapis.png" onclick="formularioCorrecao('${idOcorrencia}', '${idCorrecao}')">
-            </div>
-        `
+        ? `<button onclick="formularioCorrecao('${idOcorrencia}', '${idCorrecao}')">Editar</button>`
         : ''
 
     const divLinha = `
     <div class="detalhes-correcoes-1">
 
-        <div style="${horizontal}; gap: 10px;">
+        <div style="${vertical}">
             ${edicao}
-            <div style="${vertical}">
-                ${modelo('Data e Hora', `<span>${correcao?.data || 'S/D'}</span>`)}
-                ${modelo('Executor', `<span>${correcao.executor}</span>`)}
-                ${modelo('Correção', `<span>${correcoes?.[correcao.tipoCorrecao]?.nome || '...'}</span>`)}
-                ${modelo('Descrição', `<div style="text-align: justify;">${correcao.descricao}</div>`)}
-            </div>
+            <br>
+            ${modelo('Data e Hora', `<span>${correcao?.data || 'S/D'}</span>`)}
+            ${modelo('Executor', `<span>${correcao.executor}</span>`)}
+            ${modelo('Correção', `<span>${correcoes?.[correcao.tipoCorrecao]?.nome || '...'}</span>`)}
+            ${modelo('Descrição', `<div style="text-align: justify;">${correcao.descricao}</div>`)}
         </div>
 
         <div style="${vertical}">

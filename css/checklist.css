@@ -1,6 +1,7 @@
 .off {
+    text-align: center;
     font-family: Arial, Helvetica, sans-serif;
-    width: max-content;
+    width: 7em;
     border-radius: 3px;
     padding: 5px;
     border: solid 1px #ff0000;
@@ -8,8 +9,9 @@
 }
 
 .on {
+    text-align: center;
     font-family: Arial, Helvetica, sans-serif;
-    width: max-content;
+    width: 7em;
     border-radius: 3px;
     padding: 5px;
     border: solid 1px #008000;
@@ -18,11 +20,20 @@
 
 .zero {
     font-family: Arial, Helvetica, sans-serif;
-    width: max-content;
+    width: 7em;
     border-radius: 3px;
     padding: 5px;
     border: solid 1px #0069ff;
     background-color: #0069ff5c;
+}
+
+.qtd {
+    text-align: center;
+    width: 7em;
+    border-radius: 3px;
+    border: solid 1px #797979;
+    padding: 5px;
+    background-color: #e7e7e7;
 }
 
 .painel-registro-checklist {
@@ -113,4 +124,10 @@
     gap: 3px;
     background-color: #d2d2d2;
     padding: 1rem;
+}
+
+.graficos {
+    padding: 1rem;
+    background-color: white;
+    border-radius: 3px;
 }

@@ -81,7 +81,7 @@ const dtFormatada = (data) => {
     return `${dia}/${mes}/${ano}`
 }
 
-const modeloTabela = ({ colunas, base, funcao }) => {
+const modeloTabela = ({ colunas, base, funcao, btnExtras = '', body = 'body' }) => {
 
     const ths = colunas
         .map(col => `<th>${col}</th>`).join('')
@@ -102,13 +102,14 @@ const modeloTabela = ({ colunas, base, funcao }) => {
                     <input oninput="pesquisar(this, 'body')" placeholder="Pesquisar" style="width: 100%;">
                     <img src="imagens/pesquisar2.png">
                 </div>
+                ${btnExtras}
             </div>
             ${btnAtualizar}
         </div>
         <div class="recorteTabela">
             <table class="tabela" ${colunas.length == 2 ? 'style="width: 100%;"' : ''}>
                 ${thead}
-                <tbody id="body"></tbody>
+                <tbody id="${body}"></tbody>
             </table>
         </div>
         <div class="rodapeTabela"></div>
@@ -355,6 +356,8 @@ async function telaPrincipal(reset) {
 
     toolbar.style.display = 'flex';
 
+    const blq = ['cliente', 'técnico']
+
     const acumulado = `
         <div class="menu-container">
             <div class="side-menu" id="sideMenu">
@@ -379,12 +382,12 @@ async function telaPrincipal(reset) {
         'Atualizar': { img: 'atualizar', funcao: 'atualizarOcorrencias()', proibidos: [] },
         'Abertos': { id: 'abertos', img: 'configuracoes', funcao: 'telaOcorrencias(true)', proibidos: [] },
         'Solucionados': { id: 'solucionados', img: 'configuracoes', funcao: 'telaOcorrencias(false)', proibidos: [] },
+        'Relatório': { img: 'projeto', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] },
         'Usuários': { img: 'perfil', funcao: 'telaUsuarios()', proibidos: ['user', 'técnico', 'analista', 'visitante'] },
         'Cadastros': { img: 'ajustar', funcao: 'telaCadastros()', proibidos: ['user', 'técnico', 'visitante'] },
-        'Relatório': { img: 'kanban', funcao: 'telaRelatorio()', proibidos: ['user', 'técnico', 'visitante'] }
     };
 
-    if (!isAndroid) {
+    if (!blq.includes(acesso.permissao)) {
         menus.GCS = { img: 'LG', funcao: 'irGCS()', proibidos: ['técnico', 'visitante'] }
     }
 
@@ -419,19 +422,33 @@ async function telaUsuarios() {
     empresas = await recuperarDados('empresas')
     const colunas = ['Nome', 'Empresa', 'Setor', 'Permissão', '']
     const base = 'dados_setores'
-    const dados = await recuperarDados(base)
+    const dados_setores = await recuperarDados(base)
     const telaInterna = document.querySelector('.telaInterna')
-    telaInterna.innerHTML = modeloTabela({ colunas, base })
+    const body = document.getElementById('b-users')
+    if (!body) telaInterna.innerHTML = modeloTabela({ colunas, base, body: 'b-users' })
 
-    console.log(dados);
-
-
-    for (let [id, objeto] of Object.entries(dados)) {
-        criarLinha(objeto, id, base)
+    for (const [user, dados] of Object.entries(dados_setores)) {
+        criarLinhaUsuario(user, dados)
     }
 
     removerOverlay()
 
+}
+
+function criarLinhaUsuario(user, dados) {
+
+    const tds = `
+        <td>${dados.nome_completo || '...'}</td>
+        <td>${empresas?.[dados?.empresa]?.nome || '...'}</td>
+        <td>${dados.setor || '...'}</td>
+        <td>${dados.permissao || '...'}</td>
+        <td><img onclick="gerenciarUsuario('${user}')" src="imagens/pesquisar.png"></td>
+    `
+
+    const trExistente = document.getElementById(user)
+    if (trExistente) return trExistente.innerHTML = tds
+
+    document.getElementById('b-users').insertAdjacentHTML('beforeend', `<tr id="${user}">${tds}</tr>`)
 }
 
 async function criarLinha(dados, id, nomeBase) {
@@ -446,13 +463,10 @@ async function criarLinha(dados, id, nomeBase) {
     }
 
     let tds = ''
-    if (nomeBase == 'dados_setores') {
-        dados.empresa = empresas?.[dados?.empresa]?.nome || '...'
-    }
 
     const esquema = esquemaLinhas(nomeBase, id)
 
-    for (const linha of esquema.colunas) tds += modelo(dados?.[linha] || '--')
+    for (const linha of esquema.colunas) tds += modelo(dados?.[linha] || '...')
 
     const linha = `
         ${tds}
@@ -523,7 +537,7 @@ function popupNotificacao(msg) {
 function deslogar() {
 
     const acumulado = `
-        <div style="${horizontal}; gap: 10px; background-color: #d2d2d2; padding: 2vw;">
+        <div style="${horizontal}; gap: 10px; background-color: #d2d2d2; padding: 1rem;">
             <span>Tem certeza?</span>
             <button onclick="confirmarDeslogar()">Sim</button>
         </div>
@@ -552,10 +566,10 @@ async function gerenciarUsuario(id) {
         .map(([id, empresa]) => `<option value="${id}" ${usuario?.empresa == id ? 'selected' : ''}>${empresa.nome}</option>`)
         .join('')
 
-    const permissoes = ['', 'novo', 'desativado', 'técnico', 'visitante', 'analista', 'gerente']
+    const permissoes = ['novo', 'desativado', 'técnico', 'cliente']
         .map(op => `<option ${usuario?.permissao == op ? 'selected' : ''}>${op}</option>`).join('')
 
-    const setores = ['', 'CHAMADOS', 'MATRIZ BA', 'INFRA', 'CHAMADO/INFRA', 'LOGÍSTICA']
+    const setores = ['', 'CHAMADOS', 'MATRIZ BA', 'INFRA', 'LOGÍSTICA', 'FINANCEIRO']
         .map(op => `<option ${usuario?.setor == op ? 'selected' : ''}>${op}</option>`).join('')
 
     const linhas = [
@@ -752,23 +766,25 @@ async function deletar(caminho, idEvento) {
 
 async function configuracoes(usuario, campo, valor) {
 
-    let dadosUsuario = await recuperarDado('dados_setores', usuario)
+    const resposta = comunicacaoServ({ usuario, campo, valor })
+
+    if (resposta.mensagem) return popup(mensagem(resposta.mensagem), 'Alerta', true)
+
+    const dadosUsuario = await recuperarDado('dados_setores', usuario)
     dadosUsuario[campo] = valor
 
-    await inserirDados({ [usuario]: dadosUsuario }, 'dados_setores')
-
-    if (campo == 'empresa') {
-        dadosUsuario[campo] = empresas?.[valor]?.nome || ''
-    }
-
     if (campo == 'permissao' && valor == 'desativado') {
+        removerPopup()
+        await deletarDB('dados_setores', usuario)
         const tr = document.getElementById(usuario)
         if (tr) tr.remove()
-
     } else {
-        criarLinha(dadosUsuario, usuario, 'dados_setores')
+        await inserirDados({ [usuario]: dadosUsuario }, 'dados_setores')
+        await telaUsuarios()
     }
+}
 
+async function comunicacaoServ({ usuario, campo, valor }) {
     return new Promise((resolve, reject) => {
         fetch(`${api}/configuracoes`, {
             method: "POST",
@@ -777,23 +793,22 @@ async function configuracoes(usuario, campo, valor) {
         })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`);
+                    throw new Error(`Erro na requisição: ${response.status} ${response.statusText}`)
                 }
-                return response.json();
+                return response.json()
             })
             .then(data => {
-                resolve(data);
+                resolve(data)
             })
             .catch(err => {
-                console.mensagem(err)
-                reject()
-            });
+                reject({ mensagem: err })
+            })
     })
 }
 
-function pesquisar(input, idTbody) {
+function pesquisar(input) {
     const termo = input.value.trim().toLowerCase();
-    const tbody = document.getElementById(idTbody);
+    const tbody = document.querySelector('.tabela tbody');
     const trs = tbody.querySelectorAll('tr');
 
     trs.forEach(tr => {

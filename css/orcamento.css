@@ -323,13 +323,3 @@
     justify-content: center;
     gap: 1rem;
 }
-
-.graficos {
-    background-color: white;
-    border-radius: 3px;
-}
-
-.graficos canvas {
-    width: 100% !important;
-    height: 400px !important;
-}
