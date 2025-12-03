@@ -16,15 +16,15 @@
 }
 
 .total-tabela {
-    border-top-right-radius: 2px;
+    border-radius: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 5px;
-    margin-left: 2vw;
     background-color: #097fe6;
     color: white;
     padding: 5px;
+    margin: 0.5rem;
 }
 
 .total-tabela label {
@@ -47,11 +47,20 @@
     gap: 10px;
 }
 
-.tabela-auxiliar {
-    left: 0;
-    margin: 3px;
-    box-shadow: 0px 0px 3px;
+.realizado {
+    text-align: center;
+    width: 7em;
     border-radius: 3px;
+    border: solid 1px #797979;
+    padding: 5px;
+    background-color: #e7e7e7;
+}
+
+.datas-cab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
 }
 
 .diVeiculos label {
@@ -67,7 +76,6 @@
 .fundoPainelLateral {
     transition: height 0.3s ease;
     overflow: hidden;
-    height: 0;
     width: 100%;
     background-color: #b1b1b1;
     max-height: 70vh;

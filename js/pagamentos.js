@@ -1,15 +1,13 @@
 let idP = null
 let filtrosAtivosPagamentos = {}
-let opcoesStatus = [
+let departamentos = {}
+const opcoesStatus = [
     '',
     'Aguardando aprovação da Diretoria',
     'Aguardando aprovação da Gerência',
     'Pagamento Excluído',
     'Processando...'
 ]
-let dadosClientes = {}
-let dadosCC = {}
-let dadosSetores = {}
 
 function imagemEspecifica(justificativa) {
 
@@ -45,51 +43,21 @@ async function recuperarPagamentos() {
     overlayAguarde()
 
     const tabelas = [
+        'departamentos_AC', // Referência;
         'dados_categorias',
         'lista_pagamentos',
         'dados_setores',
         'dados_clientes',
-        'departamentos_fixos',
         'dados_orcamentos'
     ]
 
     for (const tabela of tabelas) await sincronizarDados(tabela)
-
-    await criarBaseCC()
+    await auxDepartamentos() // Resgatar dados do orçamento no objeto
 
     await telaPagamentos()
 
     removerOverlay()
 
-}
-
-async function criarBaseCC() {
-
-    let dados_CC = {}
-    dados_orcamentos = await recuperarDados('dados_orcamentos', true)
-    const dados_clientes = await recuperarDados('dados_clientes')
-    const departamentosFixos = await recuperarDados('departamentos_fixos')
-
-    for (const [idDepartamento, dep] of Object.entries(departamentosFixos)) {
-        dados_CC[idDepartamento] = dep
-    }
-
-    for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos)) {
-
-        const omie_cliente = orcamento?.dados_orcam?.omie_cliente
-        const cliente = dados_clientes?.[omie_cliente] || {}
-
-        dados_CC[idOrcamento] = {
-            analista: orcamento?.dados_orcam?.analista || '',
-            contrato: orcamento?.dados_orcam?.contrato || '',
-            nome: cliente?.nome || '',
-            cidade: cliente?.cidade || '',
-            cnpj: cliente?.cnpj || '',
-            valor: orcamento.total_geral ? dinheiro(orcamento.total_geral) : ''
-        }
-    }
-
-    await inserirDados(dados_CC, 'dados_CC', true)
 }
 
 async function filtrarPagamentos() {
@@ -124,12 +92,13 @@ async function telaPagamentos() {
 
     overlayAguarde()
 
-    dadosClientes = await recuperarDados('dados_clientes')
-    dadosCC = await recuperarDados('dados_CC')
-    dadosSetores = await recuperarDados('dados_setores')
+    dados_clientes = await recuperarDados('dados_clientes')
+    dados_orcamentos = await recuperarDados('dados_orcamentos')
+    departamentos = await recuperarDados('departamentos_AC')
+    dados_setores = await recuperarDados('dados_setores')
 
     const lista_pagamentos = await filtrarPagamentos() // Filtrar de acordo com o usuário atual;
-    let colunas = ['Data de Previsão', 'Centro de Custo', 'Valor', 'Status', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
+    let colunas = ['Data de Previsão', 'Departamentos', 'APP', 'Valor', 'Status', 'Solicitante', 'Setor', 'Recebedor', 'Detalhes']
     let cabecalho1 = ''
     let cabecalho2 = ''
     colunas.forEach((coluna, i) => {
@@ -146,9 +115,9 @@ async function telaPagamentos() {
     const acumulado = `
         <div class="divPagamentos">
 
-            <div class="painelEsquerdo"></div>
+            <div class="painelEsquerdo" style="width: 20vw;"></div>
 
-            <div style="${vertical}">
+            <div style="${vertical}; width: 70vw;">
                 <div class="painelBotoes"></div>
                 <div class="div-tabela">
                     <table id="pagamentos" class="tabela">
@@ -182,7 +151,7 @@ async function telaPagamentos() {
             contagens.TODOS.valor += pagamento.param[0].valor_documento
 
             criarLinhaPagamento(pagamento)
-        };
+        }
 
         let titulos = ''
         for ([nomeStatus, item] of Object.entries(contagens)) {
@@ -191,7 +160,7 @@ async function telaPagamentos() {
 
             titulos += `
 
-            <div class="balao-pagamentos" onclick="pesquisarGenerico(3, '${nomeStatus == 'TODOS' ? '' : nomeStatus}', filtrosAtivosPagamentos, 'body')">
+            <div class="balao-pagamentos" onclick="pesquisarGenerico(4, '${nomeStatus == 'TODOS' ? '' : nomeStatus}', filtrosAtivosPagamentos, 'body')">
                 
                 <div class="dir">
                     <div style="${vertical};">
@@ -219,18 +188,20 @@ async function telaPagamentos() {
 
 function criarLinhaPagamento(pagamento) {
 
-    const cliente = dadosClientes?.[pagamento.param[0].codigo_cliente_fornecedor] || {}
+    const cliente = dados_clientes?.[pagamento.param[0].codigo_cliente_fornecedor] || {}
     const recebedor = cliente?.nome || ''
-    const usuario = dadosSetores?.[pagamento.criado] || {}
+    const usuario = dados_setores?.[pagamento.criado] || {}
     const setorCriador = usuario?.setor || ''
-    const cc = dadosCC?.[pagamento.id_orcamento] || {}
-
-    const nomeDepartamento = (!cc?.nome && !cc?.contrato) ? 'Sem Departamento' : `${cc?.nome || ''} ${cc?.contrato || ''}`
+    const codDep = pagamento?.param[0]?.distribuicao?.[0]?.cCodDep
+    const nomeDepartamento = departamentos?.[codDep]?.descricao || '-'
 
     const tds = `
         <td>${pagamento.param[0].data_vencimento}</td>
-        <td>${nomeDepartamento}</td>
-        <td style="white-space: nowrap; text-align: left;"><b>${pagamento?.app || '2AC'}</b> ${dinheiro(pagamento.param[0].valor_documento)}</td>
+        <td>
+            ${nomeDepartamento}
+        </td>
+        <td>${pagamento?.app || 'AC'}</td>
+        <td style="white-space: nowrap; text-align: left;">${dinheiro(pagamento.param[0].valor_documento)}</td>
         <td>
             <div style="${horizontal}; justify-content: start; gap: 5px;">
                 <img src="${iconePagamento(pagamento.status)}" style="width: 1.5rem;">
@@ -302,10 +273,10 @@ function justificativaHTML(idPagamento) {
     return `
         <div class="balao" style="display: flex; align-items: center; justify-content: center; width: 100%;">
 
-            <img src="gifs/alerta.gif" style="width: 3vw;">
+            <img src="gifs/alerta.gif" style="width: 2rem;">
 
             <div style="display: flex; align-items: start; justify-content: center; flex-direction: column; width: 100%; gap: 3px;">
-                <label style="font-size: 1.2vw;">Aprovação do pagamento</label>
+                <label style="font-size: 1.0rem;">Aprovação do pagamento</label>
 
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 5px; width: 70%;">
                     <textarea id="justificativa" style="width: 100%; font-size: 0.8vw;" placeholder="Descreva o motivo da aprovação/reprovação" oninput="auxiliar(this)"></textarea>
@@ -330,7 +301,6 @@ async function abrirDetalhesPagamentos(id_pagamento) {
     const pagamento = await recuperarDado('lista_pagamentos', id_pagamento)
     const cliente_omie = pagamento.param[0].codigo_cliente_fornecedor
     const cliente = await recuperarDado('dados_clientes', cliente_omie) || await recuperarDado('dados_clientes_IAC', cliente_omie)
-    const orcamento = await recuperarDado('dados_orcamentos', pagamento.id_orcamento) || false
     const anexos = Object.entries(pagamento?.anexos || {})
         .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `excluirAnexoPagamento('${id_pagamento}', '${idAnexo}')`))
         .join('')
@@ -341,7 +311,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
         </div>
     `
 
-    let historico = Object.entries(pagamento?.historico || {})
+    const historico = Object.entries(pagamento?.historico || {})
         .map(([, justificativa]) => `
             <div class="vitrificado" style="border: 1px solid ${imagemEspecifica(justificativa).cor}">
                 <div style="display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 3px;">
@@ -417,7 +387,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
                     const anexos = his?.anexos || {}
 
-                    for (const [idAnexo, anexo] of Object.entries(anexos)) {
+                    for (const [, anexo] of Object.entries(anexos)) {
                         docsExistentes += criarAnexoVisual(anexo.nome, anexo.link);
                     }
                 }
@@ -473,7 +443,8 @@ async function abrirDetalhesPagamentos(id_pagamento) {
         `
     }
 
-    const cc = dadosCC?.[pagamento.id_orcamento] || {}
+    const codDep = pagamento?.param?.[0]?.distribuicao?.[0]?.cCodDep
+    const cc = departamentos[codDep] || {}
 
     const bEspeciais = acesso.permissao == 'adm'
         ? `
@@ -488,7 +459,7 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 
         <div class="detalhesPagamento">
             <div style="${vertical}; gap: 1px; width: 100%;">
-                ${orcamento ? btnDetalhes('pasta', 'Consultar Orçamento', `abrirAtalhos('${pagamento.id_orcamento}')`) : ''}
+                ${cc?.id_orcamento ? btnDetalhes('pasta', 'Consultar Orçamento', `abrirAtalhos('${cc?.id_orcamento}')`) : ''}
                 ${btnDetalhes('reembolso', 'Duplicar Pagamento', `duplicarPagamento('${id_pagamento}')`)}
 
                 ${bEspeciais}
@@ -498,12 +469,12 @@ async function abrirDetalhesPagamentos(id_pagamento) {
             <hr style="width: 100%;">
 
             <div style="${vertical}; width: 100%;">
-                <span><b>Departamento/Loja/Chamado ou Centro de Custo</b></span>
+                <span><b>Departamento/Centro de Custo</b></span>
                 <span 
                 class="opcoes" 
                 name="cc" 
-                onclick="cxOpcoes('cc', 'dados_CC', ['nome', 'contrato', 'analista', 'cidade', 'cnpj', 'valor'], 'salvarCC()')">
-                    ${cc?.nome || 'Selecione'}
+                onclick="cxOpcoes('cc', 'departamentos_AC', ['descricao'], 'salvarCC()')">
+                    ${cc?.descricao || 'Selecione'}
                 </span>
             </div>
 
@@ -574,13 +545,19 @@ async function abrirDetalhesPagamentos(id_pagamento) {
 async function salvarCC() {
 
     const nameCC = document.querySelector('[name="cc"]')
+    const pagamento = await recuperarDado('lista_pagamentos', idP)
 
-    let pagamento = await recuperarDado('lista_pagamentos', idP)
-    pagamento.id_orcamento = nameCC.id
+    pagamento.param[0].distribuicao = [{
+        cCodDep: Number(nameCC.id),
+        nPerDep: 100
+    }]
 
     await inserirDados({ [idP]: pagamento }, 'lista_pagamentos')
+    enviar(`lista_pagamentos/${idP}`, pagamento)
 
-    enviar(`lista_pagamentos/${idP}/id_orcamento`, nameCC.id)
+    const resposta = await lancarPagamento({ pagamento, call: 'AlterarContaPagar', dataFixa: true })
+
+    console.log(resposta)
 
 }
 
@@ -799,7 +776,6 @@ async function criarPagamento() {
         </div>`
 
     const acumulado = `
-
         <div class="formulario-pagamento">
 
             <div style="${horizontal}: gap: 1vw;">
@@ -810,7 +786,7 @@ async function criarPagamento() {
             <hr style="width: 100%;">
 
             ${modeloCampos('cc', 'Centro de Custo', `
-                    <span class="opcoes" name="cc" onclick="cxOpcoes('cc', 'dados_CC', ['nome', 'contrato', 'analista', 'cidade', 'cnpj', 'valor'], 'calculadoraPagamento()')">Selecionar</span>
+                    <span class="opcoes" name="cc" onclick="cxOpcoes('cc', 'departamentos_AC', ['cliente/nome', 'descricao', 'cliente/cidade', 'cliente/cnpj'], 'calculadoraPagamento()')">Selecionar</span>
                 `)}
 
             ${modeloCampos('recebedor', 'Recebedor', `
@@ -871,7 +847,7 @@ async function criarPagamento() {
             <button id="liberarBotao" onclick="salvarPagamento()">Salvar</button>
                 
         </div>
-    `;
+    `
 
     popup(acumulado, 'Solicitação de Pagamento')
 
@@ -1216,7 +1192,6 @@ async function calculadoraPagamento(pagamentoEmEdicao) {
         ultimoPagamento = {
             ...ultimoPagamento,
             app,
-            id_orcamento: cc.id,
             departamento: cc.id,
             data_registro: obterDatas('completa'),
             criado: responsavelPagamento,
@@ -1231,10 +1206,14 @@ async function calculadoraPagamento(pagamentoEmEdicao) {
                     observacao: descricaoFinal,
                     codigo_lancamento_integracao: '',
                     data_vencimento: dataFinal,
+                    distribuicao: [
+                        {
+                            cCodDep: Number(cc.id),
+                            nPerDep: 100
+                        }
+                    ],
                     data_previsao: dataFinal,
                     categorias: auxCategorias.categorias,
-                    id_conta_corrente: '6054234828', // Itaú AC > Padrão;
-                    distribuicao: []
                 }
             ]
 
@@ -1313,7 +1292,7 @@ async function recuperarUltimoPagamento() {
     let dados_CC = await recuperarDados('dados_CC') || {}
 
     const cc = document.querySelector('[name="cc"]')
-    cc.id = ultimoPagamento?.id_orcamento || ''
+    cc.id = ultimoPagamento?.departamento || ''
     cc.textContent = dados_CC?.[cc.id]?.nome || 'Selecionar'
 
     const recebedor = document.querySelector('[name="recebedor"]')

@@ -50,7 +50,7 @@ const avisoHTML = (termo) => `
     </div>
     `
 const mensagem = (mensagem, img) => `
-    <div style="background-color: #d2d2d2; display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center;">
+    <div style="background-color: #d2d2d2; gap: 10px; padding: 1rem; ${horizontal};">
         <img src="${img ? img : `gifs/alerta.gif`}" style="width: 3rem;">
         <label>${mensagem}</label>
     </div>
@@ -210,8 +210,8 @@ const esquemaBotoes = {
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Atualizar', funcao: 'atualizarDadosVeiculos', img: 'atualizar3' },
         { nome: 'Adicionar Combustível', funcao: 'painelValores', img: 'combustivel' },
-        { nome: 'Novo Motorista', funcao: 'novoMotorista', img: 'motorista' },
-        { nome: 'Novo Veículo', funcao: 'novoVeiculo', img: 'veiculo' },
+        { nome: 'Motoristas', funcao: 'auxMotoristas', img: 'motorista' },
+        { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' },
     ],
     pagamentos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -276,7 +276,7 @@ async function despoluicaoGCS() {
     const bases = [
         'tags',
         'tags_orcamentos',
-        'departamentos_fixos',
+        'departamentos_AC',
         'dados_orcamentos',
         'custo_veiculos',
         'motoristas',
@@ -294,8 +294,6 @@ async function despoluicaoGCS() {
         await sincronizarDados(base, true, true) // Nome base, overlay off e resetar bases;
         logs.insertAdjacentHTML('beforeend', `<label>Sincronizando: ${base}</label>`)
     }
-
-    await criarBaseCC()
 
     localStorage.setItem('atualizado', true)
     telaInicial()
@@ -401,7 +399,7 @@ async function identificacaoUser() {
     }
 
     const permitidosAprovacoes = ['adm', 'diretoria']
-    const permitidosProdutos = ['adm', 'log', 'diretoria']
+    const permitidosProdutos = ['LOGÍSTICA', 'SUPORTE', 'FINANCEIRO']
     const toolbarTop = document.querySelector('.toolbar-top')
 
     if (!paginasBloqueadas.includes(document.title) && acesso.usuario) {
@@ -412,7 +410,7 @@ async function identificacaoUser() {
 
                 ${modelo('projeto', 'verAprovacoes()', 'contadorPendencias')}
                 ${permitidosAprovacoes.includes(acesso.permissao) ? modelo('construcao', 'configs()', '') : ''}
-                ${permitidosProdutos.includes(acesso.permissao) ? modelo('preco', 'precosDesatualizados()', 'contadorProdutos') : ''}
+                ${permitidosProdutos.includes(acesso.setor) ? modelo('preco', 'precosDesatualizados()', 'contadorProdutos') : ''}
 
                 <img title="Abrir mais 1 aba" src="imagens/aba.png" onclick="maisAba()">
 
@@ -2229,7 +2227,7 @@ async function painelClientes(idOrcamento) {
 
     const dados_orcam = orcamentoBase?.dados_orcam || {}
     const idCliente = dados_orcam?.omie_cliente
-    const overlayBloqueio = orcamentoBase.hierarquia ? true : false
+    const bloq = orcamentoBase.hierarquia ? true : false
 
     const cliente = await recuperarDado('dados_clientes', idCliente)
     const parcelas = ["--", "15 dias", "20 dias", "30 dias", "35 dias", "45 dias", "60 dias", "75 dias", "90 dias", "120 dias", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x"]
@@ -2244,41 +2242,77 @@ async function painelClientes(idOrcamento) {
                     : `excluirLevantamentoStatus('${idAnexo}')`))
         .join('')
 
-    const modelo = (valor1, elemento) => `
-            <div class="linha-clientes">
-                ${valor1 ? `<label><b>${valor1}</b></label>` : ''}
-                <div style="${horizontal}; gap: 2px;">${elemento}</div>
+    const botoes = [
+        { texto: 'Salvar Dados', img: 'concluido', funcao: `salvarDadosCliente()` },
+        { texto: 'Atualizar Clientes', img: 'atualizar3', funcao: `atualizarBaseClientes()` },
+    ]
+
+    if (idOrcamento) botoes.push({ texto: 'Limpar Campos', img: 'limpar', funcao: 'executarLimparCampos()' })
+
+    const linhas = [
+        {
+            texto: 'Chamado', elemento: `
+                <div style="${horizontal}; gap: 3px;">
+                    <input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" value="${dados_orcam?.contrato || ''}">
+                    <input ${styChek} id="chamado_off" onchange="chamadoSequencial(this)" type="checkbox" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
+                    <label>Sem Chamado</label>
+                </div>
+            ` },
+        {
+            elemento: `
+            <div style="${horizontal}; gap: 3px;">
+                <span>Classificar orçamento na aba de <b>CHAMADO</b></span>
+                <input id="filtroChamado" ${orcamentoBase?.chamado ? 'checked' : ''} ${styChek} type="checkbox">
             </div>
-        `
-
-    const acumulado = `
-        ${idOrcamento ? `<span id="edicaoClienteOrcamento" style="display: none;">${idOrcamento}</span>` : ''}
-
-        <div class="painel-clientes">
-
-            ${modelo('Chamado', `
-                <input id="contrato" style="display: ${dados_orcam?.contrato == 'sequencial' ? 'none' : ''};" placeholder="nº do Chamado" value="${dados_orcam?.contrato || ''}">
-                <input ${styChek} id="chamado_off" onchange="chamadoSequencial(this)" type="checkbox" ${dados_orcam?.contrato == 'sequencial' ? 'checked' : ''}>
-                <label>Sem Chamado</label>`)}
-
-            ${modelo(null, `<span>Classificar orçamento na aba de <b>CHAMADO</b></span><input id="filtroChamado" ${orcamentoBase?.chamado ? 'checked' : ''} ${styChek} type="checkbox">`)}
-
-            <div style="${vertical}; gap: 5px; width: 100%; position: relative;">
-                ${modelo('Cliente', `<span ${dados_orcam.omie_cliente ? `id="${dados_orcam.omie_cliente}"` : ''} class="opcoes" name="cliente" onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'buscarDadosCliente()')">${cliente?.nome || 'Selecione'}</span>`)}
-                ${modelo('CNPJ/CPF', `<span id="cnpj">${cliente?.cnpj || ''}</span>`)}
-                ${modelo('Endereço', `<span id="bairro">${cliente?.bairro || ''}</span>`)}
-                ${modelo('CEP', `<span id="cep">${cliente?.cep || ''}</span>`)}
-                ${modelo('Cidade', `<span id="cidade">${cliente?.cidade || ''}</span>`)}
-                ${modelo('Estado', `<span id="estado">${cliente?.estado || ''}</span>`)}
-                ${overlayBloqueio ? `<div class="overlay-clientes"></div>` : ''}
+            `
+        },
+        {
+            texto: 'Cliente', elemento: `
+            <div style="${horizontal}; gap: 3px">
+                ${bloq ? `<img src="imagens/proibido.png">` : ''}
+                <span ${dados_orcam.omie_cliente
+                    ? `id="${dados_orcam.omie_cliente}"`
+                    : ''} 
+                    class="opcoes" 
+                    name="cliente" 
+                    ${bloq ? '' : `onclick="cxOpcoes('cliente', 'dados_clientes', ['nome', 'bairro', 'cnpj'], 'buscarDadosCliente()')"`}>
+                        ${cliente?.nome || 'Selecione'}
+                    </span>
             </div>
-
-            ${modelo('Tipo de Frete', `<select id="tipo_de_frete">
-                    ${['--', 'CIF', 'FOB'].map(op => `<option ${dados_orcam?.tipo_de_frete == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
-                    
-            ${modelo('Transportadora', `<input type="text" id="transportadora" value="${dados_orcam?.transportadora || '--'}">`)}
-            
-            <div class="linha-clientes" style="${vertical}; gap: 5px;">
+            ` },
+        {
+            texto: 'CNPJ/CPF', elemento: `
+            <span id="cnpj">${cliente?.cnpj || ''}</span>
+            ` },
+        {
+            texto: 'Endereço', elemento: `
+            <span id="bairro">${cliente?.bairro || ''}</span>
+            ` },
+        {
+            texto: 'CEP', elemento: `
+            <span id="cep">${cliente?.cep || ''}</span>
+            ` },
+        {
+            texto: 'Cidade', elemento: `
+            <span id="cidade">${cliente?.cidade || ''}</span>
+            ` },
+        {
+            texto: 'Estado', elemento: `
+            <span id="estado">${cliente?.estado || ''}</span>
+            ` },
+        {
+            texto: 'Tipo de Frete', elemento: `
+            <select id="tipo_de_frete">
+                ${['--', 'CIF', 'FOB'].map(op => `<option ${dados_orcam?.tipo_de_frete == op ? 'selected' : ''}>${op}</option>`).join('')}
+            </select>
+            ` },
+        {
+            texto: 'Transportadora', elemento: `
+            <input type="text" id="transportadora" value="${dados_orcam?.transportadora || '--'}">
+            ` },
+        {
+            elemento: `
+            <div class="linha-clientes" style="${vertical}; gap: 5px; width: 100%;">
                 <span><b>Escopo / Considerações</b></span>
                 <div class="escopo" 
                     id="consideracoes" 
@@ -2296,37 +2330,40 @@ async function painelClientes(idOrcamento) {
                 </div>
     
                 ${levantamentos}
-            </div>           
+            </div>`},
+        {
+            texto: 'Pagamento', elemento: `
+            <select id="condicoes">
+                ${parcelas.map(op => `<option ${dados_orcam?.condicoes == op ? 'selected' : ''}>${op}</option>`).join('')}
+            </select>
+            ` },
+        {
+            texto: 'Garantia', elemento: `
+            <input id="garantia" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">
+            ` },
+        {
+            texto: 'Analista', elemento: `
+            <input id="analista" oninput="salvarContatos(this)" value="${dados_orcam?.analista || acesso.nome_completo}">
+            ` },
+        {
+            texto: 'E-mail', elemento: `
+            <input id="email_analista" oninput="salvarContatos(this)" value="${dados_orcam?.email_analista || acesso.email}">
+            ` },
+        {
+            texto: 'Telefone', elemento: `
+            <input id="telefone_analista" oninput="salvarContatos(this)" value="${dados_orcam?.telefone_analista || acesso.telefone}">
+            ` },
+        {
+            texto: 'Empresa', elemento: `
+                <select id="emissor">
+                    ${['AC SOLUÇÕES', 'IAC', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}
+                </select>
+            ` }
+    ]
 
-            ${modelo('Pagamento', `<select id="condicoes">
-                ${parcelas.map(op => `<option ${dados_orcam?.condicoes == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
+    const form = new formulario({ linhas, botoes, titulo: 'Dados do Cliente' })
+    form.abrirFormulario()
 
-            ${modelo('Garantia', `<input id="garantia" value="${dados_orcam?.garantia || 'Conforme tratativa Comercial'}">`)}
-
-            <label class="info">Dados do Analista</label>
-
-            ${modelo('Analista', `<span id="analista" oninput="salvarContatos(this)" contentEditable="true">${dados_orcam?.analista || acesso.nome_completo}</span>`)}
-            ${modelo('E-mail', `<span id="email_analista" oninput="salvarContatos(this)" contentEditable="true">${dados_orcam?.email_analista || acesso.email}</span>`)}
-            ${modelo('Telefone', `<span id="telefone_analista" oninput="salvarContatos(this)" contentEditable="true">${dados_orcam?.telefone_analista || acesso.telefone}</span>`)}
-
-            <label class="info">Quem emite essa nota?</label>
-
-            ${modelo('Empresa', `<select id="emissor">
-                ${['AC SOLUÇÕES', 'IAC', 'HNW', 'HNK'].map(op => `<option ${dados_orcam?.emissor == op ? 'selected' : ''}>${op}</option>`).join('')}</select>`)}
-        </div>
-                
-        <div class="rodape-painel-clientes">
-            ${botaoRodape('salvarDadosCliente()', 'Salvar Dados', 'concluido')}
-            ${botaoRodape('atualizarBaseClientes()', 'Atualizar Clientes', 'atualizar3')}
-            ${idOrcamento ? '' : botaoRodape('executarLimparCampos()', 'Limpar Campos', 'limpar')}
-        </div>
-    `
-
-    removerOverlay()
-    const painel = document.querySelector('.cadastro-cliente')
-    if (painel) return painel.innerHTML = acumulado
-
-    popup(`<div class="cadastro-cliente">${acumulado}</div>`, 'Dados do Cliente', true)
 }
 
 function salvarContatos(span) {
@@ -2392,9 +2429,9 @@ async function salvarDadosCliente() {
         transportadora: el('transportadora').value,
         tipo_de_frete: el('tipo_de_frete').value,
         emissor: el('emissor').value,
-        email_analista: el('email_analista').textContent,
-        analista: el('analista').textContent,
-        telefone_analista: el('telefone_analista').textContent
+        email_analista: el('email_analista').value,
+        analista: el('analista').value,
+        telefone_analista: el('telefone_analista').value
     }
 
     const filtroChamado = el('filtroChamado')
@@ -2438,6 +2475,8 @@ async function abrirDANFE(codOmieNF, tipo, app) {
     overlayAguarde()
 
     const resposta = await buscarDANFE(codOmieNF, tipo, app)
+
+    console.log(resposta)
 
     if (resposta.err) return popup(mensagem(`Provavelmente esta nota foi importada via XML e por enquanto não está disponível`), 'Alerta', true)
 
@@ -2514,8 +2553,6 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
             .join('')
 
         const descricao = String(getValorPorCaminho(dado, campos[0]))
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-zA-Z0-9 ]/g, '')
 
         opcoesDiv += `
         <div 
@@ -2702,113 +2739,25 @@ async function criarDepartamento(idOrcamento) {
     }
 }
 
-async function excelOrcamentos() {
+async function auxDepartamentos() {
 
-    const workbook = new ExcelJS.Workbook()
-    const worksheet = workbook.addWorksheet('Orçamentos')
+    const dados_orcamentos = await recuperarDados('dados_orcamentos')
+    const dados_clientes = await recuperarDados('dados_clientes')
+    const departamentos = await recuperarDados('departamentos_AC')
 
-    // Encontra todas as linhas da tabela
-    const linhas = document.querySelectorAll('.linha-orcamento-tabela')
+    for (const [, orcamento] of Object.entries(dados_orcamentos)) {
 
-    for (let rowIndex = 0; rowIndex < linhas.length; rowIndex++) {
+        if (!orcamento.departamento) continue
 
-        if (rowIndex == 1) continue
+        const codDep = orcamento.departamento.AC.codigo
+        const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
+        
+        if(!departamentos[codDep]) continue
 
-        const linha = linhas[rowIndex]
-        // Seleciona tanto os cabeçalhos (ths-orcamento) quanto as células normais (celula)
-        const celulas = linha.querySelectorAll('.ths-orcamento, .celula')
-        let row = []
+        departamentos[codDep].cliente = dados_clientes?.[codCliente] || {}
 
-        for (let colIndex = 0; colIndex < celulas.length; colIndex++) {
-            const celula = celulas[colIndex]
-            const select = celula.querySelector('select')
-            const input = celula.querySelector('input')
-            const textarea = celula.querySelector('textarea')
-
-            if (select) {
-                row.push(select.value)
-            } else if (input) {
-                // Verifica o tipo do input
-                if (input.type === 'checkbox') {
-                    row.push(input.checked ? 'Sim' : 'Não')
-                } else if (input.type === 'number') {
-                    row.push(parseFloat(input.value) || 0)
-                } else if (input.type === 'date') {
-                    row.push(input.value)
-                } else {
-                    row.push(input.value)
-                }
-            } else if (textarea) {
-                row.push(textarea.value)
-            } else {
-                // Remove espaços em branco e quebras de linha
-                row.push(celula.textContent.replace(/\s+/g, ' ').trim())
-            }
-        }
-        worksheet.addRow(row)
     }
 
-    // ====== ESTILOS ======
-    worksheet.eachRow((row, rowNumber) => {
-        row.eachCell((cell, colNumber) => {
-            cell.alignment = {
-                vertical: 'middle',
-                horizontal: 'center',
-                wrapText: true
-            }
-            cell.border = {
-                top: { style: 'thin' },
-                left: { style: 'thin' },
-                bottom: { style: 'thin' },
-                right: { style: 'thin' }
-            }
+    await inserirDados(departamentos, 'departamentos_AC')
 
-            // Cabeçalho (primeira linha)
-            if (rowNumber === 1) {
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFD9D9D9' }
-                }
-                cell.font = { bold: true }
-            }
-
-            // Formatação para colunas numéricas
-            if (typeof cell.value === 'number') {
-                cell.numFmt = '#,##0.00'
-                if (rowNumber !== 1) {
-                    cell.alignment.horizontal = 'right'
-                }
-            }
-        })
-    })
-
-    // Ajuste automático de largura das colunas
-    worksheet.columns.forEach(col => {
-        let maxLength = 10
-        col.eachCell(cell => {
-            const cellLength = String(cell.value || '').length
-            if (cellLength > maxLength) {
-                maxLength = cellLength
-            }
-        })
-        col.width = Math.min(maxLength + 2, 50) // Limite máximo de 50
-    })
-
-    // Ajusta altura das linhas para conteúdo com quebra
-    worksheet.eachRow(row => {
-        row.height = 20
-    })
-
-    // ====== GERAR ARQUIVO ======
-    const buffer = await workbook.xlsx.writeBuffer()
-    const blob = new Blob([buffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `orcamentos-${new Date().getTime()}.xlsx`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
 }

@@ -598,7 +598,7 @@ span[name="titulo"] {
     align-items: start;
     justify-content: start;
     gap: 5px;
-    border-top: 1px solid #666666;
+    border: 1px solid #666666;
     width: 100%;
     min-height: 2vh;
     border-bottom-left-radius: 3px;
@@ -629,6 +629,8 @@ span[name="titulo"] {
 }
 
 .div-tabela {
+    border-right: solid 1px #666666;
+    border-left: solid 1px #666666;
     background-color: white;
     height: max-content;
     width: 100%;
@@ -637,7 +639,7 @@ span[name="titulo"] {
 }
 
 .topo-tabela {
-    border-bottom: 1px solid #666666;
+    border: 1px solid #666666;
     min-height: 2vh;
     display: flex;
     align-items: start;
@@ -654,10 +656,10 @@ span[name="titulo"] {
 }
 
 .painelBotoes {
-    border-bottom: 1px solid #666666;
+    border: 1px solid #666666;
     min-height: 2vh;
     display: flex;
-    align-items: start;
+    align-items: center;
     justify-content: start;
     border-top-right-radius: 2px;
     border-top-left-radius: 2px;
@@ -808,6 +810,7 @@ span[name="titulo"] {
 }
 
 .etiquetas {
+    cursor: pointer;
     background-color: #b9dbf9;
     display: flex;
     align-items: start;
@@ -1986,11 +1989,6 @@ input[type=range]::-moz-range-thumb {
     position: fixed;
     top: 1rem;
     left: 1rem;
-}
-
-.div-mensagem:hover {
-    background-color: #097fe6;
-    color: white;
 }
 
 .tabela {

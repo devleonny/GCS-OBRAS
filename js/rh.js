@@ -176,9 +176,9 @@ async function pastaHTML(idPessoa, idPasta, idAnexo, mostrarPopup) {
             <div class="blocoRH">
                 ${modeloRH('Realizado', `<input id="emissao_${idAnexo}" type="date" onchange="calcularVencimento('${idPessoa}', '${idPasta}', '${idAnexo}');" value="${anexo?.emissao || ''}">`)}
                 ${modeloRH('Validade', `<input id="validade_${idAnexo}" type="date" onchange="${funcao('validade')}" value="${anexo?.validade || ''}">`)}
-                ${modeloRH('Local', `<input id="local_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Localidade" value="${anexo?.local || ''}">`, funcao('local'))}
-                ${modeloRH('Clínica', `<input id="clinica_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Nome da Clínica" value="${anexo?.clinica || ''}">`, funcao('clinica'))}
-                ${modeloRH('Contato', `<input id="contato_${idAnexo}" oninput="mostrarBtn(this)" placeholder="Tel/E-mail" value="${anexo?.contato || ''}">`, funcao('contato'))}
+                ${modeloRH('Local', `<input id="local_${idAnexo}" oninput="mostrarBtnRH(this)" placeholder="Localidade" value="${anexo?.local || ''}">`, funcao('local'))}
+                ${modeloRH('Clínica', `<input id="clinica_${idAnexo}" oninput="mostrarBtnRH(this)" placeholder="Nome da Clínica" value="${anexo?.clinica || ''}">`, funcao('clinica'))}
+                ${modeloRH('Contato', `<input id="contato_${idAnexo}" oninput="mostrarBtnRH(this)" placeholder="Tel/E-mail" value="${anexo?.contato || ''}">`, funcao('contato'))}
                 <div style="${horizontal}; justify-content: space-between; width: 100%;">
                     ${criarAnexoVisual(anexo.nome, anexo.link)}
                     ${botao('Excluir', `confirmarExclusaoAnexo('${idPessoa}', '${idPasta}', '${idAnexo}')`, '#B12425')}
@@ -259,7 +259,7 @@ async function excluirPastaRH(idPessoa, idPasta) {
 
 }
 
-function mostrarBtn(input) {
+function mostrarBtnRH(input) {
     input.nextElementSibling.style.display = 'block'
 }
 
