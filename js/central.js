@@ -50,7 +50,7 @@ const avisoHTML = (termo) => `
     </div>
     `
 const mensagem = (mensagem, img) => `
-    <div style="background-color: #d2d2d2; display: flex; gap: 10px; padding: 2vw; align-items: center; justify-content: center;">
+    <div style="background-color: #d2d2d2; gap: 10px; padding: 1rem; ${horizontal};">
         <img src="${img ? img : `gifs/alerta.gif`}" style="width: 3rem;">
         <label>${mensagem}</label>
     </div>
@@ -210,8 +210,8 @@ const esquemaBotoes = {
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Atualizar', funcao: 'atualizarDadosVeiculos', img: 'atualizar3' },
         { nome: 'Adicionar Combustível', funcao: 'painelValores', img: 'combustivel' },
-        { nome: 'Novo Motorista', funcao: 'novoMotorista', img: 'motorista' },
-        { nome: 'Novo Veículo', funcao: 'novoVeiculo', img: 'veiculo' },
+        { nome: 'Motoristas', funcao: 'auxMotoristas', img: 'motorista' },
+        { nome: 'Veículos', funcao: 'auxVeiculos', img: 'veiculo' },
     ],
     pagamentos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -2737,4 +2737,27 @@ async function criarDepartamento(idOrcamento) {
     } catch (error) {
         return { mensagem: error.messagem || error.mensage || error }
     }
+}
+
+async function auxDepartamentos() {
+
+    const dados_orcamentos = await recuperarDados('dados_orcamentos')
+    const dados_clientes = await recuperarDados('dados_clientes')
+    const departamentos = await recuperarDados('departamentos_AC')
+
+    for (const [, orcamento] of Object.entries(dados_orcamentos)) {
+
+        if (!orcamento.departamento) continue
+
+        const codDep = orcamento.departamento.AC.codigo
+        const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
+        
+        if(!departamentos[codDep]) continue
+
+        departamentos[codDep].cliente = dados_clientes?.[codCliente] || {}
+
+    }
+
+    await inserirDados(departamentos, 'departamentos_AC')
+
 }

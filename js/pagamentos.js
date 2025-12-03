@@ -1,14 +1,13 @@
 let idP = null
 let filtrosAtivosPagamentos = {}
-let opcoesStatus = [
+let departamentos = {}
+const opcoesStatus = [
     '',
     'Aguardando aprovação da Diretoria',
     'Aguardando aprovação da Gerência',
     'Pagamento Excluído',
     'Processando...'
 ]
-
-let departamentos = {}
 
 function imagemEspecifica(justificativa) {
 
@@ -53,6 +52,7 @@ async function recuperarPagamentos() {
     ]
 
     for (const tabela of tabelas) await sincronizarDados(tabela)
+    await auxDepartamentos() // Resgatar dados do orçamento no objeto
 
     await telaPagamentos()
 
@@ -779,7 +779,7 @@ async function criarPagamento() {
             <hr style="width: 100%;">
 
             ${modeloCampos('cc', 'Centro de Custo', `
-                    <span class="opcoes" name="cc" onclick="cxOpcoes('cc', 'departamentos_AC', ['descricao'], 'calculadoraPagamento()')">Selecionar</span>
+                    <span class="opcoes" name="cc" onclick="cxOpcoes('cc', 'departamentos_AC', ['cliente/nome', 'descricao', 'cliente/cidade', 'cliente/cnpj'], 'calculadoraPagamento()')">Selecionar</span>
                 `)}
 
             ${modeloCampos('recebedor', 'Recebedor', `
@@ -1207,7 +1207,6 @@ async function calculadoraPagamento(pagamentoEmEdicao) {
                     ],
                     data_previsao: dataFinal,
                     categorias: auxCategorias.categorias,
-                    id_conta_corrente: '6054234828', // Itaú AC > Padrão;
                 }
             ]
 
