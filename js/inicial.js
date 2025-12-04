@@ -3,8 +3,6 @@ async function telaInicial() {
     document.querySelector('[name="titulo"]').textContent = 'GCS'
 
     const hora = new Date().getHours()
-    const boasVindas = hora > 18 ? 'Boa Noite' : hora > 12 ? 'Boa tarde' : 'Bom dia'
-
     const guias = ['PDA', 'Acompanhamento Obras']
 
     const acumulado = `
@@ -23,6 +21,12 @@ async function telaInicial() {
     `
     tela.innerHTML = acumulado
 
+    const pda = await recuperarDados('pda')
+
+    for(const [idOrcamento, dados] of Object.entries(pda)) {
+        linPda(idOrcamento, dados)
+    }
+
     criarMenus('inicial')
 
 }
@@ -30,6 +34,7 @@ async function telaInicial() {
 async function carregarPDA() {
 
     dados_clientes = await recuperarDados('dados_clientes')
+    dados_orcamentos = await recuperarDados('dados_orcamentos')
 
     const colunas = ['Orçamento', 'Cliente', 'Cidade', 'Valor do Orçamento', 'Status', 'Tag', 'Cliente', 'Serviço', 'Ação Necessário']
 
@@ -37,7 +42,7 @@ async function carregarPDA() {
 
     const acumulado = `
         <div class="topo-tabela">
-            <button onclick="linPDA()">Adicionar Linha</button>
+            <button onclick="adicionarLinPda()">Adicionar Linha</button>
         </div>
         <div class="div-tabela">
             <table class="tabela">
@@ -66,18 +71,35 @@ function auxCliPda(codOmie) {
     `
 }
 
-function linPDA() {
+function linPda(idOrcamento, dados) {
 
-    const aleat = ID5digitos()
+    const orcamento = dados_orcamentos[idOrcamento] || {}
+    const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
+    const cliente = dados_clientes?.[codCliente] || {}
+    const st = orcamento?.status?.atual || ''
+    const opcoes = ['', ...fluxograma].map(fluxo => `<option ${st == fluxo ? 'selected' : ''}>${fluxo}</option>`).join('')
+
     const tds = `
+        <td>${orcamento?.dados_orcam?.contrato || ''}</td>
+        <td>${cliente?.nome || '...'}</td>
+        <td>${cliente?.cidade || '...'}</td>
+        <td>${dinheiro(orcamento?.total_geral)}</td>
         <td>
-            <span class="opcoes" name="${aleat}" onclick="cxOpcoes('${aleat}', 'dados_orcamentos', ['dados_orcam/contrato', 'dados_orcam/omie_cliente[auxCliPda]', 'total_geral[dinheiro]'])">Selecione</span>
+            <select name="status" class="opcoesSelect" onchange="alterarStatus(this, '${idOrcamento}')">
+                ${opcoes}
+            </select>
         </td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
+        <td>
+            <div style="${horizontal}; justify-content: space-between; width: 100%; align-items: start; gap: 2px;">
+                <div name="tags" style="${vertical}; gap: 1px;">
+                    ${gerarLabelsAtivas(orcamento?.tags || {})}
+                </div>
+                <img 
+                    src="imagens/etiqueta.png" 
+                    style="width: 1.2rem;" 
+                    onclick="tagsOrcamento('${idOrcamento}')">
+            </div>
+        </td>
         <td></td>
         <td></td>
         <td>
@@ -88,12 +110,45 @@ function linPDA() {
         </td>
     `
 
-
     document.getElementById('pda').insertAdjacentHTML('beforeend', `<tr id="">${tds}</tr>`)
 }
 
-function preencherLinPda() {
-    
+function adicionarLinPda() {
+
+    const linhas = [
+        {
+            texto: 'Orçamento',
+            elemento: `
+            <span 
+            class="opcoes" name="orcamento" 
+            onclick="cxOpcoes('orcamento', 'dados_orcamentos', ['dados_orcam/contrato', 'dados_orcam/omie_cliente[auxCliPda]', 'total_geral[dinheiro]'])">
+                Selecione
+            </span>`
+        }
+    ]
+
+    const botoes = [
+        { texto: 'Salvar', img: 'salvo', funcao: `salvarCartao()` }
+    ]
+
+    const form = new formulario({ linhas, botoes, titulo: 'Adicionar linha' })
+    form.abrirFormulario()
+
+}
+
+async function salvarCartao() {
+
+    overlayAguarde()
+
+    const span = document.querySelector('[name="orcamento"]')
+    if (!span.id) return
+    const idOrcamento = span.id
+
+    await inserirDados({ [idOrcamento]: {} }, 'pda')
+    enviar(`pda/${idOrcamento}`, {})
+
+    removerPopup()
+
 }
 
 async function origemDados(toggle, inicial) {
