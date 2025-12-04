@@ -1,31 +1,14 @@
-function telaInicial() {
+async function telaInicial() {
 
     document.querySelector('[name="titulo"]').textContent = 'GCS'
 
-    const autorizadosPainelNotas = (acesso) => {
-        const liberados = {
-            permissao: ['adm', 'diretoria', 'fin'],
-            usuario: ['Tayna', 'Livia'],
-            setor: ['FINANCEIRO']
-        }
-
-        return (
-            liberados.permissao.includes(acesso.permissao) ||
-            liberados.usuario.includes(acesso.usuario) ||
-            liberados.setor.includes(acesso.setor)
-        );
-    }
-
     const hora = new Date().getHours()
-    const boasVindas = hora > 12 ? 'Boa tarde' : hora > 18 ? 'Boa noite' : 'Bom dia'
+    const boasVindas = hora > 18 ? 'Boa Noite' : hora > 12 ? 'Boa tarde' : 'Bom dia'
 
     const acumulado = `
-        <div class="planoFundo">
-            <div class="infos">
-                <span><b>${boasVindas}</b>,</span>
-                <span>Todos os botões estão no menu do canto <b>☰</b>,</span>
-                <span>Caso precisem recarregar a tela usem o <b>F5</b>,</span>
-                <span>Se as tabelas estiverem estranhamente desatualizadas, usem o <b>F8</b>.</span>
+        <div class="tela-gerenciamento">
+            <div id="tabelas">
+                ${await carregarPDA()}
             </div>
         </div>
     `
@@ -33,6 +16,26 @@ function telaInicial() {
 
     criarMenus('inicial')
 
+}
+
+async function carregarPDA() {
+
+    const tabelas = document.getElementById('tabelas')
+
+    const colunas = ['Orçamento', 'Valor do Orçamento', 'Status', 'Tag', 'Cliente', 'Serviço', 'Ação Necessário', 'Responsável', 'Prazo da ação']
+
+    const ths = colunas.map(col => `<th>${col}</th>`).join('')
+
+    const acumulado = `
+        <table class="tabela">
+            <thead>
+                <tr>${ths}</tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    `
+
+    return acumulado
 }
 
 async function origemDados(toggle, inicial) {
