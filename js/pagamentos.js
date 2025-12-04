@@ -193,13 +193,11 @@ function criarLinhaPagamento(pagamento) {
     const usuario = dados_setores?.[pagamento.criado] || {}
     const setorCriador = usuario?.setor || ''
     const codDep = pagamento?.param[0]?.distribuicao?.[0]?.cCodDep
-    const nomeDepartamento = departamentos?.[codDep]?.descricao || '-'
+    const dep = departamentos?.[codDep] || {}
 
     const tds = `
         <td>${pagamento.param[0].data_vencimento}</td>
-        <td>
-            ${nomeDepartamento}
-        </td>
+        <td>${dep?.descricao || ''} • ${dep?.cliente?.nome || ''}</td>
         <td>${pagamento?.app || 'AC'}</td>
         <td style="white-space: nowrap; text-align: left;">${dinheiro(pagamento.param[0].valor_documento)}</td>
         <td>
