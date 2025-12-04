@@ -31,14 +31,8 @@ class formulario {
             .join('')
 
         const acumulado = `
-            <div style="${vertical}; background-color: #d2d2d2;">
-
-                <div class="painel-padrao">
-
-                    ${linhas}
-
-                </div>
-        
+            <div class="painel-padrao">
+                ${linhas}
             </div>
             <div class="rodape-padrao">
                 ${botoes}
