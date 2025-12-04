@@ -128,7 +128,7 @@ async function telaPagamentos() {
                         <tbody id="body"></tbody>
                     </table>
                 </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
 
         </div>

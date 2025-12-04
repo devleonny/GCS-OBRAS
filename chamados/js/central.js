@@ -112,7 +112,7 @@ const modeloTabela = ({ colunas, base, funcao, btnExtras = '', body = 'body' }) 
                 <tbody id="${body}"></tbody>
             </table>
         </div>
-        <div class="rodapeTabela"></div>
+        <div class="rodape-tabela"></div>
     </div>`
 }
 
@@ -968,7 +968,7 @@ async function cxOpcoes(name, nomeBase, funcaoAux) {
         <div class="gavetaOpcoes">
             ${opcoesDiv}
         </div>
-        <div class="rodapeTabela"></div>
+        <div class="rodape-tabela"></div>
     `
 
     popup(acumulado, 'Selecione o item', true)

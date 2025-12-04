@@ -66,7 +66,7 @@ async function telaRelatorio() {
                             <tbody id="bodyRelatorio"></tbody>
                         </table>
                     </div>
-                    <div class="rodapeTabela"></div>
+                    <div class="rodape-tabela"></div>
                 </div>
             </div>
         </div>`

@@ -248,7 +248,7 @@ async function telaOrcamentos(semOverlay) {
                 </div>
                 <div id="linhas"></div>
             </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
         `
 
@@ -701,7 +701,7 @@ async function telaPDA() {
                     <tbody id="linhas"></tbody>
                 </table>
             </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
     `
 

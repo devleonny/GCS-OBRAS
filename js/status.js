@@ -598,7 +598,7 @@ async function abrirAdicionais(codigo) {
                             <tbody id="linhasManutencao"></tbody>
                         </table>
                     </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
 
         </div>
@@ -1193,7 +1193,7 @@ async function painelCustos() {
                             <tbody id="bodyCustos"></tbody>
                         </table>
                     </div>
-                    <div class="rodapeTabela"></div>
+                    <div class="rodape-tabela"></div>
                 </div>
             </div>
 
@@ -1208,7 +1208,7 @@ async function painelCustos() {
                             <tbody>${linhasPagamentos}</tbody>
                         </table>
                     </div>
-                    <div class="rodapeTabela"></div>
+                    <div class="rodape-tabela"></div>
                 </div>
             </div>
 
@@ -1772,7 +1772,7 @@ async function mostrarHistoricoStatus() {
                         </tbody>
                     </table>
                 </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
         </div>
     `

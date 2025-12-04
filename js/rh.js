@@ -504,7 +504,7 @@ async function telaRHTabela() {
                     <tbody id="bodyRH"></tbody>
                 </table>
             </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
     `
 

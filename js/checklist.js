@@ -91,7 +91,7 @@ async function telaChecklist() {
                         <tbody id="bodyChecklist"></tbody>
                     </table>
                 </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
 
         </div>
@@ -392,7 +392,7 @@ async function relatorioChecklist() {
                             <tbody id="relatorioChecklist"></tbody>
                         </table>
                     </div>
-                    <div class="rodapeTabela"></div>
+                    <div class="rodape-tabela"></div>
                 </div>
 
                 <div class="calendarios"></div>
@@ -495,7 +495,7 @@ function criarCalendario(datas) {
                         <tbody>${trs}</tbody>
                     </table>
                 </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
         `
     }
@@ -1172,7 +1172,7 @@ async function registrarChecklist(codigo) {
                     <tbody>${linhas}</tbody>
                 </table>
             </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
     `
 

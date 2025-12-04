@@ -565,7 +565,7 @@ span[name="titulo"] {
     background-color: #4a4949;
 }
 
-.rodapeTabela {
+.rodape-tabela {
     display: flex;
     align-items: start;
     justify-content: start;
@@ -573,8 +573,8 @@ span[name="titulo"] {
     border: 1px solid #666666;
     width: 100%;
     min-height: 2vh;
-    border-bottom-left-radius: 3px;
-    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
     background-color: #b1b1b1;
 }
 
@@ -615,8 +615,8 @@ span[name="titulo"] {
     display: flex;
     align-items: start;
     justify-content: start;
-    border-top-right-radius: 2px;
-    border-top-left-radius: 2px;
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
     background-color: #b1b1b1;
     gap: 2px;
     width: 100%;
@@ -1963,7 +1963,6 @@ input[type=range]::-moz-range-thumb {
 }
 
 .tabela {
-    box-shadow: 0px 0px 5px #222;
     min-width: 100%;
     background-color: white;
     border-collapse: collapse;

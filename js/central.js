@@ -567,7 +567,7 @@ async function configs() {
                     <tbody id="tbodyUsuarios">${linhas}</tbody>
                 </table>
                 </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
     `
 
@@ -1885,7 +1885,7 @@ async function verAprovacoes() {
                     <tbody ${tabela == 'todos' ? 'id="tbodyPendencias"' : ''}>${objeto.linhas}</tbody>
                 </table>
             </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
         `
     }
@@ -2012,7 +2012,7 @@ async function verPedidoAprovacao(idOrcamento) {
                         <tbody>${objeto.linhas}</tbody>
                     </table>
                 </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
             `
     }
@@ -2538,7 +2538,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
         return valor
     }
 
-    let base = await recuperarDados(nomeBase)
+    const base = await recuperarDados(nomeBase)
     let opcoesDiv = ''
 
     for (const [cod, dado] of Object.entries(base)) {
@@ -2548,7 +2548,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
         const labels = campos
             .map(campo => {
                 const valor = getValorPorCaminho(dado, campo)
-                return valor ? `<label>${valor}</label>` : ''
+                return valor ? `<div>${valor}</div>` : ''
             })
             .join('')
 
@@ -2558,7 +2558,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
         <div 
             name="camposOpcoes" 
             class="atalhos-opcoes" 
-            onclick="selecionar('${name}', '${cod}', '${descricao}', ${funcaoAux ? `'${funcaoAux}'` : false})">
+            onclick="selecionar('${name}', '${cod}', '${encodeURIComponent(descricao)}', ${funcaoAux ? `'${funcaoAux}'` : false})">
             <img src="${dado.imagem || 'imagens/LG.png'}" style="width: 3rem;">
             <div style="${vertical}; gap: 2px;">
                 ${labels}
@@ -2585,6 +2585,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
 }
 
 async function selecionar(name, id, termo, funcaoAux) {
+    termo = decodeURIComponent(termo)
     const elemento = document.querySelector(`[name='${name}']`)
     elemento.textContent = termo
     elemento.id = id

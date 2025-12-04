@@ -41,7 +41,7 @@ async function modalLPUParceiro(chave) {
                     <tbody id="bodyParceiros"></tbody>
                 </table>
             </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
         `
 
@@ -578,7 +578,7 @@ async function detalharLpuParceiro(chave) {
                     <tbody>${linhasTotais}</tbody>
                 </table>
                 </div>
-            <div class="rodapeTabela"></div>
+            <div class="rodape-tabela"></div>
         </div>
     `
 

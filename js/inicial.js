@@ -5,8 +5,17 @@ async function telaInicial() {
     const hora = new Date().getHours()
     const boasVindas = hora > 18 ? 'Boa Noite' : hora > 12 ? 'Boa tarde' : 'Bom dia'
 
+    const guias = ['PDA', 'Acompanhamento Obras']
+
     const acumulado = `
         <div class="tela-gerenciamento">
+            <div style="${horizontal}; gap: 5px;">
+                ${guias.map(guia => `
+                    <div style="opacity: 0.5;" class="aba-toolbar" onclick="">
+                        <label>${guia}</label>
+                    </div>
+                    `).join('')}
+            </div>
             <div id="tabelas">
                 ${await carregarPDA()}
             </div>
@@ -20,22 +29,71 @@ async function telaInicial() {
 
 async function carregarPDA() {
 
-    const tabelas = document.getElementById('tabelas')
+    dados_clientes = await recuperarDados('dados_clientes')
 
-    const colunas = ['Orçamento', 'Valor do Orçamento', 'Status', 'Tag', 'Cliente', 'Serviço', 'Ação Necessário', 'Responsável', 'Prazo da ação']
+    const colunas = ['Orçamento', 'Cliente', 'Cidade', 'Valor do Orçamento', 'Status', 'Tag', 'Cliente', 'Serviço', 'Ação Necessário']
 
     const ths = colunas.map(col => `<th>${col}</th>`).join('')
 
     const acumulado = `
-        <table class="tabela">
-            <thead>
-                <tr>${ths}</tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <div class="topo-tabela">
+            <button onclick="linPDA()">Adicionar Linha</button>
+        </div>
+        <div class="div-tabela">
+            <table class="tabela">
+                <thead>
+                    <tr>${ths}</tr>
+                </thead>
+                <tbody id="pda"></tbody>
+            </table>
+        </div>
+        <div class="rodape-tabela"></div>
     `
 
     return acumulado
+}
+
+function auxCliPda(codOmie) {
+
+    const cliente = dados_clientes[codOmie] || {}
+
+    if (!cliente) return
+
+    return `
+    ${cliente.nome}<br>
+    ${cliente.cnpj}<br>
+    ${cliente.cidade}<br>
+    `
+}
+
+function linPDA() {
+
+    const aleat = ID5digitos()
+    const tds = `
+        <td>
+            <span class="opcoes" name="${aleat}" onclick="cxOpcoes('${aleat}', 'dados_orcamentos', ['dados_orcam/contrato', 'dados_orcam/omie_cliente[auxCliPda]', 'total_geral[dinheiro]'])">Selecione</span>
+        </td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td>
+            <div style="${vertical};gap: 2px;">
+                <button>Adicionar</button>
+                <div style="${vertical}; gap: 2px;"></div>
+            </div>
+        </td>
+    `
+
+
+    document.getElementById('pda').insertAdjacentHTML('beforeend', `<tr id="">${tds}</tr>`)
+}
+
+function preencherLinPda() {
+    
 }
 
 async function origemDados(toggle, inicial) {

@@ -305,7 +305,7 @@ async function abrirCorrecaoRelatorio(idOcorrencia) {
                         <tbody>${linhas}</tbody>
                     </table>
                 </div>
-                <div class="rodapeTabela"></div>
+                <div class="rodape-tabela"></div>
             </div>
 
         </div>
