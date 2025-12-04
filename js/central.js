@@ -2558,7 +2558,7 @@ async function cxOpcoes(name, nomeBase, campos, funcaoAux) {
         <div 
             name="camposOpcoes" 
             class="atalhos-opcoes" 
-            onclick="selecionar('${name}', '${cod}', '${descricao}', ${funcaoAux ? `'${funcaoAux}'` : false})">
+            onclick="selecionar('${name}', '${cod}', '${descricao.replace('"', '')}', ${funcaoAux ? `'${funcaoAux}'` : false})">
             <img src="${dado.imagem || 'imagens/LG.png'}" style="width: 3rem;">
             <div style="${vertical}; gap: 2px;">
                 ${labels}
@@ -2751,8 +2751,8 @@ async function auxDepartamentos() {
 
         const codDep = orcamento.departamento.AC.codigo
         const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
-        
-        if(!departamentos[codDep]) continue
+
+        if (!departamentos[codDep]) continue
 
         departamentos[codDep].cliente = dados_clientes?.[codCliente] || {}
 

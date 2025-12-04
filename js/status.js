@@ -587,9 +587,15 @@ async function abrirAdicionais(codigo) {
         .map(op => `<th>${op}</th>`)
         .join('')
 
-    const acumulado = `
-        <div class="formulario-adicional">
+    const botoes = [
+        {texto: 'Adicionar Peça', img: 'chamados', funcao: `criarLinhaPeca()`},
+        {texto: 'Sincronizar Estoque', img: 'estoque', funcao: `sincronizarDados('dados_estoque')`},
+        {texto: 'Salvar', img: 'concluido', funcao: `salvarAdicionais('${codigo}')`}
+    ]
 
+    const linhas = [
+        {
+            elemento: `
             <div style="${vertical}; width: 100%;">
                 <div class="topo-tabela"></div>
                     <div class="div-tabela">
@@ -600,18 +606,11 @@ async function abrirAdicionais(codigo) {
                     </div>
                 <div class="rodapeTabela"></div>
             </div>
+            `}
+    ]
 
-        </div>
-        <div style="${horizontal}; background-color: #868686ff; width: 100%; gap: 1px; border-top: solid 1px #868686ff;">
-
-            ${layoutBotao('Adicionar Peça', 'criarLinhaPeca()', 'chamados')}
-            ${layoutBotao('Sincronizar Estoque', `sincronizarDados('dados_estoque')`, 'estoque')}
-            ${layoutBotao('Salvar', `salvarAdicionais('${codigo}')`, 'concluido')}
-
-        </div>
-    `
-
-    popup(acumulado, 'Itens Adicionais', true)
+    const form = new formulario({ linhas, botoes, titulo: 'Itens Adicionais' })
+    form.abrirFormulario()
 
     for (const [cd, dados] of Object.entries(itensAdicionais)) {
 
