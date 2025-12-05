@@ -204,6 +204,9 @@ function filtrarOrcamentos({ ultimoStatus, col, texto } = {}) {
 
 async function telaOrcamentos(semOverlay) {
 
+    const pda = document.querySelector('.tela-gerenciamento')
+    if (pda) return await telaInicial()
+
     atualizarToolbar(true) // GCS no título
 
     funcaoTela = 'telaOrcamentos'
@@ -253,8 +256,7 @@ async function telaOrcamentos(semOverlay) {
         `
 
     const tabelaOrcamento = document.getElementById('tabelaOrcamento')
-    if (!tabelaOrcamento || layout == 'pda') tela.innerHTML = acumulado
-    layout = 'tradicional'
+    if (!tabelaOrcamento) tela.innerHTML = acumulado
 
     dados_orcamentos = await recuperarDados('dados_orcamentos') || {}
     dados_clientes = await recuperarDados('dados_clientes') || {}
@@ -470,7 +472,7 @@ function criarLinhaOrcamento(idOrcamento, orcamento) {
                 <span style="font-size: 0.8rem; white-space: nowrap;">${dinheiro(orcamento.total_geral)}</span>
             </div>
             `)}
-        ${cel(`<div style="${horizontal}; width: 100%;"><img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;"></div>`)}
+        ${cel(`<img onclick="abrirAtalhos('${idOrcamento}')" src="imagens/pesquisar2.png" style="width: 1.5rem;">`)}
         `
 
     if (orcamento.hierarquia) { // slaves;
@@ -649,192 +651,5 @@ async function duplicar(orcam_) {
     novoOrcamento.lpu_ativa == 'ALUGUEL'
         ? await telaCriarOrcamentoAluguel()
         : await telaCriarOrcamento()
-
-}
-
-async function telaPDA() {
-
-    mostrarMenus(false)
-
-    const colunas = [
-        'DATA',
-        'CHAMADO',
-        'LOJA',
-        'STATUS',
-        'RESPONSÁVEL',
-        'OBSERVAÇÃO',
-        'TOTAL',
-        'DATA DA SAÍDA',
-        'PREVISÃO DE ENTREGA',
-        'DATA DE ENTREGA',
-        'TRANSPORTE',
-        'DETALHES'
-    ]
-
-    let ths = '', pesquisa = ''
-
-    colunas.forEach((op, i) => {
-        ths += `
-        <th>
-            <div style="${horizontal}; justify-content: space-between; width: 100%; gap: 1rem;">
-                <span>${op}</span>
-                <img onclick="filtrarAAZ('${i}', 'linhas')" src="imagens/down.png" style="width: 1rem;">
-            </div>
-        </th>`
-        pesquisa += `<th oninput="pesquisarGenerico('${i}', this.textContent, filtroPDA, 'linhas')" style="background-color: white; text-align: left;" contentEditable="true"></th>`
-    })
-
-    const acumulado = `
-        <div style="${vertical}; width: 90vw;">
-            <div class="topo-tabela">
-                <div style="${horizontal}; gap: 5px; padding: 0.5rem;">
-                    <img src="imagens/planilha.png" style="width: 2rem;">
-                    <span style="font-size: 1rem;">Layout PDA</span>
-                </div>
-            </div>
-            <div class="div-tabela">
-                <table class="tabela">
-                    <thead>
-                        <tr>${ths}</tr>
-                        <tr>${pesquisa}</tr>
-                    </thead>
-                    <tbody id="linhas"></tbody>
-                </table>
-            </div>
-            <div class="rodape-tabela"></div>
-        </div>
-    `
-
-    const tabelaExistente = document.querySelector('.div-tabela')
-    if (!tabelaExistente || layout == 'tradicional') tela.innerHTML = acumulado
-    layout = 'pda'
-
-    dados_orcamentos = await recuperarDados('dados_orcamentos')
-    dados_clientes = await recuperarDados('dados_clientes')
-
-    for (const [idOrcamento, orcamento] of Object.entries(dados_orcamentos || {}).reverse()) {
-
-        if (orcamento.origem !== origem) {
-            const trExistente = document.getElementById(idOrcamento)
-            if (trExistente) trExistente.remove()
-            continue
-        }
-
-        criarLinhaPDA(idOrcamento, orcamento)
-
-    }
-
-    criarMenus('pda')
-
-}
-
-function criarLinhaPDA(idOrcamento, orcamento) {
-
-    const clienteOmie = orcamento?.dados_orcam?.omie_cliente || ''
-    const cliente = dados_clientes?.[clienteOmie] || {}
-    const data = orcamento?.dados_orcam?.data ? new Date(orcamento.dados_orcam.data).toLocaleString() : '--'
-
-    const transportadoras = ['', 'CORREIOS', 'BRAEX', 'JADLOG', 'JAMEF', 'VENDA DIRETA', 'AÉREO']
-        .map(op => `<option ${orcamento?.transportadora == op ? 'selected' : ''}>${op}</option>`)
-        .join('')
-
-    const datas = (campo) => {
-
-        const data = orcamento?.[campo] || ''
-        return `
-            <td>
-                <input onchange="atualizarCamposPDA('${idOrcamento}', '${campo}', this)" style="background-color: ${data ? '#0080004a' : '#ff00004a'};" class="datas-pda" style="background-color: transparent;" type="date" value="${data}">
-            </td>
-        `
-    }
-
-    const responsaveis = Object.entries(orcamento.usuarios || {})
-        .map(([user,]) => user)
-        .join(', ')
-
-    const opcoesStatus = ['', ...fluxograma]
-        .map(st => `<option ${orcamento?.status?.atual == st ? 'selected' : ''}>${st}</option>`)
-        .join('')
-
-    const tds = `
-        <td>${data}</td>
-        <td>${orcamento?.dados_orcam?.contrato || '--'}</td>
-        <td>${cliente?.nome || '--'}</td>
-        <td>
-            <select class="opcoesSelect" onchange="alterarStatus(this, '${idOrcamento}')">${opcoesStatus}</select>
-        </td>
-        <td>${responsaveis}</td>
-        <td>
-            <div style="${horizontal}; justify-content: left; gap: 5px;">
-                <img onclick="adicionarObservacao('${idOrcamento}')" src="imagens/editar.png" style="width: 1.5rem;">
-                <span style="min-width: 100px; text-align: left;">${orcamento?.observacao || ''}</span>
-            </div>
-        </td>
-
-        <td style="white-space: nowrap;">${dinheiro(orcamento?.total_geral)}</td>
-
-        ${datas('dtSaida')}
-        ${datas('previsao')}
-        ${datas('dtEntrega')}
-
-        <td>
-            <select onchange="atualizarCamposPDA('${idOrcamento}', 'transportadora', this)">${transportadoras}</select>
-        </td>
-        <td style="text-align: center;" onclick="abrirAtalhos('${idOrcamento}')">
-            <img src="imagens/pesquisar2.png" style="width: 1.5rem; cursor: pointer;">
-        </td>
-    `
-
-    const trExistente = document.getElementById(idOrcamento)
-
-    if (trExistente) return trExistente.innerHTML = tds
-
-    document.getElementById('linhas').insertAdjacentHTML('beforeend', `<tr id="${idOrcamento}">${tds}</tr>`)
-
-}
-
-async function atualizarCamposPDA(idOrcamento, campo, input) {
-
-    let orcamento = dados_orcamentos[idOrcamento]
-
-    orcamento[campo] = input.value
-
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-
-    enviar(`dados_orcamentos/${idOrcamento}/${campo}`, input.value)
-
-    criarLinhaPDA(idOrcamento, orcamento)
-
-}
-
-async function adicionarObservacao(idOrcamento) {
-
-    const orcamento = dados_orcamentos[idOrcamento]
-    const acumulado = `
-        <div style="${vertical}; background-color: #d2d2d2; padding: 1rem;">
-            <span>Escreva uma observação:</span>
-            <textarea name="observacao" cols="50" rows="10">${orcamento?.observacao || ''}</textarea>
-            <button onclick="salvarObservacao('${idOrcamento}')">Salvar Observação</button>
-        </div>
-    `
-
-    popup(acumulado, 'Observação', true)
-
-}
-
-async function salvarObservacao(idOrcamento) {
-
-    const observacao = document.querySelector('[name="observacao"]').value
-    let orcamento = dados_orcamentos[idOrcamento]
-
-    orcamento.observacao = observacao
-
-    await inserirDados({ [idOrcamento]: orcamento }, 'dados_orcamentos')
-
-    enviar(`dados_orcamentos/${idOrcamento}/observacao`, observacao)
-
-    criarLinhaPDA(idOrcamento, orcamento)
-
-    removerPopup()
 
 }

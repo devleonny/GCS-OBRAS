@@ -95,9 +95,8 @@
 }
 
 .span-estiqueta {
-    border: solid 1px #5d5d5d;
     cursor: pointer;
-    border-radius: 3px;
+    border-radius: 5px;
     padding: 5px;
 }
 

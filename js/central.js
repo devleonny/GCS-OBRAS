@@ -163,13 +163,6 @@ const esquemaBotoes = {
         { nome: 'Ocorrências', funcao: `redirecionarChamados`, img: 'LG' },
         { nome: 'Desconectar', funcao: `deslogarUsuario`, img: 'sair' }
     ],
-    pda: [
-        { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
-        { nome: 'Atualizar', funcao: 'atualizarOrcamentos', img: 'atualizar3' },
-        { nome: 'Layout Tradicional', funcao: 'telaOrcamentos', img: 'trocar' },
-        { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'projeto' },
-        { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' },
-    ],
     criarOrcamentos: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
         { nome: 'Dados Cliente', funcao: `painelClientes`, img: 'gerente' },
@@ -191,8 +184,7 @@ const esquemaBotoes = {
         { nome: 'Criar Orçamento', funcao: 'telaCriarOrcamento', img: 'projeto' },
         { nome: 'Orçamento de Aluguel', funcao: 'telaCriarOrcamentoAluguel', img: 'projeto' },
         { nome: 'Orçamentos Aquivados', funcao: 'filtrarArquivados', img: 'desarquivar' },
-        { nome: 'Meus Orçamentos', funcao: 'filtrarMeus', img: 'painelcustos' },
-        { nome: 'Layout PDA', funcao: `telaPDA`, img: 'planilha' }
+        { nome: 'Meus Orçamentos', funcao: 'filtrarMeus', img: 'painelcustos' }
     ],
     composicoes: [
         { nome: 'Menu Inicial', funcao: 'telaInicial', img: 'LG' },
@@ -2450,6 +2442,9 @@ async function salvarDadosCliente() {
     baseOrcamento(orcamentoBase)
     removerPopup()
 
+    const orcamentoPadrao = document.getElementById('orcamento_padrao')
+    if (!orcamentoPadrao) return
+
     if (orcamentoBase.lpu_ativa === 'MODALIDADE LIVRE') {
         total_v2()
     } else {
@@ -2752,8 +2747,8 @@ async function auxDepartamentos() {
 
         const codDep = orcamento.departamento.AC.codigo
         const codCliente = orcamento?.dados_orcam?.omie_cliente || ''
-        
-        if(!departamentos[codDep]) continue
+
+        if (!departamentos[codDep]) continue
 
         departamentos[codDep].cliente = dados_clientes?.[codCliente] || {}
 

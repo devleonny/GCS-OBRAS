@@ -1,8 +1,30 @@
-
-
 .tela-gerenciamento {
     display: flex;
     align-items: start;
     justify-content: start;
     flex-direction: column;
+}
+
+.etiqueta-pendente {
+    width: 100%;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
+    display: flex;
+    padding: 0.5rem;
+    border: solid 1px #ff0000;
+    border-radius: 5px;
+    background-color: #f7c5c5;
+}
+
+.etiqueta-ok {
+    width: 100%;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
+    display: flex;
+    padding: 0.5rem;
+    border: solid 1px #008000;
+    border-radius: 5px;
+    background-color: #00800047;
 }

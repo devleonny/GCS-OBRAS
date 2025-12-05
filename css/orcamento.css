@@ -324,3 +324,10 @@
     justify-content: center;
     gap: 1rem;
 }
+
+.tabela-PDA {
+    display: none;
+    align-items: start;
+    justify-content: start;
+    flex-direction: column;
+}
