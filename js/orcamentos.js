@@ -81,8 +81,9 @@ function ordenarOrcamentos(colunaIndex) {
     }
 }
 
-function pesquisarOrcamentos({ ultimoStatus, col, texto } = {}) {
-    if (ultimoStatus) filtro = ultimoStatus
+function pesquisarOrcamentos({ ultimoStatus = 'TODOS', col, texto } = {}) {
+
+    filtro = ultimoStatus
 
     if (col !== undefined && col !== null)
         filtrosOrcamento[col] = String(texto).toLowerCase().trim()
@@ -98,7 +99,7 @@ function pesquisarOrcamentos({ ultimoStatus, col, texto } = {}) {
     const listaStatus = new Set(['TODOS', 'CHAMADO'])
     const containersInfo = new Map()
 
-    const ignorarStatusCol1 = ultimoStatus && ultimoStatus !== 'CHAMADO'
+    const ignorarStatusCol1 = ultimoStatus !== 'CHAMADO'
 
     for (const linha of linhas) {
         const status = linha.querySelector('[name="status"]')?.value || ''
@@ -106,6 +107,7 @@ function pesquisarOrcamentos({ ultimoStatus, col, texto } = {}) {
         const chamado = linha.dataset.chamado || 'N'
         const isChamado = chamado === 'S'
         const container = linha.closest('.linha-master')
+        if (!container) continue
 
         totais[statusKey] = (totais[statusKey] || 0) + 1
         totais.TODOS++
@@ -113,12 +115,10 @@ function pesquisarOrcamentos({ ultimoStatus, col, texto } = {}) {
         listaStatus.add(statusKey)
         if (isChamado) listaStatus.add('CHAMADO')
 
-        if (container) {
-            if (!containersInfo.has(container))
-                containersInfo.set(container, { linhas: [], temChamado: false })
-            containersInfo.get(container).linhas.push(linha)
-            if (isChamado) containersInfo.get(container).temChamado = true
-        }
+        if (!containersInfo.has(container))
+            containersInfo.set(container, { linhas: [], temChamado: false })
+        containersInfo.get(container).linhas.push(linha)
+        if (isChamado) containersInfo.get(container).temChamado = true
 
         let visivel = true
 
